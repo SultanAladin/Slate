@@ -1,0 +1,174 @@
+//============================================================================================================================================
+//                                                          TOPOLOGYSTRUCTURE.H
+//============================================================================================================================================
+// 🧩 Polygon topology exactly as it arrived — sealed once, never mutated, and never repaired.
+
+#pragma once
+
+#include "Contract/IdentityContract.h"
+#include "Contract/OutcomeContract.h"
+#include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
+
+#include <cstdint>
+#include <vector>
+
+namespace Slate
+{
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 IMPORTED ATTRIBUTES
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 One position in a surface's parametric domain.
+/// note  Held at 32 bits per `02` §3.2's surface space. The domain is the unit square and a 32-bit real resolves
+///        it far below one texel of the largest working extent, so widening would buy nothing.
+/// tag   nonallocating, nonthrowing
+struct DomainCoordinate
+{
+    float  CoordinateAlong  = 0.0f;   // [-] - the domain's first axis
+    float  CoordinateAcross = 0.0f;   // [-] - its second
+};
+
+/// 🧩 A unit direction in an occupant's own object space.
+/// tag   nonallocating, nonthrowing
+struct SurfaceDirection
+{
+    float  DirectionX = 0.0f;   // [-] - unit length, in object space
+    float  DirectionY = 0.0f;   // [-]
+    float  DirectionZ = 0.0f;   // [-]
+};
+
+/// 🧩 One vertex's tangent basis and the handedness that completes it.
+/// note  🔴 Handedness is stored **per vertex** and is not derivable per pixel — `38` §4. A domain that mirrors
+///        across a seam inverts it on one side, and `18` §1.1 interpolates this rather than recomputing it.
+/// tag   nonallocating, nonthrowing
+struct TangentBasis
+{
+    SurfaceDirection  Tangent           = {};      // [-] - along the domain's first axis
+    float             HandednessSignum  = 1.0f;    // [-] - +1 or −1; completes the basis with the perpendicular
+    bool              BasisDeclared     = false;   // [-] - false where the domain is degenerate — `18` §1.1
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE TOPOLOGY
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Polygon topology — positions, corners, faces, and whichever attributes the source supplied.
+/// note  🔴 Sealed once and read thereafter. `38`'s non-mutation guarantee begins here: an index into these
+///        arrays means the same thing after conditioning as before it, so nothing may renumber them.
+/// note  🔴 Faces are corner runs and may carry any corner count. `50` §2 ① never repairs, so n-gons, repeated
+///        indices and degenerate faces all survive intake and are **enrolled** by `38` §3 rather than removed.
+/// note  ⚠️ A format that stores a domain coordinate per corner has already split every vertex where its
+///        coordinates differ, which is why coordinates are held per corner and positions per vertex. `38` §2's
+///        welding index is what relates the two, and it is derived, not stored here.
+/// tag   owning
+class TopologyStructure
+{
+public:
+
+    /// 🧩 Declares the vertex positions, in the source's own ordering.
+    /// in    Arriving  [-]  positions in object space at 64-bit
+    /// out   Outcome   [-]  refuses with HostDenied once the topology is sealed
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> DeclarePositions(const std::vector<DocumentPosition>& Arriving);
+
+    /// 🧩 Declares one face as a run of vertex ordinals, in the source's own winding.
+    /// in    CornerVertices  [-]  vertex ordinals, in traversal order
+    /// out   Outcome         [-]  refuses with HostDenied once sealed, with ExtentExhausted for a run of fewer
+    ///                            than three corners, and with ContentUnsupported for an out-of-range ordinal
+    /// note  📝 A run of fewer than three corners is refused rather than enrolled as degenerate, because it is
+    ///        not a face at all and `38` §3's enrollment is over faces. `50` §3 refuses the intake instead.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> DeclareFace(const std::vector<std::uint32_t>& CornerVertices);
+
+    /// 🧩 Declares one domain coordinate per corner, in corner order.
+    /// out   Outcome  [-]  refuses with ContentUnsupported when the count does not equal the corner count
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> DeclareCoordinates(const std::vector<DomainCoordinate>& Arriving);
+
+    /// 🧩 Declares one perpendicular per vertex, as the source supplied it.
+    /// out   Outcome  [-]  refuses with ContentUnsupported when the count does not equal the vertex count
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> DeclarePerpendiculars(const std::vector<SurfaceDirection>& Arriving);
+
+    /// 🧩 Declares one tangent basis per vertex, as the source supplied it.
+    /// note  🔴 A supplied basis is retained and `38` §4 does not override it with a derived one. An imported
+    ///        basis that disagrees with the imported perpendicular is the author's decision, and reproducing
+    ///        their appearance requires reproducing it.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> DeclareTangentBases(const std::vector<TangentBasis>& Arriving);
+
+    /// 🧩 Declares one material enrollment per face.
+    /// out   Outcome  [-]  refuses with ContentUnsupported when the count does not equal the face count
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving);
+
+    /// 🧩 Seals the topology, advancing its revision. Nothing may be declared afterwards.
+    /// out   Outcome  [-]  refuses with ExtentExhausted when no face was declared
+    /// post  🔴 every read below is stable, and `38` may condition against it off the tick
+    /// cost  ✔️
+    /// tag   api, nonthrowing
+    Outcome<bool> Seal();
+
+    /// 🧩 Whether the topology is sealed and therefore readable.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool Sealed() const;
+
+    /// 🧩 The revision the seal advanced to — what `24` §3 keys a transferred result on.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    std::uint64_t Revision() const;
+
+    std::uint32_t VertexCount() const;
+    std::uint32_t FaceCount() const;
+    std::uint32_t CornerCount() const;
+
+    /// 🧩 The first corner ordinal of one face, and how many corners it carries.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    std::uint32_t FaceFirstCorner(std::uint32_t FaceOrdinal) const;
+    std::uint32_t FaceCornerCount(std::uint32_t FaceOrdinal) const;
+
+    /// 🧩 The vertex one corner addresses.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    std::uint32_t CornerVertex(std::uint32_t CornerOrdinal) const;
+
+    /// 🧩 Which face one corner belongs to.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    std::uint32_t CornerFace(std::uint32_t CornerOrdinal) const;
+
+    const std::vector<DocumentPosition>&  Positions() const;
+    const std::vector<DomainCoordinate>&  Coordinates() const;
+    const std::vector<SurfaceDirection>&  Perpendiculars() const;
+    const std::vector<TangentBasis>&      TangentBases() const;
+    const std::vector<std::uint32_t>&     MaterialEnrollment() const;
+
+    bool CoordinatesSupplied() const;
+    bool PerpendicularsSupplied() const;
+    bool TangentBasesSupplied() const;
+
+private:
+
+    std::vector<DocumentPosition>  VertexPositions;                  // [mm] - as supplied, at 64-bit
+    std::vector<std::uint32_t>     CornerVertexOrdinals;             // [-]  - vertex per corner
+    std::vector<std::uint32_t>     CornerFaceOrdinals;               // [-]  - face per corner
+    std::vector<std::uint32_t>     FaceFirstCorners;                 // [-]  - first corner per face
+    std::vector<std::uint32_t>     FaceCornerCounts;                 // [-]  - corners per face
+    std::vector<DomainCoordinate>  CornerCoordinates;                // [-]  - per corner where supplied
+    std::vector<SurfaceDirection>  VertexPerpendiculars;             // [-]  - per vertex where supplied
+    std::vector<TangentBasis>      VertexTangentBases;               // [-]  - per vertex where supplied
+    std::vector<std::uint32_t>     FaceMaterialOrdinals;             // [-]  - material enrollment per face
+    std::uint64_t                  SealedRevision      = 0u;         // [-]  - advanced at Seal
+    bool                           SealDeclared        = false;      // [-]  - no further declaration is admitted
+};
+
+}   // namespace Slate

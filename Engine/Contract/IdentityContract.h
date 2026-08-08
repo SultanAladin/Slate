@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                            IDENTITYCONTRACT.H
 //============================================================================================================================================
 // 🧩 Generational slot identity, tagged per subject so one subject's identity never passes for another's.
@@ -20,6 +20,7 @@ struct OccupantSubject  {};
 struct PartitionSubject {};
 struct SurfaceSubject   {};
 struct RecordingSubject {};
+struct WorkSubject      {};
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       IDENTITY
@@ -67,5 +68,6 @@ using OccupantIdentity  = Identity<OccupantSubject>;    // [-] - one occupant of
 using PartitionIdentity = Identity<PartitionSubject>;   // [-] - one partition of one occupant's topology
 using SurfaceIdentity   = Identity<SurfaceSubject>;     // [-] - one paintable surface domain
 using RecordingIdentity = Identity<RecordingSubject>;   // [-] - one slot of the recording rotation
+using WorkIdentity      = Identity<WorkSubject>;        // [-] - one declaration in `34`'s work sequence
 
 }   // namespace Slate

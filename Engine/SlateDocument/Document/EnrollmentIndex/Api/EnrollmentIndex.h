@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                            ENROLLMENTINDEX.H
 //============================================================================================================================================
 // 🧩 Which slots are enrolled in a named subset, compressed by interval rather than stored per occupant.
@@ -44,6 +44,27 @@ struct EnrolledInterval
     std::uint32_t  FirstOrdinal = 0u;   // [-] - first enrolled slot ordinal of the run
     std::uint32_t  LastOrdinal  = 0u;   // [-] - last of it; equal to the first for a single slot
 };
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                              INTERVAL ENROLMENT, ON ITS OWN
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Enrols one ordinal into a sorted run of intervals, merging where it abuts.
+/// in    Runs     [-]  sorted, never touching; amended in place
+/// in    Ordinal  [-]  the ordinal to enrol
+/// out   Arrived  [-]  false when the ordinal was already enrolled, so a caller may count arrivals
+/// note  🔴 Declared apart from `EnrollmentIndex` because `38` §3 enrols **faces and vertices** by this same
+///        mechanism and neither is a slot of the document population. One implementation both read is the whole
+///        point: two interval implementations that must agree are one that will not.
+/// cost  🚩
+/// tag   api, nonthrowing
+bool EnrolInterval(std::vector<EnrolledInterval>& Runs, std::uint32_t Ordinal);
+
+/// 🧩 Whether one ordinal is enrolled in a sorted run of intervals.
+/// out   Enrolled  [-]  answered by a search over the runs, never over the ordinals
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+bool IntervalEnrolled(const std::vector<EnrolledInterval>& Runs, std::uint32_t Ordinal);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   MUTUAL EXCLUSION

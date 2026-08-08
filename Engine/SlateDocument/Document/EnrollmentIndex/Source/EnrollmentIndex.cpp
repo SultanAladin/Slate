@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                           ENROLLMENTINDEX.CPP
 //============================================================================================================================================
 // 🧩 Interval merging, division, and the exclusion refusal that precedes every write.
@@ -12,12 +12,9 @@ namespace Slate
 //                                                   INTERVAL SEARCH
 //------------------------------------------------------------------------------------------------------------------------
 
-namespace
-{
-
 // 📝 The first run whose last ordinal is not below the subject. Every enrolment, withdrawal and test starts
 //    here, so it is one routine rather than three loops that must agree.
-std::size_t LocateInterval(const std::vector<EnrolledInterval>& Runs, std::uint32_t SlotOrdinal)
+static std::size_t LocateInterval(const std::vector<EnrolledInterval>& Runs, std::uint32_t SlotOrdinal)
 {
     std::size_t Lower = 0u;
     std::size_t Upper = Runs.size();
@@ -35,7 +32,53 @@ std::size_t LocateInterval(const std::vector<EnrolledInterval>& Runs, std::uint3
     return Lower;
 }
 
-}   // namespace
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 INTERVAL ENROLMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 The merging body Enrol used to hold inline, lifted out so that `38`'s degeneracy enrolment reads the same
+//    code rather than a second copy of the same reasoning.
+bool EnrolInterval(std::vector<EnrolledInterval>& Runs, std::uint32_t Ordinal)
+{
+    const std::size_t Located = LocateInterval(Runs, Ordinal);
+
+    if (Located < Runs.size() && Runs[Located].FirstOrdinal <= Ordinal)
+        return false;
+
+    const bool AbutsBelow = Located != 0u && Runs[Located - 1u].LastOrdinal + 1u == Ordinal;
+    const bool AbutsAbove = Located < Runs.size() && Runs[Located].FirstOrdinal == Ordinal + 1u;
+
+    if (AbutsBelow && AbutsAbove)
+    {
+        Runs[Located - 1u].LastOrdinal = Runs[Located].LastOrdinal;
+        Runs.erase(Runs.begin() + static_cast<std::ptrdiff_t>(Located));
+    }
+    else if (AbutsBelow)
+    {
+        Runs[Located - 1u].LastOrdinal = Ordinal;
+    }
+    else if (AbutsAbove)
+    {
+        Runs[Located].FirstOrdinal = Ordinal;
+    }
+    else
+    {
+        EnrolledInterval Arriving;
+        Arriving.FirstOrdinal = Ordinal;
+        Arriving.LastOrdinal  = Ordinal;
+
+        Runs.insert(Runs.begin() + static_cast<std::ptrdiff_t>(Located), Arriving);
+    }
+
+    return true;
+}
+
+bool IntervalEnrolled(const std::vector<EnrolledInterval>& Runs, std::uint32_t Ordinal)
+{
+    const std::size_t Located = LocateInterval(Runs, Ordinal);
+
+    return Located < Runs.size() && Runs[Located].FirstOrdinal <= Ordinal;
+}
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ENROLMENT
@@ -60,40 +103,11 @@ Outcome<bool> EnrollmentIndex::Enrol(OccupantIdentity Subject, SubsetSubject Enr
     }
 
     std::vector<EnrolledInterval>& Runs        = SubsetIntervals[static_cast<std::size_t>(EnrolledSubset)];
-    const std::uint32_t            SlotOrdinal = Subject.SlotOrdinal;
-    const std::size_t              Located     = LocateInterval(Runs, SlotOrdinal);
-
-    if (Located < Runs.size() && Runs[Located].FirstOrdinal <= SlotOrdinal)
-        return Outcome<bool>::Deliver(true);
 
     // 📝 Extending an abutting run keeps the storage at one run per contiguous span. Two runs that touch
     //    carry no fact the merged run does not, and every later comparison pays for the extra entry.
-    const bool AbutsBelow = Located != 0u && Runs[Located - 1u].LastOrdinal + 1u == SlotOrdinal;
-    const bool AbutsAbove = Located < Runs.size() && Runs[Located].FirstOrdinal == SlotOrdinal + 1u;
-
-    if (AbutsBelow && AbutsAbove)
-    {
-        Runs[Located - 1u].LastOrdinal = Runs[Located].LastOrdinal;
-        Runs.erase(Runs.begin() + static_cast<std::ptrdiff_t>(Located));
-    }
-    else if (AbutsBelow)
-    {
-        Runs[Located - 1u].LastOrdinal = SlotOrdinal;
-    }
-    else if (AbutsAbove)
-    {
-        Runs[Located].FirstOrdinal = SlotOrdinal;
-    }
-    else
-    {
-        EnrolledInterval Arriving;
-        Arriving.FirstOrdinal = SlotOrdinal;
-        Arriving.LastOrdinal  = SlotOrdinal;
-
-        Runs.insert(Runs.begin() + static_cast<std::ptrdiff_t>(Located), Arriving);
-    }
-
-    ++SubsetCounts[static_cast<std::size_t>(EnrolledSubset)];
+    if (EnrolInterval(Runs, Subject.SlotOrdinal))
+        ++SubsetCounts[static_cast<std::size_t>(EnrolledSubset)];
 
     return Outcome<bool>::Deliver(true);
 }
@@ -161,10 +175,7 @@ bool EnrollmentIndex::Enrolled(OccupantIdentity Subject, SubsetSubject EnrolledS
     if (!Subject.IdentityDeclared())
         return false;
 
-    const std::vector<EnrolledInterval>& Runs    = SubsetIntervals[static_cast<std::size_t>(EnrolledSubset)];
-    const std::size_t                    Located = LocateInterval(Runs, Subject.SlotOrdinal);
-
-    return Located < Runs.size() && Runs[Located].FirstOrdinal <= Subject.SlotOrdinal;
+    return IntervalEnrolled(SubsetIntervals[static_cast<std::size_t>(EnrolledSubset)], Subject.SlotOrdinal);
 }
 
 const std::vector<EnrolledInterval>& EnrollmentIndex::Intervals(SubsetSubject EnrolledSubset) const
