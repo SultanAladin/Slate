@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                           OUTLINERSEQUENCE.CPP
 //============================================================================================================================================
 // 🧩 The seven steps in order, every mutation a transaction, and the retirement cascade as one of them.
@@ -41,6 +41,10 @@ Outcome<OccupantIdentity> OutlinerSequence::Enrol(const std::string& DeclaredNam
 
     LiveGenerations[Arriving.SlotOrdinal] = Arriving.SlotGeneration;
 
+    // 📝 An occupant arriving while a narrowing stands is retained by nothing, so the narrowing is owed again
+    //    at ⑦. Without it the arrival is hidden by a search its own name may well confirm.
+    NarrowingOwed = true;
+
     return Outcome<OccupantIdentity>::Deliver(Arriving);
 }
 
@@ -73,10 +77,9 @@ void OutlinerSequence::Reject(const DeclaredIntent& Refused, const Refusal& Decl
 //                                                    SUBSET INTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 The standing selection enrolled and sealed in one place, so that a selection arriving as intent and one
-//    restored by a scrub reach the same two records rather than each writing its own half.
-Outcome<bool> OutlinerSequence::ApplySelection(const std::vector<OccupantIdentity>& Standing,
-                                               std::uint64_t                        SealedAt)
+// 📝 The subset half of a selection, taken on its own so that a selection arriving as intent and one restored
+//    by a scrub reach the same enrolment without the scrub sealing a selection the artist never made.
+Outcome<bool> OutlinerSequence::EnrolSelection(const std::vector<OccupantIdentity>& Standing)
 {
     Subsets.Reclaim(SubsetSubject::Selection);
 
@@ -87,6 +90,17 @@ Outcome<bool> OutlinerSequence::ApplySelection(const std::vector<OccupantIdentit
         if (!Held.ContentPresent)
             return Held;
     }
+
+    return Outcome<bool>::Deliver(true);
+}
+
+Outcome<bool> OutlinerSequence::ApplySelection(const std::vector<OccupantIdentity>& Standing,
+                                               std::uint64_t                        SealedAt)
+{
+    const Outcome<bool> Enrolled = EnrolSelection(Standing);
+
+    if (!Enrolled.ContentPresent)
+        return Enrolled;
 
     Selected.Seal(Standing, Revised.Committed().size());
 
@@ -187,6 +201,53 @@ Outcome<bool> OutlinerSequence::DeriveNarrowing()
     // 🔴 `12` §3: approximate index, exact confirmation. Narrow confirms each candidate against the whole
     //    name, so what the rows retain is what genuinely contains the text rather than what shares a trigram.
     return Linearisation.DeclareNarrowing(NameSearch.Narrow(NarrowingSought), true);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      SCRUBBING
+//------------------------------------------------------------------------------------------------------------------------
+
+Outcome<bool> OutlinerSequence::Retreat(std::uint64_t SealedAt)
+{
+    const Outcome<bool> Scrubbed = Revised.Retreat();
+
+    if (!Scrubbed.ContentPresent)
+        return Scrubbed;
+
+    // 🔴 The selection is restored to what the arrived-at position was selected against, and the restoration
+    //    seals nothing. `84` §3: scrubbing to position twelve and back is not an edit, and a sequence that
+    //    recorded its own navigation is one no artist can reason about.
+    if (Selected.RestoreAt(Revised.ScrubPosition()).ContentPresent)
+    {
+        const Outcome<bool> Enrolled = EnrolSelection(Selected.Standing());
+
+        if (!Enrolled.ContentPresent)
+            return Enrolled;
+    }
+
+    static_cast<void>(SealedAt);
+
+    return Outcome<bool>::Deliver(true);
+}
+
+Outcome<bool> OutlinerSequence::Advance(std::uint64_t SealedAt)
+{
+    const Outcome<bool> Scrubbed = Revised.Advance();
+
+    if (!Scrubbed.ContentPresent)
+        return Scrubbed;
+
+    if (Selected.RestoreAt(Revised.ScrubPosition()).ContentPresent)
+    {
+        const Outcome<bool> Enrolled = EnrolSelection(Selected.Standing());
+
+        if (!Enrolled.ContentPresent)
+            return Enrolled;
+    }
+
+    static_cast<void>(SealedAt);
+
+    return Outcome<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -388,9 +449,24 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     // ⑦ Re-derive the search entries for occupants whose name changed, within this same tick. Each declaration
     //    carries its own name, so nothing here consults a run ① has already cleared.
     for (const DeclaredIntent& Naming : RenamedDeclarations)
+    {
         NameSearch.Declare(Naming.Subject, Naming.DeclaredName);
+        NarrowingOwed = true;
+    }
 
     RenamedDeclarations.clear();
+
+    // 🔴 The narrowing is derived here rather than at ①. ⑤ reassigns every row ordinal and the entries above
+    //    are only final now, so a set confirmed earlier would be retained against rows the rebuild discarded.
+    if (NarrowingOwed)
+    {
+        const Outcome<bool> Narrowed = DeriveNarrowing();
+
+        if (!Narrowed.ContentPresent)
+            return Narrowed;
+
+        NarrowingOwed = false;
+    }
 
     return Outcome<bool>::Deliver(true);
 }
@@ -427,6 +503,11 @@ const RevisionSequence& OutlinerSequence::Revisions() const
 const SelectionSequence& OutlinerSequence::Selections() const
 {
     return Selected;
+}
+
+const std::string& OutlinerSequence::Sought() const
+{
+    return NarrowingSought;
 }
 
 const std::vector<RejectedIntent>& OutlinerSequence::Rejected() const

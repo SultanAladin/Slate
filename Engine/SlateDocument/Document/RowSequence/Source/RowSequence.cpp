@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                             ROWSEQUENCE.CPP
 //============================================================================================================================================
 // 🧩 The depth-first walk, and the binary-indexed counts that answer both scroll questions.
@@ -213,6 +213,18 @@ Outcome<bool> RowSequence::Linearize(const SceneStructure& Relations)
         SequencedRows.push_back(Arriving);
 
         AppendReversed(Pending, Relations, Relations.FirstEnclosed(SlotOrdinal));
+    }
+
+    // 📝 🔴 A slot that holds no row holds no standing decision either. Clearing here is what makes a reused
+    //    slot safe: without it a new occupant inherits the collapse and the retention of whoever the slot
+    //    carried before, and appears collapsed, or retained by a narrowing it was never confirmed against.
+    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RowOfSlot.size(); ++SlotOrdinal)
+    {
+        if (RowOfSlot[SlotOrdinal] != AbsentSlot)
+            continue;
+
+        SlotCollapsed[SlotOrdinal] = false;
+        SlotRetained[SlotOrdinal]  = false;
     }
 
     Recount();

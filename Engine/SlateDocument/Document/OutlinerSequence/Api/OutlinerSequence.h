@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                            OUTLINERSEQUENCE.H
 //============================================================================================================================================
 // 🧩 The fixed tick order over both relations, the linearisation, the subsets and the name search.
@@ -113,7 +113,7 @@ public:
     Outcome<bool> Declare(const DeclaredIntent& Arriving);
 
     /// 🧩 Scrubs the document one transaction backwards, restoring the selection that transaction applied to.
-    /// in    SealedAt  [ns]  the arrival stamp the restored selection is sealed at
+    /// in    SealedAt  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
     /// out   Outcome   [-]   refuses with ExtentExhausted at the beginning of the revision sequence
     /// post  🔴 the document position and the standing selection moved together — `12` §11
     /// note  🔴 This is the defect `12` §11 warns of, closed: move three occupants, undo, and the transforms
@@ -127,7 +127,7 @@ public:
     Outcome<bool> Retreat(std::uint64_t SealedAt);
 
     /// 🧩 Scrubs the document one transaction forwards, restoring the selection that transaction applied to.
-    /// in    SealedAt  [ns]  the arrival stamp the restored selection is sealed at
+    /// in    SealedAt  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
     /// out   Outcome   [-]   refuses with ExtentExhausted at the end of the revision sequence
     /// post  the document position and the standing selection moved together
     /// cost  🚩
@@ -202,7 +202,9 @@ private:
     Outcome<bool> ApplyIntent(const DeclaredIntent& Applying, std::uint64_t SealedAt);
     Outcome<bool> ApplySubset(const DeclaredIntent& Applying, SubsetSubject Addressed, std::uint64_t SealedAt);
     Outcome<bool> ApplyNarrowing(const DeclaredIntent& Applying);
+    Outcome<bool> DeriveNarrowing();
     Outcome<bool> ApplySelection(const std::vector<OccupantIdentity>& Standing, std::uint64_t SealedAt);
+    Outcome<bool> EnrolSelection(const std::vector<OccupantIdentity>& Standing);
     Outcome<bool> RetireCascade(const DeclaredIntent& Applying, std::uint64_t SealedAt);
     void          Reject(const DeclaredIntent& Refused, const Refusal& Declining);
 

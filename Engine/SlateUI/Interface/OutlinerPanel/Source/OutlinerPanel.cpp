@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                            OUTLINERPANEL.CPP
 //============================================================================================================================================
 // 🧩 The counted span presented, and every gesture over it turned into a declared intent.
@@ -132,12 +132,21 @@ Outcome<bool> OutlinerPanel::Present(OutlinerSequence& Outliner)
     ImGui::SetNextItemWidth(-1.0f);
     ImGui::InputText("##Sought", SoughtEntry, sizeof(SoughtEntry));
 
-    // 📝 The narrowing is presented as a confirmed count, not as a narrowed sequence. `12` §10 rules row
-    //    narrowing a subset, and a subset arrives as declared intent — narrowing the linearisation here would
-    //    make the presentation the owner of the thing it displays, which `14` §1 forbids outright.
+    // 📝 The narrowing is declared, not applied. `12` §10 rules row narrowing a subset, and a subset arrives
+    //    as declared intent — narrowing the linearisation where the keystroke landed would make the
+    //    presentation the owner of the thing it displays, which `14` §1 forbids outright.
     const std::string Sought = SoughtEntry;
 
-    ConfirmedCount = Sought.empty() ? 0u : static_cast<std::uint32_t>(Names.Narrow(Sought).size());
+    if (Sought != Outliner.Sought())
+    {
+        DeclaredIntent Narrowing;
+        Narrowing.Declared   = OutlinerIntent::Narrow;
+        Narrowing.SoughtText = Sought;
+
+        Outliner.Declare(Narrowing);
+
+        ConfirmedCount = Sought.empty() ? 0u : static_cast<std::uint32_t>(Names.Narrow(Sought).size());
+    }
 
     if (!Sought.empty())
         ImGui::TextDisabled("%u of %u names confirmed", ConfirmedCount, Names.NamedCount());
