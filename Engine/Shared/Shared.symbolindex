@@ -1,0 +1,45 @@
+//============================================================================================================================================
+//                                                             SHARED.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Symbol roll for Shared — Sign of a planar orientation determinant — filtered fast path over an exact expansion fallback.
+
+%format   symbolindex 1.0
+%scope    layer
+%path     Engine/Shared
+%folders  1
+%symbols  24
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     FOLDER INDEXES
+//------------------------------------------------------------------------------------------------------------------------
+
+I Shared | Shared/Shared.symbolindex | 24 sym | Sign of a planar orientation determinant — filtered fast path over an exact expansion fallback.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+K SlateExpansionCapacity | Shared/OrientationClassifier.slang.h | 23      | ?
+F SplitExactly           | Shared/OrientationClassifier.slang.h | 41-47   | Splits one operand into two halves whose product with another split operand is exactly representable.
+F SumExactly             | Shared/OrientationClassifier.slang.h | 56-63   | Exact sum of two operands as a leading term and the rounding residue it discarded.
+F DifferenceExactly      | Shared/OrientationClassifier.slang.h | 72-79   | Exact difference of two operands as a leading term and the rounding residue it discarded.
+F ProductExactly         | Shared/OrientationClassifier.slang.h | 88-105  | Exact product of two operands as a leading term and the rounding residue it discarded.
+F AccumulateExactly      | Shared/OrientationClassifier.slang.h | 118-146 | Accumulates one term into an expansion, exactly, preserving the increasing-magnitude ordering.
+F AccumulateProduct      | Shared/OrientationClassifier.slang.h | 154-166 | Accumulates both terms of an exact product into an expansion, scaled by a declared sign.
+F ClassifyOrientation    | Shared/OrientationClassifier.slang.h | 185-254 | Classifies the turn direction of Alpha → Beta → Gamma. Positive is counter-clockwise.
+K SLATE_SHARED           | Shared/Prelude.slang.h               | 18      | ?
+K SLATE_OUT              | Shared/Prelude.slang.h               | 19      | ?
+K SLATE_INOUT            | Shared/Prelude.slang.h               | 20      | ?
+K SLATE_INOUT_SPAN       | Shared/Prelude.slang.h               | 21      | ?
+A Real64                 | Shared/Prelude.slang.h               | 23      | ?
+A Real32                 | Shared/Prelude.slang.h               | 24      | ?
+A Signed32               | Shared/Prelude.slang.h               | 25      | ?
+F Magnitude              | Shared/Prelude.slang.h               | 27-30   | ?
+K SLATE_SHARED           | Shared/Prelude.slang.h               | 41      | ?
+K SLATE_OUT              | Shared/Prelude.slang.h               | 42      | ?
+K SLATE_INOUT            | Shared/Prelude.slang.h               | 43      | ?
+K SLATE_INOUT_SPAN       | Shared/Prelude.slang.h               | 44      | ?
+A Real64                 | Shared/Prelude.slang.h               | 46      | ?
+A Real32                 | Shared/Prelude.slang.h               | 47      | ?
+A Signed32               | Shared/Prelude.slang.h               | 48      | ?
+F Magnitude              | Shared/Prelude.slang.h               | 50-53   | ?

@@ -1,0 +1,49 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Registration and comparison over the common sample set.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/ParityRunner/Source
+%layer      SlateCompute
+%sources    1
+%symbols    4
+%annotated  0/4
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S ParityRunner.cpp | 138 lines | 79f4a8a7 | 4 sym | Registration and comparison over the common sample set.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      REGISTRATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F ParityRunner::Register      | ParityRunner.cpp | 19-29   | - | - | ?
+    in    Arriving  const ParityRegistration&  [-]  ?
+    out   -         Outcome<bool>              [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE COMMON SAMPLE SET
+//------------------------------------------------------------------------------------------------------------------------
+
+T OrientationSample           | ParityRunner.cpp | 40-48   | - | - | ?
+    has   AlphaX  double  [-]  ?
+    has   AlphaY  double  [-]  ?
+    has   BetaX   double  [-]  ?
+    has   BetaY   double  [-]  ?
+    has   GammaX  double  [-]  ?
+    has   GammaY  double  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       COMPARISON
+//------------------------------------------------------------------------------------------------------------------------
+
+F ParityRunner::Compare       | ParityRunner.cpp | 67-131  | - | - | ?
+    out   -  const std::vector<ParityReport>&  [-]  ?
+
+F ParityRunner::AgreementHeld | ParityRunner.cpp | 133-136 | - | - | ?
+    out   -  bool  [-]  ?

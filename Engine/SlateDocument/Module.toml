@@ -1,0 +1,19 @@
+# SlateDocument — population indexing and revision content.
+# Depends strictly on SlateMath. Peers with SlateVulkan and never references it.
+
+[unit]
+name    = "SlateDocument"
+product = "StaticLibrary"
+subject = [ "Format", "Document" ]
+
+# 🔴 SlateVulkan is absent from this list and stays absent. The document model has no device dependency,
+#    and the partition is what makes acquiring one a link error rather than something a reviewer must catch.
+[requires]
+unit = [ "SlateMath" ]
+
+[external]
+include = []
+declare = []
+
+[link]
+library = []

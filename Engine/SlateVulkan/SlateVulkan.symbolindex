@@ -1,0 +1,66 @@
+//============================================================================================================================================
+//                                                          SLATEVULKAN.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Symbol roll for SlateVulkan — What is recorded in a rotation slot, in what order, and against which shared targets.
+
+%format   symbolindex 1.0
+%scope    layer
+%path     Engine/SlateVulkan
+%folders  8
+%symbols  38
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     FOLDER INDEXES
+//------------------------------------------------------------------------------------------------------------------------
+
+I Api    | Api/Api.symbolindex       | 8 sym  | What is recorded in a rotation slot, in what order, and against which shared targets.
+I Source | Source/Source.symbolindex | 3 sym  | Contribution gating and the ordering derived from declared reads and writes.
+I Api    | Api/Api.symbolindex       | 2 sym  | Scores vendor implementations into a capability set, once, at bring-up and at recovery.
+I Source | Source/Source.symbolindex | 1 sym  | Enumerated device scored into a capability set and a ranking.
+I Api    | Api/Api.symbolindex       | 11 sym | Loader C-ABI, instance and device handles crossing the vendor edge.
+I Source | Source/Source.symbolindex | 9 sym  | Instance construction, device scoring and the one graphics queue.
+I Api    | Api/Api.symbolindex       | 2 sym  | Native window handle ⇄ VkSurfaceKHR — the one place the window system meets the vendor edge.
+I Source | Source/Source.symbolindex | 2 sym  | The surface conversion, taken through the window system that produced the handle.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+E SharedTarget                      | Api/RenderSchedule.h        | 25-43   | Every shared target the schedule declares. Nothing invents a target another already produces.
+E ExtentRelation                    | Api/RenderSchedule.h        | 49-54   | How a target's extent relates to the display extent. is never touched by a resize. `06` §4.1 gates that both ways.
+E RecordingCommand                  | Api/RenderSchedule.h        | 62-66   | What a recording contributes. Authored once by the contributing document, consulted by the orderer.
+T DeclaredRecording                 | Api/RenderSchedule.h        | 73-83   | One declared recording. absent capability must degrade to something, and choosing that something belongs to the contributing document rather than to a branch invented at the recording site.
+T RenderSchedule                    | Api/RenderSchedule.h        | 94-126  | The ordered recordings of one rotation, fixed at bring-up and merely executed per rotation. implies a solved dependency structure Slate does not build. The recordings and the target set are both known at bring-up, so the ordering is fixed there too.
+F RenderSchedule::Contribute        | Api/RenderSchedule.h        | 104     | Contributes one recording to the schedule. contribution produces a target another recording already produces
+F RenderSchedule::Fix               | Api/RenderSchedule.h        | 112     | Fixes the ordering. Derived from the declared reads and writes, never hand-written. when anything scene-referred is ordered after the display-referred line
+F RenderSchedule::Ordered           | Api/RenderSchedule.h        | 118     | The recordings, in the order Fix derived.
+F RenderSchedule::Contribute        | Source/RenderSchedule.cpp   | 45-79   | ?
+F RenderSchedule::Fix               | Source/RenderSchedule.cpp   | 85-155  | ?
+F RenderSchedule::Ordered           | Source/RenderSchedule.cpp   | 157-160 | ?
+T ScoredCandidate                   | Api/VendorClassifier.h      | 19-24   | One scored candidate device.
+F Classify                          | Api/VendorClassifier.h      | 34      | Scores one enumerated device against the presentation surface it must serve. graphics family cannot serve Slate at all and is never chosen as a least-bad option.
+F Classify                          | Source/VendorClassifier.cpp | 17-89   | ?
+T CapabilitySet                     | Api/VulkanExchange.h        | 25-33   | What the created device is capable of, scored once and consulted thereafter. path becomes conditional on something that cannot change, and those conditionals never all leave.
+T VulkanExchange                    | Api/VulkanExchange.h        | 43-86   | Holds the instance, the physical device, the created device and the one graphics queue. own identifiers wrapping them do not reuse the banned words those spellings contain.
+F VulkanExchange::~VulkanExchange   | Api/VulkanExchange.h        | 50      | ?
+F VulkanExchange::ConstructInstance | Api/VulkanExchange.h        | 57      | Loads the loader and creates the instance, with the diagnostic capability enabled in Debug only.
+F VulkanExchange::ConstructDevice   | Api/VulkanExchange.h        | 65      | Enumerates devices, scores them, and creates one with its capability set fixed at creation.
+F VulkanExchange::ReclaimDevice     | Api/VulkanExchange.h        | 70      | Destroys every device object and retains the instance, for the recovery in `06` §4.2 ③.
+F VulkanExchange::Instance          | Api/VulkanExchange.h        | 72      | ?
+F VulkanExchange::ScoredDevice      | Api/VulkanExchange.h        | 73      | ?
+F VulkanExchange::ActiveDevice      | Api/VulkanExchange.h        | 74      | ?
+F VulkanExchange::GraphicsQueue     | Api/VulkanExchange.h        | 75      | ?
+F VulkanExchange::Capability        | Api/VulkanExchange.h        | 76      | ?
+F VulkanExchange::ConstructInstance | Source/VulkanExchange.cpp   | 19-60   | ?
+F VulkanExchange::ConstructDevice   | Source/VulkanExchange.cpp   | 66-122  | ?
+F VulkanExchange::ReclaimDevice     | Source/VulkanExchange.cpp   | 128-140 | ?
+F VulkanExchange::~VulkanExchange   | Source/VulkanExchange.cpp   | 142-151 | ?
+F VulkanExchange::Instance          | Source/VulkanExchange.cpp   | 157     | ?
+F VulkanExchange::ScoredDevice      | Source/VulkanExchange.cpp   | 158     | ?
+F VulkanExchange::ActiveDevice      | Source/VulkanExchange.cpp   | 159     | ?
+F VulkanExchange::GraphicsQueue     | Source/VulkanExchange.cpp   | 160     | ?
+F VulkanExchange::Capability        | Source/VulkanExchange.cpp   | 161     | ?
+F Convert                           | Api/WindowExchange.h        | 27      | Converts a native window handle from `04` into a presentation surface. The split is what keeps `SlateMath` free of a Vulkan header.
+F Reclaim                           | Api/WindowExchange.h        | 32      | Destroys a surface previously converted.
+F Convert                           | Source/WindowExchange.cpp   | 20-36   | ?
+F Reclaim                           | Source/WindowExchange.cpp   | 42-48   | ?

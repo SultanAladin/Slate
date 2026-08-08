@@ -1,0 +1,51 @@
+//============================================================================================================================================
+//                                                            CONTRACT.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Symbol roll for Contract — Generational slot identity, tagged per subject so one subject's identity never passes for another's.
+
+%format   symbolindex 1.0
+%scope    layer
+%path     Engine/Contract
+%folders  1
+%symbols  30
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     FOLDER INDEXES
+//------------------------------------------------------------------------------------------------------------------------
+
+I Contract | Contract/Contract.symbolindex | 30 sym | Generational slot identity, tagged per subject so one subject's identity never passes for another's.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+T Identity                   | Contract/IdentityContract.h  | 32-45   | A slot ordinal paired with the generation the slot held when the reference was taken.
+F Identity::IdentityDeclared | Contract/IdentityContract.h  | 41-44   | Whether this reference names a slot at all.
+F operator==                 | Contract/IdentityContract.h  | 49-54   | Two identities of the same subject match when both halves match.
+F operator!=                 | Contract/IdentityContract.h  | 56-60   | ?
+A OccupantIdentity           | Contract/IdentityContract.h  | 66      | ?
+A PartitionIdentity          | Contract/IdentityContract.h  | 67      | ?
+A SurfaceIdentity            | Contract/IdentityContract.h  | 68      | ?
+A RecordingIdentity          | Contract/IdentityContract.h  | 69      | ?
+E RefusalReason              | Contract/OutcomeContract.h   | 19-28   | Why a computation declined to deliver content. Absence without one of these is never reported.
+T Refusal                    | Contract/OutcomeContract.h   | 38-42   | One reported refusal — the reason, plus static text naming the operand it applies to.
+T Outcome                    | Contract/OutcomeContract.h   | 51-90   | Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
+F Outcome::Deliver           | Contract/OutcomeContract.h   | 62-68   | Constructs a delivered outcome around content the computation produced.
+F Outcome::Refuse            | Contract/OutcomeContract.h   | 74-80   | Constructs a refused outcome carrying the reason the content is absent.
+F Outcome::Resolve           | Contract/OutcomeContract.h   | 86-89   | Reads the delivered content.
+E TerminationCause           | Contract/OutcomeContract.h   | 100-104 | Which of the two terminating conditions ended an iteration. that converged, and the ambiguity propagates upward as an unexplained artefact.
+T ConvergentResult           | Contract/OutcomeContract.h   | 108-115 | The result of a Convergent computation. Never returned as a bare approximation.
+E PrecisionGuarantee         | Contract/PrecisionContract.h | 21-27   | The guarantee a computation claims about its result. A greater ordinal is a weaker guarantee.
+F Weaken                     | Contract/PrecisionContract.h | 39-44   | Returns the weaker of two guarantees, which is the one carrying the greater ordinal.
+F WeakestOf                  | Contract/PrecisionContract.h | 51-61   | Folds every consumed guarantee down to the weakest one present in the list.
+K SLATE_DECLARES_PRECISION   | Contract/PrecisionContract.h | 72-74   | ?
+V PhysicalTileApron          | Contract/ToleranceContract.h | 19      | ?
+V TransmissionDepth          | Contract/ToleranceContract.h | 20      | ?
+V DirectOcclusionCapacity    | Contract/ToleranceContract.h | 21      | ?
+V RecordingRotationDepth     | Contract/ToleranceContract.h | 22      | ?
+V DisplayExtentCeiling       | Contract/ToleranceContract.h | 23      | ?
+V WeldTolerance              | Contract/ToleranceContract.h | 31      | ?
+V CollinearityTolerance      | Contract/ToleranceContract.h | 32      | ?
+V QuaternionRenormalise      | Contract/ToleranceContract.h | 33      | ?
+V MachineEpsilon             | Contract/ToleranceContract.h | 41      | ?
+V ExpansionSplitter          | Contract/ToleranceContract.h | 43      | ?

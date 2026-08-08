@@ -1,0 +1,28 @@
+//============================================================================================================================================
+//                                                          APPLICATION.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Symbol roll for Application — Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
+
+%format   symbolindex 1.0
+%scope    layer
+%path     Engine/Application
+%folders  1
+%symbols  7
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     FOLDER INDEXES
+//------------------------------------------------------------------------------------------------------------------------
+
+I Source | Source/Source.symbolindex | 7 sym | Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+V RefusedCount      | Source/ConsoleHost.cpp | 40      | ?
+F Report            | Source/ConsoleHost.cpp | 42-48   | ?
+F VerifyMathematics | Source/ConsoleHost.cpp | 56-129  | ?
+F VerifyDocument    | Source/ConsoleHost.cpp | 135-222 | ?
+F VerifySchedule    | Source/ConsoleHost.cpp | 230-313 | ?
+F VerifyParity      | Source/ConsoleHost.cpp | 319-367 | ?
+F main              | Source/ConsoleHost.cpp | 375-399 | ?

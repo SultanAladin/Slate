@@ -1,0 +1,32 @@
+# SlateUI — the interface layer.
+# The only engine unit permitted to reference ImGui, and the only one that compiles it.
+
+[unit]
+name    = "SlateUI"
+product = "StaticLibrary"
+subject = [ "Interface" ]
+
+[requires]
+unit = [ "SlateMath", "SlateVulkan", "SlateDocument", "SlateCompute" ]
+
+# 🔴 `00` §2.2: exactly one copy of ImGui exists and it is compiled here. The vendored sources are listed
+#    as unit sources rather than reached through a prebuilt library, so no second copy can be linked in.
+#    A host that includes `imgui.h` is a defect; InterfaceExchange.h names no ImGui spelling, so it cannot.
+[external]
+include = [ "$VULKAN_SDK/Include", "ExternalPackages/glfw/include", "ExternalPackages/imgui" ]
+declare = [ "GLFW_DLL", "IMGUI_DISABLE_OBSOLETE_FUNCTIONS" ]
+
+source = [
+    "ExternalPackages/imgui/imgui.cpp",
+    "ExternalPackages/imgui/imgui_draw.cpp",
+    "ExternalPackages/imgui/imgui_tables.cpp",
+    "ExternalPackages/imgui/imgui_widgets.cpp",
+    "ExternalPackages/imgui/backends/imgui_impl_glfw.cpp",
+    "ExternalPackages/imgui/backends/imgui_impl_vulkan.cpp",
+]
+
+# 📝 imgui_demo.cpp is deliberately absent. It compiles a window nothing in Slate presents, and its only
+#    effect on a shipped build is bytes.
+
+[link]
+library = []

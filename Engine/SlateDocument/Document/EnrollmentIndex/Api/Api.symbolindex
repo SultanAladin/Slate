@@ -1,0 +1,104 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Which slots are enrolled in a named subset, compressed by interval rather than stored per occupant.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/EnrollmentIndex/Api
+%layer      SlateDocument
+%sources    1
+%symbols    12
+%annotated  12/12
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S EnrollmentIndex.h | 142 lines | ce8208d0 | 12 sym | Which slots are enrolled in a named subset, compressed by interval rather than stored per occupant.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE NAMED SUBSETS
+//------------------------------------------------------------------------------------------------------------------------
+
+E SubsetSubject                       | EnrollmentIndex.h | 28-35  | contract                      | -  | Every subset the outliner declares, and where each one's mutations are recorded. mechanism is enrollment — `12` §3. transaction is recorded, not whether there is one. Selection is recorded in `SelectionSequence` and is session-scoped; the other three are recorded in `RevisionSequence` and scrubbed by undo.
+    has   Selection            SubsetSubject  [-]  ?
+    has   VisibilityExclusion  SubsetSubject  [-]  ?
+    has   Isolation            SubsetSubject  [-]  ?
+    has   Lock                 SubsetSubject  [-]  ?
+    has   SubsetCount          SubsetSubject  [-]  ?
+    by    Api/OutlinerSequence.h, Source/EnrollmentIndex.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+    note  ⚠️ `MembershipRegion` and `MembershipIndex` are retired spellings. `Region` is banned and the
+    note  🔴 `12` §11: every subset mutation is a transaction. What differs between these is where the
+
+T EnrolledInterval                    | EnrollmentIndex.h | 42-46  | nonallocating,nonthrowing     | -  | One run of consecutively enrolled slots, inclusive at both ends. matches the shape of the fact. Storing it densely costs a bit per occupant per subset and a linear comparison to answer, and `12` §6 has room for neither at a million occupants.
+    has   FirstOrdinal  std::uint32_t  [-]  ?
+    has   LastOrdinal   std::uint32_t  [-]  ?
+    by    Source/EnrollmentIndex.cpp
+    note  💾 A subset over a scene is overwhelmingly contiguous in row order, so a run is the storage that
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    MUTUAL EXCLUSION
+//------------------------------------------------------------------------------------------------------------------------
+
+F SubsetsExclusive                    | EnrollmentIndex.h | 61-65  | api,nonallocating,nonthrowing | ✔️ | Whether two subsets may hold one occupant at once. one visible cannot also be excluded from visibility. `12` §10 rules multi-enrollment in mutually exclusive subsets rejected at commit rather than resolved by a precedence nobody declared.
+    in    LeftSubset   SubsetSubject  [-]  one subset
+    in    RightSubset  SubsetSubject  [-]  the other
+    out   -            Exclusive      [-]  true when an occupant may not be enrolled in both
+    by    Source/EnrollmentIndex.cpp
+    note  🔴 Isolation and visibility exclusion are mutually exclusive: an occupant isolated to be the only
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE ENROLLMENTS
+//------------------------------------------------------------------------------------------------------------------------
+
+T EnrollmentIndex                     | EnrollmentIndex.h | 75-140 | owning                        | -  | Every named subset over one population, each held as an ordered run of intervals. Two runs that abut are one run: leaving them apart grows the storage without adding a fact to it.
+    has   SubsetIntervals  std::vector<EnrolledInterval>[SubsetSpan]  [-]  ?
+    has   SubsetCounts     std::uint32_t[SubsetSpan]                  [-]  ?
+    by    Api/OutlinerSequence.h, Source/EnrollmentIndex.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+    note  The runs stay sorted and never touch, so an enrolment is a search and a merge rather than an append.
+
+F EnrollmentIndex::Enrol              | EnrollmentIndex.h | 88     | api,nonthrowing               | 🚩 | Enrols one occupant in a subset. ContentUnsupported when a mutually exclusive subset already holds it no partial state behind. `12` §10 rejects at commit and resolves nothing silently.
+    in    Subject         OccupantIdentity  [-]  the occupant
+    in    EnrolledSubset  SubsetSubject     [-]  which subset
+    out   -               Outcome           [-]  refuses with IdentityStale for an undeclared identity, and with
+    by    Api/OutlinerSequence.h, Api/PopulationIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp, Source/PopulationIndex.cpp
+    note  🔴 The exclusion refusal is decided before anything is written, so a rejected enrolment leaves
+
+F EnrollmentIndex::Unenrol            | EnrollmentIndex.h | 96     | api,nonthrowing               | 🚩 | Withdraws one occupant from a subset, dividing the run it sat inside.
+    in    Subject         OccupantIdentity  [-]  the occupant
+    in    EnrolledSubset  SubsetSubject     [-]  which subset
+    out   -               Outcome           [-]  refuses with IdentityStale when the occupant was not enrolled
+    by    Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp
+
+F EnrollmentIndex::UnenrolEverywhere  | EnrollmentIndex.h | 102    | api,nonthrowing               | 🚩 | Withdraws one occupant from every subset — the subset half of invariant 8.
+    in    Subject  OccupantIdentity  [-]  the occupant being retired
+    out   -        void              [-]  ?
+    by    Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp
+
+F EnrollmentIndex::Enrolled           | EnrollmentIndex.h | 110    | api,nonallocating,nonthrowing | ✔️ | Whether one occupant is enrolled in a subset.
+    in    Subject         OccupantIdentity  [-]  the occupant
+    in    EnrolledSubset  SubsetSubject     [-]  which subset
+    out   -               Enrolled          [-]  answered by interval comparison over the runs
+    by    Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+
+F EnrollmentIndex::Intervals          | EnrollmentIndex.h | 116    | api,nonallocating,nonthrowing | ✔️ | The runs of one subset, in ascending slot order.
+    in    EnrolledSubset  SubsetSubject                         [-]  which subset
+    out   -               const std::vector<EnrolledInterval>&  [-]  ?
+    by    Source/EnrollmentIndex.cpp
+
+F EnrollmentIndex::EnrolledCount      | EnrollmentIndex.h | 121    | api,nonallocating,nonthrowing | ✔️ | How many occupants one subset holds.
+    in    EnrolledSubset  SubsetSubject  [-]  ?
+    out   -               std::uint32_t  [-]  ?
+    by    Api/PopulationIndex.h, Source/EnrollmentIndex.cpp, Source/PopulationIndex.cpp
+
+F EnrollmentIndex::Reclaim            | EnrollmentIndex.h | 126    | api,nonthrowing               | ✔️ | Empties one subset entirely.
+    in    EnrolledSubset  SubsetSubject  [-]  ?
+    out   -               void           [-]  ?
+    by    Api/InputExchange.h, Api/InterfaceExchange.h, Api/WindowExchange.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/InputExchange.cpp, (+3 more)
+
+F EnrollmentIndex::EnrolmentsOccupied | EnrollmentIndex.h | 132    | api,nonallocating,nonthrowing | 🚩 | 🔍 Whether every enrolled slot is occupied at the current generation — invariant 6.
+    in    Generations  const std::vector<std::uint32_t>&  [-]  the current generation per slot, zero where the slot is vacant
+    out   -            bool                               [-]  ?
+    by    Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp

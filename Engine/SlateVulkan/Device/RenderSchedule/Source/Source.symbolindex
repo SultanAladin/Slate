@@ -1,0 +1,37 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Contribution gating and the ordering derived from declared reads and writes.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateVulkan/Device/RenderSchedule/Source
+%layer      SlateVulkan
+%sources    1
+%symbols    3
+%annotated  0/3
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S RenderSchedule.cpp | 162 lines | f2e5aba9 | 3 sym | Contribution gating and the ordering derived from declared reads and writes.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      CONTRIBUTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F RenderSchedule::Contribute | RenderSchedule.cpp | 45-79   | - | - | ?
+    in    Arriving  const DeclaredRecording&  [-]  ?
+    out   -         Outcome<bool>             [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        ORDERING
+//------------------------------------------------------------------------------------------------------------------------
+
+F RenderSchedule::Fix        | RenderSchedule.cpp | 85-155  | - | - | ?
+    out   -  Outcome<bool>  [-]  ?
+
+F RenderSchedule::Ordered    | RenderSchedule.cpp | 157-160 | - | - | ?
+    out   -  const std::vector<DeclaredRecording>&  [-]  ?

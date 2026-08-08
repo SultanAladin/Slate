@@ -1,0 +1,58 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Quaternion composition, matrix derivation, and the 64-bit rebasing subtraction.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateMath/Numeric/TransformProjection/Source
+%layer      SlateMath
+%sources    1
+%symbols    4
+%annotated  0/4
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S TransformProjection.cpp | 156 lines | 650735a8 | 4 sym | Quaternion composition, matrix derivation, and the 64-bit rebasing subtraction.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  ROTATION COMPOUNDING
+//------------------------------------------------------------------------------------------------------------------------
+
+F Compound | TransformProjection.cpp | 17-58   | - | - | ?
+    in    OuterRotation  RotationQuaternion  [-]  ?
+    in    InnerRotation  RotationQuaternion  [-]  ?
+    out   -              RotationQuaternion  [-]  ?
+    by    Api/TransformProjection.h, Source/ConsoleHost.cpp, Source/SceneStructure.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 TRANSFORM COMPOUNDING
+//------------------------------------------------------------------------------------------------------------------------
+
+F Compound | TransformProjection.cpp | 64-98   | - | - | ?
+    in    OuterTransform  const DecomposedTransform&  [-]  ?
+    in    InnerTransform  const DecomposedTransform&  [-]  ?
+    out   -               DecomposedTransform         [-]  ?
+    by    Api/TransformProjection.h, Source/ConsoleHost.cpp, Source/SceneStructure.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   MATRIX DERIVATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F Project  | TransformProjection.cpp | 104-134 | - | - | ?
+    in    Source  const DecomposedTransform&  [-]  ?
+    out   -       ProjectedTransform          [-]  ?
+    by    Api/TransformProjection.h
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        REBASING
+//------------------------------------------------------------------------------------------------------------------------
+
+F Rebase   | TransformProjection.cpp | 140-154 | - | - | ?
+    in    Subject     DocumentPosition  [-]  ?
+    in    ViewOrigin  DocumentPosition  [-]  ?
+    out   -           DevicePosition    [-]  ?
+    by    Api/TransformProjection.h, Source/ConsoleHost.cpp

@@ -1,0 +1,36 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Native window handle ⇄ VkSurfaceKHR — the one place the window system meets the vendor edge.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateVulkan/Device/WindowExchange/Api
+%layer      SlateVulkan
+%sources    1
+%symbols    2
+%annotated  2/2
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S WindowExchange.h | 34 lines | ff830e25 | 2 sym | Native window handle ⇄ VkSurfaceKHR — the one place the window system meets the vendor edge.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE CONVERSION
+//------------------------------------------------------------------------------------------------------------------------
+
+F Convert | WindowExchange.h | 27 | api,nonthrowing | 🚩 | Converts a native window handle from `04` into a presentation surface. The split is what keeps `SlateMath` free of a Vulkan header.
+    in    Instance      VkInstance  [-]  the instance the surface is created against
+    in    NativeHandle  void*       [-]  the opaque handle `WindowInterchange` surrendered; never a GLFW spelling above
+    out   -             Outcome     [-]  refuses with HostDenied when the window system declines the surface
+    by    Source/WindowExchange.cpp
+    note  ⚠️ `WindowInterchange` in `SlateMath` and `WindowExchange` here are distinct and both required.
+
+F Reclaim | WindowExchange.h | 32 | api,nonthrowing | ✔️ | Destroys a surface previously converted.
+    in    Instance             VkInstance    [-]  ?
+    in    PresentationSurface  VkSurfaceKHR  [-]  ?
+    out   -                    void          [-]  ?
+    by    Api/EnrollmentIndex.h, Api/InputExchange.h, Api/InterfaceExchange.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/InputExchange.cpp, (+3 more)

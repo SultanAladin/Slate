@@ -1,0 +1,83 @@
+//============================================================================================================================================
+//                                                           SLATEMATH.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Symbol roll for SlateMath — Decomposed transforms, their composition, and the rebasing that precedes every narrowing to 32-bit.
+
+%format   symbolindex 1.0
+%scope    layer
+%path     Engine/SlateMath
+%folders  8
+%symbols  55
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     FOLDER INDEXES
+//------------------------------------------------------------------------------------------------------------------------
+
+I Api    | Api/Api.symbolindex       | 13 sym | Decomposed transforms, their composition, and the rebasing that precedes every narrowing to 32-bit.
+I Source | Source/Source.symbolindex | 4 sym  | Quaternion composition, matrix derivation, and the 64-bit rebasing subtraction.
+I Api    | Api/Api.symbolindex       | 7 sym  | Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
+I Source | Source/Source.symbolindex | 4 sym  | Bounded cyclic arrival ordering over pointer samples.
+I Api    | Api/Api.symbolindex       | 5 sym  | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
+I Source | Source/Source.symbolindex | 5 sym  | Host timeline over the operating system's monotonic counter.
+I Api    | Api/Api.symbolindex       | 8 sym  | One window surface over three window systems — surrenders the native handle and nothing else.
+I Source | Source/Source.symbolindex | 9 sym  | Windowing over GLFW, linked dynamically through glfw3dll.lib against glfw3.dll.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+T DocumentPosition                      | Api/TransformProjection.h      | 21-26   | A position in document space or view-relative space, at 64-bit.
+T DevicePosition                        | Api/TransformProjection.h      | 32-37   | A position after rebasing, narrowed for the device. plausible-looking cause.
+T RotationQuaternion                    | Api/TransformProjection.h      | 43-49   | A rotation as a unit quaternion. containment relation in `12` compound to unbounded depth without drift.
+T DecomposedTransform                   | Api/TransformProjection.h      | 59-66   | A transform stored decomposed — never as a general matrix. caches it, because a cached matrix is a second representation that drifts from the first.
+T ProjectedTransform                    | Api/TransformProjection.h      | 70-76   | A transform as sixteen coefficients, column-major, derived for one use and discarded.
+F Compound                              | Api/TransformProjection.h      | 88      | Compounds two rotations and renormalises the result.
+F SLATE_DECLARES_PRECISION              | Api/TransformProjection.h      | 89      | ?
+F Compound                              | Api/TransformProjection.h      | 97      | Compounds two decomposed transforms without ever forming a matrix.
+F SLATE_DECLARES_PRECISION              | Api/TransformProjection.h      | 99      | ?
+F Project                               | Api/TransformProjection.h      | 106     | Derives the matrix form of a decomposed transform at the point of use.
+F SLATE_DECLARES_PRECISION              | Api/TransformProjection.h      | 107     | ?
+F Rebase                                | Api/TransformProjection.h      | 122     | Rebases a document position to the view origin and narrows it for the device. `SlateCompute` passes through here; `02` §8 gates it and the failure it prevents reads as a driver defect rather than as the arithmetic it is.
+F SLATE_DECLARES_PRECISION              | Api/TransformProjection.h      | 123     | ?
+F Compound                              | Source/TransformProjection.cpp | 17-58   | ?
+F Compound                              | Source/TransformProjection.cpp | 64-98   | ?
+F Project                               | Source/TransformProjection.cpp | 104-134 | ?
+F Rebase                                | Source/TransformProjection.cpp | 140-154 | ?
+T AxisPresence                          | Api/InputExchange.h            | 23-28   | Which optional axes the reporting device supplied on one sample. are different facts, and `22` treats them differently.
+T PointerSample                         | Api/InputExchange.h            | 38-49   | One pointer sample, stamped at arrival by `TickSequence`. rate reconstructs only if the arrival stamps survive.
+T InputExchange                         | Api/InputExchange.h            | 60-94   | The bounded arrival ordering of pointer samples, drained once per tick by the consumer. that outruns the drain loses its oldest samples, which is visible, rather than allocating during an interaction, which is not.
+F InputExchange::Record                 | Api/InputExchange.h            | 70      | Records one arriving sample against the supplied timeline.
+F InputExchange::Sample                 | Api/InputExchange.h            | 77      | Reads one held sample in arrival order.
+F InputExchange::HeldCount              | Api/InputExchange.h            | 82      | How many samples are held.
+F InputExchange::Reclaim                | Api/InputExchange.h            | 87      | Discards every held sample. Called by the consumer once it has read them.
+F InputExchange::Record                 | Source/InputExchange.cpp       | 15-30   | ?
+F InputExchange::Sample                 | Source/InputExchange.cpp       | 36-39   | ?
+F InputExchange::HeldCount              | Source/InputExchange.cpp       | 41-44   | ?
+F InputExchange::Reclaim                | Source/InputExchange.cpp       | 46-50   | ?
+T TickPoint                             | Api/TickSequence.h             | 21-24   | One ordering point on the monotonic host timeline. path the artist drew from arrival stamps, which is the only reason arrival stamps exist.
+T TickSequence                          | Api/TickSequence.h             | 28-55   | The monotonic host timeline. One instance per process, constructed at bring-up.
+F TickSequence::TickSequence            | Api/TickSequence.h             | 34      | Fixes the timeline origin against the host performance counter.
+F TickSequence::Advance                 | Api/TickSequence.h             | 41      | Reads the current ordering point.
+F TickSequence::Span                    | Api/TickSequence.h             | 49      | Duration between two ordering points.
+K WIN32_LEAN_AND_MEAN                   | Source/TickSequence.cpp        | 14      | ?
+K NOMINMAX                              | Source/TickSequence.cpp        | 17      | ?
+F TickSequence::TickSequence            | Source/TickSequence.cpp        | 31-53   | ?
+F TickSequence::Advance                 | Source/TickSequence.cpp        | 59-83   | ?
+F TickSequence::Span                    | Source/TickSequence.cpp        | 89-95   | ?
+T DisplayExtent                         | Api/WindowInterchange.h        | 23-27   | The extent of a window's drawable area. the intermediates; nothing here queues them.
+T WindowInterchange                     | Api/WindowInterchange.h        | 38-81   | A native window over the host window system. is, includes no Vulkan header, and names no presentation chain. `06`'s `WindowExchange` converts the handle; the split is what keeps `SlateMath` device-free.
+F WindowInterchange::~WindowInterchange | Api/WindowInterchange.h        | 45      | ?
+F WindowInterchange::Open               | Api/WindowInterchange.h        | 53      | Opens a window of the requested extent and surrenders nothing until it succeeds.
+F WindowInterchange::Drain              | Api/WindowInterchange.h        | 58      | Drains the window system's pending messages into this window's recorded condition.
+F WindowInterchange::NativeHandle       | Api/WindowInterchange.h        | 64      | The opaque native handle, for `06`'s `WindowExchange` and for nothing else.
+F WindowInterchange::CurrentExtent      | Api/WindowInterchange.h        | 69      | The current drawable extent.
+F WindowInterchange::ClosureRequested   | Api/WindowInterchange.h        | 74      | Whether the artist has asked the window system to close this window.
+V OpenWindowCount                       | Source/WindowInterchange.cpp   | 23      | ?
+F AcquireWindowSystem                   | Source/WindowInterchange.cpp   | 25-32   | ?
+F ReleaseWindowSystem                   | Source/WindowInterchange.cpp   | 34-43   | ?
+F WindowInterchange::Open               | Source/WindowInterchange.cpp   | 50-77   | ?
+F WindowInterchange::~WindowInterchange | Source/WindowInterchange.cpp   | 79-87   | ?
+F WindowInterchange::Drain              | Source/WindowInterchange.cpp   | 93-109  | ?
+F WindowInterchange::NativeHandle       | Source/WindowInterchange.cpp   | 111-114 | ?
+F WindowInterchange::CurrentExtent      | Source/WindowInterchange.cpp   | 116-119 | ?
+F WindowInterchange::ClosureRequested   | Source/WindowInterchange.cpp   | 121-124 | ?

@@ -1,0 +1,272 @@
+//============================================================================================================================================
+//                                                         SLATEDOCUMENT.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Symbol roll for SlateDocument — Which slots are enrolled in a named subset, compressed by interval rather than stored per occupant.
+
+%format   symbolindex 1.0
+%scope    layer
+%path     Engine/SlateDocument
+%folders  18
+%symbols  234
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     FOLDER INDEXES
+//------------------------------------------------------------------------------------------------------------------------
+
+I Api    | Api/Api.symbolindex       | 12 sym | Which slots are enrolled in a named subset, compressed by interval rather than stored per occupant.
+I Source | Source/Source.symbolindex | 9 sym  | Interval merging, division, and the exclusion refusal that precedes every write.
+I Api    | Api/Api.symbolindex       | 20 sym | The fixed tick order over both relations, the linearisation, the subsets and the name search.
+I Source | Source/Source.symbolindex | 16 sym | The seven steps in order, every mutation a transaction, and the retirement cascade as one of them.
+I Api    | Api/Api.symbolindex       | 10 sym | Generationally versioned slot ledger — the population every occupant of the document sits inside.
+I Source | Source/Source.symbolindex | 8 sym  | Slot issuance, withdrawal and generational resolution.
+I Api    | Api/Api.symbolindex       | 11 sym | Ordered, scrubbable sequence of committed transactions, with the drag lifecycle every edit uses.
+I Source | Source/Source.symbolindex | 8 sym  | The drag lifecycle, declared merging, and scrubbing in both directions.
+I Api    | Api/Api.symbolindex       | 17 sym | Depth-first linearisation of the enclosure relation, and the counted ordering that scrolls it.
+I Source | Source/Source.symbolindex | 15 sym | The depth-first walk, and the binary-indexed counts that answer both scroll questions.
+I Api    | Api/Api.symbolindex       | 40 sym | The two nesting relations over the population — organisational enclosure and kinematic attachment, apart.
+I Source | Source/Source.symbolindex | 28 sym | Enclosure ordering, gapped label assignment and repair, and downward attachment compounding.
+I Api    | Api/Api.symbolindex       | 9 sym  | Selection ordering, revised in its own sequence, session-scoped, restored alongside the transaction it served.
+I Source | Source/Source.symbolindex | 7 sym  | Sealing, traversal, and the restoration that pairs a document scrub with the selection it served.
+I Api    | Api/Api.symbolindex       | 10 sym | Name search that narrows by trigram and then confirms exactly — approximate index, exact answer.
+I Source | Source/Source.symbolindex | 8 sym  | Trigram folding and entry, the rarest-run narrowing, and the exact confirmation over it.
+I Api    | Api/Api.symbolindex       | 4 sym  | Versioned document stream layout and its declared migrations — never a conditional inside a reader.
+I Source | Source/Source.symbolindex | 2 sym  | Migration chain resolution over the declared version transformations.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+E SubsetSubject                        | Api/EnrollmentIndex.h        | 28-35   | Every subset the outliner declares, and where each one's mutations are recorded. mechanism is enrollment — `12` §3. transaction is recorded, not whether there is one. Selection is recorded in `SelectionSequence` and is session-scoped; the other three are recorded in `RevisionSequence` and scrubbed by undo.
+T EnrolledInterval                     | Api/EnrollmentIndex.h        | 42-46   | One run of consecutively enrolled slots, inclusive at both ends. matches the shape of the fact. Storing it densely costs a bit per occupant per subset and a linear comparison to answer, and `12` §6 has room for neither at a million occupants.
+F SubsetsExclusive                     | Api/EnrollmentIndex.h        | 61-65   | Whether two subsets may hold one occupant at once. one visible cannot also be excluded from visibility. `12` §10 rules multi-enrollment in mutually exclusive subsets rejected at commit rather than resolved by a precedence nobody declared.
+T EnrollmentIndex                      | Api/EnrollmentIndex.h        | 75-140  | Every named subset over one population, each held as an ordered run of intervals. Two runs that abut are one run: leaving them apart grows the storage without adding a fact to it.
+F EnrollmentIndex::Enrol               | Api/EnrollmentIndex.h        | 88      | Enrols one occupant in a subset. ContentUnsupported when a mutually exclusive subset already holds it no partial state behind. `12` §10 rejects at commit and resolves nothing silently.
+F EnrollmentIndex::Unenrol             | Api/EnrollmentIndex.h        | 96      | Withdraws one occupant from a subset, dividing the run it sat inside.
+F EnrollmentIndex::UnenrolEverywhere   | Api/EnrollmentIndex.h        | 102     | Withdraws one occupant from every subset — the subset half of invariant 8.
+F EnrollmentIndex::Enrolled            | Api/EnrollmentIndex.h        | 110     | Whether one occupant is enrolled in a subset.
+F EnrollmentIndex::Intervals           | Api/EnrollmentIndex.h        | 116     | The runs of one subset, in ascending slot order.
+F EnrollmentIndex::EnrolledCount       | Api/EnrollmentIndex.h        | 121     | How many occupants one subset holds.
+F EnrollmentIndex::Reclaim             | Api/EnrollmentIndex.h        | 126     | Empties one subset entirely.
+F EnrollmentIndex::EnrolmentsOccupied  | Api/EnrollmentIndex.h        | 132     | 🔍 Whether every enrolled slot is occupied at the current generation — invariant 6.
+F LocateInterval                       | Source/EnrollmentIndex.cpp   | 20-36   | ?
+F EnrollmentIndex::Enrol               | Source/EnrollmentIndex.cpp   | 44-99   | ?
+F EnrollmentIndex::Unenrol             | Source/EnrollmentIndex.cpp   | 105-147 | ?
+F EnrollmentIndex::UnenrolEverywhere   | Source/EnrollmentIndex.cpp   | 149-153 | ?
+F EnrollmentIndex::Enrolled            | Source/EnrollmentIndex.cpp   | 159-168 | ?
+F EnrollmentIndex::Intervals           | Source/EnrollmentIndex.cpp   | 170-173 | ?
+F EnrollmentIndex::EnrolledCount       | Source/EnrollmentIndex.cpp   | 175-178 | ?
+F EnrollmentIndex::Reclaim             | Source/EnrollmentIndex.cpp   | 180-184 | ?
+F EnrollmentIndex::EnrolmentsOccupied  | Source/EnrollmentIndex.cpp   | 186-201 | ?
+E OutlinerIntent                       | Api/OutlinerSequence.h       | 34-45   | What the interface asked the outliner to do. Never applied where it arrives; applied at ① of a tick. `RevisionSequence` like any other edit. Drag-reordering that mutated the relation directly would bypass undo, and its absence from the sequence is discovered by the artist rather than by a test.
+T DeclaredIntent                       | Api/OutlinerSequence.h       | 51-60   | One declared intent, complete enough to apply without consulting whoever declared it. ①. Every operand is named here so that what is applied is what was meant.
+T RejectedIntent                       | Api/OutlinerSequence.h       | 71-75   | One rejected intent, with both operands named — what `86` presents. naming both occupants, and never applied. Both identities are held here rather than formatted into a message, so the reporting stays nonallocating and the presenter chooses the wording.
+T OutlinerSequence                     | Api/OutlinerSequence.h       | 90-186  | Everything `12` owns, reconciled in the one order `12` §4 fixes. · ④ repair enclosure labels · ⑤ rebuild rows and adjust counts · ⑥ re-derive changed subsets · ⑦ re-derive search entries for renamed occupants. Every one of those orderings is load-bearing: ③ before ④ because transforms must be final before anything spatial is derived from them, and ④ before ⑤ because rows rebuilt against stale labels are briefly wrong and are displayed. completed tick left, and `Reconcile` is the only writer of it.
+F OutlinerSequence::Enrol              | Api/OutlinerSequence.h       | 100     | Enrols one occupant into the population and both relations, with a name.
+F OutlinerSequence::Declare            | Api/OutlinerSequence.h       | 109     | Declares one intent, to be applied at the next tick's ①. against a linearisation that is halfway rebuilt.
+F OutlinerSequence::Reconcile          | Api/OutlinerSequence.h       | 119     | Runs one whole tick in the fixed order ①–⑦. are checked as each transaction seals.
+F OutlinerSequence::Sequenced          | Api/OutlinerSequence.h       | 124     | The rows the last completed tick linearised.
+F OutlinerSequence::Enrollments        | Api/OutlinerSequence.h       | 129     | The named subsets as the last tick left them.
+F OutlinerSequence::Names              | Api/OutlinerSequence.h       | 134     | The name search over the population.
+F OutlinerSequence::Relations          | Api/OutlinerSequence.h       | 139     | The two relations, for the interval predicate `16` and `26` ask per occupant.
+F OutlinerSequence::Revisions          | Api/OutlinerSequence.h       | 144     | The document's committed transactions.
+F OutlinerSequence::Selections         | Api/OutlinerSequence.h       | 149     | The session's selections.
+F OutlinerSequence::Rejected           | Api/OutlinerSequence.h       | 154     | Every intent refused since the last time the refusals were drained — what `86` presents.
+F OutlinerSequence::ReclaimRejected    | Api/OutlinerSequence.h       | 159     | Drains the refusals, once the presenter has reported them.
+F OutlinerSequence::InvariantsHeld     | Api/OutlinerSequence.h       | 165     | 🔍 Whether every invariant `12` §5 states holds right now.
+F OutlinerSequence::ApplyIntent        | Api/OutlinerSequence.h       | 169     | ?
+F OutlinerSequence::ApplySubset        | Api/OutlinerSequence.h       | 170     | ?
+F OutlinerSequence::RetireCascade      | Api/OutlinerSequence.h       | 171     | ?
+F OutlinerSequence::Reject             | Api/OutlinerSequence.h       | 172     | ?
+F OutlinerSequence::Enrol              | Source/OutlinerSequence.cpp  | 15-45   | ?
+F OutlinerSequence::Declare            | Source/OutlinerSequence.cpp  | 51-59   | ?
+F OutlinerSequence::Reject             | Source/OutlinerSequence.cpp  | 61-68   | ?
+F OutlinerSequence::ApplySubset        | Source/OutlinerSequence.cpp  | 74-147  | ?
+F OutlinerSequence::RetireCascade      | Source/OutlinerSequence.cpp  | 153-180 | ?
+F OutlinerSequence::ApplyIntent        | Source/OutlinerSequence.cpp  | 186-268 | ?
+F OutlinerSequence::Reconcile          | Source/OutlinerSequence.cpp  | 274-350 | ?
+F OutlinerSequence::Sequenced          | Source/OutlinerSequence.cpp  | 356-359 | ?
+F OutlinerSequence::Enrollments        | Source/OutlinerSequence.cpp  | 361-364 | ?
+F OutlinerSequence::Names              | Source/OutlinerSequence.cpp  | 366-369 | ?
+F OutlinerSequence::Relations          | Source/OutlinerSequence.cpp  | 371-374 | ?
+F OutlinerSequence::Revisions          | Source/OutlinerSequence.cpp  | 376-379 | ?
+F OutlinerSequence::Selections         | Source/OutlinerSequence.cpp  | 381-384 | ?
+F OutlinerSequence::Rejected           | Source/OutlinerSequence.cpp  | 386-389 | ?
+F OutlinerSequence::ReclaimRejected    | Source/OutlinerSequence.cpp  | 391-394 | ?
+F OutlinerSequence::InvariantsHeld     | Source/OutlinerSequence.cpp  | 396-405 | ?
+T OccupancyIndex                       | Api/PopulationIndex.h        | 25-53   | Which slots are occupied. The free set is the complement and is never stored separately. trusted the stale one.
+F OccupancyIndex::Occupy               | Api/PopulationIndex.h        | 32      | Declares a slot occupied.
+F OccupancyIndex::Release              | Api/PopulationIndex.h        | 37      | Declares a slot free.
+F OccupancyIndex::Occupied             | Api/PopulationIndex.h        | 42      | Whether a slot is occupied.
+F OccupancyIndex::SpannedCount         | Api/PopulationIndex.h        | 47      | How many slots the ledger spans, occupied or not.
+T PopulationIndex                      | Api/PopulationIndex.h        | 63-103  | The slot ledger with generational identity. Every occupant in the document is one slot here. slot. That is what makes references safe without reference counting.
+F PopulationIndex::Enrol               | Api/PopulationIndex.h        | 72      | Enrols one occupant and issues its identity.
+F PopulationIndex::Withdraw            | Api/PopulationIndex.h        | 80      | Withdraws one occupant and advances the slot's generation.
+F PopulationIndex::Resolve             | Api/PopulationIndex.h        | 88      | Whether an identity still names the occupant it was issued for.
+F PopulationIndex::EnrolledCount       | Api/PopulationIndex.h        | 93      | How many occupants are enrolled.
+F OccupancyIndex::Occupy               | Source/PopulationIndex.cpp   | 15-27   | ?
+F OccupancyIndex::Release              | Source/PopulationIndex.cpp   | 29-37   | ?
+F OccupancyIndex::Occupied             | Source/PopulationIndex.cpp   | 39-47   | ?
+F OccupancyIndex::SpannedCount         | Source/PopulationIndex.cpp   | 49-52   | ?
+F PopulationIndex::Enrol               | Source/PopulationIndex.cpp   | 58-89   | ?
+F PopulationIndex::Withdraw            | Source/PopulationIndex.cpp   | 95-110  | ?
+F PopulationIndex::Resolve             | Source/PopulationIndex.cpp   | 116-128 | ?
+F PopulationIndex::EnrolledCount       | Source/PopulationIndex.cpp   | 130-133 | ?
+E TransactionPhase                     | Api/RevisionSequence.h       | 25-31   | Where an interactive edit stands. Every edit in the engine is a drag and passes through these four. transaction per pointer sample fills the sequence with positions the artist never meant to stop at.
+T CommittedTransaction                 | Api/RevisionSequence.h       | 41-50   | One committed transaction — the forward operation and the inverse that undoes it. stroke's inverse be bounded by the extent the stroke touched rather than by the whole surface.
+T RevisionSequence                     | Api/RevisionSequence.h       | 60-121  | The document's committed revisions, scrubbable in both directions. than merely popped, and `History` is banned.
+F RevisionSequence::Open               | Api/RevisionSequence.h       | 72      | Opens a transaction. Nothing enters the sequence until it is sealed.
+F RevisionSequence::Abandon            | Api/RevisionSequence.h       | 77      | Ends the open transaction with no effect. The prior content is restored by the caller.
+F RevisionSequence::Seal               | Api/RevisionSequence.h       | 86      | Ends the open transaction and enters exactly one transaction into the sequence.
+F RevisionSequence::Retreat            | Api/RevisionSequence.h       | 92      | Scrubs one transaction backwards, replaying its inverse.
+F RevisionSequence::Advance            | Api/RevisionSequence.h       | 98      | Scrubs one transaction forwards, replaying its forward operation.
+F RevisionSequence::Committed          | Api/RevisionSequence.h       | 103     | The committed transactions, in order, for `84` to present.
+F RevisionSequence::ScrubPosition      | Api/RevisionSequence.h       | 108     | Where the scrub position sits; equal to the committed count when nothing is undone.
+F RevisionSequence::TransactionOpen    | Api/RevisionSequence.h       | 113     | Whether a transaction is currently open.
+F RevisionSequence::Open               | Source/RevisionSequence.cpp  | 15-26   | ?
+F RevisionSequence::Abandon            | Source/RevisionSequence.cpp  | 28-32   | ?
+F RevisionSequence::Seal               | Source/RevisionSequence.cpp  | 38-76   | ?
+F RevisionSequence::Retreat            | Source/RevisionSequence.cpp  | 82-89   | ?
+F RevisionSequence::Advance            | Source/RevisionSequence.cpp  | 91-98   | ?
+F RevisionSequence::Committed          | Source/RevisionSequence.cpp  | 104-107 | ?
+F RevisionSequence::ScrubPosition      | Source/RevisionSequence.cpp  | 109-112 | ?
+F RevisionSequence::TransactionOpen    | Source/RevisionSequence.cpp  | 114-117 | ?
+T SequencedRow                         | Api/RowSequence.h            | 26-33   | One row of the linearisation — who it presents, how deep it sits, and whether it is counted. expanding an enclosure a rebuild instead of a count adjustment.
+T RankIndex                            | Api/RowSequence.h            | 47-97   | Counted ordering over the sequence, answering both scroll questions in logarithmic time. power-of-two run ending at its ordinal, so a prefix count and a search by count are both a walk of the set bits of an ordinal rather than of the rows. first and scrolling to a selection needs the second, and a linear answer to either is felt at a thousand rows.
+F RankIndex::Construct                 | Api/RowSequence.h            | 56      | Sizes the counted ordering to a row count, every row counted.
+F RankIndex::Declare                   | Api/RowSequence.h            | 63      | Declares one row counted or uncounted, adjusting every prefix that contains it.
+F RankIndex::CountedBefore             | Api/RowSequence.h            | 70      | How many rows before this ordinal are counted.
+F RankIndex::RowAtVisible              | Api/RowSequence.h            | 77      | Which row carries the visible row at a declared position — the first scroll question.
+F RankIndex::VisibleOfRow              | Api/RowSequence.h            | 84      | What visible position a row sits at — the second scroll question.
+F RankIndex::CountedTotal              | Api/RowSequence.h            | 89      | How many rows are counted in total.
+T RowSequence                          | Api/RowSequence.h            | 107-167 | The rows the enclosure relation linearises to, paired with the ordering that scrolls them. because rows rebuilt against stale labels are briefly wrong and are displayed while they are.
+F RowSequence::Linearize               | Api/RowSequence.h            | 117     | Linearises the enclosure relation depth-first — tick step ⑤.
+F RowSequence::DeclareExpansion        | Api/RowSequence.h            | 126     | Declares one occupant's enclosed rows counted or uncounted, and re-derives the counts below it.
+F RowSequence::DeclareNarrowed         | Api/RowSequence.h            | 135     | Declares one occupant's row narrowed out of the count, or back into it.
+F RowSequence::Rows                    | Api/RowSequence.h            | 140     | The rows, in linearised order, including the uncounted ones.
+F RowSequence::Counted                 | Api/RowSequence.h            | 145     | The counted ordering over those rows.
+F RowSequence::RowOf                   | Api/RowSequence.h            | 152     | Which row an occupant sits at.
+F RowSequence::CountsAgree             | Api/RowSequence.h            | 157     | 🔍 Whether the counts agree with the visible rows of the sequence — invariant 5.
+F RowSequence::Recount                 | Api/RowSequence.h            | 161     | ?
+F RankIndex::Construct                 | Source/RowSequence.cpp       | 15-34   | ?
+F RankIndex::Declare                   | Source/RowSequence.cpp       | 36-62   | ?
+F RankIndex::CountedBefore             | Source/RowSequence.cpp       | 64-76   | ?
+F RankIndex::RowAtVisible              | Source/RowSequence.cpp       | 78-107  | ?
+F RankIndex::VisibleOfRow              | Source/RowSequence.cpp       | 109-121 | ?
+F RankIndex::CountedTotal              | Source/RowSequence.cpp       | 123-126 | ?
+F AppendReversed                       | Source/RowSequence.cpp       | 137-159 | ?
+F RowSequence::Linearize               | Source/RowSequence.cpp       | 163-216 | ?
+F RowSequence::Recount                 | Source/RowSequence.cpp       | 222-247 | ?
+F RowSequence::DeclareExpansion        | Source/RowSequence.cpp       | 249-261 | ?
+F RowSequence::DeclareNarrowed         | Source/RowSequence.cpp       | 263-275 | ?
+F RowSequence::Rows                    | Source/RowSequence.cpp       | 281-284 | ?
+F RowSequence::Counted                 | Source/RowSequence.cpp       | 286-289 | ?
+F RowSequence::RowOf                   | Source/RowSequence.cpp       | 291-302 | ?
+F RowSequence::CountsAgree             | Source/RowSequence.cpp       | 304-333 | ?
+T IntervalLabel                        | Api/SceneStructure.h         | 27-31   | One occupant's half-open-free interval label. Enclosure at any depth is a comparison of two of these. exactly row order. An unlabelled record carries two zeros, and zero is never issued.
+V RootLabelCeiling                     | Api/SceneStructure.h         | 35      | ?
+V EnclosureLabelGap                    | Api/SceneStructure.h         | 36      | ?
+V EnclosureDepthCeiling                | Api/SceneStructure.h         | 42      | ?
+V AbsentSlot                           | Api/SceneStructure.h         | 43      | ?
+F EnclosureContains                    | Api/SceneStructure.h         | 53-56   | Whether Outer encloses Inner at any depth, by integer comparison alone. traversal, which is the entire reason the labels exist.
+F SLATE_DECLARES_PRECISION             | Api/SceneStructure.h         | 57      | ?
+E RelationSubject                      | Api/SceneStructure.h         | 67-71   | Which of the two relations a declared change addresses.
+T EnclosureRecord                      | Api/SceneStructure.h         | 77-87   | One occupant's place in `EnclosureContains`, with the ordering walked to linearise it. million empty vectors, and the walk is the same walk either way.
+T AttachmentRecord                     | Api/SceneStructure.h         | 93-99   | One occupant's place in `AttachmentFollows`, and the chain compounded downward from a root. its authored transform unchanged. Enclosure has no entry here, by construction.
+T SceneStructure                       | Api/SceneStructure.h         | 117-289 | Both nesting relations over one population, each reconciled on its own. sits at an enclosure depth. `12` §1 bans the alternative spellings outright. than resolved against whatever later took the slot, which is what the generation is for.
+F SceneStructure::Admit                | Api/SceneStructure.h         | 127     | Admits one enrolled occupant into both relations, unenclosed and unattached.
+F SceneStructure::Retire               | Api/SceneStructure.h         | 138     | Withdraws one occupant from both relations, re-enclosing what it enclosed. with it; attached occupants keep their compounded transform and take its attachment inside it. The caller seals the whole cascade as one transaction.
+F SceneStructure::Enclose              | Api/SceneStructure.h         | 150     | Places one occupant in an enclosure at a declared position in its ordering. with IdentityStale when either identity does not resolve on the caller so that `86` can name them without this seam allocating a message.
+F SceneStructure::Attach               | Api/SceneStructure.h         | 162     | Attaches one occupant to another so that it follows its motion. relations exist rather than one.
+F SceneStructure::AuthorTransform      | Api/SceneStructure.h         | 170     | Records the transform the artist authored for one occupant.
+F SceneStructure::CompoundAttachments  | Api/SceneStructure.h         | 179     | Compounds every occupant's transform downward from its attachment root — tick step ③. derived from them, which `12` §4 makes an ordering rather than a preference.
+F SceneStructure::RepairLabels         | Api/SceneStructure.h         | 188     | Repairs interval labels across every span whose gap was exhausted — tick step ④. refuses. A whole-population relabel is the last resort, never the first.
+F SceneStructure::Label                | Api/SceneStructure.h         | 195     | One occupant's interval label, for the containment predicate above.
+F SceneStructure::CompoundedTransform  | Api/SceneStructure.h         | 203     | One occupant's transform with its whole attachment path compounded into it.
+F SceneStructure::EnclosureCyclic      | Api/SceneStructure.h         | 213     | Whether enclosing Subject in ProposedEnclosure would close a cycle. ④ is gated against labels that ④ has not yet repaired.
+F SceneStructure::AttachmentCyclic     | Api/SceneStructure.h         | 218     | Whether attaching Subject to ProposedAttachment would close a cycle.
+F SceneStructure::RootFirst            | Api/SceneStructure.h         | 226     | First occupant of the root ordering, or AbsentSlot when the population is empty.
+F SceneStructure::NextInOrder          | Api/SceneStructure.h         | 231     | Next occupant of the same enclosure ordering, or AbsentSlot at its end.
+F SceneStructure::FirstEnclosed        | Api/SceneStructure.h         | 236     | First occupant enclosed by this one, or AbsentSlot when it encloses nothing.
+F SceneStructure::EnclosureDepth       | Api/SceneStructure.h         | 241     | How many enclosures stand between this occupant and the root ordering.
+F SceneStructure::OccupantAt           | Api/SceneStructure.h         | 246     | The identity occupying one slot, undeclared when the slot is vacant here.
+F SceneStructure::SpannedCount         | Api/SceneStructure.h         | 251     | How many slots both relations span, occupied or not.
+F SceneStructure::RelabelOwed          | Api/SceneStructure.h         | 256     | Whether a relabel is owed before a linearisation may be taken.
+F SceneStructure::RelationsAcyclic     | Api/SceneStructure.h         | 261     | 🔍 Whether neither relation contains a cycle — invariant 3, checked on every reconciliation.
+F SceneStructure::LabelsNested         | Api/SceneStructure.h         | 266     | 🔍 Whether every label is strictly nested and disjoint enclosures never overlap — invariant 4.
+F SceneStructure::Resolved             | Api/SceneStructure.h         | 270     | ?
+F SceneStructure::Unlink               | Api/SceneStructure.h         | 271     | ?
+F SceneStructure::Link                 | Api/SceneStructure.h         | 272     | ?
+F SceneStructure::EnclosureInterval    | Api/SceneStructure.h         | 273     | ?
+F SceneStructure::LabelBetween         | Api/SceneStructure.h         | 274     | ?
+F SceneStructure::AssignLabels         | Api/SceneStructure.h         | 275     | ?
+F SceneStructure::DeclareExhausted     | Api/SceneStructure.h         | 276     | ?
+F SceneStructure::CompoundFrom         | Api/SceneStructure.h         | 277     | ?
+F SLATE_DECLARES_PRECISION             | Api/SceneStructure.h         | 294     | ?
+F SceneStructure::Resolved             | Source/SceneStructure.cpp    | 15-27   | ?
+F SceneStructure::OccupantAt           | Source/SceneStructure.cpp    | 29-40   | ?
+F SceneStructure::SpannedCount         | Source/SceneStructure.cpp    | 42-45   | ?
+F SceneStructure::RootFirst            | Source/SceneStructure.cpp    | 47-50   | ?
+F SceneStructure::NextInOrder          | Source/SceneStructure.cpp    | 52-58   | ?
+F SceneStructure::FirstEnclosed        | Source/SceneStructure.cpp    | 60-66   | ?
+F SceneStructure::EnclosureDepth       | Source/SceneStructure.cpp    | 68-74   | ?
+F SceneStructure::RelabelOwed          | Source/SceneStructure.cpp    | 76-79   | ?
+F SceneStructure::Admit                | Source/SceneStructure.cpp    | 85-115  | ?
+F SceneStructure::Retire               | Source/SceneStructure.cpp    | 117-202 | ?
+F SceneStructure::Unlink               | Source/SceneStructure.cpp    | 208-234 | ?
+F SceneStructure::Link                 | Source/SceneStructure.cpp    | 236-269 | ?
+F SceneStructure::Enclose              | Source/SceneStructure.cpp    | 271-316 | ?
+F SceneStructure::EnclosureInterval    | Source/SceneStructure.cpp    | 322-337 | ?
+F SceneStructure::LabelBetween         | Source/SceneStructure.cpp    | 339-383 | ?
+F SceneStructure::DeclareExhausted     | Source/SceneStructure.cpp    | 385-394 | ?
+F SceneStructure::AssignLabels         | Source/SceneStructure.cpp    | 396-442 | ?
+F SceneStructure::RepairLabels         | Source/SceneStructure.cpp    | 444-476 | ?
+F SceneStructure::Label                | Source/SceneStructure.cpp    | 478-489 | ?
+F SceneStructure::Attach               | Source/SceneStructure.cpp    | 495-545 | ?
+F SceneStructure::AuthorTransform      | Source/SceneStructure.cpp    | 547-557 | ?
+F SceneStructure::CompoundFrom         | Source/SceneStructure.cpp    | 559-581 | ?
+F SceneStructure::CompoundAttachments  | Source/SceneStructure.cpp    | 583-605 | ?
+F SceneStructure::CompoundedTransform  | Source/SceneStructure.cpp    | 607-618 | ?
+F SceneStructure::EnclosureCyclic      | Source/SceneStructure.cpp    | 624-644 | ?
+F SceneStructure::AttachmentCyclic     | Source/SceneStructure.cpp    | 646-664 | ?
+F SceneStructure::RelationsAcyclic     | Source/SceneStructure.cpp    | 670-701 | ?
+F SceneStructure::LabelsNested         | Source/SceneStructure.cpp    | 703-730 | ?
+T CommittedSelection                   | Api/SelectionSequence.h      | 26-30   | One committed selection — what was selected, and which document transaction it was standing at. applied to. The recorded revision ordinal is what pairs the two, so a scrub of the document sequence can find the selection that served it without either sequence owning the other.
+T SelectionSequence                    | Api/SelectionSequence.h      | 44-97   | The session's selections, traversable backwards and forwards on their own. reopening with someone else's selection has restored a decision the artist had already finished making, and the first stroke lands on the wrong occupant. Recorded as `00` §10 conflict 34. minute: move three occupants, undo, and the transforms revert while the selection does not. It is not in the document's sequence, and it is not unrevisioned either.
+F SelectionSequence::Seal              | Api/SelectionSequence.h      | 54      | Commits one selection, paired with the document revision it stands at.
+F SelectionSequence::Retreat           | Api/SelectionSequence.h      | 60      | Traverses one selection backwards.
+F SelectionSequence::Advance           | Api/SelectionSequence.h      | 66      | Traverses one selection forwards.
+F SelectionSequence::RestoreAt         | Api/SelectionSequence.h      | 75      | Restores the selection that stood at a declared document revision. holds within the session where the scrub happens, which is all `12` §11 requires of it.
+F SelectionSequence::Standing          | Api/SelectionSequence.h      | 80      | The selection standing now.
+F SelectionSequence::Committed         | Api/SelectionSequence.h      | 85      | The committed selections, in order.
+F SelectionSequence::TraversalPosition | Api/SelectionSequence.h      | 90      | Where the traversal position sits; equal to the committed count when nothing is traversed back.
+F SelectionSequence::Seal              | Source/SelectionSequence.cpp | 15-30   | ?
+F SelectionSequence::Retreat           | Source/SelectionSequence.cpp | 36-49   | ?
+F SelectionSequence::Advance           | Source/SelectionSequence.cpp | 51-60   | ?
+F SelectionSequence::RestoreAt         | Source/SelectionSequence.cpp | 62-78   | ?
+F SelectionSequence::Standing          | Source/SelectionSequence.cpp | 84-87   | ?
+F SelectionSequence::Committed         | Source/SelectionSequence.cpp | 89-92   | ?
+F SelectionSequence::TraversalPosition | Source/SelectionSequence.cpp | 94-97   | ?
+V TrigramAlphabet                      | Api/TrigramIndex.h           | 25      | ?
+V TrigramSpan                          | Api/TrigramIndex.h           | 26      | ?
+F FoldedOrdinal                        | Api/TrigramIndex.h           | 34-55   | Folds one character to its alphabet ordinal, case-insensitively.
+T TrigramIndex                         | Api/TrigramIndex.h           | 68-118  | Trigram narrowing over the population's names, with the exact confirmation that follows it. answer wrongly — a trigram set matches names that do not contain the sought text at all, and presenting those as results is a search the artist stops trusting. a name the artist has already changed is worse than search that finds nothing.
+F TrigramIndex::Declare                | Api/TrigramIndex.h           | 79      | Declares one occupant's name, replacing whatever it held before.
+F TrigramIndex::Withdraw               | Api/TrigramIndex.h           | 85      | Withdraws one occupant's name and every trigram entry that reached it.
+F TrigramIndex::Narrow                 | Api/TrigramIndex.h           | 97      | Narrows to the occupants whose names contain the sought text, then confirms each exactly. is already small, and intersecting costs more than confirming the difference. identity from a slot ordinal alone would hand back a reference that resolves to whatever later took the slot, which is the defect the generation exists to prevent.
+F TrigramIndex::DeclaredName           | Api/TrigramIndex.h           | 102     | One occupant's declared name, empty when it has none.
+F TrigramIndex::NamedCount             | Api/TrigramIndex.h           | 107     | How many occupants carry a declared name.
+F TrigramIndex::Enter                  | Api/TrigramIndex.h           | 111     | ?
+F FoldedTrigrams                       | Source/TrigramIndex.cpp      | 20-51   | ?
+F NameContains                         | Source/TrigramIndex.cpp      | 55-78   | ?
+F TrigramIndex::Enter                  | Source/TrigramIndex.cpp      | 86-113  | ?
+F TrigramIndex::Declare                | Source/TrigramIndex.cpp      | 115-141 | ?
+F TrigramIndex::Withdraw               | Source/TrigramIndex.cpp      | 143-170 | ?
+F TrigramIndex::Narrow                 | Source/TrigramIndex.cpp      | 176-222 | ?
+F TrigramIndex::DeclaredName           | Source/TrigramIndex.cpp      | 224-230 | ?
+F TrigramIndex::NamedCount             | Source/TrigramIndex.cpp      | 232-235 | ?
+V CurrentStreamVersion                 | Api/FormatCodec.h            | 20      | The document stream layout this build writes.
+T StreamHeading                        | Api/FormatCodec.h            | 24-30   | The leading declaration of every document stream.
+T DeclaredMigration                    | Api/FormatCodec.h            | 40-44   | One declared transformation from a stream version to the one above it. reader. Conditionals inside readers are how a format acquires cases nobody can enumerate.
+F ResolveMigration                     | Api/FormatCodec.h            | 57      | Reads a document stream's heading and reports whether a migration path reaches the current version. not decide whether the result is fit to use.
+V DeclaredSignature                    | Source/FormatCodec.cpp       | 26      | ?
+F ResolveMigration                     | Source/FormatCodec.cpp       | 33-74   | ?

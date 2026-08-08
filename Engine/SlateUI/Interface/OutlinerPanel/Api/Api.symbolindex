@@ -1,0 +1,81 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/OutlinerPanel/Api
+%layer      SlateUI
+%sources    1
+%symbols    10
+%annotated  9/10
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S OutlinerPanel.h | 107 lines | 8f27c297 | 10 sym | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                THE SEARCH ENTRY EXTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+V NameSearchExtent                | OutlinerPanel.h | 23     | -                             | -  | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE OUTLINER PANEL
+//------------------------------------------------------------------------------------------------------------------------
+
+T OutlinerPanel                   | OutlinerPanel.h | 39-105 | owning                        | -  | The presentation half of `12` — reads the linearisation, declares intent, stores neither relation. Only the counted span the artist can see is touched, and the scroll position is a row ordinal resolved by count rather than a pixel offset the panel remembers on its own. A panel that mutated the relations where the click arrived would apply against a linearisation that is halfway rebuilt, and would bypass the sequence that undoes it. entry, and whether the panel is shown. None of it is a transaction and none of it is scrubbed.
+    has   VisibleAnchor        std::uint32_t           [-]  ?
+    has   RowsPresented        std::uint32_t           [-]  ?
+    has   ConfirmedCount       std::uint32_t           [-]  ?
+    has   CountedWhenAnchored  std::uint32_t           [-]  ?
+    has   AnchoredOccupant     OccupantIdentity        [-]  ?
+    has   PresenceEnabled      bool                    [-]  ?
+    has   SoughtEntry          char[NameSearchExtent]  [-]  ?
+    by    Source/OutlinerPanel.cpp
+    note  🔴 `12` §7 and `14` §6: the rows are read through `RankIndex` and the relations are never read here.
+    note  🔴 Every mutation leaves through `OutlinerSequence::Declare` and is applied at the next tick's ①.
+    note  ⚠️ What is held here is what `14` §4.1 places beside the document — the scroll position, the search
+
+F OutlinerPanel::Present          | OutlinerPanel.h | 50     | api,nonthrowing               | 🚩 | Presents one tick of the outliner and declares whatever the artist asked for.
+    in    Outliner  OutlinerSequence&  [-]  the sequence to read from and declare into
+    out   -         Outcome            [-]  refuses with HostDenied when no interface tick is open
+    pre   InterfaceExchange::Advance delivered and Seal has not
+    post  every declared intent sits in the pending run; nothing was applied here
+    by    Source/OutlinerPanel.cpp
+
+F OutlinerPanel::DeclarePresence  | OutlinerPanel.h | 56     | api,nonallocating,nonthrowing | ✔️ | Declares whether the panel is shown at all.
+    in    PresenceDeclared  bool  [-]  whether the artist wants it
+    out   -                 void  [-]  ?
+    by    Source/OutlinerPanel.cpp
+
+F OutlinerPanel::PresenceStanding | OutlinerPanel.h | 61     | api,nonallocating,nonthrowing | ✔️ | Whether the panel is shown.
+    out   -  bool  [-]  ?
+    by    Source/OutlinerPanel.cpp
+
+F OutlinerPanel::VisiblePosition  | OutlinerPanel.h | 70     | api,nonallocating,nonthrowing | ✔️ | The counted ordinal at the top of the presented span — the scroll position, as a row. When the counted total changes the offset is restored from that occupant before it is read, so collapsing an enclosure above the view leaves the artist looking at the same occupant rather than at whatever slid under the cursor. An anchor whose occupant left the count keeps its ordinal.
+    out   -  std::uint32_t  [-]  ?
+    by    Source/OutlinerPanel.cpp
+    note  Recorded as a count rather than as a pixel offset, and the occupant it names is held alongside it.
+
+F OutlinerPanel::Anchored         | OutlinerPanel.h | 77     | api,nonallocating,nonthrowing | ✔️ | The occupant the presented span is anchored on, undeclared when nothing is counted. never declared as intent and no transaction records it.
+    out   -  OccupantIdentity  [-]  ?
+    by    Source/OutlinerPanel.cpp
+    note  🔴 `14` §4.1 state, not the document's. Held so the scroll survives a count adjustment; it is
+
+F OutlinerPanel::RowsTouched      | OutlinerPanel.h | 84     | api,nonallocating,nonthrowing | ✔️ | How many rows the last presentation actually touched. not to the population. A million occupants that presented a million rows is the defect.
+    out   -  std::uint32_t  [-]  ?
+    by    Source/OutlinerPanel.cpp
+    note  🔍 The measurement `12` §7 is checked against: it stays proportional to the panel's height and
+
+F OutlinerPanel::Sought           | OutlinerPanel.h | 89     | api,nonthrowing               | 🚩 | The text the artist is searching names for, empty when nothing is sought.
+    out   -  std::string  [-]  ?
+    by    Api/TrigramIndex.h, Source/OutlinerPanel.cpp, Source/TrigramIndex.cpp
+
+F OutlinerPanel::ConfirmedNames   | OutlinerPanel.h | 94     | api,nonallocating,nonthrowing | ✔️ | How many names the last narrowing confirmed.
+    out   -  std::uint32_t  [-]  ?
+    by    Source/OutlinerPanel.cpp

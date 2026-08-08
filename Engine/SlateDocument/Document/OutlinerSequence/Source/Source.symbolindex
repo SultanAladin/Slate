@@ -1,0 +1,107 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The seven steps in order, every mutation a transaction, and the retirement cascade as one of them.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/OutlinerSequence/Source
+%layer      SlateDocument
+%sources    1
+%symbols    16
+%annotated  0/16
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S OutlinerSequence.cpp | 407 lines | 0be7303a | 16 sym | The seven steps in order, every mutation a transaction, and the retirement cascade as one of them.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       ENROLMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F OutlinerSequence::Enrol           | OutlinerSequence.cpp | 15-45   | - | - | ?
+    in    DeclaredName  const std::string&         [-]  ?
+    out   -             Outcome<OccupantIdentity>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    DECLARED INTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F OutlinerSequence::Declare         | OutlinerSequence.cpp | 51-59   | - | - | ?
+    in    Arriving  const DeclaredIntent&  [-]  ?
+    out   -         Outcome<bool>          [-]  ?
+
+F OutlinerSequence::Reject          | OutlinerSequence.cpp | 61-68   | - | - | ?
+    in    Refused    const DeclaredIntent&  [-]  ?
+    in    Declining  const Refusal&         [-]  ?
+    out   -          void                   [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     SUBSET INTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F OutlinerSequence::ApplySubset     | OutlinerSequence.cpp | 74-147  | - | - | ?
+    in    Applying   const DeclaredIntent&  [-]  ?
+    in    Addressed  SubsetSubject          [-]  ?
+    in    SealedAt   std::uint64_t          [-]  ?
+    out   -          Outcome<bool>          [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE RETIREMENT CASCADE
+//------------------------------------------------------------------------------------------------------------------------
+
+F OutlinerSequence::RetireCascade   | OutlinerSequence.cpp | 153-180 | - | - | ?
+    in    Applying  const DeclaredIntent&  [-]  ?
+    in    SealedAt  std::uint64_t          [-]  ?
+    out   -         Outcome<bool>          [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    APPLYING INTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F OutlinerSequence::ApplyIntent     | OutlinerSequence.cpp | 186-268 | - | - | ?
+    in    Applying  const DeclaredIntent&  [-]  ?
+    in    SealedAt  std::uint64_t          [-]  ?
+    out   -         Outcome<bool>          [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE TICK ORDER
+//------------------------------------------------------------------------------------------------------------------------
+
+F OutlinerSequence::Reconcile       | OutlinerSequence.cpp | 274-350 | - | - | ?
+    in    SealedAt  std::uint64_t  [-]  ?
+    out   -         Outcome<bool>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      WHAT IS READ
+//------------------------------------------------------------------------------------------------------------------------
+
+F OutlinerSequence::Sequenced       | OutlinerSequence.cpp | 356-359 | - | - | ?
+    out   -  const RowSequence&  [-]  ?
+
+F OutlinerSequence::Enrollments     | OutlinerSequence.cpp | 361-364 | - | - | ?
+    out   -  const EnrollmentIndex&  [-]  ?
+
+F OutlinerSequence::Names           | OutlinerSequence.cpp | 366-369 | - | - | ?
+    out   -  const TrigramIndex&  [-]  ?
+
+F OutlinerSequence::Relations       | OutlinerSequence.cpp | 371-374 | - | - | ?
+    out   -  const SceneStructure&  [-]  ?
+
+F OutlinerSequence::Revisions       | OutlinerSequence.cpp | 376-379 | - | - | ?
+    out   -  const RevisionSequence&  [-]  ?
+
+F OutlinerSequence::Selections      | OutlinerSequence.cpp | 381-384 | - | - | ?
+    out   -  const SelectionSequence&  [-]  ?
+
+F OutlinerSequence::Rejected        | OutlinerSequence.cpp | 386-389 | - | - | ?
+    out   -  const std::vector<RejectedIntent>&  [-]  ?
+
+F OutlinerSequence::ReclaimRejected | OutlinerSequence.cpp | 391-394 | - | - | ?
+    out   -  void  [-]  ?
+
+F OutlinerSequence::InvariantsHeld  | OutlinerSequence.cpp | 396-405 | - | - | ?
+    out   -  bool  [-]  ?

@@ -1,0 +1,95 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The counted span presented, and every gesture over it turned into a declared intent.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/OutlinerPanel/Source
+%layer      SlateUI
+%sources    1
+%symbols    15
+%annotated  0/15
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S OutlinerPanel.cpp | 391 lines | 6bf8573b | 15 sym | The counted span presented, and every gesture over it turned into a declared intent.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE REORDERING PAYLOAD
+//------------------------------------------------------------------------------------------------------------------------
+
+V ReorderPayload                  | OutlinerPanel.cpp | 21      | - | - | ?
+
+T DraggedRow                      | OutlinerPanel.cpp | 26-30   | - | - | ?
+    has   SlotOrdinal     std::uint32_t  [-]  ?
+    has   SlotGeneration  std::uint32_t  [-]  ?
+
+F DraggedIdentity                 | OutlinerPanel.cpp | 32-39   | - | - | ?
+    in    Carried  const DraggedRow&  [-]  ?
+    out   -        OccupantIdentity   [-]  ?
+
+F CarriedIdentity                 | OutlinerPanel.cpp | 41-48   | - | - | ?
+    in    Dragging  OccupantIdentity  [-]  ?
+    out   -         DraggedRow        [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    DECLARING INTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F DeclareStanding                 | OutlinerPanel.cpp | 56-67   | - | - | ?
+    in    Outliner         OutlinerSequence&  [-]  ?
+    in    Declared         OutlinerIntent     [-]  ?
+    in    Subject          OccupantIdentity   [-]  ?
+    in    StandingEnabled  bool               [-]  ?
+    out   -                void               [-]  ?
+
+F DeclareSelection                | OutlinerPanel.cpp | 71-80   | - | - | ?
+    in    Outliner           OutlinerSequence&  [-]  ?
+    in    Subject            OccupantIdentity   [-]  ?
+    in    SelectionExtended  bool               [-]  ?
+    out   -                  void               [-]  ?
+
+F DeclareEnclosure                | OutlinerPanel.cpp | 85-97   | - | - | ?
+    in    Outliner              OutlinerSequence&  [-]  ?
+    in    Subject               OccupantIdentity   [-]  ?
+    in    ProposedEnclosure     OccupantIdentity   [-]  ?
+    in    OrderWithinEnclosure  std::uint32_t      [-]  ?
+    out   -                     void               [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PRESENTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F OutlinerPanel::Present          | OutlinerPanel.cpp | 105-350 | - | - | ?
+    in    Outliner  OutlinerSequence&  [-]  ?
+    out   -         Outcome<bool>      [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      WHAT IS READ
+//------------------------------------------------------------------------------------------------------------------------
+
+F OutlinerPanel::DeclarePresence  | OutlinerPanel.cpp | 356-359 | - | - | ?
+    in    PresenceDeclared  bool  [-]  ?
+    out   -                 void  [-]  ?
+
+F OutlinerPanel::PresenceStanding | OutlinerPanel.cpp | 361-364 | - | - | ?
+    out   -  bool  [-]  ?
+
+F OutlinerPanel::VisiblePosition  | OutlinerPanel.cpp | 366-369 | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F OutlinerPanel::Anchored         | OutlinerPanel.cpp | 371-374 | - | - | ?
+    out   -  OccupantIdentity  [-]  ?
+
+F OutlinerPanel::RowsTouched      | OutlinerPanel.cpp | 376-379 | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F OutlinerPanel::Sought           | OutlinerPanel.cpp | 381-384 | - | - | ?
+    out   -  std::string  [-]  ?
+
+F OutlinerPanel::ConfirmedNames   | OutlinerPanel.cpp | 386-389 | - | - | ?
+    out   -  std::uint32_t  [-]  ?

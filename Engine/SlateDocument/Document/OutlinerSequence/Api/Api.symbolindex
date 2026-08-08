@@ -1,0 +1,158 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The fixed tick order over both relations, the linearisation, the subsets and the name search.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/OutlinerSequence/Api
+%layer      SlateDocument
+%sources    1
+%symbols    20
+%annotated  16/20
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S OutlinerSequence.h | 188 lines | c2bcd112 | 20 sym | The fixed tick order over both relations, the linearisation, the subsets and the name search.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    DECLARED INTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+E OutlinerIntent                    | OutlinerSequence.h | 34-45  | contract                      | -  | What the interface asked the outliner to do. Never applied where it arrives; applied at ① of a tick. `RevisionSequence` like any other edit. Drag-reordering that mutated the relation directly would bypass undo, and its absence from the sequence is discovered by the artist rather than by a test.
+    has   Enclose            OutlinerIntent  [-]  ?
+    has   Attach             OutlinerIntent  [-]  ?
+    has   Rename             OutlinerIntent  [-]  ?
+    has   Select             OutlinerIntent  [-]  ?
+    has   ExcludeVisibility  OutlinerIntent  [-]  ?
+    has   Isolate            OutlinerIntent  [-]  ?
+    has   Lock               OutlinerIntent  [-]  ?
+    has   Expand             OutlinerIntent  [-]  ?
+    has   Retire             OutlinerIntent  [-]  ?
+    by    Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+    note  🔴 `12` §7: reordering rows is a transaction against the enclosure relation, committed through
+
+T DeclaredIntent                    | OutlinerSequence.h | 51-60  | owning                        | -  | One declared intent, complete enough to apply without consulting whoever declared it. ①. Every operand is named here so that what is applied is what was meant.
+    has   Declared              OutlinerIntent    [-]  ?
+    has   Subject               OccupantIdentity  [-]  ?
+    has   RelatedOccupant       OccupantIdentity  [-]  ?
+    has   DeclaredName          std::string       [-]  ?
+    has   OrderWithinEnclosure  std::uint32_t     [-]  ?
+    has   StandingEnabled       bool              [-]  ?
+    has   SelectionExtended     bool              [-]  ?
+    by    Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+    note  ⚠️ An intent carrying only "the selection" would apply against whatever the selection had become by
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    REPORTED REFUSAL
+//------------------------------------------------------------------------------------------------------------------------
+
+T RejectedIntent                    | OutlinerSequence.h | 71-75  | owning                        | -  | One rejected intent, with both operands named — what `86` presents. naming both occupants, and never applied. Both identities are held here rather than formatted into a message, so the reporting stays nonallocating and the presenter chooses the wording.
+    has   Refused    DeclaredIntent  [-]  ?
+    has   Declining  Refusal         [-]  ?
+    by    Source/OutlinerSequence.cpp
+    note  🔴 `12` §9: a relation change that would create a cycle is rejected at commit, reported as a Refusal
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE OUTLINER
+//------------------------------------------------------------------------------------------------------------------------
+
+T OutlinerSequence                  | OutlinerSequence.h | 90-186 | owning                        | -  | Everything `12` owns, reconciled in the one order `12` §4 fixes. · ④ repair enclosure labels · ⑤ rebuild rows and adjust counts · ⑥ re-derive changed subsets · ⑦ re-derive search entries for renamed occupants. Every one of those orderings is load-bearing: ③ before ④ because transforms must be final before anything spatial is derived from them, and ④ before ⑤ because rows rebuilt against stale labels are briefly wrong and are displayed. completed tick left, and `Reconcile` is the only writer of it.
+    has   Population           PopulationIndex                [-]  ?
+    has   NestingRelations     SceneStructure                 [-]  ?
+    has   Linearisation        RowSequence                    [-]  ?
+    has   Subsets              EnrollmentIndex                [-]  ?
+    has   NameSearch           TrigramIndex                   [-]  ?
+    has   Revised              RevisionSequence               [-]  ?
+    has   Selected             SelectionSequence              [-]  ?
+    has   PendingDeclarations  std::vector<DeclaredIntent>    [-]  ?
+    has   RefusedDeclarations  std::vector<RejectedIntent>    [-]  ?
+    has   RenamedDeclarations  std::vector<DeclaredIntent>    [-]  ?
+    has   WithdrawnOccupants   std::vector<OccupantIdentity>  [-]  ?
+    has   LiveGenerations      std::vector<std::uint32_t>     [-]  ?
+    by    Api/OutlinerPanel.h, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+    note  🔴 The tick order is ① apply committed intent · ② reconcile the population · ③ compound attachments
+    note  ⚠️ No linearisation is observed between ④ and ⑤ — invariant 10. `Rows()` reads the sequence the last
+
+F OutlinerSequence::Enrol           | OutlinerSequence.h | 100    | api,nonthrowing               | 🚩 | Enrols one occupant into the population and both relations, with a name.
+    in    DeclaredName  const std::string&  [-]  what the artist called it; may be empty
+    out   -             Outcome             [-]  refuses with ExtentExhausted at the population ceiling
+    post  the occupant sits last in the root ordering, attached to nothing, in no subset
+    by    Api/EnrollmentIndex.h, Api/PopulationIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp, Source/PopulationIndex.cpp
+
+F OutlinerSequence::Declare         | OutlinerSequence.h | 109    | api,nonthrowing               | ✔️ | Declares one intent, to be applied at the next tick's ①. against a linearisation that is halfway rebuilt.
+    in    Arriving  const DeclaredIntent&  [-]  the intent, every operand named
+    out   -         Outcome                [-]  refuses with IdentityStale when the subject does not resolve now
+    by    Api/RowSequence.h, Api/TrigramIndex.h, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RowSequence.cpp, Source/TrigramIndex.cpp
+    note  Declaring is not applying. An intent that arrives mid-tick is applied at the next ① rather than
+
+F OutlinerSequence::Reconcile       | OutlinerSequence.h | 119    | api,nonthrowing               | 🔴 | Runs one whole tick in the fixed order ①–⑦. are checked as each transaction seals.
+    in    SealedAt  std::uint64_t  [ns]  the arrival stamp transactions sealed this tick carry
+    out   -         Outcome        [-]   refuses when a step refuses; the refusal carries that step's reason
+    post  🔴 all ten invariants hold; nothing observed the linearisation between ④ and ⑤
+    by    Source/OutlinerSequence.cpp
+    note  🔍 Invariants 3 and 4 are checked here on every reconciliation under SLATE_DEBUG; the remainder
+
+F OutlinerSequence::Sequenced       | OutlinerSequence.h | 124    | api,nonallocating,nonthrowing | ✔️ | The rows the last completed tick linearised.
+    out   -  const RowSequence&  [-]  ?
+    by    Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+
+F OutlinerSequence::Enrollments     | OutlinerSequence.h | 129    | api,nonallocating,nonthrowing | ✔️ | The named subsets as the last tick left them.
+    out   -  const EnrollmentIndex&  [-]  ?
+    by    Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+
+F OutlinerSequence::Names           | OutlinerSequence.h | 134    | api,nonallocating,nonthrowing | ✔️ | The name search over the population.
+    out   -  const TrigramIndex&  [-]  ?
+    by    Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+
+F OutlinerSequence::Relations       | OutlinerSequence.h | 139    | api,nonallocating,nonthrowing | ✔️ | The two relations, for the interval predicate `16` and `26` ask per occupant.
+    out   -  const SceneStructure&  [-]  ?
+    by    Api/RowSequence.h, Source/OutlinerSequence.cpp, Source/RowSequence.cpp
+
+F OutlinerSequence::Revisions       | OutlinerSequence.h | 144    | api,nonallocating,nonthrowing | ✔️ | The document's committed transactions.
+    out   -  const RevisionSequence&  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp
+
+F OutlinerSequence::Selections      | OutlinerSequence.h | 149    | api,nonallocating,nonthrowing | ✔️ | The session's selections.
+    out   -  const SelectionSequence&  [-]  ?
+    by    Source/OutlinerSequence.cpp
+
+F OutlinerSequence::Rejected        | OutlinerSequence.h | 154    | api,nonallocating,nonthrowing | ✔️ | Every intent refused since the last time the refusals were drained — what `86` presents.
+    out   -  const std::vector<RejectedIntent>&  [-]  ?
+    by    Source/OutlinerSequence.cpp
+
+F OutlinerSequence::ReclaimRejected | OutlinerSequence.h | 159    | api,nonthrowing               | ✔️ | Drains the refusals, once the presenter has reported them.
+    out   -  void  [-]  ?
+    by    Source/OutlinerSequence.cpp
+
+F OutlinerSequence::InvariantsHeld  | OutlinerSequence.h | 165    | api,nonallocating,nonthrowing | 🔴 | 🔍 Whether every invariant `12` §5 states holds right now.
+    out   -  Held  [-]  false as soon as one does not; the caller reports which by asking the components
+    by    Source/OutlinerSequence.cpp
+
+F OutlinerSequence::ApplyIntent     | OutlinerSequence.h | 169    | -                             | -  | ?
+    in    Applying  const DeclaredIntent&  [-]  ?
+    in    SealedAt  std::uint64_t          [-]  ?
+    out   -         Outcome<bool>          [-]  ?
+    by    Source/OutlinerSequence.cpp
+
+F OutlinerSequence::ApplySubset     | OutlinerSequence.h | 170    | -                             | -  | ?
+    in    Applying   const DeclaredIntent&  [-]  ?
+    in    Addressed  SubsetSubject          [-]  ?
+    in    SealedAt   std::uint64_t          [-]  ?
+    out   -          Outcome<bool>          [-]  ?
+    by    Source/OutlinerSequence.cpp
+
+F OutlinerSequence::RetireCascade   | OutlinerSequence.h | 171    | -                             | -  | ?
+    in    Applying  const DeclaredIntent&  [-]  ?
+    in    SealedAt  std::uint64_t          [-]  ?
+    out   -         Outcome<bool>          [-]  ?
+    by    Source/OutlinerSequence.cpp
+
+F OutlinerSequence::Reject          | OutlinerSequence.h | 172    | -                             | -  | ?
+    in    Refused    const DeclaredIntent&  [-]  ?
+    in    Declining  const Refusal&         [-]  ?
+    out   -          void                   [-]  ?
+    by    Source/OutlinerSequence.cpp
