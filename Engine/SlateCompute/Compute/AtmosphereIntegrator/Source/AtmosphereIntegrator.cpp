@@ -5,6 +5,7 @@
 
 #include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
 
+#include "Shared/AtmosphereProjection.slang.h"
 #include "Shared/SampleProjection.slang.h"
 
 #include <cmath>
@@ -90,76 +91,10 @@ float DecodeHalf(std::uint16_t Encoded)
 //                                                  GEOMETRY HELPERS
 //------------------------------------------------------------------------------------------------------------------------
 
-double Bounded(double Magnitude, double Lower, double Upper)
-{
-    return Magnitude < Lower ? Lower : (Magnitude > Upper ? Upper : Magnitude);
-}
-
-// 📐 The distance from a radius along a zenith cosine to a sphere of a declared radius. The discriminant is
-//    written as r²(μ²−1) + R² rather than as the expanded quadratic, because the expanded form subtracts two
-//    nearly equal magnitudes at grazing angles and loses every significant digit exactly where the horizon is.
-double DistanceToSphere(double Radius, double ZenithCosine, double SphereRadius)
-{
-    const double Discriminant = Radius * Radius * (ZenithCosine * ZenithCosine - 1.0) + SphereRadius * SphereRadius;
-
-    if (Discriminant < 0.0)
-        return -1.0;
-
-    const double Root = std::sqrt(Discriminant);
-
-    // 📝 The nearer intersection where the ray descends, the further where it climbs. A ray that climbs has no
-    //    nearer intersection with the planet at all, which is what the negative branch below tests for.
-    const double Nearer = -Radius * ZenithCosine - Root;
-    const double Further = -Radius * ZenithCosine + Root;
-
-    if (Nearer >= 0.0)
-        return Nearer;
-
-    return Further >= 0.0 ? Further : -1.0;
-}
-
-// 📐 The radius reached after advancing a declared distance along a ray, from the cosine rule on the triangle
-//    centre–origin–arrival: r'² = r² + d² + 2rμd. Advancing a position and taking its length instead would carry
-//    three coordinates through the march to recover one number that depends on none of them separately.
-double AdvanceRadius(double Radius, double ZenithCosine, double Distance)
-{
-    const double Squared = Radius * Radius + Distance * Distance + 2.0 * Radius * ZenithCosine * Distance;
-
-    return std::sqrt(Squared > 0.0 ? Squared : 0.0);
-}
-
-bool GroundReached(double Radius, double ZenithCosine, double PlanetRadius)
-{
-    if (ZenithCosine >= 0.0)
-        return false;
-
-    return Radius * Radius * (ZenithCosine * ZenithCosine - 1.0) + PlanetRadius * PlanetRadius >= 0.0;
-}
-
-// 📐 Rayleigh's phase, 3(1+cos²θ)/16π. Near-isotropic with a shallow pair of lobes forward and back, which is
-//    why the daytime sky is bright in every direction rather than only around the sun.
-double RayleighPhase(double ScatterCosine)
-{
-    return 3.0 * (1.0 + ScatterCosine * ScatterCosine) / (16.0 * Pi);
-}
-
-// 📐 Cornette–Shanks, forward-biased by the declared asymmetry. It is what puts the bright halo around the sun
-//    and what makes a hazy day's horizon brighter than its zenith.
-// 🔴 This is the **same** phase `Shared/AtmosphereProjection.slang.h` spells for the device, and it must stay the
-//    same one. Henyey–Greenstein stood here previously, which is a defensible phase and the wrong one to hold
-//    beside a device form that carries the Rayleigh-like (1+cos²θ) numerator: the two agree to within a few per
-//    cent away from the sun and diverge across the solar halo, so a host-against-device comparison passes on
-//    almost every sample it draws and fails only on the population the surface exists to represent.
-double MiePhase(double ScatterCosine, double Asymmetry)
-{
-    const double Squared     = Asymmetry * Asymmetry;
-    const double Numerator   = 3.0 * (1.0 - Squared) * (1.0 + ScatterCosine * ScatterCosine);
-    const double Base        = 1.0 + Squared - 2.0 * Asymmetry * ScatterCosine;
-    const double Held        = Base > 1.0e-4 ? Base : 1.0e-4;
-    const double Denominator = 8.0 * Pi * (2.0 + Squared) * Held * std::sqrt(Held);
-
-    return Numerator / Denominator;
-}
+// 📝 🔴 Every routine that stood here is now `Shared/AtmosphereProjection.slang.h`'s, unchanged. They had not
+//    diverged from the shared forms yet — `02` §7's exact condition — but `ParityRunner` was comparing the
+//    shared mappings while this file marched through its own copies, so the parity gate was passing on code
+//    the integrator did not run.
 
 }   // namespace
 
@@ -296,13 +231,16 @@ Outcome<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
 //                                                 ONE RESIDENT SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ResidentSurface::Construct(std::uint32_t ExtentAlong_, std::uint32_t ExtentAcross_)
+Outcome<bool> ResidentSurface::Construct(std::uint32_t ExtentAlong_,
+                                         std::uint32_t ExtentAcross_,
+                                         bool          WrapAlongDeclared)
 {
     if (ExtentAlong_ == 0u || ExtentAcross_ == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a surface of no extent" });
 
     SpannedAlong  = ExtentAlong_;
     SpannedAcross = ExtentAcross_;
+    WrapAlong     = WrapAlongDeclared;
 
     Encoded.assign(static_cast<std::size_t>(ExtentAlong_) * ExtentAcross_ * AtmosphereComponentCount, 0u);
 
@@ -336,16 +274,30 @@ void ResidentSurface::Sample(double CoordinateAlong, double CoordinateAcross,
     const double SpanAlong  = static_cast<double>(SpannedAlong);
     const double SpanAcross = static_cast<double>(SpannedAcross);
 
-    double TexelAlong  = Bounded(CoordinateAlong,  0.0, 1.0) * SpanAlong  - 0.5;
-    double TexelAcross = Bounded(CoordinateAcross, 0.0, 1.0) * SpanAcross - 0.5;
+    double TexelAcross = BoundedMagnitude(CoordinateAcross, 0.0, 1.0) * SpanAcross - 0.5;
+    TexelAcross        = BoundedMagnitude(TexelAcross, 0.0, SpanAcross - 1.0);
 
-    TexelAlong  = Bounded(TexelAlong,  0.0, SpanAlong  - 1.0);
-    TexelAcross = Bounded(TexelAcross, 0.0, SpanAcross - 1.0);
+    // 📐 🔴 The periodic axis wraps its **filter**, not merely its coordinate. Wrapping the coordinate into the
+    //    unit interval and then clamping the texel blends texel 191 with itself at the seam instead of with
+    //    texel 0, which is a one-texel discontinuity running down the sky at the azimuth origin.
+    double TexelAlong = CoordinateAlong * SpanAlong - 0.5;
+
+    if (WrapAlong)
+    {
+        while (TexelAlong <  0.0)       TexelAlong += SpanAlong;
+        while (TexelAlong >= SpanAlong) TexelAlong -= SpanAlong;
+    }
+    else
+    {
+        TexelAlong = BoundedMagnitude(TexelAlong, 0.0, SpanAlong - 1.0);
+    }
 
     const std::uint32_t LeastAlong  = static_cast<std::uint32_t>(TexelAlong);
     const std::uint32_t LeastAcross = static_cast<std::uint32_t>(TexelAcross);
 
-    const std::uint32_t NextAlong  = LeastAlong  + 1u < SpannedAlong  ? LeastAlong  + 1u : LeastAlong;
+    const std::uint32_t NextAlong  = WrapAlong
+                                   ? (LeastAlong + 1u) % SpannedAlong
+                                   : (LeastAlong + 1u < SpannedAlong ? LeastAlong + 1u : LeastAlong);
     const std::uint32_t NextAcross = LeastAcross + 1u < SpannedAcross ? LeastAcross + 1u : LeastAcross;
 
     const double FractionAlong  = TexelAlong  - static_cast<double>(LeastAlong);
@@ -468,9 +420,9 @@ Outcome<bool> AtmosphereIntegrator::DeclareSun(double DirectionX, double Directi
     // 🔴 `28` §4: "materially" is a declared threshold and not a strict inequality. A sun that advances by a
     //    hundredth of a degree per rotation would otherwise rebuild ③ on every rotation of a still workspace,
     //    which makes the precomputed surface an expensive way to compute what it was meant to precompute.
-    const double Alignment = Bounded(SunDirectionX * BuiltSunX
-                                   + SunDirectionY * BuiltSunY
-                                   + SunDirectionZ * BuiltSunZ, -1.0, 1.0);
+    const double Alignment = BoundedMagnitude(SunDirectionX * BuiltSunX
+                                            + SunDirectionY * BuiltSunY
+                                            + SunDirectionZ * BuiltSunZ, -1.0, 1.0);
 
     if (std::acos(Alignment) > SunDirectionMateriality)
         SkyViewOwed = true;
@@ -517,43 +469,30 @@ Outcome<bool> AtmosphereIntegrator::DeclareConstantFloor(const ColourSpecificati
 //                                                  THE MEDIUM PROFILES
 //------------------------------------------------------------------------------------------------------------------------
 
-void AtmosphereIntegrator::Extinction(double Altitude, double& Red, double& Green, double& Blue) const
+void AtmosphereIntegrator::ShapeProfile()
 {
-    const double RayleighDensity = std::exp(-Altitude / DeclaredMedium.RayleighScaleHeight);
-    const double MieDensity      = std::exp(-Altitude / DeclaredMedium.MieScaleHeight);
-
-    // 📐 The ozone tent: unity at its centre, falling linearly to nothing at the declared half width and staying
-    //    there. A tent rather than an exponential because ozone is a layer with a maximum aloft, not a gas that
-    //    settles — which is exactly why it colours twilight and the other two do not.
-    const double Departure   = std::fabs(Altitude - DeclaredMedium.OzoneCentreAltitude);
-    const double OzoneDensity = Departure >= DeclaredMedium.OzoneHalfWidth
-                              ? 0.0
-                              : 1.0 - Departure / DeclaredMedium.OzoneHalfWidth;
-
-    const double MieTerm = ResolvedCoefficient.MieExtinction * MieDensity;
-
-    Red   = ResolvedCoefficient.RayleighScattering[0] * RayleighDensity
-          + ResolvedCoefficient.OzoneAbsorption[0]    * OzoneDensity + MieTerm;
-    Green = ResolvedCoefficient.RayleighScattering[1] * RayleighDensity
-          + ResolvedCoefficient.OzoneAbsorption[1]    * OzoneDensity + MieTerm;
-    Blue  = ResolvedCoefficient.RayleighScattering[2] * RayleighDensity
-          + ResolvedCoefficient.OzoneAbsorption[2]    * OzoneDensity + MieTerm;
-}
-
-void AtmosphereIntegrator::Scattering(double Altitude,
-                                      double& RayleighRed, double& RayleighGreen, double& RayleighBlue,
-                                      double& Mie) const
-{
-    const double RayleighDensity = std::exp(-Altitude / DeclaredMedium.RayleighScaleHeight);
-    const double MieDensity      = std::exp(-Altitude / DeclaredMedium.MieScaleHeight);
-
-    RayleighRed   = ResolvedCoefficient.RayleighScattering[0] * RayleighDensity;
-    RayleighGreen = ResolvedCoefficient.RayleighScattering[1] * RayleighDensity;
-    RayleighBlue  = ResolvedCoefficient.RayleighScattering[2] * RayleighDensity;
-
-    // 🔴 Ozone contributes nothing here. `28` §3 and §7: ozone absorbs **without scattering**, and a component
-    //    that appeared in this routine would be one that brightens the sky it is meant to tint.
-    Mie = ResolvedCoefficient.MieScattering * MieDensity;
+    // 📝 Built once per rebuild rather than per sample. `Shared/` takes the medium as one profile because a
+    //    device reads it from one uniform; shaping it here is the single place the specification and the
+    //    resolved coefficients become that one thing.
+    ShapedProfile.PlanetRadius             = DeclaredMedium.PlanetRadius;
+    ShapedProfile.AtmosphereThickness      = DeclaredMedium.AtmosphereThickness;
+    ShapedProfile.RayleighScaleHeight      = DeclaredMedium.RayleighScaleHeight;
+    ShapedProfile.MieScaleHeight           = DeclaredMedium.MieScaleHeight;
+    ShapedProfile.OzoneCentreAltitude      = DeclaredMedium.OzoneCentreAltitude;
+    ShapedProfile.OzoneHalfWidth           = DeclaredMedium.OzoneHalfWidth;
+    ShapedProfile.MieAsymmetry             = DeclaredMedium.MieAsymmetry;
+    ShapedProfile.MieScattering            = ResolvedCoefficient.MieScattering;
+    ShapedProfile.MieExtinction            = ResolvedCoefficient.MieExtinction;
+    ShapedProfile.RayleighScatteringRed    = ResolvedCoefficient.RayleighScattering[0];
+    ShapedProfile.RayleighScatteringGreen  = ResolvedCoefficient.RayleighScattering[1];
+    ShapedProfile.RayleighScatteringBlue   = ResolvedCoefficient.RayleighScattering[2];
+    ShapedProfile.OzoneAbsorptionRed       = ResolvedCoefficient.OzoneAbsorption[0];
+    ShapedProfile.OzoneAbsorptionGreen     = ResolvedCoefficient.OzoneAbsorption[1];
+    ShapedProfile.OzoneAbsorptionBlue      = ResolvedCoefficient.OzoneAbsorption[2];
+    ShapedProfile.SunDirectionX            = SunDirectionX;
+    ShapedProfile.SunDirectionY            = SunDirectionY;
+    ShapedProfile.SunDirectionZ            = SunDirectionZ;
+    ShapedProfile.CameraAltitude           = CameraAltitude;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -563,43 +502,10 @@ void AtmosphereIntegrator::Scattering(double Altitude,
 namespace
 {
 
-// 📐 The mapping ① is baked through, and it is the **same routine** the later lookups invert. The zenith cosine
-//    spans the first axis linearly and the altitude the second, which is the donor formulation's own arrangement:
-//    the first axis is the wider of the two precisely because the transmittance gradient across the horizon is
-//    the steep one. A mapping written twice — once to bake and once to read — is a surface sampled half a texel
-//    from where it was written, and the seam appears as a horizon that sits slightly wrong at one altitude only.
-void TransmittanceCoordinate(double Radius, double ZenithCosine,
-                             double PlanetRadius, double AtmosphereThickness,
-                             double& CoordinateAlong, double& CoordinateAcross)
-{
-    const double Altitude = Radius - PlanetRadius;
-
-    CoordinateAlong  = Bounded(0.5 * (ZenithCosine + 1.0), 0.0, 1.0);
-    CoordinateAcross = AtmosphereThickness > 0.0 ? Bounded(Altitude / AtmosphereThickness, 0.0, 1.0) : 0.0;
-}
-
-// 📝 The inverse, read by the bake to recover what each texel centre stands for. Declared beside the forward
-//    mapping so that an amendment to either is made with the other in view.
-void TransmittanceParameter(double CoordinateAlong, double CoordinateAcross,
-                            double PlanetRadius, double AtmosphereThickness,
-                            double& Radius, double& ZenithCosine)
-{
-    Radius       = PlanetRadius + CoordinateAcross * AtmosphereThickness;
-    ZenithCosine = 2.0 * CoordinateAlong - 1.0;
-}
-
-// 📐 One march step's ∫₀ᵈ S·e^{−σₑs} ds, which is S(1 − e^{−σₑd})/σₑ. 🔴 The vanishing-extinction limit S·d is
-//    spelled out rather than guarded by a floor under the divisor: an extinction coefficient at the top of the
-//    atmosphere is itself of the order any such floor would be, so a floor does not protect the division — it
-//    replaces the answer with a different one wherever the air is thin, which is most of the ray.
-double StepIntegral(double ScatteringMagnitude, double ExtinctionMagnitude,
-                    double StepTransmittance, double StepSize)
-{
-    if (ExtinctionMagnitude <= 0.0)
-        return ScatteringMagnitude * StepSize;
-
-    return ScatteringMagnitude * (1.0 - StepTransmittance) / ExtinctionMagnitude;
-}
+// 📝 🔴 ①'s parameterisation pair and the march step's integral are `Shared/AtmosphereProjection.slang.h`'s now.
+//    A mapping written once here and once there is the defect this file removed itself from: a bake and its
+//    lookup read the same routine because they literally call the same routine, and the device's version is not
+//    a second implementation a host copy can drift from.
 
 }   // namespace
 
@@ -609,7 +515,7 @@ Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rul
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
 
     const Outcome<bool> Claimed =
-        TransmittanceSurface.Construct(TransmittanceExtentAlong, TransmittanceExtentAcross);
+        TransmittanceSurface.Construct(TransmittanceExtentAlong, TransmittanceExtentAcross, false);
 
     if (!Claimed.ContentPresent)
         return Claimed;
@@ -627,14 +533,24 @@ Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rul
 
             double Radius       = 0.0;
             double ZenithCosine = 0.0;
-            TransmittanceParameter(CoordinateAlong, CoordinateAcross, PlanetRadius, Thickness,
-                                   Radius, ZenithCosine);
+            ProjectTransmittanceParameter(ShapedProfile, CoordinateAlong, CoordinateAcross,
+                                          Radius, ZenithCosine);
+
+            // 🔴 A sun below the horizon is occluded by the planet, so its transmittance is zero. Marching
+            //    through the planet also reaches it — the chord accumulates negative altitudes and the density
+            //    diverges — but it reaches it through an exp of about 795, which is an infinity that happens to
+            //    round the right way. Stating the occlusion is both correct and finite.
+            if (ClassifyGroundReach(Radius, ZenithCosine, PlanetRadius))
+            {
+                TransmittanceSurface.Write(Along, Across, 0.0, 0.0, 0.0);
+                continue;
+            }
 
             // 📝 The path runs to the atmosphere boundary and is not shortened at the ground. A ray that descends
             //    through the planet accumulates the whole of the dense lower atmosphere twice and extinguishes to
             //    nothing on its own, which is the answer a ground test would write by hand — and it writes it
             //    continuously rather than as a step the horizon texels straddle.
-            const double Distance = DistanceToSphere(Radius, ZenithCosine, AtmosphereRadius);
+            const double Distance = ProjectSphereDistance(Radius, ZenithCosine, AtmosphereRadius);
 
             double DepthRed   = 0.0;
             double DepthGreen = 0.0;
@@ -657,7 +573,8 @@ Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rul
                     double ExtinctionRed   = 0.0;
                     double ExtinctionGreen = 0.0;
                     double ExtinctionBlue  = 0.0;
-                    Extinction(SampleRadius - PlanetRadius, ExtinctionRed, ExtinctionGreen, ExtinctionBlue);
+                    ResolveMediumExtinction(ShapedProfile, SampleRadius - PlanetRadius,
+                                            ExtinctionRed, ExtinctionGreen, ExtinctionBlue);
 
                     DepthRed   += ExtinctionRed   * Weighting;
                     DepthGreen += ExtinctionGreen * Weighting;
@@ -683,9 +600,7 @@ void AtmosphereIntegrator::TransmittanceAt(double Radius, double ZenithCosine,
     double CoordinateAlong  = 0.0;
     double CoordinateAcross = 0.0;
 
-    TransmittanceCoordinate(Radius, ZenithCosine,
-                            DeclaredMedium.PlanetRadius, DeclaredMedium.AtmosphereThickness,
-                            CoordinateAlong, CoordinateAcross);
+    ProjectTransmittanceCoordinate(ShapedProfile, Radius, ZenithCosine, CoordinateAlong, CoordinateAcross);
 
     TransmittanceSurface.Sample(CoordinateAlong, CoordinateAcross, Red, Green, Blue);
 }
@@ -697,12 +612,9 @@ void AtmosphereIntegrator::TransmittanceAt(double Radius, double ZenithCosine,
 void AtmosphereIntegrator::MultiScatterAt(double Radius, double SunZenithCosine,
                                           double& Red, double& Green, double& Blue) const
 {
-    const double Altitude = Radius - DeclaredMedium.PlanetRadius;
-
-    const double CoordinateAlong  = Bounded(0.5 * (SunZenithCosine + 1.0), 0.0, 1.0);
-    const double CoordinateAcross = DeclaredMedium.AtmosphereThickness > 0.0
-                                  ? Bounded(Altitude / DeclaredMedium.AtmosphereThickness, 0.0, 1.0)
-                                  : 0.0;
+    double CoordinateAlong  = 0.0;
+    double CoordinateAcross = 0.0;
+    ProjectMultiScatterCoordinate(ShapedProfile, Radius, SunZenithCosine, CoordinateAlong, CoordinateAcross);
 
     MultiScatterSurface.Sample(CoordinateAlong, CoordinateAcross, Red, Green, Blue);
 }
@@ -713,7 +625,7 @@ Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the transmittance surface does not stand" });
 
     const Outcome<bool> Claimed =
-        MultiScatterSurface.Construct(MultiScatterExtentAlong, MultiScatterExtentAcross);
+        MultiScatterSurface.Construct(MultiScatterExtentAlong, MultiScatterExtentAcross, false);
 
     if (!Claimed.ContentPresent)
         return Claimed;
@@ -763,9 +675,8 @@ Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
                 const double ViewZ           = SampleY;
                 const double ViewZenithCosine = ViewY;
 
-                const double Distance = GroundReached(StartRadius, ViewZenithCosine, PlanetRadius)
-                                      ? DistanceToSphere(StartRadius, ViewZenithCosine, PlanetRadius)
-                                      : DistanceToSphere(StartRadius, ViewZenithCosine, AtmosphereRadius);
+                const double Distance = ProjectMarchDistance(StartRadius, ViewZenithCosine,
+                                                             PlanetRadius, AtmosphereRadius);
 
                 if (Distance <= 0.0)
                     continue;
@@ -780,23 +691,24 @@ Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
                     const double SampleAltitude = SampleRadius - PlanetRadius;
 
                     double ExtinctionComponent[3] = { 0.0, 0.0, 0.0 };
-                    Extinction(SampleAltitude,
-                               ExtinctionComponent[0], ExtinctionComponent[1], ExtinctionComponent[2]);
+                    ResolveMediumExtinction(ShapedProfile, SampleAltitude,
+                                            ExtinctionComponent[0], ExtinctionComponent[1], ExtinctionComponent[2]);
 
                     double RayleighComponent[3] = { 0.0, 0.0, 0.0 };
                     double MieComponent         = 0.0;
-                    Scattering(SampleAltitude,
-                               RayleighComponent[0], RayleighComponent[1], RayleighComponent[2], MieComponent);
+                    ResolveMediumScattering(ShapedProfile, SampleAltitude,
+                                            RayleighComponent[0], RayleighComponent[1], RayleighComponent[2],
+                                            MieComponent);
 
                     // 📐 The sun's zenith cosine at the sample, against the **local** up — which is the sample's
                     //    own position direction and not the starting one. A ray that travels a hundred kilometres
                     //    around a planet of six thousand has turned measurably under itself.
-                    const double LocalX = (ViewX * Position) / SampleRadius;
-                    const double LocalY = (StartRadius + ViewY * Position) / SampleRadius;
-                    const double LocalZ = (ViewZ * Position) / SampleRadius;
+                    double LocalX = 0.0, LocalY = 0.0, LocalZ = 0.0;
+                    ProjectLocalUp(StartRadius, SampleRadius, Position, ViewX, ViewY, ViewZ,
+                                   LocalX, LocalY, LocalZ);
 
-                    const double SampleSunCosine = Bounded(LocalX * SunX + LocalY * SunY + LocalZ * SunZ,
-                                                           -1.0, 1.0);
+                    const double SampleSunCosine = BoundedMagnitude(LocalX * SunX + LocalY * SunY + LocalZ * SunZ,
+                                                                    -1.0, 1.0);
 
                     double SunTransmit[3] = { 0.0, 0.0, 0.0 };
                     TransmittanceAt(SampleRadius, SampleSunCosine,
@@ -813,9 +725,9 @@ Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
                         const double InScatter = ScatteringComponent / (4.0 * Pi);
 
                         Transfer[Component] += Throughput[Component]
-                                             * StepIntegral(ScatteringComponent,
-                                                            ExtinctionComponent[Component],
-                                                            StepTransmittance, StepSize);
+                                             * IntegrateStepInScatter(ScatteringComponent,
+                                                                      ExtinctionComponent[Component],
+                                                                      StepTransmittance, StepSize);
 
                         SecondOrder[Component] += Throughput[Component] * SunTransmit[Component]
                                                 * InScatter * StepSize;
@@ -854,61 +766,9 @@ Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
 namespace
 {
 
-// 📐 The sky-view parameterisation, forward and inverse, declared as a pair for the reason ①'s pair is. The zenith
-//    axis is quadratic **about the horizon** rather than linear in either the angle or its cosine: the horizon is
-//    where the radiance gradient is steep and where a linear parameterisation spends a handful of texels, which
-//    reaches the artist as a banded sunset over a perfectly smooth zenith.
-void SkyViewDirection(double CoordinateAlong, double CoordinateAcross,
-                      double& DirectionX, double& DirectionY, double& DirectionZ)
-{
-    const double Azimuth = (CoordinateAlong * 2.0 - 1.0) * Pi;
-
-    double Zenith = 0.0;
-
-    if (CoordinateAcross < 0.5)
-    {
-        const double Departure = 1.0 - 2.0 * CoordinateAcross;   // [-] - nothing at the horizon, unity at the nadir
-
-        Zenith = Pi * 0.5 + Departure * Departure * Pi * 0.5;
-    }
-    else
-    {
-        const double Departure = 2.0 * CoordinateAcross - 1.0;   // [-] - nothing at the horizon, unity at the zenith
-
-        Zenith = Pi * 0.5 - Departure * Departure * Pi * 0.5;
-    }
-
-    const double ZenithSine = std::sin(Zenith);
-
-    DirectionX = ZenithSine * std::cos(Azimuth);
-    DirectionY = std::cos(Zenith);
-    DirectionZ = ZenithSine * std::sin(Azimuth);
-}
-
-void SkyViewCoordinate(double DirectionX, double DirectionY, double DirectionZ,
-                       double& CoordinateAlong, double& CoordinateAcross)
-{
-    const double Azimuth = std::atan2(DirectionZ, DirectionX);
-    const double Zenith  = std::acos(Bounded(DirectionY, -1.0, 1.0));
-
-    CoordinateAlong = Bounded(Azimuth / (2.0 * Pi) + 0.5, 0.0, 1.0);
-
-    // 📝 The inverse of the quadratic bias above, and it is a square root rather than a second fit of it. The
-    //    azimuth is wrapped by this routine because it is periodic; `ResidentSurface::Sample` clamps both of its
-    //    axes and could not wrap one of them without being told which.
-    if (Zenith > Pi * 0.5)
-    {
-        const double Departure = std::sqrt(Bounded((Zenith - Pi * 0.5) / (Pi * 0.5), 0.0, 1.0));
-
-        CoordinateAcross = 0.5 * (1.0 - Departure);
-    }
-    else
-    {
-        const double Departure = std::sqrt(Bounded((Pi * 0.5 - Zenith) / (Pi * 0.5), 0.0, 1.0));
-
-        CoordinateAcross = 0.5 * (1.0 + Departure);
-    }
-}
+// 📝 🔴 ③'s parameterisation pair is `Shared/AtmosphereProjection.slang.h`'s now, with the azimuth wrapped by the
+//    shared routine because only it knows the azimuth is periodic. A bake and its lookup call the same mapping,
+//    and the device's copy is the one both sides compare against.
 
 }   // namespace
 
@@ -917,7 +777,8 @@ Outcome<bool> AtmosphereIntegrator::BuildSkyView()
     if (!TransmittanceSurface.SurfaceConstructed() || !MultiScatterSurface.SurfaceConstructed())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "① or ② does not stand" });
 
-    const Outcome<bool> Claimed = SkyViewSurface.Construct(SkyViewExtentAlong, SkyViewExtentAcross);
+    // 🔴 The azimuth is the one periodic axis in the whole component — finding ② above.
+    const Outcome<bool> Claimed = SkyViewSurface.Construct(SkyViewExtentAlong, SkyViewExtentAcross, true);
 
     if (!Claimed.ContentPresent)
         return Claimed;
@@ -936,24 +797,23 @@ Outcome<bool> AtmosphereIntegrator::BuildSkyView()
             double ViewX = 0.0;
             double ViewY = 0.0;
             double ViewZ = 0.0;
-            SkyViewDirection(CoordinateAlong, CoordinateAcross, ViewX, ViewY, ViewZ);
+            ProjectSkyViewDirection(CoordinateAlong, CoordinateAcross, ViewX, ViewY, ViewZ);
 
             const double ViewZenithCosine = ViewY;
 
-            const double Distance = GroundReached(StartRadius, ViewZenithCosine, PlanetRadius)
-                                  ? DistanceToSphere(StartRadius, ViewZenithCosine, PlanetRadius)
-                                  : DistanceToSphere(StartRadius, ViewZenithCosine, AtmosphereRadius);
+            const double Distance = ProjectMarchDistance(StartRadius, ViewZenithCosine,
+                                                         PlanetRadius, AtmosphereRadius);
 
             double Radiance[3] = { 0.0, 0.0, 0.0 };
 
             if (Distance > 0.0)
             {
-                const double ScatterCosine = Bounded(ViewX * SunDirectionX
-                                                   + ViewY * SunDirectionY
-                                                   + ViewZ * SunDirectionZ, -1.0, 1.0);
+                const double ScatterCosine = BoundedMagnitude(ViewX * SunDirectionX
+                                                            + ViewY * SunDirectionY
+                                                            + ViewZ * SunDirectionZ, -1.0, 1.0);
 
-                const double RayleighWeighting = RayleighPhase(ScatterCosine);
-                const double MieWeighting      = MiePhase(ScatterCosine, DeclaredMedium.MieAsymmetry);
+                const double RayleighWeighting = ProjectRayleighPhase(ScatterCosine);
+                const double MieWeighting      = ProjectMiePhase(ScatterCosine, ShapedProfile.MieAsymmetry);
 
                 const double StepSize      = Distance / static_cast<double>(SkyViewStepCount);
                 double       Throughput[3] = { 1.0, 1.0, 1.0 };
@@ -965,21 +825,22 @@ Outcome<bool> AtmosphereIntegrator::BuildSkyView()
                     const double SampleAltitude = SampleRadius - PlanetRadius;
 
                     double ExtinctionComponent[3] = { 0.0, 0.0, 0.0 };
-                    Extinction(SampleAltitude,
-                               ExtinctionComponent[0], ExtinctionComponent[1], ExtinctionComponent[2]);
+                    ResolveMediumExtinction(ShapedProfile, SampleAltitude,
+                                            ExtinctionComponent[0], ExtinctionComponent[1], ExtinctionComponent[2]);
 
                     double RayleighComponent[3] = { 0.0, 0.0, 0.0 };
                     double MieComponent         = 0.0;
-                    Scattering(SampleAltitude,
-                               RayleighComponent[0], RayleighComponent[1], RayleighComponent[2], MieComponent);
+                    ResolveMediumScattering(ShapedProfile, SampleAltitude,
+                                            RayleighComponent[0], RayleighComponent[1], RayleighComponent[2],
+                                            MieComponent);
 
-                    const double LocalX = (ViewX * Position) / SampleRadius;
-                    const double LocalY = (StartRadius + ViewY * Position) / SampleRadius;
-                    const double LocalZ = (ViewZ * Position) / SampleRadius;
+                    double LocalX = 0.0, LocalY = 0.0, LocalZ = 0.0;
+                    ProjectLocalUp(StartRadius, SampleRadius, Position, ViewX, ViewY, ViewZ,
+                                   LocalX, LocalY, LocalZ);
 
-                    const double SampleSunCosine = Bounded(LocalX * SunDirectionX
-                                                         + LocalY * SunDirectionY
-                                                         + LocalZ * SunDirectionZ, -1.0, 1.0);
+                    const double SampleSunCosine = BoundedMagnitude(LocalX * SunDirectionX
+                                                                 + LocalY * SunDirectionY
+                                                                 + LocalZ * SunDirectionZ, -1.0, 1.0);
 
                     double SunTransmit[3] = { 0.0, 0.0, 0.0 };
                     TransmittanceAt(SampleRadius, SampleSunCosine,
@@ -1004,8 +865,8 @@ Outcome<bool> AtmosphereIntegrator::BuildSkyView()
                         const double StepTransmittance = std::exp(-ExtinctionComponent[Component] * StepSize);
 
                         Radiance[Component] += Throughput[Component]
-                                             * StepIntegral(InScatter, ExtinctionComponent[Component],
-                                                            StepTransmittance, StepSize);
+                                             * IntegrateStepInScatter(InScatter, ExtinctionComponent[Component],
+                                                                      StepTransmittance, StepSize);
 
                         Throughput[Component] *= StepTransmittance;
                     }
@@ -1054,7 +915,7 @@ void AtmosphereIntegrator::DeriveIrradiance()
 
         double CoordinateAlong  = 0.0;
         double CoordinateAcross = 0.0;
-        SkyViewCoordinate(DirectionX, DirectionY, DirectionZ, CoordinateAlong, CoordinateAcross);
+        ProjectSkyViewCoordinate(DirectionX, DirectionY, DirectionZ, CoordinateAlong, CoordinateAcross);
 
         double Radiance[3] = { 0.0, 0.0, 0.0 };
         SkyViewSurface.Sample(CoordinateAlong, CoordinateAcross, Radiance[0], Radiance[1], Radiance[2]);
@@ -1109,6 +970,7 @@ Outcome<bool> AtmosphereIntegrator::Rebuild(const ColourSpaceSpecification& Work
             return Outcome<bool>::Refuse(Resolved.Declined);
 
         ResolvedCoefficient = Resolved.Resolve();
+        ShapeProfile();
 
         const Outcome<bool> First = BuildTransmittance(Rule);
 
@@ -1127,6 +989,10 @@ Outcome<bool> AtmosphereIntegrator::Rebuild(const ColourSpaceSpecification& Work
 
     if (SkyViewOwed)
     {
+        // 📝 Reshaped before ③ because the sun direction and the camera altitude are the two fields ③ reads
+        //    and the two that move without the medium moving with them.
+        ShapeProfile();
+
         const Outcome<bool> Third = BuildSkyView();
 
         if (!Third.ContentPresent)
@@ -1178,8 +1044,8 @@ Outcome<bool> AtmosphereIntegrator::SampleSkyView(double DirectionX, double Dire
 
     double CoordinateAlong  = 0.0;
     double CoordinateAcross = 0.0;
-    SkyViewCoordinate(DirectionX / Length, DirectionY / Length, DirectionZ / Length,
-                      CoordinateAlong, CoordinateAcross);
+    ProjectSkyViewCoordinate(DirectionX / Length, DirectionY / Length, DirectionZ / Length,
+                             CoordinateAlong, CoordinateAcross);
 
     SkyViewSurface.Sample(CoordinateAlong, CoordinateAcross, Red, Green, Blue);
 
@@ -1192,7 +1058,8 @@ Outcome<bool> AtmosphereIntegrator::SampleTransmittance(double Altitude, double 
     if (!TransmittanceSurface.SurfaceConstructed())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no transmittance surface stands" });
 
-    TransmittanceAt(DeclaredMedium.PlanetRadius + Altitude, Bounded(ZenithCosine, -1.0, 1.0), Red, Green, Blue);
+    TransmittanceAt(DeclaredMedium.PlanetRadius + Altitude, BoundedMagnitude(ZenithCosine, -1.0, 1.0),
+                    Red, Green, Blue);
 
     return Outcome<bool>::Deliver(true);
 }
@@ -1222,7 +1089,7 @@ Outcome<bool> AtmosphereIntegrator::AerialTransmittance(double Altitude,
         return Outcome<bool>::Deliver(true);
 
     const double Radius       = DeclaredMedium.PlanetRadius + Altitude;
-    const double ZenithCosine = Bounded(DirectionY / Length, -1.0, 1.0);
+    const double ZenithCosine = BoundedMagnitude(DirectionY / Length, -1.0, 1.0);
 
     double DepthRed   = 0.0;
     double DepthGreen = 0.0;
@@ -1236,12 +1103,13 @@ Outcome<bool> AtmosphereIntegrator::AerialTransmittance(double Altitude,
         if (!Rule.Project(Ordinal, 0.0, Distance, Position, Weighting).ContentPresent)
             continue;
 
-        const double SampleRadius = AdvanceRadius(Radius, ZenithCosine, Position);
+        const double SampleRadius = AdvanceRadius(Radius, ZenithCosine, Position);   // now `Shared/`'s
 
         double ExtinctionRed   = 0.0;
         double ExtinctionGreen = 0.0;
         double ExtinctionBlue  = 0.0;
-        Extinction(SampleRadius - DeclaredMedium.PlanetRadius, ExtinctionRed, ExtinctionGreen, ExtinctionBlue);
+        ResolveMediumExtinction(ShapedProfile, SampleRadius - ShapedProfile.PlanetRadius,
+                                ExtinctionRed, ExtinctionGreen, ExtinctionBlue);
 
         DepthRed   += ExtinctionRed   * Weighting;
         DepthGreen += ExtinctionGreen * Weighting;

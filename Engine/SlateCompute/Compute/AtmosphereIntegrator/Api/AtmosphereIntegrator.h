@@ -8,6 +8,7 @@
 #include "Contract/OutcomeContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
+#include "Shared/AtmosphereProjection.slang.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 #include "SlateMath/Numeric/QuadratureIntegrator/Api/QuadratureIntegrator.h"
 #include "SlateMath/Numeric/SpectralProjection/Api/SpectralProjection.h"
@@ -105,10 +106,14 @@ class ResidentSurface
 public:
 
     /// 🧩 Claims the surface at a declared extent, every texel zero.
+    /// in    WrapAlongDeclared  [-]  the first axis is periodic and its filter wraps rather than clamps
     /// out   Outcome  [-]  refuses with ContentUnsupported for a zero extent on either axis
+    /// note  🔴 Wrapping is declared per surface because only ③'s azimuth is periodic. ①'s and ②'s axes are
+    ///        altitude and sun zenith, both genuinely bounded — a wrapped sample at ③'s zenith would read the
+    ///        horizon while standing at the pole, which appears as a bright ring directly overhead.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross);
+    Outcome<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross, bool WrapAlongDeclared);
 
     /// 🧩 Writes one texel's three components; the fourth is written as unity.
     /// note  📝 The fourth component is claimed and unused. `08` §2 declares the format RGBA16F and a
@@ -118,13 +123,12 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Write(std::uint32_t Along, std::uint32_t Across, double Red, double Green, double Blue);
 
-    /// 🧩 Samples the surface bilinearly at a declared coordinate, clamped at its bounds.
-    /// in    CoordinateAlong   [-]  the closed unit interval; outside it the sample clamps
+    /// 🧩 Samples the surface bilinearly at a declared coordinate; the axis declared periodic wraps, the other clamps.
+    /// in    CoordinateAlong   [-]  the closed unit interval; outside it the sample clamps, or wraps where constructed
     /// in    CoordinateAcross  [-]  likewise
-    /// note  🔴 Clamped rather than wrapped on both axes. The zenith axis genuinely ends at the zenith, and a
-    ///        wrapped sample there reads the horizon — which appears as a bright ring directly overhead.
-    ///        `SkyViewSurface`'s azimuth is wrapped by its **caller** before it arrives, because only the caller
-    ///        knows the azimuth is periodic.
+    /// note  🔴 Wrapping is declared per surface by `Construct`'s `WrapAlongDeclared`, and only ③'s azimuth is
+    ///        periodic. The zenith axis genuinely ends at the zenith, and a wrapped sample there reads the horizon —
+    ///        which appears as a bright ring directly overhead.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
     void Sample(double CoordinateAlong, double CoordinateAcross, double& Red, double& Green, double& Blue) const;
@@ -148,6 +152,7 @@ private:
     std::vector<std::uint16_t>  Encoded;              // [-] - four components per texel, half precision
     std::uint32_t               SpannedAlong  = 0u;   // [px]
     std::uint32_t               SpannedAcross = 0u;   // [px]
+    bool                        WrapAlong     = false; // [-] - the first axis filters periodically
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -339,15 +344,12 @@ public:
 
 private:
 
+    void          ShapeProfile();
     Outcome<bool> BuildTransmittance(const QuadratureRule& Rule);
     Outcome<bool> BuildMultiScatter();
     Outcome<bool> BuildSkyView();
     void          DeriveIrradiance();
 
-    void          Extinction(double Altitude, double& Red, double& Green, double& Blue) const;
-    void          Scattering(double Altitude,
-                             double& RayleighRed, double& RayleighGreen, double& RayleighBlue,
-                             double& Mie) const;
     void          TransmittanceAt(double Radius, double ZenithCosine,
                                   double& Red, double& Green, double& Blue) const;
     void          MultiScatterAt(double Radius, double SunZenithCosine,
@@ -355,6 +357,7 @@ private:
 
     MediumSpecification   DeclaredMedium      = {};      // [-]
     MediumCoefficient     ResolvedCoefficient = {};      // [-] - working space
+    MediumProfile         ShapedProfile       = {};      // [-] - `Shared/`'s view of the two above
     ResidentSurface       TransmittanceSurface;          // [-] - ①
     ResidentSurface       MultiScatterSurface;           // [-] - ②
     ResidentSurface       SkyViewSurface;                // [-] - ③

@@ -40,6 +40,7 @@
 
 #include "SlateVulkan/Device/RenderSchedule/Api/RenderSchedule.h"
 
+#include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
 #include "SlateCompute/Compute/ParityRunner/Api/ParityRunner.h"
 #include "SlateCompute/Compute/SeamSpecification/Api/SeamSpecification.h"
 #include "SlateCompute/Compute/DomainSpace/Api/DomainSpace.h"
@@ -1176,6 +1177,140 @@ void VerifyParity()
     Report("An uncompared entry point does not hold",
            !VacantRunner.AgreementHeld(),
            "[-] zero samples is not agreement");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       ATMOSPHERE
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 `28` is verified as its own unit because it is the compute product whose surfaces are baked on the host and
+//    sampled on the device, and the rebuild discipline it verifies is what the schedule's contributor reads.
+void VerifyAtmosphere()
+{
+    std::printf("AtmosphereIntegrator\n");
+
+    // 📝 `02` §5's Gauss–Legendre rule, derived on the recurrence: every optical depth in `28` integrates against
+    //    it, so a rule that will not derive invalidates each surface rather than one.
+    Slate::QuadratureRule Rule;
+    Report("A rule derives", Rule.Derive(32u).ContentPresent, "[-] Gauss–Legendre, Newton on the recurrence");
+
+    Slate::AtmosphereIntegrator Atmosphere;
+
+    Report("Nothing rebuilds before a medium is declared",
+           !Atmosphere.Rebuild(Slate::DeclaredWorkingSpace(), Rule).ContentPresent,
+           "[-] the refusal is the contract, not a silence");
+
+    Slate::MediumSpecification Earth;
+
+    Report("Earth's medium validates",
+           Atmosphere.DeclareMedium(Earth).ContentPresent,
+           "[-] the defaults");
+
+    Slate::MediumSpecification Sizeless = Earth;
+    Sizeless.OzoneHalfWidth = 0.0;
+
+    Report("An ozone tent of no width is refused",
+           !Atmosphere.DeclareMedium(Sizeless).ContentPresent,
+           "[-] the tent must stand somewhere");
+
+    Atmosphere.DeclareSun(0.0, 0.3, -0.95);
+    Atmosphere.DeclareCameraAltitude(1000.0);
+
+    Report("A rebuild is owed",
+           Atmosphere.RebuildOwed(),
+           "[-] all three surfaces");
+
+    Report("The rebuild delivers",
+           Atmosphere.Rebuild(Slate::DeclaredWorkingSpace(), Rule).ContentPresent && !Atmosphere.RebuildOwed(),
+           "[-] ① ② ③, in order");
+
+    Report("The three surfaces total the declared extent",
+           Atmosphere.ResidentBytes() == Slate::AtmosphereResidentBytes,
+           "[B] 298 KiB");
+
+    Report("An unchanged medium rebuilds nothing",
+           Atmosphere.Rebuild(Slate::DeclaredWorkingSpace(), Rule).ContentPresent
+        && Atmosphere.MediumRebuildCount() == 1u,
+           "[-] the count is the proof, not the words");
+
+    Atmosphere.DeclareSun(0.0, 0.3000001, -0.95);
+
+    Report("An immaterial sun move rebuilds nothing",
+           !Atmosphere.RebuildOwed(),
+           "[-] below `SunDirectionMateriality`");
+
+    Atmosphere.DeclareSun(0.0, 1.0, 0.0);
+
+    Report("A material sun move owes ③ alone",
+           Atmosphere.RebuildOwed()
+        && Atmosphere.Rebuild(Slate::DeclaredWorkingSpace(), Rule).ContentPresent
+        && Atmosphere.MediumRebuildCount() == 1u
+        && Atmosphere.SkyViewRebuildCount() == 2u,
+           "[-] the medium stays integrated");
+
+    const double Seam = Slate::Pi - 1.0e-4;
+
+    double BeforeRed   = 0.0;
+    double BeforeGreen = 0.0;
+    double BeforeBlue  = 0.0;
+    double AfterRed    = 0.0;
+    double AfterGreen  = 0.0;
+    double AfterBlue   = 0.0;
+
+    Atmosphere.SampleSkyView(std::cos(Seam), 0.1, std::sin(Seam), BeforeRed, BeforeGreen, BeforeBlue);
+    Atmosphere.SampleSkyView(std::cos(-Seam), 0.1, std::sin(-Seam), AfterRed, AfterGreen, AfterBlue);
+
+    Report("The azimuth wrap carries no seam",
+           std::fabs(BeforeRed - AfterRed) < 1.0e-3,
+           "[-] texel 191 blends with texel 0");
+
+    double OccludedRed   = 0.0;
+    double OccludedGreen = 0.0;
+    double OccludedBlue  = 0.0;
+
+    Atmosphere.SampleTransmittance(0.0, -1.0, OccludedRed, OccludedGreen, OccludedBlue);
+
+    Report("The sun below the horizon is occluded",
+           OccludedRed == 0.0,
+           "[-] a zero write, not an underflow");
+
+    double ZenithRed   = 0.0;
+    double ZenithGreen = 0.0;
+    double ZenithBlue  = 0.0;
+
+    Atmosphere.SampleTransmittance(0.0, 1.0, ZenithRed, ZenithGreen, ZenithBlue);
+
+    Report("A vertical path extinguishes blue hardest",
+           ZenithRed > ZenithGreen && ZenithGreen > ZenithBlue && ZenithRed < 1.0,
+           "[-] Rayleigh across the whole depth");
+
+    double AmbientRed   = 0.0;
+    double AmbientGreen = 0.0;
+    double AmbientBlue  = 0.0;
+
+    Atmosphere.Irradiance().Evaluate(0.0, 1.0, 0.0, AmbientRed, AmbientGreen, AmbientBlue);
+
+    Report("The irradiance is never negative",
+           AmbientRed >= 0.0 && AmbientGreen >= 0.0 && AmbientBlue >= 0.0,
+           "[-] the reconstruction clamps at zero");
+
+    Atmosphere.DeclareAtmospherePresence(false);
+
+    Slate::ColourSpecification Floor;
+    Floor.RedCoordinate = 0.02;
+    Floor.SpaceIdentity = Slate::WorkingSpaceIdentity;
+
+    Atmosphere.DeclareConstantFloor(Floor);
+
+    double FloorRed   = 0.0;
+    double FloorGreen = 0.0;
+    double FloorBlue  = 0.0;
+
+    Atmosphere.SampleSkyView(0.0, 1.0, 0.0, FloorRed, FloorGreen, FloorBlue);
+
+    Report("A disabled atmosphere resolves to the floor",
+           FloorRed == 0.02,
+           "[-] `18` §5 and `30` §3 fall back to the same");
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -2575,6 +2710,9 @@ int main()
     std::printf("\n");
 
     VerifyParity();
+    std::printf("\n");
+
+    VerifyAtmosphere();
     std::printf("\n");
 
     if (RefusedCount == 0)
