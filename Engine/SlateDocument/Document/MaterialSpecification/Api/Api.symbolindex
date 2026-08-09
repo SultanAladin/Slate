@@ -1,0 +1,267 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 What a surface's channels are, where each value comes from, and which partition resolves to which occupant.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/MaterialSpecification/Api
+%layer      SlateDocument
+%sources    1
+%symbols    32
+%annotated  24/32
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S MaterialSpecification.h | 331 lines | 7f2261b6 | 32 sym | What a surface's channels are, where each value comes from, and which partition resolves to which occupant.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE TWENTY CHANNELS
+//------------------------------------------------------------------------------------------------------------------------
+
+E ChannelSubject                                | MaterialSpecification.h | 32-56   | contract                      | -  | The twenty channels `18` §2 declares, in that order. `00` §8.2's substitutions — `Base` is banned as a prefix, and a bare `Reflectance` collides with the measure of the same name in §3 below. suffix meaning a slot ledger, and a refractive index is a ratio of propagation speeds — which states the mechanism and avoids reading as a ledger.
+    has   AlbedoColour                ChannelSubject  [-]  ?
+    has   Metallic                    ChannelSubject  [-]  ?
+    has   Roughness                   ChannelSubject  [-]  ?
+    has   NormalIncidenceReflectance  ChannelSubject  [-]  ?
+    has   SurfaceOrientation          ChannelSubject  [-]  ?
+    has   AmbientOcclusion            ChannelSubject  [-]  ?
+    has   Emission                    ChannelSubject  [-]  ?
+    has   Opacity                     ChannelSubject  [-]  ?
+    has   Anisotropy                  ChannelSubject  [-]  ?
+    has   AnisotropyDirection         ChannelSubject  [-]  ?
+    has   ClearCoat                   ChannelSubject  [-]  ?
+    has   ClearCoatRoughness          ChannelSubject  [-]  ?
+    has   ClearCoatOrientation        ChannelSubject  [-]  ?
+    has   SheenColour                 ChannelSubject  [-]  ?
+    has   SheenRoughness              ChannelSubject  [-]  ?
+    has   SubsurfaceColour            ChannelSubject  [-]  ?
+    has   SubsurfaceThickness         ChannelSubject  [-]  ?
+    has   Transmission                ChannelSubject  [-]  ?
+    has   RefractionRatio             ChannelSubject  [-]  ?
+    has   Displacement                ChannelSubject  [-]  ?
+    has   ChannelCount                ChannelSubject  [-]  ?
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/SurfaceLayerSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, (+1 more)
+    note  ⚠️ `18` §2's channel 1 is spelled `AlbedoColour` and channel 4 `NormalIncidenceReflectance` here, per
+    note  ⚠️ Channel 19 is spelled `RefractionRatio` rather than an index of refraction. `Index` is a closed role
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE EIGHT REFLECTANCES
+//------------------------------------------------------------------------------------------------------------------------
+
+E ReflectanceSelection                          | MaterialSpecification.h | 66-77   | contract                      | -  | One of `18` §3's eight reflectance specifications, selected per material. `ReflectanceSpecification` and a material's choice of one is a `ReflectanceSelection`.
+    has   Standard          ReflectanceSelection  [-]  ?
+    has   Anisotropic       ReflectanceSelection  [-]  ?
+    has   ClearCoated       ReflectanceSelection  [-]  ?
+    has   Cloth             ReflectanceSelection  [-]  ?
+    has   Subsurface        ReflectanceSelection  [-]  ?
+    has   Transmissive      ReflectanceSelection  [-]  ?
+    has   EmissiveOnly      ReflectanceSelection  [-]  ?
+    has   Unlit             ReflectanceSelection  [-]  ?
+    has   ReflectanceCount  ReflectanceSelection  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  ⚠️ `00` §8.2's substitution: `Model` is banned structurally, so what `18` §3 calls a shading model is a
+
+F ChannelConsumed                               | MaterialSpecification.h | 87      | api,nonallocating,nonthrowing | ✔️ | Whether one reflectance selection reads one channel. predicate is what a shading dispatch asks rather than sampling twenty channels and discarding fourteen.
+    in    Selected  ReflectanceSelection  [-]  the material's selection
+    in    Channel   ChannelSubject        [-]  the channel in question
+    out   -         Consumed              [-]  true where `18` §3's inventory reads it
+    by    Source/MaterialSpecification.cpp
+    note  🔴 `18` §9's gate: each selection declares its channels and unread channels are **not sampled**. This
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   SOURCE AND MEASURE
+//------------------------------------------------------------------------------------------------------------------------
+
+E ChannelSource                                 | MaterialSpecification.h | 97-105  | contract                      | -  | Where a channel's value comes from. distinction survives to here only because `70` resolves one of them and `20` transfers the other.
+    has   Constant     ChannelSource  [-]  ?
+    has   Layered      ChannelSource  [-]  ?
+    has   Analytic     ChannelSource  [-]  ?
+    has   Imported     ChannelSource  [-]  ?
+    has   Absent       ChannelSource  [-]  ?
+    has   SourceCount  ChannelSource  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  ⚠️ Layered and Analytic are not alternatives at the material level — `56` is where they interleave. The
+
+E ChannelMeasure                                | MaterialSpecification.h | 112-120 | contract                      | -  | What a channel's value measures, which fixes whether `36` §4 converts it. and not its file name. A roughness value put through a transfer function is a wrong number that still looks like a plausible surface, which is why the mistake survives review.
+    has   Reflectance   ChannelMeasure  [-]  ?
+    has   Emission      ChannelMeasure  [-]  ?
+    has   Scalar        ChannelMeasure  [-]  ?
+    has   Direction     ChannelMeasure  [-]  ?
+    has   Enrolment     ChannelMeasure  [-]  ?
+    has   MeasureCount  ChannelMeasure  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  🔴 `36` §4 reads this declaration **and nothing else**. Not the image's encoding, not its channel count,
+
+F MeasureCarriesColour                          | MaterialSpecification.h | 125-128 | api,nonallocating,nonthrowing | ✔️ | Whether a measure carries colour and is therefore converted at intake.
+    in    Measured  ChannelMeasure  [-]  ?
+    out   -         constexpr bool  [-]  ?
+    by    Source/MaterialSpecification.cpp
+
+F SLATE_DECLARES_PRECISION                      | MaterialSpecification.h | 129     | -                             | -  | ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+13 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      ONE CHANNEL
+//------------------------------------------------------------------------------------------------------------------------
+
+T ChannelSpecification                          | MaterialSpecification.h | 140-151 | owning                        | -  | One channel as a material declares it — its source, its measure, and the default an absence resolves to. channel is opaque; both defaults are declared here and neither is the number zero. A channel defaulted to zero produces surfaces that are black or invisible, and the artist reads that as a broken material rather than as a missing declaration.
+    has   Source           ChannelSource        [-]  ?
+    has   Measured         ChannelMeasure       [-]  ?
+    has   ConstantScalar   double               [-]  ?
+    has   ConstantColour   ColourSpecification  [-]  ?
+    has   DefaultScalar    double               [-]  ?
+    has   DefaultColour    ColourSpecification  [-]  ?
+    has   LowerMagnitude   double               [-]  ?
+    has   UpperMagnitude   double               [-]  ?
+    has   ChannelDeclared  bool                 [-]  ?
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  🔴 `Absent` is **not zero**. A material with no occlusion channel is fully unoccluded, and one with no transmission
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      ONE MATERIAL
+//------------------------------------------------------------------------------------------------------------------------
+
+T MaterialSpecification                         | MaterialSpecification.h | 164-222 | owning                        | -  | One material — its reflectance selection, its twenty channel declarations, and its cutout threshold. branch in shading, and `18` reads the selection once per partition instead. The artist who switches a material from one selection to another and back expects to find their work; discarding on switch is a destructive edit disguised as a settings change.
+    has   Declarations       ChannelSpecification[ChannelSpan]  [-]  ?
+    has   Selected           ReflectanceSelection               [-]  ?
+    has   CoverageThreshold  double                             [-]  ?
+    has   CutoutDeclared     bool                               [-]  ?
+    by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  🔴 Model selection is per material and never per texel — `42` §5. A per-texel selection is a divergent
+    note  🔴 A channel declared for a selection the material does not use is **retained**, not discarded — `42` §5.
+
+F MaterialSpecification::DeclareReflectance     | MaterialSpecification.h | 172     | api,nonallocating,nonthrowing | ✔️ | Declares which reflectance the material selects.
+    in    Selected  ReflectanceSelection  [-]  ?
+    out   -         void                  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  Retains every channel declaration, including those the new selection does not consume.
+
+F MaterialSpecification::DeclareChannel         | MaterialSpecification.h | 183     | api,nonthrowing               | 🚩 | Declares one channel. carrying no space, and for a default outside the declared interval its bounds is an invalid value presented on every surface that never overrode it.
+    in    Channel    ChannelSubject               [-]  which of the twenty
+    in    Declaring  const ChannelSpecification&  [-]  its source, measure, default and interval
+    out   -          Outcome                      [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour default
+    by    Api/BrushSpecification.h, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  🔴 The default is validated against its own interval here, for `10` §2.2's reason: a default outside
+
+F MaterialSpecification::DeclareCutoutThreshold | MaterialSpecification.h | 190     | api,nonallocating,nonthrowing | ✔️ | Declares the coverage threshold a cutout occupant is resolved against. foliage disappear while another's grows a halo, and neither can correct it.
+    in    Threshold  double  [-]  ?
+    out   -          void    [-]  ?
+    by    Source/MaterialSpecification.cpp
+    note  🔴 Per material, never global — `62` §2. A single threshold across a document makes one artist's
+
+F MaterialSpecification::DeclareCutoutEnrolment | MaterialSpecification.h | 195     | api,nonallocating,nonthrowing | ✔️ | Enrols the material as cutout, so `16` §3.1 resolves its coverage at visibility time.
+    in    CutoutEnabled  bool  [-]  ?
+    out   -              void  [-]  ?
+    by    Source/MaterialSpecification.cpp
+
+F MaterialSpecification::Reflectance            | MaterialSpecification.h | 197     | -                             | -  | ?
+    out   -  ReflectanceSelection  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+
+F MaterialSpecification::Channel                | MaterialSpecification.h | 198     | -                             | -  | ?
+    in    Subject  ChannelSubject               [-]  ?
+    out   -        const ChannelSpecification&  [-]  ?
+    by    Api/BrushSpecification.h, Api/SurfaceLayerSequence.h, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+
+F MaterialSpecification::CutoutThreshold        | MaterialSpecification.h | 199     | -                             | -  | ?
+    out   -  double  [-]  ?
+    by    Source/MaterialSpecification.cpp
+
+F MaterialSpecification::CutoutEnrolled         | MaterialSpecification.h | 200     | -                             | -  | ?
+    out   -  bool  [-]  ?
+    by    Source/MaterialSpecification.cpp
+
+F MaterialSpecification::ChannelSampled         | MaterialSpecification.h | 207     | api,nonallocating,nonthrowing | ✔️ | Whether one channel is both declared and consumed by the selected reflectance. that is consumed but undeclared resolves to its declared default rather than to zero.
+    in    Subject  ChannelSubject  [-]  ?
+    out   -        bool            [-]  ?
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  🔴 This is what a dispatch asks. A channel that is declared but unconsumed is not sampled, and one
+
+F MaterialSpecification::ChannelConverted       | MaterialSpecification.h | 212     | api,nonallocating,nonthrowing | ✔️ | Whether the channel's value is converted by `36` at intake.
+    in    Subject  ChannelSubject  [-]  ?
+    out   -        bool            [-]  ?
+    by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE MATERIAL INDEX
+//------------------------------------------------------------------------------------------------------------------------
+
+T MaterialIndex                                 | MaterialSpecification.h | 233-266 | owning                        | -  | Every material in the document, addressed by identity and shared by many occupants. sequence beneath a layered channel belongs to the **surface** and not to the material — two occupants sharing a material and each painted differently is the ordinary case.
+    has   MaterialCeiling  static constexpr std::uint32_t      [-]  ?
+    has   Declared         std::vector<MaterialSpecification>  [-]  ?
+    has   DeclaredNames    std::vector<std::string>            [-]  ?
+    has   AbsentName       std::string                         [-]  ?
+    by    Api/AssetInterchange.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  🔴 `42` §6: editing a material changes every occupant enrolled in it, in one transaction. The `56` layer
+
+F MaterialIndex::Declare                        | MaterialSpecification.h | 242     | api,nonthrowing               | 🚩 | Declares one material and issues its identity.
+    in    Named  const std::string&  [-]  what the artist calls it; may be empty
+    out   -      Outcome             [-]  refuses with ExtentExhausted at the declared ceiling
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/OutlinerSequence.h, Api/PropertySpecification.h, Api/RowSequence.h, (+15 more)
+
+F MaterialIndex::Resolve                        | MaterialSpecification.h | 248     | api,nonthrowing               | ✔️ | One declared material, for reading.
+    in    MaterialOrdinal  std::uint32_t  [-]  ?
+    out   -                Outcome        [-]  refuses with ContentUnsupported outside the declared count
+    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/IntakeIndex.h, Api/PopulationIndex.h, Api/PropertySpecification.h, (+26 more)
+
+F MaterialIndex::Amend                          | MaterialSpecification.h | 254     | api,nonthrowing               | ✔️ | One declared material, for amending.
+    in    MaterialOrdinal  std::uint32_t  [-]  ?
+    out   -                Outcome        [-]  refuses with ContentUnsupported outside the declared count
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/RevisionSequence.h, Api/TilingSpecification.h, Source/BrushSpecification.cpp, (+5 more)
+
+F MaterialIndex::DeclaredName                   | MaterialSpecification.h | 256     | -                             | -  | ?
+    in    MaterialOrdinal  std::uint32_t       [-]  ?
+    out   -                const std::string&  [-]  ?
+    by    Api/BrushSpecification.h, Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/BrushSpecification.cpp, Source/MaterialSpecification.cpp, Source/OutlinerPanel.cpp, (+2 more)
+
+F MaterialIndex::DeclaredCount                  | MaterialSpecification.h | 257     | -                             | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/BrushSpecification.h, Api/QuadratureIntegrator.h, Api/SpatialSubdivision.h, Api/SpectralProjection.h, Api/TilingSpecification.h, Api/WorkSequence.h, (+8 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                      PARTITION RESOLUTION — `00` §10 CONFLICT 15
+//------------------------------------------------------------------------------------------------------------------------
+
+T ResolvedPartition                             | MaterialSpecification.h | 277-283 | nonallocating,nonthrowing     | -  | What one partition identity resolves to — the occupant, its material, and the face range it covers. classification and `74`'s picking all need the occupant and none of them can derive it from what `16` writes. This is the one resolution every consumer reads.
+    has   Occupant         OccupantIdentity  [-]  ?
+    has   MaterialOrdinal  std::uint32_t     [-]  ?
+    has   FirstFace        std::uint32_t     [-]  ?
+    has   FaceCount        std::uint32_t     [-]  ?
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  🔴 `16` §4.1: a partition identity is **not** an occupant identity. `26`'s enrolment test, `16` §5's
+
+T PartitionResolutionIndex                      | MaterialSpecification.h | 292-329 | owning                        | -  | Partition identity to occupant, material and face range — a derived projection, never authored. occupant a partition belongs to would disagree exactly when an occupant was added, which is the moment the artist is looking at it. rather than deriving its own — `16` §6's gate.
+    has   PartitionCeiling  static constexpr std::uint32_t  [-]  ?
+    has   Resolutions       std::vector<ResolvedPartition>  [-]  ?
+    has   DerivedRevision   std::uint64_t                   [-]  ?
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    note  🔴 `42` §4: rebuilt when the population changes and **never authored**. Two sources of truth about which
+    note  🔴 It is a device-resident indexed lookup, never a search. Every consumer reads this one resolution
+
+F PartitionResolutionIndex::Reclaim             | MaterialSpecification.h | 299     | api,nonthrowing               | ✔️ | Discards every entry, ahead of a rebuild.
+    out   -  void  [-]  ?
+    by    Api/EnrollmentIndex.h, Api/InputExchange.h, Api/InterfaceExchange.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/WindowExchange.h, (+11 more)
+
+F PartitionResolutionIndex::Declare             | MaterialSpecification.h | 307     | api,nonthrowing               | 🚩 | Declares one partition's resolution, issuing its identity. the declared ceiling
+    in    Resolving  const ResolvedPartition&  [-]  the occupant, material and face range
+    out   -          Outcome                   [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/OutlinerSequence.h, Api/PropertySpecification.h, Api/RowSequence.h, (+15 more)
+
+F PartitionResolutionIndex::Resolve             | MaterialSpecification.h | 314     | api,nonthrowing               | ✔️ | Resolves one partition identity. re-partition since the identity was taken looks like
+    in    Subject  PartitionIdentity  [-]  ?
+    out   -        Outcome            [-]  refuses with IdentityStale when the generation no longer matches — which is what a
+    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/IntakeIndex.h, Api/PopulationIndex.h, Api/PropertySpecification.h, (+26 more)
+
+F PartitionResolutionIndex::Revision            | MaterialSpecification.h | 319     | api,nonallocating,nonthrowing | ✔️ | The revision the last rebuild advanced to; `70` §2 compares counters against it.
+    out   -  std::uint64_t  [-]  ?
+    by    Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/SeamSpecification.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+6 more)
+
+F PartitionResolutionIndex::DeclaredCount       | MaterialSpecification.h | 321     | -                             | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/BrushSpecification.h, Api/QuadratureIntegrator.h, Api/SpatialSubdivision.h, Api/SpectralProjection.h, Api/TilingSpecification.h, Api/WorkSequence.h, (+8 more)

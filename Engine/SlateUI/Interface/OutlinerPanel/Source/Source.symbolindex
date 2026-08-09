@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S OutlinerPanel.cpp | 391 lines | 6bf8573b | 15 sym | The counted span presented, and every gesture over it turned into a declared intent.
+S OutlinerPanel.cpp | 400 lines | c139dd25 | 15 sym | The counted span presented, and every gesture over it turned into a declared intent.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE REORDERING PAYLOAD
@@ -64,7 +64,7 @@ F DeclareEnclosure                | OutlinerPanel.cpp | 85-97   | - | - | ?
 //                                                    THE PRESENTATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F OutlinerPanel::Present          | OutlinerPanel.cpp | 105-350 | - | - | ?
+F OutlinerPanel::Present          | OutlinerPanel.cpp | 105-359 | - | - | ?
     in    Outliner  OutlinerSequence&  [-]  ?
     out   -         Outcome<bool>      [-]  ?
 
@@ -72,24 +72,24 @@ F OutlinerPanel::Present          | OutlinerPanel.cpp | 105-350 | - | - | ?
 //                                                      WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-F OutlinerPanel::DeclarePresence  | OutlinerPanel.cpp | 356-359 | - | - | ?
+F OutlinerPanel::DeclarePresence  | OutlinerPanel.cpp | 365-368 | - | - | ?
     in    PresenceDeclared  bool  [-]  ?
     out   -                 void  [-]  ?
 
-F OutlinerPanel::PresenceStanding | OutlinerPanel.cpp | 361-364 | - | - | ?
+F OutlinerPanel::PresenceStanding | OutlinerPanel.cpp | 370-373 | - | - | ?
     out   -  bool  [-]  ?
 
-F OutlinerPanel::VisiblePosition  | OutlinerPanel.cpp | 366-369 | - | - | ?
+F OutlinerPanel::VisiblePosition  | OutlinerPanel.cpp | 375-378 | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F OutlinerPanel::Anchored         | OutlinerPanel.cpp | 371-374 | - | - | ?
+F OutlinerPanel::Anchored         | OutlinerPanel.cpp | 380-383 | - | - | ?
     out   -  OccupantIdentity  [-]  ?
 
-F OutlinerPanel::RowsTouched      | OutlinerPanel.cpp | 376-379 | - | - | ?
+F OutlinerPanel::RowsTouched      | OutlinerPanel.cpp | 385-388 | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F OutlinerPanel::Sought           | OutlinerPanel.cpp | 381-384 | - | - | ?
+F OutlinerPanel::Sought           | OutlinerPanel.cpp | 390-393 | - | - | ?
     out   -  std::string  [-]  ?
 
-F OutlinerPanel::ConfirmedNames   | OutlinerPanel.cpp | 386-389 | - | - | ?
+F OutlinerPanel::ConfirmedNames   | OutlinerPanel.cpp | 395-398 | - | - | ?
     out   -  std::uint32_t  [-]  ?

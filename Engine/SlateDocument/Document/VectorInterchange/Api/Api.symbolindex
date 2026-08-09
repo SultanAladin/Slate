@@ -1,0 +1,201 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Vector outlines and typeface outlines as one thing — the accepted subset, and every refusal positioned.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/VectorInterchange/Api
+%layer      SlateDocument
+%sources    1
+%symbols    25
+%annotated  18/25
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S VectorInterchange.h | 247 lines | 03d74c30 | 25 sym | Vector outlines and typeface outlines as one thing — the accepted subset, and every refusal positioned.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE FILL RULE
+//------------------------------------------------------------------------------------------------------------------------
+
+E FillRule                               | VectorInterchange.h | 27-31   | contract        | -  | Which rule decides a closed path's interior. `ResolveContainment`, which takes it as the one bit the classification depends on.
+    has   NonZero  FillRule  [-]  ?
+    has   EvenOdd  FillRule  [-]  ?
+    by    Source/VectorInterchange.cpp
+    note  Both are accepted — `52` §2. The rule is a declared property of each closed path and is read by
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    ONE CLOSED PATH
+//------------------------------------------------------------------------------------------------------------------------
+
+T OutlinePath                            | VectorInterchange.h | 41-47   | owning          | -  | One path of an outline — its origin, its segment run, and whether it closes. nothing else, and closing a path silently changes which side of it the interior is on.
+    has   Origin     PlanarPosition            [-]  ?
+    has   Segments   std::vector<PathSegment>  [-]  ?
+    has   Rule       FillRule                  [-]  ?
+    has   ClosedRun  bool                      [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    note  🔴 An open path is retained as open rather than closed on arrival. `52` §1's codec translates and does
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      ONE OUTLINE
+//------------------------------------------------------------------------------------------------------------------------
+
+T OutlineSpecification                   | VectorInterchange.h | 60-67   | owning          | -  | A whole vector source — its paths, its declared colour, and where it came from. downstream can tell which was used. What differs is only which of the two retentions below is occupied. was a clipboard is unrecoverable after a reopen, and the artist reads that as the document having lost their work — `52` §1.
+    has   Paths           std::vector<OutlinePath>  [-]  ?
+    has   DeclaredColour  ColourSpecification       [-]  ?
+    has   OriginPath      std::string               [-]  ?
+    has   SourceText      std::string               [-]  ?
+    has   ColourDeclared  bool                      [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    note  🔴 `52` §1: a file source and a supplied-text source produce the **identical** specification, and nothing
+    note  🔴 A supplied-text source retains its text, because there is no file to re-read. A source whose only copy
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        REFUSALS
+//------------------------------------------------------------------------------------------------------------------------
+
+T RefusedConstruct                       | VectorInterchange.h | 80-85   | owning          | -  | One refused construct, named and positioned in the source. position sends the artist to search a file they did not write. raster content. Each is refused rather than approximated, because a vector source that silently loses content is worse than one that refuses it — the artist attributes the loss to their own file.
+    has   Construct      std::string    [-]  ?
+    has   SourceOrdinal  std::uint32_t  [-]  ?
+    has   Declining      Refusal        [-]  ?
+    by    Source/VectorInterchange.cpp
+    note  🔴 `52` §2: a refusal names the construct **and the position in the source**. "Unsupported" with no
+    note  ⚠️ `00` §5.2's refused set: effect operations, clipping and masking, script and animation, and embedded
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE CODEC
+//------------------------------------------------------------------------------------------------------------------------
+
+T VectorInterchange                      | VectorInterchange.h | 97-161  | owning          | -  | Holds one decoded outline, its refusals, and the flattening both `70` and `82` resolve through. host for `82`'s preview and on the device for `70`'s resolution. A winding test that disagreed between the two gives a preview with a different silhouette from the result, and the artist attributes the difference to the preview being approximate rather than to the classification being wrong.
+    has   DeclaredOutline     OutlineSpecification           [-]  ?
+    has   RefusedConstructs   std::vector<RefusedConstruct>  [-]  ?
+    has   TextSourceDeclared  bool                           [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    note  🔴 `52` §4: `PlanarClassifier` is Exact and parity-proven, because the same outline is classified on the
+
+F VectorInterchange::DeclareFromFile     | VectorInterchange.h | 107     | api,nonthrowing | 🚩 | Declares a decoded outline arriving from a file.
+    in    Arriving    const OutlineSpecification&  [-]  the decoded specification
+    in    OriginPath  const std::string&           [-]  where it was read from
+    out   -           Outcome                      [-]  refuses with ContentUnsupported when no path was declared
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+
+F VectorInterchange::DeclareFromText     | VectorInterchange.h | 115     | api,nonthrowing | 🚩 | Declares a decoded outline arriving as supplied source text.
+    in    Arriving    const OutlineSpecification&  [-]  the decoded specification
+    in    SourceText  const std::string&           [-]  retained, because there is no file to re-read
+    out   -           Outcome                      [-]  refuses with ContentUnsupported when no path was declared
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+
+F VectorInterchange::Refuse              | VectorInterchange.h | 120     | api,nonthrowing | 🚩 | Records one refused construct, to be reported through `86`.
+    in    Construct      const std::string&  [-]  ?
+    in    SourceOrdinal  std::uint32_t       [-]  ?
+    in    Declining      const Refusal&      [-]  ?
+    out   -              void                [-]  ?
+    by    Api/SpectralProjection.h, Contract/OutcomeContract.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, Source/BrushSpecification.cpp, Source/CameraProjection.cpp, (+37 more)
+
+F VectorInterchange::Flatten             | VectorInterchange.h | 134     | api,nonthrowing | 🔴 | Flattens every path at a tolerance the caller supplies, into one run per path. outline at whatever level a tile was promoted to, so a fixed tolerance is either wasteful at coarse levels or visibly polygonal at fine ones. `CurveSolver` is Bounded, so flattening twice would give two polylines agreeing to a tolerance and differing in their last bit — and an Exact predicate over two different inputs is exact about the wrong thing.
+    in    Tolerance  double     [-]  greatest permitted deviation, in the outline's own space
+    out   -          Flattened  [-]  one polyline per path, in declaration order
+    by    Api/CurveSolver.h, Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/VectorInterchange.cpp
+    note  🔴 Tolerance is **relative to the reduction level being resolved** — `52` §5's gate. `70` resolves an
+    note  🔴 The flattening is produced **once** and both the host and the device classify that one polyline.
+
+F VectorInterchange::Classify            | VectorInterchange.h | 148     | api,nonthrowing | 🚩 | Classifies one position against a flattened outline. boundary reported as interior gives every outline a one-texel bias outward at its own edge. own rule and the results combine by the outermost containment found. A single rule imposed across the source would fill the holes of one path or empty the interior of another.
+    in    Flattened  const std::vector<std::vector<PlanarPosition>>&  [-]  as `Flatten` produced it
+    in    PointX     double                                           [-]  the position being classified
+    in    PointY     double                                           [-]  ?
+    in    PointY     -                                                [-]  ?
+    out   -          Containment                                      [-]  +1 inside, 0 exactly on a boundary, −1 outside
+    by    Api/CameraProjection.h, Api/TilingSpecification.h, Api/VendorClassifier.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/TilingSpecification.cpp, (+3 more)
+    note  🔴 A boundary position resolves to zero and not to inside — `70` resolves coverage from this, and a
+    note  📝 Where a source declares several paths with differing fill rules, each path is classified under its
+
+F VectorInterchange::Declared            | VectorInterchange.h | 152     | -               | -  | ?
+    out   -  const OutlineSpecification&  [-]  ?
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+23 more)
+
+F VectorInterchange::Refusals            | VectorInterchange.h | 153     | -               | -  | ?
+    out   -  const std::vector<RefusedConstruct>&  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+
+F VectorInterchange::TextRetained        | VectorInterchange.h | 154     | -               | -  | ?
+    out   -  bool  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       TYPEFACES
+//------------------------------------------------------------------------------------------------------------------------
+
+T GlyphSpecification                     | VectorInterchange.h | 173-180 | owning          | -  | One glyph — its outline, and the metrics that position it. The character string is stored beside it so the text stays editable. Storing only characters means every resolution re-runs substitution, and substitution depends on the typeface — so replacing a typeface silently changes the shaping of text the artist already positioned.
+    has   GlyphIdentity  std::uint32_t             [-]  ?
+    has   Paths          std::vector<OutlinePath>  [-]  ?
+    has   Advance        double                    [-]  ?
+    has   BearingAlong   double                    [-]  ?
+    has   BearingAcross  double                    [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    note  🔴 `52` §3: text is resolved to a **glyph sequence** at intake and the glyph sequence is what is stored.
+
+T TypefaceInterchange                    | VectorInterchange.h | 186-234 | owning          | -  | One typeface's glyphs, and the resolved text that reads them. are compatible with this: what is stored is the glyph sequence and the typeface identity either way.
+    has   DeclaredGlyphs       std::vector<GlyphSpecification>  [-]  ?
+    has   DeclaredAdjustments  std::vector<PairAdjustment>      [-]  ?
+    has   DeclaredIdentity     std::uint32_t                    [-]  ?
+    has   DeclaredUnits        double                           [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    note  ⚠️ Whether a typeface is embedded on save or referenced is open in `00` §12 and is not decided here. Both
+
+F TypefaceInterchange::DeclareTypeface   | VectorInterchange.h | 193     | api,nonthrowing | ✔️ | Declares the typeface's identity and unit scale.
+    in    TypefaceIdentity  std::uint32_t  [-]  ?
+    in    UnitsPerEm        double         [-]  ?
+    out   -                 void           [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+
+F TypefaceInterchange::DeclareGlyph      | VectorInterchange.h | 199     | api,nonthrowing | 🚩 | Declares one glyph.
+    in    Declaring  const GlyphSpecification&  [-]  ?
+    out   -          Outcome                    [-]  refuses with ContentUnsupported when a glyph of that identity is already declared
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+
+F TypefaceInterchange::DeclareAdjustment | VectorInterchange.h | 204     | api,nonthrowing | 🚩 | Declares one pair adjustment between two adjacent glyphs.
+    in    EarlierGlyph  std::uint32_t  [-]  ?
+    in    LaterGlyph    std::uint32_t  [-]  ?
+    in    Adjustment    double         [-]  ?
+    out   -             void           [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+
+F TypefaceInterchange::ResolveGlyph      | VectorInterchange.h | 210     | api,nonthrowing | 🚩 | Resolves one glyph, by its identity rather than by a character.
+    in    GlyphIdentity  std::uint32_t  [-]  ?
+    out   -              Outcome        [-]  refuses with ContentUnsupported when the typeface declares no such glyph
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+
+F TypefaceInterchange::Adjustment        | VectorInterchange.h | 215     | api,nonthrowing | 🚩 | The pair adjustment between two adjacent glyphs; zero where none is declared.
+    in    EarlierGlyph  std::uint32_t  [-]  ?
+    in    LaterGlyph    std::uint32_t  [-]  ?
+    out   -             double         [-]  ?
+    by    Source/ConsoleHost.cpp, Source/RowSequence.cpp, Source/VectorInterchange.cpp
+
+F TypefaceInterchange::TypefaceIdentity  | VectorInterchange.h | 217     | -               | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+
+F TypefaceInterchange::UnitsPerEm        | VectorInterchange.h | 218     | -               | -  | ?
+    out   -  double  [-]  ?
+    by    Source/VectorInterchange.cpp
+
+F TypefaceInterchange::GlyphCount        | VectorInterchange.h | 219     | -               | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Source/VectorInterchange.cpp
+
+T TypefaceInterchange::PairAdjustment    | VectorInterchange.h | 223-228 | -               | -  | ?
+    has   EarlierGlyph  std::uint32_t  [-]  ?
+    has   LaterGlyph    std::uint32_t  [-]  ?
+    has   Adjustment    double         [-]  ?
+    by    Source/VectorInterchange.cpp
+
+T ResolvedText                           | VectorInterchange.h | 240-245 | owning          | -  | Text as it is stored — the glyph sequence, and the characters beside it. Storing either alone loses one of the two — `52` §3.
+    has   GlyphSequence     std::vector<std::uint32_t>  [-]  ?
+    has   Characters        std::string                 [-]  ?
+    has   TypefaceIdentity  std::uint32_t               [-]  ?
+    by    Source/ConsoleHost.cpp
+    note  🔴 Both are stored. The glyph sequence is what resolves; the characters are what keeps the text editable.

@@ -5,6 +5,8 @@
 
 #include "SlateMath/Numeric/CurveSolver/Api/CurveSolver.h"
 
+#include "Contract/ToleranceContract.h"
+
 #include <cmath>
 
 namespace Slate
@@ -99,7 +101,7 @@ void FlattenArc(PlanarPosition                Origin,
 
     // 📐 Endpoint parameterisation to centre parameterisation. The arc's own axes are rotated by Rotation, so
     //    the endpoints are brought into those axes, the centre is solved there, and the sweep is walked back out.
-    const double Radians = Segment.Rotation * 3.14159265358979323846 / 180.0;
+    const double Radians = Segment.Rotation * Pi / 180.0;
     const double Cosine  = std::cos(Radians);
     const double Sine    = std::sin(Radians);
 
@@ -153,15 +155,15 @@ void FlattenArc(PlanarPosition                Origin,
     double Sweep = LastAngle - FirstAngle;
 
     if (!Segment.SweepEnabled && Sweep > 0.0)
-        Sweep -= 2.0 * 3.14159265358979323846;
+        Sweep -= 2.0 * Pi;
     else if (Segment.SweepEnabled && Sweep < 0.0)
-        Sweep += 2.0 * 3.14159265358979323846;
+        Sweep += 2.0 * Pi;
 
     // 📐 The sagitta of one step of angular width θ over radius r is r(1 − cos(θ/2)). Solving that for the
     //    declared tolerance gives the step count directly, so the arc is never subdivided further than the
     //    tolerance asks and never less.
     const double GreatestRadius = ScaledAlong > ScaledAcross ? ScaledAlong : ScaledAcross;
-    double       StepAngle      = 3.14159265358979323846 * 0.5;
+    double       StepAngle      = Pi * 0.5;
 
     if (Tolerance > 0.0 && Tolerance < GreatestRadius)
         StepAngle = 2.0 * std::acos(1.0 - Tolerance / GreatestRadius);

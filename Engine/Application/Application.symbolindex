@@ -7,22 +7,35 @@
 %scope    layer
 %path     Engine/Application
 %folders  1
-%symbols  7
+%symbols  20
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Source | Source/Source.symbolindex | 7 sym | Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
+I Source | Source/Source.symbolindex | 20 sym | Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-V RefusedCount      | Source/ConsoleHost.cpp | 40      | ?
-F Report            | Source/ConsoleHost.cpp | 42-48   | ?
-F VerifyMathematics | Source/ConsoleHost.cpp | 56-129  | ?
-F VerifyDocument    | Source/ConsoleHost.cpp | 135-222 | ?
-F VerifySchedule    | Source/ConsoleHost.cpp | 230-313 | ?
-F VerifyParity      | Source/ConsoleHost.cpp | 319-367 | ?
-F main              | Source/ConsoleHost.cpp | 375-399 | ?
+V RefusedCount      | Source/ConsoleHost.cpp | 67        | ?
+F Report            | Source/ConsoleHost.cpp | 69-75     | ?
+F VerifyMathematics | Source/ConsoleHost.cpp | 83-156    | ?
+F VerifyClassifiers | Source/ConsoleHost.cpp | 165-406   | ?
+F VerifyReporting   | Source/ConsoleHost.cpp | 415-501   | ?
+F VerifyWork        | Source/ConsoleHost.cpp | 507-660   | ?
+F VerifyColour      | Source/ConsoleHost.cpp | 666-737   | ?
+F VerifyProperties  | Source/ConsoleHost.cpp | 743-853   | ?
+F VerifyDocument    | Source/ConsoleHost.cpp | 859-946   | ?
+F VerifySchedule    | Source/ConsoleHost.cpp | 954-1037  | ?
+F VerifyParity      | Source/ConsoleHost.cpp | 1043-1145 | ?
+F VerifyTopology    | Source/ConsoleHost.cpp | 1154-1237 | ?
+F VerifyMaterials   | Source/ConsoleHost.cpp | 1239-1339 | ?
+F VerifyVector      | Source/ConsoleHost.cpp | 1341-1484 | ?
+F VerifyCamera      | Source/ConsoleHost.cpp | 1490-1649 | ?
+F VerifyIlluminants | Source/ConsoleHost.cpp | 1655-1803 | ?
+F VerifySubdivision | Source/ConsoleHost.cpp | 1809-2024 | ?
+F VerifyPartition   | Source/ConsoleHost.cpp | 2033-2281 | ?
+F VerifyIntake      | Source/ConsoleHost.cpp | 2287-2483 | ?
+F main              | Source/ConsoleHost.cpp | 2491-2554 | ?

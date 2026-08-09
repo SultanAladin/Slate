@@ -192,12 +192,24 @@ void AdaptWhite(double ArrivingWhiteX, double ArrivingWhiteY,
          0.0389, -0.0685,  1.0296
     };
 
-    constexpr double ConeInverse[9] =
-    {
-         0.9869929, -0.1470543,  0.1599627,
-         0.4323053,  0.5183603,  0.0492912,
-        -0.0085287,  0.0400428,  0.9684867
-    };
+    // 🔴 The inverse is derived here rather than transcribed. A transcribed inverse is accurate only to its
+    //    own last digit, so the product with the forward matrix differs from the identity in the seventh
+    //    place — and a coordinate projected into a space and back then returns wrong in its eighth. `36` §7
+    //    declares this Bounded, not Perceptual, and a Bounded round trip has to close. Same reasoning as
+    //    DeriveProjection's single solve: one inversion has one place to be wrong.
+    TristimulusProjection Cone;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < 9u; ++Ordinal)
+        Cone.Coefficient[Ordinal] = ConeForward[Ordinal];
+
+    Cone.Derived = true;
+
+    TristimulusProjection ConeInverted;
+
+    if (!Invert(Cone, ConeInverted))
+        return;
+
+    const double* ConeInverse = ConeInverted.Coefficient;
 
     const double ArrivingX = ArrivingWhiteX / ArrivingWhiteY;
     const double ArrivingZ = (1.0 - ArrivingWhiteX - ArrivingWhiteY) / ArrivingWhiteY;
@@ -306,6 +318,43 @@ Outcome<ColourSpecification> Project(ColourSpecification             Arriving,
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                 TRISTIMULUS TO A SPACE
+//------------------------------------------------------------------------------------------------------------------------
+
+Outcome<ColourSpecification> ProjectTristimulus(double                          TristimulusX,
+                                                double                          TristimulusY,
+                                                double                          TristimulusZ,
+                                                const ColourSpaceSpecification& Target)
+{
+    if (!Target.SpaceDeclared())
+        return Outcome<ColourSpecification>::Refuse({ RefusalReason::ContentUnsupported, "the space is undeclared" });
+
+    const TristimulusProjection TargetForward = DeriveProjection(Target);
+
+    TristimulusProjection TargetInverse;
+
+    if (!TargetForward.Derived || !Invert(TargetForward, TargetInverse))
+    {
+        return Outcome<ColourSpecification>::Refuse(
+            { RefusalReason::ContentUnsupported, "the target space declared degenerate primaries" });
+    }
+
+    double TargetRed   = 0.0;
+    double TargetGreen = 0.0;
+    double TargetBlue  = 0.0;
+
+    Apply(TargetInverse, TristimulusX, TristimulusY, TristimulusZ, TargetRed, TargetGreen, TargetBlue);
+
+    ColourSpecification Projected;
+    Projected.RedCoordinate   = Encode(Target, TargetRed);
+    Projected.GreenCoordinate = Encode(Target, TargetGreen);
+    Projected.BlueCoordinate  = Encode(Target, TargetBlue);
+    Projected.SpaceIdentity   = Target.SpaceIdentity;
+
+    return Outcome<ColourSpecification>::Deliver(Projected);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                    TEMPERATURE
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -369,31 +418,13 @@ Outcome<ColourSpecification> ProjectTemperature(double                          
     double TristimulusY = 1.0;
     double TristimulusZ = (1.0 - LocusX - LocusY) / LocusY;
 
-    const TristimulusProjection TargetForward = DeriveProjection(Target);
-
-    TristimulusProjection TargetInverse;
-
-    if (!TargetForward.Derived || !Invert(TargetForward, TargetInverse))
-    {
-        return Outcome<ColourSpecification>::Refuse(
-            { RefusalReason::ContentUnsupported, "the target space declared degenerate primaries" });
-    }
-
     AdaptWhite(LocusX, LocusY, Target.WhiteX, Target.WhiteY, TristimulusX, TristimulusY, TristimulusZ);
 
-    double TargetRed   = 0.0;
-    double TargetGreen = 0.0;
-    double TargetBlue  = 0.0;
-
-    Apply(TargetInverse, TristimulusX, TristimulusY, TristimulusZ, TargetRed, TargetGreen, TargetBlue);
-
-    ColourSpecification Projected;
-    Projected.RedCoordinate   = Encode(Target, TargetRed);
-    Projected.GreenCoordinate = Encode(Target, TargetGreen);
-    Projected.BlueCoordinate  = Encode(Target, TargetBlue);
-    Projected.SpaceIdentity   = Target.SpaceIdentity;
-
-    return Outcome<ColourSpecification>::Deliver(Projected);
+    // 📝 The adaptation above is what makes the shared tail correct here: a locus coordinate is a white point,
+    //    so it is adapted to the target's white **before** the primaries are applied. Everything after that is
+    //    the same arithmetic every tristimulus projection performs, and one copy of it is one place to be wrong.
+    return ProjectTristimulus(TristimulusX, TristimulusY, TristimulusZ, Target);
 }
+
 
 }   // namespace Slate

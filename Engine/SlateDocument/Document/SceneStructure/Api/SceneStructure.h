@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                             SCENESTRUCTURE.H
 //============================================================================================================================================
 // 🧩 The two nesting relations over the population — organisational enclosure and kinematic attachment, apart.
@@ -8,6 +8,7 @@
 #include "Contract/IdentityContract.h"
 #include "Contract/OutcomeContract.h"
 #include "Contract/PrecisionContract.h"
+#include "Shared/ContainmentClassifier.slang.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
 
 #include <cstdint>
@@ -48,11 +49,16 @@ inline constexpr std::uint32_t AbsentSlot            = 0xFFFFFFFFu; // [-] - no 
 /// out   Contained  [-]  false for either label unissued, and false for an occupant against itself
 /// note  🔴 This is the Tier A predicate `16` and `26` ask per occupant per rotation. Neither can afford a
 ///       traversal, which is the entire reason the labels exist.
+/// note  🔴 The comparison itself lives in `Shared/` and is parity-proven, because `26` §1 ② asks it on the
+///       device against labels this unit issued on the host. Two implementations of one comparison are two
+///       that must agree about strictness at every bound, and the rotation on which they stop agreeing is the
+///       one where the outline and the shading disagree about which enclosure a pixel belongs to.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 constexpr bool EnclosureContains(IntervalLabel Outer, IntervalLabel Inner)
 {
-    return Outer.LabelBegin < Inner.LabelBegin && Inner.LabelEnd < Outer.LabelEnd;
+    return ClassifyIntervalContainment(Outer.LabelBegin, Outer.LabelEnd,
+                                       Inner.LabelBegin, Inner.LabelEnd) > 0;
 }
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 

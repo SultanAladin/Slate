@@ -1,0 +1,138 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The parametric domain every paintable surface addresses — cut, flattened, arranged, and measured.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/ChartPartition/Api
+%layer      SlateCompute
+%sources    1
+%symbols    13
+%annotated  12/13
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S ChartPartition.h | 195 lines | 17875a61 | 13 sym | The parametric domain every paintable surface addresses — cut, flattened, arranged, and measured.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                               WHAT A PARTITION DECLARES
+//------------------------------------------------------------------------------------------------------------------------
+
+T PartitionSpecification            | ChartPartition.h | 32-39   | nonallocating,nonthrowing     | -  | The parameters a partition is derived against. distortion either way. It is declared here rather than in `Contract/` because no second unit reads it.
+    has   DistortionThreshold   double         [-]  ?
+    has   ConvergenceCriterion  double         [-]  ?
+    has   IterationCeiling      std::uint32_t  [-]  ?
+    has   SubdivisionCeiling    std::uint32_t  [-]  ?
+    has   CommonScaleDeclared   bool           [-]  ?
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+    note  🚧 `68` §10 leaves the distortion threshold open and it blocks quality alone — `86` reports the measured
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       ONE CHART
+//------------------------------------------------------------------------------------------------------------------------
+
+T Chart                             | ChartPartition.h | 51-60   | owning                        | -  | One connected piece of topology bounded by seams and by the topology's own boundary. results on the partition revision, and a chart whose member set is unchanged keeps its least face ordinal — so a partition that touched one seam does not renumber every chart and discard every derived artefact for a change the artist cannot see.
+    has   IdentityOrdinal   std::uint32_t               [-]  ?
+    has   Faces             std::vector<std::uint32_t>  [-]  ?
+    has   Cause             TerminationCause            [-]  ?
+    has   ResidualNorm      double                      [-]  ?
+    has   IterationCount    std::uint32_t               [-]  ?
+    has   Distortion        DistortionMeasure           [-]  ?
+    has   SubdivisionCount  std::uint32_t               [-]  ?
+    by    Source/ChartPartition.cpp
+    note  🔴 Chart identity is the **least imported face ordinal** the chart holds. `24` §3 keys transferred
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE METRICS
+//------------------------------------------------------------------------------------------------------------------------
+
+T PartitionMetrics                  | ChartPartition.h | 68-77   | nonallocating,nonthrowing     | -  | What the partition reports through `86`.
+    has   ChartCount               std::uint32_t  [-]  ?
+    has   DerivedSeamCount         std::uint32_t  [-]  ?
+    has   CeilingTerminationCount  std::uint32_t  [-]  ?
+    has   FoldCount                std::uint32_t  [-]  ?
+    has   Occupancy                double         [-]  ?
+    has   GreatestAreaRatio        double         [-]  ?
+    has   GreatestAngleDeviation   double         [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE DERIVED RESULT
+//------------------------------------------------------------------------------------------------------------------------
+
+T DerivedPartition                  | ChartPartition.h | 90-97   | owning                        | -  | A whole derived partition, as a value that crosses back to the tick. `34` §3 requires the requester to apply the result on the tick. The previous partition stands until `Adopt` takes this one — a surface with no valid domain has no place to sample and nothing for `18` §1.1 to derive a tangent basis from, and the visible result of swapping mid-solve is the whole object flickering while an unrelated seam is being marked.
+    has   Charts             std::vector<Chart>             [-]  ?
+    has   CornerCoordinates  std::vector<DomainCoordinate>  [-]  ?
+    has   DerivedSeams       std::vector<SeamEdge>          [-]  ?
+    has   Metrics            PartitionMetrics               [-]  ?
+    has   DescribedRevision  std::uint64_t                  [-]  ?
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+    note  🔴 A value rather than a mutation, because `68` §7 runs the flattening on `34`'s `Background` class and
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE DERIVATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F Derive                            | ChartPartition.h | 123     | api,nonthrowing               | 🔴 | Cuts, flattens and arranges one sealed topology into its parametric domain. ExtentExhausted when the conditioning describes another revision or no scale packs The `SeamSpecification` is taken by const reference and its derived set is returned in the result rather than written into it, so a worker running this touches no document state at all. and re-flatten, recording the crossing edges as derived seams. `68` §4.1 prescribes it for a fold, and a chart with two boundary loops is the same failure one step earlier. Subdivision strictly reduces the face count and a single face is always a disc that flattens without folding, so it terminates. `68` §7 puts this on `34`'s `Background` class; called on the tick it would stall a stroke.
+    in    Imported      const TopologyStructure&       [-]  the sealed topology; immutable for the whole run
+    in    Conditioned   const TopologyConditioning&    [-]  its conditioning, at the same revision
+    in    Seams         const SeamSpecification&       [-]  the authored seams; the derived set is produced here and returned, not written back
+    in    Declaring     const PartitionSpecification&  [-]  the parameters
+    in    Cancellation  const WorkCancellation&        [-]  read between charts — `34` §5's cooperative points
+    in    Progressed    WorkProgress&                  [-]  charts resolved out of charts spanned
+    out   -             Outcome                        [-]  refuses with HostDenied for an unsealed topology or a withdrawn declaration, and with
+    by    Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/QuadratureIntegrator.h, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+2 more)
+    note  🔴 Reads nothing but its arguments and mutates none of them, which is exactly `34` §2's requirement.
+    note  🔴 A chart that is not a disc and a chart that folds are answered by the **same** mechanism: subdivide
+    note  ⚠️ The boundary self-intersection test is quadratic in boundary length. That is affordable only because
+
+F SLATE_DECLARES_PRECISION          | ChartPartition.h | 129     | -                             | -  | ?
+    in    Convergent  PrecisionGuarantee::  [-]  ?
+    in    Convergent  PrecisionGuarantee::  [-]  ?
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, Api/CurveSolver.h, (+13 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE STANDING PARTITION
+//------------------------------------------------------------------------------------------------------------------------
+
+T ChartPartition                    | ChartPartition.h | 143-193 | owning                        | -  | The partition a surface currently addresses, and the revision every derived artefact keys on. while `20` promotes against it. Re-partitioning moves domain positions, so every derived artefact addressed in the old domain is invalid — and the revision is what makes that discoverable rather than silent. rather than world-referred, which is `68` §6's table read from the storage side.
+    has   StandingPartition  DerivedPartition  [-]  ?
+    has   PartitionRevision  std::uint64_t     [-]  ?
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+    note  🔴 `68` §6: a re-partition advances the partition revision, and `24` §3 keys transferred results on it
+    note  🔴 A camera move, an occupant move and a paint stroke re-derive nothing here. The domain is parametric
+
+F ChartPartition::Adopt             | ChartPartition.h | 153     | api,nonthrowing               | 🚩 | Adopts a derived partition on the tick, advancing the revision.
+    in    Arriving  const DerivedPartition&  [-]  as `Derive` produced it
+    out   -         Outcome                  [-]  refuses with ContentUnsupported for a partition carrying no chart
+    post  the revision advanced; every artefact keyed on the prior one is discoverably stale
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+
+F ChartPartition::Standing          | ChartPartition.h | 159     | api,nonallocating,nonthrowing | ✔️ | The standing partition.
+    out   -  const DerivedPartition&  [-]  ?
+    pre   PartitionStanding holds
+    by    Api/CameraProjection.h, Api/OutlinerSequence.h, Api/SelectionSequence.h, Contract/CombineContract.h, Source/CameraProjection.cpp, Source/ChartPartition.cpp, (+4 more)
+
+F ChartPartition::Coordinate        | ChartPartition.h | 166     | api,nonthrowing               | ✔️ | One imported corner's domain coordinate. while no partition stands
+    in    CornerOrdinal  std::uint32_t  [-]  ?
+    out   -              Outcome        [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
+    by    Shared/LatticeProjection.slang.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+
+F ChartPartition::PartitionStanding | ChartPartition.h | 171     | api,nonallocating,nonthrowing | ✔️ | Whether a partition stands at all.
+    out   -  bool  [-]  ?
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+
+F ChartPartition::Revision          | ChartPartition.h | 176     | api,nonallocating,nonthrowing | ✔️ | The revision `24` §3 keys on and `20` promotes against.
+    out   -  std::uint64_t  [-]  ?
+    by    Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/SeamSpecification.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+6 more)
+
+F ChartPartition::Report            | ChartPartition.h | 187     | api,nonthrowing               | 🚩 | Appends the standing partition's obligations to the register, and its measures beside them. the line and it is the whole reason the register has two structures: a distortion appended every partition would bury the one seam the artist did not expect.
+    in    Reporting  ReportSequence&  [-]   where `68` §2's and §4's rows land
+    in    Measured   MeasureIndex&    [-]   where §5's occupancy and §4's distortion land
+    in    Sampled    TickPoint        [ns]  the tick's own reading
+    out   -          void             [-]   ?
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/IntakeIndex.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, (+3 more)
+    note  🔴 Terminations and derived seams **append**; occupancy and distortion **overwrite**. `86` §2 draws

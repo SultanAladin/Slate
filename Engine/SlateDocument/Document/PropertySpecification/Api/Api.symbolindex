@@ -1,0 +1,151 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Typed, named, validated property declarations — validation part of the declaration, never a later step.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/PropertySpecification/Api
+%layer      SlateDocument
+%sources    1
+%symbols    15
+%annotated  14/15
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S PropertySpecification.h | 195 lines | 37d81394 | 15 sym | Typed, named, validated property declarations — validation part of the declaration, never a later step.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WHAT IT MEASURES
+//------------------------------------------------------------------------------------------------------------------------
+
+E PropertyMeasure             | PropertySpecification.h | 27-38   | contract                      | -  | What a property's value measures, which fixes both its storage and its validation. the category instead of the mechanism; what discriminates here is what the number means.
+    has   Truth         PropertyMeasure  [-]  ?
+    has   Ordinal       PropertyMeasure  [-]  ?
+    has   Signed        PropertyMeasure  [-]  ?
+    has   Magnitude     PropertyMeasure  [-]  ?
+    has   Text          PropertyMeasure  [-]  ?
+    has   Colour        PropertyMeasure  [-]  ?
+    has   Enrolment     PropertyMeasure  [-]  ?
+    has   Occupant      PropertyMeasure  [-]  ?
+    has   MeasureCount  PropertyMeasure  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    note  ⚠️ Not a type tag. `SKILL-Naming.md` bans `Kind` and `Type` as spellings precisely because they name
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       ONE VALUE
+//------------------------------------------------------------------------------------------------------------------------
+
+T PropertyValue               | PropertySpecification.h | 49-59   | owning                        | -  | One property's value, carrying the measure it was declared as. rather than reinterpreted storage. `10` §2.2's whole point is that an invalid state must not exist between the write and the check.
+    has   Measured       PropertyMeasure      [-]  ?
+    has   TruthDeclared  bool                 [-]  ?
+    has   OrdinalHeld    std::uint64_t        [-]  ?
+    has   SignedHeld     std::int64_t         [-]  ?
+    has   MagnitudeHeld  double               [-]  ?
+    has   TextHeld       std::string          [-]  ?
+    has   ColourHeld     ColourSpecification  [-]  ?
+    has   OccupantHeld   OccupantIdentity     [-]  ?
+    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    note  🔴 Held as parallel storage rather than a union, so a value read at the wrong measure is a wrong number
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE DECLARATION
+//------------------------------------------------------------------------------------------------------------------------
+
+T PropertyDeclaration         | PropertySpecification.h | 76-91   | owning                        | -  | One property as its owner declared it — its name, its measure, its bounds, and its default. the value. A property that can hold an invalid value between the write and the check has an invalid state, and something will observe it. assumed to be zero. A magnitude defaulted to zero produces a surface that is black or invisible, and the artist reads that as a broken material rather than as a missing declaration. without knowing which. A tool presented by hand-written panel code is a tool the panel must be edited to add.
+    has   Identity         std::string               [-]  ?
+    has   Presented        std::string               [-]  ?
+    has   Measured         PropertyMeasure           [-]  ?
+    has   Defaulted        PropertyValue             [-]  ?
+    has   LowerMagnitude   double                    [-]  ?
+    has   UpperMagnitude   double                    [-]  ?
+    has   LowerSigned      std::int64_t              [-]  ?
+    has   UpperSigned      std::int64_t              [-]  ?
+    has   UpperOrdinal     std::uint64_t             [-]  ?
+    has   RequiredSpace    std::uint32_t             [-]  ?
+    has   EnrolledOptions  std::vector<std::string>  [-]  ?
+    has   TextExtent       std::uint32_t             [-]  ?
+    has   BoundsDeclared   bool                      [-]  ?
+    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    note  🔴 `10` §2.2: validation is part of the declaration and not a separate step performed by whoever writes
+    note  🔴 `42` §2's rule holds here too: an absent value resolves to the **declared** default, which is not
+    note  📝 `76` §4 requires every tool parameter to be one of these, so that `ToolPanel` presents any tool
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE VALIDATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F Validate                    | PropertySpecification.h | 106     | api,nonthrowing               | ✔️ | Whether one value satisfies one declaration. with IdentityStale when an occupant reference is undeclared verbatim, so a refusal reading "invalid" sends the artist to guess.
+    in    Declared  const PropertyDeclaration&  [-]  the declaration, bounds included
+    in    Offered   const PropertyValue&        [-]  the value a caller wishes to write
+    out   -         Outcome                     [-]  refuses with ContentUnsupported when the measures disagree or a bound is exceeded, and
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/IlluminantPopulation.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+3 more)
+    note  🔴 A refusal names which bound was exceeded, in static text. `86` §4's register presents that text
+
+F Bounded                     | PropertySpecification.h | 117     | api,nonthrowing               | ✔️ | Brings one value inside a declaration's bounds where the measure admits it. refuse, so a write that bounded silently would accept a value the artist can neither see nor correct. Whoever is presenting a slider bounds first and then writes.
+    in    Declared  const PropertyDeclaration&  [-]  the declaration
+    in    Offered   const PropertyValue&        [-]  the value; returned bounded at Magnitude, Signed and Ordinal
+    out   -         Outcome                     [-]  refuses when the measures disagree, because no bounding can reconcile that
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, Api/CurveSolver.h, (+20 more)
+    note  🔴 Offered as a **separate** call rather than folded into the write. `10` §2.2 requires the write to
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE DECLARATIONS
+//------------------------------------------------------------------------------------------------------------------------
+
+T PropertyIndex               | PropertySpecification.h | 127-193 | owning                        | -  | An ordered set of declarations and the values held against them. route by which an invalid value is held here — which is what makes reading one unnecessary to check.
+    has   DeclaredProperties  std::vector<PropertyDeclaration>  [-]  ?
+    has   HeldValues          std::vector<PropertyValue>        [-]  ?
+    has   ValueDeclared       std::vector<bool>                 [-]  ?
+    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    note  🔴 A write validates before it stores, and a refused write leaves the prior value standing. There is no
+
+F PropertyIndex::Declare      | PropertySpecification.h | 139     | api,nonthrowing               | 🚩 | Declares one property, replacing a declaration of the same identity. own default does not satisfy it bounds presents an invalid value on every occupant that never wrote it.
+    in    Declaring  const PropertyDeclaration&  [-]  the declaration
+    out   -          Outcome                     [-]  refuses with ContentUnsupported for an empty identity, and when the declaration's
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, Api/RowSequence.h, (+15 more)
+    note  🔴 The default is validated against its own declaration here. A declaration whose default is out of
+
+F PropertyIndex::Write        | PropertySpecification.h | 149     | api,nonthrowing               | 🚩 | Writes one property's value, validated first. Validate's refusal otherwise
+    in    Identity  const std::string&    [-]  the declaration's spelling
+    in    Offered   const PropertyValue&  [-]  the value
+    out   -         Outcome               [-]  refuses with ContentUnsupported when nothing declares that identity, and carries
+    post  a refused write leaves the prior value standing
+    by    Api/AtmosphereIntegrator.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+
+F PropertyIndex::Resolve      | PropertySpecification.h | 155     | api,nonthrowing               | 🚩 | Reads one property's value, or its declared default where nothing has written it.
+    in    Identity  const std::string&  [-]  ?
+    out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
+    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/IntakeIndex.h, Api/MaterialSpecification.h, Api/PopulationIndex.h, (+26 more)
+
+F PropertyIndex::Declared     | PropertySpecification.h | 161     | api,nonthrowing               | 🚩 | One property's declaration, for whoever is presenting it.
+    in    Identity  const std::string&  [-]  ?
+    out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+23 more)
+
+F PropertyIndex::Declarations | PropertySpecification.h | 166     | api,nonallocating,nonthrowing | ✔️ | Every declaration, in declaration order.
+    out   -  const std::vector<PropertyDeclaration>&  [-]  ?
+    by    Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Source/IlluminantPopulation.cpp, Source/MaterialSpecification.cpp, Source/PropertySpecification.cpp
+
+F PropertyIndex::ValueWritten | PropertySpecification.h | 171     | api,nonthrowing               | 🚩 | Whether one property has been written since it was declared.
+    in    Identity  const std::string&  [-]  ?
+    out   -         bool                [-]  ?
+    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+
+F PropertyIndex::Reclaim      | PropertySpecification.h | 177     | api,nonthrowing               | 🚩 | Returns one property to its declared default.
+    in    Identity  const std::string&  [-]  ?
+    out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
+    by    Api/EnrollmentIndex.h, Api/InputExchange.h, Api/InterfaceExchange.h, Api/MaterialSpecification.h, Api/ReportSequence.h, Api/WindowExchange.h, (+11 more)
+
+F PropertyIndex::ValuesValid  | PropertySpecification.h | 184     | api,nonallocating,nonthrowing | 🚩 | 🔍 Whether every held value satisfies its own declaration. second writer is caught by a gate rather than by an artist.
+    out   -  bool  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    note  Structurally true, because Write is the only writer and validates first. Checked so that a future
+
+F PropertyIndex::Located      | PropertySpecification.h | 188     | -                             | -  | ?
+    in    Identity  const std::string&  [-]  ?
+    out   -         std::size_t         [-]  ?
+    by    Api/IlluminantPopulation.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+9 more)

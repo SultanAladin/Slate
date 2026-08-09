@@ -28,58 +28,24 @@ path to `SlateVulkan`, `SlateDocument` or `SlateUI`, and the link partition make
 
 ## 2. Scalar Policy
 
-| Use                                   | Representation | Tier | Reason                                            |
-|---------------------------------------|----------------|------|----------------------------------------------------|
-| Occupant position in document space   | 64-bit real    | B    | Scene extents exceed 32-bit relative precision     |
-| Transform composition                 | 64-bit real    | B    | Composition depth is unbounded in the relation     |
-| Orientation and intersection predicates | exact        | A    | Sign correctness is topological, not approximate   |
-| Position handed to the device         | 32-bit real    | B    | Rebased to view origin first — see §3.2            |
-| Shading, atmosphere, reflection       | 16-bit real    | D    | Perceptual; no numeric guarantee is claimed        |
-| Occupant and surface identity         | 32-bit unsigned| A    | An identity that rounds is not an identity         |
-
-📝 The rebasing in §3.2 is what lets device-side arithmetic be 32-bit without the scene being limited to 32-bit
-extents. Skipping it produces jitter that looks like a driver defect and is not one.
+✔️ Scalar policy done — `Contract/` and `TransformProjection` carry the six representations and their tiers.
 
 ## 3. Geometric Vocabulary
 
-### 3.1 Transforms
+🚧 Partially completed.
 
-A transform is stored decomposed — translation, rotation as a unit quaternion, and a scale triple — never as a
-general matrix. Decomposed storage is what makes the kinematic nesting relation in `12` composable without drift,
-because composing quaternions renormalises and composing matrices does not.
-
-Matrix form is derived at the point of use and never stored back. `Project` derives it; nothing caches it.
-
-### 3.2 Spaces and the rebasing rule
-
-| Space              | Origin                        | Scalar | Who works in it                     |
-|--------------------|-------------------------------|--------|--------------------------------------|
-| Document space     | Document origin               | 64-bit | `SlateDocument`, the outliner, tools |
-| View-relative space| Current camera position       | 64-bit | Camera assembly, culling             |
-| Device space       | Camera position, rebased      | 32-bit | Everything in `SlateCompute`         |
-| Surface space      | One paintable surface's domain| 32-bit | `20`, `22`, `24`                     |
-
-🔴 Every position crossing into `SlateCompute` is rebased to the view origin first. This is a single subtraction
-performed in 64-bit before the narrowing conversion, and it is not optional.
-
-### 3.3 Tolerances
-
-Tolerances are declared in `Contract/`, named by what they compare, and never written as literals at a call site.
-A tolerance is scale-relative — expressed against the extent of the operand, not as an absolute distance — because
-an absolute tolerance is correct at exactly one scene scale.
-
-🔴 `Contract/` also holds every **constant two units both read** — `PhysicalTileApron`, packed capacities,
-ceilings. `00` §2 gives the reason: a constant declared in one unit and read from another is an Upstream edge
-that no traversal can see, and one of them survived long enough to reopen conflict 13 from the other side.
+- ✔️ Decomposed transforms, compounding and matrix derivation done — `TransformProjection`.
+- ✔️ Rebasing in 64-bit before the narrowing done — `Rebase`; document and device space exist.
+- ✔️ Tolerances and cross-unit capacities done — `ToleranceContract.h`.
+- 🚧 View-relative space and surface space are unbuilt; they arrive with `46` and `20`.
 
 ## 4. Exact Predicates — Tier A
 
-Four predicates carry Tier A. They are the foundation of every topological decision in the engine, and they are
-the reason `16` and `26` can agree about which surface a pixel resolved to.
+🚧 Partially completed — `OrientationClassifier` and `PlanarClassifier` exist in `Shared/` with the fast path
+and the exact fallback both. The remaining three are unbuilt and keep their declarations here.
 
 | Predicate                | Question answered                                    | Consumed by     |
 |--------------------------|------------------------------------------------------|------------------|
-| `OrientationClassifier`  | Sign of an orientation determinant                   | `16`, `24`, `26` |
 | `IncircleClassifier`     | Is a point inside a circumscribed circle             | `68`, `52`       |
 | `IntersectionClassifier` | Do two extents genuinely intersect, and where        | `16`, `26`       |
 | `ContainmentClassifier`  | Is a point strictly inside, on, or outside a boundary| `12`, `26`       |
@@ -94,18 +60,16 @@ selection outlines that flicker at silhouettes.
 
 ## 5. Solvers And Integrators
 
+✔️ `CurveSolver` and `ColourProjection` done — the latter carries the transfer, white adaptation and temperature
+projection rows as one unit rather than as three. The components below are unbuilt.
+
 | Component                | Mechanism                                        | Tier | Consumed by |
 |--------------------------|--------------------------------------------------|------|--------------|
 | `LinearSolver`           | Dense and sparse factorisation                   | B    | `24`, `68`   |
 | `UnwrapSolver`           | Boundary-first parameterisation                  | C    | `68`         |
 | `QuadratureIntegrator`   | Definite integral approximation over a domain    | B    | `18`, `28`   |
 | `TimeIntegrator`         | Fixed-step accumulation with an interpolant      | C    | `64`         |
-| `ColourProjection`       | Transfer between colour spaces, and its inverse  | B    | `36`, `18`, `66` |
-| `WhiteProjection`        | Chromatic adaptation between white points        | B    | `36`, `44`   |
-| `TransferProjection`     | An encoding transfer and its inverse             | B    | `36`, `66`   |
 | `SpectralProjection`     | Wavelength-domain to tristimulus                 | B    | `28`         |
-| `CurveSolver`            | Planar path evaluation, offsetting, flattening   | B    | `52`         |
-| `PlanarClassifier`       | Winding and coverage for closed planar paths     | A    | `52`         |
 | `LatticeProjection`      | Periodic plane symmetry — translation and reflection | A | `70`         |
 
 Every Tier C component declares its convergence criterion and its iteration ceiling as part of its contract, and
@@ -118,13 +82,10 @@ Recorded as `00` §10 conflict 21.
 ⚠️ `ConstraintSolver` is **removed**. It named `12` and `24` as consumers and neither reads it — `12` composes
 static transforms and solves nothing, and `24`'s Upstream cites `LinearSolver` and the predicates only. This is
 conflict 21's defect a second time, caught by §8's gate on the second pass rather than the first. Recorded as
-`00` §10 conflict 41. The three colour rows above are `36`'s components declared here, where the mechanism
-lives; `36` §1 declares what they mean and does not re-spell them.
+`00` §10 conflict 41.
 
-🔴 The last three rows are new and each has exactly one consumer, named. `PlanarClassifier` and
-`LatticeProjection` are **Tier A** and therefore parity-proven: a vector outline whose interior test disagrees
-between host and device has a different silhouette in a preview than in the resolved surface, and a periodic
-lattice that disagrees produces a pattern that does not meet itself across a tile edge.
+🔴 `LatticeProjection` is **Tier A** and therefore parity-proven: a periodic lattice that disagrees between host
+and device produces a pattern that does not meet itself across a tile edge.
 
 ## 6. Sampling
 
@@ -144,9 +105,10 @@ that the offsets had no consumer; they had three, and none of them was listed.
 
 ## 7. Parity
 
-Every `Shared/` entry point is registered with `ParityRunner`, which evaluates the C++ and shader forms over a
-common sample set and asserts agreement at the declared tier — bit-exact for A, ULP-bounded for B, within the
-convergence criterion for C. Tier D entry points are not parity-checked; that is what Tier D means.
+🚧 Partially completed — `ParityRunner` registers entry points, compares over a common sample set and reports per
+registration; the shader-side form is not compared, because it requires the device `06` brings up. Until then the
+runner compares the host form against itself and reports the sample counts rather than an agreement nothing
+established.
 
 An entry point in `Shared/` with no registration is duplicated source that has not diverged yet.
 

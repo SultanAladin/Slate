@@ -152,6 +152,27 @@ Outcome<ColourSpecification> Project(ColourSpecification             Arriving,
                                     const ColourSpaceSpecification& Target);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
+/// 🧩 Projects one tristimulus coordinate into a declared space, encoding its transfer.
+/// in    TristimulusX  [-]  as `SpectralProjection` produced it
+/// in    TristimulusY  [-]
+/// in    TristimulusZ  [-]
+/// in    Target        [-]  the space to express it in
+/// out   Outcome       [-]  refuses with ContentUnsupported for an undeclared or degenerate target space
+/// note  🔴 No white adaptation is applied. A tristimulus coordinate is absolute and carries no white of its
+///        own; whether it needs adapting is a fact about the spectrum that produced it, which this routine
+///        cannot see. `ProjectTemperature` adapts before calling here, because a locus coordinate **is** a
+///        white point — and that is the one case where the adaptation is knowable at this depth.
+/// note  📝 Declared so that `28` may resolve a spectrally projected extinction coefficient into the working
+///        space without re-deriving the primaries. `AdaptWhite` already crosses this seam in tristimulus, so
+///        nothing new is exposed by it.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+Outcome<ColourSpecification> ProjectTristimulus(double                          TristimulusX,
+                                                double                          TristimulusY,
+                                                double                          TristimulusZ,
+                                                const ColourSpaceSpecification& Target);
+SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
+
 /// 🧩 Applies one space's encoding transfer to a linear coordinate.
 /// in    LinearMagnitude  [-]  linear light; negative magnitudes are transferred by odd reflection
 /// cost  ✔️

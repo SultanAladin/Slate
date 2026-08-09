@@ -8,30 +8,46 @@
 %path       Engine/SlateDocument/Document/EnrollmentIndex/Source
 %layer      SlateDocument
 %sources    1
-%symbols    9
-%annotated  0/9
+%symbols    11
+%annotated  0/11
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S EnrollmentIndex.cpp | 203 lines | b2e47017 | 9 sym | Interval merging, division, and the exclusion refusal that precedes every write.
+S EnrollmentIndex.cpp | 214 lines | 4aacd250 | 11 sym | Interval merging, division, and the exclusion refusal that precedes every write.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    INTERVAL SEARCH
 //------------------------------------------------------------------------------------------------------------------------
 
-F LocateInterval                      | EnrollmentIndex.cpp | 20-36   | - | - | ?
+F LocateInterval                      | EnrollmentIndex.cpp | 17-33   | - | - | ?
     in    Runs         const std::vector<EnrolledInterval>&  [-]  ?
     in    SlotOrdinal  std::uint32_t                         [-]  ?
-    out   -            std::size_t                           [-]  ?
+    out   -            static std::size_t                    [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   INTERVAL ENROLMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F EnrolInterval                       | EnrollmentIndex.cpp | 41-74   | - | - | ?
+    in    Runs     std::vector<EnrolledInterval>&  [-]  ?
+    in    Ordinal  std::uint32_t                   [-]  ?
+    out   -        bool                            [-]  ?
+    by    Api/EnrollmentIndex.h, Source/TopologyConditioning.cpp
+
+F IntervalEnrolled                    | EnrollmentIndex.cpp | 76-81   | - | - | ?
+    in    Runs     const std::vector<EnrolledInterval>&  [-]  ?
+    in    Ordinal  std::uint32_t                         [-]  ?
+    out   -        bool                                  [-]  ?
+    by    Api/EnrollmentIndex.h, Source/TopologyConditioning.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-F EnrollmentIndex::Enrol              | EnrollmentIndex.cpp | 44-99   | - | - | ?
+F EnrollmentIndex::Enrol              | EnrollmentIndex.cpp | 87-113  | - | - | ?
     in    Subject         OccupantIdentity  [-]  ?
     in    EnrolledSubset  SubsetSubject     [-]  ?
     out   -               Outcome<bool>     [-]  ?
@@ -40,12 +56,12 @@ F EnrollmentIndex::Enrol              | EnrollmentIndex.cpp | 44-99   | - | - | 
 //                                                       WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-F EnrollmentIndex::Unenrol            | EnrollmentIndex.cpp | 105-147 | - | - | ?
+F EnrollmentIndex::Unenrol            | EnrollmentIndex.cpp | 119-161 | - | - | ?
     in    Subject         OccupantIdentity  [-]  ?
     in    EnrolledSubset  SubsetSubject     [-]  ?
     out   -               Outcome<bool>     [-]  ?
 
-F EnrollmentIndex::UnenrolEverywhere  | EnrollmentIndex.cpp | 149-153 | - | - | ?
+F EnrollmentIndex::UnenrolEverywhere  | EnrollmentIndex.cpp | 163-167 | - | - | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        void              [-]  ?
 
@@ -53,23 +69,23 @@ F EnrollmentIndex::UnenrolEverywhere  | EnrollmentIndex.cpp | 149-153 | - | - | 
 //                                                      WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-F EnrollmentIndex::Enrolled           | EnrollmentIndex.cpp | 159-168 | - | - | ?
+F EnrollmentIndex::Enrolled           | EnrollmentIndex.cpp | 173-179 | - | - | ?
     in    Subject         OccupantIdentity  [-]  ?
     in    EnrolledSubset  SubsetSubject     [-]  ?
     out   -               bool              [-]  ?
 
-F EnrollmentIndex::Intervals          | EnrollmentIndex.cpp | 170-173 | - | - | ?
+F EnrollmentIndex::Intervals          | EnrollmentIndex.cpp | 181-184 | - | - | ?
     in    EnrolledSubset  SubsetSubject                         [-]  ?
     out   -               const std::vector<EnrolledInterval>&  [-]  ?
 
-F EnrollmentIndex::EnrolledCount      | EnrollmentIndex.cpp | 175-178 | - | - | ?
+F EnrollmentIndex::EnrolledCount      | EnrollmentIndex.cpp | 186-189 | - | - | ?
     in    EnrolledSubset  SubsetSubject  [-]  ?
     out   -               std::uint32_t  [-]  ?
 
-F EnrollmentIndex::Reclaim            | EnrollmentIndex.cpp | 180-184 | - | - | ?
+F EnrollmentIndex::Reclaim            | EnrollmentIndex.cpp | 191-195 | - | - | ?
     in    EnrolledSubset  SubsetSubject  [-]  ?
     out   -               void           [-]  ?
 
-F EnrollmentIndex::EnrolmentsOccupied | EnrollmentIndex.cpp | 186-201 | - | - | ?
+F EnrollmentIndex::EnrolmentsOccupied | EnrollmentIndex.cpp | 197-212 | - | - | ?
     in    Generations  const std::vector<std::uint32_t>&  [-]  ?
     out   -            bool                               [-]  ?

@@ -60,13 +60,13 @@ T InputExchange            | InputExchange.h | 60-94 | owning                   
 F InputExchange::Record    | InputExchange.h | 70    | api,nonallocating,nonthrowing | ✔️ | Records one arriving sample against the supplied timeline.
     in    Arriving  const PointerSample&  [-]  the sample as the device reported it
     out   -         void                  [-]  ?
-    by    Api/InterfaceExchange.h, Source/ConsoleHost.cpp, Source/InputExchange.cpp, Source/InterfaceExchange.cpp
+    by    Api/IntakeIndex.h, Api/InterfaceExchange.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/InputExchange.cpp, Source/IntakeIndex.cpp, (+1 more)
 
 F InputExchange::Sample    | InputExchange.h | 77    | api,nonallocating,nonthrowing | ✔️ | Reads one held sample in arrival order.
     in    ArrivalOrdinal  std::uint32_t         [-]  zero is the oldest sample still held
     out   -               const PointerSample&  [-]  ?
     pre   ArrivalOrdinal is below HeldCount
-    by    Source/ConsoleHost.cpp, Source/InputExchange.cpp, Source/ParityRunner.cpp
+    by    Api/AtmosphereIntegrator.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/InputExchange.cpp, Source/ParityRunner.cpp
 
 F InputExchange::HeldCount | InputExchange.h | 82    | api,nonallocating,nonthrowing | ✔️ | How many samples are held.
     out   -  std::uint32_t  [-]  ?
@@ -74,4 +74,4 @@ F InputExchange::HeldCount | InputExchange.h | 82    | api,nonallocating,nonthro
 
 F InputExchange::Reclaim   | InputExchange.h | 87    | api,nonallocating,nonthrowing | ✔️ | Discards every held sample. Called by the consumer once it has read them.
     out   -  void  [-]  ?
-    by    Api/EnrollmentIndex.h, Api/InterfaceExchange.h, Api/WindowExchange.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/InputExchange.cpp, (+3 more)
+    by    Api/EnrollmentIndex.h, Api/InterfaceExchange.h, Api/MaterialSpecification.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/WindowExchange.h, (+11 more)

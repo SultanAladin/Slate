@@ -19,7 +19,8 @@ that parity and measurement can run without a window or a display.
 
 ## 1. Bring-Up Order
 
-Fixed by the link partition in `00` §2 — a host cannot bring up a unit before the units it links.
+🚧 Partially completed — nothing performs ordered bring-up. `ConsoleHost` constructs units directly, in the order
+it verifies them. The seven steps below stand as the order `PaintHost` must follow.
 
 ① `SlateMath` — platform translation, then the numeric contract and `InstructionExchange` selection.
 ② `WindowInterchange` produces a native window.
@@ -29,14 +30,14 @@ Fixed by the link partition in `00` §2 — a host cannot bring up a unit before
 ⑥ `SlateUI` — panels, and the single ImGui context.
 ⑦ `RenderSchedule` orders every declared recording and validates the target set.
 
-🔴 Step ⑦ validates and does not repair. It checks that every declared read has a declared producer earlier in the
-order, that every target has exactly one producer and an ordered amendment list — `08` §6 — and that no capability
-requirement lacks a substitution. Any failure is a refusal at bring-up with the target and recording named, never
-a reordering the orderer invented.
-
-Teardown is the exact reverse, and `SlateVulkan` waits for the rotation to drain before releasing extents.
+🔴 Step ⑦ validates and does not repair. Any failure is a refusal at bring-up with the target and recording named,
+never a reordering the orderer invented. Teardown is the exact reverse, and `SlateVulkan` waits for the rotation
+to drain before releasing extents.
 
 ## 2. The Tick
+
+🚧 Unbuilt — there is no tick. The ten steps below stand as declared, and the two orderings under them are the
+part that cannot be rediscovered from code.
 
 ① Drain input from `InputExchange`, timestamped at arrival.
 ② `76` arbitrates the pointer — `14` §4.2 — and `SlateUI` converts samples into intent.
@@ -49,60 +50,33 @@ Teardown is the exact reverse, and `SlateVulkan` waits for the rotation to drain
 ⑨ `08` records the rotation slot in its declared order.
 ⑩ `DisplayScheduler` paces presentation.
 
-🔴 Steps ⑤ and ⑥ are strictly ordered. The linearisation must never be observed between a committed transaction
-and the reconciliation that answers it — `12` invariant 10.
-
-🔴 Step ④ precedes ⑤ because a transaction addressing a surface position needs that position resolved first, and
-it is on the **host** against `40`'s subdivision. Nothing in the tick reads back a device target — `22` §1 gives
-the reason: readback is latent by the rotation depth, and a stroke resampled against it is resampled against
-where the cursor used to be.
-
-⚠️ Step ⑦ is not a re-resolution of everything placed. It re-resolves only what `00` §10.1 ②'s invalidation table
-marks changed. A camera move changes nothing in that table and a moved occupant changes nothing in it either,
-because a placement's transform is stored relative to the surface it is attached to. Both cost zero.
+🔴 Steps ⑤ and ⑥ are strictly ordered — `12` invariant 10. Step ④ precedes ⑤ because a transaction addressing a
+surface position needs that position resolved first, and it is resolved on the **host** against `40`'s
+subdivision: readback is latent by the rotation depth, and a stroke resampled against it is resampled against
+where the cursor used to be — `22` §1.
 
 ## 3. Two Hosts
 
-| Host          | Window | Device | Purpose                                                  |
-|---------------|--------|--------|-----------------------------------------------------------|
-| `PaintHost`   | Yes    | Yes    | The painting application                                  |
-| `ConsoleHost` | No     | Yes    | `ParityRunner`, `HardwareMetrics`, transfer without a display |
+🚧 Partially completed — `ConsoleHost` exists and verifies `SlateMath`, the register, work, colour, the document,
+properties, topology, materials, vector content, the schedule and parity, returning a refusal count. It has no
+device and no flat C export path. `PaintHost` is unbuilt.
 
-`ConsoleHost` brings up steps ① and ③–⑤ and skips ② and ⑥. It is the only target permitted a flat C export path,
-so that measurement can be driven externally. That export path is a host affordance and is not a seam between
-units — see `00` §2.1.
+`ConsoleHost` is the only target permitted a flat C export path, so that measurement can be driven externally.
+That export path is a host affordance and is not a seam between units — see `00` §2.1.
 
 ## 4. Build
 
-One `Module.toml` per unit plus orchestration scripts invoking `cl.exe` and `link.exe` directly. Build order
-follows the link partition and is fixed, not discovered:
-
-```
-    SlateMath → SlateDocument → SlateVulkan → SlateCompute → SlateUI → hosts
-```
-
-`SlateDocument` and `SlateVulkan` are order-independent relative to each other — they are peers and may build
-in parallel.
-
-| Constraint            | Value                                             |
-|-----------------------|----------------------------------------------------|
-| Runtime library       | `/MD` in every configuration                      |
-| Debug selection       | `SLATE_DEBUG`; 🔴 `_DEBUG` never defined           |
-| Build system          | `Module.toml` and scripts; no CMake anywhere      |
-| Shell                 | PowerShell for every script                       |
-| GLFW                  | `glfw3dll.lib` against `glfw3.dll`                |
-| Scratch output        | `_AgentScratch/` only; never a deliverable        |
+✔️ Build done — one `Module.toml` per unit, PowerShell orchestration invoking `cl.exe` and `link.exe`, no CMake,
+`/MD` everywhere and `_DEBUG` nowhere, order fixed by the link partition with the two peers built in parallel.
 
 ### 4.1 The shader toolchain
 
-Shaders are a build product and are built by the same orchestration, not by a separate step someone remembers to
-run. `Shared/` is the reason: its entry points compile under **both** the C++ and the shader toolchain from one
-source through `Prelude.slang.h`, and a build that compiles one and not the other has silently stopped proving
-the parity `02` §7 depends on.
+🚧 Partially completed — stage A is done: `Shared/` compiles as C++ into `SlateMath` through `Prelude.slang.h`.
+Stages B, C and D are unbuilt — no shader toolchain runs, and registration is checked at run time by
+`ParityRunner` rather than at build time.
 
 | Stage | Produces                                                                    |
 |-------|------------------------------------------------------------------------------|
-| A     | `Shared/` compiled as C++ into `SlateMath`                                   |
 | B     | `Shared/` compiled by the shader toolchain, with `Prelude.slang.h` supplying the differences |
 | C     | Every shader entry point compiled to its stream layout for `ShaderCodec`     |
 | D     | `ParityRunner` registration checked — every `Shared/` entry point is registered |

@@ -19,7 +19,25 @@ $ErrorActionPreference = 'Stop'
 $RepositoryRoot = Split-Path -Parent $PSScriptRoot
 $EngineRoot     = Join-Path $RepositoryRoot 'Engine'
 $PackageRoot    = Join-Path $RepositoryRoot 'ExternalPackages'
+$ScriptRoot     = Join-Path $RepositoryRoot 'Scripts'
 $OutputRoot     = Join-Path $RepositoryRoot "_AgentScratch\build\$Configuration"
+
+#---
+#                                        CONSOLE REPORTING
+#---
+
+# 📝 The tag is padded to a fixed width so the messages after it line up as a column regardless of which
+#    stage wrote them.
+function Write-Report([string] $Tag, [System.ConsoleColor] $Colour, [string] $Message)
+{
+    Write-Host ("[$Tag]".PadRight(10)) -ForegroundColor $Colour -NoNewline
+    Write-Host " $Message"
+}
+
+function Write-Building([string] $Message) { Write-Report 'Build'    DarkGray $Message }
+function Write-Skipped([string]  $Message) { Write-Report 'SKIP'     Cyan     $Message }
+function Write-Refused([string]  $Message) { Write-Report 'FAILED'   Red      $Message }
+function Write-Produced([string] $Message) { Write-Report 'Compiled' Green    $Message }
 
 #---
 #                                          THE UNIT ORDER
@@ -47,7 +65,7 @@ function Import-ToolchainEnvironment
 {
     if (Get-Command cl.exe -ErrorAction SilentlyContinue)
     {
-        Write-Host '  toolchain  already on PATH'
+        Write-Skipped 'toolchain already on PATH'
         return
     }
 
@@ -66,7 +84,7 @@ function Import-ToolchainEnvironment
         throw 'no vcvarsall.bat was found; the C++ toolchain is not installed where this script looks'
     }
 
-    Write-Host "  toolchain  $Selected"
+    Write-Building "toolchain $Selected"
 
     $Captured = cmd.exe /c "`"$Selected`" x64 > nul & set"
 
@@ -206,7 +224,7 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
         New-Item -ItemType Directory -Force -Path $ObjectRoot | Out-Null
     }
 
-    Write-Host "  $UnitName — $($Sources.Count) translation units"
+    Write-Building "$UnitName — $($Sources.Count) translation units"
 
     $Produced  = New-Object System.Collections.Generic.List[string]
     $Retranslated = 0
@@ -244,13 +262,14 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
 
         if ($Refused)
         {
+            Write-Refused "$UnitName — cl.exe refused $([System.IO.Path]::GetFileName($Source))"
             throw "$UnitName — cl.exe refused $([System.IO.Path]::GetFileName($Source))"
         }
     }
 
     if ($Retranslated -eq 0)
     {
-        Write-Host '    unchanged'
+        Write-Skipped "$UnitName unchanged"
     }
 
     return $Produced.ToArray()
@@ -275,10 +294,11 @@ function Invoke-Archive([hashtable] $UnitEntry, [string[]] $ObjectPath)
     if ($LASTEXITCODE -ne 0)
     {
         $Diagnostics | ForEach-Object { Write-Host "    $_" }
+        Write-Refused "$($UnitEntry.Name) — lib.exe refused the archive"
         throw "$($UnitEntry.Name) — lib.exe refused the archive"
     }
 
-    Write-Host "    -> $LibraryPath"
+    Write-Produced $LibraryPath
 }
 
 #---
@@ -316,6 +336,7 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
     if ($LASTEXITCODE -ne 0)
     {
         $Diagnostics | ForEach-Object { Write-Host "    $_" }
+        Write-Refused 'link.exe refused the host'
         throw 'link.exe refused the host'
     }
 
@@ -324,7 +345,54 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
     #    on. Copying it here is what keeps that failure out of the run.
     Copy-Item (Join-Path $PackageRoot 'glfw\lib-vc2022\glfw3.dll') $BinaryRoot -Force
 
-    Write-Host "    -> $ExecutablePath"
+    Write-Produced $ExecutablePath
+}
+
+#---
+#                                          POST-CONSTRUCTION
+#---
+
+# 📝 🔴 Both steps run only after every unit has been archived or linked, and only in a whole-repository
+#    run. A -Unit run has constructed a fraction of the engine, so transferring the whole of Engine/ from
+#    it would publish sources the build never touched.
+function Invoke-PostConstruction
+{
+    $Deferred = @(
+        @{ Tag = 'symbol index'; Path = (Join-Path $ScriptRoot 'RunSymbolIndex.py');    Arguments = @('build') }
+        @{ Tag = 'upload';       Path = (Join-Path $ScriptRoot 'RunUploadTransfer.py'); Arguments = @() }
+    )
+
+    # 📝 The indexer and the transfer both emit emoji. Windows PowerShell hands python a cp1252 console by
+    #    default, on which those writes raise UnicodeEncodeError and the step dies for a reporting reason.
+    $env:PYTHONIOENCODING = 'utf-8'
+
+    foreach ($Step in $Deferred)
+    {
+        if (-not (Test-Path $Step.Path))
+        {
+            Write-Skipped "$($Step.Tag) — $([System.IO.Path]::GetFileName($Step.Path)) is absent"
+            continue
+        }
+
+        Write-Building "$($Step.Tag) — $([System.IO.Path]::GetFileName($Step.Path))"
+
+        Push-Location $RepositoryRoot
+        try
+        {
+            & python $Step.Path @($Step.Arguments)
+            $Refused = $LASTEXITCODE -ne 0
+        }
+        finally
+        {
+            Pop-Location
+        }
+
+        if ($Refused)
+        {
+            Write-Refused "$($Step.Tag) refused with exit code $LASTEXITCODE"
+            throw "$($Step.Tag) refused"
+        }
+    }
 }
 
 #---
@@ -346,7 +414,7 @@ if (-not (Test-Path $OutputRoot))
 Import-ToolchainEnvironment
 
 $VulkanRoot = Resolve-VulkanRoot
-Write-Host "  vulkan     $VulkanRoot"
+Write-Building "vulkan $VulkanRoot"
 Write-Host ''
 
 $Selected = if ($Unit) { @($UnitOrder | Where-Object { $_.Name -eq $Unit }) } else { $UnitOrder }
@@ -371,4 +439,15 @@ foreach ($UnitEntry in $Selected)
 }
 
 Write-Host ''
-Write-Host "constructed into $OutputRoot"
+
+if ($Unit)
+{
+    Write-Skipped "post-construction — $Unit alone was constructed"
+}
+else
+{
+    Invoke-PostConstruction
+}
+
+Write-Host ''
+Write-Produced "constructed into $OutputRoot"

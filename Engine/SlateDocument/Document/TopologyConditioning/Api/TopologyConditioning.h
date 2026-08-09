@@ -152,7 +152,7 @@ private:
     void DeriveExtents(const TopologyStructure& Imported);
 
     std::vector<std::uint32_t>     WeldedPositionOfVertex;                    // [-]  - imported vertex to position
-    std::vector<std::uint32_t>     AdjacentCornerOfCorner;                    // [-]  - AbsentSlot at a boundary
+    std::vector<std::uint32_t>     AdjacentCornerOfCorner;                    // [-]  - AbsentCorner at a boundary
     std::vector<std::uint32_t>     FirstCornerOfPosition;                     // [-]  - one incident corner per position
     std::vector<std::uint32_t>     NextCornerOfPosition;                      // [-]  - the incidence run
     std::vector<SurfaceDirection>  DerivedPerpendiculars;                     // [-]  - per imported vertex

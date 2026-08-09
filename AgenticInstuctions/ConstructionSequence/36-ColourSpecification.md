@@ -14,29 +14,14 @@ image decoded twice, or not at all, because nobody recorded what it was.
 | Downstream  | `50`, `56`, `58`, `66`, `76`, `44`, `18`, `42`                               |
 | Unblocks    | A declared working space; paint that matches display                         |
 
-## 1. The Components
+## 1, 2. The Components And The Three Spaces
 
-| Component               | What it owns                                                       |
-|-------------------------|---------------------------------------------------------------------|
-| `ColourSpecification`   | A coordinate together with the space it is expressed in            |
-| `ColourProjection`      | Space-to-space conversion; lives in `Shared/`, proven at Tier B    |
-| `TransferProjection`    | The encoding transfer and its inverse                              |
-| `WhiteProjection`       | Chromatic adaptation between differing white points                |
+✔️ Done — `ColourSpecification` carries its space identity and no bare triple exists in the tree. The working and
+display spaces are declared as constants with distinct identities.
 
-🔴 There is no bare triple anywhere in Slate. A colour without its space is a number that three subsystems will
-each interpret differently, and all three will look plausible.
-
-## 2. The Three Spaces That Exist At Once
-
-| Space           | Referred to  | Where it is used                                              |
-|-----------------|--------------|----------------------------------------------------------------|
-| Working         | Scene        | Every computation above `08` §3 ⑧ — painting, shading, `28`   |
-| Display         | Display      | Below ⑧ — `66`'s output, `26`, `80`, `14`                     |
-| Content-native  | Its own      | An imported image, before it is converted at intake            |
-
-The working space is **declared per document** and stored in it. It is linear and wide — wide enough that a
-saturated illuminant does not clip on entry — and it is never assumed. A document opened without a declared
-working space is a document from before this rule and is converted on open, with the assumption reported.
+🚧 The working space is not yet stored per document, because `48` is unbuilt. When it is, it is declared per
+document and never assumed — linear and wide enough that a saturated illuminant does not clip on entry, with a
+document that predates the rule converted on open and the assumption reported.
 
 ⚠️ The display space is not the working space, is not stored in the document, and does not travel with it. `48`
 gates the same for exposure and for the same reason: a document that looks different on the machine that opens it
@@ -44,8 +29,9 @@ is a document whose appearance belongs to the machine.
 
 ## 3. Content-Native Is Not Optional
 
-Imagery arriving through `50` declares its own space at intake, and is converted into the working space once,
-there. The declaration comes from the content where the format carries one and from the artist where it does not.
+🚧 Unbuilt — intake waits on `50`. Imagery arriving through it declares its own space at intake and is converted
+into the working space once, there. The declaration comes from the content where the format carries one and from
+the artist where it does not.
 
 | Situation                                     | Behaviour                                                   |
 |-----------------------------------------------|--------------------------------------------------------------|
@@ -58,8 +44,9 @@ an artist's mistake makes the image worse than the mistake did.
 
 ## 4. Not Every Channel Is A Colour
 
-`18` declares twenty channels and only some of them carry colour. A roughness value put through a transfer
-function is a wrong number that still looks like a plausible surface, which is why the mistake survives review.
+🚧 The per-channel conversion decision at intake is unbuilt; `42` already declares the measure this section reads.
+`18` declares twenty channels and only some carry colour. A roughness value put through a transfer function is a
+wrong number that still looks like a plausible surface, which is why the mistake survives review.
 
 | Channel carries         | Converted | Example                                    |
 |-------------------------|-----------|---------------------------------------------|
@@ -72,11 +59,13 @@ and nothing else. There is no heuristic here — no inference from the image's o
 
 ## 5. Illuminant Colour
 
-`44`'s illuminants declare colour as a `ColourSpecification` and, where the illuminant is described by a
-temperature instead, `WhiteProjection` produces the coordinate from it. The temperature is retained as the
-authored value, because an artist who set 5600 expects to see 5600 when they return.
+🚧 Unbuilt — waits on `44`. Its illuminants declare colour as a `ColourSpecification` and, where the illuminant is
+described by a temperature instead, `WhiteProjection` produces the coordinate from it. The temperature is retained
+as the authored value, because an artist who set 5600 expects to see 5600 when they return.
 
 ## 6. The Picker — `00` §12 Resolved
+
+🚧 Unbuilt — waits on `76`. The ruling below stands and is what `76` must implement.
 
 🔴 A colour sampled from the workspace is sampled **scene-referred**, before `66`, and converted into the working
 space. This closes `00` §12's open row and `76` §6's copy of it.
@@ -92,12 +81,10 @@ sampled that way and painted will not match the thing it was sampled from.
 
 ## 7. Precision
 
-| Computation                       | Tier | Reason                                              |
-|-----------------------------------|------|------------------------------------------------------|
-| Primaries conversion              | B    | A linear projection; `Shared/`, parity-proven       |
-| Transfer encode and decode        | B    | Non-linear; the error compounds through `66`        |
-| Chromatic adaptation              | B    | As above                                            |
-| Space identity comparison         | A    | An integer; a mistaken match converts nothing       |
+✔️ Done — primaries derived from chromaticities on every call, the inverse solved rather than transcribed, von
+Kries adaptation in Bradford cone space, both transfers with odd reflection for negatives, and the Planckian locus
+refusing outside its declared interval. Space identity compares as an integer at Tier A; the projections are
+Tier B.
 
 ## 8. Gates
 

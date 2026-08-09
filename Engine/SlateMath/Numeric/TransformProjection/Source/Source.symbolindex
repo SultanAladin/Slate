@@ -26,7 +26,7 @@ F Compound | TransformProjection.cpp | 17-58   | - | - | ?
     in    OuterRotation  RotationQuaternion  [-]  ?
     in    InnerRotation  RotationQuaternion  [-]  ?
     out   -              RotationQuaternion  [-]  ?
-    by    Api/TransformProjection.h, Source/ConsoleHost.cpp, Source/SceneStructure.cpp
+    by    Api/TransformProjection.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/SceneStructure.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 TRANSFORM COMPOUNDING
@@ -36,7 +36,7 @@ F Compound | TransformProjection.cpp | 64-98   | - | - | ?
     in    OuterTransform  const DecomposedTransform&  [-]  ?
     in    InnerTransform  const DecomposedTransform&  [-]  ?
     out   -               DecomposedTransform         [-]  ?
-    by    Api/TransformProjection.h, Source/ConsoleHost.cpp, Source/SceneStructure.cpp
+    by    Api/TransformProjection.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/SceneStructure.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   MATRIX DERIVATION
@@ -45,7 +45,7 @@ F Compound | TransformProjection.cpp | 64-98   | - | - | ?
 F Project  | TransformProjection.cpp | 104-134 | - | - | ?
     in    Source  const DecomposedTransform&  [-]  ?
     out   -       ProjectedTransform          [-]  ?
-    by    Api/TransformProjection.h
+    by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TransformProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, (+4 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        REBASING
@@ -55,4 +55,4 @@ F Rebase   | TransformProjection.cpp | 140-154 | - | - | ?
     in    Subject     DocumentPosition  [-]  ?
     in    ViewOrigin  DocumentPosition  [-]  ?
     out   -           DevicePosition    [-]  ?
-    by    Api/TransformProjection.h, Source/ConsoleHost.cpp
+    by    Api/TransformProjection.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp

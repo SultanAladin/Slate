@@ -12,7 +12,7 @@ subject = [ "Format", "Document" ]
 unit = [ "SlateMath" ]
 
 [external]
-include = []
+include = [ "Engine/Shared" ]
 declare = []
 
 [link]

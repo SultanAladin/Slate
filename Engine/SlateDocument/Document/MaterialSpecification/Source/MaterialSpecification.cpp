@@ -138,7 +138,7 @@ void MaterialSpecification::DeclareCutoutEnrolment(bool CutoutEnabled)
     CutoutDeclared = CutoutEnabled;
 }
 
-ReflectanceSelection MaterialSpecification::Reflectance() const  { return Selected;          }
+ReflectanceSelection MaterialSpecification::Reflectance() const     { return Selected;          }
 double               MaterialSpecification::CutoutThreshold() const { return CoverageThreshold; }
 bool                 MaterialSpecification::CutoutEnrolled() const  { return CutoutDeclared;    }
 
@@ -273,7 +273,7 @@ Outcome<ResolvedPartition> PartitionResolutionIndex::Resolve(PartitionIdentity S
     return Outcome<ResolvedPartition>::Deliver(Resolutions[Subject.SlotOrdinal]);
 }
 
-std::uint64_t PartitionResolutionIndex::Revision() const      { return DerivedRevision;                       }
+std::uint64_t PartitionResolutionIndex::Revision() const      { return DerivedRevision; }
 std::uint32_t PartitionResolutionIndex::DeclaredCount() const { return static_cast<std::uint32_t>(Resolutions.size()); }
 
 }   // namespace Slate

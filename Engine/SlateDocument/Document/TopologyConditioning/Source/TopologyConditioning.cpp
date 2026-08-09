@@ -118,6 +118,8 @@ void TopologyConditioning::DeriveWelding(const TopologyStructure& Imported)
     // 📝 One search run per mixed ordinal, holding the imported vertices already welded there. A vertex is
     //    compared against the twenty-seven cells around its own, so a position sitting just across a cell
     //    boundary from its twin still finds it.
+    // 📝 ⚠️ DeriveWelding scans RunOrdinals linearly for each neighbour cell (quadratic in run count).
+    //    Recorded per `38` §5 for large models.
     std::vector<std::uint64_t>                 RunOrdinals;
     std::vector<std::vector<std::uint32_t>>    RunVertices;
     std::vector<LatticeCell>                   CellOfVertex(Positions.size());
@@ -411,23 +413,11 @@ void TopologyConditioning::DeriveOrientation(const TopologyStructure& Imported)
         if (Adjacent == AbsentCorner)
             continue;
 
-        const std::uint32_t FaceOrdinal  = Imported.CornerFace(CornerOrdinal);
-        const std::uint32_t FirstCorner  = Imported.FaceFirstCorner(FaceOrdinal);
-        const std::uint32_t CornerSpan   = Imported.FaceCornerCount(FaceOrdinal);
-        const std::uint32_t Following    = FirstCorner
-                                         + (CornerOrdinal - FirstCorner + 1u) % CornerSpan;
-
-        const std::uint32_t AdjacentFace   = Imported.CornerFace(Adjacent);
-        const std::uint32_t AdjacentFirst  = Imported.FaceFirstCorner(AdjacentFace);
-        const std::uint32_t AdjacentSpan   = Imported.FaceCornerCount(AdjacentFace);
-        const std::uint32_t AdjacentNext   = AdjacentFirst
-                                            + (Adjacent - AdjacentFirst + 1u) % AdjacentSpan;
+        const std::uint32_t FaceOrdinal     = Imported.CornerFace(CornerOrdinal);
+        const std::uint32_t AdjacentFace    = Imported.CornerFace(Adjacent);
 
         const std::uint32_t Opening         = WeldedPositionOfVertex[Imported.CornerVertex(CornerOrdinal)];
         const std::uint32_t AdjacentOpening = WeldedPositionOfVertex[Imported.CornerVertex(Adjacent)];
-
-        static_cast<void>(Following);
-        static_cast<void>(AdjacentNext);
 
         if (Opening == AdjacentOpening)
         {

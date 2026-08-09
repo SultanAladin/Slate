@@ -50,6 +50,7 @@ enum class ChannelSubject : std::uint32_t
     SubsurfaceThickness        = 16u,   // [mm] - path length driving transmission falloff
     Transmission               = 17u,   // [-]  - fraction refracted rather than reflected
     RefractionRatio            = 18u,   // [-]  - refractive index; drives Fresnel and the refracted direction
+    // 🚧 ChannelSubject::Displacement is declared unconsumed by standard reflectance masks (geometric or reconstruction-time offset).
     Displacement               = 19u,   // [mm] - geometric offset along the orientation
     ChannelCount               = 20u    // [-]  - the closed count, never a channel
 };
@@ -132,10 +133,9 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 One channel as a material declares it — its source, its measure, and the default an absence resolves to.
-/// note  🔴 `Absent` is **not zero**. A material with no occlusion  channel is fully unoccluded, and one with no transmission 
-///channel is opaque; both defaults are declared here and neither is the number zero. A channel defaulted to zero produces 
-///surfaces that are black or invisible, and the artist reads that as a broken material rather than as a missing declaration.
-
+/// note  🔴 `Absent` is **not zero**. A material with no occlusion channel is fully unoccluded, and one with no transmission
+///       channel is opaque; both defaults are declared here and neither is the number zero. A channel defaulted to zero produces
+///       surfaces that are black or invisible, and the artist reads that as a broken material rather than as a missing declaration.
 /// tag   owning
 struct ChannelSpecification
 {

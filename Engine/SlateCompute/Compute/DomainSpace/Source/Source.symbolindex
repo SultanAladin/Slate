@@ -1,0 +1,54 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/DomainSpace/Source
+%layer      SlateCompute
+%sources    1
+%symbols    6
+%annotated  0/6
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S DomainSpace.cpp | 182 lines | 808ffee2 | 6 sym | Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE FEASIBILITY
+//------------------------------------------------------------------------------------------------------------------------
+
+V BisectionCeiling          | DomainSpace.cpp | 22     | - | - | ?
+
+F DomainSpace::Feasible     | DomainSpace.cpp | 26-75  | - | - | ?
+    in    Ordering   const std::vector<std::uint32_t>&  [-]  ?
+    in    Extents    const std::vector<ChartExtent>&    [-]  ?
+    in    Scale      double                             [-]  ?
+    in    Recording  std::vector<ChartPlacement>*       [-]  ?
+    out   -          bool                               [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE ARRANGEMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F DomainSpace::Arrange      | DomainSpace.cpp | 81-172 | - | - | ?
+    in    Extents      const std::vector<ChartExtent>&  [-]  ?
+    in    CommonScale  bool                             [-]  ?
+    out   -            Outcome<bool>                    [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      WHAT IS READ
+//------------------------------------------------------------------------------------------------------------------------
+
+F DomainSpace::Placements   | DomainSpace.cpp | 178    | - | - | ?
+    out   -  const std::vector<ChartPlacement>&  [-]  ?
+
+F DomainSpace::Occupancy    | DomainSpace.cpp | 179    | - | - | ?
+    out   -  double  [-]  ?
+
+F DomainSpace::SettledScale | DomainSpace.cpp | 180    | - | - | ?
+    out   -  double  [-]  ?

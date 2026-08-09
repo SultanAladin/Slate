@@ -21,12 +21,14 @@ context. Each step looks small and the sum is that ImGui became the application'
 
 ## 1. The Panels
 
+🚧 Partially completed — two of thirteen exist: the `InterfaceExchange` seam itself and `OutlinerPanel`. The
+eleven below are unbuilt and keep their rows.
+
 | Component         | Mechanism                                                          | Presents |
 |-------------------|---------------------------------------------------------------------|-----------|
 | `WorkspacePanel`  | The workspace surface the artist works inside                       | —        |
 | `CameraPanel`     | Assembles multiple projections into one image                       | `46`     |
 | `DisplayPanel`    | What is shown, and the pacing that shows it                         | `66`     |
-| `OutlinerPanel`   | Presents `RowSequence` through `RankIndex` — see `12` §7            | `12`     |
 | `PropertyPanel`   | Presents `PropertySpecification` declarations for the selection     | `10`     |
 | `ToolPanel`       | Presents the active tool's parameters                               | `76`     |
 | `RevisionPanel`   | The transaction sequence, scrubbable in both directions             | `84`     |
@@ -49,26 +51,14 @@ at all, which meant the artist had no route to undo history, layers, brushes, ma
 domain, or diagnostics — while `10`, `42`, `56`, `58` and `84` all assumed something presented them. Recorded as
 `00` §10 conflict 24.
 
-## 2. The Host Seam
+## 2, 3. The Host Seam And Configuration
 
-The host sees `SlateUI` through ordinary C++ across a static link. `std::string`, `std::string_view`, `std::span`
-and POD structures cross freely, because one invocation with identical switches and one CRT builds both sides.
+✔️ Done — the seam carries device handles in and recorded commands out, ImGui is named only inside
+`InterfaceExchange.cpp` and `OutlinerPanel.cpp`, exactly one context exists, `/MD` is used everywhere and
+`_DEBUG` nowhere.
 
 🔴 What never crosses: `ImGuiContext`, `ImDrawData`, `ImVec2`, `ImVec4`, `ImGuiID`, `ImFont`, or any other ImGui
 spelling. A host translation unit that includes `imgui.h` is a defect regardless of whether it links.
-
-The host supplies a window handle and a device, and receives input intent and a request to record. It does not
-drive ImGui, does not own its context, and does not know it exists.
-
-## 3. Configuration Constraints
-
-| Constraint                          | Consequence if violated                              |
-|-------------------------------------|-------------------------------------------------------|
-| Exactly one ImGui copy, in `SlateUI`| Two contexts, split state, unattributable input loss  |
-| `/MD` in Debug and Release both     | Allocator mismatch against `ExternalPackages`         |
-| 🔴 `_DEBUG` never defined            | Selects the debug CRT; same mismatch, harder to trace |
-| `SLATE_DEBUG` selects debug builds  | —                                                     |
-| No CMake                            | `Module.toml` plus scripts, as everywhere else        |
 
 ⚠️ If anything under `ExternalPackages` does not match the layout the build expects, **stop and report the actual
 layout**. Do not adjust silently. A silently adjusted vendored dependency is a defect that reproduces on one
@@ -76,22 +66,17 @@ machine only.
 
 ## 4. Input Intent
 
-`SlateUI` consumes timestamped samples from `InputExchange` and produces *intent*, not events. Intent is what the
-artist meant — select this occupant, begin a stroke at this surface position with this pressure, reorder this row
-under that enclosure — and it is expressed in document terms.
+🚧 Partially completed — intent is produced by `OutlinerPanel` and declared into `OutlinerSequence` rather than
+applied directly. §4.1's ownership table has no home yet, because `76` is unbuilt; §4.2's arbitration is unbuilt
+and `InterfaceExchange` exposes `PointerCaptured` and `KeyboardCaptured` that nothing consumes.
 
 The arrival timestamps from `04` §3 survive into intent. `22` reconstructs stroke geometry from them, so an intent
 carrying consumption timestamps has the display rate baked into the stroke.
 
-Intent that mutates **the document** is committed as a transaction through `RevisionSequence`. There is no other
-path for document mutation.
-
 ### 4.1 Intent that mutates nothing in the document
 
-🔴 The clause above was previously unqualified — "there is no other path" — which left the greater part of an
-application's state with **no specified route at all**. Choosing a colour, resizing a brush, activating a tool,
-orbiting the camera and switching a display mode are none of them document mutations, and none of them can be
-transactions: undo must not step back through a colour change.
+Choosing a colour, resizing a brush, activating a tool, orbiting the camera and switching a display mode are none
+of them document mutations, and none of them can be transactions: undo must not step back through a colour change.
 
 | State                                    | Owned by | Recorded in          |
 |------------------------------------------|----------|-----------------------|
@@ -104,10 +89,6 @@ transactions: undo must not step back through a colour change.
 
 ⚠️ Exposure moved out of this table. It is an authored camera property stored in the document — `46` §6 — and
 the two answers this table and `46` gave are recorded as `00` §10 conflict 33.
-
-⚠️ This is the mechanism behind a defect the artist meets immediately: picking a colour and finding the brush
-unchanged. With no declared owner for the active colour, `SlateUI` holds it, `SlateCompute` cannot read it, and
-the stroke resolves against something else. `76` owns it, both units read it, and the interface presents it.
 
 ### 4.2 Pointer arbitration
 
@@ -127,25 +108,14 @@ Re-arbitrating mid-drag is the defect where a stroke stops the moment the cursor
 
 ## 5. Composition And Presentation
 
-`14` contributes the final recording in `08`'s order, and it contributes **only** that recording. It records the
-interface over `DisplaySurface` and hands the slot to `DisplayScheduler` for pacing.
+✔️ Composition done in the correct direction — the interface records over a colour target and composites no
+scene-referred surface. Recording is against dynamic rendering, which `06` must negotiate.
 
-🔴 `14` no longer composites anything. This section previously claimed it composited `RadianceSurface` and
-`OutlineSurface` into `DisplaySurface`, which placed tone mapping, transfer encoding and selection presentation
-inside the interface unit. `66` produces `DisplaySurface` from `RadianceSurface`; `26` writes the selection
+🔴 `14` composites nothing. `66` produces `DisplaySurface` from `RadianceSurface`; `26` writes the selection
 outline over it, display-referred; `80` writes the overlays. By the time `14` records, `DisplaySurface` is
-finished and the interface is drawn on top of it.
-
-| Reads                    | Writes           |
-|--------------------------|-------------------|
-| Nothing produced by `18` | `DisplaySurface` |
-
-⚠️ The distinction is load-bearing rather than pedantic. Compositing a scene-referred surface inside `SlateUI`
-would require `SlateUI` to hold the exposure and the transfer function, and the artist would then find that
-changing exposure in the display panel changed the interface's own colours.
-
-The interface is recorded into the same rotation slot as everything else. It has no separate rotation and no
-separate device queue.
+finished and the interface is drawn on top of it — compositing a scene-referred surface inside `SlateUI` would
+require `SlateUI` to hold the exposure and the transfer function, and the artist would then find that changing
+exposure in the display panel changed the interface's own colours.
 
 ## 6. Never Call
 

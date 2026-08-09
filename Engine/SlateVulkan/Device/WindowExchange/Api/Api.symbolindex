@@ -33,4 +33,4 @@ F Reclaim | WindowExchange.h | 32 | api,nonthrowing | ✔️ | Destroys a surfac
     in    Instance             VkInstance    [-]  ?
     in    PresentationSurface  VkSurfaceKHR  [-]  ?
     out   -                    void          [-]  ?
-    by    Api/EnrollmentIndex.h, Api/InputExchange.h, Api/InterfaceExchange.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/InputExchange.cpp, (+3 more)
+    by    Api/EnrollmentIndex.h, Api/InputExchange.h, Api/InterfaceExchange.h, Api/MaterialSpecification.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+11 more)

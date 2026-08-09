@@ -60,26 +60,26 @@ F RevisionSequence::Open            | RevisionSequence.h | 72     | api,nonthrow
     in    Description    const std::string&  [-]  what `84` presents; empty defers to OperationName
     in    OperationName  const std::string&  [-]  the mechanism's spelling, always supplied
     out   -              Outcome             [-]  refuses when a transaction is already open
-    by    Api/WindowInterchange.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp, Source/WindowInterchange.cpp
+    by    Api/CameraProjection.h, Api/WindowInterchange.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp, (+1 more)
 
 F RevisionSequence::Abandon         | RevisionSequence.h | 77     | api,nonallocating,nonthrowing | ✔️ | Ends the open transaction with no effect. The prior content is restored by the caller.
     out   -  void  [-]  ?
-    by    Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp
+    by    Api/CameraProjection.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp
 
 F RevisionSequence::Seal            | RevisionSequence.h | 86     | api,nonthrowing               | ✔️ | Ends the open transaction and enters exactly one transaction into the sequence.
     in    SealedAt       std::uint64_t  [ns]  the arrival stamp at which the edit ended
     in    MergeDeclared  bool           [-]   whether this operation declares itself mergeable — never inferred
     out   -              Outcome        [-]   refuses when no transaction is open
     post  the scrub position is the end of the sequence
-    by    Api/InterfaceExchange.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/InterfaceExchange.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp, (+1 more)
+    by    Api/CameraProjection.h, Api/InterfaceExchange.h, Api/SelectionSequence.h, Api/TopologyStructure.h, Api/WorkSequence.h, Source/AssetInterchange.cpp, (+8 more)
 
 F RevisionSequence::Retreat         | RevisionSequence.h | 92     | api,nonallocating,nonthrowing | ✔️ | Scrubs one transaction backwards, replaying its inverse.
     out   -  Outcome  [-]  refuses when the scrub position is already at the beginning
-    by    Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/RevisionSequence.cpp, Source/SelectionSequence.cpp
+    by    Api/OutlinerSequence.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp, Source/SelectionSequence.cpp
 
 F RevisionSequence::Advance         | RevisionSequence.h | 98     | api,nonallocating,nonthrowing | ✔️ | Scrubs one transaction forwards, replaying its forward operation.
     out   -  Outcome  [-]  refuses when the scrub position is already at the end
-    by    Api/InterfaceExchange.h, Api/SelectionSequence.h, Api/TickSequence.h, Source/ConsoleHost.cpp, Source/InterfaceExchange.cpp, Source/RevisionSequence.cpp, (+2 more)
+    by    Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, Source/CameraProjection.cpp, (+7 more)
 
 F RevisionSequence::Committed       | RevisionSequence.h | 103    | api,nonallocating,nonthrowing | ✔️ | The committed transactions, in order, for `84` to present.
     out   -  const std::vector<CommittedTransaction>&  [-]  ?
@@ -87,7 +87,7 @@ F RevisionSequence::Committed       | RevisionSequence.h | 103    | api,nonalloc
 
 F RevisionSequence::ScrubPosition   | RevisionSequence.h | 108    | api,nonallocating,nonthrowing | ✔️ | Where the scrub position sits; equal to the committed count when nothing is undone.
     out   -  std::uint64_t  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/RevisionSequence.cpp
+    by    Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp
 
 F RevisionSequence::TransactionOpen | RevisionSequence.h | 113    | api,nonallocating,nonthrowing | ✔️ | Whether a transaction is currently open.
     out   -  bool  [-]  ?

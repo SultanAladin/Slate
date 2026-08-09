@@ -36,42 +36,9 @@ is recorded in the importing document's evidence section with its origin named.
 
 ## 2. The Link Partition — Five Units
 
-`DOC/Foundation/04-UnitDirectoryStructure.md` declares three units and states that every source folder belongs
-to one of them. That claim does not hold: `L2_Format`, `L3_Document` and `L4_Compute` appear in no unit. The
-three-unit partition is therefore **stale and superseded here**. It is corrected by addition, not by folding —
-nothing is crammed into a unit that has no business owning it.
-
-| Unit                | Layers owned                       | Links against                          | Knows a device |
-|---------------------|------------------------------------|----------------------------------------|----------------|
-| `SlateMath.lib`     | `Layer0_Platform`, `Layer1_Numeric`| Operating system and `Contract/` only  | No             |
-| `SlateDocument.lib` | `Layer2_Format`, `Layer3_Document` | `SlateMath`                            | No             |
-| `SlateVulkan.lib`   | `Layer2_Device`                    | `SlateMath`                            | Yes            |
-| `SlateCompute.lib`  | `Layer4_Compute`                   | `SlateVulkan`, `SlateDocument`, `SlateMath` | Yes       |
-| `SlateUI.lib`       | `Layer5_Interface`                 | All four above                         | Yes            |
-| `<Name>Host.exe`    | `Layer6_Application`               | All five                               | Yes            |
-
-```
-                              <Name>Host.exe
-                                    ▲
-                                SlateUI.lib
-                                    ▲
-                              SlateCompute.lib
-                              ▲            ▲
-                   SlateVulkan.lib    SlateDocument.lib
-                              ▲            ▲
-                              └─ SlateMath.lib ─┘
-                                    ▲
-                              operating system
-```
-
-`SlateVulkan` and `SlateDocument` are **peers**. Neither links the other. This is the load-bearing property
-of the partition: it makes it impossible for the document model to acquire a device dependency by accident. A
-layer stack, a stroke ordering or a revision sequence that cannot compile without a `VkDevice` is a defect the
-linker will catch, not a review will.
-
-Two units are added relative to `04`; the two `04` already had are unchanged in content. There is still no
-`SlatePlatform.lib` — `Layer0_Platform` stays inside `SlateMath` because platform translation is dependency-free
-and splitting it buys a link target for nothing.
+✔️ The five-unit partition done — `SlateMath` → {`SlateDocument`, `SlateVulkan`} → `SlateCompute` → `SlateUI` →
+`<Name>Host.exe`, the two middle units peers that link each other nowhere, and no `SlatePlatform.lib`.
+`DOC/Foundation/04-UnitDirectoryStructure.md`'s three-unit claim is stale and superseded by it.
 
 🔴 **`Contract/` is the only home for a constant two units both read.** A number declared in one unit and read
 as "a declared constant" by another is a dependency edge wearing a disguise, and it is how `68` and `20`
@@ -81,60 +48,29 @@ Recorded as conflict 30.
 
 ### 2.1 Static linking — and what follows from it
 
-All five units are **static libraries**. There is no `SlateUI.dll`; `DOC/SlateUI.md` predates the packaging
-decision and its `.dll` wording is stale. The consequences are the whole reason for the choice:
-
-- One build invocation, one set of compiler switches, one CRT (`/MD` in Debug and Release both).
-- `std::string`, `std::string_view`, `std::span`, `std::vector` and POD structures cross unit seams legally.
-- No export surface, no import library, no versioned struct layouts, no opaque token discipline.
-- 🔴 **No flat C ABI between units.** Do not build a marshalling layer; it solves a problem Slate does not have.
-  `00-DirectoryStructure.md`'s `SlateModuleEntry` / `DynamicEntryPoint` / `HeapExchange` apparatus applies only
-  to `CodeInterchange`, which loads genuinely foreign compiled code, and to nothing else.
-
-The only dynamic libraries in the build are third-party: `glfw3.dll`, linked through `glfw3dll.lib`. Linking
-`glfw3.lib` instead is a silent-corruption bug, not a preference.
+✔️ Static linking done — five `.lib`, `/MD` in both configurations, standard-library and POD structures across
+every seam, no export surface and no flat C ABI, `glfw3dll.lib` the only import library. `DOC/SlateUI.md`'s
+`.dll` wording is stale. `00-DirectoryStructure.md`'s `SlateModuleEntry` apparatus binds `CodeInterchange` only.
 
 ### 2.2 What may cross each seam
 
-| Seam                 | May cross                                                | May never cross             |
-|----------------------|-----------------------------------------------------------|-----------------------------|
-| `SlateMath` → anyone | Scalars, vectors, transforms, tolerances, tiers           | Nothing is barred           |
-| `SlateDocument` → up | Occupant identities, properties, relations, imagery       | Any Vulkan type             |
-| `SlateVulkan` → up   | Device handles, image and allocation identities           | ImGui types, document types |
-| `SlateCompute` → up  | Resolved surfaces, residency answers, unwraps, transfers  | ImGui types                 |
-| `SlateUI` → host     | Workspace surfaces, input intent, panel geometry          | 🔴 Any ImGui type, ever     |
-
-Exactly one copy of ImGui exists, compiled inside `SlateUI`. `ImGuiContext`, `ImDrawData`, `ImVec2` and every
-other ImGui spelling stop at the `SlateUI` seam. A host that includes `imgui.h` is a defect.
+🚧 Partially completed — the seam table is enforced by the partition for the units that exist, and exactly one
+copy of ImGui is compiled inside `SlateUI`. `SlateCompute`'s row is unproven: the unit holds `ParityRunner`
+only, so nothing has yet crossed it. A host that includes `imgui.h` remains a defect.
 
 ## 3. Precision Tiers
 
-Every computation in the engine declares a tier. The tier is part of the function's contract and is recorded
-beside it, not inferred.
-
-| Tier | Guarantee                          | Applies to                                                        |
-|------|------------------------------------|-------------------------------------------------------------------|
-| A    | Bit-exact, CPU and GPU agree       | Orientation predicates, intersection identity, occupant identity  |
-| B    | Bounded in ULP                     | Transforms, projections, tolerance arithmetic                     |
-| C    | Bounded by convergence criterion   | Unwrap solving, constraint solving, iterative integration         |
-| D    | Perceptual — no numeric guarantee  | Shading, atmosphere, reflection, anti-aliasing                    |
-
-🔴 **Transitivity rule.** A computation may not claim a tier stronger than the weakest tier it consumes. A Tier A
-result that reads a Tier C input is a Tier C result. This is checked at build time, not by inspection.
-
-Tier A is what makes the visibility spine and the selection outline agree about which surface a pixel belongs to.
-Tier D is what lets the atmosphere use half precision without argument. Most defects that look like "flicker"
-are a tier violation.
+✔️ The four tiers and the transitivity rule done — `PrecisionContract.h`, where the rule is a `static_assert`
+under `SLATE_DECLARES_PRECISION` rather than a review item.
 
 ## 4. The Parity Mechanism
 
-`Shared/` holds source compiled twice — once by the C++ toolchain, once by the shader toolchain — through
-`Prelude.slang.h`, which supplies the type and intrinsic spellings each toolchain lacks. Anything a Tier A or
-Tier B computation needs on both sides lives there and is written once.
+🚧 Partially completed.
 
-`ParityRunner` executes the C++ and the shader form of every `Shared/` entry point over a common sample set and
-proves agreement to the declared tier. A `Shared/` entry point with no parity coverage is not shared source; it
-is duplicated source that has not failed yet.
+- ✔️ `Shared/` and `Prelude.slang.h` done — the predicates compile under both toolchains from one source.
+- ✔️ `ParityRunner` registers entry points and reports agreement per registration.
+- 🚧 The shader form is not yet executed; it waits on the device `06` brings up. Until then a registration
+  proves the host form self-consistent and nothing more, which is weaker than this section claims.
 
 ## 5. Deliberate Absences
 
@@ -193,51 +129,22 @@ A document that needs indirect light and does not name one of these four is maki
 
 ## 6. Repository Layout
 
-```
-Slate/
-├── Contract/                     Tier declarations, result types, tolerances — depended on by everything
-│                                 plus every cross-unit constant: PhysicalTileApron, packed capacities
-├── Shared/                       One source, two toolchains; Prelude.slang.h lives here
-├── SlateMath/
-│   ├── Layer0_Platform/          PlatformInterchange, FileInterchange, WindowInterchange, InputExchange,
-│   │                             ClipboardExchange, StorageExchange, CodeInterchange, InstructionExchange
-│   ├── Layer1_Numeric/           Scalars, transforms, predicates, solvers, integrators, quadrature,
-│   │                             ColourProjection and the colour conversions of 36
-│   ├── Layer1_Numeric/WorkSequence/    34 — the only thread creation in the repository
-│   ├── Layer1_Numeric/ReportRegister/  86's ReportSequence and MeasureIndex — reachable by all four units
-│   └── Layer1_Numeric/ToolSequence/    76's non-document state — reachable by SlateCompute and SlateUI
-├── SlateDocument/
-│   ├── Layer2_Format/            FormatCodec and the image, vector and archive stream layouts
-│   └── Layer3_Document/          SceneStructure, PopulationIndex, PropertySpecification, RevisionSequence,
-│                                 SurfaceLayerSequence, MaterialSpecification, IlluminantPopulation,
-│                                 CameraProjection, BrushSpecification, TilingSpecification,
-│                                 BoundingStructure, OctantSpace, AxisSpace, TopologyConditioning,
-│                                 DocumentSession, AssetInterchange, VectorInterchange
-├── SlateVulkan/
-│   └── Layer2_Device/            VulkanExchange, WindowExchange, DiagnosticExtension, ByteSpace, ImageSpace,
-│                                 DescriptorIndex, CycleScheduler, DisplayScheduler, RenderSchedule
-├── SlateCompute/
-│   └── Layer4_Compute/           Visibility, shading, occlusion, transmission, painting residency, unwrap,
-│                                 transfer, atmosphere, analytic resolution, placement, display projection
-├── SlateUI/
-│   └── Layer5_Interface/         WorkspacePanel, CameraPanel, DisplayPanel, ToolPanel, PropertyPanel,
-│                                 RevisionPanel, DiagnosticPanel, ToolSequence, outliner presentation
-├── PaintHost/                    Layer6_Application — the painting application target
-├── ConsoleHost/                  Layer6_Application — headless target for parity and measurement
-├── ExternalPackages/             Vendored; never edited
-├── DOC/                          Specification set; not modified by this series
-├── AgenticInstuctions/           Skill files and this series
-└── _AgentScratch/                logs/ build/ tmp/ — git-ignored, never a deliverable
-```
+🚧 Partially completed — the tree stands under `Engine/`, with `Contract/`, `Shared/` and all five unit folders
+real, `ConsoleHost/` present and `_AgentScratch/` ignored. Two departures from the layout above are already on
+disk and are the layout now: the layer folders are spelled `Platform/`, `Numeric/`, `Format/`, `Document/`,
+`Device/`, `Compute/`, `Interface/` without the `Layer<N>_` prefix, and every component is `<Name>/Api/` plus
+`<Name>/Source/` — `Contract/` alone keeps its four headers flat. `DOC/Technical Engine Directory Structure &
+Architectur.md` is the layer map; this section is not a second copy of it.
 
-Folder names inside a layer follow `<Subject><Role>` from the closed suffix list. Layer folders themselves use
-`Layer<N>_<Subject>`, which is the one sanctioned departure from the two-word formula.
+Still empty of the components this section names: `PaintHost/`, most of `Platform/`, most of `Device/`, all of
+`Compute/` but `ParityRunner`, most of `Interface/`, and `ToolSequence`.
+
+Folder names inside a layer follow `<Subject><Role>` from the closed suffix list.
 
 ## 7. Build
 
-Build configuration is build-system agnostic: one `Module.toml` per unit plus orchestration scripts that invoke
-`cl.exe` and `link.exe` directly. Every script is run through PowerShell. Build order follows the link partition
-in §2 and is therefore fixed, not discovered.
+✔️ Build done — one `Module.toml` per unit, PowerShell orchestration invoking `cl.exe` and `link.exe`, no CMake,
+order fixed by §2's partition.
 
 🔴 Nothing in this series is validated by running it. "It compiles" is not a deliverable unless it was asked for,
 and no test, probe or executable is built without asking first.

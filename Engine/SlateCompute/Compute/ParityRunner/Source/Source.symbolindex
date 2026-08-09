@@ -8,21 +8,21 @@
 %path       Engine/SlateCompute/Compute/ParityRunner/Source
 %layer      SlateCompute
 %sources    1
-%symbols    4
-%annotated  0/4
+%symbols    7
+%annotated  0/7
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ParityRunner.cpp | 138 lines | 79f4a8a7 | 4 sym | Registration and comparison over the common sample set.
+S ParityRunner.cpp | 381 lines | 10e735ac | 7 sym | Registration and comparison over the common sample set.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      REGISTRATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F ParityRunner::Register      | ParityRunner.cpp | 19-29   | - | - | ?
+F ParityRunner::Register      | ParityRunner.cpp | 24-34   | - | - | ?
     in    Arriving  const ParityRegistration&  [-]  ?
     out   -         Outcome<bool>              [-]  ?
 
@@ -30,7 +30,7 @@ F ParityRunner::Register      | ParityRunner.cpp | 19-29   | - | - | ?
 //                                                 THE COMMON SAMPLE SET
 //------------------------------------------------------------------------------------------------------------------------
 
-T OrientationSample           | ParityRunner.cpp | 40-48   | - | - | ?
+T OrientationSample           | ParityRunner.cpp | 45-53   | - | - | ?
     has   AlphaX  double  [-]  ?
     has   AlphaY  double  [-]  ?
     has   BetaX   double  [-]  ?
@@ -38,12 +38,38 @@ T OrientationSample           | ParityRunner.cpp | 40-48   | - | - | ?
     has   GammaX  double  [-]  ?
     has   GammaY  double  [-]  ?
 
+T IncircleSample              | ParityRunner.cpp | 70-80   | - | - | ?
+    has   AlphaX  double  [-]  ?
+    has   AlphaY  double  [-]  ?
+    has   BetaX   double  [-]  ?
+    has   BetaY   double  [-]  ?
+    has   GammaX  double  [-]  ?
+    has   GammaY  double  [-]  ?
+    has   DeltaX  double  [-]  ?
+    has   DeltaY  double  [-]  ?
+
+T SegmentSample               | ParityRunner.cpp | 93-103  | - | - | ?
+    has   AlphaX  double  [-]  ?
+    has   AlphaY  double  [-]  ?
+    has   BetaX   double  [-]  ?
+    has   BetaY   double  [-]  ?
+    has   GammaX  double  [-]  ?
+    has   GammaY  double  [-]  ?
+    has   DeltaX  double  [-]  ?
+    has   DeltaY  double  [-]  ?
+
+T IntervalSample              | ParityRunner.cpp | 117-123 | - | - | ?
+    has   OuterBegin  std::uint64_t  [-]  ?
+    has   OuterEnd    std::uint64_t  [-]  ?
+    has   InnerBegin  std::uint64_t  [-]  ?
+    has   InnerEnd    std::uint64_t  [-]  ?
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       COMPARISON
 //------------------------------------------------------------------------------------------------------------------------
 
-F ParityRunner::Compare       | ParityRunner.cpp | 67-131  | - | - | ?
+F ParityRunner::Compare       | ParityRunner.cpp | 141-374 | - | - | ?
     out   -  const std::vector<ParityReport>&  [-]  ?
 
-F ParityRunner::AgreementHeld | ParityRunner.cpp | 133-136 | - | - | ?
+F ParityRunner::AgreementHeld | ParityRunner.cpp | 376-379 | - | - | ?
     out   -  bool  [-]  ?

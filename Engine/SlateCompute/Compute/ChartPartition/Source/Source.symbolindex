@@ -1,0 +1,127 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/ChartPartition/Source
+%layer      SlateCompute
+%sources    1
+%symbols    15
+%annotated  0/15
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S ChartPartition.cpp | 825 lines | 0b1b21d2 | 15 sym | Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       EDGE KEYS
+//------------------------------------------------------------------------------------------------------------------------
+
+V AbsentFace                        | ChartPartition.cpp | 23      | - | - | ?
+
+F EdgeKey                           | ChartPartition.cpp | 28-34   | - | - | ?
+    in    FirstPosition   std::uint32_t  [-]  ?
+    in    SecondPosition  std::uint32_t  [-]  ?
+    out   -               std::uint64_t  [-]  ?
+
+F KeyHeld                           | ChartPartition.cpp | 36-45   | - | - | ?
+    in    Keys    const std::vector<std::uint64_t>&  [-]  ?
+    in    Sought  std::uint64_t                      [-]  ?
+    out   -       bool                               [-]  ?
+
+T PendingChart                      | ChartPartition.cpp | 50-54   | - | - | ?
+    has   Faces     std::vector<std::uint32_t>  [-]  ?
+    has   Attempts  std::uint32_t               [-]  ?
+
+T ChartLocality                     | ChartPartition.cpp | 57-65   | - | - | ?
+    has   Positions        std::vector<DocumentPosition>  [-]  ?
+    has   TriangleCorners  std::vector<std::uint32_t>     [-]  ?
+    has   Corners          std::vector<std::uint32_t>     [-]  ?
+    has   CornerLocals     std::vector<std::uint32_t>     [-]  ?
+    has   BoundaryLoop     std::vector<std::uint32_t>     [-]  ?
+    has   LoopCount        std::uint32_t                  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     CHART LOCALITY
+//------------------------------------------------------------------------------------------------------------------------
+
+F BuildLocality                     | ChartPartition.cpp | 79-223  | - | - | ?
+    in    Imported        const TopologyStructure&           [-]  ?
+    in    Conditioned     const TopologyConditioning&        [-]  ?
+    in    Faces           const std::vector<std::uint32_t>&  [-]  ?
+    in    FaceOfEachFace  const std::vector<std::uint32_t>&  [-]  ?
+    in    SeamKeys        const std::vector<std::uint64_t>&  [-]  ?
+    in    LocalOfWelded   std::vector<std::uint32_t>&        [-]  ?
+    in    StampOfWelded   std::vector<std::uint32_t>&        [-]  ?
+    in    Stamp           std::uint32_t                      [-]  ?
+    out   -               ChartLocality                      [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     FOLD DETECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F FoldDetected                      | ChartPartition.cpp | 231-286 | - | - | ?
+    in    Local      const ChartLocality&                [-]  ?
+    in    Flattened  const std::vector<PlanarPosition>&  [-]  ?
+    out   -          bool                                [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      SUBDIVISION
+//------------------------------------------------------------------------------------------------------------------------
+
+F Subdivide                         | ChartPartition.cpp | 294-381 | - | - | ?
+    in    Imported    const TopologyStructure&           [-]  ?
+    in    Faces       const std::vector<std::uint32_t>&  [-]  ?
+    in    FirstHalf   std::vector<std::uint32_t>&        [-]  ?
+    in    SecondHalf  std::vector<std::uint32_t>&        [-]  ?
+    out   -           void                               [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE DERIVATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F Derive                            | ChartPartition.cpp | 389-734 | - | - | ?
+    in    Imported      const TopologyStructure&       [-]  ?
+    in    Conditioned   const TopologyConditioning&    [-]  ?
+    in    Seams         const SeamSpecification&       [-]  ?
+    in    Declaring     const PartitionSpecification&  [-]  ?
+    in    Cancellation  const WorkCancellation&        [-]  ?
+    in    Progressed    WorkProgress&                  [-]  ?
+    out   -             Outcome<DerivedPartition>      [-]  ?
+    by    Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/QuadratureIntegrator.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, (+2 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE STANDING PARTITION
+//------------------------------------------------------------------------------------------------------------------------
+
+F ChartPartition::Adopt             | ChartPartition.cpp | 740-753 | - | - | ?
+    in    Arriving  const DerivedPartition&  [-]  ?
+    out   -         Outcome<bool>            [-]  ?
+
+F ChartPartition::Standing          | ChartPartition.cpp | 755     | - | - | ?
+    out   -  const DerivedPartition&  [-]  ?
+
+F ChartPartition::Coordinate        | ChartPartition.cpp | 757-769 | - | - | ?
+    in    CornerOrdinal  std::uint32_t              [-]  ?
+    out   -              Outcome<DomainCoordinate>  [-]  ?
+
+F ChartPartition::PartitionStanding | ChartPartition.cpp | 771     | - | - | ?
+    out   -  bool  [-]  ?
+
+F ChartPartition::Revision          | ChartPartition.cpp | 772     | - | - | ?
+    out   -  std::uint64_t  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE REPORTING
+//------------------------------------------------------------------------------------------------------------------------
+
+F ChartPartition::Report            | ChartPartition.cpp | 778-823 | - | - | ?
+    in    Reporting  ReportSequence&  [-]  ?
+    in    Measured   MeasureIndex&    [-]  ?
+    in    Sampled    TickPoint        [-]  ?
+    out   -          void             [-]  ?

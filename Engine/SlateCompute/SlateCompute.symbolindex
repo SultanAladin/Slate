@@ -1,32 +1,241 @@
 //============================================================================================================================================
 //                                                          SLATECOMPUTE.SYMBOLINDEX
 //============================================================================================================================================
-// 🧩 Symbol roll for SlateCompute — Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
+// 🧩 Symbol roll for SlateCompute — Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
 
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateCompute
-%folders  2
-%symbols  10
+%folders  11
+%symbols  210
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Api    | Api/Api.symbolindex       | 6 sym | Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
-I Source | Source/Source.symbolindex | 4 sym | Registration and comparison over the common sample set.
+I Api    | Api/Api.symbolindex       | 46 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
+I Shader | Shader/Shader.symbolindex | 29 sym | The one uniform block every atmosphere entry point reads, and its widening into the shared medium profile.
+I Source | Source/Source.symbolindex | 54 sym | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
+I Api    | Api/Api.symbolindex       | 13 sym | The parametric domain every paintable surface addresses — cut, flattened, arranged, and measured.
+I Source | Source/Source.symbolindex | 15 sym | Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
+I Api    | Api/Api.symbolindex       | 10 sym | Charts arranged into the unit domain at a common scale, separated by at least one apron.
+I Source | Source/Source.symbolindex | 6 sym  | Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
+I Api    | Api/Api.symbolindex       | 6 sym  | Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
+I Source | Source/Source.symbolindex | 7 sym  | Registration and comparison over the common sample set.
+I Api    | Api/Api.symbolindex       | 13 sym | Where the topology is cut — authored seams that survive every re-partition, derived seams that do not.
+I Source | Source/Source.symbolindex | 11 sym | Two separately stored sets, and the reclamation that reaches only one of them.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-T ParityRegistration          | Api/ParityRunner.h      | 24-29   | One registered `Shared/` entry point and the guarantee it claims.
-T ParityReport                | Api/ParityRunner.h      | 37-44   | What one entry point's parity comparison found.
-T ParityRunner                | Api/ParityRunner.h      | 55-85   | Classifies registered entry points on both toolchains over a common sample set. declared bound in units in the last place. Convergent entry points are compared within their own convergence criterion. Perceptual entry points are not compared — that is what Perceptual means.
-F ParityRunner::Register      | Api/ParityRunner.h      | 64      | Registers one `Shared/` entry point for comparison.
-F ParityRunner::Compare       | Api/ParityRunner.h      | 73      | Compares every registered entry point and reports each one. Until it is, the runner compares the host form against itself and reports the sample counts, which is honest about what was proven rather than reporting an agreement nothing established.
-F ParityRunner::AgreementHeld | Api/ParityRunner.h      | 78      | Whether every registered entry point met its claimed guarantee in the last comparison.
-F ParityRunner::Register      | Source/ParityRunner.cpp | 19-29   | ?
-T OrientationSample           | Source/ParityRunner.cpp | 40-48   | ?
-F ParityRunner::Compare       | Source/ParityRunner.cpp | 67-131  | ?
-F ParityRunner::AgreementHeld | Source/ParityRunner.cpp | 133-136 | ?
+T MediumSpecification                             | Api/AtmosphereIntegrator.h        | 32-56     | The three components of `28` §3, each with its own density profile and scattering behaviour. what produces the blue of twilight rather than the grey the other two components alone give, and omitting it is the most common reason an atmosphere looks wrong only at low sun angles. a document that edits them edits this specification and the surfaces rebuild per §4's first two rows.
+F MediumSpecification::Validate                   | Api/AtmosphereIntegrator.h        | 55        | Whether the medium describes an atmosphere that can be integrated at all. ozone half width, and for an asymmetry outside the open interval about the origin extent, and the phase magnitude diverges along it.
+T MediumCoefficient                               | Api/AtmosphereIntegrator.h        | 63-70     | The medium's coefficients resolved into the working space, per component. wavelength-neutral by declaration and needs no projection, which is why it is one magnitude rather than three — writing it as three equal ones would invite a later edit to make them differ.
+F Resolve                                         | Api/AtmosphereIntegrator.h        | 86        | Resolves a medium's spectral coefficients into a declared working space. and depolarisation rather than transcribed as three magnitudes. Transcribed, the three are correct for exactly one set of primaries and one working space, and a document declaring a wider space would get a sky whose blue is the old space's blue reinterpreted. The Chappuis band has no closed form, and saying so here is what stops a later reader from assuming the same first-principles standing for both.
+F SLATE_DECLARES_PRECISION                        | Api/AtmosphereIntegrator.h        | 89        | ?
+T ResidentSurface                                 | Api/AtmosphereIntegrator.h        | 103-151   | One precomputed lookup surface — sampled by coordinate, resident on the device, rebuilt on a declared condition. coordinate with filtering between their texels, which is what `Surface` means everywhere else in the series and is not what a lookup indexed by an ordinal would be. aspirational. All three are Tier D — perceptual output, no numeric guarantee — so half precision is correct by definition rather than by concession.
+F ResidentSurface::Construct                      | Api/AtmosphereIntegrator.h        | 111       | Claims the surface at a declared extent, every texel zero.
+F ResidentSurface::Write                          | Api/AtmosphereIntegrator.h        | 119       | Writes one texel's three components; the fourth is written as unity. three-component format would be a fourth format for the device to negotiate — which `06` §2.1's one-queue, explicit-descriptor spine has no appetite for.
+F ResidentSurface::Sample                         | Api/AtmosphereIntegrator.h        | 130       | Samples the surface bilinearly at a declared coordinate, clamped at its bounds. wrapped sample there reads the horizon — which appears as a bright ring directly overhead. `SkyViewSurface`'s azimuth is wrapped by its **caller** before it arrives, because only the caller knows the azimuth is periodic.
+F ResidentSurface::Texels                         | Api/AtmosphereIntegrator.h        | 135       | The encoded texels, for whoever uploads them.
+F ResidentSurface::ResidentBytes                  | Api/AtmosphereIntegrator.h        | 140       | What the surface occupies once resident.
+F ResidentSurface::ExtentAlong                    | Api/AtmosphereIntegrator.h        | 142       | ?
+F ResidentSurface::ExtentAcross                   | Api/AtmosphereIntegrator.h        | 143       | ?
+F ResidentSurface::SurfaceConstructed             | Api/AtmosphereIntegrator.h        | 144       | ?
+T IrradianceProjection                            | Api/AtmosphereIntegrator.h        | 168-184   | The sky's radiance projected onto a second-order harmonic basis and convolved against the cosine lobe. integral evaluated per shaded pixel is the thing the whole precomputation exists to avoid, and it would be evaluated at every pixel of every rotation rather than at every rebuild. product "for probes"; no probe population exists in Slate, so the product is retained and retargeted to `18` §5's diffuse ambient. `Probe` is banned and nothing here spells it. lobe's own harmonic expansion has less than a percent of its energy above the second order, so a higher order would carry coefficients that the convolution multiplies by very nearly nothing.
+F IrradianceProjection::Evaluate                  | Api/AtmosphereIntegrator.h        | 182       | Evaluates the irradiance arriving at a surface of a declared orientation. against a bright horizon. Clamped at zero because a negative irradiance is not a dim surface, it is a surface that subtracts light from whatever else reaches it.
+T AtmosphereIntegrator                            | Api/AtmosphereIntegrator.h        | 203-378   | The three resident surfaces, their construction order, and the conditions each rebuilds on. against a ① that does not stand is refused rather than performed against zeros — a sky-view surface built against an absent transmittance is uniformly black and reads as a device failure. enrolled as the atmospheric source and that `28` reads it; the requester resolves that enrolment on the tick and hands the direction over. Declaring the edge instead would put `44` in this document's Upstream and move `28` from `00` §9.1's stratum 4 to stratum 5, and `00` §11 gates that a declared edge is a real read — so the choice is between a false edge and a supplied parameter. multiple-scattering term near the horizon; `28` §3 declares three medium components and a fourth is not this document's to invent. Recorded as an open row rather than added quietly.
+F AtmosphereIntegrator::DeclareMedium             | Api/AtmosphereIntegrator.h        | 218       | Declares the medium, which owes all three surfaces a rebuild.
+F AtmosphereIntegrator::DeclareSun                | Api/AtmosphereIntegrator.h        | 228       | Declares the direction toward the atmospheric source, as `44`'s enrolled illuminant reports it.
+F AtmosphereIntegrator::DeclareCameraAltitude     | Api/AtmosphereIntegrator.h        | 235       | Declares the camera's altitude above the planet surface.
+F AtmosphereIntegrator::DeclareAtmospherePresence | Api/AtmosphereIntegrator.h        | 243       | Declares whether the atmosphere is present at all. to the same. Both reach that fallback through `SampleSkyView` below, so neither carries a branch of its own and the two cannot come to disagree about what "disabled" looks like.
+F AtmosphereIntegrator::DeclareConstantFloor      | Api/AtmosphereIntegrator.h        | 251       | Declares the constant floor the disabled atmosphere resolves to. structural. It is declared by the caller here rather than chosen, which is what keeps the row open.
+F AtmosphereIntegrator::Rebuild                   | Api/AtmosphereIntegrator.h        | 264       | Rebuilds whatever the declared conditions owe, in construction order, and nothing else. derived, and carries `Resolve`'s refusal where the spectral projection declines both. A rebuild owed on ③ alone runs ③ alone, which is the whole reason the sun may move without the medium being re-integrated.
+F AtmosphereIntegrator::RebuildOwed               | Api/AtmosphereIntegrator.h        | 271       | Whether anything is owed a rebuild. what the schedule's contributor reads to decide.
+F AtmosphereIntegrator::SampleSkyView             | Api/AtmosphereIntegrator.h        | 285       | Samples sky-view radiance along a view direction — `18` §5's specular ambient and `30`'s fallback. surface stands `30` §3 both name the floor as the second of exactly two sources, and a refusal here would make each of them write the fallback again.
+F AtmosphereIntegrator::SampleTransmittance       | Api/AtmosphereIntegrator.h        | 292       | Samples transmittance from a declared altitude along a declared zenith cosine, to the atmosphere boundary.
+F AtmosphereIntegrator::AerialTransmittance       | Api/AtmosphereIntegrator.h        | 308       | Transmittance over a bounded distance along a view ray — `28` §6's aerial perspective. and the ratio trick that recovers a bounded segment from it loses its conditioning near the horizon, which is exactly where distant geometry sits. `28` §8 leaves whether aerial perspective earns a resident surface of its own open, and integrating here is what keeps that row open rather than answering it by accident. as unnaturally crisp against a correct sky — `28` §6.
+F AtmosphereIntegrator::Irradiance                | Api/AtmosphereIntegrator.h        | 317       | The cosine-convolved irradiance, derived at the last sky-view rebuild — `18` §5's diffuse ambient.
+F AtmosphereIntegrator::Transmittance             | Api/AtmosphereIntegrator.h        | 319       | ?
+F AtmosphereIntegrator::MultiScatter              | Api/AtmosphereIntegrator.h        | 320       | ?
+F AtmosphereIntegrator::SkyView                   | Api/AtmosphereIntegrator.h        | 321       | ?
+F AtmosphereIntegrator::ResidentBytes             | Api/AtmosphereIntegrator.h        | 326       | What all three occupy once resident — `28` §7's first gate, measured rather than asserted.
+F AtmosphereIntegrator::MediumRebuildCount        | Api/AtmosphereIntegrator.h        | 333       | How many times each surface has been rebuilt this session. for. A transmittance count that tracks the rotation count is the defect §4 exists to prevent.
+F AtmosphereIntegrator::SkyViewRebuildCount       | Api/AtmosphereIntegrator.h        | 334       | ?
+F AtmosphereIntegrator::Medium                    | Api/AtmosphereIntegrator.h        | 336       | ?
+F AtmosphereIntegrator::Coefficient               | Api/AtmosphereIntegrator.h        | 337       | ?
+F AtmosphereIntegrator::AtmospherePresent         | Api/AtmosphereIntegrator.h        | 338       | ?
+F AtmosphereIntegrator::BuildTransmittance        | Api/AtmosphereIntegrator.h        | 342       | ?
+F AtmosphereIntegrator::BuildMultiScatter         | Api/AtmosphereIntegrator.h        | 343       | ?
+F AtmosphereIntegrator::BuildSkyView              | Api/AtmosphereIntegrator.h        | 344       | ?
+F AtmosphereIntegrator::DeriveIrradiance          | Api/AtmosphereIntegrator.h        | 345       | ?
+F AtmosphereIntegrator::Extinction                | Api/AtmosphereIntegrator.h        | 347       | ?
+F AtmosphereIntegrator::Scattering                | Api/AtmosphereIntegrator.h        | 348       | ?
+F AtmosphereIntegrator::TransmittanceAt           | Api/AtmosphereIntegrator.h        | 351       | ?
+F AtmosphereIntegrator::MultiScatterAt            | Api/AtmosphereIntegrator.h        | 353       | ?
+F SLATE_DECLARES_PRECISION                        | Api/AtmosphereIntegrator.h        | 382       | ?
+T MediumUniform                                   | Shader/AtmosphereUniform.slang    | 32-53     | The medium, the sun and the camera altitude, as the host uploads them. of the three declared layout rules. A vector member here would pad to sixteen bytes under std140 and to its own width elsewhere, and the host mirror would agree with exactly one of them.
+F ResolveMediumProfile                            | Shader/AtmosphereUniform.slang    | 65-90     | Widens the uploaded block into the profile `Shared/` computes against. second derivation of what the host already resolved spectrally through `02` §5, and the two would agree only until one of them was amended.
+F ProjectTexelCoordinate                          | Shader/AtmosphereUniform.slang    | 98-105    | The coordinate of one texel centre on a surface of a declared extent. samples at texel corners and a lookup that filters between texel centres disagree by half a texel everywhere — uniformly, so nothing looks broken and the horizon simply sits in the wrong place.
+V MultiScatterDirectionCount                      | Shader/MultiScatterSurface.slang  | 28        | ?
+V MultiScatterStepCount                           | Shader/MultiScatterSurface.slang  | 29        | ?
+V TransferCeiling                                 | Shader/MultiScatterSurface.slang  | 33        | ?
+V TransferFloor                                   | Shader/MultiScatterSurface.slang  | 34        | ?
+V Medium                                          | Shader/MultiScatterSurface.slang  | 36        | ?
+V TransmittanceSurface                            | Shader/MultiScatterSurface.slang  | 37        | ?
+V SurfaceSampler                                  | Shader/MultiScatterSurface.slang  | 38        | ?
+V MultiScatterOutput                              | Shader/MultiScatterSurface.slang  | 39        | ?
+F ResolveTransmittance                            | Shader/MultiScatterSurface.slang  | 50-63     | ① at a declared radius and zenith cosine. reason the mapping lives in `Shared/` — see the file note there.
+F IntegrateMultiScatter                           | Shader/MultiScatterSurface.slang  | 83-202    | ?
+V SolarLimbFraction                               | Shader/SkyRadiance.slang          | 39        | ?
+V SolarSurfaceDeparture                           | Shader/SkyRadiance.slang          | 44        | ?
+F ResolveSkyRadiance                              | Shader/SkyRadiance.slang          | 70-127    | The radiance arriving along a view direction, disc included. two in step. ③ is baked without it and the disc is resolved without it, so one flux applied by whoever reads this scales both together. Applying it to the disc alone — which is where a port of the donor formulation lands, since its disc names an illuminance its sky-view lookup does not — brightens the sun away from the sky immediately behind it, and the seam that produces is at the one place in the image the eye is already looking. subtends about a quarter of a degree; a disc carried through that surface is a texel wide at best and filtered into a smear at worst.
+V SkyViewStepCount                                | Shader/SkyViewSurface.slang       | 27        | ?
+V Medium                                          | Shader/SkyViewSurface.slang       | 29        | ?
+V TransmittanceSurface                            | Shader/SkyViewSurface.slang       | 30        | ?
+V MultiScatterSurface                             | Shader/SkyViewSurface.slang       | 31        | ?
+V SurfaceSampler                                  | Shader/SkyViewSurface.slang       | 32        | ?
+V SkyViewOutput                                   | Shader/SkyViewSurface.slang       | 33        | ?
+F ResolveTransmittance                            | Shader/SkyViewSurface.slang       | 42-55     | ① at a declared radius and zenith cosine.
+F ResolveMultiScatter                             | Shader/SkyViewSurface.slang       | 60-73     | ② at a declared radius and sun zenith cosine.
+F IntegrateSkyView                                | Shader/SkyViewSurface.slang       | 89-188    | ?
+V TransmittanceStepCount                          | Shader/TransmittanceSurface.slang | 26        | ?
+V Medium                                          | Shader/TransmittanceSurface.slang | 28        | ?
+V TransmittanceOutput                             | Shader/TransmittanceSurface.slang | 29        | ?
+F IntegrateTransmittance                          | Shader/TransmittanceSurface.slang | 47-103    | ?
+F EncodeHalf                                      | Source/AtmosphereIntegrator.cpp   | 26-59     | ?
+F DecodeHalf                                      | Source/AtmosphereIntegrator.cpp   | 61-87     | ?
+F Bounded                                         | Source/AtmosphereIntegrator.cpp   | 93-96     | ?
+F DistanceToSphere                                | Source/AtmosphereIntegrator.cpp   | 101-119   | ?
+F AdvanceRadius                                   | Source/AtmosphereIntegrator.cpp   | 124-129   | ?
+F GroundReached                                   | Source/AtmosphereIntegrator.cpp   | 131-137   | ?
+F RayleighPhase                                   | Source/AtmosphereIntegrator.cpp   | 141-144   | ?
+F MiePhase                                        | Source/AtmosphereIntegrator.cpp   | 148-157   | ?
+F MediumSpecification::Validate                   | Source/AtmosphereIntegrator.cpp   | 165-189   | ?
+F Resolve                                         | Source/AtmosphereIntegrator.cpp   | 195-288   | ?
+F ResidentSurface::Construct                      | Source/AtmosphereIntegrator.cpp   | 294-305   | ?
+F ResidentSurface::Write                          | Source/AtmosphereIntegrator.cpp   | 307-319   | ?
+F ResidentSurface::Sample                         | Source/AtmosphereIntegrator.cpp   | 321-370   | ?
+F ResidentSurface::Texels                         | Source/AtmosphereIntegrator.cpp   | 372       | ?
+F ResidentSurface::ResidentBytes                  | Source/AtmosphereIntegrator.cpp   | 374-377   | ?
+F ResidentSurface::ExtentAlong                    | Source/AtmosphereIntegrator.cpp   | 379       | ?
+F ResidentSurface::ExtentAcross                   | Source/AtmosphereIntegrator.cpp   | 380       | ?
+F ResidentSurface::SurfaceConstructed             | Source/AtmosphereIntegrator.cpp   | 381       | ?
+F HarmonicBasis                                   | Source/AtmosphereIntegrator.cpp   | 391-402   | ?
+V CosineLobe                                      | Source/AtmosphereIntegrator.cpp   | 407       | ?
+F IrradianceProjection::Evaluate                  | Source/AtmosphereIntegrator.cpp   | 411-428   | ?
+F AtmosphereIntegrator::DeclareMedium             | Source/AtmosphereIntegrator.cpp   | 434-450   | ?
+F AtmosphereIntegrator::DeclareSun                | Source/AtmosphereIntegrator.cpp   | 452-474   | ?
+F AtmosphereIntegrator::DeclareCameraAltitude     | Source/AtmosphereIntegrator.cpp   | 476-493   | ?
+F AtmosphereIntegrator::DeclareAtmospherePresence | Source/AtmosphereIntegrator.cpp   | 495-498   | ?
+F AtmosphereIntegrator::DeclareConstantFloor      | Source/AtmosphereIntegrator.cpp   | 500-509   | ?
+F AtmosphereIntegrator::Extinction                | Source/AtmosphereIntegrator.cpp   | 515-536   | ?
+F AtmosphereIntegrator::Scattering                | Source/AtmosphereIntegrator.cpp   | 538-552   | ?
+F TransmittanceCoordinate                         | Source/AtmosphereIntegrator.cpp   | 566-574   | ?
+F TransmittanceParameter                          | Source/AtmosphereIntegrator.cpp   | 578-584   | ?
+F StepIntegral                                    | Source/AtmosphereIntegrator.cpp   | 590-597   | ?
+F AtmosphereIntegrator::BuildTransmittance        | Source/AtmosphereIntegrator.cpp   | 601-673   | ?
+F AtmosphereIntegrator::TransmittanceAt           | Source/AtmosphereIntegrator.cpp   | 675-686   | ?
+F AtmosphereIntegrator::MultiScatterAt            | Source/AtmosphereIntegrator.cpp   | 692-703   | ?
+F AtmosphereIntegrator::BuildMultiScatter         | Source/AtmosphereIntegrator.cpp   | 705-843   | ?
+F SkyViewDirection                                | Source/AtmosphereIntegrator.cpp   | 856-881   | ?
+F SkyViewCoordinate                               | Source/AtmosphereIntegrator.cpp   | 883-906   | ?
+F AtmosphereIntegrator::BuildSkyView              | Source/AtmosphereIntegrator.cpp   | 910-1018  | ?
+F AtmosphereIntegrator::DeriveIrradiance          | Source/AtmosphereIntegrator.cpp   | 1024-1080 | ?
+F AtmosphereIntegrator::Rebuild                   | Source/AtmosphereIntegrator.cpp   | 1086-1141 | ?
+F AtmosphereIntegrator::RebuildOwed               | Source/AtmosphereIntegrator.cpp   | 1143-1146 | ?
+F AtmosphereIntegrator::SampleSkyView             | Source/AtmosphereIntegrator.cpp   | 1152-1182 | ?
+F AtmosphereIntegrator::SampleTransmittance       | Source/AtmosphereIntegrator.cpp   | 1184-1193 | ?
+F AtmosphereIntegrator::AerialTransmittance       | Source/AtmosphereIntegrator.cpp   | 1195-1251 | ?
+F AtmosphereIntegrator::Irradiance                | Source/AtmosphereIntegrator.cpp   | 1257      | ?
+F AtmosphereIntegrator::Transmittance             | Source/AtmosphereIntegrator.cpp   | 1258      | ?
+F AtmosphereIntegrator::MultiScatter              | Source/AtmosphereIntegrator.cpp   | 1259      | ?
+F AtmosphereIntegrator::SkyView                   | Source/AtmosphereIntegrator.cpp   | 1260      | ?
+F AtmosphereIntegrator::ResidentBytes             | Source/AtmosphereIntegrator.cpp   | 1262-1267 | ?
+F AtmosphereIntegrator::MediumRebuildCount        | Source/AtmosphereIntegrator.cpp   | 1269      | ?
+F AtmosphereIntegrator::SkyViewRebuildCount       | Source/AtmosphereIntegrator.cpp   | 1270      | ?
+F AtmosphereIntegrator::Medium                    | Source/AtmosphereIntegrator.cpp   | 1271      | ?
+F AtmosphereIntegrator::Coefficient               | Source/AtmosphereIntegrator.cpp   | 1272      | ?
+F AtmosphereIntegrator::AtmospherePresent         | Source/AtmosphereIntegrator.cpp   | 1273      | ?
+T PartitionSpecification                          | Api/ChartPartition.h              | 32-39     | The parameters a partition is derived against. distortion either way. It is declared here rather than in `Contract/` because no second unit reads it.
+T Chart                                           | Api/ChartPartition.h              | 51-60     | One connected piece of topology bounded by seams and by the topology's own boundary. results on the partition revision, and a chart whose member set is unchanged keeps its least face ordinal — so a partition that touched one seam does not renumber every chart and discard every derived artefact for a change the artist cannot see.
+T PartitionMetrics                                | Api/ChartPartition.h              | 68-77     | What the partition reports through `86`.
+T DerivedPartition                                | Api/ChartPartition.h              | 90-97     | A whole derived partition, as a value that crosses back to the tick. `34` §3 requires the requester to apply the result on the tick. The previous partition stands until `Adopt` takes this one — a surface with no valid domain has no place to sample and nothing for `18` §1.1 to derive a tangent basis from, and the visible result of swapping mid-solve is the whole object flickering while an unrelated seam is being marked.
+F Derive                                          | Api/ChartPartition.h              | 123       | Cuts, flattens and arranges one sealed topology into its parametric domain. ExtentExhausted when the conditioning describes another revision or no scale packs The `SeamSpecification` is taken by const reference and its derived set is returned in the result rather than written into it, so a worker running this touches no document state at all. and re-flatten, recording the crossing edges as derived seams. `68` §4.1 prescribes it for a fold, and a chart with two boundary loops is the same failure one step earlier. Subdivision strictly reduces the face count and a single face is always a disc that flattens without folding, so it terminates. `68` §7 puts this on `34`'s `Background` class; called on the tick it would stall a stroke.
+F SLATE_DECLARES_PRECISION                        | Api/ChartPartition.h              | 129       | ?
+T ChartPartition                                  | Api/ChartPartition.h              | 143-193   | The partition a surface currently addresses, and the revision every derived artefact keys on. while `20` promotes against it. Re-partitioning moves domain positions, so every derived artefact addressed in the old domain is invalid — and the revision is what makes that discoverable rather than silent. rather than world-referred, which is `68` §6's table read from the storage side.
+F ChartPartition::Adopt                           | Api/ChartPartition.h              | 153       | Adopts a derived partition on the tick, advancing the revision.
+F ChartPartition::Standing                        | Api/ChartPartition.h              | 159       | The standing partition.
+F ChartPartition::Coordinate                      | Api/ChartPartition.h              | 166       | One imported corner's domain coordinate. while no partition stands
+F ChartPartition::PartitionStanding               | Api/ChartPartition.h              | 171       | Whether a partition stands at all.
+F ChartPartition::Revision                        | Api/ChartPartition.h              | 176       | The revision `24` §3 keys on and `20` promotes against.
+F ChartPartition::Report                          | Api/ChartPartition.h              | 187       | Appends the standing partition's obligations to the register, and its measures beside them. the line and it is the whole reason the register has two structures: a distortion appended every partition would bury the one seam the artist did not expect.
+V AbsentFace                                      | Source/ChartPartition.cpp         | 23        | ?
+F EdgeKey                                         | Source/ChartPartition.cpp         | 28-34     | ?
+F KeyHeld                                         | Source/ChartPartition.cpp         | 36-45     | ?
+T PendingChart                                    | Source/ChartPartition.cpp         | 50-54     | ?
+T ChartLocality                                   | Source/ChartPartition.cpp         | 57-65     | ?
+F BuildLocality                                   | Source/ChartPartition.cpp         | 79-223    | ?
+F FoldDetected                                    | Source/ChartPartition.cpp         | 231-286   | ?
+F Subdivide                                       | Source/ChartPartition.cpp         | 294-381   | ?
+F Derive                                          | Source/ChartPartition.cpp         | 389-734   | ?
+F ChartPartition::Adopt                           | Source/ChartPartition.cpp         | 740-753   | ?
+F ChartPartition::Standing                        | Source/ChartPartition.cpp         | 755       | ?
+F ChartPartition::Coordinate                      | Source/ChartPartition.cpp         | 757-769   | ?
+F ChartPartition::PartitionStanding               | Source/ChartPartition.cpp         | 771       | ?
+F ChartPartition::Revision                        | Source/ChartPartition.cpp         | 772       | ?
+F ChartPartition::Report                          | Source/ChartPartition.cpp         | 778-823   | ?
+F DeclaredGap                                     | Api/DomainSpace.h                 | 31-34     | The least gap between two adjacent charts, in domain units. narrower than the apron means a tile's duplicated border reads texels belonging to a different chart, and every chart edge in the painted result carries a fringe of a neighbouring chart's content. residency or its promotion — that is the whole content of `00` §10 conflict 30's resolution, and it is what makes this document precede `20` rather than depend on it.
+T ChartExtent                                     | Api/DomainSpace.h                 | 42-47     | One chart's planar extent, before any scale is applied.
+T ChartPlacement                                  | Api/DomainSpace.h                 | 51-58     | Where one chart sits in the unit domain, and at what scale.
+T DomainSpace                                     | Api/DomainSpace.h                 | 71-113    | The unit domain subdivided into disjoint chart areas. list, and what the mechanism does is subdivide the parametric domain — which is `Space`. on every chart. A per-chart scale packs more tightly and makes one surface's paint finer than another's on the same object, which the artist reads as an inconsistent brush.
+F DomainSpace::Arrange                            | Api/DomainSpace.h                 | 86        | Arranges every chart into the unit domain, disjoint and gapped. when no scale admits every chart unscaled height and then by ordinal, both scale-invariant, so the same charts arrange identically on every machine and every run. A packing whose order depended on the scale would arrange differently at each bisection step and the search would not converge to anything reproducible.
+F DomainSpace::Placements                         | Api/DomainSpace.h                 | 91        | The placements, in the order the extents were supplied.
+F DomainSpace::Occupancy                          | Api/DomainSpace.h                 | 96        | The fraction of the domain the charts cover — `86`'s `68` §5 measure.
+F DomainSpace::SettledScale                       | Api/DomainSpace.h                 | 101       | The scale the arrangement settled on.
+F DomainSpace::Feasible                           | Api/DomainSpace.h                 | 105       | ?
+F SLATE_DECLARES_PRECISION                        | Api/DomainSpace.h                 | 117       | ?
+V BisectionCeiling                                | Source/DomainSpace.cpp            | 22        | ?
+F DomainSpace::Feasible                           | Source/DomainSpace.cpp            | 26-75     | ?
+F DomainSpace::Arrange                            | Source/DomainSpace.cpp            | 81-172    | ?
+F DomainSpace::Placements                         | Source/DomainSpace.cpp            | 178       | ?
+F DomainSpace::Occupancy                          | Source/DomainSpace.cpp            | 179       | ?
+F DomainSpace::SettledScale                       | Source/DomainSpace.cpp            | 180       | ?
+T ParityRegistration                              | Api/ParityRunner.h                | 24-29     | One registered `Shared/` entry point and the guarantee it claims.
+T ParityReport                                    | Api/ParityRunner.h                | 37-44     | What one entry point's parity comparison found.
+T ParityRunner                                    | Api/ParityRunner.h                | 55-85     | Classifies registered entry points on both toolchains over a common sample set. declared bound in units in the last place. Convergent entry points are compared within their own convergence criterion. Perceptual entry points are not compared — that is what Perceptual means.
+F ParityRunner::Register                          | Api/ParityRunner.h                | 64        | Registers one `Shared/` entry point for comparison.
+F ParityRunner::Compare                           | Api/ParityRunner.h                | 73        | Compares every registered entry point and reports each one. Until it is, the runner compares the host form against itself and reports the sample counts, which is honest about what was proven rather than reporting an agreement nothing established.
+F ParityRunner::AgreementHeld                     | Api/ParityRunner.h                | 78        | Whether every registered entry point met its claimed guarantee in the last comparison.
+F ParityRunner::Register                          | Source/ParityRunner.cpp           | 24-34     | ?
+T OrientationSample                               | Source/ParityRunner.cpp           | 45-53     | ?
+T IncircleSample                                  | Source/ParityRunner.cpp           | 70-80     | ?
+T SegmentSample                                   | Source/ParityRunner.cpp           | 93-103    | ?
+T IntervalSample                                  | Source/ParityRunner.cpp           | 117-123   | ?
+F ParityRunner::Compare                           | Source/ParityRunner.cpp           | 141-374   | ?
+F ParityRunner::AgreementHeld                     | Source/ParityRunner.cpp           | 376-379   | ?
+T SeamEdge                                        | Api/SeamSpecification.h           | 28-32     | One cut edge, named by the two imported vertex ordinals it runs between. neighbour; a seam recorded as a position would then be a seam somewhere else, and the surface would cut through the middle of a chart. imported arrays means the same thing after conditioning as before. A welded ordinal is derived and moves when the welding tolerance moves — which is exactly what an authored seam must survive.
+F DeclareEdge                                     | Api/SeamSpecification.h           | 37-44     | Normalises two imported vertex ordinals into one seam edge.
+T SeamSpecification                               | Api/SeamSpecification.h           | 59-121    | One surface's seams, both sources held apart because they have different lifetimes. discarded by a re-unwrap. An artist who spent an hour marking seams and watched an automatic partition erase them has lost work the program told them it was holding. next partition. Where a surface will not flatten within the declared distortion using the authored set alone, the shortfall is cut and the addition is reported through `86` — a silent extra cut is a seam the artist finds later in the painted result.
+F SeamSpecification::DeclareAuthored              | Api/SeamSpecification.h           | 70        | Declares one authored seam.
+F SeamSpecification::WithdrawAuthored             | Api/SeamSpecification.h           | 76        | Withdraws one authored seam.
+F SeamSpecification::DeclareDerived               | Api/SeamSpecification.h           | 83        | Records one seam the partitioner derived, for reporting and for the standing partition. sets are separately stored for the same reason `12` separately stores its two relations.
+F SeamSpecification::ReclaimDerived               | Api/SeamSpecification.h           | 89        | Discards every derived seam, ahead of a re-partition.
+F SeamSpecification::SeamDeclared                 | Api/SeamSpecification.h           | 94        | Whether either set cuts the edge between two imported vertices.
+F SeamSpecification::Authored                     | Api/SeamSpecification.h           | 99        | The authored set, in declaration order.
+F SeamSpecification::Derived                      | Api/SeamSpecification.h           | 104       | The derived set, in derivation order — `86`'s `68` §2 row.
+F SeamSpecification::Revision                     | Api/SeamSpecification.h           | 111       | The revision the last authored amendment advanced to. input to it, so counting one would make every partition invalidate the partition that produced it.
+F SeamSpecification::AuthoredCount                | Api/SeamSpecification.h           | 113       | ?
+F SeamSpecification::DerivedCount                 | Api/SeamSpecification.h           | 114       | ?
+F Located                                         | Source/SeamSpecification.cpp      | 18-30     | ?
+F SeamSpecification::DeclareAuthored              | Source/SeamSpecification.cpp      | 38-52     | ?
+F SeamSpecification::WithdrawAuthored             | Source/SeamSpecification.cpp      | 54-66     | ?
+F SeamSpecification::DeclareDerived               | Source/SeamSpecification.cpp      | 72-89     | ?
+F SeamSpecification::ReclaimDerived               | Source/SeamSpecification.cpp      | 91-96     | ?
+F SeamSpecification::SeamDeclared                 | Source/SeamSpecification.cpp      | 102-108   | ?
+F SeamSpecification::Authored                     | Source/SeamSpecification.cpp      | 110       | ?
+F SeamSpecification::Derived                      | Source/SeamSpecification.cpp      | 111       | ?
+F SeamSpecification::Revision                     | Source/SeamSpecification.cpp      | 112       | ?
+F SeamSpecification::AuthoredCount                | Source/SeamSpecification.cpp      | 114       | ?
+F SeamSpecification::DerivedCount                 | Source/SeamSpecification.cpp      | 115       | ?

@@ -18,85 +18,27 @@ thirteen mechanisms each inventing its own way to be quiet.
 | Downstream  | `14` presents it as `DiagnosticPanel` — `14` §1                               |
 | Unblocks    | Somewhere for Tier C reports and misses to land                               |
 
-## 1. The Components
+## 1, 2, 3. The Register
 
-| Component               | What it owns                                                            |
-|-------------------------|--------------------------------------------------------------------------|
-| `ReportSequence`        | The session's appended reports, in arrival order — §2.2                 |
-| `ReportSpecification`   | What one report declares: origin, class, measure, position              |
-| `MeasureIndex`          | The current value of every sampled measure, keyed by origin — §2.1      |
-| `ReportClassifier`      | Scores a report into one of §4.1's seven classes                        |
-| `DiagnosticPanel`       | Presents both, and stores neither                                       |
+✔️ Done — `ReportSequence` and `MeasureIndex` both live in `SlateMath`, reachable by all four units. A measure
+overwrites and refuses when undeclared; a report appends once, coalesces by origin, disposition and subject
+together, retains to a declared ceiling and counts its own discards. §3.1's any-thread append is guarded and
+`34` §5 writes through it.
 
-🔴 `DiagnosticPanel` **stores nothing**, per `14` §1. It presents `MeasureIndex` and `ReportSequence`, and a panel
-that held its own copy of either would present a residency total from the rotation before last.
+🚧 `DiagnosticPanel` itself is unbuilt. When it arrives it **stores nothing**, per `14` §1 — a panel holding its
+own copy of either structure would present a residency total from the rotation before last.
 
-## 2. A Measure And A Report Are Not The Same Thing
+🔴 The register lives in `SlateMath.lib` because `00` §2's partition leaves nowhere else: `SlateVulkan` and
+`SlateDocument` are peers, `SlateCompute` cannot link `SlateUI`, and every one of §4's origins is beneath
+`SlateUI`. This is `76`'s reasoning arriving a second time from the opposite direction, one layer lower.
 
-This is the distinction the whole document rests on, and conflating the two is the defect that makes a diagnostic
-panel useless within thirty seconds of being opened.
-
-`06` §3 reports claimed and available totals **every rotation**. At a display rate that is thousands of entries a
-minute from one origin. If those entries append, `ReportSequence` is a scrolling wall of numbers inside which the
-one report that mattered — a refused claim, a solve that hit its ceiling — is unfindable.
-
-### 2.1 Measures
-
-A measure is a **sampled quantity with a current value**. It is written into `MeasureIndex` under its origin, it
-overwrites the previous value, and it is never appended.
-
-| Measure                                    | Origin        | Sampled          |
-|--------------------------------------------|---------------|-------------------|
-| Claimed and available totals per shape     | `06` §3       | Every rotation    |
-| Resident tile totals and deferred promotion| `20` §2.2     | Every rotation    |
-| Hardware execution duration and depth      | `06` §6       | Every rotation    |
-| Projection count and rebuild count         | `60`          | Every rotation    |
-| Transmissive occupant count and layer depth| `62`          | Every rotation    |
-| Accumulated sample count and rejection rate| `64`          | Every rotation    |
-| Chart distortion and domain occupancy      | `68`          | Per partition     |
-| Sequence length and extent held            | `84`          | Per transaction   |
-| A long solve's progress                    | `34` §7       | By the tick       |
-
-🔴 Measures are **sampled by the tick, never pushed**. `34` §7 states the rule for progress and it holds for every
-row above: a producer that pushes its measure at its own rate contends with the tick for the state the tick is
-presenting, and `06`'s totals would be written from inside a recording.
-
-### 2.2 Reports
-
-A report is a **single event with a cause**. It is appended to `ReportSequence` once, it is retained for the
-session, and it does not overwrite anything.
-
-🔴 A report is appended **exactly once per occurrence**, at the moment of the occurrence, and it carries its
-origin. A report reconstructed later from a measure that changed is a report about the wrong instant.
-
-## 3. The Register Does Not Live In The Interface
-
-🔴 `ReportSequence` and `MeasureIndex` live in `SlateMath.lib` — the unit every other unit links. This is not
-where a diagnostic panel's storage would naturally be put, and it is the only place it can be.
-
-`00` §2's partition is the reason. `SlateVulkan` and `SlateDocument` are peers; `SlateCompute` cannot link
-`SlateUI`. Every one of §4's origins is beneath `SlateUI`, so a register held in `SlateUI` could not be written by
-a single one of the mechanisms obliged to write it.
-
-⚠️ This is `76`'s reasoning arriving a second time from the opposite direction. `76` holds non-document state
-where both `SlateCompute` and `SlateUI` can reach it; `86` holds reports where **all four** units can reach them,
-which puts it one layer lower still. Two documents needing the same escape from the same partition is the
-partition working, not a weakness in it.
-
-### 3.1 Appending from a work item
-
-`34` §3 rules that a work item never mutates the document and that results cross back on the tick. A report is
-not a result and is not document state, and the rule does not reach it.
-
-🔴 `ReportSequence` accepts an append from **any** thread, and it is the one structure in the engine that does. A
-report about a failure has to survive the failure: `34` §5's failed item produces no result to carry it back, and
-a report that crossed back through `CompletionExchange` would be discarded with the cancellation.
-
-🔴 Ordering is by the arrival timestamp from `04` §3, and **no engine behaviour depends on report order**. This is
-what makes the concession above safe. `34` §6's determinism rule is about results; two machines may order two
-simultaneous reports differently and nothing downstream reads the difference.
+🔴 Measures are **sampled by the tick, never pushed** — a producer writing at its own rate contends with the tick
+for the state the tick is presenting, and `06`'s totals would be written from inside a recording. Report ordering
+is by arrival timestamp and **no engine behaviour depends on it**, which is what makes the any-thread append safe.
 
 ## 4. The Register
+
+🚧 Every row below except `34` §5's is unbuilt. The register stays as the obligation list it is.
 
 Every obligation made to this document in the series, discharged. Almost every row is a promise another document
 already made, which is what closes the list — it is bounded by the series rather than by judgement about what an
@@ -148,8 +90,11 @@ against the series:
 | Termination  | A Tier C solve ended at its ceiling instead of its criterion         | Is this result good?     |
 | Failure      | The mechanism did not complete and there is no result                | What broke?              |
 
-🔴 The class is declared by the reporting mechanism, never inferred by `ReportClassifier` from the text. An
-inferred class is a presentation that disagrees with the document that made the promise.
+✔️ The seven classes done — declared by the reporting mechanism and defaulting to `Failed`. `ReportClassifier` is
+not built and this section explains why it has nothing to do.
+
+🔴 The class is declared by the reporting mechanism, never inferred from the text. An inferred class is a
+presentation that disagrees with the document that made the promise.
 
 ## 5. A Report Is Not A Failure
 
@@ -175,66 +120,29 @@ result is the best available, not that it is wrong. Presenting it as an error ma
 
 ## 6. Volume
 
-A report that recurs is presented **once with a count**, not once per occurrence.
+✔️ Done — a recurring report is one entry with a count and the latest instant, coalesced by origin, disposition
+and subject together, retained to a declared ceiling with the oldest discarded and the discards counted.
 
-| Recurrence                                    | Presented                                    |
-|-----------------------------------------------|-----------------------------------------------|
-| Same origin, same class, same subject         | One entry, with a count and the latest instant |
-| Same origin, different subject                | Separate entries                              |
-| Same subject, different class                 | Separate entries                              |
+🔴 Coalescing by origin alone would present twelve distinct refused constructs from `52` as one entry with a count
+of twelve, and `52` §2 promises the artist the construct and its position — which is exactly what the count
+destroys. A register that silently forgot the first report of a run is worse than one that admits it is full.
 
-🔴 Coalescing is by origin, class **and** subject together. Coalescing by origin alone would present twelve
-distinct refused constructs from `52` as one entry with a count of twelve, and `52` §2 promises the artist the
-construct and its position — which is exactly what the count destroys.
+## 7, 8, 9. Presentation, Session Scope And Precision
 
-⚠️ `ReportSequence` is bounded for the session. When the bound is reached the **oldest** entries are discarded
-and the discard is itself presented, because a register that silently forgot the first report of a run is worse
-than one that admits it is full. `34` §9 carries the same open row from the other side: how often a failed item
-retries decides the volume this bound has to absorb.
-
-## 7. What The Panel Presents
-
-| Presented                | From                                                              |
-|--------------------------|--------------------------------------------------------------------|
-| Live measures            | `MeasureIndex`, sampled by the tick                                |
-| The report register      | `ReportSequence`, newest last                                      |
-| Class, origin and count  | `ReportSpecification` — never re-derived from the text             |
-| Progress of long solves  | `34` §7's fraction or count, per open item                         |
-
-`34` §7 states that progress reaching a presented panel is this document's concern. It is presented per open work
-item with its priority from `34` §4, because an artist waiting on an unwrap needs to see that an export is
-occupying the workers rather than that "something" is running.
+🚧 Presentation is unbuilt with the panel. The three rulings below bind it when it arrives.
 
 🔴 Reports are recorded in **every** configuration, not in Debug only. `06` §6's `DiagnosticExtension` is
 Debug-only and is a different mechanism: validation messages are for whoever builds Slate, and §4's register is
 for whoever uses it. A refused claim that only reports in Debug reports on the one machine where it will not
 happen.
 
-## 8. Across A Session
+🔴 Nothing here is written into the document. Reports survive a document close and a device loss and describe the
+run rather than the document; a document carrying another machine's residency measures is a document whose
+contents depend on who opened it — `76` §2 and `14` §8 rule the same way for the same reason.
 
-| Situation           | Behaviour                                                              |
-|---------------------|-------------------------------------------------------------------------|
-| Document opened     | The register retains the session's reports; `48`'s open reports into it |
-| Document closed     | Reports are retained; they describe the run, not the document           |
-| Device loss — `06` §4.2 | The register survives; it is not device state                       |
-| Application closed  | Nothing is retained                                                     |
-
-🔴 Nothing here is written into the document. A report describes what this run of Slate did on this machine, and a
-document carrying another machine's residency measures is a document whose contents depend on who opened it —
-`76` §2 and `14` §8 rule the same way for the same reason.
-
-## 9. Precision
-
-| Computation                    | Tier | Reason                                                       |
-|--------------------------------|------|---------------------------------------------------------------|
-| Report ordinal and count       | A    | Integers; a count that is approximately twelve is not a count |
-| Arrival timestamp              | A    | `04` §3's timestamps, carried unmodified                      |
-| Claimed and available totals   | A    | Byte extents are integers — `06` §3                           |
-| Distortion, rate, fraction     | B    | Presented values, at the tier their producer declared         |
-
-🔴 A measure is presented at the tier its **producer** declared and is never re-derived here. `68`'s distortion is
-Tier B because `68` says so; recomputing it for presentation would let the panel disagree with the mechanism about
-whether a chart is acceptable.
+🔴 A measure is presented at the tier its **producer** declared and is never re-derived here. Ordinals, counts,
+timestamps and byte extents are Tier A integers; `68`'s distortion is Tier B because `68` says so, and recomputing
+it for presentation would let the panel disagree with the mechanism about whether a chart is acceptable.
 
 ## 10. Gates
 

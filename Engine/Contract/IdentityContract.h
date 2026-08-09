@@ -21,6 +21,7 @@ struct PartitionSubject {};
 struct SurfaceSubject   {};
 struct RecordingSubject {};
 struct WorkSubject      {};
+struct LayerSubject     {};
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       IDENTITY
@@ -69,5 +70,10 @@ using PartitionIdentity = Identity<PartitionSubject>;   // [-] - one partition o
 using SurfaceIdentity   = Identity<SurfaceSubject>;     // [-] - one paintable surface domain
 using RecordingIdentity = Identity<RecordingSubject>;   // [-] - one slot of the recording rotation
 using WorkIdentity      = Identity<WorkSubject>;        // [-] - one declaration in `34`'s work sequence
+using LayerIdentity     = Identity<LayerSubject>;       // [-] - one entry of a surface's layer sequence
+
+// 📝 🔴 `56` §8 requires an entry to carry `10` §2.1's integer pair rather than a bare position: a collision
+//    reorders a surface, and a position alone collides with whichever entry later occupies it. Tagged apart from
+//    an occupant because a painted layer is not one — only a placement is enrolled in the population.
 
 }   // namespace Slate

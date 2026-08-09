@@ -51,7 +51,7 @@ F OutlinerPanel::Present          | OutlinerPanel.h | 50     | api,nonthrowing  
 F OutlinerPanel::DeclarePresence  | OutlinerPanel.h | 56     | api,nonallocating,nonthrowing | ✔️ | Declares whether the panel is shown at all.
     in    PresenceDeclared  bool  [-]  whether the artist wants it
     out   -                 void  [-]  ?
-    by    Source/OutlinerPanel.cpp
+    by    Api/SurfaceLayerSequence.h, Source/OutlinerPanel.cpp, Source/SurfaceLayerSequence.cpp
 
 F OutlinerPanel::PresenceStanding | OutlinerPanel.h | 61     | api,nonallocating,nonthrowing | ✔️ | Whether the panel is shown.
     out   -  bool  [-]  ?
@@ -74,7 +74,7 @@ F OutlinerPanel::RowsTouched      | OutlinerPanel.h | 84     | api,nonallocating
 
 F OutlinerPanel::Sought           | OutlinerPanel.h | 89     | api,nonthrowing               | 🚩 | The text the artist is searching names for, empty when nothing is sought.
     out   -  std::string  [-]  ?
-    by    Api/TrigramIndex.h, Source/OutlinerPanel.cpp, Source/TrigramIndex.cpp
+    by    Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/SeamSpecification.cpp, (+2 more)
 
 F OutlinerPanel::ConfirmedNames   | OutlinerPanel.h | 94     | api,nonallocating,nonthrowing | ✔️ | How many names the last narrowing confirmed.
     out   -  std::uint32_t  [-]  ?

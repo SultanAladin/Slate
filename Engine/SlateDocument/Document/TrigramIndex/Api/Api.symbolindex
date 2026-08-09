@@ -53,24 +53,24 @@ F TrigramIndex::Declare      | TrigramIndex.h | 79     | api,nonthrowing        
     in    Declared  const std::string&  [-]  the name the artist gave it
     out   -         Outcome             [-]  refuses with IdentityStale for an undeclared identity
     post  every trigram run mentioning this occupant describes the new name only
-    by    Api/OutlinerSequence.h, Api/RowSequence.h, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RowSequence.cpp, Source/TrigramIndex.cpp
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, Api/PropertySpecification.h, (+15 more)
 
 F TrigramIndex::Withdraw     | TrigramIndex.h | 85     | api,nonthrowing               | 🚩 | Withdraws one occupant's name and every trigram entry that reached it.
     in    Subject  OccupantIdentity  [-]  the occupant being retired or renamed
     out   -        void              [-]  ?
-    by    Api/PopulationIndex.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/PopulationIndex.cpp, Source/TrigramIndex.cpp
+    by    Api/IlluminantPopulation.h, Api/PopulationIndex.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+7 more)
 
 F TrigramIndex::Narrow       | TrigramIndex.h | 97     | api,nonthrowing               | 🚩 | Narrows to the occupants whose names contain the sought text, then confirms each exactly. is already small, and intersecting costs more than confirming the difference. identity from a slot ordinal alone would hand back a reference that resolves to whatever later took the slot, which is the defect the generation exists to prevent.
     in    Sought  const std::string&  [-]  what the artist typed; shorter than a trigram falls back to confirmation alone
     out   -       Confirmed           [-]  occupants whose names genuinely contain it, in ascending slot order
-    by    Source/OutlinerPanel.cpp, Source/TrigramIndex.cpp
+    by    Api/OutlinerSequence.h, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/TrigramIndex.cpp
     note  The narrowing is the rarest trigram's run rather than the intersection of all of them: one run
     note  🔴 Every returned identity is the one Declare was given, generation included. Reconstructing an
 
 F TrigramIndex::DeclaredName | TrigramIndex.h | 102    | api,nonallocating,nonthrowing | ✔️ | One occupant's declared name, empty when it has none.
     in    Subject  OccupantIdentity    [-]  ?
     out   -        const std::string&  [-]  ?
-    by    Api/OutlinerSequence.h, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/TrigramIndex.cpp
+    by    Api/BrushSpecification.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, Source/BrushSpecification.cpp, Source/MaterialSpecification.cpp, Source/OutlinerPanel.cpp, (+2 more)
 
 F TrigramIndex::NamedCount   | TrigramIndex.h | 107    | api,nonallocating,nonthrowing | ✔️ | How many occupants carry a declared name.
     out   -  std::uint32_t  [-]  ?

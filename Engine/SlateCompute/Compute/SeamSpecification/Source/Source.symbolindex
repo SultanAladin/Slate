@@ -1,0 +1,79 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Two separately stored sets, and the reclamation that reaches only one of them.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/SeamSpecification/Source
+%layer      SlateCompute
+%sources    1
+%symbols    11
+%annotated  0/11
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S SeamSpecification.cpp | 117 lines | 6560cc33 | 11 sym | Two separately stored sets, and the reclamation that reaches only one of them.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        LOCATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F Located                             | SeamSpecification.cpp | 18-30   | - | - | ?
+    in    Held    const std::vector<SeamEdge>&  [-]  ?
+    in    Sought  SeamEdge                      [-]  ?
+    out   -       std::size_t                   [-]  ?
+    by    Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, Source/EnrollmentIndex.cpp, (+9 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     AUTHORED SEAMS
+//------------------------------------------------------------------------------------------------------------------------
+
+F SeamSpecification::DeclareAuthored  | SeamSpecification.cpp | 38-52   | - | - | ?
+    in    FirstVertex   std::uint32_t  [-]  ?
+    in    SecondVertex  std::uint32_t  [-]  ?
+    out   -             Outcome<bool>  [-]  ?
+
+F SeamSpecification::WithdrawAuthored | SeamSpecification.cpp | 54-66   | - | - | ?
+    in    FirstVertex   std::uint32_t  [-]  ?
+    in    SecondVertex  std::uint32_t  [-]  ?
+    out   -             Outcome<bool>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     DERIVED SEAMS
+//------------------------------------------------------------------------------------------------------------------------
+
+F SeamSpecification::DeclareDerived   | SeamSpecification.cpp | 72-89   | - | - | ?
+    in    FirstVertex   std::uint32_t  [-]  ?
+    in    SecondVertex  std::uint32_t  [-]  ?
+    out   -             void           [-]  ?
+
+F SeamSpecification::ReclaimDerived   | SeamSpecification.cpp | 91-96   | - | - | ?
+    out   -  void  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      WHAT IS READ
+//------------------------------------------------------------------------------------------------------------------------
+
+F SeamSpecification::SeamDeclared     | SeamSpecification.cpp | 102-108 | - | - | ?
+    in    FirstVertex   std::uint32_t  [-]  ?
+    in    SecondVertex  std::uint32_t  [-]  ?
+    out   -             bool           [-]  ?
+
+F SeamSpecification::Authored         | SeamSpecification.cpp | 110     | - | - | ?
+    out   -  const std::vector<SeamEdge>&  [-]  ?
+
+F SeamSpecification::Derived          | SeamSpecification.cpp | 111     | - | - | ?
+    out   -  const std::vector<SeamEdge>&  [-]  ?
+
+F SeamSpecification::Revision         | SeamSpecification.cpp | 112     | - | - | ?
+    out   -  std::uint64_t  [-]  ?
+
+F SeamSpecification::AuthoredCount    | SeamSpecification.cpp | 114     | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F SeamSpecification::DerivedCount     | SeamSpecification.cpp | 115     | - | - | ?
+    out   -  std::uint32_t  [-]  ?

@@ -20,26 +20,16 @@ merely executed per rotation.
 
 ## 1. What A Recording Declares
 
-Every contributing document declares its recordings in the same shape. The declaration is data, authored once,
-consulted by the orderer.
-
-| Field            | Meaning                                                        |
-|------------------|------------------------------------------------------------------|
-| Identity         | A unique name, used in diagnostics and metrics                   |
-| Reads            | Shared targets consumed, with the layout required               |
-| Writes           | Shared targets produced, with the layout produced               |
-| Command          | Graphics recording or compute dispatch                          |
-| Capability       | The capability-set entry required, if any                       |
-| Substitution     | What runs instead when the capability is absent                 |
-
-🔴 A recording with a capability requirement and no substitution is rejected at bring-up. An absent capability
-must degrade to something, and choosing that something is a design decision belonging to the contributing
-document — not a runtime branch invented at the recording site.
+✔️ Done — `DeclaredRecording` carries identity, reads, produces, amends, command, capability and substitution, and
+a requirement with no substitution is refused at contribution rather than at bring-up.
 
 ## 2. Shared Targets
 
-Declared once here so no contributing document invents a target another already produces. Extents are given
-relative to the display extent unless stated absolutely.
+🚧 Partially completed — the fifteen targets and their extent relations are declared as closed enumerations and a
+total relation table. Nothing claims a format, an extent or memory, and the amendment list is held per recording
+rather than per target. The table stays because it is what stops a contributing document inventing a sixteenth.
+
+Extents are given relative to the display extent unless stated absolutely.
 
 | Target                 | Format    | Extent      | Produced by | Amended by       | Consumed by        |
 |------------------------|-----------|-------------|-------------|-------------------|---------------------|
@@ -87,6 +77,10 @@ resolution time. Deriving it later from depth reprojection is wrong for anything
 the population `64` needs it for.
 
 ## 3. Ordering
+
+✔️ Ordering done — derived from the declared reads and writes in two phases, scene-referred exhausted before
+display-referred, refusing rather than emitting an ordering that drops a recording. §3.1's display-referred line
+and §3.2's split recordings are both enforced by the `DisplayReferred` phase.
 
 ```
   ┌─ ①  28  SkyAtmosphere ───────── conditional; rebuilds only on change
@@ -159,11 +153,13 @@ the other side. An overlay in the visibility index would be picked by `74`, outl
 
 ## 4. Transitions
 
-The orderer derives layout transitions from the declared reads and writes. No contributing document issues one
-by hand. A recording that transitions a shared target itself has, by definition, made a claim the orderer cannot
-see, and the next reordering breaks it silently.
+🚧 Unbuilt — no layout transition is derived. When it is, the orderer derives every one from the declared reads
+and writes; a recording that transitions a shared target itself has made a claim the orderer cannot see, and the
+next reordering breaks it silently.
 
 ## 5. Capability Degradation
+
+🚧 Unbuilt — no substitution is executed. The three declared substitutions stand.
 
 | Capability absent   | Recording affected | Substitution                                   |
 |---------------------|--------------------|-------------------------------------------------|

@@ -20,17 +20,17 @@ operating system, and giving a dependency-free layer its own link target buys a 
 
 ## 1. The Components
 
+🚧 Partially completed — `WindowInterchange`, `InputExchange` and `TickSequence` are built. The six below are
+unbuilt and keep their declarations here.
+
 | Component              | What crosses                                                | Owns memory |
 |------------------------|-------------------------------------------------------------|-------------|
 | `PlatformInterchange`  | Process, thread, timing and locale services                 | Yes         |
 | `FileInterchange`      | One stream surface over three file systems                  | Yes         |
 | `StorageExchange`      | Byte ranges arriving from the storage device                | Yes         |
-| `WindowInterchange`    | One window surface over three window systems                | Yes         |
-| `InputExchange`        | Timestamped device samples crossing in                      | Yes         |
 | `ClipboardExchange`    | Text and imagery crossing to and from the OS                | Yes         |
 | `CodeInterchange`      | Compiled code plus a verified interface hash crossing in    | Yes         |
 | `InstructionExchange`  | Runtime selection of an instruction-set specialisation      | Yes         |
-| `TickSequence`         | Monotonically increasing ordering points                    | Yes         |
 
 ⚠️ `WindowInterchange` (here, in `SlateMath`) and `WindowExchange` (in `06`, `SlateVulkan`) are distinct and both
 required. `WindowInterchange` produces a native window over three window systems. `WindowExchange` converts that
@@ -38,25 +38,21 @@ native handle into a `VkSurfaceKHR`. The split is what keeps `SlateMath` device-
 
 ## 2. Windowing
 
-Windowing is implemented over GLFW, linked dynamically through `glfw3dll.lib` against `glfw3.dll`.
+✔️ Windowing done — GLFW through `glfw3dll.lib`, the native handle surrendered and nothing else, no Vulkan
+header reached from here.
 
-🔴 Linking `glfw3.lib` — the static import library — while `glfw3.dll` is present produces a build that links and
-then misbehaves at runtime. This is the single most repeated packaging defect in the source documents and it is
-called out here because the failure is silent.
-
-`WindowInterchange` surrenders the native handle and nothing else. It does not know what a surface is, does not
-include a Vulkan header, and does not name a swap chain.
+🔴 Linking `glfw3.lib` while `glfw3.dll` is present produces a build that links and then misbehaves at runtime.
+The failure is silent, so the gate in §7 stays.
 
 ## 3. Input
 
-Input samples are timestamped at arrival by `TickSequence`, not at consumption. A stroke sampled at device rate
-and consumed at display rate must reconstruct the path the artist actually drew, and that reconstruction is only
-possible if arrival times survive. `22` depends on this directly: an impression sequence rebuilt from consumption
-timestamps has the display rate baked into the stroke.
+🚧 Partially completed — arrival timestamping from `TickSequence` is built, and the cyclic sample order with it.
+The axes are not: pressure, tilt and rotation must be carried when the device reports them and marked **absent**
+when it does not, because a tablet reporting no tilt and a stylus held upright are different facts and `22`
+treats them differently. Absent is distinct from zero, and the present sample carries no way to say so.
 
-Pressure, tilt and rotation axes are carried when the device reports them and marked absent when it does not.
-Absent is distinct from zero. A tablet that reports no tilt and a stylus held perfectly upright are different
-facts, and `22` treats them differently.
+A stroke sampled at device rate and consumed at display rate must reconstruct the path the artist drew, which is
+why arrival times and not consumption times survive.
 
 ## 4. Streams
 
