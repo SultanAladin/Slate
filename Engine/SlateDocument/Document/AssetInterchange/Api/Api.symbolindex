@@ -142,7 +142,7 @@ F AssetInterchange::Report               | AssetInterchange.h | 207     | api,no
     in    Reporting  ReportSequence&  [-]  ?
     in    Sampled    TickPoint        [-]  ?
     out   -          void             [-]  ?
-    by    Api/BrushSpecification.h, Api/ChartPartition.h, Api/IntakeIndex.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, (+3 more)
+    by    Api/BrushSpecification.h, Api/ChartPartition.h, Api/IntakeIndex.h, Api/SurfaceTileSpace.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, (+5 more)
 
 F AssetInterchange::IntakenTopologyCount | AssetInterchange.h | 209     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -156,4 +156,4 @@ F SLATE_DECLARES_PRECISION               | AssetInterchange.h | 223     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+13 more)
+    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+19 more)

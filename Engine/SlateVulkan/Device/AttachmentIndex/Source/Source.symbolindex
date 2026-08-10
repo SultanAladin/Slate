@@ -1,0 +1,79 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The construct declared from the claimed formats, the span derived over the claimed views, and the two reclamations.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateVulkan/Device/AttachmentIndex/Source
+%layer      SlateVulkan
+%sources    1
+%symbols    11
+%annotated  0/11
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S AttachmentIndex.cpp | 343 lines | 16a3775b | 11 sym | The construct declared from the claimed formats, the span derived over the claimed views, and the two reclamations.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      CONSTRUCTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AttachmentIndex::LayoutOf         | AttachmentIndex.cpp | 15-19   | -          | - | ?
+    in    DepthAspect  bool           [-]  ?
+    out   -            VkImageLayout  [-]  ?
+
+F AttachmentIndex::Construct        | AttachmentIndex.cpp | 21-30   | -          | - | ?
+    in    Exchange  const VulkanExchange&  [-]  ?
+    in    Claimed   const TargetSpace&     [-]  ?
+    out   -         Outcome<bool>          [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE DECLARATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AttachmentIndex::Declare          | AttachmentIndex.cpp | 36-151  | -          | - | ?
+    in    Declaring  const ConstructDeclaration&  [-]  ?
+    out   -          Outcome<std::uint32_t>       [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE DERIVATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AttachmentIndex::Derive           | AttachmentIndex.cpp | 157-242 | -          | - | ?
+    in    DisplayWidth   std::uint32_t  [-]  ?
+    in    DisplayHeight  std::uint32_t  [-]  ?
+    out   -              Outcome<bool>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE RESOLUTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AttachmentIndex::Resolve          | AttachmentIndex.cpp | 248-271 | -          | - | ?
+    in    ConstructOrdinal  std::uint32_t             [-]  ?
+    out   -                 Outcome<ConstructedSpan>  [-]  ?
+
+F AttachmentIndex::ConstructOf      | AttachmentIndex.cpp | 273-282 | -          | - | ?
+    in    ConstructOrdinal  std::uint32_t          [-]  ?
+    out   -                 Outcome<VkRenderPass>  [-]  ?
+
+F AttachmentIndex::DeclaredCount    | AttachmentIndex.cpp | 284-287 | -          | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F AttachmentIndex::SpansDerived     | AttachmentIndex.cpp | 289-292 | -          | - | ?
+    out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      RECLAMATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AttachmentIndex::Surrender        | AttachmentIndex.cpp | 298-316 | -          | - | ?
+    out   -  void  [-]  ?
+
+F AttachmentIndex::Reclaim          | AttachmentIndex.cpp | 318-336 | -          | - | ?
+    out   -  void  [-]  ?
+
+F AttachmentIndex::~AttachmentIndex | AttachmentIndex.cpp | 338-341 | destructor | - | ?

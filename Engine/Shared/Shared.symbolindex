@@ -7,13 +7,13 @@
 %scope    layer
 %path     Engine/Shared
 %folders  1
-%symbols  99
+%symbols  93
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Shared | Shared/Shared.symbolindex | 99 sym | The scattering medium, the phase functions and the three surface parameterisations — one source, both toolchains.
+I Shared | Shared/Shared.symbolindex | 93 sym | The scattering medium, the phase functions and the three surface parameterisations — one source, both toolchains.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -71,44 +71,38 @@ F AccumulateProduct              | Shared/OrientationClassifier.slang.h  | 154-1
 F ClassifyOrientation            | Shared/OrientationClassifier.slang.h  | 185-254 | Classifies the turn direction of Alpha → Beta → Gamma. Positive is counter-clockwise.
 F AccumulateWinding              | Shared/PlanarClassifier.slang.h       | 45-80   | Accumulates one edge's contribution to the winding number, the crossing count and the boundary condition. exclusive — is what makes a position level with a shared vertex contribute exactly once. A closed test counts it twice on one side and not at all on the other, and the artist sees a hole at every vertex.
 F ResolveContainment             | Shared/PlanarClassifier.slang.h       | 100-116 | Resolves accumulated counts into a containment classification. the host has no spelling the shader toolchain shares. `52` holds the declared rule; this reads the one bit of it that the classification depends on. boundary reported as interior gives every outline a one-texel bias outward at its own edge.
-K SLATE_SHARED                   | Shared/Prelude.slang.h                | 18      | ?
-K SLATE_CONSTEXPR                | Shared/Prelude.slang.h                | 19      | ?
-K SLATE_OUT                      | Shared/Prelude.slang.h                | 20      | ?
-K SLATE_INOUT                    | Shared/Prelude.slang.h                | 21      | ?
-K SLATE_INOUT_SPAN               | Shared/Prelude.slang.h                | 22      | ?
-A Real64                         | Shared/Prelude.slang.h                | 24      | ?
-A Real32                         | Shared/Prelude.slang.h                | 25      | ?
-A Signed32                       | Shared/Prelude.slang.h                | 26      | ?
-A Unsigned32                     | Shared/Prelude.slang.h                | 27      | ?
-A Unsigned64                     | Shared/Prelude.slang.h                | 28      | ?
-F Magnitude                      | Shared/Prelude.slang.h                | 30-33   | ?
-F SquareRoot                     | Shared/Prelude.slang.h                | 35-38   | ?
-F Sine                           | Shared/Prelude.slang.h                | 40-43   | ?
-F Cosine                         | Shared/Prelude.slang.h                | 45-48   | ?
-F Exponential                    | Shared/Prelude.slang.h                | 50-53   | ?
-F ArcCosine                      | Shared/Prelude.slang.h                | 55-58   | ?
-F ArcTangentQuadrant             | Shared/Prelude.slang.h                | 60-63   | ?
-F BoundedMagnitude               | Shared/Prelude.slang.h                | 65-68   | ?
-F ReversedBits                   | Shared/Prelude.slang.h                | 70-73   | ?
-K SLATE_SHARED                   | Shared/Prelude.slang.h                | 84      | ?
-K SLATE_CONSTEXPR                | Shared/Prelude.slang.h                | 85      | ?
-K SLATE_OUT                      | Shared/Prelude.slang.h                | 86      | ?
-K SLATE_INOUT                    | Shared/Prelude.slang.h                | 87      | ?
-K SLATE_INOUT_SPAN               | Shared/Prelude.slang.h                | 88      | ?
-A Real64                         | Shared/Prelude.slang.h                | 90      | ?
-A Real32                         | Shared/Prelude.slang.h                | 91      | ?
-A Signed32                       | Shared/Prelude.slang.h                | 92      | ?
-A Unsigned32                     | Shared/Prelude.slang.h                | 93      | ?
-A Unsigned64                     | Shared/Prelude.slang.h                | 94      | ?
-F Magnitude                      | Shared/Prelude.slang.h                | 96-99   | ?
-F SquareRoot                     | Shared/Prelude.slang.h                | 101-104 | ?
-F Sine                           | Shared/Prelude.slang.h                | 106-109 | ?
-F Cosine                         | Shared/Prelude.slang.h                | 111-114 | ?
-F Exponential                    | Shared/Prelude.slang.h                | 116-119 | ?
-F ArcCosine                      | Shared/Prelude.slang.h                | 121-124 | ?
-F ArcTangentQuadrant             | Shared/Prelude.slang.h                | 126-129 | ?
-F BoundedMagnitude               | Shared/Prelude.slang.h                | 134-137 | ?
-F ReversedBits                   | Shared/Prelude.slang.h                | 142-150 | ?
+K SLATE_SHARED                   | Shared/Prelude.slang.h                | 25      | ?
+K SLATE_CONSTEXPR                | Shared/Prelude.slang.h                | 26      | ?
+K SLATE_OUT                      | Shared/Prelude.slang.h                | 27      | ?
+K SLATE_INOUT                    | Shared/Prelude.slang.h                | 28      | ?
+K SLATE_INOUT_SPAN               | Shared/Prelude.slang.h                | 29      | ?
+A Real32x2                       | Shared/Prelude.slang.h                | 36      | ?
+A Real32x4                       | Shared/Prelude.slang.h                | 37      | ?
+A Unsigned32x2                   | Shared/Prelude.slang.h                | 47      | ?
+A Unsigned32x3                   | Shared/Prelude.slang.h                | 48      | ?
+F Magnitude                      | Shared/Prelude.slang.h                | 50-53   | ?
+F SquareRoot                     | Shared/Prelude.slang.h                | 55-58   | ?
+F Sine                           | Shared/Prelude.slang.h                | 60-63   | ?
+F Cosine                         | Shared/Prelude.slang.h                | 65-68   | ?
+F Exponential                    | Shared/Prelude.slang.h                | 70-73   | ?
+F ArcCosine                      | Shared/Prelude.slang.h                | 75-78   | ?
+F ArcTangentQuadrant             | Shared/Prelude.slang.h                | 80-83   | ?
+F BoundedMagnitude               | Shared/Prelude.slang.h                | 85-88   | ?
+F ReversedBits                   | Shared/Prelude.slang.h                | 90-93   | ?
+K SLATE_SHARED                   | Shared/Prelude.slang.h                | 103     | ?
+K SLATE_CONSTEXPR                | Shared/Prelude.slang.h                | 104     | ?
+K SLATE_OUT                      | Shared/Prelude.slang.h                | 105     | ?
+K SLATE_INOUT                    | Shared/Prelude.slang.h                | 106     | ?
+K SLATE_INOUT_SPAN               | Shared/Prelude.slang.h                | 107     | ?
+F Magnitude                      | Shared/Prelude.slang.h                | 109-112 | ?
+F SquareRoot                     | Shared/Prelude.slang.h                | 114-117 | ?
+F Sine                           | Shared/Prelude.slang.h                | 119-122 | ?
+F Cosine                         | Shared/Prelude.slang.h                | 124-127 | ?
+F Exponential                    | Shared/Prelude.slang.h                | 129-132 | ?
+F ArcCosine                      | Shared/Prelude.slang.h                | 134-137 | ?
+F ArcTangentQuadrant             | Shared/Prelude.slang.h                | 139-142 | ?
+F BoundedMagnitude               | Shared/Prelude.slang.h                | 147-150 | ?
+F ReversedBits                   | Shared/Prelude.slang.h                | 155-163 | ?
 K SlateRadicalDigitCeiling       | Shared/SampleProjection.slang.h       | 25      | ?
 F ProjectRadicalTwo              | Shared/SampleProjection.slang.h       | 43-48   | The radical inverse of one ordinal in base two. and the scale is a change of exponent alone. This is the strongest determinism available anywhere in the engine, and it is why the first coordinate of every sample is the base-two one.
 F ProjectRadicalThree            | Shared/SampleProjection.slang.h       | 61-81   | The radical inverse of one ordinal in base three. single division at the end is correctly rounded. Accumulating a fraction digit by digit instead would round twenty times, and the twenty roundings differ between two toolchains that reassociate. inverse. The result stays in the unit interval and stays deterministic; it merely repeats sooner.

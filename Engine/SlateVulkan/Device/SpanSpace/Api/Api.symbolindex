@@ -1,0 +1,134 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Device linear extents, each sliced out of ByteSpace and each declaring what the device is permitted to read it as.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateVulkan/Device/SpanSpace/Api
+%layer      SlateVulkan
+%sources    1
+%symbols    17
+%annotated  12/17
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S SpanSpace.h | 187 lines | 5510de0b | 17 sym | Device linear extents, each sliced out of ByteSpace and each declaring what the device is permitted to read it as.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  WHAT A SPAN CARRIES
+//------------------------------------------------------------------------------------------------------------------------
+
+V AbsentSpan              | SpanSpace.h | 25      | -                         | -  | ?
+    by    Api/VisibilityRaster.h, Source/SpanSpace.cpp, Source/VisibilityRaster.cpp
+
+E SpanIntent              | SpanSpace.h | 35-43   | contract                  | -  | What the device is permitted to read one span as, which the vendor requires at its creation. span created without the indirect read is one the recording meets as a validation error at the draw — four calls and one ordering away from the declaration that omitted it. way. The transfer **out** is declared only where something reads it back, since `06` §3 sizes the host-writable extent against what is staged rather than against what is claimed.
+    has   StorageRead     SpanIntent  [-]  ?
+    has   StorageWritten  SpanIntent  [-]  ?
+    has   UniformRead     SpanIntent  [-]  ?
+    has   IndirectRecord  SpanIntent  [-]  ?
+    has   TransferSource  SpanIntent  [-]  ?
+    has   IntentCount     SpanIntent  [-]  ?
+    by    Api/VisibilityRaster.h, Source/SpanSpace.cpp, Source/VisibilityRaster.cpp
+    note  🔴 Declared and never inferred. The vendor fixes the permitted reads when the span is created, and a
+    note  ⚠️ Every intent below admits a transfer into the span, because a device-local span is written no other
+
+T SpanShape               | SpanSpace.h | 50-55   | nonallocating,nonthrowing | -  | The shape one span is claimed at — how far it runs, what reads it, and where it lives. device-local for `16`'s partitioning and host-writable for a per-rotation uniform, and the two claim sites know which they are while a table keyed on the intent could not.
+    has   SpanBytes  VkDeviceSize     [-]  ?
+    has   Intent     SpanIntent       [-]  ?
+    has   Residency  ExtentResidency  [-]  ?
+    by    Source/SpanSpace.cpp, Source/VisibilityRaster.cpp
+    note  ⚠️ The residency is declared rather than derived from the intent, because a `StorageRead` span is
+
+T SpanClaim               | SpanSpace.h | 62-68   | nonallocating,nonthrowing | -  | One claimed span — the vendor object, how far it runs, and where the host may write it. convenience. A caller writing through it unconditionally has written through a null address on the residency that carries the working set, which is every residency but staging.
+    has   Extent       VkBuffer       [-]  ?
+    has   SpanBytes    VkDeviceSize   [-]  ?
+    has   HostAddress  void*          [-]  ?
+    has   SpanOrdinal  std::uint32_t  [-]  ?
+    by    Source/SpanSpace.cpp, Source/VisibilityRaster.cpp
+    note  🔴 `HostAddress` is null for every device-local claim, and that is the distinction rather than a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE SPAN INDEX
+//------------------------------------------------------------------------------------------------------------------------
+
+T SpanSpace               | SpanSpace.h | 83-185  | owning                    | -  | Every linear device extent the engine holds, each sliced out of `ByteSpace` and resolved by its ordinal. what occupies them; `ImageSpace` occupies them with images and this occupies them with spans. Until this stood, `16` §4's "positions and ordinals read from declared spans" named a vendor object nothing the ordinal it recorded. Erasing would renumber every claim above the released one, and the document holding the ordinal has no way to observe that it was renumbered.
+    in    the           engine could construct.  [-]  ?
+    has   DeviceEdge    const VulkanExchange*    [-]  ?
+    has   BackingBytes  ByteSpace*               [-]  ?
+    has   Spans         std::vector<HeldSpan>    [-]  ?
+    by    Api/VisibilityRaster.h, Source/SpanSpace.cpp, Source/VisibilityRaster.cpp
+    note  🔴 The sibling of `ImageSpace` and deliberately its shape. `ByteSpace` owns bytes and knows nothing of
+    note  ⚠️ A released slot is reused rather than erased, so an ordinal a contributing document recorded stays
+
+F SpanSpace::~SpanSpace   | SpanSpace.h | 90      | destructor                | -  | ?
+
+F SpanSpace::Construct    | SpanSpace.h | 98      | api,nonthrowing           | ✔️ | Takes the device and the byte extents every claimed span is sliced from.
+    in    Exchange      const VulkanExchange&  [-]  the created device; borrowed, never owned, and outlives this component
+    in    BackingSpace  ByteSpace&             [-]  where span bytes come from; borrowed and outlives this component
+    out   -             Outcome                [-]  refuses with CapabilityAbsent when no device is active
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
+
+F SpanSpace::Claim        | SpanSpace.h | 109     | api,nonthrowing           | 🔴 | Claims one span of the declared shape and binds the bytes it occupies. a zero span or an intent outside the declared set allocation nothing holds a reference to, reclaimed only at device teardown.
+    in    Declared  const SpanShape&  [-]  the shape; nothing about it is inferred from the intent but its permitted reads
+    out   -         Outcome           [-]  refuses with ExtentExhausted when no bytes remain, and with ContentUnsupported for
+    post  the span stands and is written by a transfer, or through its host address where it carries one
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/StrokeSpace.h, Api/TileSpace.h, (+12 more)
+    note  🔴 Refused in full. A span whose bytes were claimed and whose binding was declined leaves a vendor
+
+F SpanSpace::Amend        | SpanSpace.h | 122     | api,nonthrowing           | 🚩 | Writes host-supplied bytes into one host-writable span. span, and with ExtentExhausted when the write would run past the claim extent as coherent precisely so that a caller cannot forget the flush at one of its write sites.
+    in    SpanOrdinal    std::uint32_t  [-]  a claim this component issued
+    in    Arriving       const void*    [-]  what is written; read for ArrivingBytes and never retained
+    in    ArrivingBytes  VkDeviceSize   [B]  how far the write runs
+    in    ByteOffset     VkDeviceSize   [B]  where in the span the write begins
+    out   -              Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal or a device-local
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+14 more)
+    note  🔴 The span is host-coherent, so nothing is flushed here. `ByteSpace` claims the host-writable
+
+F SpanSpace::Transfer     | SpanSpace.h | 139     | api,nonthrowing           | ✔️ | Records the transfer that carries one span's bytes into another. ExtentExhausted when the transfer would run past either span knows which stage reads them. A transfer recorded without one is read by the device at whatever moment its scheduling reaches it, which is a partitioning that is correct on one driver.
+    in    Recorded       VkCommandBuffer  [-]  the recording being written into
+    in    SourceOrdinal  std::uint32_t    [-]  a claim this component issued, declared as a transfer source
+    in    TargetOrdinal  std::uint32_t    [-]  a claim this component issued
+    in    TransferBytes  VkDeviceSize     [B]  how far the transfer runs; zero reads as the whole of the source
+    out   -              Outcome          [-]  refuses with ContentUnsupported for an unclaimed ordinal and with
+    by    Api/ColourProjection.h, Shader/MultiScatterSurface.slang, Source/AtmosphereIntegrator.cpp, Source/ColourProjection.cpp, Source/SpanSpace.cpp, Source/VisibilityRaster.cpp
+    note  ⚠️ The barrier that makes the transferred bytes readable is the caller's, because only the caller
+
+F SpanSpace::Standing     | SpanSpace.h | 149     | api,nonthrowing           | ✔️ | The current record for one claimed span.
+    in    SpanOrdinal  std::uint32_t  [-]  a claim this component issued
+    out   -            Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/ImageSpace.h, Api/OutlinerSequence.h, (+24 more)
+
+F SpanSpace::Release      | SpanSpace.h | 156     | api,nonthrowing           | 🚩 | Destroys one span and returns its bytes.
+    in    SpanOrdinal  std::uint32_t  [-]  a claim this component issued; an unclaimed ordinal is a no-op
+    out   -            void           [-]  ?
+    pre   the device is idle, or no recording still in the rotation reads it
+    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/PopulationIndex.h, Api/TileSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, (+6 more)
+
+F SpanSpace::Reclaim      | SpanSpace.h | 162     | api,nonthrowing           | 🔴 | Releases every claimed span.
+    out   -  void  [-]  ?
+    pre   the device is idle
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+
+F SpanSpace::ClaimedCount | SpanSpace.h | 164     | -                         | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+5 more)
+
+F SpanSpace::ClaimedBytes | SpanSpace.h | 165     | -                         | -  | ?
+    out   -  VkDeviceSize  [-]  ?
+    by    Api/ByteSpace.h, Api/ImageSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp
+
+T SpanSpace::HeldSpan     | SpanSpace.h | 169-175 | -                         | -  | ?
+    has   Extent        VkBuffer   [-]  ?
+    has   Backing       ByteClaim  [-]  ?
+    has   Shape         SpanShape  [-]  ?
+    has   SlotOccupied  bool       [-]  ?
+    by    Source/SpanSpace.cpp
+
+F SpanSpace::UsageOf      | SpanSpace.h | 180     | -                         | -  | What the declared intent permits the device to read a span as, as the vendor spells it.
+    in    Intent  SpanIntent  [-]  the declared intent
+    out   -       Usage       [-]  the vendor flags, transfer destination included
+    by    Api/ImageSpace.h, Source/ImageSpace.cpp, Source/SpanSpace.cpp

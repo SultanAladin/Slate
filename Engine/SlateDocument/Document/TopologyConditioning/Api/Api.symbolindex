@@ -29,7 +29,7 @@ E DegeneracySubject                          | TopologyConditioning.h | 28-36  |
     has   NonManifoldEdge  DegeneracySubject  [-]  ?
     has   IsolatedVertex   DegeneracySubject  [-]  ?
     has   DegeneracyCount  DegeneracySubject  [-]  ?
-    by    Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
+    by    Source/PartitionStructure.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
     note  🔴 `38` §3: removal is what an editor does. Removing a face renumbers everything after it, and every
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ E DegeneracySubject                          | TopologyConditioning.h | 28-36  |
 T ConditionedExtent                          | TopologyConditioning.h | 46-50  | nonallocating,nonthrowing     | -  | One axis-aligned extent in object space, rounded conservatively outward. symptom is a surface that disappears at one camera angle. Outward costs a nanometre and nothing else.
     has   Least     DocumentPosition  [-]  ?
     has   Greatest  DocumentPosition  [-]  ?
-    by    Api/SpatialSubdivision.h, Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
+    by    Api/PartitionStructure.h, Api/SpatialSubdivision.h, Source/ConsoleHost.cpp, Source/PartitionStructure.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
     note  🔴 `38` §6: an extent rounded inward excludes geometry from `16`'s culling and `40`'s traversal, and the
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ T TopologyConditioning                       | TopologyConditioning.h | 66-167 |
     has   DistinctPositionCount   std::uint32_t                                  [-]  ?
     has   UnorientedFaceCount     std::uint32_t                                  [-]  ?
     has   BasesRetained           bool                                           [-]  ?
-    by    Api/ChartPartition.h, Api/SpatialSubdivision.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
+    by    Api/ChartPartition.h, Api/PartitionStructure.h, Api/SpatialSubdivision.h, Api/VisibilityIndex.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+4 more)
     note  🔴 `38`'s opening rule: conditioning **derives**; it never mutates. The imported arrays are untouched and
     note  🔴 `Condition` reads only the supplied topology, which `TopologyStructure::Seal` has made immutable. That
     note  🔴 Every derived property is in **object space** — `38` §5's last row. An artist arranging a scene must
@@ -69,7 +69,7 @@ F TopologyConditioning::Condition            | TopologyConditioning.h | 76     |
     in    Imported  const TopologyStructure&  [-]  the topology, sealed and therefore immutable for this whole run
     out   -         Outcome                   [-]  refuses with HostDenied for an unsealed topology
     post  every read below describes the supplied topology at its sealed revision
-    by    Source/ConsoleHost.cpp, Source/TopologyConditioning.cpp
+    by    Contract/ToolchainContract.h, Source/ConsoleHost.cpp, Source/TopologyConditioning.cpp
 
 F TopologyConditioning::WeldedPosition       | TopologyConditioning.h | 86     | api,nonthrowing               | ✔️ | The welded position one imported vertex belongs to. and two points in the file. `68` unwraps against the welded positions so a chart does not split at every coordinate discontinuity, and `18` reads the imported ordinals so authored coordinates live.
     in    VertexOrdinal  std::uint32_t  [-]  an imported vertex
@@ -80,14 +80,14 @@ F TopologyConditioning::WeldedPosition       | TopologyConditioning.h | 86     |
 F TopologyConditioning::AdjacentCorner       | TopologyConditioning.h | 94     | api,nonthrowing               | ✔️ | The corner across the edge one corner opens, where exactly one face is adjacent there. traversal's result depend on face declaration order, and `34` §6 forbids exactly that shape.
     in    CornerOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ContentUnsupported at a boundary or non-manifold edge
-    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/TopologyConditioning.cpp
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionStructure.cpp, Source/TopologyConditioning.cpp
     note  Refuses rather than reporting a chosen one of several. An adjacency that picks arbitrarily makes a
 
 F TopologyConditioning::FaceEnrolled         | TopologyConditioning.h | 100    | api,nonallocating,nonthrowing | ✔️ | Whether one face is enrolled under a degeneracy condition.
     in    FaceOrdinal  std::uint32_t      [-]  ?
     in    Condition    DegeneracySubject  [-]  ?
     out   -            bool               [-]  ?
-    by    Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
+    by    Source/PartitionStructure.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
     note  Answered by interval comparison, per `38` §3, so an excluded population costs nothing to skip.
 
 F TopologyConditioning::VertexIsolated       | TopologyConditioning.h | 105    | api,nonallocating,nonthrowing | ✔️ | Whether one vertex is enrolled as isolated.
@@ -98,7 +98,7 @@ F TopologyConditioning::VertexIsolated       | TopologyConditioning.h | 105    |
 F TopologyConditioning::Enrolled             | TopologyConditioning.h | 110    | api,nonallocating,nonthrowing | ✔️ | The runs of one enrolled condition, for whoever excludes a whole span at once.
     in    Condition  DegeneracySubject                     [-]  ?
     out   -          const std::vector<EnrolledInterval>&  [-]  ?
-    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+4 more)
+    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+8 more)
 
 F TopologyConditioning::Perpendiculars       | TopologyConditioning.h | 112    | -                             | -  | ?
     out   -  const std::vector<SurfaceDirection>&  [-]  ?
@@ -110,7 +110,7 @@ F TopologyConditioning::TangentBases         | TopologyConditioning.h | 113    |
 
 F TopologyConditioning::FaceExtents          | TopologyConditioning.h | 114    | -                             | -  | ?
     out   -  const std::vector<ConditionedExtent>&  [-]  ?
-    by    Api/SpatialSubdivision.h, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
+    by    Api/SpatialSubdivision.h, Source/PartitionStructure.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
 
 F TopologyConditioning::TopologyExtent       | TopologyConditioning.h | 119    | api,nonallocating,nonthrowing | ✔️ | The extent of the whole topology, conservative outward.
     out   -  ConditionedExtent  [-]  ?
@@ -122,7 +122,7 @@ F TopologyConditioning::WeldedCount          | TopologyConditioning.h | 124    |
 
 F TopologyConditioning::ConditionedRevision  | TopologyConditioning.h | 129    | api,nonallocating,nonthrowing | ✔️ | The topology revision this conditioning describes.
     out   -  std::uint64_t  [-]  ?
-    by    Source/ChartPartition.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
+    by    Source/ChartPartition.cpp, Source/PartitionStructure.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp
 
 F TopologyConditioning::TangentBasesRetained | TopologyConditioning.h | 136    | api,nonallocating,nonthrowing | ✔️ | Whether the tangent bases were supplied by the source rather than derived here. consumer tells which of the two it is reading.
     out   -  bool  [-]  ?
@@ -167,4 +167,4 @@ F SLATE_DECLARES_PRECISION                   | TopologyConditioning.h | 172    |
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+13 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)

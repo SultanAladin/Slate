@@ -41,10 +41,13 @@
 #include "SlateVulkan/Device/RenderSchedule/Api/RenderSchedule.h"
 
 #include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
+#include "SlateCompute/Compute/ImpressionSequence/Api/ImpressionSequence.h"
 #include "SlateCompute/Compute/ParityRunner/Api/ParityRunner.h"
 #include "SlateCompute/Compute/SeamSpecification/Api/SeamSpecification.h"
 #include "SlateCompute/Compute/DomainSpace/Api/DomainSpace.h"
 #include "SlateCompute/Compute/ChartPartition/Api/ChartPartition.h"
+#include "SlateDocument/Document/BrushSpecification/Api/BrushSpecification.h"
+#include "SlateDocument/Document/SurfaceLayerSequence/Api/SurfaceLayerSequence.h"
 
 // 📝 🔴 This host names no interface component and constructs no instance. `00` §2.2 keeps exactly one copy
 //    of ImGui, compiled inside SlateUI; a headless host reaching for it would be linking a window-system
@@ -2648,7 +2651,288 @@ void VerifyIntake()
                Interchange.Report(Reporting, HostTimeline.Advance());
                return Reporting.AppendedCount() == Appended;
            }(),
-           "[-] a second call appends nothing further");
+            "[-] a second call appends nothing further");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE STROKE
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📐 The stroke is verified at the coarsest reduction level, whose cells `20` §3 keeps permanently resident. That
+//    makes the whole path exercisable without a promotion budget, and the deferral check below then paints at the
+//    finest level — where nothing is resident — so both halves of `22` §2's rule are measured rather than assumed.
+void VerifyStroke()
+{
+    std::printf("ImpressionSequence\n");
+
+    Report("A working extent that is no level is refused",
+           !Slate::PaintingLevelOf(100u).ContentPresent,
+           "[-] refuses rather than rounding to the nearest");
+
+    const Slate::Outcome<std::uint32_t> Coarsest = Slate::PaintingLevelOf(Slate::CoverageTileTexels);
+
+    Report("The coarsest extent resolves its level",
+           Coarsest.ContentPresent && Coarsest.Resolve() == Slate::ReductionLevelCount - 1u,
+           "[-] one cell of one hundred and twenty-eight texels");
+
+    Slate::SurfaceTileSpace Residency;
+
+    Report("The residency constructs",
+           Residency.Construct(0u, 16u, 64u).ContentPresent,
+           "[-] the permanent levels are resident");
+
+    // 📝 One painted entry at the coarsest extent, three components — a colour channel and nothing else. The
+    //    placement is supplied rather than derived, per `00` §12's open packing row.
+    Slate::SurfaceLayerSequence Content;
+
+    Slate::LayerSpecification Painting;
+    Painting.Source                 = Slate::LayerContentSource::PaintedImpressions;
+    Painting.Painted.ExtentTexels   = Slate::CoverageTileTexels;
+    Painting.Painted.ComponentCount = 3u;
+    Painting.Painted.Texels.assign(static_cast<std::size_t>(Slate::CoverageTileTexels)
+                                 * Slate::CoverageTileTexels * 3u, 0.0f);
+
+    const Slate::Outcome<Slate::LayerIdentity> Appended = Content.Append(Painting);
+
+    Report("A painted entry appends", Appended.ContentPresent, "[-] at the declared extent");
+
+    if (!Appended.ContentPresent)
+        return;
+
+    Slate::LayerSpecification Analytic;
+    Analytic.Source        = Slate::LayerContentSource::AnalyticResolution;
+    Analytic.SourceOrdinal = 1u;
+
+    const Slate::Outcome<Slate::LayerIdentity> Described = Content.Append(Analytic);
+
+    Report("A described entry refuses amendment",
+           Described.ContentPresent && !Content.AmendPainted(Described.Resolve()).ContentPresent,
+           "[-] `56` §3: it stores a description, not texels");
+
+    Slate::BrushSpecification Brush;
+
+    Slate::ImpressionShape Shape;
+    Shape.Source  = Slate::ShapeSource::Analytic;
+    Shape.Profile = Slate::ProfileSubject::Linear;
+
+    Brush.DeclareShape(Shape);
+    Brush.DeclareExtent(0.1);
+    Brush.DeclareSpacing(0.25);
+
+    Slate::BrushChannelValue Albedo;
+    Albedo.Channel                     = Slate::ChannelSubject::AlbedoColour;
+    Albedo.ColourDeclared              = true;
+    Albedo.ColourValue.RedCoordinate   = 1.0;
+    Albedo.ColourValue.SpaceIdentity   = Slate::WorkingSpaceIdentity;
+
+    Report("The brush declares a channel",
+           Brush.DeclareChannel(Albedo).ContentPresent,
+           "[-] a value per channel, never a bare colour");
+
+    Slate::ChannelPlacement Placing;
+    Placing.Channel          = Slate::ChannelSubject::AlbedoColour;
+    Placing.ComponentOrdinal = 0u;
+    Placing.ComponentSpan    = 3u;
+
+    Slate::StrokeDeclaration Declaring;
+    Declaring.Subject        = Appended.Resolve();
+    Declaring.WorkingExtent  = Slate::CoverageTileTexels;
+    Declaring.ComponentCount = 3u;
+    Declaring.StrokeSeed     = 7u;
+    Declaring.Placements.push_back(Placing);
+
+    Slate::ImpressionSequence Stroke;
+
+    Slate::StrokeDeclaration Mismatched = Declaring;
+    Mismatched.Placements[0].ComponentSpan = 1u;
+
+    Report("A placement of the wrong span is refused",
+           !Stroke.Open(Mismatched, Brush).ContentPresent,
+           "[-] a colour occupies three components");
+
+    Slate::StrokeDeclaration Overrunning = Declaring;
+    Overrunning.Placements[0].ComponentOrdinal = 2u;
+
+    Report("A placement past the components is refused",
+           !Stroke.Open(Overrunning, Brush).ContentPresent,
+           "[-] it would write into the next texel");
+
+    Report("The stroke opens", Stroke.Open(Declaring, Brush).ContentPresent, "[-] nothing is recorded yet");
+
+    Report("A second open is refused",
+           !Stroke.Open(Declaring, Brush).ContentPresent,
+           "[-] one stroke at a time");
+
+    // 📐 A straight path of length 0.4 at a spacing of 0.25 × 0.1 places one impression at the origin and one
+    //    every 0.025 thereafter — seventeen in all. Measured rather than asserted, because the spacing comes
+    //    from the previously resolved brush and an off-by-one there is invisible in the painted result.
+    const Slate::TickSequence StrokeTimeline;
+
+    Slate::StrokeArrival Beginning;
+    Beginning.SurfaceResolved       = true;
+    Beginning.PositionAlong         = 0.3;
+    Beginning.PositionAcross        = 0.5;
+    Beginning.Arriving.Arrival      = StrokeTimeline.Advance();
+
+    Stroke.Amend(Beginning);
+
+    Report("The first arrival places an impression",
+           Stroke.ImpressionCount() == 1u,
+           "[-] a tap paints; it does not wait for a tangent");
+
+    Slate::StrokeArrival Ending = Beginning;
+    Ending.PositionAlong        = 0.7;
+    Ending.Arriving.Arrival     = StrokeTimeline.Advance();
+
+    Stroke.Amend(Ending);
+
+    Report("The path resamples at the brush's spacing",
+           Stroke.ImpressionCount() == 17u,
+           "[-] seventeen over four tenths, at one fortieth");
+
+    Report("The path length is the domain distance",
+           std::fabs(Stroke.PathLength() - 0.4) < 1.0e-9,
+           "[-] resampled in the domain, never in pixels");
+
+    // 🔴 A break must not interpolate. A stroke that leaves the surface and returns paints no line between the
+    //    two places, and the artist cannot undo half of one stroke to remove one.
+    const std::uint32_t BeforeBreak = Stroke.ImpressionCount();
+
+    Slate::StrokeArrival Left;
+    Left.SurfaceResolved   = false;
+    Left.Arriving.Arrival  = StrokeTimeline.Advance();
+
+    Stroke.Amend(Left);
+
+    Slate::StrokeArrival Returned = Beginning;
+    Returned.PositionAlong        = 0.1;
+    Returned.PositionAcross       = 0.1;
+    Returned.Arriving.Arrival     = StrokeTimeline.Advance();
+
+    Stroke.Amend(Returned);
+
+    Report("A broken path interpolates nothing",
+           Stroke.ImpressionCount() == BeforeBreak,
+           "[-] the gap is not painted across");
+
+    Slate::RequestQueue Requesting;
+
+    const Slate::Outcome<Slate::ResolvedRun> Ran = Stroke.Resolve(Residency, Requesting, 1u);
+
+    Report("Every impression resolved",
+           Ran.ContentPresent && Ran.Resolve().DeferredCount == 0u && Stroke.PendingCount() == 0u,
+           "[-] the coarsest level is permanently resident");
+
+    Report("The accumulation claimed one cell",
+           Stroke.Accumulation().ClaimedCount() == 1u,
+           "[-] one cell at the coarsest level");
+
+    Report("The tile it touched is uncommitted",
+           Residency.Cells().UncommittedCount() == 1u,
+           "[-] `20` §5: it is never evicted while the stroke is open");
+
+    Slate::RevisionSequence Revised;
+
+    const Slate::Outcome<Slate::SealedStroke> Sealed =
+        Stroke.Seal(Content, Revised, Residency, 1000000000ull);
+
+    Report("The stroke seals one transaction",
+           Sealed.ContentPresent && Revised.Committed().size() == 1u,
+           "[-] one stroke, one transaction — never one per sample");
+
+    Report("The gate is withdrawn at Seal",
+           Residency.Cells().UncommittedCount() == 0u,
+           "[-] the paint is in `56`; the tile is a projection again");
+
+    Report("The seed travelled with the transaction",
+           Sealed.ContentPresent && Sealed.Resolve().Recorded.StrokeSeed == 7u,
+           "[-] `58` §6: parameters recorded, never a reference");
+
+    const Slate::Outcome<const Slate::LayerSpecification*> Written = Content.Resolve(Appended.Resolve());
+
+    // 📐 The impression at the path's origin covers the texel under it at full coverage, so the red component
+    //    there is the brush's own. A zero would mean the coverage never reached the entry at all.
+    const std::size_t Centre = (static_cast<std::size_t>(64) * Slate::CoverageTileTexels + 38u) * 3u;
+
+    Report("The accumulated coverage reached the entry",
+           Written.ContentPresent && Written.Resolve()->Painted.Texels[Centre] > 0.99f,
+           "[-] applied once, at the stroke's own combination");
+
+    Report("A texel the stroke never reached is untouched",
+           Written.ContentPresent && Written.Resolve()->Painted.Texels[0] == 0.0f,
+           "[-] bounded by the impressions, not by the surface");
+
+    Report("The inverse restores what stood before",
+           Sealed.ContentPresent
+        && Slate::Restore(Sealed.Resolve(), Content).ContentPresent
+        && Content.Resolve(Appended.Resolve()).Resolve()->Painted.Texels[Centre] == 0.0f,
+           "[-] extent-bounded, and replayed rather than snapshotted");
+
+    // 🔴 `22` §2's other half: an impression whose cells are not resident at the painting level demands and
+    //    defers. Nothing is dropped and nothing resolves coarse, so the pending count survives the rotation.
+    Slate::SurfaceLayerSequence FineContent;
+
+    Slate::LayerSpecification Fine;
+    Fine.Source                 = Slate::LayerContentSource::PaintedImpressions;
+    Fine.Painted.ExtentTexels   = Slate::MaximumWorkingEdge;
+    Fine.Painted.ComponentCount = 1u;
+
+    Slate::StrokeDeclaration Deferring = Declaring;
+    Deferring.WorkingExtent  = Slate::MaximumWorkingEdge;
+    Deferring.ComponentCount = 3u;
+    Deferring.Subject        = Appended.Resolve();
+
+    Slate::ImpressionSequence Deferred;
+
+    Deferred.Open(Deferring, Brush);
+    Deferred.Amend(Beginning);
+
+    const std::uint64_t DemandedBefore = Requesting.RecordedCount();
+
+    const Slate::Outcome<Slate::ResolvedRun> Waiting = Deferred.Resolve(Residency, Requesting, 2u);
+
+    Report("A non-resident cell defers rather than coarsening",
+           Waiting.ContentPresent && Waiting.Resolve().DeferredCount == 1u && Deferred.PendingCount() == 1u,
+           "[-] paint at the wrong resolution is permanently wrong");
+
+    Report("The deferral recorded a demand",
+           Requesting.RecordedCount() > DemandedBefore,
+           "[-] demanded and deferred, never dropped");
+
+    Report("The accumulation stayed empty",
+           Deferred.Accumulation().ClaimedCount() == 0u,
+           "[-] nothing partial was written");
+
+    Deferred.Abandon(Residency);
+
+    Report("Abandonment records nothing",
+           Revised.Committed().size() == 1u && !Deferred.StrokeOpen(),
+           "[-] the prior contents stand");
+
+    // 🔴 `22` §4.1: a speculative extent never commits and never pins a tile. Both are measured, because the
+    //    second is the property that separates a preview from an uncommitted stroke.
+    Slate::StrokeDeclaration Previewing = Declaring;
+    Previewing.Speculative              = true;
+
+    Slate::ImpressionSequence Preview;
+
+    Preview.Open(Previewing, Brush);
+    Preview.Amend(Beginning);
+    Preview.Resolve(Residency, Requesting, 3u);
+
+    Report("A speculative extent pins nothing",
+           Preview.Accumulation().ClaimedCount() != 0u && Residency.Cells().UncommittedCount() == 0u,
+           "[-] hovering never exhausts residency");
+
+    Report("A speculative extent never seals",
+           !Preview.Seal(Content, Revised, Residency, 2000000000ull).ContentPresent,
+           "[-] a preview is not a stroke the artist made");
+
+    Report("A speculative extent reclaims per rotation",
+           Preview.ReclaimSpeculative().ContentPresent && Preview.Accumulation().ClaimedCount() == 0u,
+           "[-] discarded and re-resolved, `22` §4.1");
+
+    Preview.Abandon(Residency);
 }
 
 }   // namespace
@@ -2704,6 +2988,9 @@ int main()
     std::printf("\n");
 
     VerifyIntake();
+    std::printf("\n");
+
+    VerifyStroke();
     std::printf("\n");
 
     VerifySchedule();

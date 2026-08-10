@@ -1,0 +1,971 @@
+//============================================================================================================================================
+//                                                          OCCLUSIONSCHEDULER.CPP
+//============================================================================================================================================
+// 🧩 The claimed chain, the per-level reduction it is filled by, and the two culling dispatches that compact survivors out of it.
+
+#include "SlateCompute/Compute/VisibilityIndex/Api/OcclusionScheduler.h"
+
+#include <cstring>
+
+namespace Slate
+{
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   WHAT THE DEVICE READS
+//------------------------------------------------------------------------------------------------------------------------
+
+namespace
+{
+
+// 📝 The reduction's workgroup edge, matching `Shader/DepthReduction.slang`'s `[numthreads(8, 8, 1)]`. One invocation per texel
+//    of the level being written, so the dispatch is the written extent rounded up to this on both ordinates.
+constexpr std::uint32_t ReductionWorkgroupEdge = 8u;   // [-] - invocations per edge of one reduction workgroup
+
+// 📝 The cull's flat workgroup extent, matching `Shader/OcclusionCulling.slang`'s `[numthreads(64, 1, 1)]`. One invocation per
+//    **partition**, not per triangle — the compaction writes a run per surviving partition and the run length is the
+//    partition's own triangle count, so a per-triangle lane would write the same run a hundred times.
+constexpr std::uint32_t OcclusionWorkgroupLanes = 64u;   // [-] - invocations per cull workgroup
+
+// 📝 Three ordinals per level in the extent span — where the level begins in the chain, and how far it runs on each axis. The
+//    device selects its own level from a projected extent and then needs all three to address it, which is why the offset is
+//    carried rather than re-derived: the halving rounds up, so a device-side prefix sum would have to repeat that rounding
+//    exactly and a single disagreement addresses another level entirely.
+constexpr std::uint32_t OrdinalsPerLevel = 3u;   // [-] - offset, along, across
+
+// 📝 🔴 `VkDrawIndirectCommand` and not the indexed form. `16` §4's raster draws its fan with `vkCmdDraw` — the corners are
+//    reached by division and remainder over the vertex ordinal and no index span exists — so an indexed record would name an
+//    index buffer the draw does not bind. The vertex count is what the cull's atomic advances.
+constexpr VkDeviceSize IndirectRecordBytes = sizeof(VkDrawIndirectCommand);   // [B] - one record per residency per slot
+
+}   // namespace
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     CONSTRUCTION
+//------------------------------------------------------------------------------------------------------------------------
+
+Outcome<bool> OcclusionScheduler::Construct(SpanSpace&         Spans,
+                                            ImageSpace&        Images,
+                                            const TargetSpace& Claimed,
+                                            ShaderCodec&       Modules,
+                                            DescriptorIndex&   Descriptors,
+                                            ProgramIndex&      Programs)
+{
+    SpanEdge       = &Spans;
+    ImageEdge      = &Images;
+    TargetEdge     = &Claimed;
+    ModuleEdge     = &Modules;
+    DescriptorEdge = &Descriptors;
+    ProgramEdge    = &Programs;
+
+    // 🔴 The three reduction slots and their order are the shader's, and the depth target is a **sampled** image rather than a
+    //    storage one. `08` §2 claims it with `ImageIntent::DepthTarget`, whose usage admits sampling and attachment and not
+    //    storage; a layout declaring a storage image here is one the vendor accepts and the descriptor write then refuses.
+    std::vector<DescriptorSlot> Reducing;
+
+    DescriptorSlot ReductionRecord;
+    ReductionRecord.SlotOrdinal    = 0u;
+    ReductionRecord.Carried        = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ReductionRecord.CarriedCount   = 1u;
+    ReductionRecord.ReachingStages = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    DescriptorSlot DepthRead;
+    DepthRead.SlotOrdinal    = 1u;
+    DepthRead.Carried        = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    DepthRead.CarriedCount   = 1u;
+    DepthRead.ReachingStages = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    DescriptorSlot ChainWritten;
+    ChainWritten.SlotOrdinal    = 2u;
+    ChainWritten.Carried        = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    ChainWritten.CarriedCount   = 1u;
+    ChainWritten.ReachingStages = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    Reducing.push_back(ReductionRecord);
+    Reducing.push_back(DepthRead);
+    Reducing.push_back(ChainWritten);
+
+    const Outcome<std::uint32_t> ReductionDeclared = DescriptorEdge->Declare(Reducing);
+
+    if (!ReductionDeclared.ContentPresent)
+        return Outcome<bool>::Refuse(ReductionDeclared.Declined);
+
+    ReductionLayout = ReductionDeclared.Resolve();
+
+    // 📝 Six slots: the record, the classification, the chain, the level extents, the surviving run and the indirect record.
+    //    The classification is read **and written** — the dispatch writes the standing back so phase ③ can test only what ①
+    //    rejected — which is why it is a storage buffer rather than a uniform.
+    std::vector<DescriptorSlot> Culling;
+
+    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < 6u; ++SlotOrdinal)
+    {
+        DescriptorSlot Declaring;
+        Declaring.SlotOrdinal    = SlotOrdinal;
+        Declaring.Carried        = SlotOrdinal == 0u ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                                                     : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        Declaring.CarriedCount   = 1u;
+        Declaring.ReachingStages = VK_SHADER_STAGE_COMPUTE_BIT;
+
+        Culling.push_back(Declaring);
+    }
+
+    const Outcome<std::uint32_t> OcclusionDeclared = DescriptorEdge->Declare(Culling);
+
+    if (!OcclusionDeclared.ContentPresent)
+        return Outcome<bool>::Refuse(OcclusionDeclared.Declined);
+
+    OcclusionLayout = OcclusionDeclared.Resolve();
+
+    const Outcome<std::uint32_t> ReductionStream = ModuleEdge->Resolve("SlateCompute", "DepthReduction");
+
+    if (!ReductionStream.ContentPresent)
+        return Outcome<bool>::Refuse(ReductionStream.Declined);
+
+    const Outcome<std::uint32_t> OcclusionStream = ModuleEdge->Resolve("SlateCompute", "OcclusionCulling");
+
+    if (!OcclusionStream.ContentPresent)
+        return Outcome<bool>::Refuse(OcclusionStream.Declined);
+
+    ReductionModule  = ReductionStream.Resolve();
+    OcclusionModule  = OcclusionStream.Resolve();
+
+    ComputeDeclaration Reducer;
+    Reducer.ModuleOrdinal  = ReductionModule;
+    Reducer.LayoutOrdinals = { ReductionLayout };
+
+    const Outcome<std::uint32_t> ReducerProgram = ProgramEdge->DeclareCompute(Reducer);
+
+    if (!ReducerProgram.ContentPresent)
+        return Outcome<bool>::Refuse(ReducerProgram.Declined);
+
+    ComputeDeclaration Culler;
+    Culler.ModuleOrdinal  = OcclusionModule;
+    Culler.LayoutOrdinals = { OcclusionLayout };
+
+    const Outcome<std::uint32_t> CullerProgram = ProgramEdge->DeclareCompute(Culler);
+
+    if (!CullerProgram.ContentPresent)
+        return Outcome<bool>::Refuse(CullerProgram.Declined);
+
+    ReductionProgram = ReducerProgram.Resolve();
+    OcclusionProgram = CullerProgram.Resolve();
+
+    return Outcome<bool>::Deliver(true);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE ORDERING
+//------------------------------------------------------------------------------------------------------------------------
+
+void OcclusionScheduler::Order(VkCommandBuffer      Recorded,
+                               VkPipelineStageFlags ReadStages,
+                               VkAccessFlags        ReadAccess)
+{
+    // 📝 A global memory barrier rather than one per span. Every ordering this component records is "everything the dispatch
+    //    just wrote, before everything the next thing reads", and naming the spans individually would be four buffer barriers
+    //    saying the same thing — with four more places for a span added later to be forgotten.
+    VkMemoryBarrier Ordered = {};
+    Ordered.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    Ordered.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    Ordered.dstAccessMask = ReadAccess;
+
+    vkCmdPipelineBarrier(Recorded, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, ReadStages,
+                         0u, 1u, &Ordered, 0u, nullptr, 0u, nullptr);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE CHAIN
+//------------------------------------------------------------------------------------------------------------------------
+
+Outcome<bool> OcclusionScheduler::Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross)
+{
+    if (SpanEdge == nullptr || DescriptorEdge == nullptr || TargetEdge == nullptr)
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "nothing was constructed" });
+
+    const Outcome<bool> Chained = Reduced().ChainDerived()
+                                ? Outcome<bool>::Deliver(true)
+                                : Outcome<bool>::Deliver(true);
+
+    static_cast<void>(Chained);
+
+    const Outcome<bool> Derived = Chain.Construct(DisplayAlong, DisplayAcross);
+
+    if (!Derived.ContentPresent)
+        return Derived;
+
+    // 📝 The previous chain's spans are released before the new ones are claimed. `06` §7 requires the device to be idle here,
+    //    so nothing is still reading them — and holding them would leak one chain's worth of extent per resize.
+    if (ChainSpan != AbsentSpan)
+        SpanEdge->Release(ChainSpan);
+
+    if (LevelExtentSpan != AbsentSpan)
+        SpanEdge->Release(LevelExtentSpan);
+
+    for (const std::uint32_t Held : ReductionSpans)
+    {
+        if (Held != AbsentSpan)
+            SpanEdge->Release(Held);
+    }
+
+    ChainSpan         = AbsentSpan;
+    LevelExtentSpan   = AbsentSpan;
+    ReductionRecorded = false;
+
+    ReductionSpans.clear();
+    LevelOffsets.clear();
+
+    const std::uint32_t Levels = Chain.LevelCount();
+
+    // 🔴 A span of reals and not of the depth target's own reduction levels. `DepthReduction` halves by rounding **up** and the
+    //    vendor's level extents halve by rounding down, so the two disagree from the first odd ordinate; `08` §2 claims every
+    //    target with one level; and the depth format admits no storage usage, so no dispatch could write into it.
+    SpanShape ChainShape;
+    ChainShape.SpanBytes = Chain.ChainTexels() * static_cast<VkDeviceSize>(sizeof(float));
+    ChainShape.Intent    = SpanIntent::StorageRead;
+    ChainShape.Residency = ExtentResidency::DeviceLocal;
+
+    const Outcome<SpanClaim> ChainClaimed = SpanEdge->Claim(ChainShape);
+
+    if (!ChainClaimed.ContentPresent)
+        return Outcome<bool>::Refuse(ChainClaimed.Declined);
+
+    ChainSpan = ChainClaimed.Resolve().SpanOrdinal;
+
+    // 📐 The offsets are accumulated here in the one place, from the same level extents the chain was sized against. Deriving
+    //    them a second time on the device would be deriving one prefix sum twice.
+    LevelOffsets.assign(static_cast<std::size_t>(Levels) * OrdinalsPerLevel, 0u);
+
+    std::uint32_t Accumulated = 0u;
+
+    for (std::uint32_t LevelOrdinal = 0u; LevelOrdinal < Levels; ++LevelOrdinal)
+    {
+        const Outcome<ReductionLevel> Held = Chain.Level(LevelOrdinal);
+
+        if (!Held.ContentPresent)
+            return Outcome<bool>::Refuse(Held.Declined);
+
+        LevelOffsets[LevelOrdinal * OrdinalsPerLevel]        = Accumulated;
+        LevelOffsets[LevelOrdinal * OrdinalsPerLevel + 1u]   = Held.Resolve().ExtentAlong;
+        LevelOffsets[LevelOrdinal * OrdinalsPerLevel + 2u]   = Held.Resolve().ExtentAcross;
+
+        Accumulated += Held.Resolve().ExtentAlong * Held.Resolve().ExtentAcross;
+    }
+
+    // 📝 Host-writable rather than device-local, and deliberately so — the offsets are derived on the host and written once per
+    //    derivation, so a device-local span would need a staging span and a recorded transfer to carry a few dozen words.
+    SpanShape ExtentShape;
+    ExtentShape.SpanBytes = static_cast<VkDeviceSize>(LevelOffsets.size() * sizeof(std::uint32_t));
+    ExtentShape.Intent    = SpanIntent::StorageRead;
+    ExtentShape.Residency = ExtentResidency::HostWritable;
+
+    const Outcome<SpanClaim> ExtentClaimed = SpanEdge->Claim(ExtentShape);
+
+    if (!ExtentClaimed.ContentPresent)
+        return Outcome<bool>::Refuse(ExtentClaimed.Declined);
+
+    LevelExtentSpan = ExtentClaimed.Resolve().SpanOrdinal;
+
+    const Outcome<bool> ExtentWritten = SpanEdge->Amend(LevelExtentSpan,
+                                                        LevelOffsets.data(),
+                                                        ExtentShape.SpanBytes,
+                                                        0u);
+
+    if (!ExtentWritten.ContentPresent)
+        return Outcome<bool>::Refuse(ExtentWritten.Declined);
+
+    // 📝 One uniform span per level per rotation slot. The record differs per level and the rotation depth is what keeps the
+    //    slot being written from being the slot the device is reading, so both factors are real.
+    ReductionSpans.assign(static_cast<std::size_t>(Levels) * RecordingRotationDepth, AbsentSpan);
+
+    for (std::size_t Ordinal = 0u; Ordinal < ReductionSpans.size(); ++Ordinal)
+    {
+        SpanShape RecordShape;
+        RecordShape.SpanBytes = static_cast<VkDeviceSize>(sizeof(UploadedReduction));
+        RecordShape.Intent    = SpanIntent::UniformRead;
+        RecordShape.Residency = ExtentResidency::HostWritable;
+
+        const Outcome<SpanClaim> RecordClaimed = SpanEdge->Claim(RecordShape);
+
+        if (!RecordClaimed.ContentPresent)
+            return Outcome<bool>::Refuse(RecordClaimed.Declined);
+
+        ReductionSpans[Ordinal] = RecordClaimed.Resolve().SpanOrdinal;
+    }
+
+    // 🔴 The claims are taken **once**, at the first derivation, and reused by every later one. `DescriptorIndex` returns a set
+    //    to its extent only at teardown, so claiming again per resize would exhaust the extent at whatever number of resizes the
+    //    artist happened to perform — which is a failure that arrives after an hour of work and never in a test.
+    // 📝 One claim per possible level rather than per derived level, because a later derivation against a larger display carries
+    //    more levels than the first and no further claim is available to it by then.
+    if (ReductionClaim == AbsentDescriptor)
+    {
+        for (std::uint32_t LevelOrdinal = 0u; LevelOrdinal < ReductionLevelCeiling; ++LevelOrdinal)
+        {
+            const Outcome<std::uint32_t> Claimed = DescriptorEdge->Claim(ReductionLayout);
+
+            if (!Claimed.ContentPresent)
+                return Outcome<bool>::Refuse(Claimed.Declined);
+
+            // 🔴 The claims must be consecutive, because `ReduceLevel` addresses them as a base plus a level ordinal rather than
+            //    holding a run of its own. `DescriptorIndex` issues them consecutively; this confirms it rather than assuming it,
+            //    so a later component claiming between two of these is a refusal here instead of a set bound to another layout.
+            if (LevelOrdinal == 0u)
+            {
+                ReductionClaim = Claimed.Resolve();
+            }
+            else if (Claimed.Resolve() != ReductionClaim + LevelOrdinal)
+            {
+                return Outcome<bool>::Refuse(
+                    { RefusalReason::HostDenied, "the reduction claims were not issued consecutively" });
+            }
+        }
+    }
+
+    const Outcome<ImageClaim> DepthStanding = TargetEdge->Resolve(SharedTarget::DepthSurface);
+
+    if (!DepthStanding.ContentPresent)
+        return Outcome<bool>::Refuse(DepthStanding.Declined);
+
+    const Outcome<SpanClaim> ChainStanding  = SpanEdge->Standing(ChainSpan);
+    const Outcome<SpanClaim> ExtentStanding = SpanEdge->Standing(LevelExtentSpan);
+
+    if (!ChainStanding.ContentPresent || !ExtentStanding.ContentPresent)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a claimed span no longer stands" });
+
+    for (std::uint32_t LevelOrdinal = 0u; LevelOrdinal < Levels; ++LevelOrdinal)
+    {
+        for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+        {
+            const std::size_t SpanOrdinal = static_cast<std::size_t>(LevelOrdinal) * RecordingRotationDepth + RotationSlot;
+
+            const Outcome<SpanClaim> RecordStanding = SpanEdge->Standing(ReductionSpans[SpanOrdinal]);
+
+            if (!RecordStanding.ContentPresent)
+                return Outcome<bool>::Refuse(RecordStanding.Declined);
+
+            DescriptorContent Recording;
+            Recording.SlotOrdinal = 0u;
+            Recording.SpanExtent  = RecordStanding.Resolve().Extent;
+            Recording.SpanBytes   = RecordStanding.Resolve().SpanBytes;
+
+            DescriptorContent Depth;
+            Depth.SlotOrdinal   = 1u;
+            Depth.ImageView     = DepthStanding.Resolve().WholeView;
+            Depth.ImageStanding = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            DescriptorContent Chained_;
+            Chained_.SlotOrdinal = 2u;
+            Chained_.SpanExtent  = ChainStanding.Resolve().Extent;
+            Chained_.SpanBytes   = ChainStanding.Resolve().SpanBytes;
+
+            const std::vector<DescriptorContent> Amending = { Recording, Depth, Chained_ };
+
+            const Outcome<bool> Amended = DescriptorEdge->Amend(ReductionClaim + LevelOrdinal, RotationSlot, Amending);
+
+            if (!Amended.ContentPresent)
+                return Outcome<bool>::Refuse(Amended.Declined);
+        }
+    }
+
+    // 🔴 Every standing residency's chain and level bindings are rewritten here, because the two spans they name were just
+    //    released. A residency claimed before a resize and left pointing at the previous chain is one whose dispatch reads a
+    //    vendor span the driver has already reclaimed — which reports as a device loss rather than as a stale binding.
+    for (const CulledResidency& Standing : Culled)
+    {
+        for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+        {
+            DescriptorContent Chained_;
+            Chained_.SlotOrdinal = 2u;
+            Chained_.SpanExtent  = ChainStanding.Resolve().Extent;
+            Chained_.SpanBytes   = ChainStanding.Resolve().SpanBytes;
+
+            DescriptorContent Extents;
+            Extents.SlotOrdinal = 3u;
+            Extents.SpanExtent  = ExtentStanding.Resolve().Extent;
+            Extents.SpanBytes   = ExtentStanding.Resolve().SpanBytes;
+
+            const std::vector<DescriptorContent> Amending = { Chained_, Extents };
+
+            const Outcome<bool> Amended =
+                DescriptorEdge->Amend(Standing.ClaimOrdinals[RotationSlot], RotationSlot, Amending);
+
+            if (!Amended.ContentPresent)
+                return Outcome<bool>::Refuse(Amended.Declined);
+        }
+    }
+
+    return Outcome<bool>::Deliver(true);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE RESIDENCY
+//------------------------------------------------------------------------------------------------------------------------
+
+void OcclusionScheduler::Abandon(CulledResidency& Abandoned)
+{
+    if (SpanEdge == nullptr)
+        return;
+
+    for (const std::uint32_t Held : Abandoned.ClassifiedSpans)
+    {
+        if (Held != AbsentSpan)
+            SpanEdge->Release(Held);
+    }
+
+    for (const std::uint32_t Held : Abandoned.OcclusionSpans)
+    {
+        if (Held != AbsentSpan)
+            SpanEdge->Release(Held);
+    }
+
+    for (const std::uint32_t Held : Abandoned.RecordSpans)
+    {
+        if (Held != AbsentSpan)
+            SpanEdge->Release(Held);
+    }
+
+    if (Abandoned.SurvivingSpan != AbsentSpan)
+        SpanEdge->Release(Abandoned.SurvivingSpan);
+
+    Abandoned = CulledResidency{};
+}
+
+Outcome<std::uint32_t> OcclusionScheduler::Resolve(std::uint32_t TriangleCeiling, std::uint32_t PartitionCount)
+{
+    if (SpanEdge == nullptr || DescriptorEdge == nullptr)
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "nothing was constructed" });
+
+    if (ChainSpan == AbsentSpan || LevelExtentSpan == AbsentSpan)
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no chain is derived" });
+
+    if (TriangleCeiling == 0u || PartitionCount == 0u)
+    {
+        return Outcome<std::uint32_t>::Refuse(
+            { RefusalReason::ContentUnsupported, "a residency carrying no partition and no triangle" });
+    }
+
+    CulledResidency Arriving;
+    Arriving.TriangleCeiling = TriangleCeiling;
+    Arriving.PartitionCount  = PartitionCount;
+
+    // ⚠️ The surviving run is sized to the residency's **whole** triangle count. A tighter claim would be a bound on how much
+    //    can survive, and nothing about the cull supplies one — every partition surviving is the ordinary case for a camera
+    //    looking at an unoccluded object.
+    SpanShape SurvivingShape;
+    SurvivingShape.SpanBytes = static_cast<VkDeviceSize>(TriangleCeiling) * sizeof(std::uint32_t);
+    SurvivingShape.Intent    = SpanIntent::StorageRead;
+    SurvivingShape.Residency = ExtentResidency::DeviceLocal;
+
+    const Outcome<SpanClaim> Surviving = SpanEdge->Claim(SurvivingShape);
+
+    if (!Surviving.ContentPresent)
+    {
+        Abandon(Arriving);
+        return Outcome<std::uint32_t>::Refuse(Surviving.Declined);
+    }
+
+    Arriving.SurvivingSpan = Surviving.Resolve().SpanOrdinal;
+
+    for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+    {
+        SpanShape ClassifiedShape;
+        ClassifiedShape.SpanBytes = static_cast<VkDeviceSize>(PartitionCount) * sizeof(ClassifiedPartition);
+        ClassifiedShape.Intent    = SpanIntent::StorageRead;
+        ClassifiedShape.Residency = ExtentResidency::HostWritable;
+
+        const Outcome<SpanClaim> Classified = SpanEdge->Claim(ClassifiedShape);
+
+        if (!Classified.ContentPresent)
+        {
+            Abandon(Arriving);
+            return Outcome<std::uint32_t>::Refuse(Classified.Declined);
+        }
+
+        Arriving.ClassifiedSpans.push_back(Classified.Resolve().SpanOrdinal);
+
+        SpanShape UniformShape;
+        UniformShape.SpanBytes = static_cast<VkDeviceSize>(sizeof(UploadedOcclusion));
+        UniformShape.Intent    = SpanIntent::UniformRead;
+        UniformShape.Residency = ExtentResidency::HostWritable;
+
+        const Outcome<SpanClaim> Uniform = SpanEdge->Claim(UniformShape);
+
+        if (!Uniform.ContentPresent)
+        {
+            Abandon(Arriving);
+            return Outcome<std::uint32_t>::Refuse(Uniform.Declined);
+        }
+
+        Arriving.OcclusionSpans.push_back(Uniform.Resolve().SpanOrdinal);
+
+        SpanShape RecordShape;
+        RecordShape.SpanBytes = IndirectRecordBytes;
+        RecordShape.Intent    = SpanIntent::IndirectRecord;
+        RecordShape.Residency = ExtentResidency::HostWritable;
+
+        const Outcome<SpanClaim> Record = SpanEdge->Claim(RecordShape);
+
+        if (!Record.ContentPresent)
+        {
+            Abandon(Arriving);
+            return Outcome<std::uint32_t>::Refuse(Record.Declined);
+        }
+
+        Arriving.RecordSpans.push_back(Record.Resolve().SpanOrdinal);
+
+        const Outcome<std::uint32_t> Claimed = DescriptorEdge->Claim(OcclusionLayout);
+
+        if (!Claimed.ContentPresent)
+        {
+            Abandon(Arriving);
+            return Outcome<std::uint32_t>::Refuse(Claimed.Declined);
+        }
+
+        Arriving.ClaimOrdinals.push_back(Claimed.Resolve());
+    }
+
+    const Outcome<SpanClaim> ChainStanding     = SpanEdge->Standing(ChainSpan);
+    const Outcome<SpanClaim> ExtentStanding    = SpanEdge->Standing(LevelExtentSpan);
+    const Outcome<SpanClaim> SurvivingStanding = SpanEdge->Standing(Arriving.SurvivingSpan);
+
+    if (!ChainStanding.ContentPresent || !ExtentStanding.ContentPresent || !SurvivingStanding.ContentPresent)
+    {
+        Abandon(Arriving);
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a claimed span no longer stands" });
+    }
+
+    // 🔴 The set is written here, once per rotation slot. Every span it names stands for the life of the residency, so a
+    //    per-rotation write would rewrite one arrangement with itself — and would do it to a set the previous rotation's
+    //    dispatch is still reading.
+    for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+    {
+        const Outcome<SpanClaim> Uniform    = SpanEdge->Standing(Arriving.OcclusionSpans[RotationSlot]);
+        const Outcome<SpanClaim> Classified = SpanEdge->Standing(Arriving.ClassifiedSpans[RotationSlot]);
+        const Outcome<SpanClaim> Record     = SpanEdge->Standing(Arriving.RecordSpans[RotationSlot]);
+
+        if (!Uniform.ContentPresent || !Classified.ContentPresent || !Record.ContentPresent)
+        {
+            Abandon(Arriving);
+            return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a claimed span no longer stands" });
+        }
+
+        std::vector<DescriptorContent> Amending;
+
+        DescriptorContent Recorded_;
+        Recorded_.SlotOrdinal = 0u;
+        Recorded_.SpanExtent  = Uniform.Resolve().Extent;
+        Recorded_.SpanBytes   = Uniform.Resolve().SpanBytes;
+
+        DescriptorContent Tested;
+        Tested.SlotOrdinal = 1u;
+        Tested.SpanExtent  = Classified.Resolve().Extent;
+        Tested.SpanBytes   = Classified.Resolve().SpanBytes;
+
+        DescriptorContent Chained_;
+        Chained_.SlotOrdinal = 2u;
+        Chained_.SpanExtent  = ChainStanding.Resolve().Extent;
+        Chained_.SpanBytes   = ChainStanding.Resolve().SpanBytes;
+
+        DescriptorContent Extents;
+        Extents.SlotOrdinal = 3u;
+        Extents.SpanExtent  = ExtentStanding.Resolve().Extent;
+        Extents.SpanBytes   = ExtentStanding.Resolve().SpanBytes;
+
+        DescriptorContent Survived;
+        Survived.SlotOrdinal = 4u;
+        Survived.SpanExtent  = SurvivingStanding.Resolve().Extent;
+        Survived.SpanBytes   = SurvivingStanding.Resolve().SpanBytes;
+
+        DescriptorContent Drawn;
+        Drawn.SlotOrdinal = 5u;
+        Drawn.SpanExtent  = Record.Resolve().Extent;
+        Drawn.SpanBytes   = Record.Resolve().SpanBytes;
+
+        Amending.push_back(Recorded_);
+        Amending.push_back(Tested);
+        Amending.push_back(Chained_);
+        Amending.push_back(Extents);
+        Amending.push_back(Survived);
+        Amending.push_back(Drawn);
+
+        const Outcome<bool> Amended = DescriptorEdge->Amend(Arriving.ClaimOrdinals[RotationSlot], RotationSlot, Amending);
+
+        if (!Amended.ContentPresent)
+        {
+            Abandon(Arriving);
+            return Outcome<std::uint32_t>::Refuse(Amended.Declined);
+        }
+    }
+
+    const std::uint32_t CullingOrdinal = static_cast<std::uint32_t>(Culled.size());
+
+    Culled.push_back(Arriving);
+
+    return Outcome<std::uint32_t>::Deliver(CullingOrdinal);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE CLASSIFICATION
+//------------------------------------------------------------------------------------------------------------------------
+
+Outcome<bool> OcclusionScheduler::Amend(std::uint32_t                           CullingOrdinal,
+                                        std::uint32_t                           RotationSlot,
+                                        const std::vector<ClassifiedPartition>& Classified)
+{
+    if (SpanEdge == nullptr)
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "nothing was constructed" });
+
+    if (CullingOrdinal >= static_cast<std::uint32_t>(Culled.size()))
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no residency stands at that ordinal" });
+
+    if (RotationSlot >= RecordingRotationDepth)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+
+    CulledResidency& Standing = Culled[CullingOrdinal];
+
+    // 📝 Excluded partitions are carried across rather than dropped. The dispatch tests one partition per invocation and reads
+    //    the standing to skip what the host already rejected, which keeps the run at the declared partition count and lets the
+    //    entry point's dispatch extent be that same count.
+    if (static_cast<std::uint32_t>(Classified.size()) != Standing.PartitionCount)
+    {
+        return Outcome<bool>::Refuse(
+            { RefusalReason::ContentUnsupported, "the classification disagrees with the declared partition count" });
+    }
+
+    const Outcome<bool> Written = SpanEdge->Amend(Standing.ClassifiedSpans[RotationSlot],
+                                                  Classified.data(),
+                                                  static_cast<VkDeviceSize>(Classified.size() * sizeof(ClassifiedPartition)),
+                                                  0u);
+
+    if (!Written.ContentPresent)
+        return Outcome<bool>::Refuse(Written.Declined);
+
+    // 🔴 The record is cleared to a vertex count of **nought** here and never on the device. The atomic only ever advances it,
+    //    so a record carrying the previous rotation's count would have this rotation's survivors appended to it — and the draw
+    //    would then issue corners nothing wrote.
+    VkDrawIndirectCommand Cleared = {};
+    Cleared.vertexCount   = 0u;
+    Cleared.instanceCount = 1u;
+    Cleared.firstVertex   = 0u;
+    Cleared.firstInstance = 0u;
+
+    const Outcome<bool> Recorded = SpanEdge->Amend(Standing.RecordSpans[RotationSlot],
+                                                   &Cleared,
+                                                   IndirectRecordBytes,
+                                                   0u);
+
+    if (!Recorded.ContentPresent)
+        return Outcome<bool>::Refuse(Recorded.Declined);
+
+    AmendedFor[RotationSlot] = true;
+
+    return Outcome<bool>::Deliver(true);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE REDUCTION
+//------------------------------------------------------------------------------------------------------------------------
+
+Outcome<bool> OcclusionScheduler::ReduceLevel(VkCommandBuffer Recorded,
+                                              std::uint32_t   RotationSlot,
+                                              std::uint32_t   LevelOrdinal)
+{
+    const Outcome<ReductionLevel> Written = Chain.Level(LevelOrdinal);
+
+    if (!Written.ContentPresent)
+        return Outcome<bool>::Refuse(Written.Declined);
+
+    UploadedReduction Reducing;
+    Reducing.WrittenLevel  = LevelOrdinal;
+    Reducing.WrittenOffset = LevelOffsets[LevelOrdinal * OrdinalsPerLevel];
+    Reducing.WrittenAlong  = Written.Resolve().ExtentAlong;
+    Reducing.WrittenAcross = Written.Resolve().ExtentAcross;
+
+    // 🔴 `SourceFromTarget` is declared and never derived from `WrittenLevel` being nought. The derivation holds only while the
+    //    finest level's extent is the display's, and that is a condition the record cannot see.
+    if (LevelOrdinal == 0u)
+    {
+        Reducing.SourceOffset     = 0u;
+        Reducing.SourceAlong      = Written.Resolve().ExtentAlong;
+        Reducing.SourceAcross     = Written.Resolve().ExtentAcross;
+        Reducing.SourceFromTarget = 1u;
+    }
+    else
+    {
+        const Outcome<ReductionLevel> Source = Chain.Level(LevelOrdinal - 1u);
+
+        if (!Source.ContentPresent)
+            return Outcome<bool>::Refuse(Source.Declined);
+
+        Reducing.SourceOffset     = LevelOffsets[(LevelOrdinal - 1u) * OrdinalsPerLevel];
+        Reducing.SourceAlong      = Source.Resolve().ExtentAlong;
+        Reducing.SourceAcross     = Source.Resolve().ExtentAcross;
+        Reducing.SourceFromTarget = 0u;
+    }
+
+    const std::size_t SpanOrdinal = static_cast<std::size_t>(LevelOrdinal) * RecordingRotationDepth + RotationSlot;
+
+    const Outcome<bool> Amended = SpanEdge->Amend(ReductionSpans[SpanOrdinal],
+                                                  &Reducing,
+                                                  static_cast<VkDeviceSize>(sizeof(Reducing)),
+                                                  0u);
+
+    if (!Amended.ContentPresent)
+        return Outcome<bool>::Refuse(Amended.Declined);
+
+    const Outcome<ConstructedProgram> Program = ProgramEdge->Resolve(ReductionProgram);
+
+    if (!Program.ContentPresent)
+        return Outcome<bool>::Refuse(Program.Declined);
+
+    const Outcome<VkDescriptorSet> Reaching =
+        DescriptorEdge->Resolve(ReductionClaim + LevelOrdinal, RotationSlot);
+
+    if (!Reaching.ContentPresent)
+        return Outcome<bool>::Refuse(Reaching.Declined);
+
+    const ConstructedProgram& Constructed = Program.Resolve();
+    const VkDescriptorSet     Reached     = Reaching.Resolve();
+
+    vkCmdBindPipeline(Recorded, Constructed.RecordedAs, Constructed.Constructed);
+    vkCmdBindDescriptorSets(Recorded, Constructed.RecordedAs, Constructed.ReachedLayout, 0u, 1u, &Reached, 0u, nullptr);
+
+    const std::uint32_t GroupsAlong  = (Written.Resolve().ExtentAlong  + ReductionWorkgroupEdge - 1u) / ReductionWorkgroupEdge;
+    const std::uint32_t GroupsAcross = (Written.Resolve().ExtentAcross + ReductionWorkgroupEdge - 1u) / ReductionWorkgroupEdge;
+
+    vkCmdDispatch(Recorded, GroupsAlong, GroupsAcross, 1u);
+
+    return Outcome<bool>::Deliver(true);
+}
+
+Outcome<bool> OcclusionScheduler::Reduce(VkCommandBuffer Recorded, std::uint32_t RotationSlot)
+{
+    if (SpanEdge == nullptr || ProgramEdge == nullptr || ImageEdge == nullptr)
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "nothing was constructed" });
+
+    if (Recorded == VK_NULL_HANDLE)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no recording was supplied" });
+
+    if (RotationSlot >= RecordingRotationDepth)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+
+    if (ChainSpan == AbsentSpan || ReductionClaim == AbsentDescriptor)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no chain is derived" });
+
+    // 🔴 The depth target is transitioned here, through `ImageSpace` and nowhere else. `08` §4 keeps every layout transition in
+    //    that one place; a barrier issued at this site would leave its record naming a layout the image is not in, and the next
+    //    transition would then be issued from the wrong one.
+    const Outcome<std::uint32_t> DepthOrdinal = TargetEdge->OrdinalOf(SharedTarget::DepthSurface);
+
+    if (!DepthOrdinal.ContentPresent)
+        return Outcome<bool>::Refuse(DepthOrdinal.Declined);
+
+    const Outcome<bool> Transitioned =
+        ImageEdge->Transition(Recorded, DepthOrdinal.Resolve(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    if (!Transitioned.ContentPresent)
+        return Outcome<bool>::Refuse(Transitioned.Declined);
+
+    const std::uint32_t Levels = Chain.LevelCount();
+
+    for (std::uint32_t LevelOrdinal = 0u; LevelOrdinal < Levels; ++LevelOrdinal)
+    {
+        // 🔴 One barrier **between** every pair of levels and not one before the run. Each level reads the level above it, so a
+        //    run recorded without them has every dispatch reading whatever its predecessor had written when the scheduling
+        //    reached it — a reduction that is correct on one driver and differs by a level of depth on the next.
+        if (LevelOrdinal != 0u)
+            Order(Recorded, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+        const Outcome<bool> Written = ReduceLevel(Recorded, RotationSlot, LevelOrdinal);
+
+        if (!Written.ContentPresent)
+            return Written;
+    }
+
+    Order(Recorded, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+    ReductionRecorded = true;
+
+    return Outcome<bool>::Deliver(true);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE CULL
+//------------------------------------------------------------------------------------------------------------------------
+
+Outcome<bool> OcclusionScheduler::Cull(VkCommandBuffer Recorded, std::uint32_t RotationSlot, CullingPhase Phase)
+{
+    if (SpanEdge == nullptr || ProgramEdge == nullptr || DescriptorEdge == nullptr)
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "nothing was constructed" });
+
+    if (Recorded == VK_NULL_HANDLE)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no recording was supplied" });
+
+    if (RotationSlot >= RecordingRotationDepth)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+
+    if (Phase == CullingPhase::PhaseCount)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such culling phase" });
+
+    if (ChainSpan == AbsentSpan)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no chain is derived" });
+
+    // 🔴 A second cull in one rotation slot is refused, because both phases compact into the one record the residency claims
+    //    and the draw between them has already read it. `Amend` clears the record and sets this; the cull consumes it.
+    // 🚧 `16` §2's two-phase arrangement needs a second record and a second surviving run per rotation slot. Until those are
+    //    claimed the caller records **one** phase per rotation — `AgainstPrevious` while the reduction is a rotation old, or
+    //    `AgainstCurrent` after `Reduce`.
+    if (!AmendedFor[RotationSlot])
+    {
+        return Outcome<bool>::Refuse(
+            { RefusalReason::ContentUnsupported, "Amend has not written this rotation slot since the last cull" });
+    }
+
+    if (Phase == CullingPhase::AgainstCurrent && !ReductionRecorded)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no reduction has been recorded against the chain" });
+
+    const Outcome<ConstructedProgram> Program = ProgramEdge->Resolve(OcclusionProgram);
+
+    if (!Program.ContentPresent)
+        return Outcome<bool>::Refuse(Program.Declined);
+
+    const ConstructedProgram& Constructed = Program.Resolve();
+
+    vkCmdBindPipeline(Recorded, Constructed.RecordedAs, Constructed.Constructed);
+
+    for (const CulledResidency& Standing : Culled)
+    {
+        if (Standing.PartitionCount == 0u)
+            continue;
+
+        UploadedOcclusion Testing;
+        Testing.ClassifiedCount = Standing.PartitionCount;
+        Testing.DisplayAlong    = Chain.DisplayAlong();
+        Testing.DisplayAcross   = Chain.DisplayAcross();
+        Testing.TriangleCeiling = Standing.TriangleCeiling;
+
+        // 🔴 A chain nothing has reduced holds nothing declared, so phase ① of the first rotation after a derivation is recorded
+        //    as testing **no** level rather than as testing against arbitrary depth. Every admitted partition then survives,
+        //    which is the only conservative answer available before a reduction exists.
+        Testing.LevelCount = (Phase == CullingPhase::AgainstPrevious && !ReductionRecorded) ? 0u : Chain.LevelCount();
+
+        const Outcome<bool> Written = SpanEdge->Amend(Standing.OcclusionSpans[RotationSlot],
+                                                      &Testing,
+                                                      static_cast<VkDeviceSize>(sizeof(Testing)),
+                                                      0u);
+
+        if (!Written.ContentPresent)
+            return Outcome<bool>::Refuse(Written.Declined);
+
+        const Outcome<VkDescriptorSet> Reaching =
+            DescriptorEdge->Resolve(Standing.ClaimOrdinals[RotationSlot], RotationSlot);
+
+        if (!Reaching.ContentPresent)
+            return Outcome<bool>::Refuse(Reaching.Declined);
+
+        const VkDescriptorSet Reached = Reaching.Resolve();
+
+        vkCmdBindDescriptorSets(Recorded, Constructed.RecordedAs, Constructed.ReachedLayout,
+                                0u, 1u, &Reached, 0u, nullptr);
+
+        const std::uint32_t Groups =
+            (Standing.PartitionCount + OcclusionWorkgroupLanes - 1u) / OcclusionWorkgroupLanes;
+
+        vkCmdDispatch(Recorded, Groups, 1u, 1u);
+    }
+
+    // 🔴 The barrier declares the record as an **indirect** read and the surviving run as a vertex-stage storage read. A draw
+    //    recorded without it reads the record at whatever moment the scheduling reaches it, and the vertex count it finds there
+    //    is the count as of some earlier invocation — which draws a prefix of the survivors and reads as geometry culled at
+    //    random.
+    Order(Recorded,
+          VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+          VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT);
+
+    AmendedFor[RotationSlot] = false;
+
+    return Outcome<bool>::Deliver(true);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE READS
+//------------------------------------------------------------------------------------------------------------------------
+
+Outcome<VkBuffer> OcclusionScheduler::RecordOf(std::uint32_t CullingOrdinal, std::uint32_t RotationSlot) const
+{
+    if (SpanEdge == nullptr || CullingOrdinal >= static_cast<std::uint32_t>(Culled.size()))
+        return Outcome<VkBuffer>::Refuse({ RefusalReason::ContentUnsupported, "no residency stands at that ordinal" });
+
+    if (RotationSlot >= RecordingRotationDepth)
+        return Outcome<VkBuffer>::Refuse({ RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+
+    const Outcome<SpanClaim> Standing = SpanEdge->Standing(Culled[CullingOrdinal].RecordSpans[RotationSlot]);
+
+    if (!Standing.ContentPresent)
+        return Outcome<VkBuffer>::Refuse(Standing.Declined);
+
+    return Outcome<VkBuffer>::Deliver(Standing.Resolve().Extent);
+}
+
+Outcome<VkBuffer> OcclusionScheduler::SurvivingOf(std::uint32_t CullingOrdinal) const
+{
+    if (SpanEdge == nullptr || CullingOrdinal >= static_cast<std::uint32_t>(Culled.size()))
+        return Outcome<VkBuffer>::Refuse({ RefusalReason::ContentUnsupported, "no residency stands at that ordinal" });
+
+    const Outcome<SpanClaim> Standing = SpanEdge->Standing(Culled[CullingOrdinal].SurvivingSpan);
+
+    if (!Standing.ContentPresent)
+        return Outcome<VkBuffer>::Refuse(Standing.Declined);
+
+    return Outcome<VkBuffer>::Deliver(Standing.Resolve().Extent);
+}
+
+std::uint32_t OcclusionScheduler::CulledCount() const   { return static_cast<std::uint32_t>(Culled.size()); }
+std::uint32_t OcclusionScheduler::LevelCount() const    { return Chain.LevelCount();                        }
+bool          OcclusionScheduler::ChainDerived() const  { return ChainSpan != AbsentSpan;                   }
+bool          OcclusionScheduler::ChainReduced() const  { return ReductionRecorded;                         }
+
+bool OcclusionScheduler::ProgramsStanding() const
+{
+    return ReductionProgram != AbsentProgram && OcclusionProgram != AbsentProgram;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE RECLAMATION
+//------------------------------------------------------------------------------------------------------------------------
+
+void OcclusionScheduler::Reclaim()
+{
+    if (SpanEdge == nullptr)
+        return;
+
+    for (CulledResidency& Standing : Culled)
+        Abandon(Standing);
+
+    Culled.clear();
+
+    for (const std::uint32_t Held : ReductionSpans)
+    {
+        if (Held != AbsentSpan)
+            SpanEdge->Release(Held);
+    }
+
+    ReductionSpans.clear();
+    LevelOffsets.clear();
+
+    if (ChainSpan != AbsentSpan)
+        SpanEdge->Release(ChainSpan);
+
+    if (LevelExtentSpan != AbsentSpan)
+        SpanEdge->Release(LevelExtentSpan);
+
+    ChainSpan         = AbsentSpan;
+    LevelExtentSpan   = AbsentSpan;
+    ReductionRecorded = false;
+
+    Chain.Reclaim();
+
+    for (std::size_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+        AmendedFor[RotationSlot] = false;
+}
+
+}   // namespace Slate

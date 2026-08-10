@@ -150,4 +150,4 @@ F RecordBrush                            | BrushSpecification.cpp | 366-378 | - 
     in    Resolving   const BrushSpecification&  [-]  ?
     in    StrokeSeed  std::uint32_t              [-]  ?
     out   -           StrokeBrushRecord          [-]  ?
-    by    Api/BrushSpecification.h
+    by    Api/BrushSpecification.h, Source/ImpressionSequence.cpp

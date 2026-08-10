@@ -86,10 +86,10 @@ void ResolveMultiScatter(MediumProfile Profile, Real64 Radius, Real64 SunZenithC
 /// tag   api, nonallocating, nonthrowing
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void IntegrateSkyView(Unsigned32 TexelOrdinal[3] : SV_DispatchThreadID)
+void IntegrateSkyView(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
 {
-    const Unsigned32 Along  = TexelOrdinal[0];
-    const Unsigned32 Across = TexelOrdinal[1];
+    const Unsigned32 Along  = TexelOrdinal.x;
+    const Unsigned32 Across = TexelOrdinal.y;
 
     if (Along >= SkyViewExtentAlong || Across >= SkyViewExtentAcross)
     {
@@ -181,10 +181,10 @@ void IntegrateSkyView(Unsigned32 TexelOrdinal[3] : SV_DispatchThreadID)
         }
     }
 
-    SkyViewOutput[Along, Across] = Real32x4(Real32(Radiance[0]),
-                                             Real32(Radiance[1]),
-                                             Real32(Radiance[2]),
-                                             1.0f);
+    SkyViewOutput[Unsigned32x2(Along, Across)] = Real32x4(Real32(Radiance[0]),
+                                                          Real32(Radiance[1]),
+                                                          Real32(Radiance[2]),
+                                                          1.0f);
 }
 
 }   // namespace Slate

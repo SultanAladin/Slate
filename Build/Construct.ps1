@@ -38,6 +38,7 @@ function Write-Building([string] $Message) { Write-Report 'Build'    DarkGray $M
 function Write-Skipped([string]  $Message) { Write-Report 'SKIP'     Cyan     $Message }
 function Write-Refused([string]  $Message) { Write-Report 'FAILED'   Red      $Message }
 function Write-Produced([string] $Message) { Write-Report 'Compiled' Green    $Message }
+function Write-Lowered([string]  $Message) { Write-Report 'SPIR-V'   Magenta  $Message }
 
 #---
 #                                          THE UNIT ORDER
@@ -276,6 +277,148 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
 }
 
 #---
+#                                         SHADER LOWERING
+#---
+
+# 📝 🔴 The second half of the dual-toolchain arrangement. Everything under Shared/ and every constant in
+#    Contract/ToleranceContract.h is compiled once by cl.exe above and once by slangc here, from one source,
+#    with SLATE_SHADER_TOOLCHAIN selecting the spellings. A shader authored but lowered by nothing is a
+#    translation that has never been checked — all three atmosphere entry points carried a signature no
+#    toolchain accepts for as long as this stage was absent.
+function Resolve-ShaderCompiler([string] $VulkanRoot)
+{
+    $Compiler = Join-Path $VulkanRoot 'Bin\slangc.exe'
+
+    if (-not (Test-Path $Compiler))
+    {
+        throw "the Vulkan SDK at $VulkanRoot carries no slangc.exe"
+    }
+
+    return $Compiler
+}
+
+# 📝 🔴 A .slang file carrying no [shader(...)] attribute is an include and not a translation. Lowering one
+#    on its own asks slangc for an entry point it will not find, which reads as a broken shader rather than
+#    as a file that was never meant to be lowered alone — AtmosphereUniform.slang and SkyRadiance.slang are
+#    both of that kind and are compiled through the entry points that include them.
+function Get-ShaderSource([hashtable] $UnitEntry)
+{
+    $UnitRoot = Join-Path $EngineRoot $UnitEntry.Name
+
+    if (-not (Test-Path $UnitRoot))
+    {
+        return @()
+    }
+
+    return @(Get-ChildItem $UnitRoot -Recurse -Filter '*.slang' -File |
+             Where-Object { (Get-Content $_.FullName -Raw) -match '\[\s*shader\s*\(' } |
+             ForEach-Object { $_.FullName })
+}
+
+# 📝 An entry point reaches Contract/ and Shared/ through its includes, and a timestamp comparison against
+#    the .slang alone would hold a stale SPIR-V after either was amended — which is the one staleness this
+#    stage exists to catch, since those two folders are precisely what the shader toolchain and the host
+#    toolchain share. The newest write across both is folded into every comparison below. It is coarser than
+#    a real include scan and deliberately so: it can only ever lower more than necessary, never less.
+function Get-SeamTimestamp
+{
+    if ($null -ne $script:SeamTimestamp)
+    {
+        return $script:SeamTimestamp
+    }
+
+    $Newest = @('Contract', 'Shared') |
+              ForEach-Object { Join-Path $EngineRoot $_ } |
+              Where-Object   { Test-Path $_ } |
+              ForEach-Object { Get-ChildItem $_ -Recurse -File } |
+              Sort-Object LastWriteTimeUtc -Descending |
+              Select-Object -First 1
+
+    $script:SeamTimestamp = if ($null -eq $Newest) { [datetime]::MinValue } else { $Newest.LastWriteTimeUtc }
+
+    return $script:SeamTimestamp
+}
+
+function Invoke-ShaderTranslation([hashtable] $UnitEntry, [string] $VulkanRoot)
+{
+    $UnitName = $UnitEntry.Name
+    $Sources  = Get-ShaderSource $UnitEntry
+
+    if ($Sources.Count -eq 0)
+    {
+        return
+    }
+
+    $Compiler   = Resolve-ShaderCompiler $VulkanRoot
+    $SpirvRoot  = Join-Path $OutputRoot "Shader\$UnitName"
+    $Seam       = Get-SeamTimestamp
+
+    if (-not (Test-Path $SpirvRoot))
+    {
+        New-Item -ItemType Directory -Force -Path $SpirvRoot | Out-Null
+    }
+
+    Write-Building "$UnitName — $($Sources.Count) shader entry points"
+
+    $Lowered = 0
+
+    foreach ($Source in $Sources)
+    {
+        $Stem      = [System.IO.Path]::GetFileNameWithoutExtension($Source)
+        $SpirvPath = Join-Path $SpirvRoot "$Stem.spv"
+
+        $Newest = (Get-Item $Source).LastWriteTimeUtc
+        if ($Seam -gt $Newest)
+        {
+            $Newest = $Seam
+        }
+
+        if (-not $Rebuild -and (Test-Path $SpirvPath) -and
+            (Get-Item $SpirvPath).LastWriteTimeUtc -gt $Newest)
+        {
+            continue
+        }
+
+        # 📝 🔴 No -entry is passed and none may be. The entry points sit inside `namespace Slate`, and the
+        #    name handed to -entry is looked up at global scope alone — every one of them is reported as an
+        #    undefined identifier that way. The [shader("compute")] attribute is what names them instead,
+        #    which is also what keeps the entry point's own name out of this script.
+        $Arguments = @(
+            $Source
+            '-DSLATE_SHADER_TOOLCHAIN=1'
+            "-I$EngineRoot"
+            '-target'
+            'spirv'
+            '-profile'
+            'glsl_450'
+            '-o'
+            $SpirvPath
+        )
+
+        # 📝 slangc writes its diagnostics to stderr, which is left unredirected for the same reason cl.exe's
+        #    is above: redirecting a native executable's stderr in Windows PowerShell wraps each line in an
+        #    ErrorRecord and turns a warning into a thrown failure. The lines reach the console on their own.
+        & $Compiler @Arguments | ForEach-Object { Write-Host "    $_" }
+        $Refused = $LASTEXITCODE -ne 0
+        ++$Lowered
+
+        if ($Refused)
+        {
+            Write-Refused "$UnitName — slangc refused $([System.IO.Path]::GetFileName($Source))"
+            throw "$UnitName — slangc refused $([System.IO.Path]::GetFileName($Source))"
+        }
+    }
+
+    if ($Lowered -eq 0)
+    {
+        Write-Skipped "$UnitName shaders unchanged"
+        return
+    }
+
+    Write-Lowered "$SpirvRoot — $Lowered lowered"
+}
+
+#---
 #                                           ARCHIVING
 #---
 
@@ -406,6 +549,11 @@ if ($Rebuild -and (Test-Path (Join-Path $OutputRoot 'Object')))
     Remove-Item (Join-Path $OutputRoot 'Object') -Recurse -Force
 }
 
+if ($Rebuild -and (Test-Path (Join-Path $OutputRoot 'Shader')))
+{
+    Remove-Item (Join-Path $OutputRoot 'Shader') -Recurse -Force
+}
+
 if (-not (Test-Path $OutputRoot))
 {
     New-Item -ItemType Directory -Force -Path $OutputRoot | Out-Null
@@ -427,6 +575,11 @@ if ($Selected.Count -eq 0)
 foreach ($UnitEntry in $Selected)
 {
     $Produced = Invoke-Translation $UnitEntry $Configuration $VulkanRoot
+
+    # 📝 The shaders are lowered after the unit's own translation units and before it is archived, so a seam
+    #    the host toolchain has just refused is never lowered by the shader toolchain against a source the
+    #    build has already rejected.
+    Invoke-ShaderTranslation $UnitEntry $VulkanRoot
 
     if ($UnitEntry.Product -eq 'StaticLibrary')
     {

@@ -84,11 +84,11 @@ F SeamSpecification::Authored         | SeamSpecification.h | 99     | api,nonal
 
 F SeamSpecification::Derived          | SeamSpecification.h | 104    | api,nonallocating,nonthrowing | ✔️ | The derived set, in derivation order — `86`'s `68` §2 row.
     out   -  const std::vector<SeamEdge>&  [-]  ?
-    by    Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+6 more)
+    by    Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+9 more)
 
 F SeamSpecification::Revision         | SeamSpecification.h | 111    | api,nonallocating,nonthrowing | ✔️ | The revision the last authored amendment advanced to. input to it, so counting one would make every partition invalidate the partition that produced it.
     out   -  std::uint64_t  [-]  ?
-    by    Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+6 more)
+    by    Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, (+10 more)
     note  Only the authored set advances it. A derived seam is a consequence of the partition rather than an
 
 F SeamSpecification::AuthoredCount    | SeamSpecification.h | 113    | -                             | -  | ?

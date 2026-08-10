@@ -68,19 +68,19 @@ T ViewProjection                         | CameraProjection.h | 92-98   | nonall
     has   ViewRotation  ProjectedTransform  [-]  ?
     has   Projected     ProjectedTransform  [-]  ?
     has   Composed      ProjectedTransform  [-]  ?
-    by    Source/CameraProjection.cpp, Source/ConsoleHost.cpp
+    by    Api/VisibilityRaster.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/VisibilityRaster.cpp
     note  🔴 The translation is **not** in `ViewRotation`. It is the rebasing subtraction, performed at 64-bit by
 
 F Derive                                 | CameraProjection.h | 110     | api,nonallocating,nonthrowing | ✔️ | Derives the view projection of one declared camera. proportion, or an extent parameter with no interior constants live in `Contract/` because `16` compares against them, `30` marches against them and `80` depth-tests against them; one document reversing its own comparison in isolation produces geometry that vanishes rather than geometry that sorts wrongly.
     in    Declaring  const CameraSpecification&  [-]  the camera
     out   -          Outcome                     [-]  refuses with ContentUnsupported for an invalid clipping interval, a non-positive sensor
-    by    Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/QuadratureIntegrator.h, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+2 more)
+    by    Api/AttachmentIndex.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/QuadratureIntegrator.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, (+6 more)
     note  📐 Depth is reversed — `NearPlaneDepth` at the nearest plane, `FarPlaneDepth` at the furthest. The
 
 F SLATE_DECLARES_PRECISION               | CameraProjection.h | 111     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+13 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+19 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE FRUSTUM
@@ -106,7 +106,7 @@ F FrustumSpace::Construct                | CameraProjection.h | 146     | api,no
     in    Projected  const ViewProjection&  [-]  as `Derive` produced it
     out   -          void                   [-]  ?
     post  every plane is unit-normalised and pushed outward
-    by    Api/AtmosphereIntegrator.h, Api/InterfaceExchange.h, Api/RowSequence.h, Api/SpatialSubdivision.h, Api/VectorInterchange.h, Api/WorkSequence.h, (+8 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+41 more)
 
 F FrustumSpace::Classify                 | CameraProjection.h | 159     | api,nonallocating,nonthrowing | ✔️ | Classifies one document-space extent against the frustum. millimetres from the document origin classifies against the camera rather than against the origin. corner furthest along the normal decides exclusion and the corner least along it decides straddling; the remaining six carry no additional fact.
     in    Least     DocumentPosition  [mm]  the extent's lower corner, in document space
@@ -163,25 +163,25 @@ F NavigationSequence::Open               | CameraProjection.h | 217     | api,no
     in    Declaring  NavigationSubject           [-]  ?
     in    Standing   const CameraSpecification&  [-]  ?
     out   -          Outcome                     [-]  refuses with HostDenied when a gesture is already open
-    by    Api/RevisionSequence.h, Api/WindowInterchange.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp, (+1 more)
+    by    Api/CommandSequence.h, Api/ImpressionSequence.h, Api/RevisionSequence.h, Api/WindowInterchange.h, Source/CameraProjection.cpp, Source/CommandSequence.cpp, (+5 more)
 
 F NavigationSequence::Amend              | CameraProjection.h | 225     | api,nonallocating,nonthrowing | ✔️ | Amends the open gesture by one pointer displacement.
     in    DisplacementAlong   double   [px]  horizontal displacement since the last amendment
     in    DisplacementAcross  double   [px]  vertical displacement since the last amendment
     out   -                   Outcome  [-]   refuses with HostDenied when no gesture is open
-    by    Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/RevisionSequence.h, Api/TilingSpecification.h, Source/BrushSpecification.cpp, (+5 more)
+    by    Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, Api/RevisionSequence.h, (+14 more)
 
 F NavigationSequence::Abandon            | CameraProjection.h | 231     | api,nonallocating,nonthrowing | ✔️ | Ends the gesture with no effect, returning the prior specification.
     out   -  Outcome  [-]  refuses with HostDenied when no gesture is open
-    by    Api/RevisionSequence.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp
+    by    Api/ImpressionSequence.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+3 more)
 
 F NavigationSequence::Seal               | CameraProjection.h | 237     | api,nonallocating,nonthrowing | ✔️ | Ends the gesture, returning the specification the caller commits as one transaction.
     out   -  Outcome  [-]  refuses with HostDenied when no gesture is open
-    by    Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TopologyStructure.h, Api/WorkSequence.h, Source/AssetInterchange.cpp, (+8 more)
+    by    Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TopologyStructure.h, Api/WorkSequence.h, (+10 more)
 
 F NavigationSequence::Amended            | CameraProjection.h | 242     | api,nonallocating,nonthrowing | ✔️ | The camera as the gesture has amended it, for presentation while it is open.
     out   -  const CameraSpecification&  [-]  ?
-    by    Api/ReportSequence.h, Source/BrushSpecification.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/SurfaceLayerSequence.cpp
+    by    Api/DescriptorIndex.h, Api/ReportSequence.h, Source/BrushSpecification.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/DescriptorIndex.cpp, (+3 more)
 
 F NavigationSequence::GestureOpen        | CameraProjection.h | 247     | api,nonallocating,nonthrowing | ✔️ | Whether a gesture is open.
     out   -  bool  [-]  ?
@@ -204,7 +204,7 @@ F Frame                                  | CameraProjection.h | 275     | api,no
 F SLATE_DECLARES_PRECISION               | CameraProjection.h | 278     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+13 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+19 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CAMERA
@@ -225,12 +225,12 @@ F CameraProjection::Declare              | CameraProjection.h | 302     | api,no
     in    Subject    OccupantIdentity            [-]  ?
     in    Declaring  const CameraSpecification&  [-]  ?
     out   -          Outcome                     [-]  refuses with IdentityStale for an undeclared identity
-    by    Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, Api/PropertySpecification.h, Api/RowSequence.h, (+15 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, (+25 more)
 
 F CameraProjection::Amend                | CameraProjection.h | 308     | api,nonallocating,nonthrowing | ✔️ | Amends the specification, leaving the derivations owed.
     in    Amending  const CameraSpecification&  [-]  ?
     out   -         Outcome                     [-]  refuses with IdentityStale before Declare has delivered
-    by    Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/RevisionSequence.h, Api/TilingSpecification.h, Source/BrushSpecification.cpp, (+5 more)
+    by    Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, Api/RevisionSequence.h, (+14 more)
 
 F CameraProjection::DeclareDisplayExtent | CameraProjection.h | 316     | api,nonallocating,nonthrowing | ✔️ | Declares the display's drawable extent, from which the sensor proportion follows. carrying its author's window proportion opens framed for their monitor and not for the artist's.
     in    Width   std::uint32_t  [-]  ?
@@ -242,11 +242,11 @@ F CameraProjection::DeclareDisplayExtent | CameraProjection.h | 316     | api,no
 F CameraProjection::Reconcile            | CameraProjection.h | 323     | api,nonthrowing               | ✔️ | Re-derives the view projection and the frustum.
     out   -  Outcome  [-]  carries `Derive`'s refusal when the specification cannot be projected
     post  the frustum and the view projection describe the current specification
-    by    Api/OutlinerSequence.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp
+    by    Api/OutlinerSequence.h, Api/SurfaceTileSpace.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/SurfaceTileSpace.cpp
 
 F CameraProjection::Declared             | CameraProjection.h | 325     | -                             | -  | ?
     out   -  const CameraSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, (+23 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, (+39 more)
 
 F CameraProjection::Projected            | CameraProjection.h | 326     | -                             | -  | ?
     out   -  const ViewProjection&  [-]  ?
@@ -258,7 +258,7 @@ F CameraProjection::Frustum              | CameraProjection.h | 327     | -     
 
 F CameraProjection::Occupant             | CameraProjection.h | 332     | api,nonallocating,nonthrowing | ✔️ | Which occupant this camera is.
     out   -  OccupantIdentity  [-]  ?
-    by    Api/MaterialSpecification.h, Api/PropertySpecification.h, Api/RowSequence.h, Api/SpatialSubdivision.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, (+5 more)
+    by    Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/PropertySpecification.h, Api/RowSequence.h, Api/SpatialSubdivision.h, Api/VisibilityIndex.h, (+9 more)
 
 F CameraProjection::Exposure             | CameraProjection.h | 337     | api,nonallocating,nonthrowing | ✔️ | The authored exposure `66` §2 reads.
     out   -  double  [-]  ?
@@ -272,4 +272,4 @@ F SLATE_DECLARES_PRECISION               | CameraProjection.h | 357     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+13 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+19 more)

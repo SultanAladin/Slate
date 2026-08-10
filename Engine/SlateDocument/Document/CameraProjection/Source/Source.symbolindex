@@ -65,7 +65,7 @@ F ViewDirection                          | CameraProjection.cpp | 94-97   | - | 
 F Derive                                 | CameraProjection.cpp | 105-183 | - | - | ?
     in    Declaring  const CameraSpecification&  [-]  ?
     out   -          Outcome<ViewProjection>     [-]  ?
-    by    Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/QuadratureIntegrator.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+2 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/QuadratureIntegrator.h, Api/VisibilityRaster.h, (+6 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    PLANE EXTRACTION

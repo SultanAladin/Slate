@@ -44,10 +44,10 @@ RWTexture2D<Real32x4>          TransmittanceOutput;    // [-] - RGBA16F, 256 × 
 /// tag   api, nonallocating, nonthrowing
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void IntegrateTransmittance(Unsigned32 TexelOrdinal[3] : SV_DispatchThreadID)
+void IntegrateTransmittance(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
 {
-    const Unsigned32 Along  = TexelOrdinal[0];
-    const Unsigned32 Across = TexelOrdinal[1];
+    const Unsigned32 Along  = TexelOrdinal.x;
+    const Unsigned32 Across = TexelOrdinal.y;
 
     if (Along >= TransmittanceExtentAlong || Across >= TransmittanceExtentAcross)
     {
@@ -96,10 +96,10 @@ void IntegrateTransmittance(Unsigned32 TexelOrdinal[3] : SV_DispatchThreadID)
     // 📝 Every length is in metres and every coefficient in reciprocal metres, so the exponent is dimensionless
     //    without a conversion. The donor formulation marches in kilometres and carries a factor of a thousand at
     //    exactly this line — the factor to look for first if a port of this comes out opaque or absent.
-    TransmittanceOutput[Along, Across] = Real32x4(Real32(Exponential(-DepthRed)),
-                                                  Real32(Exponential(-DepthGreen)),
-                                                  Real32(Exponential(-DepthBlue)),
-                                                  1.0f);
+    TransmittanceOutput[Unsigned32x2(Along, Across)] = Real32x4(Real32(Exponential(-DepthRed)),
+                                                                Real32(Exponential(-DepthGreen)),
+                                                                Real32(Exponential(-DepthBlue)),
+                                                                1.0f);
 }
 
 }   // namespace Slate

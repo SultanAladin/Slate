@@ -8,95 +8,57 @@
 %path       Engine/SlateCompute/Compute/AtmosphereIntegrator/Source
 %layer      SlateCompute
 %sources    1
-%symbols    54
-%annotated  0/54
+%symbols    42
+%annotated  0/42
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S AtmosphereIntegrator.cpp | 1275 lines | d6e628f3 | 54 sym | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
+S AtmosphereIntegrator.cpp | 1148 lines | 8c7beff7 | 42 sym | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     HALF PRECISION
 //------------------------------------------------------------------------------------------------------------------------
 
-F EncodeHalf                                      | AtmosphereIntegrator.cpp | 26-59     | - | - | ?
+F EncodeHalf                                      | AtmosphereIntegrator.cpp | 27-60     | - | - | ?
     in    Magnitude  float          [-]  ?
     out   -          std::uint16_t  [-]  ?
 
-F DecodeHalf                                      | AtmosphereIntegrator.cpp | 61-87     | - | - | ?
+F DecodeHalf                                      | AtmosphereIntegrator.cpp | 62-88     | - | - | ?
     in    Encoded  std::uint16_t  [-]  ?
     out   -        float          [-]  ?
-
-//------------------------------------------------------------------------------------------------------------------------
-//                                                    GEOMETRY HELPERS
-//------------------------------------------------------------------------------------------------------------------------
-
-F Bounded                                         | AtmosphereIntegrator.cpp | 93-96     | - | - | ?
-    in    Magnitude  double  [-]  ?
-    in    Lower      double  [-]  ?
-    in    Upper      double  [-]  ?
-    out   -          double  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, Api/CurveSolver.h, (+20 more)
-
-F DistanceToSphere                                | AtmosphereIntegrator.cpp | 101-119   | - | - | ?
-    in    Radius        double  [-]  ?
-    in    ZenithCosine  double  [-]  ?
-    in    SphereRadius  double  [-]  ?
-    out   -             double  [-]  ?
-
-F AdvanceRadius                                   | AtmosphereIntegrator.cpp | 124-129   | - | - | ?
-    in    Radius        double  [-]  ?
-    in    ZenithCosine  double  [-]  ?
-    in    Distance      double  [-]  ?
-    out   -             double  [-]  ?
-    by    Shader/MultiScatterSurface.slang, Shader/SkyViewSurface.slang, Shader/TransmittanceSurface.slang, Shared/AtmosphereProjection.slang.h
-
-F GroundReached                                   | AtmosphereIntegrator.cpp | 131-137   | - | - | ?
-    in    Radius        double  [-]  ?
-    in    ZenithCosine  double  [-]  ?
-    in    PlanetRadius  double  [-]  ?
-    out   -             bool    [-]  ?
-
-F RayleighPhase                                   | AtmosphereIntegrator.cpp | 141-144   | - | - | ?
-    in    ScatterCosine  double  [-]  ?
-    out   -              double  [-]  ?
-
-F MiePhase                                        | AtmosphereIntegrator.cpp | 148-157   | - | - | ?
-    in    ScatterCosine  double  [-]  ?
-    in    Asymmetry      double  [-]  ?
-    out   -              double  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   MEDIUM VALIDATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F MediumSpecification::Validate                   | AtmosphereIntegrator.cpp | 165-189   | - | - | ?
+F MediumSpecification::Validate                   | AtmosphereIntegrator.cpp | 105-129   | - | - | ?
     out   -  Outcome<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                               THE SPECTRAL COEFFICIENTS
 //------------------------------------------------------------------------------------------------------------------------
 
-F Resolve                                         | AtmosphereIntegrator.cpp | 195-288   | - | - | ?
+F Resolve                                         | AtmosphereIntegrator.cpp | 135-228   | - | - | ?
     in    Declared  const MediumSpecification&       [-]  ?
     in    Working   const ColourSpaceSpecification&  [-]  ?
     in    Rule      const QuadratureRule&            [-]  ?
     out   -         Outcome<MediumCoefficient>       [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/IntakeIndex.h, Api/MaterialSpecification.h, Api/PopulationIndex.h, (+26 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ONE RESIDENT SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-F ResidentSurface::Construct                      | AtmosphereIntegrator.cpp | 294-305   | - | - | ?
-    in    ExtentAlong_   std::uint32_t  [-]  ?
-    in    ExtentAcross_  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+F ResidentSurface::Construct                      | AtmosphereIntegrator.cpp | 234-248   | - | - | ?
+    in    ExtentAlong_       std::uint32_t  [-]  ?
+    in    ExtentAcross_      std::uint32_t  [-]  ?
+    in    WrapAlongDeclared  bool           [-]  ?
+    out   -                  Outcome<bool>  [-]  ?
 
-F ResidentSurface::Write                          | AtmosphereIntegrator.cpp | 307-319   | - | - | ?
+F ResidentSurface::Write                          | AtmosphereIntegrator.cpp | 250-262   | - | - | ?
     in    Along   std::uint32_t  [-]  ?
     in    Across  std::uint32_t  [-]  ?
     in    Red     double         [-]  ?
@@ -104,7 +66,7 @@ F ResidentSurface::Write                          | AtmosphereIntegrator.cpp | 3
     in    Blue    double         [-]  ?
     out   -       void           [-]  ?
 
-F ResidentSurface::Sample                         | AtmosphereIntegrator.cpp | 321-370   | - | - | ?
+F ResidentSurface::Sample                         | AtmosphereIntegrator.cpp | 264-327   | - | - | ?
     in    CoordinateAlong   double   [-]  ?
     in    CoordinateAcross  double   [-]  ?
     in    Red               double&  [-]  ?
@@ -112,35 +74,35 @@ F ResidentSurface::Sample                         | AtmosphereIntegrator.cpp | 3
     in    Blue              double&  [-]  ?
     out   -                 void     [-]  ?
 
-F ResidentSurface::Texels                         | AtmosphereIntegrator.cpp | 372       | - | - | ?
+F ResidentSurface::Texels                         | AtmosphereIntegrator.cpp | 329       | - | - | ?
     out   -  const std::vector<std::uint16_t>&  [-]  ?
 
-F ResidentSurface::ResidentBytes                  | AtmosphereIntegrator.cpp | 374-377   | - | - | ?
+F ResidentSurface::ResidentBytes                  | AtmosphereIntegrator.cpp | 331-334   | - | - | ?
     out   -  std::uint64_t  [-]  ?
 
-F ResidentSurface::ExtentAlong                    | AtmosphereIntegrator.cpp | 379       | - | - | ?
+F ResidentSurface::ExtentAlong                    | AtmosphereIntegrator.cpp | 336       | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F ResidentSurface::ExtentAcross                   | AtmosphereIntegrator.cpp | 380       | - | - | ?
+F ResidentSurface::ExtentAcross                   | AtmosphereIntegrator.cpp | 337       | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F ResidentSurface::SurfaceConstructed             | AtmosphereIntegrator.cpp | 381       | - | - | ?
+F ResidentSurface::SurfaceConstructed             | AtmosphereIntegrator.cpp | 338       | - | - | ?
     out   -  bool  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE AMBIENT TERM
 //------------------------------------------------------------------------------------------------------------------------
 
-F HarmonicBasis                                   | AtmosphereIntegrator.cpp | 391-402   | - | - | ?
+F HarmonicBasis                                   | AtmosphereIntegrator.cpp | 348-359   | - | - | ?
     in    DirectionX  double  [-]  ?
     in    DirectionY  double  [-]  ?
     in    DirectionZ  double  [-]  ?
     in    Basis       double  [-]  ?
     out   -           void    [-]  ?
 
-V CosineLobe                                      | AtmosphereIntegrator.cpp | 407       | - | - | ?
+V CosineLobe                                      | AtmosphereIntegrator.cpp | 364       | - | - | ?
 
-F IrradianceProjection::Evaluate                  | AtmosphereIntegrator.cpp | 411-428   | - | - | ?
+F IrradianceProjection::Evaluate                  | AtmosphereIntegrator.cpp | 368-385   | - | - | ?
     in    DirectionX  double   [-]  ?
     in    DirectionY  double   [-]  ?
     in    DirectionZ  double   [-]  ?
@@ -153,25 +115,25 @@ F IrradianceProjection::Evaluate                  | AtmosphereIntegrator.cpp | 4
 //                                                      DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F AtmosphereIntegrator::DeclareMedium             | AtmosphereIntegrator.cpp | 434-450   | - | - | ?
+F AtmosphereIntegrator::DeclareMedium             | AtmosphereIntegrator.cpp | 391-407   | - | - | ?
     in    Declaring  const MediumSpecification&  [-]  ?
     out   -          Outcome<bool>               [-]  ?
 
-F AtmosphereIntegrator::DeclareSun                | AtmosphereIntegrator.cpp | 452-474   | - | - | ?
+F AtmosphereIntegrator::DeclareSun                | AtmosphereIntegrator.cpp | 409-431   | - | - | ?
     in    DirectionX  double         [-]  ?
     in    DirectionY  double         [-]  ?
     in    DirectionZ  double         [-]  ?
     out   -           Outcome<bool>  [-]  ?
 
-F AtmosphereIntegrator::DeclareCameraAltitude     | AtmosphereIntegrator.cpp | 476-493   | - | - | ?
+F AtmosphereIntegrator::DeclareCameraAltitude     | AtmosphereIntegrator.cpp | 433-450   | - | - | ?
     in    Altitude  double         [-]  ?
     out   -         Outcome<bool>  [-]  ?
 
-F AtmosphereIntegrator::DeclareAtmospherePresence | AtmosphereIntegrator.cpp | 495-498   | - | - | ?
+F AtmosphereIntegrator::DeclareAtmospherePresence | AtmosphereIntegrator.cpp | 452-455   | - | - | ?
     in    PresenceEnabled  bool  [-]  ?
     out   -                void  [-]  ?
 
-F AtmosphereIntegrator::DeclareConstantFloor      | AtmosphereIntegrator.cpp | 500-509   | - | - | ?
+F AtmosphereIntegrator::DeclareConstantFloor      | AtmosphereIntegrator.cpp | 457-466   | - | - | ?
     in    Declaring  const ColourSpecification&  [-]  ?
     out   -          Outcome<bool>               [-]  ?
 
@@ -179,55 +141,18 @@ F AtmosphereIntegrator::DeclareConstantFloor      | AtmosphereIntegrator.cpp | 5
 //                                                  THE MEDIUM PROFILES
 //------------------------------------------------------------------------------------------------------------------------
 
-F AtmosphereIntegrator::Extinction                | AtmosphereIntegrator.cpp | 515-536   | - | - | ?
-    in    Altitude  double   [-]  ?
-    in    Red       double&  [-]  ?
-    in    Green     double&  [-]  ?
-    in    Blue      double&  [-]  ?
-    out   -         void     [-]  ?
-
-F AtmosphereIntegrator::Scattering                | AtmosphereIntegrator.cpp | 538-552   | - | - | ?
-    in    Altitude       double   [-]  ?
-    in    RayleighRed    double&  [-]  ?
-    in    RayleighGreen  double&  [-]  ?
-    in    RayleighBlue   double&  [-]  ?
-    in    Mie            double&  [-]  ?
-    out   -              void     [-]  ?
+F AtmosphereIntegrator::ShapeProfile              | AtmosphereIntegrator.cpp | 472-496   | - | - | ?
+    out   -  void  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                              ① THE TRANSMITTANCE SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-F TransmittanceCoordinate                         | AtmosphereIntegrator.cpp | 566-574   | - | - | ?
-    in    Radius               double   [-]  ?
-    in    ZenithCosine         double   [-]  ?
-    in    PlanetRadius         double   [-]  ?
-    in    AtmosphereThickness  double   [-]  ?
-    in    CoordinateAlong      double&  [-]  ?
-    in    CoordinateAcross     double&  [-]  ?
-    out   -                    void     [-]  ?
-
-F TransmittanceParameter                          | AtmosphereIntegrator.cpp | 578-584   | - | - | ?
-    in    CoordinateAlong      double   [-]  ?
-    in    CoordinateAcross     double   [-]  ?
-    in    PlanetRadius         double   [-]  ?
-    in    AtmosphereThickness  double   [-]  ?
-    in    Radius               double&  [-]  ?
-    in    ZenithCosine         double&  [-]  ?
-    out   -                    void     [-]  ?
-
-F StepIntegral                                    | AtmosphereIntegrator.cpp | 590-597   | - | - | ?
-    in    ScatteringMagnitude  double  [-]  ?
-    in    ExtinctionMagnitude  double  [-]  ?
-    in    StepTransmittance    double  [-]  ?
-    in    StepSize             double  [-]  ?
-    out   -                    double  [-]  ?
-
-F AtmosphereIntegrator::BuildTransmittance        | AtmosphereIntegrator.cpp | 601-673   | - | - | ?
+F AtmosphereIntegrator::BuildTransmittance        | AtmosphereIntegrator.cpp | 512-595   | - | - | ?
     in    Rule  const QuadratureRule&  [-]  ?
     out   -     Outcome<bool>          [-]  ?
 
-F AtmosphereIntegrator::TransmittanceAt           | AtmosphereIntegrator.cpp | 675-686   | - | - | ?
+F AtmosphereIntegrator::TransmittanceAt           | AtmosphereIntegrator.cpp | 597-606   | - | - | ?
     in    Radius        double   [-]  ?
     in    ZenithCosine  double   [-]  ?
     in    Red           double&  [-]  ?
@@ -239,7 +164,7 @@ F AtmosphereIntegrator::TransmittanceAt           | AtmosphereIntegrator.cpp | 6
 //                                           ② THE MULTIPLE-SCATTERING SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-F AtmosphereIntegrator::MultiScatterAt            | AtmosphereIntegrator.cpp | 692-703   | - | - | ?
+F AtmosphereIntegrator::MultiScatterAt            | AtmosphereIntegrator.cpp | 612-620   | - | - | ?
     in    Radius           double   [-]  ?
     in    SunZenithCosine  double   [-]  ?
     in    Red              double&  [-]  ?
@@ -247,56 +172,40 @@ F AtmosphereIntegrator::MultiScatterAt            | AtmosphereIntegrator.cpp | 6
     in    Blue             double&  [-]  ?
     out   -                void     [-]  ?
 
-F AtmosphereIntegrator::BuildMultiScatter         | AtmosphereIntegrator.cpp | 705-843   | - | - | ?
+F AtmosphereIntegrator::BuildMultiScatter         | AtmosphereIntegrator.cpp | 622-760   | - | - | ?
     out   -  Outcome<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 ③ THE SKY-VIEW SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-F SkyViewDirection                                | AtmosphereIntegrator.cpp | 856-881   | - | - | ?
-    in    CoordinateAlong   double   [-]  ?
-    in    CoordinateAcross  double   [-]  ?
-    in    DirectionX        double&  [-]  ?
-    in    DirectionY        double&  [-]  ?
-    in    DirectionZ        double&  [-]  ?
-    out   -                 void     [-]  ?
-
-F SkyViewCoordinate                               | AtmosphereIntegrator.cpp | 883-906   | - | - | ?
-    in    DirectionX        double   [-]  ?
-    in    DirectionY        double   [-]  ?
-    in    DirectionZ        double   [-]  ?
-    in    CoordinateAlong   double&  [-]  ?
-    in    CoordinateAcross  double&  [-]  ?
-    out   -                 void     [-]  ?
-
-F AtmosphereIntegrator::BuildSkyView              | AtmosphereIntegrator.cpp | 910-1018  | - | - | ?
+F AtmosphereIntegrator::BuildSkyView              | AtmosphereIntegrator.cpp | 775-884   | - | - | ?
     out   -  Outcome<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                THE HARMONIC CONVOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-F AtmosphereIntegrator::DeriveIrradiance          | AtmosphereIntegrator.cpp | 1024-1080 | - | - | ?
+F AtmosphereIntegrator::DeriveIrradiance          | AtmosphereIntegrator.cpp | 890-946   | - | - | ?
     out   -  void  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE REBUILD
 //------------------------------------------------------------------------------------------------------------------------
 
-F AtmosphereIntegrator::Rebuild                   | AtmosphereIntegrator.cpp | 1086-1141 | - | - | ?
+F AtmosphereIntegrator::Rebuild                   | AtmosphereIntegrator.cpp | 952-1012  | - | - | ?
     in    Working  const ColourSpaceSpecification&  [-]  ?
     in    Rule     const QuadratureRule&            [-]  ?
     out   -        Outcome<bool>                    [-]  ?
 
-F AtmosphereIntegrator::RebuildOwed               | AtmosphereIntegrator.cpp | 1143-1146 | - | - | ?
+F AtmosphereIntegrator::RebuildOwed               | AtmosphereIntegrator.cpp | 1014-1017 | - | - | ?
     out   -  bool  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE SAMPLED RESULTS
 //------------------------------------------------------------------------------------------------------------------------
 
-F AtmosphereIntegrator::SampleSkyView             | AtmosphereIntegrator.cpp | 1152-1182 | - | - | ?
+F AtmosphereIntegrator::SampleSkyView             | AtmosphereIntegrator.cpp | 1023-1053 | - | - | ?
     in    DirectionX  double         [-]  ?
     in    DirectionY  double         [-]  ?
     in    DirectionZ  double         [-]  ?
@@ -305,7 +214,7 @@ F AtmosphereIntegrator::SampleSkyView             | AtmosphereIntegrator.cpp | 1
     in    Blue        double&        [-]  ?
     out   -           Outcome<bool>  [-]  ?
 
-F AtmosphereIntegrator::SampleTransmittance       | AtmosphereIntegrator.cpp | 1184-1193 | - | - | ?
+F AtmosphereIntegrator::SampleTransmittance       | AtmosphereIntegrator.cpp | 1055-1065 | - | - | ?
     in    Altitude      double         [-]  ?
     in    ZenithCosine  double         [-]  ?
     in    Red           double&        [-]  ?
@@ -313,7 +222,7 @@ F AtmosphereIntegrator::SampleTransmittance       | AtmosphereIntegrator.cpp | 1
     in    Blue          double&        [-]  ?
     out   -             Outcome<bool>  [-]  ?
 
-F AtmosphereIntegrator::AerialTransmittance       | AtmosphereIntegrator.cpp | 1195-1251 | - | - | ?
+F AtmosphereIntegrator::AerialTransmittance       | AtmosphereIntegrator.cpp | 1067-1124 | - | - | ?
     in    Altitude    double                 [-]  ?
     in    DirectionX  double                 [-]  ?
     in    DirectionY  double                 [-]  ?
@@ -329,32 +238,32 @@ F AtmosphereIntegrator::AerialTransmittance       | AtmosphereIntegrator.cpp | 1
 //                                                   WHAT IS PRESENTED
 //------------------------------------------------------------------------------------------------------------------------
 
-F AtmosphereIntegrator::Irradiance                | AtmosphereIntegrator.cpp | 1257      | - | - | ?
+F AtmosphereIntegrator::Irradiance                | AtmosphereIntegrator.cpp | 1130      | - | - | ?
     out   -  const IrradianceProjection&  [-]  ?
 
-F AtmosphereIntegrator::Transmittance             | AtmosphereIntegrator.cpp | 1258      | - | - | ?
+F AtmosphereIntegrator::Transmittance             | AtmosphereIntegrator.cpp | 1131      | - | - | ?
     out   -  const ResidentSurface&  [-]  ?
 
-F AtmosphereIntegrator::MultiScatter              | AtmosphereIntegrator.cpp | 1259      | - | - | ?
+F AtmosphereIntegrator::MultiScatter              | AtmosphereIntegrator.cpp | 1132      | - | - | ?
     out   -  const ResidentSurface&  [-]  ?
 
-F AtmosphereIntegrator::SkyView                   | AtmosphereIntegrator.cpp | 1260      | - | - | ?
+F AtmosphereIntegrator::SkyView                   | AtmosphereIntegrator.cpp | 1133      | - | - | ?
     out   -  const ResidentSurface&  [-]  ?
 
-F AtmosphereIntegrator::ResidentBytes             | AtmosphereIntegrator.cpp | 1262-1267 | - | - | ?
+F AtmosphereIntegrator::ResidentBytes             | AtmosphereIntegrator.cpp | 1135-1140 | - | - | ?
     out   -  std::uint64_t  [-]  ?
 
-F AtmosphereIntegrator::MediumRebuildCount        | AtmosphereIntegrator.cpp | 1269      | - | - | ?
+F AtmosphereIntegrator::MediumRebuildCount        | AtmosphereIntegrator.cpp | 1142      | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F AtmosphereIntegrator::SkyViewRebuildCount       | AtmosphereIntegrator.cpp | 1270      | - | - | ?
+F AtmosphereIntegrator::SkyViewRebuildCount       | AtmosphereIntegrator.cpp | 1143      | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F AtmosphereIntegrator::Medium                    | AtmosphereIntegrator.cpp | 1271      | - | - | ?
+F AtmosphereIntegrator::Medium                    | AtmosphereIntegrator.cpp | 1144      | - | - | ?
     out   -  const MediumSpecification&  [-]  ?
 
-F AtmosphereIntegrator::Coefficient               | AtmosphereIntegrator.cpp | 1272      | - | - | ?
+F AtmosphereIntegrator::Coefficient               | AtmosphereIntegrator.cpp | 1145      | - | - | ?
     out   -  const MediumCoefficient&  [-]  ?
 
-F AtmosphereIntegrator::AtmospherePresent         | AtmosphereIntegrator.cpp | 1273      | - | - | ?
+F AtmosphereIntegrator::AtmospherePresent         | AtmosphereIntegrator.cpp | 1146      | - | - | ?
     out   -  bool  [-]  ?

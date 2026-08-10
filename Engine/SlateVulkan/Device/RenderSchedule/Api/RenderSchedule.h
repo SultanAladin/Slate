@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                             RENDERSCHEDULE.H
 //============================================================================================================================================
 // 🧩 What is recorded in a rotation slot, in what order, and against which shared targets.
@@ -7,6 +7,7 @@
 
 #include "Contract/IdentityContract.h"
 #include "Contract/OutcomeContract.h"
+#include "SlateVulkan/Device/ImageSpace/Api/ImageSpace.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
 #include <cstdint>
@@ -51,6 +52,93 @@ enum class ExtentRelation : std::uint32_t
     DisplayRelative  = 0u,   // [-] - exactly the display extent
     FractionOfDisplay = 1u,  // [-] - a declared fraction of it
     Absolute         = 2u    // [-] - a fixed extent, independent of the display
+};
+
+/// 🧩 The relation one target's extent bears to the display extent.
+/// note  The table is total over `SharedTarget` and is declared once beside the schedule. A caller re-deriving
+///       a relation from a format or an extent has derived it from the wrong operand.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+ExtentRelation RelationOfTarget(SharedTarget Target);
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE CLAIMED SET
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 What the fifteen declared targets are claimed as — one image ordinal each, against one display extent.
+/// note  🔴 This is `08` §2's "nothing claims a format, an extent or memory", closed. The table above declared
+///       fifteen formats and their extent relations and nothing walked it; `TargetSpace` is what walks it.
+/// note  🔴 `06` §7's extent gate: a display extent change reclaims and re-claims **every** display-relative
+///       and fraction-of-display target and touches no absolute one. `Reclaim` refuses to hold a persistent
+///       extent across the change, and an intermediate drag extent is discarded by the caller not queued here.
+/// tag   owning
+class TargetSpace
+{
+public:
+
+    TargetSpace()                              = default;
+    TargetSpace(const TargetSpace&)            = delete;
+    TargetSpace& operator=(const TargetSpace&) = delete;
+
+    /// 🧩 Claims every declared target against one display extent and one display format.
+    /// in    Images        [-]  where the images are claimed; borrowed and outlives this component
+    /// in    DisplayWidth  [px] the display extent this claim is relative to
+    /// in    DisplayHeight [px] the display extent this claim is relative to
+    /// in    DisplayFormat [-]  what the display surface itself carries; the vendor spelling
+    /// out   Outcome       [-]  refuses with ContentUnsupported for a zero or excessive extent, and with
+    ///                          whatever `ImageSpace` refused when a target could not be claimed
+    /// post  every target carries an image ordinal, or nothing does — refused in full
+    /// note  🔴 Refused in full. A half-claimed target set is one where `08` §3's ordering reads a target that
+    ///        was never claimed, and the recording site meets it as a null view rather than as this refusal.
+    /// cost  🔴
+    /// tag   api, nonthrowing
+    Outcome<bool> Claim(ImageSpace&    Images,
+                        std::uint32_t  DisplayWidth,
+                        std::uint32_t  DisplayHeight,
+                        VkFormat       DisplayFormat);
+
+    /// 🧩 Re-claims every display-relative and fraction-of-display target against a new display extent.
+    /// in    DisplayWidth  [px] the arrived extent; an intermediate drag extent is the caller's to discard
+    /// in    DisplayHeight [px]
+    /// out   Outcome       [-]  refuses as Claim does; the absolute targets stand untouched either way
+    /// pre   🔴 the device is idle — every rotation that reads the old targets has completed
+    /// note  🔴 `06` §7's fourth gate, verbatim: **every** display-relative target is recreated and no
+    ///        persistent extent is carried across. Re-claiming a subset is how one target keeps the previous
+    ///        extent and reads as a shifted image nobody attributes to the resize.
+    /// cost  🔴
+    /// tag   api, nonthrowing
+    Outcome<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
+
+    /// 🧩 The image one declared target was claimed as.
+    /// out   Outcome  [-]  refuses with ContentUnsupported when the target is unclaimed
+    /// cost  ✔️
+    /// tag   api, nonthrowing
+    Outcome<ImageClaim> Resolve(SharedTarget Target) const;
+
+    /// 🧩 The image ordinal one target was claimed as, for the transition `ImageSpace` records.
+    /// out   Outcome  [-]  refuses with ContentUnsupported when the target is unclaimed
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    Outcome<std::uint32_t> OrdinalOf(SharedTarget Target) const;
+
+    /// 🧩 Releases every claimed target and forgets the display extent they were claimed against.
+    /// pre   the device is idle
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    void Surrender();
+
+private:
+
+    /// 🧩 The shape one target is claimed at, derived from its relation and the standing display extent.
+    /// out   Outcome  [-]  refuses with ContentUnsupported for an extent of zero or above the ceiling
+    Outcome<ImageShape> ShapeOf(SharedTarget Target) const;
+
+    ImageSpace*    ImageEdge      = nullptr;                // [-] - borrowed; never owned
+    std::uint32_t  ClaimedFor[static_cast<std::size_t>(SharedTarget::TargetCount)] = {};
+    bool           TargetClaimed[static_cast<std::size_t>(SharedTarget::TargetCount)] = {};
+    std::uint32_t  StandingWidth  = 0u;                     // [px] - the display extent claimed against
+    std::uint32_t  StandingHeight = 0u;                     // [px]
+    VkFormat       DisplayCarries = VK_FORMAT_UNDEFINED;    // [-]  - what the display surface itself carries
 };
 
 //------------------------------------------------------------------------------------------------------------------------

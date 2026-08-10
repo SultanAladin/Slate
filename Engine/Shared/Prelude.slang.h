@@ -5,9 +5,16 @@
 
 #pragma once
 
+#include "Contract/ToolchainContract.h"
+
 // 📝 Everything under Shared/ is compiled once by the C++ toolchain and once by the shader toolchain. This
 //    file is the only place the two spellings are reconciled. A Shared/ entry point that reaches for a
 //    toolchain-specific spelling directly has stopped being shared source, and ParityRunner cannot cover it.
+//
+// 📝 🔴 The scalar widths and the constant spelling are **not** declared here. `Contract/` declares its capacities
+//    in those widths and depends on nothing, so it cannot read them from this file; they live in
+//    `Contract/ToolchainContract.h` and are included from there. What remains below is what only shared *source*
+//    needs — parameter directions, the component widths, and the intrinsics whose spellings differ.
 
 #if defined(SLATE_SHADER_TOOLCHAIN)
 
@@ -21,12 +28,6 @@
 #define SLATE_INOUT(TypeName)                          inout TypeName
 #define SLATE_INOUT_SPAN(TypeName, SpanName, Capacity) inout TypeName SpanName[Capacity]
 
-typedef double   Real64;
-typedef float    Real32;
-typedef int      Signed32;
-typedef uint     Unsigned32;
-typedef uint64_t Unsigned64;
-
 // 📝 The two component spellings a resident surface is declared and sampled through, and the **only** ones. They
 //    are device-side alone and deliberately have no host counterpart: everything under `Shared/` is scalar
 //    throughout, so a host form would be a spelling nothing in shared source is permitted to reach for. A surface
@@ -34,6 +35,17 @@ typedef uint64_t Unsigned64;
 //    delivers red where three were meant, which reads as a monochrome sky rather than as a mistake.
 typedef float2   Real32x2;
 typedef float4   Real32x4;
+
+// 📝 🔴 The two ordinal widths, which share the component widths' reasoning above — device-side alone, with no
+//    host counterpart, because nothing under `Shared/` dispatches or addresses a surface.
+//
+//    `Unsigned32x3` is what `SV_DispatchThreadID` is delivered as; the toolchain refuses a three-element array in
+//    its place. `Unsigned32x2` is what a writable surface is **addressed** through: the toolchain takes one operand
+//    between the brackets and not two, so `Surface[Along, Across]` is a call carrying an argument too many rather
+//    than the pair it reads as, and the two ordinates are named into this width first. Both are declared once here
+//    rather than reached for at each entry point, which is what makes every entry point the same shape as the rest.
+typedef uint2    Unsigned32x2;
+typedef uint3    Unsigned32x3;
 
 Real64 Magnitude(Real64 Operand)
 {
@@ -87,19 +99,12 @@ Unsigned32 ReversedBits(Unsigned32 Operand)
 //------------------------------------------------------------------------------------------------------------------------
 
 #include <cmath>
-#include <cstdint>
 
 #define SLATE_SHARED                                   inline
 #define SLATE_CONSTEXPR                                constexpr
 #define SLATE_OUT(TypeName)                            TypeName&
 #define SLATE_INOUT(TypeName)                          TypeName&
 #define SLATE_INOUT_SPAN(TypeName, SpanName, Capacity) TypeName (&SpanName)[Capacity]
-
-using Real64     = double;
-using Real32     = float;
-using Signed32   = std::int32_t;
-using Unsigned32 = std::uint32_t;
-using Unsigned64 = std::uint64_t;
 
 SLATE_SHARED Real64 Magnitude(Real64 Operand)
 {

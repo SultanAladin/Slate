@@ -227,6 +227,19 @@ public:
     /// tag   api, nonthrowing
     Outcome<const LayerSpecification*> Resolve(LayerIdentity Subject) const;
 
+    /// 🧩 One entry's painted texels, for the one mechanism permitted to amend them.
+    /// out   Outcome  [-]  refuses with IdentityStale when the entry no longer resolves, and with
+    ///                     ContentUnsupported when its source is not PaintedImpressions
+    /// note  🔴 `22` is the only caller. Painted texels are the one content this sequence stores rather than
+    ///        describes — §3 — so this is the one route by which authored content is written at all, and every
+    ///        write through it is inside a transaction whose inverse is bounded by the extents it touched.
+    /// note  ⚠️ A reconstructible entry refuses. Writing texels into a placed or tiled entry would make the
+    ///        resolved projection the source of truth for content the description already holds, and `20` §4
+    ///        would then evict the artist's edit at the first memory pressure.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<PaintedContent*> AmendPainted(LayerIdentity Subject);
+
     /// 🧩 The entries, in sequence order — bottom first.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing

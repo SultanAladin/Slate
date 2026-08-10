@@ -6,75 +6,91 @@
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateCompute
-%folders  11
-%symbols  210
+%folders  28
+%symbols  591
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Api    | Api/Api.symbolindex       | 46 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
+I Api    | Api/Api.symbolindex       | 45 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
 I Shader | Shader/Shader.symbolindex | 29 sym | The one uniform block every atmosphere entry point reads, and its widening into the shared medium profile.
-I Source | Source/Source.symbolindex | 54 sym | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
+I Source | Source/Source.symbolindex | 42 sym | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
 I Api    | Api/Api.symbolindex       | 13 sym | The parametric domain every paintable surface addresses — cut, flattened, arranged, and measured.
 I Source | Source/Source.symbolindex | 15 sym | Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
 I Api    | Api/Api.symbolindex       | 10 sym | Charts arranged into the unit domain at a common scale, separated by at least one apron.
 I Source | Source/Source.symbolindex | 6 sym  | Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
+I Api    | Api/Api.symbolindex       | 27 sym | A stroke as ordered impressions against the parametric domain — resampled by arrival, deferred never dropped, sealed once.
+I Source | Source/Source.symbolindex | 25 sym | Domain resampling from arrival stamps, the deferral that never coarsens, and the accumulation applied once.
 I Api    | Api/Api.symbolindex       | 6 sym  | Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
 I Source | Source/Source.symbolindex | 7 sym  | Registration and comparison over the common sample set.
+I Api    | Api/Api.symbolindex       | 24 sym | Two independent budgets, spent per rotation, and the ordering eviction follows when they cannot be met.
+I Source | Source/Source.symbolindex | 17 sym | The two measures charged apart, the total eviction order, and the cost read from `56`'s entries.
+I Api    | Api/Api.symbolindex       | 17 sym | Device-written cell demands, drained with latency — the readback half named apart, and the arrival order it yields.
+I Source | Source/Source.symbolindex | 13 sym | Coalescing by cell, the cyclic rotation slots, and the readback that is exactly one depth behind.
 I Api    | Api/Api.symbolindex       | 13 sym | Where the topology is cut — authored seams that survive every re-partition, derived seams that do not.
 I Source | Source/Source.symbolindex | 11 sym | Two separately stored sets, and the reclamation that reaches only one of them.
+I Api    | Api/Api.symbolindex       | 12 sym | The bounded extent one stroke accumulates into — coverage per texel, per touched cell, applied once at Seal.
+I Source | Source/Source.symbolindex | 9 sym  | Sparse tile claiming over the dense cell index, and the commutative coverage accumulation.
+I Api    | Api/Api.symbolindex       | 15 sym | Derived, evictable, reconstructible artefacts keyed by content — and nothing authored, ever.
+I Source | Source/Source.symbolindex | 11 sym | The reconstructibility refusal, key resolution, and least-recently-resolved eviction.
+I Api    | Api/Api.symbolindex       | 40 sym | Resolution-independent paintable surfaces — the cell subdivision, its residency, and the sample that never stalls.
+I Source | Source/Source.symbolindex | 28 sym | The coarsening walk that never stalls, the revision comparison, and promotion that evicts only what it may.
+I Api    | Api/Api.symbolindex       | 16 sym | Physical tile extents, sliced and reclaimed — slot ledger and byte offsets, and never a texel.
+I Source | Source/Source.symbolindex | 12 sym | Claim, release into quarantine, and the reclamation deferred by the rotation depth.
+I Api    | Api/Api.symbolindex       | 67 sym | The hierarchical minimum `16` §2 ② reduces one rotation's depth into, and which level a projected extent is tested at.
+I Shader | Shader/Shader.symbolindex | 11 sym | The vertex half of `16` §3's hardware raster — one triangle corner resolved from the declared spans and projected.
+I Source | Source/Source.symbolindex | 50 sym | Halving a display extent into a level chain, and the integer logarithm that picks the level one partition is tested at.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-T MediumSpecification                             | Api/AtmosphereIntegrator.h        | 32-56     | The three components of `28` §3, each with its own density profile and scattering behaviour. what produces the blue of twilight rather than the grey the other two components alone give, and omitting it is the most common reason an atmosphere looks wrong only at low sun angles. a document that edits them edits this specification and the surfaces rebuild per §4's first two rows.
-F MediumSpecification::Validate                   | Api/AtmosphereIntegrator.h        | 55        | Whether the medium describes an atmosphere that can be integrated at all. ozone half width, and for an asymmetry outside the open interval about the origin extent, and the phase magnitude diverges along it.
-T MediumCoefficient                               | Api/AtmosphereIntegrator.h        | 63-70     | The medium's coefficients resolved into the working space, per component. wavelength-neutral by declaration and needs no projection, which is why it is one magnitude rather than three — writing it as three equal ones would invite a later edit to make them differ.
-F Resolve                                         | Api/AtmosphereIntegrator.h        | 86        | Resolves a medium's spectral coefficients into a declared working space. and depolarisation rather than transcribed as three magnitudes. Transcribed, the three are correct for exactly one set of primaries and one working space, and a document declaring a wider space would get a sky whose blue is the old space's blue reinterpreted. The Chappuis band has no closed form, and saying so here is what stops a later reader from assuming the same first-principles standing for both.
-F SLATE_DECLARES_PRECISION                        | Api/AtmosphereIntegrator.h        | 89        | ?
-T ResidentSurface                                 | Api/AtmosphereIntegrator.h        | 103-151   | One precomputed lookup surface — sampled by coordinate, resident on the device, rebuilt on a declared condition. coordinate with filtering between their texels, which is what `Surface` means everywhere else in the series and is not what a lookup indexed by an ordinal would be. aspirational. All three are Tier D — perceptual output, no numeric guarantee — so half precision is correct by definition rather than by concession.
-F ResidentSurface::Construct                      | Api/AtmosphereIntegrator.h        | 111       | Claims the surface at a declared extent, every texel zero.
-F ResidentSurface::Write                          | Api/AtmosphereIntegrator.h        | 119       | Writes one texel's three components; the fourth is written as unity. three-component format would be a fourth format for the device to negotiate — which `06` §2.1's one-queue, explicit-descriptor spine has no appetite for.
-F ResidentSurface::Sample                         | Api/AtmosphereIntegrator.h        | 130       | Samples the surface bilinearly at a declared coordinate, clamped at its bounds. wrapped sample there reads the horizon — which appears as a bright ring directly overhead. `SkyViewSurface`'s azimuth is wrapped by its **caller** before it arrives, because only the caller knows the azimuth is periodic.
-F ResidentSurface::Texels                         | Api/AtmosphereIntegrator.h        | 135       | The encoded texels, for whoever uploads them.
-F ResidentSurface::ResidentBytes                  | Api/AtmosphereIntegrator.h        | 140       | What the surface occupies once resident.
-F ResidentSurface::ExtentAlong                    | Api/AtmosphereIntegrator.h        | 142       | ?
-F ResidentSurface::ExtentAcross                   | Api/AtmosphereIntegrator.h        | 143       | ?
-F ResidentSurface::SurfaceConstructed             | Api/AtmosphereIntegrator.h        | 144       | ?
-T IrradianceProjection                            | Api/AtmosphereIntegrator.h        | 168-184   | The sky's radiance projected onto a second-order harmonic basis and convolved against the cosine lobe. integral evaluated per shaded pixel is the thing the whole precomputation exists to avoid, and it would be evaluated at every pixel of every rotation rather than at every rebuild. product "for probes"; no probe population exists in Slate, so the product is retained and retargeted to `18` §5's diffuse ambient. `Probe` is banned and nothing here spells it. lobe's own harmonic expansion has less than a percent of its energy above the second order, so a higher order would carry coefficients that the convolution multiplies by very nearly nothing.
-F IrradianceProjection::Evaluate                  | Api/AtmosphereIntegrator.h        | 182       | Evaluates the irradiance arriving at a surface of a declared orientation. against a bright horizon. Clamped at zero because a negative irradiance is not a dim surface, it is a surface that subtracts light from whatever else reaches it.
-T AtmosphereIntegrator                            | Api/AtmosphereIntegrator.h        | 203-378   | The three resident surfaces, their construction order, and the conditions each rebuilds on. against a ① that does not stand is refused rather than performed against zeros — a sky-view surface built against an absent transmittance is uniformly black and reads as a device failure. enrolled as the atmospheric source and that `28` reads it; the requester resolves that enrolment on the tick and hands the direction over. Declaring the edge instead would put `44` in this document's Upstream and move `28` from `00` §9.1's stratum 4 to stratum 5, and `00` §11 gates that a declared edge is a real read — so the choice is between a false edge and a supplied parameter. multiple-scattering term near the horizon; `28` §3 declares three medium components and a fourth is not this document's to invent. Recorded as an open row rather than added quietly.
-F AtmosphereIntegrator::DeclareMedium             | Api/AtmosphereIntegrator.h        | 218       | Declares the medium, which owes all three surfaces a rebuild.
-F AtmosphereIntegrator::DeclareSun                | Api/AtmosphereIntegrator.h        | 228       | Declares the direction toward the atmospheric source, as `44`'s enrolled illuminant reports it.
-F AtmosphereIntegrator::DeclareCameraAltitude     | Api/AtmosphereIntegrator.h        | 235       | Declares the camera's altitude above the planet surface.
-F AtmosphereIntegrator::DeclareAtmospherePresence | Api/AtmosphereIntegrator.h        | 243       | Declares whether the atmosphere is present at all. to the same. Both reach that fallback through `SampleSkyView` below, so neither carries a branch of its own and the two cannot come to disagree about what "disabled" looks like.
-F AtmosphereIntegrator::DeclareConstantFloor      | Api/AtmosphereIntegrator.h        | 251       | Declares the constant floor the disabled atmosphere resolves to. structural. It is declared by the caller here rather than chosen, which is what keeps the row open.
-F AtmosphereIntegrator::Rebuild                   | Api/AtmosphereIntegrator.h        | 264       | Rebuilds whatever the declared conditions owe, in construction order, and nothing else. derived, and carries `Resolve`'s refusal where the spectral projection declines both. A rebuild owed on ③ alone runs ③ alone, which is the whole reason the sun may move without the medium being re-integrated.
-F AtmosphereIntegrator::RebuildOwed               | Api/AtmosphereIntegrator.h        | 271       | Whether anything is owed a rebuild. what the schedule's contributor reads to decide.
-F AtmosphereIntegrator::SampleSkyView             | Api/AtmosphereIntegrator.h        | 285       | Samples sky-view radiance along a view direction — `18` §5's specular ambient and `30`'s fallback. surface stands `30` §3 both name the floor as the second of exactly two sources, and a refusal here would make each of them write the fallback again.
-F AtmosphereIntegrator::SampleTransmittance       | Api/AtmosphereIntegrator.h        | 292       | Samples transmittance from a declared altitude along a declared zenith cosine, to the atmosphere boundary.
-F AtmosphereIntegrator::AerialTransmittance       | Api/AtmosphereIntegrator.h        | 308       | Transmittance over a bounded distance along a view ray — `28` §6's aerial perspective. and the ratio trick that recovers a bounded segment from it loses its conditioning near the horizon, which is exactly where distant geometry sits. `28` §8 leaves whether aerial perspective earns a resident surface of its own open, and integrating here is what keeps that row open rather than answering it by accident. as unnaturally crisp against a correct sky — `28` §6.
-F AtmosphereIntegrator::Irradiance                | Api/AtmosphereIntegrator.h        | 317       | The cosine-convolved irradiance, derived at the last sky-view rebuild — `18` §5's diffuse ambient.
-F AtmosphereIntegrator::Transmittance             | Api/AtmosphereIntegrator.h        | 319       | ?
-F AtmosphereIntegrator::MultiScatter              | Api/AtmosphereIntegrator.h        | 320       | ?
-F AtmosphereIntegrator::SkyView                   | Api/AtmosphereIntegrator.h        | 321       | ?
-F AtmosphereIntegrator::ResidentBytes             | Api/AtmosphereIntegrator.h        | 326       | What all three occupy once resident — `28` §7's first gate, measured rather than asserted.
-F AtmosphereIntegrator::MediumRebuildCount        | Api/AtmosphereIntegrator.h        | 333       | How many times each surface has been rebuilt this session. for. A transmittance count that tracks the rotation count is the defect §4 exists to prevent.
-F AtmosphereIntegrator::SkyViewRebuildCount       | Api/AtmosphereIntegrator.h        | 334       | ?
-F AtmosphereIntegrator::Medium                    | Api/AtmosphereIntegrator.h        | 336       | ?
-F AtmosphereIntegrator::Coefficient               | Api/AtmosphereIntegrator.h        | 337       | ?
-F AtmosphereIntegrator::AtmospherePresent         | Api/AtmosphereIntegrator.h        | 338       | ?
-F AtmosphereIntegrator::BuildTransmittance        | Api/AtmosphereIntegrator.h        | 342       | ?
-F AtmosphereIntegrator::BuildMultiScatter         | Api/AtmosphereIntegrator.h        | 343       | ?
-F AtmosphereIntegrator::BuildSkyView              | Api/AtmosphereIntegrator.h        | 344       | ?
-F AtmosphereIntegrator::DeriveIrradiance          | Api/AtmosphereIntegrator.h        | 345       | ?
-F AtmosphereIntegrator::Extinction                | Api/AtmosphereIntegrator.h        | 347       | ?
-F AtmosphereIntegrator::Scattering                | Api/AtmosphereIntegrator.h        | 348       | ?
-F AtmosphereIntegrator::TransmittanceAt           | Api/AtmosphereIntegrator.h        | 351       | ?
-F AtmosphereIntegrator::MultiScatterAt            | Api/AtmosphereIntegrator.h        | 353       | ?
-F SLATE_DECLARES_PRECISION                        | Api/AtmosphereIntegrator.h        | 382       | ?
+T MediumSpecification                             | Api/AtmosphereIntegrator.h        | 33-57     | The three components of `28` §3, each with its own density profile and scattering behaviour. what produces the blue of twilight rather than the grey the other two components alone give, and omitting it is the most common reason an atmosphere looks wrong only at low sun angles. a document that edits them edits this specification and the surfaces rebuild per §4's first two rows.
+F MediumSpecification::Validate                   | Api/AtmosphereIntegrator.h        | 56        | Whether the medium describes an atmosphere that can be integrated at all. ozone half width, and for an asymmetry outside the open interval about the origin extent, and the phase magnitude diverges along it.
+T MediumCoefficient                               | Api/AtmosphereIntegrator.h        | 64-71     | The medium's coefficients resolved into the working space, per component. wavelength-neutral by declaration and needs no projection, which is why it is one magnitude rather than three — writing it as three equal ones would invite a later edit to make them differ.
+F Resolve                                         | Api/AtmosphereIntegrator.h        | 87        | Resolves a medium's spectral coefficients into a declared working space. and depolarisation rather than transcribed as three magnitudes. Transcribed, the three are correct for exactly one set of primaries and one working space, and a document declaring a wider space would get a sky whose blue is the old space's blue reinterpreted. The Chappuis band has no closed form, and saying so here is what stops a later reader from assuming the same first-principles standing for both.
+F SLATE_DECLARES_PRECISION                        | Api/AtmosphereIntegrator.h        | 90        | ?
+T ResidentSurface                                 | Api/AtmosphereIntegrator.h        | 104-156   | One precomputed lookup surface — sampled by coordinate, resident on the device, rebuilt on a declared condition. coordinate with filtering between their texels, which is what `Surface` means everywhere else in the series and is not what a lookup indexed by an ordinal would be. aspirational. All three are Tier D — perceptual output, no numeric guarantee — so half precision is correct by definition rather than by concession.
+F ResidentSurface::Construct                      | Api/AtmosphereIntegrator.h        | 116       | Claims the surface at a declared extent, every texel zero. altitude and sun zenith, both genuinely bounded — a wrapped sample at ③'s zenith would read the horizon while standing at the pole, which appears as a bright ring directly overhead.
+F ResidentSurface::Write                          | Api/AtmosphereIntegrator.h        | 124       | Writes one texel's three components; the fourth is written as unity. three-component format would be a fourth format for the device to negotiate — which `06` §2.1's one-queue, explicit-descriptor spine has no appetite for.
+F ResidentSurface::Sample                         | Api/AtmosphereIntegrator.h        | 134       | Samples the surface bilinearly at a declared coordinate; the axis declared periodic wraps, the other clamps. periodic. The zenith axis genuinely ends at the zenith, and a wrapped sample there reads the horizon — which appears as a bright ring directly overhead.
+F ResidentSurface::Texels                         | Api/AtmosphereIntegrator.h        | 139       | The encoded texels, for whoever uploads them.
+F ResidentSurface::ResidentBytes                  | Api/AtmosphereIntegrator.h        | 144       | What the surface occupies once resident.
+F ResidentSurface::ExtentAlong                    | Api/AtmosphereIntegrator.h        | 146       | ?
+F ResidentSurface::ExtentAcross                   | Api/AtmosphereIntegrator.h        | 147       | ?
+F ResidentSurface::SurfaceConstructed             | Api/AtmosphereIntegrator.h        | 148       | ?
+T IrradianceProjection                            | Api/AtmosphereIntegrator.h        | 173-189   | The sky's radiance projected onto a second-order harmonic basis and convolved against the cosine lobe. integral evaluated per shaded pixel is the thing the whole precomputation exists to avoid, and it would be evaluated at every pixel of every rotation rather than at every rebuild. product "for probes"; no probe population exists in Slate, so the product is retained and retargeted to `18` §5's diffuse ambient. `Probe` is banned and nothing here spells it. lobe's own harmonic expansion has less than a percent of its energy above the second order, so a higher order would carry coefficients that the convolution multiplies by very nearly nothing.
+F IrradianceProjection::Evaluate                  | Api/AtmosphereIntegrator.h        | 187       | Evaluates the irradiance arriving at a surface of a declared orientation. against a bright horizon. Clamped at zero because a negative irradiance is not a dim surface, it is a surface that subtracts light from whatever else reaches it.
+T AtmosphereIntegrator                            | Api/AtmosphereIntegrator.h        | 208-381   | The three resident surfaces, their construction order, and the conditions each rebuilds on. against a ① that does not stand is refused rather than performed against zeros — a sky-view surface built against an absent transmittance is uniformly black and reads as a device failure. enrolled as the atmospheric source and that `28` reads it; the requester resolves that enrolment on the tick and hands the direction over. Declaring the edge instead would put `44` in this document's Upstream and move `28` from `00` §9.1's stratum 4 to stratum 5, and `00` §11 gates that a declared edge is a real read — so the choice is between a false edge and a supplied parameter. multiple-scattering term near the horizon; `28` §3 declares three medium components and a fourth is not this document's to invent. Recorded as an open row rather than added quietly.
+F AtmosphereIntegrator::DeclareMedium             | Api/AtmosphereIntegrator.h        | 223       | Declares the medium, which owes all three surfaces a rebuild.
+F AtmosphereIntegrator::DeclareSun                | Api/AtmosphereIntegrator.h        | 233       | Declares the direction toward the atmospheric source, as `44`'s enrolled illuminant reports it.
+F AtmosphereIntegrator::DeclareCameraAltitude     | Api/AtmosphereIntegrator.h        | 240       | Declares the camera's altitude above the planet surface.
+F AtmosphereIntegrator::DeclareAtmospherePresence | Api/AtmosphereIntegrator.h        | 248       | Declares whether the atmosphere is present at all. to the same. Both reach that fallback through `SampleSkyView` below, so neither carries a branch of its own and the two cannot come to disagree about what "disabled" looks like.
+F AtmosphereIntegrator::DeclareConstantFloor      | Api/AtmosphereIntegrator.h        | 256       | Declares the constant floor the disabled atmosphere resolves to. structural. It is declared by the caller here rather than chosen, which is what keeps the row open.
+F AtmosphereIntegrator::Rebuild                   | Api/AtmosphereIntegrator.h        | 269       | Rebuilds whatever the declared conditions owe, in construction order, and nothing else. derived, and carries `Resolve`'s refusal where the spectral projection declines both. A rebuild owed on ③ alone runs ③ alone, which is the whole reason the sun may move without the medium being re-integrated.
+F AtmosphereIntegrator::RebuildOwed               | Api/AtmosphereIntegrator.h        | 276       | Whether anything is owed a rebuild. what the schedule's contributor reads to decide.
+F AtmosphereIntegrator::SampleSkyView             | Api/AtmosphereIntegrator.h        | 290       | Samples sky-view radiance along a view direction — `18` §5's specular ambient and `30`'s fallback. surface stands `30` §3 both name the floor as the second of exactly two sources, and a refusal here would make each of them write the fallback again.
+F AtmosphereIntegrator::SampleTransmittance       | Api/AtmosphereIntegrator.h        | 297       | Samples transmittance from a declared altitude along a declared zenith cosine, to the atmosphere boundary.
+F AtmosphereIntegrator::AerialTransmittance       | Api/AtmosphereIntegrator.h        | 313       | Transmittance over a bounded distance along a view ray — `28` §6's aerial perspective. and the ratio trick that recovers a bounded segment from it loses its conditioning near the horizon, which is exactly where distant geometry sits. `28` §8 leaves whether aerial perspective earns a resident surface of its own open, and integrating here is what keeps that row open rather than answering it by accident. as unnaturally crisp against a correct sky — `28` §6.
+F AtmosphereIntegrator::Irradiance                | Api/AtmosphereIntegrator.h        | 322       | The cosine-convolved irradiance, derived at the last sky-view rebuild — `18` §5's diffuse ambient.
+F AtmosphereIntegrator::Transmittance             | Api/AtmosphereIntegrator.h        | 324       | ?
+F AtmosphereIntegrator::MultiScatter              | Api/AtmosphereIntegrator.h        | 325       | ?
+F AtmosphereIntegrator::SkyView                   | Api/AtmosphereIntegrator.h        | 326       | ?
+F AtmosphereIntegrator::ResidentBytes             | Api/AtmosphereIntegrator.h        | 331       | What all three occupy once resident — `28` §7's first gate, measured rather than asserted.
+F AtmosphereIntegrator::MediumRebuildCount        | Api/AtmosphereIntegrator.h        | 338       | How many times each surface has been rebuilt this session. for. A transmittance count that tracks the rotation count is the defect §4 exists to prevent.
+F AtmosphereIntegrator::SkyViewRebuildCount       | Api/AtmosphereIntegrator.h        | 339       | ?
+F AtmosphereIntegrator::Medium                    | Api/AtmosphereIntegrator.h        | 341       | ?
+F AtmosphereIntegrator::Coefficient               | Api/AtmosphereIntegrator.h        | 342       | ?
+F AtmosphereIntegrator::AtmospherePresent         | Api/AtmosphereIntegrator.h        | 343       | ?
+F AtmosphereIntegrator::ShapeProfile              | Api/AtmosphereIntegrator.h        | 347       | ?
+F AtmosphereIntegrator::BuildTransmittance        | Api/AtmosphereIntegrator.h        | 348       | ?
+F AtmosphereIntegrator::BuildMultiScatter         | Api/AtmosphereIntegrator.h        | 349       | ?
+F AtmosphereIntegrator::BuildSkyView              | Api/AtmosphereIntegrator.h        | 350       | ?
+F AtmosphereIntegrator::DeriveIrradiance          | Api/AtmosphereIntegrator.h        | 351       | ?
+F AtmosphereIntegrator::TransmittanceAt           | Api/AtmosphereIntegrator.h        | 353       | ?
+F AtmosphereIntegrator::MultiScatterAt            | Api/AtmosphereIntegrator.h        | 355       | ?
+F SLATE_DECLARES_PRECISION                        | Api/AtmosphereIntegrator.h        | 385       | ?
 T MediumUniform                                   | Shader/AtmosphereUniform.slang    | 32-53     | The medium, the sun and the camera altitude, as the host uploads them. of the three declared layout rules. A vector member here would pad to sixteen bytes under std140 and to its own width elsewhere, and the host mirror would agree with exactly one of them.
 F ResolveMediumProfile                            | Shader/AtmosphereUniform.slang    | 65-90     | Widens the uploaded block into the profile `Shared/` computes against. second derivation of what the host already resolved spectrally through `02` §5, and the two would agree only until one of them was amended.
 F ProjectTexelCoordinate                          | Shader/AtmosphereUniform.slang    | 98-105    | The coordinate of one texel centre on a surface of a declared extent. samples at texel corners and a lookup that filters between texel centres disagree by half a texel everywhere — uniformly, so nothing looks broken and the horizon simply sits in the wrong place.
@@ -104,60 +120,48 @@ V TransmittanceStepCount                          | Shader/TransmittanceSurface.
 V Medium                                          | Shader/TransmittanceSurface.slang | 28        | ?
 V TransmittanceOutput                             | Shader/TransmittanceSurface.slang | 29        | ?
 F IntegrateTransmittance                          | Shader/TransmittanceSurface.slang | 47-103    | ?
-F EncodeHalf                                      | Source/AtmosphereIntegrator.cpp   | 26-59     | ?
-F DecodeHalf                                      | Source/AtmosphereIntegrator.cpp   | 61-87     | ?
-F Bounded                                         | Source/AtmosphereIntegrator.cpp   | 93-96     | ?
-F DistanceToSphere                                | Source/AtmosphereIntegrator.cpp   | 101-119   | ?
-F AdvanceRadius                                   | Source/AtmosphereIntegrator.cpp   | 124-129   | ?
-F GroundReached                                   | Source/AtmosphereIntegrator.cpp   | 131-137   | ?
-F RayleighPhase                                   | Source/AtmosphereIntegrator.cpp   | 141-144   | ?
-F MiePhase                                        | Source/AtmosphereIntegrator.cpp   | 148-157   | ?
-F MediumSpecification::Validate                   | Source/AtmosphereIntegrator.cpp   | 165-189   | ?
-F Resolve                                         | Source/AtmosphereIntegrator.cpp   | 195-288   | ?
-F ResidentSurface::Construct                      | Source/AtmosphereIntegrator.cpp   | 294-305   | ?
-F ResidentSurface::Write                          | Source/AtmosphereIntegrator.cpp   | 307-319   | ?
-F ResidentSurface::Sample                         | Source/AtmosphereIntegrator.cpp   | 321-370   | ?
-F ResidentSurface::Texels                         | Source/AtmosphereIntegrator.cpp   | 372       | ?
-F ResidentSurface::ResidentBytes                  | Source/AtmosphereIntegrator.cpp   | 374-377   | ?
-F ResidentSurface::ExtentAlong                    | Source/AtmosphereIntegrator.cpp   | 379       | ?
-F ResidentSurface::ExtentAcross                   | Source/AtmosphereIntegrator.cpp   | 380       | ?
-F ResidentSurface::SurfaceConstructed             | Source/AtmosphereIntegrator.cpp   | 381       | ?
-F HarmonicBasis                                   | Source/AtmosphereIntegrator.cpp   | 391-402   | ?
-V CosineLobe                                      | Source/AtmosphereIntegrator.cpp   | 407       | ?
-F IrradianceProjection::Evaluate                  | Source/AtmosphereIntegrator.cpp   | 411-428   | ?
-F AtmosphereIntegrator::DeclareMedium             | Source/AtmosphereIntegrator.cpp   | 434-450   | ?
-F AtmosphereIntegrator::DeclareSun                | Source/AtmosphereIntegrator.cpp   | 452-474   | ?
-F AtmosphereIntegrator::DeclareCameraAltitude     | Source/AtmosphereIntegrator.cpp   | 476-493   | ?
-F AtmosphereIntegrator::DeclareAtmospherePresence | Source/AtmosphereIntegrator.cpp   | 495-498   | ?
-F AtmosphereIntegrator::DeclareConstantFloor      | Source/AtmosphereIntegrator.cpp   | 500-509   | ?
-F AtmosphereIntegrator::Extinction                | Source/AtmosphereIntegrator.cpp   | 515-536   | ?
-F AtmosphereIntegrator::Scattering                | Source/AtmosphereIntegrator.cpp   | 538-552   | ?
-F TransmittanceCoordinate                         | Source/AtmosphereIntegrator.cpp   | 566-574   | ?
-F TransmittanceParameter                          | Source/AtmosphereIntegrator.cpp   | 578-584   | ?
-F StepIntegral                                    | Source/AtmosphereIntegrator.cpp   | 590-597   | ?
-F AtmosphereIntegrator::BuildTransmittance        | Source/AtmosphereIntegrator.cpp   | 601-673   | ?
-F AtmosphereIntegrator::TransmittanceAt           | Source/AtmosphereIntegrator.cpp   | 675-686   | ?
-F AtmosphereIntegrator::MultiScatterAt            | Source/AtmosphereIntegrator.cpp   | 692-703   | ?
-F AtmosphereIntegrator::BuildMultiScatter         | Source/AtmosphereIntegrator.cpp   | 705-843   | ?
-F SkyViewDirection                                | Source/AtmosphereIntegrator.cpp   | 856-881   | ?
-F SkyViewCoordinate                               | Source/AtmosphereIntegrator.cpp   | 883-906   | ?
-F AtmosphereIntegrator::BuildSkyView              | Source/AtmosphereIntegrator.cpp   | 910-1018  | ?
-F AtmosphereIntegrator::DeriveIrradiance          | Source/AtmosphereIntegrator.cpp   | 1024-1080 | ?
-F AtmosphereIntegrator::Rebuild                   | Source/AtmosphereIntegrator.cpp   | 1086-1141 | ?
-F AtmosphereIntegrator::RebuildOwed               | Source/AtmosphereIntegrator.cpp   | 1143-1146 | ?
-F AtmosphereIntegrator::SampleSkyView             | Source/AtmosphereIntegrator.cpp   | 1152-1182 | ?
-F AtmosphereIntegrator::SampleTransmittance       | Source/AtmosphereIntegrator.cpp   | 1184-1193 | ?
-F AtmosphereIntegrator::AerialTransmittance       | Source/AtmosphereIntegrator.cpp   | 1195-1251 | ?
-F AtmosphereIntegrator::Irradiance                | Source/AtmosphereIntegrator.cpp   | 1257      | ?
-F AtmosphereIntegrator::Transmittance             | Source/AtmosphereIntegrator.cpp   | 1258      | ?
-F AtmosphereIntegrator::MultiScatter              | Source/AtmosphereIntegrator.cpp   | 1259      | ?
-F AtmosphereIntegrator::SkyView                   | Source/AtmosphereIntegrator.cpp   | 1260      | ?
-F AtmosphereIntegrator::ResidentBytes             | Source/AtmosphereIntegrator.cpp   | 1262-1267 | ?
-F AtmosphereIntegrator::MediumRebuildCount        | Source/AtmosphereIntegrator.cpp   | 1269      | ?
-F AtmosphereIntegrator::SkyViewRebuildCount       | Source/AtmosphereIntegrator.cpp   | 1270      | ?
-F AtmosphereIntegrator::Medium                    | Source/AtmosphereIntegrator.cpp   | 1271      | ?
-F AtmosphereIntegrator::Coefficient               | Source/AtmosphereIntegrator.cpp   | 1272      | ?
-F AtmosphereIntegrator::AtmospherePresent         | Source/AtmosphereIntegrator.cpp   | 1273      | ?
+F EncodeHalf                                      | Source/AtmosphereIntegrator.cpp   | 27-60     | ?
+F DecodeHalf                                      | Source/AtmosphereIntegrator.cpp   | 62-88     | ?
+F MediumSpecification::Validate                   | Source/AtmosphereIntegrator.cpp   | 105-129   | ?
+F Resolve                                         | Source/AtmosphereIntegrator.cpp   | 135-228   | ?
+F ResidentSurface::Construct                      | Source/AtmosphereIntegrator.cpp   | 234-248   | ?
+F ResidentSurface::Write                          | Source/AtmosphereIntegrator.cpp   | 250-262   | ?
+F ResidentSurface::Sample                         | Source/AtmosphereIntegrator.cpp   | 264-327   | ?
+F ResidentSurface::Texels                         | Source/AtmosphereIntegrator.cpp   | 329       | ?
+F ResidentSurface::ResidentBytes                  | Source/AtmosphereIntegrator.cpp   | 331-334   | ?
+F ResidentSurface::ExtentAlong                    | Source/AtmosphereIntegrator.cpp   | 336       | ?
+F ResidentSurface::ExtentAcross                   | Source/AtmosphereIntegrator.cpp   | 337       | ?
+F ResidentSurface::SurfaceConstructed             | Source/AtmosphereIntegrator.cpp   | 338       | ?
+F HarmonicBasis                                   | Source/AtmosphereIntegrator.cpp   | 348-359   | ?
+V CosineLobe                                      | Source/AtmosphereIntegrator.cpp   | 364       | ?
+F IrradianceProjection::Evaluate                  | Source/AtmosphereIntegrator.cpp   | 368-385   | ?
+F AtmosphereIntegrator::DeclareMedium             | Source/AtmosphereIntegrator.cpp   | 391-407   | ?
+F AtmosphereIntegrator::DeclareSun                | Source/AtmosphereIntegrator.cpp   | 409-431   | ?
+F AtmosphereIntegrator::DeclareCameraAltitude     | Source/AtmosphereIntegrator.cpp   | 433-450   | ?
+F AtmosphereIntegrator::DeclareAtmospherePresence | Source/AtmosphereIntegrator.cpp   | 452-455   | ?
+F AtmosphereIntegrator::DeclareConstantFloor      | Source/AtmosphereIntegrator.cpp   | 457-466   | ?
+F AtmosphereIntegrator::ShapeProfile              | Source/AtmosphereIntegrator.cpp   | 472-496   | ?
+F AtmosphereIntegrator::BuildTransmittance        | Source/AtmosphereIntegrator.cpp   | 512-595   | ?
+F AtmosphereIntegrator::TransmittanceAt           | Source/AtmosphereIntegrator.cpp   | 597-606   | ?
+F AtmosphereIntegrator::MultiScatterAt            | Source/AtmosphereIntegrator.cpp   | 612-620   | ?
+F AtmosphereIntegrator::BuildMultiScatter         | Source/AtmosphereIntegrator.cpp   | 622-760   | ?
+F AtmosphereIntegrator::BuildSkyView              | Source/AtmosphereIntegrator.cpp   | 775-884   | ?
+F AtmosphereIntegrator::DeriveIrradiance          | Source/AtmosphereIntegrator.cpp   | 890-946   | ?
+F AtmosphereIntegrator::Rebuild                   | Source/AtmosphereIntegrator.cpp   | 952-1012  | ?
+F AtmosphereIntegrator::RebuildOwed               | Source/AtmosphereIntegrator.cpp   | 1014-1017 | ?
+F AtmosphereIntegrator::SampleSkyView             | Source/AtmosphereIntegrator.cpp   | 1023-1053 | ?
+F AtmosphereIntegrator::SampleTransmittance       | Source/AtmosphereIntegrator.cpp   | 1055-1065 | ?
+F AtmosphereIntegrator::AerialTransmittance       | Source/AtmosphereIntegrator.cpp   | 1067-1124 | ?
+F AtmosphereIntegrator::Irradiance                | Source/AtmosphereIntegrator.cpp   | 1130      | ?
+F AtmosphereIntegrator::Transmittance             | Source/AtmosphereIntegrator.cpp   | 1131      | ?
+F AtmosphereIntegrator::MultiScatter              | Source/AtmosphereIntegrator.cpp   | 1132      | ?
+F AtmosphereIntegrator::SkyView                   | Source/AtmosphereIntegrator.cpp   | 1133      | ?
+F AtmosphereIntegrator::ResidentBytes             | Source/AtmosphereIntegrator.cpp   | 1135-1140 | ?
+F AtmosphereIntegrator::MediumRebuildCount        | Source/AtmosphereIntegrator.cpp   | 1142      | ?
+F AtmosphereIntegrator::SkyViewRebuildCount       | Source/AtmosphereIntegrator.cpp   | 1143      | ?
+F AtmosphereIntegrator::Medium                    | Source/AtmosphereIntegrator.cpp   | 1144      | ?
+F AtmosphereIntegrator::Coefficient               | Source/AtmosphereIntegrator.cpp   | 1145      | ?
+F AtmosphereIntegrator::AtmospherePresent         | Source/AtmosphereIntegrator.cpp   | 1146      | ?
 T PartitionSpecification                          | Api/ChartPartition.h              | 32-39     | The parameters a partition is derived against. distortion either way. It is declared here rather than in `Contract/` because no second unit reads it.
 T Chart                                           | Api/ChartPartition.h              | 51-60     | One connected piece of topology bounded by seams and by the topology's own boundary. results on the partition revision, and a chart whose member set is unchanged keeps its least face ordinal — so a partition that touched one seam does not renumber every chart and discard every derived artefact for a change the artist cannot see.
 T PartitionMetrics                                | Api/ChartPartition.h              | 68-77     | What the partition reports through `86`.
@@ -202,19 +206,142 @@ F DomainSpace::Arrange                            | Source/DomainSpace.cpp      
 F DomainSpace::Placements                         | Source/DomainSpace.cpp            | 178       | ?
 F DomainSpace::Occupancy                          | Source/DomainSpace.cpp            | 179       | ?
 F DomainSpace::SettledScale                       | Source/DomainSpace.cpp            | 180       | ?
+F PaintingLevelOf                                 | Api/ImpressionSequence.h          | 41        | Which reduction level a declared working extent paints at. working extent. Resolving a stroke against a coarser level is not a lower-quality stroke, it is a stroke recorded at a resolution the artist did not choose, and no later promotion recovers it. `MaximumWorkingEdge >> L`. The level is therefore the base-two logarithm of the ratio, and an extent that is not one of the seven is refused rather than rounded to the nearest.
+T ChannelPlacement                                | Api/ImpressionSequence.h          | 55-60     | Which components of one painted entry a brush channel occupies. open — bit depths and component assignment are specified in no source document — so deriving one here would be answering that question by accident, in the one place nobody would look for the answer. inferred from the measure, so that a two-component packing of a colour is a refusal at `Open` instead of three channels written over each other.
+T ImpressionSample                                | Api/ImpressionSequence.h          | 74-82     | One resolved brush impression on the surface — `22` §1 ④. place; an impression is one term of an ordered accumulation, and the accumulation is what `22` §3 is about. The two words describe different mechanisms and only one of them is Slate's. and the texels backing it are a residency decision made independently — an impression carrying a texel would make a stroke unrecordable at any other working extent.
+T StrokeArrival                                   | Api/ImpressionSequence.h          | 97-103    | One pointer sample, with the domain position `74` resolved it to. subdivision and is unbuilt; declaring the edge instead would put `40` and `74` in this document's Upstream, and `00` §11 gates that a declared edge is a real read. The same choice `28` made for the sun direction, for the same reason. than interpolating across the gap. A stroke that leaves an object and returns must not paint a line between the two points, and the artist has no way to undo half of one stroke.
+T StrokeDeclaration                               | Api/ImpressionSequence.h          | 111-120   | Everything a stroke needs before its first impression.
+T ResolvedRun                                     | Api/ImpressionSequence.h          | 131-136   | How one rotation's resolution ended. reasoning is identical one layer up: an impression waiting for a tile is ordinary operation, and a register that appended one per impression per rotation is a register nobody reads.
+T SealedStroke                                    | Api/ImpressionSequence.h          | 150-159   | One committed stroke's inverse, bounded by the extents the stroke touched. surface-wide snapshot per stroke makes a painting session's revision sequence proportional to the surface times the stroke count, and the artist runs out of memory rather than out of undo. already the granularity the stroke claimed, and a sparse inverse would have to carry a texel mask that costs more than the texels it excludes at any realistic coverage.
+F Restore                                         | Api/ImpressionSequence.h          | 171       | Replays one sealed stroke's inverse, returning the touched extents to what stood before it. ContentUnsupported when its extent no longer matches the recorded one path with the values negated — a combination like `Multiply` has no negation, and `Erase` has no inverse expressible as an erase.
+T ImpressionSequence                              | Api/ImpressionSequence.h          | 186-320   | One stroke — its resampled path, its impressions, its accumulation, and the one transaction it seals. Abandon ends with no effect, Seal enters **one** transaction. A stroke recording a transaction per pointer sample fills the revision sequence with positions the artist never intended to stop at, and undo then steps back one pixel at a time. resampled against consumption has the display rate baked into it, so the same physical gesture produces a different stroke on a machine that presents at a different rate.
+F ImpressionSequence::Open                        | Api/ImpressionSequence.h          | 207       | Opens a stroke against a declared brush. a working extent that is no reduction level, for a channel placement outside the entry's components, and for a shape source that is not yet resolvable fallback would be a stroke that does not have the silhouette the artist selected, and `58` §8 promises the preview and the committed impression share one shape.
+F ImpressionSequence::Amend                       | Api/ImpressionSequence.h          | 221       | Admits one arrival, resampling the path and emitting whatever impressions it reached. drawn quickly place the same impressions. `58` §5 makes spacing relative to the extent, so a brush resized keeps its character rather than becoming a dotted line. cannot come from the next, because the next impression's dynamics are read at a position the walk has not reached — and a spacing that depended on where it lands has no fixed point.
+F ImpressionSequence::Resolve                     | Api/ImpressionSequence.h          | 241       | Resolves whatever impressions the residency now admits, demanding what it does not. against the coarse level, because paint applied at the wrong resolution is authored content that is permanently wrong — unlike a display sample, which is merely briefly coarse. whatever level is promoted and may refine later, because for them the authored thing is the source and the transform rather than the texels. A speculative stroke follows the derived rule for the same reason: nothing speculative is authored, so nothing speculative can be wrong. which is symmetric, so an impression resolving two rotations late lands exactly where it would have — and the artist sees most of a stroke immediately instead of none of it.
+F ImpressionSequence::Abandon                     | Api/ImpressionSequence.h          | 249       | Ends the stroke with no effect, releasing every tile it pinned.
+F ImpressionSequence::Seal                        | Api/ImpressionSequence.h          | 267       | Ends the stroke, applying it once and sealing one transaction. IdentityStale for an entry that no longer resolves, and with ContentUnsupported when the entry's extent no longer matches the stroke's restores base colour and roughness together, which is what the artist performed; two transactions would make them undo separately and neither in isolation is a thing they did. quietly succeeded for one would put a preview in the revision sequence.
+F ImpressionSequence::ReclaimSpeculative          | Api/ImpressionSequence.h          | 278       | Discards the accumulation without ending the stroke — a speculative extent's per-rotation reclaim. committed stroke, whose accumulation is the only record of what has been painted so far.
+F ImpressionSequence::Impressions                 | Api/ImpressionSequence.h          | 280       | ?
+F ImpressionSequence::Accumulation                | Api/ImpressionSequence.h          | 281       | ?
+F ImpressionSequence::ImpressionCount             | Api/ImpressionSequence.h          | 283       | ?
+F ImpressionSequence::PendingCount                | Api/ImpressionSequence.h          | 284       | ?
+F ImpressionSequence::PaintingLevel               | Api/ImpressionSequence.h          | 285       | ?
+F ImpressionSequence::PathLength                  | Api/ImpressionSequence.h          | 286       | ?
+F ImpressionSequence::StrokeOpen                  | Api/ImpressionSequence.h          | 287       | ?
+F ImpressionSequence::SpeculativeDeclared         | Api/ImpressionSequence.h          | 288       | ?
+F ImpressionSequence::Emit                        | Api/ImpressionSequence.h          | 292       | ?
+F ImpressionSequence::ProjectAxes                 | Api/ImpressionSequence.h          | 295       | ?
+F ImpressionSequence::ResolveOne                  | Api/ImpressionSequence.h          | 298       | ?
+F SLATE_DECLARES_PRECISION                        | Api/ImpressionSequence.h          | 326       | ?
+F PaintingLevelOf                                 | Source/ImpressionSequence.cpp     | 17-27     | ?
+V SpeedReference                                  | Source/ImpressionSequence.cpp     | 39        | ?
+V PathDistanceReference                           | Source/ImpressionSequence.cpp     | 40        | ?
+V TiltReference                                   | Source/ImpressionSequence.cpp     | 41        | ?
+V RotationReference                               | Source/ImpressionSequence.cpp     | 42        | ?
+F ProfileCoverage                                 | Source/ImpressionSequence.cpp     | 47-67     | ?
+F BoundedUnit                                     | Source/ImpressionSequence.cpp     | 69-72     | ?
+F ImpressionSequence::Open                        | Source/ImpressionSequence.cpp     | 80-170    | ?
+F ImpressionSequence::ProjectAxes                 | Source/ImpressionSequence.cpp     | 176-217   | ?
+F ImpressionSequence::Emit                        | Source/ImpressionSequence.cpp     | 219-254   | ?
+F ImpressionSequence::Amend                       | Source/ImpressionSequence.cpp     | 256-355   | ?
+F ImpressionSequence::ResolveOne                  | Source/ImpressionSequence.cpp     | 361-508   | ?
+F ImpressionSequence::Resolve                     | Source/ImpressionSequence.cpp     | 510-545   | ?
+F ImpressionSequence::Abandon                     | Source/ImpressionSequence.cpp     | 551-568   | ?
+F ImpressionSequence::ReclaimSpeculative          | Source/ImpressionSequence.cpp     | 570-587   | ?
+F ImpressionSequence::Seal                        | Source/ImpressionSequence.cpp     | 593-743   | ?
+F Restore                                         | Source/ImpressionSequence.cpp     | 749-802   | ?
+F ImpressionSequence::Impressions                 | Source/ImpressionSequence.cpp     | 808       | ?
+F ImpressionSequence::Accumulation                | Source/ImpressionSequence.cpp     | 809       | ?
+F ImpressionSequence::ImpressionCount             | Source/ImpressionSequence.cpp     | 811-814   | ?
+F ImpressionSequence::PendingCount                | Source/ImpressionSequence.cpp     | 816-827   | ?
+F ImpressionSequence::PaintingLevel               | Source/ImpressionSequence.cpp     | 829       | ?
+F ImpressionSequence::PathLength                  | Source/ImpressionSequence.cpp     | 830       | ?
+F ImpressionSequence::StrokeOpen                  | Source/ImpressionSequence.cpp     | 831       | ?
+F ImpressionSequence::SpeculativeDeclared         | Source/ImpressionSequence.cpp     | 832       | ?
 T ParityRegistration                              | Api/ParityRunner.h                | 24-29     | One registered `Shared/` entry point and the guarantee it claims.
 T ParityReport                                    | Api/ParityRunner.h                | 37-44     | What one entry point's parity comparison found.
 T ParityRunner                                    | Api/ParityRunner.h                | 55-85     | Classifies registered entry points on both toolchains over a common sample set. declared bound in units in the last place. Convergent entry points are compared within their own convergence criterion. Perceptual entry points are not compared — that is what Perceptual means.
 F ParityRunner::Register                          | Api/ParityRunner.h                | 64        | Registers one `Shared/` entry point for comparison.
 F ParityRunner::Compare                           | Api/ParityRunner.h                | 73        | Compares every registered entry point and reports each one. Until it is, the runner compares the host form against itself and reports the sample counts, which is honest about what was proven rather than reporting an agreement nothing established.
 F ParityRunner::AgreementHeld                     | Api/ParityRunner.h                | 78        | Whether every registered entry point met its claimed guarantee in the last comparison.
-F ParityRunner::Register                          | Source/ParityRunner.cpp           | 24-34     | ?
-T OrientationSample                               | Source/ParityRunner.cpp           | 45-53     | ?
-T IncircleSample                                  | Source/ParityRunner.cpp           | 70-80     | ?
-T SegmentSample                                   | Source/ParityRunner.cpp           | 93-103    | ?
-T IntervalSample                                  | Source/ParityRunner.cpp           | 117-123   | ?
-F ParityRunner::Compare                           | Source/ParityRunner.cpp           | 141-374   | ?
-F ParityRunner::AgreementHeld                     | Source/ParityRunner.cpp           | 376-379   | ?
+F ParityRunner::Register                          | Source/ParityRunner.cpp           | 25-35     | ?
+T OrientationSample                               | Source/ParityRunner.cpp           | 46-54     | ?
+T IncircleSample                                  | Source/ParityRunner.cpp           | 71-81     | ?
+T SegmentSample                                   | Source/ParityRunner.cpp           | 94-104    | ?
+T IntervalSample                                  | Source/ParityRunner.cpp           | 118-124   | ?
+F ParityRunner::Compare                           | Source/ParityRunner.cpp           | 142-468   | ?
+F ParityRunner::AgreementHeld                     | Source/ParityRunner.cpp           | 470-473   | ?
+T PromotionBudget                                 | Api/PromotionScheduler.h          | 28-32     | What one rotation may spend promoting tiles. alone does not bound analytic resolution, because an analytically resolved tile transfers nothing — it is produced on the device from a source description. A surface carrying many analytic layers can therefore consume unbounded device time while the transfer measure truthfully reports zero. Exceeding either measure defers, and deferral is normal operation rather than an error — `86` §5.
+T PromotionCost                                   | Api/PromotionScheduler.h          | 39-43     | What promoting one tile would cost, against both measures at once. transfer for the first and evaluation for the second, and both must fit — which is why the two are carried together rather than resolved to whichever dominates.
+V EvaluationUnitsPerEntry                         | Api/PromotionScheduler.h          | 49        | ?
+E PromotionDisposition                            | Api/PromotionScheduler.h          | 57-64     | How one considered promotion ended.
+T EvictionCandidate                               | Api/PromotionScheduler.h          | 72-78     | One resident cell offered as an eviction candidate.
+E EvictionOrdering                                | Api/PromotionScheduler.h          | 86-91     | Which ordering eviction follows. edge to `46` that `20` does not declare, and `00` §11 gates that a declared edge is a real read, so acquiring one to answer a tuning question would be paying a build-order cost for a constant. Least recently demanded ships; the row stays open.
+F PrecedesInEviction                              | Api/PromotionScheduler.h          | 99        | Whether the first candidate is evicted before the second. ordering that left two candidates incomparable would evict whichever the walk reached, and the walk order is a storage detail the artist would then be able to feel.
+F Estimate                                        | Api/PromotionScheduler.h          | 121       | What promoting one tile of a surface would cost, from what its layer sequence holds. source. That is the whole reason the depot pays for itself: it converts an evaluation cost that the second budget bounds tightly into a transfer cost that the first bounds loosely. test a cell against. It is therefore conservative: an entry covering a tenth of the surface is charged against every tile. Sharpening it needs a coverage extent per entry, which is `56` §10's third open row read from this side.
+T PromotionScheduler                              | Api/PromotionScheduler.h          | 135-206   | One rotation's promotion budget, spent in arrival order, and the ordering eviction follows. reconstructed and never touches one. `20` §2.1 ⑤'s three reconstruction sources belong to `56`, the depot and `70`, and a scheduler that reached for them would be a scheduler with an opinion about content.
+F PromotionScheduler::DeclareBudget               | Api/PromotionScheduler.h          | 145       | Declares what one rotation may spend. content genuinely has no evaluation to bound, and refusing it would force a fictitious number.
+F PromotionScheduler::DeclareOrdering             | Api/PromotionScheduler.h          | 150       | Declares which ordering eviction follows.
+F PromotionScheduler::OpenRotation                | Api/PromotionScheduler.h          | 160       | Opens one rotation, restoring the whole budget. its unspent remainder forward would let a still workspace bank several rotations of promotion and spend them all on the rotation the artist finally moved — which is precisely the stall the budget exists to prevent.
+F PromotionScheduler::Admits                      | Api/PromotionScheduler.h          | 165       | Whether a cost fits what remains of this rotation.
+F PromotionScheduler::Charge                      | Api/PromotionScheduler.h          | 172       | Charges a cost against what remains.
+F PromotionScheduler::DeferOne                    | Api/PromotionScheduler.h          | 179       | Records that one promotion was deferred — `86` §5's measure row for `20` §2.2. register that appended one per deferred tile per rotation is a register nobody reads.
+F PromotionScheduler::PromoteOne                  | Api/PromotionScheduler.h          | 184       | Records that one promotion was admitted.
+F PromotionScheduler::Ordering                    | Api/PromotionScheduler.h          | 186       | ?
+F PromotionScheduler::Declared                    | Api/PromotionScheduler.h          | 187       | ?
+F PromotionScheduler::Remaining                   | Api/PromotionScheduler.h          | 188       | ?
+F PromotionScheduler::OpenedRotation              | Api/PromotionScheduler.h          | 189       | ?
+F PromotionScheduler::PromotedCount               | Api/PromotionScheduler.h          | 190       | ?
+F PromotionScheduler::DeferredCount               | Api/PromotionScheduler.h          | 191       | ?
+F PromotionScheduler::PromotedTotal               | Api/PromotionScheduler.h          | 192       | ?
+F PromotionScheduler::DeferredTotal               | Api/PromotionScheduler.h          | 193       | ?
+F PrecedesInEviction                              | Source/PromotionScheduler.cpp     | 15-37     | ?
+F Estimate                                        | Source/PromotionScheduler.cpp     | 43-81     | ?
+F PromotionScheduler::DeclareBudget               | Source/PromotionScheduler.cpp     | 87-99     | ?
+F PromotionScheduler::DeclareOrdering             | Source/PromotionScheduler.cpp     | 101-105   | ?
+F PromotionScheduler::OpenRotation                | Source/PromotionScheduler.cpp     | 107-122   | ?
+F PromotionScheduler::Admits                      | Source/PromotionScheduler.cpp     | 128-135   | ?
+F PromotionScheduler::Charge                      | Source/PromotionScheduler.cpp     | 137-146   | ?
+F PromotionScheduler::DeferOne                    | Source/PromotionScheduler.cpp     | 148-152   | ?
+F PromotionScheduler::PromoteOne                  | Source/PromotionScheduler.cpp     | 154-158   | ?
+F PromotionScheduler::Ordering                    | Source/PromotionScheduler.cpp     | 164       | ?
+F PromotionScheduler::Declared                    | Source/PromotionScheduler.cpp     | 165       | ?
+F PromotionScheduler::Remaining                   | Source/PromotionScheduler.cpp     | 166       | ?
+F PromotionScheduler::OpenedRotation              | Source/PromotionScheduler.cpp     | 167       | ?
+F PromotionScheduler::PromotedCount               | Source/PromotionScheduler.cpp     | 168       | ?
+F PromotionScheduler::DeferredCount               | Source/PromotionScheduler.cpp     | 169       | ?
+F PromotionScheduler::PromotedTotal               | Source/PromotionScheduler.cpp     | 170       | ?
+F PromotionScheduler::DeferredTotal               | Source/PromotionScheduler.cpp     | 171       | ?
+T CellDemand                                      | Api/RequestQueue.h                | 26-31     | One cell a sample touched and did not find resident. subdivision numbers every cell of every reduction level in one span. A demand carrying both would be two answers to one question and the two would eventually disagree.
+T PageQueue                                       | Api/RequestQueue.h                | 45-80     | The drained demands of one rotation, in first-arrival order and coalesced. then spends itself against. Ordering by occurrence count instead would promote the largest surface before the one under the cursor, which is exactly backwards. demand with a count of a million, and the count is what a presenter reads to say how badly it is wanted — not what the ordering reads.
+F PageQueue::Admit                                | Api/RequestQueue.h                | 61        | Admits one demand, coalescing it into an earlier demand for the same cell. rotation and demands it again, so the discard costs one rotation of coarseness and nothing else. That is why it is a measure rather than a report — `86` §5.
+F PageQueue::Arrivals                             | Api/RequestQueue.h                | 66        | The demands, in first-arrival order.
+F PageQueue::Reclaim                              | Api/RequestQueue.h                | 71        | Empties the order, ready for the next drain.
+F PageQueue::ArrivalCount                         | Api/RequestQueue.h                | 73        | ?
+F PageQueue::DiscardedCount                       | Api/RequestQueue.h                | 74        | ?
+T RequestQueue                                    | Api/RequestQueue.h                | 94-125    | The demands sampling wrote, held per rotation slot until the readback latency has elapsed. cell must produce something immediately — the coarsest resident level — rather than stalling. A residency system that stalls on demand has converted a memory problem into a frame-time problem. With the two sharing a slot the drain would read demands recorded moments earlier and the latency would be zero on the tick and the full depth on every other, which is worse than either.
+F RequestQueue::Demand                            | Api/RequestQueue.h                | 106       | Records one demand against the rotation now sampling.
+F RequestQueue::SlotAt                            | Api/RequestQueue.h                | 111       | The slot a rotation writes into.
+F RequestQueue::SlotAt                            | Api/RequestQueue.h                | 116       | The slot a rotation writes into, for reading.
+F RequestQueue::RecordedCount                     | Api/RequestQueue.h                | 118       | ?
+F RequestQueue::DiscardedCount                    | Api/RequestQueue.h                | 119       | ?
+T ReturnIndex                                     | Api/RequestQueue.h                | 138-167   | The readback half of the request traffic specifically — the one thing that makes the latency real. latencies: the write is a device store during sampling, and the read is a host readback of a slot recorded `RecordingRotationDepth` rotations ago. One component doing both would be one whose latency nobody can point at.
+F ReturnIndex::Drain                              | Api/RequestQueue.h                | 153       | Reads back the demands recorded a rotation depth ago. HostDenied when this rotation has already been drained charge one rotation's budget twice and promote against the second charge, which reads as the budget being half what it was declared to be.
+F ReturnIndex::DrainedRotation                    | Api/RequestQueue.h                | 158       | The rotation last drained; zero before anything has been.
+F ReturnIndex::DrainedCount                       | Api/RequestQueue.h                | 160       | ?
+F PageQueue::Admit                                | Source/RequestQueue.cpp           | 15-37     | ?
+F PageQueue::Arrivals                             | Source/RequestQueue.cpp           | 39        | ?
+F PageQueue::Reclaim                              | Source/RequestQueue.cpp           | 41-45     | ?
+F PageQueue::ArrivalCount                         | Source/RequestQueue.cpp           | 47-50     | ?
+F PageQueue::DiscardedCount                       | Source/RequestQueue.cpp           | 52        | ?
+F RequestQueue::Demand                            | Source/RequestQueue.cpp           | 58-66     | ?
+F RequestQueue::SlotAt                            | Source/RequestQueue.cpp           | 68-71     | ?
+F RequestQueue::SlotAt                            | Source/RequestQueue.cpp           | 73-76     | ?
+F RequestQueue::RecordedCount                     | Source/RequestQueue.cpp           | 78        | ?
+F RequestQueue::DiscardedCount                    | Source/RequestQueue.cpp           | 80-88     | ?
+F ReturnIndex::Drain                              | Source/RequestQueue.cpp           | 94-120    | ?
+F ReturnIndex::DrainedRotation                    | Source/RequestQueue.cpp           | 122       | ?
+F ReturnIndex::DrainedCount                       | Source/RequestQueue.cpp           | 123       | ?
 T SeamEdge                                        | Api/SeamSpecification.h           | 28-32     | One cut edge, named by the two imported vertex ordinals it runs between. neighbour; a seam recorded as a position would then be a seam somewhere else, and the surface would cut through the middle of a chart. imported arrays means the same thing after conditioning as before. A welded ordinal is derived and moves when the welding tolerance moves — which is exactly what an authored seam must survive.
 F DeclareEdge                                     | Api/SeamSpecification.h           | 37-44     | Normalises two imported vertex ordinals into one seam edge.
 T SeamSpecification                               | Api/SeamSpecification.h           | 59-121    | One surface's seams, both sources held apart because they have different lifetimes. discarded by a re-unwrap. An artist who spent an hour marking seams and watched an automatic partition erase them has lost work the program told them it was holding. next partition. Where a surface will not flatten within the declared distortion using the authored set alone, the shortfall is cut and the addition is reported through `86` — a silent extra cut is a seam the artist finds later in the painted result.
@@ -239,3 +366,274 @@ F SeamSpecification::Derived                      | Source/SeamSpecification.cpp
 F SeamSpecification::Revision                     | Source/SeamSpecification.cpp      | 112       | ?
 F SeamSpecification::AuthoredCount                | Source/SeamSpecification.cpp      | 114       | ?
 F SeamSpecification::DerivedCount                 | Source/SeamSpecification.cpp      | 115       | ?
+V CoverageTileTexels                              | Api/StrokeSpace.h                 | 26        | ?
+V CoverageTileCeiling                             | Api/StrokeSpace.h                 | 34        | ?
+T StrokeSpace                                     | Api/StrokeSpace.h                 | 53-120    | The coverage one stroke has accumulated, held sparsely by cell and reclaimed whole. Applying per impression lets overlapping impressions within one stroke double-darken at their intersections, which is visible wherever an artist slows down — and slowing down is what an artist does at exactly the places they care about. `a + b(1 − a)`, which is symmetric in its two operands — so the accumulated coverage does not depend on the order the impressions were resolved in. That is what lets `22` §2's deferred impression resolve two rotations later without disturbing the ones around it. the values are constants of the stroke and only the coverage varies per texel. Holding values here would be holding one number per channel per texel to store the same number everywhere.
+F StrokeSpace::Construct                          | Api/StrokeSpace.h                 | 61        | Sizes the sparse index; claims nothing.
+F StrokeSpace::Claim                              | Api/StrokeSpace.h                 | 72        | Claims the coverage tile backing one cell, or resolves the one already claimed. the declared tile ceiling count. It is a guard against a coarser level being painted at with a miscomputed ordinal, and it refuses rather than growing so that a defect there is a refusal instead of an allocation storm.
+F StrokeSpace::Located                            | Api/StrokeSpace.h                 | 78        | The tile backing one cell, if one is claimed.
+F StrokeSpace::Accumulate                         | Api/StrokeSpace.h                 | 89        | Accumulates one impression's coverage at one texel of one claimed tile. impressions overlap, and the excess is invisible in the accumulation and abrupt at the apply.
+F StrokeSpace::Coverage                           | Api/StrokeSpace.h                 | 94        | The coverage standing at one texel.
+F StrokeSpace::TouchedCells                       | Api/StrokeSpace.h                 | 99        | The cells this stroke has touched, in claim order.
+F StrokeSpace::ClaimedCount                       | Api/StrokeSpace.h                 | 101       | ?
+F StrokeSpace::TouchedTexelCount                  | Api/StrokeSpace.h                 | 102       | ?
+F StrokeSpace::Reclaim                            | Api/StrokeSpace.h                 | 108       | Discards every claimed tile, keeping the sparse index sized.
+F StrokeSpace::Construct                          | Source/StrokeSpace.cpp            | 15-23     | ?
+F StrokeSpace::Claim                              | Source/StrokeSpace.cpp            | 29-56     | ?
+F StrokeSpace::Located                            | Source/StrokeSpace.cpp            | 58-64     | ?
+F StrokeSpace::Accumulate                         | Source/StrokeSpace.cpp            | 70-92     | ?
+F StrokeSpace::Coverage                           | Source/StrokeSpace.cpp            | 94-100    | ?
+F StrokeSpace::TouchedCells                       | Source/StrokeSpace.cpp            | 106       | ?
+F StrokeSpace::ClaimedCount                       | Source/StrokeSpace.cpp            | 108-111   | ?
+F StrokeSpace::TouchedTexelCount                  | Source/StrokeSpace.cpp            | 113       | ?
+F StrokeSpace::Reclaim                            | Source/StrokeSpace.cpp            | 115-127   | ?
+T ContentKey                                      | Api/SurfaceDepot.h                | 28-36     | What an artefact was derived from — every revision that, having moved, invalidates it. and the domain extent. The partition revision is the one most easily left out, and leaving it out is the defect that matters — re-unwrapping moves every domain position, so an artefact keyed without it survives a re-unwrap and is then read at positions that mean something else. That presents as attributes subtly wrong everywhere rather than as an obvious failure.
+F KeysAgree                                       | Api/SurfaceDepot.h                | 43-51     | Whether two keys describe the same derivation. at a revision it does not describe.
+T DepotArtefact                                   | Api/SurfaceDepot.h                | 59-65     | One derived artefact the depot holds.
+T SurfaceDepot                                    | Api/SurfaceDepot.h                | 83-153    | The evictable half of a surface's residency — reduction levels and transferred results, keyed by content. and does not belong here, and `Declare` refuses one outright rather than admitting it and hoping nothing evicts it. function and this calls it. `20` never decides what may be discarded; it reads the decision the document already made, because a residency system classifying content itself would be classifying content it can only see as texels. exists elsewhere; a depot is a store of artefacts that exist nowhere else and are cheaper to rebuild than to keep. `24` §3's transferred result is the second kind, which is why it may be evicted at all.
+F SurfaceDepot::Construct                         | Api/SurfaceDepot.h                | 91        | Sizes the depot to a byte ceiling.
+F SurfaceDepot::Declare                           | Api/SurfaceDepot.h                | 105       | Admits one derived artefact, evicting to make room for it. ExtentExhausted when the artefact alone exceeds the whole ceiling layer sequence; admitting them here would make the artist's work evictable, and it would be evicted under exactly the memory pressure a long painting session produces.
+F SurfaceDepot::Resolve                           | Api/SurfaceDepot.h                | 117       | Resolves one artefact by its content key, marking it recently read. refusal is `20` §2.1's second reconstruction source declining, and the promotion then falls through to the third — which is correct, and slower, and visible only as one deferred tile.
+F SurfaceDepot::Evict                             | Api/SurfaceDepot.h                | 123       | Evicts least-recently-resolved artefacts until the declared extent is free.
+F SurfaceDepot::Supersede                         | Api/SurfaceDepot.h                | 133       | Discards every artefact whose partition revision has been superseded. invalid. Discarding them here rather than letting them fail their key comparison one at a time returns their extent immediately, which is exactly when the re-resolution needs it.
+F SurfaceDepot::OccupiedBytes                     | Api/SurfaceDepot.h                | 135       | ?
+F SurfaceDepot::ByteCeiling                       | Api/SurfaceDepot.h                | 136       | ?
+F SurfaceDepot::HeldCount                         | Api/SurfaceDepot.h                | 137       | ?
+F SurfaceDepot::ResolvedCount                     | Api/SurfaceDepot.h                | 138       | ?
+F SurfaceDepot::EvictedCount                      | Api/SurfaceDepot.h                | 139       | ?
+F SurfaceDepot::DepotConsistent                   | Api/SurfaceDepot.h                | 144       | 🔍 Whether every held artefact is reconstructible and the occupancy agrees with what is held.
+F SurfaceDepot::Construct                         | Source/SurfaceDepot.cpp           | 15-25     | ?
+F SurfaceDepot::Declare                           | Source/SurfaceDepot.cpp           | 31-79     | ?
+F SurfaceDepot::Resolve                           | Source/SurfaceDepot.cpp           | 85-102    | ?
+F SurfaceDepot::Evict                             | Source/SurfaceDepot.cpp           | 108-135   | ?
+F SurfaceDepot::Supersede                         | Source/SurfaceDepot.cpp           | 137-154   | ?
+F SurfaceDepot::OccupiedBytes                     | Source/SurfaceDepot.cpp           | 160       | ?
+F SurfaceDepot::ByteCeiling                       | Source/SurfaceDepot.cpp           | 161       | ?
+F SurfaceDepot::ResolvedCount                     | Source/SurfaceDepot.cpp           | 162       | ?
+F SurfaceDepot::EvictedCount                      | Source/SurfaceDepot.cpp           | 163       | ?
+F SurfaceDepot::HeldCount                         | Source/SurfaceDepot.cpp           | 165-168   | ?
+F SurfaceDepot::DepotConsistent                   | Source/SurfaceDepot.cpp           | 170-183   | ?
+F DerivedLevelCount                               | Api/SurfaceTileSpace.h            | 30-38     | How many reduction levels the chain carries, from the finest down to a single tile.
+F DerivedLevelCount                               | Api/SurfaceTileSpace.h            | 40        | ?
+V PermanentLevelCount                             | Api/SurfaceTileSpace.h            | 46        | ?
+F CellsPerEdgeAt                                  | Api/SurfaceTileSpace.h            | 51-54     | Cells per edge at one reduction level; level zero is finest.
+F LevelBaseOrdinal                                | Api/SurfaceTileSpace.h            | 63-74     | Where one level's cells begin in the single ordinal span every level shares. a residency record and an eviction candidate all carry one integer. The whole span is 5461 cells at the declared subdivision, which is small enough to hold densely — so residency is an indexed read rather than a search, and `70` §2's per-tile counter comparison costs one comparison.
+F LevelBaseOrdinal                                | Api/SurfaceTileSpace.h            | 76        | ?
+T CellAddress                                     | Api/SurfaceTileSpace.h            | 84-89     | One cell, named by its level and its position within that level.
+F OrdinalOf                                       | Api/SurfaceTileSpace.h            | 95        | The single ordinal one address occupies.
+F AddressOf                                       | Api/SurfaceTileSpace.h            | 101       | The address one ordinal names.
+F OrdinalAt                                       | Api/SurfaceTileSpace.h            | 112       | The cell one domain position falls in, at a declared level. strictly inside the domain with a gap, so a position outside it is an apron read at the domain edge and the edge cell is the right answer for it.
+T CellRecord                                      | Api/SurfaceTileSpace.h            | 124-134   | One cell's residency record. content; `56` is, and a tile is a projection of it. A record that held content would make the residency system a second place the artist's work lives, and the two would diverge at the first eviction.
+T CellSpace                                       | Api/SurfaceTileSpace.h            | 140-187   | One surface's cell subdivision and residency records, dense across every reduction level. along with every voxel mechanism. The spelling is free and `20` §2 claims it.
+F CellSpace::Construct                            | Api/SurfaceTileSpace.h            | 148       | Builds the records and marks the permanently resident levels.
+F CellSpace::Held                                 | Api/SurfaceTileSpace.h            | 154       | One record, for reading.
+F CellSpace::Amend                                | Api/SurfaceTileSpace.h            | 160       | One record, for amending.
+F CellSpace::Records                              | Api/SurfaceTileSpace.h            | 165       | Every record, in ordinal order.
+F CellSpace::ResidentCount                        | Api/SurfaceTileSpace.h            | 167       | ?
+F CellSpace::UncommittedCount                     | Api/SurfaceTileSpace.h            | 168       | ?
+F CellSpace::DeclareResident                      | Api/SurfaceTileSpace.h            | 173       | Declares one cell resident against a claimed slot.
+F CellSpace::DeclareAbsent                        | Api/SurfaceTileSpace.h            | 178       | Declares one cell absent, surrendering its slot ordinal to the caller.
+T SampledCell                                     | Api/SurfaceTileSpace.h            | 198-205   | The cell a sample actually resolved to, which may be coarser than the one it asked for. stalls**. The level actually resolved is carried back so the caller knows how coarse its answer is — which `82` presents and `16` §3.1 does not care about.
+T SurfaceTileSpace                                | Api/SurfaceTileSpace.h            | 221-361   | One paintable surface's residency — the reduction chain, its cells, and the tiles backing them. texel population, and the texels backing it are a residency decision made independently and revisable without touching the stroke. Every routine here addresses the domain; none addresses a texel. transfer belongs to `06` and the analytic resolution to `70`, and both write the apron before calling `DeclareApronWritten`. A residency system that reconstructed would be one that knew what content is. component is unbuilt, so nothing here claims anything — the model is complete and its backing is not.
+F SurfaceTileSpace::Construct                     | Api/SurfaceTileSpace.h            | 237       | Constructs one surface's residency. when the ceiling cannot hold the permanently resident levels backing cannot hold its own guarantee is one where sampling stalls, and refusing at construction is the only place that failure can still be attributed to its cause.
+F SurfaceTileSpace::Sample                        | Api/SurfaceTileSpace.h            | 253       | Resolves a domain position at a declared level, demanding what is not resident. HostDenied before Construct has delivered record is found, records a demand for the level that was wanted, and returns. A sample that waited for a promotion would make every camera cut a hitch.
+F SurfaceTileSpace::SampleGuaranteed              | Api/SurfaceTileSpace.h            | 266       | Resolves a domain position from the permanently resident levels alone, demanding nothing. stall on residency has made the whole image wait for a leaf, so the cutout coverage test reads only what is guaranteed and demands nothing at all.
+F SurfaceTileSpace::DeclareUncommitted            | Api/SurfaceTileSpace.h            | 279       | Declares whether one cell holds paint no transaction has sealed. non-resident cell is declared uncommitted stroke's Open and withdraws it at Seal, at which point the paint is in `56` and the tile is a projection again. blocks eviction, and this is the only thing in the engine that blocks one — so the gate holds by there being exactly one door and `82` not walking through it.
+F SurfaceTileSpace::Promote                       | Api/SurfaceTileSpace.h            | 299       | Considers one demanded cell for promotion, against the rotation's budget. before Construct has delivered arriving one is `AlreadyResident` and nothing is charged. The comparison is one integer test at Exact, per tile, and its answer is almost always "no work" — a camera move advances no counter and a moved occupant advances no counter, because a placement's transform is stored relative to its surface. §2.2: deferral is normal operation, and `86` §5 keeps it a measure rather than a report.
+F SurfaceTileSpace::DeclareApronWritten           | Api/SurfaceTileSpace.h            | 313       | Declares one promoted cell's apron written. non-resident cell promotion path that forgot to write one is caught by `ResidencyValid` rather than by an artist finding a seam in a painted result.
+F SurfaceTileSpace::Evict                         | Api/SurfaceTileSpace.h            | 319       | Evicts one resident cell, releasing its slot into quarantine.
+F SurfaceTileSpace::Reconcile                     | Api/SurfaceTileSpace.h            | 327       | Reclaims quarantined slots whose release is older than the rotation depth. would make the rotation's first promotions evict against a ledger that is about to free itself.
+F SurfaceTileSpace::Report                        | Api/SurfaceTileSpace.h            | 335       | Declares this surface's residency measures — never a report. reported at all. A coarse tile resolving under the cursor is ordinary operation and reporting it would mean the register is never quiet, which teaches the artist to ignore it.
+F SurfaceTileSpace::Cells                         | Api/SurfaceTileSpace.h            | 337       | ?
+F SurfaceTileSpace::Tiles                         | Api/SurfaceTileSpace.h            | 338       | ?
+F SurfaceTileSpace::Depot                         | Api/SurfaceTileSpace.h            | 339       | ?
+F SurfaceTileSpace::Depot                         | Api/SurfaceTileSpace.h            | 340       | ?
+F SurfaceTileSpace::SurfaceOrdinal                | Api/SurfaceTileSpace.h            | 342       | ?
+F SurfaceTileSpace::StoredBytesPerTile            | Api/SurfaceTileSpace.h            | 343       | ?
+F SurfaceTileSpace::ResidencyValid                | Api/SurfaceTileSpace.h            | 350       | 🔍 Whether every invariant `20` §5 states holds right now. uncommitted cell is absent, and that a tile promoted before this rotation carries its apron.
+F SurfaceTileSpace::ClaimOrEvict                  | Api/SurfaceTileSpace.h            | 354       | ?
+F SLATE_DECLARES_PRECISION                        | Api/SurfaceTileSpace.h            | 366       | ?
+F OrdinalOf                                       | Source/SurfaceTileSpace.cpp       | 15-27     | ?
+F AddressOf                                       | Source/SurfaceTileSpace.cpp       | 29-51     | ?
+F OrdinalAt                                       | Source/SurfaceTileSpace.cpp       | 53-76     | ?
+F CellSpace::Construct                            | Source/SurfaceTileSpace.cpp       | 82-99     | ?
+F CellSpace::Held                                 | Source/SurfaceTileSpace.cpp       | 101-107   | ?
+F CellSpace::Amend                                | Source/SurfaceTileSpace.cpp       | 109-115   | ?
+F CellSpace::Records                              | Source/SurfaceTileSpace.cpp       | 117       | ?
+F CellSpace::ResidentCount                        | Source/SurfaceTileSpace.cpp       | 119       | ?
+F CellSpace::UncommittedCount                     | Source/SurfaceTileSpace.cpp       | 120       | ?
+F CellSpace::DeclareResident                      | Source/SurfaceTileSpace.cpp       | 122-133   | ?
+F CellSpace::DeclareAbsent                        | Source/SurfaceTileSpace.cpp       | 135-146   | ?
+F SurfaceTileSpace::Construct                     | Source/SurfaceTileSpace.cpp       | 152-206   | ?
+F SurfaceTileSpace::Sample                        | Source/SurfaceTileSpace.cpp       | 212-271   | ?
+F SurfaceTileSpace::SampleGuaranteed              | Source/SurfaceTileSpace.cpp       | 273-304   | ?
+F SurfaceTileSpace::DeclareUncommitted            | Source/SurfaceTileSpace.cpp       | 310-336   | ?
+F SurfaceTileSpace::ClaimOrEvict                  | Source/SurfaceTileSpace.cpp       | 342-400   | ?
+F SurfaceTileSpace::Promote                       | Source/SurfaceTileSpace.cpp       | 402-483   | ?
+F SurfaceTileSpace::DeclareApronWritten           | Source/SurfaceTileSpace.cpp       | 485-498   | ?
+F SurfaceTileSpace::Evict                         | Source/SurfaceTileSpace.cpp       | 504-533   | ?
+F SurfaceTileSpace::Reconcile                     | Source/SurfaceTileSpace.cpp       | 535-538   | ?
+F SurfaceTileSpace::Report                        | Source/SurfaceTileSpace.cpp       | 544-562   | ?
+F SurfaceTileSpace::Cells                         | Source/SurfaceTileSpace.cpp       | 568       | ?
+F SurfaceTileSpace::Tiles                         | Source/SurfaceTileSpace.cpp       | 569       | ?
+F SurfaceTileSpace::Depot                         | Source/SurfaceTileSpace.cpp       | 570       | ?
+F SurfaceTileSpace::Depot                         | Source/SurfaceTileSpace.cpp       | 571       | ?
+F SurfaceTileSpace::SurfaceOrdinal                | Source/SurfaceTileSpace.cpp       | 573       | ?
+F SurfaceTileSpace::StoredBytesPerTile            | Source/SurfaceTileSpace.cpp       | 574       | ?
+F SurfaceTileSpace::ResidencyValid                | Source/SurfaceTileSpace.cpp       | 576-621   | ?
+V AbsentTile                                      | Api/TileSpace.h                   | 23        | ?
+V StoredTexelsPerEdge                             | Api/TileSpace.h                   | 31        | Texels per edge a resident tile actually stores — the tile plus its apron on each side. brush impressions near a tile edge read valid neighbours without a residency test per texel. Four texels covers trilinear filtering plus the widest impression footprint at the levels that are stored. a defect in their brush rather than as a defect in residency.
+T TileSpace                                       | Api/TileSpace.h                   | 45-133    | The physical tile slots one surface's residency draws from, and the byte offsets they occupy. `56` is, and a tile is a projection of it. What is held here is which slots are claimed and where each one would sit inside a device extent `06` claims; the texels live on the device and nowhere else. reused in the same rotation is one the device may still be sampling from, and the artist sees another cell's content appear inside theirs for exactly one rotation, which nobody attributes to reclamation.
+F TileSpace::Construct                            | Api/TileSpace.h                   | 59        | Sizes the ledger to a slot ceiling and a declared texel width. refuses a reserved claim rather than granting a smaller one. Deriving it here would mean deriving it from a device this component is forbidden to name.
+F TileSpace::Claim                                | Api/TileSpace.h                   | 68        | Claims one free slot. must evict first, and exhaustion during ordinary painting is residency policy operating as designed. Reporting it would mean the register is never quiet.
+F TileSpace::Release                              | Api/TileSpace.h                   | 77        | Releases one claimed slot into quarantine.
+F TileSpace::Reclaim                              | Api/TileSpace.h                   | 87        | Returns quarantined slots whose release is older than the rotation depth. immediately is the defect that costs nothing to write and is invisible until a device is fast enough to still be reading the slot.
+F TileSpace::ByteOffsetOf                         | Api/TileSpace.h                   | 95        | Where one slot sits inside the surface's backing extent. may not name it. `06` adds the base; nothing here knows one exists.
+F TileSpace::StoredBytesPerTile                   | Api/TileSpace.h                   | 100       | What one tile occupies, apron included.
+F TileSpace::BackingBytes                         | Api/TileSpace.h                   | 105       | What the whole backing extent occupies — what `06` must claim for this surface.
+F TileSpace::SlotCeiling                          | Api/TileSpace.h                   | 107       | ?
+F TileSpace::ClaimedCount                         | Api/TileSpace.h                   | 108       | ?
+F TileSpace::QuarantinedCount                     | Api/TileSpace.h                   | 109       | ?
+F TileSpace::FreeCount                            | Api/TileSpace.h                   | 110       | ?
+F TileSpace::LedgerConsistent                     | Api/TileSpace.h                   | 115       | 🔍 Whether every slot is in exactly one of free, claimed and quarantined.
+E TileSpace::SlotStanding                         | Api/TileSpace.h                   | 119-124   | ?
+F TileSpace::Construct                            | Source/TileSpace.cpp              | 15-47     | ?
+F TileSpace::Claim                                | Source/TileSpace.cpp              | 53-68     | ?
+F TileSpace::Release                              | Source/TileSpace.cpp              | 70-85     | ?
+F TileSpace::Reclaim                              | Source/TileSpace.cpp              | 87-116    | ?
+F TileSpace::ByteOffsetOf                         | Source/TileSpace.cpp              | 122-128   | ?
+F TileSpace::StoredBytesPerTile                   | Source/TileSpace.cpp              | 130       | ?
+F TileSpace::BackingBytes                         | Source/TileSpace.cpp              | 132-135   | ?
+F TileSpace::SlotCeiling                          | Source/TileSpace.cpp              | 137       | ?
+F TileSpace::ClaimedCount                         | Source/TileSpace.cpp              | 138       | ?
+F TileSpace::QuarantinedCount                     | Source/TileSpace.cpp              | 139       | ?
+F TileSpace::FreeCount                            | Source/TileSpace.cpp              | 141-144   | ?
+F TileSpace::LedgerConsistent                     | Source/TileSpace.cpp              | 146-163   | ?
+V ReductionLevelCeiling                           | Api/DepthReduction.h              | 32        | ?
+T ReductionLevel                                  | Api/DepthReduction.h              | 42-46     | One reduction level's extent, in texels. onto it is then tested against a level that never saw the depth recorded there.
+T DepthReduction                                  | Api/DepthReduction.h              | 61-115    | The level chain one display extent reduces through, and the level a projected extent is tested at. many levels that extent carries, how wide each one is, and which of them a given projected extent resolves to. The ordinates live on the device and nowhere else. rotation's, reduced from what phase ② rasterised. `16` §2 requires both, and a single-phase test against last rotation's reduction alone rejects anything that became visible this rotation — which is every silhouette the camera just moved past.
+F DepthReduction::Construct                       | Api/DepthReduction.h              | 73        | Derives the level chain for one display extent. above `DisplayExtentCeiling` or beyond `ReductionLevelCeiling` levels
+F DepthReduction::Level                           | Api/DepthReduction.h              | 79        | One level's extent.
+F DepthReduction::LevelOfExtent                   | Api/DepthReduction.h              | 92        | The coarsest level at which one projected extent is covered by a two-by-two reading. level is chosen so that a two-by-two reading spans the whole extent, which is what makes the test one constant-cost comparison per partition rather than a walk proportional to what it covers. projects to nothing is sub-pixel and `16` §3 routes it to the compute path; it is not an error.
+F DepthReduction::ChainTexels                     | Api/DepthReduction.h              | 97        | Texels the whole chain spans — what `06` claims for it.
+F DepthReduction::Reclaim                         | Api/DepthReduction.h              | 102       | Discards the chain and the extent it was derived against.
+F DepthReduction::LevelCount                      | Api/DepthReduction.h              | 104       | ?
+F DepthReduction::DisplayAlong                    | Api/DepthReduction.h              | 105       | ?
+F DepthReduction::DisplayAcross                   | Api/DepthReduction.h              | 106       | ?
+F DepthReduction::ChainDerived                    | Api/DepthReduction.h              | 107       | ?
+F SLATE_DECLARES_PRECISION                        | Api/DepthReduction.h              | 119       | ?
+V AbsentPartition                                 | Api/PartitionStructure.h          | 28        | ?
+T OrientationCone                                 | Api/PartitionStructure.h          | 38-43     | The cone every face orientation of one partition falls inside. rather than with one per triangle. The axis is the normalised sum of the face orientations and the aperture is the widest departure from it any single face takes. from which every face is back-facing — and `ConeDerived` is false there. Reporting a cone anyway is how a partition is rejected while the artist is looking straight at part of it.
+T MicroSurfacePartition                           | Api/PartitionStructure.h          | 62-70     | One `MicroSurfacePartition` — the unit `16` culls, rasterises and names in every pixel it writes. §2 ① and `38`'s opening rule both forbid renumbering the artist's faces, so the partitioning derives an ordering beside them instead: a partition's faces are contiguous in the ordering the device draws from while every ordinal inside that ordering still means what the imported file meant by it. stops where the enrollment changes; a partition spanning two would resolve to whichever was recorded first and shade half its own pixels with the wrong reflectance. end of a connected piece, where the growth front exhausts before the floor is reached. That partition is closed short rather than merged across a boundary — merging is what makes an extent enclose two pieces that are nowhere near each other, and the cull then rejects neither.
+T PartitioningMetrics                             | Api/PartitionStructure.h          | 78-87     | What the derivation reports through `86` — every measure a partitioning can be judged by.
+T DerivedPartitioning                             | Api/PartitionStructure.h          | 96-102    | A whole derived partitioning, as a value that crosses back to the tick. sealed topology and touches no document state at all, and the standing partitioning stands until `PartitionStructure::Adopt` takes this one. Swapping mid-derivation leaves `16` naming partitions in pixels that the resolution no longer resolves, and the artist meets that as a surface shading as some other surface for one rotation.
+F DerivePartitioning                              | Api/PartitionStructure.h          | 128       | Grows one sealed topology into partitions across its own adjacency. conditioning describes another revision, and with ExtentExhausted where the partition count would reach `AbsentPartition` and stop being an ordinal re-declared here, because a second spelling of one number is `00` §2's case whichever unit holds it. imported face ordering, because a contiguous run of face ordinals is spatially coherent only in files that happen to have been authored that way — and one that was not produces extents that each enclose the whole object, at which point the cull rejects nothing and the whole mechanism costs without paying. refuses at a boundary and at a non-manifold edge rather than choosing one of several faces, so the front simply does not cross there and the count is reported through `PartitioningMetrics`. no orientation, and admitting them would spend a partition's budget on geometry that rasterises to nothing.
+F SLATE_DECLARES_PRECISION                        | Api/PartitionStructure.h          | 133       | ?
+T PartitionStructure                              | Api/PartitionStructure.h          | 144-197   | The partitioning one occupant's topology currently stands at, and the identities `42` issued against it. occupant move and a paint stroke re-derive nothing here — the extents and the cone are in object space and none of the three touches object space.
+F PartitionStructure::Adopt                       | Api/PartitionStructure.h          | 154       | Adopts a derived partitioning on the tick, advancing the revision.
+F PartitionStructure::Declare                     | Api/PartitionStructure.h          | 166       | Declares every standing partition into `42`'s resolution, retaining the identities it issues. resolution, because a partition identity is not an occupant identity and nothing downstream can recover one from the other. This declaration is the only place the two are related.
+F PartitionStructure::Standing                    | Api/PartitionStructure.h          | 172       | The standing partitioning.
+F PartitionStructure::IdentityOf                  | Api/PartitionStructure.h          | 179       | The identity `42` issued for one standing partition. IdentityStale when nothing has been declared since the last adoption
+F PartitionStructure::Reclaim                     | Api/PartitionStructure.h          | 184       | Discards the standing partitioning and every identity taken against it.
+F PartitionStructure::PartitioningStanding        | Api/PartitionStructure.h          | 186       | ?
+F PartitionStructure::Revision                    | Api/PartitionStructure.h          | 187       | ?
+F PartitionStructure::DescribedRevision           | Api/PartitionStructure.h          | 188       | ?
+F PartitionStructure::PartitionCount              | Api/PartitionStructure.h          | 189       | ?
+T VisibilityWord                                  | Api/VisibilityIndex.h             | 36-40     | What one pixel of the visibility target holds — the two unsigned components of `08` §2's R32G32. tangent basis, no domain coordinate and no reflectance. Everything else is reconstructed at the pixel from the face this word names, which is the whole reason the target is two integers and not a sheaf of surfaces the display extent is multiplied by. ordinals and the pair would leave no component for the triangle. `Resolve` performs the second hop, and it is an indexed lookup on both — `16` §6's gate that nothing searches for what a pixel names. rather than a hole downstream shading has to test for.
+E RasterRoute                                     | Api/VisibilityIndex.h             | 48-52     | Which of `16` §3's two rasterisers a partition is routed to.
+V ProjectedExtentThreshold                        | Api/VisibilityIndex.h             | 60        | ?
+F RouteOfExtent                                   | Api/VisibilityIndex.h             | 70-75     | Which rasteriser one projected extent is routed to. sliver is exactly the shape hardware rasterisation shades a whole quad per covered pixel for.
+T VisibilityIndex                                 | Api/VisibilityIndex.h             | 94-182    | Every enrolled topology's partitioning, the reduction the culling tests against, and the recording that writes the four targets `16` §4 declares. usable — `Buffer` is banned — and the two readings never collide because the target is reached through `SharedTarget::VisibilityIndex` and the mechanism through this component. ③ against this one's, but the level chain derived from a display extent is the same chain both times — only the ordinates recorded into it differ, and those live on the device. for every partition when the 64-bit atomic capability was not negotiated, and the recording site reads the ordering it was given rather than testing a capability it would then have to test identically at four further sites.
+F VisibilityIndex::Construct                      | Api/VisibilityIndex.h             | 111       | Derives the reduction chain for one display extent. are in object space and `16` §1 forbids rebuilding them per rotation, let alone per resize.
+F VisibilityIndex::Contribute                     | Api/VisibilityIndex.h             | 122       | Contributes `08` §3 ②'s recording — the one that produces all four targets. writes depth here: the previous rotation's projection of this same triangle is in hand at exactly this point and is recoverable nowhere downstream. A second recording deriving it from depth alone recovers camera motion and never occupant motion.
+F VisibilityIndex::Enroll                         | Api/VisibilityIndex.h             | 135       | Partitions one sealed topology, adopts the result, and declares it into `42`'s resolution. the derivation is the expensive half and it reads nothing but its arguments.
+F VisibilityIndex::Resolve                        | Api/VisibilityIndex.h             | 150       | What one pixel resolves to — the occupant, the material and the face range behind it. declared count, and with IdentityStale when the resolution was rebuilt since and the identity indexes `42`'s resolution. `16` §6's gate is that every consumer reads that one resolution rather than deriving its own.
+F VisibilityIndex::Enrolled                       | Api/VisibilityIndex.h             | 157       | One enrolled topology's standing partitioning.
+F VisibilityIndex::Reduction                      | Api/VisibilityIndex.h             | 162       | The reduction chain the culling tests against.
+F VisibilityIndex::Reclaim                        | Api/VisibilityIndex.h             | 167       | Discards every enrolment and the chain with them.
+F VisibilityIndex::EnrolledCount                  | Api/VisibilityIndex.h             | 169       | ?
+F VisibilityIndex::DeclaredPartitionCount         | Api/VisibilityIndex.h             | 170       | ?
+F VisibilityIndex::ChainDerived                   | Api/VisibilityIndex.h             | 171       | ?
+F SLATE_DECLARES_PRECISION                        | Api/VisibilityIndex.h             | 186       | ?
+T UploadedPosition                                | Api/VisibilityRaster.h            | 44-49     | One vertex position as the device reads it, in the occupant's own object space. forbids rebuilding a partitioning per rotation, and a view-relative span would have to be rewritten whenever the camera moved. The rebasing rides in the composed transform instead — `Compose` below.
+T UploadedTriangle                                | Api/VisibilityRaster.h            | 56-64     | One drawn triangle as the device reads it — its three corners and the two ordinals a pixel carries. as `16` §4 splits the two components. `Enroll` lays the enrolments end to end, so the document-wide ordinal written here is the enrolment's base plus the partition's position within it.
+T UploadedProjection                              | Api/VisibilityRaster.h            | 70-77     | The uniform block as the device reads it — the composed transform, the display extent and the drawn run. member. A matrix member would carry a row stride the two toolchains agree on under one layout rule.
+F ComposeVisibilityTransform                      | Api/VisibilityRaster.h            | 107       | Composes one occupant's placement with the view and the projection, rebasing before anything narrows. doing it here places the subtraction **before** the narrowing — the one ordering that keeps the precision. A device composing the same product from a narrowed placement has already spent it, and `02` names the result jitter with a plausible-looking cause rather than an error anything reports. why that column is not read. A document-space translation carried inside a matrix is one that has to be rebased out of it again, and `02` §3.1 keeps a transform decomposed for exactly that reason: the rotation and the scale never need the width, and the translation always does. after the placement, so the placement is the inner operand and the rebased translation is folded into the fourth column before the two are multiplied.
+F SLATE_DECLARES_PRECISION                        | Api/VisibilityRaster.h            | 113       | ?
+V AbsentResidency                                 | Api/VisibilityRaster.h            | 120       | ?
+T ResidentPartitioning                            | Api/VisibilityRaster.h            | 132-142   | What one enrolled partitioning occupies on the device, and what a draw over it costs. are device-local and are written by one transfer at enrolment; nothing rewrites them while the camera moves, which is what the object-space positions above are for. reaches one partitioning's two spans, and a recording that amended a shared set between draws would be rewriting a set the draw it just recorded still reads. The uniform is per residency for the same reason and for a second one: it carries the occupant's own composed placement, so a shared block would place every occupant where the last one written stands.
+T VisibilityRaster                                | Api/VisibilityRaster.h            | 161-297   | The hardware raster of `16` §3 — the residency it draws from, the program it draws with, and the recording that writes which partition and which triangle every pixel resolved to. maximum and is a separate mechanism against the same targets; `RouteOfExtent` already declares which partition belongs to which, and this component draws the partitions the hardware route claims. descriptor layout are all `06` §7's "fixed before the first rotation", and the per-rotation work is one uniform write and one draw per resident enrolment. lets the depth comparison resolve them, which is correct and is not the arrangement `16` §2 gates: the phases record an indirect draw over the partitions that survive the reduction, and they land with `DepthReduction`'s device half.
+F VisibilityRaster::Construct                     | Api/VisibilityRaster.h            | 180       | Declares the layout, resolves both modules, and constructs the program the raster draws with.
+F VisibilityRaster::Resolve                       | Api/VisibilityRaster.h            | 207       | Makes one enrolled partitioning resident, fanning its faces into the triangle run the device draws. ContentUnsupported for an unsealed topology or a partitioning that is not standing `10` admits faces of any corner count and `16` §1 counts the fan triangles the spanned faces amount to; a fan derived differently at the two sites gives the pixel a triangle ordinal `18` resolves to another triangle of the same partition. names stands for the life of the residency, so a per-rotation write would rewrite one arrangement with itself — and would do it to a set the previous rotation's recording is still reading. caller has not yet surrendered, and returning their bytes at this point hands the free list an extent a recorded transfer still names. `Surrender` below is what releases them.
+F VisibilityRaster::Surrender                     | Api/VisibilityRaster.h            | 219       | Releases the staging spans every `Resolve` since the last surrender claimed. surrender. Releasing inside `Resolve` returns bytes to the free list while a recorded transfer still names them, and the next claim then transfers one partitioning's positions out of another's.
+F VisibilityRaster::Derive                        | Api/VisibilityRaster.h            | 228       | Derives the render construct's spans against one display extent.
+F VisibilityRaster::Record                        | Api/VisibilityRaster.h            | 244       | Records the raster for one rotation slot — the construct, the program, and one draw per residency. whatever the descriptor write or the program resolution refused per `Contract/`'s convention — clearing to unity against a greater-than comparison resolves nothing at all, and the image is empty rather than wrong, which is the failure mode that gets attributed to the geometry. the placements and the composition already admits one — 🚧 the argument arrives with it.
+F VisibilityRaster::Reclaim                       | Api/VisibilityRaster.h            | 252       | Releases every resident span and every uniform span.
+F VisibilityRaster::ResidentCount                 | Api/VisibilityRaster.h            | 254       | ?
+F VisibilityRaster::DrawnTriangleCount            | Api/VisibilityRaster.h            | 255       | ?
+F VisibilityRaster::ProgramStanding               | Api/VisibilityRaster.h            | 256       | ?
+F VisibilityRaster::Fan                           | Api/VisibilityRaster.h            | 265       | Fans one partitioning's faces into the triangle run the device draws.
+F VisibilityRaster::Stage                         | Api/VisibilityRaster.h            | 275       | Claims one device-local span and stages the supplied bytes into it through one recorded transfer.
+F VisibilityRaster::Abandon                       | Api/VisibilityRaster.h            | 282       | Releases every span one part-built residency claimed, so a refusal retains nothing.
+F SLATE_DECLARES_PRECISION                        | Api/VisibilityRaster.h            | 301       | ?
+V Projecting                                      | Shader/VisibilityCorner.slang     | 21        | ?
+V ObjectPositions                                 | Shader/VisibilityCorner.slang     | 22        | ?
+V DrawnTriangles                                  | Shader/VisibilityCorner.slang     | 23        | ?
+F ResolveVisibilityCorner                         | Shader/VisibilityCorner.slang     | 42-63     | ?
+T WrittenPixel                                    | Shader/VisibilitySurface.slang    | 25-29     | What one fragment writes — the two colour targets this recording produces at the resolved pixel. and a fragment writing it explicitly surrenders the early comparison the whole arrangement rests on — every fragment shaded before its depth is known, on a document whose entire purpose is to resolve the visible surface before anything shades at all. between this projection and the previous rotation's and no previous projection has crossed the device edge yet. `16` §4.2 places it in this recording and `64` §8 depends on it; it lands with the second transform, and the recording declares three attachments until it does.
+F ResolveVisibilityPixel                          | Shader/VisibilitySurface.slang    | 49-57     | ?
+T VisibilityUniform                               | Shader/VisibilityUniform.slang    | 49-71     | The composed projection, the display extent and the partition run the recording is drawing. of the three declared layout rules. A matrix member here would carry a row stride the host mirror would agree with under exactly one of them. as a column-major product below and nowhere else, so the convention is read at one site rather than transposed at whichever site last needed it the other way round.
+T ObjectPosition                                  | Shader/VisibilityUniform.slang    | 90-95     | One vertex position in its occupant's own object space, narrowed at the upload. survive every rotation and the view origin moves every rotation, so a span carrying view-relative positions would have to be rewritten whenever the camera moved — the one cost `16` §1 exists to avoid. occupant's placement with `46`'s projection at 64 bits, with `02`'s `Rebase` applied to the placement's translation before anything narrows, and only the composed coefficients cross at 32 bits. That ordering is the whole point: subtracting the view origin after a truncation is what `02` calls jitter with a plausible-looking cause, and folding it into the translation places the subtraction before the narrowing. bounded by the occupant and a 32-bit real resolves it far below `38`'s welding tolerance; a document position carries the placement as well, and that is what exhausts the width.
+T DrawnTriangle                                   | Shader/VisibilityUniform.slang    | 103-111   | One drawn triangle — which partition it belongs to and its ordinal within that partition. A partition carries 64 to 128 triangles, so the ordinal fits a narrow range and the pair fits the two components `08` §2 claims `VisibilityIndex` as. Counting document-wide would exhaust the component on a document of a few million triangles and leave nothing for the partition.
+T ResolvedCorner                                  | Shader/VisibilityUniform.slang    | 122-127   | What the vertex entry point resolves and the fragment entry point writes. ordinal across a triangle produces a fractional ordinal at every pixel but the corners, which resolves to whichever partition the rounding reaches and reads as an image speckled with a neighbour's surface.
+F ProjectObjectPosition                           | Shader/VisibilityUniform.slang    | 149-174   | Projects one object-space position through the composed transform. applied with an implicit unit fourth ordinate rather than with a stored one — the position is a point and never a direction, so the alternative is a component that is unity at every call site. bits by the host and narrowed once. One product per corner and no second transform: a shader applying a placement and then a projection has narrowed the intermediate, and that intermediate is the document position whose width `02` rebases precisely to avoid spending. negating a depth after the projection has reversed it has reversed it twice, and the image is the inside of every object rather than an image that sorts wrongly.
+F DepthReduction::Construct                       | Source/DepthReduction.cpp         | 15-61     | ?
+F DepthReduction::Reclaim                         | Source/DepthReduction.cpp         | 63-70     | ?
+F DepthReduction::Level                           | Source/DepthReduction.cpp         | 76-82     | ?
+F DepthReduction::LevelOfExtent                   | Source/DepthReduction.cpp         | 84-106    | ?
+F DepthReduction::ChainTexels                     | Source/DepthReduction.cpp         | 112-123   | ?
+F DepthReduction::LevelCount                      | Source/DepthReduction.cpp         | 125-128   | ?
+F DepthReduction::DisplayAlong                    | Source/DepthReduction.cpp         | 130-133   | ?
+F DepthReduction::DisplayAcross                   | Source/DepthReduction.cpp         | 135-138   | ?
+F DepthReduction::ChainDerived                    | Source/DepthReduction.cpp         | 140-143   | ?
+F MaterialOfFace                                  | Source/PartitionStructure.cpp     | 23-28     | ?
+F TrianglesOfFace                                 | Source/PartitionStructure.cpp     | 33-38     | ?
+F OrientationOfFace                               | Source/PartitionStructure.cpp     | 48-89     | One face's own orientation, by Newell's summation over its corner run. may be collinear or may sit on a locally concave part of an otherwise well-behaved face. Newell reads every corner and produces the area-weighted orientation of the whole polygon, which is what the cone is supposed to enclose. `02` §3.2 keeps them at 64 bits precisely because differencing them at 32 bits is where a distant occupant's geometry turns to noise.
+F AdmitExtent                                     | Source/PartitionStructure.cpp     | 94-108    | ?
+F CloseCone                                       | Source/PartitionStructure.cpp     | 118-134   | Closes the cone over the orientations one partition accumulated. one of them takes against it. The sum is unweighted, so a partition of a thousand tiny faces and one large one is centred where the faces are rather than where the area is — which is the direction the aperture then has to enclose, so the two agree. face is back-facing. The cone is withheld rather than reported wide, because `16` §2 ① reads only the two numbers and cannot tell a wide cone from a meaningless one.
+F DerivePartitioning                              | Source/PartitionStructure.cpp     | 142-358   | ?
+F PartitionStructure::Adopt                       | Source/PartitionStructure.cpp     | 364-380   | ?
+F PartitionStructure::Declare                     | Source/PartitionStructure.cpp     | 382-417   | ?
+F PartitionStructure::Reclaim                     | Source/PartitionStructure.cpp     | 419-425   | ?
+F PartitionStructure::Standing                    | Source/PartitionStructure.cpp     | 431-434   | ?
+F PartitionStructure::IdentityOf                  | Source/PartitionStructure.cpp     | 436-448   | ?
+F PartitionStructure::PartitioningStanding        | Source/PartitionStructure.cpp     | 450-453   | ?
+F PartitionStructure::Revision                    | Source/PartitionStructure.cpp     | 455-458   | ?
+F PartitionStructure::DescribedRevision           | Source/PartitionStructure.cpp     | 460-463   | ?
+F PartitionStructure::PartitionCount              | Source/PartitionStructure.cpp     | 465-468   | ?
+V VisibilityRecordingIdentity                     | Source/VisibilityIndex.cpp        | 22        | ?
+V RecordingSubstitution                           | Source/VisibilityIndex.cpp        | 29        | ?
+F VisibilityIndex::Construct                      | Source/VisibilityIndex.cpp        | 33-38     | ?
+F VisibilityIndex::Reclaim                        | Source/VisibilityIndex.cpp        | 40-48     | ?
+F VisibilityIndex::Contribute                     | Source/VisibilityIndex.cpp        | 54-79     | ?
+F VisibilityIndex::Enroll                         | Source/VisibilityIndex.cpp        | 85-149    | ?
+F VisibilityIndex::Resolve                        | Source/VisibilityIndex.cpp        | 155-179   | ?
+F VisibilityIndex::Enrolled                       | Source/VisibilityIndex.cpp        | 185-191   | ?
+F VisibilityIndex::Reduction                      | Source/VisibilityIndex.cpp        | 193-196   | ?
+F VisibilityIndex::EnrolledCount                  | Source/VisibilityIndex.cpp        | 198-201   | ?
+F VisibilityIndex::DeclaredPartitionCount         | Source/VisibilityIndex.cpp        | 203-206   | ?
+F VisibilityIndex::ChainDerived                   | Source/VisibilityIndex.cpp        | 208-211   | ?
+F ComposeCoefficients                             | Source/VisibilityRaster.cpp       | 23-41     | ?
+F ComposeVisibilityTransform                      | Source/VisibilityRaster.cpp       | 45-62     | ?
+F VisibilityRaster::Construct                     | Source/VisibilityRaster.cpp       | 68-172    | ?
+F VisibilityRaster::Fan                           | Source/VisibilityRaster.cpp       | 178-254   | ?
+F VisibilityRaster::Stage                         | Source/VisibilityRaster.cpp       | 260-307   | ?
+F VisibilityRaster::Abandon                       | Source/VisibilityRaster.cpp       | 309-327   | ?
+F VisibilityRaster::Resolve                       | Source/VisibilityRaster.cpp       | 333-493   | ?
+F VisibilityRaster::Surrender                     | Source/VisibilityRaster.cpp       | 495-504   | ?
+F VisibilityRaster::Derive                        | Source/VisibilityRaster.cpp       | 510-516   | ?
+F VisibilityRaster::Record                        | Source/VisibilityRaster.cpp       | 522-650   | ?
+F VisibilityRaster::Reclaim                       | Source/VisibilityRaster.cpp       | 656-664   | ?
+F VisibilityRaster::ResidentCount                 | Source/VisibilityRaster.cpp       | 666-669   | ?
+F VisibilityRaster::DrawnTriangleCount            | Source/VisibilityRaster.cpp       | 671-679   | ?
+F VisibilityRaster::ProgramStanding               | Source/VisibilityRaster.cpp       | 681-684   | ?

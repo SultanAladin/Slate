@@ -55,4 +55,4 @@ F Rebase   | TransformProjection.cpp | 140-154 | - | - | ?
     in    Subject     DocumentPosition  [-]  ?
     in    ViewOrigin  DocumentPosition  [-]  ?
     out   -           DevicePosition    [-]  ?
-    by    Api/TransformProjection.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp
+    by    Api/TransformProjection.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/VisibilityRaster.cpp

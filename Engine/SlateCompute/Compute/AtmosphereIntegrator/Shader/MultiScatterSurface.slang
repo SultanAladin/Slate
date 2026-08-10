@@ -80,10 +80,10 @@ void ResolveTransmittance(MediumProfile Profile, Real64 Radius, Real64 ZenithCos
 /// tag   api, nonallocating, nonthrowing
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void IntegrateMultiScatter(Unsigned32 TexelOrdinal[3] : SV_DispatchThreadID)
+void IntegrateMultiScatter(Unsigned32x3 TexelOrdinal : SV_DispatchThreadID)
 {
-    const Unsigned32 Along  = TexelOrdinal[0];
-    const Unsigned32 Across = TexelOrdinal[1];
+    const Unsigned32 Along  = TexelOrdinal.x;
+    const Unsigned32 Across = TexelOrdinal.y;
 
     if (Along >= MultiScatterExtentAlong || Across >= MultiScatterExtentAcross)
     {
@@ -195,10 +195,10 @@ void IntegrateMultiScatter(Unsigned32 TexelOrdinal[3] : SV_DispatchThreadID)
         Series[Component] = Order / Divisor;
     }
 
-    MultiScatterOutput[Along, Across] = Real32x4(Real32(Series[0]),
-                                                 Real32(Series[1]),
-                                                 Real32(Series[2]),
-                                                 1.0f);
+    MultiScatterOutput[Unsigned32x2(Along, Across)] = Real32x4(Real32(Series[0]),
+                                                               Real32(Series[1]),
+                                                               Real32(Series[2]),
+                                                               1.0f);
 }
 
 }   // namespace Slate

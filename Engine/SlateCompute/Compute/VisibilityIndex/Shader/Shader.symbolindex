@@ -1,0 +1,130 @@
+//============================================================================================================================================
+//                                                             SHADER.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The vertex half of `16` §3's hardware raster — one triangle corner resolved from the declared spans and projected.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/VisibilityIndex/Shader
+%layer      SlateCompute
+%sources    3
+%symbols    11
+%annotated  6/11
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S VisibilityCorner.slang  | 65 lines  | 2d2a823c | 4 sym | The vertex half of `16` §3's hardware raster — one triangle corner resolved from the declared spans and projected.
+S VisibilitySurface.slang | 59 lines  | 1a9d8717 | 2 sym | The fragment half of `16` §3's hardware raster — which partition and which triangle one pixel resolved to, and nothing further.
+S VisibilityUniform.slang | 176 lines | 1c9f8c43 | 5 sym | The one uniform block both visibility entry points read, the spans they read geometry from, and the word a fragment writes.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      WHAT IS READ
+//------------------------------------------------------------------------------------------------------------------------
+
+V Projecting              | VisibilityCorner.slang  | 21      | -                         | -  | ?
+    by    Shader/VisibilityUniform.slang, Source/CameraProjection.cpp, Source/VisibilityRaster.cpp
+
+V ObjectPositions         | VisibilityCorner.slang  | 22      | -                         | -  | ?
+
+V DrawnTriangles          | VisibilityCorner.slang  | 23      | -                         | -  | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE RESOLUTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F ResolveVisibilityCorner | VisibilityCorner.slang  | 42-63   | -                         | -  | ?
+    in    SV_VertexID  Unsigned32 VertexOrdinal :  [-]  ?
+    out   -            ResolvedCorner              [-]  ?
+
+F ResolveVisibilityPixel  | VisibilitySurface.slang | 49-57   | -                         | -  | ?
+    in    Resolved  ResolvedCorner  [-]  ?
+    out   -         WrittenPixel    [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WHAT IS WRITTEN
+//------------------------------------------------------------------------------------------------------------------------
+
+T WrittenPixel            | VisibilitySurface.slang | 25-29   | contract                  | -  | What one fragment writes — the two colour targets this recording produces at the resolved pixel. and a fragment writing it explicitly surrenders the early comparison the whole arrangement rests on — every fragment shaded before its depth is known, on a document whose entire purpose is to resolve the visible surface before anything shades at all. between this projection and the previous rotation's and no previous projection has crossed the device edge yet. `16` §4.2 places it in this recording and `64` §8 depends on it; it lands with the second transform, and the recording declares three attachments until it does.
+    has   SV_Target0  Unsigned32x2 Written :  [-]  ?
+    has   SV_Target1  Real32 Occupancy :      [-]  ?
+    note  🔴 Depth is not among them. It is the recorded comparison's own output under `VK_COMPARE_OP_GREATER`,
+    note  ⚠️ 🚧 `MotionSurface` is `08` §2's fourth production and is absent here, because it is the difference
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE UNIFORM BLOCK
+//------------------------------------------------------------------------------------------------------------------------
+
+T VisibilityUniform       | VisibilityUniform.slang | 49-71   | contract                  | -  | The composed projection, the display extent and the partition run the recording is drawing. of the three declared layout rules. A matrix member here would carry a row stride the host mirror would agree with under exactly one of them. as a column-major product below and nowhere else, so the convention is read at one site rather than transposed at whichever site last needed it the other way round.
+    has   ComposedCoefficient00  Real32      [-]  ?
+    has   ComposedCoefficient01  Real32      [-]  ?
+    has   ComposedCoefficient02  Real32      [-]  ?
+    has   ComposedCoefficient03  Real32      [-]  ?
+    has   ComposedCoefficient04  Real32      [-]  ?
+    has   ComposedCoefficient05  Real32      [-]  ?
+    has   ComposedCoefficient06  Real32      [-]  ?
+    has   ComposedCoefficient07  Real32      [-]  ?
+    has   ComposedCoefficient08  Real32      [-]  ?
+    has   ComposedCoefficient09  Real32      [-]  ?
+    has   ComposedCoefficient10  Real32      [-]  ?
+    has   ComposedCoefficient11  Real32      [-]  ?
+    has   ComposedCoefficient12  Real32      [-]  ?
+    has   ComposedCoefficient13  Real32      [-]  ?
+    has   ComposedCoefficient14  Real32      [-]  ?
+    has   ComposedCoefficient15  Real32      [-]  ?
+    has   DisplayAlong           Unsigned32  [-]  ?
+    has   DisplayAcross          Unsigned32  [-]  ?
+    has   EnrolmentBase          Unsigned32  [-]  ?
+    has   DrawnPartitionCount    Unsigned32  [-]  ?
+    by    Shader/VisibilityCorner.slang
+    note  📝 Every member is scalar and ordered widest-first so the layout carries no implicit padding under any
+    note  🔴 The coefficients are column-major, as `02` declares `ProjectedTransform`. The projection is applied
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WHAT IS RESOLVED
+//------------------------------------------------------------------------------------------------------------------------
+
+T ObjectPosition          | VisibilityUniform.slang | 90-95   | contract                  | -  | One vertex position in its occupant's own object space, narrowed at the upload. survive every rotation and the view origin moves every rotation, so a span carrying view-relative positions would have to be rewritten whenever the camera moved — the one cost `16` §1 exists to avoid. occupant's placement with `46`'s projection at 64 bits, with `02`'s `Rebase` applied to the placement's translation before anything narrows, and only the composed coefficients cross at 32 bits. That ordering is the whole point: subtracting the view origin after a truncation is what `02` calls jitter with a plausible-looking cause, and folding it into the translation places the subtraction before the narrowing. bounded by the occupant and a 32-bit real resolves it far below `38`'s welding tolerance; a document position carries the placement as well, and that is what exhausts the width.
+    has   PositionX  Real32  [-]  ?
+    has   PositionY  Real32  [-]  ?
+    has   PositionZ  Real32  [-]  ?
+    by    Shader/VisibilityCorner.slang
+    note  🔴 Object space and **not** rebased, which is what lets the span persist. `16` §1 makes the residency
+    note  🔴 The rebasing is therefore in the **transform** rather than in the position. The host composes the
+    note  ⚠️ Narrowing an object-space position is safe where narrowing a document one is not. An object extent is
+
+T DrawnTriangle           | VisibilityUniform.slang | 103-111 | contract                  | -  | One drawn triangle — which partition it belongs to and its ordinal within that partition. A partition carries 64 to 128 triangles, so the ordinal fits a narrow range and the pair fits the two components `08` §2 claims `VisibilityIndex` as. Counting document-wide would exhaust the component on a document of a few million triangles and leave nothing for the partition.
+    has   CornerVertex0     Unsigned32  [-]  ?
+    has   CornerVertex1     Unsigned32  [-]  ?
+    has   CornerVertex2     Unsigned32  [-]  ?
+    has   PartitionOrdinal  Unsigned32  [-]  ?
+    has   TriangleOrdinal   Unsigned32  [-]  ?
+    has   Unoccupied        Unsigned32  [-]  ?
+    by    Shader/VisibilityCorner.slang
+    note  🔴 The triangle ordinal counts **within the partition** and never within the document, per `16` §4.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WHAT IS CARRIED
+//------------------------------------------------------------------------------------------------------------------------
+
+T ResolvedCorner          | VisibilityUniform.slang | 122-127 | contract                  | -  | What the vertex entry point resolves and the fragment entry point writes. ordinal across a triangle produces a fractional ordinal at every pixel but the corners, which resolves to whichever partition the rounding reaches and reads as an image speckled with a neighbour's surface.
+    has   SV_Position  Real32x4 ClipPosition :                        [-]  ?
+    has   PARTITION    nointerpolation Unsigned32 PartitionOrdinal :  [-]  ?
+    has   TRIANGLE     nointerpolation Unsigned32 TriangleOrdinal :   [-]  ?
+    by    Shader/VisibilityCorner.slang, Shader/VisibilitySurface.slang
+    note  🔴 Both ordinals are carried **flat**. They are ordinals and not quantities: interpolating a partition
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE PROJECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F ProjectObjectPosition   | VisibilityUniform.slang | 149-174 | nonallocating,nonthrowing | ✔️ | Projects one object-space position through the composed transform. applied with an implicit unit fourth ordinate rather than with a stored one — the position is a point and never a direction, so the alternative is a component that is unity at every call site. bits by the host and narrowed once. One product per corner and no second transform: a shader applying a placement and then a projection has narrowed the intermediate, and that intermediate is the document position whose width `02` rebases precisely to avoid spending. negating a depth after the projection has reversed it has reversed it twice, and the image is the inside of every object rather than an image that sorts wrongly.
+    in    Projecting  VisibilityUniform  [-]   the uniform block, for its coefficients
+    in    Positioned  ObjectPosition     [mm]  the position, in the occupant's own object space
+    out   -           Clipped            [-]   the clip position, the perspective divide not yet applied
+    by    Shader/VisibilityCorner.slang
+    note  📐 Column-major, matching `02`'s `ProjectedTransform`. The fourth column is the translation and it is
+    note  🔴 The transform carries the occupant's placement, the rebasing and `46`'s projection, composed at 64
+    note  🔴 The reversed depth convention is `46`'s and lives in the projection itself, not here. A shader

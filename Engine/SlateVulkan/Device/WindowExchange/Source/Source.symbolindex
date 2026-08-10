@@ -36,4 +36,4 @@ F Reclaim | WindowExchange.cpp | 42-48 | - | - | ?
     in    Instance             VkInstance    [-]  ?
     in    PresentationSurface  VkSurfaceKHR  [-]  ?
     out   -                    void          [-]  ?
-    by    Api/EnrollmentIndex.h, Api/InputExchange.h, Api/InterfaceExchange.h, Api/MaterialSpecification.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+11 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)

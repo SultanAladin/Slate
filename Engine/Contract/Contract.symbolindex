@@ -7,13 +7,13 @@
 %scope    layer
 %path     Engine/Contract
 %folders  1
-%symbols  59
+%symbols  79
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Contract | Contract/Contract.symbolindex | 59 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
+I Contract | Contract/Contract.symbolindex | 79 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -44,37 +44,57 @@ E PrecisionGuarantee         | Contract/PrecisionContract.h | 21-27   | The guar
 F Weaken                     | Contract/PrecisionContract.h | 39-44   | Returns the weaker of two guarantees, which is the one carrying the greater ordinal.
 F WeakestOf                  | Contract/PrecisionContract.h | 51-61   | Folds every consumed guarantee down to the weakest one present in the list.
 K SLATE_DECLARES_PRECISION   | Contract/PrecisionContract.h | 72-74   | ?
-V PhysicalTileApron          | Contract/ToleranceContract.h | 19      | ?
-V MaximumWorkingEdge         | Contract/ToleranceContract.h | 20      | ?
-V TransmissionDepth          | Contract/ToleranceContract.h | 21      | ?
-V DirectOcclusionCapacity    | Contract/ToleranceContract.h | 22      | ?
-V RecordingRotationDepth     | Contract/ToleranceContract.h | 23      | ?
-V DisplayExtentCeiling       | Contract/ToleranceContract.h | 24      | ?
-V SubPixelSequenceLength     | Contract/ToleranceContract.h | 25      | ?
-V IlluminantReachCapacity    | Contract/ToleranceContract.h | 26      | ?
-V TilingNestingCeiling       | Contract/ToleranceContract.h | 27      | ?
-V TransmittanceExtentAlong   | Contract/ToleranceContract.h | 33      | ?
-V TransmittanceExtentAcross  | Contract/ToleranceContract.h | 34      | ?
-V MultiScatterExtentAlong    | Contract/ToleranceContract.h | 35      | ?
-V MultiScatterExtentAcross   | Contract/ToleranceContract.h | 36      | ?
-V SkyViewExtentAlong         | Contract/ToleranceContract.h | 37      | ?
-V SkyViewExtentAcross        | Contract/ToleranceContract.h | 38      | ?
-V AtmosphereComponentCount   | Contract/ToleranceContract.h | 39      | ?
-V AtmosphereComponentBytes   | Contract/ToleranceContract.h | 40      | ?
-V AtmosphereComponentBytes   | Contract/ToleranceContract.h | 48      | ?
-V NearPlaneDepth             | Contract/ToleranceContract.h | 85      | ?
-V FarPlaneDepth              | Contract/ToleranceContract.h | 86      | ?
-V ClipOrdinateSignum         | Contract/ToleranceContract.h | 91      | ?
-V FrustumOutwardMargin       | Contract/ToleranceContract.h | 96      | ?
-V WeldTolerance              | Contract/ToleranceContract.h | 104     | ?
-V ImpressionSpacingFloor     | Contract/ToleranceContract.h | 105     | ?
-V CollinearityTolerance      | Contract/ToleranceContract.h | 106     | ?
-V QuaternionRenormalise      | Contract/ToleranceContract.h | 107     | ?
-V QuadratureConvergence      | Contract/ToleranceContract.h | 115     | ?
-V QuadratureIterationCeiling | Contract/ToleranceContract.h | 116     | ?
-V SunDirectionMateriality    | Contract/ToleranceContract.h | 120     | ?
-V CameraAltitudeMateriality  | Contract/ToleranceContract.h | 121     | ?
-V MachineEpsilon             | Contract/ToleranceContract.h | 133     | ?
-V ExpansionSplitter          | Contract/ToleranceContract.h | 136     | ?
-V Pi                         | Contract/ToleranceContract.h | 145     | ?
-V SampleUnitPlaceCeiling     | Contract/ToleranceContract.h | 150     | ?
+V PhysicalTileTexels         | Contract/ToleranceContract.h | 24      | ?
+V PhysicalTileApron          | Contract/ToleranceContract.h | 25      | ?
+V VirtualCellsPerEdge        | Contract/ToleranceContract.h | 26      | ?
+V MaximumWorkingEdge         | Contract/ToleranceContract.h | 27      | ?
+V TransmissionDepth          | Contract/ToleranceContract.h | 28      | ?
+V DirectOcclusionCapacity    | Contract/ToleranceContract.h | 29      | ?
+V RecordingRotationDepth     | Contract/ToleranceContract.h | 30      | ?
+V DisplayExtentCeiling       | Contract/ToleranceContract.h | 31      | ?
+V SubPixelSequenceLength     | Contract/ToleranceContract.h | 32      | ?
+V IlluminantReachCapacity    | Contract/ToleranceContract.h | 33      | ?
+V TilingNestingCeiling       | Contract/ToleranceContract.h | 34      | ?
+V PartitionTriangleFloor     | Contract/ToleranceContract.h | 43      | ?
+V PartitionTriangleCeiling   | Contract/ToleranceContract.h | 44      | ?
+F SLATE_STATIC_ASSERT        | Contract/ToleranceContract.h | 46      | ?
+V TransmittanceExtentAlong   | Contract/ToleranceContract.h | 53      | ?
+V TransmittanceExtentAcross  | Contract/ToleranceContract.h | 54      | ?
+V MultiScatterExtentAlong    | Contract/ToleranceContract.h | 55      | ?
+V MultiScatterExtentAcross   | Contract/ToleranceContract.h | 56      | ?
+V SkyViewExtentAlong         | Contract/ToleranceContract.h | 57      | ?
+V SkyViewExtentAcross        | Contract/ToleranceContract.h | 58      | ?
+V AtmosphereComponentCount   | Contract/ToleranceContract.h | 59      | ?
+V AtmosphereComponentBytes   | Contract/ToleranceContract.h | 60      | ?
+V AtmosphereComponentBytes   | Contract/ToleranceContract.h | 71      | ?
+F SLATE_STATIC_ASSERT        | Contract/ToleranceContract.h | 79      | ?
+V NearPlaneDepth             | Contract/ToleranceContract.h | 111     | ?
+V FarPlaneDepth              | Contract/ToleranceContract.h | 112     | ?
+V ClipOrdinateSignum         | Contract/ToleranceContract.h | 117     | ?
+V FrustumOutwardMargin       | Contract/ToleranceContract.h | 122     | ?
+V WeldTolerance              | Contract/ToleranceContract.h | 130     | ?
+V ImpressionSpacingFloor     | Contract/ToleranceContract.h | 131     | ?
+V CollinearityTolerance      | Contract/ToleranceContract.h | 132     | ?
+V QuaternionRenormalise      | Contract/ToleranceContract.h | 133     | ?
+V QuadratureConvergence      | Contract/ToleranceContract.h | 141     | ?
+V QuadratureIterationCeiling | Contract/ToleranceContract.h | 142     | ?
+V SunDirectionMateriality    | Contract/ToleranceContract.h | 146     | ?
+V CameraAltitudeMateriality  | Contract/ToleranceContract.h | 147     | ?
+V MachineEpsilon             | Contract/ToleranceContract.h | 159     | ?
+V ExpansionSplitter          | Contract/ToleranceContract.h | 162     | ?
+V Pi                         | Contract/ToleranceContract.h | 171     | ?
+V SampleUnitPlaceCeiling     | Contract/ToleranceContract.h | 176     | ?
+K SLATE_CONSTANT             | Contract/ToolchainContract.h | 34      | ?
+K SLATE_STATIC_ASSERT        | Contract/ToolchainContract.h | 40      | ?
+A Real64                     | Contract/ToolchainContract.h | 42      | ?
+A Real32                     | Contract/ToolchainContract.h | 43      | ?
+A Signed32                   | Contract/ToolchainContract.h | 44      | ?
+A Unsigned32                 | Contract/ToolchainContract.h | 45      | ?
+A Unsigned64                 | Contract/ToolchainContract.h | 46      | ?
+K SLATE_CONSTANT             | Contract/ToolchainContract.h | 56      | ?
+K SLATE_STATIC_ASSERT        | Contract/ToolchainContract.h | 57      | ?
+A Real64                     | Contract/ToolchainContract.h | 59      | ?
+A Real32                     | Contract/ToolchainContract.h | 60      | ?
+A Signed32                   | Contract/ToolchainContract.h | 61      | ?
+A Unsigned32                 | Contract/ToolchainContract.h | 62      | ?
+A Unsigned64                 | Contract/ToolchainContract.h | 63      | ?

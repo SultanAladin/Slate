@@ -17,10 +17,10 @@
 //------------------------------------------------------------------------------------------------------------------------
 
 S AtmosphereUniform.slang    | 107 lines | f413601f | 3 sym  | The one uniform block every atmosphere entry point reads, and its widening into the shared medium profile.
-S MultiScatterSurface.slang  | 204 lines | be58caa6 | 10 sym | ② of `28` §2 — the isotropic multiple-scattering series, closed, reading ① at 32 × 32.
-S SkyRadiance.slang          | 129 lines | b67fc2b8 | 3 sym  | The sky along one view direction, with the analytic solar disc — what `18` §5.1's unoccupied class reads.
-S SkyViewSurface.slang       | 190 lines | c2d97798 | 9 sym  | ③ of `28` §2 — single scattering phase-weighted against ①, plus ②'s isotropic term, at 192 × 108.
-S TransmittanceSurface.slang | 105 lines | a295b4e9 | 4 sym  | ① of `28` §2 — the optical depth to the atmosphere boundary, exponentiated, at 256 × 64.
+S MultiScatterSurface.slang  | 204 lines | d4bb7b9c | 10 sym | ② of `28` §2 — the isotropic multiple-scattering series, closed, reading ① at 32 × 32.
+S SkyRadiance.slang          | 129 lines | afca44a5 | 3 sym  | The sky along one view direction, with the analytic solar disc — what `18` §5.1's unoccupied class reads.
+S SkyViewSurface.slang       | 190 lines | fa4663fc | 9 sym  | ③ of `28` §2 — single scattering phase-weighted against ①, plus ②'s isotropic term, at 192 × 108.
+S TransmittanceSurface.slang | 105 lines | fbe42a29 | 4 sym  | ① of `28` §2 — the optical depth to the atmosphere boundary, exponentiated, at 256 × 64.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE UNIFORM BLOCK
@@ -143,36 +143,36 @@ F ResolveTransmittance       | MultiScatterSurface.slang  | 50-63  | nonallocati
 //------------------------------------------------------------------------------------------------------------------------
 
 F IntegrateMultiScatter      | MultiScatterSurface.slang  | 83-202 | -                         | -  | ?
-    in    SV_DispatchThreadID  Unsigned32 TexelOrdinal[3] :  [-]  ?
-    out   -                    void                          [-]  ?
+    in    SV_DispatchThreadID  Unsigned32x3 TexelOrdinal :  [-]  ?
+    out   -                    void                         [-]  ?
 
 F IntegrateSkyView           | SkyViewSurface.slang       | 89-188 | -                         | -  | ?
-    in    SV_DispatchThreadID  Unsigned32 TexelOrdinal[3] :  [-]  ?
-    out   -                    void                          [-]  ?
+    in    SV_DispatchThreadID  Unsigned32x3 TexelOrdinal :  [-]  ?
+    out   -                    void                         [-]  ?
 
 F IntegrateTransmittance     | TransmittanceSurface.slang | 47-103 | -                         | -  | ?
-    in    SV_DispatchThreadID  Unsigned32 TexelOrdinal[3] :  [-]  ?
-    out   -                    void                          [-]  ?
+    in    SV_DispatchThreadID  Unsigned32x3 TexelOrdinal :  [-]  ?
+    out   -                    void                         [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
 F ResolveSkyRadiance         | SkyRadiance.slang          | 70-127 | nonallocating,nonthrowing | 🚩 | The radiance arriving along a view direction, disc included. two in step. ③ is baked without it and the disc is resolved without it, so one flux applied by whoever reads this scales both together. Applying it to the disc alone — which is where a port of the donor formulation lands, since its disc names an illuminance its sky-view lookup does not — brightens the sun away from the sky immediately behind it, and the seam that produces is at the one place in the image the eye is already looking. subtends about a quarter of a degree; a disc carried through that surface is a texel wide at best and filtered into a smear at worst.
-    in    Profile               MediumProfile      [-]    the widened medium, its sun direction already unit in the local frame
-    in    DirectionX            Real64             [-]    unit, atmosphere-local, zenith on the second axis
-    in    DirectionY            Real64             [-]    ?
-    in    DirectionZ            Real64             [-]    ?
-    in    SkyViewSurface        Texture2D<Real32>  [-]    ③, sampled through `Shared/`'s inverse of the mapping that baked it
-    in    TransmittanceSurface  Texture2D<Real32>  [-]    ①, for the disc's own attenuation to space
-    in    SurfaceSampler        SamplerState       [-]    ?
-    in    SolarAngularRadius    Real64             [rad]  half-angle of the disc; a non-positive radius draws no disc — `28` §8's open row
-    in    Red                   SLATE_OUT(Real64)  [-]    ?
-    in    Green                 SLATE_OUT(Real64)  [-]    ?
-    in    Blue                  SLATE_OUT(Real64)  [-]    ?
-    in    DirectionY            -                  [-]    ?
-    in    DirectionZ            -                  [-]    ?
-    out   -                     Red/Green/Blue     [-]    linear radiance, unbounded above unity
+    in    Profile               MediumProfile        [-]    the widened medium, its sun direction already unit in the local frame
+    in    DirectionX            Real64               [-]    unit, atmosphere-local, zenith on the second axis
+    in    DirectionY            Real64               [-]    ?
+    in    DirectionZ            Real64               [-]    ?
+    in    SkyViewSurface        Texture2D<Real32x4>  [-]    ③, sampled through `Shared/`'s inverse of the mapping that baked it
+    in    TransmittanceSurface  Texture2D<Real32x4>  [-]    ①, for the disc's own attenuation to space
+    in    SurfaceSampler        SamplerState         [-]    ?
+    in    SolarAngularRadius    Real64               [rad]  half-angle of the disc; a non-positive radius draws no disc — `28` §8's open row
+    in    Red                   SLATE_OUT(Real64)    [-]    ?
+    in    Green                 SLATE_OUT(Real64)    [-]    ?
+    in    Blue                  SLATE_OUT(Real64)    [-]    ?
+    in    DirectionY            -                    [-]    ?
+    in    DirectionZ            -                    [-]    ?
+    out   -                     Red/Green/Blue       [-]    linear radiance, unbounded above unity
     note  🔴 The illuminant's flux is applied to **neither** the sky nor the disc here, and that is what keeps the
     note  📝 The disc is analytic rather than baked. ③ is a hundred and ninety-two texels of azimuth, and the sun
 

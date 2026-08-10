@@ -78,7 +78,7 @@ F BoundingStructure::Construct      | SpatialSubdivision.h | 91      | api,nonth
     in    Imported     const TopologyStructure&     [-]  the sealed topology
     in    Conditioned  const TopologyConditioning&  [-]  its conditioning, whose face extents are already rounded outward
     out   -            Outcome                      [-]  refuses with HostDenied for an unsealed topology, and with ExtentExhausted when the
-    by    Api/AtmosphereIntegrator.h, Api/CameraProjection.h, Api/InterfaceExchange.h, Api/RowSequence.h, Api/VectorInterchange.h, Api/WorkSequence.h, (+8 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
     note  🔴 The conditioning's revision is compared against the topology's. A structure built over extents
 
 F BoundingStructure::IntersectRay   | SpatialSubdivision.h | 108     | api,nonthrowing               | 🚩 | Intersects one ray, in the occupant's own object space. object space through a possibly non-uniform scale, and leaving the direction unnormalised is what keeps the returned distance a document-space distance rather than an object-space one. exactly. `40` §6 requires it: a missed face is geometry the artist cannot click, and an approximate test misses along exactly the shared edges that dense topology is made of.
@@ -96,7 +96,7 @@ F BoundingStructure::IntersectRay   | SpatialSubdivision.h | 108     | api,nonth
 
 F BoundingStructure::Extent         | SpatialSubdivision.h | 117     | api,nonallocating,nonthrowing | ✔️ | The whole structure's extent, in object space.
     out   -  ConditionedExtent  [-]  ?
-    by    Api/BrushSpecification.h, Api/IlluminantPopulation.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, (+2 more)
+    by    Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/PartitionStructure.h, Api/SpanSpace.h, Source/AssetInterchange.cpp, (+11 more)
 
 F BoundingStructure::RecordCount    | SpatialSubdivision.h | 119     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -104,11 +104,11 @@ F BoundingStructure::RecordCount    | SpatialSubdivision.h | 119     | -        
 
 F BoundingStructure::FaceCount      | SpatialSubdivision.h | 120     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/MaterialSpecification.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp, (+1 more)
+    by    Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionStructure.cpp, (+4 more)
 
 F BoundingStructure::Constructed    | SpatialSubdivision.h | 125     | api,nonallocating,nonthrowing | ✔️ | Whether the structure describes a topology at all.
     out   -  bool  [-]  ?
-    by    Contract/OutcomeContract.h, Source/SpatialSubdivision.cpp
+    by    Api/DescriptorIndex.h, Api/ProgramIndex.h, Api/ShaderCodec.h, Api/SurfaceTileSpace.h, Contract/OutcomeContract.h, Source/AttachmentIndex.cpp, (+8 more)
 
 T BoundingStructure::BoundingRecord | SpatialSubdivision.h | 129-135 | -                             | -  | ?
     has   Extent        ConditionedExtent  [-]  ?
@@ -163,7 +163,7 @@ F OctantSpace::Admit                | SpatialSubdivision.h | 193     | api,nonth
     in    Arriving  const AdmittedOccupant&  [-]  ?
     out   -         Outcome                  [-]  refuses with IdentityStale for an undeclared identity
     post  the subdivision is owed a rebuild before the admission is traversable
-    by    Api/SceneStructure.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp, Source/SpatialSubdivision.cpp, (+1 more)
+    by    Api/RequestQueue.h, Api/SceneStructure.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RequestQueue.cpp, (+3 more)
 
 F OctantSpace::Withdraw             | SpatialSubdivision.h | 199     | api,nonthrowing               | 🚩 | Withdraws one occupant.
     in    Subject  OccupantIdentity  [-]  ?
@@ -181,7 +181,7 @@ F OctantSpace::Refit                | SpatialSubdivision.h | 207     | api,nonth
 F OctantSpace::Construct            | SpatialSubdivision.h | 213     | api,nonthrowing               | 🔴 | Rebuilds the subdivision's shape over every admitted occupant.
     out   -  Outcome<bool>  [-]  ?
     post  the shape is optimal for the current extents; nothing is owed
-    by    Api/AtmosphereIntegrator.h, Api/CameraProjection.h, Api/InterfaceExchange.h, Api/RowSequence.h, Api/VectorInterchange.h, Api/WorkSequence.h, (+8 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
 
 F OctantSpace::IntersectRay         | SpatialSubdivision.h | 227     | api,nonthrowing               | 🚩 | Resolves the nearest occupant surface along one document-space ray — `74`'s precedence 2. hit. Without the ordering the traversal visits every record whose extent the ray touches, which on a dense scene is most of them.
     in    Origin      DocumentPosition        [mm]  the ray's origin, in document space
@@ -230,7 +230,7 @@ T OctantSpace::OctantRecord         | SpatialSubdivision.h | 260-266 | -        
 F OctantSpace::Located              | SpatialSubdivision.h | 268     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::size_t       [-]  ?
-    by    Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SurfaceLayerSequence.h, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+9 more)
+    by    Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/StrokeSpace.h, Api/SurfaceLayerSequence.h, Source/EnrollmentIndex.cpp, (+13 more)
 
 F OctantSpace::Divide               | SpatialSubdivision.h | 269     | -                             | -  | ?
     in    RecordOrdinal  std::uint32_t  [-]  ?
@@ -271,7 +271,7 @@ T AxisSpace                         | SpatialSubdivision.h | 309-340 | owning   
 F AxisSpace::Construct              | SpatialSubdivision.h | 316     | api,nonthrowing               | 🚩 | Declares the whole placement set, replacing what stood.
     in    Declaring  const std::vector<DomainExtent>&  [-]  ?
     out   -          void                              [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/CameraProjection.h, Api/InterfaceExchange.h, Api/RowSequence.h, Api/VectorInterchange.h, Api/WorkSequence.h, (+8 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
 
 F AxisSpace::Refit                  | SpatialSubdivision.h | 322     | api,nonthrowing               | 🚩 | Amends one placement's extent without rebuilding — the row `40` §4 reaches when a placement moved.
     in    PlacementOrdinal  std::uint32_t  [-]  ?
@@ -283,7 +283,7 @@ F AxisSpace::Resolve                | SpatialSubdivision.h | 328     | api,nonth
     in    PositionAlong   double   [-]  ?
     in    PositionAcross  double   [-]  ?
     out   -               Outcome  [-]  refuses with ExtentExhausted when no placement contains it
-    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/IntakeIndex.h, Api/MaterialSpecification.h, Api/PopulationIndex.h, (+26 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
 
 F AxisSpace::Overlapping            | SpatialSubdivision.h | 333     | api,nonthrowing               | 🚩 | Every placement whose extent overlaps a domain extent.
     in    Extent  DomainExtent                [-]  ?
@@ -292,10 +292,10 @@ F AxisSpace::Overlapping            | SpatialSubdivision.h | 333     | api,nonth
 
 F AxisSpace::DeclaredCount          | SpatialSubdivision.h | 335     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/BrushSpecification.h, Api/MaterialSpecification.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TilingSpecification.h, Api/WorkSequence.h, (+8 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/ProgramIndex.h, Api/QuadratureIntegrator.h, (+14 more)
 
 F SLATE_DECLARES_PRECISION          | SpatialSubdivision.h | 344     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+13 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)

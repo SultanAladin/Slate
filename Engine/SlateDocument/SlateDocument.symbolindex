@@ -7,7 +7,7 @@
 %scope    layer
 %path     Engine/SlateDocument
 %folders  44
-%symbols  875
+%symbols  877
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
@@ -43,8 +43,8 @@ I Api    | Api/Api.symbolindex       | 9 sym  | Selection ordering, revised in i
 I Source | Source/Source.symbolindex | 7 sym  | Sealing, traversal, and the restoration that pairs a document scrub with the selection it served.
 I Api    | Api/Api.symbolindex       | 39 sym | Three subdivisions, two levels, one traversal — what lets `74` answer the pointer on the host, every sample.
 I Source | Source/Source.symbolindex | 37 sym | Octant division, nearest-first descent, exact face classification, and refit without rebuild.
-I Api    | Api/Api.symbolindex       | 30 sym | The ordered content of one surface — the single source of truth a resident tile is a projection of.
-I Source | Source/Source.symbolindex | 23 sym | Ordering by position alone, amendments bounded by what they touched, and the one resampling that is reported.
+I Api    | Api/Api.symbolindex       | 31 sym | The ordered content of one surface — the single source of truth a resident tile is a projection of.
+I Source | Source/Source.symbolindex | 24 sym | Ordering by position alone, amendments bounded by what they touched, and the one resampling that is reported.
 I Api    | Api/Api.symbolindex       | 25 sym | A repeating pattern as plane symmetry plus cell content — declared, deterministic, and resolving nothing.
 I Source | Source/Source.symbolindex | 16 sym | Lattice validation, the per-cell variation that is a permutation rather than a sample, and the nesting bound.
 I Api    | Api/Api.symbolindex       | 24 sym | Derived companions to imported topology — adjacency, welding, orientation, bases and extents. Never a mutation.
@@ -682,7 +682,7 @@ T PaintedContent                                | Api/SurfaceLayerSequence.h    
 T CoverageSpecification                         | Api/SurfaceLayerSequence.h       | 80-87     | Where an entry applies, and how strongly. Painting coverage is a stroke, undone by `22` §4's extent-bounded inverse, and nothing about it is a separate mechanism. analytically. A coverage that could only be painted would make a tiled mask impossible.
 T LayerSpecification                            | Api/SurfaceLayerSequence.h       | 103-115   | One entry of a surface's content, declaring all four of `56` §2's fields and nothing implicit. between impressions within a stroke; this applies it between entries. Two documents declaring two sets of behaviours produce a surface whose result changes depending on whether content arrived as a stroke or as a layer, which the artist cannot see and cannot correct. an artist may legitimately hold a layer that writes nothing while they decide; what is forbidden is defaulting to all twenty, which silently overwrites roughness with a colour layer and is discovered at export.
 F EntryWritesChannel                            | Api/SurfaceLayerSequence.h       | 120-124   | Whether an entry writes one of `42`'s channels.
-T SurfaceLayerSequence                          | Api/SurfaceLayerSequence.h       | 141-295   | The ordered content of one surface, per channel, and the only ordering authority over it. is a sequence position. priority or an ordinal that could disagree with its position, and `12`'s outliner **presents** that order rather than holding a second one — which is why reordering in the outliner and reordering in a layer panel can never disagree. `68`'s parametric domain, and `20` projects the sequence onto whatever is resident. A sequence holding device extents would make the working extent a property of the file, and changing it an import.
+T SurfaceLayerSequence                          | Api/SurfaceLayerSequence.h       | 141-308   | The ordered content of one surface, per channel, and the only ordering authority over it. is a sequence position. priority or an ordinal that could disagree with its position, and `12`'s outliner **presents** that order rather than holding a second one — which is why reordering in the outliner and reordering in a layer panel can never disagree. `68`'s parametric domain, and `20` projects the sequence onto whatever is resident. A sequence holding device extents would make the working extent a property of the file, and changing it an import.
 F SurfaceLayerSequence::Append                  | Api/SurfaceLayerSequence.h       | 153       | Appends one entry at the end of the sequence, issuing its identity. painted content whose span does not match its declared extent, and with ExtentExhausted at the entry ceiling
 F SurfaceLayerSequence::Reorder                 | Api/SurfaceLayerSequence.h       | 164       | Moves one entry to a declared sequence position. position so the caller's inverse is one ordinal rather than a whole ordering nothing else, which is what makes reordering affordable in `RevisionSequence`.
 F SurfaceLayerSequence::DeclarePresence         | Api/SurfaceLayerSequence.h       | 172       | Presents or hides one entry. presented has been told the document does not hold what they see.
@@ -691,21 +691,22 @@ F SurfaceLayerSequence::Withdraw                | Api/SurfaceLayerSequence.h    
 F SurfaceLayerSequence::Nest                    | Api/SurfaceLayerSequence.h       | 200       | Nests one sequence inside this one as a single entry. ExtentExhausted beyond `LayerNestingCeiling` coverage are each applied **once**, to the nested result. Applying the enclosing coverage per entry instead is the defect that makes a partly covered nested sequence darken at its own internal overlaps — the same defect `22` §3 fixes by accumulating a stroke once and applying it once, at a different scale.
 F SurfaceLayerSequence::Resample                | Api/SurfaceLayerSequence.h       | 219       | Resamples every painted entry into a re-partitioned domain, on the tick. position it occupied in the old one unwrap; **this** resamples the authored texels, because `68` is in `SlateCompute` and cannot reach the document content at all. The remapping crosses as a callable so that nothing here names `68`. for exactly that reason. Everything else is re-resolved, and re-resolution is exact where resampling is not. not a defect in it; what would be a defect is performing it without saying so.
 F SurfaceLayerSequence::Resolve                 | Api/SurfaceLayerSequence.h       | 228       | One entry, by identity.
-F SurfaceLayerSequence::Entries                 | Api/SurfaceLayerSequence.h       | 233       | The entries, in sequence order — bottom first.
-F SurfaceLayerSequence::Nested                  | Api/SurfaceLayerSequence.h       | 239       | One nested sequence, by ordinal.
-F SurfaceLayerSequence::AmendNested             | Api/SurfaceLayerSequence.h       | 245       | One nested sequence, for amending.
-F SurfaceLayerSequence::PositionOf              | Api/SurfaceLayerSequence.h       | 251       | Which sequence position one entry sits at.
-F SurfaceLayerSequence::WrittenChannels         | Api/SurfaceLayerSequence.h       | 256       | The union of channels every presented entry writes — what `42`'s layered channels resolve against.
-F SurfaceLayerSequence::AuthoredContentHeld     | Api/SurfaceLayerSequence.h       | 263       | Whether any entry stores texels, and is therefore not evictable. holding a projection of one of these entries may be discarded while the entry may not.
-F SurfaceLayerSequence::NestingDepth            | Api/SurfaceLayerSequence.h       | 268       | How deeply this sequence is nested; zero for a surface's own.
-F SurfaceLayerSequence::AddressedRevision       | Api/SurfaceLayerSequence.h       | 273       | The partition revision the painted content currently addresses.
-F SurfaceLayerSequence::EntryCount              | Api/SurfaceLayerSequence.h       | 275       | ?
-F SurfaceLayerSequence::NestedCount             | Api/SurfaceLayerSequence.h       | 276       | ?
-F SurfaceLayerSequence::Located                 | Api/SurfaceLayerSequence.h       | 288       | ?
-T LayerIndex                                    | Api/SurfaceLayerSequence.h       | 305-321   | Identity and lookup across one surface's sequence, nested sequences included. question a single sequence cannot answer about an entry it does not hold.
-F LayerIndex::Locate                            | Api/SurfaceLayerSequence.h       | 315       | Locates one entry anywhere in a sequence, including inside its nested sequences.
-F LayerIndex::SpannedCount                      | Api/SurfaceLayerSequence.h       | 320       | How many entries the whole nesting holds.
-F SLATE_DECLARES_PRECISION                      | Api/SurfaceLayerSequence.h       | 325       | ?
+F SurfaceLayerSequence::AmendPainted            | Api/SurfaceLayerSequence.h       | 241       | One entry's painted texels, for the one mechanism permitted to amend them. ContentUnsupported when its source is not PaintedImpressions describes — §3 — so this is the one route by which authored content is written at all, and every write through it is inside a transaction whose inverse is bounded by the extents it touched. resolved projection the source of truth for content the description already holds, and `20` §4 would then evict the artist's edit at the first memory pressure.
+F SurfaceLayerSequence::Entries                 | Api/SurfaceLayerSequence.h       | 246       | The entries, in sequence order — bottom first.
+F SurfaceLayerSequence::Nested                  | Api/SurfaceLayerSequence.h       | 252       | One nested sequence, by ordinal.
+F SurfaceLayerSequence::AmendNested             | Api/SurfaceLayerSequence.h       | 258       | One nested sequence, for amending.
+F SurfaceLayerSequence::PositionOf              | Api/SurfaceLayerSequence.h       | 264       | Which sequence position one entry sits at.
+F SurfaceLayerSequence::WrittenChannels         | Api/SurfaceLayerSequence.h       | 269       | The union of channels every presented entry writes — what `42`'s layered channels resolve against.
+F SurfaceLayerSequence::AuthoredContentHeld     | Api/SurfaceLayerSequence.h       | 276       | Whether any entry stores texels, and is therefore not evictable. holding a projection of one of these entries may be discarded while the entry may not.
+F SurfaceLayerSequence::NestingDepth            | Api/SurfaceLayerSequence.h       | 281       | How deeply this sequence is nested; zero for a surface's own.
+F SurfaceLayerSequence::AddressedRevision       | Api/SurfaceLayerSequence.h       | 286       | The partition revision the painted content currently addresses.
+F SurfaceLayerSequence::EntryCount              | Api/SurfaceLayerSequence.h       | 288       | ?
+F SurfaceLayerSequence::NestedCount             | Api/SurfaceLayerSequence.h       | 289       | ?
+F SurfaceLayerSequence::Located                 | Api/SurfaceLayerSequence.h       | 301       | ?
+T LayerIndex                                    | Api/SurfaceLayerSequence.h       | 318-334   | Identity and lookup across one surface's sequence, nested sequences included. question a single sequence cannot answer about an entry it does not hold.
+F LayerIndex::Locate                            | Api/SurfaceLayerSequence.h       | 328       | Locates one entry anywhere in a sequence, including inside its nested sequences.
+F LayerIndex::SpannedCount                      | Api/SurfaceLayerSequence.h       | 333       | How many entries the whole nesting holds.
+F SLATE_DECLARES_PRECISION                      | Api/SurfaceLayerSequence.h       | 338       | ?
 F SurfaceLayerSequence::Located                 | Source/SurfaceLayerSequence.cpp  | 15-27     | ?
 F SurfaceLayerSequence::Append                  | Source/SurfaceLayerSequence.cpp  | 33-73     | ?
 F SurfaceLayerSequence::Reorder                 | Source/SurfaceLayerSequence.cpp  | 79-97     | ?
@@ -717,18 +718,19 @@ F SampleBilinear                                | Source/SurfaceLayerSequence.cp
 F ResampleContent                               | Source/SurfaceLayerSequence.cpp  | 230-265   | ?
 F SurfaceLayerSequence::Resample                | Source/SurfaceLayerSequence.cpp  | 269-327   | ?
 F SurfaceLayerSequence::Resolve                 | Source/SurfaceLayerSequence.cpp  | 333-344   | ?
-F SurfaceLayerSequence::Entries                 | Source/SurfaceLayerSequence.cpp  | 346-349   | ?
-F SurfaceLayerSequence::Nested                  | Source/SurfaceLayerSequence.cpp  | 351-360   | ?
-F SurfaceLayerSequence::AmendNested             | Source/SurfaceLayerSequence.cpp  | 362-371   | ?
-F SurfaceLayerSequence::PositionOf              | Source/SurfaceLayerSequence.cpp  | 373-381   | ?
-F SurfaceLayerSequence::WrittenChannels         | Source/SurfaceLayerSequence.cpp  | 383-400   | ?
-F SurfaceLayerSequence::AuthoredContentHeld     | Source/SurfaceLayerSequence.cpp  | 402-423   | ?
-F SurfaceLayerSequence::NestingDepth            | Source/SurfaceLayerSequence.cpp  | 425       | ?
-F SurfaceLayerSequence::AddressedRevision       | Source/SurfaceLayerSequence.cpp  | 426       | ?
-F SurfaceLayerSequence::EntryCount              | Source/SurfaceLayerSequence.cpp  | 428-431   | ?
-F SurfaceLayerSequence::NestedCount             | Source/SurfaceLayerSequence.cpp  | 433-436   | ?
-F LayerIndex::Locate                            | Source/SurfaceLayerSequence.cpp  | 442-464   | ?
-F LayerIndex::SpannedCount                      | Source/SurfaceLayerSequence.cpp  | 466-479   | ?
+F SurfaceLayerSequence::AmendPainted            | Source/SurfaceLayerSequence.cpp  | 346-366   | ?
+F SurfaceLayerSequence::Entries                 | Source/SurfaceLayerSequence.cpp  | 368-371   | ?
+F SurfaceLayerSequence::Nested                  | Source/SurfaceLayerSequence.cpp  | 373-382   | ?
+F SurfaceLayerSequence::AmendNested             | Source/SurfaceLayerSequence.cpp  | 384-393   | ?
+F SurfaceLayerSequence::PositionOf              | Source/SurfaceLayerSequence.cpp  | 395-403   | ?
+F SurfaceLayerSequence::WrittenChannels         | Source/SurfaceLayerSequence.cpp  | 405-422   | ?
+F SurfaceLayerSequence::AuthoredContentHeld     | Source/SurfaceLayerSequence.cpp  | 424-445   | ?
+F SurfaceLayerSequence::NestingDepth            | Source/SurfaceLayerSequence.cpp  | 447       | ?
+F SurfaceLayerSequence::AddressedRevision       | Source/SurfaceLayerSequence.cpp  | 448       | ?
+F SurfaceLayerSequence::EntryCount              | Source/SurfaceLayerSequence.cpp  | 450-453   | ?
+F SurfaceLayerSequence::NestedCount             | Source/SurfaceLayerSequence.cpp  | 455-458   | ?
+F LayerIndex::Locate                            | Source/SurfaceLayerSequence.cpp  | 464-486   | ?
+F LayerIndex::SpannedCount                      | Source/SurfaceLayerSequence.cpp  | 488-501   | ?
 T LatticeSpecification                          | Api/TilingSpecification.h        | 31-52     | The five plane symmetries `54` §2 declares, held as one specification. an offset progression; twill is a skew and an offset progression; basket weave is reflection on both. None of them is a special case, and a design that enumerated named patterns could express exactly the patterns somebody had already thought of.
 F LatticeSpecification::Validate                | Api/TilingSpecification.h        | 51        | Whether the lattice can be classified at all. one texel of the maximum working extent, and for both offset progressions at once displacement depending on the column and a column displacement depending on the row have no consistent inverse, and a lattice that cannot be inverted cannot be sampled — which is exactly what `70` does at every promotion.
 E CellContentSource                             | Api/TilingSpecification.h        | 60-67     | Where one cell element's content comes from — `54` §3's four sources.

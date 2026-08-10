@@ -26,7 +26,7 @@ F Located                             | SeamSpecification.cpp | 18-30   | - | - 
     in    Held    const std::vector<SeamEdge>&  [-]  ?
     in    Sought  SeamEdge                      [-]  ?
     out   -       std::size_t                   [-]  ?
-    by    Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, Source/EnrollmentIndex.cpp, (+9 more)
+    by    Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, Api/SurfaceLayerSequence.h, (+13 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     AUTHORED SEAMS

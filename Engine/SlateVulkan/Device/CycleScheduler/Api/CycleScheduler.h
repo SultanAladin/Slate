@@ -1,0 +1,123 @@
+//============================================================================================================================================
+//                                                             CYCLESCHEDULER.H
+//============================================================================================================================================
+// 🧩 Orders reuse of N cyclic recording slots — the wait that makes a slot writable and the ordinal that names it.
+
+#pragma once
+
+#include "Contract/OutcomeContract.h"
+#include "Contract/ToleranceContract.h"
+#include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
+
+#include <vulkan/vulkan.h>
+
+#include <cstdint>
+#include <vector>
+
+namespace Slate
+{
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  ONE ROTATION SLOT
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 What one cyclic slot holds — the ordering points a recording against it waits on and signals.
+/// note  🔴 The completion is constructed **signalled**. The first rotation waits on it before anything has
+///       ever been submitted, and an unsignalled one waits for a submission that will never arrive — a
+///       bring-up that stops before its first image, with no operand and no error.
+/// tag   nonallocating, nonthrowing
+struct RotationSlot
+{
+    VkFence      Completion    = VK_NULL_HANDLE;   // [-] - the host waits on this before writing the slot
+    VkSemaphore  ImageArrived  = VK_NULL_HANDLE;   // [-] - the display signals it; the recording waits on it
+    VkSemaphore  RecordingDone = VK_NULL_HANDLE;   // [-] - the recording signals it; the display waits on it
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE ROTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 The cyclic ordering every per-rotation resource is sized against and every recording is written into.
+/// note  🔴 `06` §7: every per-recording resource is sized against the rotation depth. `RecordingRotationDepth`
+///       is declared in `Contract/` because `SlateVulkan` sizes against it and `SlateCompute` quarantines
+///       against it — one number, two units, and the depth is 🚧 open at `06` §9 between two and three.
+/// note  ⚠️ `Advance` is the only writer of the standing ordinal. A caller keeping its own counter and
+///       advancing it separately produces two rotations that agree for exactly as long as nothing refuses.
+/// tag   owning
+class CycleScheduler
+{
+public:
+
+    CycleScheduler()                                 = default;
+    CycleScheduler(const CycleScheduler&)            = delete;
+    CycleScheduler& operator=(const CycleScheduler&) = delete;
+    ~CycleScheduler();
+
+    /// 🧩 Constructs the ordering points for every slot in the depth.
+    /// in    Exchange  [-]  the created device; borrowed and outlives this component
+    /// out   Outcome   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
+    ///                      device declines an ordering point; refused in full, with nothing half-constructed
+    /// post  the standing ordinal is zero and every completion is signalled
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> Construct(const VulkanExchange& Exchange);
+
+    /// 🧩 Waits until the slot the standing ordinal names is no longer read, and makes it writable again.
+    /// out   Outcome  [-]  refuses with HostDenied when the device does not complete within the ceiling
+    /// post  every resource the slot holds may be amended
+    /// note  🔴 The ceiling is finite rather than indefinite. An indefinite wait against a lost device is a
+    ///        host that stops with no report, and `06` §7 requires the loss to be reported upward before
+    ///        anything is destroyed — which cannot happen from inside a wait that never returns.
+    /// cost  🔴
+    /// tag   api, nonthrowing
+    Outcome<bool> Await();
+
+    /// 🧩 Clears the completion of the standing slot, immediately before the submission that signals it.
+    /// out   Outcome  [-]  refuses with HostDenied when the device declines
+    /// pre   Await delivered for this slot
+    /// cost  ✔️
+    /// tag   api, nonthrowing
+    Outcome<bool> Arm();
+
+    /// 🧩 Carries the standing ordinal to the next slot in the cycle.
+    /// post  the ordinal is the previous one raised by one, modulo the depth
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Advance();
+
+    /// 🧩 The slot the standing ordinal names, for the recording and the display that read it.
+    /// out   Outcome  [-]  refuses with CapabilityAbsent before Construct delivered
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    Outcome<RotationSlot> Standing() const;
+
+    /// 🧩 Which slot of the depth is standing — what every per-rotation claim is addressed by.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    std::uint32_t StandingOrdinal() const;
+
+    /// 🧩 How many rotations have been advanced through since bring-up, for `86`'s pacing report.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    std::uint64_t CompletedRotations() const;
+
+    /// 🧩 Destroys every ordering point.
+    /// pre   the device is idle
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    void Reclaim();
+
+private:
+
+    // 📝 About two seconds, expressed in the nanoseconds the vendor counts in. Long enough that no honest
+    //    rotation reaches it on hardware Slate targets, short enough that a lost device is reported rather
+    //    than waited on — the two conditions the ceiling exists between.
+    static constexpr std::uint64_t CompletionCeilingNanoseconds = 2000000000ull;   // [ns]
+
+    const VulkanExchange*      DeviceEdge  = nullptr;   // [-] - borrowed; never owned
+    std::vector<RotationSlot>  Slots       = {};        // [-] - RecordingRotationDepth entries
+    std::uint32_t              SlotStanding = 0u;       // [-] - which slot is being recorded into
+    std::uint64_t              Rotations    = 0u;       // [-] - advanced through since bring-up
+};
+
+}   // namespace Slate

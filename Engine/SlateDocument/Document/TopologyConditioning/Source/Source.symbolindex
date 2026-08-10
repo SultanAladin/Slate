@@ -37,6 +37,7 @@ F Quantise                                   | TopologyConditioning.cpp | 39-47 
 F CellOrdinal                                | TopologyConditioning.cpp | 49-58   | - | - | ?
     in    Cell  LatticeCell    [-]  ?
     out   -     std::uint64_t  [-]  ?
+    by    Api/PromotionScheduler.h, Api/RequestQueue.h, Api/StrokeSpace.h, Api/SurfaceTileSpace.h, Source/ImpressionSequence.cpp, Source/PromotionScheduler.cpp, (+3 more)
 
 F GreatestSpan                               | TopologyConditioning.cpp | 60-86   | - | - | ?
     in    Positions  const std::vector<DocumentPosition>&  [-]  ?

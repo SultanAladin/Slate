@@ -343,6 +343,28 @@ Outcome<const LayerSpecification*> SurfaceLayerSequence::Resolve(LayerIdentity S
     return Outcome<const LayerSpecification*>::Deliver(&Sequenced[Located_]);
 }
 
+Outcome<PaintedContent*> SurfaceLayerSequence::AmendPainted(LayerIdentity Subject)
+{
+    const std::size_t Located_ = Located(Subject);
+
+    if (Located_ == Sequenced.size())
+    {
+        return Outcome<PaintedContent*>::Refuse(
+            { RefusalReason::IdentityStale, "the entry no longer resolves" });
+    }
+
+    // 🔴 §3's classification, enforced at the one door into authored content. A reconstructible entry stores a
+    //    description and `70` resolves it; texels written into one would be a second place its content lived,
+    //    and the two would diverge at the first re-resolution.
+    if (SourceReconstructible(Sequenced[Located_].Source))
+    {
+        return Outcome<PaintedContent*>::Refuse(
+            { RefusalReason::ContentUnsupported, "the entry stores a description, not texels" });
+    }
+
+    return Outcome<PaintedContent*>::Deliver(&Sequenced[Located_].Painted);
+}
+
 const std::vector<LayerSpecification>& SurfaceLayerSequence::Entries() const
 {
     return Sequenced;

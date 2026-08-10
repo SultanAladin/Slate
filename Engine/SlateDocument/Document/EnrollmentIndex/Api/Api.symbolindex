@@ -98,7 +98,7 @@ F EnrollmentIndex::Enrolled           | EnrollmentIndex.h | 131    | api,nonallo
     in    Subject         OccupantIdentity  [-]  the occupant
     in    EnrolledSubset  SubsetSubject     [-]  which subset
     out   -               Enrolled          [-]  answered by interval comparison over the runs
-    by    Api/IlluminantPopulation.h, Api/TopologyConditioning.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+4 more)
+    by    Api/IlluminantPopulation.h, Api/TopologyConditioning.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+8 more)
 
 F EnrollmentIndex::Intervals          | EnrollmentIndex.h | 137    | api,nonallocating,nonthrowing | ✔️ | The runs of one subset, in ascending slot order.
     in    EnrolledSubset  SubsetSubject                         [-]  which subset
@@ -108,12 +108,12 @@ F EnrollmentIndex::Intervals          | EnrollmentIndex.h | 137    | api,nonallo
 F EnrollmentIndex::EnrolledCount      | EnrollmentIndex.h | 142    | api,nonallocating,nonthrowing | ✔️ | How many occupants one subset holds.
     in    EnrolledSubset  SubsetSubject  [-]  ?
     out   -               std::uint32_t  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/PopulationIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, Source/PopulationIndex.cpp
+    by    Api/IlluminantPopulation.h, Api/PopulationIndex.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+2 more)
 
 F EnrollmentIndex::Reclaim            | EnrollmentIndex.h | 147    | api,nonthrowing               | ✔️ | Empties one subset entirely.
     in    EnrolledSubset  SubsetSubject  [-]  ?
     out   -               void           [-]  ?
-    by    Api/InputExchange.h, Api/InterfaceExchange.h, Api/MaterialSpecification.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/WindowExchange.h, (+11 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
 
 F EnrollmentIndex::EnrolmentsOccupied | EnrollmentIndex.h | 153    | api,nonallocating,nonthrowing | 🚩 | 🔍 Whether every enrolled slot is occupied at the current generation — invariant 6.
     in    Generations  const std::vector<std::uint32_t>&  [-]  the current generation per slot, zero where the slot is vacant
