@@ -61,7 +61,7 @@ T CellAddress                           | SurfaceTileSpace.h | 84-89   | nonallo
 F OrdinalOf                             | SurfaceTileSpace.h | 95      | api,nonthrowing               | ✔️ | The single ordinal one address occupies.
     in    Addressed  CellAddress  [-]  ?
     out   -          Outcome      [-]  refuses with ContentUnsupported outside the level or its cell span
-    by    Api/RenderSchedule.h, Source/ImpressionSequence.cpp, Source/RenderSchedule.cpp, Source/SurfaceTileSpace.cpp
+    by    Api/RenderSchedule.h, Source/ImpressionSequence.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/SurfaceTileSpace.cpp
 
 F AddressOf                             | SurfaceTileSpace.h | 101     | api,nonthrowing               | ✔️ | The address one ordinal names.
     in    CellOrdinal  std::uint32_t  [-]  ?
@@ -103,17 +103,17 @@ T CellSpace                             | SurfaceTileSpace.h | 140-187 | owning 
 F CellSpace::Construct                  | SurfaceTileSpace.h | 148     | api,nonthrowing               | 🚩 | Builds the records and marks the permanently resident levels.
     out   -  void  [-]  ?
     post  every record is absent; the permanent ones are marked and await their promotion
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
 
 F CellSpace::Held                       | SurfaceTileSpace.h | 154     | api,nonthrowing               | ✔️ | One record, for reading.
     in    CellOrdinal  std::uint32_t  [-]  ?
     out   -            Outcome        [-]  refuses with ContentUnsupported outside the span
-    by    Api/SurfaceDepot.h, Shared/AtmosphereProjection.slang.h, Source/AssetInterchange.cpp, Source/AttachmentIndex.cpp, Source/BrushSpecification.cpp, Source/ByteSpace.cpp, (+32 more)
+    by    Api/SurfaceDepot.h, Shared/AtmosphereProjection.slang.h, Source/AssetInterchange.cpp, Source/AttachmentIndex.cpp, Source/BrushSpecification.cpp, Source/ByteSpace.cpp, (+33 more)
 
 F CellSpace::Amend                      | SurfaceTileSpace.h | 160     | api,nonthrowing               | ✔️ | One record, for amending.
     in    CellOrdinal  std::uint32_t  [-]  ?
     out   -            Outcome        [-]  refuses with ContentUnsupported outside the span
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+14 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+16 more)
 
 F CellSpace::Records                    | SurfaceTileSpace.h | 165     | api,nonallocating,nonthrowing | ✔️ | Every record, in ordinal order.
     out   -  const std::vector<CellRecord>&  [-]  ?
@@ -173,7 +173,7 @@ F SurfaceTileSpace::Construct           | SurfaceTileSpace.h | 237     | api,non
     in    SlotCeiling     std::uint32_t  [-]  tiles the backing extent holds
     out   -               Outcome        [-]  refuses with ContentUnsupported for a width of zero, and with ExtentExhausted
     post  the permanent levels are resident and their aprons are owed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
     note  🔴 The ceiling is checked against the permanent levels before anything is claimed. A surface whose
 
 F SurfaceTileSpace::Sample              | SurfaceTileSpace.h | 253     | api,nonthrowing               | 🚩 | Resolves a domain position at a declared level, demanding what is not resident. HostDenied before Construct has delivered record is found, records a demand for the level that was wanted, and returns. A sample that waited for a promotion would make every camera cut a hitch.
@@ -280,4 +280,4 @@ F SLATE_DECLARES_PRECISION              | SurfaceTileSpace.h | 366     | -      
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)

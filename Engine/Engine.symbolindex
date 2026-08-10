@@ -8,7 +8,7 @@
 %path      Engine
 %layers    8
 %folders   127
-%symbols   2224
+%symbols   2304
 %protocol  root → layer → folder; never open a source file the folder index already answers
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -33,34 +33,34 @@ I Shared | Shared | Engine/Shared/Shared.symbolindex | 9 src | 93 sym | The scat
 //                                                      SLATECOMPUTE
 //------------------------------------------------------------------------------------------------------------------------
 
-I Api    | SlateCompute | Engine/SlateCompute/Compute/AtmosphereIntegrator/Api/Api.symbolindex       | 1 src | 45 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
-I Shader | SlateCompute | Engine/SlateCompute/Compute/AtmosphereIntegrator/Shader/Shader.symbolindex | 5 src | 29 sym | The one uniform block every atmosphere entry point reads, and its widening into the shared medium profile.
-I Source | SlateCompute | Engine/SlateCompute/Compute/AtmosphereIntegrator/Source/Source.symbolindex | 1 src | 42 sym | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/ChartPartition/Api/Api.symbolindex             | 1 src | 13 sym | The parametric domain every paintable surface addresses — cut, flattened, arranged, and measured.
-I Source | SlateCompute | Engine/SlateCompute/Compute/ChartPartition/Source/Source.symbolindex       | 1 src | 15 sym | Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/DomainSpace/Api/Api.symbolindex                | 1 src | 10 sym | Charts arranged into the unit domain at a common scale, separated by at least one apron.
-I Source | SlateCompute | Engine/SlateCompute/Compute/DomainSpace/Source/Source.symbolindex          | 1 src | 6 sym  | Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/ImpressionSequence/Api/Api.symbolindex         | 1 src | 27 sym | A stroke as ordered impressions against the parametric domain — resampled by arrival, deferred never dropped, sealed once.
-I Source | SlateCompute | Engine/SlateCompute/Compute/ImpressionSequence/Source/Source.symbolindex   | 1 src | 25 sym | Domain resampling from arrival stamps, the deferral that never coarsens, and the accumulation applied once.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/ParityRunner/Api/Api.symbolindex               | 1 src | 6 sym  | Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
-I Source | SlateCompute | Engine/SlateCompute/Compute/ParityRunner/Source/Source.symbolindex         | 1 src | 7 sym  | Registration and comparison over the common sample set.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/PromotionScheduler/Api/Api.symbolindex         | 1 src | 24 sym | Two independent budgets, spent per rotation, and the ordering eviction follows when they cannot be met.
-I Source | SlateCompute | Engine/SlateCompute/Compute/PromotionScheduler/Source/Source.symbolindex   | 1 src | 17 sym | The two measures charged apart, the total eviction order, and the cost read from `56`'s entries.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/RequestQueue/Api/Api.symbolindex               | 1 src | 17 sym | Device-written cell demands, drained with latency — the readback half named apart, and the arrival order it yields.
-I Source | SlateCompute | Engine/SlateCompute/Compute/RequestQueue/Source/Source.symbolindex         | 1 src | 13 sym | Coalescing by cell, the cyclic rotation slots, and the readback that is exactly one depth behind.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/SeamSpecification/Api/Api.symbolindex          | 1 src | 13 sym | Where the topology is cut — authored seams that survive every re-partition, derived seams that do not.
-I Source | SlateCompute | Engine/SlateCompute/Compute/SeamSpecification/Source/Source.symbolindex    | 1 src | 11 sym | Two separately stored sets, and the reclamation that reaches only one of them.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/StrokeSpace/Api/Api.symbolindex                | 1 src | 12 sym | The bounded extent one stroke accumulates into — coverage per texel, per touched cell, applied once at Seal.
-I Source | SlateCompute | Engine/SlateCompute/Compute/StrokeSpace/Source/Source.symbolindex          | 1 src | 9 sym  | Sparse tile claiming over the dense cell index, and the commutative coverage accumulation.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/SurfaceDepot/Api/Api.symbolindex               | 1 src | 15 sym | Derived, evictable, reconstructible artefacts keyed by content — and nothing authored, ever.
-I Source | SlateCompute | Engine/SlateCompute/Compute/SurfaceDepot/Source/Source.symbolindex         | 1 src | 11 sym | The reconstructibility refusal, key resolution, and least-recently-resolved eviction.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/SurfaceTileSpace/Api/Api.symbolindex           | 1 src | 40 sym | Resolution-independent paintable surfaces — the cell subdivision, its residency, and the sample that never stalls.
-I Source | SlateCompute | Engine/SlateCompute/Compute/SurfaceTileSpace/Source/Source.symbolindex     | 1 src | 28 sym | The coarsening walk that never stalls, the revision comparison, and promotion that evicts only what it may.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/TileSpace/Api/Api.symbolindex                  | 1 src | 16 sym | Physical tile extents, sliced and reclaimed — slot ledger and byte offsets, and never a texel.
-I Source | SlateCompute | Engine/SlateCompute/Compute/TileSpace/Source/Source.symbolindex            | 1 src | 12 sym | Claim, release into quarantine, and the reclamation deferred by the rotation depth.
-I Api    | SlateCompute | Engine/SlateCompute/Compute/VisibilityIndex/Api/Api.symbolindex            | 4 src | 67 sym | The hierarchical minimum `16` §2 ② reduces one rotation's depth into, and which level a projected extent is tested at.
-I Shader | SlateCompute | Engine/SlateCompute/Compute/VisibilityIndex/Shader/Shader.symbolindex      | 3 src | 11 sym | The vertex half of `16` §3's hardware raster — one triangle corner resolved from the declared spans and projected.
-I Source | SlateCompute | Engine/SlateCompute/Compute/VisibilityIndex/Source/Source.symbolindex      | 4 src | 50 sym | Halving a display extent into a level chain, and the integer logarithm that picks the level one partition is tested at.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/AtmosphereIntegrator/Api/Api.symbolindex       | 1 src | 45 sym  | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
+I Shader | SlateCompute | Engine/SlateCompute/Compute/AtmosphereIntegrator/Shader/Shader.symbolindex | 5 src | 29 sym  | The one uniform block every atmosphere entry point reads, and its widening into the shared medium profile.
+I Source | SlateCompute | Engine/SlateCompute/Compute/AtmosphereIntegrator/Source/Source.symbolindex | 1 src | 42 sym  | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/ChartPartition/Api/Api.symbolindex             | 1 src | 13 sym  | The parametric domain every paintable surface addresses — cut, flattened, arranged, and measured.
+I Source | SlateCompute | Engine/SlateCompute/Compute/ChartPartition/Source/Source.symbolindex       | 1 src | 15 sym  | Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/DomainSpace/Api/Api.symbolindex                | 1 src | 10 sym  | Charts arranged into the unit domain at a common scale, separated by at least one apron.
+I Source | SlateCompute | Engine/SlateCompute/Compute/DomainSpace/Source/Source.symbolindex          | 1 src | 6 sym   | Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/ImpressionSequence/Api/Api.symbolindex         | 1 src | 27 sym  | A stroke as ordered impressions against the parametric domain — resampled by arrival, deferred never dropped, sealed once.
+I Source | SlateCompute | Engine/SlateCompute/Compute/ImpressionSequence/Source/Source.symbolindex   | 1 src | 25 sym  | Domain resampling from arrival stamps, the deferral that never coarsens, and the accumulation applied once.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/ParityRunner/Api/Api.symbolindex               | 1 src | 6 sym   | Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
+I Source | SlateCompute | Engine/SlateCompute/Compute/ParityRunner/Source/Source.symbolindex         | 1 src | 7 sym   | Registration and comparison over the common sample set.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/PromotionScheduler/Api/Api.symbolindex         | 1 src | 24 sym  | Two independent budgets, spent per rotation, and the ordering eviction follows when they cannot be met.
+I Source | SlateCompute | Engine/SlateCompute/Compute/PromotionScheduler/Source/Source.symbolindex   | 1 src | 17 sym  | The two measures charged apart, the total eviction order, and the cost read from `56`'s entries.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/RequestQueue/Api/Api.symbolindex               | 1 src | 17 sym  | Device-written cell demands, drained with latency — the readback half named apart, and the arrival order it yields.
+I Source | SlateCompute | Engine/SlateCompute/Compute/RequestQueue/Source/Source.symbolindex         | 1 src | 13 sym  | Coalescing by cell, the cyclic rotation slots, and the readback that is exactly one depth behind.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/SeamSpecification/Api/Api.symbolindex          | 1 src | 13 sym  | Where the topology is cut — authored seams that survive every re-partition, derived seams that do not.
+I Source | SlateCompute | Engine/SlateCompute/Compute/SeamSpecification/Source/Source.symbolindex    | 1 src | 11 sym  | Two separately stored sets, and the reclamation that reaches only one of them.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/StrokeSpace/Api/Api.symbolindex                | 1 src | 12 sym  | The bounded extent one stroke accumulates into — coverage per texel, per touched cell, applied once at Seal.
+I Source | SlateCompute | Engine/SlateCompute/Compute/StrokeSpace/Source/Source.symbolindex          | 1 src | 9 sym   | Sparse tile claiming over the dense cell index, and the commutative coverage accumulation.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/SurfaceDepot/Api/Api.symbolindex               | 1 src | 15 sym  | Derived, evictable, reconstructible artefacts keyed by content — and nothing authored, ever.
+I Source | SlateCompute | Engine/SlateCompute/Compute/SurfaceDepot/Source/Source.symbolindex         | 1 src | 11 sym  | The reconstructibility refusal, key resolution, and least-recently-resolved eviction.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/SurfaceTileSpace/Api/Api.symbolindex           | 1 src | 40 sym  | Resolution-independent paintable surfaces — the cell subdivision, its residency, and the sample that never stalls.
+I Source | SlateCompute | Engine/SlateCompute/Compute/SurfaceTileSpace/Source/Source.symbolindex     | 1 src | 28 sym  | The coarsening walk that never stalls, the revision comparison, and promotion that evicts only what it may.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/TileSpace/Api/Api.symbolindex                  | 1 src | 16 sym  | Physical tile extents, sliced and reclaimed — slot ledger and byte offsets, and never a texel.
+I Source | SlateCompute | Engine/SlateCompute/Compute/TileSpace/Source/Source.symbolindex            | 1 src | 12 sym  | Claim, release into quarantine, and the reclamation deferred by the rotation depth.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/VisibilityIndex/Api/Api.symbolindex            | 6 src | 103 sym | The hierarchical minimum `16` §2 ② reduces one rotation's depth into, and which level a projected extent is tested at.
+I Shader | SlateCompute | Engine/SlateCompute/Compute/VisibilityIndex/Shader/Shader.symbolindex      | 6 src | 29 sym  | `16` §2 ② — one dispatch per level, reducing the depth target and then the chain into its own coarser levels.
+I Source | SlateCompute | Engine/SlateCompute/Compute/VisibilityIndex/Source/Source.symbolindex      | 6 src | 76 sym  | Halving a display extent into a level chain, and the integer logarithm that picks the level one partition is tested at.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     SLATEDOCUMENT

@@ -137,7 +137,7 @@ F TilingSpecification::Classify            | TilingSpecification.h | 187     | a
     in    PositionAlong   double   [-]  the domain's first axis
     in    PositionAcross  double   [-]  its second
     out   -               Outcome  [-]  refuses with ContentUnsupported while no valid lattice is declared
-    by    Api/CameraProjection.h, Api/VectorInterchange.h, Api/VendorClassifier.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/TilingSpecification.cpp, (+3 more)
+    by    Api/CameraProjection.h, Api/VectorInterchange.h, Api/VendorClassifier.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp, (+4 more)
     note  🔴 Classification goes through `02` §5's `LatticeProjection` in `Shared/`, at Tier A, and never
 
 F TilingSpecification::Lattice             | TilingSpecification.h | 189     | -                             | -  | ?
@@ -172,17 +172,17 @@ T TilingIndex                              | TilingSpecification.h | 221-260 | o
 
 F TilingIndex::Declare                     | TilingSpecification.h | 229     | api,nonthrowing               | 🚩 | Declares one tiling and issues its ordinal.
     out   -  Outcome  [-]  refuses with ExtentExhausted at the declared ceiling
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+25 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+26 more)
 
 F TilingIndex::Resolve                     | TilingSpecification.h | 235     | api,nonthrowing               | ✔️ | One declared tiling, for reading.
     in    TilingOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
 
 F TilingIndex::Amend                       | TilingSpecification.h | 241     | api,nonthrowing               | ✔️ | One declared tiling, for amending.
     in    TilingOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+14 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+16 more)
 
 F TilingIndex::Nest                        | TilingSpecification.h | 251     | api,nonthrowing               | 🚩 | Nests one tiling inside a cell of another, at the declared bound. inside itself, and for a nesting that would exceed `TilingNestingCeiling`
     in    EnclosingOrdinal  std::uint32_t  [-]  the tiling whose cell carries it
@@ -199,4 +199,4 @@ F SLATE_DECLARES_PRECISION                 | TilingSpecification.h | 264     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)

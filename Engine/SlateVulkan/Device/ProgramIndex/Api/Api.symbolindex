@@ -23,7 +23,7 @@ S ProgramIndex.h | 191 lines | a7ee2b54 | 15 sym | Graphics and compute programs
 //------------------------------------------------------------------------------------------------------------------------
 
 V AbsentProgram                 | ProgramIndex.h | 27      | -                             | -  | ?
-    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+    by    Api/OcclusionScheduler.h, Api/VisibilityRaster.h, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
 
 T DepthDeclaration              | ProgramIndex.h | 36-41   | nonallocating,nonthrowing     | -  | How one graphics program resolves depth — tested, written, and against which comparison. and `FarPlaneDepth` is nought. A program declaring the ordinary less-than comparison against a reversed target resolves the furthest surface at every pixel, and the image is the inside of the object rather than an image that sorts wrongly — which is the failure `02` §6 declares the two constants to prevent.
     has   DepthTested      bool         [-]  ?
@@ -53,7 +53,7 @@ T ComputeDeclaration            | ProgramIndex.h | 74-80   | owning             
     has   LayoutOrdinals  std::vector<std::uint32_t>        [-]  ?
     has   Fixed           std::vector<SpecialisedConstant>  [-]  ?
     has   ConstantBytes   std::uint32_t                     [-]  ?
-    by    Source/ProgramIndex.cpp
+    by    Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp
     note  📝 The workgroup extent is not declared here. It is the entry point's own `[numthreads]`, or a
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -64,7 +64,7 @@ T ConstructedProgram            | ProgramIndex.h | 91-96   | nonallocating,nonth
     has   Constructed    VkPipeline           [-]  ?
     has   ReachedLayout  VkPipelineLayout     [-]  ?
     has   RecordedAs     VkPipelineBindPoint  [-]  ?
-    by    Source/ProgramIndex.cpp, Source/VisibilityRaster.cpp
+    by    Api/VisibilityRaster.h, Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp, Source/VisibilityRaster.cpp
     note  ⚠️ The layout is delivered beside the program because every descriptor and every constant the
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -76,7 +76,7 @@ T ProgramIndex                  | ProgramIndex.h | 114-189 | owning             
     has   ModuleEdge      ShaderCodec*              [-]  ?
     has   DescriptorEdge  const DescriptorIndex*    [-]  ?
     has   Programs        std::vector<HeldProgram>  [-]  ?
-    by    Api/VisibilityRaster.h, Source/ProgramIndex.cpp, Source/VisibilityRaster.cpp
+    by    Api/OcclusionScheduler.h, Api/VisibilityRaster.h, Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp, Source/VisibilityRaster.cpp
     note  🔴 `Pipeline` is banned as Slate's own spelling and the substitution is not a euphemism: what is held
     note  🔴 Constructed at bring-up and never during a recording. Program construction reads the shader
     note  ⚠️ The layout is owned here rather than by `DescriptorIndex`. `DescriptorIndex` declares descriptor
@@ -89,7 +89,7 @@ F ProgramIndex::Construct       | ProgramIndex.h | 131     | api,nonthrowing    
     in    Descriptors  const DescriptorIndex&  [-]  where the set layouts come from; borrowed and outlives this component
     out   -            Outcome                 [-]  refuses with CapabilityAbsent when no device is active
     post  no program is declared
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
 
 F ProgramIndex::DeclareGraphics | ProgramIndex.h | 142     | api,nonthrowing               | 🔴 | Constructs one graphics program, returning the ordinal every later resolution names it by. an absent render construct, and with HostDenied when the device declines it specialisation the vendor reads at construction is held where its addresses stay put.
     in    Declaring  const GraphicsDeclaration&  [-]  the modules, layouts, render construct and depth behaviour
@@ -102,17 +102,17 @@ F ProgramIndex::DeclareCompute  | ProgramIndex.h | 150     | api,nonthrowing    
     in    Declaring  const ComputeDeclaration&  [-]  the module, the layouts and the constant run
     out   -          Outcome                    [-]  refuses as DeclareGraphics does, less the render construct
     post  nothing is retained on a refusal
-    by    Source/ProgramIndex.cpp
+    by    Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp
 
 F ProgramIndex::Resolve         | ProgramIndex.h | 157     | api,nonallocating,nonthrowing | ✔️ | The program one ordinal names, for the recording that records against it.
     in    ProgramOrdinal  std::uint32_t  [-]  an ordinal this component issued
     out   -               Outcome        [-]  refuses with ContentUnsupported for an ordinal naming no program
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
 
 F ProgramIndex::Reclaim         | ProgramIndex.h | 163     | api,nonthrowing               | 🚩 | Destroys every program and every layout constructed for one.
     out   -  void  [-]  ?
     pre   the device is idle and no recording that reads them is still executing
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
 
 F ProgramIndex::DeclaredCount   | ProgramIndex.h | 165     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?

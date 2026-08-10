@@ -96,7 +96,7 @@ F ReportSequence::DiscardedCount | ReportSequence.h | 123     | api,nonallocatin
 
 F ReportSequence::Reclaim        | ReportSequence.h | 128     | api,nonthrowing               | ✔️ | Empties the register. Called at process teardown and by nothing else.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ONE MEASURE
@@ -142,12 +142,12 @@ F MeasureIndex::Resolve          | ReportSequence.h | 197     | api,nonthrowing 
     in    Origin    const char*  [-]  static text naming document and section
     in    Measured  const char*  [-]  static text naming the quantity
     out   -         Outcome      [-]  refuses with ExtentExhausted when nothing has declared it
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
     note  An undeclared measure refuses rather than reading zero. `08` §5 rules the same for an unmeasurable
 
 F MeasureIndex::Reclaim          | ReportSequence.h | 202     | api,nonthrowing               | ✔️ | Discards every held measure.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
 
 F MeasureIndex::Located          | ReportSequence.h | 206     | -                             | -  | ?
     in    Origin    const char*  [-]  ?

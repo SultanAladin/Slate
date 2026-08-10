@@ -9,7 +9,7 @@ import sys
 
 RepositoryRoot = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ImportRoot     = os.path.join(RepositoryRoot, "Import")
-SourceSuffixes = (".h", ".cpp")
+SourceSuffixes = (".h", ".cpp", ".slang")
 
 #------------------------------------------------------------------------------------------------------------------------
 #                                                    CONSOLE REPORTING

@@ -23,14 +23,14 @@ S DescriptorIndex.h | 168 lines | a6663efb | 18 sym | Descriptor set layouts con
 //------------------------------------------------------------------------------------------------------------------------
 
 V AbsentDescriptor                  | DescriptorIndex.h | 25      | -                             | -  | ?
-    by    Api/VisibilityRaster.h
+    by    Api/OcclusionScheduler.h, Api/VisibilityRaster.h
 
 T DescriptorSlot                    | DescriptorIndex.h | 31-37   | nonallocating,nonthrowing     | -  | What one descriptor slot in a layout carries, as the shader declares it. layout must state, and a layout stating a larger one leaves the shader indexing beyond what is written.
     has   SlotOrdinal     std::uint32_t       [-]  ?
     has   Carried         VkDescriptorType    [-]  ?
     has   CarriedCount    std::uint32_t       [-]  ?
     has   ReachingStages  VkShaderStageFlags  [-]  ?
-    by    Api/InterfaceExchange.h, Source/DescriptorIndex.cpp, Source/InterfaceExchange.cpp, Source/VisibilityRaster.cpp
+    by    Api/InterfaceExchange.h, Source/DescriptorIndex.cpp, Source/InterfaceExchange.cpp, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
     note  🔴 The count is a declaration and not a ceiling. A shader declaring an unsized run reads a count the
 
 T DescriptorContent                 | DescriptorIndex.h | 44-53   | nonallocating,nonthrowing     | -  | What one descriptor set is written with — one entry per slot the recording amends. sampled image into a slot the layout declares as a span is a validation error at the write rather than at the declaration that disagreed.
@@ -41,7 +41,7 @@ T DescriptorContent                 | DescriptorIndex.h | 44-53   | nonallocatin
     has   ImageView      VkImageView    [-]  ?
     has   ImageSampler   VkSampler      [-]  ?
     has   ImageStanding  VkImageLayout  [-]  ?
-    by    Source/DescriptorIndex.cpp, Source/VisibilityRaster.cpp
+    by    Source/DescriptorIndex.cpp, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
     note  ⚠️ Exactly one of the three is read, chosen by the slot's declared `VkDescriptorType`. Writing a
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ T DescriptorIndex                   | DescriptorIndex.h | 67-166  | owning      
     has   Layouts           std::vector<DeclaredLayout>  [-]  ?
     has   Claimed           std::vector<ClaimedSet>      [-]  ?
     has   DeclarationFixed  bool                         [-]  ?
-    by    Api/ProgramIndex.h, Api/VisibilityRaster.h, Source/DescriptorIndex.cpp, Source/ProgramIndex.cpp, Source/VisibilityRaster.cpp
+    by    Api/OcclusionScheduler.h, Api/ProgramIndex.h, Api/VisibilityRaster.h, Source/DescriptorIndex.cpp, Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp, (+1 more)
     note  🔴 `06` §7's first gate: no descriptor set layout is constructed during a recording. Every layout is
     note  🔴 `06` §2.1 settles explicit sets per rotation slot rather than a bindless arrangement. A claim
 
@@ -64,12 +64,12 @@ F DescriptorIndex::Construct        | DescriptorIndex.h | 82      | api,nonthrow
     in    Exchange  const VulkanExchange&  [-]  the created device; borrowed and outlives this component
     out   -         Outcome                [-]  refuses with CapabilityAbsent when no device is active
     post  no layout is declared and no set is claimed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
 
 F DescriptorIndex::Declare          | DescriptorIndex.h | 90      | api,nonthrowing               | 🚩 | Declares one layout from its slots, returning the ordinal every later claim names it by. and with RelationCyclic once the declaration set has been fixed
     in    Declared  const std::vector<DescriptorSlot>&  [-]  the slots, in any order; slot ordinals need not be contiguous
     out   -         Outcome                             [-]  refuses with ContentUnsupported for an empty declaration or a repeated ordinal,
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, (+25 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, (+26 more)
 
 F DescriptorIndex::Fix              | DescriptorIndex.h | 100     | api,nonthrowing               | 🚩 | Closes the declaration and constructs the one descriptor extent every later claim is sliced from. that reallocates invalidates every set sliced from it, including the ones a rotation still reads.
     in    ConcurrentSets  std::uint32_t  [-]  how many sets the extent must admit, across every layout and every rotation
@@ -82,7 +82,7 @@ F DescriptorIndex::Claim            | DescriptorIndex.h | 108     | api,nonthrow
     in    LayoutOrdinal  std::uint32_t  [-]  a layout this component declared
     out   -              Outcome        [-]  refuses with ExtentExhausted when the extent admits no further set
     post  `RecordingRotationDepth` sets stand and are addressed by the returned ordinal and a rotation slot
-    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+13 more)
 
 F DescriptorIndex::Amend            | DescriptorIndex.h | 119     | api,nonthrowing               | 🚩 | Writes the content of one claimed set for one rotation slot. or above the depth, or a slot the layout does not declare
     in    ClaimOrdinal  std::uint32_t                          [-]  a claim this component issued
@@ -90,13 +90,13 @@ F DescriptorIndex::Amend            | DescriptorIndex.h | 119     | api,nonthrow
     in    Amended       const std::vector<DescriptorContent>&  [-]  one entry per slot being written; a slot omitted is left as it stood
     out   -             Outcome                                [-]  refuses with ContentUnsupported for an unclaimed ordinal, a rotation slot at
     pre   🔴 no recording that reads this set for this rotation slot is still executing
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, Api/RevisionSequence.h, (+14 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, Api/OcclusionScheduler.h, (+16 more)
 
 F DescriptorIndex::Resolve          | DescriptorIndex.h | 127     | api,nonallocating,nonthrowing | ✔️ | The set one claim names for one rotation slot, for the recording that reads it.
     in    ClaimOrdinal  std::uint32_t  [-]  ?
     in    RotationSlot  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal or an excessive slot
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/IntakeIndex.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/IntakeIndex.h, (+51 more)
 
 F DescriptorIndex::Layout           | DescriptorIndex.h | 133     | api,nonallocating,nonthrowing | ✔️ | The layout one ordinal names, for the recording that constructs a program against it.
     in    LayoutOrdinal  std::uint32_t  [-]  ?
@@ -106,7 +106,7 @@ F DescriptorIndex::Layout           | DescriptorIndex.h | 133     | api,nonalloc
 F DescriptorIndex::Reclaim          | DescriptorIndex.h | 139     | api,nonthrowing               | 🚩 | Destroys every set, every layout and the extent they were sliced from.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/EnrollmentIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/EnrollmentIndex.h, (+49 more)
 
 F DescriptorIndex::DeclaredCount    | DescriptorIndex.h | 141     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?

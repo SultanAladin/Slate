@@ -84,7 +84,7 @@ F Derive                            | ChartPartition.h | 123     | api,nonthrowi
     in    Cancellation  const WorkCancellation&        [-]  read between charts — `34` §5's cooperative points
     in    Progressed    WorkProgress&                  [-]  charts resolved out of charts spanned
     out   -             Outcome                        [-]  refuses with HostDenied for an unsealed topology or a withdrawn declaration, and with
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/QuadratureIntegrator.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, (+6 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, Api/VisibilityRaster.h, (+8 more)
     note  🔴 Reads nothing but its arguments and mutates none of them, which is exactly `34` §2's requirement.
     note  🔴 A chart that is not a disc and a chart that folds are answered by the **same** mechanism: subdivide
     note  ⚠️ The boundary self-intersection test is quadratic in boundary length. That is affordable only because
@@ -92,7 +92,7 @@ F Derive                            | ChartPartition.h | 123     | api,nonthrowi
 F SLATE_DECLARES_PRECISION          | ChartPartition.h | 129     | -                             | -  | ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, Api/CurveSolver.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, Api/CurveSolver.h, (+21 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE STANDING PARTITION
@@ -114,7 +114,7 @@ F ChartPartition::Adopt             | ChartPartition.h | 153     | api,nonthrowi
 F ChartPartition::Standing          | ChartPartition.h | 159     | api,nonallocating,nonthrowing | ✔️ | The standing partition.
     out   -  const DerivedPartition&  [-]  ?
     pre   PartitionStanding holds
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/CycleScheduler.h, Api/ImageSpace.h, Api/OutlinerSequence.h, Api/PartitionStructure.h, (+24 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/CycleScheduler.h, Api/ImageSpace.h, Api/OutlinerSequence.h, Api/PartitionClassifier.h, (+30 more)
 
 F ChartPartition::Coordinate        | ChartPartition.h | 166     | api,nonthrowing               | ✔️ | One imported corner's domain coordinate. while no partition stands
     in    CornerOrdinal  std::uint32_t  [-]  ?
@@ -123,7 +123,7 @@ F ChartPartition::Coordinate        | ChartPartition.h | 166     | api,nonthrowi
 
 F ChartPartition::PartitionStanding | ChartPartition.h | 171     | api,nonallocating,nonthrowing | ✔️ | Whether a partition stands at all.
     out   -  bool  [-]  ?
-    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+    by    Api/PartitionClassifier.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp
 
 F ChartPartition::Revision          | ChartPartition.h | 176     | api,nonallocating,nonthrowing | ✔️ | The revision `24` §3 keys on and `20` promotes against.
     out   -  std::uint64_t  [-]  ?

@@ -53,12 +53,12 @@ F InterfaceExchange::~InterfaceExchange | InterfaceExchange.h | 57     | destruc
 F InterfaceExchange::Construct          | InterfaceExchange.h | 68     | api,nonthrowing               | 🔴 | Constructs the interface context over the supplied device handles. HostDenied when the vendor attachment declines `VK_KHR_dynamic_rendering` or a device at Vulkan 1.3. Construct refuses rather than recording into a target the device never agreed to.
     in    Arriving  const InterfaceAttachment&  [-]  the device handles and the window the interface reads from
     out   -         Outcome                     [-]  refuses with CapabilityAbsent when any required handle is absent, and with
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
     note  🚧 Recording is declared against dynamic rendering, so `06`'s bring-up must negotiate
 
 F InterfaceExchange::Reclaim            | InterfaceExchange.h | 73     | api,nonthrowing               | 🚩 | Destroys the interface context and both vendor attachments.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
 
 F InterfaceExchange::Advance            | InterfaceExchange.h | 79     | api,nonthrowing               | ✔️ | Opens one interface tick and reads the window system's accumulated condition.
     out   -  Outcome  [-]  refuses when no context is constructed, or when a tick is already open
@@ -73,7 +73,7 @@ F InterfaceExchange::Record             | InterfaceExchange.h | 94     | api,non
     in    CommandRecording  VkCommandBuffer  [-]  a recording already inside a dynamic rendering scope over DisplaySurface
     out   -                 Outcome          [-]  refuses when nothing has been sealed since the last Advance
     pre   Seal delivered
-    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/InputExchange.cpp, (+3 more)
+    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/InputExchange.cpp, (+4 more)
 
 F InterfaceExchange::PointerCaptured    | InterfaceExchange.h | 99     | api,nonallocating,nonthrowing | ✔️ | Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
     out   -  bool  [-]  ?

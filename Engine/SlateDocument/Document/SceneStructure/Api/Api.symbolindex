@@ -50,7 +50,7 @@ F EnclosureContains                   | SceneStructure.h | 58-62   | api,nonallo
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 63      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE TWO RELATIONS
@@ -259,4 +259,4 @@ F SceneStructure::CompoundFrom        | SceneStructure.h | 283     | -          
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 300     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)

@@ -11,7 +11,7 @@ RepositoryRoot    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EngineRoot        = os.path.join(RepositoryRoot, "Engine")
 UploadRoot        = os.path.join(RepositoryRoot, "Upload")
 StructureName     = "Engine-File-Structure.md"
-SourceSuffixes    = (".h", ".cpp")
+SourceSuffixes    = (".h", ".cpp", ".slang")
 AuxiliarySuffixes = (".comp", ".bat", ".ps1")
 
 #------------------------------------------------------------------------------------------------------------------------
@@ -68,21 +68,25 @@ def CollectSource():
 
 
 def TransferSource(RelativePaths):
-    """Copies every header and translation unit into the flat Upload folder; -1 when two names collide."""
+    """Copies every header, translation unit, and shader into the flat Upload folder; -1 when two names collide.
+    .slang files are transferred with a .md extension (e.g. DepthReduction.slang.md).
+    """
     Transferred = 0
     Occupied    = {}
 
     for Relative in RelativePaths:
-        if not Relative.endswith(SourceSuffixes):
+        if not Relative.endswith(SourceSuffixes) and not Relative.endswith(AuxiliarySuffixes):
             continue
 
         Name = os.path.basename(Relative)
-        if Name in Occupied:
-            Report("FAILED", ColourFailed, "{0} collides with {1}".format(Relative, Occupied[Name]))
+        TargetName = Name + ".md" if Name.endswith(".slang") else Name
+
+        if TargetName in Occupied:
+            Report("FAILED", ColourFailed, "{0} collides with {1}".format(Relative, Occupied[TargetName]))
             return -1
 
-        Occupied[Name] = Relative
-        shutil.copy2(os.path.join(EngineRoot, Relative), os.path.join(UploadRoot, Name))
+        Occupied[TargetName] = Relative
+        shutil.copy2(os.path.join(EngineRoot, Relative), os.path.join(UploadRoot, TargetName))
         Transferred += 1
 
     return Transferred
@@ -126,7 +130,7 @@ def WriteStructureDocument(RelativePaths, Lines):
     AuxiliaryCount = len(RelativePaths) - SourceCount
     Auxiliary      = "none found" if AuxiliaryCount == 0 else "{0} files".format(AuxiliaryCount)
 
-    Preamble = "Source: `Engine\\` — files of type `.cpp` / `.h` ({0} files) and `.comp` / `.bat` / `.ps1` ({1})."
+    Preamble = "Source: `Engine\\` — files of type `.cpp` / `.h` / `.slang` ({0} files) and `.comp` / `.bat` / `.ps1` ({1})."
     Document = ["# Engine Folder Structure",
                 "",
                 Preamble.format(SourceCount, Auxiliary),

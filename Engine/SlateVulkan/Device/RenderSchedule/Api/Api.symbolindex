@@ -39,7 +39,7 @@ E SharedTarget               | RenderSchedule.h | 26-44   | contract            
     has   MultiScatterSurface     SharedTarget  [-]  ?
     has   SkyViewSurface          SharedTarget  [-]  ?
     has   TargetCount             SharedTarget  [-]  ?
-    by    Api/AttachmentIndex.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp, Source/VisibilityRaster.cpp
+    by    Api/AttachmentIndex.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp, (+1 more)
     note  Declared as one closed enumeration so that the producer and amender lists below are total.
 
 E ExtentRelation             | RenderSchedule.h | 50-55   | contract                      | -  | How a target's extent relates to the display extent. is never touched by a resize. `06` §4.1 gates that both ways.
@@ -64,7 +64,7 @@ T TargetSpace                | RenderSchedule.h | 75-142  | owning              
     has   StandingWidth   std::uint32_t  [-]  ?
     has   StandingHeight  std::uint32_t  [-]  ?
     has   DisplayCarries  VkFormat       [-]  ?
-    by    Api/AttachmentIndex.h, Source/AttachmentIndex.cpp, Source/RenderSchedule.cpp
+    by    Api/AttachmentIndex.h, Api/OcclusionScheduler.h, Source/AttachmentIndex.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp
     note  🔴 This is `08` §2's "nothing claims a format, an extent or memory", closed. The table above declared
     note  🔴 `06` §7's extent gate: a display extent change reclaims and re-claims **every** display-relative
 
@@ -75,7 +75,7 @@ F TargetSpace::Claim         | RenderSchedule.h | 95      | api,nonthrowing     
     in    DisplayFormat  VkFormat       [-]   what the display surface itself carries; the vendor spelling
     out   -              Outcome        [-]   refuses with ContentUnsupported for a zero or excessive extent, and with
     post  every target carries an image ordinal, or nothing does — refused in full
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+13 more)
     note  🔴 Refused in full. A half-claimed target set is one where `08` §3's ordering reads a target that
 
 F TargetSpace::Reclaim       | RenderSchedule.h | 110     | api,nonthrowing               | 🔴 | Re-claims every display-relative and fraction-of-display target against a new display extent. persistent extent is carried across. Re-claiming a subset is how one target keeps the previous extent and reads as a shifted image nobody attributes to the resize.
@@ -83,18 +83,18 @@ F TargetSpace::Reclaim       | RenderSchedule.h | 110     | api,nonthrowing     
     in    DisplayHeight  std::uint32_t  [px]  ?
     out   -              Outcome        [-]   refuses as Claim does; the absolute targets stand untouched either way
     pre   🔴 the device is idle — every rotation that reads the old targets has completed
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
     note  🔴 `06` §7's fourth gate, verbatim: **every** display-relative target is recreated and no
 
 F TargetSpace::Resolve       | RenderSchedule.h | 116     | api,nonthrowing               | ✔️ | The image one declared target was claimed as.
     in    Target  SharedTarget  [-]  ?
     out   -       Outcome       [-]  refuses with ContentUnsupported when the target is unclaimed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
 
 F TargetSpace::OrdinalOf     | RenderSchedule.h | 122     | api,nonallocating,nonthrowing | ✔️ | The image ordinal one target was claimed as, for the transition `ImageSpace` records.
     in    Target  SharedTarget  [-]  ?
     out   -       Outcome       [-]  refuses with ContentUnsupported when the target is unclaimed
-    by    Api/SurfaceTileSpace.h, Source/ImpressionSequence.cpp, Source/RenderSchedule.cpp, Source/SurfaceTileSpace.cpp
+    by    Api/SurfaceTileSpace.h, Source/ImpressionSequence.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/SurfaceTileSpace.cpp
 
 F TargetSpace::Surrender     | RenderSchedule.h | 128     | api,nonthrowing               | 🚩 | Releases every claimed target and forgets the display extent they were claimed against.
     out   -  void  [-]  ?
@@ -151,4 +151,4 @@ F RenderSchedule::Fix        | RenderSchedule.h | 200     | api,nonthrowing     
 F RenderSchedule::Ordered    | RenderSchedule.h | 206     | api,nonallocating,nonthrowing | ✔️ | The recordings, in the order Fix derived.
     out   -  const std::vector<DeclaredRecording>&  [-]  ?
     pre   Fix delivered
-    by    Source/ConsoleHost.cpp, Source/RenderSchedule.cpp, Source/VisibilityRaster.cpp
+    by    Source/ConsoleHost.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/VisibilityRaster.cpp

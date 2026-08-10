@@ -60,11 +60,11 @@ F RevisionSequence::Open            | RevisionSequence.h | 72     | api,nonthrow
     in    Description    const std::string&  [-]  what `84` presents; empty defers to OperationName
     in    OperationName  const std::string&  [-]  the mechanism's spelling, always supplied
     out   -              Outcome             [-]  refuses when a transaction is already open
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/ImpressionSequence.h, Api/WindowInterchange.h, Source/CameraProjection.cpp, Source/CommandSequence.cpp, (+5 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/ImpressionSequence.h, Api/VisibilityRaster.h, Api/WindowInterchange.h, Source/CameraProjection.cpp, (+7 more)
 
 F RevisionSequence::Abandon         | RevisionSequence.h | 77     | api,nonallocating,nonthrowing | ✔️ | Ends the open transaction with no effect. The prior content is restored by the caller.
     out   -  void  [-]  ?
-    by    Api/CameraProjection.h, Api/ImpressionSequence.h, Api/VisibilityRaster.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+3 more)
+    by    Api/CameraProjection.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/VisibilityRaster.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, (+5 more)
 
 F RevisionSequence::Seal            | RevisionSequence.h | 86     | api,nonthrowing               | ✔️ | Ends the open transaction and enters exactly one transaction into the sequence.
     in    SealedAt       std::uint64_t  [ns]  the arrival stamp at which the edit ended

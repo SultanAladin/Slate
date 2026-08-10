@@ -149,14 +149,14 @@ F ImpressionSequence::Open                | ImpressionSequence.h | 207     | api
     in    Brushed    const BrushSpecification&  [-]  `58`'s declaration; its parameters are recorded, not referenced — `58` §7
     out   -          Outcome                    [-]  refuses with HostDenied when a stroke is already open, with ContentUnsupported for
     post  nothing is recorded; the accumulation is empty and the path has not begun
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/RevisionSequence.h, Api/WindowInterchange.h, Source/CameraProjection.cpp, Source/CommandSequence.cpp, (+5 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, Api/WindowInterchange.h, Source/CameraProjection.cpp, (+7 more)
     note  🚧 An imagery or outline shape refuses here rather than falling back to an analytic profile. The
 
 F ImpressionSequence::Amend               | ImpressionSequence.h | 221     | api,nonthrowing               | 🚩 | Admits one arrival, resampling the path and emitting whatever impressions it reached. drawn quickly place the same impressions. `58` §5 makes spacing relative to the extent, so a brush resized keeps its character rather than becoming a dotted line. cannot come from the next, because the next impression's dynamics are read at a position the walk has not reached — and a spacing that depended on where it lands has no fixed point.
     in    Arriving  const StrokeArrival&  [-]  the pointer sample, its arrival stamp, and `74`'s domain position
     out   -         Outcome               [-]  refuses with HostDenied before Open, and with ExtentExhausted at the ceiling
     post  the path advanced; zero or more impressions were appended, each owed resolution
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/RevisionSequence.h, (+14 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OcclusionScheduler.h, (+16 more)
     note  🔴 Resampling is in the **domain** at the brush's own spacing, so a stroke drawn slowly and one
     note  📐 Spacing for the next impression comes from the brush resolved at the **previous** one. It
 
@@ -166,7 +166,7 @@ F ImpressionSequence::Resolve             | ImpressionSequence.h | 241     | api
     in    RotationOrdinal  std::uint64_t      [-]  the rotation resolving
     out   -                Outcome            [-]  refuses with HostDenied before Open
     post  🔴 a deferred impression stays owed; nothing is dropped and nothing resolves coarse
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/IntakeIndex.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/IntakeIndex.h, (+51 more)
     note  🔴 `22` §2: an impression touching a non-resident cell **demands and defers**. It is not resolved
     note  ⚠️ That rule binds **painted** impressions only. Placed content and tiling resolve through `70` at
     note  🔴 Deferred impressions do not block the ones after them. `StrokeSpace`'s accumulation is `Over`,
@@ -175,7 +175,7 @@ F ImpressionSequence::Abandon             | ImpressionSequence.h | 249     | api
     in    Residency  SurfaceTileSpace&  [-]  ?
     out   -          void               [-]  ?
     post  no transaction was recorded; the accumulation is reclaimed
-    by    Api/CameraProjection.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+3 more)
+    by    Api/CameraProjection.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, (+5 more)
 
 F ImpressionSequence::Seal                | ImpressionSequence.h | 267     | api,nonthrowing               | 🔴 | Ends the stroke, applying it once and sealing one transaction. IdentityStale for an entry that no longer resolves, and with ContentUnsupported when the entry's extent no longer matches the stroke's restores base colour and roughness together, which is what the artist performed; two transactions would make them undo separately and neither in isolation is a thing they did. quietly succeeded for one would put a preview in the revision sequence.
     in    Content    SurfaceLayerSequence&  [-]   the layer sequence holding the painted entry
@@ -256,4 +256,4 @@ F SLATE_DECLARES_PRECISION                | ImpressionSequence.h | 326     | -  
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)

@@ -36,7 +36,7 @@ F QuadratureRule::Derive            | QuadratureIntegrator.h | 54     | api,nont
     in    Requested  std::uint32_t  [-]  abscissae; a rule of n integrates a polynomial of degree 2n−1 exactly
     out   -          Outcome        [-]  refuses with ContentUnsupported for zero, and with ExtentExhausted above the ceiling
     post  the abscissae are in ascending order and the weights sum to the reference interval's width
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, (+6 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionScheduler.h, Api/VisibilityRaster.h, (+8 more)
     note  📐 Only half the roots are solved for. The Legendre polynomials are even or odd, so the roots are
 
 F QuadratureRule::Abscissa          | QuadratureIntegrator.h | 60     | api,nonallocating,nonthrowing | ✔️ | One abscissa of the reference interval, in ascending order.
@@ -59,7 +59,7 @@ F QuadratureRule::Project           | QuadratureIntegrator.h | 80     | api,nont
     out   -          Position       [-]  where the abscissa lands
     out   -          Weighting      [-]  the weight scaled to the interval
     out   -          Outcome        [-]  refuses with ExtentExhausted outside the declared count, and with ContentUnsupported
-    by    Api/ColourProjection.h, Api/SpectralProjection.h, Api/TransformProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ColourProjection.cpp, (+4 more)
+    by    Api/ColourProjection.h, Api/SpectralProjection.h, Api/TransformProjection.h, Api/VisibilityRaster.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, (+6 more)
     note  📝 Exposed so that a caller integrating several components at once accumulates them side by side in
 
 F QuadratureRule::IntegrateInterval | QuadratureIntegrator.h | 98-113 | api,nonthrowing               | 🚩 | Integrates one scalar integrand over a declared interval. artist as an atmosphere whose horizon shifts between two runs of an unchanged document. what the definite integral means and what a caller reversing a ray direction relies on.
@@ -78,9 +78,9 @@ F QuadratureRule::DeclaredCount     | QuadratureIntegrator.h | 118    | api,nona
 
 F QuadratureRule::Derived           | QuadratureIntegrator.h | 123    | api,nonallocating,nonthrowing | ✔️ | Whether the rule has been derived at all.
     out   -  bool  [-]  ?
-    by    Api/SeamSpecification.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+9 more)
+    by    Api/SeamSpecification.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+10 more)
 
 F SLATE_DECLARES_PRECISION          | QuadratureIntegrator.h | 134    | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)

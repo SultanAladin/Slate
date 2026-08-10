@@ -54,7 +54,7 @@ T ImageClaim               | ImageSpace.h | 64-71   | nonallocating,nonthrowing 
     has   StandingLayout  VkImageLayout  [-]  ?
     has   Shape           ImageShape     [-]  ?
     has   ImageOrdinal    std::uint32_t  [-]  ?
-    by    Api/RenderSchedule.h, Source/AttachmentIndex.cpp, Source/ImageSpace.cpp, Source/RenderSchedule.cpp
+    by    Api/RenderSchedule.h, Source/AttachmentIndex.cpp, Source/ImageSpace.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp
     note  🔴 `StandingLayout` is the component's record and not the caller's. It is amended by `Transition`
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ T ImageSpace               | ImageSpace.h | 84-175  | owning                    
     has   DeviceEdge    const VulkanExchange*   [-]  ?
     has   BackingBytes  ByteSpace*              [-]  ?
     has   Images        std::vector<HeldImage>  [-]  ?
-    by    Api/RenderSchedule.h, Source/ImageSpace.cpp, Source/RenderSchedule.cpp
+    by    Api/OcclusionScheduler.h, Api/RenderSchedule.h, Source/ImageSpace.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp
     note  🔴 This is where `08` §2's "nothing claims a format, an extent or memory" is closed. The shared
     note  ⚠️ An extent change reclaims and re-claims every display-relative image and touches no absolute
 
@@ -75,13 +75,13 @@ F ImageSpace::Construct    | ImageSpace.h | 99      | api,nonthrowing           
     in    Exchange      const VulkanExchange&  [-]  the created device; borrowed and outlives this component
     in    BackingSpace  ByteSpace&             [-]  where image bytes come from; borrowed and outlives this component
     out   -             Outcome                [-]  refuses with CapabilityAbsent when no device is active
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
 
 F ImageSpace::Claim        | ImageSpace.h | 110     | api,nonthrowing           | 🔴 | Claims one image of the declared shape, slices its bytes, and constructs its whole-image view. zero extent or a format the device declines for the declared intent vendor allocation nothing holds a reference to, and it is reclaimed only at device teardown.
     in    Declared  const ImageShape&  [-]  the shape; nothing about it is inferred from the format
     out   -         Outcome            [-]  refuses with ExtentExhausted when no bytes remain, ContentUnsupported for a
     post  the image stands in VK_IMAGE_LAYOUT_UNDEFINED and is transitioned before first use
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+13 more)
     note  🔴 Refused in full. An image whose bytes were claimed and whose view was declined leaves a
 
 F ImageSpace::Transition   | ImageSpace.h | 122     | api,nonthrowing           | ✔️ | Records the barrier that carries one image from where it stands to where it is next read. derived from the declared reads and writes, and this is the one place it is recorded.
@@ -91,13 +91,13 @@ F ImageSpace::Transition   | ImageSpace.h | 122     | api,nonthrowing           
     in    ImageOrdinal[-]  the claim's ordinal; the record is amended, not the caller's copy  [-]  ?
     out   -                Outcome                                                            [-]  refuses with ContentUnsupported for an unclaimed ordinal
     post  the recorded layout is the arriving one; a repeat transition to the same layout is a no-op
-    by    Source/ImageSpace.cpp
+    by    Source/ImageSpace.cpp, Source/OcclusionScheduler.cpp
     note  🔴 `08` §4: no contributing document issues a layout transition directly. The barrier is
 
 F ImageSpace::Standing     | ImageSpace.h | 128     | api,nonthrowing           | ✔️ | The current record for one claimed image, including the layout the last transition left it in.
     in    ImageOrdinal  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/OutlinerSequence.h, Api/PartitionStructure.h, (+24 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/OutlinerSequence.h, Api/PartitionClassifier.h, (+30 more)
 
 F ImageSpace::LevelView    | ImageSpace.h | 138     | api,nonthrowing           | 🚩 | Constructs a view over one reduction level, for the chain `16` §2 walks a level at a time. holding a handle the vendor has already reused.
     in    ImageOrdinal  std::uint32_t  [-]  a claimed image whose LevelCount admits the level
@@ -110,12 +110,12 @@ F ImageSpace::Release      | ImageSpace.h | 144     | api,nonthrowing           
     in    ImageOrdinal  std::uint32_t  [-]  ?
     out   -             void           [-]  ?
     pre   the device is idle, or no recording still in the rotation reads it
-    by    Api/ByteSpace.h, Api/PopulationIndex.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, (+6 more)
+    by    Api/ByteSpace.h, Api/PopulationIndex.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, (+7 more)
 
 F ImageSpace::Reclaim      | ImageSpace.h | 150     | api,nonthrowing           | 🔴 | Releases every claimed image.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
 
 F ImageSpace::ClaimedCount | ImageSpace.h | 152     | -                         | -  | ?
     out   -  std::uint32_t  [-]  ?

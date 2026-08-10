@@ -46,7 +46,7 @@ F Resolve                                         | AtmosphereIntegrator.cpp | 1
     in    Working   const ColourSpaceSpecification&  [-]  ?
     in    Rule      const QuadratureRule&            [-]  ?
     out   -         Outcome<MediumCoefficient>       [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ONE RESIDENT SURFACE

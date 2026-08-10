@@ -93,7 +93,7 @@ F Derive                            | ChartPartition.cpp | 389-734 | - | - | ?
     in    Cancellation  const WorkCancellation&        [-]  ?
     in    Progressed    WorkProgress&                  [-]  ?
     out   -             Outcome<DerivedPartition>      [-]  ?
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/QuadratureIntegrator.h, Api/VisibilityRaster.h, (+6 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+8 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE STANDING PARTITION

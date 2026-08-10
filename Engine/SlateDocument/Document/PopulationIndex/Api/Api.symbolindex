@@ -36,7 +36,7 @@ F OccupancyIndex::Occupy         | PopulationIndex.h | 32     | api,nonthrowing 
 F OccupancyIndex::Release        | PopulationIndex.h | 37     | api,nonallocating,nonthrowing | ✔️ | Declares a slot free.
     in    SlotOrdinal  std::uint32_t  [-]  ?
     out   -            void           [-]  ?
-    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, (+6 more)
+    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, (+7 more)
 
 F OccupancyIndex::Occupied       | PopulationIndex.h | 42     | api,nonallocating,nonthrowing | ✔️ | Whether a slot is occupied.
     in    SlotOrdinal  std::uint32_t  [-]  ?
@@ -74,7 +74,7 @@ F PopulationIndex::Withdraw      | PopulationIndex.h | 80     | api,nonallocatin
 F PopulationIndex::Resolve       | PopulationIndex.h | 88     | api,nonallocating,nonthrowing | ✔️ | Whether an identity still names the occupant it was issued for.
     in    Subject  OccupantIdentity  [-]  the identity to resolve
     out   -        Resolved          [-]  false for a stale generation and for an unoccupied slot alike
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
     note  Comparison is an integer test, at Exact. An identity that collides is not an identity.
 
 F PopulationIndex::EnrolledCount | PopulationIndex.h | 93     | api,nonallocating,nonthrowing | ✔️ | How many occupants are enrolled.

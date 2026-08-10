@@ -217,13 +217,15 @@ ClassifiedPartition ClassifyPartition(const MicroSurfacePartition&  Partitioned,
                                       const ViewProjection&         Viewing,
                                       const FrustumSpace&           Bounding,
                                       const ProjectedTransform&     Composed,
+                                      std::uint32_t                 PartitionOrdinal,
                                       std::uint32_t                 FirstTriangle,
                                       std::uint32_t                 DisplayAlong,
                                       std::uint32_t                 DisplayAcross)
 {
     ClassifiedPartition Classified;
-    Classified.FirstTriangle = FirstTriangle;
-    Classified.TriangleCount = Partitioned.TriangleCount;
+    Classified.PartitionOrdinal = PartitionOrdinal;
+    Classified.FirstTriangle    = FirstTriangle;
+    Classified.TriangleCount    = Partitioned.TriangleCount;
 
     // 📝 Cheapest predicate first, and the one that rejects the most. `Classify` answers −1 for wholly outside,
     //    which is the only standing that excludes; straddling is drawn and clipped by the hardware.
@@ -244,9 +246,10 @@ ClassifiedPartition ClassifyPartition(const MicroSurfacePartition&  Partitioned,
     // 📝 The run is carried across from the standing above rather than assigned twice. `ProjectPartitionExtent`
     //    answers about the extent alone and knows nothing of the fan, so what it returns carries no run at all.
     ClassifiedPartition Admitted = ProjectPartitionExtent(Composed, Partitioned.Extent, DisplayAlong, DisplayAcross);
-    Admitted.Standing      = PartitionStanding::Admitted;
-    Admitted.FirstTriangle = Classified.FirstTriangle;
-    Admitted.TriangleCount = Classified.TriangleCount;
+    Admitted.Standing         = PartitionStanding::Admitted;
+    Admitted.PartitionOrdinal = Classified.PartitionOrdinal;
+    Admitted.FirstTriangle    = Classified.FirstTriangle;
+    Admitted.TriangleCount    = Classified.TriangleCount;
 
     return Admitted;
 }

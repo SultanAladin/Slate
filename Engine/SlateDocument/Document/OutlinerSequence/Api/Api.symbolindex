@@ -91,7 +91,7 @@ F OutlinerSequence::Enrol           | OutlinerSequence.h | 104    | api,nonthrow
 F OutlinerSequence::Declare         | OutlinerSequence.h | 113    | api,nonthrowing               | ✔️ | Declares one intent, to be applied at the next tick's ①. against a linearisation that is halfway rebuilt.
     in    Arriving  const DeclaredIntent&  [-]  the intent, every operand named
     out   -         Outcome                [-]  refuses with IdentityStale when the subject does not resolve now
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+25 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+26 more)
     note  Declaring is not applying. An intent that arrives mid-tick is applied at the next ① rather than
 
 F OutlinerSequence::Retreat         | OutlinerSequence.h | 127    | api,nonthrowing               | 🚩 | Scrubs the document one transaction backwards, restoring the selection that transaction applied to. revert while the selection does not, so the next action applies to something other than what the undo appeared to restore. Selection is not in the document's sequence and is not unrevisioned either, and this is the seam where the two meet. clearing it. The artist selected nothing there, so there is nothing to restore.

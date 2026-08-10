@@ -94,7 +94,7 @@ F WorkProgress::SpannedCount           | WorkSequence.h | 134     | api,nonalloc
 
 F WorkProgress::Reclaim                | WorkSequence.h | 139-144 | api,nonallocating,nonthrowing | ✔️ | Returns every reading to its beginning, for a reused record.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     DECLARED WORK
@@ -136,7 +136,7 @@ F WorkQueue::Admit                     | WorkSequence.h | 203     | api,nonthrow
 
 F WorkQueue::Claim                     | WorkSequence.h | 209     | api,nonallocating,nonthrowing | ✔️ | Claims the earliest pending record ordinal.
     out   -  Outcome  [-]  refuses with ExtentExhausted when nothing is pending
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+13 more)
 
 F WorkQueue::Withdraw                  | WorkSequence.h | 214     | api,nonallocating,nonthrowing | ✔️ | Strikes one record ordinal from the order without claiming it.
     in    RecordOrdinal  std::uint32_t  [-]  ?
@@ -183,13 +183,13 @@ F WorkSequence::Construct              | WorkSequence.h | 260     | api,nonthrow
     in    Reporting         ReportSequence&      [-]  where `34` §5's failures are appended
     out   -                 Outcome              [-]  refuses with HostDenied when workers already stand
     post  the worker count is fixed and recorded, so `HardwareMetrics` can attribute a measurement to it
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+41 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
     note  🚧 The host-derived count comes from the standard library here. `04`'s `PlatformInterchange` owns
 
 F WorkSequence::Declare                | WorkSequence.h | 270     | api,nonthrowing               | 🚩 | Declares one unit of work, to be resolved by a worker. declaration carries no resolution claims it; nothing about the calling thread decides when.
     in    Arriving  const WorkDeclaration&  [-]  the declaration, its inputs already captured
     out   -         Outcome                 [-]  refuses with HostDenied when no worker stands, and with ContentUnsupported when the
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+25 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+26 more)
     note  Declaring is not spawning. The declaration takes its place in its priority's order and a worker
 
 F WorkSequence::Withdraw               | WorkSequence.h | 278     | api,nonthrowing               | ✔️ | Withdraws one declaration, because the requester no longer wants it.
@@ -236,7 +236,7 @@ F WorkSequence::PendingCount           | WorkSequence.h | 329     | api,nonalloc
 F WorkSequence::Reclaim                | WorkSequence.h | 335     | api,nonthrowing               | 🔴 | Withdraws everything pending, joins every worker, and returns the sequence to its unconstructed state.
     out   -  void  [-]  ?
     post  every pending declaration has concluded as Withdrawn and is drainable
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
 
 F WorkSequence::Serve                  | WorkSequence.h | 344     | -                             | -  | ?
     in    WorkerOrdinal  std::uint32_t  [-]  ?
@@ -251,7 +251,7 @@ F WorkSequence::Claimable              | WorkSequence.h | 345     | -           
 F WorkSequence::Claim                  | WorkSequence.h | 346     | -                             | -  | ?
     in    WorkerOrdinal  std::uint32_t  [-]  ?
     out   -              std::uint32_t  [-]  ?
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+13 more)
 
 F WorkSequence::Seal                   | WorkSequence.h | 347     | -                             | -  | ?
     in    RecordOrdinal  std::uint32_t         [-]  ?

@@ -53,7 +53,7 @@ F TrigramIndex::Declare      | TrigramIndex.h | 79     | api,nonthrowing        
     in    Declared  const std::string&  [-]  the name the artist gave it
     out   -         Outcome             [-]  refuses with IdentityStale for an undeclared identity
     post  every trigram run mentioning this occupant describes the new name only
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+25 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+26 more)
 
 F TrigramIndex::Withdraw     | TrigramIndex.h | 85     | api,nonthrowing               | 🚩 | Withdraws one occupant's name and every trigram entry that reached it.
     in    Subject  OccupantIdentity  [-]  the occupant being retired or renamed

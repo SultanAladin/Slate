@@ -32,5 +32,5 @@ F Classify        | VendorClassifier.h | 34    | api,nonallocating,nonthrowing |
     in    Candidate            VkPhysicalDevice  [-]  the enumerated device
     in    PresentationSurface  VkSurfaceKHR      [-]  the surface the device must present to
     out   -                    ScoredCandidate   [-]  Ranking is zero when no queue family both draws and presents
-    by    Api/CameraProjection.h, Api/TilingSpecification.h, Api/VectorInterchange.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/TilingSpecification.cpp, (+3 more)
+    by    Api/CameraProjection.h, Api/TilingSpecification.h, Api/VectorInterchange.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp, (+4 more)
     note  A ranking of zero is unusable, which is distinct from a low ranking. A device with no presenting

@@ -84,7 +84,7 @@ F SeamSpecification::Authored         | SeamSpecification.h | 99     | api,nonal
 
 F SeamSpecification::Derived          | SeamSpecification.h | 104    | api,nonallocating,nonthrowing | ✔️ | The derived set, in derivation order — `86`'s `68` §2 row.
     out   -  const std::vector<SeamEdge>&  [-]  ?
-    by    Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+9 more)
+    by    Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+10 more)
 
 F SeamSpecification::Revision         | SeamSpecification.h | 111    | api,nonallocating,nonthrowing | ✔️ | The revision the last authored amendment advanced to. input to it, so counting one would make every partition invalidate the partition that produced it.
     out   -  std::uint64_t  [-]  ?

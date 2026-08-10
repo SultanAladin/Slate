@@ -25,7 +25,7 @@ S SurfaceTileSpace.cpp | 623 lines | c4055d81 | 28 sym | The coarsening walk tha
 F OrdinalOf                             | SurfaceTileSpace.cpp | 15-27   | - | - | ?
     in    Addressed  CellAddress             [-]  ?
     out   -          Outcome<std::uint32_t>  [-]  ?
-    by    Api/RenderSchedule.h, Api/SurfaceTileSpace.h, Source/ImpressionSequence.cpp, Source/RenderSchedule.cpp
+    by    Api/RenderSchedule.h, Api/SurfaceTileSpace.h, Source/ImpressionSequence.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp
 
 F AddressOf                             | SurfaceTileSpace.cpp | 29-51   | - | - | ?
     in    CellOrdinal  std::uint32_t         [-]  ?

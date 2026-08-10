@@ -156,4 +156,4 @@ F SLATE_DECLARES_PRECISION               | AssetInterchange.h | 223     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+19 more)
+    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+21 more)

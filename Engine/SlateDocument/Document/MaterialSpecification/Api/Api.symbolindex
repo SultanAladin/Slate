@@ -104,7 +104,7 @@ F MeasureCarriesColour                          | MaterialSpecification.h | 125-
 F SLATE_DECLARES_PRECISION                      | MaterialSpecification.h | 129     | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ONE CHANNEL
@@ -203,17 +203,17 @@ T MaterialIndex                                 | MaterialSpecification.h | 233-
 F MaterialIndex::Declare                        | MaterialSpecification.h | 242     | api,nonthrowing               | 🚩 | Declares one material and issues its identity.
     in    Named  const std::string&  [-]  what the artist calls it; may be empty
     out   -      Outcome             [-]  refuses with ExtentExhausted at the declared ceiling
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/OutlinerSequence.h, (+25 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/OutlinerSequence.h, (+26 more)
 
 F MaterialIndex::Resolve                        | MaterialSpecification.h | 248     | api,nonthrowing               | ✔️ | One declared material, for reading.
     in    MaterialOrdinal  std::uint32_t  [-]  ?
     out   -                Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
 
 F MaterialIndex::Amend                          | MaterialSpecification.h | 254     | api,nonthrowing               | ✔️ | One declared material, for amending.
     in    MaterialOrdinal  std::uint32_t  [-]  ?
     out   -                Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/RevisionSequence.h, (+14 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, (+16 more)
 
 F MaterialIndex::DeclaredName                   | MaterialSpecification.h | 256     | -                             | -  | ?
     in    MaterialOrdinal  std::uint32_t       [-]  ?
@@ -246,17 +246,17 @@ T PartitionResolutionIndex                      | MaterialSpecification.h | 292-
 
 F PartitionResolutionIndex::Reclaim             | MaterialSpecification.h | 299     | api,nonthrowing               | ✔️ | Discards every entry, ahead of a rebuild.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+47 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
 
 F PartitionResolutionIndex::Declare             | MaterialSpecification.h | 307     | api,nonthrowing               | 🚩 | Declares one partition's resolution, issuing its identity. the declared ceiling
     in    Resolving  const ResolvedPartition&  [-]  the occupant, material and face range
     out   -          Outcome                   [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/OutlinerSequence.h, (+25 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/OutlinerSequence.h, (+26 more)
 
 F PartitionResolutionIndex::Resolve             | MaterialSpecification.h | 314     | api,nonthrowing               | ✔️ | Resolves one partition identity. re-partition since the identity was taken looks like
     in    Subject  PartitionIdentity  [-]  ?
     out   -        Outcome            [-]  refuses with IdentityStale when the generation no longer matches — which is what a
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
 
 F PartitionResolutionIndex::Revision            | MaterialSpecification.h | 319     | api,nonallocating,nonthrowing | ✔️ | The revision the last rebuild advanced to; `70` §2 compares counters against it.
     out   -  std::uint64_t  [-]  ?

@@ -215,7 +215,7 @@ F BrushSpecification::Resolve            | BrushSpecification.h | 293     | api,
     in    ImpressionOrdinal  std::uint32_t        [-]  the impression's position within the stroke
     in    StrokeSeed         std::uint32_t        [-]  recorded with the transaction — `58` §6
     out   -                  Resolved             [-]  extent, rotation, strength, spacing and displacement
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/IntakeIndex.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/IntakeIndex.h, (+51 more)
     note  🔴 The variation reads `02` §6's shared permutation at Tier A, so the sequence `82` previews with
     note  🔴 An absent axis takes its dynamic's declared fallback. Reading zero would make a pressure brush
 
@@ -247,7 +247,7 @@ F BrushSpecification::Dynamics           | BrushSpecification.h | 306     | -   
 
 F BrushSpecification::Extent             | BrushSpecification.h | 308     | -                             | -  | ?
     out   -  double  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/PartitionStructure.h, Api/SpanSpace.h, Api/SpatialSubdivision.h, Source/AssetInterchange.cpp, (+11 more)
+    by    Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/PartitionStructure.h, Api/SpanSpace.h, Api/SpatialSubdivision.h, Source/AssetInterchange.cpp, (+13 more)
 
 F BrushSpecification::Combination        | BrushSpecification.h | 309     | -                             | -  | ?
     out   -  CombineSpecification  [-]  ?
@@ -275,17 +275,17 @@ F BrushIndex::Declare                    | BrushSpecification.h | 347     | api,
     in    Named     const std::string&  [-]  what the artist calls it; may be empty
     in    Grouping  const std::string&  [-]  which grouping it is presented under; may be empty
     out   -         Outcome             [-]  refuses with ExtentExhausted at the declared ceiling
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, (+25 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, (+26 more)
 
 F BrushIndex::Resolve                    | BrushSpecification.h | 349     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t                       [-]  ?
     out   -             Outcome<const BrushSpecification*>  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/IntakeIndex.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/IntakeIndex.h, (+51 more)
 
 F BrushIndex::Amend                      | BrushSpecification.h | 350     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t                 [-]  ?
     out   -             Outcome<BrushSpecification*>  [-]  ?
-    by    Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, Api/RevisionSequence.h, (+14 more)
+    by    Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, Api/OcclusionScheduler.h, (+16 more)
 
 F BrushIndex::DeclaredName               | BrushSpecification.h | 352     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t       [-]  ?
@@ -326,4 +326,4 @@ F SLATE_DECLARES_PRECISION               | BrushSpecification.h | 394     | -   
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, Api/CurveSolver.h, (+21 more)

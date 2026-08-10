@@ -8,6 +8,7 @@
 #include "Contract/OutcomeContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityIndex.h"
+#include "SlateCompute/Compute/VisibilityIndex/Api/OcclusionScheduler.h"
 #include "SlateDocument/Document/CameraProjection/Api/CameraProjection.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
 #include "SlateVulkan/Device/AttachmentIndex/Api/AttachmentIndex.h"
@@ -74,13 +75,14 @@ struct UploadedProjection
     std::uint32_t  DisplayAcross           = 0u;   // [px]
     std::uint32_t  EnrolmentBase           = 0u;   // [-]  - the document-wide ordinal this enrolment begins at
     std::uint32_t  DrawnPartitionCount     = 0u;   // [-]  - partitions the recording draws, from that base
+    std::uint32_t  SurvivingResolved       = 0u;   // [-]  - non-zero routes the corner through the surviving run
 };
 
 // 📐 The widths the shader reads, asserted rather than commented. A record that grew on one side alone is a
 //    span the device walks at the wrong stride, and every ordinal past the first is then another triangle's.
 static_assert(sizeof(UploadedPosition)   == 12u, "the device reads three 32-bit ordinates per position");
 static_assert(sizeof(UploadedTriangle)   == 24u, "the device reads six 32-bit ordinals per triangle");
-static_assert(sizeof(UploadedProjection) == 80u, "the device reads sixteen coefficients and four ordinals");
+static_assert(sizeof(UploadedProjection) == 84u, "the device reads sixteen coefficients and five ordinals");
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE COMPOSED VIEW
@@ -134,12 +136,18 @@ struct ResidentPartitioning
     std::uint32_t               PositionSpan   = AbsentSpan;         // [-] - the object-space positions, device-local
     std::uint32_t               TriangleSpan   = AbsentSpan;         // [-] - the fanned triangles and their ordinals
     std::vector<std::uint32_t>  UniformSpans   = {};                 // [-] - one per rotation slot, host-writable
-    std::uint32_t               ClaimOrdinal   = AbsentDescriptor;   // [-] - this residency's rotation-deep sets
+    std::vector<std::uint32_t>  ClaimOrdinals  = {};                 // [-] - direct, then one per culling phase
+    std::uint32_t               CullingOrdinal = AbsentSpan;         // [-] - `OcclusionScheduler`'s, or absent
     std::uint32_t               VertexCount    = 0u;                 // [-] - positions the span carries
     std::uint32_t               TriangleCount  = 0u;                 // [-] - triangles the span carries
     std::uint32_t               EnrolmentBase  = 0u;                 // [-] - the document-wide ordinal it begins at
     std::uint32_t               PartitionCount = 0u;                 // [-] - partitions the enrolment declared
 };
+
+// 📝 Claim ordinal nought is the direct route and the two after it follow `CullingPhase`. Three sets rather than
+//    one because slot three names a different surviving run in each, and a set is written once at enrolment.
+inline constexpr std::uint32_t DirectClaimOrdinal = 0u;             // [-] - the route that reads no surviving run
+inline constexpr std::uint32_t RasterClaimCount   = 1u + static_cast<std::uint32_t>(CullingPhase::PhaseCount);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE RASTER
@@ -153,10 +161,11 @@ struct ResidentPartitioning
 /// note  🔴 Constructed at bring-up and never during a recording. The program, the render construct and the
 ///        descriptor layout are all `06` §7's "fixed before the first rotation", and the per-rotation work is
 ///        one uniform write and one draw per resident enrolment.
-/// note  ⚠️ 🚧 The two-phase culling of `16` §2 is not here. This draws every triangle of every enrolment and
-///        lets the depth comparison resolve them, which is correct and is not the arrangement `16` §2 gates:
-///        the phases record an indirect draw over the partitions that survive the reduction, and they land with
-///        `DepthReduction`'s device half.
+/// note  🔴 Two recording routes, and both are required. `Record` draws every triangle of every enrolment and
+///        lets depth resolve them — correct, and the arrangement `16` §2 supersedes. `RecordIndirect` issues
+///        the draw `OcclusionScheduler` compacted, which is the arrangement `16` §2 gates. The direct route
+///        stays because `08` §5's substitution withdraws the compute route entirely where the 64-bit atomic
+///        capability was not negotiated, and something must still draw.
 /// tag   owning
 class VisibilityRaster
 {
@@ -187,6 +196,8 @@ public:
     /// in    Enrolled      [-]  the standing partitioning, from `VisibilityIndex::Enrolled`
     /// in    Imported      [-]  the sealed topology it was derived from, at the same revision
     /// in    EnrolmentBase [-]  the document-wide ordinal this enrolment's partitions begin at
+    /// in    Culling       [-]  where the surviving runs come from; null declares the direct route only
+    /// in    CullingOrdinal[-]  an ordinal `OcclusionScheduler::Resolve` issued, or AbsentSpan
     /// in    Recorded      [-]  an immediate recording the transfers are written into
     /// out   Outcome       [-]  the residency ordinal; refuses with whatever the claim refused and with
     ///                          ContentUnsupported for an unsealed topology or a partitioning that is not standing
@@ -199,6 +210,10 @@ public:
     /// note  🔴 The descriptor set is written **here**, once per rotation slot, and never again. Every span it
     ///        names stands for the life of the residency, so a per-rotation write would rewrite one arrangement
     ///        with itself — and would do it to a set the previous rotation's recording is still reading.
+    /// note  🔴 Slot three is written for **every** claim, the direct one included. The vertex entry point names
+    ///        the surviving run statically, so the vendor requires it bound whether or not the uniform routes
+    ///        through it; the direct claim binds the triangle span there, which is a valid storage read the
+    ///        entry point never performs.
     /// note  ⚠️ The staging spans this claims are **not** released here. They are the source of a transfer the
     ///        caller has not yet surrendered, and returning their bytes at this point hands the free list an
     ///        extent a recorded transfer still names. `Surrender` below is what releases them.
@@ -207,6 +222,8 @@ public:
     Outcome<std::uint32_t> Resolve(const PartitionStructure&  Enrolled,
                                    const TopologyStructure&   Imported,
                                    std::uint32_t              EnrolmentBase,
+                                   const OcclusionScheduler*  Culling,
+                                   std::uint32_t              CullingOrdinal,
                                    VkCommandBuffer            Recorded);
 
     /// 🧩 Releases the staging spans every `Resolve` since the last surrender claimed.
@@ -245,6 +262,28 @@ public:
                          std::uint32_t          RotationSlot,
                          const ViewProjection&  Viewing);
 
+    /// 🧩 Records the raster for one rotation slot from what one culling phase compacted.
+    /// in    Recorded      [-]  the open recording of this rotation slot
+    /// in    RotationSlot  [-]  below `RecordingRotationDepth`
+    /// in    Viewing       [-]  what `46` derived for this rotation
+    /// in    Culling       [-]  the scheduler whose records the draws are issued from
+    /// in    Phase         [-]  which of `16` §2's two phases this draw follows
+    /// out   Outcome       [-]  refuses with ContentUnsupported for a residency that declared no culling
+    ///                          ordinal, and with whatever the record resolution refused
+    /// note  🔴 The corner count is the device's and is never the host's. `vkCmdDrawIndirect` reads it from the
+    ///        record the cull advanced, so the host neither knows nor needs to know how many partitions
+    ///        survived — which is the whole reason the compaction is on the device.
+    /// note  🔴 The caller has already ordered the record against this draw. `OcclusionScheduler::Cull` records
+    ///        the barrier declaring the record an indirect read and the surviving run a vertex-stage storage
+    ///        read, so nothing further is issued here.
+    /// cost  🔴
+    /// tag   api, nonthrowing
+    Outcome<bool> RecordIndirect(VkCommandBuffer           Recorded,
+                                 std::uint32_t             RotationSlot,
+                                 const ViewProjection&     Viewing,
+                                 const OcclusionScheduler& Culling,
+                                 CullingPhase              Phase);
+
     /// 🧩 Releases every resident span and every uniform span.
     /// pre   the device is idle
     /// cost  🚩
@@ -256,6 +295,18 @@ public:
     bool          ProgramStanding() const;
 
 private:
+
+    /// 🧩 Opens the render construct, sets the extent, binds the program, and hands back the covering span.
+    /// out   Outcome  [-]  refuses with whatever the span or the program resolution refused
+    Outcome<ConstructedSpan> Open(VkCommandBuffer Recorded, ConstructedProgram& Constructed);
+
+    /// 🧩 Writes one residency's uniform for one rotation slot.
+    /// in    SurvivingResolved [-]  non-zero routes the corner through the surviving run
+    Outcome<bool> Project(const ResidentPartitioning& Standing,
+                          std::uint32_t               RotationSlot,
+                          const ViewProjection&       Viewing,
+                          const ConstructedSpan&      Covering,
+                          bool                        SurvivingResolved);
 
     /// 🧩 Fans one partitioning's faces into the triangle run the device draws.
     /// in    Enrolled      [-]  the standing partitioning

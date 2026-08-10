@@ -141,6 +141,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 /// in    Viewing        [-]   what `46` derived for this rotation
 /// in    Bounding       [-]   the frustum `46` extracted from the same projection
 /// in    Composed       [-]   the composition this occupant is drawn with
+/// in    PartitionOrdinal [-] the partition's position within the enrolment
 /// in    FirstTriangle  [-]   where this partition's run begins in the residency's fanned triangles
 /// in    DisplayAlong   [px]  the extent this rotation is recorded against
 /// in    DisplayAcross  [px]
@@ -153,6 +154,10 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 ///         `FirstFace` and the fan is what the device draws. The two counts differ wherever a face has more than
 ///         three corners — `10` admits any corner count — so the run's beginning is the prefix sum of the
 ///         preceding partitions' triangle counts and the caller walking them in order is what holds it.
+/// note  🔴 The ordinal is **supplied and written here**, not left for the caller to fill afterwards. A field
+///         the producer leaves blank is one a caller eventually forgets, and every survivor of that run then
+///         compacts the triangle ordinals of partition nought — which draws one partition's geometry against
+///         every other partition's place in the fan.
 /// note  📝 The frustum is asked first because it is the cheapest of the three and rejects the most. The cone
 ///         is second and the projection last, since the projection is the only one that touches eight corners.
 /// cost  ✔️
@@ -161,6 +166,7 @@ ClassifiedPartition ClassifyPartition(const MicroSurfacePartition&  Partitioned,
                                       const ViewProjection&         Viewing,
                                       const FrustumSpace&           Bounding,
                                       const ProjectedTransform&     Composed,
+                                      std::uint32_t                 PartitionOrdinal,
                                       std::uint32_t                 FirstTriangle,
                                       std::uint32_t                 DisplayAlong,
                                       std::uint32_t                 DisplayAcross);

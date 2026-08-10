@@ -162,3 +162,4 @@ F VerifyStroke      | ConsoleHost.cpp | 2664-2936 | - | - | ?
 
 F main              | ConsoleHost.cpp | 2944-3013 | - | - | ?
     out   -  int  [-]  ?
+    by    Shader/DepthReduction.slang, Shader/OcclusionCulling.slang

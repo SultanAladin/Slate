@@ -155,7 +155,7 @@ F SurfaceLayerSequence::Resample            | SurfaceLayerSequence.h | 219     |
 F SurfaceLayerSequence::Resolve             | SurfaceLayerSequence.h | 228     | api,nonthrowing               | ✔️ | One entry, by identity.
     in    Subject  LayerIdentity  [-]  ?
     out   -        Outcome        [-]  refuses with IdentityStale
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+49 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
 
 F SurfaceLayerSequence::AmendPainted        | SurfaceLayerSequence.h | 241     | api,nonthrowing               | 🚩 | One entry's painted texels, for the one mechanism permitted to amend them. ContentUnsupported when its source is not PaintedImpressions describes — §3 — so this is the one route by which authored content is written at all, and every write through it is inside a transaction whose inverse is bounded by the extents it touched. resolved projection the source of truth for content the description already holds, and `20` §4 would then evict the artist's edit at the first memory pressure.
     in    Subject  LayerIdentity  [-]  ?
@@ -236,4 +236,4 @@ F SLATE_DECLARES_PRECISION                  | SurfaceLayerSequence.h | 338     |
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+19 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)

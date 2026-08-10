@@ -1,177 +1,129 @@
 //============================================================================================================================================
 //                                                          OCCLUSIONUNIFORM.SLANG
 //============================================================================================================================================
-// 🧩 The two uniform blocks `16` §2's device half reads, the record one classified partition arrives as, and the two-by-two reading.
+// 🧩 The device halves of `16` §2's three uploaded records, and the two comparisons both culling dispatches read.
 
 #pragma once
 
-#include "Shared/Prelude.slang.h"
-#include "Contract/ToleranceContract.h"
-
-// 📝 🔴 Declared once, here, and included by the reduction entry point and the occlusion entry point both. The
-//    reduction writes the chain and the occlusion reads it, so the two agree on where a level begins and how far
-//    it runs; a level offset derived separately at each is the same arithmetic written twice, and the occlusion
-//    then reads the reduction one level along and rejects whatever the coarser level happened to hold.
+// 📐 🔴 Every declaration below is a **mirror**. Its host counterpart carries a static assertion on its width and
+//    on its member count, and a member inserted on one side alone shifts every later member of the other by four
+//    bytes — which the vendor accepts and the device then reads a triangle ordinal out of a depth ordinate for.
 //
-// 🔴 The chain is a **span** and not an image with reduction levels. `DepthReduction` halves by rounding **up**
-//    and the vendor's own level extents halve by rounding down, so nine texels reduce to five here and to four
-//    there. A chain claimed as an image would therefore disagree with the host's level count and with every
-//    extent below the first odd ordinate — and the disagreement appears as a partition tested against a level
-//    whose extent the host thinks is one texel wider than the device wrote.
-//
-// ⚠️ This file spells no entry point attribute **anywhere**, comments included. The build searches each `.slang`
-//    for that attribute's opening to decide what is a translation, so a file naming it in prose is handed to the
-//    toolchain and refused for exporting nothing.
-
-namespace Slate
-{
+// ⚠️ There is no shared declaration to reach for. `Shared/` compiles under both toolchains and this does not:
+//    the records below are read through resource declarations the host toolchain has no spelling for. The two
+//    are mirrors held in agreement by assertion rather than one declaration read twice, exactly as
+//    `VisibilityUniform.slang` and `VisibilityRaster.h` already are.
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                     WHAT IS REDUCED
+//                                                    THE THREE RECORDS
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 One workgroup edge, shared by both entry points. Sixty-four invocations is one or two vendor subgroups on
-//    every implementation `06` scores, and the reduction is bound by its reads rather than by its arithmetic.
-static const Unsigned32 OcclusionGroupEdge = 8u;   // [-] - invocations per workgroup edge
-
-/// 🧩 Which level of the chain one reduction dispatch writes, and where the two levels it touches begin.
-/// note  🔴 The **finest** level is written from the depth target and every coarser one from the level above it,
-///        so the dispatch that writes level nought reads an image and the rest read the span. `SourceFromTarget`
-///        is what distinguishes them, and it is declared rather than derived from `WrittenLevel` being nought —
-///        the derivation holds only while the chain's finest level is also the display extent, which is a
-///        condition this block cannot see.
-/// note  📐 Both extents are carried because the source's is not derivable from the written one. Halving rounds
-///        **up**, so a written extent of five admits a source of nine or of ten and the two read different
-///        texels at the last column.
-/// tag   contract
+/// 🧩 Which level of the chain one reduction dispatch writes.
+/// note  🔴 `SourceFromTarget` is declared and never derived from `WrittenLevel` being nought. The derivation
+///        holds only while the finest level's extent is the display's, and that is a condition the record cannot
+///        see — the chain may have been derived against an extent the display has since been resized past.
 struct ReductionUniform
 {
-    Unsigned32  WrittenLevel     ;   // [-]     - which level the dispatch writes
-    Unsigned32  WrittenOffset    ;   // [texel] - where that level begins in the chain span
-    Unsigned32  WrittenAlong     ;   // [texel] - its extent
-    Unsigned32  WrittenAcross    ;   // [texel]
-    Unsigned32  SourceOffset     ;   // [texel] - where the level above it begins; unread when the target is read
-    Unsigned32  SourceAlong      ;   // [texel] - the source's extent
-    Unsigned32  SourceAcross     ;   // [texel]
-    Unsigned32  SourceFromTarget ;   // [-]     - non-zero for the finest level, which reads the depth target
+    uint  WrittenLevel;       // [-]     - which level the dispatch writes
+    uint  WrittenOffset;      // [texel] - where that level begins in the chain span
+    uint  WrittenAlong;       // [texel] - its extent
+    uint  WrittenAcross;      // [texel]
+    uint  SourceOffset;       // [texel] - where the level above begins; unread when the target is read
+    uint  SourceAlong;        // [texel] - the source's extent
+    uint  SourceAcross;       // [texel]
+    uint  SourceFromTarget;   // [-]     - non-zero for the finest level
 };
 
-/// 🧩 What the occlusion test needs of the chain and of the recording it is testing for.
-/// note  🔴 `LevelCount` is read to bound the level a partition's own extent selects. The host selects it and
-///        the device clamps to this count rather than trusting it, because a level ordinal past the chain's end
-///        addresses whatever the span holds beyond it — which is the next enrolment's finest level.
-/// note  🔴 `TriangleCeiling` is what the compaction writes below and never past. The atomic hands back an entry
-///        whether or not the span reaches it, so a run of survivors longer than the claim was sized for writes
-///        outside the span — and the vendor's own bound on a storage write is undefined behaviour rather than a
-///        refusal. The host sizes the claim to the residency's whole triangle run, so reaching this is the
-///        arithmetic disagreeing rather than a scene being large.
-/// tag   contract
+/// 🧩 What the occlusion dispatch reads of the chain and of the run it is testing.
 struct OcclusionUniform
 {
-    Unsigned32  ClassifiedCount ;   // [-]  - partitions the dispatch tests
-    Unsigned32  LevelCount      ;   // [-]  - levels the chain carries
-    Unsigned32  DisplayAlong    ;   // [px] - the extent the finest level covers
-    Unsigned32  DisplayAcross   ;   // [px]
-    Unsigned32  TriangleCeiling ;   // [-]  - entries the surviving run can hold
-    Unsigned32  Unoccupied0     ;   // [-]  - pads the block to an even word count; never read
-    Unsigned32  Unoccupied1     ;   // [-]
-    Unsigned32  Unoccupied2     ;   // [-]
+    uint  ClassifiedCount;   // [-]  - partitions the dispatch tests
+    uint  LevelCount;        // [-]  - levels the chain carries
+    uint  DisplayAlong;      // [px] - the extent the finest level covers
+    uint  DisplayAcross;     // [px]
+    uint  TriangleCeiling;   // [-]  - entries the surviving run can hold
+    uint  PhaseOrdinal;      // [-]  - nought is ①, one is ③
+    uint  Unoccupied1;       // [-]
+    uint  Unoccupied2;       // [-]
 };
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                                  ONE TESTED PARTITION
-//------------------------------------------------------------------------------------------------------------------------
-
-/// 🧩 One classified partition as the device reads it — where it projects, how far, and how near it reaches.
-/// note  🔴 The mirror of `ClassifiedPartition`, member for member and width for width. The host classifies
-///        against the frustum and the cone and this is what crosses; a member inserted on one side alone is a
-///        span the device walks at the wrong stride, and every ordinal past the first then belongs to another
-///        partition.
-/// note  📝 `Standing` arrives as the host wrote it and is **not** read by the occlusion test. What the test
-///        writes is the survival word below, so a partition the host already excluded is never dispatched at
-///        all — the standing rides along for the readback `86` reports rather than for the comparison.
-/// note  🔴 The **triangle run** is carried because the compaction writes one entry per surviving triangle and
-///        not one per surviving partition. A partition carries `PartitionTriangleFloor` to
-///        `PartitionTriangleCeiling` of them — and more for a lone wide face — so a record naming the partition
-///        alone leaves the corner count to be recovered from a triangle count nothing on that path holds.
-/// note  📐 `FirstTriangle` addresses the residency's own fanned run and never the document's. The occlusion
-///        dispatch is per residency, because the draw it records is: one residency is one placement, one uniform
-///        and one position span, and a compaction laid across two of them would draw the second at the first's
-///        placement.
-/// tag   contract
+/// 🧩 One classified partition, as the host handed it over.
+/// note  🔴 The **triangle run** is carried because the compaction compacts triangles and not partitions. An
+///        indirect draw reads corners by a running ordinal, so three corners of a partition are three corners of
+///        its first triangle and every other one is unreachable; the survivor writes its own run out instead.
 struct TestedPartition
 {
-    Unsigned32  PartitionOrdinal ;   // [-]     - within the enrolment
-    Unsigned32  Standing         ;   // [-]     - as the host classified it
-    Unsigned32  FirstTriangle    ;   // [-]     - into the residency's fanned triangle run
-    Unsigned32  TriangleCount    ;   // [-]     - triangles of that run the partition spans
-    Unsigned32  OriginAlong      ;   // [texel] - the first display texel it covers
-    Unsigned32  OriginAcross     ;   // [texel]
-    Unsigned32  ProjectedAlong   ;   // [texel] - conservative outward
-    Unsigned32  ProjectedAcross  ;   // [texel]
-    Real32      NearestDepth     ;   // [-]     - reversed; the greatest ordinate of its eight corners
+    uint   PartitionOrdinal;   // [-]  - within the enrolment
+    uint   Standing;           // [-]  - the host's verdict; see the four ordinals below
+    uint   FirstTriangle;      // [-]  - into the residency's fanned run
+    uint   TriangleCount;      // [-]  - triangles of that run it spans
+    uint   OriginAlong;        // [px] - the first display texel it covers
+    uint   OriginAcross;       // [px]
+    uint   ProjectedAlong;     // [px] - conservative outward
+    uint   ProjectedAcross;    // [px]
+    float  NearestDepth;       // [-]  - reversed; the greatest ordinate of the eight corners
 };
 
+// 📝 `PartitionStanding`'s ordinals, spelled as constants because the host enumeration has no device counterpart.
+//    An enumeration declared on both sides is two declarations that must agree; two constants compared by the
+//    same integer are one fact written twice at a width the compiler checks.
+static const uint PartitionAdmitted            = 0u;
+static const uint PartitionFrustumExcluded     = 1u;
+static const uint PartitionOrientationExcluded = 2u;
+static const uint PartitionDepthOccluded       = 3u;
+
+static const uint PhaseAgainstPrevious = 0u;
+static const uint PhaseAgainstCurrent  = 1u;
+
 //------------------------------------------------------------------------------------------------------------------------
-//                                                    THE CHAIN READING
+//                                                    LEVEL SELECTION
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Where one texel of one level sits in the chain span.
-/// in    LevelOffset  [texel]  where the level begins
-/// in    LevelAlong   [texel]  the level's first extent, which is its stride
-/// in    Along        [texel]  the texel, already inside the level
-/// in    Across       [texel]
-/// out   Entry        [-]      the span entry that texel occupies
-/// note  📐 Row-major with the level's own extent as the stride, which is what makes a level contiguous and its
-///         offset one addition. The stride is the level's extent rather than the display's — a chain strided by
-///         the display would leave every level but the finest holding one row of depth and the rest unwritten.
-/// cost  ✔️
-/// tag   nonallocating, nonthrowing
-Unsigned32 ProjectChainEntry(Unsigned32 LevelOffset, Unsigned32 LevelAlong, Unsigned32 Along, Unsigned32 Across)
+/// 🧩 The coarsest level at which one projected extent is covered by a two-by-two reading.
+/// in    SpannedAlong   [px]  the extent the partition projects to, conservative outward
+/// in    SpannedAcross  [px]
+/// in    LevelCount     [-]   levels the chain carries
+/// out   Level          [-]   below LevelCount
+/// note  📐 The walk mirrors `DepthReduction::LevelOfExtent` step for step, halving with **round up** on both
+///        ordinates. Rounding down here selects a level one coarser than the host would, and the four texels
+///        read then fail to span the extent along whichever axis was odd — a partition rejected on depth it
+///        never actually stood behind.
+/// note  ⚠️ An extent of nothing resolves to the finest level rather than refusing. A partition projecting to
+///        nothing is sub-pixel and belongs to `16` §3's compute route; it is not an error and rejecting it here
+///        would drop geometry no other route then draws.
+uint SelectLevel(uint SpannedAlong, uint SpannedAcross, uint LevelCount)
 {
-    return LevelOffset + Across * LevelAlong + Along;
+    uint RemainingAlong  = SpannedAlong;
+    uint RemainingAcross = SpannedAcross;
+    uint Selected        = 0u;
+
+    const uint Coarsest = LevelCount - 1u;
+
+    while ((RemainingAlong > 2u || RemainingAcross > 2u) && Selected < Coarsest)
+    {
+        RemainingAlong  = (RemainingAlong  + 1u) / 2u;
+        RemainingAcross = (RemainingAcross + 1u) / 2u;
+
+        Selected += 1u;
+    }
+
+    return Selected;
 }
 
-/// 🧩 The conservative depth over the two-by-two reading one partition is tested against.
-/// in    Reduced      [-]      the chain, as the reduction wrote it
-/// in    LevelOffset  [texel]  where the selected level begins
-/// in    LevelAlong   [texel]  the selected level's extent
-/// in    LevelAcross  [texel]
-/// in    Along        [texel]  the partition's origin, carried into the selected level
-/// in    Across       [texel]
-/// out   Reached      [-]      the least ordinate across the four texels, which is the furthest of them
-/// note  📐 🔴 The **minimum**, because depth is reversed — `NearPlaneDepth` is unity and `FarPlaneDepth` is
-///         nought, so the least ordinate over a region is its furthest point. A partition nearer than that
-///         cannot be hidden by anything already recorded there. Taking the maximum instead is correct wherever
-///         the surface is flat and rejects visible geometry at every silhouette, which reaches the artist as an
-///         object flickering along its own edge rather than as a comparison written the wrong way round.
-/// note  ⚠️ The reading is clamped into the level rather than wrapped. A partition whose origin sits on the
-///         level's last column reads that column twice, which is conservative; wrapping would read the first
-///         column of the next row and compare against depth recorded at the opposite edge of the display.
-/// cost  ✔️
-/// tag   nonallocating, nonthrowing
-Real32 ResolveReducedDepth(StructuredBuffer<Real32>  Reduced,
-                           Unsigned32                LevelOffset,
-                           Unsigned32                LevelAlong,
-                           Unsigned32                LevelAcross,
-                           Unsigned32                Along,
-                           Unsigned32                Across)
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE DEPTH COMPARISON
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Whether one partition stands wholly behind what the reduction recorded.
+/// in    NearestDepth  [-]  the partition's nearest ordinate; reversed, so the greatest of its eight corners
+/// in    ReducedDepth  [-]  the least ordinate the covered region carries; the furthest point recorded there
+/// out   Occluded      [-]  true only where nothing of the partition can reach in front of what stands
+/// note  📐 Reversed depth throughout — `NearPlaneDepth` is unity and `FarPlaneDepth` nought, per `Contract/`.
+///        The conservative reduction is therefore the **minimum**, and a partition is occluded when its nearest
+///        ordinate is at or below the furthest ordinate recorded across the region it covers.
+/// note  🔴 Written the other way round, this rejects on every silhouette and admits inside every surface — the
+///        artist meets it as an object flickering along its own edge rather than as a comparison inverted.
+bool DepthOccludes(float NearestDepth, float ReducedDepth)
 {
-    const Unsigned32 FirstAlong  = Along  < LevelAlong  ? Along  : LevelAlong  - 1u;
-    const Unsigned32 FirstAcross = Across < LevelAcross ? Across : LevelAcross - 1u;
-
-    const Unsigned32 NextAlong  = FirstAlong  + 1u < LevelAlong  ? FirstAlong  + 1u : FirstAlong;
-    const Unsigned32 NextAcross = FirstAcross + 1u < LevelAcross ? FirstAcross + 1u : FirstAcross;
-
-    const Real32 Corner00 = Reduced[ProjectChainEntry(LevelOffset, LevelAlong, FirstAlong, FirstAcross)];
-    const Real32 Corner10 = Reduced[ProjectChainEntry(LevelOffset, LevelAlong, NextAlong,  FirstAcross)];
-    const Real32 Corner01 = Reduced[ProjectChainEntry(LevelOffset, LevelAlong, FirstAlong, NextAcross)];
-    const Real32 Corner11 = Reduced[ProjectChainEntry(LevelOffset, LevelAlong, NextAlong,  NextAcross)];
-
-    const Real32 LeastLower = Corner00 < Corner10 ? Corner00 : Corner10;
-    const Real32 LeastUpper = Corner01 < Corner11 ? Corner01 : Corner11;
-
-    return LeastLower < LeastUpper ? LeastLower : LeastUpper;
+    return NearestDepth <= ReducedDepth;
 }
-
-}   // namespace Slate
