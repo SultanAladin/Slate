@@ -28,7 +28,7 @@ E EmissionShape                           | IlluminantPopulation.h | 30-37   | c
     has   Spot         EmissionShape  [-]  ?
     has   Extended     EmissionShape  [-]  ?
     has   ShapeCount   EmissionShape  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
+    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
     note  🔴 Every shape has a **non-zero size**, and the declaration below refuses one that does not. This is not
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -52,7 +52,7 @@ T IlluminantSpecification                 | IlluminantPopulation.h | 52-70   | n
     has   ExtendedElliptical   bool                 [-]  ?
     has   OcclusionEnrolled    bool                 [-]  ?
     has   AtmosphericSource    bool                 [-]  ?
-    by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
+    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp
     note  🔴 The extent is a **declared** cutoff, not a threshold discovered from the falloff. A cutoff derived
     note  🔴 Colour is a `ColourSpecification` carrying its space, or a temperature. Where a temperature is
 
@@ -67,7 +67,7 @@ T IncidenceProjection                     | IlluminantPopulation.h | 81-89   | n
     has   Distance     double  [-]  ?
     has   SolidExtent  double  [-]  ?
     has   Attenuation  double  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
+    by    Api/ReflectanceIntegrator.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/ReflectanceIntegrator.cpp
     note  📐 `SolidExtent` is the solid angle the emission shape subtends from the shaded position, which is what
 
 F ProjectIncidence                        | IlluminantPopulation.h | 100     | api,nonallocating,nonthrowing | ✔️ | Projects one illuminant's incidence at one shaded position. outside the declared extent or outside the cone, and `18` multiplies by zero — which costs less than a refusal the integrator would have to branch on.
@@ -80,7 +80,7 @@ F ProjectIncidence                        | IlluminantPopulation.h | 100     | a
 F SLATE_DECLARES_PRECISION                | IlluminantPopulation.h | 101     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE POPULATION
@@ -90,7 +90,7 @@ T IlluminantPopulation                    | IlluminantPopulation.h | 117-186 | o
     has   EnrolledOrder     std::vector<OccupantIdentity>         [-]  ?
     has   Declarations      std::vector<IlluminantSpecification>  [-]  ?
     has   DeclaredRevision  std::uint64_t                         [-]  ?
-    by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
+    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp
     note  🔴 An illuminant is an occupant of `10`'s population. It enrols in `12`, appears in the outliner,
     note  🔴 Order is by identity and is therefore stable across ticks, runs and machines. `18` integrates in this
     note  🔴 Exactly one illuminant may be enrolled as the atmospheric source. Two suns disagreeing about their
@@ -99,23 +99,23 @@ F IlluminantPopulation::Declare           | IlluminantPopulation.h | 127     | a
     in    Subject    OccupantIdentity                [-]  ?
     in    Declaring  const IlluminantSpecification&  [-]  ?
     out   -          Outcome                         [-]  refuses with IdentityStale for an undeclared identity, with ContentUnsupported for a
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, (+26 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, (+34 more)
 
 F IlluminantPopulation::Amend             | IlluminantPopulation.h | 133     | api,nonthrowing               | 🚩 | Amends one declared illuminant, validated exactly as a declaration is.
     in    Subject   OccupantIdentity                [-]  ?
     in    Amending  const IlluminantSpecification&  [-]  ?
     out   -         Outcome                         [-]  refuses with IdentityStale when the occupant declares no illuminant
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, Api/OcclusionScheduler.h, (+16 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+20 more)
 
 F IlluminantPopulation::Withdraw          | IlluminantPopulation.h | 139     | api,nonthrowing               | 🚩 | Withdraws one illuminant.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant declares no illuminant
-    by    Api/PopulationIndex.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, Api/TrigramIndex.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+7 more)
+    by    Api/DecalProjection.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, Api/TrigramIndex.h, (+11 more)
 
 F IlluminantPopulation::Resolve           | IlluminantPopulation.h | 145     | api,nonthrowing               | 🚩 | One declared illuminant.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant declares no illuminant
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/ImpressionSequence.h, Api/IntakeIndex.h, (+51 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ImpressionSequence.h, (+61 more)
 
 F IlluminantPopulation::ResolveColour     | IlluminantPopulation.h | 155     | api,nonthrowing               | 🚩 | One illuminant's colour, projected into a declared space. declared temperature lies outside the locus interval authored temperature is what the artist edits; the coordinate is what `18` integrates.
     in    Subject  OccupantIdentity                 [-]  ?
@@ -130,7 +130,7 @@ F IlluminantPopulation::AtmosphericSource | IlluminantPopulation.h | 161     | a
 
 F IlluminantPopulation::Enrolled          | IlluminantPopulation.h | 166     | api,nonallocating,nonthrowing | ✔️ | Every declared illuminant, in identity order.
     out   -  const std::vector<OccupantIdentity>&  [-]  ?
-    by    Api/EnrollmentIndex.h, Api/TopologyConditioning.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+8 more)
+    by    Api/EnrollmentIndex.h, Api/TopologyConditioning.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+10 more)
 
 F IlluminantPopulation::EnrolledCount     | IlluminantPopulation.h | 171     | api,nonallocating,nonthrowing | ✔️ | How many illuminants are declared.
     out   -  std::uint32_t  [-]  ?
@@ -138,12 +138,12 @@ F IlluminantPopulation::EnrolledCount     | IlluminantPopulation.h | 171     | a
 
 F IlluminantPopulation::Revision          | IlluminantPopulation.h | 176     | api,nonallocating,nonthrowing | ✔️ | The revision the last amendment advanced to; `IlluminantIndex` compares counters against it.
     out   -  std::uint64_t  [-]  ?
-    by    Api/ChartPartition.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SeamSpecification.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, (+10 more)
+    by    Api/ChartPartition.h, Api/DecalProjection.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SeamSpecification.h, Api/TopologyStructure.h, (+13 more)
 
 F IlluminantPopulation::Located           | IlluminantPopulation.h | 180     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::size_t       [-]  ?
-    by    Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, Api/SurfaceLayerSequence.h, Source/EnrollmentIndex.cpp, (+13 more)
+    by    Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, (+19 more)
 
 F IlluminantPopulation::Validate          | IlluminantPopulation.h | 181     | -                             | -  | ?
     in    Declaring  const IlluminantSpecification&  [-]  ?
@@ -158,7 +158,7 @@ F IlluminantPopulation::Validate          | IlluminantPopulation.h | 181     | -
 T PartitionExtent                         | IlluminantPopulation.h | 197-201 | nonallocating,nonthrowing     | -  | One partition's extent in document space, as its producer measured it. Position block, and `00` §11 gates that every declared edge is a real read — acquiring a dependency to avoid duplicating a two-field structure would be paying a build-order cost to save nothing.
     has   Least     DocumentPosition  [-]  ?
     has   Greatest  DocumentPosition  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
+    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp
     note  ⚠️ Declared here rather than shared with `38`'s `ConditionedExtent`. `44` names no `38` edge in its
 
 T IlluminantIndex                         | IlluminantPopulation.h | 212-269 | owning                        | -  | Which illuminants each partition may be lit by — `44` §5. moved re-derives its own entries, a partition that moved re-derives its own, a camera that moved re-derives nothing, and a radiant intensity that changed re-derives nothing because the extent is declared rather than inferred from it — which is the most common illuminant edit an artist makes. counted so `86` can present it. `60` §3.1 truncates independently at the narrower packed capacity of `DirectOcclusionSurface`, and the excess is integrated unattenuated rather than dropped.
@@ -166,7 +166,7 @@ T IlluminantIndex                         | IlluminantPopulation.h | 212-269 | o
     has   TruncatedCounts       std::vector<std::uint32_t>                  [-]  ?
     has   TruncatedAccumulated  std::uint32_t                               [-]  ?
     has   DescribedOrdinal      std::uint64_t                               [-]  ?
-    by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
+    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp
     note  🔴 `18` integrates this set and not the whole population. Re-derivation is targeted: an illuminant that
     note  🔴 A partition whose reaching set exceeds `IlluminantReachCapacity` truncates, and the truncation is
 
@@ -175,7 +175,7 @@ F IlluminantIndex::Derive                 | IlluminantPopulation.h | 222     | a
     in    Extents      const std::vector<PartitionExtent>&  [-]  one extent per partition, in partition order
     out   -            Outcome<bool>                        [-]  ?
     post  every partition carries its reaching set, ordered by illuminant identity
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, Api/VisibilityRaster.h, (+8 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+10 more)
 
 F IlluminantIndex::DerivePartition        | IlluminantPopulation.h | 228     | api,nonthrowing               | 🚩 | Re-derives one partition's reaching set — the row `44` §5 reaches when an occupant moved.
     in    Illuminants       const IlluminantPopulation&  [-]  ?
@@ -187,26 +187,26 @@ F IlluminantIndex::DerivePartition        | IlluminantPopulation.h | 228     | a
 F IlluminantIndex::ReachingCount          | IlluminantPopulation.h | 235     | api,nonallocating,nonthrowing | ✔️ | How many illuminants reach one partition.
     in    PartitionOrdinal  std::uint32_t  [-]  ?
     out   -                 std::uint32_t  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
+    by    Shared/OcclusionProjection.slang.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp
 
 F IlluminantIndex::Reaching               | IlluminantPopulation.h | 241     | api,nonthrowing               | ✔️ | One reaching illuminant, in identity order.
     in    PartitionOrdinal  std::uint32_t  [-]  ?
     in    ReachOrdinal      std::uint32_t  [-]  ?
     out   -                 Outcome        [-]  refuses with ExtentExhausted outside the reaching count
-    by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
+    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
 
 F IlluminantIndex::TruncatedCount         | IlluminantPopulation.h | 246     | api,nonallocating,nonthrowing | ✔️ | How many illuminants one partition could not carry — `86`'s truncation row.
     in    PartitionOrdinal  std::uint32_t  [-]  ?
     out   -                 std::uint32_t  [-]  ?
-    by    Source/IlluminantPopulation.cpp
+    by    Api/OcclusionProjection.h, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp
 
 F IlluminantIndex::TruncatedTotal         | IlluminantPopulation.h | 251     | api,nonallocating,nonthrowing | ✔️ | The truncation across every partition.
     out   -  std::uint32_t  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
+    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp
 
 F IlluminantIndex::SpannedCount           | IlluminantPopulation.h | 256     | api,nonallocating,nonthrowing | ✔️ | How many partitions the index spans.
     out   -  std::uint32_t  [-]  ?
-    by    Api/PopulationIndex.h, Api/SceneStructure.h, Api/SurfaceLayerSequence.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, (+4 more)
+    by    Api/OcclusionProjection.h, Api/PopulationIndex.h, Api/SceneStructure.h, Api/SurfaceLayerSequence.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+6 more)
 
 F IlluminantIndex::DescribedRevision      | IlluminantPopulation.h | 261     | api,nonallocating,nonthrowing | ✔️ | The population revision this index describes.
     out   -  std::uint64_t  [-]  ?
@@ -216,4 +216,4 @@ F SLATE_DECLARES_PRECISION                | IlluminantPopulation.h | 273     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)

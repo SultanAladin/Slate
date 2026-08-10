@@ -1,0 +1,77 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateMath/Platform/InputExchange/Api
+%layer      SlateMath
+%sources    1
+%symbols    7
+%annotated  7/7
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S InputExchange.h | 96 lines | 920bea48 | 7 sym | Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     AXIS PRESENCE
+//------------------------------------------------------------------------------------------------------------------------
+
+T AxisPresence             | InputExchange.h | 23-28 | nonallocating,nonthrowing     | -  | Which optional axes the reporting device supplied on one sample. are different facts, and `22` treats them differently.
+    has   PressureReported  bool  [-]  ?
+    has   TiltReported      bool  [-]  ?
+    has   RotationReported  bool  [-]  ?
+    note  🔴 Absent is distinct from zero. A tablet reporting no tilt and a stylus held perfectly upright
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       ONE SAMPLE
+//------------------------------------------------------------------------------------------------------------------------
+
+T PointerSample            | InputExchange.h | 38-49 | nonallocating,nonthrowing     | -  | One pointer sample, stamped at arrival by `TickSequence`. rate reconstructs only if the arrival stamps survive.
+    has   Arrival      TickPoint      [-]  ?
+    has   PositionX    double         [-]  ?
+    has   PositionY    double         [-]  ?
+    has   Pressure     double         [-]  ?
+    has   TiltAlong    double         [-]  ?
+    has   TiltAcross   double         [-]  ?
+    has   Rotation     double         [-]  ?
+    has   Supplied     AxisPresence   [-]  ?
+    has   ContactMask  std::uint32_t  [-]  ?
+    by    Api/ImpressionSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/InputExchange.cpp
+    note  Stamped at arrival, never at consumption. A stroke sampled at device rate and consumed at display
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE ARRIVAL SEQUENCE
+//------------------------------------------------------------------------------------------------------------------------
+
+T InputExchange            | InputExchange.h | 60-94 | owning                        | -  | The bounded arrival ordering of pointer samples, drained once per tick by the consumer. that outruns the drain loses its oldest samples, which is visible, rather than allocating during an interaction, which is not.
+    has   ArrivalCapacity  static constexpr std::uint32_t  [-]  ?
+    has   ArrivalOrder     PointerSample[ArrivalCapacity]  [-]  ?
+    has   OldestOrdinal    std::uint32_t                   [-]  ?
+    has   OccupiedCount    std::uint32_t                   [-]  ?
+    by    Source/ConsoleHost.cpp, Source/InputExchange.cpp
+    note  ⏱️ Bounded and non-allocating: the oldest sample is discarded when the extent is full. A stroke
+
+F InputExchange::Record    | InputExchange.h | 70    | api,nonallocating,nonthrowing | ✔️ | Records one arriving sample against the supplied timeline.
+    in    Arriving  const PointerSample&  [-]  the sample as the device reported it
+    out   -         void                  [-]  ?
+    by    Api/IntakeIndex.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/InputExchange.cpp, (+4 more)
+
+F InputExchange::Sample    | InputExchange.h | 77    | api,nonallocating,nonthrowing | ✔️ | Reads one held sample in arrival order.
+    in    ArrivalOrdinal  std::uint32_t         [-]  zero is the oldest sample still held
+    out   -               const PointerSample&  [-]  ?
+    pre   ArrivalOrdinal is below HeldCount
+    by    Api/AtmosphereIntegrator.h, Api/SurfaceTileSpace.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/InputExchange.cpp, (+2 more)
+
+F InputExchange::HeldCount | InputExchange.h | 82    | api,nonallocating,nonthrowing | ✔️ | How many samples are held.
+    out   -  std::uint32_t  [-]  ?
+    by    Api/SurfaceDepot.h, Source/ConsoleHost.cpp, Source/InputExchange.cpp, Source/SurfaceDepot.cpp, Source/SurfaceTileSpace.cpp
+
+F InputExchange::Reclaim   | InputExchange.h | 87    | api,nonallocating,nonthrowing | ✔️ | Discards every held sample. Called by the consumer once it has read them.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)

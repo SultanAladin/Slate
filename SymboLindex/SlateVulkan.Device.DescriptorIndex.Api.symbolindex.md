@@ -1,0 +1,133 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Descriptor set layouts constructed once at bring-up, and explicit sets claimed one per rotation slot.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateVulkan/Device/DescriptorIndex/Api
+%layer      SlateVulkan
+%sources    1
+%symbols    18
+%annotated  12/18
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S DescriptorIndex.h | 168 lines | a6663efb | 18 sym | Descriptor set layouts constructed once at bring-up, and explicit sets claimed one per rotation slot.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE DECLARED SHAPE
+//------------------------------------------------------------------------------------------------------------------------
+
+V AbsentDescriptor                  | DescriptorIndex.h | 25      | -                             | -  | ?
+    by    Api/OcclusionScheduler.h, Api/VisibilityRaster.h
+
+T DescriptorSlot                    | DescriptorIndex.h | 31-37   | nonallocating,nonthrowing     | -  | What one descriptor slot in a layout carries, as the shader declares it. layout must state, and a layout stating a larger one leaves the shader indexing beyond what is written.
+    has   SlotOrdinal     std::uint32_t       [-]  ?
+    has   Carried         VkDescriptorType    [-]  ?
+    has   CarriedCount    std::uint32_t       [-]  ?
+    has   ReachingStages  VkShaderStageFlags  [-]  ?
+    by    Api/InterfaceExchange.h, Source/DescriptorIndex.cpp, Source/InterfaceExchange.cpp, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
+    note  🔴 The count is a declaration and not a ceiling. A shader declaring an unsized run reads a count the
+
+T DescriptorContent                 | DescriptorIndex.h | 44-53   | nonallocating,nonthrowing     | -  | What one descriptor set is written with — one entry per slot the recording amends. sampled image into a slot the layout declares as a span is a validation error at the write rather than at the declaration that disagreed.
+    has   SlotOrdinal    std::uint32_t  [-]  ?
+    has   SpanExtent     VkBuffer       [-]  ?
+    has   SpanOffset     VkDeviceSize   [-]  ?
+    has   SpanBytes      VkDeviceSize   [-]  ?
+    has   ImageView      VkImageView    [-]  ?
+    has   ImageSampler   VkSampler      [-]  ?
+    has   ImageStanding  VkImageLayout  [-]  ?
+    by    Source/DescriptorIndex.cpp, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
+    note  ⚠️ Exactly one of the three is read, chosen by the slot's declared `VkDescriptorType`. Writing a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE DESCRIPTOR LEDGER
+//------------------------------------------------------------------------------------------------------------------------
+
+T DescriptorIndex                   | DescriptorIndex.h | 67-166  | owning                        | -  | Every descriptor set layout the engine declares, and the rotation-deep sets claimed against them. declared at bring-up, and `Declare` refuses once `Fix` has been resolved — the gate is a refusal at the call rather than a remark in a review. therefore yields `RecordingRotationDepth` sets, and the recording writes the one its slot names — amending a set the device is still reading is the defect the depth exists to remove.
+    has   DeviceEdge        const VulkanExchange*        [-]  ?
+    has   DescriptorExtent  VkDescriptorPool             [-]  ?
+    has   Layouts           std::vector<DeclaredLayout>  [-]  ?
+    has   Claimed           std::vector<ClaimedSet>      [-]  ?
+    has   DeclarationFixed  bool                         [-]  ?
+    by    Api/OcclusionScheduler.h, Api/ProgramIndex.h, Api/VisibilityRaster.h, Source/DescriptorIndex.cpp, Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp, (+1 more)
+    note  🔴 `06` §7's first gate: no descriptor set layout is constructed during a recording. Every layout is
+    note  🔴 `06` §2.1 settles explicit sets per rotation slot rather than a bindless arrangement. A claim
+
+F DescriptorIndex::~DescriptorIndex | DescriptorIndex.h | 74      | destructor                    | -  | ?
+
+F DescriptorIndex::Construct        | DescriptorIndex.h | 82      | api,nonthrowing               | ✔️ | Takes the device against which every layout and every set is constructed.
+    in    Exchange  const VulkanExchange&  [-]  the created device; borrowed and outlives this component
+    out   -         Outcome                [-]  refuses with CapabilityAbsent when no device is active
+    post  no layout is declared and no set is claimed
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+46 more)
+
+F DescriptorIndex::Declare          | DescriptorIndex.h | 90      | api,nonthrowing               | 🚩 | Declares one layout from its slots, returning the ordinal every later claim names it by. and with RelationCyclic once the declaration set has been fixed
+    in    Declared  const std::vector<DescriptorSlot>&  [-]  the slots, in any order; slot ordinals need not be contiguous
+    out   -         Outcome                             [-]  refuses with ContentUnsupported for an empty declaration or a repeated ordinal,
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+30 more)
+
+F DescriptorIndex::Fix              | DescriptorIndex.h | 100     | api,nonthrowing               | 🚩 | Closes the declaration and constructs the one descriptor extent every later claim is sliced from. that reallocates invalidates every set sliced from it, including the ones a rotation still reads.
+    in    ConcurrentSets  std::uint32_t  [-]  how many sets the extent must admit, across every layout and every rotation
+    out   -               Outcome        [-]  refuses with ExtentExhausted when the device declines the extent
+    post  Declare refuses thereafter; Claim delivers
+    by    Api/RenderSchedule.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/RenderSchedule.cpp
+    note  🔴 One extent sized against the declaration rather than one grown on demand. A descriptor extent
+
+F DescriptorIndex::Claim            | DescriptorIndex.h | 108     | api,nonthrowing               | 🚩 | Claims one set per rotation slot against a declared layout, returning the claim's ordinal.
+    in    LayoutOrdinal  std::uint32_t  [-]  a layout this component declared
+    out   -              Outcome        [-]  refuses with ExtentExhausted when the extent admits no further set
+    post  `RecordingRotationDepth` sets stand and are addressed by the returned ordinal and a rotation slot
+    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+13 more)
+
+F DescriptorIndex::Amend            | DescriptorIndex.h | 119     | api,nonthrowing               | 🚩 | Writes the content of one claimed set for one rotation slot. or above the depth, or a slot the layout does not declare
+    in    ClaimOrdinal  std::uint32_t                          [-]  a claim this component issued
+    in    RotationSlot  std::uint32_t                          [-]  below `RecordingRotationDepth`
+    in    Amended       const std::vector<DescriptorContent>&  [-]  one entry per slot being written; a slot omitted is left as it stood
+    out   -             Outcome                                [-]  refuses with ContentUnsupported for an unclaimed ordinal, a rotation slot at
+    pre   🔴 no recording that reads this set for this rotation slot is still executing
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+20 more)
+
+F DescriptorIndex::Resolve          | DescriptorIndex.h | 127     | api,nonallocating,nonthrowing | ✔️ | The set one claim names for one rotation slot, for the recording that reads it.
+    in    ClaimOrdinal  std::uint32_t  [-]  ?
+    in    RotationSlot  std::uint32_t  [-]  ?
+    out   -             Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal or an excessive slot
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+58 more)
+
+F DescriptorIndex::Layout           | DescriptorIndex.h | 133     | api,nonallocating,nonthrowing | ✔️ | The layout one ordinal names, for the recording that constructs a program against it.
+    in    LayoutOrdinal  std::uint32_t  [-]  ?
+    out   -              Outcome        [-]  refuses with ContentUnsupported for an undeclared ordinal
+    by    Source/DescriptorIndex.cpp, Source/ProgramIndex.cpp, Source/VisibilityRaster.cpp
+
+F DescriptorIndex::Reclaim          | DescriptorIndex.h | 139     | api,nonthrowing               | 🚩 | Destroys every set, every layout and the extent they were sliced from.
+    out   -  void  [-]  ?
+    pre   the device is idle
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/EnrollmentIndex.h, (+49 more)
+
+F DescriptorIndex::DeclaredCount    | DescriptorIndex.h | 141     | -                             | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/MaterialSpecification.h, Api/ProgramIndex.h, Api/QuadratureIntegrator.h, (+19 more)
+
+F DescriptorIndex::ClaimedCount     | DescriptorIndex.h | 142     | -                             | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+5 more)
+
+T DescriptorIndex::DeclaredLayout   | DescriptorIndex.h | 146-150 | -                             | -  | ?
+    has   Constructed  VkDescriptorSetLayout        [-]  ?
+    has   Slots        std::vector<DescriptorSlot>  [-]  ?
+    by    Source/DescriptorIndex.cpp
+
+T DescriptorIndex::ClaimedSet       | DescriptorIndex.h | 152-156 | -                             | -  | ?
+    has   LayoutOrdinal  std::uint32_t                 [-]  ?
+    has   PerRotation    std::vector<VkDescriptorSet>  [-]  ?
+    by    Source/DescriptorIndex.cpp
+
+F DescriptorIndex::SlotOf           | DescriptorIndex.h | 159     | -                             | -  | Which declared slot carries an ordinal, or nothing when the layout does not declare it.
+    in    Holding      const DeclaredLayout&  [-]  ?
+    in    SlotOrdinal  std::uint32_t          [-]  ?
+    out   -            const DescriptorSlot*  [-]  ?
+    by    Source/DescriptorIndex.cpp

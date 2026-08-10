@@ -1,0 +1,47 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateMath/Platform/TickSequence/Api
+%layer      SlateMath
+%sources    1
+%symbols    5
+%annotated  5/5
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S TickSequence.h | 57 lines | c861a707 | 5 sym | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    ORDERING POINTS
+//------------------------------------------------------------------------------------------------------------------------
+
+T TickPoint                  | TickSequence.h | 21-24 | nonallocating,nonthrowing     | -  | One ordering point on the monotonic host timeline. path the artist drew from arrival stamps, which is the only reason arrival stamps exist.
+    has   Ordinal  std::uint64_t  [-]  ?
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ImpressionSequence.h, Api/InputExchange.h, Api/IntakeIndex.h, (+14 more)
+    note  An input sample stamped at consumption has the display rate baked into it. `22` reconstructs the
+
+T TickSequence               | TickSequence.h | 28-55 | owning                        | -  | The monotonic host timeline. One instance per process, constructed at bring-up.
+    has   OriginCount     std::uint64_t  [-]  ?
+    has   CountToSeconds  double         [-]  ?
+    by    Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/TickSequence.cpp, Source/WorkSequence.cpp
+
+F TickSequence::TickSequence | TickSequence.h | 34    | constructor                   | ✔️ | Fixes the timeline origin against the host performance counter.
+    by    Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/TickSequence.cpp, Source/WorkSequence.cpp
+
+F TickSequence::Advance      | TickSequence.h | 41    | api,nonallocating,nonthrowing | ✔️ | Reads the current ordering point.
+    out   -  TickPoint  [ns]  nanoseconds since the origin, never decreasing between two reads
+    err   never refuses
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/VectorInterchange.h, (+11 more)
+
+F TickSequence::Span         | TickSequence.h | 49    | api,nonallocating,nonthrowing | ✔️ | Duration between two ordering points.
+    in    Earlier  TickPoint  [ns]  the point taken first
+    in    Later    TickPoint  [ns]  the point taken second
+    out   -        Duration   [ms]  zero when Later precedes Earlier, never negative
+    by    Api/SurfaceTileSpace.h, Shader/SkyRadiance.slang, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/SurfaceTileSpace.cpp, Source/TickSequence.cpp

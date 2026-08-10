@@ -61,7 +61,7 @@ F Solve                    | UnwrapSolver.h | 80    | api,nonthrowing           
 F SLATE_DECLARES_PRECISION | UnwrapSolver.h | 81    | -                         | -  | ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
 
 F Measure                  | UnwrapSolver.h | 92    | api,nonthrowing           | 🚩 | Measures the area and angle distortion of a flattening against the topology it came from. rather than removing them, so they arrive here and would otherwise report an unbounded ratio.
     in    Positions        const std::vector<DocumentPosition>&  [mm]  the chart's spatial positions
@@ -74,4 +74,4 @@ F Measure                  | UnwrapSolver.h | 92    | api,nonthrowing           
 F SLATE_DECLARES_PRECISION | UnwrapSolver.h | 95    | -                         | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)

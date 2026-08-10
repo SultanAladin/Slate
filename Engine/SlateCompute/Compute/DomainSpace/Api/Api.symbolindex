@@ -67,7 +67,7 @@ F DomainSpace::Arrange      | DomainSpace.h | 86     | api,nonthrowing          
 
 F DomainSpace::Placements   | DomainSpace.h | 91     | api,nonallocating,nonthrowing | ✔️ | The placements, in the order the extents were supplied.
     out   -  const std::vector<ChartPlacement>&  [-]  ?
-    by    Api/ImpressionSequence.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/DomainSpace.cpp, Source/ImpressionSequence.cpp
+    by    Api/AnalyticProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReflectanceIntegrator.h, Source/AnalyticProjection.cpp, (+7 more)
 
 F DomainSpace::Occupancy    | DomainSpace.h | 96     | api,nonallocating,nonthrowing | ✔️ | The fraction of the domain the charts cover — `86`'s `68` §5 measure.
     out   -  double  [-]  ?
@@ -88,4 +88,4 @@ F DomainSpace::Feasible     | DomainSpace.h | 105    | -                        
 F SLATE_DECLARES_PRECISION  | DomainSpace.h | 117    | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)

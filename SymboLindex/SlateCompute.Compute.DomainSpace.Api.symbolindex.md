@@ -1,0 +1,91 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Charts arranged into the unit domain at a common scale, separated by at least one apron.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/DomainSpace/Api
+%layer      SlateCompute
+%sources    1
+%symbols    10
+%annotated  8/10
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S DomainSpace.h | 119 lines | 660706d5 | 10 sym | Charts arranged into the unit domain at a common scale, separated by at least one apron.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        THE GAP
+//------------------------------------------------------------------------------------------------------------------------
+
+F DeclaredGap               | DomainSpace.h | 31-34  | api,nonallocating,nonthrowing | ✔️ | The least gap between two adjacent charts, in domain units. narrower than the apron means a tile's duplicated border reads texels belonging to a different chart, and every chart edge in the painted result carries a fringe of a neighbouring chart's content. residency or its promotion — that is the whole content of `00` §10 conflict 30's resolution, and it is what makes this document precede `20` rather than depend on it.
+    out   -  constexpr double  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/DomainSpace.cpp
+    note  🔴 `68` §5: at least `20` §1's `PhysicalTileApron`, measured at the maximum working extent. A gap
+    note  🔴 Both constants are read from `Contract/` as numbers. Nothing here consults `20`'s subdivision, its
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WHAT IS ARRANGED
+//------------------------------------------------------------------------------------------------------------------------
+
+T ChartExtent               | DomainSpace.h | 42-47  | nonallocating,nonthrowing     | -  | One chart's planar extent, before any scale is applied.
+    has   Width         double         [-]  ?
+    has   Height        double         [-]  ?
+    has   ChartOrdinal  std::uint32_t  [-]  ?
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/DomainSpace.cpp
+
+T ChartPlacement            | DomainSpace.h | 51-58  | nonallocating,nonthrowing     | -  | Where one chart sits in the unit domain, and at what scale.
+    has   LeastAlong    double         [-]  ?
+    has   LeastAcross   double         [-]  ?
+    has   Scale         double         [-]  ?
+    has   ChartOrdinal  std::uint32_t  [-]  ?
+    has   Placed        bool           [-]  ?
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/DomainSpace.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE ARRANGEMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+T DomainSpace               | DomainSpace.h | 71-113 | owning                        | -  | The unit domain subdivided into disjoint chart areas. list, and what the mechanism does is subdivide the parametric domain — which is `Space`. on every chart. A per-chart scale packs more tightly and makes one surface's paint finer than another's on the same object, which the artist reads as an inconsistent brush.
+    has   Placed   std::vector<ChartPlacement>  [-]  ?
+    has   Covered  double                       [-]  ?
+    has   Settled  double                       [-]  ?
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/DomainSpace.cpp
+    note  ⚠️ `ChartArrangement` is the retired spelling. `Arrangement` is not in `SKILL-Naming`'s closed suffix
+    note  🔴 Charts are packed at a **common scale** by default: one texel of domain covers the same topology area
+
+F DomainSpace::Arrange      | DomainSpace.h | 86     | api,nonthrowing               | 🔴 | Arranges every chart into the unit domain, disjoint and gapped. when no scale admits every chart unscaled height and then by ordinal, both scale-invariant, so the same charts arrange identically on every machine and every run. A packing whose order depended on the scale would arrange differently at each bisection step and the search would not converge to anything reproducible.
+    in    Extents      const std::vector<ChartExtent>&  [-]  one entry per chart, in its own flattened units
+    in    CommonScale  bool                             [-]  true packs at one scale; false is `68` §10's open row and is refused
+    out   -            Outcome                          [-]  refuses with ContentUnsupported for a per-chart scale, and with ExtentExhausted
+    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/DomainSpace.cpp
+    note  📐 The common scale is solved by bisection over a deterministic shelf packing: the ordering is by
+
+F DomainSpace::Placements   | DomainSpace.h | 91     | api,nonallocating,nonthrowing | ✔️ | The placements, in the order the extents were supplied.
+    out   -  const std::vector<ChartPlacement>&  [-]  ?
+    by    Api/AnalyticProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/PointerIntersection.h, Source/AnalyticProjection.cpp, Source/ChartPartition.cpp, (+5 more)
+
+F DomainSpace::Occupancy    | DomainSpace.h | 96     | api,nonallocating,nonthrowing | ✔️ | The fraction of the domain the charts cover — `86`'s `68` §5 measure.
+    out   -  double  [-]  ?
+    by    Api/ChartPartition.h, Api/PopulationIndex.h, Shader/VisibilitySurface.slang, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/DomainSpace.cpp, (+1 more)
+
+F DomainSpace::SettledScale | DomainSpace.h | 101    | api,nonallocating,nonthrowing | ✔️ | The scale the arrangement settled on.
+    out   -  double  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/DomainSpace.cpp
+
+F DomainSpace::Feasible     | DomainSpace.h | 105    | -                             | -  | ?
+    in    Ordering   const std::vector<std::uint32_t>&  [-]  ?
+    in    Extents    const std::vector<ChartExtent>&    [-]  ?
+    in    Scale      double                             [-]  ?
+    in    Recording  std::vector<ChartPlacement>*       [-]  ?
+    out   -          bool                               [-]  ?
+    by    Source/DomainSpace.cpp
+
+F SLATE_DECLARES_PRECISION  | DomainSpace.h | 117    | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)

@@ -77,7 +77,7 @@ F ByteSpace::Construct         | ByteSpace.h | 102     | api,nonthrowing        
     in    Exchange  const VulkanExchange&  [-]  the created device; borrowed, never owned, and outlives this component
     out   -         Outcome                [-]  refuses with CapabilityAbsent when no device is active
     post  no extent is claimed; the first Claim takes the first one
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+49 more)
 
 F ByteSpace::Claim             | ByteSpace.h | 115     | api,nonthrowing               | 🚩 | Slices one span of the requested residency, taking a further extent when none can satisfy it. cannot use and cannot release, and the release path is the one nobody exercises.
     in    RequestedBytes  VkDeviceSize     [B]  how far the span must run

@@ -1,0 +1,201 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Six faces about a position, a subdivision snapped against shimmer, the packing that truncates rather than drops, and the rebuild that almost never runs.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/OcclusionProjection/Source
+%layer      SlateCompute
+%sources    1
+%symbols    32
+%annotated  0/32
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S OcclusionProjection.cpp | 918 lines | a13dad43 | 32 sym | Six faces about a position, a subdivision snapped against shimmer, the packing that truncates rather than drops, and the rebuild that almost never runs.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE SIX FACINGS
+//------------------------------------------------------------------------------------------------------------------------
+
+V OcclusionRecordingIdentity                | OcclusionProjection.cpp | 22      | - | - | ?
+
+V OcclusionSubstitution                     | OcclusionProjection.cpp | 27-28   | - | - | ?
+
+V RootHalf                                  | OcclusionProjection.cpp | 30      | - | - | ?
+
+F FacingOf                                  | OcclusionProjection.cpp | 36-72   | - | - | ?
+    in    FaceOrdinal  std::uint32_t       [-]  ?
+    out   -            RotationQuaternion  [-]  ?
+
+F RotateSpan                                | OcclusionProjection.cpp | 74-89   | - | - | ?
+    in    Rotation  RotationQuaternion  [-]  ?
+    in    SpanX     double              [-]  ?
+    in    SpanY     double              [-]  ?
+    in    SpanZ     double              [-]  ?
+    in    OutX      double&             [-]  ?
+    in    OutY      double&             [-]  ?
+    in    OutZ      double&             [-]  ?
+    out   -         void                [-]  ?
+    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
+
+F SliceBounding                             | OcclusionProjection.cpp | 95-160  | - | - | ?
+    in    Camera    const CameraSpecification&  [-]  ?
+    in    Nearest   double                      [-]  ?
+    in    Furthest  double                      [-]  ?
+    in    Centre    DocumentPosition&           [-]  ?
+    in    Radius    double&                     [-]  ?
+    out   -         void                        [-]  ?
+
+F SnapSlice                                 | OcclusionProjection.cpp | 166-204 | - | - | ?
+    in    Centre        DocumentPosition&   [-]  ?
+    in    Radius        double&             [-]  ?
+    in    Facing        RotationQuaternion  [-]  ?
+    in    ExtentTexels  std::uint32_t       [-]  ?
+    out   -             void                [-]  ?
+
+F ExtentsOverlap                            | OcclusionProjection.cpp | 206-214 | - | - | ?
+    in    Left      const PartitionExtent&  [-]  ?
+    in    Position  DocumentPosition        [-]  ?
+    in    Reach     double                  [-]  ?
+    out   -         bool                    [-]  ?
+    by    Source/SpatialSubdivision.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PACKED INDEX
+//------------------------------------------------------------------------------------------------------------------------
+
+F OcclusionIndex::Derive                    | OcclusionProjection.cpp | 222-271 | - | - | ?
+    in    Reaching     const IlluminantIndex&       [-]  ?
+    in    Illuminants  const IlluminantPopulation&  [-]  ?
+    out   -            Outcome<bool>                [-]  ?
+
+F OcclusionIndex::SlotOf                    | OcclusionProjection.cpp | 273-297 | - | - | ?
+    in    PartitionOrdinal  std::uint32_t           [-]  ?
+    in    Illuminant        OccupantIdentity        [-]  ?
+    out   -                 Outcome<std::uint32_t>  [-]  ?
+
+F OcclusionIndex::IlluminantAt              | OcclusionProjection.cpp | 299-305 | - | - | ?
+    in    PartitionOrdinal  std::uint32_t              [-]  ?
+    in    Slot              std::uint32_t              [-]  ?
+    out   -                 Outcome<OccupantIdentity>  [-]  ?
+
+F OcclusionIndex::TruncatedCount            | OcclusionProjection.cpp | 307-310 | - | - | ?
+    in    PartitionOrdinal  std::uint32_t  [-]  ?
+    out   -                 std::uint32_t  [-]  ?
+
+F OcclusionIndex::TruncatedTotal            | OcclusionProjection.cpp | 312     | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F OcclusionIndex::SpannedCount              | OcclusionProjection.cpp | 314-317 | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE AMBIENT TERM
+//------------------------------------------------------------------------------------------------------------------------
+
+F AmbientOcclusionSequence::Declare         | OcclusionProjection.cpp | 323-343 | - | - | ?
+    in    Declaring  const AmbientOcclusionSpecification&  [-]  ?
+    out   -          Outcome<bool>                         [-]  ?
+
+F AmbientOcclusionSequence::Resolve         | OcclusionProjection.cpp | 345-359 | - | - | ?
+    in    DisplayAlong    std::uint32_t   [-]  ?
+    in    DisplayAcross   std::uint32_t   [-]  ?
+    in    ResolvedAlong   std::uint32_t&  [-]  ?
+    in    ResolvedAcross  std::uint32_t&  [-]  ?
+    out   -               Outcome<bool>   [-]  ?
+
+F AmbientOcclusionSequence::Declared        | OcclusionProjection.cpp | 361     | - | - | ?
+    out   -  const AmbientOcclusionSpecification&  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE RECORDING
+//------------------------------------------------------------------------------------------------------------------------
+
+F OcclusionProjectionSpace::Contribute      | OcclusionProjection.cpp | 367-385 | - | - | ?
+    in    Schedule  RenderSchedule&  [-]  ?
+    out   -         Outcome<bool>    [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE CAMERA
+//------------------------------------------------------------------------------------------------------------------------
+
+F OcclusionProjectionSpace::DeclareCamera   | OcclusionProjection.cpp | 391-443 | - | - | ?
+    in    Declaring  const CameraSpecification&  [-]  ?
+    out   -          Outcome<bool>               [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE INVALIDATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F OcclusionProjectionSpace::Located         | OcclusionProjection.cpp | 449-458 | - | - | ?
+    in    Illuminant  OccupantIdentity  [-]  ?
+    out   -           std::size_t       [-]  ?
+
+F OcclusionProjectionSpace::Invalidate      | OcclusionProjection.cpp | 460-539 | - | - | ?
+    in    Declared  InvalidationSubject  [-]  ?
+    in    Subject   OccupantIdentity     [-]  ?
+    in    Extent    PartitionExtent      [-]  ?
+    out   -         Outcome<bool>        [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE DERIVATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F OcclusionProjectionSpace::Derive          | OcclusionProjection.cpp | 545-768 | - | - | ?
+    in    Declared         const IlluminantSpecification&  [-]  ?
+    in    Illuminant       OccupantIdentity                [-]  ?
+    in    RotationOrdinal  std::uint64_t                   [-]  ?
+    out   -                Outcome<DerivedProjection>      [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE REBUILD
+//------------------------------------------------------------------------------------------------------------------------
+
+F OcclusionProjectionSpace::Rebuild         | OcclusionProjection.cpp | 774-836 | - | - | ?
+    in    Illuminants      const IlluminantPopulation&  [-]  ?
+    in    RotationOrdinal  std::uint64_t                [-]  ?
+    out   -                Outcome<bool>                [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE READS
+//------------------------------------------------------------------------------------------------------------------------
+
+F OcclusionProjectionSpace::Standing        | OcclusionProjection.cpp | 842-853 | - | - | ?
+    in    Illuminant  OccupantIdentity                   [-]  ?
+    out   -           Outcome<const DerivedProjection*>  [-]  ?
+
+F OcclusionProjectionSpace::RebuildOwed     | OcclusionProjection.cpp | 855-867 | - | - | ?
+    out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE REPORTING
+//------------------------------------------------------------------------------------------------------------------------
+
+F OcclusionProjectionSpace::Report          | OcclusionProjection.cpp | 873-905 | - | - | ?
+    in    Reporting  ReportSequence&  [-]  ?
+    in    Measured   MeasureIndex&    [-]  ?
+    in    Sampled    TickPoint        [-]  ?
+    out   -          void             [-]  ?
+
+F OcclusionProjectionSpace::Index           | OcclusionProjection.cpp | 907     | - | - | ?
+    out   -  OcclusionIndex&  [-]  ?
+
+F OcclusionProjectionSpace::Index           | OcclusionProjection.cpp | 908     | - | - | ?
+    out   -  const OcclusionIndex&  [-]  ?
+
+F OcclusionProjectionSpace::Ambient         | OcclusionProjection.cpp | 909     | - | - | ?
+    out   -  AmbientOcclusionSequence&  [-]  ?
+
+F OcclusionProjectionSpace::Ambient         | OcclusionProjection.cpp | 910     | - | - | ?
+    out   -  const AmbientOcclusionSequence&  [-]  ?
+
+F OcclusionProjectionSpace::Metrics         | OcclusionProjection.cpp | 911     | - | - | ?
+    out   -  const OcclusionMetrics&  [-]  ?
+
+F OcclusionProjectionSpace::ProjectionCount | OcclusionProjection.cpp | 913-916 | - | - | ?
+    out   -  std::uint32_t  [-]  ?

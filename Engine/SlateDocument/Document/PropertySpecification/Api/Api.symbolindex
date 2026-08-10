@@ -89,7 +89,7 @@ F Bounded                     | PropertySpecification.h | 117     | api,nonthrow
     in    Declared  const PropertyDeclaration&  [-]  the declaration
     in    Offered   const PropertyValue&        [-]  the value; returned bounded at Magnitude, Signed and Ordinal
     out   -         Outcome                     [-]  refuses when the measures disagree, because no bounding can reconcile that
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, Api/CurveSolver.h, (+28 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, (+36 more)
     note  🔴 Offered as a **separate** call rather than folded into the write. `10` §2.2 requires the write to
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -100,13 +100,13 @@ T PropertyIndex               | PropertySpecification.h | 127-193 | owning      
     has   DeclaredProperties  std::vector<PropertyDeclaration>  [-]  ?
     has   HeldValues          std::vector<PropertyValue>        [-]  ?
     has   ValueDeclared       std::vector<bool>                 [-]  ?
-    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    by    Api/ToolSequence.h, Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
     note  🔴 A write validates before it stores, and a refused write leaves the prior value standing. There is no
 
 F PropertyIndex::Declare      | PropertySpecification.h | 139     | api,nonthrowing               | 🚩 | Declares one property, replacing a declaration of the same identity. own default does not satisfy it bounds presents an invalid value on every occupant that never wrote it.
     in    Declaring  const PropertyDeclaration&  [-]  the declaration
     out   -          Outcome                     [-]  refuses with ContentUnsupported for an empty identity, and when the declaration's
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+26 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+34 more)
     note  🔴 The default is validated against its own declaration here. A declaration whose default is out of
 
 F PropertyIndex::Write        | PropertySpecification.h | 149     | api,nonthrowing               | 🚩 | Writes one property's value, validated first. Validate's refusal otherwise
@@ -119,16 +119,16 @@ F PropertyIndex::Write        | PropertySpecification.h | 149     | api,nonthrow
 F PropertyIndex::Resolve      | PropertySpecification.h | 155     | api,nonthrowing               | 🚩 | Reads one property's value, or its declared default where nothing has written it.
     in    Identity  const std::string&  [-]  ?
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
 
 F PropertyIndex::Declared     | PropertySpecification.h | 161     | api,nonthrowing               | 🚩 | One property's declaration, for whoever is presenting it.
     in    Identity  const std::string&  [-]  ?
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+39 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+49 more)
 
 F PropertyIndex::Declarations | PropertySpecification.h | 166     | api,nonallocating,nonthrowing | ✔️ | Every declaration, in declaration order.
     out   -  const std::vector<PropertyDeclaration>&  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Source/IlluminantPopulation.cpp, Source/MaterialSpecification.cpp, Source/PropertySpecification.cpp
+    by    Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/MaterialSpecification.cpp, Source/PropertySpecification.cpp
 
 F PropertyIndex::ValueWritten | PropertySpecification.h | 171     | api,nonthrowing               | 🚩 | Whether one property has been written since it was declared.
     in    Identity  const std::string&  [-]  ?
@@ -148,4 +148,4 @@ F PropertyIndex::ValuesValid  | PropertySpecification.h | 184     | api,nonalloc
 F PropertyIndex::Located      | PropertySpecification.h | 188     | -                             | -  | ?
     in    Identity  const std::string&  [-]  ?
     out   -         std::size_t         [-]  ?
-    by    Api/IlluminantPopulation.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, Api/SurfaceLayerSequence.h, Source/EnrollmentIndex.cpp, (+13 more)
+    by    Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, (+19 more)

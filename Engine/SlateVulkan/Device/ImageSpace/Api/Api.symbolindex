@@ -75,7 +75,7 @@ F ImageSpace::Construct    | ImageSpace.h | 99      | api,nonthrowing           
     in    Exchange      const VulkanExchange&  [-]  the created device; borrowed and outlives this component
     in    BackingSpace  ByteSpace&             [-]  where image bytes come from; borrowed and outlives this component
     out   -             Outcome                [-]  refuses with CapabilityAbsent when no device is active
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
 
 F ImageSpace::Claim        | ImageSpace.h | 110     | api,nonthrowing           | 🔴 | Claims one image of the declared shape, slices its bytes, and constructs its whole-image view. zero extent or a format the device declines for the declared intent vendor allocation nothing holds a reference to, and it is reclaimed only at device teardown.
     in    Declared  const ImageShape&  [-]  the shape; nothing about it is inferred from the format
@@ -97,7 +97,7 @@ F ImageSpace::Transition   | ImageSpace.h | 122     | api,nonthrowing           
 F ImageSpace::Standing     | ImageSpace.h | 128     | api,nonthrowing           | ✔️ | The current record for one claimed image, including the layout the last transition left it in.
     in    ImageOrdinal  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/OutlinerSequence.h, Api/PartitionClassifier.h, (+30 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/OcclusionProjection.h, (+39 more)
 
 F ImageSpace::LevelView    | ImageSpace.h | 138     | api,nonthrowing           | 🚩 | Constructs a view over one reduction level, for the chain `16` §2 walks a level at a time. holding a handle the vendor has already reused.
     in    ImageOrdinal  std::uint32_t  [-]  a claimed image whose LevelCount admits the level

@@ -34,7 +34,7 @@ F ChannelConsumed                               | MaterialSpecification.cpp | 65
     in    Selected  ReflectanceSelection  [-]  ?
     in    Channel   ChannelSubject        [-]  ?
     out   -         bool                  [-]  ?
-    by    Api/MaterialSpecification.h
+    by    Api/MaterialSpecification.h, Source/ReflectanceIntegrator.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE MATERIAL

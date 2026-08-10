@@ -36,7 +36,7 @@ T PromotionCost                       | PromotionScheduler.h | 39-43   | nonallo
     note  📝 A tile is rarely one or the other. A surface with painted layers beneath a placed decal charges
 
 V EvaluationUnitsPerEntry             | PromotionScheduler.h | 49      | -                             | -  | ?
-    by    Source/PromotionScheduler.cpp
+    by    Source/AnalyticProjection.cpp, Source/PromotionScheduler.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  WHAT A PROMOTION DID
@@ -149,7 +149,7 @@ F PromotionScheduler::Ordering        | PromotionScheduler.h | 186     | -      
 
 F PromotionScheduler::Declared        | PromotionScheduler.h | 187     | -                             | -  | ?
     out   -  const PromotionBudget&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+39 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+49 more)
 
 F PromotionScheduler::Remaining       | PromotionScheduler.h | 188     | -                             | -  | ?
     out   -  const PromotionBudget&  [-]  ?

@@ -1,0 +1,78 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Coalescing by cell, the cyclic rotation slots, and the readback that is exactly one depth behind.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/RequestQueue/Source
+%layer      SlateCompute
+%sources    1
+%symbols    13
+%annotated  0/13
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S RequestQueue.cpp | 125 lines | d7408280 | 13 sym | Coalescing by cell, the cyclic rotation slots, and the readback that is exactly one depth behind.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE ARRIVAL ORDER
+//------------------------------------------------------------------------------------------------------------------------
+
+F PageQueue::Admit             | RequestQueue.cpp | 15-37  | - | - | ?
+    in    Arriving  const CellDemand&  [-]  ?
+    out   -         void               [-]  ?
+
+F PageQueue::Arrivals          | RequestQueue.cpp | 39     | - | - | ?
+    out   -  const std::vector<CellDemand>&  [-]  ?
+
+F PageQueue::Reclaim           | RequestQueue.cpp | 41-45  | - | - | ?
+    out   -  void  [-]  ?
+
+F PageQueue::ArrivalCount      | RequestQueue.cpp | 47-50  | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F PageQueue::DiscardedCount    | RequestQueue.cpp | 52     | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE DEMANDS
+//------------------------------------------------------------------------------------------------------------------------
+
+F RequestQueue::Demand         | RequestQueue.cpp | 58-66  | - | - | ?
+    in    SurfaceOrdinal   std::uint32_t  [-]  ?
+    in    CellOrdinal      std::uint32_t  [-]  ?
+    in    RotationOrdinal  std::uint64_t  [-]  ?
+    out   -                void           [-]  ?
+
+F RequestQueue::SlotAt         | RequestQueue.cpp | 68-71  | - | - | ?
+    in    RotationOrdinal  std::uint64_t  [-]  ?
+    out   -                PageQueue&     [-]  ?
+
+F RequestQueue::SlotAt         | RequestQueue.cpp | 73-76  | - | - | ?
+    in    RotationOrdinal  std::uint64_t     [-]  ?
+    out   -                const PageQueue&  [-]  ?
+
+F RequestQueue::RecordedCount  | RequestQueue.cpp | 78     | - | - | ?
+    out   -  std::uint64_t  [-]  ?
+
+F RequestQueue::DiscardedCount | RequestQueue.cpp | 80-88  | - | - | ?
+    out   -  std::uint64_t  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE READBACK
+//------------------------------------------------------------------------------------------------------------------------
+
+F ReturnIndex::Drain           | RequestQueue.cpp | 94-120 | - | - | ?
+    in    Requesting       RequestQueue&              [-]  ?
+    in    RotationOrdinal  std::uint64_t              [-]  ?
+    out   -                Outcome<const PageQueue*>  [-]  ?
+
+F ReturnIndex::DrainedRotation | RequestQueue.cpp | 122    | - | - | ?
+    out   -  std::uint64_t  [-]  ?
+
+F ReturnIndex::DrainedCount    | RequestQueue.cpp | 123    | - | - | ?
+    out   -  std::uint64_t  [-]  ?

@@ -26,7 +26,7 @@ V AbsentTile                    | TileSpace.h | 23      | -                     
     by    Api/SurfaceTileSpace.h, Source/StrokeSpace.cpp, Source/SurfaceTileSpace.cpp
 
 V StoredTexelsPerEdge           | TileSpace.h | 31      | -                             | -  | Texels per edge a resident tile actually stores — the tile plus its apron on each side. brush impressions near a tile edge read valid neighbours without a residency test per texel. Four texels covers trilinear filtering plus the widest impression footprint at the levels that are stored. a defect in their brush rather than as a defect in residency.
-    by    Source/TileSpace.cpp
+    by    Source/AnalyticProjection.cpp, Source/TileSpace.cpp
     note  🔴 `20` §1: the apron duplicates the neighbouring tiles' border texels so that filtered sampling and
     note  ⚠️ Without it every seam in the domain is visible in the painted result, and the artist reads that as
 
@@ -51,7 +51,7 @@ F TileSpace::Construct          | TileSpace.h | 59      | api,nonthrowing       
     in    BytesPerTexel  std::uint32_t  [B]  the surface's channel set, as a width
     out   -              Outcome        [-]  refuses with ContentUnsupported for a ceiling or width of zero
     post  every slot is free; nothing is quarantined
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
     note  📝 The ceiling is the caller's, because it follows from how much extent `06` claimed and `06` §3
 
 F TileSpace::Claim              | TileSpace.h | 68      | api,nonthrowing               | ✔️ | Claims one free slot. must evict first, and exhaustion during ordinary painting is residency policy operating as designed. Reporting it would mean the register is never quiet.

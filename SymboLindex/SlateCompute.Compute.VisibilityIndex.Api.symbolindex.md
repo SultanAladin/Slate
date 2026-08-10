@@ -1,0 +1,856 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The hierarchical minimum `16` §2 ② reduces one rotation's depth into, and which level a projected extent is tested at.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/VisibilityIndex/Api
+%layer      SlateCompute
+%sources    6
+%symbols    103
+%annotated  70/103
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S DepthReduction.h      | 121 lines | 26174227 | 13 sym | The hierarchical minimum `16` §2 ② reduces one rotation's depth into, and which level a projected extent is tested at.
+S OcclusionScheduler.h  | 348 lines | 6c82fd43 | 24 sym | The device half of `16` §2 — the reduction chain, the two culling phases over it, and the indirect draw each one records.
+S PartitionClassifier.h | 178 lines | 2c038ed4 | 8 sym  | The three predicates `16` §2 ① rejects a partition by — the frustum, the orientation cone, and the extent it projects to.
+S PartitionStructure.h  | 199 lines | 0cb6c850 | 17 sym | Topology grown across adjacency into partitions of 64 to 128 triangles, each carrying an extent and an orientation cone.
+S VisibilityIndex.h     | 188 lines | dc9de8a2 | 16 sym | The mechanism and the target it writes — which partition and which triangle each pixel resolves to, and nothing further.
+S VisibilityRaster.h    | 354 lines | 8e6d5537 | 25 sym | The device residency one partitioning occupies, the program that draws it, and the recording that writes `16` §4's targets.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     WHY A MINIMUM
+//------------------------------------------------------------------------------------------------------------------------
+
+V ReductionLevelCeiling                    | DepthReduction.h      | 32      | -                                       | -  | ?
+    by    Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       ONE LEVEL
+//------------------------------------------------------------------------------------------------------------------------
+
+T ReductionLevel                           | DepthReduction.h      | 42-46   | nonallocating,nonthrowing               | -  | One reduction level's extent, in texels. onto it is then tested against a level that never saw the depth recorded there.
+    has   ExtentAlong   std::uint32_t  [-]  ?
+    has   ExtentAcross  std::uint32_t  [-]  ?
+    by    Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp
+    note  📝 Halving rounds **up**. A level rounded down drops the last odd column, and the partition projecting
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE LEVEL CHAIN
+//------------------------------------------------------------------------------------------------------------------------
+
+T DepthReduction                           | DepthReduction.h      | 61-115  | owning                                  | -  | The level chain one display extent reduces through, and the level a projected extent is tested at. many levels that extent carries, how wide each one is, and which of them a given projected extent resolves to. The ordinates live on the device and nowhere else. rotation's, reduced from what phase ② rasterised. `16` §2 requires both, and a single-phase test against last rotation's reduction alone rejects anything that became visible this rotation — which is every silhouette the camera just moved past.
+    has   Levels         std::vector<ReductionLevel>  [-]  ?
+    has   DerivedAlong   std::uint32_t                [-]  ?
+    has   DerivedAcross  std::uint32_t                [-]  ?
+    has   ChainStanding  bool                         [-]  ?
+    by    Api/OcclusionScheduler.h, Api/VisibilityIndex.h, Source/DepthReduction.cpp, Source/VisibilityIndex.cpp
+    note  🔴 This holds **no depth**. `16` §2 ② reduces into a device extent `06` claims; what is held here is how
+    note  🔴 The reduction tested in phase ① is the **previous** rotation's, and the one tested in phase ③ is this
+
+F DepthReduction::Construct                | DepthReduction.h      | 73      | api,nonthrowing                         | 🚩 | Derives the level chain for one display extent. above `DisplayExtentCeiling` or beyond `ReductionLevelCeiling` levels
+    in    DisplayAlong   std::uint32_t  [px]  the display extent this reduction covers
+    in    DisplayAcross  std::uint32_t  [px]  ?
+    out   -              Outcome        [-]   refuses with ContentUnsupported for an extent of zero and with ExtentExhausted
+    post  the chain runs from the display extent down to a single texel
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+46 more)
+
+F DepthReduction::Level                    | DepthReduction.h      | 79      | api,nonthrowing                         | ✔️ | One level's extent.
+    in    LevelOrdinal  std::uint32_t  [-]  ?
+    out   -             Outcome        [-]  refuses with ContentUnsupported outside the derived level count
+    by    Api/AnalyticProjection.h, Api/ImpressionSequence.h, Api/PromotionScheduler.h, Api/SurfaceTileSpace.h, Shader/OcclusionCulling.slang, Source/AnalyticProjection.cpp, (+6 more)
+
+F DepthReduction::LevelOfExtent            | DepthReduction.h      | 92      | api,nonthrowing                         | ✔️ | The coarsest level at which one projected extent is covered by a two-by-two reading. level is chosen so that a two-by-two reading spans the whole extent, which is what makes the test one constant-cost comparison per partition rather than a walk proportional to what it covers. projects to nothing is sub-pixel and `16` §3 routes it to the compute path; it is not an error.
+    in    ProjectedAlong   std::uint32_t  [px]  the extent the partition projects to, conservative outward
+    in    ProjectedAcross  std::uint32_t  [px]  ?
+    out   -                Outcome        [-]   refuses with ContentUnsupported while no chain is derived
+    by    Source/DepthReduction.cpp
+    note  📐 The occlusion test reads four texels and no more, whatever the partition's projected extent. The
+    note  ⚠️ A projected extent of zero resolves to the finest level rather than refusing. A partition that
+
+F DepthReduction::ChainTexels              | DepthReduction.h      | 97      | api,nonallocating,nonthrowing           | ✔️ | Texels the whole chain spans — what `06` claims for it.
+    out   -  std::uint64_t  [-]  ?
+    by    Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp
+
+F DepthReduction::Reclaim                  | DepthReduction.h      | 102     | api,nonthrowing                         | ✔️ | Discards the chain and the extent it was derived against.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, Api/EnrollmentIndex.h, (+49 more)
+
+F DepthReduction::LevelCount               | DepthReduction.h      | 104     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/ImageSpace.h, Api/OcclusionScheduler.h, Shader/OcclusionCulling.slang, Shader/OcclusionUniform.slang, Source/DepthReduction.cpp, Source/ImageSpace.cpp, (+2 more)
+
+F DepthReduction::DisplayAlong             | DepthReduction.h      | 105     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/OcclusionScheduler.h, Api/PartitionClassifier.h, Api/PointerIntersection.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Shader/OcclusionUniform.slang, (+7 more)
+
+F DepthReduction::DisplayAcross            | DepthReduction.h      | 106     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/OcclusionScheduler.h, Api/PartitionClassifier.h, Api/PointerIntersection.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Shader/OcclusionUniform.slang, (+7 more)
+
+F DepthReduction::ChainDerived             | DepthReduction.h      | 107     | -                                       | -  | ?
+    out   -  bool  [-]  ?
+    by    Api/OcclusionScheduler.h, Api/VisibilityIndex.h, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp, Source/VisibilityIndex.cpp
+
+F SLATE_DECLARES_PRECISION                 | DepthReduction.h      | 119     | -                                       | -  | ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                WHICH PHASE IS RECORDED
+//------------------------------------------------------------------------------------------------------------------------
+
+E CullingPhase                             | OcclusionScheduler.h  | 40-45   | contract                                | -  | Which of `16` §2's two culling phases a dispatch is recording. previous rotation left standing and ③ reads the one ② reduced from this rotation's depth; the arithmetic, the program and the spans are the same. That is why one entry point serves both and why this names the phase rather than declaring a second program for it. and then against this rotation's to admit what the camera has just moved into view — a single-phase arrangement rejects every silhouette the camera approached, which reads as geometry appearing late.
+    has   AgainstPrevious  CullingPhase  [-]  ?
+    has   AgainstCurrent   CullingPhase  [-]  ?
+    has   PhaseCount       CullingPhase  [-]  ?
+    by    Api/VisibilityRaster.h, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
+    note  🔴 The two differ in **which reduction they read** and in nothing else. ① reads the reduction the
+    note  🔴 Both are required. `16` §2 tests against last rotation's reduction to record a draw without waiting,
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE UPLOADED RECORDS
+//------------------------------------------------------------------------------------------------------------------------
+
+T UploadedReduction                        | OcclusionScheduler.h  | 60-70   | nonallocating,nonthrowing               | -  | Which level of the chain one reduction dispatch writes, as the device reads it. holds only while the finest level's extent is the display's, and that is a condition the record cannot see — the level chain is derived against an extent the display has since been resized past.
+    has   WrittenLevel      std::uint32_t  [-]  ?
+    has   WrittenOffset     std::uint32_t  [-]  ?
+    has   WrittenAlong      std::uint32_t  [-]  ?
+    has   WrittenAcross     std::uint32_t  [-]  ?
+    has   SourceOffset      std::uint32_t  [-]  ?
+    has   SourceAlong       std::uint32_t  [-]  ?
+    has   SourceAcross      std::uint32_t  [-]  ?
+    has   SourceFromTarget  std::uint32_t  [-]  ?
+    by    Source/OcclusionScheduler.cpp
+    note  🔴 `SourceFromTarget` is declared and never derived from `WrittenLevel` being nought. The derivation
+
+T UploadedOcclusion                        | OcclusionScheduler.h  | 74-84   | nonallocating,nonthrowing               | -  | What the occlusion dispatch reads of the chain and of the run it is testing.
+    has   ClassifiedCount  std::uint32_t  [-]  ?
+    has   LevelCount       std::uint32_t  [-]  ?
+    has   DisplayAlong     std::uint32_t  [-]  ?
+    has   DisplayAcross    std::uint32_t  [-]  ?
+    has   TriangleCeiling  std::uint32_t  [-]  ?
+    has   PhaseOrdinal     std::uint32_t  [-]  ?
+    has   Unoccupied1      std::uint32_t  [-]  ?
+    has   Unoccupied2      std::uint32_t  [-]  ?
+    by    Source/OcclusionScheduler.cpp
+
+T UploadedPosition                         | VisibilityRaster.h    | 45-50   | nonallocating,nonthrowing               | -  | One vertex position as the device reads it, in the occupant's own object space. forbids rebuilding a partitioning per rotation, and a view-relative span would have to be rewritten whenever the camera moved. The rebasing rides in the composed transform instead — `Compose` below.
+    has   PositionX  float  [-]  ?
+    has   PositionY  float  [-]  ?
+    has   PositionZ  float  [-]  ?
+    by    Source/VisibilityRaster.cpp
+    note  🔴 Object space and not rebased, which is what lets the residency persist across rotations. `16` §1
+
+T UploadedTriangle                         | VisibilityRaster.h    | 57-65   | nonallocating,nonthrowing               | -  | One drawn triangle as the device reads it — its three corners and the two ordinals a pixel carries. as `16` §4 splits the two components. `Enroll` lays the enrolments end to end, so the document-wide ordinal written here is the enrolment's base plus the partition's position within it.
+    has   CornerVertex0     std::uint32_t  [-]  ?
+    has   CornerVertex1     std::uint32_t  [-]  ?
+    has   CornerVertex2     std::uint32_t  [-]  ?
+    has   PartitionOrdinal  std::uint32_t  [-]  ?
+    has   TriangleOrdinal   std::uint32_t  [-]  ?
+    has   Unoccupied        std::uint32_t  [-]  ?
+    by    Source/VisibilityRaster.cpp
+    note  🔴 The triangle ordinal counts within its partition and the partition ordinal is document-wide, exactly
+
+T UploadedProjection                       | VisibilityRaster.h    | 71-79   | nonallocating,nonthrowing               | -  | The uniform block as the device reads it — the composed transform, the display extent and the drawn run. member. A matrix member would carry a row stride the two toolchains agree on under one layout rule.
+    has   ComposedCoefficient  float[16]      [-]  ?
+    has   DisplayAlong         std::uint32_t  [-]  ?
+    has   DisplayAcross        std::uint32_t  [-]  ?
+    has   EnrolmentBase        std::uint32_t  [-]  ?
+    has   DrawnPartitionCount  std::uint32_t  [-]  ?
+    has   SurvivingResolved    std::uint32_t  [-]  ?
+    by    Source/VisibilityRaster.cpp
+    note  📝 Every member is scalar and ordered widest-first, matching the shader's declaration member for
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 WHAT ONE RUN OCCUPIES
+//------------------------------------------------------------------------------------------------------------------------
+
+T CulledResidency                          | OcclusionScheduler.h  | 114-125 | owning                                  | -  | The spans one resident partitioning's culling occupies, claimed once and written per rotation. residency's **own** fanned run, and a run laid across two residencies would draw the second partitioning's triangles against the first's positions and the first's placement. The classification is produced on the host every rotation and the record is cleared to a corner count of nought every rotation; a device-local pair would need two staging spans and two transfers to carry the same twelve bytes a coherent write places directly. bound on how much can survive, and nothing about the cull supplies one — every partition surviving is the ordinary case for a camera looking at an unoccluded object. slot**. Phase ④ dispatches while phase ①'s draw is already recorded against ①'s record, so a shared record would have ④ append corners to a count ①'s draw is about to read — and the draw would issue corners belonging to partitions it was told were occluded. Recorded as the second structural closure. phases pass between them. Phase ① writes every partition's verdict and phase ④ reads it, so that ④ tests only what ① rejected on depth; without it ④ would re-admit every survivor and draw it twice.
+    has   ClassifiedSpans  std::vector<std::uint32_t>  [-]  ?
+    has   OcclusionSpans   std::vector<std::uint32_t>  [-]  ?
+    has   VerdictSpans     std::vector<std::uint32_t>  [-]  ?
+    has   RecordSpans      std::vector<std::uint32_t>  [-]  ?
+    has   SurvivingSpans   std::vector<std::uint32_t>  [-]  ?
+    has   ClaimOrdinals    std::vector<std::uint32_t>  [-]  ?
+    has   AmendedFor       std::vector<bool>           [-]  ?
+    has   TriangleCeiling  std::uint32_t               [-]  ?
+    has   PartitionCount   std::uint32_t               [-]  ?
+    by    Source/OcclusionScheduler.cpp
+    note  🔴 One of these per residency and never one shared. The compaction writes triangle ordinals into the
+    note  🔴 The classified span and the record are host-writable rather than device-local, and deliberately so.
+    note  ⚠️ The surviving run is sized to the residency's **whole** triangle count. A tighter claim would be a
+    note  🔴 The record, the surviving run and the descriptor claim are **per phase as well as per rotation
+    note  🔴 The verdict run is per rotation slot and **not** per phase, because it is the one thing the two
+
+F PhaseSlot                                | OcclusionScheduler.h  | 133-136 | api,nonallocating,nonthrowing           | ✔️ | Where one phase's per-rotation entry sits in a PhaseSlot-indexed run. without a stride. Nothing depends on the ordering beyond the two agreeing, which is why it is one routine rather than a repeated product.
+    in    Phase         CullingPhase             [-]  ?
+    in    RotationSlot  std::uint32_t            [-]  ?
+    out   -             constexpr std::uint32_t  [-]  ?
+    by    Source/OcclusionScheduler.cpp
+    note  📝 Phase-major rather than slot-major, so a phase's whole run is contiguous and a reclamation walks it
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE TWO-PHASE CULL
+//------------------------------------------------------------------------------------------------------------------------
+
+T OcclusionScheduler                       | OcclusionScheduler.h  | 156-341 | owning                                  | -  | `16` §2's device half — the hierarchical minimum, the two culling phases against it, and the compaction each one leaves for the indirect draw that follows. `DepthReduction` halves by rounding up and the vendor's level extents halve by rounding down, so the two disagree from the first odd ordinate; `08` §2 claims every target with one level; and the depth format admits no storage usage, so no dispatch could write into it. What is claimed here is therefore `DepthReduction::ChainTexels()` reals, with the level offsets carried beside them. recorded, so the recording order within one rotation is raster, then reduction, then phase ③ — and the transition into a sampled layout is `ImageSpace`'s, recorded here and issued nowhere else. projects to nothing survives this cull deliberately — it is sub-pixel and belongs to that route, and rejecting it here would drop geometry no other route then draws.
+    has   SpanEdge          SpanSpace*                    [-]  ?
+    has   ImageEdge         ImageSpace*                   [-]  ?
+    has   TargetEdge        const TargetSpace*            [-]  ?
+    has   ModuleEdge        ShaderCodec*                  [-]  ?
+    has   DescriptorEdge    DescriptorIndex*              [-]  ?
+    has   ProgramEdge       ProgramIndex*                 [-]  ?
+    has   Chain             DepthReduction                [-]  ?
+    has   Culled            std::vector<CulledResidency>  [-]  ?
+    has   LevelOffsets      std::vector<std::uint32_t>    [-]  ?
+    has   ReductionSpans    std::vector<std::uint32_t>    [-]  ?
+    has   ChainSpan         std::uint32_t                 [-]  ?
+    has   LevelExtentSpan   std::uint32_t                 [-]  ?
+    has   ReductionLayout   std::uint32_t                 [-]  ?
+    has   OcclusionLayout   std::uint32_t                 [-]  ?
+    has   ReductionClaims   std::vector<std::uint32_t>    [-]  ?
+    has   ReductionProgram  std::uint32_t                 [-]  ?
+    has   OcclusionProgram  std::uint32_t                 [-]  ?
+    has   ReductionModule   std::uint32_t                 [-]  ?
+    has   OcclusionModule   std::uint32_t                 [-]  ?
+    has   ChainEverReduced  bool                          [-]  ?
+    by    Api/VisibilityRaster.h, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
+    note  🔴 The chain is a **span** and not the depth image's own reduction levels, for three reasons that agree.
+    note  🔴 The depth target is **read** by the reduction and never written. `16` §2 ② reduces what the raster
+    note  ⚠️ 🚧 The compute raster of `16` §3 is a separate route against the same targets. A partition that
+
+F OcclusionScheduler::Construct            | OcclusionScheduler.h  | 176     | api,nonthrowing                         | 🔴 | Declares both layouts, resolves both modules, and constructs the two compute programs.
+    in    Spans        SpanSpace&          [-]  where every span is claimed; borrowed and outlives this component
+    in    Images       ImageSpace&         [-]  where the depth target's view is resolved; borrowed and outlives this component
+    in    Claimed      const TargetSpace&  [-]  the shared target set, for the depth target's ordinal; borrowed
+    in    Modules      ShaderCodec&        [-]  where both lowered streams are resolved; borrowed, non-const for the declaration
+    in    Descriptors  DescriptorIndex&    [-]  where both layouts are declared; borrowed and outlives this component
+    in    Programs     ProgramIndex&       [-]  where both programs are constructed; borrowed and outlives this component
+    out   -            Outcome             [-]  refuses with whatever the layouts, the modules or the programs refused
+    pre   🔴 the descriptor declaration is not yet fixed — `Declare` refuses once it is
+    post  both programs stand; no chain is derived and no residency is claimable
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+46 more)
+
+F OcclusionScheduler::Derive               | OcclusionScheduler.h  | 195     | api,nonthrowing                         | 🔴 | Derives the level chain against one display extent and claims the span that holds it. after a derivation reads a chain nothing has reduced into, and what an unwritten span holds is not declared — so the first rotation's phase ① is recorded as testing nothing rather than as testing against arbitrary depth. `ChainReduced` below is what distinguishes them.
+    in    DisplayAlong   std::uint32_t  [px]  the extent this rotation is recorded against
+    in    DisplayAcross  std::uint32_t  [px]  ?
+    out   -              Outcome        [-]   refuses with whatever `DepthReduction` or the claim refused
+    pre   🔴 the device is idle — every rotation reading the previous chain has completed
+    post  the chain span stands and the level offsets are held beside it
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/QuadratureIntegrator.h, Api/VisibilityRaster.h, (+8 more)
+    note  🔴 The chain is **not** cleared on derivation and does not need to be. Phase ① of the first rotation
+
+F OcclusionScheduler::Resolve              | OcclusionScheduler.h  | 209     | api,nonthrowing                         | 🔴 | Claims the culling spans for one resident partitioning. ContentUnsupported for a residency carrying no triangle the life of the residency, so a per-rotation write would rewrite one arrangement with itself — and would do it to a set the previous rotation's dispatch is still reading.
+    in    TriangleCeiling  std::uint32_t  [-]  triangles the residency's fan carries; the surviving run is sized to it
+    in    PartitionCount   std::uint32_t  [-]  partitions the enrolment declared
+    out   -                Outcome        [-]  the culling ordinal; refuses with whatever the claim refused and with
+    pre   🔴 `DescriptorIndex::Fix` delivered, and `Derive` has claimed the chain
+    post  the spans stand and are written every rotation until the topology changes
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    note  🔴 The descriptor set is written **here**, once per rotation slot. Every span it names stands for
+
+F OcclusionScheduler::Amend                | OcclusionScheduler.h  | 226     | api,nonthrowing                         | 🚩 | Writes one rotation's classification into a residency's span and clears its indirect record. with the declared partition count, and with whatever the write refused The atomic only ever advances a count, so a record carrying the previous rotation's would have this rotation's survivors appended to it — and the draw would issue corners nothing wrote. invocation and reads the standing to skip what the host already rejected, which keeps the classified run at the partition count and lets the entry point's dispatch extent be that same count.
+    in    CullingOrdinal  std::uint32_t                            [-]  an ordinal this component issued
+    in    RotationSlot    std::uint32_t                            [-]  below `RecordingRotationDepth`
+    in    Classified      const std::vector<ClassifiedPartition>&  [-]  one entry per partition, as `ClassifyPartition` produced them in order
+    out   -               Outcome                                  [-]  refuses with ContentUnsupported for an unclaimed ordinal or a run disagreeing
+    pre   🔴 no recording that reads this rotation slot's spans is still executing
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+20 more)
+    note  🔴 **Both** phases' records are cleared to a corner count of nought here and never on the device.
+    note  📝 Excluded partitions are carried across rather than dropped. The dispatch tests one partition per
+
+F OcclusionScheduler::Reduce               | OcclusionScheduler.h  | 246     | api,nonthrowing                         | 🔴 | Records ② — one dispatch per level, reducing the depth target into the chain. the descriptor write, the transition or the program resolution refused level above it, so a run recorded without them has every dispatch reading whatever its predecessor had written when the scheduling reached it — which is a reduction that is correct on one driver and differs by a level of depth on the next. else. `08` §4 keeps every layout transition in that one place; a barrier issued at this site would leave its record naming a layout the image is not in, and the next transition would then be issued from the wrong one.
+    in    Recorded      VkCommandBuffer  [-]  the open recording of this rotation slot
+    in    RotationSlot  std::uint32_t    [-]  below `RecordingRotationDepth`
+    out   -             Outcome          [-]  refuses with ContentUnsupported before the chain is derived, and with whatever
+    post  ChainReduced holds; phase ③ may be recorded against it
+    by    Source/OcclusionScheduler.cpp
+    note  🔴 One barrier **between** every pair of levels and not one before the run. Each level reads the
+    note  🔴 The depth target is transitioned into a shader-read layout here, through `ImageSpace` and nowhere
+
+F OcclusionScheduler::Cull                 | OcclusionScheduler.h  | 261     | api,nonthrowing                         | 🔴 | Records ① or ③ — one dispatch per residency, testing its partitions and compacting the survivors. written this rotation slot, and for `AgainstCurrent` before `Reduce` was recorded as a vertex-stage storage read. A draw recorded without it reads the record at whatever moment the scheduling reaches it, and the corner count it finds there is the count as of some earlier invocation — which draws a prefix of the survivors and reads as geometry culled at random.
+    in    Recorded      VkCommandBuffer  [-]  the open recording of this rotation slot
+    in    RotationSlot  std::uint32_t    [-]  below `RecordingRotationDepth`
+    in    Phase         CullingPhase     [-]  which reduction is being tested against
+    out   -             Outcome          [-]  refuses with ContentUnsupported before the chain is derived, before `Amend` has
+    post  every residency's record names the corners its survivors amount to
+    by    Source/OcclusionScheduler.cpp
+    note  🔴 The barrier after the dispatch declares the record as an **indirect** read and the surviving run
+
+F OcclusionScheduler::RecordOf             | OcclusionScheduler.h  | 271     | api,nonthrowing                         | ✔️ | The record and the surviving run one residency's draw is issued from. unclaimed ordinal or an excessive rotation slot
+    in    CullingOrdinal  std::uint32_t  [-]  an ordinal this component issued
+    in    RotationSlot    std::uint32_t  [-]  below `RecordingRotationDepth`
+    in    Phase           CullingPhase   [-]  which of the two phases the draw follows
+    out   -               Outcome        [-]  the indirect record's vendor span; refuses with ContentUnsupported for an
+    by    Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
+
+F OcclusionScheduler::SurvivingOf          | OcclusionScheduler.h  | 279     | api,nonthrowing                         | ✔️ | The compacted triangle ordinals one residency's vertex stage resolves through.
+    in    CullingOrdinal  std::uint32_t  [-]  ?
+    in    RotationSlot    std::uint32_t  [-]  ?
+    in    Phase           CullingPhase   [-]  ?
+    out   -               Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    by    Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
+
+F OcclusionScheduler::Reclaim              | OcclusionScheduler.h  | 287     | api,nonthrowing                         | 🚩 | Releases every culling span and the chain.
+    out   -  void  [-]  ?
+    pre   the device is idle
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+
+F OcclusionScheduler::CulledCount          | OcclusionScheduler.h  | 289     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Source/OcclusionScheduler.cpp
+
+F OcclusionScheduler::LevelCount           | OcclusionScheduler.h  | 290     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/DepthReduction.h, Api/ImageSpace.h, Shader/OcclusionCulling.slang, Shader/OcclusionUniform.slang, Source/DepthReduction.cpp, Source/ImageSpace.cpp, (+2 more)
+
+F OcclusionScheduler::ChainDerived         | OcclusionScheduler.h  | 291     | -                                       | -  | ?
+    out   -  bool  [-]  ?
+    by    Api/DepthReduction.h, Api/VisibilityIndex.h, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp, Source/VisibilityIndex.cpp
+
+F OcclusionScheduler::ChainReduced         | OcclusionScheduler.h  | 292     | -                                       | -  | ?
+    out   -  bool  [-]  ?
+    by    Source/OcclusionScheduler.cpp
+
+F OcclusionScheduler::ProgramsStanding     | OcclusionScheduler.h  | 293     | -                                       | -  | ?
+    out   -  bool  [-]  ?
+    by    Source/OcclusionScheduler.cpp
+
+F OcclusionScheduler::Order                | OcclusionScheduler.h  | 303     | -                                       | -  | Records the barrier that orders one storage write against the read that follows it. declares the ordering as the caller's, since only the caller knows which stage reads the bytes.
+    in    Recorded    VkCommandBuffer       [-]  the recording being written into
+    in    ReadStages  VkPipelineStageFlags  [-]  which stages read what was just written, as the vendor spells them
+    in    ReadAccess  VkAccessFlags         [-]  what those stages read it as
+    out   -           static void           [-]  ?
+    by    Shader/MultiScatterSurface.slang, Source/AtmosphereIntegrator.cpp, Source/OcclusionScheduler.cpp, Source/QuadratureIntegrator.cpp, Source/SpatialSubdivision.cpp
+    note  📝 Spelled here rather than reached for because `SpanSpace` holds no barrier at all — `Transfer`
+
+F OcclusionScheduler::ReduceLevel          | OcclusionScheduler.h  | 312     | -                                       | -  | Writes one level's reduction record and records the dispatch that reduces into it.
+    in    Recorded      VkCommandBuffer  [-]  the recording being written into
+    in    RotationSlot  std::uint32_t    [-]  below `RecordingRotationDepth`
+    in    LevelOrdinal  std::uint32_t    [-]  the level being written; nought reads the depth target
+    out   -             Outcome          [-]  refuses with whatever the write or the resolution refused
+    by    Source/OcclusionScheduler.cpp
+
+F OcclusionScheduler::Abandon              | OcclusionScheduler.h  | 317     | -                                       | -  | Releases every span one part-built residency claimed, so a refusal retains nothing.
+    in    Abandoned  CulledResidency&  [-]  ?
+    out   -          void              [-]  ?
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, Source/CameraProjection.cpp, (+7 more)
+
+F SLATE_DECLARES_PRECISION                 | OcclusionScheduler.h  | 346     | -                                       | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  WHAT A TEST ANSWERS
+//------------------------------------------------------------------------------------------------------------------------
+
+E PartitionStanding                        | PartitionClassifier.h | 31-38   | contract                                | -  | Why one partition is drawn or is not, at the granularity the two phases distinguish. carries presence with a reason; a partition outside the frustum is the cull working rather than anything declining, and spelling it as a `Refusal` would put the ordinary case on the error path. change between the two phases — neither predicate reads depth — so re-testing them would walk the same partitions to the same answer and pay for it twice.
+    has   Admitted             PartitionStanding  [-]  ?
+    has   FrustumExcluded      PartitionStanding  [-]  ?
+    has   OrientationExcluded  PartitionStanding  [-]  ?
+    has   DepthOccluded        PartitionStanding  [-]  ?
+    has   StandingCount        PartitionStanding  [-]  ?
+    by    Api/ChartPartition.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp
+    note  🔴 A rejection is an **answer**, not a refusal. `Outcome` carries absence with a reason and this
+    note  ⚠️ `DepthOccluded` is the only standing `16` §2 ③ re-tests. Frustum and orientation rejections do not
+
+T ClassifiedPartition                      | PartitionClassifier.h | 56-67   | nonallocating,nonthrowing               | -  | What one classified partition carries into the phase that draws it. test would project the same eight corners a second time. It is in display texels and rounded **outward**, so the level `DepthReduction::LevelOfExtent` selects covers at least what is projected. from the span and the four texels are read at the origin; a test carrying the span alone knows how coarse a level to read and not where in it to read, and reading at nought instead compares every partition against the depth recorded in the display's first corner. one and far is zero. The occlusion comparison is then `NearestDepth > ReducedDepth`, and reading the least ordinate here would reject a partition whose front face is in front of everything recorded. indirect draw reads corners by a running ordinal, so three corners of a partition are three corners of its first triangle and the other hundred-odd are unreachable; the survivor writes its own run out instead, and it cannot do that without knowing where in the fan the run begins and how far it goes.
+    has   PartitionOrdinal  std::uint32_t      [-]  ?
+    has   Standing          PartitionStanding  [-]  ?
+    has   FirstTriangle     std::uint32_t      [-]  ?
+    has   TriangleCount     std::uint32_t      [-]  ?
+    has   OriginAlong       std::uint32_t      [-]  ?
+    has   OriginAcross      std::uint32_t      [-]  ?
+    has   ProjectedAlong    std::uint32_t      [-]  ?
+    has   ProjectedAcross   std::uint32_t      [-]  ?
+    has   NearestDepth      float              [-]  ?
+    by    Api/OcclusionScheduler.h, Source/OcclusionScheduler.cpp, Source/PartitionClassifier.cpp
+    note  📝 The projected extent is carried because the occlusion test needs it and re-deriving it inside that
+    note  🔴 The **origin** is carried beside the span, and both are needed rather than one. The level is chosen
+    note  🔴 `NearestDepth` is the partition's nearest reversed-depth ordinate — its **greatest**, since near is
+    note  🔴 The **triangle run** is carried because the occlusion test compacts triangles and not partitions. An
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE PROJECTED EXTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F ProjectPartitionExtent                   | PartitionClassifier.h | 98      | api,nonallocating,nonthrowing           | ✔️ | Projects one object-space extent through a composed transform into the display texels it covers. extent projects to nothing and reports a zero extent, read as sub-pixel plane, because a plane's normal picks the extreme corner in advance; a projective transform has no such normal and the corner that lands furthest along the display is not the corner furthest along any axis of object space. ordinate is at or below zero, and dividing by it reflects the corner to the opposite side of the display — which produces an extent that spans the whole display and a cull that rejects nothing, or one that spans nothing and rejects a partition the camera is looking straight at. is deliberate: a partition straddling the nearest plane covers an unbounded region of the display in the limit, and no finite extent derived from the corners in front of the plane bounds it.
+    in    Composed       const ProjectedTransform&  [-]   the composition `ComposeVisibilityTransform` produced, column-major
+    in    Bounded        const ConditionedExtent&   [mm]  the partition's extent, in the occupant's own object space
+    in    DisplayAlong   std::uint32_t              [px]  the extent this rotation is recorded against
+    in    DisplayAcross  std::uint32_t              [px]  ?
+    out   -              Projected                  [-]   the covered texels, where they begin, and the nearest ordinate; a wholly-behind
+    by    Source/PartitionClassifier.cpp
+    note  📐 All eight corners, not two. The extremal-corner shortcut `FrustumSpace::Classify` uses holds for a
+    note  🔴 A corner behind the nearest plane is **skipped** rather than divided through. Its homogeneous
+    note  ⚠️ An extent with any corner behind the plane reports the **whole display**. It is conservative and it
+
+F SLATE_DECLARES_PRECISION                 | PartitionClassifier.h | 105     | -                                       | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE ORIENTATION CONE
+//------------------------------------------------------------------------------------------------------------------------
+
+F OrientationRejected                      | PartitionClassifier.h | 127     | api,nonallocating,nonthrowing           | ✔️ | Whether every face of one partition turns away from the camera. is where a normal `θ` from the axis first turns away; `φ` is the half-angle the extent's bounding sphere subtends from the camera, which widens the test by every direction the partition is seen along. Testing the centre direction alone rejects the near edge of a partition the camera is beside. than a hemisphere and no cone excludes them, so `sin φ` is undefined rather than large — and the formula, evaluated anyway, would report the partition back-facing from inside it. placed at the identity. 🚧 The cone is rotated by the placement when `56` supplies one.
+    in    Turned      const OrientationCone&    [-]   the partition's cone; a cone that was never derived rejects nothing
+    in    Bounded     const ConditionedExtent&  [mm]  the partition's extent, in document space
+    in    ViewOrigin  DocumentPosition          [mm]  the camera's own position
+    out   -           Rejected                  [-]   true only when no face of the partition can face the camera
+    by    Source/PartitionClassifier.cpp
+    note  📐 The cone rejects when `axis · direction > sin θ + sin φ`. `θ` is the cone's half-angle, so `sin θ`
+    note  🔴 A camera inside the bounding sphere rejects nothing. The directions to the partition then span more
+    note  ⚠️ Object space and document space are taken as coincident here, which holds while every occupant is
+
+F SLATE_DECLARES_PRECISION                 | PartitionClassifier.h | 133     | -                                       | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+V AbsentPartition                          | PartitionStructure.h  | 28      | -                                       | -  | ?
+    by    Api/VisibilityIndex.h, Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp, Source/VisibilityRaster.cpp
+
+T OrientationCone                          | PartitionStructure.h  | 38-43   | nonallocating,nonthrowing               | -  | The cone every face orientation of one partition falls inside. rather than with one per triangle. The axis is the normalised sum of the face orientations and the aperture is the widest departure from it any single face takes. from which every face is back-facing — and `ConeDerived` is false there. Reporting a cone anyway is how a partition is rejected while the artist is looking straight at part of it.
+    has   Axis            SurfaceDirection  [-]  ?
+    has   ApertureCosine  float             [-]  ?
+    has   ConeDerived     bool              [-]  ?
+    by    Api/PartitionClassifier.h, Source/PartitionClassifier.cpp, Source/PartitionStructure.cpp
+    note  📐 `16` §2 ① rejects a partition whose every face points away from the camera with one dot product,
+    note  🔴 A partition whose orientations span more than a hemisphere has no such cone — no direction exists
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE FIRST PHASE
+//------------------------------------------------------------------------------------------------------------------------
+
+F ClassifyPartition                        | PartitionClassifier.h | 165     | api,nonallocating,nonthrowing           | ✔️ | Classifies one partition against the frustum, its own cone, and the extent it projects to. and nowhere else, so a host answer would need a readback the rotation cannot wait for. What this produces is the candidate set that reaches that test, and `DepthOccluded` is written by it rather than by anything in this file. `FirstFace` and the fan is what the device draws. The two counts differ wherever a face has more than three corners — `10` admits any corner count — so the run's beginning is the prefix sum of the preceding partitions' triangle counts and the caller walking them in order is what holds it. the producer leaves blank is one a caller eventually forgets, and every survivor of that run then compacts the triangle ordinals of partition nought — which draws one partition's geometry against every other partition's place in the fan. is second and the projection last, since the projection is the only one that touches eight corners.
+    in    Partitioned       const MicroSurfacePartition&  [-]   the partition, as the derivation grew it
+    in    Viewing           const ViewProjection&         [-]   what `46` derived for this rotation
+    in    Bounding          const FrustumSpace&           [-]   the frustum `46` extracted from the same projection
+    in    Composed          const ProjectedTransform&     [-]   the composition this occupant is drawn with
+    in    PartitionOrdinal  std::uint32_t                 [-]   the partition's position within the enrolment
+    in    FirstTriangle     std::uint32_t                 [-]   where this partition's run begins in the residency's fanned triangles
+    in    DisplayAlong      std::uint32_t                 [px]  the extent this rotation is recorded against
+    in    DisplayAcross     std::uint32_t                 [px]  ?
+    out   -                 Classified                    [-]   the standing and, when admitted, the projected extent the occlusion test reads
+    by    Source/PartitionClassifier.cpp
+    note  🔴 The **depth** predicate is not here. `16` §2 tests it against a reduction that lives on the device
+    note  🔴 `FirstTriangle` is supplied rather than read off the partition, because a partition carries
+    note  🔴 The ordinal is **supplied and written here**, not left for the caller to fill afterwards. A field
+    note  📝 The frustum is asked first because it is the cheapest of the three and rejects the most. The cone
+
+F SLATE_DECLARES_PRECISION                 | PartitionClassifier.h | 176     | -                                       | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     ONE PARTITION
+//------------------------------------------------------------------------------------------------------------------------
+
+T MicroSurfacePartition                    | PartitionStructure.h  | 62-70   | nonallocating,nonthrowing               | -  | One `MicroSurfacePartition` — the unit `16` culls, rasterises and names in every pixel it writes. §2 ① and `38`'s opening rule both forbid renumbering the artist's faces, so the partitioning derives an ordering beside them instead: a partition's faces are contiguous in the ordering the device draws from while every ordinal inside that ordering still means what the imported file meant by it. stops where the enrollment changes; a partition spanning two would resolve to whichever was recorded first and shade half its own pixels with the wrong reflectance. end of a connected piece, where the growth front exhausts before the floor is reached. That partition is closed short rather than merged across a boundary — merging is what makes an extent enclose two pieces that are nowhere near each other, and the cull then rejects neither.
+    has   Extent           ConditionedExtent  [-]  ?
+    has   Orientation      OrientationCone    [-]  ?
+    has   FirstFace        std::uint32_t      [-]  ?
+    has   FaceCount        std::uint32_t      [-]  ?
+    has   TriangleCount    std::uint32_t      [-]  ?
+    has   MaterialOrdinal  std::uint32_t      [-]  ?
+    by    Api/PartitionClassifier.h, Source/PartitionClassifier.cpp, Source/PartitionStructure.cpp, Source/VisibilityRaster.cpp
+    note  🔴 `FirstFace` addresses `DerivedPartitioning::OrderedFaces` and **never** the imported topology. `50`
+    note  🔴 One material per partition. `42`'s `ResolvedPartition` carries a single material ordinal, so growth
+    note  ⚠️ `TriangleCount` sits between `PartitionTriangleFloor` and `PartitionTriangleCeiling` except at the
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                THE DERIVED PARTITIONING
+//------------------------------------------------------------------------------------------------------------------------
+
+T PartitioningMetrics                      | PartitionStructure.h  | 78-87   | nonallocating,nonthrowing               | -  | What the derivation reports through `86` — every measure a partitioning can be judged by.
+    has   PartitionCount         std::uint32_t  [-]  ?
+    has   ShortPartitionCount    std::uint32_t  [-]  ?
+    has   ConelessCount          std::uint32_t  [-]  ?
+    has   BoundaryRefusalCount   std::uint32_t  [-]  ?
+    has   ExcludedFaceCount      std::uint32_t  [-]  ?
+    has   LeastTriangleCount     std::uint32_t  [-]  ?
+    has   GreatestTriangleCount  std::uint32_t  [-]  ?
+
+T DerivedPartitioning                      | PartitionStructure.h  | 96-102  | owning                                  | -  | A whole derived partitioning, as a value that crosses back to the tick. sealed topology and touches no document state at all, and the standing partitioning stands until `PartitionStructure::Adopt` takes this one. Swapping mid-derivation leaves `16` naming partitions in pixels that the resolution no longer resolves, and the artist meets that as a surface shading as some other surface for one rotation.
+    has   Partitions         std::vector<MicroSurfacePartition>  [-]  ?
+    has   OrderedFaces       std::vector<std::uint32_t>          [-]  ?
+    has   Metrics            PartitioningMetrics                 [-]  ?
+    has   DescribedRevision  std::uint64_t                       [-]  ?
+    by    Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp, Source/VisibilityRaster.cpp
+    note  🔴 A value rather than a mutation, for the reason `68` §7 gives `24`: this runs off the tick against a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE DERIVATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F DerivePartitioning                       | PartitionStructure.h  | 128     | api,nonthrowing                         | 🔴 | Grows one sealed topology into partitions across its own adjacency. conditioning describes another revision, and with ExtentExhausted where the partition count would reach `AbsentPartition` and stop being an ordinal re-declared here, because a second spelling of one number is `00` §2's case whichever unit holds it. imported face ordering, because a contiguous run of face ordinals is spatially coherent only in files that happen to have been authored that way — and one that was not produces extents that each enclose the whole object, at which point the cull rejects nothing and the whole mechanism costs without paying. refuses at a boundary and at a non-manifold edge rather than choosing one of several faces, so the front simply does not cross there and the count is reported through `PartitioningMetrics`. no orientation, and admitting them would spend a partition's budget on geometry that rasterises to nothing.
+    in    Imported     const TopologyStructure&     [-]  the sealed topology; immutable for the whole run
+    in    Conditioned  const TopologyConditioning&  [-]  its conditioning, at the same revision
+    out   -            Outcome                      [-]  refuses with HostDenied for an unsealed topology, with ContentUnsupported when the
+    by    Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp
+    note  ⚠️ `42`'s own resolution ceiling is refused by `42`, at `PartitionStructure::Declare`. It is not
+    note  🔴 `16` §1 and `16` §6's first two gates. Growth is across `38`'s adjacency rather than along the
+    note  🔴 An adjacency refusal is a **growth-front terminator and not an error**. `38`'s `AdjacentCorner`
+    note  📝 Faces enrolled as zero-extent are stepped over rather than admitted. They contribute no triangle and
+
+F SLATE_DECLARES_PRECISION                 | PartitionStructure.h  | 133     | -                                       | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                               THE STANDING PARTITIONING
+//------------------------------------------------------------------------------------------------------------------------
+
+T PartitionStructure                       | PartitionStructure.h  | 144-197 | owning                                  | -  | The partitioning one occupant's topology currently stands at, and the identities `42` issued against it. occupant move and a paint stroke re-derive nothing here — the extents and the cone are in object space and none of the three touches object space.
+    has   StandingPartitioning  DerivedPartitioning             [-]  ?
+    has   Identities            std::vector<PartitionIdentity>  [-]  ?
+    has   AdoptedRevision       std::uint64_t                   [-]  ?
+    has   PartitioningAdopted   bool                            [-]  ?
+    by    Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp, Source/VisibilityRaster.cpp
+    note  🔴 `16` §1: derived once when the topology changes and **never** per rotation. A camera move, an
+
+F PartitionStructure::Adopt                | PartitionStructure.h  | 154     | api,nonthrowing                         | 🚩 | Adopts a derived partitioning on the tick, advancing the revision.
+    in    Arriving  const DerivedPartitioning&  [-]  as DerivePartitioning produced it
+    out   -         Outcome                     [-]  refuses with ContentUnsupported for a partitioning carrying no partition
+    post  the revision advanced; every identity issued against the prior one is discoverably stale
+    by    Api/ChartPartition.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp
+
+F PartitionStructure::Declare              | PartitionStructure.h  | 166     | api,nonthrowing                         | 🔴 | Declares every standing partition into `42`'s resolution, retaining the identities it issues. resolution, because a partition identity is not an occupant identity and nothing downstream can recover one from the other. This declaration is the only place the two are related.
+    in    Resolutions  PartitionResolutionIndex&  [-]  the document's resolution; rebuilt by `42` and written here
+    in    Occupant     OccupantIdentity           [-]  who the standing partitioning belongs to
+    out   -            Outcome                    [-]  refuses with whatever the resolution refused, having declared nothing further
+    post  Identities carries one identity per standing partition, in partition ordinal order
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+30 more)
+    note  🔴 `16` §4.1 and `00` §10's conflict 15: the occupant is supplied here and written into the
+
+F PartitionStructure::Standing             | PartitionStructure.h  | 172     | api,nonallocating,nonthrowing           | ✔️ | The standing partitioning.
+    out   -  const DerivedPartitioning&  [-]  ?
+    pre   PartitioningStanding holds
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/ImageSpace.h, (+36 more)
+
+F PartitionStructure::IdentityOf           | PartitionStructure.h  | 179     | api,nonthrowing                         | ✔️ | The identity `42` issued for one standing partition. IdentityStale when nothing has been declared since the last adoption
+    in    PartitionOrdinal  std::uint32_t  [-]  ?
+    out   -                 Outcome        [-]  refuses with ContentUnsupported outside the standing partition count, and with
+    by    Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp
+
+F PartitionStructure::Reclaim              | PartitionStructure.h  | 184     | api,nonthrowing                         | 🚩 | Discards the standing partitioning and every identity taken against it.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+
+F PartitionStructure::PartitioningStanding | PartitionStructure.h  | 186     | -                                       | -  | ?
+    out   -  bool  [-]  ?
+    by    Source/PartitionStructure.cpp, Source/VisibilityRaster.cpp
+
+F PartitionStructure::Revision             | PartitionStructure.h  | 187     | -                                       | -  | ?
+    out   -  std::uint64_t  [-]  ?
+    by    Api/ChartPartition.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/SeamSpecification.h, Api/TopologyStructure.h, (+13 more)
+
+F PartitionStructure::DescribedRevision    | PartitionStructure.h  | 188     | -                                       | -  | ?
+    out   -  std::uint64_t  [-]  ?
+    by    Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, Api/TopologyConditioning.h, Source/ChartPartition.cpp, (+6 more)
+
+F PartitionStructure::PartitionCount       | PartitionStructure.h  | 189     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/OcclusionScheduler.h, Api/VisibilityRaster.h, Source/OcclusionScheduler.cpp, Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp, Source/VisibilityRaster.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  WHAT A PIXEL CARRIES
+//------------------------------------------------------------------------------------------------------------------------
+
+T VisibilityWord                           | VisibilityIndex.h     | 36-40   | nonallocating,nonthrowing               | -  | What one pixel of the visibility target holds — the two unsigned components of `08` §2's R32G32. tangent basis, no domain coordinate and no reflectance. Everything else is reconstructed at the pixel from the face this word names, which is the whole reason the target is two integers and not a sheaf of surfaces the display extent is multiplied by. ordinals and the pair would leave no component for the triangle. `Resolve` performs the second hop, and it is an indexed lookup on both — `16` §6's gate that nothing searches for what a pixel names. rather than a hole downstream shading has to test for.
+    has   PartitionOrdinal  std::uint32_t  [-]  ?
+    has   TriangleOrdinal   std::uint32_t  [-]  ?
+    by    Source/VisibilityIndex.cpp
+    note  🔴 `16` §4: depth, identity, coverage and motion, and **no attribute whatsoever**. No perpendicular, no
+    note  🔴 The partition ordinal is written rather than the identity, because a `PartitionIdentity` is two
+    note  ⚠️ `AbsentPartition` in the first component is an unoccupied pixel. It is a class `16` §5 dispatches
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      WHICH RASTER
+//------------------------------------------------------------------------------------------------------------------------
+
+E RasterRoute                              | VisibilityIndex.h     | 48-52   | contract                                | -  | Which of `16` §3's two rasterisers a partition is routed to.
+    has   HardwareRaster  RasterRoute  [-]  ?
+    has   ComputeRaster   RasterRoute  [-]  ?
+
+V ProjectedExtentThreshold                 | VisibilityIndex.h     | 60      | -                                       | -  | ?
+
+F RouteOfExtent                            | VisibilityIndex.h     | 70-75   | api,constexpr,nonallocating,nonthrowing | ✔️ | Which rasteriser one projected extent is routed to. sliver is exactly the shape hardware rasterisation shades a whole quad per covered pixel for.
+    in    ProjectedAlong   std::uint32_t  [px]  the extent the partition projects to, conservative outward
+    in    ProjectedAcross  std::uint32_t  [px]  ?
+    out   -                Route          [-]   the compute path below the threshold on **either** ordinate
+    note  📐 Either ordinate and not both. A partition projecting to two pixels by two hundred is a sliver, and a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE MECHANISM
+//------------------------------------------------------------------------------------------------------------------------
+
+T VisibilityIndex                          | VisibilityIndex.h     | 94-182  | owning                                  | -  | Every enrolled topology's partitioning, the reduction the culling tests against, and the recording that writes the four targets `16` §4 declares. usable — `Buffer` is banned — and the two readings never collide because the target is reached through `SharedTarget::VisibilityIndex` and the mechanism through this component. ③ against this one's, but the level chain derived from a display extent is the same chain both times — only the ordinates recorded into it differ, and those live on the device. for every partition when the 64-bit atomic capability was not negotiated, and the recording site reads the ordering it was given rather than testing a capability it would then have to test identically at four further sites.
+    has   Enrolments        std::vector<std::unique_ptr<PartitionStructure>>  [-]  ?
+    has   DeclaredIdentity  std::vector<PartitionIdentity>                    [-]  ?
+    has   Reduced           DepthReduction                                    [-]  ?
+    has   ResolvedRevision  std::uint64_t                                     [-]  ?
+    by    Api/RenderSchedule.h, Source/ConsoleHost.cpp, Source/VisibilityIndex.cpp, Source/VisibilityRaster.cpp
+    note  🔴 `VisibilityIndex` names both the mechanism and the target it writes. "Visibility buffer" is not
+    note  🔴 One reduction and not two. `16` §2 tests phase ① against the previous rotation's reduction and phase
+    note  🔴 The degradation is **declared**, not branched. `08` §5's substitution names hardware rasterisation
+
+F VisibilityIndex::Construct               | VisibilityIndex.h     | 111     | api,nonthrowing                         | 🚩 | Derives the reduction chain for one display extent. are in object space and `16` §1 forbids rebuilding them per rotation, let alone per resize.
+    in    DisplayAlong   std::uint32_t  [px]  the display extent this rotation is recorded against
+    in    DisplayAcross  std::uint32_t  [px]  ?
+    out   -              Outcome        [-]   refuses with whatever `DepthReduction` refused
+    post  the chain stands; the enrolled partitionings are untouched
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+46 more)
+    note  🔴 A display extent change re-derives the chain and re-derives **nothing else**. The partitionings
+
+F VisibilityIndex::Contribute              | VisibilityIndex.h     | 122     | api,nonthrowing                         | ✔️ | Contributes `08` §3 ②'s recording — the one that produces all four targets. writes depth here: the previous rotation's projection of this same triangle is in hand at exactly this point and is recoverable nowhere downstream. A second recording deriving it from depth alone recovers camera motion and never occupant motion.
+    in    Schedule  RenderSchedule&  [-]  the schedule being assembled at bring-up
+    out   -         Outcome          [-]  refuses with whatever the schedule refused
+    by    Api/RenderSchedule.h, Source/ConsoleHost.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp
+    note  🔴 Four targets produced by one recording, because `16` §4.2 writes motion here for the reason it
+
+F VisibilityIndex::Enroll                  | VisibilityIndex.h     | 135     | api,nonthrowing                         | 🔴 | Partitions one sealed topology, adopts the result, and declares it into `42`'s resolution. the derivation is the expensive half and it reads nothing but its arguments.
+    in    Occupant     OccupantIdentity             [-]  who the topology belongs to
+    in    Imported     const TopologyStructure&     [-]  the sealed topology
+    in    Conditioned  const TopologyConditioning&  [-]  its conditioning, at the same revision
+    in    Resolutions  PartitionResolutionIndex&    [-]  the document's resolution; the identities are issued into it
+    out   -            Outcome                      [-]  the enrolment ordinal, or whatever the derivation or the resolution refused
+    post  the standing ordinals run contiguously and every one of them resolves
+    by    Source/VisibilityIndex.cpp
+    note  🔴 `16` §1: called when the topology changes and at no other time. It is `34` `Background` work —
+
+F VisibilityIndex::Resolve                 | VisibilityIndex.h     | 150     | api,nonthrowing                         | ✔️ | What one pixel resolves to — the occupant, the material and the face range behind it. declared count, and with IdentityStale when the resolution was rebuilt since and the identity indexes `42`'s resolution. `16` §6's gate is that every consumer reads that one resolution rather than deriving its own.
+    in    Written      VisibilityWord                   [-]  the word read back from the target
+    in    Resolutions  const PartitionResolutionIndex&  [-]  the document's resolution
+    out   -            Outcome                          [-]  refuses with ContentUnsupported for an unoccupied pixel or an ordinal outside the
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    note  🔴 Two indexed lookups and no search — the ordinal indexes the identities this component declared,
+
+F VisibilityIndex::Enrolled                | VisibilityIndex.h     | 157     | api,nonthrowing                         | ✔️ | One enrolled topology's standing partitioning.
+    in    EnrolmentOrdinal  std::uint32_t  [-]  ?
+    out   -                 Outcome        [-]  refuses with ContentUnsupported outside the enrolled count
+    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/TopologyConditioning.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+9 more)
+
+F VisibilityIndex::Reduction               | VisibilityIndex.h     | 162     | api,nonallocating,nonthrowing           | ✔️ | The reduction chain the culling tests against.
+    out   -  const DepthReduction&  [-]  ?
+    by    Source/VisibilityIndex.cpp
+
+F VisibilityIndex::Reclaim                 | VisibilityIndex.h     | 167     | api,nonthrowing                         | 🚩 | Discards every enrolment and the chain with them.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+
+F VisibilityIndex::EnrolledCount           | VisibilityIndex.h     | 169     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/PopulationIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+2 more)
+
+F VisibilityIndex::DeclaredPartitionCount  | VisibilityIndex.h     | 170     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Source/VisibilityIndex.cpp
+
+F VisibilityIndex::ChainDerived            | VisibilityIndex.h     | 171     | -                                       | -  | ?
+    out   -  bool  [-]  ?
+    by    Api/DepthReduction.h, Api/OcclusionScheduler.h, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp, Source/VisibilityIndex.cpp
+
+F SLATE_DECLARES_PRECISION                 | VisibilityIndex.h     | 186     | -                                       | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE COMPOSED VIEW
+//------------------------------------------------------------------------------------------------------------------------
+
+F ComposeVisibilityTransform               | VisibilityRaster.h    | 109     | api,nonallocating,nonthrowing           | ✔️ | Composes one occupant's placement with the view and the projection, rebasing before anything narrows. doing it here places the subtraction **before** the narrowing — the one ordering that keeps the precision. A device composing the same product from a narrowed placement has already spent it, and `02` names the result jitter with a plausible-looking cause rather than an error anything reports. why that column is not read. A document-space translation carried inside a matrix is one that has to be rebased out of it again, and `02` §3.1 keeps a transform decomposed for exactly that reason: the rotation and the scale never need the width, and the translation always does. after the placement, so the placement is the inner operand and the rebased translation is folded into the fourth column before the two are multiplied.
+    in    Viewing       const ViewProjection&      [-]   what `46` derived for this rotation
+    in    Placement     const ProjectedTransform&  [-]   the occupant's rotation and scale; its fourth column is not read
+    in    ObjectOrigin  DocumentPosition           [mm]  where the occupant's object space sits in the document
+    out   -             Composed                   [-]   the composition, still at 64 bits; the narrowing is the upload's
+    by    Source/VisibilityRaster.cpp
+    note  🔴 The whole reason this exists on the host. `02`'s `Rebase` subtracts the view origin at 64 bits, and
+    note  🔴 The translation arrives as `ObjectOrigin` and **not** in the placement's fourth column, which is
+    note  📐 Column-major throughout, matching `ProjectedTransform`. The product is `Viewing.Composed` applied
+
+F SLATE_DECLARES_PRECISION                 | VisibilityRaster.h    | 115     | -                                       | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WHAT IS RESIDENT
+//------------------------------------------------------------------------------------------------------------------------
+
+V AbsentResidency                          | VisibilityRaster.h    | 122     | -                                       | -  | ?
+
+T ResidentPartitioning                     | VisibilityRaster.h    | 134-145 | owning                                  | -  | What one enrolled partitioning occupies on the device, and what a draw over it costs. are device-local and are written by one transfer at enrolment; nothing rewrites them while the camera moves, which is what the object-space positions above are for. reaches one partitioning's two spans, and a recording that amended a shared set between draws would be rewriting a set the draw it just recorded still reads. The uniform is per residency for the same reason and for a second one: it carries the occupant's own composed placement, so a shared block would place every occupant where the last one written stands.
+    has   PositionSpan    std::uint32_t               [-]  ?
+    has   TriangleSpan    std::uint32_t               [-]  ?
+    has   UniformSpans    std::vector<std::uint32_t>  [-]  ?
+    has   ClaimOrdinals   std::vector<std::uint32_t>  [-]  ?
+    has   CullingOrdinal  std::uint32_t               [-]  ?
+    has   VertexCount     std::uint32_t               [-]  ?
+    has   TriangleCount   std::uint32_t               [-]  ?
+    has   EnrolmentBase   std::uint32_t               [-]  ?
+    has   PartitionCount  std::uint32_t               [-]  ?
+    by    Source/VisibilityRaster.cpp
+    note  🔴 Claimed once when the topology changes and never per rotation, per `16` §1. The two geometry spans
+    note  🔴 The descriptor claim and the uniform spans are **per residency** rather than per component. One set
+
+V DirectClaimOrdinal                       | VisibilityRaster.h    | 149     | -                                       | -  | ?
+    by    Source/VisibilityRaster.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE RASTER
+//------------------------------------------------------------------------------------------------------------------------
+
+T VisibilityRaster                         | VisibilityRaster.h    | 170-348 | owning                                  | -  | The hardware raster of `16` §3 — the residency it draws from, the program it draws with, and the recording that writes which partition and which triangle every pixel resolved to. maximum and is a separate mechanism against the same targets; `RouteOfExtent` already declares which partition belongs to which, and this component draws the partitions the hardware route claims. descriptor layout are all `06` §7's "fixed before the first rotation", and the per-rotation work is one uniform write and one draw per resident enrolment. lets depth resolve them — correct, and the arrangement `16` §2 supersedes. `RecordIndirect` issues the draw `OcclusionScheduler` compacted, which is the arrangement `16` §2 gates. The direct route stays because `08` §5's substitution withdraws the compute route entirely where the 64-bit atomic capability was not negotiated, and something must still draw.
+    has   SpanEdge          SpanSpace*                         [-]  ?
+    has   ModuleEdge        ShaderCodec*                       [-]  ?
+    has   DescriptorEdge    DescriptorIndex*                   [-]  ?
+    has   ProgramEdge       ProgramIndex*                      [-]  ?
+    has   AttachmentEdge    AttachmentIndex*                   [-]  ?
+    has   Resident          std::vector<ResidentPartitioning>  [-]  ?
+    has   StagedSpans       std::vector<std::uint32_t>         [-]  ?
+    has   LayoutOrdinal     std::uint32_t                      [-]  ?
+    has   ProgramOrdinal    std::uint32_t                      [-]  ?
+    has   ConstructOrdinal  std::uint32_t                      [-]  ?
+    has   CornerModule      std::uint32_t                      [-]  ?
+    has   SurfaceModule     std::uint32_t                      [-]  ?
+    by    Source/VisibilityRaster.cpp
+    note  🔴 `16` §3's hardware path alone. The compute path routes sub-pixel partitions through a 64-bit atomic
+    note  🔴 Constructed at bring-up and never during a recording. The program, the render construct and the
+    note  🔴 Two recording routes, and both are required. `Record` draws every triangle of every enrolment and
+
+F VisibilityRaster::Construct              | VisibilityRaster.h    | 189     | api,nonthrowing                         | 🔴 | Declares the layout, resolves both modules, and constructs the program the raster draws with.
+    in    Spans        SpanSpace&        [-]  where every resident span is claimed; borrowed and outlives this component
+    in    Modules      ShaderCodec&      [-]  where both lowered streams are resolved; borrowed, non-const for the specialisation
+    in    Descriptors  DescriptorIndex&  [-]  where the layout is declared; borrowed and outlives this component
+    in    Programs     ProgramIndex&     [-]  where the program is constructed; borrowed and outlives this component
+    in    Attachments  AttachmentIndex&  [-]  where the render construct is declared; borrowed and outlives this component
+    out   -            Outcome           [-]  refuses with whatever the layout, the modules, the construct or the program refused
+    pre   🔴 the descriptor declaration is not yet fixed — `Declare` refuses once it is
+    post  the program stands and the residency is claimable
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+46 more)
+
+F VisibilityRaster::Resolve                | VisibilityRaster.h    | 222     | api,nonthrowing                         | 🔴 | Makes one enrolled partitioning resident, fanning its faces into the triangle run the device draws. ContentUnsupported for an unsealed topology or a partitioning that is not standing `10` admits faces of any corner count and `16` §1 counts the fan triangles the spanned faces amount to; a fan derived differently at the two sites gives the pixel a triangle ordinal `18` resolves to another triangle of the same partition. names stands for the life of the residency, so a per-rotation write would rewrite one arrangement with itself — and would do it to a set the previous rotation's recording is still reading. the surviving run statically, so the vendor requires it bound whether or not the uniform routes through it; the direct claim binds the triangle span there, which is a valid storage read the entry point never performs. caller has not yet surrendered, and returning their bytes at this point hands the free list an extent a recorded transfer still names. `Surrender` below is what releases them.
+    in    Enrolled           const PartitionStructure&                                       [-]  the standing partitioning, from `VisibilityIndex::Enrolled`
+    in    Imported           const TopologyStructure&                                        [-]  the sealed topology it was derived from, at the same revision
+    in    EnrolmentBase      std::uint32_t                                                   [-]  the document-wide ordinal this enrolment's partitions begin at
+    in    Culling            const OcclusionScheduler*                                       [-]  where the surviving runs come from; null declares the direct route only
+    in    CullingOrdinal     std::uint32_t                                                   [-]  ?
+    in    Recorded           VkCommandBuffer                                                 [-]  an immediate recording the transfers are written into
+    in    CullingOrdinal[-]  an ordinal `OcclusionScheduler::Resolve` issued, or AbsentSpan  [-]  ?
+    out   -                  Outcome                                                         [-]  the residency ordinal; refuses with whatever the claim refused and with
+    pre   🔴 `DescriptorIndex::Fix` delivered — a set cannot be claimed before the extent it is sliced from
+    post  the spans stand and are drawn from every rotation until the topology changes
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    note  🔴 The fan is derived **here** and matches `MicroSurfacePartition::TriangleCount` by construction.
+    note  🔴 The descriptor set is written **here**, once per rotation slot, and never again. Every span it
+    note  🔴 Slot three is written for **every** claim, the direct one included. The vertex entry point names
+    note  ⚠️ The staging spans this claims are **not** released here. They are the source of a transfer the
+
+F VisibilityRaster::Surrender              | VisibilityRaster.h    | 236     | api,nonthrowing                         | 🚩 | Releases the staging spans every `Resolve` since the last surrender claimed. surrender. Releasing inside `Resolve` returns bytes to the free list while a recorded transfer still names them, and the next claim then transfers one partitioning's positions out of another's.
+    out   -  void  [-]  ?
+    pre   🔴 the recording those transfers were written into has been surrendered and has completed
+    by    Api/AttachmentIndex.h, Api/CommandSequence.h, Api/RenderSchedule.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, Source/RenderSchedule.cpp, (+1 more)
+    note  🔴 Separate from `Resolve` because the transfer is recorded there and completes at the caller's
+
+F VisibilityRaster::Derive                 | VisibilityRaster.h    | 245     | api,nonthrowing                         | 🚩 | Derives the render construct's spans against one display extent.
+    in    DisplayAlong   std::uint32_t  [px]  the extent this rotation is recorded against
+    in    DisplayAcross  std::uint32_t  [px]  ?
+    out   -              Outcome        [-]   refuses with whatever `AttachmentIndex` refused
+    pre   🔴 the device is idle — every rotation reading the previous spans has completed
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+8 more)
+
+F VisibilityRaster::Record                 | VisibilityRaster.h    | 261     | api,nonthrowing                         | 🔴 | Records the raster for one rotation slot — the construct, the program, and one draw per residency. whatever the descriptor write or the program resolution refused per `Contract/`'s convention — clearing to unity against a greater-than comparison resolves nothing at all, and the image is empty rather than wrong, which is the failure mode that gets attributed to the geometry. the placements and the composition already admits one — 🚧 the argument arrives with it.
+    in    Recorded      VkCommandBuffer        [-]  the open recording of this rotation slot
+    in    RotationSlot  std::uint32_t          [-]  below `RecordingRotationDepth`
+    in    Viewing       const ViewProjection&  [-]  what `46` derived for this rotation
+    out   -             Outcome                [-]  refuses with ContentUnsupported before the spans are derived, and with
+    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/InterfaceExchange.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/InputExchange.cpp, (+4 more)
+    note  🔴 The depth clear carries `FarPlaneDepth` and the comparison is `VK_COMPARE_OP_GREATER`. Reversed,
+    note  ⚠️ Every occupant is drawn at the identity placement, because nothing yet supplies one. `56` holds
+
+F VisibilityRaster::RecordIndirect         | VisibilityRaster.h    | 281     | api,nonthrowing                         | 🔴 | Records the raster for one rotation slot from what one culling phase compacted. ordinal, and with whatever the record resolution refused record the cull advanced, so the host neither knows nor needs to know how many partitions survived — which is the whole reason the compaction is on the device. the barrier declaring the record an indirect read and the surviving run a vertex-stage storage read, so nothing further is issued here.
+    in    Recorded      VkCommandBuffer            [-]  the open recording of this rotation slot
+    in    RotationSlot  std::uint32_t              [-]  below `RecordingRotationDepth`
+    in    Viewing       const ViewProjection&      [-]  what `46` derived for this rotation
+    in    Culling       const OcclusionScheduler&  [-]  the scheduler whose records the draws are issued from
+    in    Phase         CullingPhase               [-]  which of `16` §2's two phases this draw follows
+    out   -             Outcome                    [-]  refuses with ContentUnsupported for a residency that declared no culling
+    by    Source/VisibilityRaster.cpp
+    note  🔴 The corner count is the device's and is never the host's. `vkCmdDrawIndirect` reads it from the
+    note  🔴 The caller has already ordered the record against this draw. `OcclusionScheduler::Cull` records
+
+F VisibilityRaster::Reclaim                | VisibilityRaster.h    | 291     | api,nonthrowing                         | 🚩 | Releases every resident span and every uniform span.
+    out   -  void  [-]  ?
+    pre   the device is idle
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+
+F VisibilityRaster::ResidentCount          | VisibilityRaster.h    | 293     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/SurfaceTileSpace.h, Source/SurfaceTileSpace.cpp, Source/VisibilityRaster.cpp
+
+F VisibilityRaster::DrawnTriangleCount     | VisibilityRaster.h    | 294     | -                                       | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Source/VisibilityRaster.cpp
+
+F VisibilityRaster::ProgramStanding        | VisibilityRaster.h    | 295     | -                                       | -  | ?
+    out   -  bool  [-]  ?
+    by    Source/VisibilityRaster.cpp
+
+F VisibilityRaster::Open                   | VisibilityRaster.h    | 301     | -                                       | -  | Opens the render construct, sets the extent, binds the program, and hands back the covering span.
+    in    Recorded     VkCommandBuffer      [-]  ?
+    in    Constructed  ConstructedProgram&  [-]  ?
+    out   -            Outcome              [-]  refuses with whatever the span or the program resolution refused
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/RevisionSequence.h, Api/WindowInterchange.h, (+9 more)
+
+F VisibilityRaster::Project                | VisibilityRaster.h    | 305     | -                                       | -  | Writes one residency's uniform for one rotation slot.
+    in    Standing           const ResidentPartitioning&  [-]  ?
+    in    RotationSlot       std::uint32_t                [-]  ?
+    in    Viewing            const ViewProjection&        [-]  ?
+    in    Covering           const ConstructedSpan&       [-]  ?
+    in    SurvivingResolved  bool                         [-]  non-zero routes the corner through the surviving run
+    out   -                  Outcome<bool>                [-]  ?
+    by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TransformProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, (+6 more)
+
+F VisibilityRaster::Fan                    | VisibilityRaster.h    | 316     | -                                       | -  | Fans one partitioning's faces into the triangle run the device draws.
+    in    Enrolled       const PartitionStructure&  [-]  the standing partitioning
+    in    Imported       const TopologyStructure&   [-]  the sealed topology
+    in    EnrolmentBase  std::uint32_t              [-]  the document-wide ordinal the partitions begin at
+    out   -              Outcome                    [-]  the fanned run; refuses with ContentUnsupported when the two disagree on a face
+    by    Source/ChartPartition.cpp, Source/SpatialSubdivision.cpp, Source/VisibilityRaster.cpp
+
+F VisibilityRaster::Stage                  | VisibilityRaster.h    | 326     | -                                       | -  | Claims one device-local span and stages the supplied bytes into it through one recorded transfer.
+    in    Arriving       const void*      [-]  what is staged; read for ArrivingBytes and never retained
+    in    ArrivingBytes  VkDeviceSize     [B]  how far the span runs
+    in    Intent         SpanIntent       [-]  what the device is permitted to read the resident span as
+    in    Recorded       VkCommandBuffer  [-]  the immediate recording the transfer is written into
+    out   -              Outcome          [-]  the resident span's ordinal; refuses with whatever the claim refused
+    by    Api/ShaderCodec.h, Source/ImageSpace.cpp, Source/ProgramIndex.cpp, Source/ShaderCodec.cpp, Source/VisibilityRaster.cpp
+
+F VisibilityRaster::Abandon                | VisibilityRaster.h    | 333     | -                                       | -  | Releases every span one part-built residency claimed, so a refusal retains nothing.
+    in    Abandoned  ResidentPartitioning&  [-]  the residency being given up
+    out   -          void                   [-]  ?
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, Source/CameraProjection.cpp, (+7 more)
+
+F SLATE_DECLARES_PRECISION                 | VisibilityRaster.h    | 352     | -                                       | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)

@@ -64,7 +64,7 @@ F IntakeIndex::Report          | IntakeIndex.h | 79     | api,nonthrowing       
     in    Sampled    TickPoint        [ns]  the tick's own reading
     out   -          void             [-]   ?
     post  each assumption is appended once; a second call appends nothing further
-    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/SurfaceTileSpace.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, (+5 more)
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/OcclusionProjection.h, Api/SurfaceTileSpace.h, Source/AssetInterchange.cpp, (+7 more)
     note  📝 Reported on the tick rather than at intake, because intake runs through `34` at Interactive and
 
 F IntakeIndex::Records         | IntakeIndex.h | 84     | api,nonallocating,nonthrowing | ✔️ | Every recorded intake, in arrival order.
@@ -74,7 +74,7 @@ F IntakeIndex::Records         | IntakeIndex.h | 84     | api,nonallocating,nont
 F IntakeIndex::Resolve         | IntakeIndex.h | 90     | api,nonthrowing               | 🚩 | The most recent intake of one origin.
     in    OriginPath  const std::string&  [-]  ?
     out   -           Outcome             [-]  refuses with ExtentExhausted when nothing arrived from there
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
 
 F IntakeIndex::AssumptionCount | IntakeIndex.h | 95     | api,nonallocating,nonthrowing | ✔️ | How many intakes carried an assumption.
     out   -  std::uint32_t  [-]  ?

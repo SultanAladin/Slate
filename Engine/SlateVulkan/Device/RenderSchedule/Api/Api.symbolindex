@@ -39,7 +39,7 @@ E SharedTarget               | RenderSchedule.h | 26-44   | contract            
     has   MultiScatterSurface     SharedTarget  [-]  ?
     has   SkyViewSurface          SharedTarget  [-]  ?
     has   TargetCount             SharedTarget  [-]  ?
-    by    Api/AttachmentIndex.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp, (+1 more)
+    by    Api/AttachmentIndex.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp, Source/OcclusionScheduler.cpp, Source/ReflectanceIntegrator.cpp, (+3 more)
     note  Declared as one closed enumeration so that the producer and amender lists below are total.
 
 E ExtentRelation             | RenderSchedule.h | 50-55   | contract                      | -  | How a target's extent relates to the display extent. is never touched by a resize. `06` §4.1 gates that both ways.
@@ -89,7 +89,7 @@ F TargetSpace::Reclaim       | RenderSchedule.h | 110     | api,nonthrowing     
 F TargetSpace::Resolve       | RenderSchedule.h | 116     | api,nonthrowing               | ✔️ | The image one declared target was claimed as.
     in    Target  SharedTarget  [-]  ?
     out   -       Outcome       [-]  refuses with ContentUnsupported when the target is unclaimed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
 
 F TargetSpace::OrdinalOf     | RenderSchedule.h | 122     | api,nonallocating,nonthrowing | ✔️ | The image ordinal one target was claimed as, for the transition `ImageSpace` records.
     in    Target  SharedTarget  [-]  ?
@@ -113,7 +113,7 @@ F TargetSpace::ShapeOf       | RenderSchedule.h | 134     | -                   
 E RecordingCommand           | RenderSchedule.h | 150-154 | contract                      | -  | What a recording contributes. Authored once by the contributing document, consulted by the orderer.
     has   GraphicsRecording  RecordingCommand  [-]  ?
     has   ComputeDispatch    RecordingCommand  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/VisibilityIndex.cpp
+    by    Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp, Source/ReflectanceIntegrator.cpp, Source/VisibilityIndex.cpp
 
 T DeclaredRecording          | RenderSchedule.h | 161-171 | owning                        | -  | One declared recording. absent capability must degrade to something, and choosing that something belongs to the contributing document rather than to a branch invented at the recording site.
     has   Identity            const char*                [-]  ?
@@ -124,7 +124,7 @@ T DeclaredRecording          | RenderSchedule.h | 161-171 | owning              
     has   CapabilityRequired  bool                       [-]  ?
     has   Substitution        const char*                [-]  ?
     has   DisplayReferred     bool                       [-]  ?
-    by    Source/ConsoleHost.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp
+    by    Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp, Source/ReflectanceIntegrator.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp
     note  🔴 A recording with a capability requirement and no substitution is rejected at bring-up. An
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -135,13 +135,13 @@ T RenderSchedule             | RenderSchedule.h | 182-214 | owning              
     has   ContributedOrder   std::vector<DeclaredRecording>  [-]  ?
     has   OrderedRecordings  std::vector<DeclaredRecording>  [-]  ?
     has   OrderingFixed      bool                            [-]  ?
-    by    Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp
+    by    Api/OcclusionProjection.h, Api/ReflectanceIntegrator.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp, Source/ReflectanceIntegrator.cpp, (+2 more)
     note  🔴 The term is `RenderSchedule`. "Frame graph" is not a synonym: `Frame` is banned and "graph"
 
 F RenderSchedule::Contribute | RenderSchedule.h | 192     | api,nonthrowing               | ✔️ | Contributes one recording to the schedule. contribution produces a target another recording already produces
     in    Arriving  const DeclaredRecording&  [-]  the declaration the contributing document authored
     out   -         Outcome                   [-]  refuses when a capability is required with no substitution, or when the
-    by    Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp
+    by    Api/OcclusionProjection.h, Api/ReflectanceIntegrator.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp, Source/ReflectanceIntegrator.cpp, (+2 more)
 
 F RenderSchedule::Fix        | RenderSchedule.h | 200     | api,nonthrowing               | 🚩 | Fixes the ordering. Derived from the declared reads and writes, never hand-written. when anything scene-referred is ordered after the display-referred line
     out   -  Outcome  [-]  refuses when a target is read by a recording ordered before its producer, or

@@ -49,7 +49,7 @@ F CycleScheduler::Construct          | CycleScheduler.h | 63     | api,nonthrowi
     in    Exchange  const VulkanExchange&  [-]  the created device; borrowed and outlives this component
     out   -         Outcome                [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     post  the standing ordinal is zero and every completion is signalled
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/DepthReduction.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
 
 F CycleScheduler::Await              | CycleScheduler.h | 73     | api,nonthrowing               | 🔴 | Waits until the slot the standing ordinal names is no longer read, and makes it writable again. host that stops with no report, and `06` §7 requires the loss to be reported upward before anything is destroyed — which cannot happen from inside a wait that never returns.
     out   -  Outcome  [-]  refuses with HostDenied when the device does not complete within the ceiling
@@ -65,11 +65,11 @@ F CycleScheduler::Arm                | CycleScheduler.h | 80     | api,nonthrowi
 F CycleScheduler::Advance            | CycleScheduler.h | 86     | api,nonallocating,nonthrowing | ✔️ | Carries the standing ordinal to the next slot in the cycle.
     out   -  void  [-]  ?
     post  the ordinal is the previous one raised by one, modulo the depth
-    by    Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+10 more)
+    by    Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+11 more)
 
 F CycleScheduler::Standing           | CycleScheduler.h | 92     | api,nonallocating,nonthrowing | ✔️ | The slot the standing ordinal names, for the recording and the display that read it.
     out   -  Outcome  [-]  refuses with CapabilityAbsent before Construct delivered
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ImageSpace.h, Api/OutlinerSequence.h, Api/PartitionClassifier.h, (+30 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/DecalProjection.h, Api/ImageSpace.h, Api/OcclusionProjection.h, (+39 more)
 
 F CycleScheduler::StandingOrdinal    | CycleScheduler.h | 97     | api,nonallocating,nonthrowing | ✔️ | Which slot of the depth is standing — what every per-rotation claim is addressed by.
     out   -  std::uint32_t  [-]  ?

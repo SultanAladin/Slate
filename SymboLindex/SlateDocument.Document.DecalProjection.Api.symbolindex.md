@@ -1,0 +1,215 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Placed content — a source, a transform stored against the surface, and the extent it covers in the domain.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/DecalProjection/Api
+%layer      SlateDocument
+%sources    1
+%symbols    26
+%annotated  18/26
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S DecalProjection.h | 312 lines | db692f5e | 26 sym | Placed content — a source, a transform stored against the surface, and the extent it covers in the domain.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE TWO MODES
+//------------------------------------------------------------------------------------------------------------------------
+
+E PlacementMode                      | DecalProjection.h | 36-41   | contract                      | -  | How a placement is positioned on its surface — `00` §10.1 ①'s two persistent modes. `00` §10.1 ① makes it a gesture: while the pointer is down the placing transform is recomputed each rotation from the live camera, and on release the last computed transform simply stands. A placement that stayed bound to the live camera would slide across the surface as the artist orbits, and the artist reads that as the placement having moved. why both exist rather than one being the general case: a projected placement crossing a seam is continuous on the surface and discontinuous in the domain, and a domain placement is the reverse.
+    has   DomainPlaced     PlacementMode  [-]  ?
+    has   ProjectedPlaced  PlacementMode  [-]  ?
+    has   ModeCount        PlacementMode  [-]  ?
+    by    Source/DecalProjection.cpp
+    note  🔴 Screen placement is **absent from this enumeration** and that is the ruling rather than an omission.
+    note  🔴 A domain placement cannot cross a chart seam and a projected placement crosses them freely. That is
+
+E PlacedSource                       | DecalProjection.h | 49-56   | contract                      | -  | Which content library a placement's source ordinal indexes. a glyph sequence beside its characters, and the positioning walk over advances and pair adjustments is the placement's rather than the outline's — a text placement resolves several outlines at offsets the typeface declares, and a vector placement resolves one.
+    has   VectorOutline  PlacedSource  [-]  ?
+    has   Imagery        PlacedSource  [-]  ?
+    has   Tiling         PlacedSource  [-]  ?
+    has   Text           PlacedSource  [-]  ?
+    has   SourceCount    PlacedSource  [-]  ?
+    by    Source/AnalyticProjection.cpp, Source/DecalProjection.cpp
+    note  ⚠️ `Text` is held apart from `VectorOutline` even though a glyph is an outline. `52` §3 stores text as
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     ONE PLACEMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+T PlacementSpecification             | DecalProjection.h | 76-90   | owning                        | -  | One placed source and everything `72` §1 declares about it. document space. `00` §10.1 ②'s first two rows depend on it entirely: a camera move re-resolves nothing and an occupant move re-resolves nothing, because neither changes a transform expressed against the surface. Stored absolutely, both rows become "re-resolve everything" and the invalidation table degenerates into a list of things that always change. relative to the surface, or the source being replaced. It is not advanced by the occupant moving, by the camera moving, or by a promotion. `70` §2 compares it as one integer per tile, and the comparison's answer is almost always "no work" precisely because the counter is this quiet. carrying roughness as well as albedo is one placement writing two channels, and `72` §1 makes undo restore both — the same rule `22` §5 states for a stroke.
+    has   Source               PlacedSource          [-]  ?
+    has   SourceOrdinal        std::uint32_t         [-]  ?
+    has   Mode                 PlacementMode         [-]  ?
+    has   PlacingTransform     DecomposedTransform   [-]  ?
+    has   Occupant             OccupantIdentity      [-]  ?
+    has   ChannelMask          std::uint32_t         [-]  ?
+    has   Combination          CombineSpecification  [-]  ?
+    has   ProjectedHalfAlong   double                [-]  ?
+    has   ProjectedHalfAcross  double                [-]  ?
+    has   ProjectedReach       double                [-]  ?
+    has   BackFacingAdmitted   bool                  [-]  ?
+    has   RevisionCounter      std::uint64_t         [-]  ?
+    by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp
+    note  🔴 `PlacingTransform` is stored **relative to the surface the placement is attached to**, never in
+    note  🔴 `RevisionCounter` is advanced by `00` §10.1 ②'s **third row alone** — the placing transform changing
+    note  ⚠️ The channel mask is `42`'s channel ordinals as bits, matching `56`'s `LayerSpecification`. A logo
+
+F PlacementWritesChannel             | DecalProjection.h | 95-98   | api,nonallocating,nonthrowing | ✔️ | Whether a placement writes one of `42`'s channels.
+    in    Placed          const PlacementSpecification&  [-]  ?
+    in    ChannelOrdinal  std::uint32_t                  [-]  ?
+    out   -               constexpr bool                 [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE DERIVED EXTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F ProjectPlacementExtent             | DecalProjection.h | 128     | api,nonthrowing               | 🔴 | Derives the domain extent one placement covers on a surface. disagreeing with the corner count, and a placement reaching no corner at all **domain** placement covers the transformed unit square directly, because that is where it was positioned. A **projected** placement covers whatever the projecting volume reaches, which is a question about the topology and cannot be answered from the transform alone. addresses `TopologyStructure::Coordinates` and one that was unwrapped addresses `ChartPartition`; the caller knows which and this component does not. Reaching for `68` would also put a `SlateCompute` component in this file's Upstream, which the peer partition forbids outright. extent means `74` §3's precedence-1 test misses along one edge of the placement, and the artist meets it as a decal whose border cannot be clicked. carries what the right rule is as open. Refusing is the conservative reading — a decal projected onto a shoulder should not also appear on the far side of the arm — and it is what the default declares.
+    in    Placed             const PlacementSpecification&         [-]  the placement
+    in    PlacementOrdinal   std::uint32_t                         [-]  an ordinal `PlacementIndex` issued; carried into the extent
+    in    SequenceOrdinal    std::uint32_t                         [-]  the placement's position in `56`'s sequence — `00` §10.1 ③'s one ordinal
+    in    Imported           const TopologyStructure&              [-]  the sealed topology the surface carries
+    in    CornerCoordinates  const std::vector<DomainCoordinate>&  [-]  one domain coordinate per imported corner
+    out   -                  Outcome                               [-]  refuses with ContentUnsupported for an unsealed topology, a coordinate run
+    by    Source/DecalProjection.cpp
+    note  🔴 The two modes derive their extent by different routes and neither is the other's special case. A
+    note  🔴 The coordinates are **supplied** rather than read from `68`. A surface carrying an imported domain
+    note  ⚠️ The derived extent is conservative **outward**, matching `38` §6 and `40` §6. An inward-rounded
+    note  ⚠️ 🚧 A projected placement admits or refuses back-facing corners by its own declaration, and `72` §6
+
+F SLATE_DECLARES_PRECISION           | DecalProjection.h | 136     | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+F ProjectIntoSource                  | DecalProjection.h | 154     | api,nonallocating,nonthrowing | ✔️ | Carries one domain position into a placement's own source space. it is a transform into a source space, and the source is then one of the other three. That is why text, imagery, vector content and tiling all place identically and why `70` needs no per-source placement path. the scale reciprocated rather than a matrix being inverted, because `02` §3.1 keeps a transform decomposed and a general inversion would reintroduce the drift the decomposition exists to avoid.
+    in    Placed          const PlacementSpecification&  [-]  the placement
+    in    PositionAlong   double                         [-]  the domain's first axis
+    in    PositionAcross  double                         [-]  its second
+    in    SourceAlong     double&                        [-]  ?
+    in    SourceAcross    double&                        [-]  ?
+    out   -               SourceAlong                    [-]  the position in the source's own unit square
+    out   -               SourceAcross                   [-]  ?
+    out   -               Covered                        [-]  false where the position lies outside the source's unit square
+    by    Source/AnalyticProjection.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp
+    note  🔴 This is the whole of `70` §3's placement row. A placement is **not** a fourth resolution mechanism;
+    note  📐 The inverse of the placing transform, applied to a domain position. The rotation is conjugated and
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE PLACEMENTS
+//------------------------------------------------------------------------------------------------------------------------
+
+V AbsentPlacement                    | DecalProjection.h | 165     | -                             | -  | ?
+    by    Api/PointerIntersection.h, Source/DecalProjection.cpp
+
+T PlacementIndex                     | DecalProjection.h | 175-234 | owning                        | -  | Every placement the document holds, addressed by the ordinal `56`'s layer entries carry. order are the **same stored ordinal**, and that ordinal is `56`'s sequence position — so a second copy here would be a second ordering, and the two would disagree the first time a row was dragged. The caller reads the position from `56` and hands it to `ProjectPlacementExtent`. it named. Erasing would renumber every placement above it and `56` would not observe it.
+    has   PlacementCeiling  static constexpr std::uint32_t  [-]  ?
+    has   Placements        std::vector<HeldPlacement>      [-]  ?
+    has   ReleasedOrdinals  std::vector<std::uint32_t>      [-]  ?
+    has   OccupiedCount     std::uint32_t                   [-]  ?
+    by    Api/AnalyticProjection.h, Api/PointerIntersection.h, Source/ConsoleHost.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp
+    note  🔴 A placement holds no sequence position of its own. `00` §10.1 ③ rules that enclosure order and layer
+    note  ⚠️ A released slot is reused rather than erased, so an ordinal a `56` entry recorded keeps naming what
+
+F PlacementIndex::Declare            | DecalProjection.h | 185     | api,nonthrowing               | 🚩 | Declares one placement and issues the ordinal `56` refers to it by. source outside the declared set or a projected volume of no extent, and with ExtentExhausted at the declared ceiling
+    in    Declaring  const PlacementSpecification&  [-]  ?
+    out   -          Outcome                        [-]  refuses with IdentityStale for an undeclared occupant, with ContentUnsupported for a
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+30 more)
+
+F PlacementIndex::Amend              | DecalProjection.h | 197     | api,nonthrowing               | ✔️ | Amends one placement, advancing its revision only where `00` §10.1 ② requires it. **not** when the combination or the back-facing rule did. `70` §2's comparison is what re-resolves a tile, and re-resolving on a combination change would re-resolve a value the combination is applied to afterwards.
+    in    PlacementOrdinal  std::uint32_t                  [-]  an ordinal this component issued
+    in    Amending          const PlacementSpecification&  [-]  the amended specification
+    out   -                 Outcome                        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+20 more)
+    note  🔴 The revision advances when the placing transform, the source or the channel mask changed, and
+
+F PlacementIndex::Resolve            | DecalProjection.h | 203     | api,nonthrowing               | ✔️ | One declared placement.
+    in    PlacementOrdinal  std::uint32_t  [-]  ?
+    out   -                 Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+58 more)
+
+F PlacementIndex::Withdraw           | DecalProjection.h | 211     | api,nonthrowing               | ✔️ | Withdraws one placement, returning its slot for reuse. is enclosed under the occupant it is attached to — `00` §10.1 ③ — so it retires with that occupant rather than surviving it as an orphaned reference `56` still names.
+    in    PlacementOrdinal  std::uint32_t  [-]  ?
+    out   -                 Outcome<bool>  [-]  ?
+    by    Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, Api/TrigramIndex.h, (+11 more)
+    note  🔴 Called from `12` §12's retirement cascade, inside that cascade's single transaction. A placement
+
+F PlacementIndex::Revision           | DecalProjection.h | 217     | api,nonallocating,nonthrowing | ✔️ | One placement's revision, for `70` §2's per-tile comparison.
+    in    PlacementOrdinal  std::uint32_t  [-]  ?
+    out   -                 Revision       [-]  zero for an unclaimed ordinal, which no resolved tile ever recorded
+    by    Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SeamSpecification.h, Api/TopologyStructure.h, (+13 more)
+
+F PlacementIndex::DeclaredCount      | DecalProjection.h | 219     | -                             | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/ProgramIndex.h, Api/QuadratureIntegrator.h, (+19 more)
+
+T PlacementIndex::HeldPlacement      | DecalProjection.h | 223-227 | -                             | -  | ?
+    has   Declared      PlacementSpecification  [-]  ?
+    has   SlotOccupied  bool                    [-]  ?
+    by    Source/DecalProjection.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE POSITIONING DRAG
+//------------------------------------------------------------------------------------------------------------------------
+
+T PlacementSequence                  | DecalProjection.h | 257-306 | owning                        | -  | One placement being positioned, following `10` §2.4's lifecycle exactly. it is not weakened here — a transaction per pointer sample fills `RevisionSequence` with positions the artist never intended to stop at, and undo then steps back one pixel at a time. and re-resolved each rotation, never entering `RevisionSequence`, and — the property that separates it from an uncommitted stroke — never blocking eviction. A positioning drag that pinned every tile it passed over would exhaust residency while the artist was still deciding where to put the decal. as a third `PlacementMode`. `78` recomputes the projecting transform from the live camera at each Amend while it holds; Seal simply stops asking, so the last computed transform is the frozen one and no freezing step exists to be forgotten. The gesture never existed as a persistent mode, exactly as `00` §10.1 ① requires. transform over; a camera edge declared in this file would be an Upstream edge nothing reads, which is the defect `00` §10 conflict 41 records.
+    has   PriorPlacement    PlacementSpecification  [-]  ?
+    has   AmendedPlacement  PlacementSpecification  [-]  ?
+    has   SubjectOrdinal    std::uint32_t           [-]  ?
+    has   OpenDeclared      bool                    [-]  ?
+    has   CameraFollowed    bool                    [-]  ?
+    by    Source/DecalProjection.cpp
+    note  🔴 `72` §3: a positioning drag records **no** transaction until release. `10` §2.4 gives the reason and
+    note  🔴 Between Open and Seal the placement is a `22` §4.1 **speculative extent**: display-only, discarded
+    note  🔴 `CameraFollowing` is the whole of `00` §10.1 ①'s screen gesture, and it is held **here** rather than
+    note  ⚠️ The camera itself is **not** read here. `78` owns the drag arithmetic and hands the composed
+
+F PlacementSequence::Open            | DecalProjection.h | 269     | api,nonallocating,nonthrowing | ✔️ | Opens a positioning drag against a declared placement.
+    in    PlacementOrdinal  std::uint32_t                  [-]  the placement being positioned
+    in    Standing          const PlacementSpecification&  [-]  its specification as it stands; restored by Abandon
+    in    CameraFollowed    bool                           [-]  true for the screen gesture, false for a domain or projected drag
+    out   -                 Outcome                        [-]  refuses with HostDenied when a drag is already open
+    post  nothing is recorded; the placement stands unamended until Seal
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/ImpressionSequence.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, Api/WindowInterchange.h, (+9 more)
+
+F PlacementSequence::Amend           | DecalProjection.h | 275     | api,nonallocating,nonthrowing | ✔️ | Amends the open drag's placing transform.
+    in    Amending  const DecomposedTransform&  [-]  ?
+    out   -         Outcome                     [-]  refuses with HostDenied when no drag is open
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+20 more)
+
+F PlacementSequence::Abandon         | DecalProjection.h | 281     | api,nonallocating,nonthrowing | ✔️ | Ends the drag with no effect, returning the specification that stood at Open.
+    out   -  Outcome  [-]  refuses with HostDenied when no drag is open
+    by    Api/CameraProjection.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, Source/CameraProjection.cpp, (+7 more)
+
+F PlacementSequence::Seal            | DecalProjection.h | 288     | api,nonallocating,nonthrowing | ✔️ | Ends the drag, returning the specification the caller commits as one transaction.
+    out   -  Outcome  [-]  refuses with HostDenied when no drag is open
+    post  🔴 the returned specification carries an advanced revision; `70` re-resolves against it
+    by    Api/CameraProjection.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TopologyStructure.h, (+12 more)
+
+F PlacementSequence::Amended         | DecalProjection.h | 293     | api,nonallocating,nonthrowing | ✔️ | The placement as the drag has amended it, for `82`'s speculative resolution.
+    out   -  const PlacementSpecification&  [-]  ?
+    by    Api/CameraProjection.h, Api/DescriptorIndex.h, Api/ReportSequence.h, Source/BrushSpecification.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, (+6 more)
+
+F PlacementSequence::Subject         | DecalProjection.h | 295     | -                             | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Api/CameraProjection.h, Api/CurveSolver.h, Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/IntakeIndex.h, (+41 more)
+
+F PlacementSequence::GestureOpen     | DecalProjection.h | 296     | -                             | -  | ?
+    out   -  bool  [-]  ?
+    by    Api/CameraProjection.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/DecalProjection.cpp
+
+F PlacementSequence::CameraFollowing | DecalProjection.h | 297     | -                             | -  | ?
+    out   -  bool  [-]  ?
+    by    Source/DecalProjection.cpp
+
+F SLATE_DECLARES_PRECISION           | DecalProjection.h | 310     | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)

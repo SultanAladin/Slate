@@ -1,0 +1,156 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The session's reports and its sampled measures — one appended once, one overwritten, and never confused.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateMath/Numeric/ReportSequence/Api
+%layer      SlateMath
+%sources    1
+%symbols    17
+%annotated  16/17
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S ReportSequence.h | 211 lines | 5711d913 | 17 sym | The session's reports and its sampled measures — one appended once, one overwritten, and never confused.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE SEVEN CLASSES
+//------------------------------------------------------------------------------------------------------------------------
+
+E ReportDisposition              | ReportSequence.h | 31-41   | contract                      | -  | What the engine did, on the artist's behalf, that the artist could not otherwise see. same reason — it names the category rather than the mechanism. Each member below is instead the past participle of what happened, which is the discriminating fact. disposition is a presentation that disagrees with the document that made the promise — `86` §4.1. and a presenter that treats all seven as failures teaches the artist to ignore it.
+    has   Measured          ReportDisposition  [-]  ?
+    has   Assumed           ReportDisposition  [-]  ?
+    has   Amended           ReportDisposition  [-]  ?
+    has   Truncated         ReportDisposition  [-]  ?
+    has   Refused           ReportDisposition  [-]  ?
+    has   Terminated        ReportDisposition  [-]  ?
+    has   Failed            ReportDisposition  [-]  ?
+    has   DispositionCount  ReportDisposition  [-]  ?
+    by    Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/IntakeIndex.cpp, Source/SurfaceLayerSequence.cpp, (+1 more)
+    note  ⚠️ `86` §4.1 calls these report classes. `Class` used as a noun is banned alongside `Kind`, and for the
+    note  🔴 The disposition is declared by the reporting mechanism and never inferred from the text. An inferred
+    note  Five of the seven describe normal operation. `86` §5 is the authority on which of them is a problem,
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       ONE REPORT
+//------------------------------------------------------------------------------------------------------------------------
+
+T ReportSpecification            | ReportSequence.h | 53-62   | nonallocating,nonthrowing     | -  | One appended report — where it came from, what it applies to, and how many times it has happened. and a report that owned an allocation would allocate on a worker while the tick presents the register. disposition then presents as the most serious thing it could be, which is the direction that gets fixed.
+    has   Origin           const char*        [-]  ?
+    has   Subject          const char*        [-]  ?
+    has   Detail           const char*        [-]  ?
+    has   SubjectOrdinal   std::uint64_t      [-]  ?
+    has   Disposition      ReportDisposition  [-]  ?
+    has   Arrival          TickPoint          [-]  ?
+    has   OccurrenceCount  std::uint32_t      [-]  ?
+    by    Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/IntakeIndex.cpp, Source/ReportSequence.cpp, (+2 more)
+    note  🔴 Every text field points at string literal storage only. `86` §3.1 admits an append from any thread,
+    note  ⚠️ The disposition defaults to Failed rather than to Measured. A report that forgot to declare its
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE REGISTER
+//------------------------------------------------------------------------------------------------------------------------
+
+T ReportSequence                 | ReportSequence.h | 78-138  | owning                        | -  | The session's appended reports, bounded, coalesced, and readable from the tick. every origin that must write here sits beneath `SlateUI`, so a register held in the interface could not be written by a single one of the mechanisms obliged to write it. admits one. A report about a failure has to survive the failure, and `34` §5's failed work produces no result to carry it back on. leaves that component nothing to do; the coalescing rule it would have carried is `Coalesces` below.
+    has   RetainedCeiling   static constexpr std::uint32_t    [-]  ?
+    has   ReportGuard       mutable std::mutex                [-]  ?
+    has   RetainedOrder     std::vector<ReportSpecification>  [-]  ?
+    has   OldestOrdinal     std::uint32_t                     [-]  ?
+    has   OccupiedCount     std::uint32_t                     [-]  ?
+    has   AppendedReports   std::uint64_t                     [-]  ?
+    has   DiscardedReports  std::uint64_t                     [-]  ?
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/IntakeIndex.h, Api/SurfaceLayerSequence.h, Api/WorkSequence.h, (+8 more)
+    note  🔴 This lives in `SlateMath` and not in `SlateUI`. `86` §3 gives the reason and it is the link partition:
+    note  🔴 `86` §3.1: an append is admitted from any thread, and this is the one structure in the engine that
+    note  📝 `86` §1 also names a `ReportClassifier`. §4.1 forbids inferring a disposition from the text, which
+
+F ReportSequence::Append         | ReportSequence.h | 100     | api,nonthrowing               | 🚩 | Appends one report, coalescing it into a recurrence of the same origin, disposition and subject. reconstructed later from a measure that changed is a report about the wrong instant. integer comparisons per append rather than four thousand string comparisons.
+    in    Arriving  const ReportSpecification&  [-]  the report as its origin declared it
+    out   -         void                        [-]  ?
+    post  the retained count never exceeds RetainedCeiling; the oldest report leaves when it would
+    by    Api/SurfaceLayerSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/IntakeIndex.cpp, (+3 more)
+    note  🔴 Appended exactly once per occurrence, at the moment of the occurrence — `86` §2.2. A report
+    note  📝 Coalescing compares the two integer discriminants before either text, so a full register costs
+
+F ReportSequence::Retained       | ReportSequence.h | 108     | api,nonthrowing               | 🚩 | The retained reports, oldest first, as a copy taken under the register's own guard. hand back storage a worker may be writing while the presenter walks it.
+    out   -  Retained  [-]  at most RetainedCeiling entries, each carrying its occurrence count
+    by    Api/RowSequence.h, Source/ConsoleHost.cpp, Source/ReportSequence.cpp, Source/RowSequence.cpp
+    note  Returned by value deliberately. Appends arrive from any thread, so handing back a reference would
+
+F ReportSequence::RetainedCount  | ReportSequence.h | 113     | api,nonallocating,nonthrowing | ✔️ | How many reports are retained now.
+    out   -  std::uint32_t  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/ReportSequence.cpp
+
+F ReportSequence::AppendedCount  | ReportSequence.h | 118     | api,nonallocating,nonthrowing | ✔️ | How many occurrences have been appended across the whole session, coalesced ones included.
+    out   -  std::uint64_t  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/ReportSequence.cpp
+
+F ReportSequence::DiscardedCount | ReportSequence.h | 123     | api,nonallocating,nonthrowing | ✔️ | How many retained reports the ceiling has discarded — itself a fact worth presenting.
+    out   -  std::uint64_t  [-]  ?
+    by    Api/RequestQueue.h, Source/ConsoleHost.cpp, Source/ReportSequence.cpp, Source/RequestQueue.cpp
+
+F ReportSequence::Reclaim        | ReportSequence.h | 128     | api,nonthrowing               | ✔️ | Empties the register. Called at process teardown and by nothing else.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      ONE MEASURE
+//------------------------------------------------------------------------------------------------------------------------
+
+T SampledMeasure                 | ReportSequence.h | 149-157 | nonallocating,nonthrowing     | -  | One sampled quantity with a current value — overwritten every time it is sampled. its totals every rotation; appended, that is thousands of entries a minute inside which the one refusal that mattered is unfindable — `86` §2.
+    has   Origin        const char*    [-]  ?
+    has   Measured      const char*    [-]  ?
+    has   Counted       std::uint64_t  [-]  ?
+    has   Magnitude     double         [-]  ?
+    has   RealDeclared  bool           [-]  ?
+    has   Sampled       TickPoint      [-]  ?
+    by    Source/ConsoleHost.cpp, Source/ReportSequence.cpp
+    note  🔴 A measure is not a report and the distinction is what the whole register rests on. `06` §3 samples
+
+T MeasureIndex                   | ReportSequence.h | 164-209 | owning                        | -  | The current reading of every sampled measure, keyed by origin and quantity. never pushed — a producer that pushed its own measure would write from inside a recording, contending with the tick for the state the tick is presenting.
+    has   SampledMeasures  std::vector<SampledMeasure>  [-]  ?
+    by    Api/ChartPartition.h, Api/SurfaceTileSpace.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/ReportSequence.cpp, Source/SurfaceTileSpace.cpp
+    note  🔴 Written on the tick only and therefore unguarded. `86` §2.1: measures are sampled by the tick and
+
+F MeasureIndex::DeclareCount     | ReportSequence.h | 175     | api,nonthrowing               | 🚩 | Declares one integer measure, replacing whatever the same origin and quantity last read.
+    in    Origin    const char*    [-]   static text naming document and section
+    in    Measured  const char*    [-]   static text naming the quantity
+    in    Counted   std::uint64_t  [-]   the reading
+    in    Sampled   TickPoint      [ns]  when the tick took it
+    out   -         void           [-]   ?
+    by    Api/WorkSequence.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/ReportSequence.cpp, Source/SurfaceTileSpace.cpp
+
+F MeasureIndex::DeclareMagnitude | ReportSequence.h | 182     | api,nonthrowing               | 🚩 | Declares one real measure, replacing whatever the same origin and quantity last read. the real declaration and quietly change a count into a magnitude.
+    in    Origin     const char*  [-]  ?
+    in    Measured   const char*  [-]  ?
+    in    Magnitude  double       [-]  ?
+    in    Sampled    TickPoint    [-]  ?
+    out   -          void         [-]  ?
+    by    Source/ChartPartition.cpp, Source/ReportSequence.cpp
+    note  Named apart from the integer form rather than overloaded, so that an integer literal cannot select
+
+F MeasureIndex::Measures         | ReportSequence.h | 187     | api,nonallocating,nonthrowing | ✔️ | Every measure currently held, in declaration order.
+    out   -  const std::vector<SampledMeasure>&  [-]  ?
+    by    Source/ConsoleHost.cpp, Source/ReportSequence.cpp
+
+F MeasureIndex::Resolve          | ReportSequence.h | 197     | api,nonthrowing               | 🚩 | One measure's current reading. capability: a metric that reports zero when it could not be measured is confidently wrong.
+    in    Origin    const char*  [-]  static text naming document and section
+    in    Measured  const char*  [-]  static text naming the quantity
+    out   -         Outcome      [-]  refuses with ExtentExhausted when nothing has declared it
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    note  An undeclared measure refuses rather than reading zero. `08` §5 rules the same for an unmeasurable
+
+F MeasureIndex::Reclaim          | ReportSequence.h | 202     | api,nonthrowing               | ✔️ | Discards every held measure.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+
+F MeasureIndex::Located          | ReportSequence.h | 206     | -                             | -  | ?
+    in    Origin    const char*  [-]  ?
+    in    Measured  const char*  [-]  ?
+    out   -         std::size_t  [-]  ?
+    by    Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, Api/SurfaceLayerSequence.h, (+17 more)

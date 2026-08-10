@@ -1,0 +1,142 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Raw device byte extents, claimed in a few large pieces and sliced into the spans every resource sits in.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateVulkan/Device/ByteSpace/Api
+%layer      SlateVulkan
+%sources    1
+%symbols    19
+%annotated  11/19
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S ByteSpace.h | 178 lines | d51e1a89 | 19 sym | Raw device byte extents, claimed in a few large pieces and sliced into the spans every resource sits in.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    EXTENT RESIDENCY
+//------------------------------------------------------------------------------------------------------------------------
+
+V AbsentExtent                 | ByteSpace.h | 25      | -                             | -  | ?
+    by    Source/ByteSpace.cpp
+
+E ExtentResidency              | ByteSpace.h | 32-37   | contract                      | -  | Where a claimed span lives, which is the only distinction the caller makes. device declares, and it differs per device, per driver and per configuration. A caller naming the vendor ordinal directly has hard-coded one machine's declaration into a claim site.
+    has   DeviceLocal     ExtentResidency  [-]  ?
+    has   HostWritable    ExtentResidency  [-]  ?
+    has   ResidencyCount  ExtentResidency  [-]  ?
+    by    Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/OcclusionScheduler.cpp, Source/SpanSpace.cpp, Source/VisibilityRaster.cpp
+    note  🔴 The vendor's `memoryTypeIndex` is **not** this. It is resolved from this by scoring what the
+
+E ClaimStanding                | ByteSpace.h | 45-50   | contract                      | -  | What the claimant promises about the span, and therefore what exhaustion means for it. exhaustion is residency policy rather than a reported failure. The distinction cannot be derived from the span — a hundred megabytes is the working set for one caller and an optional prefetch for the next — so it is declared at the claim and carried into the refusal.
+    has   Reserved       ClaimStanding  [-]  ?
+    has   Committed      ClaimStanding  [-]  ?
+    has   Discretionary  ClaimStanding  [-]  ?
+    by    Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp
+    note  🔴 `06` §7: a reserved or committed claim is refused **before** partial success, and discretionary
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    ONE CLAIMED SPAN
+//------------------------------------------------------------------------------------------------------------------------
+
+T ByteClaim                    | ByteSpace.h | 60-67   | nonallocating,nonthrowing     | -  | One sliced byte span — where it sits, how far it runs, and which extent it came out of. is a no-op, which is what makes the caller's reclamation path unconditional.
+    has   BackingExtent  VkDeviceMemory  [-]  ?
+    has   ByteOffset     VkDeviceSize    [-]  ?
+    has   ByteSpan       VkDeviceSize    [-]  ?
+    has   HostAddress    void*           [-]  ?
+    has   ExtentOrdinal  std::uint32_t   [-]  ?
+    by    Api/ImageSpace.h, Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp
+    note  A default-constructed claim names `AbsentExtent` and is what a refusal leaves behind. Releasing one
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE SLICED EXTENTS
+//------------------------------------------------------------------------------------------------------------------------
+
+V DeviceLocalExtentBytes       | ByteSpace.h | 76      | -                             | -  | ?
+    by    Source/ByteSpace.cpp
+
+V HostWritableExtentBytes      | ByteSpace.h | 77      | -                             | -  | ?
+    by    Source/ByteSpace.cpp
+
+T ByteSpace                    | ByteSpace.h | 87-176  | owning                        | -  | Every device byte the engine holds, sliced from a small number of large vendor allocations. span is `16`'s; both arrive here as a span and an alignment and leave as an offset. with its neighbours, but no extent is ever handed back to the vendor until Reclaim — an extent returned while any claim still stands is a use-after-free the validation layer reports somewhere else entirely.
+    has   DeviceEdge       const VulkanExchange*             [-]  ?
+    has   VendorDeclared   VkPhysicalDeviceMemoryProperties  [-]  ?
+    has   Extents          std::vector<SlicedExtent>         [-]  ?
+    has   NonCoherentAtom  VkDeviceSize                      [-]  ?
+    by    Api/ImageSpace.h, Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp
+    note  🔴 This owns bytes and knows nothing of what occupies them. An image is `ImageSpace`'s and a vertex
+    note  ⚠️ Reclamation is whole-extent. A released span returns to its extent's free list and is coalesced
+
+F ByteSpace::~ByteSpace        | ByteSpace.h | 94      | destructor                    | -  | ?
+
+F ByteSpace::Construct         | ByteSpace.h | 102     | api,nonthrowing               | ✔️ | Takes the device and reads the vendor declaration every later claim is scored against.
+    in    Exchange  const VulkanExchange&  [-]  the created device; borrowed, never owned, and outlives this component
+    out   -         Outcome                [-]  refuses with CapabilityAbsent when no device is active
+    post  no extent is claimed; the first Claim takes the first one
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+46 more)
+
+F ByteSpace::Claim             | ByteSpace.h | 115     | api,nonthrowing               | 🚩 | Slices one span of the requested residency, taking a further extent when none can satisfy it. cannot use and cannot release, and the release path is the one nobody exercises.
+    in    RequestedBytes  VkDeviceSize     [B]  how far the span must run
+    in    ByteAlignment   VkDeviceSize     [B]  the alignment the vendor declared for what occupies it; zero reads as one
+    in    Residency       ExtentResidency  [-]  device-local or host-writable
+    in    Standing        ClaimStanding    [-]  what exhaustion means for this claimant
+    out   -               Outcome          [-]  refuses with ExtentExhausted, in full, with nothing partially claimed
+    err   refuses with ContentUnsupported for a zero span or an alignment that is not a power of two
+    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+13 more)
+    note  🔴 The refusal is whole. A claim that half-succeeded would leave the caller holding a span it
+
+F ByteSpace::Release           | ByteSpace.h | 128     | api,nonthrowing               | ✔️ | Returns one span to its extent's free list, coalescing it with whatever it now adjoins. quarantined by its **owner** — `20` §5 does exactly that over its own slots — because only the owner knows which rotation last recorded against it.
+    in    Claimed  const ByteClaim&  [-]  a claim this component issued; a default-constructed one is a no-op
+    out   -        void              [-]  ?
+    post  the span is claimable again immediately
+    by    Api/ImageSpace.h, Api/PopulationIndex.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, (+7 more)
+    note  ⚠️ Immediately, not after the rotation depth. A span the device may still be reading is
+
+F ByteSpace::Reclaim           | ByteSpace.h | 134     | api,nonthrowing               | 🚩 | Destroys every vendor allocation and forgets every slice.
+    out   -  void  [-]  ?
+    pre   the device is idle and no claim this component issued is still recorded against
+    by    Api/AttachmentIndex.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, Api/EnrollmentIndex.h, (+49 more)
+
+F ByteSpace::ClaimedBytes      | ByteSpace.h | 139     | api,nonallocating,nonthrowing | ✔️ | What is claimed and what is held, per residency — the two halves `86` reports separately.
+    in    Residency  ExtentResidency  [-]  ?
+    out   -          VkDeviceSize     [-]  ?
+    by    Api/ImageSpace.h, Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp
+
+F ByteSpace::BackingBytes      | ByteSpace.h | 140     | -                             | -  | ?
+    in    Residency  ExtentResidency  [-]  ?
+    out   -          VkDeviceSize     [-]  ?
+    by    Api/ImageSpace.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp, (+2 more)
+
+F ByteSpace::ExtentCount       | ByteSpace.h | 141     | -                             | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Source/ByteSpace.cpp
+
+T ByteSpace::FreeSpan          | ByteSpace.h | 147-151 | -                             | -  | ?
+    has   ByteOffset  VkDeviceSize  [-]  ?
+    has   ByteSpan    VkDeviceSize  [-]  ?
+    by    Source/ByteSpace.cpp, Source/SceneStructure.cpp
+
+T ByteSpace::SlicedExtent      | ByteSpace.h | 153-162 | -                             | -  | ?
+    has   DeviceExtent   VkDeviceMemory         [-]  ?
+    has   TotalBytes     VkDeviceSize           [-]  ?
+    has   TakenBytes     VkDeviceSize           [-]  ?
+    has   HostAddress    void*                  [-]  ?
+    has   Residency      ExtentResidency        [-]  ?
+    has   VendorOrdinal  std::uint32_t          [-]  ?
+    has   Unclaimed      std::vector<FreeSpan>  [-]  ?
+    by    Source/ByteSpace.cpp
+
+F ByteSpace::ClassifyResidency | ByteSpace.h | 166     | -                             | -  | Scores what the device declares for the one entry that satisfies a residency.
+    in    Residency  ExtentResidency  [-]  ?
+    out   -          Outcome          [-]  refuses with CapabilityAbsent when nothing declared carries the properties
+    by    Source/ByteSpace.cpp
+
+F ByteSpace::ConstructExtent   | ByteSpace.h | 170     | -                             | -  | Takes one further vendor allocation, at least as large as the span that could not be satisfied.
+    in    Residency   ExtentResidency  [-]  ?
+    in    LeastBytes  VkDeviceSize     [-]  ?
+    out   -           Outcome          [-]  refuses with ExtentExhausted when the vendor declines the allocation
+    by    Source/ByteSpace.cpp

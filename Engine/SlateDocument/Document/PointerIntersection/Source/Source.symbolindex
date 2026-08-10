@@ -1,0 +1,104 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The unprojection, the one traversal that resolves the whole tuple, and the marquee as a narrower camera.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/PointerIntersection/Source
+%layer      SlateDocument
+%sources    1
+%symbols    10
+%annotated  0/10
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S PointerIntersection.cpp | 492 lines | a21730f6 | 10 sym | The unprojection, the one traversal that resolves the whole tuple, and the marquee as a narrower camera.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   TRANSFORM HELPERS
+//------------------------------------------------------------------------------------------------------------------------
+
+F RotateSpan                         | PointerIntersection.cpp | 23-38   | - | - | ?
+    in    Rotation  RotationQuaternion  [-]  ?
+    in    SpanX     double              [-]  ?
+    in    SpanY     double              [-]  ?
+    in    SpanZ     double              [-]  ?
+    in    OutX      double&             [-]  ?
+    in    OutY      double&             [-]  ?
+    in    OutZ      double&             [-]  ?
+    out   -         void                [-]  ?
+    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, Source/SpatialSubdivision.cpp
+
+F PrecedesInIdentity                 | PointerIntersection.cpp | 42-48   | - | - | ?
+    in    Earlier  OccupantIdentity  [-]  ?
+    in    Later    OccupantIdentity  [-]  ?
+    out   -        bool              [-]  ?
+    by    Source/IlluminantPopulation.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE UNPROJECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F ProjectPointerRay                  | PointerIntersection.cpp | 56-132  | - | - | ?
+    in    Camera         const CameraProjection&  [-]  ?
+    in    PointerAlong   double                   [-]  ?
+    in    PointerAcross  double                   [-]  ?
+    in    DisplayAlong   std::uint32_t            [-]  ?
+    in    DisplayAcross  std::uint32_t            [-]  ?
+    out   -              Outcome<ProjectedRay>    [-]  ?
+    by    Api/PointerIntersection.h, Source/ConsoleHost.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE ADMISSIONS
+//------------------------------------------------------------------------------------------------------------------------
+
+F PointerIntersection::Located       | PointerIntersection.cpp | 138-154 | - | - | ?
+    in    Subject  OccupantIdentity  [-]  ?
+    out   -        std::size_t       [-]  ?
+
+F PointerIntersection::Admit         | PointerIntersection.cpp | 156-179 | - | - | ?
+    in    Arriving  const AdmittedSurface&  [-]  ?
+    out   -         Outcome<bool>           [-]  ?
+
+F PointerIntersection::Withdraw      | PointerIntersection.cpp | 181-191 | - | - | ?
+    in    Subject  OccupantIdentity  [-]  ?
+    out   -        Outcome<bool>     [-]  ?
+
+F PointerIntersection::Standing      | PointerIntersection.cpp | 193-204 | - | - | ?
+    in    Subject  OccupantIdentity                 [-]  ?
+    out   -        Outcome<const AdmittedSurface*>  [-]  ?
+
+F PointerIntersection::AdmittedCount | PointerIntersection.cpp | 206-209 | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    ONE POINTER RAY
+//------------------------------------------------------------------------------------------------------------------------
+
+F PointerIntersection::Resolve       | PointerIntersection.cpp | 215-339 | - | - | ?
+    in    Projected    const ProjectedRay&     [-]  ?
+    in    Subdivision  const OctantSpace&      [-]  ?
+    in    Subsets      const EnrollmentIndex&  [-]  ?
+    in    Placements   const PlacementIndex&   [-]  ?
+    out   -            ResolvedPointer         [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE MARQUEE
+//------------------------------------------------------------------------------------------------------------------------
+
+F PointerIntersection::ResolveExtent | PointerIntersection.cpp | 345-490 | - | - | ?
+    in    Camera               const CameraProjection&        [-]  ?
+    in    LeastAlong           double                         [-]  ?
+    in    LeastAcross          double                         [-]  ?
+    in    GreatestAlong        double                         [-]  ?
+    in    GreatestAcross       double                         [-]  ?
+    in    DisplayAlong         std::uint32_t                  [-]  ?
+    in    DisplayAcross        std::uint32_t                  [-]  ?
+    in    ContainmentDeclared  bool                           [-]  ?
+    in    Subdivision          const OctantSpace&             [-]  ?
+    in    Subsets              const EnrollmentIndex&         [-]  ?
+    out   -                    std::vector<OccupantIdentity>  [-]  ?

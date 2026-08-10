@@ -698,6 +698,16 @@ Outcome<bool> OctantSpace::Refit(OccupantIdentity           Subject,
     return Outcome<bool>::Deliver(true);
 }
 
+Outcome<AdmittedOccupant> OctantSpace::Standing(OccupantIdentity Subject) const
+{
+    const std::size_t Located_ = Located(Subject);
+
+    if (Located_ == Admitted.size())
+        return Outcome<AdmittedOccupant>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
+
+    return Outcome<AdmittedOccupant>::Deliver(Admitted[Located_]);
+}
+
 Outcome<bool> OctantSpace::Construct()
 {
     Records.clear();

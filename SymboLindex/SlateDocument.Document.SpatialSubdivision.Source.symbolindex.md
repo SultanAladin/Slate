@@ -1,0 +1,241 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Octant division, nearest-first descent, exact face classification, and refit without rebuild.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/SpatialSubdivision/Source
+%layer      SlateDocument
+%sources    1
+%symbols    38
+%annotated  0/38
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S SpatialSubdivision.cpp | 1169 lines | bfb7e8be | 38 sym | Octant division, nearest-first descent, exact face classification, and refit without rebuild.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     EXTENT HELPERS
+//------------------------------------------------------------------------------------------------------------------------
+
+F EmptyExtent                     | SpatialSubdivision.cpp | 23-34     | - | - | ?
+    out   -  ConditionedExtent  [-]  ?
+
+F Widen                           | SpatialSubdivision.cpp | 36-50     | - | - | ?
+    in    Widening  ConditionedExtent&        [-]  ?
+    in    Arriving  const ConditionedExtent&  [-]  ?
+    out   -         void                      [-]  ?
+
+F ExtentOccupied                  | SpatialSubdivision.cpp | 52-57     | - | - | ?
+    in    Held  const ConditionedExtent&  [-]  ?
+    out   -     bool                      [-]  ?
+
+F ExtentVolume                    | SpatialSubdivision.cpp | 59-67     | - | - | ?
+    in    Held  const ConditionedExtent&  [-]  ?
+    out   -     double                    [-]  ?
+
+F ExtentsOverlap                  | SpatialSubdivision.cpp | 69-75     | - | - | ?
+    in    Left   const ConditionedExtent&  [-]  ?
+    in    Right  const ConditionedExtent&  [-]  ?
+    out   -      bool                      [-]  ?
+
+F ExtentContains                  | SpatialSubdivision.cpp | 77-85     | - | - | ?
+    in    Outer  const ConditionedExtent&  [-]  ?
+    in    Inner  const ConditionedExtent&  [-]  ?
+    out   -      bool                      [-]  ?
+
+F SlabInterval                    | SpatialSubdivision.cpp | 90-126    | - | - | ?
+    in    Held         const ConditionedExtent&  [-]  ?
+    in    Origin       DocumentPosition          [-]  ?
+    in    ReciprocalX  double                    [-]  ?
+    in    ReciprocalY  double                    [-]  ?
+    in    ReciprocalZ  double                    [-]  ?
+    in    Entering     double&                   [-]  ?
+    in    Leaving      double&                   [-]  ?
+    out   -            bool                      [-]  ?
+
+F Conjugated                      | SpatialSubdivision.cpp | 128-137   | - | - | ?
+    in    Subject  RotationQuaternion  [-]  ?
+    out   -        RotationQuaternion  [-]  ?
+    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp
+
+F RotateSpan                      | SpatialSubdivision.cpp | 139-154   | - | - | ?
+    in    Rotation  RotationQuaternion  [-]  ?
+    in    SpanX     double              [-]  ?
+    in    SpanY     double              [-]  ?
+    in    SpanZ     double              [-]  ?
+    in    OutX      double&             [-]  ?
+    in    OutY      double&             [-]  ?
+    in    OutZ      double&             [-]  ?
+    out   -         void                [-]  ?
+    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE INNER SUBDIVISION
+//------------------------------------------------------------------------------------------------------------------------
+
+F BoundingStructure::Construct    | SpatialSubdivision.cpp | 162-229   | - | - | ?
+    in    Imported     const TopologyStructure&     [-]  ?
+    in    Conditioned  const TopologyConditioning&  [-]  ?
+    out   -            Outcome<bool>                [-]  ?
+
+F BoundingStructure::Divide       | SpatialSubdivision.cpp | 231-329   | - | - | ?
+    in    RecordOrdinal  std::uint32_t  [-]  ?
+    in    Depth          std::uint32_t  [-]  ?
+    out   -              void           [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  FACE CLASSIFICATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F ClassifyRayTriangle             | SpatialSubdivision.cpp | 344-449   | - | - | ?
+    in    Alpha       DocumentPosition  [-]  ?
+    in    Beta        DocumentPosition  [-]  ?
+    in    Gamma       DocumentPosition  [-]  ?
+    in    Origin      DocumentPosition  [-]  ?
+    in    DirectionX  double            [-]  ?
+    in    DirectionY  double            [-]  ?
+    in    DirectionZ  double            [-]  ?
+    in    Distance    double&           [-]  ?
+    in    Weights     double            [-]  ?
+    out   -           bool              [-]  ?
+
+F BoundingStructure::Descend      | SpatialSubdivision.cpp | 453-572   | - | - | ?
+    in    RecordOrdinal  std::uint32_t      [-]  ?
+    in    Origin         DocumentPosition   [-]  ?
+    in    ReciprocalX    double             [-]  ?
+    in    ReciprocalY    double             [-]  ?
+    in    ReciprocalZ    double             [-]  ?
+    in    DirectionX     double             [-]  ?
+    in    DirectionY     double             [-]  ?
+    in    DirectionZ     double             [-]  ?
+    in    Nearest        FaceIntersection&  [-]  ?
+    out   -              void               [-]  ?
+
+F BoundingStructure::IntersectRay | SpatialSubdivision.cpp | 574-598   | - | - | ?
+    in    Origin            DocumentPosition  [-]  ?
+    in    DirectionX        double            [-]  ?
+    in    DirectionY        double            [-]  ?
+    in    DirectionZ        double            [-]  ?
+    in    FurthestDistance  double            [-]  ?
+    out   -                 FaceIntersection  [-]  ?
+
+F BoundingStructure::Extent       | SpatialSubdivision.cpp | 600-603   | - | - | ?
+    out   -  ConditionedExtent  [-]  ?
+
+F BoundingStructure::RecordCount  | SpatialSubdivision.cpp | 605       | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F BoundingStructure::FaceCount    | SpatialSubdivision.cpp | 606       | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F BoundingStructure::Constructed  | SpatialSubdivision.cpp | 607       | - | - | ?
+    out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE OUTER SUBDIVISION
+//------------------------------------------------------------------------------------------------------------------------
+
+F OctantSpace::Located            | SpatialSubdivision.cpp | 613-622   | - | - | ?
+    in    Subject  OccupantIdentity  [-]  ?
+    out   -        std::size_t       [-]  ?
+
+F OctantSpace::Admit              | SpatialSubdivision.cpp | 624-639   | - | - | ?
+    in    Arriving  const AdmittedOccupant&  [-]  ?
+    out   -         Outcome<bool>            [-]  ?
+
+F OctantSpace::Withdraw           | SpatialSubdivision.cpp | 641-652   | - | - | ?
+    in    Subject  OccupantIdentity  [-]  ?
+    out   -        Outcome<bool>     [-]  ?
+
+F OctantSpace::Refit              | SpatialSubdivision.cpp | 654-699   | - | - | ?
+    in    Subject   OccupantIdentity            [-]  ?
+    in    Composed  const DecomposedTransform&  [-]  ?
+    in    Extent    ConditionedExtent           [-]  ?
+    out   -         Outcome<bool>               [-]  ?
+
+F OctantSpace::Standing           | SpatialSubdivision.cpp | 701-709   | - | - | ?
+    in    Subject  OccupantIdentity           [-]  ?
+    out   -        Outcome<AdmittedOccupant>  [-]  ?
+
+F OctantSpace::Construct          | SpatialSubdivision.cpp | 711-738   | - | - | ?
+    out   -  Outcome<bool>  [-]  ?
+
+F OctantSpace::Divide             | SpatialSubdivision.cpp | 740-828   | - | - | ?
+    in    RecordOrdinal  std::uint32_t  [-]  ?
+    in    Depth          std::uint32_t  [-]  ?
+    out   -              void           [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    OUTER TRAVERSAL
+//------------------------------------------------------------------------------------------------------------------------
+
+F Traversable                     | SpatialSubdivision.cpp | 839-843   | - | - | ?
+    in    Subsets  const EnrollmentIndex&  [-]  ?
+    in    Subject  OccupantIdentity        [-]  ?
+    out   -        bool                    [-]  ?
+
+F OctantSpace::Descend            | SpatialSubdivision.cpp | 847-1002  | - | - | ?
+    in    RecordOrdinal  std::uint32_t           [-]  ?
+    in    Origin         DocumentPosition        [-]  ?
+    in    DirectionX     double                  [-]  ?
+    in    DirectionY     double                  [-]  ?
+    in    DirectionZ     double                  [-]  ?
+    in    Subsets        const EnrollmentIndex&  [-]  ?
+    in    Nearest        ResolvedIntersection&   [-]  ?
+    out   -              void                    [-]  ?
+
+F OctantSpace::IntersectRay       | SpatialSubdivision.cpp | 1004-1018 | - | - | ?
+    in    Origin      DocumentPosition        [-]  ?
+    in    DirectionX  double                  [-]  ?
+    in    DirectionY  double                  [-]  ?
+    in    DirectionZ  double                  [-]  ?
+    in    Subsets     const EnrollmentIndex&  [-]  ?
+    out   -           ResolvedIntersection    [-]  ?
+
+F OctantSpace::IntersectExtent    | SpatialSubdivision.cpp | 1020-1071 | - | - | ?
+    in    Extent       ConditionedExtent              [-]  ?
+    in    Containment  bool                           [-]  ?
+    in    Subsets      const EnrollmentIndex&         [-]  ?
+    out   -            std::vector<OccupantIdentity>  [-]  ?
+
+F OctantSpace::RebuildWorthwhile  | SpatialSubdivision.cpp | 1073-1084 | - | - | ?
+    out   -  bool  [-]  ?
+
+F OctantSpace::AdmittedCount      | SpatialSubdivision.cpp | 1086      | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F OctantSpace::RecordCount        | SpatialSubdivision.cpp | 1087      | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F OctantSpace::ConstructionOwed   | SpatialSubdivision.cpp | 1088      | - | - | ?
+    out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE DOMAIN SUBDIVISION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AxisSpace::Construct            | SpatialSubdivision.cpp | 1094-1097 | - | - | ?
+    in    Declaring  const std::vector<DomainExtent>&  [-]  ?
+    out   -          void                              [-]  ?
+
+F AxisSpace::Refit                | SpatialSubdivision.cpp | 1099-1113 | - | - | ?
+    in    PlacementOrdinal  std::uint32_t  [-]  ?
+    in    Amending          DomainExtent   [-]  ?
+    out   -                 Outcome<bool>  [-]  ?
+
+F AxisSpace::Resolve              | SpatialSubdivision.cpp | 1115-1144 | - | - | ?
+    in    PositionAlong   double                  [-]  ?
+    in    PositionAcross  double                  [-]  ?
+    out   -               Outcome<std::uint32_t>  [-]  ?
+
+F AxisSpace::Overlapping          | SpatialSubdivision.cpp | 1146-1162 | - | - | ?
+    in    Extent  DomainExtent                [-]  ?
+    out   -       std::vector<std::uint32_t>  [-]  ?
+
+F AxisSpace::DeclaredCount        | SpatialSubdivision.cpp | 1164-1167 | - | - | ?
+    out   -  std::uint32_t  [-]  ?

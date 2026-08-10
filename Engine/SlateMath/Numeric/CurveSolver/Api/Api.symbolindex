@@ -25,7 +25,7 @@ S CurveSolver.h | 119 lines | 8d43ee24 | 7 sym | Planar path evaluation, flatten
 T PlanarPosition           | CurveSolver.h | 25-29 | nonallocating,nonthrowing | -  | One position in a planar path's own space. predicate over narrowed positions is exact about the wrong positions.
     has   PositionX  double  [-]  ?
     has   PositionY  double  [-]  ?
-    by    Api/UnwrapSolver.h, Api/VectorInterchange.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/UnwrapSolver.cpp, (+1 more)
+    by    Api/AnalyticProjection.h, Api/UnwrapSolver.h, Api/VectorInterchange.h, Source/AnalyticProjection.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+3 more)
     note  Held at 64-bit because `PlanarClassifier` classifies the flattened result exactly, and an exact
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -64,7 +64,7 @@ F Flatten                  | CurveSolver.h | 82    | api,nonthrowing           |
     in    Tolerance  double                        [-]  greatest permitted deviation, in the path's own space
     in    Appending  std::vector<PlanarPosition>&  [-]  ?
     out   -          Appending                     [-]  positions appended in traversal order
-    by    Api/VectorInterchange.h, Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/VectorInterchange.cpp
+    by    Api/VectorInterchange.h, Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/VectorInterchange.cpp
     note  🔴 Tolerance is **resolution-relative** and is supplied by the caller, never fixed here. `70` resolves
     note  📐 Subdivision is adaptive: a segment is halved while its control positions deviate from the chord by
 
@@ -73,7 +73,7 @@ F Flatten                  | CurveSolver.h | 93    | api,nonthrowing           |
     in    Segments   const std::vector<PathSegment>&  [-]  the run, in traversal order
     in    Tolerance  double                           [-]  ?
     out   -          Flattened                        [-]  the origin followed by every appended position
-    by    Api/VectorInterchange.h, Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/VectorInterchange.cpp
+    by    Api/VectorInterchange.h, Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/VectorInterchange.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       OFFSETTING
@@ -91,4 +91,4 @@ F OffsetOutline            | CurveSolver.h | 114   | api,nonthrowing           |
 F SLATE_DECLARES_PRECISION | CurveSolver.h | 117   | -                         | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)

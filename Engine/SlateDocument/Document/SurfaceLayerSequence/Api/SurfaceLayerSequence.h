@@ -67,6 +67,27 @@ struct PaintedContent
 };
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                 WHERE A CHANNEL LANDS
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Which components of one painted entry a channel occupies.
+/// note  🔴 Declared here rather than in `22`, because it describes the layout of a `PaintedContent` and `22` is
+///        not the only reader. `70` resolves into the same components and sits below `22` in `00` §9.1's strata,
+///        so a declaration held there would be a back edge from stratum 7 to stratum 9.
+/// note  🚧 Supplied by the caller rather than derived from `42`. `00` §12 carries the channel packing layout as
+///        open, so deriving one here would answer that question in the one place nobody would look for it.
+/// note  🔴 A colour channel spans three components and a scalar one spans one. The span is declared rather than
+///        inferred from the measure, so a two-component packing of a colour refuses at the caller's validation
+///        instead of writing three channels over each other.
+/// tag   nonallocating, nonthrowing
+struct ChannelPlacement
+{
+    ChannelSubject  Channel          = ChannelSubject::ChannelCount;   // [-] - which of `42`'s twenty
+    std::uint32_t   ComponentOrdinal = 0u;                             // [-] - first component within the entry
+    std::uint32_t   ComponentSpan    = 1u;                             // [-] - one for a scalar, three for a colour
+};
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                      COVERAGE
 //------------------------------------------------------------------------------------------------------------------------
 

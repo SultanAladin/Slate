@@ -25,20 +25,20 @@ S TopologyStructure.h | 174 lines | 815e6362 | 28 sym | Polygon topology exactly
 T DomainCoordinate                             | TopologyStructure.h | 26-30  | nonallocating,nonthrowing     | -  | One position in a surface's parametric domain. it far below one texel of the largest working extent, so widening would buy nothing.
     has   CoordinateAlong   float  [-]  ?
     has   CoordinateAcross  float  [-]  ?
-    by    Api/AssetInterchange.h, Api/ChartPartition.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
+    by    Api/AssetInterchange.h, Api/ChartPartition.h, Api/DecalProjection.h, Api/PointerIntersection.h, Api/ReflectanceIntegrator.h, Source/ChartPartition.cpp, (+5 more)
     note  Held at 32 bits per `02` §3.2's surface space. The domain is the unit square and a 32-bit real resolves
 
 T SurfaceDirection                             | TopologyStructure.h | 34-39  | nonallocating,nonthrowing     | -  | A unit direction in an occupant's own object space.
     has   DirectionX  float  [-]  ?
     has   DirectionY  float  [-]  ?
     has   DirectionZ  float  [-]  ?
-    by    Api/AssetInterchange.h, Api/PartitionStructure.h, Api/SpatialSubdivision.h, Api/TopologyConditioning.h, Source/PartitionStructure.cpp, Source/TopologyConditioning.cpp, (+1 more)
+    by    Api/AssetInterchange.h, Api/PartitionStructure.h, Api/PointerIntersection.h, Api/ReflectanceIntegrator.h, Api/SpatialSubdivision.h, Api/TopologyConditioning.h, (+4 more)
 
 T TangentBasis                                 | TopologyStructure.h | 45-50  | nonallocating,nonthrowing     | -  | One vertex's tangent basis and the handedness that completes it. across a seam inverts it on one side, and `18` §1.1 interpolates this rather than recomputing it.
     has   Tangent           SurfaceDirection  [-]  ?
     has   HandednessSignum  float             [-]  ?
     has   BasisDeclared     bool              [-]  ?
-    by    Api/AssetInterchange.h, Api/TopologyConditioning.h, Source/ConsoleHost.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
+    by    Api/AssetInterchange.h, Api/ReflectanceIntegrator.h, Api/TopologyConditioning.h, Source/ConsoleHost.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
     note  🔴 Handedness is stored **per vertex** and is not derivable per pixel — `38` §4. A domain that mirrors
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ T TopologyStructure                            | TopologyStructure.h | 65-172 | 
     has   FaceMaterialOrdinals  std::vector<std::uint32_t>     [-]  ?
     has   SealedRevision        std::uint64_t                  [-]  ?
     has   SealDeclared          bool                           [-]  ?
-    by    Api/AssetInterchange.h, Api/ChartPartition.h, Api/PartitionStructure.h, Api/SpatialSubdivision.h, Api/TopologyConditioning.h, Api/VisibilityIndex.h, (+10 more)
+    by    Api/AssetInterchange.h, Api/ChartPartition.h, Api/DecalProjection.h, Api/PartitionStructure.h, Api/PointerIntersection.h, Api/SpatialSubdivision.h, (+14 more)
     note  🔴 Sealed once and read thereafter. `38`'s non-mutation guarantee begins here: an index into these
     note  🔴 Faces are corner runs and may carry any corner count. `50` §2 ① never repairs, so n-gons, repeated
     note  ⚠️ A format that stores a domain coordinate per corner has already split every vertex where its
@@ -76,7 +76,7 @@ F TopologyStructure::DeclareFace               | TopologyStructure.h | 84     | 
 F TopologyStructure::DeclareCoordinates        | TopologyStructure.h | 90     | api,nonthrowing               | 🚩 | Declares one domain coordinate per corner, in corner order.
     in    Arriving  const std::vector<DomainCoordinate>&  [-]  ?
     out   -         Outcome                               [-]  refuses with ContentUnsupported when the count does not equal the corner count
-    by    Source/AssetInterchange.cpp, Source/TopologyStructure.cpp
+    by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/TopologyStructure.cpp
 
 F TopologyStructure::DeclarePerpendiculars     | TopologyStructure.h | 96     | api,nonthrowing               | 🚩 | Declares one perpendicular per vertex, as the source supplied it.
     in    Arriving  const std::vector<SurfaceDirection>&  [-]  ?
@@ -97,15 +97,15 @@ F TopologyStructure::DeclareMaterialEnrollment | TopologyStructure.h | 110    | 
 F TopologyStructure::Seal                      | TopologyStructure.h | 117    | api,nonthrowing               | ✔️ | Seals the topology, advancing its revision. Nothing may be declared afterwards.
     out   -  Outcome  [-]  refuses with ExtentExhausted when no face was declared
     post  🔴 every read below is stable, and `38` may condition against it off the tick
-    by    Api/CameraProjection.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/WorkSequence.h, (+10 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, (+12 more)
 
 F TopologyStructure::Sealed                    | TopologyStructure.h | 122    | api,nonallocating,nonthrowing | ✔️ | Whether the topology is sealed and therefore readable.
     out   -  bool  [-]  ?
-    by    Api/ImpressionSequence.h, Api/WorkSequence.h, Source/AssetInterchange.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+7 more)
+    by    Api/ImpressionSequence.h, Api/WorkSequence.h, Source/AssetInterchange.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+8 more)
 
 F TopologyStructure::Revision                  | TopologyStructure.h | 127    | api,nonallocating,nonthrowing | ✔️ | The revision the seal advanced to — what `24` §3 keys a transferred result on.
     out   -  std::uint64_t  [-]  ?
-    by    Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SeamSpecification.h, Source/ChartPartition.cpp, (+10 more)
+    by    Api/ChartPartition.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SeamSpecification.h, (+13 more)
 
 F TopologyStructure::VertexCount               | TopologyStructure.h | 129    | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -113,16 +113,16 @@ F TopologyStructure::VertexCount               | TopologyStructure.h | 129    | 
 
 F TopologyStructure::FaceCount                 | TopologyStructure.h | 130    | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SpatialSubdivision.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionStructure.cpp, (+4 more)
+    by    Api/MaterialSpecification.h, Api/OcclusionProjection.h, Api/PartitionStructure.h, Api/SpatialSubdivision.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+6 more)
 
 F TopologyStructure::CornerCount               | TopologyStructure.h | 131    | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Source/ChartPartition.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp, Source/VisibilityRaster.cpp
+    by    Source/ChartPartition.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp, (+1 more)
 
 F TopologyStructure::FaceFirstCorner           | TopologyStructure.h | 136    | api,nonallocating,nonthrowing | ✔️ | The first corner ordinal of one face, and how many corners it carries.
     in    FaceOrdinal  std::uint32_t  [-]  ?
     out   -            std::uint32_t  [-]  ?
-    by    Source/ChartPartition.cpp, Source/PartitionStructure.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp, Source/VisibilityRaster.cpp
+    by    Source/ChartPartition.cpp, Source/DecalProjection.cpp, Source/PartitionStructure.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp, (+1 more)
 
 F TopologyStructure::FaceCornerCount           | TopologyStructure.h | 137    | -                             | -  | ?
     in    FaceOrdinal  std::uint32_t  [-]  ?
@@ -132,20 +132,20 @@ F TopologyStructure::FaceCornerCount           | TopologyStructure.h | 137    | 
 F TopologyStructure::CornerVertex              | TopologyStructure.h | 142    | api,nonallocating,nonthrowing | ✔️ | The vertex one corner addresses.
     in    CornerOrdinal  std::uint32_t  [-]  ?
     out   -              std::uint32_t  [-]  ?
-    by    Source/ChartPartition.cpp, Source/PartitionStructure.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp, Source/VisibilityRaster.cpp
+    by    Source/ChartPartition.cpp, Source/DecalProjection.cpp, Source/PartitionStructure.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp, Source/TopologyConditioning.cpp, (+2 more)
 
 F TopologyStructure::CornerFace                | TopologyStructure.h | 147    | api,nonallocating,nonthrowing | ✔️ | Which face one corner belongs to.
     in    CornerOrdinal  std::uint32_t  [-]  ?
     out   -              std::uint32_t  [-]  ?
-    by    Source/ChartPartition.cpp, Source/PartitionStructure.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
+    by    Source/ChartPartition.cpp, Source/DecalProjection.cpp, Source/PartitionStructure.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
 
 F TopologyStructure::Positions                 | TopologyStructure.h | 149    | -                             | -  | ?
     out   -  const std::vector<DocumentPosition>&  [-]  ?
-    by    Api/AssetInterchange.h, Api/SpatialSubdivision.h, Api/UnwrapSolver.h, Source/AssetInterchange.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+6 more)
+    by    Api/AssetInterchange.h, Api/SpatialSubdivision.h, Api/UnwrapSolver.h, Source/AssetInterchange.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+8 more)
 
 F TopologyStructure::Coordinates               | TopologyStructure.h | 150    | -                             | -  | ?
     out   -  const std::vector<DomainCoordinate>&  [-]  ?
-    by    Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
+    by    Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
 
 F TopologyStructure::Perpendiculars            | TopologyStructure.h | 151    | -                             | -  | ?
     out   -  const std::vector<SurfaceDirection>&  [-]  ?

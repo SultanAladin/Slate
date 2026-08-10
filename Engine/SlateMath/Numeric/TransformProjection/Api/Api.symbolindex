@@ -26,7 +26,7 @@ T DocumentPosition         | TransformProjection.h | 21-26 | nonallocating,nonth
     has   PositionX  double  [-]  ?
     has   PositionY  double  [-]  ?
     has   PositionZ  double  [-]  ?
-    by    Api/AssetInterchange.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/PartitionClassifier.h, Api/SpatialSubdivision.h, Api/TopologyConditioning.h, (+16 more)
+    by    Api/AssetInterchange.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/PartitionClassifier.h, Api/PointerIntersection.h, Api/ReflectanceIntegrator.h, (+22 more)
     note  Scene extents exceed 32-bit relative precision, which is why document space is never 32-bit.
 
 T DevicePosition           | TransformProjection.h | 32-37 | nonallocating,nonthrowing     | -  | A position after rebasing, narrowed for the device. plausible-looking cause.
@@ -41,7 +41,7 @@ T RotationQuaternion       | TransformProjection.h | 43-49 | nonallocating,nonth
     has   ImaginaryY  double  [-]  ?
     has   ImaginaryZ  double  [-]  ?
     has   Real        double  [-]  ?
-    by    Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/SpatialSubdivision.cpp, Source/TransformProjection.cpp
+    by    Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/DecalProjection.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp, Source/PointerIntersection.cpp, (+2 more)
     note  📐 Compounding quaternions renormalises and multiplying matrices does not, which is what lets the
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ T DecomposedTransform      | TransformProjection.h | 59-66 | nonallocating,nonth
     has   ScaleX       double              [-]  ?
     has   ScaleY       double              [-]  ?
     has   ScaleZ       double              [-]  ?
-    by    Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, (+3 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, Source/CameraProjection.cpp, (+5 more)
     note  Matrix form is derived at the point of use and never stored back. `Project` derives it; nothing
 
 T ProjectedTransform       | TransformProjection.h | 70-76 | nonallocating,nonthrowing     | -  | A transform as sixteen coefficients, column-major, derived for one use and discarded.
@@ -74,7 +74,7 @@ F Compound                 | TransformProjection.h | 88    | api,nonallocating,n
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 89    | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
 
 F Compound                 | TransformProjection.h | 97    | api,nonallocating,nonthrowing | ✔️ | Compounds two decomposed transforms without ever forming a matrix.
     in    OuterTransform  const DecomposedTransform&  [-]  applied second — the containing transform
@@ -85,17 +85,17 @@ F Compound                 | TransformProjection.h | 97    | api,nonallocating,n
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 99    | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
 
 F Project                  | TransformProjection.h | 106   | api,nonallocating,nonthrowing | ✔️ | Derives the matrix form of a decomposed transform at the point of use.
     in    Source  const DecomposedTransform&  [-]  the decomposed transform
     out   -       Projected                   [-]  column-major coefficients; never stored back into Source
-    by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/VisibilityRaster.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, (+6 more)
+    by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/VisibilityRaster.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, (+7 more)
 
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 107   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        REBASING
@@ -111,4 +111,4 @@ F Rebase                   | TransformProjection.h | 122   | api,nonallocating,n
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 123   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)

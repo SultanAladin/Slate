@@ -1,0 +1,79 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Wavelength domain to tristimulus — the colour-matching functions, analytic, never three sampled wavelengths.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateMath/Numeric/SpectralProjection/Api
+%layer      SlateMath
+%sources    1
+%symbols    8
+%annotated  4/8
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S SpectralProjection.h | 141 lines | 6b9ff708 | 8 sym | Wavelength domain to tristimulus — the colour-matching functions, analytic, never three sampled wavelengths.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE DECLARED DOMAIN
+//------------------------------------------------------------------------------------------------------------------------
+
+V SpectralLowerWavelength  | SpectralProjection.h | 22     | -                             | -  | ?
+    by    Source/SpectralProjection.cpp
+
+V SpectralUpperWavelength  | SpectralProjection.h | 23     | -                             | -  | ?
+    by    Source/SpectralProjection.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     ONE COORDINATE
+//------------------------------------------------------------------------------------------------------------------------
+
+T TristimulusCoordinate    | SpectralProjection.h | 35-40  | nonallocating,nonthrowing     | -  | One tristimulus coordinate, before any space's primaries are applied. coordinate in, and tristimulus is not a space's coordinate — it is what a projection into one starts from. Spelling it as a colour would let a caller store it and have `36`'s rule appear satisfied by a coordinate in no space at all.
+    has   MagnitudeX  double  [-]  ?
+    has   MagnitudeY  double  [-]  ?
+    has   MagnitudeZ  double  [-]  ?
+    by    Source/AtmosphereIntegrator.cpp, Source/SpectralProjection.cpp
+    note  ⚠️ Deliberately not a `ColourSpecification`. `36` §1 requires a colour to carry the space it is a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                             THE COLOUR-MATCHING FUNCTIONS
+//------------------------------------------------------------------------------------------------------------------------
+
+F ProjectWavelength        | SpectralProjection.h | 58     | api,nonallocating,nonthrowing | 🚩 | The three colour-matching responses at one wavelength. four hundred and seventy entries per response and would be four hundred and seventy chances to mistype; the fit is nine lobes and reproduces the set to within a fraction of a percent everywhere, which is far inside the Bounded guarantee this component claims. three-point quadrature of an integral whose integrand has a sharp lobe structure, and it is why an atmosphere computed that way has a twilight of the wrong hue rather than of the wrong brightness.
+    in    Wavelength  double      [nm]  outside the declared interval every response is zero
+    out   -           Coordinate  [-]   the matching functions, unnormalised
+    by    Source/SpectralProjection.cpp
+    note  📐 A multi-lobe piecewise-Gaussian fit rather than a transcribed measurement set. The measured set is
+    note  🔴 This is what `28` §3 means by "not by sampling three fixed wavelengths". Three samples is a
+
+F SLATE_DECLARES_PRECISION | SpectralProjection.h | 59     | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+F LuminanceNormalisation   | SpectralProjection.h | 69     | api,nonthrowing               | 🚩 | The integral of the luminance response over the declared interval — the normalisation a projection divides by. primaries from chromaticities: a stored normalisation is a second representation of the matching functions and drifts from them the moment the fit is amended.
+    in    Rule  const QuadratureRule&  [-]  a derived rule; the integral is taken against it
+    out   -     Outcome                [-]  refuses with ContentUnsupported before the rule is derived
+    by    Source/SpectralProjection.cpp
+    note  📝 Derived on demand rather than declared as a number, for the reason `ColourProjection` derives its
+
+F SLATE_DECLARES_PRECISION | SpectralProjection.h | 70     | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE PROJECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F ProjectSpectrum          | SpectralProjection.h | 91-139 | api,nonthrowing               | 🔴 | Projects one spectral quantity onto tristimulus, normalised so a flat spectrum of unit magnitude has unit luminance. normalisation vanishes — which is a fit that no longer describes a luminance response integrations would evaluate the caller's spectrum three times, and a spectrum that reads a medium profile is not cheap enough for that to be a matter of taste. not the same as exponentiating per wavelength and projecting the result. `28` does the former, because the latter needs a spectral transmittance surface rather than a tristimulus one; the discrepancy grows with optical depth and is visible only at grazing angles through the whole atmosphere. Declared here so that whoever measures it later finds the reason rather than the symptom.
+    in    Rule      const QuadratureRule&  [-]  a derived rule, integrated over the declared wavelength interval
+    in    Evaluate  Spectrum               [-]  the spectral quantity; called once per abscissa with a wavelength in nanometres
+    out   -         Outcome                [-]  refuses with ContentUnsupported before the rule is derived, and when the luminance
+    by    Source/AtmosphereIntegrator.cpp
+    note  🔴 The three responses are accumulated **side by side in one walk**, in ordinal order. Three separate
+    note  ⚠️ Projecting a per-wavelength *rate* — an extinction coefficient, say — and then exponentiating it is

@@ -70,7 +70,7 @@ F SpanSpace::Construct    | SpanSpace.h | 98      | api,nonthrowing           | 
     in    Exchange      const VulkanExchange&  [-]  the created device; borrowed, never owned, and outlives this component
     in    BackingSpace  ByteSpace&             [-]  where span bytes come from; borrowed and outlives this component
     out   -             Outcome                [-]  refuses with CapabilityAbsent when no device is active
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
 
 F SpanSpace::Claim        | SpanSpace.h | 109     | api,nonthrowing           | 🔴 | Claims one span of the declared shape and binds the bytes it occupies. a zero span or an intent outside the declared set allocation nothing holds a reference to, reclaimed only at device teardown.
     in    Declared  const SpanShape&  [-]  the shape; nothing about it is inferred from the intent but its permitted reads
@@ -85,7 +85,7 @@ F SpanSpace::Amend        | SpanSpace.h | 122     | api,nonthrowing           | 
     in    ArrivingBytes  VkDeviceSize   [B]  how far the write runs
     in    ByteOffset     VkDeviceSize   [B]  where in the span the write begins
     out   -              Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal or a device-local
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+16 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+20 more)
     note  🔴 The span is host-coherent, so nothing is flushed here. `ByteSpace` claims the host-writable
 
 F SpanSpace::Transfer     | SpanSpace.h | 139     | api,nonthrowing           | ✔️ | Records the transfer that carries one span's bytes into another. ExtentExhausted when the transfer would run past either span knows which stage reads them. A transfer recorded without one is read by the device at whatever moment its scheduling reaches it, which is a partitioning that is correct on one driver.
@@ -100,7 +100,7 @@ F SpanSpace::Transfer     | SpanSpace.h | 139     | api,nonthrowing           | 
 F SpanSpace::Standing     | SpanSpace.h | 149     | api,nonthrowing           | ✔️ | The current record for one claimed span.
     in    SpanOrdinal  std::uint32_t  [-]  a claim this component issued
     out   -            Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/ImageSpace.h, Api/OutlinerSequence.h, (+30 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/ImageSpace.h, (+39 more)
 
 F SpanSpace::Release      | SpanSpace.h | 156     | api,nonthrowing           | 🚩 | Destroys one span and returns its bytes.
     in    SpanOrdinal  std::uint32_t  [-]  a claim this component issued; an unclaimed ordinal is a no-op

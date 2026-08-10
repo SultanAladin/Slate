@@ -53,13 +53,13 @@ F ShaderCodec::Construct          | ShaderCodec.h | 71      | api,nonthrowing   
     in    Exchange         const VulkanExchange&  [-]  the created device; borrowed and outlives this component
     in    StreamDirectory  const std::string&     [-]  where `<Unit>/<Stem>.spv` is found; the build's output, never a source directory
     out   -                Outcome                [-]  refuses with CapabilityAbsent when no device is active
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
 
 F ShaderCodec::Resolve            | ShaderCodec.h | 81      | api,nonthrowing           | 🔴 | Reads one lowered stream, verifies it, and constructs the vendor module from it. ContentUnsupported when it is not SPIR-V or its length is not a whole word count
     in    UnitName    const std::string&  [-]  the unit the stream was lowered under, for example "SlateVulkan"
     in    StreamStem  const std::string&  [-]  the source's stem without its extension, for example "VisibilitySurface"
     out   -           Outcome             [-]  the module ordinal; refuses with HostDenied when the stream cannot be read,
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
     note  A stream already read is not read twice; the standing ordinal is delivered instead.
 
 F ShaderCodec::Stage              | ShaderCodec.h | 93      | api,nonthrowing           | ✔️ | The stage declaration one module supplies to a program, with its specialisation folded in. at the program's construction, and a declaration returned by value is read after the call that produced it has already surrendered its stack.

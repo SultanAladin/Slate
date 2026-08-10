@@ -82,6 +82,11 @@ Real64 ArcTangentQuadrant(Real64 Numerator, Real64 Denominator)
     return atan2(Numerator, Denominator);
 }
 
+Real64 Power(Real64 Operand, Real64 Exponent)
+{
+    return pow(Operand, Exponent);
+}
+
 Real64 BoundedMagnitude(Real64 Operand, Real64 Lower, Real64 Upper)
 {
     return Operand < Lower ? Lower : (Operand > Upper ? Upper : Operand);
@@ -139,6 +144,13 @@ SLATE_SHARED Real64 ArcCosine(Real64 Operand)
 SLATE_SHARED Real64 ArcTangentQuadrant(Real64 Numerator, Real64 Denominator)
 {
     return std::atan2(Numerator, Denominator);
+}
+
+// 📝 The host's own spelling. Declared beside every other intrinsic rather than reached for at the two shared
+//    sites that need it, because a shared file naming `std::pow` directly has stopped being shared source.
+SLATE_SHARED Real64 Power(Real64 Operand, Real64 Exponent)
+{
+    return std::pow(Operand, Exponent);
 }
 
 // 📝 The bound is spelled here rather than reached for per toolchain because the shader form's `clamp` and the

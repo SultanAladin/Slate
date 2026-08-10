@@ -49,7 +49,7 @@ E CellContentSource                        | TilingSpecification.h | 60-67   | c
     has   NestedTiling    CellContentSource  [-]  ?
     has   DeclaredColour  CellContentSource  [-]  ?
     has   SourceCount     CellContentSource  [-]  ?
-    by    Source/TilingSpecification.cpp
+    by    Source/AnalyticProjection.cpp, Source/TilingSpecification.cpp
 
 T CellContent                              | TilingSpecification.h | 76-86   | nonallocating,nonthrowing     | -  | One element placed within the repeating cell. would have to be re-derived whenever the cell extents changed, and changing the cell extents is the first thing an artist does to a pattern. to the outline or the image — it needs to say which one, and `70` fetches it.
     has   Source          CellContentSource     [-]  ?
@@ -60,7 +60,7 @@ T CellContent                              | TilingSpecification.h | 76-86   | n
     has   PlacedRotation  double                [-]  ?
     has   DeclaredColour  ColourSpecification   [-]  ?
     has   Combination     CombineSpecification  [-]  ?
-    by    Source/TilingSpecification.cpp
+    by    Source/AnalyticProjection.cpp, Source/TilingSpecification.cpp
     note  🔴 The placing transform is **within the cell**, in the cell's own unit square. Held in domain units it
     note  📝 Sources are carried by ordinal rather than by value. `54` §4 resolves nothing, so it needs no access
 
@@ -95,7 +95,7 @@ T ClassifiedCell                           | TilingSpecification.h | 125-133 | n
     has   WithinAcross      double         [-]  ?
     has   VariationOrdinal  std::uint32_t  [-]  ?
     has   VariationScale    double         [-]  ?
-    by    Source/TilingSpecification.cpp
+    by    Source/AnalyticProjection.cpp, Source/TilingSpecification.cpp
     note  🔴 Not texels. `54` §4 and §5's last gate: this document declares a pattern and resolves nothing into a
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ T TilingSpecification                      | TilingSpecification.h | 144-210 | o
     has   DeclaredVariation  VariationSpecification    [-]  ?
     has   Depth              std::uint32_t             [-]  ?
     has   LatticeHeld        bool                      [-]  ?
-    by    Source/TilingSpecification.cpp
+    by    Source/AnalyticProjection.cpp, Source/TilingSpecification.cpp
     note  🔴 Textiles are this. Herringbone, twill, houndstooth and basket weave are all a plane symmetry with
 
 F TilingSpecification::DeclareLattice      | TilingSpecification.h | 152     | api,nonthrowing               | ✔️ | Declares the lattice, validated before it is held.
@@ -137,7 +137,7 @@ F TilingSpecification::Classify            | TilingSpecification.h | 187     | a
     in    PositionAlong   double   [-]  the domain's first axis
     in    PositionAcross  double   [-]  its second
     out   -               Outcome  [-]  refuses with ContentUnsupported while no valid lattice is declared
-    by    Api/CameraProjection.h, Api/VectorInterchange.h, Api/VendorClassifier.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp, (+4 more)
+    by    Api/CameraProjection.h, Api/VectorInterchange.h, Api/VendorClassifier.h, Source/AnalyticProjection.cpp, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, (+6 more)
     note  🔴 Classification goes through `02` §5's `LatticeProjection` in `Shared/`, at Tier A, and never
 
 F TilingSpecification::Lattice             | TilingSpecification.h | 189     | -                             | -  | ?
@@ -146,7 +146,7 @@ F TilingSpecification::Lattice             | TilingSpecification.h | 189     | -
 
 F TilingSpecification::Content             | TilingSpecification.h | 190     | -                             | -  | ?
     out   -  const std::vector<CellContent>&  [-]  ?
-    by    Api/ImpressionSequence.h, Contract/OutcomeContract.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/ImpressionSequence.cpp, Source/TilingSpecification.cpp
+    by    Api/AnalyticProjection.h, Api/ImpressionSequence.h, Api/ReflectanceIntegrator.h, Contract/OutcomeContract.h, Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, (+4 more)
 
 F TilingSpecification::Variation           | TilingSpecification.h | 191     | -                             | -  | ?
     out   -  const VariationSpecification&  [-]  ?
@@ -154,7 +154,7 @@ F TilingSpecification::Variation           | TilingSpecification.h | 191     | -
 
 F TilingSpecification::NestingDepth        | TilingSpecification.h | 196     | api,nonallocating,nonthrowing | ✔️ | How deeply this tiling is nested; zero for one applied directly.
     out   -  std::uint32_t  [-]  ?
-    by    Api/SurfaceLayerSequence.h, Source/SurfaceLayerSequence.cpp, Source/TilingSpecification.cpp
+    by    Api/AnalyticProjection.h, Api/SurfaceLayerSequence.h, Source/AnalyticProjection.cpp, Source/SurfaceLayerSequence.cpp, Source/TilingSpecification.cpp
 
 F TilingSpecification::LatticeDeclared     | TilingSpecification.h | 201     | api,nonallocating,nonthrowing | ✔️ | Whether a lattice has been validly declared.
     out   -  bool  [-]  ?
@@ -167,22 +167,22 @@ F TilingSpecification::LatticeDeclared     | TilingSpecification.h | 201     | a
 T TilingIndex                              | TilingSpecification.h | 221-260 | owning                        | -  | Every declared tiling in the document, addressed by ordinal, with the nesting bound enforced across them. been nested inside. Admitting a nested reference is where the depth is known, so it is where the refusal belongs.
     has   TilingCeiling  static constexpr std::uint32_t    [-]  ?
     has   Declared       std::vector<TilingSpecification>  [-]  ?
-    by    Source/TilingSpecification.cpp
+    by    Api/AnalyticProjection.h, Source/TilingSpecification.cpp
     note  🔴 The bound is enforced **here** rather than inside a tiling, because a tiling cannot see what it has
 
 F TilingIndex::Declare                     | TilingSpecification.h | 229     | api,nonthrowing               | 🚩 | Declares one tiling and issues its ordinal.
     out   -  Outcome  [-]  refuses with ExtentExhausted at the declared ceiling
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+26 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+34 more)
 
 F TilingIndex::Resolve                     | TilingSpecification.h | 235     | api,nonthrowing               | ✔️ | One declared tiling, for reading.
     in    TilingOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
 
 F TilingIndex::Amend                       | TilingSpecification.h | 241     | api,nonthrowing               | ✔️ | One declared tiling, for amending.
     in    TilingOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+16 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+20 more)
 
 F TilingIndex::Nest                        | TilingSpecification.h | 251     | api,nonthrowing               | 🚩 | Nests one tiling inside a cell of another, at the declared bound. inside itself, and for a nesting that would exceed `TilingNestingCeiling`
     in    EnclosingOrdinal  std::uint32_t  [-]  the tiling whose cell carries it
@@ -193,10 +193,10 @@ F TilingIndex::Nest                        | TilingSpecification.h | 251     | a
 
 F TilingIndex::DeclaredCount               | TilingSpecification.h | 253     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/ProgramIndex.h, Api/QuadratureIntegrator.h, (+14 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/ProgramIndex.h, (+20 more)
 
 F SLATE_DECLARES_PRECISION                 | TilingSpecification.h | 264     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)

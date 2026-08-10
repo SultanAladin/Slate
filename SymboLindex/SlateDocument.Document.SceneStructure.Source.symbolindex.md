@@ -1,0 +1,163 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Enclosure ordering, gapped label assignment and repair, and downward attachment compounding.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/SceneStructure/Source
+%layer      SlateDocument
+%sources    1
+%symbols    28
+%annotated  0/28
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S SceneStructure.cpp | 732 lines | 787fc98e | 28 sym | Enclosure ordering, gapped label assignment and repair, and downward attachment compounding.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       RESOLUTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F SceneStructure::Resolved            | SceneStructure.cpp | 15-27   | - | - | ?
+    in    Subject  OccupantIdentity  [-]  ?
+    out   -        std::uint32_t     [-]  ?
+
+F SceneStructure::OccupantAt          | SceneStructure.cpp | 29-40   | - | - | ?
+    in    SlotOrdinal  std::uint32_t     [-]  ?
+    out   -            OccupantIdentity  [-]  ?
+
+F SceneStructure::SpannedCount        | SceneStructure.cpp | 42-45   | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F SceneStructure::RootFirst           | SceneStructure.cpp | 47-50   | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F SceneStructure::NextInOrder         | SceneStructure.cpp | 52-58   | - | - | ?
+    in    SlotOrdinal  std::uint32_t  [-]  ?
+    out   -            std::uint32_t  [-]  ?
+
+F SceneStructure::FirstEnclosed       | SceneStructure.cpp | 60-66   | - | - | ?
+    in    SlotOrdinal  std::uint32_t  [-]  ?
+    out   -            std::uint32_t  [-]  ?
+
+F SceneStructure::EnclosureDepth      | SceneStructure.cpp | 68-74   | - | - | ?
+    in    SlotOrdinal  std::uint32_t  [-]  ?
+    out   -            std::uint32_t  [-]  ?
+
+F SceneStructure::RelabelOwed         | SceneStructure.cpp | 76-79   | - | - | ?
+    out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                ADMISSION AND RETIREMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F SceneStructure::Admit               | SceneStructure.cpp | 85-115  | - | - | ?
+    in    Arriving  OccupantIdentity  [-]  ?
+    out   -         Outcome<bool>     [-]  ?
+
+F SceneStructure::Retire              | SceneStructure.cpp | 117-202 | - | - | ?
+    in    Departing  OccupantIdentity  [-]  ?
+    out   -          Outcome<bool>     [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   ENCLOSURE ORDERING
+//------------------------------------------------------------------------------------------------------------------------
+
+F SceneStructure::Unlink              | SceneStructure.cpp | 208-234 | - | - | ?
+    in    SlotOrdinal  std::uint32_t  [-]  ?
+    out   -            void           [-]  ?
+
+F SceneStructure::Link                | SceneStructure.cpp | 236-269 | - | - | ?
+    in    SlotOrdinal           std::uint32_t  [-]  ?
+    in    EnclosureSlot         std::uint32_t  [-]  ?
+    in    OrderWithinEnclosure  std::uint32_t  [-]  ?
+    out   -                     void           [-]  ?
+
+F SceneStructure::Enclose             | SceneStructure.cpp | 271-316 | - | - | ?
+    in    Subject               OccupantIdentity  [-]  ?
+    in    ProposedEnclosure     OccupantIdentity  [-]  ?
+    in    OrderWithinEnclosure  std::uint32_t     [-]  ?
+    out   -                     Outcome<bool>     [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    LABEL ASSIGNMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F SceneStructure::EnclosureInterval   | SceneStructure.cpp | 322-337 | - | - | ?
+    in    EnclosureSlot  std::uint32_t  [-]  ?
+    out   -              IntervalLabel  [-]  ?
+
+F SceneStructure::LabelBetween        | SceneStructure.cpp | 339-383 | - | - | ?
+    in    SlotOrdinal  std::uint32_t  [-]  ?
+    out   -            bool           [-]  ?
+
+F SceneStructure::DeclareExhausted    | SceneStructure.cpp | 385-394 | - | - | ?
+    in    EnclosureSlot  std::uint32_t  [-]  ?
+    out   -              void           [-]  ?
+
+F SceneStructure::AssignLabels        | SceneStructure.cpp | 396-442 | - | - | ?
+    in    EnclosureSlot  std::uint32_t  [-]  ?
+    in    Available      IntervalLabel  [-]  ?
+    in    Depth          std::uint32_t  [-]  ?
+    out   -              Outcome<bool>  [-]  ?
+
+F SceneStructure::RepairLabels        | SceneStructure.cpp | 444-476 | - | - | ?
+    out   -  Outcome<bool>  [-]  ?
+
+F SceneStructure::Label               | SceneStructure.cpp | 478-489 | - | - | ?
+    in    Subject  OccupantIdentity        [-]  ?
+    out   -        Outcome<IntervalLabel>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 ATTACHMENT COMPOUNDING
+//------------------------------------------------------------------------------------------------------------------------
+
+F SceneStructure::Attach              | SceneStructure.cpp | 495-545 | - | - | ?
+    in    Subject             OccupantIdentity  [-]  ?
+    in    ProposedAttachment  OccupantIdentity  [-]  ?
+    out   -                   Outcome<bool>     [-]  ?
+
+F SceneStructure::AuthorTransform     | SceneStructure.cpp | 547-557 | - | - | ?
+    in    Subject   OccupantIdentity            [-]  ?
+    in    Authored  const DecomposedTransform&  [-]  ?
+    out   -         Outcome<bool>               [-]  ?
+
+F SceneStructure::CompoundFrom        | SceneStructure.cpp | 559-581 | - | - | ?
+    in    SlotOrdinal  std::uint32_t  [-]  ?
+    in    Depth        std::uint32_t  [-]  ?
+    out   -            Outcome<bool>  [-]  ?
+
+F SceneStructure::CompoundAttachments | SceneStructure.cpp | 583-605 | - | - | ?
+    out   -  Outcome<bool>  [-]  ?
+
+F SceneStructure::CompoundedTransform | SceneStructure.cpp | 607-618 | - | - | ?
+    in    Subject  OccupantIdentity              [-]  ?
+    out   -        Outcome<DecomposedTransform>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    CYCLE REJECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F SceneStructure::EnclosureCyclic     | SceneStructure.cpp | 624-644 | - | - | ?
+    in    Subject            OccupantIdentity  [-]  ?
+    in    ProposedEnclosure  OccupantIdentity  [-]  ?
+    out   -                  bool              [-]  ?
+
+F SceneStructure::AttachmentCyclic    | SceneStructure.cpp | 646-664 | - | - | ?
+    in    Subject             OccupantIdentity  [-]  ?
+    in    ProposedAttachment  OccupantIdentity  [-]  ?
+    out   -                   bool              [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   INVARIANTS 3 AND 4
+//------------------------------------------------------------------------------------------------------------------------
+
+F SceneStructure::RelationsAcyclic    | SceneStructure.cpp | 670-701 | - | - | ?
+    out   -  bool  [-]  ?
+
+F SceneStructure::LabelsNested        | SceneStructure.cpp | 703-730 | - | - | ?
+    out   -  bool  [-]  ?

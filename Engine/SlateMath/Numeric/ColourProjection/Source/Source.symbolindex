@@ -85,7 +85,7 @@ F Project               | ColourProjection.cpp | 258-318 | - | - | ?
     in    ArrivingSpace  const ColourSpaceSpecification&  [-]  ?
     in    Target         const ColourSpaceSpecification&  [-]  ?
     out   -              Outcome<ColourSpecification>     [-]  ?
-    by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TransformProjection.h, Api/VisibilityRaster.h, Source/AtmosphereIntegrator.cpp, (+6 more)
+    by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TransformProjection.h, Api/VisibilityRaster.h, Source/AtmosphereIntegrator.cpp, (+7 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 TRISTIMULUS TO A SPACE

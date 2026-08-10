@@ -146,6 +146,22 @@ SLATE_CONSTANT Unsigned32 QuadratureIterationCeiling = 128u;      // [-] - itera
 SLATE_CONSTANT Real64 SunDirectionMateriality   = 0.0035;   // [rad] - about a fifth of a degree
 SLATE_CONSTANT Real64 CameraAltitudeMateriality = 10.0;     // [m]
 
+// 📐 🔴 `60` §7 places this here by name, and it is the single most-tuned tolerance in any renderer — one
+//    written at the comparison site is one that is tuned in six places and agrees in none. It is a **depth**
+//    offset under the reversed convention, so it is subtracted from the occluder's recorded ordinate rather
+//    than added: near is one, so pushing an occluder further means lowering it.
+// ⚠️ Slope-scaled rather than constant. A constant offset large enough to clear a surface at a grazing angle
+//    detaches every contact shadow on a surface facing the illuminant, and the artist reads the gap as the
+//    occlusion being wrong rather than as the offset being one number doing two jobs.
+SLATE_CONSTANT Real64 ShadowComparisonOffset      = 2.0e-4;   // [-] - constant term, in reversed depth
+SLATE_CONSTANT Real64 ShadowComparisonSlopeFactor = 3.0e-3;   // [-] - scaled by the receiver's grazing tangent
+
+// 📐 `60` §5's depth-aware upsample. The ambient term is resolved at half extent and read at display extent, so
+//    a bilinear read crosses depth discontinuities and pulls a background surface's occlusion onto a foreground
+//    silhouette — visible as a dark fringe around every object. The bound is relative to the centre ordinate so
+//    that it means the same thing at every distance; an absolute one rejects every tap in the distance.
+SLATE_CONSTANT Real64 AmbientUpsampleDepthBound = 0.02;   // [-] - relative departure a tap may carry
+
 // 📝 🔴 The spacing floor is `58` §5's and is read by `22`, which resamples a path at it and whose impression
 //    count it therefore bounds. Two units, one number, so `00` §2 places it here. It is applied **and said** —
 //    `58` reports reaching it through `86` rather than coarsening a stroke silently.

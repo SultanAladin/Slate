@@ -1,0 +1,265 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Attributes reconstructed from two ordinals, channels resolved once, the four lobes composed, and the lookup that keeps them energy-correct.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/ReflectanceIntegrator/Source
+%layer      SlateCompute
+%sources    1
+%symbols    37
+%annotated  0/37
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S ReflectanceIntegrator.cpp | 1219 lines | 978976d9 | 37 sym | Attributes reconstructed from two ordinals, channels resolved once, the four lobes composed, and the lookup that keeps them energy-correct.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   SPATIAL ARITHMETIC
+//------------------------------------------------------------------------------------------------------------------------
+
+V ReflectanceRecordingIdentity                   | ReflectanceIntegrator.cpp | 26        | - | - | ?
+
+T SpatialSpan                                    | ReflectanceIntegrator.cpp | 31-36     | - | - | ?
+    has   OrdinateX  double  [-]  ?
+    has   OrdinateY  double  [-]  ?
+    has   OrdinateZ  double  [-]  ?
+
+F Spanned                                        | ReflectanceIntegrator.cpp | 38-46     | - | - | ?
+    in    OrdinateX  double       [-]  ?
+    in    OrdinateY  double       [-]  ?
+    in    OrdinateZ  double       [-]  ?
+    out   -          SpatialSpan  [-]  ?
+    by    Api/WorkSequence.h, Source/AttachmentIndex.cpp, Source/DepthReduction.cpp, Source/DescriptorIndex.cpp, Source/OcclusionProjection.cpp, Source/ShaderCodec.cpp, (+2 more)
+
+F Spanned                                        | ReflectanceIntegrator.cpp | 48-53     | - | - | ?
+    in    Later    DocumentPosition  [-]  ?
+    in    Earlier  DocumentPosition  [-]  ?
+    out   -        SpatialSpan       [-]  ?
+    by    Api/WorkSequence.h, Source/AttachmentIndex.cpp, Source/DepthReduction.cpp, Source/DescriptorIndex.cpp, Source/OcclusionProjection.cpp, Source/ShaderCodec.cpp, (+2 more)
+
+F Spanned                                        | ReflectanceIntegrator.cpp | 55-60     | - | - | ?
+    in    Held  SurfaceDirection  [-]  ?
+    out   -     SpatialSpan       [-]  ?
+    by    Api/WorkSequence.h, Source/AttachmentIndex.cpp, Source/DepthReduction.cpp, Source/DescriptorIndex.cpp, Source/OcclusionProjection.cpp, Source/ShaderCodec.cpp, (+2 more)
+
+F Agreement                                      | ReflectanceIntegrator.cpp | 62-67     | - | - | ?
+    in    Left   SpatialSpan  [-]  ?
+    in    Right  SpatialSpan  [-]  ?
+    out   -      double       [-]  ?
+    by    Source/PartitionClassifier.cpp, Source/PartitionStructure.cpp
+
+F Perpendicular                                  | ReflectanceIntegrator.cpp | 69-74     | - | - | ?
+    in    Left   SpatialSpan  [-]  ?
+    in    Right  SpatialSpan  [-]  ?
+    out   -      SpatialSpan  [-]  ?
+    by    Source/TopologyConditioning.cpp
+
+F Accumulated                                    | ReflectanceIntegrator.cpp | 76-81     | - | - | ?
+    in    Left   SpatialSpan  [-]  ?
+    in    Right  SpatialSpan  [-]  ?
+    out   -      SpatialSpan  [-]  ?
+    by    Api/ImpressionSequence.h, Api/QuadratureIntegrator.h, Shared/OcclusionProjection.slang.h, Shared/ReflectanceProjection.slang.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, (+7 more)
+
+F Weighted                                       | ReflectanceIntegrator.cpp | 83-86     | - | - | ?
+    in    Held    SpatialSpan  [-]  ?
+    in    Weight  double       [-]  ?
+    out   -       SpatialSpan  [-]  ?
+
+F Unitised                                       | ReflectanceIntegrator.cpp | 88-96     | - | - | ?
+    in    Held  SpatialSpan  [-]  ?
+    out   -     SpatialSpan  [-]  ?
+
+F Narrowed                                       | ReflectanceIntegrator.cpp | 98-106    | - | - | ?
+    in    Held  SpatialSpan       [-]  ?
+    out   -     SurfaceDirection  [-]  ?
+    by    Source/OutlinerSequence.cpp, Source/PointerIntersection.cpp, Source/VisibilityRaster.cpp
+
+F Bounded                                        | ReflectanceIntegrator.cpp | 108-111   | - | - | ?
+    in    Magnitude  double  [-]  ?
+    in    Lower      double  [-]  ?
+    in    Upper      double  [-]  ?
+    out   -          double  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, (+36 more)
+
+F ChannelOrdinal                                 | ReflectanceIntegrator.cpp | 113-116   | - | - | ?
+    in    Channel  ChannelSubject         [-]  ?
+    out   -        constexpr std::size_t  [-]  ?
+    by    Api/DecalProjection.h, Source/AssetInterchange.cpp
+
+F ScalarOf                                       | ReflectanceIntegrator.cpp | 118-121   | - | - | ?
+    in    Resolved  const ResolvedChannelSet&  [-]  ?
+    in    Channel   ChannelSubject             [-]  ?
+    out   -         double                     [-]  ?
+
+F TripleOf                                       | ReflectanceIntegrator.cpp | 123-130   | - | - | ?
+    in    Resolved  const ResolvedChannelSet&  [-]  ?
+    in    Channel   ChannelSubject             [-]  ?
+    out   -         SpatialSpan                [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                               THE ALBEDO LOOKUP STORAGE
+//------------------------------------------------------------------------------------------------------------------------
+
+F DirectionalAlbedoSurface::Construct            | ReflectanceIntegrator.cpp | 138-151   | - | - | ?
+    in    RequestedAlong   std::uint32_t  [-]  ?
+    in    RequestedAcross  std::uint32_t  [-]  ?
+    out   -                Outcome<bool>  [-]  ?
+
+F DirectionalAlbedoSurface::Declare              | ReflectanceIntegrator.cpp | 153-167   | - | - | ?
+    in    Along          std::uint32_t  [-]  ?
+    in    Across         std::uint32_t  [-]  ?
+    in    Scale          double         [-]  ?
+    in    SingleScatter  double         [-]  ?
+    in    Charlie        double         [-]  ?
+    out   -              void           [-]  ?
+
+F DirectionalAlbedoSurface::Sample               | ReflectanceIntegrator.cpp | 169-221   | - | - | ?
+    in    CoordinateAlong   double   [-]  ?
+    in    CoordinateAcross  double   [-]  ?
+    in    Scale             double&  [-]  ?
+    in    SingleScatter     double&  [-]  ?
+    in    Charlie           double&  [-]  ?
+    out   -                 void     [-]  ?
+
+F DirectionalAlbedoSurface::ExtentAlong          | ReflectanceIntegrator.cpp | 223       | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F DirectionalAlbedoSurface::ExtentAcross         | ReflectanceIntegrator.cpp | 224       | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F DirectionalAlbedoSurface::Constructed          | ReflectanceIntegrator.cpp | 225       | - | - | ?
+    out   -  bool  [-]  ?
+
+F DirectionalAlbedoSurface::ResidentBytes        | ReflectanceIntegrator.cpp | 227-230   | - | - | ?
+    out   -  std::uint64_t  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                ATTRIBUTE RECONSTRUCTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F ReconstructSurface                             | ReflectanceIntegrator.cpp | 236-424   | - | - | ?
+    in    Triangle    const ReconstructionTriangle&  [-]  ?
+    in    Origin      DocumentPosition               [-]  ?
+    in    DirectionX  double                         [-]  ?
+    in    DirectionY  double                         [-]  ?
+    in    DirectionZ  double                         [-]  ?
+    out   -           ReconstructedSurface           [-]  ?
+    by    Api/ReflectanceIntegrator.h
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE RECORDING
+//------------------------------------------------------------------------------------------------------------------------
+
+F ReflectanceIntegrator::Contribute              | ReflectanceIntegrator.cpp | 430-454   | - | - | ?
+    in    Schedule  RenderSchedule&  [-]  ?
+    out   -         Outcome<bool>    [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                           THE DIRECTIONAL-ALBEDO DERIVATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F ReflectanceIntegrator::DeriveDirectionalAlbedo | ReflectanceIntegrator.cpp | 460-584   | - | - | ?
+    in    Rule  const QuadratureRule&  [-]  ?
+    out   -     Outcome<bool>          [-]  ?
+
+F ReflectanceIntegrator::SampleDirectionalAlbedo | ReflectanceIntegrator.cpp | 586-597   | - | - | ?
+    in    ViewCosine           double   [-]  ?
+    in    Roughness            double   [-]  ?
+    in    SplitSumScale        double&  [-]  ?
+    in    SingleScatterAlbedo  double&  [-]  ?
+    in    CharlieAlbedo        double&  [-]  ?
+    out   -                    void     [-]  ?
+
+F ReflectanceIntegrator::DirectionalAlbedo       | ReflectanceIntegrator.cpp | 599       | - | - | ?
+    out   -  const DirectionalAlbedoSurface&  [-]  ?
+
+F ReflectanceIntegrator::AlbedoDerived           | ReflectanceIntegrator.cpp | 600       | - | - | ?
+    out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   CHANNEL RESOLUTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F DeclareDefault                                 | ReflectanceIntegrator.cpp | 612-646   | - | - | ?
+    in    Resolved  ResolvedChannelSet&          [-]  ?
+    in    Channel   ChannelSubject               [-]  ?
+    in    Held      const ChannelSpecification&  [-]  ?
+    out   -         void                         [-]  ?
+
+F ChannelReadsBasis                              | ReflectanceIntegrator.cpp | 649-654   | - | - | ?
+    in    Channel  ChannelSubject  [-]  ?
+    out   -        constexpr bool  [-]  ?
+
+F ReflectanceIntegrator::ResolveChannels         | ReflectanceIntegrator.cpp | 658-755   | - | - | ?
+    in    Declared       const MaterialSpecification&          [-]  ?
+    in    Resolving      const AnalyticProjection&             [-]  ?
+    in    Content        const SurfaceLayerSequence&           [-]  ?
+    in    Placements     const std::vector<ChannelPlacement>&  [-]  ?
+    in    Reconstructed  const ReconstructedSurface&           [-]  ?
+    in    Tolerance      double                                [-]  ?
+    out   -              Outcome<ResolvedChannelSet>           [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE DIRECT TERM
+//------------------------------------------------------------------------------------------------------------------------
+
+F Perturbed                                      | ReflectanceIntegrator.cpp | 766-786   | - | - | ?
+    in    Resolved       const ResolvedChannelSet&    [-]  ?
+    in    Reconstructed  const ReconstructedSurface&  [-]  ?
+    out   -              SpatialSpan                  [-]  ?
+
+F NormalIncidence                                | ReflectanceIntegrator.cpp | 791-802   | - | - | ?
+    in    Resolved  const ResolvedChannelSet&  [-]  ?
+    out   -         SpatialSpan                [-]  ?
+    by    Shared/ReflectanceProjection.slang.h
+
+F WidenedParameter                               | ReflectanceIntegrator.cpp | 808-820   | - | - | ?
+    in    Roughness    double  [-]  ?
+    in    SolidExtent  double  [-]  ?
+    out   -            double  [-]  ?
+
+F ReflectanceIntegrator::IntegrateDirect         | ReflectanceIntegrator.cpp | 824-1044  | - | - | ?
+    in    Selected       ReflectanceSelection         [-]  ?
+    in    Resolved       const ResolvedChannelSet&    [-]  ?
+    in    Reconstructed  const ReconstructedSurface&  [-]  ?
+    in    Incidence      const IncidenceProjection&   [-]  ?
+    in    Radiance       const ColourSpecification&   [-]  ?
+    in    Visibility     double                       [-]  ?
+    in    ViewX          double                       [-]  ?
+    in    ViewY          double                       [-]  ?
+    in    ViewZ          double                       [-]  ?
+    out   -              DirectContribution           [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE AMBIENT TERM
+//------------------------------------------------------------------------------------------------------------------------
+
+F ReflectanceIntegrator::IntegrateAmbient        | ReflectanceIntegrator.cpp | 1050-1185 | - | - | ?
+    in    Selected           ReflectanceSelection          [-]  ?
+    in    Resolved           const ResolvedChannelSet&     [-]  ?
+    in    Reconstructed      const ReconstructedSurface&   [-]  ?
+    in    Atmosphere         const AtmosphereIntegrator&   [-]  ?
+    in    ResolvedOcclusion  double                        [-]  ?
+    in    ViewX              double                        [-]  ?
+    in    ViewY              double                        [-]  ?
+    in    ViewZ              double                        [-]  ?
+    out   -                  Outcome<AmbientContribution>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE UNOCCUPIED CLASS
+//------------------------------------------------------------------------------------------------------------------------
+
+F ReflectanceIntegrator::IntegrateUnoccupied     | ReflectanceIntegrator.cpp | 1191-1217 | - | - | ?
+    in    Atmosphere  const AtmosphereIntegrator&  [-]  ?
+    in    ViewX       double                       [-]  ?
+    in    ViewY       double                       [-]  ?
+    in    ViewZ       double                       [-]  ?
+    in    Red         double&                      [-]  ?
+    in    Green       double&                      [-]  ?
+    in    Blue        double&                      [-]  ?
+    out   -           Outcome<bool>                [-]  ?

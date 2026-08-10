@@ -45,7 +45,7 @@ F Compound | TransformProjection.cpp | 64-98   | - | - | ?
 F Project  | TransformProjection.cpp | 104-134 | - | - | ?
     in    Source  const DecomposedTransform&  [-]  ?
     out   -       ProjectedTransform          [-]  ?
-    by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TransformProjection.h, Api/VisibilityRaster.h, Source/AtmosphereIntegrator.cpp, (+6 more)
+    by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TransformProjection.h, Api/VisibilityRaster.h, Source/AtmosphereIntegrator.cpp, (+7 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        REBASING

@@ -40,24 +40,8 @@ namespace Slate
 /// tag   api, nonallocating, nonthrowing
 Outcome<std::uint32_t> PaintingLevelOf(std::uint32_t WorkingExtent);
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                                  WHERE A CHANNEL LANDS
-//------------------------------------------------------------------------------------------------------------------------
-
-/// 🧩 Which components of one painted entry a brush channel occupies.
-/// note  🚧 Supplied by the caller rather than derived from `42`. `00` §12 carries the channel packing layout as
-///        open — bit depths and component assignment are specified in no source document — so deriving one here
-///        would be answering that question by accident, in the one place nobody would look for the answer.
-/// note  🔴 A colour channel spans three components and a scalar one spans one. The span is declared rather than
-///        inferred from the measure, so that a two-component packing of a colour is a refusal at `Open` instead
-///        of three channels written over each other.
-/// tag   nonallocating, nonthrowing
-struct ChannelPlacement
-{
-    ChannelSubject  Channel          = ChannelSubject::ChannelCount;   // [-] - which of `42`'s twenty
-    std::uint32_t   ComponentOrdinal = 0u;                             // [-] - first component within the entry
-    std::uint32_t   ComponentSpan    = 1u;                             // [-] - one for a scalar, three for a colour
-};
+// 📝 `ChannelPlacement` is `56`'s, declared beside `PaintedContent` because it describes that content's layout
+//    and `70` reads the same declaration from below. It arrives through `SurfaceLayerSequence.h`.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   ONE IMPRESSION

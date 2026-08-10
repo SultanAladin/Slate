@@ -206,6 +206,12 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Refit(OccupantIdentity Subject, const DecomposedTransform& Composed, ConditionedExtent Extent);
 
+    /// 🧩 Surrenders one admitted occupant's standing record.
+    /// out   Outcome  [-]  refuses with IdentityStale when the occupant is not admitted
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<AdmittedOccupant> Standing(OccupantIdentity Subject) const;
+
     /// 🧩 Rebuilds the subdivision's shape over every admitted occupant.
     /// post  the shape is optimal for the current extents; nothing is owed
     /// cost  🔴

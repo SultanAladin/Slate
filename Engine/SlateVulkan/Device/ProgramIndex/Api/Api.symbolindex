@@ -89,7 +89,7 @@ F ProgramIndex::Construct       | ProgramIndex.h | 131     | api,nonthrowing    
     in    Descriptors  const DescriptorIndex&  [-]  where the set layouts come from; borrowed and outlives this component
     out   -            Outcome                 [-]  refuses with CapabilityAbsent when no device is active
     post  no program is declared
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
 
 F ProgramIndex::DeclareGraphics | ProgramIndex.h | 142     | api,nonthrowing               | 🔴 | Constructs one graphics program, returning the ordinal every later resolution names it by. an absent render construct, and with HostDenied when the device declines it specialisation the vendor reads at construction is held where its addresses stay put.
     in    Declaring  const GraphicsDeclaration&  [-]  the modules, layouts, render construct and depth behaviour
@@ -107,7 +107,7 @@ F ProgramIndex::DeclareCompute  | ProgramIndex.h | 150     | api,nonthrowing    
 F ProgramIndex::Resolve         | ProgramIndex.h | 157     | api,nonallocating,nonthrowing | ✔️ | The program one ordinal names, for the recording that records against it.
     in    ProgramOrdinal  std::uint32_t  [-]  an ordinal this component issued
     out   -               Outcome        [-]  refuses with ContentUnsupported for an ordinal naming no program
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
 
 F ProgramIndex::Reclaim         | ProgramIndex.h | 163     | api,nonthrowing               | 🚩 | Destroys every program and every layout constructed for one.
     out   -  void  [-]  ?
@@ -116,7 +116,7 @@ F ProgramIndex::Reclaim         | ProgramIndex.h | 163     | api,nonthrowing    
 
 F ProgramIndex::DeclaredCount   | ProgramIndex.h | 165     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/QuadratureIntegrator.h, Api/SpatialSubdivision.h, (+14 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/QuadratureIntegrator.h, (+20 more)
 
 T ProgramIndex::HeldProgram     | ProgramIndex.h | 169-174 | -                             | -  | ?
     has   Constructed    VkPipeline           [-]  ?

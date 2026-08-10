@@ -49,7 +49,7 @@ F main                         | DepthReduction.slang    | 51-85   | -          
 V LevelExtentStride            | OcclusionCulling.slang  | 23      | -                         | -  | ?
 
 V Projecting                   | VisibilityCorner.slang  | 27      | -                         | -  | ?
-    by    Shader/VisibilityUniform.slang, Source/CameraProjection.cpp, Source/VisibilityRaster.cpp
+    by    Shader/VisibilityUniform.slang, Source/CameraProjection.cpp, Source/OcclusionProjection.cpp, Source/VisibilityRaster.cpp
 
 V ObjectPositions              | VisibilityCorner.slang  | 28      | -                         | -  | ?
 

@@ -1,0 +1,165 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Reversed-depth projection derivation, plane extraction, the gesture lifecycle, and the framing solve.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/CameraProjection/Source
+%layer      SlateDocument
+%sources    1
+%symbols    27
+%annotated  0/27
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S CameraProjection.cpp | 595 lines | 077a1d59 | 27 sym | Reversed-depth projection derivation, plane extraction, the gesture lifecycle, and the framing solve.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     MATRIX HELPERS
+//------------------------------------------------------------------------------------------------------------------------
+
+F Multiply                               | CameraProjection.cpp | 22-40   | - | - | ?
+    in    Outer  const ProjectedTransform&  [-]  ?
+    in    Inner  const ProjectedTransform&  [-]  ?
+    out   -      ProjectedTransform         [-]  ?
+    by    Contract/CombineContract.h
+
+F Conjugated                             | CameraProjection.cpp | 42-51   | - | - | ?
+    in    Subject  RotationQuaternion  [-]  ?
+    out   -        RotationQuaternion  [-]  ?
+    by    Source/DecalProjection.cpp, Source/SpatialSubdivision.cpp
+
+F RotateSpan                             | CameraProjection.cpp | 55-70   | - | - | ?
+    in    Rotation  RotationQuaternion  [-]  ?
+    in    SpanX     double              [-]  ?
+    in    SpanY     double              [-]  ?
+    in    SpanZ     double              [-]  ?
+    in    OutX      double&             [-]  ?
+    in    OutY      double&             [-]  ?
+    in    OutZ      double&             [-]  ?
+    out   -         void                [-]  ?
+    by    Source/DecalProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
+
+F RotationAbout                          | CameraProjection.cpp | 72-90   | - | - | ?
+    in    AxisX    double              [-]  ?
+    in    AxisY    double              [-]  ?
+    in    AxisZ    double              [-]  ?
+    in    Radians  double              [-]  ?
+    out   -        RotationQuaternion  [-]  ?
+
+F ViewDirection                          | CameraProjection.cpp | 94-97   | - | - | ?
+    in    Rotation  RotationQuaternion  [-]  ?
+    in    OutX      double&             [-]  ?
+    in    OutY      double&             [-]  ?
+    in    OutZ      double&             [-]  ?
+    out   -         void                [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE VIEW PROJECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F Derive                                 | CameraProjection.cpp | 105-183 | - | - | ?
+    in    Declaring  const CameraSpecification&  [-]  ?
+    out   -          Outcome<ViewProjection>     [-]  ?
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+8 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    PLANE EXTRACTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F FrustumSpace::Construct                | CameraProjection.cpp | 189-250 | - | - | ?
+    in    Projected  const ViewProjection&  [-]  ?
+    out   -          void                   [-]  ?
+
+F FrustumSpace::Classify                 | CameraProjection.cpp | 252-297 | - | - | ?
+    in    Least     DocumentPosition  [-]  ?
+    in    Greatest  DocumentPosition  [-]  ?
+    out   -         std::int32_t      [-]  ?
+
+F FrustumSpace::Contains                 | CameraProjection.cpp | 299-302 | - | - | ?
+    in    Subject  DocumentPosition  [-]  ?
+    out   -        bool              [-]  ?
+
+F FrustumSpace::Plane                    | CameraProjection.cpp | 304-307 | - | - | ?
+    in    PlaneOrdinal  std::uint32_t        [-]  ?
+    out   -             const FrustumPlane&  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       NAVIGATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F NavigationSequence::Open               | CameraProjection.cpp | 313-324 | - | - | ?
+    in    Declaring_  NavigationSubject           [-]  ?
+    in    Standing    const CameraSpecification&  [-]  ?
+    out   -           Outcome<bool>               [-]  ?
+
+F NavigationSequence::Amend              | CameraProjection.cpp | 326-439 | - | - | ?
+    in    DisplacementAlong   double         [-]  ?
+    in    DisplacementAcross  double         [-]  ?
+    out   -                   Outcome<bool>  [-]  ?
+
+F NavigationSequence::Abandon            | CameraProjection.cpp | 441-452 | - | - | ?
+    out   -  Outcome<CameraSpecification>  [-]  ?
+
+F NavigationSequence::Seal               | CameraProjection.cpp | 454-464 | - | - | ?
+    out   -  Outcome<CameraSpecification>  [-]  ?
+
+F NavigationSequence::Amended            | CameraProjection.cpp | 466     | - | - | ?
+    out   -  const CameraSpecification&  [-]  ?
+
+F NavigationSequence::GestureOpen        | CameraProjection.cpp | 467     | - | - | ?
+    out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        FRAMING
+//------------------------------------------------------------------------------------------------------------------------
+
+F Frame                                  | CameraProjection.cpp | 473-533 | - | - | ?
+    in    Standing  const CameraSpecification&    [-]  ?
+    in    Least     DocumentPosition              [-]  ?
+    in    Greatest  DocumentPosition              [-]  ?
+    out   -         Outcome<DecomposedTransform>  [-]  ?
+    by    Api/CameraProjection.h, Source/ConsoleHost.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE CAMERA
+//------------------------------------------------------------------------------------------------------------------------
+
+F CameraProjection::Declare              | CameraProjection.cpp | 539-549 | - | - | ?
+    in    Subject    OccupantIdentity            [-]  ?
+    in    Declaring  const CameraSpecification&  [-]  ?
+    out   -          Outcome<bool>               [-]  ?
+
+F CameraProjection::Amend                | CameraProjection.cpp | 551-560 | - | - | ?
+    in    Amending  const CameraSpecification&  [-]  ?
+    out   -         Outcome<bool>               [-]  ?
+
+F CameraProjection::DeclareDisplayExtent | CameraProjection.cpp | 562-571 | - | - | ?
+    in    Width   std::uint32_t  [-]  ?
+    in    Height  std::uint32_t  [-]  ?
+    out   -       Outcome<bool>  [-]  ?
+
+F CameraProjection::Reconcile            | CameraProjection.cpp | 573-586 | - | - | ?
+    out   -  Outcome<bool>  [-]  ?
+
+F CameraProjection::Declared             | CameraProjection.cpp | 588     | - | - | ?
+    out   -  const CameraSpecification&  [-]  ?
+
+F CameraProjection::Projected            | CameraProjection.cpp | 589     | - | - | ?
+    out   -  const ViewProjection&  [-]  ?
+
+F CameraProjection::Frustum              | CameraProjection.cpp | 590     | - | - | ?
+    out   -  const FrustumSpace&  [-]  ?
+
+F CameraProjection::Occupant             | CameraProjection.cpp | 591     | - | - | ?
+    out   -  OccupantIdentity  [-]  ?
+
+F CameraProjection::Exposure             | CameraProjection.cpp | 592     | - | - | ?
+    out   -  double  [-]  ?
+
+F CameraProjection::DerivationOwed       | CameraProjection.cpp | 593     | - | - | ?
+    out   -  bool  [-]  ?

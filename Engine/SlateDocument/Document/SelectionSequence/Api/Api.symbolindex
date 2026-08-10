@@ -45,7 +45,7 @@ F SelectionSequence::Seal              | SelectionSequence.h | 54    | api,nonth
     in    RevisionOrdinal  std::uint64_t                         [-]  document revisions committed at the moment of sealing
     out   -                void                                  [-]  ?
     post  the traversal position is the end of the sequence
-    by    Api/CameraProjection.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/TopologyStructure.h, Api/WorkSequence.h, (+10 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/TopologyStructure.h, (+12 more)
 
 F SelectionSequence::Retreat           | SelectionSequence.h | 60    | api,nonallocating,nonthrowing | ✔️ | Traverses one selection backwards.
     out   -  Outcome  [-]  refuses with ExtentExhausted at the beginning of the sequence
@@ -53,7 +53,7 @@ F SelectionSequence::Retreat           | SelectionSequence.h | 60    | api,nonal
 
 F SelectionSequence::Advance           | SelectionSequence.h | 66    | api,nonallocating,nonthrowing | ✔️ | Traverses one selection forwards.
     out   -  Outcome  [-]  refuses with ExtentExhausted at the end of the sequence
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+10 more)
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+11 more)
 
 F SelectionSequence::RestoreAt         | SelectionSequence.h | 75    | api,nonthrowing               | 🚩 | Restores the selection that stood at a declared document revision. holds within the session where the scrub happens, which is all `12` §11 requires of it.
     in    RevisionOrdinal  std::uint64_t  [-]  the document revision a scrub has arrived at
@@ -63,7 +63,7 @@ F SelectionSequence::RestoreAt         | SelectionSequence.h | 75    | api,nonth
 
 F SelectionSequence::Standing          | SelectionSequence.h | 80    | api,nonallocating,nonthrowing | ✔️ | The selection standing now.
     out   -  const std::vector<OccupantIdentity>&  [-]  ?
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/ImageSpace.h, Api/OutlinerSequence.h, (+30 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/ImageSpace.h, (+39 more)
 
 F SelectionSequence::Committed         | SelectionSequence.h | 85    | api,nonallocating,nonthrowing | ✔️ | The committed selections, in order.
     out   -  const std::vector<CommittedSelection>&  [-]  ?

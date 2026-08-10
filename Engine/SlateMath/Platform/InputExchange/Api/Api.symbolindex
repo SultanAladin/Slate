@@ -66,7 +66,7 @@ F InputExchange::Sample    | InputExchange.h | 77    | api,nonallocating,nonthro
     in    ArrivalOrdinal  std::uint32_t         [-]  zero is the oldest sample still held
     out   -               const PointerSample&  [-]  ?
     pre   ArrivalOrdinal is below HeldCount
-    by    Api/AtmosphereIntegrator.h, Api/SurfaceTileSpace.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/InputExchange.cpp, (+2 more)
+    by    Api/AtmosphereIntegrator.h, Api/ReflectanceIntegrator.h, Api/SurfaceTileSpace.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+4 more)
 
 F InputExchange::HeldCount | InputExchange.h | 82    | api,nonallocating,nonthrowing | ✔️ | How many samples are held.
     out   -  std::uint32_t  [-]  ?

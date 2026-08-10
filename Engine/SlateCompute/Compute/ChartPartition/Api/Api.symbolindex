@@ -84,7 +84,7 @@ F Derive                            | ChartPartition.h | 123     | api,nonthrowi
     in    Cancellation  const WorkCancellation&        [-]  read between charts — `34` §5's cooperative points
     in    Progressed    WorkProgress&                  [-]  charts resolved out of charts spanned
     out   -             Outcome                        [-]  refuses with HostDenied for an unsealed topology or a withdrawn declaration, and with
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, Api/VisibilityRaster.h, (+8 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+10 more)
     note  🔴 Reads nothing but its arguments and mutates none of them, which is exactly `34` §2's requirement.
     note  🔴 A chart that is not a disc and a chart that folds are answered by the **same** mechanism: subdivide
     note  ⚠️ The boundary self-intersection test is quadratic in boundary length. That is affordable only because
@@ -92,7 +92,7 @@ F Derive                            | ChartPartition.h | 123     | api,nonthrowi
 F SLATE_DECLARES_PRECISION          | ChartPartition.h | 129     | -                             | -  | ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, Api/CurveSolver.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, (+26 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE STANDING PARTITION
@@ -114,7 +114,7 @@ F ChartPartition::Adopt             | ChartPartition.h | 153     | api,nonthrowi
 F ChartPartition::Standing          | ChartPartition.h | 159     | api,nonallocating,nonthrowing | ✔️ | The standing partition.
     out   -  const DerivedPartition&  [-]  ?
     pre   PartitionStanding holds
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/CycleScheduler.h, Api/ImageSpace.h, Api/OutlinerSequence.h, Api/PartitionClassifier.h, (+30 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/ImageSpace.h, Api/OcclusionProjection.h, (+39 more)
 
 F ChartPartition::Coordinate        | ChartPartition.h | 166     | api,nonthrowing               | ✔️ | One imported corner's domain coordinate. while no partition stands
     in    CornerOrdinal  std::uint32_t  [-]  ?
@@ -127,12 +127,12 @@ F ChartPartition::PartitionStanding | ChartPartition.h | 171     | api,nonalloca
 
 F ChartPartition::Revision          | ChartPartition.h | 176     | api,nonallocating,nonthrowing | ✔️ | The revision `24` §3 keys on and `20` promotes against.
     out   -  std::uint64_t  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SeamSpecification.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, (+10 more)
+    by    Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SeamSpecification.h, Api/TopologyStructure.h, (+13 more)
 
 F ChartPartition::Report            | ChartPartition.h | 187     | api,nonthrowing               | 🚩 | Appends the standing partition's obligations to the register, and its measures beside them. the line and it is the whole reason the register has two structures: a distortion appended every partition would bury the one seam the artist did not expect.
     in    Reporting  ReportSequence&  [-]   where `68` §2's and §4's rows land
     in    Measured   MeasureIndex&    [-]   where §5's occupancy and §4's distortion land
     in    Sampled    TickPoint        [ns]  the tick's own reading
     out   -          void             [-]   ?
-    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/IntakeIndex.h, Api/SurfaceTileSpace.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, (+5 more)
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/IntakeIndex.h, Api/OcclusionProjection.h, Api/SurfaceTileSpace.h, Source/AssetInterchange.cpp, (+7 more)
     note  🔴 Terminations and derived seams **append**; occupancy and distortion **overwrite**. `86` §2 draws

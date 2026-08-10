@@ -50,7 +50,7 @@ F EnclosureContains                   | SceneStructure.h | 58-62   | api,nonallo
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 63      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE TWO RELATIONS
@@ -105,7 +105,7 @@ F SceneStructure::Admit               | SceneStructure.h | 133     | api,nonthro
     in    Arriving  OccupantIdentity  [-]  the identity `PopulationIndex` issued
     out   -         Outcome           [-]  refuses with IdentityStale for an undeclared identity
     post  the occupant sits last in the root ordering and is its own attachment root
-    by    Api/RequestQueue.h, Api/SpatialSubdivision.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RequestQueue.cpp, (+3 more)
+    by    Api/PointerIntersection.h, Api/RequestQueue.h, Api/SpatialSubdivision.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, (+5 more)
 
 F SceneStructure::Retire              | SceneStructure.h | 144     | api,nonthrowing               | 🚩 | Withdraws one occupant from both relations, re-enclosing what it enclosed. with it; attached occupants keep their compounded transform and take its attachment inside it. The caller seals the whole cascade as one transaction.
     in    Departing  OccupantIdentity  [-]  the identity being retired
@@ -197,7 +197,7 @@ F SceneStructure::OccupantAt          | SceneStructure.h | 252     | api,nonallo
 
 F SceneStructure::SpannedCount        | SceneStructure.h | 257     | api,nonallocating,nonthrowing | ✔️ | How many slots both relations span, occupied or not.
     out   -  std::uint32_t  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/PopulationIndex.h, Api/SurfaceLayerSequence.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, (+4 more)
+    by    Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PopulationIndex.h, Api/SurfaceLayerSequence.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+6 more)
 
 F SceneStructure::RelabelOwed         | SceneStructure.h | 262     | api,nonallocating,nonthrowing | ✔️ | Whether a relabel is owed before a linearisation may be taken.
     out   -  bool  [-]  ?
@@ -214,7 +214,7 @@ F SceneStructure::LabelsNested        | SceneStructure.h | 272     | api,nonallo
 F SceneStructure::Resolved            | SceneStructure.h | 276     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::uint32_t     [-]  ?
-    by    Api/ImpressionSequence.h, Api/SpatialSubdivision.h, Api/WorkSequence.h, Shader/AtmosphereUniform.slang, Shader/VisibilityCorner.slang, Shader/VisibilitySurface.slang, (+14 more)
+    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReflectanceIntegrator.h, Api/SpatialSubdivision.h, Api/WorkSequence.h, Shader/AtmosphereUniform.slang, (+19 more)
 
 F SceneStructure::Unlink              | SceneStructure.h | 277     | -                             | -  | ?
     in    SlotOrdinal  std::uint32_t  [-]  ?
@@ -259,4 +259,4 @@ F SceneStructure::CompoundFrom        | SceneStructure.h | 283     | -          
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 300     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)

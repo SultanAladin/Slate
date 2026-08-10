@@ -1,0 +1,181 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The four sources resolved at a domain position, the sequence composed over them, and the tile walk that flattens once.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/AnalyticProjection/Source
+%layer      SlateCompute
+%sources    1
+%symbols    17
+%annotated  0/17
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S AnalyticProjection.cpp | 1042 lines | 830f6e7d | 17 sym | The four sources resolved at a domain position, the sequence composed over them, and the tile walk that flattens once.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  SAMPLE ACCUMULATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AccumulateSample                     | AnalyticProjection.cpp | 26-45    | - | - | ?
+    in    Running         ResolvedSample&        [-]  ?
+    in    Arriving        const ResolvedSample&  [-]  ?
+    in    Combination     CombineSpecification   [-]  ?
+    in    ComponentCount  std::uint32_t          [-]  ?
+    out   -               void                   [-]  ?
+
+F AdmitColour                          | AnalyticProjection.cpp | 49-65    | - | - | ?
+    in    Writing         ResolvedSample&             [-]  ?
+    in    Declared        const ColourSpecification&  [-]  ?
+    in    ComponentCount  std::uint32_t               [-]  ?
+    out   -               void                        [-]  ?
+
+F SamplePainted                        | AnalyticProjection.cpp | 70-109   | - | - | ?
+    in    Held            const PaintedContent&  [-]  ?
+    in    PositionAlong   double                 [-]  ?
+    in    PositionAcross  double                 [-]  ?
+    in    Component       std::uint32_t          [-]  ?
+    out   -               double                 [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      CONSTRUCTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::Construct        | AnalyticProjection.cpp | 117-125  | - | - | ?
+    in    Supplied_  const AnalyticSources&  [-]  ?
+    out   -          Outcome<bool>           [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE FLATTENING CACHE
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::Flattening       | AnalyticProjection.cpp | 131-158  | - | - | ?
+    in    SourceOrdinal  std::uint32_t                                    [-]  ?
+    in    Tolerance      double                                           [-]  ?
+    out   -              const std::vector<std::vector<PlanarPosition>>*  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE FOUR SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::ResolveOutlineAt | AnalyticProjection.cpp | 164-204  | - | - | ?
+    in    SourceOrdinal  std::uint32_t            [-]  ?
+    in    SourceAlong    double                   [-]  ?
+    in    SourceAcross   double                   [-]  ?
+    in    Tolerance      double                   [-]  ?
+    out   -              Outcome<ResolvedSample>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   BARE OUTLINE RUNS
+//------------------------------------------------------------------------------------------------------------------------
+
+F ClassifyOutlinePaths                 | AnalyticProjection.cpp | 221-267  | - | - | ?
+    in    Paths      const std::vector<OutlinePath>&  [-]  ?
+    in    Tolerance  double                           [-]  ?
+    in    PointX     double                           [-]  ?
+    in    PointY     double                           [-]  ?
+    out   -          std::int32_t                     [-]  ?
+
+F ProjectIntoElement                   | AnalyticProjection.cpp | 272-290  | - | - | ?
+    in    Placed        const CellContent&  [-]  ?
+    in    WithinAlong   double              [-]  ?
+    in    WithinAcross  double              [-]  ?
+    in    SourceAlong   double&             [-]  ?
+    in    SourceAcross  double&             [-]  ?
+    out   -             void                [-]  ?
+
+F FoldRevision                         | AnalyticProjection.cpp | 294-297  | - | - | ?
+    in    Running   std::uint64_t&  [-]  ?
+    in    Arriving  std::uint64_t   [-]  ?
+    out   -         void            [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                          TEXT
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::ResolveTextAt    | AnalyticProjection.cpp | 305-376  | - | - | ?
+    in    SourceOrdinal  std::uint32_t            [-]  ?
+    in    SourceAlong    double                   [-]  ?
+    in    SourceAcross   double                   [-]  ?
+    in    Tolerance      double                   [-]  ?
+    out   -              Outcome<ResolvedSample>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                         TILING
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::ResolveTilingAt  | AnalyticProjection.cpp | 382-494  | - | - | ?
+    in    TilingOrdinal  std::uint32_t            [-]  ?
+    in    SourceAlong    double                   [-]  ?
+    in    SourceAcross   double                   [-]  ?
+    in    Tolerance      double                   [-]  ?
+    in    NestingDepth   std::uint32_t            [-]  ?
+    out   -              Outcome<ResolvedSample>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     PLACED CONTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::ResolvePlacedAt  | AnalyticProjection.cpp | 500-547  | - | - | ?
+    in    PlacementOrdinal  std::uint32_t            [-]  ?
+    in    PositionAlong     double                   [-]  ?
+    in    PositionAcross    double                   [-]  ?
+    in    Tolerance         double                   [-]  ?
+    out   -                 Outcome<ResolvedSample>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       ONE ENTRY
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::ResolveEntryAt   | AnalyticProjection.cpp | 553-700  | - | - | ?
+    in    Held            const LayerSpecification&  [-]  ?
+    in    PositionAlong   double                     [-]  ?
+    in    PositionAcross  double                     [-]  ?
+    in    Tolerance       double                     [-]  ?
+    in    ComponentCount  std::uint32_t              [-]  ?
+    out   -               Outcome<ResolvedSample>    [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE CONTENT REVISION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::ContentRevision  | AnalyticProjection.cpp | 706-748  | - | - | ?
+    in    Content  const SurfaceLayerSequence&  [-]  ?
+    out   -        std::uint64_t                [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      ONE POSITION
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::ResolveAt        | AnalyticProjection.cpp | 754-837  | - | - | ?
+    in    Content         const SurfaceLayerSequence&           [-]  ?
+    in    Placements      const std::vector<ChannelPlacement>&  [-]  ?
+    in    PositionAlong   double                                [-]  ?
+    in    PositionAcross  double                                [-]  ?
+    in    Tolerance       double                                [-]  ?
+    in    ComponentCount  std::uint32_t                         [-]  ?
+    out   -               Outcome<ResolvedSample>               [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        ONE TILE
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::ResolveTile      | AnalyticProjection.cpp | 843-934  | - | - | ?
+    in    Content         const SurfaceLayerSequence&           [-]  ?
+    in    Placements      const std::vector<ChannelPlacement>&  [-]  ?
+    in    Addressed       CellAddress                           [-]  ?
+    in    ComponentCount  std::uint32_t                         [-]  ?
+    out   -               Outcome<ResolvedTile>                 [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WHAT IS PRESENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F AnalyticProjection::SourcesPresent   | AnalyticProjection.cpp | 940-1040 | - | - | ?
+    in    Content  const SurfaceLayerSequence&  [-]  ?
+    out   -        bool                         [-]  ?

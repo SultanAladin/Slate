@@ -31,7 +31,7 @@ E ReportDisposition              | ReportSequence.h | 31-41   | contract        
     has   Terminated        ReportDisposition  [-]  ?
     has   Failed            ReportDisposition  [-]  ?
     has   DispositionCount  ReportDisposition  [-]  ?
-    by    Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/IntakeIndex.cpp, Source/SurfaceLayerSequence.cpp, (+1 more)
+    by    Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/IntakeIndex.cpp, Source/OcclusionProjection.cpp, (+2 more)
     note  ⚠️ `86` §4.1 calls these report classes. `Class` used as a noun is banned alongside `Kind`, and for the
     note  🔴 The disposition is declared by the reporting mechanism and never inferred from the text. An inferred
     note  Five of the seven describe normal operation. `86` §5 is the authority on which of them is a problem,
@@ -48,7 +48,7 @@ T ReportSpecification            | ReportSequence.h | 53-62   | nonallocating,no
     has   Disposition      ReportDisposition  [-]  ?
     has   Arrival          TickPoint          [-]  ?
     has   OccurrenceCount  std::uint32_t      [-]  ?
-    by    Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/IntakeIndex.cpp, Source/ReportSequence.cpp, (+2 more)
+    by    Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/IntakeIndex.cpp, Source/OcclusionProjection.cpp, (+3 more)
     note  🔴 Every text field points at string literal storage only. `86` §3.1 admits an append from any thread,
     note  ⚠️ The disposition defaults to Failed rather than to Measured. A report that forgot to declare its
 
@@ -64,7 +64,7 @@ T ReportSequence                 | ReportSequence.h | 78-138  | owning          
     has   OccupiedCount     std::uint32_t                     [-]  ?
     has   AppendedReports   std::uint64_t                     [-]  ?
     has   DiscardedReports  std::uint64_t                     [-]  ?
-    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/IntakeIndex.h, Api/SurfaceLayerSequence.h, Api/WorkSequence.h, (+8 more)
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/IntakeIndex.h, Api/OcclusionProjection.h, Api/SurfaceLayerSequence.h, (+10 more)
     note  🔴 This lives in `SlateMath` and not in `SlateUI`. `86` §3 gives the reason and it is the link partition:
     note  🔴 `86` §3.1: an append is admitted from any thread, and this is the one structure in the engine that
     note  📝 `86` §1 also names a `ReportClassifier`. §4.1 forbids inferring a disposition from the text, which
@@ -73,7 +73,7 @@ F ReportSequence::Append         | ReportSequence.h | 100     | api,nonthrowing 
     in    Arriving  const ReportSpecification&  [-]  the report as its origin declared it
     out   -         void                        [-]  ?
     post  the retained count never exceeds RetainedCeiling; the oldest report leaves when it would
-    by    Api/SurfaceLayerSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/IntakeIndex.cpp, (+3 more)
+    by    Api/SurfaceLayerSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/IntakeIndex.cpp, (+4 more)
     note  🔴 Appended exactly once per occurrence, at the moment of the occurrence — `86` §2.2. A report
     note  📝 Coalescing compares the two integer discriminants before either text, so a full register costs
 
@@ -114,7 +114,7 @@ T SampledMeasure                 | ReportSequence.h | 149-157 | nonallocating,no
 
 T MeasureIndex                   | ReportSequence.h | 164-209 | owning                        | -  | The current reading of every sampled measure, keyed by origin and quantity. never pushed — a producer that pushed its own measure would write from inside a recording, contending with the tick for the state the tick is presenting.
     has   SampledMeasures  std::vector<SampledMeasure>  [-]  ?
-    by    Api/ChartPartition.h, Api/SurfaceTileSpace.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/ReportSequence.cpp, Source/SurfaceTileSpace.cpp
+    by    Api/ChartPartition.h, Api/OcclusionProjection.h, Api/SurfaceTileSpace.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp, (+2 more)
     note  🔴 Written on the tick only and therefore unguarded. `86` §2.1: measures are sampled by the tick and
 
 F MeasureIndex::DeclareCount     | ReportSequence.h | 175     | api,nonthrowing               | 🚩 | Declares one integer measure, replacing whatever the same origin and quantity last read.
@@ -123,7 +123,7 @@ F MeasureIndex::DeclareCount     | ReportSequence.h | 175     | api,nonthrowing 
     in    Counted   std::uint64_t  [-]   the reading
     in    Sampled   TickPoint      [ns]  when the tick took it
     out   -         void           [-]   ?
-    by    Api/WorkSequence.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/ReportSequence.cpp, Source/SurfaceTileSpace.cpp
+    by    Api/WorkSequence.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp, Source/ReportSequence.cpp, Source/SurfaceTileSpace.cpp
 
 F MeasureIndex::DeclareMagnitude | ReportSequence.h | 182     | api,nonthrowing               | 🚩 | Declares one real measure, replacing whatever the same origin and quantity last read. the real declaration and quietly change a count into a magnitude.
     in    Origin     const char*  [-]  ?
@@ -142,7 +142,7 @@ F MeasureIndex::Resolve          | ReportSequence.h | 197     | api,nonthrowing 
     in    Origin    const char*  [-]  static text naming document and section
     in    Measured  const char*  [-]  static text naming the quantity
     out   -         Outcome      [-]  refuses with ExtentExhausted when nothing has declared it
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
     note  An undeclared measure refuses rather than reading zero. `08` §5 rules the same for an unmeasurable
 
 F MeasureIndex::Reclaim          | ReportSequence.h | 202     | api,nonthrowing               | ✔️ | Discards every held measure.
@@ -153,4 +153,4 @@ F MeasureIndex::Located          | ReportSequence.h | 206     | -               
     in    Origin    const char*  [-]  ?
     in    Measured  const char*  [-]  ?
     out   -         std::size_t  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, Api/SurfaceLayerSequence.h, Source/EnrollmentIndex.cpp, (+13 more)
+    by    Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, (+19 more)

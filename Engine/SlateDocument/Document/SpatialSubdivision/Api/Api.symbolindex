@@ -8,15 +8,15 @@
 %path       Engine/SlateDocument/Document/SpatialSubdivision/Api
 %layer      SlateDocument
 %sources    1
-%symbols    39
-%annotated  23/39
+%symbols    40
+%annotated  24/40
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SpatialSubdivision.h | 346 lines | 4d772ab4 | 39 sym | Three subdivisions, two levels, one traversal — what lets `74` answer the pointer on the host, every sample.
+S SpatialSubdivision.h | 352 lines | 10eeb5f0 | 40 sym | Three subdivisions, two levels, one traversal — what lets `74` answer the pointer on the host, every sample.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   SUBDIVISION SHAPE
@@ -53,7 +53,7 @@ T ResolvedIntersection              | SpatialSubdivision.h | 54-64   | nonalloca
     has   Position        DocumentPosition  [-]  ?
     has   Orientation     SurfaceDirection  [-]  ?
     has   Resolved        bool              [-]  ?
-    by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
+    by    Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
     note  🔴 Resolved as **one** tuple rather than as several answers. Every consumer needs a different part of it
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -78,7 +78,7 @@ F BoundingStructure::Construct      | SpatialSubdivision.h | 91      | api,nonth
     in    Imported     const TopologyStructure&     [-]  the sealed topology
     in    Conditioned  const TopologyConditioning&  [-]  its conditioning, whose face extents are already rounded outward
     out   -            Outcome                      [-]  refuses with HostDenied for an unsealed topology, and with ExtentExhausted when the
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
     note  🔴 The conditioning's revision is compared against the topology's. A structure built over extents
 
 F BoundingStructure::IntersectRay   | SpatialSubdivision.h | 108     | api,nonthrowing               | 🚩 | Intersects one ray, in the occupant's own object space. object space through a possibly non-uniform scale, and leaving the direction unnormalised is what keeps the returned distance a document-space distance rather than an object-space one. exactly. `40` §6 requires it: a missed face is geometry the artist cannot click, and an approximate test misses along exactly the shared edges that dense topology is made of.
@@ -90,13 +90,13 @@ F BoundingStructure::IntersectRay   | SpatialSubdivision.h | 108     | api,nonth
     in    DirectionY        -                 [-]   ?
     in    DirectionZ        -                 [-]   ?
     out   -                 Intersection      [-]   the nearest face met, or an unresolved intersection
-    by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
+    by    Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
     note  🔴 The direction is deliberately **not** normalised. The caller transforms a document-space ray into
     note  📐 The three edge tests go through `02` §4's `ClassifyOrientation`, so inside and outside are decided
 
 F BoundingStructure::Extent         | SpatialSubdivision.h | 117     | api,nonallocating,nonthrowing | ✔️ | The whole structure's extent, in object space.
     out   -  ConditionedExtent  [-]  ?
-    by    Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/PartitionStructure.h, Api/SpanSpace.h, Source/AssetInterchange.cpp, (+13 more)
+    by    Api/BrushSpecification.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/OcclusionProjection.h, Api/PartitionStructure.h, Api/SpanSpace.h, (+17 more)
 
 F BoundingStructure::RecordCount    | SpatialSubdivision.h | 119     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -104,11 +104,11 @@ F BoundingStructure::RecordCount    | SpatialSubdivision.h | 119     | -        
 
 F BoundingStructure::FaceCount      | SpatialSubdivision.h | 120     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionStructure.cpp, (+4 more)
+    by    Api/MaterialSpecification.h, Api/OcclusionProjection.h, Api/PartitionStructure.h, Api/TopologyStructure.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+6 more)
 
 F BoundingStructure::Constructed    | SpatialSubdivision.h | 125     | api,nonallocating,nonthrowing | ✔️ | Whether the structure describes a topology at all.
     out   -  bool  [-]  ?
-    by    Api/DescriptorIndex.h, Api/ProgramIndex.h, Api/ShaderCodec.h, Api/SurfaceTileSpace.h, Api/VisibilityRaster.h, Contract/OutcomeContract.h, (+10 more)
+    by    Api/DescriptorIndex.h, Api/ProgramIndex.h, Api/ReflectanceIntegrator.h, Api/ShaderCodec.h, Api/SurfaceTileSpace.h, Api/VisibilityRaster.h, (+12 more)
 
 T BoundingStructure::BoundingRecord | SpatialSubdivision.h | 129-135 | -                             | -  | ?
     has   Extent        ConditionedExtent  [-]  ?
@@ -145,17 +145,17 @@ T AdmittedOccupant                  | SpatialSubdivision.h | 168-174 | nonalloca
     has   Composed  DecomposedTransform       [-]  ?
     has   Extent    ConditionedExtent         [-]  ?
     has   Inner     const BoundingStructure*  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
+    by    Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
     note  🔴 The transform held is the **composed** one — `12`'s `AttachmentFollows` resolved downward. An occupant
 
-T OctantSpace                       | SpatialSubdivision.h | 184-284 | owning                        | -  | The document-space subdivision over occupants, and the traversal `74` asks every pointer sample. changed extent upward and leaves the subdivision's shape alone; the shape degrades as occupants move far from where they were built, and quality is recovered by a rebuild through `34` at Background. Degraded quality costs traversal time; a stalled tick costs the artist's stroke. rather than costing a rejected test each — `40` §3.
+T OctantSpace                       | SpatialSubdivision.h | 184-290 | owning                        | -  | The document-space subdivision over occupants, and the traversal `74` asks every pointer sample. changed extent upward and leaves the subdivision's shape alone; the shape degrades as occupants move far from where they were built, and quality is recovered by a rebuild through `34` at Background. Degraded quality costs traversal time; a stalled tick costs the artist's stroke. rather than costing a rejected test each — `40` §3.
     has   Admitted       std::vector<AdmittedOccupant>  [-]  ?
     has   Records        std::vector<OctantRecord>      [-]  ?
     has   EntryOrder     std::vector<std::uint32_t>     [-]  ?
     has   BuiltVolume    double                         [-]  ?
     has   WidenedVolume  double                         [-]  ?
     has   BuildOwed      bool                           [-]  ?
-    by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
+    by    Api/PointerIntersection.h, Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
     note  🔴 An occupant move is a **refit** of one extent, never a rebuild — `40` §4. Refitting propagates the
     note  🔴 Enrolment exclusion is tested **before** descent, so a locked or hidden population costs nothing
 
@@ -163,12 +163,12 @@ F OctantSpace::Admit                | SpatialSubdivision.h | 193     | api,nonth
     in    Arriving  const AdmittedOccupant&  [-]  ?
     out   -         Outcome                  [-]  refuses with IdentityStale for an undeclared identity
     post  the subdivision is owed a rebuild before the admission is traversable
-    by    Api/RequestQueue.h, Api/SceneStructure.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RequestQueue.cpp, (+3 more)
+    by    Api/PointerIntersection.h, Api/RequestQueue.h, Api/SceneStructure.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, (+5 more)
 
 F OctantSpace::Withdraw             | SpatialSubdivision.h | 199     | api,nonthrowing               | 🚩 | Withdraws one occupant.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant is not admitted
-    by    Api/IlluminantPopulation.h, Api/PopulationIndex.h, Api/SurfaceLayerSequence.h, Api/TrigramIndex.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+7 more)
+    by    Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/SurfaceLayerSequence.h, Api/TrigramIndex.h, (+11 more)
 
 F OctantSpace::Refit                | SpatialSubdivision.h | 207     | api,nonthrowing               | 🚩 | Refits one occupant's extent and composed transform, without rebuilding. untouched; only the extents along the path to the occupant's record widen.
     in    Subject   OccupantIdentity            [-]  ?
@@ -178,12 +178,17 @@ F OctantSpace::Refit                | SpatialSubdivision.h | 207     | api,nonth
     by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
     note  🔴 This is `40` §4's most frequent row and it is deliberately cheap. The subdivision's shape is
 
-F OctantSpace::Construct            | SpatialSubdivision.h | 213     | api,nonthrowing               | 🔴 | Rebuilds the subdivision's shape over every admitted occupant.
+F OctantSpace::Standing             | SpatialSubdivision.h | 213     | api,nonthrowing               | 🚩 | Surrenders one admitted occupant's standing record.
+    in    Subject  OccupantIdentity  [-]  ?
+    out   -        Outcome           [-]  refuses with IdentityStale when the occupant is not admitted
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/ImageSpace.h, (+39 more)
+
+F OctantSpace::Construct            | SpatialSubdivision.h | 219     | api,nonthrowing               | 🔴 | Rebuilds the subdivision's shape over every admitted occupant.
     out   -  Outcome<bool>  [-]  ?
     post  the shape is optimal for the current extents; nothing is owed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
 
-F OctantSpace::IntersectRay         | SpatialSubdivision.h | 227     | api,nonthrowing               | 🚩 | Resolves the nearest occupant surface along one document-space ray — `74`'s precedence 2. hit. Without the ordering the traversal visits every record whose extent the ray touches, which on a dense scene is most of them.
+F OctantSpace::IntersectRay         | SpatialSubdivision.h | 233     | api,nonthrowing               | 🚩 | Resolves the nearest occupant surface along one document-space ray — `74`'s precedence 2. hit. Without the ordering the traversal visits every record whose extent the ray touches, which on a dense scene is most of them.
     in    Origin      DocumentPosition        [mm]  the ray's origin, in document space
     in    DirectionX  double                  [-]   unit length, in document space
     in    DirectionY  double                  [-]   ?
@@ -192,53 +197,53 @@ F OctantSpace::IntersectRay         | SpatialSubdivision.h | 227     | api,nonth
     in    DirectionY  -                       [-]   ?
     in    DirectionZ  -                       [-]   ?
     out   -           Resolved                [-]   the whole tuple, or an unresolved intersection
-    by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
+    by    Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
     note  🔴 Descends nearest-first and stops when the remaining extents are further than the nearest confirmed
 
-F OctantSpace::IntersectExtent      | SpatialSubdivision.h | 239     | api,nonthrowing               | 🚩 | Resolves every occupant a document-space extent reaches — `74`'s marquee and `16`'s culling.
+F OctantSpace::IntersectExtent      | SpatialSubdivision.h | 245     | api,nonthrowing               | 🚩 | Resolves every occupant a document-space extent reaches — `74`'s marquee and `16`'s culling.
     in    Extent       ConditionedExtent       [-]  ?
     in    Containment  bool                    [-]  true enrols only occupants wholly inside; false enrols any that overlap
     in    Subsets      const EnrollmentIndex&  [-]  ?
     out   -            Enrolled                [-]  in admission order
-    by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
+    by    Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
     note  🔴 One traversal over the extent, never one per position inside it — `74` §4.
 
-F OctantSpace::RebuildWorthwhile    | SpatialSubdivision.h | 248     | api,nonallocating,nonthrowing | ✔️ | Whether the shape has degraded enough that a rebuild is worth declaring through `34`. triggered by a refit count would rebuild for a thousand occupants that each moved a millimetre.
+F OctantSpace::RebuildWorthwhile    | SpatialSubdivision.h | 254     | api,nonallocating,nonthrowing | ✔️ | Whether the shape has degraded enough that a rebuild is worth declaring through `34`. triggered by a refit count would rebuild for a thousand occupants that each moved a millimetre.
     out   -  bool  [-]  ?
     by    Source/SpatialSubdivision.cpp
     note  📝 Measured as the ratio of accumulated refit widening to the extent at the last build. A rebuild
 
-F OctantSpace::AdmittedCount        | SpatialSubdivision.h | 250     | -                             | -  | ?
+F OctantSpace::AdmittedCount        | SpatialSubdivision.h | 256     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/SceneStructure.h, Source/SceneStructure.cpp, Source/SpatialSubdivision.cpp
+    by    Api/PointerIntersection.h, Api/SceneStructure.h, Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/SceneStructure.cpp, Source/SpatialSubdivision.cpp
 
-F OctantSpace::RecordCount          | SpatialSubdivision.h | 251     | -                             | -  | ?
+F OctantSpace::RecordCount          | SpatialSubdivision.h | 257     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
     by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
 
-F OctantSpace::ConstructionOwed     | SpatialSubdivision.h | 256     | api,nonallocating,nonthrowing | ✔️ | Whether a rebuild is owed before the subdivision may be traversed.
+F OctantSpace::ConstructionOwed     | SpatialSubdivision.h | 262     | api,nonallocating,nonthrowing | ✔️ | Whether a rebuild is owed before the subdivision may be traversed.
     out   -  bool  [-]  ?
     by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
 
-T OctantSpace::OctantRecord         | SpatialSubdivision.h | 260-266 | -                             | -  | ?
+T OctantSpace::OctantRecord         | SpatialSubdivision.h | 266-272 | -                             | -  | ?
     has   Extent        ConditionedExtent  [-]  ?
     has   FirstEntry    std::uint32_t      [-]  ?
     has   EntryCount    std::uint32_t      [-]  ?
     has   FirstDivided  std::uint32_t      [-]  ?
     by    Source/SpatialSubdivision.cpp
 
-F OctantSpace::Located              | SpatialSubdivision.h | 268     | -                             | -  | ?
+F OctantSpace::Located              | SpatialSubdivision.h | 274     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::size_t       [-]  ?
-    by    Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/StrokeSpace.h, Api/SurfaceLayerSequence.h, Source/EnrollmentIndex.cpp, (+13 more)
+    by    Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/StrokeSpace.h, (+19 more)
 
-F OctantSpace::Divide               | SpatialSubdivision.h | 269     | -                             | -  | ?
+F OctantSpace::Divide               | SpatialSubdivision.h | 275     | -                             | -  | ?
     in    RecordOrdinal  std::uint32_t  [-]  ?
     in    Depth          std::uint32_t  [-]  ?
     out   -              void           [-]  ?
     by    Source/SpatialSubdivision.cpp
 
-F OctantSpace::Descend              | SpatialSubdivision.h | 270     | -                             | -  | ?
+F OctantSpace::Descend              | SpatialSubdivision.h | 276     | -                             | -  | ?
     in    RecordOrdinal  std::uint32_t           [-]  ?
     in    Origin         DocumentPosition        [-]  ?
     in    DirectionX     double                  [-]  ?
@@ -253,49 +258,49 @@ F OctantSpace::Descend              | SpatialSubdivision.h | 270     | -        
 //                                             THE DOMAIN LEVEL — PER SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-T DomainExtent                      | SpatialSubdivision.h | 292-300 | nonallocating,nonthrowing     | -  | One placement's extent in a surface's parametric domain.
+T DomainExtent                      | SpatialSubdivision.h | 298-306 | nonallocating,nonthrowing     | -  | One placement's extent in a surface's parametric domain.
     has   LeastAlong        double         [-]  ?
     has   LeastAcross       double         [-]  ?
     has   GreatestAlong     double         [-]  ?
     has   GreatestAcross    double         [-]  ?
     has   PlacementOrdinal  std::uint32_t  [-]  ?
     has   SequenceOrdinal   std::uint32_t  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
+    by    Api/DecalProjection.h, Source/ConsoleHost.cpp, Source/DecalProjection.cpp, Source/SpatialSubdivision.cpp
 
-T AxisSpace                         | SpatialSubdivision.h | 309-340 | owning                        | -  | The two-dimensional subdivision over one surface's domain — `74` precedence 1 and `72`. position, which is a different question from which occupant a ray meets and shares no space with it. picking depend on insertion order, and the artist would select whichever decal happened to be declared first rather than the one they can see.
+T AxisSpace                         | SpatialSubdivision.h | 315-346 | owning                        | -  | The two-dimensional subdivision over one surface's domain — `74` precedence 1 and `72`. position, which is a different question from which occupant a ray meets and shares no space with it. picking depend on insertion order, and the artist would select whichever decal happened to be declared first rather than the one they can see.
     has   Extents  std::vector<DomainExtent>  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
+    by    Api/PointerIntersection.h, Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
     note  🔴 Over the **domain**, not over space, and per surface. It answers which placements contain a domain
     note  ⚠️ The topmost containing placement wins, by `56` sequence order. Resolving the first found would make
 
-F AxisSpace::Construct              | SpatialSubdivision.h | 316     | api,nonthrowing               | 🚩 | Declares the whole placement set, replacing what stood.
+F AxisSpace::Construct              | SpatialSubdivision.h | 322     | api,nonthrowing               | 🚩 | Declares the whole placement set, replacing what stood.
     in    Declaring  const std::vector<DomainExtent>&  [-]  ?
     out   -          void                              [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
 
-F AxisSpace::Refit                  | SpatialSubdivision.h | 322     | api,nonthrowing               | 🚩 | Amends one placement's extent without rebuilding — the row `40` §4 reaches when a placement moved.
+F AxisSpace::Refit                  | SpatialSubdivision.h | 328     | api,nonthrowing               | 🚩 | Amends one placement's extent without rebuilding — the row `40` §4 reaches when a placement moved.
     in    PlacementOrdinal  std::uint32_t  [-]  ?
     in    Amending          DomainExtent   [-]  ?
     out   -                 Outcome        [-]  refuses with ExtentExhausted when no placement carries that ordinal
     by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
 
-F AxisSpace::Resolve                | SpatialSubdivision.h | 328     | api,nonthrowing               | 🚩 | Resolves the topmost placement containing one domain position.
+F AxisSpace::Resolve                | SpatialSubdivision.h | 334     | api,nonthrowing               | 🚩 | Resolves the topmost placement containing one domain position.
     in    PositionAlong   double   [-]  ?
     in    PositionAcross  double   [-]  ?
     out   -               Outcome  [-]  refuses with ExtentExhausted when no placement contains it
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+51 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
 
-F AxisSpace::Overlapping            | SpatialSubdivision.h | 333     | api,nonthrowing               | 🚩 | Every placement whose extent overlaps a domain extent.
+F AxisSpace::Overlapping            | SpatialSubdivision.h | 339     | api,nonthrowing               | 🚩 | Every placement whose extent overlaps a domain extent.
     in    Extent  DomainExtent                [-]  ?
     out   -       std::vector<std::uint32_t>  [-]  ?
     by    Source/SpatialSubdivision.cpp
 
-F AxisSpace::DeclaredCount          | SpatialSubdivision.h | 335     | -                             | -  | ?
+F AxisSpace::DeclaredCount          | SpatialSubdivision.h | 341     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/ProgramIndex.h, Api/QuadratureIntegrator.h, (+14 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/ProgramIndex.h, (+20 more)
 
-F SLATE_DECLARES_PRECISION          | SpatialSubdivision.h | 344     | -                             | -  | ?
+F SLATE_DECLARES_PRECISION          | SpatialSubdivision.h | 350     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)

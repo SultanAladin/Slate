@@ -48,6 +48,8 @@
 #include "SlateCompute/Compute/ChartPartition/Api/ChartPartition.h"
 #include "SlateDocument/Document/BrushSpecification/Api/BrushSpecification.h"
 #include "SlateDocument/Document/SurfaceLayerSequence/Api/SurfaceLayerSequence.h"
+#include "SlateDocument/Document/PointerIntersection/Api/PointerIntersection.h"
+#include "SlateDocument/Document/ToolSequence/Api/ToolSequence.h"
 
 // 📝 🔴 This host names no interface component and constructs no instance. `00` §2.2 keeps exactly one copy
 //    of ImGui, compiled inside SlateUI; a headless host reaching for it would be linking a window-system
@@ -2935,6 +2937,322 @@ void VerifyStroke()
     Preview.Abandon(Residency);
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE POINTER
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📐 One square in the plane at the origin, facing the third axis, with a domain coordinate per corner. Enough to
+//    exercise the unprojection, the traversal, the barycentric domain interpolation and the marquee at once.
+void VerifyPointer()
+{
+    std::printf("PointerIntersection\n");
+
+    Slate::TopologyStructure Imported;
+
+    std::vector<Slate::DocumentPosition> Positions(4);
+    Positions[0].PositionX = -1.0;  Positions[0].PositionY = -1.0;
+    Positions[1].PositionX =  1.0;  Positions[1].PositionY = -1.0;
+    Positions[2].PositionX =  1.0;  Positions[2].PositionY =  1.0;
+    Positions[3].PositionX = -1.0;  Positions[3].PositionY =  1.0;
+
+    Imported.DeclarePositions(Positions);
+    Imported.DeclareFace({ 0u, 1u, 2u, 3u });
+
+    std::vector<Slate::DomainCoordinate> Coordinates(4);
+    Coordinates[0].CoordinateAlong = 0.0f;  Coordinates[0].CoordinateAcross = 0.0f;
+    Coordinates[1].CoordinateAlong = 1.0f;  Coordinates[1].CoordinateAcross = 0.0f;
+    Coordinates[2].CoordinateAlong = 1.0f;  Coordinates[2].CoordinateAcross = 1.0f;
+    Coordinates[3].CoordinateAlong = 0.0f;  Coordinates[3].CoordinateAcross = 1.0f;
+
+    Imported.DeclareCoordinates(Coordinates);
+    Imported.Seal();
+
+    Slate::TopologyConditioning Conditioned;
+    Conditioned.Condition(Imported);
+
+    Slate::BoundingStructure Inner;
+    Inner.Construct(Imported, Conditioned);
+
+    Slate::OccupantIdentity Subject;
+    Subject.SlotOrdinal    = 5u;
+    Subject.SlotGeneration = 1u;
+
+    Slate::AdmittedOccupant Admitting;
+    Admitting.Occupant = Subject;
+    Admitting.Inner    = &Inner;
+    Admitting.Extent   = Inner.Extent();
+
+    Slate::OctantSpace Outer;
+    Outer.Admit(Admitting);
+    Outer.Construct();
+
+    Report("The subdivision surrenders its record",
+           Outer.Standing(Subject).ContentPresent
+        && Outer.Standing(Subject).Resolve().Occupant == Subject,
+           "[-] the extent a marquee narrows against");
+
+    Slate::CameraSpecification Declaring;
+    Declaring.Placement.Translation.PositionZ = 10.0;
+    Declaring.SensorProportion                = 1.0;
+
+    Slate::CameraProjection Camera;
+
+    Slate::OccupantIdentity CameraOccupant;
+    CameraOccupant.SlotOrdinal    = 3u;
+    CameraOccupant.SlotGeneration = 1u;
+
+    Camera.Declare(CameraOccupant, Declaring);
+
+    Report("An unreconciled camera refuses a ray",
+           !Slate::ProjectPointerRay(Camera, 256.0, 256.0, 512u, 512u).ContentPresent,
+           "[-] the standing projection is stale");
+
+    Camera.Reconcile();
+
+    const Slate::Outcome<Slate::ProjectedRay> Centred =
+        Slate::ProjectPointerRay(Camera, 256.0, 256.0, 512u, 512u);
+
+    Report("A centred pointer casts along the view direction",
+           Centred.ContentPresent
+        && std::fabs(Centred.Resolve().DirectionX) < 1.0e-12
+        && std::fabs(Centred.Resolve().DirectionY) < 1.0e-12
+        && std::fabs(Centred.Resolve().DirectionZ + 1.0) < 1.0e-12,
+           "[-] `46` §3's negative third axis");
+
+    // 📐 The projection already applies `ClipOrdinateSignum`, so a pointer above the centre must cast upward in
+    //    document space. A second inversion here would only be visible on this axis, which reads as a camera
+    //    that is subtly mis-aimed rather than as an inversion.
+    const Slate::Outcome<Slate::ProjectedRay> Upper =
+        Slate::ProjectPointerRay(Camera, 256.0, 64.0, 512u, 512u);
+
+    Report("The display's downward ordinate is not inverted twice",
+           Upper.ContentPresent && Upper.Resolve().DirectionY > 0.0,
+           "[-] a pointer above the centre casts upward");
+
+    Slate::PointerIntersection Picking;
+
+    Slate::AxisSpace Domain;
+
+    std::vector<Slate::DomainExtent> Placements(1);
+    Placements[0].LeastAlong       = 0.55;  Placements[0].LeastAcross     = 0.55;
+    Placements[0].GreatestAlong    = 0.95;  Placements[0].GreatestAcross  = 0.95;
+    Placements[0].PlacementOrdinal = 0u;    Placements[0].SequenceOrdinal = 1u;
+
+    Domain.Construct(Placements);
+
+    Slate::AdmittedSurface Surfaced;
+    Surfaced.Occupant          = Subject;
+    Surfaced.Imported          = &Imported;
+    Surfaced.CornerCoordinates = &Coordinates;
+    Surfaced.Placements        = &Domain;
+
+    Report("A surface is admitted", Picking.Admit(Surfaced).ContentPresent, "[-] with its coordinate run");
+
+    Slate::AdmittedSurface Mismatched = Surfaced;
+    std::vector<Slate::DomainCoordinate> Short(2);
+    Mismatched.CornerCoordinates = &Short;
+
+    Report("A coordinate run of the wrong length is refused",
+           !Picking.Admit(Mismatched).ContentPresent,
+           "[-] confirmed at admission, never at the hit");
+
+    Slate::EnrollmentIndex Subsets;
+    Slate::PlacementIndex  Declared;
+
+    Slate::PlacementSpecification Placing;
+    Placing.Occupant                               = Subject;
+    Placing.PlacingTransform.Translation.PositionX = 0.75;
+    Placing.PlacingTransform.Translation.PositionY = 0.75;
+    Placing.PlacingTransform.ScaleX                = 0.4;
+    Placing.PlacingTransform.ScaleY                = 0.4;
+
+    Declared.Declare(Placing);
+
+    const Slate::ResolvedPointer Met =
+        Picking.Resolve(Centred.Resolve(), Outer, Subsets, Declared);
+
+    Report("The ray resolves the occupant",
+           Met.Resolved && Met.Occupant == Subject,
+           "[-] one traversal, the whole tuple");
+
+    Report("The domain position interpolates to the centre",
+           Met.DomainResolved
+        && std::fabs(Met.DomainAlong  - 0.5) < 1.0e-9
+        && std::fabs(Met.DomainAcross - 0.5) < 1.0e-9,
+           "[-] barycentric, over the corners' own coordinates");
+
+    Report("The face orientation faces the camera",
+           Met.Orientation.DirectionZ > 0.0f,
+           "[-] the flat perpendicular `78` builds a plane from");
+
+    Report("No placement contains the centre",
+           !Met.PlacementResolved,
+           "[-] the extent is elsewhere");
+
+    // 📐 A pointer aimed at domain (0.75, 0.75) is aimed at document (0.5, 0.5) on this square, which projects
+    //    to a pixel offset from centre by the perspective scale at ten millimetres.
+    const double OffsetPixels = 256.0 + 0.5 * 256.0 / (10.0 * std::tan(22.5 * Slate::Pi / 180.0));
+
+    const Slate::Outcome<Slate::ProjectedRay> AtPlacement =
+        Slate::ProjectPointerRay(Camera, OffsetPixels, 512.0 - OffsetPixels, 512u, 512u);
+
+    const Slate::ResolvedPointer Placed =
+        Picking.Resolve(AtPlacement.Resolve(), Outer, Subsets, Declared);
+
+    Report("A placement resolves before its carrying surface",
+           Placed.PlacementResolved && Placed.PlacementOrdinal == 0u,
+           "[-] `74` §3 precedence 1, confirmed through the source square");
+
+    Report("The occupant is reported beside the placement",
+           Placed.Resolved && Placed.Occupant == Subject,
+           "[-] `78` still needs the surface's orientation");
+
+    const std::vector<Slate::OccupantIdentity> Contained =
+        Picking.ResolveExtent(Camera, 0.0, 0.0, 512.0, 512.0, 512u, 512u, true, Outer, Subsets);
+
+    Report("A marquee over the whole display contains the occupant",
+           Contained.size() == 1u,
+           "[-] one traversal over the extent");
+
+    const std::vector<Slate::OccupantIdentity> Cornered =
+        Picking.ResolveExtent(Camera, 0.0, 0.0, 16.0, 16.0, 512u, 512u, false, Outer, Subsets);
+
+    Report("A marquee in a corner touches nothing",
+           Cornered.empty(),
+           "[-] classified exactly against the six planes, not against the bound");
+
+    Subsets.Enrol(Subject, Slate::SubsetSubject::Lock);
+
+    Report("A locked occupant is neither picked nor enrolled",
+           !Picking.Resolve(Centred.Resolve(), Outer, Subsets, Declared).Resolved
+        && Picking.ResolveExtent(Camera, 0.0, 0.0, 512.0, 512.0, 512u, 512u, false, Outer, Subsets).empty(),
+           "[-] excluded before descent — `40` §3");
+
+    Subsets.Unenrol(Subject, Slate::SubsetSubject::Lock);
+
+    Report("Withdrawal removes the sources",
+           Picking.Withdraw(Subject).ContentPresent && Picking.AdmittedCount() == 0u,
+           "[-] and a second withdrawal refuses");
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        THE TOOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+void VerifyTools()
+{
+    std::printf("ToolSequence\n");
+
+    Slate::ToolSequence Held;
+
+    Slate::ToolSpecification Painting;
+    Painting.Identity  = "Paint";
+    Painting.Presented = "Paint";
+    Painting.Claimed   = Slate::PointerPrecedence::Stroke;
+    Painting.Previewed = Slate::PreviewSubject::Impression;
+    Painting.Recorded  = Slate::TransactionSubject::Dragged;
+
+    Slate::PropertyDeclaration Strength;
+    Strength.Identity                 = "Strength";
+    Strength.Presented                = "Strength";
+    Strength.Measured                 = Slate::PropertyMeasure::Magnitude;
+    Strength.LowerMagnitude           = 0.0;
+    Strength.UpperMagnitude           = 1.0;
+    Strength.BoundsDeclared           = true;
+    Strength.Defaulted.Measured       = Slate::PropertyMeasure::Magnitude;
+    Strength.Defaulted.MagnitudeHeld  = 1.0;
+
+    Painting.Parameters.Declare(Strength);
+
+    const Slate::Outcome<std::uint32_t> Declared = Held.Tools().Declare(Painting);
+
+    Report("A tool is declared", Declared.ContentPresent, "[-] with its parameters");
+
+    Report("A tool parameter is a declaration, not panel code",
+           Declared.ContentPresent
+        && Held.Tools().Resolve(Declared.Resolve()).Resolve()->Parameters.Declarations().size() == 1u,
+           "[-] `76` §4: any tool presents without the panel knowing which");
+
+    Report("A repeated identity is refused",
+           !Held.Tools().Declare(Painting).ContentPresent,
+           "[-] resolution by identity must answer one tool");
+
+    Report("Nothing is active before a tool is declared active",
+           !Held.ActiveTool().ContentPresent && !Held.ActiveBrush().ContentPresent,
+           "[-] refuses rather than resolving the first declared");
+
+    Report("A tool activates",
+           Held.DeclareTool(Declared.Resolve()).ContentPresent
+        && Held.ActiveTool().Resolve()->Claimed == Slate::PointerPrecedence::Stroke,
+           "[-] and carries its declared precedence");
+
+    Slate::ColourSpecification Spaceless;
+    Spaceless.RedCoordinate = 1.0;
+
+    Report("A colour with no space is refused",
+           !Held.DeclareColour(Spaceless).ContentPresent,
+           "[-] `36` §1: no bare triple reaches a stroke");
+
+    Slate::ColourSpecification Working = Spaceless;
+    Working.SpaceIdentity = Slate::WorkingSpaceIdentity;
+
+    Report("A colour carrying its space is admitted",
+           Held.DeclareColour(Working).ContentPresent
+        && Held.Colour().SpaceIdentity == Slate::WorkingSpaceIdentity,
+           "[-] scene-referred, per `36` §6");
+
+    Report("The brush store is here and starts empty",
+           Held.Brushes().DeclaredCount() == 0u,
+           "[-] `58` §7's per-application store");
+
+    const std::uint32_t BrushOrdinal = Held.Brushes().Declare("Round", "Default").Resolve();
+
+    Report("A brush activates",
+           Held.DeclareBrush(BrushOrdinal).ContentPresent && Held.ActiveBrush().ContentPresent,
+           "[-] the ordinal is what `22` resolves against");
+
+    Report("An overlay is presented by declaration",
+           Held.DeclareOverlay(Slate::OverlaySubject::Wireframe, true).ContentPresent
+        && Held.OverlayStanding(Slate::OverlaySubject::Wireframe)
+        && !Held.OverlayStanding(Slate::OverlaySubject::GroundLattice),
+           "[-] read by `80`, stored in no document");
+
+    Report("Arbitration prefers the interface",
+           Held.Arbitrate(true, true, true) == Slate::PointerPrecedence::Interface,
+           "[-] `14` §4.2's four levels, in order");
+
+    Report("Arbitration falls to the workspace",
+           Held.Arbitrate(false, false, false) == Slate::PointerPrecedence::Workspace,
+           "[-] picking and navigation");
+
+    Slate::ResolvedPointer Opened;
+    Opened.Resolved     = true;
+    Opened.DomainAlong  = 0.25;
+    Opened.DomainAcross = 0.75;
+
+    Report("A capture opens against a pick",
+           Held.OpenCapture(Slate::PointerPrecedence::Stroke, Opened).ContentPresent
+        && Held.Capture().Opened.DomainAlong == 0.25,
+           "[-] `78` §2 fixes its plane from this");
+
+    // 🔴 The property the whole capture exists for: a stronger claimant does not steal it, and arbitration
+    //    answers the holder unconditionally while it stands.
+    Report("A stronger claimant does not steal the capture",
+           !Held.OpenCapture(Slate::PointerPrecedence::Interface, Opened).ContentPresent
+        && Held.Arbitrate(true, true, true) == Slate::PointerPrecedence::Stroke,
+           "[-] a stroke is not stopped by a panel it crosses");
+
+    Report("Releasing is explicit",
+           Held.ReleaseCapture().ContentPresent
+        && !Held.Capture().CaptureDeclared
+        && !Held.ReleaseCapture().ContentPresent,
+           "[-] never a consequence of the pointer moving");
+
+    Report("Arbitration resumes after release",
+           Held.Arbitrate(true, false, false) == Slate::PointerPrecedence::Interface,
+           "[-] once, before the next capture is taken");
+}
+
 }   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -2982,6 +3300,12 @@ int main()
     std::printf("\n");
 
     VerifySubdivision();
+    std::printf("\n");
+
+    VerifyPointer();
+    std::printf("\n");
+
+    VerifyTools();
     std::printf("\n");
 
     VerifyPartition();

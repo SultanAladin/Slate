@@ -39,7 +39,7 @@ E DegeneracySubject                          | TopologyConditioning.h | 28-36  |
 T ConditionedExtent                          | TopologyConditioning.h | 46-50  | nonallocating,nonthrowing     | -  | One axis-aligned extent in object space, rounded conservatively outward. symptom is a surface that disappears at one camera angle. Outward costs a nanometre and nothing else.
     has   Least     DocumentPosition  [-]  ?
     has   Greatest  DocumentPosition  [-]  ?
-    by    Api/PartitionClassifier.h, Api/PartitionStructure.h, Api/SpatialSubdivision.h, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp, Source/PartitionStructure.cpp, (+2 more)
+    by    Api/PartitionClassifier.h, Api/PartitionStructure.h, Api/SpatialSubdivision.h, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp, Source/PartitionStructure.cpp, (+3 more)
     note  🔴 `38` §6: an extent rounded inward excludes geometry from `16`'s culling and `40`'s traversal, and the
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -98,7 +98,7 @@ F TopologyConditioning::VertexIsolated       | TopologyConditioning.h | 105    |
 F TopologyConditioning::Enrolled             | TopologyConditioning.h | 110    | api,nonallocating,nonthrowing | ✔️ | The runs of one enrolled condition, for whoever excludes a whole span at once.
     in    Condition  DegeneracySubject                     [-]  ?
     out   -          const std::vector<EnrolledInterval>&  [-]  ?
-    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+8 more)
+    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+10 more)
 
 F TopologyConditioning::Perpendiculars       | TopologyConditioning.h | 112    | -                             | -  | ?
     out   -  const std::vector<SurfaceDirection>&  [-]  ?
@@ -167,4 +167,4 @@ F SLATE_DECLARES_PRECISION                   | TopologyConditioning.h | 172    |
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+21 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)

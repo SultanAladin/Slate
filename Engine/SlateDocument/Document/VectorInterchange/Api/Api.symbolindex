@@ -25,7 +25,7 @@ S VectorInterchange.h | 247 lines | 03d74c30 | 25 sym | Vector outlines and type
 E FillRule                               | VectorInterchange.h | 27-31   | contract        | -  | Which rule decides a closed path's interior. `ResolveContainment`, which takes it as the one bit the classification depends on.
     has   NonZero  FillRule  [-]  ?
     has   EvenOdd  FillRule  [-]  ?
-    by    Source/VectorInterchange.cpp
+    by    Source/AnalyticProjection.cpp, Source/VectorInterchange.cpp
     note  Both are accepted — `52` §2. The rule is a declared property of each closed path and is read by
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ T OutlinePath                            | VectorInterchange.h | 41-47   | ownin
     has   Segments   std::vector<PathSegment>  [-]  ?
     has   Rule       FillRule                  [-]  ?
     has   ClosedRun  bool                      [-]  ?
-    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
     note  🔴 An open path is retained as open rather than closed on arrival. `52` §1's codec translates and does
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -74,7 +74,7 @@ T VectorInterchange                      | VectorInterchange.h | 97-161  | ownin
     has   DeclaredOutline     OutlineSpecification           [-]  ?
     has   RefusedConstructs   std::vector<RefusedConstruct>  [-]  ?
     has   TextSourceDeclared  bool                           [-]  ?
-    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    by    Api/AnalyticProjection.h, Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
     note  🔴 `52` §4: `PlanarClassifier` is Exact and parity-proven, because the same outline is classified on the
 
 F VectorInterchange::DeclareFromFile     | VectorInterchange.h | 107     | api,nonthrowing | 🚩 | Declares a decoded outline arriving from a file.
@@ -94,12 +94,12 @@ F VectorInterchange::Refuse              | VectorInterchange.h | 120     | api,n
     in    SourceOrdinal  std::uint32_t       [-]  ?
     in    Declining      const Refusal&      [-]  ?
     out   -              void                [-]  ?
-    by    Api/SpectralProjection.h, Contract/OutcomeContract.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, Source/AttachmentIndex.cpp, Source/BrushSpecification.cpp, (+58 more)
+    by    Api/SpectralProjection.h, Contract/OutcomeContract.h, Source/AnalyticProjection.cpp, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, Source/AttachmentIndex.cpp, (+64 more)
 
 F VectorInterchange::Flatten             | VectorInterchange.h | 134     | api,nonthrowing | 🔴 | Flattens every path at a tolerance the caller supplies, into one run per path. outline at whatever level a tile was promoted to, so a fixed tolerance is either wasteful at coarse levels or visibly polygonal at fine ones. `CurveSolver` is Bounded, so flattening twice would give two polylines agreeing to a tolerance and differing in their last bit — and an Exact predicate over two different inputs is exact about the wrong thing.
     in    Tolerance  double     [-]  greatest permitted deviation, in the outline's own space
     out   -          Flattened  [-]  one polyline per path, in declaration order
-    by    Api/CurveSolver.h, Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/VectorInterchange.cpp
+    by    Api/CurveSolver.h, Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/VectorInterchange.cpp
     note  🔴 Tolerance is **relative to the reduction level being resolved** — `52` §5's gate. `70` resolves an
     note  🔴 The flattening is produced **once** and both the host and the device classify that one polyline.
 
@@ -109,13 +109,13 @@ F VectorInterchange::Classify            | VectorInterchange.h | 148     | api,n
     in    PointY     double                                           [-]  ?
     in    PointY     -                                                [-]  ?
     out   -          Containment                                      [-]  +1 inside, 0 exactly on a boundary, −1 outside
-    by    Api/CameraProjection.h, Api/TilingSpecification.h, Api/VendorClassifier.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp, (+4 more)
+    by    Api/CameraProjection.h, Api/TilingSpecification.h, Api/VendorClassifier.h, Source/AnalyticProjection.cpp, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, (+6 more)
     note  🔴 A boundary position resolves to zero and not to inside — `70` resolves coverage from this, and a
     note  📝 Where a source declares several paths with differing fill rules, each path is classified under its
 
 F VectorInterchange::Declared            | VectorInterchange.h | 152     | -               | -  | ?
     out   -  const OutlineSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+39 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+49 more)
 
 F VectorInterchange::Refusals            | VectorInterchange.h | 153     | -               | -  | ?
     out   -  const std::vector<RefusedConstruct>&  [-]  ?
@@ -135,7 +135,7 @@ T GlyphSpecification                     | VectorInterchange.h | 173-180 | ownin
     has   Advance        double                    [-]  ?
     has   BearingAlong   double                    [-]  ?
     has   BearingAcross  double                    [-]  ?
-    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
     note  🔴 `52` §3: text is resolved to a **glyph sequence** at intake and the glyph sequence is what is stored.
 
 T TypefaceInterchange                    | VectorInterchange.h | 186-234 | owning          | -  | One typeface's glyphs, and the resolved text that reads them. are compatible with this: what is stored is the glyph sequence and the typeface identity either way.
@@ -143,7 +143,7 @@ T TypefaceInterchange                    | VectorInterchange.h | 186-234 | ownin
     has   DeclaredAdjustments  std::vector<PairAdjustment>      [-]  ?
     has   DeclaredIdentity     std::uint32_t                    [-]  ?
     has   DeclaredUnits        double                           [-]  ?
-    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    by    Api/AnalyticProjection.h, Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
     note  ⚠️ Whether a typeface is embedded on save or referenced is open in `00` §12 and is not decided here. Both
 
 F TypefaceInterchange::DeclareTypeface   | VectorInterchange.h | 193     | api,nonthrowing | ✔️ | Declares the typeface's identity and unit scale.
@@ -167,13 +167,13 @@ F TypefaceInterchange::DeclareAdjustment | VectorInterchange.h | 204     | api,n
 F TypefaceInterchange::ResolveGlyph      | VectorInterchange.h | 210     | api,nonthrowing | 🚩 | Resolves one glyph, by its identity rather than by a character.
     in    GlyphIdentity  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ContentUnsupported when the typeface declares no such glyph
-    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
 
 F TypefaceInterchange::Adjustment        | VectorInterchange.h | 215     | api,nonthrowing | 🚩 | The pair adjustment between two adjacent glyphs; zero where none is declared.
     in    EarlierGlyph  std::uint32_t  [-]  ?
     in    LaterGlyph    std::uint32_t  [-]  ?
     out   -             double         [-]  ?
-    by    Source/ConsoleHost.cpp, Source/RowSequence.cpp, Source/VectorInterchange.cpp
+    by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/RowSequence.cpp, Source/VectorInterchange.cpp
 
 F TypefaceInterchange::TypefaceIdentity  | VectorInterchange.h | 217     | -               | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -181,7 +181,7 @@ F TypefaceInterchange::TypefaceIdentity  | VectorInterchange.h | 217     | -    
 
 F TypefaceInterchange::UnitsPerEm        | VectorInterchange.h | 218     | -               | -  | ?
     out   -  double  [-]  ?
-    by    Source/VectorInterchange.cpp
+    by    Source/AnalyticProjection.cpp, Source/VectorInterchange.cpp
 
 F TypefaceInterchange::GlyphCount        | VectorInterchange.h | 219     | -               | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -197,5 +197,5 @@ T ResolvedText                           | VectorInterchange.h | 240-245 | ownin
     has   GlyphSequence     std::vector<std::uint32_t>  [-]  ?
     has   Characters        std::string                 [-]  ?
     has   TypefaceIdentity  std::uint32_t               [-]  ?
-    by    Source/ConsoleHost.cpp
+    by    Api/AnalyticProjection.h, Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp
     note  🔴 Both are stored. The glyph sequence is what resolves; the characters are what keeps the text editable.
