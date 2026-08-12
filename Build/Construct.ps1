@@ -172,6 +172,7 @@ function Get-IncludePath([hashtable] $UnitEntry, [string] $VulkanRoot)
     if ($UnitEntry.Name -eq 'SlateUI')
     {
         $Paths += (Join-Path $PackageRoot 'imgui')
+        $Paths += (Join-Path $PackageRoot 'thorvg\inc')
     }
 
     # 🔴 `10` §1's codecs compile the vendored readers — stb and fast_obj — into their own translation units,
@@ -472,6 +473,10 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
 
     $Linked += (Join-Path $VulkanRoot  'Lib\vulkan-1.lib')
     $Linked += (Join-Path $PackageRoot 'glfw\lib-vc2022\glfw3dll.lib')
+
+    # 📝 ThorVG is reached only from SlateUI's GlyphDepot, but a static archive resolves at the host link,
+    #    so it is named here alongside the other import libraries rather than at the unit that uses it.
+    $Linked += (Join-Path $PackageRoot 'thorvg\lib\thorvg.lib')
 
     # 📝 🔴 gdi32.lib is named rather than inherited. `04`'s display-density read is the only reference into
     #    it, and the device context calls either side of that read resolve through the import libraries
