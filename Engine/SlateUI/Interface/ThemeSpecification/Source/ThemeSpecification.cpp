@@ -85,11 +85,28 @@ ThemePalette DeclaredDarkPalette()
     Palette.ControlHovered     = AuthoredColour( 26,  26,  26, 255);
     Palette.ControlActive      = AuthoredColour( 31,  31,  31, 255);
 
+    // 📝 A tile face is a control face by another name, so it takes the control's authored coordinate rather than a
+    //    second literal identical to it. #141414 and #1a1a1a are already spelled above, bit for bit. Naming them
+    //    apart lets a later density or contrast profile separate them; assigning them here keeps exactly one
+    //    authored value until one actually does.
+    Palette.TileBackground     = Palette.ControlBackground;
+    Palette.TileHovered        = Palette.ControlHovered;
+
+    // 📝 The row wash is white at a coverage no eight-bit code carries — 0.045 × 255 is 11.5, so quantising it
+    //    would round the wash to one side and the reference row would read a shade off. Attenuate takes the
+    //    fraction directly, which is what it exists for.
+    Palette.RowHovered         = Attenuate(AuthoredColour(255, 255, 255, 255), 0.045);
+
     // 📝 The accent is near-white rather than a hue, so that a selected row reads as selected on a surface whose own
     //    content is arbitrarily coloured. A saturated accent competes with whatever the artist is painting.
     Palette.AccentPrimary      = AuthoredColour(232, 232, 232, 255);
     Palette.AccentSubtle       = AuthoredColour(255, 255, 255,  31);
     Palette.SelectionMarker    = AuthoredColour( 74, 144, 226, 255);
+
+    // 📝 🔴 The one hue in the palette, and it is reserved for a destructive control. `84` §3.1's discard is the
+    //    reason it exists: the artist must be able to tell that control from every other one at a glance, and a
+    //    near-white accent cannot carry that distinction.
+    Palette.DangerPrimary      = AuthoredColour(224,  90,  90, 255);
 
     Palette.TextPrimary        = AuthoredColour(237, 237, 237, 255);
     Palette.TextMuted          = AuthoredColour(138, 138, 138, 255);
@@ -141,16 +158,25 @@ Outcome<ThemeSpecification> ResolveActiveTheme(float DeclaredScale)
 
     // 📝 Exactly the extents carrying pixels are scaled. The ratios and the font scales are dimensionless and a
     //    density change must leave them alone — scaling LabelColumnRatio past one gives the label the whole row.
-    Resolved.Extents.PanelPadding     *= DeclaredScale;
-    Resolved.Extents.ControlSpacing   *= DeclaredScale;
-    Resolved.Extents.ControlHeight    *= DeclaredScale;
-    Resolved.Extents.RowHeight        *= DeclaredScale;
-    Resolved.Extents.IndentWidth      *= DeclaredScale;
-    Resolved.Extents.CornerRounding   *= DeclaredScale;
-    Resolved.Extents.BorderThickness  *= DeclaredScale;
-    Resolved.Extents.EntryRowHeight   *= DeclaredScale;
-    Resolved.Extents.SideSegmentWidth *= DeclaredScale;
-    Resolved.Extents.GlyphEdge        *= DeclaredScale;
+    Resolved.Extents.PanelPadding         *= DeclaredScale;
+    Resolved.Extents.ControlSpacing       *= DeclaredScale;
+    Resolved.Extents.CardGap              *= DeclaredScale;
+    Resolved.Extents.ControlHeight        *= DeclaredScale;
+    Resolved.Extents.RowHeight            *= DeclaredScale;
+    Resolved.Extents.LayerRowHeight       *= DeclaredScale;
+    Resolved.Extents.RevisionCardHeight   *= DeclaredScale;
+    Resolved.Extents.PanelHeaderHeight    *= DeclaredScale;
+    Resolved.Extents.PanelFooterHeight    *= DeclaredScale;
+    Resolved.Extents.SectionHeaderHeight  *= DeclaredScale;
+    Resolved.Extents.TabStripHeight       *= DeclaredScale;
+    Resolved.Extents.IndentWidth          *= DeclaredScale;
+    Resolved.Extents.CornerRounding       *= DeclaredScale;
+    Resolved.Extents.BorderThickness      *= DeclaredScale;
+    Resolved.Extents.LabelColumnWidth     *= DeclaredScale;
+    Resolved.Extents.ValueColumnWidth     *= DeclaredScale;
+    Resolved.Extents.EntryRowHeight       *= DeclaredScale;
+    Resolved.Extents.SideSegmentWidth     *= DeclaredScale;
+    Resolved.Extents.GlyphEdge            *= DeclaredScale;
 
     // 📝 EntryRounding is deliberately not scaled. It is declared far beyond half of any row height so that the
     //    entry is fully rounded at every density; scaling it would only move it further beyond a bound it already

@@ -66,8 +66,12 @@ struct ThemePalette
     ThemeColour  ControlBackground   = {};   // [-] - a slider track or entry field
     ThemeColour  ControlHovered      = {};   // [-] - a control under the pointer
     ThemeColour  ControlActive       = {};   // [-] - a control while it is being dragged
+    ThemeColour  TileBackground      = {};   // [-] - a card, thumbnail or layer tile face
+    ThemeColour  TileHovered         = {};   // [-] - that tile under the pointer
+    ThemeColour  RowHovered          = {};   // [-] - the wash a list row takes under the pointer
     ThemeColour  AccentPrimary       = {};   // [-] - selection, active tab, slider grab
     ThemeColour  AccentSubtle        = {};   // [-] - the accent at hover coverage
+    ThemeColour  DangerPrimary       = {};   // [-] - a destructive control: discard, delete, refusal
     ThemeColour  SelectionMarker     = {};   // [-] - the marker beside a chosen entry
     ThemeColour  TextPrimary         = {};   // [-] - a label
     ThemeColour  TextMuted           = {};   // [-] - a secondary or refused label
@@ -94,20 +98,29 @@ struct ThemePalette
 /// tag   owning
 struct LayoutExtents
 {
-    float  PanelPadding      =  8.0f;    // [px] - inner margin of a panel body
-    float  ControlSpacing    =  6.0f;    // [px] - vertical gap between stacked controls
-    float  ControlHeight     = 22.0f;    // [px] - one single-line control
-    float  RowHeight         = 20.0f;    // [px] - one outliner or list row
-    float  IndentWidth       = 14.0f;    // [px] - per-depth indent in a tree presentation
-    float  CornerRounding    =  4.0f;    // [px] - panel and control corner radius
-    float  BorderThickness   =  1.0f;    // [px] - panel outline and separator thickness
-    float  LabelColumnRatio  =  0.40f;   // [-]  - fraction of a control row given to its label
-    float  EntryRowHeight    = 30.0f;    // [px] - one numeric entry, slider or dropdown row
-    float  EntryRounding     = 999.0f;   // [px] - numeric entry radius; beyond half the height is fully rounded
-    float  SideSegmentWidth  = 30.0f;    // [px] - one axis or unit segment inside a numeric entry
-    float  NumericFontScale  =  1.15f;   // [-]  - enlargement of the numeric readout
-    float  SegmentFontScale  =  0.95f;   // [-]  - scale of the axis and unit segment glyphs
-    float  GlyphEdge         = 18.0f;    // [px] - the square a row glyph is drawn into
+    float  PanelPadding         =   8.0f;   // [px] - inner margin of a panel body
+    float  ControlSpacing       =   6.0f;   // [px] - vertical gap between stacked controls
+    float  CardGap              =   6.0f;   // [px] - gap between two stacked cards
+    float  ControlHeight        =  22.0f;   // [px] - one single-line control
+    float  RowHeight            =  32.0f;   // [px] - one outliner, tree or mask row
+    float  LayerRowHeight       =  44.0f;   // [px] - one layer stack row, both halves of the split
+    float  RevisionCardHeight   =  44.0f;   // [px] - one revision card, before its fold opens
+    float  PanelHeaderHeight    =  46.0f;   // [px] - the header band, universal across every panel
+    float  PanelFooterHeight    =  26.0f;   // [px] - the footer band carrying counts
+    float  SectionHeaderHeight  =  29.0f;   // [px] - one accordion section header
+    float  TabStripHeight       =  31.0f;   // [px] - the trapezoid tab strip
+    float  IndentWidth          =  15.0f;   // [px] - per-depth indent in a tree presentation
+    float  CornerRounding       =  12.0f;   // [px] - panel and control corner radius
+    float  BorderThickness      =   1.0f;   // [px] - panel outline and separator thickness
+    float  LabelColumnWidth     =  88.0f;   // [px] - the label column of a control row
+    float  ValueColumnWidth     =  92.0f;   // [px] - the value column beside it
+    float  LabelColumnRatio     =   0.40f;  // [-]  - label fraction where the row is too narrow for the pair
+    float  EntryRowHeight       =  30.0f;   // [px] - one numeric entry, slider or dropdown row
+    float  EntryRounding        = 999.0f;   // [px] - numeric entry radius; beyond half the height is fully rounded
+    float  SideSegmentWidth     =  30.0f;   // [px] - one axis or unit segment inside a numeric entry
+    float  NumericFontScale     =   1.15f;  // [-]  - enlargement of the numeric readout
+    float  SegmentFontScale     =   0.95f;  // [-]  - scale of the axis and unit segment glyphs
+    float  GlyphEdge            =  14.0f;   // [px] - the square a row glyph is drawn into
 };
 
 //------------------------------------------------------------------------------------------------------------------------
