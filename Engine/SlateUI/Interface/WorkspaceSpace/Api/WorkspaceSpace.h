@@ -8,6 +8,7 @@
 #include "Contract/IdentityContract.h"
 #include "Contract/OutcomeContract.h"
 #include "Contract/PrecisionContract.h"
+#include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
 
 #include <cstdint>
 #include <vector>
@@ -535,14 +536,112 @@ struct WorkspaceFloatingWindow
 };
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                    THE DRAG IN FLIGHT
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 What the one drag in flight is addressing. Exactly one is open at a time.
+/// note  🚧 `2c` writes only None and the pending press. The remaining modes are resolved by `2d`; they are
+///        declared now because the record is one struct and adding a mode later would re-extent the desk.
+/// tag   contract
+enum class WorkspaceDragMode : std::uint32_t
+{
+    None            = 0u,   // [-] - nothing is held
+    Reorder         = 1u,   // [-] - a strip trapezoid is held and sliding
+    Window          = 2u,   // [-] - a floating window is being moved
+    Resize          = 3u,   // [-] - a floating window's grip is held
+    Partition       = 4u,   // [-] - a division's gutter is held
+    PanelBox        = 5u,   // [-] - a panel box is being moved inside a body
+    PanelResize     = 6u,   // [-] - a floating panel box's handle is held
+    PanelBandResize = 7u    // [-] - a docked band's depth or slot share is held
+};
+
+/// 🧩 What a Window-mode drag was torn from — the drop resolution differs by origin.
+/// note  🔴 A torn **tab** floats by default and docks only on a distinct edge or corner band, so a careless
+///        release leaves it floating. A moved **panel** uses the five-zone cross and always docks over a leaf.
+/// tag   contract
+enum class WorkspaceDragOrigin : std::uint32_t
+{
+    Tab   = 0u,   // [-] - torn from a document strip
+    Panel = 1u    // [-] - a panel box moved bodily
+};
+
+/// 🧩 The landing a released drag would take, resolved from the pointer each tick.
+/// tag   contract
+enum class WorkspaceDropZone : std::uint32_t
+{
+    None   = 0u,   // [-] - over no valid target
+    Strip  = 1u,   // [-] - back onto a strip
+    Centre = 2u,   // [-] - stack onto the covered leaf
+    Left   = 3u,   // [-] - divide, arriving on the left
+    Right  = 4u,   // [-] - divide, arriving on the right
+    Top    = 5u,   // [-] - divide, arriving above
+    Bottom = 6u    // [-] - divide, arriving below
+};
+
+/// 🧩 The one drag in flight, and the press that has not yet become one.
+/// note  🔴 A click **activates** a tab. Only movement past `TearThreshold` while still held tears it out, which
+///        is why the press is recorded apart from the drag: without it every activation would tear.
+/// tag   owning
+struct WorkspaceDragRecord
+{
+    WorkspaceDragMode          Mode           = WorkspaceDragMode::None;
+    WorkspaceDragOrigin        Origin         = WorkspaceDragOrigin::Tab;
+    WorkspaceDocumentIdentity  HeldDocument   = {};      // [-]  - reorder and tear
+    std::uint32_t              HeldWindow     = 0u;      // [-]  - window and resize; zero absent
+    std::int32_t               HeldLink       = -1;      // [-]  - partition: the division whose gutter is held
+    float                      GrabOffsetX    = 0.0f;    // [px] - pointer offset inside the held thing
+    float                      GrabOffsetY    = 0.0f;    // [px]
+
+    WorkspaceDocumentIdentity  PendingDocument = {};     // [-]  - pressed, not yet torn
+    float                      PendingPressX   = 0.0f;   // [px] - pointer at the press
+    float                      PendingPressY   = 0.0f;   // [px]
+    float                      PendingTabLeft  = 0.0f;   // [px] - the trapezoid's left at the press
+
+    WorkspaceDropZone          PreviewZone    = WorkspaceDropZone::None;
+    std::int32_t               PreviewLink    = -1;      // [-]  - leaf the preview targets
+    std::uint32_t              PreviewWindow  = 0u;      // [-]  - window the preview stacks onto
+    WorkspaceRectangle         PreviewArea    = {};      // [px] - the highlighted rectangle
+};
+
+// 📝 Below this the pointer has not moved enough to mean anything but a click. Frontier's threshold, ported
+//    verbatim: a smaller one tears a tab off on an unsteady click, a larger one makes a deliberate tear feel stuck.
+inline constexpr float TearThreshold = 6.0f;   // [px] - summed pointer travel that turns a press into a tear
+
+/// 🧩 One inline title edit, opened by a double-click on a trapezoid.
+/// note  The carry is the edited title, not the committed one. Abandoning the edit discards it and the document's
+///        own title is never written until the edit is sealed.
+/// tag   owning
+struct WorkspaceRenameRecord
+{
+    bool                       RenameOpen                  = false;   // [-] - an edit is running
+    WorkspaceDocumentIdentity  Subject                     = {};      // [-] - whose title is being edited
+    char                       Carry[WorkspaceTitleExtent] = {};      // [-] - the edited text
+    std::uint32_t              CarryExtent                 = 0u;      // [-] - characters held, terminator excluded
+};
+
+/// 🧩 One hand-rolled foreground overlay — the `(+)` minting list or the `(V)` panel list.
+/// note  🔴 Not a vendor popup. Every trapezoid is painted on the foreground draw list, and a vendor popup sits
+///        beneath that list, so a popup would be occluded by the tabs that opened it.
+/// note  The tick it opened is recorded so the press that opened it does not immediately dismiss it.
+/// tag   owning
+struct WorkspaceOverlayRecord
+{
+    bool                       OverlayOpen   = false;   // [-]  - the overlay is presenting
+    std::uint32_t              OpenedTick    = 0u;      // [-]  - the tick it opened on
+    float                      AnchorX       = 0.0f;    // [px] - overlay top-left
+    float                      AnchorY       = 0.0f;    // [px]
+    std::int32_t               TargetLink    = -1;      // [-]  - leaf a chosen entry lands in
+    std::uint32_t              TargetWindow  = 0u;      // [-]  - window a chosen entry lands in
+    WorkspaceDocumentIdentity  TargetDocument = {};     // [-]  - document a chosen panel box lands in
+};
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                        THE DESK
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The whole desk: every document owned once, the partition of the docked area, and the floating windows.
 /// note  🔴 A document is owned here exactly once and referenced everywhere else by identity. A leaf holding a
 ///         document by value is the defect where tearing a tab out produces two documents that drift apart.
-/// note  🚧 The drag record — mode, origin, pending press, preview — arrives with `2d`. Nothing in `2b` reads
-///         input, so adding it now would add fields no code writes.
 /// tag   owning
 struct WorkspaceSpace
 {
@@ -555,6 +654,16 @@ struct WorkspaceSpace
 
     std::vector<WorkspaceFloatingWindow>                      Floating        = {};   // [-] - last is topmost
     std::uint32_t                                             MintedWindows   = 0u;   // [-] - window key source
+
+    WorkspaceDragRecord                                       Dragging        = {};   // [-] - the one drag in flight
+    WorkspaceRenameRecord                                     Renaming        = {};   // [-] - the one open title edit
+    WorkspaceOverlayRecord                                    MintingOverlay  = {};   // [-] - what (+) presents
+    WorkspaceOverlayRecord                                    PanelOverlay    = {};   // [-] - what (V) presents
+
+    // 📝 The desk counts its own presentations rather than reading the vendor's tick count, which keeps every
+    //    field of this struct spellable without the vendor header. An overlay compares against it to ignore the
+    //    press that opened it.
+    std::uint32_t                                             PresentedTicks  = 0u;   // [-] - presentations so far
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -627,6 +736,20 @@ std::int32_t LocateLeafCarrying(const WorkspaceSpace& Space, WorkspaceDocumentId
 /// cost  🚩
 /// tag   api, nonthrowing
 void ResolveSpaceLayout(WorkspaceSpace& Space, WorkspaceRectangle DeskArea, float GutterThickness);
+
+/// 🧩 Presents the whole desk for one tick — layout, bodies, trapezoid strips, overlays, then input.
+/// in    Theme     [-]   the resolved theme, read and never held
+/// in    Space     [-]   the desk, amended in place
+/// in    DeskArea  [px]  the area between the two bands, supplied by the bracket
+/// pre   an interface tick is open — `InterfaceExchange::Advance` delivered and `Seal` has not
+/// post  layout is current, and every activation, rename and mint the tick carried has been applied
+/// note  🔴 Nothing here opens a vendor window. Every quad is recorded on the foreground list, because a
+///        trapezoid cannot be a vendor tab and a vendor popup would be painted beneath the tabs that opened it.
+/// note  🚧 `2c`. Tear-out, docking preview and the in-body panel layer are `2d` and `2e`; the records they
+///        write are declared above and this call leaves them at rest.
+/// cost  🚩
+/// tag   api, nonthrowing
+void PresentWorkspaceSpace(const ThemeSpecification& Theme, WorkspaceSpace& Space, WorkspaceRectangle DeskArea);
 
 // 📐 Identities, occupant counts and pool indices are Exact. Rectangles, ratios and band fractions are Bounded.
 //    The component claims Bounded, per `00` §3's transitivity rule.

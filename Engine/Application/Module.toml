@@ -4,7 +4,7 @@
 [unit]
 name    = "Application"
 product = "Executable"
-subject = [ "ConsoleHost" ]
+subject = [ "ConsoleHost", "PaintHost", "EditorHost" ]
 
 # 📝 The host links every unit, so it is the one target where the whole DAG is realised at once. The link
 #    order below is the reverse of the dependency order, which is what the linker resolves against.

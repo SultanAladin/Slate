@@ -53,7 +53,11 @@ $UnitOrder = @(
     @{ Name = 'SlateVulkan';   Product = 'StaticLibrary'; Requires = @('SlateMath') }
     @{ Name = 'SlateCompute';  Product = 'StaticLibrary'; Requires = @('SlateVulkan', 'SlateDocument', 'SlateMath') }
     @{ Name = 'SlateUI';       Product = 'StaticLibrary'; Requires = @('SlateCompute', 'SlateVulkan', 'SlateDocument', 'SlateMath') }
-    @{ Name = 'Application';   Product = 'Executable';    Requires = @('SlateUI', 'SlateCompute', 'SlateVulkan', 'SlateDocument', 'SlateMath') }
+    # 📝 🔴 Subject names one source folder that becomes its own link target. `32` §5's "separate editors or one
+    #    Editor" is exactly this array: every folder here links an executable named for it, from one shared set of
+    #    unit archives. A StaticLibrary unit ignores the field and archives its whole tree as before.
+    @{ Name = 'Application';   Product = 'Executable';    Requires = @('SlateUI', 'SlateCompute', 'SlateVulkan', 'SlateDocument', 'SlateMath');
+       Subject = @('ConsoleHost', 'PaintHost', 'EditorHost') }
 )
 
 #---
@@ -187,9 +191,23 @@ function Get-IncludePath([hashtable] $UnitEntry, [string] $VulkanRoot)
     return @($Paths | ForEach-Object { "/I$_" })
 }
 
-function Get-UnitSource([hashtable] $UnitEntry)
+function Get-UnitSource([hashtable] $UnitEntry, [string] $Subject = '')
 {
     $UnitRoot = Join-Path $EngineRoot $UnitEntry.Name
+
+    # 📝 A subject scopes the gather to its own folder, which is what keeps one host's main() out of another's
+    #    link. Without the scoping every host would carry every other host's entry point and the linker would
+    #    refuse the duplicate — naming main() rather than naming the arrangement that produced it.
+    if ($Subject)
+    {
+        $UnitRoot = Join-Path $UnitRoot $Subject
+
+        if (-not (Test-Path $UnitRoot))
+        {
+            throw "$($UnitEntry.Name) declares subject $Subject but $UnitRoot does not exist"
+        }
+    }
+
     $Sources  = @(Get-ChildItem $UnitRoot -Recurse -Filter '*.cpp' -File | ForEach-Object { $_.FullName })
 
     # 📝 🔴 `00` §2.2: exactly one copy of ImGui exists in the process and it is compiled into SlateUI. The
@@ -217,17 +235,21 @@ function Get-UnitSource([hashtable] $UnitEntry)
 # 📝 MSVC writes its diagnostics to stdout, so nothing here redirects stderr. Redirecting a native
 #    executable's stderr in Windows PowerShell wraps each line in an ErrorRecord and, under an Stop
 #    preference, turns a plain warning into a thrown build failure.
-function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string] $VulkanRoot)
+function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string] $VulkanRoot, [string] $Subject = '')
 {
     $UnitName    = $UnitEntry.Name
-    $ObjectRoot  = Join-Path $OutputRoot "Object\$UnitName"
-    $Sources     = Get-UnitSource $UnitEntry
+
+    # 📝 Objects are kept in a per-subject folder. Two subjects may carry a file of the same stem, and a shared
+    #    object folder would have one overwrite the other's — silently, since both compile.
+    $ObjectRoot  = if ($Subject) { Join-Path $OutputRoot "Object\$UnitName\$Subject" }
+                   else          { Join-Path $OutputRoot "Object\$UnitName" }
+    $Sources     = Get-UnitSource $UnitEntry $Subject
     $IncludePath = Get-IncludePath $UnitEntry $VulkanRoot
     $Flags       = Get-CompilationFlags $Selection
 
     if ($Sources.Count -eq 0)
     {
-        throw "$UnitName declares no translation unit"
+        throw "$UnitName$(if ($Subject) { " / $Subject" }) declares no translation unit"
     }
 
     if (-not (Test-Path $ObjectRoot))
@@ -458,7 +480,7 @@ function Invoke-Archive([hashtable] $UnitEntry, [string[]] $ObjectPath)
 #                                          HOST LINKING
 #---
 
-function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string] $VulkanRoot)
+function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string] $VulkanRoot, [string] $Subject)
 {
     $BinaryRoot  = Join-Path $OutputRoot 'Binary'
     $LibraryRoot = Join-Path $OutputRoot 'Library'
@@ -483,14 +505,16 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
     #    above — so omitting it fails at the one symbol and reads as a defect in the density read itself.
     $Linked += 'gdi32.lib'
 
-    $ExecutablePath = Join-Path $BinaryRoot 'ConsoleHost.exe'
+    # 📝 The executable is named for its subject folder. `Engine/Application/PaintHost/` becomes PaintHost.exe with
+    #    nothing in this script naming a host — adding one is a folder and one array entry.
+    $ExecutablePath = Join-Path $BinaryRoot "$Subject.exe"
 
     $Arguments = @(
         '/nologo'
         '/DEBUG'
         '/SUBSYSTEM:CONSOLE'
         "/OUT:$ExecutablePath"
-        "/PDB:$(Join-Path $BinaryRoot 'ConsoleHost.pdb')"
+        "/PDB:$(Join-Path $BinaryRoot "$Subject.pdb")"
     ) + $ObjectPath + $Linked
 
     $Diagnostics = & link.exe @Arguments
@@ -498,8 +522,8 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
     if ($LASTEXITCODE -ne 0)
     {
         $Diagnostics | ForEach-Object { Write-Host "    $_" }
-        Write-Refused 'link.exe refused the host'
-        throw 'link.exe refused the host'
+        Write-Refused "link.exe refused $Subject"
+        throw "link.exe refused $Subject"
     }
 
     # 📝 🔴 glfw3dll.lib is an import library. Without glfw3.dll beside the executable the process fails to
@@ -593,20 +617,28 @@ if ($Selected.Count -eq 0)
 
 foreach ($UnitEntry in $Selected)
 {
-    $Produced = Invoke-Translation $UnitEntry $Configuration $VulkanRoot
-
-    # 📝 The shaders are lowered after the unit's own translation units and before it is archived, so a seam
-    #    the host toolchain has just refused is never lowered by the shader toolchain against a source the
-    #    build has already rejected.
-    Invoke-ShaderTranslation $UnitEntry $VulkanRoot
-
     if ($UnitEntry.Product -eq 'StaticLibrary')
     {
+        $Produced = Invoke-Translation $UnitEntry $Configuration $VulkanRoot
+
+        # 📝 The shaders are lowered after the unit's own translation units and before it is archived, so a seam
+        #    the host toolchain has just refused is never lowered by the shader toolchain against a source the
+        #    build has already rejected.
+        Invoke-ShaderTranslation $UnitEntry $VulkanRoot
+
         Invoke-Archive $UnitEntry $Produced
     }
     else
     {
-        Invoke-HostLink $UnitEntry $Produced $VulkanRoot
+        # 📝 The shaders are lowered once for the unit, not once per subject — they belong to the unit's tree and
+        #    lowering them per subject would lower each of them as many times as there are hosts.
+        Invoke-ShaderTranslation $UnitEntry $VulkanRoot
+
+        foreach ($Subject in $UnitEntry.Subject)
+        {
+            $Produced = Invoke-Translation $UnitEntry $Configuration $VulkanRoot $Subject
+            Invoke-HostLink $UnitEntry $Produced $VulkanRoot $Subject
+        }
     }
 }
 

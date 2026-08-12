@@ -109,6 +109,12 @@ struct LayoutExtents
     float  PanelFooterHeight    =  26.0f;   // [px] - the footer band carrying counts
     float  SectionHeaderHeight  =  29.0f;   // [px] - one accordion section header
     float  TabStripHeight       =  31.0f;   // [px] - the trapezoid tab strip
+    float  TabSlant             =  10.0f;   // [px] - horizontal run of a trapezoid's sloped edge
+    float  TabInset             =   6.0f;   // [px] - inset from a tab's edge to its caption
+    float  TabUnderline         =   2.0f;   // [px] - the active tab's underline thickness
+    float  GutterThickness      =   4.0f;   // [px] - the draggable band between two halves of a division
+    float  GlyphButtonEdge      =  26.0f;   // [px] - the square a header glyph button occupies
+    float  OverlayRowHeight     =  26.0f;   // [px] - one row of a hand-rolled foreground overlay
     float  IndentWidth          =  15.0f;   // [px] - per-depth indent in a tree presentation
     float  CornerRounding       =  12.0f;   // [px] - panel and control corner radius
     float  BorderThickness      =   1.0f;   // [px] - panel outline and separator thickness

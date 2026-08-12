@@ -169,6 +169,12 @@ Outcome<ThemeSpecification> ResolveActiveTheme(float DeclaredScale)
     Resolved.Extents.PanelFooterHeight    *= DeclaredScale;
     Resolved.Extents.SectionHeaderHeight  *= DeclaredScale;
     Resolved.Extents.TabStripHeight       *= DeclaredScale;
+    Resolved.Extents.TabSlant             *= DeclaredScale;
+    Resolved.Extents.TabInset             *= DeclaredScale;
+    Resolved.Extents.TabUnderline         *= DeclaredScale;
+    Resolved.Extents.GutterThickness      *= DeclaredScale;
+    Resolved.Extents.GlyphButtonEdge      *= DeclaredScale;
+    Resolved.Extents.OverlayRowHeight     *= DeclaredScale;
     Resolved.Extents.IndentWidth          *= DeclaredScale;
     Resolved.Extents.CornerRounding       *= DeclaredScale;
     Resolved.Extents.BorderThickness      *= DeclaredScale;
