@@ -24,13 +24,20 @@ enum class RefusalReason : std::uint32_t
     ContentUnsupported  = 3u,   // [-] - the intake subset does not accept what the stream contained
     VersionUnmigratable = 4u,   // [-] - no declared migration reaches the current stream version
     HostDenied          = 5u,   // [-] - the operating system declined the request
-    RelationCyclic      = 6u    // [-] - the relation change would close a cycle; never applied
+    RelationCyclic      = 6u,   // [-] - the relation change would close a cycle; never applied
+    DeviceLost          = 7u    // [-] - the device was lost; nothing it holds is valid to destroy or reuse
 };
 
 // 📝 🔴 RelationCyclic exists because `12` §9 requires a cycle-creating relation change to be rejected at
 //    commit and reported as a Refusal a reader can discriminate. Spelling it HostDenied would have put a
 //    document-model rejection behind the operating system's reason, and `86` presents that reason verbatim.
 //    Both operands are the rejecting call's own arguments, so the caller names them without allocating.
+
+// 📝 🔴 DeviceLost exists for the same reason at the vendor edge. `06` §7 requires device loss to be reported
+//    upward before anything is destroyed, and `06` §4.2's recovery is a different response from an ordinary
+//    refusal — the device is recreated and the capability set re-scored, rather than the call being retried.
+//    A caller cannot tell those apart from HostDenied and prose, so the six sites that can observe the loss
+//    report it as this reason and destroy nothing themselves.
 
 /// 🧩 One reported refusal — the reason, plus static text naming the operand it applies to.
 /// note  Detail points at string literal storage only. Nothing here ever owns an allocation.

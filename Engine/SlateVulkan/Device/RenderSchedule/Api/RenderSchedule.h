@@ -168,6 +168,15 @@ struct DeclaredRecording
     bool                       CapabilityRequired  = false;                           // [-] - needs a scored capability
     const char*                Substitution        = "";                              // [-] - what runs instead
     bool                       DisplayReferred     = false;                           // [-] - recorded after the tone line
+
+    // 🔴 `08` §2's amendment list, as a number. `RenderSchedule` derives its order from declared reads and
+    //    writes, and two recordings that **amend** one target declare no read of each other — so nothing in the
+    //    derivation separates them and the order falls to whichever was contributed first. `62` §6 requires the
+    //    transmission amendment before `30`'s reflection, and `30` §5 requires it from the other side; a
+    //    contribution accident deciding it is a reflection that does not show a pane of glass, on some builds.
+    // 📝 Zero for a recording that amends nothing. Ties fall back to contribution order, which is what every
+    //    recording contributed before this field existed relied on.
+    std::uint32_t              AmendmentOrdinal    = 0u;                              // [-] - lower records first
 };
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -16,22 +16,22 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ProgramIndex.h | 191 lines | a7ee2b54 | 15 sym | Graphics and compute programs constructed once at bring-up, against the layouts and modules already declared.
+S ProgramIndex.h | 200 lines | c3a5c8c9 | 15 sym | Graphics and compute programs constructed once at bring-up, against the layouts and modules already declared.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS DECLARED
 //------------------------------------------------------------------------------------------------------------------------
 
-V AbsentProgram                 | ProgramIndex.h | 27      | -                             | -  | ?
+V AbsentProgram                 | ProgramIndex.h | 28      | -                             | -  | ?
     by    Api/OcclusionScheduler.h, Api/VisibilityRaster.h, Source/OcclusionScheduler.cpp, Source/VisibilityRaster.cpp
 
-T DepthDeclaration              | ProgramIndex.h | 36-41   | nonallocating,nonthrowing     | -  | How one graphics program resolves depth — tested, written, and against which comparison. and `FarPlaneDepth` is nought. A program declaring the ordinary less-than comparison against a reversed target resolves the furthest surface at every pixel, and the image is the inside of the object rather than an image that sorts wrongly — which is the failure `02` §6 declares the two constants to prevent.
+T DepthDeclaration              | ProgramIndex.h | 37-42   | nonallocating,nonthrowing     | -  | How one graphics program resolves depth — tested, written, and against which comparison. and `FarPlaneDepth` is nought. A program declaring the ordinary less-than comparison against a reversed target resolves the furthest surface at every pixel, and the image is the inside of the object rather than an image that sorts wrongly — which is the failure `02` §6 declares the two constants to prevent.
     has   DepthTested      bool         [-]  ?
     has   DepthWritten     bool         [-]  ?
     has   DepthComparison  VkCompareOp  [-]  ?
     note  🔴 The comparison defaults to `VK_COMPARE_OP_GREATER` because `Contract/`'s `NearPlaneDepth` is unity
 
-T GraphicsDeclaration           | ProgramIndex.h | 54-67   | owning                        | -  | One graphics program, as the recording that constructs it declares it. declared spans by the vertex ordinal, which is what lets one program serve every partitioning without a per-topology input declaration — and what keeps the attribute set out of a document that writes no attribute. and a program that combined its output with what stood there would be reading a target it produces. here. A program naming a second would be constructed against a division `AttachmentIndex` does not declare, and the vendor reports that at the draw rather than at the construction.
+T GraphicsDeclaration           | ProgramIndex.h | 55-68   | owning                        | -  | One graphics program, as the recording that constructs it declares it. declared spans by the vertex ordinal, which is what lets one program serve every partitioning without a per-topology input declaration — and what keeps the attribute set out of a document that writes no attribute. and a program that combined its output with what stood there would be reading a target it produces. here. A program naming a second would be constructed against a division `AttachmentIndex` does not declare, and the vendor reports that at the draw rather than at the construction.
     has   VertexModule           std::uint32_t                     [-]  ?
     has   FragmentModule         std::uint32_t                     [-]  ?
     has   LayoutOrdinals         std::vector<std::uint32_t>        [-]  ?
@@ -48,7 +48,7 @@ T GraphicsDeclaration           | ProgramIndex.h | 54-67   | owning             
     note  📝 Colour combination is declared nowhere. Every target `16` produces is written whole per `08` §2,
     note  ⚠️ Every render construct Slate declares carries exactly one recorded division, so none is named
 
-T ComputeDeclaration            | ProgramIndex.h | 74-80   | owning                        | -  | One compute program, as the dispatching document declares it. specialised constant supplied through `Fixed` — `06` §2.1's reason for admitting specialisation at all, and either way it is the shader's declaration rather than a second one held beside it.
+T ComputeDeclaration            | ProgramIndex.h | 75-81   | owning                        | -  | One compute program, as the dispatching document declares it. specialised constant supplied through `Fixed` — `06` §2.1's reason for admitting specialisation at all, and either way it is the shader's declaration rather than a second one held beside it.
     has   ModuleOrdinal   std::uint32_t                     [-]  ?
     has   LayoutOrdinals  std::vector<std::uint32_t>        [-]  ?
     has   Fixed           std::vector<SpecialisedConstant>  [-]  ?
@@ -60,7 +60,7 @@ T ComputeDeclaration            | ProgramIndex.h | 74-80   | owning             
 //                                                THE CONSTRUCTED PROGRAM
 //------------------------------------------------------------------------------------------------------------------------
 
-T ConstructedProgram            | ProgramIndex.h | 91-96   | nonallocating,nonthrowing     | -  | What a recording is handed — the program, the layout its descriptors reach through, and how it is recorded. recording writes is written **through** it. A recording resolving the program alone would then reach for a layout it derived separately, and two derivations of one layout is `00` §2's case exactly.
+T ConstructedProgram            | ProgramIndex.h | 92-97   | nonallocating,nonthrowing     | -  | What a recording is handed — the program, the layout its descriptors reach through, and how it is recorded. recording writes is written **through** it. A recording resolving the program alone would then reach for a layout it derived separately, and two derivations of one layout is `00` §2's case exactly.
     has   Constructed    VkPipeline           [-]  ?
     has   ReachedLayout  VkPipelineLayout     [-]  ?
     has   RecordedAs     VkPipelineBindPoint  [-]  ?
@@ -71,60 +71,63 @@ T ConstructedProgram            | ProgramIndex.h | 91-96   | nonallocating,nonth
 //                                                   THE PROGRAM INDEX
 //------------------------------------------------------------------------------------------------------------------------
 
-T ProgramIndex                  | ProgramIndex.h | 114-189 | owning                        | -  | Every program the engine constructs, resolved by the ordinal its declaration returned. is a constructed program — modules, layouts and fixed constants resolved into one object the device executes. The vendor spelling stays verbatim inside every call, per `06`'s opening rule. streams and the layouts, both of which `06` §7 fixes before the first rotation; constructing one inside a recording is a device stall of unbounded duration in the middle of an image. set layouts, which are what a **set** is written against; this is the program layout, which is what a **program** reaches its sets and its constants through. They are different vendor objects and the two lifetimes differ — the set layouts outlive every program constructed from them.
-    has   DeviceEdge      const VulkanExchange*     [-]  ?
-    has   ModuleEdge      ShaderCodec*              [-]  ?
-    has   DescriptorEdge  const DescriptorIndex*    [-]  ?
-    has   Programs        std::vector<HeldProgram>  [-]  ?
+T ProgramIndex                  | ProgramIndex.h | 115-198 | owning                        | -  | Every program the engine constructs, resolved by the ordinal its declaration returned. is a constructed program — modules, layouts and fixed constants resolved into one object the device executes. The vendor spelling stays verbatim inside every call, per `06`'s opening rule. streams and the layouts, both of which `06` §7 fixes before the first rotation; constructing one inside a recording is a device stall of unbounded duration in the middle of an image. set layouts, which are what a **set** is written against; this is the program layout, which is what a **program** reaches its sets and its constants through. They are different vendor objects and the two lifetimes differ — the set layouts outlive every program constructed from them.
+    has   DeviceEdge      const VulkanExchange*       [-]  ?
+    has   ModuleEdge      ShaderCodec*                [-]  ?
+    has   DescriptorEdge  const DescriptorIndex*      [-]  ?
+    has   NamingEdge      const DiagnosticExtension*  [-]  ?
+    has   Programs        std::vector<HeldProgram>    [-]  ?
     by    Api/OcclusionScheduler.h, Api/VisibilityRaster.h, Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp, Source/VisibilityRaster.cpp
     note  🔴 `Pipeline` is banned as Slate's own spelling and the substitution is not a euphemism: what is held
     note  🔴 Constructed at bring-up and never during a recording. Program construction reads the shader
     note  ⚠️ The layout is owned here rather than by `DescriptorIndex`. `DescriptorIndex` declares descriptor
 
-F ProgramIndex::~ProgramIndex   | ProgramIndex.h | 121     | destructor                    | -  | ?
+F ProgramIndex::~ProgramIndex   | ProgramIndex.h | 122     | destructor                    | -  | ?
 
-F ProgramIndex::Construct       | ProgramIndex.h | 131     | api,nonthrowing               | ✔️ | Takes the device, the modules every program is constructed from, and the layouts it reaches through.
-    in    Exchange     const VulkanExchange&   [-]  the created device; borrowed and outlives this component
-    in    Modules      ShaderCodec&            [-]  where the stage declarations come from; borrowed and outlives this component
-    in    Descriptors  const DescriptorIndex&  [-]  where the set layouts come from; borrowed and outlives this component
-    out   -            Outcome                 [-]  refuses with CapabilityAbsent when no device is active
+F ProgramIndex::Construct       | ProgramIndex.h | 136     | api,nonthrowing               | ✔️ | Takes the device, the modules every program is constructed from, and the layouts it reaches through. separately and by the same ordinal, because they are two vendor objects a recording binds one after the other — and the errors the two raise read alike until the objects are told apart.
+    in    Exchange     const VulkanExchange&       [-]  the created device; borrowed and outlives this component
+    in    Modules      ShaderCodec&                [-]  where the stage declarations come from; borrowed and outlives this component
+    in    Descriptors  const DescriptorIndex&      [-]  where the set layouts come from; borrowed and outlives this component
+    in    Naming       const DiagnosticExtension&  [-]  names every program and every layout; borrowed and outlives this component
+    out   -            Outcome                     [-]  refuses with CapabilityAbsent when no device is active
     post  no program is declared
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+61 more)
+    note  🔴 `06` §7's diagnostic-name gate. The program and the layout it reaches through are named
 
-F ProgramIndex::DeclareGraphics | ProgramIndex.h | 142     | api,nonthrowing               | 🔴 | Constructs one graphics program, returning the ordinal every later resolution names it by. an absent render construct, and with HostDenied when the device declines it specialisation the vendor reads at construction is held where its addresses stay put.
+F ProgramIndex::DeclareGraphics | ProgramIndex.h | 150     | api,nonthrowing               | 🔴 | Constructs one graphics program, returning the ordinal every later resolution names it by. an absent render construct, and with HostDenied when the device declines it specialisation the vendor reads at construction is held where its addresses stay put.
     in    Declaring  const GraphicsDeclaration&  [-]  the modules, layouts, render construct and depth behaviour
     out   -          Outcome                     [-]  refuses with ContentUnsupported for an unresolved module, an undeclared layout or
     post  nothing is retained on a refusal — the layout is destroyed before the refusal returns
     by    Source/ProgramIndex.cpp, Source/VisibilityRaster.cpp
     note  🔴 The two stage declarations are taken from `ShaderCodec` rather than assembled here, so the
 
-F ProgramIndex::DeclareCompute  | ProgramIndex.h | 150     | api,nonthrowing               | 🔴 | Constructs one compute program, returning the ordinal every later resolution names it by.
+F ProgramIndex::DeclareCompute  | ProgramIndex.h | 158     | api,nonthrowing               | 🔴 | Constructs one compute program, returning the ordinal every later resolution names it by.
     in    Declaring  const ComputeDeclaration&  [-]  the module, the layouts and the constant run
     out   -          Outcome                    [-]  refuses as DeclareGraphics does, less the render construct
     post  nothing is retained on a refusal
     by    Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp
 
-F ProgramIndex::Resolve         | ProgramIndex.h | 157     | api,nonallocating,nonthrowing | ✔️ | The program one ordinal names, for the recording that records against it.
+F ProgramIndex::Resolve         | ProgramIndex.h | 165     | api,nonallocating,nonthrowing | ✔️ | The program one ordinal names, for the recording that records against it.
     in    ProgramOrdinal  std::uint32_t  [-]  an ordinal this component issued
     out   -               Outcome        [-]  refuses with ContentUnsupported for an ordinal naming no program
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
 
-F ProgramIndex::Reclaim         | ProgramIndex.h | 163     | api,nonthrowing               | 🚩 | Destroys every program and every layout constructed for one.
+F ProgramIndex::Reclaim         | ProgramIndex.h | 171     | api,nonthrowing               | 🚩 | Destroys every program and every layout constructed for one.
     out   -  void  [-]  ?
     pre   the device is idle and no recording that reads them is still executing
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
 
-F ProgramIndex::DeclaredCount   | ProgramIndex.h | 165     | -                             | -  | ?
+F ProgramIndex::DeclaredCount   | ProgramIndex.h | 173     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/QuadratureIntegrator.h, (+20 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+30 more)
 
-T ProgramIndex::HeldProgram     | ProgramIndex.h | 169-174 | -                             | -  | ?
+T ProgramIndex::HeldProgram     | ProgramIndex.h | 177-182 | -                             | -  | ?
     has   Constructed    VkPipeline           [-]  ?
     has   ReachedLayout  VkPipelineLayout     [-]  ?
     has   RecordedAs     VkPipelineBindPoint  [-]  ?
     by    Source/ProgramIndex.cpp
 
-F ProgramIndex::ReachLayout     | ProgramIndex.h | 181     | -                             | -  | Constructs the layout one program reaches its declared sets and its constant run through.
+F ProgramIndex::ReachLayout     | ProgramIndex.h | 189     | -                             | -  | Constructs the layout one program reaches its declared sets and its constant run through.
     in    LayoutOrdinals  const std::vector<std::uint32_t>&  [-]  declared layouts, in set order; an empty run declares no set
     in    ConstantBytes   std::uint32_t                      [B]  the recorded constant run; nought declares none
     in    ReachingStages  VkShaderStageFlags                 [-]  which stages read the constant run, as the vendor spells them

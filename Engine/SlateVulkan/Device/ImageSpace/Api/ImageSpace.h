@@ -7,6 +7,7 @@
 
 #include "Contract/OutcomeContract.h"
 #include "SlateVulkan/Device/ByteSpace/Api/ByteSpace.h"
+#include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
 #include <vulkan/vulkan.h>
@@ -93,10 +94,16 @@ public:
     /// 🧩 Takes the device and the byte extents every claimed image is sliced from.
     /// in    Exchange     [-]  the created device; borrowed and outlives this component
     /// in    BackingSpace [-]  where image bytes come from; borrowed and outlives this component
+    /// in    Naming       [-]  names every claimed image and every view over it; borrowed and outlives this
     /// out   Outcome      [-]  refuses with CapabilityAbsent when no device is active
+    /// note  🔴 `06` §7's diagnostic-name gate. The image and its views are named separately because they are
+    ///        separate vendor objects, and the driver reports a view's error against the view — an unnamed
+    ///        view under a named image reports as an address beside a name, which reads as two objects.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, ByteSpace& BackingSpace);
+    Outcome<bool> Construct(const VulkanExchange&      Exchange,
+                            ByteSpace&                 BackingSpace,
+                            const DiagnosticExtension& Naming);
 
     /// 🧩 Claims one image of the declared shape, slices its bytes, and constructs its whole-image view.
     /// in    Declared  [-]  the shape; nothing about it is inferred from the format
@@ -169,9 +176,13 @@ private:
     static VkImageUsageFlags   UsageOf(ImageIntent Intent);
     static VkImageAspectFlags  AspectOf(ImageIntent Intent);
 
-    const VulkanExchange*   DeviceEdge   = nullptr;   // [-] - borrowed; never owned
-    ByteSpace*              BackingBytes = nullptr;   // [-] - borrowed; never owned
-    std::vector<HeldImage>  Images       = {};        // [-] - released slots are reused, never erased
+    /// 🧩 What one declared intent is named in the driver's text, so a claim's name states what writes it.
+    static const char* NameOf(ImageIntent Intent);
+
+    const VulkanExchange*       DeviceEdge   = nullptr;   // [-] - borrowed; never owned
+    ByteSpace*                  BackingBytes = nullptr;   // [-] - borrowed; never owned
+    const DiagnosticExtension*  NamingEdge   = nullptr;   // [-] - borrowed; never owned
+    std::vector<HeldImage>      Images       = {};        // [-] - released slots are reused, never erased
 };
 
 }   // namespace Slate

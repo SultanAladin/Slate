@@ -1,68 +1,112 @@
 //============================================================================================================================================
 //                                                            SLATEUI.SYMBOLINDEX
 //============================================================================================================================================
-// 🧩 Symbol roll for SlateUI — The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
+// 🧩 Symbol roll for SlateUI — Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
 
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateUI
-%folders  4
-%symbols  44
+%folders  7
+%symbols  85
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
+I Api    | Api/Api.symbolindex       | 21 sym | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
 I Api    | Api/Api.symbolindex       | 10 sym | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
 I Source | Source/Source.symbolindex | 9 sym  | The only translation unit in the engine that includes ImGui.
 I Api    | Api/Api.symbolindex       | 10 sym | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
 I Source | Source/Source.symbolindex | 15 sym | The counted span presented, and every gesture over it turned into a declared intent.
+I Api    | Api/Api.symbolindex       | 10 sym | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
+I Source | Source/Source.symbolindex | 10 sym | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-T InterfaceAttachment                   | Api/InterfaceExchange.h      | 28-38   | Every device handle the interface library needs, supplied once at bring-up. is an ImGui spelling: the whole point of the seam is that a host including this header links the interface without acquiring ImGui's declarations. `00` §2.2 makes a host that includes `imgui.h` a defect, and a defect that cannot be spelled cannot be committed.
-T InterfaceExchange                     | Api/InterfaceExchange.h      | 50-114  | Holds the interface context and the two vendor attachments that feed it. source file. `00` §2.2: exactly one copy of ImGui exists, compiled inside `SlateUI`. projection, so nothing recorded by this component is ever tone-mapped a second time.
-F InterfaceExchange::~InterfaceExchange | Api/InterfaceExchange.h      | 57      | ?
-F InterfaceExchange::Construct          | Api/InterfaceExchange.h      | 68      | Constructs the interface context over the supplied device handles. HostDenied when the vendor attachment declines `VK_KHR_dynamic_rendering` or a device at Vulkan 1.3. Construct refuses rather than recording into a target the device never agreed to.
-F InterfaceExchange::Reclaim            | Api/InterfaceExchange.h      | 73      | Destroys the interface context and both vendor attachments.
-F InterfaceExchange::Advance            | Api/InterfaceExchange.h      | 79      | Opens one interface tick and reads the window system's accumulated condition.
-F InterfaceExchange::Seal               | Api/InterfaceExchange.h      | 86      | Closes the open tick and assembles its command content, ready to record.
-F InterfaceExchange::Record             | Api/InterfaceExchange.h      | 94      | Records the assembled content into a command recording of the current rotation slot.
-F InterfaceExchange::PointerCaptured    | Api/InterfaceExchange.h      | 99      | Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
-F InterfaceExchange::KeyboardCaptured   | Api/InterfaceExchange.h      | 104     | Whether the interface has taken text entry, so that no shortcut consumes the same key.
-V InterfaceDescriptorCapacity           | Source/InterfaceExchange.cpp | 24      | ?
-F InterfaceExchange::~InterfaceExchange | Source/InterfaceExchange.cpp | 31-34   | ?
-F InterfaceExchange::Construct          | Source/InterfaceExchange.cpp | 36-128  | ?
-F InterfaceExchange::Reclaim            | Source/InterfaceExchange.cpp | 130-154 | ?
-F InterfaceExchange::Advance            | Source/InterfaceExchange.cpp | 160-178 | ?
-F InterfaceExchange::Seal               | Source/InterfaceExchange.cpp | 180-192 | ?
-F InterfaceExchange::Record             | Source/InterfaceExchange.cpp | 198-222 | ?
-F InterfaceExchange::PointerCaptured    | Source/InterfaceExchange.cpp | 231-239 | ?
-F InterfaceExchange::KeyboardCaptured   | Source/InterfaceExchange.cpp | 241-249 | ?
-V NameSearchExtent                      | Api/OutlinerPanel.h          | 23      | ?
-T OutlinerPanel                         | Api/OutlinerPanel.h          | 39-105  | The presentation half of `12` — reads the linearisation, declares intent, stores neither relation. Only the counted span the artist can see is touched, and the scroll position is a row ordinal resolved by count rather than a pixel offset the panel remembers on its own. A panel that mutated the relations where the click arrived would apply against a linearisation that is halfway rebuilt, and would bypass the sequence that undoes it. entry, and whether the panel is shown. None of it is a transaction and none of it is scrubbed.
-F OutlinerPanel::Present                | Api/OutlinerPanel.h          | 50      | Presents one tick of the outliner and declares whatever the artist asked for.
-F OutlinerPanel::DeclarePresence        | Api/OutlinerPanel.h          | 56      | Declares whether the panel is shown at all.
-F OutlinerPanel::PresenceStanding       | Api/OutlinerPanel.h          | 61      | Whether the panel is shown.
-F OutlinerPanel::VisiblePosition        | Api/OutlinerPanel.h          | 70      | The counted ordinal at the top of the presented span — the scroll position, as a row. When the counted total changes the offset is restored from that occupant before it is read, so collapsing an enclosure above the view leaves the artist looking at the same occupant rather than at whatever slid under the cursor. An anchor whose occupant left the count keeps its ordinal.
-F OutlinerPanel::Anchored               | Api/OutlinerPanel.h          | 77      | The occupant the presented span is anchored on, undeclared when nothing is counted. never declared as intent and no transaction records it.
-F OutlinerPanel::RowsTouched            | Api/OutlinerPanel.h          | 84      | How many rows the last presentation actually touched. not to the population. A million occupants that presented a million rows is the defect.
-F OutlinerPanel::Sought                 | Api/OutlinerPanel.h          | 89      | The text the artist is searching names for, empty when nothing is sought.
-F OutlinerPanel::ConfirmedNames         | Api/OutlinerPanel.h          | 94      | How many names the last narrowing confirmed.
-V ReorderPayload                        | Source/OutlinerPanel.cpp     | 21      | ?
-T DraggedRow                            | Source/OutlinerPanel.cpp     | 26-30   | ?
-F DraggedIdentity                       | Source/OutlinerPanel.cpp     | 32-39   | ?
-F CarriedIdentity                       | Source/OutlinerPanel.cpp     | 41-48   | ?
-F DeclareStanding                       | Source/OutlinerPanel.cpp     | 56-67   | ?
-F DeclareSelection                      | Source/OutlinerPanel.cpp     | 71-80   | ?
-F DeclareEnclosure                      | Source/OutlinerPanel.cpp     | 85-97   | ?
-F OutlinerPanel::Present                | Source/OutlinerPanel.cpp     | 105-359 | ?
-F OutlinerPanel::DeclarePresence        | Source/OutlinerPanel.cpp     | 365-368 | ?
-F OutlinerPanel::PresenceStanding       | Source/OutlinerPanel.cpp     | 370-373 | ?
-F OutlinerPanel::VisiblePosition        | Source/OutlinerPanel.cpp     | 375-378 | ?
-F OutlinerPanel::Anchored               | Source/OutlinerPanel.cpp     | 380-383 | ?
-F OutlinerPanel::RowsTouched            | Source/OutlinerPanel.cpp     | 385-388 | ?
-F OutlinerPanel::Sought                 | Source/OutlinerPanel.cpp     | 390-393 | ?
-F OutlinerPanel::ConfirmedNames         | Source/OutlinerPanel.cpp     | 395-398 | ?
+T GlyphHandle                           | Api/GlyphDepot.h              | 28-35   | An opaque reference to one uploaded glyph, resolved to a vendor texture identity inside the source file alone. an integer whose meaning only `GlyphDepot.cpp` knows, exactly as `InterfaceExchange` holds its context.
+F GlyphHandle::HandleDeclared           | Api/GlyphDepot.h              | 34      | Whether this handle names an uploaded glyph at all.
+T GlyphAttachment                       | Api/GlyphDepot.h              | 45-51   | The device handles one upload needs, supplied once at bring-up. recording, and every allocation here happens inside `Declare` — which is bring-up, never a tick.
+T GlyphDeclaration                      | Api/GlyphDepot.h              | 61-67   | One glyph as a tier declares it — its key, its vector source, and the square it rasterises into. span may name a string literal in the declaring translation unit.
+T GlyphTier                             | Api/GlyphDepot.h              | 74-79   | A named set of glyphs one workspace declares at activation. edits nothing shared. The chrome tier is declared once and read by every workspace; content-hash dedup means a glyph two tiers share uploads once and is torn down when the second releases it.
+T GlyphDepot                            | Api/GlyphDepot.h              | 92-204  | A store of rasterised, evictable, reconstructible glyphs keyed by the content that produced them. tiers share a glyph while each keeps its own name. Collapsing it to key-to-texture uploads the chrome twisty once per workspace, and the count grows with the workspace count rather than with the art. at workspace activation and a resolution during a tick never allocates.
+F GlyphDepot::~GlyphDepot               | Api/GlyphDepot.h              | 99      | ?
+F GlyphDepot::Construct                 | Api/GlyphDepot.h              | 108     | Attaches the depot to a device and brings the vector rasteriser up. when the rasteriser declines to start
+F GlyphDepot::Reclaim                   | Api/GlyphDepot.h              | 115     | Destroys every uploaded glyph and releases the rasteriser. reads after it was freed, and the read succeeds often enough to look like a different defect.
+F GlyphDepot::Declare                   | Api/GlyphDepot.h              | 126     | Declares one whole tier, rasterising and uploading what is not already held. and with ExtentExhausted when an upload could not be claimed to compare a tier's declaration list against what resolves, one key at a time.
+F GlyphDepot::Release                   | Api/GlyphDepot.h              | 134     | Releases one tier's claim on its glyphs, tearing down those no other tier still names.
+F GlyphDepot::Resolve                   | Api/GlyphDepot.h              | 142     | Resolves one key to its handle.
+F GlyphDepot::GlyphHeld                 | Api/GlyphDepot.h              | 147     | Whether one key resolves to an uploaded glyph.
+F GlyphDepot::DeclaredEdge              | Api/GlyphDepot.h              | 152     | The square edge a declaration that names none rasterises into.
+F GlyphDepot::DeclareEdge               | Api/GlyphDepot.h              | 160     | Declares the square edge a declaration that names none rasterises into.
+F GlyphDepot::UploadedCount             | Api/GlyphDepot.h              | 167     | How many distinct textures the depot holds — what dedup is measured against. the two-level indirection exists for.
+F GlyphDepot::KeyCount                  | Api/GlyphDepot.h              | 172     | How many keys resolve.
+T GlyphDepot::UploadedGlyph             | Api/GlyphDepot.h              | 178-188 | One uploaded glyph — the device chain and the vendor descriptor that names it as a texture.
+F GlyphDepot::ContentHash               | Api/GlyphDepot.h              | 190     | ?
+F GlyphDepot::Upload                    | Api/GlyphDepot.h              | 193     | ?
+F GlyphDepot::Withdraw                  | Api/GlyphDepot.h              | 195     | ?
+T InterfaceAttachment                   | Api/InterfaceExchange.h       | 28-38   | Every device handle the interface library needs, supplied once at bring-up. is an ImGui spelling: the whole point of the seam is that a host including this header links the interface without acquiring ImGui's declarations. `00` §2.2 makes a host that includes `imgui.h` a defect, and a defect that cannot be spelled cannot be committed.
+T InterfaceExchange                     | Api/InterfaceExchange.h       | 50-114  | Holds the interface context and the two vendor attachments that feed it. source file. `00` §2.2: exactly one copy of ImGui exists, compiled inside `SlateUI`. projection, so nothing recorded by this component is ever tone-mapped a second time.
+F InterfaceExchange::~InterfaceExchange | Api/InterfaceExchange.h       | 57      | ?
+F InterfaceExchange::Construct          | Api/InterfaceExchange.h       | 68      | Constructs the interface context over the supplied device handles. HostDenied when the vendor attachment declines `VK_KHR_dynamic_rendering` or a device at Vulkan 1.3. Construct refuses rather than recording into a target the device never agreed to.
+F InterfaceExchange::Reclaim            | Api/InterfaceExchange.h       | 73      | Destroys the interface context and both vendor attachments.
+F InterfaceExchange::Advance            | Api/InterfaceExchange.h       | 79      | Opens one interface tick and reads the window system's accumulated condition.
+F InterfaceExchange::Seal               | Api/InterfaceExchange.h       | 86      | Closes the open tick and assembles its command content, ready to record.
+F InterfaceExchange::Record             | Api/InterfaceExchange.h       | 94      | Records the assembled content into a command recording of the current rotation slot.
+F InterfaceExchange::PointerCaptured    | Api/InterfaceExchange.h       | 99      | Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
+F InterfaceExchange::KeyboardCaptured   | Api/InterfaceExchange.h       | 104     | Whether the interface has taken text entry, so that no shortcut consumes the same key.
+V InterfaceDescriptorCapacity           | Source/InterfaceExchange.cpp  | 24      | ?
+F InterfaceExchange::~InterfaceExchange | Source/InterfaceExchange.cpp  | 31-34   | ?
+F InterfaceExchange::Construct          | Source/InterfaceExchange.cpp  | 36-128  | ?
+F InterfaceExchange::Reclaim            | Source/InterfaceExchange.cpp  | 130-154 | ?
+F InterfaceExchange::Advance            | Source/InterfaceExchange.cpp  | 160-178 | ?
+F InterfaceExchange::Seal               | Source/InterfaceExchange.cpp  | 180-192 | ?
+F InterfaceExchange::Record             | Source/InterfaceExchange.cpp  | 198-222 | ?
+F InterfaceExchange::PointerCaptured    | Source/InterfaceExchange.cpp  | 231-239 | ?
+F InterfaceExchange::KeyboardCaptured   | Source/InterfaceExchange.cpp  | 241-249 | ?
+V NameSearchExtent                      | Api/OutlinerPanel.h           | 23      | ?
+T OutlinerPanel                         | Api/OutlinerPanel.h           | 39-105  | The presentation half of `12` — reads the linearisation, declares intent, stores neither relation. Only the counted span the artist can see is touched, and the scroll position is a row ordinal resolved by count rather than a pixel offset the panel remembers on its own. A panel that mutated the relations where the click arrived would apply against a linearisation that is halfway rebuilt, and would bypass the sequence that undoes it. entry, and whether the panel is shown. None of it is a transaction and none of it is scrubbed.
+F OutlinerPanel::Present                | Api/OutlinerPanel.h           | 50      | Presents one tick of the outliner and declares whatever the artist asked for.
+F OutlinerPanel::DeclarePresence        | Api/OutlinerPanel.h           | 56      | Declares whether the panel is shown at all.
+F OutlinerPanel::PresenceStanding       | Api/OutlinerPanel.h           | 61      | Whether the panel is shown.
+F OutlinerPanel::VisiblePosition        | Api/OutlinerPanel.h           | 70      | The counted ordinal at the top of the presented span — the scroll position, as a row. When the counted total changes the offset is restored from that occupant before it is read, so collapsing an enclosure above the view leaves the artist looking at the same occupant rather than at whatever slid under the cursor. An anchor whose occupant left the count keeps its ordinal.
+F OutlinerPanel::Anchored               | Api/OutlinerPanel.h           | 77      | The occupant the presented span is anchored on, undeclared when nothing is counted. never declared as intent and no transaction records it.
+F OutlinerPanel::RowsTouched            | Api/OutlinerPanel.h           | 84      | How many rows the last presentation actually touched. not to the population. A million occupants that presented a million rows is the defect.
+F OutlinerPanel::Sought                 | Api/OutlinerPanel.h           | 89      | The text the artist is searching names for, empty when nothing is sought.
+F OutlinerPanel::ConfirmedNames         | Api/OutlinerPanel.h           | 94      | How many names the last narrowing confirmed.
+V ReorderPayload                        | Source/OutlinerPanel.cpp      | 21      | ?
+T DraggedRow                            | Source/OutlinerPanel.cpp      | 26-30   | ?
+F DraggedIdentity                       | Source/OutlinerPanel.cpp      | 32-39   | ?
+F CarriedIdentity                       | Source/OutlinerPanel.cpp      | 41-48   | ?
+F DeclareStanding                       | Source/OutlinerPanel.cpp      | 56-67   | ?
+F DeclareSelection                      | Source/OutlinerPanel.cpp      | 71-80   | ?
+F DeclareEnclosure                      | Source/OutlinerPanel.cpp      | 85-97   | ?
+F OutlinerPanel::Present                | Source/OutlinerPanel.cpp      | 105-359 | ?
+F OutlinerPanel::DeclarePresence        | Source/OutlinerPanel.cpp      | 365-368 | ?
+F OutlinerPanel::PresenceStanding       | Source/OutlinerPanel.cpp      | 370-373 | ?
+F OutlinerPanel::VisiblePosition        | Source/OutlinerPanel.cpp      | 375-378 | ?
+F OutlinerPanel::Anchored               | Source/OutlinerPanel.cpp      | 380-383 | ?
+F OutlinerPanel::RowsTouched            | Source/OutlinerPanel.cpp      | 385-388 | ?
+F OutlinerPanel::Sought                 | Source/OutlinerPanel.cpp      | 390-393 | ?
+F OutlinerPanel::ConfirmedNames         | Source/OutlinerPanel.cpp      | 395-398 | ?
+T ThemeColour                           | Api/ThemeSpecification.h      | 28-32   | One interface colour: a coordinate carrying the space it is a coordinate in, plus the fraction it covers. colour whose space nothing states is the shape a transfer function is later added to "fix". Held as a `ColourSpecification` in the display space so the absence of any transfer inside `SlateUI` stays checkable. fraction over the interface's own recording, not a property of the colour — `36` carries no alpha for exactly that reason.
+F Quantize                              | Api/ThemeSpecification.h      | 42      | Quantises one theme colour to the eight-bit-per-channel code the vendor draw surface accepts. Coordinates outside the unit interval are bounded here rather than wrapping, because a wrapped code is a colour the artist sees as a wrong hue rather than as a clipped one.
+F Attenuate                             | Api/ThemeSpecification.h      | 50      | Returns one theme colour at a declared coverage, its coordinate untouched.
+T ThemePalette                          | Api/ThemeSpecification.h      | 60-83   | Every colour the interface draws with, named by what it is drawn on rather than by its hue. literals. A component that spells a colour of its own is the defect this struct exists to prevent.
+T LayoutExtents                         | Api/ThemeSpecification.h      | 95-111  | Every spacing, height and radius the interface lays out with, in interface pixels. of the other. Changing the density must not require an artist to re-author a colour. that answers it is folded in once by `ResolveActiveTheme` rather than multiplied at each read site.
+T ThemeSpecification                    | Api/ThemeSpecification.h      | 120-124 | The palette and the extents together — what every present call is handed by const reference.
+F DeclaredDarkPalette                   | Api/ThemeSpecification.h      | 135     | The built-in dark palette. `SlateUI` reads a field of the value this returns.
+F DeclaredDefaultExtents                | Api/ThemeSpecification.h      | 140     | The built-in layout extents, before any density scale is folded in.
+F ResolveActiveTheme                    | Api/ThemeSpecification.h      | 151     | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
+F Enforce                               | Api/ThemeSpecification.h      | 161     | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
+V CodeCeiling                           | Source/ThemeSpecification.cpp | 25      | ?
+F AuthoredColour                        | Source/ThemeSpecification.cpp | 27-38   | ?
+F QuantizeCoordinate                    | Source/ThemeSpecification.cpp | 42-47   | ?
+F Quantize                              | Source/ThemeSpecification.cpp | 51-59   | ?
+F Attenuate                             | Source/ThemeSpecification.cpp | 61-66   | ?
+F DeclaredDarkPalette                   | Source/ThemeSpecification.cpp | 72-111  | ?
+F DeclaredDefaultExtents                | Source/ThemeSpecification.cpp | 117-123 | ?
+F ResolveActiveTheme                    | Source/ThemeSpecification.cpp | 129-160 | ?
+F StyleCoordinate                       | Source/ThemeSpecification.cpp | 171-177 | ?
+F Enforce                               | Source/ThemeSpecification.cpp | 181-241 | ?

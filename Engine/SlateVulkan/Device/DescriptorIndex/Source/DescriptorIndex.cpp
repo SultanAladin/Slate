@@ -12,12 +12,13 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DescriptorIndex::Construct(const VulkanExchange& Exchange)
+Outcome<bool> DescriptorIndex::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge = &Exchange;
+    NamingEdge = &Naming;
 
     return Outcome<bool>::Deliver(true);
 }
@@ -89,7 +90,16 @@ Outcome<std::uint32_t> DescriptorIndex::Declare(const std::vector<DescriptorSlot
 
     Layouts.push_back(Arriving);
 
-    return Outcome<std::uint32_t>::Deliver(static_cast<std::uint32_t>(Layouts.size() - 1u));
+    const std::uint32_t LayoutOrdinal = static_cast<std::uint32_t>(Layouts.size() - 1u);
+
+    // 📝 🔴 `06` §7's diagnostic-name gate. The refusal is discarded for `ByteSpace`'s reason — a layout that
+    //    stands and could not be named is still the layout every program is constructed against.
+    NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
+                        reinterpret_cast<std::uint64_t>(Arriving.Constructed),
+                        "DescriptorIndex layout",
+                        LayoutOrdinal);
+
+    return Outcome<std::uint32_t>::Deliver(LayoutOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -159,6 +169,12 @@ Outcome<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
 
     DeclarationFixed = true;
 
+    // 📝 🔴 `06` §7's gate. Named by the two-operand form and carrying no ordinal, because there is exactly one
+    //    descriptor extent for the engine's whole life and an ordinal on a single object reads as one of many.
+    NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_POOL,
+                        reinterpret_cast<std::uint64_t>(DescriptorExtent),
+                        "DescriptorIndex descriptor extent");
+
     return Outcome<bool>::Deliver(true);
 }
 
@@ -197,7 +213,22 @@ Outcome<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
 
     Claimed.push_back(Arriving);
 
-    return Outcome<std::uint32_t>::Deliver(static_cast<std::uint32_t>(Claimed.size() - 1u));
+    const std::uint32_t ClaimOrdinal = static_cast<std::uint32_t>(Claimed.size() - 1u);
+
+    // 📝 🔴 `06` §7's gate. A set is addressed by a claim and a rotation slot, and the name carries the two
+    //    flattened in the order the depth fixes — so a claim's sets sort adjacently in the driver's text and the
+    //    reader recovers the pair the same way `Resolve` reaches the set. Naming by the claim alone would give
+    //    every rotation slot of one claim a single name, and a set amended in the wrong slot is exactly the
+    //    defect the depth exists to catch.
+    for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+    {
+        NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET,
+                            reinterpret_cast<std::uint64_t>(Arriving.PerRotation[RotationSlot]),
+                            "DescriptorIndex set",
+                            ClaimOrdinal * RecordingRotationDepth + RotationSlot);
+    }
+
+    return Outcome<std::uint32_t>::Deliver(ClaimOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

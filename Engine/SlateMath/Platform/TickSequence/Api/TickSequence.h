@@ -40,6 +40,18 @@ public:
     /// tag   api, nonallocating, nonthrowing
     TickPoint Advance() const;
 
+    /// 🧩 The ordering point a raw host counter reading stands for.
+    /// in    HostCount  [-]   a reading of the same counter this timeline fixed its origin against
+    /// out   TickPoint  [ns]  zero for any reading at or before the origin
+    /// note  🔴 A device that stamps its own samples reports them in the host counter's units, not in this
+    ///       timeline's. `04` §3 requires the stamp to survive to `22`, and a sample restamped when the
+    ///       message carrying it was drained carries the drain rate rather than the device rate — which is
+    ///       the defect arrival stamping exists to prevent, reintroduced one layer lower. Projecting the
+    ///       device's own reading keeps the resolution the device actually reported at.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    TickPoint Project(std::uint64_t HostCount) const;
+
     /// 🧩 Duration between two ordering points.
     /// in    Earlier    [ns]  the point taken first
     /// in    Later      [ns]  the point taken second

@@ -19,15 +19,35 @@ SpanSpace::~SpanSpace()
     Reclaim();
 }
 
-Outcome<bool> SpanSpace::Construct(const VulkanExchange& Exchange, ByteSpace& BackingSpace)
+Outcome<bool> SpanSpace::Construct(const VulkanExchange&      Exchange,
+                                   ByteSpace&                 BackingSpace,
+                                   const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge   = &Exchange;
     BackingBytes = &BackingSpace;
+    NamingEdge   = &Naming;
 
     return Outcome<bool>::Deliver(true);
+}
+
+const char* SpanSpace::NameOf(SpanIntent Intent)
+{
+    // 📝 The intent rather than the claimant, because this component does not know who claimed. The ordinal
+    //    the composed name carries is what distinguishes two spans of one intent, and the claimant resolves
+    //    by that ordinal — so the driver's text and the caller's operand name the same thing.
+    switch (Intent)
+    {
+        case SpanIntent::StorageRead:    return "SpanSpace storage span";
+        case SpanIntent::StorageWritten: return "SpanSpace written storage span";
+        case SpanIntent::UniformRead:    return "SpanSpace uniform span";
+        case SpanIntent::IndirectRecord: return "SpanSpace indirect span";
+
+        case SpanIntent::TransferSource:
+        default:                         return "SpanSpace staging span";
+    }
 }
 
 VkBufferUsageFlags SpanSpace::UsageOf(SpanIntent Intent)
@@ -144,6 +164,14 @@ Outcome<SpanClaim> SpanSpace::Claim(const SpanShape& Declared)
         SpanOrdinal = static_cast<std::uint32_t>(Spans.size());
         Spans.push_back(Taken);
     }
+
+    // 📝 🔴 `06` §7's diagnostic-name gate, named by the ordinal the claimant resolves the span by. The
+    //    refusal is discarded for `ByteSpace`'s reason — a span that stands and could not be named is still
+    //    the span the claimant asked for.
+    NamingEdge->Declare(VK_OBJECT_TYPE_BUFFER,
+                        reinterpret_cast<std::uint64_t>(Arriving),
+                        NameOf(Declared.Intent),
+                        SpanOrdinal);
 
     SpanClaim Claimed;
     Claimed.Extent      = Arriving;

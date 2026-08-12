@@ -41,7 +41,7 @@ F RotateSpan                                | OcclusionProjection.cpp | 74-89   
     in    OutY      double&             [-]  ?
     in    OutZ      double&             [-]  ?
     out   -         void                [-]  ?
-    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
+    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialManipulator.cpp, Source/SpatialSubdivision.cpp
 
 F SliceBounding                             | OcclusionProjection.cpp | 95-160  | - | - | ?
     in    Camera    const CameraSpecification&  [-]  ?

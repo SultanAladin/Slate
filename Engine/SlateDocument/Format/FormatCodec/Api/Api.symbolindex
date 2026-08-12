@@ -23,7 +23,7 @@ S FormatCodec.h | 59 lines | 65ad81c3 | 4 sym | Versioned document stream layout
 //------------------------------------------------------------------------------------------------------------------------
 
 V CurrentStreamVersion | FormatCodec.h | 20    | -                             | -  | The document stream layout this build writes.
-    by    Source/ConsoleHost.cpp, Source/FormatCodec.cpp
+    by    Api/DocumentSession.h, Api/PersistenceSequence.h, Source/ConsoleHost.cpp, Source/DocumentSession.cpp, Source/FormatCodec.cpp
 
 T StreamHeading        | FormatCodec.h | 24-30 | nonallocating,nonthrowing     | -  | The leading declaration of every document stream.
     has   Signature       std::uint32_t  [-]  ?

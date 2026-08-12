@@ -1,0 +1,73 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 `10` §1 — typeface streams translated into glyph outlines and the metrics that position them.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Format/TypefaceCodec/Api
+%layer      SlateDocument
+%sources    1
+%symbols    6
+%annotated  4/6
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S TypefaceCodec.h | 91 lines | 8c5fadaa | 6 sym | `10` §1 — typeface streams translated into glyph outlines and the metrics that position them.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     ONE ADJUSTMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+T DecodedAdjustment        | TypefaceCodec.h | 28-33 | nonallocating,nonthrowing | -  | One pair adjustment as the typeface declared it, between two glyphs named by their own ordinals. set at once and the interchange takes them one at a time. The spelling matches its private sibling deliberately: what crosses this seam is the same triple.
+    has   EarlierGlyph  std::uint32_t  [-]  ?
+    has   LaterGlyph    std::uint32_t  [-]  ?
+    has   Adjustment    double         [-]  ?
+    by    Source/TypefaceCodec.cpp
+    note  📝 Held here rather than reached for through `TypefaceInterchange` because a decode produces the whole
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  WHAT A DECODE YIELDS
+//------------------------------------------------------------------------------------------------------------------------
+
+T DecodedTypeface          | TypefaceCodec.h | 44-50 | owning                    | -  | One decoded typeface — its glyphs, its adjustments, and the unit scale they are all expressed in. text, not of the typeface, and resolving one to the other is substitution — which belongs at intake, where it is recorded, rather than at every use.
+    has   Glyphs       std::vector<GlyphSpecification>  [-]  ?
+    has   Adjustments  std::vector<DecodedAdjustment>   [-]  ?
+    has   UnitsPerEm   double                           [-]  ?
+    has   GlyphCount   std::uint32_t                    [-]  ?
+    by    Source/TypefaceCodec.cpp
+    note  🔴 `52` §3: the glyphs carry their own ordinals and never a character. A codepoint is a property of the
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE TRANSLATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F Translate                | TypefaceCodec.h | 72    | api,nonthrowing           | 🔴 | Translates one typeface stream into glyph outlines, in the typeface's own units. ExtentExhausted for a typeface declaring no glyph at all scaled at decode is a typeface that must be decoded again for every size the artist tries, and the outline they placed at one size would not be the outline resolved at another. conversion between them happens at intake. Converting would put a tolerance into a translation, and `52` §4's tolerance is resolution-relative and belongs to whoever flattens. it would renumber every ordinal after it, and the glyph sequence `52` §3 stores indexes those ordinals.
+    in    Stream        const std::vector<std::uint8_t>&  [-]  the whole stream, as `StorageExchange` drained it
+    in    GlyphCeiling  std::uint32_t                     [-]  how many glyph ordinals to translate; the typeface's own count where it is lower
+    out   -             Outcome                           [-]  refuses with ContentUnsupported for a stream the reader declined, and with
+    err   never throws; every shape the reader allocated is released before returning, on refusal included
+    by    Api/ImageCodec.h, Api/SpatialManipulator.h, Api/TopologyCodec.h, Api/VectorCodec.h, Source/ImageCodec.cpp, Source/SpatialManipulator.cpp, (+3 more)
+    note  🔴 Outlines arrive in the typeface's own units and are not scaled to a pixel size here. A typeface
+    note  📝 A quadratic contour is carried as `SegmentSubject::Quadratic` and a cubic as `Cubic`, so no
+    note  ⚠️ An empty glyph — a space, most often — decodes to a glyph carrying no path and is retained. Dropping
+
+F SLATE_DECLARES_PRECISION | TypefaceCodec.h | 74    | -                         | -  | ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+
+F ResolveCodepoint         | TypefaceCodec.h | 86    | api,nonthrowing           | 🚩 | Resolves one codepoint to the glyph ordinal the typeface holds it under. glyph sequence once and that sequence is what is stored; resolving at every use would mean replacing a typeface silently reshapes text the artist has already positioned.
+    in    Stream     const std::vector<std::uint8_t>&  [-]  the same stream the translation was taken from
+    in    Codepoint  std::uint32_t                     [-]  one Unicode scalar value
+    out   -          Outcome                           [-]  refuses with ContentUnsupported when the typeface maps that codepoint to nothing
+    by    Source/TypefaceCodec.cpp
+    note  🔴 Separate from the translation because substitution belongs at intake — `52` §3. Text is resolved to a
+
+F SLATE_DECLARES_PRECISION | TypefaceCodec.h | 88    | -                         | -  | ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

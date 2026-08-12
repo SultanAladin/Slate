@@ -11,8 +11,11 @@ subject = [ "Format", "Document" ]
 [requires]
 unit = [ "SlateMath" ]
 
+# 🔴 `10` §1: the vendored readers are compiled into the codec translation units and nowhere else, so exactly
+#    one copy of each implementation exists in the process. The package root is reachable from this unit alone;
+#    a second unit including "stb/stb_image.h" would compile a second copy and the link would refuse it.
 [external]
-include = [ "Engine/Shared" ]
+include = [ "Engine/Shared", "ExternalPackages" ]
 declare = []
 
 [link]

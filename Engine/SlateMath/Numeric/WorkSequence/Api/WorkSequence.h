@@ -253,8 +253,9 @@ public:
     /// in    Reporting         [-]  where `34` §5's failures are appended
     /// out   Outcome           [-]  refuses with HostDenied when workers already stand
     /// post  the worker count is fixed and recorded, so `HardwareMetrics` can attribute a measurement to it
-    /// note  🚧 The host-derived count comes from the standard library here. `04`'s `PlatformInterchange` owns
-    ///        the host report and the call moves there when it exists.
+    /// note  📝 A zero request reads the count from `04`'s `PlatformInterchange`, which reports the host once
+    ///        at bring-up. Nothing here decides how many workers a host should run — `34` §4 does, from a
+    ///        reading this only asks for.
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> Construct(std::uint32_t RequestedWorkers, const TickSequence& HostTimeline, ReportSequence& Reporting);

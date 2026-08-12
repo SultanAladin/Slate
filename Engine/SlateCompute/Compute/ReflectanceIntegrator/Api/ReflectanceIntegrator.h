@@ -281,7 +281,9 @@ public:
     /// in    Incidence    [-]  `44`'s projection of this illuminant at this position
     /// in    Radiance     [-]  the illuminant's colour, already in the working space
     /// in    Visibility   [-]  `60`'s direct term for this illuminant at this pixel
-    /// in    ViewX/Y/Z    [-]  toward the camera, unit
+    /// in    ViewX        [-]  toward the camera, unit
+    /// in    ViewY        [-]
+    /// in    ViewZ        [-]
     /// out   Contribution [-]  working-space radiance, already attenuated
     /// note  🔴 Every term is `Shared/`'s and none is written here. `82` §5 resolves the same surface on the
     ///        host and `00` §11 gates the agreement at Tier B — a second implementation of the distribution or
@@ -327,7 +329,9 @@ public:
 
     /// 🧩 Resolves the unoccupied class at one pixel — `18` §5.1.
     /// in    Atmosphere  [-]  the same two sources §5 already declares
-    /// in    ViewX/Y/Z   [-]  the view direction, unit, in the atmosphere-local frame
+    /// in    ViewX       [-]  the view direction, unit, in the atmosphere-local frame
+    /// in    ViewY       [-]
+    /// in    ViewZ       [-]
     /// out   Outcome     [-]  carries `28`'s refusal
     /// note  🔴 Reconstructs **no attribute** and reads **no material**. It samples one source and writes it,
     ///        and it exists because every other dispatch is per material over pixels that resolved to a surface.

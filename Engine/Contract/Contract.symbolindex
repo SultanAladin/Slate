@@ -7,13 +7,13 @@
 %scope    layer
 %path     Engine/Contract
 %folders  1
-%symbols  82
+%symbols  84
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Contract | Contract/Contract.symbolindex | 82 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
+I Contract | Contract/Contract.symbolindex | 84 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -32,14 +32,14 @@ A SurfaceIdentity             | Contract/IdentityContract.h  | 70      | ?
 A RecordingIdentity           | Contract/IdentityContract.h  | 71      | ?
 A WorkIdentity                | Contract/IdentityContract.h  | 72      | ?
 A LayerIdentity               | Contract/IdentityContract.h  | 73      | ?
-E RefusalReason               | Contract/OutcomeContract.h   | 19-28   | Why a computation declined to deliver content. Absence without one of these is never reported.
-T Refusal                     | Contract/OutcomeContract.h   | 38-42   | One reported refusal — the reason, plus static text naming the operand it applies to.
-T Outcome                     | Contract/OutcomeContract.h   | 51-90   | Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
-F Outcome::Deliver            | Contract/OutcomeContract.h   | 62-68   | Constructs a delivered outcome around content the computation produced.
-F Outcome::Refuse             | Contract/OutcomeContract.h   | 74-80   | Constructs a refused outcome carrying the reason the content is absent.
-F Outcome::Resolve            | Contract/OutcomeContract.h   | 86-89   | Reads the delivered content.
-E TerminationCause            | Contract/OutcomeContract.h   | 100-104 | Which of the two terminating conditions ended an iteration. that converged, and the ambiguity propagates upward as an unexplained artefact.
-T ConvergentResult            | Contract/OutcomeContract.h   | 108-115 | The result of a Convergent computation. Never returned as a bare approximation.
+E RefusalReason               | Contract/OutcomeContract.h   | 19-29   | Why a computation declined to deliver content. Absence without one of these is never reported.
+T Refusal                     | Contract/OutcomeContract.h   | 45-49   | One reported refusal — the reason, plus static text naming the operand it applies to.
+T Outcome                     | Contract/OutcomeContract.h   | 58-97   | Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
+F Outcome::Deliver            | Contract/OutcomeContract.h   | 69-75   | Constructs a delivered outcome around content the computation produced.
+F Outcome::Refuse             | Contract/OutcomeContract.h   | 81-87   | Constructs a refused outcome carrying the reason the content is absent.
+F Outcome::Resolve            | Contract/OutcomeContract.h   | 93-96   | Reads the delivered content.
+E TerminationCause            | Contract/OutcomeContract.h   | 107-111 | Which of the two terminating conditions ended an iteration. that converged, and the ambiguity propagates upward as an unexplained artefact.
+T ConvergentResult            | Contract/OutcomeContract.h   | 115-122 | The result of a Convergent computation. Never returned as a bare approximation.
 E PrecisionGuarantee          | Contract/PrecisionContract.h | 21-27   | The guarantee a computation claims about its result. A greater ordinal is a weaker guarantee.
 F Weaken                      | Contract/PrecisionContract.h | 39-44   | Returns the weaker of two guarantees, which is the one carrying the greater ordinal.
 F WeakestOf                   | Contract/PrecisionContract.h | 51-61   | Folds every consumed guarantee down to the weakest one present in the list.
@@ -76,17 +76,19 @@ V WeldTolerance               | Contract/ToleranceContract.h | 130     | ?
 V ImpressionSpacingFloor      | Contract/ToleranceContract.h | 131     | ?
 V CollinearityTolerance       | Contract/ToleranceContract.h | 132     | ?
 V QuaternionRenormalise       | Contract/ToleranceContract.h | 133     | ?
-V QuadratureConvergence       | Contract/ToleranceContract.h | 141     | ?
-V QuadratureIterationCeiling  | Contract/ToleranceContract.h | 142     | ?
-V SunDirectionMateriality     | Contract/ToleranceContract.h | 146     | ?
-V CameraAltitudeMateriality   | Contract/ToleranceContract.h | 147     | ?
-V ShadowComparisonOffset      | Contract/ToleranceContract.h | 156     | ?
-V ShadowComparisonSlopeFactor | Contract/ToleranceContract.h | 157     | ?
-V AmbientUpsampleDepthBound   | Contract/ToleranceContract.h | 163     | ?
-V MachineEpsilon              | Contract/ToleranceContract.h | 175     | ?
-V ExpansionSplitter           | Contract/ToleranceContract.h | 178     | ?
-V Pi                          | Contract/ToleranceContract.h | 187     | ?
-V SampleUnitPlaceCeiling      | Contract/ToleranceContract.h | 192     | ?
+V SpacingArrivalTolerance     | Contract/ToleranceContract.h | 143     | ?
+V QuadratureConvergence       | Contract/ToleranceContract.h | 151     | ?
+V QuadratureIterationCeiling  | Contract/ToleranceContract.h | 152     | ?
+V FactorisationPivotFloor     | Contract/ToleranceContract.h | 162     | ?
+V SunDirectionMateriality     | Contract/ToleranceContract.h | 166     | ?
+V CameraAltitudeMateriality   | Contract/ToleranceContract.h | 167     | ?
+V ShadowComparisonOffset      | Contract/ToleranceContract.h | 176     | ?
+V ShadowComparisonSlopeFactor | Contract/ToleranceContract.h | 177     | ?
+V AmbientUpsampleDepthBound   | Contract/ToleranceContract.h | 183     | ?
+V MachineEpsilon              | Contract/ToleranceContract.h | 195     | ?
+V ExpansionSplitter           | Contract/ToleranceContract.h | 198     | ?
+V Pi                          | Contract/ToleranceContract.h | 207     | ?
+V SampleUnitPlaceCeiling      | Contract/ToleranceContract.h | 212     | ?
 K SLATE_CONSTANT              | Contract/ToolchainContract.h | 34      | ?
 K SLATE_STATIC_ASSERT         | Contract/ToolchainContract.h | 40      | ?
 A Real64                      | Contract/ToolchainContract.h | 42      | ?

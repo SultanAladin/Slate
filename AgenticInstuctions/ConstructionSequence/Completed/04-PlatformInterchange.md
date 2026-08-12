@@ -20,8 +20,7 @@ operating system, and giving a dependency-free layer its own link target buys a 
 
 ## 1. The Components
 
-🚧 Partially completed — `WindowInterchange`, `InputExchange` and `TickSequence` are built. The six below are
-unbuilt and keep their declarations here.
+✔️ Done — `WindowInterchange`, `InputExchange` and `TickSequence` first, and the six below since.
 
 | Component              | What crosses                                                | Owns memory |
 |------------------------|-------------------------------------------------------------|-------------|
@@ -46,10 +45,10 @@ The failure is silent, so the gate in §7 stays.
 
 ## 3. Input
 
-🚧 Partially completed — arrival timestamping from `TickSequence` is built, and the cyclic sample order with it.
-The axes are not: pressure, tilt and rotation must be carried when the device reports them and marked **absent**
-when it does not, because a tablet reporting no tilt and a stylus held upright are different facts and `22`
-treats them differently. Absent is distinct from zero, and the present sample carries no way to say so.
+✔️ Done — arrival timestamping from `TickSequence`, the cyclic sample order, and the axes. Pressure, tilt and
+rotation are carried when the device reports them and marked **absent** when it does not, because a tablet
+reporting no tilt and a stylus held upright are different facts and `22` treats them differently. Absent is
+distinct from zero and the sample carries a way to say so.
 
 A stroke sampled at device rate and consumed at display rate must reconstruct the path the artist drew, which is
 why arrival times and not consumption times survive.

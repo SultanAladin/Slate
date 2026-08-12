@@ -5,8 +5,30 @@
 
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
 
+#include <atomic>
+
 namespace Slate
 {
+
+namespace
+{
+
+// 🔴 Revisions are issued from one monotonic sequence for the whole process, never counted per topology. A
+//    per-topology count cannot discriminate: a topology is sealed exactly once and nothing unseals it, so every
+//    sealed topology would report revision one and every gate comparing two of them would compare one against
+//    one. Five gates read this — `38`'s conditioning, `40`'s subdivision, `68`'s partition, `16`'s enrollment and
+//    `24`'s content key — and each of them exists to refuse a description of a *different* topology. Issued from
+//    a shared sequence, two distinct seals never collide and each of those five refuses as its document says.
+// 🧵 Atomic because `34` conditions off the tick and two workers may seal two intakes at once. The ordering
+//    between two unrelated seals does not matter; that they receive different ordinals does.
+std::atomic<std::uint64_t> SealIssuance { 0u };
+
+std::uint64_t IssueRevision()
+{
+    return SealIssuance.fetch_add(1u, std::memory_order_relaxed) + 1u;
+}
+
+}   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  DECLARATIONS AND SEAL
@@ -124,8 +146,8 @@ Outcome<bool> TopologyStructure::Seal()
     if (FaceMaterialOrdinals.empty())
         FaceMaterialOrdinals.assign(FaceFirstCorners.size(), 0u);
 
-    ++SealedRevision;
-    SealDeclared = true;
+    SealedRevision = IssueRevision();
+    SealDeclared   = true;
 
     return Outcome<bool>::Deliver(true);
 }

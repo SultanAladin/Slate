@@ -25,7 +25,7 @@ S CurveSolver.h | 119 lines | 8d43ee24 | 7 sym | Planar path evaluation, flatten
 T PlanarPosition           | CurveSolver.h | 25-29 | nonallocating,nonthrowing | -  | One position in a planar path's own space. predicate over narrowed positions is exact about the wrong positions.
     has   PositionX  double  [-]  ?
     has   PositionY  double  [-]  ?
-    by    Api/AnalyticProjection.h, Api/UnwrapSolver.h, Api/VectorInterchange.h, Source/AnalyticProjection.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+3 more)
+    by    Api/AnalyticProjection.h, Api/UnwrapSolver.h, Api/VectorInterchange.h, Source/AnalyticProjection.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, (+4 more)
     note  Held at 64-bit because `PlanarClassifier` classifies the flattened result exactly, and an exact
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -38,7 +38,7 @@ E SegmentSubject           | CurveSolver.h | 39-46 | contract                  |
     has   Cubic         SegmentSubject  [-]  ?
     has   Arc           SegmentSubject  [-]  ?
     has   SegmentCount  SegmentSubject  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/CurveSolver.cpp
+    by    Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/TypefaceCodec.cpp, Source/VectorCodec.cpp
     note  ⚠️ `52` §2's accepted subset and nothing beyond it. A construct outside this enumeration is refused at
 
 T PathSegment              | CurveSolver.h | 52-63 | nonallocating,nonthrowing | -  | One segment of a planar path, continuing from wherever the preceding segment ended. two segments that the fill rule would then have to guess how to close.
@@ -51,7 +51,7 @@ T PathSegment              | CurveSolver.h | 52-63 | nonallocating,nonthrowing |
     has   Rotation         double          [-]  ?
     has   LargeArcEnabled  bool            [-]  ?
     has   SweepEnabled     bool            [-]  ?
-    by    Api/VectorInterchange.h, Source/ConsoleHost.cpp, Source/CurveSolver.cpp
+    by    Api/VectorInterchange.h, Source/ConsoleHost.cpp, Source/CurveSolver.cpp, Source/TypefaceCodec.cpp, Source/VectorCodec.cpp
     note  📝 Held as a continuation rather than as an independent curve, so a path cannot express a gap between
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -91,4 +91,4 @@ F OffsetOutline            | CurveSolver.h | 114   | api,nonthrowing           |
 F SLATE_DECLARES_PRECISION | CurveSolver.h | 117   | -                         | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

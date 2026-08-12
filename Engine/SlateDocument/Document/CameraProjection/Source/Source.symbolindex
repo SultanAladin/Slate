@@ -31,7 +31,7 @@ F Multiply                               | CameraProjection.cpp | 22-40   | - | 
 F Conjugated                             | CameraProjection.cpp | 42-51   | - | - | ?
     in    Subject  RotationQuaternion  [-]  ?
     out   -        RotationQuaternion  [-]  ?
-    by    Source/DecalProjection.cpp, Source/SpatialSubdivision.cpp
+    by    Source/DecalProjection.cpp, Source/SpatialManipulator.cpp, Source/SpatialSubdivision.cpp
 
 F RotateSpan                             | CameraProjection.cpp | 55-70   | - | - | ?
     in    Rotation  RotationQuaternion  [-]  ?
@@ -42,7 +42,7 @@ F RotateSpan                             | CameraProjection.cpp | 55-70   | - | 
     in    OutY      double&             [-]  ?
     in    OutZ      double&             [-]  ?
     out   -         void                [-]  ?
-    by    Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
+    by    Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialManipulator.cpp, Source/SpatialSubdivision.cpp
 
 F RotationAbout                          | CameraProjection.cpp | 72-90   | - | - | ?
     in    AxisX    double              [-]  ?
@@ -50,6 +50,7 @@ F RotationAbout                          | CameraProjection.cpp | 72-90   | - | 
     in    AxisZ    double              [-]  ?
     in    Radians  double              [-]  ?
     out   -        RotationQuaternion  [-]  ?
+    by    Source/SpatialManipulator.cpp
 
 F ViewDirection                          | CameraProjection.cpp | 94-97   | - | - | ?
     in    Rotation  RotationQuaternion  [-]  ?

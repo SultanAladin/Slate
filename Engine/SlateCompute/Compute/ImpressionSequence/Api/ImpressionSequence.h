@@ -200,6 +200,9 @@ public:
     /// note  📐 Spacing for the next impression comes from the brush resolved at the **previous** one. It
     ///        cannot come from the next, because the next impression's dynamics are read at a position the
     ///        walk has not reached — and a spacing that depended on where it lands has no fixed point.
+    /// note  📐 An arrival within `SpacingArrivalTolerance` of the next impression has reached it. Both the
+    ///        walked distance and the spacing are accumulated, so an exact comparison decides the segment's
+    ///        last impression on the residue of the additions rather than on the path the artist drew.
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> Amend(const StrokeArrival& Arriving);

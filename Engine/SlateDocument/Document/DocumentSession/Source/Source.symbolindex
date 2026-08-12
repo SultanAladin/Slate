@@ -1,0 +1,151 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/DocumentSession/Source
+%layer      SlateDocument
+%sources    1
+%symbols    33
+%annotated  0/33
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S DocumentSession.cpp | 328 lines | 3abfaa13 | 33 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     WHAT IT HOLDS
+//------------------------------------------------------------------------------------------------------------------------
+
+F DocumentSession::Document               | DocumentSession.cpp | 17-20   | - | - | ?
+    out   -  OutlinerSequence&  [-]  ?
+
+F DocumentSession::Document               | DocumentSession.cpp | 22-25   | - | - | ?
+    out   -  const OutlinerSequence&  [-]  ?
+
+F DocumentSession::References             | DocumentSession.cpp | 27-30   | - | - | ?
+    out   -  ReferenceIndex&  [-]  ?
+
+F DocumentSession::References             | DocumentSession.cpp | 32-35   | - | - | ?
+    out   -  const ReferenceIndex&  [-]  ?
+
+F DocumentSession::Journal                | DocumentSession.cpp | 37-40   | - | - | ?
+    out   -  RecoverySequence&  [-]  ?
+
+F DocumentSession::Journal                | DocumentSession.cpp | 42-45   | - | - | ?
+    out   -  const RecoverySequence&  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE LOCATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F DocumentSession::DeclareStorage         | DocumentSession.cpp | 51-64   | - | - | ?
+    in    DeclaredPath  const std::string&  [-]  ?
+    in    JournalPath   const std::string&  [-]  ?
+    out   -             Outcome<bool>       [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE SEALING
+//------------------------------------------------------------------------------------------------------------------------
+
+F DocumentSession::Seal                   | DocumentSession.cpp | 70-98   | - | - | ?
+    in    Encoded   const std::vector<std::uint8_t>&  [-]  ?
+    in    SealedAt  std::uint64_t                     [-]  ?
+    out   -         Outcome<SealedContent>            [-]  ?
+
+F DocumentSession::DeclareSaved           | DocumentSession.cpp | 100-111 | - | - | ?
+    in    Concluded  const PersistenceConclusion&  [-]  ?
+    out   -          void                          [-]  ?
+
+F DocumentSession::DeclareAmended         | DocumentSession.cpp | 113-116 | - | - | ?
+    out   -  void  [-]  ?
+
+F DocumentSession::AmendmentsStanding     | DocumentSession.cpp | 118-121 | - | - | ?
+    out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     SESSION STATE
+//------------------------------------------------------------------------------------------------------------------------
+
+F DocumentSession::DeclarePresentedCamera | DocumentSession.cpp | 127-130 | - | - | ?
+    in    Presenting  OccupantIdentity  [-]  ?
+    out   -           void              [-]  ?
+
+F DocumentSession::PresentedCamera        | DocumentSession.cpp | 132-135 | - | - | ?
+    out   -  OccupantIdentity  [-]  ?
+
+F DocumentSession::DeclareScrollPosition  | DocumentSession.cpp | 137-140 | - | - | ?
+    in    VisiblePosition  std::uint32_t  [-]  ?
+    out   -                void           [-]  ?
+
+F DocumentSession::ScrollPosition         | DocumentSession.cpp | 142-145 | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F DocumentSession::StorageOrigin          | DocumentSession.cpp | 147-150 | - | - | ?
+    out   -  const std::string&  [-]  ?
+
+F DocumentSession::Standing               | DocumentSession.cpp | 152-155 | - | - | ?
+    out   -  StorageStanding  [-]  ?
+
+F DocumentSession::SavedThrough           | DocumentSession.cpp | 157-160 | - | - | ?
+    out   -  std::uint64_t  [-]  ?
+
+F DocumentSession::SavedAt                | DocumentSession.cpp | 162-165 | - | - | ?
+    out   -  std::uint64_t  [-]  ?
+
+F DocumentSession::DeclareReadVersion     | DocumentSession.cpp | 167-170 | - | - | ?
+    in    ReadFrom  std::uint32_t  [-]  ?
+    out   -         void           [-]  ?
+
+F DocumentSession::ReadVersion            | DocumentSession.cpp | 172-175 | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   EVERY OPEN SESSION
+//------------------------------------------------------------------------------------------------------------------------
+
+F SessionIndex::Open                      | DocumentSession.cpp | 181-217 | - | - | ?
+    out   -  Outcome<std::uint32_t>  [-]  ?
+
+F SessionIndex::Close                     | DocumentSession.cpp | 219-247 | - | - | ?
+    in    SessionOrdinal  std::uint32_t  [-]  ?
+    out   -               Outcome<bool>  [-]  ?
+
+F SessionIndex::Resolve                   | DocumentSession.cpp | 249-257 | - | - | ?
+    in    SessionOrdinal  std::uint32_t              [-]  ?
+    out   -               Outcome<DocumentSession*>  [-]  ?
+
+F SessionIndex::Resolve                   | DocumentSession.cpp | 259-267 | - | - | ?
+    in    SessionOrdinal  std::uint32_t                    [-]  ?
+    out   -               Outcome<const DocumentSession*>  [-]  ?
+
+F SessionIndex::DeclarePresented          | DocumentSession.cpp | 269-279 | - | - | ?
+    in    SessionOrdinal  std::uint32_t  [-]  ?
+    out   -               Outcome<bool>  [-]  ?
+
+F SessionIndex::Presenting                | DocumentSession.cpp | 281-284 | - | - | ?
+    out   -  Outcome<DocumentSession*>  [-]  ?
+
+F SessionIndex::Presenting                | DocumentSession.cpp | 286-289 | - | - | ?
+    out   -  Outcome<const DocumentSession*>  [-]  ?
+
+F SessionIndex::PresentedOrdinal          | DocumentSession.cpp | 291-294 | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F SessionIndex::Located                   | DocumentSession.cpp | 296-309 | - | - | ?
+    in    StoragePath  const std::string&      [-]  ?
+    out   -            Outcome<std::uint32_t>  [-]  ?
+
+F SessionIndex::OpenCount                 | DocumentSession.cpp | 311-314 | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F SessionIndex::SpannedCount              | DocumentSession.cpp | 316-319 | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F SessionIndex::Reclaim                   | DocumentSession.cpp | 321-326 | - | - | ?
+    out   -  void  [-]  ?

@@ -83,6 +83,34 @@ TickPoint TickSequence::Advance() const
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                    A HOST READING
+//------------------------------------------------------------------------------------------------------------------------
+
+TickPoint TickSequence::Project(std::uint64_t HostCount) const
+{
+    TickPoint Reading;
+
+    if (HostCount <= OriginCount)
+        return Reading;
+
+    const std::uint64_t Elapsed = HostCount - OriginCount;
+
+#if defined(_WIN32)
+
+    Reading.Ordinal = static_cast<std::uint64_t>(static_cast<double>(Elapsed) * CountToSeconds * 1.0e9);
+
+#else
+
+    // 📝 The counter is already nanoseconds under the monotonic clock, so the conversion is the identity and
+    //    is written as one rather than as a multiply by unity that rounds through a double on the way.
+    Reading.Ordinal = Elapsed;
+
+#endif
+
+    return Reading;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                         SPAN
 //------------------------------------------------------------------------------------------------------------------------
 

@@ -8,21 +8,21 @@
 %path       Engine/SlateCompute/Compute/ParityRunner/Source
 %layer      SlateCompute
 %sources    1
-%symbols    7
-%annotated  0/7
+%symbols    8
+%annotated  0/8
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ParityRunner.cpp | 475 lines | 00cc7064 | 7 sym | Registration and comparison over the common sample set.
+S ParityRunner.cpp | 795 lines | ceb30ff7 | 8 sym | Registration and comparison over the common sample set.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      REGISTRATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F ParityRunner::Register      | ParityRunner.cpp | 25-35   | - | - | ?
+F ParityRunner::Register      | ParityRunner.cpp | 30-40   | - | - | ?
     in    Arriving  const ParityRegistration&  [-]  ?
     out   -         Outcome<bool>              [-]  ?
 
@@ -30,7 +30,7 @@ F ParityRunner::Register      | ParityRunner.cpp | 25-35   | - | - | ?
 //                                                 THE COMMON SAMPLE SET
 //------------------------------------------------------------------------------------------------------------------------
 
-T OrientationSample           | ParityRunner.cpp | 46-54   | - | - | ?
+T OrientationSample           | ParityRunner.cpp | 51-59   | - | - | ?
     has   AlphaX  double  [-]  ?
     has   AlphaY  double  [-]  ?
     has   BetaX   double  [-]  ?
@@ -38,17 +38,7 @@ T OrientationSample           | ParityRunner.cpp | 46-54   | - | - | ?
     has   GammaX  double  [-]  ?
     has   GammaY  double  [-]  ?
 
-T IncircleSample              | ParityRunner.cpp | 71-81   | - | - | ?
-    has   AlphaX  double  [-]  ?
-    has   AlphaY  double  [-]  ?
-    has   BetaX   double  [-]  ?
-    has   BetaY   double  [-]  ?
-    has   GammaX  double  [-]  ?
-    has   GammaY  double  [-]  ?
-    has   DeltaX  double  [-]  ?
-    has   DeltaY  double  [-]  ?
-
-T SegmentSample               | ParityRunner.cpp | 94-104  | - | - | ?
+T IncircleSample              | ParityRunner.cpp | 76-86   | - | - | ?
     has   AlphaX  double  [-]  ?
     has   AlphaY  double  [-]  ?
     has   BetaX   double  [-]  ?
@@ -58,18 +48,40 @@ T SegmentSample               | ParityRunner.cpp | 94-104  | - | - | ?
     has   DeltaX  double  [-]  ?
     has   DeltaY  double  [-]  ?
 
-T IntervalSample              | ParityRunner.cpp | 118-124 | - | - | ?
+T SegmentSample               | ParityRunner.cpp | 99-109  | - | - | ?
+    has   AlphaX  double  [-]  ?
+    has   AlphaY  double  [-]  ?
+    has   BetaX   double  [-]  ?
+    has   BetaY   double  [-]  ?
+    has   GammaX  double  [-]  ?
+    has   GammaY  double  [-]  ?
+    has   DeltaX  double  [-]  ?
+    has   DeltaY  double  [-]  ?
+
+T IntervalSample              | ParityRunner.cpp | 123-129 | - | - | ?
     has   OuterBegin  std::uint64_t  [-]  ?
     has   OuterEnd    std::uint64_t  [-]  ?
     has   InnerBegin  std::uint64_t  [-]  ?
     has   InnerEnd    std::uint64_t  [-]  ?
 
+T LatticeSample               | ParityRunner.cpp | 145-157 | - | - | ?
+    has   PositionAlong            double         [-]  ?
+    has   PositionAcross           double         [-]  ?
+    has   CellExtentAlong          double         [-]  ?
+    has   CellExtentAcross         double         [-]  ?
+    has   OffsetProgressionAlong   double         [-]  ?
+    has   OffsetProgressionAcross  double         [-]  ?
+    has   SkewAlong                double         [-]  ?
+    has   SkewAcross               double         [-]  ?
+    has   ReflectionMask           std::uint32_t  [-]  ?
+    has   RotationIncrement        std::uint32_t  [-]  ?
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       COMPARISON
 //------------------------------------------------------------------------------------------------------------------------
 
-F ParityRunner::Compare       | ParityRunner.cpp | 142-468 | - | - | ?
+F ParityRunner::Compare       | ParityRunner.cpp | 178-788 | - | - | ?
     out   -  const std::vector<ParityReport>&  [-]  ?
 
-F ParityRunner::AgreementHeld | ParityRunner.cpp | 470-473 | - | - | ?
+F ParityRunner::AgreementHeld | ParityRunner.cpp | 790-793 | - | - | ?
     out   -  bool  [-]  ?

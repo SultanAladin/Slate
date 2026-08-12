@@ -8,6 +8,7 @@
 #include "Contract/OutcomeContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateVulkan/Device/CycleScheduler/Api/CycleScheduler.h"
+#include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
 #include <vulkan/vulkan.h>
@@ -58,12 +59,16 @@ public:
 
     /// 🧩 Constructs the per-slot recording extents and the one primary recording each holds.
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
+    /// in    Naming    [-]  names every extent and every recording; borrowed and outlives this component
     /// out   Outcome   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     ///                      device declines an extent or a recording; refused in full
     /// post  `RecordingRotationDepth` recordings stand, none of them open
+    /// note  🔴 `06` §7's diagnostic-name gate. Each recording is named by its rotation slot, which is what the
+    ///        driver's text needs to say — a report against an unnamed recording cannot distinguish the slot
+    ///        being written from the one the device is still executing, and that pair is the whole rotation.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange);
+    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Resets one rotation slot's recording extent and opens its recording for writing.
     /// in    RotationSlot  [-]  below `RecordingRotationDepth`
@@ -85,7 +90,8 @@ public:
     /// in    RotationSlot [-]  below `RecordingRotationDepth`
     /// in    Ordering     [-]  what the surrender waits on and signals; any member may be null
     /// out   Outcome      [-]  refuses with ContentUnsupported for a slot that is not open, HostDenied when
-    ///                         the device declines the close or the surrender
+    ///                         the device declines the close or the surrender, and DeviceLost when the device
+    ///                         was lost; the slot is closed and nothing is destroyed either way
     /// post  the slot is closed and executing; the completion is signalled when it finishes
     /// note  🔴 The completion is cleared by `CycleScheduler::Arm` immediately before this call and never here
     ///        — a component clearing an ordering point it does not own is one that clears it at the wrong
@@ -104,7 +110,8 @@ public:
 
     /// 🧩 Closes an immediate recording, surrenders it, waits for it, and returns it.
     /// in    Recorded [-]  a recording OpenImmediate delivered
-    /// out   Outcome  [-]  refuses with HostDenied when the device declines or does not complete
+    /// out   Outcome  [-]  refuses with HostDenied when the device declines or does not complete, and with
+    ///                     DeviceLost when the device was lost; the recording is returned either way
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> SurrenderImmediate(VkCommandBuffer Recorded);
@@ -129,6 +136,7 @@ private:
     static constexpr std::uint64_t CompletionCeilingNanoseconds = 2000000000ull;   // [ns]
 
     const VulkanExchange*       DeviceEdge      = nullptr;         // [-] - borrowed; never owned
+    const DiagnosticExtension*  NamingEdge      = nullptr;         // [-] - borrowed; never owned
     std::vector<RecordingSlot>  Slots           = {};              // [-] - RecordingRotationDepth entries
     VkCommandPool               ImmediateExtent = VK_NULL_HANDLE;  // [-] - bring-up transfers, outside the rotation
 };

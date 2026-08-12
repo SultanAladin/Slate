@@ -1,5 +1,5 @@
 //============================================================================================================================================
-//                                                        REFLECTANCEINTEGRATOR.CPP
+//                                                       REFLECTANCEINTEGRATOR.CPP
 //============================================================================================================================================
 // 🧩 Attributes reconstructed from two ordinals, channels resolved once, the four lobes composed, and the lookup that keeps them energy-correct.
 
@@ -135,13 +135,13 @@ SpatialSpan TripleOf(const ResolvedChannelSet& Resolved, ChannelSubject Channel)
 //                                                THE ALBEDO LOOKUP STORAGE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DirectionalAlbedoSurface::Construct(std::uint32_t RequestedAlong, std::uint32_t RequestedAcross)
+Outcome<bool> DirectionalAlbedoSurface::Construct(std::uint32_t ExtentAlong_, std::uint32_t ExtentAcross_)
 {
-    if (RequestedAlong == 0u || RequestedAcross == 0u)
+    if (ExtentAlong_ == 0u || ExtentAcross_ == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a lookup of no extent resolves nothing" });
 
-    SpannedAlong  = RequestedAlong;
-    SpannedAcross = RequestedAcross;
+    SpannedAlong  = ExtentAlong_;
+    SpannedAcross = ExtentAcross_;
 
     Components.assign(static_cast<std::size_t>(SpannedAlong)
                     * static_cast<std::size_t>(SpannedAcross)
@@ -872,7 +872,7 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
     double CharlieAlbedo       = 0.0;
     SampleDirectionalAlbedo(ViewCosine, Roughness, SplitSumScale, SingleScatterAlbedo, CharlieAlbedo);
 
-    const double SmithVisibility = ProjectVisibilitySmith(Parameter, ViewCosine, IncidentCosine);
+    const double Visibility_ = ProjectVisibilitySmith(Parameter, ViewCosine, IncidentCosine);
 
     // 📐 The distribution is the selection's own. `18` §3's eight selections compose from these terms and never
     //    reimplement one — the anisotropic form is written apart from the isotropic one in `Shared/` precisely
@@ -949,7 +949,7 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
             const double Compensation = ProjectMultiScatterCompensation(IncidenceComponent[Component],
                                                                         SingleScatterAlbedo);
 
-            SpecularComponent[Component] = Distribution * SmithVisibility * Fresnel * Compensation;
+            SpecularComponent[Component] = Distribution * Visibility_ * Fresnel * Compensation;
 
             // 🔴 A conductor carries no diffuse lobe, which is what the metallic interpolant means at unity. The
             //    diffuse albedo is therefore scaled down as the specular reflectance is scaled up, so the two
@@ -999,6 +999,22 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
             const double CoatVisibility   = ProjectVisibilitySmith(CoatParameter, CoatView, CoatIncident);
             const double CoatFresnel      = ProjectFresnelSchlick(0.04, ViewHalf) * Coat;
 
+            // 🔴 `18` §9: compensation is applied **wherever GGX is**, and the coat is GGX. Sampled at the coat's
+            //    own roughness rather than reusing the base lobe's sample — the two are separate lobes over
+            //    separate roughnesses, and a coat compensated at the roughness beneath it is compensated for
+            //    energy a different surface lost. A rough coat left uncompensated darkens exactly as rough metal
+            //    does, and the artist corrects it by raising a coat magnitude that was already correct.
+            double CoatSplitSumScale       = 0.0;
+            double CoatSingleScatterAlbedo = 0.0;
+            double CoatCharlieAlbedo       = 0.0;
+            SampleDirectionalAlbedo(CoatView,
+                                    CoatRoughness,
+                                    CoatSplitSumScale,
+                                    CoatSingleScatterAlbedo,
+                                    CoatCharlieAlbedo);
+
+            const double CoatCompensation = ProjectMultiScatterCompensation(0.04, CoatSingleScatterAlbedo);
+
             for (std::uint32_t Component = 0u; Component < 3u; ++Component)
             {
                 // 🔴 The layer beneath is attenuated by what the coat reflected, twice — once on the way in and
@@ -1008,7 +1024,7 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
 
                 DiffuseComponent[Component]  *= Transmitted;
                 SpecularComponent[Component] *= Transmitted;
-                SpecularComponent[Component] += CoatDistribution * CoatVisibility * CoatFresnel;
+                SpecularComponent[Component] += CoatDistribution * CoatVisibility * CoatFresnel * CoatCompensation;
             }
         }
     }

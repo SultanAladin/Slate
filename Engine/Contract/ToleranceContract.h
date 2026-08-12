@@ -132,6 +132,16 @@ SLATE_CONSTANT Real64 ImpressionSpacingFloor = 0.01;     // [-] - finest spacing
 SLATE_CONSTANT Real64 CollinearityTolerance  = 1.0e-9;   // [-] - filtered only; the exact path decides
 SLATE_CONSTANT Real64 QuaternionRenormalise  = 1.0e-12;  // [-] - below this a rotation is left untouched
 
+// 📐 🔴 The fraction of one spacing by which a walked distance may fall short of the next impression and still be
+//    counted as having reached it — `58` §3's resampling. Both operands are accumulated sums, so an exact
+//    comparison decides the last impression of a segment on the residue of the additions rather than on the
+//    geometry: a path of four tenths at a spacing of one fortieth is sixteen spacings exactly and 5.6e-17 short of
+//    sixteen in binary, and the artist meets that as a stroke ending one impression before they released.
+// 📝 Relative to the spacing rather than absolute, because the spacing is a domain distance and the domain is the
+//    unit square at one working extent and something else at the next. Above the accumulation of a full stroke —
+//    65536 additions carry roughly 7e-12 of relative error — and far below a residue that means anything.
+SLATE_CONSTANT Real64 SpacingArrivalTolerance = 1.0e-9;   // [-] - as a fraction of one spacing
+
 // 📐 The Newton criterion the Gauss–Legendre abscissae are derived against, and the ceiling that bounds the
 //    derivation. `02` §8 gates that no tolerance literal appears outside `Contract/`, so neither may sit at the
 //    derivation site — a criterion written there is one that is tuned there, and a rule derived to two different
@@ -140,6 +150,16 @@ SLATE_CONSTANT Real64 QuaternionRenormalise  = 1.0e-12;  // [-] - below this a r
 //    ceiling is reached only by an implementation defect rather than by a hard input.
 SLATE_CONSTANT Real64     QuadratureConvergence      = 1.0e-15;   // [-] - Newton step below which it settles
 SLATE_CONSTANT Unsigned32 QuadratureIterationCeiling = 128u;      // [-] - iterations before it stops
+
+// 📐 🔴 The magnitude, relative to the greatest coefficient the system supplied, below which a pivot no longer
+//    carries a trustworthy sign. `02` §5's `LinearSolver` refuses at it rather than dividing by it. The floor is
+//    relative for the reason every tolerance here is relative: an absolute one is correct at exactly one scaling
+//    of the system, and a system scaled in millimetres and the same system scaled in metres would then be called
+//    singular in one spelling and solvable in the other.
+// ⚠️ It sits here rather than at the factorisation because `02` §8 gates that no tolerance literal appears
+//    outside `Contract/`, and because `24` and `68` both read the solver — a floor tuned at the call site is one
+//    tuned twice, and the two consumers would then disagree about which systems exist.
+SLATE_CONSTANT Real64 FactorisationPivotFloor = 1.0e-14;   // [-] - relative to the greatest supplied magnitude
 
 // 📐 `28` §4's "materially". A rebuild on any camera movement at all makes a precomputed surface an expensive
 //    way to compute what it was meant to precompute; a strict inequality makes every rebuild condition true.

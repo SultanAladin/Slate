@@ -42,7 +42,7 @@ T MediumSpecification                             | AtmosphereIntegrator.h | 33-
 
 F MediumSpecification::Validate                   | AtmosphereIntegrator.h | 56      | api,nonallocating,nonthrowing | ✔️ | Whether the medium describes an atmosphere that can be integrated at all. ozone half width, and for an asymmetry outside the open interval about the origin extent, and the phase magnitude diverges along it.
     out   -  Outcome  [-]  refuses with ContentUnsupported for a non-positive radius, thickness, scale height or
-    by    Api/AssetInterchange.h, Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+3 more)
+    by    Api/AssetInterchange.h, Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+4 more)
     note  📐 An asymmetry reaching unity collapses the forward-scattering lobe onto a direction of zero solid
 
 T MediumCoefficient                               | AtmosphereIntegrator.h | 64-71   | nonallocating,nonthrowing     | -  | The medium's coefficients resolved into the working space, per component. wavelength-neutral by declaration and needs no projection, which is why it is one magnitude rather than three — writing it as three equal ones would invite a later edit to make them differ.
@@ -59,14 +59,14 @@ F Resolve                                         | AtmosphereIntegrator.h | 87 
     in    Working   const ColourSpaceSpecification&  [-]  the space the coefficients are expressed in
     in    Rule      const QuadratureRule&            [-]  a derived rule, integrated over the declared wavelength interval
     out   -         Outcome                          [-]  carries the medium's own refusal, and `02` §5's where the projection declines
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+61 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+85 more)
     note  📐 The Rayleigh coefficient is **derived** from the medium's refractive index, molecular concentration
     note  📝 The ozone absorption is a **fit to measured absorption** rather than a derivation, unlike Rayleigh.
 
 F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 90      | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+26 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ONE RESIDENT SURFACE
@@ -86,7 +86,7 @@ F ResidentSurface::Construct                      | AtmosphereIntegrator.h | 116
     in    ExtentAcross       std::uint32_t  [-]  ?
     in    WrapAlongDeclared  bool           [-]  the first axis is periodic and its filter wraps rather than clamps
     out   -                  Outcome        [-]  refuses with ContentUnsupported for a zero extent on either axis
-    by    Api/AnalyticProjection.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+49 more)
+    by    Api/AnalyticProjection.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+61 more)
     note  🔴 Wrapping is declared per surface because only ③'s azimuth is periodic. ①'s and ②'s axes are
 
 F ResidentSurface::Write                          | AtmosphereIntegrator.h | 124     | api,nonallocating,nonthrowing | ✔️ | Writes one texel's three components; the fourth is written as unity. three-component format would be a fourth format for the device to negotiate — which `06` §2.1's one-queue, explicit-descriptor spine has no appetite for.
@@ -111,7 +111,7 @@ F ResidentSurface::Sample                         | AtmosphereIntegrator.h | 134
 
 F ResidentSurface::Texels                         | AtmosphereIntegrator.h | 139     | api,nonallocating,nonthrowing | ✔️ | The encoded texels, for whoever uploads them.
     out   -  const std::vector<std::uint16_t>&  [-]  ?
-    by    Api/AnalyticProjection.h, Api/SurfaceLayerSequence.h, Source/AnalyticProjection.cpp, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+1 more)
+    by    Api/AnalyticProjection.h, Api/ClipboardExchange.h, Api/EmissionSequence.h, Api/SurfaceLayerSequence.h, Source/AnalyticProjection.cpp, Source/AtmosphereIntegrator.cpp, (+5 more)
 
 F ResidentSurface::ResidentBytes                  | AtmosphereIntegrator.h | 144     | api,nonallocating,nonthrowing | ✔️ | What the surface occupies once resident.
     out   -  std::uint64_t  [-]  ?
@@ -357,4 +357,4 @@ F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 385
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+26 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)

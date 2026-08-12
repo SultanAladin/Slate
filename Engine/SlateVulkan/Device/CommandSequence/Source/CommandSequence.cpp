@@ -12,12 +12,13 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange)
+Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge = &Exchange;
+    NamingEdge = &Naming;
 
     const VkDevice Active = Exchange.ActiveDevice();
 
@@ -32,8 +33,12 @@ Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange)
 
     Slots.assign(RecordingRotationDepth, RecordingSlot{});
 
-    for (RecordingSlot& Slot : Slots)
+    // 📝 Walked by ordinal rather than by reference, because the rotation slot is what each object is named by
+    //    and it is the same ordinal every later call addresses the slot with.
+    for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
     {
+        RecordingSlot& Slot = Slots[RotationSlot];
+
         if (vkCreateCommandPool(Active, &ExtentDeclaration, nullptr, &Slot.RecordingExtent) != VK_SUCCESS)
         {
             Reclaim();
@@ -53,6 +58,18 @@ Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange)
             return Outcome<bool>::Refuse(
                 { RefusalReason::ExtentExhausted, "the device declined a recording of the rotation" });
         }
+
+        // 📝 🔴 `06` §7's diagnostic-name gate. The refusals are discarded for `ByteSpace`'s reason — a slot
+        //    that stands and could not be named is still the slot the rotation records into.
+        NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_POOL,
+                            reinterpret_cast<std::uint64_t>(Slot.RecordingExtent),
+                            "CommandSequence rotation extent",
+                            RotationSlot);
+
+        NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_BUFFER,
+                            reinterpret_cast<std::uint64_t>(Slot.Primary),
+                            "CommandSequence rotation recording",
+                            RotationSlot);
     }
 
     // 📝 The immediate extent is reset per use and therefore declares the resettable arrangement its slots do
@@ -65,6 +82,12 @@ Outcome<bool> CommandSequence::Construct(const VulkanExchange& Exchange)
         return Outcome<bool>::Refuse(
             { RefusalReason::ExtentExhausted, "the device declined the immediate recording extent" });
     }
+
+    // 📝 🔴 `06` §7's gate, by the two-operand form: there is one immediate extent and an ordinal on a single
+    //    object reads as one of a set.
+    NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_POOL,
+                        reinterpret_cast<std::uint64_t>(ImmediateExtent),
+                        "CommandSequence immediate extent");
 
     return Outcome<bool>::Deliver(true);
 }
@@ -169,8 +192,13 @@ Outcome<bool> CommandSequence::Surrender(std::uint32_t RotationSlot, const Surre
 
     Slot.SlotOpen = false;
 
+    // 🔴 `06` §7: reported upward, and the slot is closed either way. Nothing is destroyed here — the recording
+    //    and its extent stay standing so that `06` §4.2's recovery reclaims them in its own order.
+    if (Accepted == VK_ERROR_DEVICE_LOST)
+        return Outcome<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost surrendering a rotation slot" });
+
     if (Accepted != VK_SUCCESS)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the queue declined the surrender; the device may be lost" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the queue declined the surrender" });
 
     return Outcome<bool>::Deliver(true);
 }
@@ -209,6 +237,12 @@ Outcome<VkCommandBuffer> CommandSequence::OpenImmediate()
             { RefusalReason::HostDenied, "the device declined to open the immediate recording" });
     }
 
+    // 📝 🔴 `06` §7's gate reaches the immediate recording too, and carries no ordinal because this path holds
+    //    one at a time — `SurrenderImmediate` waits for it and returns it before bring-up asks for the next.
+    NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_BUFFER,
+                        reinterpret_cast<std::uint64_t>(Arriving),
+                        "CommandSequence immediate recording");
+
     return Outcome<VkCommandBuffer>::Deliver(Arriving);
 }
 
@@ -242,6 +276,13 @@ Outcome<bool> CommandSequence::SurrenderImmediate(VkCommandBuffer Recorded)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the device declined an ordering point" });
     }
 
+    // 📝 🔴 `06` §7's gate. Named although it is destroyed a few lines below, because the report that matters
+    //    here is the one raised **while** it stands — a device lost inside the wait names this point, and an
+    //    unnamed one makes that report the only place in the ordering the reader cannot attribute.
+    NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
+                        reinterpret_cast<std::uint64_t>(Completion),
+                        "CommandSequence immediate completion");
+
     VkSubmitInfo SurrenderDeclaration       = {};
     SurrenderDeclaration.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     SurrenderDeclaration.commandBufferCount = 1u;
@@ -257,6 +298,12 @@ Outcome<bool> CommandSequence::SurrenderImmediate(VkCommandBuffer Recorded)
     vkDestroyFence(Active, Completion, nullptr);
     vkFreeCommandBuffers(Active, ImmediateExtent, 1u, &Recorded);
 
+    // 📝 The recording and its completion are returned above regardless, because both were constructed here and
+    //    a lost device leaves them unusable rather than owned by something else. What the loss reports is the
+    //    device, which this never held.
+    if (Accepted == VK_ERROR_DEVICE_LOST || Reached == VK_ERROR_DEVICE_LOST)
+        return Outcome<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost during an immediate surrender" });
+
     if (Accepted != VK_SUCCESS)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the queue declined the immediate surrender" });
 
@@ -264,7 +311,7 @@ Outcome<bool> CommandSequence::SurrenderImmediate(VkCommandBuffer Recorded)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the immediate recording did not complete within the ceiling" });
 
     if (Reached != VK_SUCCESS)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device declined the wait; it may be lost" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device declined the wait" });
 
     return Outcome<bool>::Deliver(true);
 }

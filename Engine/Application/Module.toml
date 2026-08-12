@@ -18,6 +18,8 @@ declare = []
 # 📝 🔴 glfw3.dll is copied beside the executable rather than being found on PATH. glfw3dll.lib is an
 #    import library; without the dynamic library beside the host, the process fails to start rather than
 #    reporting anything a reader could act on.
+# 📝 gdi32.lib carries the display-density read `04` §2 performs. It is the one platform import library
+#    named here that the operating system does not supply by default.
 [link]
-library = [ "$VULKAN_SDK/Lib/vulkan-1.lib", "ExternalPackages/glfw/lib-vc2022/glfw3dll.lib" ]
+library = [ "$VULKAN_SDK/Lib/vulkan-1.lib", "ExternalPackages/glfw/lib-vc2022/glfw3dll.lib", "gdi32.lib" ]
 carry   = [ "ExternalPackages/glfw/lib-vc2022/glfw3.dll" ]

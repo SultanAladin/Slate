@@ -58,9 +58,12 @@ SLATE_SHARED SLATE_CONSTEXPR Unsigned32 ClassifyOcclusionTruncation(Unsigned32 R
 }
 
 /// 🧩 The visibility a slot carries, or full visibility where the slot is absent.
-/// in    Packed  [-]  the four components of the word, in slot order
-/// in    Slot    [-]  as `ProjectOcclusionSlot` resolved it
-/// out   Visible [-]  unity where nothing occludes, and unity for an absent slot
+/// in    PackedRed    [-]  the word's first component, at slot nought
+/// in    PackedGreen  [-]  its second, at slot one
+/// in    PackedBlue   [-]  its third, at slot two
+/// in    PackedAlpha  [-]  its fourth, at slot three
+/// in    Slot         [-]  as `ProjectOcclusionSlot` resolved it
+/// out   Visible      [-]  unity where nothing occludes, and unity for an absent slot
 /// note  🔴 An absent slot resolves to **unity** and never to zero. `60` §3.1: the excess is integrated
 ///        unattenuated, so the truncated illuminant contributes its whole direct term. Resolving to zero would
 ///        make the sixteenth illuminant of a partition darken the surface it was meant to light.

@@ -48,7 +48,7 @@ F QuadratureRule::Abscissa          | QuadratureIntegrator.h | 60     | api,nona
 F QuadratureRule::Weight            | QuadratureIntegrator.h | 65     | api,nonallocating,nonthrowing | ✔️ | The weight that abscissa carries.
     in    Ordinal  std::uint32_t  [-]  ?
     out   -        double         [-]  ?
-    by    Source/QuadratureIntegrator.cpp, Source/ReflectanceIntegrator.cpp, Source/UnwrapSolver.cpp
+    by    Api/SpecularProjection.h, Shared/ReflectionProjection.slang.h, Source/ConsoleHost.cpp, Source/QuadratureIntegrator.cpp, Source/ReflectanceIntegrator.cpp, Source/SampleIntegrator.cpp, (+2 more)
 
 F QuadratureRule::Project           | QuadratureIntegrator.h | 80     | api,nonthrowing               | ✔️ | Projects one abscissa onto a declared interval, weight included. before the rule is derived one walk, in ordinal order. `28` integrates three extinction components along one ray, and three separate scalar integrations would evaluate the same density profile three times.
     in    Ordinal    std::uint32_t  [-]  the abscissa
@@ -59,7 +59,7 @@ F QuadratureRule::Project           | QuadratureIntegrator.h | 80     | api,nont
     out   -          Position       [-]  where the abscissa lands
     out   -          Weighting      [-]  the weight scaled to the interval
     out   -          Outcome        [-]  refuses with ExtentExhausted outside the declared count, and with ContentUnsupported
-    by    Api/ColourProjection.h, Api/SpectralProjection.h, Api/TransformProjection.h, Api/VisibilityRaster.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, (+7 more)
+    by    Api/ColourProjection.h, Api/DisplayProjection.h, Api/SpectralProjection.h, Api/TickSequence.h, Api/TransformProjection.h, Api/VisibilityRaster.h, (+12 more)
     note  📝 Exposed so that a caller integrating several components at once accumulates them side by side in
 
 F QuadratureRule::IntegrateInterval | QuadratureIntegrator.h | 98-113 | api,nonthrowing               | 🚩 | Integrates one scalar integrand over a declared interval. artist as an atmosphere whose horizon shifts between two runs of an unchanged document. what the definite integral means and what a caller reversing a ray direction relies on.
@@ -74,13 +74,13 @@ F QuadratureRule::IntegrateInterval | QuadratureIntegrator.h | 98-113 | api,nont
 
 F QuadratureRule::DeclaredCount     | QuadratureIntegrator.h | 118    | api,nonallocating,nonthrowing | ✔️ | How many abscissae the rule carries.
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/ProgramIndex.h, (+20 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+30 more)
 
 F QuadratureRule::Derived           | QuadratureIntegrator.h | 123    | api,nonallocating,nonthrowing | ✔️ | Whether the rule has been derived at all.
     out   -  bool  [-]  ?
-    by    Api/SeamSpecification.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+13 more)
+    by    Api/SeamSpecification.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+15 more)
 
 F SLATE_DECLARES_PRECISION          | QuadratureIntegrator.h | 134    | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

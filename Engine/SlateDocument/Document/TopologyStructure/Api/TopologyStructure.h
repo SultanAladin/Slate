@@ -109,9 +109,13 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving);
 
-    /// 🧩 Seals the topology, advancing its revision. Nothing may be declared afterwards.
+    /// 🧩 Seals the topology, issuing its revision. Nothing may be declared afterwards.
     /// out   Outcome  [-]  refuses with ExtentExhausted when no face was declared
     /// post  🔴 every read below is stable, and `38` may condition against it off the tick
+    /// post  🔴 the revision is distinct from that of every other topology sealed in this process
+    /// note  📝 Idempotent — a second call delivers and does **not** issue a second revision. The seal is the
+    ///        point the content stopped moving, and re-announcing it must not invalidate a conditioning that
+    ///        already describes the same content.
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Seal();
@@ -121,7 +125,11 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool Sealed() const;
 
-    /// 🧩 The revision the seal advanced to — what `24` §3 keys a transferred result on.
+    /// 🧩 The revision the seal issued — what `24` §3 keys a transferred result on.
+    /// out   Revision  [-]  zero until sealed; thereafter distinct across every topology in the process
+    /// note  🔴 Issued from one process-wide sequence, not counted per topology. Two topologies never share a
+    ///        revision, which is what lets `38`, `40`, `68`, `16` and `24` refuse a description derived from a
+    ///        different one. A per-topology count would make all five comparisons read one against one.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     std::uint64_t Revision() const;
@@ -167,7 +175,7 @@ private:
     std::vector<SurfaceDirection>  VertexPerpendiculars;             // [-]  - per vertex where supplied
     std::vector<TangentBasis>      VertexTangentBases;               // [-]  - per vertex where supplied
     std::vector<std::uint32_t>     FaceMaterialOrdinals;             // [-]  - material enrollment per face
-    std::uint64_t                  SealedRevision      = 0u;         // [-]  - advanced at Seal
+    std::uint64_t                  SealedRevision      = 0u;         // [-]  - issued at Seal, process-wide
     bool                           SealDeclared        = false;      // [-]  - no further declaration is admitted
 };
 

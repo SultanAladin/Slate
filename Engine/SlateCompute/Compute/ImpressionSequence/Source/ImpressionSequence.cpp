@@ -324,14 +324,24 @@ Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Arriving)
 
     double Walked = 0.0;
 
+    // 🔴 The arrival is admitted a tolerance of one spacing, never compared exactly. `PendingDistance` and
+    //    `Walked` are both accumulated sums and `NextSpacing` is a product of two resolved reals, so an exact
+    //    comparison decides the last impression of the segment on the residue of the additions. A path of four
+    //    tenths at a spacing of one fortieth is sixteen spacings by the geometry and 5.6e-17 short of sixteen in
+    //    binary, so exactly one impression is withheld — and it is the one at the position the artist released.
     while (Sequenced.size() < ImpressionCeiling
-        && PendingDistance + (SegmentSpan - Walked) >= NextSpacing)
+        && PendingDistance + (SegmentSpan - Walked) >= NextSpacing * (1.0 - SpacingArrivalTolerance))
     {
+        // 📝 The advance is the full spacing even where the tolerance admitted the step, so `Walked` tracks the
+        //    impressions placed and not the tolerance spent. Advancing by the shortfall instead would let the
+        //    tolerance accumulate across a long stroke into a real drift of the spacing.
         const double Advance = NextSpacing - PendingDistance;
 
         Walked += Advance;
 
-        const double Fraction = Walked / SegmentSpan;
+        // 📝 The tolerance admits a step whose full advance runs marginally past the arrival, so the fraction is
+        //    bounded at the arrival itself. An impression is placed where the artist released, never beyond it.
+        const double Fraction = Walked < SegmentSpan ? Walked / SegmentSpan : 1.0;
 
         const double PositionAlong  = LastAlong  + SpanAlong  * Fraction;
         const double PositionAcross = LastAcross + SpanAcross * Fraction;
@@ -344,7 +354,9 @@ Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Arriving)
         PendingDistance = 0.0;
     }
 
-    PendingDistance   += SegmentSpan - Walked;
+    // 📝 Never negative, for the same reason the fraction is bounded — the last step may have consumed marginally
+    //    more than the segment carried. A negative residue would advance the next segment's first impression.
+    PendingDistance   += Walked < SegmentSpan ? SegmentSpan - Walked : 0.0;
     TravelledDistance += SegmentSpan;
 
     LastAlong   = Arriving.PositionAlong;

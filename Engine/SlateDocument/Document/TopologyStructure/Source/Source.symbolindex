@@ -8,41 +8,50 @@
 %path       Engine/SlateDocument/Document/TopologyStructure/Source
 %layer      SlateDocument
 %sources    1
-%symbols    24
-%annotated  0/24
+%symbols    26
+%annotated  0/26
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TopologyStructure.cpp | 185 lines | 5748aa93 | 24 sym | Corner run assembly and the seal that closes it.
+S TopologyStructure.cpp | 207 lines | 50169d10 | 26 sym | Corner run assembly and the seal that closes it.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+V SealIssuance                                 | TopologyStructure.cpp | 24      | - | - | ?
+
+F IssueRevision                                | TopologyStructure.cpp | 26-29   | - | - | ?
+    out   -  std::uint64_t  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 DECLARATIONS AND SEAL
 //------------------------------------------------------------------------------------------------------------------------
 
-F TopologyStructure::DeclarePositions          | TopologyStructure.cpp | 15-23   | - | - | ?
+F TopologyStructure::DeclarePositions          | TopologyStructure.cpp | 37-45   | - | - | ?
     in    Arriving  const std::vector<DocumentPosition>&  [-]  ?
     out   -         Outcome<bool>                         [-]  ?
 
-F TopologyStructure::DeclareFace               | TopologyStructure.cpp | 25-56   | - | - | ?
+F TopologyStructure::DeclareFace               | TopologyStructure.cpp | 47-78   | - | - | ?
     in    CornerVertices  const std::vector<std::uint32_t>&  [-]  ?
     out   -               Outcome<bool>                      [-]  ?
 
-F TopologyStructure::DeclareCoordinates        | TopologyStructure.cpp | 58-69   | - | - | ?
+F TopologyStructure::DeclareCoordinates        | TopologyStructure.cpp | 80-91   | - | - | ?
     in    Arriving  const std::vector<DomainCoordinate>&  [-]  ?
     out   -         Outcome<bool>                         [-]  ?
 
-F TopologyStructure::DeclarePerpendiculars     | TopologyStructure.cpp | 71-82   | - | - | ?
+F TopologyStructure::DeclarePerpendiculars     | TopologyStructure.cpp | 93-104  | - | - | ?
     in    Arriving  const std::vector<SurfaceDirection>&  [-]  ?
     out   -         Outcome<bool>                         [-]  ?
 
-F TopologyStructure::DeclareTangentBases       | TopologyStructure.cpp | 84-95   | - | - | ?
+F TopologyStructure::DeclareTangentBases       | TopologyStructure.cpp | 106-117 | - | - | ?
     in    Arriving  const std::vector<TangentBasis>&  [-]  ?
     out   -         Outcome<bool>                     [-]  ?
 
-F TopologyStructure::DeclareMaterialEnrollment | TopologyStructure.cpp | 97-108  | - | - | ?
+F TopologyStructure::DeclareMaterialEnrollment | TopologyStructure.cpp | 119-130 | - | - | ?
     in    Arriving  const std::vector<std::uint32_t>&  [-]  ?
     out   -         Outcome<bool>                      [-]  ?
 
@@ -50,64 +59,64 @@ F TopologyStructure::DeclareMaterialEnrollment | TopologyStructure.cpp | 97-108 
 //                                                        THE SEAL
 //------------------------------------------------------------------------------------------------------------------------
 
-F TopologyStructure::Seal                      | TopologyStructure.cpp | 114-131 | - | - | ?
+F TopologyStructure::Seal                      | TopologyStructure.cpp | 136-153 | - | - | ?
     out   -  Outcome<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-F TopologyStructure::Sealed                    | TopologyStructure.cpp | 137     | - | - | ?
+F TopologyStructure::Sealed                    | TopologyStructure.cpp | 159     | - | - | ?
     out   -  bool  [-]  ?
 
-F TopologyStructure::Revision                  | TopologyStructure.cpp | 138     | - | - | ?
+F TopologyStructure::Revision                  | TopologyStructure.cpp | 160     | - | - | ?
     out   -  std::uint64_t  [-]  ?
 
-F TopologyStructure::VertexCount               | TopologyStructure.cpp | 140-143 | - | - | ?
+F TopologyStructure::VertexCount               | TopologyStructure.cpp | 162-165 | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F TopologyStructure::FaceCount                 | TopologyStructure.cpp | 145-148 | - | - | ?
+F TopologyStructure::FaceCount                 | TopologyStructure.cpp | 167-170 | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F TopologyStructure::CornerCount               | TopologyStructure.cpp | 150-153 | - | - | ?
+F TopologyStructure::CornerCount               | TopologyStructure.cpp | 172-175 | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F TopologyStructure::FaceFirstCorner           | TopologyStructure.cpp | 155-158 | - | - | ?
+F TopologyStructure::FaceFirstCorner           | TopologyStructure.cpp | 177-180 | - | - | ?
     in    FaceOrdinal  std::uint32_t  [-]  ?
     out   -            std::uint32_t  [-]  ?
 
-F TopologyStructure::FaceCornerCount           | TopologyStructure.cpp | 160-163 | - | - | ?
+F TopologyStructure::FaceCornerCount           | TopologyStructure.cpp | 182-185 | - | - | ?
     in    FaceOrdinal  std::uint32_t  [-]  ?
     out   -            std::uint32_t  [-]  ?
 
-F TopologyStructure::CornerVertex              | TopologyStructure.cpp | 165-168 | - | - | ?
+F TopologyStructure::CornerVertex              | TopologyStructure.cpp | 187-190 | - | - | ?
     in    CornerOrdinal  std::uint32_t  [-]  ?
     out   -              std::uint32_t  [-]  ?
 
-F TopologyStructure::CornerFace                | TopologyStructure.cpp | 170-173 | - | - | ?
+F TopologyStructure::CornerFace                | TopologyStructure.cpp | 192-195 | - | - | ?
     in    CornerOrdinal  std::uint32_t  [-]  ?
     out   -              std::uint32_t  [-]  ?
 
-F TopologyStructure::Positions                 | TopologyStructure.cpp | 175     | - | - | ?
+F TopologyStructure::Positions                 | TopologyStructure.cpp | 197     | - | - | ?
     out   -  const std::vector<DocumentPosition>&  [-]  ?
 
-F TopologyStructure::Coordinates               | TopologyStructure.cpp | 176     | - | - | ?
+F TopologyStructure::Coordinates               | TopologyStructure.cpp | 198     | - | - | ?
     out   -  const std::vector<DomainCoordinate>&  [-]  ?
 
-F TopologyStructure::Perpendiculars            | TopologyStructure.cpp | 177     | - | - | ?
+F TopologyStructure::Perpendiculars            | TopologyStructure.cpp | 199     | - | - | ?
     out   -  const std::vector<SurfaceDirection>&  [-]  ?
 
-F TopologyStructure::TangentBases              | TopologyStructure.cpp | 178     | - | - | ?
+F TopologyStructure::TangentBases              | TopologyStructure.cpp | 200     | - | - | ?
     out   -  const std::vector<TangentBasis>&  [-]  ?
 
-F TopologyStructure::MaterialEnrollment        | TopologyStructure.cpp | 179     | - | - | ?
+F TopologyStructure::MaterialEnrollment        | TopologyStructure.cpp | 201     | - | - | ?
     out   -  const std::vector<std::uint32_t>&  [-]  ?
 
-F TopologyStructure::CoordinatesSupplied       | TopologyStructure.cpp | 181     | - | - | ?
+F TopologyStructure::CoordinatesSupplied       | TopologyStructure.cpp | 203     | - | - | ?
     out   -  bool  [-]  ?
 
-F TopologyStructure::PerpendicularsSupplied    | TopologyStructure.cpp | 182     | - | - | ?
+F TopologyStructure::PerpendicularsSupplied    | TopologyStructure.cpp | 204     | - | - | ?
     out   -  bool  [-]  ?
 
-F TopologyStructure::TangentBasesSupplied      | TopologyStructure.cpp | 183     | - | - | ?
+F TopologyStructure::TangentBasesSupplied      | TopologyStructure.cpp | 205     | - | - | ?
     out   -  bool  [-]  ?

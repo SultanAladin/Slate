@@ -7,6 +7,7 @@
 
 #include "Contract/OutcomeContract.h"
 #include "SlateVulkan/Device/ByteSpace/Api/ByteSpace.h"
+#include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
 #include <vulkan/vulkan.h>
@@ -92,10 +93,16 @@ public:
     /// 🧩 Takes the device and the byte extents every claimed span is sliced from.
     /// in    Exchange      [-]  the created device; borrowed, never owned, and outlives this component
     /// in    BackingSpace  [-]  where span bytes come from; borrowed and outlives this component
+    /// in    Naming        [-]  names every claimed span; borrowed and outlives this component
     /// out   Outcome       [-]  refuses with CapabilityAbsent when no device is active
+    /// note  🔴 `06` §7's diagnostic-name gate. Each span is named by its intent and its ordinal, which is
+    ///        what a claimant resolves it by — a name carrying only the intent would be shared by every
+    ///        storage span the engine holds, and the driver's text would then name a set rather than a span.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, ByteSpace& BackingSpace);
+    Outcome<bool> Construct(const VulkanExchange&      Exchange,
+                            ByteSpace&                 BackingSpace,
+                            const DiagnosticExtension& Naming);
 
     /// 🧩 Claims one span of the declared shape and binds the bytes it occupies.
     /// in    Declared  [-]  the shape; nothing about it is inferred from the intent but its permitted reads
@@ -179,9 +186,13 @@ private:
     /// out   Usage   [-]  the vendor flags, transfer destination included
     static VkBufferUsageFlags UsageOf(SpanIntent Intent);
 
-    const VulkanExchange*  DeviceEdge   = nullptr;   // [-] - borrowed; never owned
-    ByteSpace*             BackingBytes = nullptr;   // [-] - borrowed; never owned
-    std::vector<HeldSpan>  Spans        = {};        // [-] - released slots are reused, never erased
+    /// 🧩 What one declared intent is named in the driver's text, so a claim's name states what reads it.
+    static const char* NameOf(SpanIntent Intent);
+
+    const VulkanExchange*       DeviceEdge   = nullptr;   // [-] - borrowed; never owned
+    ByteSpace*                  BackingBytes = nullptr;   // [-] - borrowed; never owned
+    const DiagnosticExtension*  NamingEdge   = nullptr;   // [-] - borrowed; never owned
+    std::vector<HeldSpan>       Spans        = {};        // [-] - released slots are reused, never erased
 };
 
 }   // namespace Slate

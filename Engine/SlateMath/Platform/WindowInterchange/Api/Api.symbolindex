@@ -45,11 +45,11 @@ F WindowInterchange::Open               | WindowInterchange.h | 53    | api,nont
     in    RequestedExtent  DisplayExtent  [px]  the drawable extent asked of the window system
     in    WindowTitle      const char*    [-]   static text; never allocated, never retained beyond the call
     out   -                Outcome        [-]   refuses with HostDenied when the window system declines
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, (+9 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+20 more)
 
 F WindowInterchange::Drain              | WindowInterchange.h | 58    | api,nonthrowing               | ✔️ | Drains the window system's pending messages into this window's recorded condition.
     out   -  void  [-]  ?
-    by    Api/RequestQueue.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/WindowInterchange.cpp, Source/WorkSequence.cpp
+    by    Api/RequestQueue.h, Api/StorageExchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+2 more)
 
 F WindowInterchange::NativeHandle       | WindowInterchange.h | 64    | api,nonallocating,nonthrowing | ✔️ | The opaque native handle, for `06`'s `WindowExchange` and for nothing else.
     out   -  NativeHandle  [-]  null while no window is open

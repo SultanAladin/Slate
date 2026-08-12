@@ -7,6 +7,7 @@
 
 #include "Contract/OutcomeContract.h"
 #include "SlateVulkan/Device/DescriptorIndex/Api/DescriptorIndex.h"
+#include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
@@ -124,11 +125,18 @@ public:
     /// in    Exchange     [-]  the created device; borrowed and outlives this component
     /// in    Modules      [-]  where the stage declarations come from; borrowed and outlives this component
     /// in    Descriptors  [-]  where the set layouts come from; borrowed and outlives this component
+    /// in    Naming       [-]  names every program and every layout; borrowed and outlives this component
     /// out   Outcome      [-]  refuses with CapabilityAbsent when no device is active
     /// post  no program is declared
+    /// note  🔴 `06` §7's diagnostic-name gate. The program and the layout it reaches through are named
+    ///        separately and by the same ordinal, because they are two vendor objects a recording binds one
+    ///        after the other — and the errors the two raise read alike until the objects are told apart.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, ShaderCodec& Modules, const DescriptorIndex& Descriptors);
+    Outcome<bool> Construct(const VulkanExchange&      Exchange,
+                            ShaderCodec&               Modules,
+                            const DescriptorIndex&     Descriptors,
+                            const DiagnosticExtension& Naming);
 
     /// 🧩 Constructs one graphics program, returning the ordinal every later resolution names it by.
     /// in    Declaring  [-]  the modules, layouts, render construct and depth behaviour
@@ -182,10 +190,11 @@ private:
                                           std::uint32_t                     ConstantBytes,
                                           VkShaderStageFlags                ReachingStages);
 
-    const VulkanExchange*     DeviceEdge     = nullptr;   // [-] - borrowed; never owned
-    ShaderCodec*              ModuleEdge     = nullptr;   // [-] - borrowed; the stage declaration is held there
-    const DescriptorIndex*    DescriptorEdge = nullptr;   // [-] - borrowed; never owned
-    std::vector<HeldProgram>  Programs       = {};        // [-] - every program constructed, held for the run
+    const VulkanExchange*      DeviceEdge     = nullptr;   // [-] - borrowed; never owned
+    ShaderCodec*               ModuleEdge     = nullptr;   // [-] - borrowed; the stage declaration is held there
+    const DescriptorIndex*     DescriptorEdge = nullptr;   // [-] - borrowed; never owned
+    const DiagnosticExtension* NamingEdge     = nullptr;   // [-] - borrowed; never owned
+    std::vector<HeldProgram>   Programs       = {};        // [-] - every program constructed, held for the run
 };
 
 }   // namespace Slate

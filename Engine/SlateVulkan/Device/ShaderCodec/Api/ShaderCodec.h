@@ -46,9 +46,8 @@ struct SpecialisedConstant
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Every lowered shader the engine holds, read from what the build lowered and constructed once.
-/// note  🔴 The stream is read from disk here rather than through `FileInterchange`, which `04` §1 declares
-///       and nothing has yet built. The read is a whole-file one of a build product and is replaced by that
-///       surface the moment it exists — 🚧 recorded rather than left as an assumption.
+/// note  📝 Every stream is read through `04` §1's `FileInterchange`. The read is a whole-file one of a build
+///       product, which is what that surface delivers; nothing here opens a file itself.
 /// note  ⚠️ A module is destroyed once every program constructed against it stands. It is held here for the
 ///       run regardless, because `06` §4.2's recovery reconstructs every program and a module discarded at
 ///       bring-up would have to be read from disk again inside the recovery.

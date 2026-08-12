@@ -6,8 +6,8 @@
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateDocument
-%folders  50
-%symbols  1015
+%folders  70
+%symbols  1356
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
@@ -21,6 +21,8 @@ I Api    | Api/Api.symbolindex       | 39 sym | Where the viewer is and how a do
 I Source | Source/Source.symbolindex | 27 sym | Reversed-depth projection derivation, plane extraction, the gesture lifecycle, and the framing solve.
 I Api    | Api/Api.symbolindex       | 26 sym | Placed content — a source, a transform stored against the surface, and the extent it covers in the domain.
 I Source | Source/Source.symbolindex | 21 sym | The inverse of a decomposed placing transform, the two extent derivations, and the drag that records nothing until release.
+I Api    | Api/Api.symbolindex       | 36 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
+I Source | Source/Source.symbolindex | 33 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
 I Api    | Api/Api.symbolindex       | 14 sym | Which slots are enrolled in a named subset, compressed by interval rather than stored per occupant.
 I Source | Source/Source.symbolindex | 11 sym | Interval merging, division, and the exclusion refusal that precedes every write.
 I Api    | Api/Api.symbolindex       | 28 sym | The illuminants `18` integrates — every one an occupant, every one with a size, every extent declared not derived.
@@ -31,12 +33,20 @@ I Api    | Api/Api.symbolindex       | 32 sym | What a surface's channels are, w
 I Source | Source/Source.symbolindex | 23 sym | The channel inventory per reflectance, declaration validation, and the partition resolution.
 I Api    | Api/Api.symbolindex       | 27 sym | The fixed tick order over both relations, the linearisation, the subsets and the name search.
 I Source | Source/Source.symbolindex | 23 sym | The seven steps in order, every mutation a transaction, and the retirement cascade as one of them.
+I Api    | Api/Api.symbolindex       | 9 sym  | `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
+I Source | Source/Source.symbolindex | 4 sym  | `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
 I Api    | Api/Api.symbolindex       | 14 sym | What is under the pointer — resolved on the host, every sample, as one tuple and never as several answers.
 I Source | Source/Source.symbolindex | 10 sym | The unprojection, the one traversal that resolves the whole tuple, and the marquee as a narrower camera.
 I Api    | Api/Api.symbolindex       | 10 sym | Generationally versioned slot ledger — the population every occupant of the document sits inside.
 I Source | Source/Source.symbolindex | 8 sym  | Slot issuance, withdrawal and generational resolution.
+I Api    | Api/Api.symbolindex       | 21 sym | Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
+I Source | Source/Source.symbolindex | 21 sym | Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
 I Api    | Api/Api.symbolindex       | 15 sym | Typed, named, validated property declarations — validation part of the declaration, never a later step.
 I Source | Source/Source.symbolindex | 11 sym | The validation each measure declares, the bounding offered beside it, and the write that refuses.
+I Api    | Api/Api.symbolindex       | 15 sym | `48` §4 — the per-document journal appended as transactions seal, and the replay that is offered and never applied.
+I Source | Source/Source.symbolindex | 11 sym | `48` §4 — the per-document journal appended as transactions seal, and the replay that is offered and never applied.
+I Api    | Api/Api.symbolindex       | 18 sym | `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
+I Source | Source/Source.symbolindex | 15 sym | `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
 I Api    | Api/Api.symbolindex       | 11 sym | Ordered, scrubbable sequence of committed transactions, with the drag lifecycle every edit uses.
 I Source | Source/Source.symbolindex | 8 sym  | The drag lifecycle, declared merging, and scrubbing in both directions.
 I Api    | Api/Api.symbolindex       | 18 sym | Depth-first linearisation of the enclosure relation, and the counted ordering that scrolls it.
@@ -45,6 +55,8 @@ I Api    | Api/Api.symbolindex       | 40 sym | The two nesting relations over t
 I Source | Source/Source.symbolindex | 28 sym | Enclosure ordering, gapped label assignment and repair, and downward attachment compounding.
 I Api    | Api/Api.symbolindex       | 9 sym  | Selection ordering, revised in its own sequence, session-scoped, restored alongside the transaction it served.
 I Source | Source/Source.symbolindex | 7 sym  | Sealing, traversal, and the restoration that pairs a document scrub with the selection it served.
+I Api    | Api/Api.symbolindex       | 44 sym | `78` — one manipulator that moves, rotates and scales everything movable, and the grips the artist grasps to do it.
+I Source | Source/Source.symbolindex | 46 sym | `78` — the grip layout, the screen-space grasp, and the four drag solves each grip resolves against.
 I Api    | Api/Api.symbolindex       | 40 sym | Three subdivisions, two levels, one traversal — what lets `74` answer the pointer on the host, every sample.
 I Source | Source/Source.symbolindex | 38 sym | Octant division, nearest-first descent, exact face classification, and refit without rebuild.
 I Api    | Api/Api.symbolindex       | 32 sym | The ordered content of one surface — the single source of truth a resident tile is a projection of.
@@ -56,13 +68,21 @@ I Source | Source/Source.symbolindex | 27 sym | Tool declaration, the arbitratio
 I Api    | Api/Api.symbolindex       | 24 sym | Derived companions to imported topology — adjacency, welding, orientation, bases and extents. Never a mutation.
 I Source | Source/Source.symbolindex | 26 sym | Lattice welding, corner adjacency, orientation consistency, and conservative extents.
 I Api    | Api/Api.symbolindex       | 28 sym | Polygon topology exactly as it arrived — sealed once, never mutated, and never repaired.
-I Source | Source/Source.symbolindex | 24 sym | Corner run assembly and the seal that closes it.
+I Source | Source/Source.symbolindex | 26 sym | Corner run assembly and the seal that closes it.
 I Api    | Api/Api.symbolindex       | 10 sym | Name search that narrows by trigram and then confirms exactly — approximate index, exact answer.
 I Source | Source/Source.symbolindex | 8 sym  | Trigram folding and entry, the rarest-run narrowing, and the exact confirmation over it.
 I Api    | Api/Api.symbolindex       | 25 sym | Vector outlines and typeface outlines as one thing — the accepted subset, and every refusal positioned.
 I Source | Source/Source.symbolindex | 16 sym | Declaration by either route, flattening at a supplied tolerance, and classification per declared rule.
 I Api    | Api/Api.symbolindex       | 4 sym  | Versioned document stream layout and its declared migrations — never a conditional inside a reader.
 I Source | Source/Source.symbolindex | 2 sym  | Migration chain resolution over the declared version transformations.
+I Api    | Api/Api.symbolindex       | 6 sym  | `10` §1 — image streams translated to the texels the file carried, at the depth it carried them, and nothing else.
+I Source | Source/Source.symbolindex | 15 sym | `10` §1 — image streams translated to the texels the file carried, at the depth it carried them, and nothing else.
+I Api    | Api/Api.symbolindex       | 5 sym  | `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
+I Source | Source/Source.symbolindex | 9 sym  | `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
+I Api    | Api/Api.symbolindex       | 6 sym  | `10` §1 — typeface streams translated into glyph outlines and the metrics that position them.
+I Source | Source/Source.symbolindex | 7 sym  | `10` §1 — typeface streams translated into glyph outlines and the metrics that position them.
+I Api    | Api/Api.symbolindex       | 5 sym  | `10` §1 — vector streams translated into `52`'s accepted subset, with every refusal named and positioned.
+I Source | Source/Source.symbolindex | 13 sym | `10` §1 — vector streams translated into `52`'s accepted subset, with every refusal named and positioned.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -275,6 +295,75 @@ F PlacementSequence::Amended                    | Source/DecalProjection.cpp    
 F PlacementSequence::Subject                    | Source/DecalProjection.cpp       | 499       | ?
 F PlacementSequence::GestureOpen                | Source/DecalProjection.cpp       | 500       | ?
 F PlacementSequence::CameraFollowing            | Source/DecalProjection.cpp       | 501       | ?
+E StorageStanding                               | Api/DocumentSession.h            | 32-37     | Whether an open session has a file behind it yet. it is not a lesser document — it simply has no target for a save until one is declared.
+T DocumentSession                               | Api/DocumentSession.h            | 55-178    | One open document — the population it holds, and everything true of it only while it is open. the **document**; the storage location, unsaved standing, selection, presented camera and outliner expansion are held **here only**; the display space, device residency and `20`'s resident tiles are held itself, so nothing derived is written and nothing derived is stored here either. not written on save. A document that reopened with someone else's selection restored has restored a decision the artist had already finished making, and the first stroke lands on the wrong occupant. and the generation that makes a reference safe is only unique within one of them.
+F DocumentSession::Document                     | Api/DocumentSession.h            | 66        | The document itself — population, relations, revisions, rows and subsets.
+F DocumentSession::Document                     | Api/DocumentSession.h            | 67        | ?
+F DocumentSession::References                   | Api/DocumentSession.h            | 72        | What this document depends on outside itself — `48` §5.
+F DocumentSession::References                   | Api/DocumentSession.h            | 73        | ?
+F DocumentSession::Journal                      | Api/DocumentSession.h            | 78        | This document's own journal — `48` §4.1, one per document and never per application.
+F DocumentSession::Journal                      | Api/DocumentSession.h            | 79        | ?
+F DocumentSession::DeclareStorage               | Api/DocumentSession.h            | 87        | Declares where this session's document lives, and where its journal is written beside it.
+F DocumentSession::Seal                         | Api/DocumentSession.h            | 101       | Captures everything a save reads, from sealed state only — `48` §3. ExtentExhausted when a transaction is open half-finished drag on their behalf commits an edit they had not decided to keep, and it would land in `RevisionSequence` where they can only undo it after the fact. this knows the session; a session that encoded would be a second place the layout is written.
+F DocumentSession::DeclareSaved                 | Api/DocumentSession.h            | 110       | Records that a save landed, so the session stops standing amended. the worker would retire it before the requester knew the replacement had landed.
+F DocumentSession::DeclareAmended               | Api/DocumentSession.h            | 117       | Records that the document was amended, so a save is owed and the journal has a tail. comparison cannot tell an amendment from a scrub back to the saved position and forward again.
+F DocumentSession::AmendmentsStanding           | Api/DocumentSession.h            | 122       | Whether this session holds amendments the file does not.
+F DocumentSession::DeclarePresentedCamera       | Api/DocumentSession.h            | 129       | Which camera occupant this session presents. Session state — `48` §2. should each look at it from where they left off, not from where the last person to save was.
+F DocumentSession::PresentedCamera              | Api/DocumentSession.h            | 130       | ?
+F DocumentSession::DeclareScrollPosition        | Api/DocumentSession.h            | 135       | Where the outliner is scrolled to. Session state — `48` §2.
+F DocumentSession::ScrollPosition               | Api/DocumentSession.h            | 136       | ?
+F DocumentSession::StorageOrigin                | Api/DocumentSession.h            | 141       | Where this session's document lives, empty while the standing is Undeclared.
+F DocumentSession::Standing                     | Api/DocumentSession.h            | 146       | Whether a file stands behind this session yet.
+F DocumentSession::SavedThrough                 | Api/DocumentSession.h            | 151       | The revision ordinal the file on disc carries; zero when nothing has been saved.
+F DocumentSession::SavedAt                      | Api/DocumentSession.h            | 156       | When the last save landed; zero when nothing has been saved.
+F DocumentSession::DeclareReadVersion           | Api/DocumentSession.h            | 161       | The stream version this document was read at, migrated to the current one — `48` §7.
+F DocumentSession::ReadVersion                  | Api/DocumentSession.h            | 162       | ?
+T SessionIndex                                  | Api/DocumentSession.h            | 192-271   | Every open document, and which one the interface presents — `48` §6. for it, one instance beside this index rather than one per session. An artist who sets a brush size and switches document is expressing a preference about how they are working, not about that file. reference an interface panel holds across a tick would otherwise dangle the moment a second document opened, and the defect appears only for artists who work with more than one file at a time.
+F SessionIndex::Open                            | Api/DocumentSession.h            | 207       | Opens one session and issues the ordinal that addresses it. reference file mid-stroke would otherwise lose the workspace they were painting in.
+F SessionIndex::Close                           | Api/DocumentSession.h            | 216       | Closes one session, discarding everything held only while it was open. the answer is a conversation with the artist and this component cannot have one.
+F SessionIndex::Resolve                         | Api/DocumentSession.h            | 222       | One open session.
+F SessionIndex::Resolve                         | Api/DocumentSession.h            | 223       | ?
+F SessionIndex::DeclarePresented                | Api/DocumentSession.h            | 229       | Declares which session the interface presents — `14` presents one at a time.
+F SessionIndex::Presenting                      | Api/DocumentSession.h            | 235       | The session the interface presents.
+F SessionIndex::Presenting                      | Api/DocumentSession.h            | 236       | ?
+F SessionIndex::PresentedOrdinal                | Api/DocumentSession.h            | 241       | Which ordinal is presented; the ceiling when nothing is open.
+F SessionIndex::Located                         | Api/DocumentSession.h            | 249       | The most recently opened session naming one storage location. journals against it, and §4.1's pairing then cannot say which one recovers it.
+F SessionIndex::OpenCount                       | Api/DocumentSession.h            | 254       | How many sessions are open.
+F SessionIndex::SpannedCount                    | Api/DocumentSession.h            | 259       | How many slots the index spans, open or not.
+F SessionIndex::Reclaim                         | Api/DocumentSession.h            | 264       | Closes every session. Called at process teardown and by nothing else.
+F DocumentSession::Document                     | Source/DocumentSession.cpp       | 17-20     | ?
+F DocumentSession::Document                     | Source/DocumentSession.cpp       | 22-25     | ?
+F DocumentSession::References                   | Source/DocumentSession.cpp       | 27-30     | ?
+F DocumentSession::References                   | Source/DocumentSession.cpp       | 32-35     | ?
+F DocumentSession::Journal                      | Source/DocumentSession.cpp       | 37-40     | ?
+F DocumentSession::Journal                      | Source/DocumentSession.cpp       | 42-45     | ?
+F DocumentSession::DeclareStorage               | Source/DocumentSession.cpp       | 51-64     | ?
+F DocumentSession::Seal                         | Source/DocumentSession.cpp       | 70-98     | ?
+F DocumentSession::DeclareSaved                 | Source/DocumentSession.cpp       | 100-111   | ?
+F DocumentSession::DeclareAmended               | Source/DocumentSession.cpp       | 113-116   | ?
+F DocumentSession::AmendmentsStanding           | Source/DocumentSession.cpp       | 118-121   | ?
+F DocumentSession::DeclarePresentedCamera       | Source/DocumentSession.cpp       | 127-130   | ?
+F DocumentSession::PresentedCamera              | Source/DocumentSession.cpp       | 132-135   | ?
+F DocumentSession::DeclareScrollPosition        | Source/DocumentSession.cpp       | 137-140   | ?
+F DocumentSession::ScrollPosition               | Source/DocumentSession.cpp       | 142-145   | ?
+F DocumentSession::StorageOrigin                | Source/DocumentSession.cpp       | 147-150   | ?
+F DocumentSession::Standing                     | Source/DocumentSession.cpp       | 152-155   | ?
+F DocumentSession::SavedThrough                 | Source/DocumentSession.cpp       | 157-160   | ?
+F DocumentSession::SavedAt                      | Source/DocumentSession.cpp       | 162-165   | ?
+F DocumentSession::DeclareReadVersion           | Source/DocumentSession.cpp       | 167-170   | ?
+F DocumentSession::ReadVersion                  | Source/DocumentSession.cpp       | 172-175   | ?
+F SessionIndex::Open                            | Source/DocumentSession.cpp       | 181-217   | ?
+F SessionIndex::Close                           | Source/DocumentSession.cpp       | 219-247   | ?
+F SessionIndex::Resolve                         | Source/DocumentSession.cpp       | 249-257   | ?
+F SessionIndex::Resolve                         | Source/DocumentSession.cpp       | 259-267   | ?
+F SessionIndex::DeclarePresented                | Source/DocumentSession.cpp       | 269-279   | ?
+F SessionIndex::Presenting                      | Source/DocumentSession.cpp       | 281-284   | ?
+F SessionIndex::Presenting                      | Source/DocumentSession.cpp       | 286-289   | ?
+F SessionIndex::PresentedOrdinal                | Source/DocumentSession.cpp       | 291-294   | ?
+F SessionIndex::Located                         | Source/DocumentSession.cpp       | 296-309   | ?
+F SessionIndex::OpenCount                       | Source/DocumentSession.cpp       | 311-314   | ?
+F SessionIndex::SpannedCount                    | Source/DocumentSession.cpp       | 316-319   | ?
+F SessionIndex::Reclaim                         | Source/DocumentSession.cpp       | 321-326   | ?
 E SubsetSubject                                 | Api/EnrollmentIndex.h            | 28-35     | Every subset the outliner declares, and where each one's mutations are recorded. mechanism is enrollment — `12` §3. transaction is recorded, not whether there is one. Selection is recorded in `SelectionSequence` and is session-scoped; the other three are recorded in `RevisionSequence` and scrubbed by undo.
 T EnrolledInterval                              | Api/EnrollmentIndex.h            | 42-46     | One run of consecutively enrolled slots, inclusive at both ends. matches the shape of the fact. Storing it densely costs a bit per occupant per subset and a linear comparison to answer, and `12` §6 has room for neither at a million occupants.
 F EnrolInterval                                 | Api/EnrollmentIndex.h            | 61        | Enrols one ordinal into a sorted run of intervals, merging where it abuts. mechanism and neither is a slot of the document population. One implementation both read is the whole point: two interval implementations that must agree are one that will not.
@@ -471,6 +560,19 @@ F OutlinerSequence::Sought                      | Source/OutlinerSequence.cpp   
 F OutlinerSequence::Rejected                    | Source/OutlinerSequence.cpp      | 513-516   | ?
 F OutlinerSequence::ReclaimRejected             | Source/OutlinerSequence.cpp      | 518-521   | ?
 F OutlinerSequence::InvariantsHeld              | Source/OutlinerSequence.cpp      | 523-532   | ?
+E PersistenceStep                               | Api/PersistenceSequence.h        | 29-37     | Where a save stands, so a refusal names which of `48` §3's four steps declined. save is untouched and nothing is lost; a refusal at ③ means the replacement exists beside the target and can be recovered by hand. Reporting all three as "the save failed" throws that away.
+T PersistenceConclusion                         | Api/PersistenceSequence.h        | 41-47     | One completed save, and what it leaves true of the document that requested it.
+T SealedContent                                 | Api/PersistenceSequence.h        | 61-68     | Everything a save reads, captured at declaration so the resolution reads nothing that can change. half-finished drag is not a state the artist asked to keep — and a document that reopened mid-drag would present a stroke the artist never let go of. artist keeps painting while it does. A save that read the live document would read it mid-transaction on whichever machine happened to be slow enough, and `48` §3's non-blocking rule would be the cause.
+T PersistenceSequence                           | Api/PersistenceSequence.h        | 82-123    | The write-verify-replace sequence, run over one sealed state through one file surface. and read back. Writing in place is the mechanism by which a full disk, a lost share or a power loss converts a good file into no file at all — and the artist's previous save is their fallback. seam. This sequence is what states them apart for `86`, and it does that by recording which step it reached rather than by performing them through three separate calls.
+F PersistenceSequence::Persist                  | Api/PersistenceSequence.h        | 97        | Runs `48` §3's four steps over one sealed state. the file surface's own refusal otherwise `34` §2's immutability rule by construction rather than by discipline. session and this routine runs off it. `Reached` is what tells the caller ③ actually landed.
+F PersistenceSequence::VerifyIdentical          | Api/PersistenceSequence.h        | 107       | Whether two streams are identical, byte for byte — `48` §3 ② and `48` §8's exact tier. corruptions a failing disk produces, which are the ones this step exists to catch.
+F PersistenceSequence::LastReached              | Api/PersistenceSequence.h        | 112       | How far the last save got, whether it delivered or refused.
+F PersistenceSequence::ReplacedCount            | Api/PersistenceSequence.h        | 117       | How many saves this sequence has completed through ③.
+F SLATE_DECLARES_PRECISION                      | Api/PersistenceSequence.h        | 125       | ?
+F PersistenceSequence::VerifyIdentical          | Source/PersistenceSequence.cpp   | 18-25     | ?
+F PersistenceSequence::Persist                  | Source/PersistenceSequence.cpp   | 31-81     | ?
+F PersistenceSequence::LastReached              | Source/PersistenceSequence.cpp   | 87-90     | ?
+F PersistenceSequence::ReplacedCount            | Source/PersistenceSequence.cpp   | 92-95     | ?
 T ProjectedRay                                  | Api/PointerIntersection.h        | 34-40     | One pointer position carried into document space as a ray. happened and must not: this ray is traversed against `40`'s subdivision, which is in document space. A ray rebased here would be a ray about the camera, and every extent it tested would be somewhere else. `40` returns is a document-space distance in both cases and the two order against each other.
 F ProjectPointerRay                             | Api/PointerIntersection.h        | 60        | Carries one display position into a document-space ray through a declared camera. interior, and with HostDenied while the camera owes a reconciliation applies `ClipOrdinateSignum` in its second row, so the display's downward-increasing ordinate is already folded into the coefficient — a second inversion here would place every ray on the wrong side of the horizon, and it would do so only for the vertical axis, which reads as a camera that is subtly mis-aimed rather than as an inversion. §7 makes `Reconcile` the only writer of it, and a ray cast through last tick's projection is a ray cast at where the artist was looking before they moved.
 F SLATE_DECLARES_PRECISION                      | Api/PointerIntersection.h        | 65        | ?
@@ -513,6 +615,48 @@ F PopulationIndex::Enrol                        | Source/PopulationIndex.cpp    
 F PopulationIndex::Withdraw                     | Source/PopulationIndex.cpp       | 95-110    | ?
 F PopulationIndex::Resolve                      | Source/PopulationIndex.cpp       | 116-128   | ?
 F PopulationIndex::EnrolledCount                | Source/PopulationIndex.cpp       | 130-133   | ?
+E PrimitiveSubject                              | Api/PrimitiveStructure.h         | 31-41     | Which solid a declaration generates. from parameters that are held rather than from vertices that are typed in — which is what lets an authored primitive be re-generated at a different subdivision after the artist has placed it. cone tip, its scale grip and the central ring. They are declared here rather than beside the manipulator so that a modelled cone and a grip cone are one generation and cannot come to differ.
+T PrimitiveSpecification                        | Api/PrimitiveStructure.h         | 55-67     | One primitive's declared parameters — every solid's, in one declaration. changes keeps the extents they already set, and a per-subject declaration would discard them at each change. The unread members of a given subject cost nothing and the retained edit is the point. the generated solid is centred on whatever transform places it. A primitive generated about a corner rotates about that corner, and the artist reads that as the rotation being wrong.
+V RadialCountLeast                              | Api/PrimitiveStructure.h         | 71        | ?
+V AxialCountLeast                               | Api/PrimitiveStructure.h         | 72        | ?
+V SubdivisionCeiling                            | Api/PrimitiveStructure.h         | 73        | ?
+F PrimitiveGenerable                            | Api/PrimitiveStructure.h         | 81-91     | Whether a specification generates a surface at all. coincident vertices, which seals successfully and then fails at whichever consumer first divides by the extent it has — and that consumer is named in the refusal instead of this one.
+F SLATE_DECLARES_PRECISION                      | Api/PrimitiveStructure.h         | 92        | ?
+F GeneratePrimitive                             | Api/PrimitiveStructure.h         | 116       | Generates one primitive into a sealed topology. with HostDenied for a topology that is already sealed construction. `38`'s non-mutation guarantee begins at the seal, and a generated surface handed back unsealed would be one a caller could add a face to — which is a surface no parameter describes. parametrisation is what the solid is *defined by*, so it is exact here and merely approximated there, and a generated box that arrived unwrapped would have seams `68` chose rather than the six the box has. A cylinder's cap and its wall meet at one ring of positions and the two perpendiculars there are opposite; the generation splits that ring so each side carries its own, which is what makes the edge read as an edge.
+F SLATE_DECLARES_PRECISION                      | Api/PrimitiveStructure.h         | 117       | ?
+F ProjectPrimitiveExtent                        | Api/PrimitiveStructure.h         | 128       | The half-extents the generated solid actually occupies, before any transform places it. a subdivision or frame a camera before generating anything. The torus is the only entry where the answer is not the three half-extents, and it is the reason this exists rather than being assumed.
+F SLATE_DECLARES_PRECISION                      | Api/PrimitiveStructure.h         | 131       | ?
+T PrimitiveIndex                                | Api/PrimitiveStructure.h         | 146-220   | Every primitive the document holds parametrically, addressed by the ordinal its declaration returned. raises is re-generated from the amended specification, and a stored topology would be a second representation that the parameters no longer describe — `02` §3.1's rule about the decomposed transform, applied to a surface. the generated surface and this holds what generated it. Retiring the occupant retires both, and the cascade in `12` §12 is what calls `Withdraw`.
+F PrimitiveIndex::Declare                       | Api/PrimitiveStructure.h         | 158       | Declares one primitive's parameters and issues the ordinal it is addressed by. and with ExtentExhausted at the declared ceiling
+F PrimitiveIndex::Amend                         | Api/PrimitiveStructure.h         | 170       | Amends one primitive's parameters, advancing its revision where the generated surface would differ. `PrimitiveGenerable` rejects does, which is why the comparison is over the whole specification — but stating it that way is what keeps a later member that does *not* from silently forcing a re-generation of every occupant.
+F PrimitiveIndex::Resolve                       | Api/PrimitiveStructure.h         | 176       | One declared primitive's parameters.
+F PrimitiveIndex::Withdraw                      | Api/PrimitiveStructure.h         | 184       | Withdraws one primitive, returning its slot for reuse. every ordinal above it and every occupant naming one would name a different primitive.
+F PrimitiveIndex::Revision                      | Api/PrimitiveStructure.h         | 190       | One primitive's revision, so a consumer knows whether its generated surface is still current.
+F PrimitiveIndex::DeclaredCount                 | Api/PrimitiveStructure.h         | 195       | How many primitives stand declared.
+F PrimitiveIndex::SpannedCount                  | Api/PrimitiveStructure.h         | 200       | How many slots the index spans, claimed or not.
+F PrimitiveIndex::Reclaim                       | Api/PrimitiveStructure.h         | 205       | Discards every declaration. Called when the document holding them closes.
+T PrimitiveIndex::HeldPrimitive                 | Api/PrimitiveStructure.h         | 209-214   | ?
+T GeneratedSurface                              | Source/PrimitiveStructure.cpp    | 24-77     | ?
+F GeneratedSurface::Emit                        | Source/PrimitiveStructure.cpp    | 31-65     | ?
+F GeneratedSurface::EmitFace                    | Source/PrimitiveStructure.cpp    | 67-70     | ?
+F GeneratedSurface::EmitFace                    | Source/PrimitiveStructure.cpp    | 72-76     | ?
+V Turn                                          | Source/PrimitiveStructure.cpp    | 79        | ?
+F GenerateBox                                   | Source/PrimitiveStructure.cpp    | 88-145    | ?
+F GenerateSphere                                | Source/PrimitiveStructure.cpp    | 151-211   | ?
+F GenerateRevolution                            | Source/PrimitiveStructure.cpp    | 220-333   | ?
+F GenerateTorus                                 | Source/PrimitiveStructure.cpp    | 339-386   | ?
+F GeneratePlane                                 | Source/PrimitiveStructure.cpp    | 392-426   | ?
+F GenerateAnnularSector                         | Source/PrimitiveStructure.cpp    | 436-468   | ?
+F GeneratePrimitive                             | Source/PrimitiveStructure.cpp    | 476-551   | ?
+F ProjectPrimitiveExtent                        | Source/PrimitiveStructure.cpp    | 557-592   | ?
+F PrimitiveIndex::Declare                       | Source/PrimitiveStructure.cpp    | 598-636   | ?
+F PrimitiveIndex::Amend                         | Source/PrimitiveStructure.cpp    | 638-674   | ?
+F PrimitiveIndex::Resolve                       | Source/PrimitiveStructure.cpp    | 676-685   | ?
+F PrimitiveIndex::Withdraw                      | Source/PrimitiveStructure.cpp    | 687-701   | ?
+F PrimitiveIndex::Revision                      | Source/PrimitiveStructure.cpp    | 703-711   | ?
+F PrimitiveIndex::DeclaredCount                 | Source/PrimitiveStructure.cpp    | 713-716   | ?
+F PrimitiveIndex::SpannedCount                  | Source/PrimitiveStructure.cpp    | 718-721   | ?
+F PrimitiveIndex::Reclaim                       | Source/PrimitiveStructure.cpp    | 723-730   | ?
 E PropertyMeasure                               | Api/PropertySpecification.h      | 27-38     | What a property's value measures, which fixes both its storage and its validation. the category instead of the mechanism; what discriminates here is what the number means.
 T PropertyValue                                 | Api/PropertySpecification.h      | 49-59     | One property's value, carrying the measure it was declared as. rather than reinterpreted storage. `10` §2.2's whole point is that an invalid state must not exist between the write and the check.
 T PropertyDeclaration                           | Api/PropertySpecification.h      | 76-91     | One property as its owner declared it — its name, its measure, its bounds, and its default. the value. A property that can hold an invalid value between the write and the check has an invalid state, and something will observe it. assumed to be zero. A magnitude defaulted to zero produces a surface that is black or invisible, and the artist reads that as a broken material rather than as a missing declaration. without knowing which. A tool presented by hand-written panel code is a tool the panel must be edited to add.
@@ -539,6 +683,65 @@ F PropertyIndex::Declarations                   | Source/PropertySpecification.c
 F PropertyIndex::ValueWritten                   | Source/PropertySpecification.cpp | 267-272   | ?
 F PropertyIndex::Reclaim                        | Source/PropertySpecification.cpp | 274-285   | ?
 F PropertyIndex::ValuesValid                    | Source/PropertySpecification.cpp | 287-296   | ?
+T JournalEntry                                  | Api/RecoverySequence.h           | 27-33     | One sealed transaction as the journal carries it — the tail of `RevisionSequence` since the last save. rather than by the population's size, which is what lets it be written at stroke rate on a document too large to save at stroke rate.
+E RecoveryStanding                              | Api/RecoverySequence.h           | 41-48     | The four situations `48` §4 tabulates, decided on read and never inferred later.
+T RecoveryOffer                                 | Api/RecoverySequence.h           | 55-62     | What the artist is told before they decide — `48` §4's offer, stated rather than performed. asks the artist to choose between two things they cannot see, and the wrong choice discards an afternoon either way.
+T RecoverySequence                              | Api/RecoverySequence.h           | 77-179    | One document's journal — appended as transactions seal, retired by a save, replayed only when accepted. each offered against its own file. A single journal covering the session cannot be replayed into one document without replaying it into the other, and the artist would meet that as one document acquiring the other's edits. acceptance: an artist who abandoned an experiment by closing without saving must not be handed it back as though it were the file.
+F RecoverySequence::DeclareDocument             | Api/RecoverySequence.h           | 94        | Names the document this journal belongs to, and the journal's own storage location. did not know its document could be replayed into whichever document happened to be open.
+F RecoverySequence::Append                      | Api/RecoverySequence.h           | 106       | Appends one sealed transaction to the journal. cannot be replayed from the saved file. OfferReplay reports that as PartlyOffered, so the artist is told the recovery is partial rather than handed a document assembled from a gap.
+F RecoverySequence::Retire                      | Api/RecoverySequence.h           | 115       | Retires every entry a completed save subsumes — `48` §3 ④. discarded the journal that would have recovered the very transactions it failed to write.
+F RecoverySequence::OfferReplay                 | Api/RecoverySequence.h           | 125       | Reads what stands past the save and states the offer — never applies it. it is — both stamps and the count between them — and the artist answers it.
+F RecoverySequence::DeclareUnreadable           | Api/RecoverySequence.h           | 135       | Declares one entry unreadable, so the offer stops at it rather than past it. replay transactions against a document that is missing the ones before them, and the result is a document that never existed at any moment of the artist's session.
+F RecoverySequence::Offered                     | Api/RecoverySequence.h           | 145       | The entries an accepted offer would replay, in sealing order. replay inside a component that cannot seal a transaction, and every replayed edit would sit outside the sequence that scrubs it.
+F RecoverySequence::Retained                    | Api/RecoverySequence.h           | 150       | Every entry the journal retains, in sealing order.
+F RecoverySequence::DocumentOrigin              | Api/RecoverySequence.h           | 155       | The document this journal is offered against.
+F RecoverySequence::JournalOrigin               | Api/RecoverySequence.h           | 160       | Where the journal itself is written.
+F RecoverySequence::DiscardedCount              | Api/RecoverySequence.h           | 165       | How many entries the ceiling has retired — itself a fact the offer has to carry.
+F RecoverySequence::Reclaim                     | Api/RecoverySequence.h           | 170       | Empties the journal. Called when the document it belongs to closes cleanly.
+F RecoverySequence::DeclareDocument             | Source/RecoverySequence.cpp      | 17-29     | ?
+F RecoverySequence::Append                      | Source/RecoverySequence.cpp      | 35-61     | ?
+F RecoverySequence::Retire                      | Source/RecoverySequence.cpp      | 67-88     | ?
+F RecoverySequence::OfferReplay                 | Source/RecoverySequence.cpp      | 94-136    | ?
+F RecoverySequence::DeclareUnreadable           | Source/RecoverySequence.cpp      | 138-144   | ?
+F RecoverySequence::Offered                     | Source/RecoverySequence.cpp      | 146-159   | ?
+F RecoverySequence::Retained                    | Source/RecoverySequence.cpp      | 165-168   | ?
+F RecoverySequence::DocumentOrigin              | Source/RecoverySequence.cpp      | 170-173   | ?
+F RecoverySequence::JournalOrigin               | Source/RecoverySequence.cpp      | 175-178   | ?
+F RecoverySequence::DiscardedCount              | Source/RecoverySequence.cpp      | 180-183   | ?
+F RecoverySequence::Reclaim                     | Source/RecoverySequence.cpp      | 185-190   | ?
+E ReferenceSubject                              | Api/ReferenceIndex.h             | 28-36     | The five contents `48` §5 tabulates, each carrying its own retention default. other at read time, because a document written under one answer must open correctly under both — and a reader that inferred it would open the same file two ways on two builds.
+E ReferenceRetention                            | Api/ReferenceIndex.h             | 40-44     | Whether the content travels inside the document or is read from where it lives.
+E ReferenceStanding                             | Api/ReferenceIndex.h             | 52-58     | Whether a declared reference was found where the document said it would be. stays enrolled, reports what it was looking for, and presents as missing. A document that substituted a default for a missing texture is one the artist saves over with the defaults baked in, and the original path is gone from the file at that point.
+F ResolveRetention                              | Api/ReferenceIndex.h             | 65-70     | The retention `48` §5's table declares for one subject when the document declares none.
+T DeclaredReference                             | Api/ReferenceIndex.h             | 81-89     | One thing the document depends on, the occupant that depends on it, and whether it is there. is looking. An absence recorded without its occupant is a line in a register nobody reads until the render is already wrong.
+T ReferenceIndex                                | Api/ReferenceIndex.h             | 102-192   | Every external dependency of one document, by identity, with the typeface answer the document was made under. stand-in content, and there is deliberately no routine that would. twice, because each has to open on its own — a shared declaration would make the second document's reference depend on whether the first was open.
+F ReferenceIndex::Declare                       | Api/ReferenceIndex.h             | 113       | Declares one external dependency and issues the ordinal that addresses it. Admitting it would put a permanent unknown into the document with nothing able to settle it.
+F ReferenceIndex::DeclareRetention              | Api/ReferenceIndex.h             | 119       | Declares one reference embedded or referenced, per the document's own answer.
+F ReferenceIndex::DeclareResolved               | Api/ReferenceIndex.h             | 125       | Declares one reference found, with the extent it spans.
+F ReferenceIndex::DeclareAbsent                 | Api/ReferenceIndex.h             | 134       | Declares one reference missing — enrolled, reported, and never replaced. to go and find, and clearing it turns a recoverable absence into a permanent one.
+F ReferenceIndex::Report                        | Api/ReferenceIndex.h             | 145       | Appends every unreported absence to the register — `48` §5 and `86` §4. reason: resolution runs through `34`, and a worker reporting a missing texture would report it before the requester had applied the open it belongs to.
+F ReferenceIndex::Declared                      | Api/ReferenceIndex.h             | 150       | Every declared reference, in declaration order.
+F ReferenceIndex::Resolve                       | Api/ReferenceIndex.h             | 156       | The most recently declared reference naming one origin path.
+F ReferenceIndex::DeclareTypefaceRetention      | Api/ReferenceIndex.h             | 164       | Declares whether this document embeds its typeface outlines or refers to them. that the answer is **recorded in the document**, so a file made under one answer opens correctly under the other. A build-wide constant would make the same file mean two things on two builds.
+F ReferenceIndex::TypefaceRetention             | Api/ReferenceIndex.h             | 169       | The typeface answer this document was made under.
+F ReferenceIndex::AbsentCount                   | Api/ReferenceIndex.h             | 174       | How many references stand absent — what `86` presents beside the outliner.
+F ReferenceIndex::DeclaredCount                 | Api/ReferenceIndex.h             | 179       | How many references are declared in total.
+F ReferenceIndex::Reclaim                       | Api/ReferenceIndex.h             | 184       | Empties the index. Called when the session it belongs to closes and by nothing else.
+V AbsenceOrigin                                 | Source/ReferenceIndex.cpp        | 16        | ?
+V AbsenceDetail                                 | Source/ReferenceIndex.cpp        | 17        | ?
+F SubjectSpelling                               | Source/ReferenceIndex.cpp        | 20-31     | The subject spelling `86` presents beside an absence.
+F ReferenceIndex::Declare                       | Source/ReferenceIndex.cpp        | 39-55     | ?
+F ReferenceIndex::DeclareRetention              | Source/ReferenceIndex.cpp        | 61-79     | ?
+F ReferenceIndex::DeclareResolved               | Source/ReferenceIndex.cpp        | 81-98     | ?
+F ReferenceIndex::DeclareAbsent                 | Source/ReferenceIndex.cpp        | 100-117   | ?
+F ReferenceIndex::Report                        | Source/ReferenceIndex.cpp        | 123-142   | ?
+F ReferenceIndex::Declared                      | Source/ReferenceIndex.cpp        | 148-151   | ?
+F ReferenceIndex::Resolve                       | Source/ReferenceIndex.cpp        | 153-168   | ?
+F ReferenceIndex::DeclareTypefaceRetention      | Source/ReferenceIndex.cpp        | 170-173   | ?
+F ReferenceIndex::TypefaceRetention             | Source/ReferenceIndex.cpp        | 175-178   | ?
+F ReferenceIndex::AbsentCount                   | Source/ReferenceIndex.cpp        | 180-183   | ?
+F ReferenceIndex::DeclaredCount                 | Source/ReferenceIndex.cpp        | 185-188   | ?
+F ReferenceIndex::Reclaim                       | Source/ReferenceIndex.cpp        | 190-198   | ?
 E TransactionPhase                              | Api/RevisionSequence.h           | 25-31     | Where an interactive edit stands. Every edit in the engine is a drag and passes through these four. transaction per pointer sample fills the sequence with positions the artist never meant to stop at.
 T CommittedTransaction                          | Api/RevisionSequence.h           | 41-50     | One committed transaction — the forward operation and the inverse that undoes it. stroke's inverse be bounded by the extent the stroke touched rather than by the whole surface.
 T RevisionSequence                              | Api/RevisionSequence.h           | 60-121    | The document's committed revisions, scrubbable in both directions. than merely popped, and `History` is banned.
@@ -677,6 +880,96 @@ F SelectionSequence::RestoreAt                  | Source/SelectionSequence.cpp  
 F SelectionSequence::Standing                   | Source/SelectionSequence.cpp     | 84-87     | ?
 F SelectionSequence::Committed                  | Source/SelectionSequence.cpp     | 89-92     | ?
 F SelectionSequence::TraversalPosition          | Source/SelectionSequence.cpp     | 94-97     | ?
+E ManipulationAxis                              | Api/SpatialManipulator.h         | 32-39     | Which axis of the reference orientation a grip addresses. The screen entry is last because it addresses no basis axis at all — it is the camera plane, and `78` §3 lists it as a constraint rather than as a direction.
+E ManipulationSubject                           | Api/SpatialManipulator.h         | 53-60     | Which of the three transforms a grip edits, and along how many axes it edits it. alone, make every edit begin with a mode change the artist has to remember they are in; and the mode they are in is invisible the moment the manipulator leaves the display. once. The drag resolves against a plane rather than against a line, and `78` §2 fixes that plane at Open — two line solves would each re-derive their own and the two would disagree the moment the camera moved.
+E ConstraintSubject                             | Api/SpatialManipulator.h         | 64-71     | What the drag resolves against, fixed at Open and never re-derived — `78` §3.
+E ReferenceOrientation                          | Api/SpatialManipulator.h         | 78-85     | Whose axes the manipulator is drawn along and the drag is resolved in — `78` §3's second table. moves it off the surface it sits on; dragging along the surface reference slides it across the surface, which is what the gesture means and what the artist expects to have happened.
+E ManipulatedSubject                            | Api/SpatialManipulator.h         | 93-101    | What the manipulator is addressing — `78` §1's four targets. document space. The manipulator is drawn in document space and the drag is projected back through the attachment before it is applied. Applied in document space it would store an absolute transform and `00` §10.1 ②'s zero-cost rows would each become "re-resolve everything".
+T ManipulationGrip                              | Api/SpatialManipulator.h         | 115-126   | One grabbable part of the manipulator, in the manipulator's own space. when it is laid out. A manipulator that scaled with its target vanishes on a small occupant and fills the workspace on a large one, and in both cases the artist can no longer grasp the axis they want. screen-space intersection in `78` §4 actually tests. Testing the generated triangles instead would make a grip harder to hit exactly where it is thinnest, which is the tip of the cone the artist aims at.
+V GripAxisLength                                | Api/SpatialManipulator.h         | 132       | ?
+V GripTipReach                                  | Api/SpatialManipulator.h         | 133       | ?
+V GripConeRadius                                | Api/SpatialManipulator.h         | 134       | ?
+V GripConeLength                                | Api/SpatialManipulator.h         | 135       | ?
+V GripScaleLength                               | Api/SpatialManipulator.h         | 136       | ?
+V GripScaleInboard                              | Api/SpatialManipulator.h         | 137       | ?
+V GripPlaneHalfExtent                           | Api/SpatialManipulator.h         | 138       | ?
+V GripArcRadius                                 | Api/SpatialManipulator.h         | 139       | ?
+V GripArcBand                                   | Api/SpatialManipulator.h         | 140       | ?
+V GripArcSweep                                  | Api/SpatialManipulator.h         | 141       | ?
+V GripRingRadius                                | Api/SpatialManipulator.h         | 142       | ?
+V GripRingBand                                  | Api/SpatialManipulator.h         | 143       | ?
+V GripViewFraction                              | Api/SpatialManipulator.h         | 149       | ?
+V SnapTranslation                               | Api/SpatialManipulator.h         | 153       | ?
+V SnapScaleStep                                 | Api/SpatialManipulator.h         | 154       | ?
+V SnapRotationStep                              | Api/SpatialManipulator.h         | 155       | ?
+V ScaleFactorLeast                              | Api/SpatialManipulator.h         | 156       | ?
+T ManipulationLayout                            | Api/SpatialManipulator.h         | 167-262   | The manipulator's grips as they stand for one target, one reference orientation and one camera. those. A layout re-derived per pointer sample would move the grips under a drag that is already addressing one of them, which is the same defect `78` §2 refuses for the drag plane.
+F ManipulationLayout::Layout                    | Api/SpatialManipulator.h         | 188       | Lays the grips out about one origin, in one reference orientation, at a constant display extent. derivation is owed `46` §7 makes `Reconcile` the only writer of it, and grips laid out through last tick's projection sit where the artist was looking before they moved — which is exactly where they will click. because `46` has no scale to edit, and a caller deciding that would be a second place the rule lives.
+F ManipulationLayout::Grasp                     | Api/SpatialManipulator.h         | 210       | Which grip one pointer position grasps — `78` §4's own intersection, before `74` is consulted. grasps no grip, and when no layout stands `VisibilityIndex`, so `74` cannot pick it and `26` cannot outline it — asking `74` first would therefore return whatever stands behind the grip, and the artist would select through it. grips before the plane and rotation ones, so a pointer over the overlap of a cone and an arc grasps the cone — which is the smaller target and therefore the one that was aimed at.
+F ManipulationLayout::Resolve                   | Api/SpatialManipulator.h         | 220       | One laid-out grip.
+F ManipulationLayout::Grips                     | Api/SpatialManipulator.h         | 229       | Every laid-out grip, for whoever records them. `OverlaySubject::Manipulator`. The manipulator contributes no recording of its own: a second one would be a second place `08`'s ordering is declared, and the two would order differently the first time either was amended.
+F ManipulationLayout::Origin                    | Api/SpatialManipulator.h         | 234       | Where the manipulator sits and how it is turned, as the last layout placed it.
+F ManipulationLayout::Orientation               | Api/SpatialManipulator.h         | 235       | ?
+F ManipulationLayout::UnitExtent                | Api/SpatialManipulator.h         | 242       | The extent one manipulator unit spans in document space at the layout's distance. they were laid out at, and by nothing else.
+F ManipulationLayout::LayoutStanding            | Api/SpatialManipulator.h         | 247       | Whether a layout stands at all.
+F ManipulationLayout::Reclaim                   | Api/SpatialManipulator.h         | 252       | Discards the layout. The manipulator is not presented until one is laid out again.
+T ManipulationAmendment                         | Api/SpatialManipulator.h         | 273-282   | What one amendment of a drag has produced, in the space the target is stored in. transform. `78` §1's four targets each compose it differently — a placement composes it against its surface, an occupant against its attachment — and a finished transform would have had to choose one.
+T ManipulationSequence                          | Api/SpatialManipulator.h         | 295-402   | One manipulation, following `10` §2.4's lifecycle exactly — `78` §2's correspondence. from the current pointer position it makes the manipulated object chase the cursor with increasing gain, which the artist reads as the manipulator being slippery rather than as the plane being wrong. `RevisionSequence` with positions the artist never meant to stop at, and undo then steps back one pixel at a time. Exactly `10` §2.4, unrelaxed, and the same rule `46`'s navigation and `72`'s positioning keep. on a grip continues to address that grip after the cursor leaves the workspace, and the capture that makes that true has exactly one owner.
+F ManipulationSequence::Open                    | Api/SpatialManipulator.h         | 314       | Opens a manipulation against one grasped grip, fixing the axis or plane it resolves against. for an undeclared grip or a pointer that resolves no position on the fixed plane camera that is re-read each sample is a plane that moves whenever the artist orbits mid-drag.
+F ManipulationSequence::Amend                   | Api/SpatialManipulator.h         | 336       | Amends the open drag by one pointer position, against the axis or plane Open fixed. pointer that resolves no position against the fixed plane displacements accumulates their rounding too, and a snapped drag would then drift off its own increment over a long gesture — which reads as the snapping having been switched off.
+F ManipulationSequence::Abandon                 | Api/SpatialManipulator.h         | 346       | Ends the drag with no effect. The caller restores what stood at Open.
+F ManipulationSequence::Seal                    | Api/SpatialManipulator.h         | 353       | Ends the drag, returning the amendment the caller commits as **one** transaction.
+F ManipulationSequence::Amended                 | Api/SpatialManipulator.h         | 358       | The amendment as the drag stands, for the workspace to present while it is open.
+F ManipulationSequence::DragOpen                | Api/SpatialManipulator.h         | 363       | Whether a drag is open.
+F ManipulationSequence::Constrained             | Api/SpatialManipulator.h         | 368       | What the open drag resolves against, as Open fixed it.
+F ManipulationSequence::Grasped                 | Api/SpatialManipulator.h         | 373       | Which grip the open drag addresses.
+F SLATE_DECLARES_PRECISION                      | Api/SpatialManipulator.h         | 407       | ?
+T DirectionSpan                                 | Source/SpatialManipulator.cpp    | 25-30     | ?
+V PiConstant                                    | Source/SpatialManipulator.cpp    | 32        | ?
+V DegreesToRadians                              | Source/SpatialManipulator.cpp    | 33        | ?
+V ParallelEpsilon                               | Source/SpatialManipulator.cpp    | 34        | ?
+F SpanDot                                       | Source/SpatialManipulator.cpp    | 36-39     | ?
+F SpanCross                                     | Source/SpatialManipulator.cpp    | 41-48     | ?
+F SpanScaled                                    | Source/SpatialManipulator.cpp    | 50-57     | ?
+F SpanSum                                       | Source/SpatialManipulator.cpp    | 59-66     | ?
+F NormaliseSpan                                 | Source/SpatialManipulator.cpp    | 68-76     | ?
+F RotateSpan                                    | Source/SpatialManipulator.cpp    | 81-96     | ?
+F RotationAbout                                 | Source/SpatialManipulator.cpp    | 98-110    | ?
+F ProjectBasisRotation                          | Source/SpatialManipulator.cpp    | 115-159   | ?
+F Quantise                                      | Source/SpatialManipulator.cpp    | 161-167   | ?
+T ManipulatorBasis                              | Source/SpatialManipulator.cpp    | 178-183   | ?
+F ProjectBasis                                  | Source/SpatialManipulator.cpp    | 185-200   | ?
+F LocalBasis                                    | Source/SpatialManipulator.cpp    | 205-208   | ?
+F DeclareOverlayColour                          | Source/SpatialManipulator.cpp    | 217-225   | ?
+F AxisColour                                    | Source/SpatialManipulator.cpp    | 227-232   | ?
+F PlaneColour                                   | Source/SpatialManipulator.cpp    | 234-239   | ?
+F IntersectCapsule                              | Source/SpatialManipulator.cpp    | 248-311   | ?
+F SolveAxisParameter                            | Source/SpatialManipulator.cpp    | 316-340   | ?
+F SolvePlanePoint                               | Source/SpatialManipulator.cpp    | 342-367   | ?
+F SpanOfPosition                                | Source/SpatialManipulator.cpp    | 373-380   | ?
+F PositionOfSpan                                | Source/SpatialManipulator.cpp    | 382-389   | ?
+F CarryToDocument                               | Source/SpatialManipulator.cpp    | 391-398   | ?
+F DeclareConeGrip                               | Source/SpatialManipulator.cpp    | 407-436   | ?
+F DeclareScaleGrip                              | Source/SpatialManipulator.cpp    | 438-466   | ?
+F DeclarePlaneGrip                              | Source/SpatialManipulator.cpp    | 468-503   | ?
+F DeclareRotationGrip                           | Source/SpatialManipulator.cpp    | 505-550   | ?
+F ManipulationLayout::Layout                    | Source/SpatialManipulator.cpp    | 558-713   | ?
+F ManipulationLayout::Grasp                     | Source/SpatialManipulator.cpp    | 719-785   | ?
+F ManipulationLayout::Resolve                   | Source/SpatialManipulator.cpp    | 787-802   | ?
+F ManipulationLayout::Grips                     | Source/SpatialManipulator.cpp    | 804-807   | ?
+F ManipulationLayout::Origin                    | Source/SpatialManipulator.cpp    | 809-812   | ?
+F ManipulationLayout::Orientation               | Source/SpatialManipulator.cpp    | 814-817   | ?
+F ManipulationLayout::UnitExtent                | Source/SpatialManipulator.cpp    | 819-822   | ?
+F ManipulationLayout::LayoutStanding            | Source/SpatialManipulator.cpp    | 824-827   | ?
+F ManipulationLayout::Reclaim                   | Source/SpatialManipulator.cpp    | 829-837   | ?
+F ManipulationSequence::Open                    | Source/SpatialManipulator.cpp    | 843-961   | ?
+F ManipulationSequence::Amend                   | Source/SpatialManipulator.cpp    | 967-1115  | ?
+F ManipulationSequence::Abandon                 | Source/SpatialManipulator.cpp    | 1121-1140 | ?
+F ManipulationSequence::Seal                    | Source/SpatialManipulator.cpp    | 1142-1157 | ?
+F ManipulationSequence::Amended                 | Source/SpatialManipulator.cpp    | 1159-1162 | ?
+F ManipulationSequence::DragOpen                | Source/SpatialManipulator.cpp    | 1164-1167 | ?
+F ManipulationSequence::Constrained             | Source/SpatialManipulator.cpp    | 1169-1172 | ?
+F ManipulationSequence::Grasped                 | Source/SpatialManipulator.cpp    | 1174-1177 | ?
 V SubdivisionDepthCeiling                       | Api/SpatialSubdivision.h         | 28        | ?
 V SubdivisionLeafCeiling                        | Api/SpatialSubdivision.h         | 29        | ?
 V AbsentRecord                                  | Api/SpatialSubdivision.h         | 30        | ?
@@ -969,55 +1262,57 @@ F TopologyConditioning::UnorientedCount         | Source/TopologyConditioning.cp
 T DomainCoordinate                              | Api/TopologyStructure.h          | 26-30     | One position in a surface's parametric domain. it far below one texel of the largest working extent, so widening would buy nothing.
 T SurfaceDirection                              | Api/TopologyStructure.h          | 34-39     | A unit direction in an occupant's own object space.
 T TangentBasis                                  | Api/TopologyStructure.h          | 45-50     | One vertex's tangent basis and the handedness that completes it. across a seam inverts it on one side, and `18` §1.1 interpolates this rather than recomputing it.
-T TopologyStructure                             | Api/TopologyStructure.h          | 65-172    | Polygon topology — positions, corners, faces, and whichever attributes the source supplied. arrays means the same thing after conditioning as before it, so nothing may renumber them. indices and degenerate faces all survive intake and are **enrolled** by `38` §3 rather than removed. coordinates differ, which is why coordinates are held per corner and positions per vertex. `38` §2's welding index is what relates the two, and it is derived, not stored here.
+T TopologyStructure                             | Api/TopologyStructure.h          | 65-180    | Polygon topology — positions, corners, faces, and whichever attributes the source supplied. arrays means the same thing after conditioning as before it, so nothing may renumber them. indices and degenerate faces all survive intake and are **enrolled** by `38` §3 rather than removed. coordinates differ, which is why coordinates are held per corner and positions per vertex. `38` §2's welding index is what relates the two, and it is derived, not stored here.
 F TopologyStructure::DeclarePositions           | Api/TopologyStructure.h          | 74        | Declares the vertex positions, in the source's own ordering.
 F TopologyStructure::DeclareFace                | Api/TopologyStructure.h          | 84        | Declares one face as a run of vertex ordinals, in the source's own winding. than three corners, and with ContentUnsupported for an out-of-range ordinal not a face at all and `38` §3's enrollment is over faces. `50` §3 refuses the intake instead.
 F TopologyStructure::DeclareCoordinates         | Api/TopologyStructure.h          | 90        | Declares one domain coordinate per corner, in corner order.
 F TopologyStructure::DeclarePerpendiculars      | Api/TopologyStructure.h          | 96        | Declares one perpendicular per vertex, as the source supplied it.
 F TopologyStructure::DeclareTangentBases        | Api/TopologyStructure.h          | 104       | Declares one tangent basis per vertex, as the source supplied it. basis that disagrees with the imported perpendicular is the author's decision, and reproducing their appearance requires reproducing it.
 F TopologyStructure::DeclareMaterialEnrollment  | Api/TopologyStructure.h          | 110       | Declares one material enrollment per face.
-F TopologyStructure::Seal                       | Api/TopologyStructure.h          | 117       | Seals the topology, advancing its revision. Nothing may be declared afterwards.
-F TopologyStructure::Sealed                     | Api/TopologyStructure.h          | 122       | Whether the topology is sealed and therefore readable.
-F TopologyStructure::Revision                   | Api/TopologyStructure.h          | 127       | The revision the seal advanced to — what `24` §3 keys a transferred result on.
-F TopologyStructure::VertexCount                | Api/TopologyStructure.h          | 129       | ?
-F TopologyStructure::FaceCount                  | Api/TopologyStructure.h          | 130       | ?
-F TopologyStructure::CornerCount                | Api/TopologyStructure.h          | 131       | ?
-F TopologyStructure::FaceFirstCorner            | Api/TopologyStructure.h          | 136       | The first corner ordinal of one face, and how many corners it carries.
-F TopologyStructure::FaceCornerCount            | Api/TopologyStructure.h          | 137       | ?
-F TopologyStructure::CornerVertex               | Api/TopologyStructure.h          | 142       | The vertex one corner addresses.
-F TopologyStructure::CornerFace                 | Api/TopologyStructure.h          | 147       | Which face one corner belongs to.
-F TopologyStructure::Positions                  | Api/TopologyStructure.h          | 149       | ?
-F TopologyStructure::Coordinates                | Api/TopologyStructure.h          | 150       | ?
-F TopologyStructure::Perpendiculars             | Api/TopologyStructure.h          | 151       | ?
-F TopologyStructure::TangentBases               | Api/TopologyStructure.h          | 152       | ?
-F TopologyStructure::MaterialEnrollment         | Api/TopologyStructure.h          | 153       | ?
-F TopologyStructure::CoordinatesSupplied        | Api/TopologyStructure.h          | 155       | ?
-F TopologyStructure::PerpendicularsSupplied     | Api/TopologyStructure.h          | 156       | ?
-F TopologyStructure::TangentBasesSupplied       | Api/TopologyStructure.h          | 157       | ?
-F TopologyStructure::DeclarePositions           | Source/TopologyStructure.cpp     | 15-23     | ?
-F TopologyStructure::DeclareFace                | Source/TopologyStructure.cpp     | 25-56     | ?
-F TopologyStructure::DeclareCoordinates         | Source/TopologyStructure.cpp     | 58-69     | ?
-F TopologyStructure::DeclarePerpendiculars      | Source/TopologyStructure.cpp     | 71-82     | ?
-F TopologyStructure::DeclareTangentBases        | Source/TopologyStructure.cpp     | 84-95     | ?
-F TopologyStructure::DeclareMaterialEnrollment  | Source/TopologyStructure.cpp     | 97-108    | ?
-F TopologyStructure::Seal                       | Source/TopologyStructure.cpp     | 114-131   | ?
-F TopologyStructure::Sealed                     | Source/TopologyStructure.cpp     | 137       | ?
-F TopologyStructure::Revision                   | Source/TopologyStructure.cpp     | 138       | ?
-F TopologyStructure::VertexCount                | Source/TopologyStructure.cpp     | 140-143   | ?
-F TopologyStructure::FaceCount                  | Source/TopologyStructure.cpp     | 145-148   | ?
-F TopologyStructure::CornerCount                | Source/TopologyStructure.cpp     | 150-153   | ?
-F TopologyStructure::FaceFirstCorner            | Source/TopologyStructure.cpp     | 155-158   | ?
-F TopologyStructure::FaceCornerCount            | Source/TopologyStructure.cpp     | 160-163   | ?
-F TopologyStructure::CornerVertex               | Source/TopologyStructure.cpp     | 165-168   | ?
-F TopologyStructure::CornerFace                 | Source/TopologyStructure.cpp     | 170-173   | ?
-F TopologyStructure::Positions                  | Source/TopologyStructure.cpp     | 175       | ?
-F TopologyStructure::Coordinates                | Source/TopologyStructure.cpp     | 176       | ?
-F TopologyStructure::Perpendiculars             | Source/TopologyStructure.cpp     | 177       | ?
-F TopologyStructure::TangentBases               | Source/TopologyStructure.cpp     | 178       | ?
-F TopologyStructure::MaterialEnrollment         | Source/TopologyStructure.cpp     | 179       | ?
-F TopologyStructure::CoordinatesSupplied        | Source/TopologyStructure.cpp     | 181       | ?
-F TopologyStructure::PerpendicularsSupplied     | Source/TopologyStructure.cpp     | 182       | ?
-F TopologyStructure::TangentBasesSupplied       | Source/TopologyStructure.cpp     | 183       | ?
+F TopologyStructure::Seal                       | Api/TopologyStructure.h          | 121       | Seals the topology, issuing its revision. Nothing may be declared afterwards. point the content stopped moving, and re-announcing it must not invalidate a conditioning that already describes the same content.
+F TopologyStructure::Sealed                     | Api/TopologyStructure.h          | 126       | Whether the topology is sealed and therefore readable.
+F TopologyStructure::Revision                   | Api/TopologyStructure.h          | 135       | The revision the seal issued — what `24` §3 keys a transferred result on. revision, which is what lets `38`, `40`, `68`, `16` and `24` refuse a description derived from a different one. A per-topology count would make all five comparisons read one against one.
+F TopologyStructure::VertexCount                | Api/TopologyStructure.h          | 137       | ?
+F TopologyStructure::FaceCount                  | Api/TopologyStructure.h          | 138       | ?
+F TopologyStructure::CornerCount                | Api/TopologyStructure.h          | 139       | ?
+F TopologyStructure::FaceFirstCorner            | Api/TopologyStructure.h          | 144       | The first corner ordinal of one face, and how many corners it carries.
+F TopologyStructure::FaceCornerCount            | Api/TopologyStructure.h          | 145       | ?
+F TopologyStructure::CornerVertex               | Api/TopologyStructure.h          | 150       | The vertex one corner addresses.
+F TopologyStructure::CornerFace                 | Api/TopologyStructure.h          | 155       | Which face one corner belongs to.
+F TopologyStructure::Positions                  | Api/TopologyStructure.h          | 157       | ?
+F TopologyStructure::Coordinates                | Api/TopologyStructure.h          | 158       | ?
+F TopologyStructure::Perpendiculars             | Api/TopologyStructure.h          | 159       | ?
+F TopologyStructure::TangentBases               | Api/TopologyStructure.h          | 160       | ?
+F TopologyStructure::MaterialEnrollment         | Api/TopologyStructure.h          | 161       | ?
+F TopologyStructure::CoordinatesSupplied        | Api/TopologyStructure.h          | 163       | ?
+F TopologyStructure::PerpendicularsSupplied     | Api/TopologyStructure.h          | 164       | ?
+F TopologyStructure::TangentBasesSupplied       | Api/TopologyStructure.h          | 165       | ?
+V SealIssuance                                  | Source/TopologyStructure.cpp     | 24        | ?
+F IssueRevision                                 | Source/TopologyStructure.cpp     | 26-29     | ?
+F TopologyStructure::DeclarePositions           | Source/TopologyStructure.cpp     | 37-45     | ?
+F TopologyStructure::DeclareFace                | Source/TopologyStructure.cpp     | 47-78     | ?
+F TopologyStructure::DeclareCoordinates         | Source/TopologyStructure.cpp     | 80-91     | ?
+F TopologyStructure::DeclarePerpendiculars      | Source/TopologyStructure.cpp     | 93-104    | ?
+F TopologyStructure::DeclareTangentBases        | Source/TopologyStructure.cpp     | 106-117   | ?
+F TopologyStructure::DeclareMaterialEnrollment  | Source/TopologyStructure.cpp     | 119-130   | ?
+F TopologyStructure::Seal                       | Source/TopologyStructure.cpp     | 136-153   | ?
+F TopologyStructure::Sealed                     | Source/TopologyStructure.cpp     | 159       | ?
+F TopologyStructure::Revision                   | Source/TopologyStructure.cpp     | 160       | ?
+F TopologyStructure::VertexCount                | Source/TopologyStructure.cpp     | 162-165   | ?
+F TopologyStructure::FaceCount                  | Source/TopologyStructure.cpp     | 167-170   | ?
+F TopologyStructure::CornerCount                | Source/TopologyStructure.cpp     | 172-175   | ?
+F TopologyStructure::FaceFirstCorner            | Source/TopologyStructure.cpp     | 177-180   | ?
+F TopologyStructure::FaceCornerCount            | Source/TopologyStructure.cpp     | 182-185   | ?
+F TopologyStructure::CornerVertex               | Source/TopologyStructure.cpp     | 187-190   | ?
+F TopologyStructure::CornerFace                 | Source/TopologyStructure.cpp     | 192-195   | ?
+F TopologyStructure::Positions                  | Source/TopologyStructure.cpp     | 197       | ?
+F TopologyStructure::Coordinates                | Source/TopologyStructure.cpp     | 198       | ?
+F TopologyStructure::Perpendiculars             | Source/TopologyStructure.cpp     | 199       | ?
+F TopologyStructure::TangentBases               | Source/TopologyStructure.cpp     | 200       | ?
+F TopologyStructure::MaterialEnrollment         | Source/TopologyStructure.cpp     | 201       | ?
+F TopologyStructure::CoordinatesSupplied        | Source/TopologyStructure.cpp     | 203       | ?
+F TopologyStructure::PerpendicularsSupplied     | Source/TopologyStructure.cpp     | 204       | ?
+F TopologyStructure::TangentBasesSupplied       | Source/TopologyStructure.cpp     | 205       | ?
 V TrigramAlphabet                               | Api/TrigramIndex.h               | 25        | ?
 V TrigramSpan                                   | Api/TrigramIndex.h               | 26        | ?
 F FoldedOrdinal                                 | Api/TrigramIndex.h               | 34-55     | Folds one character to its alphabet ordinal, case-insensitively.
@@ -1083,3 +1378,69 @@ T DeclaredMigration                             | Api/FormatCodec.h             
 F ResolveMigration                              | Api/FormatCodec.h                | 57        | Reads a document stream's heading and reports whether a migration path reaches the current version. not decide whether the result is fit to use.
 V DeclaredSignature                             | Source/FormatCodec.cpp           | 26        | ?
 F ResolveMigration                              | Source/FormatCodec.cpp           | 33-74     | ?
+E ImageContentSubject                           | Api/ImageCodec.h                 | 28-36     | Which stream layout the leading bytes identify. Named so a refusal says what was found, not merely that it failed. lives. Adding one is an entry here and a branch in the translation; nothing above this line changes, because every layout produces the same `DecodedImage`.
+V SignatureExtent                               | Api/ImageCodec.h                 | 41        | How many leading bytes `ClassifyContent` reads. A codec declares this range first and the rest after. codec refuse a stream it cannot read without having waited for the whole of it to land.
+F ClassifyContent                               | Api/ImageCodec.h                 | 52        | Identifies a stream's layout from its leading bytes alone, without decoding any of it.
+F SLATE_DECLARES_PRECISION                      | Api/ImageCodec.h                 | 54        | ?
+F Translate                                     | Api/ImageCodec.h                 | 77        | Translates one image stream into the texels it contained, retaining its component depth verbatim. declined, and with ExtentExhausted for a stream too long to address decoder exposes. Declaring one anyway is the defect the gate exists to prevent — an image with an assumed space is a colour error with no traceable origin. `50` §3 records the assumption at intake instead, where it is reported through `86` rather than made silently. Radiance stream arrives as single-precision, because narrowing here is a precision loss nobody can afterwards attribute to anything.
+F SLATE_DECLARES_PRECISION                      | Api/ImageCodec.h                 | 79        | ?
+K STB_IMAGE_IMPLEMENTATION                      | Source/ImageCodec.cpp            | 15        | ?
+K STBI_NO_STDIO                                 | Source/ImageCodec.cpp            | 16        | ?
+K STBI_NO_GIF                                   | Source/ImageCodec.cpp            | 17        | ?
+K STBI_NO_PIC                                   | Source/ImageCodec.cpp            | 18        | ?
+K STBI_NO_PNM                                   | Source/ImageCodec.cpp            | 19        | ?
+K STBI_NO_PSD                                   | Source/ImageCodec.cpp            | 20        | ?
+V PortableNetworkSignature                      | Source/ImageCodec.cpp            | 34        | ?
+V JointPhotographicSignature                    | Source/ImageCodec.cpp            | 35        | ?
+V RadianceSignature                             | Source/ImageCodec.cpp            | 37        | ?
+V RadianceSignatureShort                        | Source/ImageCodec.cpp            | 38        | ?
+F LeadingMatches                                | Source/ImageCodec.cpp            | 41-46     | Whether the leading bytes begin with one declared signature.
+F LeadingMatchesText                            | Source/ImageCodec.cpp            | 49-56     | Whether the leading bytes begin with one declared textual signature.
+F TruevisionPlausible                           | Source/ImageCodec.cpp            | 62-73     | ?
+F ClassifyContent                               | Source/ImageCodec.cpp            | 81-104    | ?
+F Translate                                     | Source/ImageCodec.cpp            | 110-229   | ?
+E TopologyContentSubject                        | Api/TopologyCodec.h              | 30-35     | Which polygon stream layout is being translated. content — the one classification in the engine that reads a name. A stream whose suffix says one thing and whose content says another is refused by the translation, not by the classification. translation; `DecodedTopology` does not change, because it is the handover shape for all of them.
+F ClassifyContent                               | Api/TopologyCodec.h              | 46        | Identifies a polygon stream's layout from the suffix of the origin it was read from.
+F SLATE_DECLARES_PRECISION                      | Api/TopologyCodec.h              | 48        | ?
+F Translate                                     | Api/TopologyCodec.h              | 74        | Translates one polygon stream into the topology it contained, repaired in no respect. declined, and with ExtentExhausted for a stream carrying no face at all of fewer than three corners is handed over as it arrived and refused by `TopologyStructure::DeclareFace`, which is where that refusal is declared to happen. A codec that dropped it would have produced a specification that no longer describes the file the artist supplied. corner carries a perpendicular its vertex does not, per-vertex storage can hold only one of the two — so none is emitted and `per-corner surface perpendiculars` is named in `UnsupportedNamed`, where `86` reports it. Averaging them would be a repair, and picking one would be a silent loss. assumption at intake. Materials referenced through an external library are not read — the codec translates the stream it was handed — but each face still carries the enrollment its directives set.
+F SLATE_DECLARES_PRECISION                      | Api/TopologyCodec.h              | 76        | ?
+K FAST_OBJ_IMPLEMENTATION                       | Source/TopologyCodec.cpp         | 12        | ?
+T StreamReading                                 | Source/TopologyCodec.cpp         | 32-37     | ?
+F StreamOpen                                    | Source/TopologyCodec.cpp         | 39-51     | ?
+F StreamClose                                   | Source/TopologyCodec.cpp         | 53-60     | ?
+F StreamRead                                    | Source/TopologyCodec.cpp         | 62-80     | ?
+F StreamSpanned                                 | Source/TopologyCodec.cpp         | 82-91     | ?
+F SuffixMatches                                 | Source/TopologyCodec.cpp         | 94-115    | Whether an origin's suffix matches one declared spelling, compared without regard to case.
+F ClassifyContent                               | Source/TopologyCodec.cpp         | 123-128   | ?
+F Translate                                     | Source/TopologyCodec.cpp         | 134-313   | ?
+T DecodedAdjustment                             | Api/TypefaceCodec.h              | 28-33     | One pair adjustment as the typeface declared it, between two glyphs named by their own ordinals. set at once and the interchange takes them one at a time. The spelling matches its private sibling deliberately: what crosses this seam is the same triple.
+T DecodedTypeface                               | Api/TypefaceCodec.h              | 44-50     | One decoded typeface — its glyphs, its adjustments, and the unit scale they are all expressed in. text, not of the typeface, and resolving one to the other is substitution — which belongs at intake, where it is recorded, rather than at every use.
+F Translate                                     | Api/TypefaceCodec.h              | 72        | Translates one typeface stream into glyph outlines, in the typeface's own units. ExtentExhausted for a typeface declaring no glyph at all scaled at decode is a typeface that must be decoded again for every size the artist tries, and the outline they placed at one size would not be the outline resolved at another. conversion between them happens at intake. Converting would put a tolerance into a translation, and `52` §4's tolerance is resolution-relative and belongs to whoever flattens. it would renumber every ordinal after it, and the glyph sequence `52` §3 stores indexes those ordinals.
+F SLATE_DECLARES_PRECISION                      | Api/TypefaceCodec.h              | 74        | ?
+F ResolveCodepoint                              | Api/TypefaceCodec.h              | 86        | Resolves one codepoint to the glyph ordinal the typeface holds it under. glyph sequence once and that sequence is what is stored; resolving at every use would mean replacing a typeface silently reshapes text the artist has already positioned.
+F SLATE_DECLARES_PRECISION                      | Api/TypefaceCodec.h              | 88        | ?
+K STBTT_STATIC                                  | Source/TypefaceCodec.cpp         | 13        | ?
+K STB_TRUETYPE_IMPLEMENTATION                   | Source/TypefaceCodec.cpp         | 14        | ?
+V AssumedUnitsPerEm                             | Source/TypefaceCodec.cpp         | 31        | ?
+F ResolveUnitsPerEm                             | Source/TypefaceCodec.cpp         | 34-41     | Reads a typeface's units per em from its heading, falling back where the heading does not carry one.
+F TranslateShape                                | Source/TypefaceCodec.cpp         | 51-108    | Converts one glyph's contour run into the path run `52` §2 accepts, in the typeface's own units. contour is closed by construction — an open one would have no interior — so the fill rule below is NonZero for every path, which is the rule outlines are authored under.
+F Translate                                     | Source/TypefaceCodec.cpp         | 116-207   | ?
+F ResolveCodepoint                              | Source/TypefaceCodec.cpp         | 213-243   | ?
+T DecodedOutline                                | Api/VectorCodec.h                | 28-32     | One decoded vector source — the outline, and every construct the accepted subset would not take. unsupported construct still decodes; refusing the whole of it would lose the artist the ninety-nine paths that were fine. The whole point of positioning a refusal is that the artist can go and look.
+F Translate                                     | Api/VectorCodec.h                | 54        | Translates one vector stream into paths, refusing every construct outside `52` §2's subset by name. it. Converting one means flattening it first, and `52` §4's tolerance is resolution-relative, so a codec that chose one would have fixed the resolution every later placement is resolved at. What is translated here is the geometry; a stroked element is named in the refusals with its position, so the artist is told rather than silently handed a filled path where they drew a line. artist sees that as the fill having moved rather than as the path having been altered. translation is the file route's half and nothing downstream can tell which route was taken.
+F SLATE_DECLARES_PRECISION                      | Api/VectorCodec.h                | 56        | ?
+F TranslateText                                 | Api/VectorCodec.h                | 67        | Translates one vector source supplied as text rather than read from a file, retaining the text. the artist reads that as the document having lost their work — `52` §1.
+F SLATE_DECLARES_PRECISION                      | Api/VectorCodec.h                | 69        | ?
+T RefusedElement                                | Source/VectorCodec.cpp           | 25-30     | ?
+V StrokedDetail                                 | Source/VectorCodec.cpp           | 48        | ?
+F Whitespace                                    | Source/VectorCodec.cpp           | 54-57     | ?
+F SkipSeparators                                | Source/VectorCodec.cpp           | 60-65     | Advances past every separator, so a run of commands may be spaced however the source spaced it.
+F ReadOrdinate                                  | Source/VectorCodec.cpp           | 71-117    | Reads one real from the path data, reporting whether one was there to read. without separators — "1.5.5" is two numbers — and a conversion that consumed as much as it could would take both. The scan below stops at the second decimal point, which is what the grammar means.
+F ReadFlag                                      | Source/VectorCodec.cpp           | 120-134   | Reads one flag — a single digit, which the arc grammar writes without a separator after it.
+T PathReading                                   | Source/VectorCodec.cpp           | 141-148   | Holds the state one run of path data is translated against — where it is, and what it last curved with.
+F TranslatePathData                             | Source/VectorCodec.cpp           | 154-447   | Translates one `d` attribute into the closed and open paths it declares. interior is on, and the artist reads that as the fill having moved rather than the path having been altered by something they cannot see.
+F AttributeValue                                | Source/VectorCodec.cpp           | 454-484   | Reads one attribute's value out of an element's own text, empty where the element declares none.
+F ElementNamed                                  | Source/VectorCodec.cpp           | 487-500   | Whether an element's opening tag names one spelling.
+F TranslateSource                               | Source/VectorCodec.cpp           | 503-580   | Translates one whole vector source, whichever route it arrived by.
+F Translate                                     | Source/VectorCodec.cpp           | 588-606   | ?
+F TranslateText                                 | Source/VectorCodec.cpp           | 608-627   | ?

@@ -41,8 +41,8 @@ path to `SlateVulkan`, `SlateDocument` or `SlateUI`, and the link partition make
 
 ## 4. Exact Predicates — Tier A
 
-🚧 Partially completed — `OrientationClassifier` and `PlanarClassifier` exist in `Shared/` with the fast path
-and the exact fallback both. The remaining three are unbuilt and keep their declarations here.
+✔️ Done — all five exist in `Shared/` with the fast path and the exact fallback both: `OrientationClassifier`,
+`PlanarClassifier`, and the three below.
 
 | Predicate                | Question answered                                    | Consumed by     |
 |--------------------------|------------------------------------------------------|------------------|
@@ -60,8 +60,9 @@ selection outlines that flicker at silhouettes.
 
 ## 5. Solvers And Integrators
 
-✔️ `CurveSolver` and `ColourProjection` done — the latter carries the transfer, white adaptation and temperature
-projection rows as one unit rather than as three. The components below are unbuilt.
+✔️ Done — `CurveSolver` and `ColourProjection` first, the latter carrying the transfer, white adaptation and
+temperature projection rows as one unit rather than as three, and every component below since. `TimeIntegrator`
+is the one exception and is not built as a component; see the note beneath the table.
 
 | Component                | Mechanism                                        | Tier | Consumed by |
 |--------------------------|--------------------------------------------------|------|--------------|
@@ -79,13 +80,18 @@ indistinguishable from one that converged, and that ambiguity propagates upward 
 ⚠️ `TimeIntegrator` was declared here as consumed by `12` and `12` never reads it. Its real consumer is `64`.
 Recorded as `00` §10 conflict 21.
 
+✔️ `TimeIntegrator` is discharged rather than built. `64` §3's accumulation carries the fixed-step step and the
+weight derived from the stored sample count, and `64` states at its head that this is where the claim is
+discharged. Nothing else names the component, so no separate component is owed and §8's consumer gate holds.
+
 ⚠️ `ConstraintSolver` is **removed**. It named `12` and `24` as consumers and neither reads it — `12` composes
 static transforms and solves nothing, and `24`'s Upstream cites `LinearSolver` and the predicates only. This is
 conflict 21's defect a second time, caught by §8's gate on the second pass rather than the first. Recorded as
 `00` §10 conflict 41.
 
 🔴 `LatticeProjection` is **Tier A** and therefore parity-proven: a periodic lattice that disagrees between host
-and device produces a pattern that does not meet itself across a tile edge.
+and device produces a pattern that does not meet itself across a tile edge. ✔️ It lives in `Shared/` and is
+registered as `ClassifyLatticeCell`.
 
 ## 6. Sampling
 
@@ -129,5 +135,6 @@ An entry point in `Shared/` with no registration is duplicated source that has n
 | Open question                                                        | Blocks                        |
 |-----------------------------------------------------------------------|--------------------------------|
 | Exact-fallback strategy — adaptive expansion or extended precision     | Nothing in design; `16` timing |
-| Whether `TimeIntegrator` is needed before `64` ships                   | `64` scheduling only           |
 | Whether path flattening tolerance is fixed or resolution-relative      | `52` quality; `70` re-resolves |
+
+✔️ Closed — whether `TimeIntegrator` is needed before `64` ships. `64` shipped and discharged it; see §5.

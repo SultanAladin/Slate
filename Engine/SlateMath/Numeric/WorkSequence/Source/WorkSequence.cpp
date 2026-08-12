@@ -4,6 +4,7 @@
 // 🧩 The reserved interactive worker, cooperative cancellation, and conclusions ordered by declaration.
 
 #include "SlateMath/Numeric/WorkSequence/Api/WorkSequence.h"
+#include "SlateMath/Platform/PlatformInterchange/Api/PlatformInterchange.h"
 
 #include <algorithm>
 
@@ -111,9 +112,14 @@ Outcome<bool> WorkSequence::Construct(std::uint32_t       RequestedWorkers,
 
         if (Constructing == 0u)
         {
-            // 🚧 `04`'s `PlatformInterchange` owns the host report. Until it exists the count comes from the
-            //    standard library, which is not an operating-system conditional and so breaks no `04` gate.
-            Constructing = static_cast<std::uint32_t>(std::thread::hardware_concurrency());
+            // 📝 `04`'s `PlatformInterchange` owns the host report and is read here rather than queried
+            //    directly, so the one reading `06`'s `HardwareMetrics` attributes its measurements to is the
+            //    same one the worker count was fixed from.
+            PlatformInterchange HostTranslation;
+
+            const Outcome<bool> Reported = HostTranslation.Resolve();
+
+            Constructing = Reported.ContentPresent ? HostTranslation.Report().ResolvingCount : 2u;
 
             if (Constructing == 0u)
                 Constructing = 2u;

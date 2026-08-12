@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S RenderSchedule.cpp | 473 lines | 31895266 | 10 sym | Contribution gating and the ordering derived from declared reads and writes.
+S RenderSchedule.cpp | 490 lines | 198ca8e2 | 10 sym | Contribution gating and the ordering derived from declared reads and writes.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   TARGET DECLARATION
@@ -78,8 +78,8 @@ F RenderSchedule::Contribute | RenderSchedule.cpp | 356-390 | - | - | ?
 //                                                        ORDERING
 //------------------------------------------------------------------------------------------------------------------------
 
-F RenderSchedule::Fix        | RenderSchedule.cpp | 396-466 | - | - | ?
+F RenderSchedule::Fix        | RenderSchedule.cpp | 396-483 | - | - | ?
     out   -  Outcome<bool>  [-]  ?
 
-F RenderSchedule::Ordered    | RenderSchedule.cpp | 468-471 | - | - | ?
+F RenderSchedule::Ordered    | RenderSchedule.cpp | 485-488 | - | - | ?
     out   -  const std::vector<DeclaredRecording>&  [-]  ?

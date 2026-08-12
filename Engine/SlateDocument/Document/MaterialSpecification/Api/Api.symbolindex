@@ -44,7 +44,7 @@ E ChannelSubject                                | MaterialSpecification.h | 32-5
     has   RefractionRatio             ChannelSubject  [-]  ?
     has   Displacement                ChannelSubject  [-]  ?
     has   ChannelCount                ChannelSubject  [-]  ?
-    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ReflectanceIntegrator.h, Api/SurfaceLayerSequence.h, Api/ToolSequence.h, Source/AssetInterchange.cpp, (+5 more)
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ReflectanceIntegrator.h, Api/SurfaceLayerSequence.h, Api/ToolSequence.h, Api/UvSurfaceDepot.h, (+8 more)
     note  ⚠️ `18` §2's channel 1 is spelled `AlbedoColour` and channel 4 `NormalIncidenceReflectance` here, per
     note  ⚠️ Channel 19 is spelled `RefractionRatio` rather than an index of refraction. `Index` is a closed role
 
@@ -62,7 +62,7 @@ E ReflectanceSelection                          | MaterialSpecification.h | 66-7
     has   EmissiveOnly      ReflectanceSelection  [-]  ?
     has   Unlit             ReflectanceSelection  [-]  ?
     has   ReflectanceCount  ReflectanceSelection  [-]  ?
-    by    Api/ReflectanceIntegrator.h, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/ReflectanceIntegrator.cpp
+    by    Api/ReflectanceIntegrator.h, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/ReflectanceIntegrator.cpp, Source/TransmissionSequence.cpp
     note  ⚠️ `00` §8.2's substitution: `Model` is banned structurally, so what `18` §3 calls a shading model is a
 
 F ChannelConsumed                               | MaterialSpecification.h | 87      | api,nonallocating,nonthrowing | ✔️ | Whether one reflectance selection reads one channel. predicate is what a shading dispatch asks rather than sampling twenty channels and discarding fourteen.
@@ -104,7 +104,7 @@ F MeasureCarriesColour                          | MaterialSpecification.h | 125-
 F SLATE_DECLARES_PRECISION                      | MaterialSpecification.h | 129     | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ONE CHANNEL
@@ -132,7 +132,7 @@ T MaterialSpecification                         | MaterialSpecification.h | 164-
     has   Selected           ReflectanceSelection               [-]  ?
     has   CoverageThreshold  double                             [-]  ?
     has   CutoutDeclared     bool                               [-]  ?
-    by    Api/ReflectanceIntegrator.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/ReflectanceIntegrator.cpp
+    by    Api/ReflectanceIntegrator.h, Api/TransmissionSequence.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/ReflectanceIntegrator.cpp, (+1 more)
     note  🔴 Model selection is per material and never per texel — `42` §5. A per-texel selection is a divergent
     note  🔴 A channel declared for a selection the material does not use is **retained**, not discarded — `42` §5.
 
@@ -152,30 +152,30 @@ F MaterialSpecification::DeclareChannel         | MaterialSpecification.h | 183 
 F MaterialSpecification::DeclareCutoutThreshold | MaterialSpecification.h | 190     | api,nonallocating,nonthrowing | ✔️ | Declares the coverage threshold a cutout occupant is resolved against. foliage disappear while another's grows a halo, and neither can correct it.
     in    Threshold  double  [-]  ?
     out   -          void    [-]  ?
-    by    Source/MaterialSpecification.cpp
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
     note  🔴 Per material, never global — `62` §2. A single threshold across a document makes one artist's
 
 F MaterialSpecification::DeclareCutoutEnrolment | MaterialSpecification.h | 195     | api,nonallocating,nonthrowing | ✔️ | Enrols the material as cutout, so `16` §3.1 resolves its coverage at visibility time.
     in    CutoutEnabled  bool  [-]  ?
     out   -              void  [-]  ?
-    by    Source/MaterialSpecification.cpp
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
 
 F MaterialSpecification::Reflectance            | MaterialSpecification.h | 197     | -                             | -  | ?
     out   -  ReflectanceSelection  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/ReflectanceIntegrator.cpp
+    by    Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/ReflectanceIntegrator.cpp, Source/TransmissionSequence.cpp
 
 F MaterialSpecification::Channel                | MaterialSpecification.h | 198     | -                             | -  | ?
     in    Subject  ChannelSubject               [-]  ?
     out   -        const ChannelSpecification&  [-]  ?
-    by    Api/BrushSpecification.h, Api/ReflectanceIntegrator.h, Api/SurfaceLayerSequence.h, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+2 more)
+    by    Api/BrushSpecification.h, Api/ReflectanceIntegrator.h, Api/SurfaceLayerSequence.h, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/EmissionSequence.cpp, (+3 more)
 
 F MaterialSpecification::CutoutThreshold        | MaterialSpecification.h | 199     | -                             | -  | ?
     out   -  double  [-]  ?
-    by    Source/MaterialSpecification.cpp
+    by    Source/MaterialSpecification.cpp, Source/TransmissionSequence.cpp
 
 F MaterialSpecification::CutoutEnrolled         | MaterialSpecification.h | 200     | -                             | -  | ?
     out   -  bool  [-]  ?
-    by    Source/MaterialSpecification.cpp
+    by    Source/MaterialSpecification.cpp, Source/TransmissionSequence.cpp
 
 F MaterialSpecification::ChannelSampled         | MaterialSpecification.h | 207     | api,nonallocating,nonthrowing | ✔️ | Whether one channel is both declared and consumed by the selected reflectance. that is consumed but undeclared resolves to its declared default rather than to zero.
     in    Subject  ChannelSubject  [-]  ?
@@ -197,32 +197,32 @@ T MaterialIndex                                 | MaterialSpecification.h | 233-
     has   Declared         std::vector<MaterialSpecification>  [-]  ?
     has   DeclaredNames    std::vector<std::string>            [-]  ?
     has   AbsentName       std::string                         [-]  ?
-    by    Api/AssetInterchange.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp
+    by    Api/AssetInterchange.h, Api/EmissionSequence.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/EmissionSequence.cpp, Source/MaterialSpecification.cpp
     note  🔴 `42` §6: editing a material changes every occupant enrolled in it, in one transaction. The `56` layer
 
 F MaterialIndex::Declare                        | MaterialSpecification.h | 242     | api,nonthrowing               | 🚩 | Declares one material and issues its identity.
     in    Named  const std::string&  [-]  what the artist calls it; may be empty
     out   -      Outcome             [-]  refuses with ExtentExhausted at the declared ceiling
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+34 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
 
 F MaterialIndex::Resolve                        | MaterialSpecification.h | 248     | api,nonthrowing               | ✔️ | One declared material, for reading.
     in    MaterialOrdinal  std::uint32_t  [-]  ?
     out   -                Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
 
 F MaterialIndex::Amend                          | MaterialSpecification.h | 254     | api,nonthrowing               | ✔️ | One declared material, for amending.
     in    MaterialOrdinal  std::uint32_t  [-]  ?
     out   -                Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+20 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+25 more)
 
 F MaterialIndex::DeclaredName                   | MaterialSpecification.h | 256     | -                             | -  | ?
     in    MaterialOrdinal  std::uint32_t       [-]  ?
     out   -                const std::string&  [-]  ?
-    by    Api/BrushSpecification.h, Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/BrushSpecification.cpp, Source/MaterialSpecification.cpp, Source/OutlinerPanel.cpp, (+2 more)
+    by    Api/BrushSpecification.h, Api/DiagnosticExtension.h, Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/BrushSpecification.cpp, Source/DiagnosticExtension.cpp, (+4 more)
 
 F MaterialIndex::DeclaredCount                  | MaterialSpecification.h | 257     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ProgramIndex.h, Api/QuadratureIntegrator.h, (+20 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+30 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                      PARTITION RESOLUTION — `00` §10 CONFLICT 15
@@ -233,35 +233,35 @@ T ResolvedPartition                             | MaterialSpecification.h | 277-
     has   MaterialOrdinal  std::uint32_t     [-]  ?
     has   FirstFace        std::uint32_t     [-]  ?
     has   FaceCount        std::uint32_t     [-]  ?
-    by    Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp
+    by    Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/IntersectionOutline.cpp, Source/MaterialSpecification.cpp, Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp
     note  🔴 `16` §4.1: a partition identity is **not** an occupant identity. `26`'s enrolment test, `16` §5's
 
 T PartitionResolutionIndex                      | MaterialSpecification.h | 292-329 | owning                        | -  | Partition identity to occupant, material and face range — a derived projection, never authored. occupant a partition belongs to would disagree exactly when an occupant was added, which is the moment the artist is looking at it. rather than deriving its own — `16` §6's gate.
     has   PartitionCeiling  static constexpr std::uint32_t  [-]  ?
     has   Resolutions       std::vector<ResolvedPartition>  [-]  ?
     has   DerivedRevision   std::uint64_t                   [-]  ?
-    by    Api/PartitionStructure.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp
+    by    Api/IntersectionOutline.h, Api/PartitionStructure.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/IntersectionOutline.cpp, Source/MaterialSpecification.cpp, (+2 more)
     note  🔴 `42` §4: rebuilt when the population changes and **never authored**. Two sources of truth about which
     note  🔴 It is a device-resident indexed lookup, never a search. Every consumer reads this one resolution
 
 F PartitionResolutionIndex::Reclaim             | MaterialSpecification.h | 299     | api,nonthrowing               | ✔️ | Discards every entry, ahead of a rebuild.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
 
 F PartitionResolutionIndex::Declare             | MaterialSpecification.h | 307     | api,nonthrowing               | 🚩 | Declares one partition's resolution, issuing its identity. the declared ceiling
     in    Resolving  const ResolvedPartition&  [-]  the occupant, material and face range
     out   -          Outcome                   [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+34 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
 
 F PartitionResolutionIndex::Resolve             | MaterialSpecification.h | 314     | api,nonthrowing               | ✔️ | Resolves one partition identity. re-partition since the identity was taken looks like
     in    Subject  PartitionIdentity  [-]  ?
     out   -        Outcome            [-]  refuses with IdentityStale when the generation no longer matches — which is what a
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
 
 F PartitionResolutionIndex::Revision            | MaterialSpecification.h | 319     | api,nonallocating,nonthrowing | ✔️ | The revision the last rebuild advanced to; `70` §2 compares counters against it.
     out   -  std::uint64_t  [-]  ?
-    by    Api/ChartPartition.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/PartitionStructure.h, Api/SeamSpecification.h, Api/TopologyStructure.h, (+13 more)
+    by    Api/ChartPartition.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/PartitionStructure.h, Api/PrimitiveStructure.h, Api/SeamSpecification.h, (+16 more)
 
 F PartitionResolutionIndex::DeclaredCount       | MaterialSpecification.h | 321     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ProgramIndex.h, Api/QuadratureIntegrator.h, (+20 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+30 more)

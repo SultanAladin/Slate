@@ -1,0 +1,166 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/PrimitiveStructure/Api
+%layer      SlateDocument
+%sources    1
+%symbols    21
+%annotated  14/21
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S PrimitiveStructure.h | 222 lines | fd656710 | 21 sym | Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   WHAT IS GENERATED
+//------------------------------------------------------------------------------------------------------------------------
+
+E PrimitiveSubject              | PrimitiveStructure.h | 31-41   | contract                      | -  | Which solid a declaration generates. from parameters that are held rather than from vertices that are typed in — which is what lets an authored primitive be re-generated at a different subdivision after the artist has placed it. cone tip, its scale grip and the central ring. They are declared here rather than beside the manipulator so that a modelled cone and a grip cone are one generation and cannot come to differ.
+    has   Box            PrimitiveSubject  [-]  ?
+    has   Sphere         PrimitiveSubject  [-]  ?
+    has   Cylinder       PrimitiveSubject  [-]  ?
+    has   Cone           PrimitiveSubject  [-]  ?
+    has   Torus          PrimitiveSubject  [-]  ?
+    has   Plane          PrimitiveSubject  [-]  ?
+    has   AnnularSector  PrimitiveSubject  [-]  ?
+    has   SubjectCount   PrimitiveSubject  [-]  ?
+    by    Source/PrimitiveStructure.cpp, Source/SpatialManipulator.cpp
+    note  🔴 A closed set rather than an open one. Every entry here is a surface of revolution or a box, generated
+    note  📝 The cone, the cylinder and the sphere are what the manipulator's grips are built from — `78` §4's
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE PARAMETERS
+//------------------------------------------------------------------------------------------------------------------------
+
+T PrimitiveSpecification        | PrimitiveStructure.h | 55-67   | nonallocating,nonthrowing     | -  | One primitive's declared parameters — every solid's, in one declaration. changes keeps the extents they already set, and a per-subject declaration would discard them at each change. The unread members of a given subject cost nothing and the retained edit is the point. the generated solid is centred on whatever transform places it. A primitive generated about a corner rotates about that corner, and the artist reads that as the rotation being wrong.
+    has   Generated         PrimitiveSubject  [-]  ?
+    has   HalfExtentAlong   double            [-]  ?
+    has   HalfExtentUp      double            [-]  ?
+    has   HalfExtentAcross  double            [-]  ?
+    has   MinorRadius       double            [-]  ?
+    has   SweepRadians      double            [-]  ?
+    has   SweepOffset       double            [-]  ?
+    has   RadialCount       std::uint32_t     [-]  ?
+    has   AxialCount        std::uint32_t     [-]  ?
+    has   CapsDeclared      bool              [-]  ?
+    by    Api/SpatialManipulator.h, Source/PrimitiveStructure.cpp
+    note  🔴 One declaration for all seven rather than seven declarations. A primitive whose subject the artist
+    note  ⚠️ Extents are half-extents about the origin, so a box of unit extent spans −1 to +1 on every axis and
+
+V RadialCountLeast              | PrimitiveStructure.h | 71      | -                             | -  | ?
+
+V AxialCountLeast               | PrimitiveStructure.h | 72      | -                             | -  | ?
+
+V SubdivisionCeiling            | PrimitiveStructure.h | 73      | -                             | -  | ?
+    by    Api/ChartPartition.h, Source/ChartPartition.cpp, Source/CurveSolver.cpp
+
+F PrimitiveGenerable            | PrimitiveStructure.h | 81-91   | api,nonallocating,nonthrowing | ✔️ | Whether a specification generates a surface at all. coincident vertices, which seals successfully and then fails at whichever consumer first divides by the extent it has — and that consumer is named in the refusal instead of this one.
+    in    Declaring  const PrimitiveSpecification&  [-]  ?
+    out   -          constexpr bool                 [-]  ?
+    by    Source/PrimitiveStructure.cpp
+    note  📝 Asked before generation rather than reported after it. A degenerate extent generates a solid with
+
+F SLATE_DECLARES_PRECISION      | PrimitiveStructure.h | 92      | -                             | -  | ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE GENERATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F GeneratePrimitive             | PrimitiveStructure.h | 116     | api,nonthrowing               | 🔴 | Generates one primitive into a sealed topology. with HostDenied for a topology that is already sealed construction. `38`'s non-mutation guarantee begins at the seal, and a generated surface handed back unsealed would be one a caller could add a face to — which is a surface no parameter describes. parametrisation is what the solid is *defined by*, so it is exact here and merely approximated there, and a generated box that arrived unwrapped would have seams `68` chose rather than the six the box has. A cylinder's cap and its wall meet at one ring of positions and the two perpendiculars there are opposite; the generation splits that ring so each side carries its own, which is what makes the edge read as an edge.
+    in    Declaring  const PrimitiveSpecification&  [-]  the parameters
+    in    Generated  TopologyStructure&             [-]  an unsealed topology; positions, faces, coordinates and perpendiculars are declared into it
+    out   -          Outcome                        [-]  refuses with ContentUnsupported for a specification `PrimitiveGenerable` rejects, and
+    post  🔴 the topology is sealed; its revision has advanced and nothing further may be declared into it
+    by    Source/PrimitiveStructure.cpp
+    note  🔴 The topology is sealed **here**, at the end of generation, because a primitive is complete by
+    note  🔴 Domain coordinates are generated alongside the positions rather than left to `68` to unwrap. The
+    note  📝 Perpendiculars are declared per vertex and are the analytic ones, not the ones `38` §4 would average.
+
+F SLATE_DECLARES_PRECISION      | PrimitiveStructure.h | 117     | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+
+F ProjectPrimitiveExtent        | PrimitiveStructure.h | 128     | api,nonallocating,nonthrowing | ✔️ | The half-extents the generated solid actually occupies, before any transform places it. a subdivision or frame a camera before generating anything. The torus is the only entry where the answer is not the three half-extents, and it is the reason this exists rather than being assumed.
+    in    Declaring  const PrimitiveSpecification&  [-]   the parameters
+    in    Least      DocumentPosition&              [-]   ?
+    in    Greatest   DocumentPosition&              [-]   ?
+    out   -          Least                          [mm]  the lower corner in object space
+    out   -          Greatest                       [mm]  its upper corner
+    by    Source/PrimitiveStructure.cpp
+    note  📝 Derived from the parameters rather than measured from the generated positions, so a caller can size
+
+F SLATE_DECLARES_PRECISION      | PrimitiveStructure.h | 131     | -                             | -  | ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    in    Exact  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE DECLARATIONS
+//------------------------------------------------------------------------------------------------------------------------
+
+T PrimitiveIndex                | PrimitiveStructure.h | 146-220 | owning                        | -  | Every primitive the document holds parametrically, addressed by the ordinal its declaration returned. raises is re-generated from the amended specification, and a stored topology would be a second representation that the parameters no longer describe — `02` §3.1's rule about the decomposed transform, applied to a surface. the generated surface and this holds what generated it. Retiring the occupant retires both, and the cascade in `12` §12 is what calls `Withdraw`.
+    has   PrimitiveCeiling  static constexpr std::uint32_t  [-]  ?
+    has   Primitives        std::vector<HeldPrimitive>      [-]  ?
+    has   ReleasedOrdinals  std::vector<std::uint32_t>      [-]  ?
+    has   RevisionIssued    std::uint64_t                   [-]  ?
+    has   OccupiedCount     std::uint32_t                   [-]  ?
+    by    Source/PrimitiveStructure.cpp
+    note  🔴 The **parameters** are retained and the topology is not. A primitive whose radial count the artist
+    note  ⚠️ An occupant carrying a primitive declaration is still an occupant carrying a topology: `12` holds
+
+F PrimitiveIndex::Declare       | PrimitiveStructure.h | 158     | api,nonthrowing               | 🚩 | Declares one primitive's parameters and issues the ordinal it is addressed by. and with ExtentExhausted at the declared ceiling
+    in    Declaring  const PrimitiveSpecification&  [-]  the parameters
+    out   -          Outcome                        [-]  refuses with ContentUnsupported for a specification `PrimitiveGenerable` rejects,
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+
+F PrimitiveIndex::Amend         | PrimitiveStructure.h | 170     | api,nonthrowing               | ✔️ | Amends one primitive's parameters, advancing its revision where the generated surface would differ. `PrimitiveGenerable` rejects does, which is why the comparison is over the whole specification — but stating it that way is what keeps a later member that does *not* from silently forcing a re-generation of every occupant.
+    in    PrimitiveOrdinal  std::uint32_t                  [-]  an ordinal this component issued
+    in    Amending          const PrimitiveSpecification&  [-]  the amended parameters
+    out   -                 Outcome                        [-]  refuses with ContentUnsupported for an unclaimed ordinal or a specification
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+25 more)
+    note  🔴 The revision advances only where the amendment changes the generated surface. Every member here
+
+F PrimitiveIndex::Resolve       | PrimitiveStructure.h | 176     | api,nonthrowing               | ✔️ | One declared primitive's parameters.
+    in    PrimitiveOrdinal  std::uint32_t  [-]  ?
+    out   -                 Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
+
+F PrimitiveIndex::Withdraw      | PrimitiveStructure.h | 184     | api,nonthrowing               | ✔️ | Withdraws one primitive, returning its slot for reuse. every ordinal above it and every occupant naming one would name a different primitive.
+    in    PrimitiveOrdinal  std::uint32_t  [-]  ?
+    out   -                 Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/SpatialSubdivision.h, (+14 more)
+    note  ⚠️ The slot is reused rather than erased, exactly as `72`'s placements are. Erasing would renumber
+
+F PrimitiveIndex::Revision      | PrimitiveStructure.h | 190     | api,nonallocating,nonthrowing | ✔️ | One primitive's revision, so a consumer knows whether its generated surface is still current.
+    in    PrimitiveOrdinal  std::uint32_t  [-]  ?
+    out   -                 Revision       [-]  zero for an unclaimed ordinal, which no generated surface ever recorded
+    by    Api/ChartPartition.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SeamSpecification.h, (+16 more)
+
+F PrimitiveIndex::DeclaredCount | PrimitiveStructure.h | 195     | api,nonallocating,nonthrowing | ✔️ | How many primitives stand declared.
+    out   -  std::uint32_t  [-]  ?
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+30 more)
+
+F PrimitiveIndex::SpannedCount  | PrimitiveStructure.h | 200     | api,nonallocating,nonthrowing | ✔️ | How many slots the index spans, claimed or not.
+    out   -  std::uint32_t  [-]  ?
+    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PopulationIndex.h, Api/SceneStructure.h, Api/SurfaceLayerSequence.h, (+10 more)
+
+F PrimitiveIndex::Reclaim       | PrimitiveStructure.h | 205     | api,nonthrowing               | ✔️ | Discards every declaration. Called when the document holding them closes.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
+
+T PrimitiveIndex::HeldPrimitive | PrimitiveStructure.h | 209-214 | -                             | -  | ?
+    has   Declared          PrimitiveSpecification  [-]  ?
+    has   DeclaredRevision  std::uint64_t           [-]  ?
+    has   SlotOccupied      bool                    [-]  ?
+    by    Source/PrimitiveStructure.cpp

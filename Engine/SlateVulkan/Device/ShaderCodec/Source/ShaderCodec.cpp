@@ -4,8 +4,7 @@
 // 🧩 The whole-file read, the stream verification that refuses before the vendor sees it, and the held specialisation.
 
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
-
-#include <cstdio>
+#include "SlateMath/Platform/FileInterchange/Api/FileInterchange.h"
 
 namespace Slate
 {
@@ -36,33 +35,21 @@ Outcome<bool> ShaderCodec::Construct(const VulkanExchange& Exchange, const std::
 
 Outcome<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& StreamPath) const
 {
-    // 🚧 Read through the C stream surface rather than `04` §1's `FileInterchange`, which is declared and not
-    //    yet built. This is a whole-file read of a build product with no seek, no partial read and no
-    //    encoding, so it carries over to that surface unchanged the moment it exists.
-    std::FILE* Stream = nullptr;
+    // 📝 Read through `04` §1's `FileInterchange`, which is the one stream surface over three file systems.
+    //    A whole-file read of a build product is exactly what that surface delivers, and reading around it
+    //    here would put a fourth spelling of "open a file" in the unit furthest from the file system.
+    const Outcome<std::vector<std::uint8_t>> Read = FileInterchange::ReadStream(StreamPath);
 
-#if defined(_MSC_VER)
-    if (::fopen_s(&Stream, StreamPath.c_str(), "rb") != 0)
-        Stream = nullptr;
-#else
-    Stream = std::fopen(StreamPath.c_str(), "rb");
-#endif
-
-    if (Stream == nullptr)
+    if (!Read.ContentPresent)
     {
         return Outcome<std::vector<std::uint32_t>>::Refuse(
-            { RefusalReason::HostDenied, "the lowered stream could not be opened; was the shader stage run" });
+            { RefusalReason::HostDenied, "the lowered stream could not be read; was the shader stage run" });
     }
 
-    std::fseek(Stream, 0, SEEK_END);
+    const std::vector<std::uint8_t>& Landed = Read.Resolve();
 
-    const long Spanned = std::ftell(Stream);
-
-    std::fseek(Stream, 0, SEEK_SET);
-
-    if (Spanned <= 0)
+    if (Landed.empty())
     {
-        std::fclose(Stream);
         return Outcome<std::vector<std::uint32_t>>::Refuse(
             { RefusalReason::ContentUnsupported, "the lowered stream is empty" });
     }
@@ -70,23 +57,25 @@ Outcome<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& S
     // 🔴 A whole word count or nothing. SPIR-V is a run of 32-bit words by definition, and a stream whose
     //    length is not a multiple of four was truncated — the vendor reads the partial word as an instruction
     //    and reports a malformed module, which names the driver rather than the truncated file.
-    if ((static_cast<std::size_t>(Spanned) % sizeof(std::uint32_t)) != 0u)
+    if ((Landed.size() % sizeof(std::uint32_t)) != 0u)
     {
-        std::fclose(Stream);
         return Outcome<std::vector<std::uint32_t>>::Refuse(
             { RefusalReason::ContentUnsupported, "the lowered stream is not a whole count of words" });
     }
 
-    std::vector<std::uint32_t> Words(static_cast<std::size_t>(Spanned) / sizeof(std::uint32_t), 0u);
+    // 📝 Copied word by word rather than reinterpreted in place. The byte extent carries no alignment
+    //    guarantee for a 32-bit read, and the vendor takes a word pointer — a cast would be undefined on
+    //    every host and merely happen to work on the two that tolerate a misaligned load.
+    std::vector<std::uint32_t> Words(Landed.size() / sizeof(std::uint32_t), 0u);
 
-    const std::size_t Read = std::fread(Words.data(), 1u, static_cast<std::size_t>(Spanned), Stream);
-
-    std::fclose(Stream);
-
-    if (Read != static_cast<std::size_t>(Spanned))
+    for (std::size_t Ordinal = 0u; Ordinal < Words.size(); ++Ordinal)
     {
-        return Outcome<std::vector<std::uint32_t>>::Refuse(
-            { RefusalReason::HostDenied, "the lowered stream was read short" });
+        const std::size_t Byte = Ordinal * sizeof(std::uint32_t);
+
+        Words[Ordinal] = static_cast<std::uint32_t>(Landed[Byte])
+                       | (static_cast<std::uint32_t>(Landed[Byte + 1u]) << 8)
+                       | (static_cast<std::uint32_t>(Landed[Byte + 2u]) << 16)
+                       | (static_cast<std::uint32_t>(Landed[Byte + 3u]) << 24);
     }
 
     if (Words[0] != SpirvStreamMarker)

@@ -137,20 +137,35 @@ ProjectedTransform Project(const DecomposedTransform& Source)
 //                                                       REBASING
 //------------------------------------------------------------------------------------------------------------------------
 
+ViewPosition Relative(DocumentPosition Subject, DocumentPosition ViewOrigin)
+{
+    // 📝 🔴 Both operands are 64-bit and so is the subtraction. Nothing narrows here — the result is still
+    //    64-bit and still carries the full difference, and it is the narrowing that is the lossy act.
+    ViewPosition Carried;
+    Carried.PositionX = Subject.PositionX - ViewOrigin.PositionX;
+    Carried.PositionY = Subject.PositionY - ViewOrigin.PositionY;
+    Carried.PositionZ = Subject.PositionZ - ViewOrigin.PositionZ;
+
+    return Carried;
+}
+
+DevicePosition Narrow(ViewPosition Subject)
+{
+    // 📝 The narrowing happens once, on a quantity whose magnitude is the distance from the camera rather than
+    //    from the document origin. That is the whole of what the rebasing buys, and it is bought here.
+    DevicePosition Narrowed;
+    Narrowed.PositionX = static_cast<float>(Subject.PositionX);
+    Narrowed.PositionY = static_cast<float>(Subject.PositionY);
+    Narrowed.PositionZ = static_cast<float>(Subject.PositionZ);
+
+    return Narrowed;
+}
+
 DevicePosition Rebase(DocumentPosition Subject, DocumentPosition ViewOrigin)
 {
-    // 📝 🔴 Both operands are 64-bit and so is the subtraction. The narrowing happens once, afterwards, on
-    //    a quantity whose magnitude is the distance from the camera rather than from the document origin.
-    const double SpanX = Subject.PositionX - ViewOrigin.PositionX;
-    const double SpanY = Subject.PositionY - ViewOrigin.PositionY;
-    const double SpanZ = Subject.PositionZ - ViewOrigin.PositionZ;
-
-    DevicePosition Rebased;
-    Rebased.PositionX = static_cast<float>(SpanX);
-    Rebased.PositionY = static_cast<float>(SpanY);
-    Rebased.PositionZ = static_cast<float>(SpanZ);
-
-    return Rebased;
+    // 📝 The composition, and not a third arithmetic. A separately written fused form is a second place the
+    //    order of the two acts is decided, and the two places disagree the day one of them is amended.
+    return Narrow(Relative(Subject, ViewOrigin));
 }
 
 }   // namespace Slate

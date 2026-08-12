@@ -98,11 +98,11 @@ F TopologyConditioning::VertexIsolated       | TopologyConditioning.h | 105    |
 F TopologyConditioning::Enrolled             | TopologyConditioning.h | 110    | api,nonallocating,nonthrowing | ✔️ | The runs of one enrolled condition, for whoever excludes a whole span at once.
     in    Condition  DegeneracySubject                     [-]  ?
     out   -          const std::vector<EnrolledInterval>&  [-]  ?
-    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+10 more)
+    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/ReferenceIndex.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, (+13 more)
 
 F TopologyConditioning::Perpendiculars       | TopologyConditioning.h | 112    | -                             | -  | ?
     out   -  const std::vector<SurfaceDirection>&  [-]  ?
-    by    Api/AssetInterchange.h, Api/TopologyStructure.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
+    by    Api/AssetInterchange.h, Api/TopologyStructure.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/PrimitiveStructure.cpp, Source/TopologyCodec.cpp, (+3 more)
 
 F TopologyConditioning::TangentBases         | TopologyConditioning.h | 113    | -                             | -  | ?
     out   -  const std::vector<TangentBasis>&  [-]  ?
@@ -167,4 +167,4 @@ F SLATE_DECLARES_PRECISION                   | TopologyConditioning.h | 172    |
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

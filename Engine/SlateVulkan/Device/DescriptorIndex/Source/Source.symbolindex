@@ -16,21 +16,22 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DescriptorIndex.cpp | 390 lines | 66ce1782 | 12 sym | The layout declaration that closes at bring-up, the extent it is sized against, and the per-rotation write.
+S DescriptorIndex.cpp | 421 lines | 1e30b967 | 12 sym | The layout declaration that closes at bring-up, the extent it is sized against, and the per-rotation write.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-F DescriptorIndex::Construct        | DescriptorIndex.cpp | 15-23   | -          | - | ?
-    in    Exchange  const VulkanExchange&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+F DescriptorIndex::Construct        | DescriptorIndex.cpp | 15-24   | -          | - | ?
+    in    Exchange  const VulkanExchange&       [-]  ?
+    in    Naming    const DiagnosticExtension&  [-]  ?
+    out   -         Outcome<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F DescriptorIndex::Declare          | DescriptorIndex.cpp | 29-93   | -          | - | ?
+F DescriptorIndex::Declare          | DescriptorIndex.cpp | 30-103  | -          | - | ?
     in    Declared  const std::vector<DescriptorSlot>&  [-]  ?
     out   -         Outcome<std::uint32_t>              [-]  ?
 
@@ -38,7 +39,7 @@ F DescriptorIndex::Declare          | DescriptorIndex.cpp | 29-93   | -         
 //                                                     THE ONE EXTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-F DescriptorIndex::Fix              | DescriptorIndex.cpp | 99-163  | -          | - | ?
+F DescriptorIndex::Fix              | DescriptorIndex.cpp | 109-179 | -          | - | ?
     in    ConcurrentSets  std::uint32_t  [-]  ?
     out   -               Outcome<bool>  [-]  ?
 
@@ -46,7 +47,7 @@ F DescriptorIndex::Fix              | DescriptorIndex.cpp | 99-163  | -         
 //                                                       THE CLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-F DescriptorIndex::Claim            | DescriptorIndex.cpp | 169-201 | -          | - | ?
+F DescriptorIndex::Claim            | DescriptorIndex.cpp | 185-232 | -          | - | ?
     in    LayoutOrdinal  std::uint32_t           [-]  ?
     out   -              Outcome<std::uint32_t>  [-]  ?
 
@@ -54,12 +55,12 @@ F DescriptorIndex::Claim            | DescriptorIndex.cpp | 169-201 | -         
 //                                                       THE WRITE
 //------------------------------------------------------------------------------------------------------------------------
 
-F DescriptorIndex::SlotOf           | DescriptorIndex.cpp | 207-216 | -          | - | ?
+F DescriptorIndex::SlotOf           | DescriptorIndex.cpp | 238-247 | -          | - | ?
     in    Holding      const DeclaredLayout&  [-]  ?
     in    SlotOrdinal  std::uint32_t          [-]  ?
     out   -            const DescriptorSlot*  [-]  ?
 
-F DescriptorIndex::Amend            | DescriptorIndex.cpp | 218-311 | -          | - | ?
+F DescriptorIndex::Amend            | DescriptorIndex.cpp | 249-342 | -          | - | ?
     in    ClaimOrdinal  std::uint32_t                          [-]  ?
     in    RotationSlot  std::uint32_t                          [-]  ?
     in    Amended       const std::vector<DescriptorContent>&  [-]  ?
@@ -69,26 +70,26 @@ F DescriptorIndex::Amend            | DescriptorIndex.cpp | 218-311 | -         
 //                                                    WHAT IS DECLARED
 //------------------------------------------------------------------------------------------------------------------------
 
-F DescriptorIndex::Resolve          | DescriptorIndex.cpp | 317-329 | -          | - | ?
+F DescriptorIndex::Resolve          | DescriptorIndex.cpp | 348-360 | -          | - | ?
     in    ClaimOrdinal  std::uint32_t             [-]  ?
     in    RotationSlot  std::uint32_t             [-]  ?
     out   -             Outcome<VkDescriptorSet>  [-]  ?
 
-F DescriptorIndex::Layout           | DescriptorIndex.cpp | 331-340 | -          | - | ?
+F DescriptorIndex::Layout           | DescriptorIndex.cpp | 362-371 | -          | - | ?
     in    LayoutOrdinal  std::uint32_t                   [-]  ?
     out   -              Outcome<VkDescriptorSetLayout>  [-]  ?
 
-F DescriptorIndex::DeclaredCount    | DescriptorIndex.cpp | 342-345 | -          | - | ?
+F DescriptorIndex::DeclaredCount    | DescriptorIndex.cpp | 373-376 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F DescriptorIndex::ClaimedCount     | DescriptorIndex.cpp | 347-350 | -          | - | ?
+F DescriptorIndex::ClaimedCount     | DescriptorIndex.cpp | 378-381 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F DescriptorIndex::Reclaim          | DescriptorIndex.cpp | 356-383 | -          | - | ?
+F DescriptorIndex::Reclaim          | DescriptorIndex.cpp | 387-414 | -          | - | ?
     out   -  void  [-]  ?
 
-F DescriptorIndex::~DescriptorIndex | DescriptorIndex.cpp | 385-388 | destructor | - | ?
+F DescriptorIndex::~DescriptorIndex | DescriptorIndex.cpp | 416-419 | destructor | - | ?

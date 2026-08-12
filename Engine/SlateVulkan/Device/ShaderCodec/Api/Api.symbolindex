@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ShaderCodec.h | 135 lines | 3b78fce6 | 13 sym | Lowered shader streams — read once, verified as SPIR-V, held as vendor modules and specialised at construction.
+S ShaderCodec.h | 134 lines | 82337f72 | 13 sym | Lowered shader streams — read once, verified as SPIR-V, held as vendor modules and specialised at construction.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE STREAM
@@ -38,31 +38,31 @@ T SpecialisedConstant             | ShaderCodec.h | 38-42   | nonallocating,nont
 //                                                    THE MODULE INDEX
 //------------------------------------------------------------------------------------------------------------------------
 
-T ShaderCodec                     | ShaderCodec.h | 56-133  | owning                    | -  | Every lowered shader the engine holds, read from what the build lowered and constructed once. and nothing has yet built. The read is a whole-file one of a build product and is replaced by that surface the moment it exists — 🚧 recorded rather than left as an assumption. run regardless, because `06` §4.2's recovery reconstructs every program and a module discarded at bring-up would have to be read from disk again inside the recovery.
+T ShaderCodec                     | ShaderCodec.h | 55-132  | owning                    | -  | Every lowered shader the engine holds, read from what the build lowered and constructed once. product, which is what that surface delivers; nothing here opens a file itself. run regardless, because `06` §4.2's recovery reconstructs every program and a module discarded at bring-up would have to be read from disk again inside the recovery.
     has   DeviceEdge       const VulkanExchange*           [-]  ?
     has   StreamRoot       std::string                     [-]  ?
     has   Modules          std::vector<HeldModule>         [-]  ?
     has   Specialisations  std::deque<HeldSpecialisation>  [-]  ?
     by    Api/OcclusionScheduler.h, Api/ProgramIndex.h, Api/VisibilityRaster.h, Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp, Source/ShaderCodec.cpp, (+1 more)
-    note  🔴 The stream is read from disk here rather than through `FileInterchange`, which `04` §1 declares
+    note  📝 Every stream is read through `04` §1's `FileInterchange`. The read is a whole-file one of a build
     note  ⚠️ A module is destroyed once every program constructed against it stands. It is held here for the
 
-F ShaderCodec::~ShaderCodec       | ShaderCodec.h | 63      | destructor                | -  | ?
+F ShaderCodec::~ShaderCodec       | ShaderCodec.h | 62      | destructor                | -  | ?
 
-F ShaderCodec::Construct          | ShaderCodec.h | 71      | api,nonthrowing           | ✔️ | Takes the device and the directory the build lowered its streams into.
+F ShaderCodec::Construct          | ShaderCodec.h | 70      | api,nonthrowing           | ✔️ | Takes the device and the directory the build lowered its streams into.
     in    Exchange         const VulkanExchange&  [-]  the created device; borrowed and outlives this component
     in    StreamDirectory  const std::string&     [-]  where `<Unit>/<Stem>.spv` is found; the build's output, never a source directory
     out   -                Outcome                [-]  refuses with CapabilityAbsent when no device is active
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+61 more)
 
-F ShaderCodec::Resolve            | ShaderCodec.h | 81      | api,nonthrowing           | 🔴 | Reads one lowered stream, verifies it, and constructs the vendor module from it. ContentUnsupported when it is not SPIR-V or its length is not a whole word count
+F ShaderCodec::Resolve            | ShaderCodec.h | 80      | api,nonthrowing           | 🔴 | Reads one lowered stream, verifies it, and constructs the vendor module from it. ContentUnsupported when it is not SPIR-V or its length is not a whole word count
     in    UnitName    const std::string&  [-]  the unit the stream was lowered under, for example "SlateVulkan"
     in    StreamStem  const std::string&  [-]  the source's stem without its extension, for example "VisibilitySurface"
     out   -           Outcome             [-]  the module ordinal; refuses with HostDenied when the stream cannot be read,
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+61 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
     note  A stream already read is not read twice; the standing ordinal is delivered instead.
 
-F ShaderCodec::Stage              | ShaderCodec.h | 93      | api,nonthrowing           | ✔️ | The stage declaration one module supplies to a program, with its specialisation folded in. at the program's construction, and a declaration returned by value is read after the call that produced it has already surrendered its stack.
+F ShaderCodec::Stage              | ShaderCodec.h | 92      | api,nonthrowing           | ✔️ | The stage declaration one module supplies to a program, with its specialisation folded in. at the program's construction, and a declaration returned by value is read after the call that produced it has already surrendered its stack.
     in    ModuleOrdinal  std::uint32_t                            [-]  a module this component resolved
     in    Reading        VkShaderStageFlagBits                    [-]  which stage the module is read as
     in    Fixed          const std::vector<SpecialisedConstant>&  [-]  the constants; empty declares no specialisation
@@ -70,28 +70,28 @@ F ShaderCodec::Stage              | ShaderCodec.h | 93      | api,nonthrowing   
     by    Api/VisibilityRaster.h, Source/ImageSpace.cpp, Source/ProgramIndex.cpp, Source/ShaderCodec.cpp, Source/VisibilityRaster.cpp
     note  🔴 The specialisation declaration is held **here** and not returned by value. The vendor reads it
 
-F ShaderCodec::Reclaim            | ShaderCodec.h | 101     | api,nonthrowing           | 🚩 | Destroys every module and every specialisation held for it.
+F ShaderCodec::Reclaim            | ShaderCodec.h | 100     | api,nonthrowing           | 🚩 | Destroys every module and every specialisation held for it.
     out   -  void  [-]  ?
     pre   the device is idle and every program constructed against them stands or is itself reclaimed
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
 
-F ShaderCodec::ResolvedCount      | ShaderCodec.h | 103     | -                         | -  | ?
+F ShaderCodec::ResolvedCount      | ShaderCodec.h | 102     | -                         | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/ImpressionSequence.h, Api/SurfaceDepot.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/ShaderCodec.cpp, (+2 more)
+    by    Api/ImpressionSequence.h, Api/SpecularProjection.h, Api/SurfaceDepot.h, Api/UvSurfaceDepot.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+6 more)
 
-T ShaderCodec::HeldSpecialisation | ShaderCodec.h | 107-112 | -                         | -  | ?
+T ShaderCodec::HeldSpecialisation | ShaderCodec.h | 106-111 | -                         | -  | ?
     has   Declared  std::vector<VkSpecializationMapEntry>  [-]  ?
     has   Fixed     std::vector<std::uint32_t>             [-]  ?
     has   Read      VkSpecializationInfo                   [-]  ?
     by    Source/ShaderCodec.cpp
 
-T ShaderCodec::HeldModule         | ShaderCodec.h | 114-119 | -                         | -  | ?
+T ShaderCodec::HeldModule         | ShaderCodec.h | 113-118 | -                         | -  | ?
     has   Constructed  VkShaderModule  [-]  ?
     has   UnitName     std::string     [-]  ?
     has   StreamStem   std::string     [-]  ?
     by    Source/ShaderCodec.cpp
 
-F ShaderCodec::ReadStream         | ShaderCodec.h | 123     | -                         | -  | Reads one whole file into a word run, refusing rather than truncating.
+F ShaderCodec::ReadStream         | ShaderCodec.h | 122     | -                         | -  | Reads one whole file into a word run, refusing rather than truncating.
     in    StreamPath  const std::string&  [-]  ?
     out   -           Outcome             [-]  refuses with HostDenied when it cannot be opened or read whole
-    by    Source/ShaderCodec.cpp
+    by    Api/FileInterchange.h, Source/FileInterchange.cpp, Source/ShaderCodec.cpp

@@ -416,6 +416,12 @@ Outcome<bool> RenderSchedule::Fix()
         {
             Advanced = false;
 
+            // 📝 The placeable candidate with the least amendment ordinal is taken, rather than the first one
+            //    found. Every recording that declares no ordinal carries nought, so a schedule of recordings
+            //    that predate the field is placed in exactly the order it was before.
+            std::size_t   Preferred        = ContributedOrder.size();
+            std::uint32_t PreferredOrdinal = 0u;
+
             for (std::size_t Ordinal = 0u; Ordinal < ContributedOrder.size(); ++Ordinal)
             {
                 if (Placed[Ordinal])
@@ -442,13 +448,24 @@ Outcome<bool> RenderSchedule::Fix()
                 if (!ReadsSatisfied)
                     continue;
 
-                OrderedRecordings.push_back(Candidate);
-                Placed[Ordinal] = true;
-                Advanced        = true;
-
-                for (const SharedTarget Produced : Candidate.Produces)
-                    Available[static_cast<std::size_t>(Produced)] = true;
+                if (Preferred == ContributedOrder.size() || Candidate.AmendmentOrdinal < PreferredOrdinal)
+                {
+                    Preferred        = Ordinal;
+                    PreferredOrdinal = Candidate.AmendmentOrdinal;
+                }
             }
+
+            if (Preferred == ContributedOrder.size())
+                continue;
+
+            const DeclaredRecording& Placing = ContributedOrder[Preferred];
+
+            OrderedRecordings.push_back(Placing);
+            Placed[Preferred] = true;
+            Advanced          = true;
+
+            for (const SharedTarget Produced : Placing.Produces)
+                Available[static_cast<std::size_t>(Produced)] = true;
         }
     }
 

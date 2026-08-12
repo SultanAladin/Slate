@@ -1,0 +1,141 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/ReferenceIndex/Api
+%layer      SlateDocument
+%sources    1
+%symbols    18
+%annotated  18/18
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S ReferenceIndex.h | 194 lines | cf5dc409 | 18 sym | `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                               WHAT A DOCUMENT DEPENDS ON
+//------------------------------------------------------------------------------------------------------------------------
+
+E ReferenceSubject                         | ReferenceIndex.h | 28-36   | contract                                | -  | The five contents `48` §5 tabulates, each carrying its own retention default. other at read time, because a document written under one answer must open correctly under both — and a reader that inferred it would open the same file two ways on two builds.
+    has   PaintedContent    ReferenceSubject  [-]  ?
+    has   ImportedImagery   ReferenceSubject  [-]  ?
+    has   ImportedTopology  ReferenceSubject  [-]  ?
+    has   VectorContent     ReferenceSubject  [-]  ?
+    has   TypefaceOutline   ReferenceSubject  [-]  ?
+    has   SubjectCount      ReferenceSubject  [-]  ?
+    by    Source/ReferenceIndex.cpp
+    note  🔴 The subject decides the default and the document decides the retention. Nothing infers one from the
+
+E ReferenceRetention                       | ReferenceIndex.h | 40-44   | contract                                | -  | Whether the content travels inside the document or is read from where it lives.
+    has   Embedded    ReferenceRetention  [-]  ?
+    has   Referenced  ReferenceRetention  [-]  ?
+    by    Source/ReferenceIndex.cpp
+
+E ReferenceStanding                        | ReferenceIndex.h | 52-58   | contract                                | -  | Whether a declared reference was found where the document said it would be. stays enrolled, reports what it was looking for, and presents as missing. A document that substituted a default for a missing texture is one the artist saves over with the defaults baked in, and the original path is gone from the file at that point.
+    has   Unresolved     ReferenceStanding  [-]  ?
+    has   Resolved       ReferenceStanding  [-]  ?
+    has   Absent         ReferenceStanding  [-]  ?
+    has   StandingCount  ReferenceStanding  [-]  ?
+    by    Source/ReferenceIndex.cpp
+    note  🔴 `48` §5: Absent is a standing a reference **holds**, not a refusal that discards it. The occupant
+
+F ResolveRetention                         | ReferenceIndex.h | 65-70   | api,constexpr,nonallocating,nonthrowing | ✔️ | The retention `48` §5's table declares for one subject when the document declares none.
+    in    Subject  ReferenceSubject  [-]  which of the five contents
+    out   -        Retention         [-]  Embedded for authored and pasted content, Referenced for imported and typeface content
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 ONE DECLARED REFERENCE
+//------------------------------------------------------------------------------------------------------------------------
+
+T DeclaredReference                        | ReferenceIndex.h | 81-89   | owning                                  | -  | One thing the document depends on, the occupant that depends on it, and whether it is there. is looking. An absence recorded without its occupant is a line in a register nobody reads until the render is already wrong.
+    has   Enrolled      OccupantIdentity    [-]  ?
+    has   OriginPath    std::string         [-]  ?
+    has   Subject       ReferenceSubject    [-]  ?
+    has   Retention     ReferenceRetention  [-]  ?
+    has   Standing      ReferenceStanding   [-]  ?
+    has   SpannedBytes  std::uint64_t       [-]  ?
+    by    Source/ReferenceIndex.cpp
+    note  🔴 The occupant is held so that an absence is presentable **in the outliner**, which is where the artist
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE REFERENCES
+//------------------------------------------------------------------------------------------------------------------------
+
+T ReferenceIndex                           | ReferenceIndex.h | 102-192 | owning                                  | -  | Every external dependency of one document, by identity, with the typeface answer the document was made under. stand-in content, and there is deliberately no routine that would. twice, because each has to open on its own — a shared declaration would make the second document's reference depend on whether the first was open.
+    has   Declarations      std::vector<DeclaredReference>  [-]  ?
+    has   AbsenceReported   std::vector<bool>               [-]  ?
+    has   TypefaceDeclared  ReferenceRetention              [-]  ?
+    has   AbsentTotal       std::uint32_t                   [-]  ?
+    by    Api/DocumentSession.h, Source/DocumentSession.cpp, Source/ReferenceIndex.cpp
+    note  🔴 `48` §5: a missing reference is an enrolled absence and never a substitution. Nothing here produces
+    note  ⚠️ Held per document rather than per application. Two documents referring to the same imagery declare it
+
+F ReferenceIndex::Declare                  | ReferenceIndex.h | 113     | api,nonthrowing                         | 🚩 | Declares one external dependency and issues the ordinal that addresses it. Admitting it would put a permanent unknown into the document with nothing able to settle it.
+    in    Arriving  const DeclaredReference&  [-]  the reference; Retention is honoured as given
+    out   -         Outcome                   [-]  refuses with ContentUnsupported for a Referenced entry naming no path
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    note  📝 A Referenced entry with no path cannot be looked for, so it could only ever stand Unresolved.
+
+F ReferenceIndex::DeclareRetention         | ReferenceIndex.h | 119     | api,nonthrowing                         | ✔️ | Declares one reference embedded or referenced, per the document's own answer.
+    in    ReferenceOrdinal  std::uint32_t       [-]  ?
+    in    Declaring         ReferenceRetention  [-]  ?
+    out   -                 Outcome             [-]  refuses with ExtentExhausted outside the declared count
+    by    Source/ReferenceIndex.cpp
+
+F ReferenceIndex::DeclareResolved          | ReferenceIndex.h | 125     | api,nonthrowing                         | ✔️ | Declares one reference found, with the extent it spans.
+    in    ReferenceOrdinal  std::uint32_t  [-]  ?
+    in    SpannedBytes      std::uint64_t  [-]  ?
+    out   -                 Outcome        [-]  refuses with ExtentExhausted outside the declared count
+    by    Source/ReferenceIndex.cpp
+
+F ReferenceIndex::DeclareAbsent            | ReferenceIndex.h | 134     | api,nonthrowing                         | ✔️ | Declares one reference missing — enrolled, reported, and never replaced. to go and find, and clearing it turns a recoverable absence into a permanent one.
+    in    ReferenceOrdinal  std::uint32_t  [-]  ?
+    out   -                 Outcome        [-]  refuses with ExtentExhausted outside the declared count
+    post  the occupant stays enrolled and the origin path stays exactly as the document wrote it
+    by    Api/SurfaceTileSpace.h, Source/ReferenceIndex.cpp, Source/SurfaceTileSpace.cpp
+    note  🔴 The path is retained rather than cleared. It is the only thing that tells the artist which file
+
+F ReferenceIndex::Report                   | ReferenceIndex.h | 145     | api,nonthrowing                         | 🚩 | Appends every unreported absence to the register — `48` §5 and `86` §4. reason: resolution runs through `34`, and a worker reporting a missing texture would report it before the requester had applied the open it belongs to.
+    in    Reporting  ReportSequence&  [-]   where the absence rows land
+    in    Sampled    TickPoint        [ns]  the tick's own reading
+    out   -          void             [-]   ?
+    post  each absence is appended once; a second call appends nothing further
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/DisplayProjection.h, Api/HardwareMetrics.h, (+32 more)
+    note  📝 Reported on the tick rather than where the absence was discovered, for `IntakeIndex::Report`'s
+
+F ReferenceIndex::Declared                 | ReferenceIndex.h | 150     | api,nonallocating,nonthrowing           | ✔️ | Every declared reference, in declaration order.
+    out   -  const std::vector<DeclaredReference>&  [-]  ?
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+76 more)
+
+F ReferenceIndex::Resolve                  | ReferenceIndex.h | 156     | api,nonthrowing                         | 🚩 | The most recently declared reference naming one origin path.
+    in    OriginPath  const std::string&  [-]  ?
+    out   -           Outcome             [-]  refuses with ExtentExhausted when nothing declares that path
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
+
+F ReferenceIndex::DeclareTypefaceRetention | ReferenceIndex.h | 164     | api,nonallocating,nonthrowing           | ✔️ | Declares whether this document embeds its typeface outlines or refers to them. that the answer is **recorded in the document**, so a file made under one answer opens correctly under the other. A build-wide constant would make the same file mean two things on two builds.
+    in    Declaring  ReferenceRetention  [-]  ?
+    out   -          void                [-]  ?
+    by    Source/ReferenceIndex.cpp
+    note  ⚠️ `00` §12 leaves the licensing question open and `48` §5 does not close it. What is fixed here is
+
+F ReferenceIndex::TypefaceRetention        | ReferenceIndex.h | 169     | api,nonallocating,nonthrowing           | ✔️ | The typeface answer this document was made under.
+    out   -  ReferenceRetention  [-]  ?
+    by    Source/ReferenceIndex.cpp
+
+F ReferenceIndex::AbsentCount              | ReferenceIndex.h | 174     | api,nonallocating,nonthrowing           | ✔️ | How many references stand absent — what `86` presents beside the outliner.
+    out   -  std::uint32_t  [-]  ?
+    by    Source/ReferenceIndex.cpp
+
+F ReferenceIndex::DeclaredCount            | ReferenceIndex.h | 179     | api,nonallocating,nonthrowing           | ✔️ | How many references are declared in total.
+    out   -  std::uint32_t  [-]  ?
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+30 more)
+
+F ReferenceIndex::Reclaim                  | ReferenceIndex.h | 184     | api,nonthrowing                         | ✔️ | Empties the index. Called when the session it belongs to closes and by nothing else.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)

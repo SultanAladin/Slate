@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ReflectanceIntegrator.h | 377 lines | 57bf582f | 26 sym | `18` — attributes reconstructed rather than read, channels resolved rather than walked, and one target written at every pixel.
+S ReflectanceIntegrator.h | 381 lines | d4394859 | 26 sym | `18` — attributes reconstructed rather than read, channels resolved rather than walked, and one target written at every pixel.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                ATTRIBUTE RECONSTRUCTION
@@ -75,7 +75,7 @@ F DirectionalAlbedoSurface::Construct            | ReflectanceIntegrator.h | 116
     in    ExtentAlong   std::uint32_t  [-]  ?
     in    ExtentAcross  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an extent of nothing on either axis
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+49 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+61 more)
 
 F DirectionalAlbedoSurface::Declare              | ReflectanceIntegrator.h | 121     | api,nonallocating,nonthrowing | ✔️ | Writes one texel's three components.
     in    Along          std::uint32_t  [-]  ?
@@ -84,7 +84,7 @@ F DirectionalAlbedoSurface::Declare              | ReflectanceIntegrator.h | 121
     in    SingleScatter  double         [-]  ?
     in    Charlie        double         [-]  ?
     out   -              void           [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+34 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
 
 F DirectionalAlbedoSurface::Sample               | ReflectanceIntegrator.h | 128     | api,nonallocating,nonthrowing | 🚩 | Samples the three components at a declared coordinate, bilinearly, clamped on both axes. and a roughness of one is fully rough, and a wrapped read at either end returns the opposite end.
     in    CoordinateAlong   double   [-]  ?
@@ -118,7 +118,7 @@ F DirectionalAlbedoSurface::Constructed          | ReflectanceIntegrator.h | 137
 
 T ResolvedChannelSet                             | ReflectanceIntegrator.h | 158-162 | nonallocating,nonthrowing     | -  | The twenty channels resolved at one pixel, and which of them were sampled at all. tile promotion resolves `42`'s declaration against `56`'s sequence once per tile per level, not once per pixel per rotation — a dispatch that walked the sequence would pay its depth at every pixel of every rotation, and the artist's thirtieth layer would cost as much as their first thirty combined. wider than three. A per-measure union would be a second declaration of what `42` already declares.
     has   SampledMask  std::uint32_t  [-]  ?
-    by    Source/ReflectanceIntegrator.cpp
+    by    Api/TransmissionSequence.h, Source/ReflectanceIntegrator.cpp, Source/TransmissionSequence.cpp
     note  🔴 `18` §8: a channel value is **read resolved** and the dispatch never walks a layer sequence. `20`'s
     note  📝 A scalar and a colour share one storage run, three components wide, because `42` declares no channel
 
@@ -151,7 +151,7 @@ T AmbientContribution                            | ReflectanceIntegrator.h | 196
 //                                                     THE INTEGRATOR
 //------------------------------------------------------------------------------------------------------------------------
 
-T ReflectanceIntegrator                          | ReflectanceIntegrator.h | 227-367 | owning                        | -  | `18` — the shading dispatch, the directional-albedo lookup it compensates through, and `RadianceSurface`. included; `62` and `30` amend it afterwards, in that order, as `08` §2 declares. Nothing here reads what was in the target before. reads no material. Without it nothing in the entire schedule writes the background — every other dispatch is per material over pixels that resolved to a surface, and an unoccupied pixel resolved to none. The image would carry a hole exactly where the sky belongs, filled with whatever the rotation slot held previously. bit depths, no slot assignment, no packing order — and refuses to invent one. `ResolvedChannelSet` therefore carries three components per channel and `ResolveChannels` reads through `70`'s declared placements, so the arrangement is the caller's and the row stays open.
+T ReflectanceIntegrator                          | ReflectanceIntegrator.h | 227-371 | owning                        | -  | `18` — the shading dispatch, the directional-albedo lookup it compensates through, and `RadianceSurface`. included; `62` and `30` amend it afterwards, in that order, as `08` §2 declares. Nothing here reads what was in the target before. reads no material. Without it nothing in the entire schedule writes the background — every other dispatch is per material over pixels that resolved to a surface, and an unoccupied pixel resolved to none. The image would carry a hole exactly where the sky belongs, filled with whatever the rotation slot held previously. bit depths, no slot assignment, no packing order — and refuses to invent one. `ResolvedChannelSet` therefore carries three components per channel and `ResolveChannels` reads through `70`'s declared placements, so the arrangement is the caller's and the row stays open.
     has   AlbedoExtentAlong   static constexpr std::uint32_t  [-]  ?
     has   AlbedoExtentAcross  static constexpr std::uint32_t  [-]  ?
     has   AlbedoSampleCount   static constexpr std::uint32_t  [-]  ?
@@ -165,7 +165,7 @@ T ReflectanceIntegrator                          | ReflectanceIntegrator.h | 227
 F ReflectanceIntegrator::Contribute              | ReflectanceIntegrator.h | 235     | api,nonthrowing               | ✔️ | Contributes `08` §3 ④'s recording.
     in    Schedule  RenderSchedule&  [-]  ?
     out   -         Outcome          [-]  refuses with whatever the schedule refused
-    by    Api/OcclusionProjection.h, Api/RenderSchedule.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp, Source/ReflectanceIntegrator.cpp, (+2 more)
+    by    Api/DisplayProjection.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/RenderSchedule.h, Api/SampleIntegrator.h, (+13 more)
 
 F ReflectanceIntegrator::DeriveDirectionalAlbedo | ReflectanceIntegrator.h | 251     | api,nonthrowing               | 🔴 | Derives `18` §4.1's directional-albedo lookup, once. split-sum scale, the single-scatter directional albedo that drives §4's compensation, and the Charlie directional albedo for the cloth selection. Derived once at bring-up rather than per rotation: it depends on nothing a document holds, and re-deriving it per rotation would integrate a hemisphere per texel per rotation for a surface that never changes. and sampled on the device, so the mapping crosses the toolchain seam twice and lives in `Shared/` for the reason `28`'s three surface parameterisations do.
     in    Rule  const QuadratureRule&  [-]  a derived quadrature rule; the hemisphere integrals are taken against it
@@ -187,25 +187,26 @@ F ReflectanceIntegrator::ResolveChannels         | ReflectanceIntegrator.h | 270
     note  🔴 `18` §9's fifth gate: each selection declares its channels and **unread channels are not
     note  🔴 A channel a material declares but does not sample resolves to its **declared default** and never
 
-F ReflectanceIntegrator::IntegrateDirect         | ReflectanceIntegrator.h | 297     | api,nonallocating,nonthrowing | 🚩 | Integrates one illuminant's direct contribution at one pixel. host and `00` §11 gates the agreement at Tier B — a second implementation of the distribution or the attenuation is a preview that converges to a different image than the workspace does. energy at high roughness and the loss reads as rough metal being too dark, which the artist corrects by raising an albedo that was already correct. visibility — `18` §7. Occlusion in the direct term is already resolved by shadowing, and applying the ambient term here would darken a lit surface for standing near another one.
+F ReflectanceIntegrator::IntegrateDirect         | ReflectanceIntegrator.h | 299     | api,nonallocating,nonthrowing | 🚩 | Integrates one illuminant's direct contribution at one pixel. host and `00` §11 gates the agreement at Tier B — a second implementation of the distribution or the attenuation is a preview that converges to a different image than the workspace does. energy at high roughness and the loss reads as rough metal being too dark, which the artist corrects by raising an albedo that was already correct. visibility — `18` §7. Occlusion in the direct term is already resolved by shadowing, and applying the ambient term here would darken a lit surface for standing near another one.
     in    Selected          ReflectanceSelection         [-]  the material's reflectance selection
     in    Resolved          const ResolvedChannelSet&    [-]  the channel set
     in    Reconstructed     const ReconstructedSurface&  [-]  ?
     in    Incidence         const IncidenceProjection&   [-]  `44`'s projection of this illuminant at this position
     in    Radiance          const ColourSpecification&   [-]  the illuminant's colour, already in the working space
     in    Visibility        double                       [-]  `60`'s direct term for this illuminant at this pixel
-    in    ViewX             double                       [-]  ?
+    in    ViewX             double                       [-]  toward the camera, unit
     in    ViewY             double                       [-]  ?
     in    ViewZ             double                       [-]  ?
     in    Reconstructed[-]  the pixel's attributes       [-]  ?
-    in    ViewX/Y/Z         -                            [-]  toward the camera, unit
+    in    ViewY             -                            [-]  ?
+    in    ViewZ             -                            [-]  ?
     out   -                 Contribution                 [-]  working-space radiance, already attenuated
     by    Source/ReflectanceIntegrator.cpp
     note  🔴 Every term is `Shared/`'s and none is written here. `82` §5 resolves the same surface on the
     note  🔴 Multi-scatter compensation is applied **wherever GGX is** — `18` §9. Single-scatter GGX loses
     note  ⚠️ Neither occlusion source touches the direct term's own attenuation beyond `60`'s per-illuminant
 
-F ReflectanceIntegrator::IntegrateAmbient        | ReflectanceIntegrator.h | 319     | api,nonthrowing               | 🚩 | Integrates the ambient contribution at one pixel. hemisphere here. `28` §5 derives the convolution when the sky-view surface rebuilds and never per pixel; a hemisphere integral evaluated per shaded pixel is the thing the whole precomputation exists to avoid, and it would be evaluated at every pixel of every rotation rather than at every rebuild.
+F ReflectanceIntegrator::IntegrateAmbient        | ReflectanceIntegrator.h | 321     | api,nonthrowing               | 🚩 | Integrates the ambient contribution at one pixel. hemisphere here. `28` §5 derives the convolution when the sky-view surface rebuilds and never per pixel; a hemisphere integral evaluated per shaded pixel is the thing the whole precomputation exists to avoid, and it would be evaluated at every pixel of every rotation rather than at every rebuild.
     in    Selected              ReflectanceSelection                                  [-]  ?
     in    Resolved              const ResolvedChannelSet&                             [-]  ?
     in    Reconstructed         const ReconstructedSurface&                           [-]  ?
@@ -220,24 +221,25 @@ F ReflectanceIntegrator::IntegrateAmbient        | ReflectanceIntegrator.h | 319
     note  🔴 The diffuse ambient reads `28`'s **cosine-convolved irradiance** rather than integrating the
     note  🔴 Channel 6 and `60`'s resolved term **multiply** — `18` §5 and `60` §2, from both sides.
 
-F ReflectanceIntegrator::IntegrateUnoccupied     | ReflectanceIntegrator.h | 336     | api,nonthrowing               | ✔️ | Resolves the unoccupied class at one pixel — `18` §5.1. and it exists because every other dispatch is per material over pixels that resolved to a surface.
+F ReflectanceIntegrator::IntegrateUnoccupied     | ReflectanceIntegrator.h | 340     | api,nonthrowing               | ✔️ | Resolves the unoccupied class at one pixel — `18` §5.1. and it exists because every other dispatch is per material over pixels that resolved to a surface.
     in    Atmosphere  const AtmosphereIntegrator&  [-]  the same two sources §5 already declares
-    in    ViewX       double                       [-]  ?
+    in    ViewX       double                       [-]  the view direction, unit, in the atmosphere-local frame
     in    ViewY       double                       [-]  ?
     in    ViewZ       double                       [-]  ?
     in    Red         double&                      [-]  ?
     in    Green       double&                      [-]  ?
     in    Blue        double&                      [-]  ?
-    in    ViewX/Y/Z   -                            [-]  the view direction, unit, in the atmosphere-local frame
+    in    ViewY       -                            [-]  ?
+    in    ViewZ       -                            [-]  ?
     out   -           Outcome                      [-]  carries `28`'s refusal
     by    Source/ReflectanceIntegrator.cpp
     note  🔴 Reconstructs **no attribute** and reads **no material**. It samples one source and writes it,
 
-F ReflectanceIntegrator::DirectionalAlbedo       | ReflectanceIntegrator.h | 343     | api,nonallocating,nonthrowing | ✔️ | The directional-albedo lookup, for whoever uploads it.
+F ReflectanceIntegrator::DirectionalAlbedo       | ReflectanceIntegrator.h | 347     | api,nonallocating,nonthrowing | ✔️ | The directional-albedo lookup, for whoever uploads it.
     out   -  const DirectionalAlbedoSurface&  [-]  ?
     by    Source/ReflectanceIntegrator.cpp
 
-F ReflectanceIntegrator::SampleDirectionalAlbedo | ReflectanceIntegrator.h | 348     | api,nonallocating,nonthrowing | 🚩 | The lookup's three components at one view angle and roughness.
+F ReflectanceIntegrator::SampleDirectionalAlbedo | ReflectanceIntegrator.h | 352     | api,nonallocating,nonthrowing | 🚩 | The lookup's three components at one view angle and roughness.
     in    ViewCosine           double   [-]  ?
     in    Roughness            double   [-]  ?
     in    SplitSumScale        double&  [-]  ?
@@ -246,13 +248,13 @@ F ReflectanceIntegrator::SampleDirectionalAlbedo | ReflectanceIntegrator.h | 348
     out   -                    void     [-]  ?
     by    Source/ReflectanceIntegrator.cpp
 
-F ReflectanceIntegrator::AlbedoDerived           | ReflectanceIntegrator.h | 354     | -                             | -  | ?
+F ReflectanceIntegrator::AlbedoDerived           | ReflectanceIntegrator.h | 358     | -                             | -  | ?
     out   -  bool  [-]  ?
     by    Source/ReflectanceIntegrator.cpp
 
-F SLATE_DECLARES_PRECISION                       | ReflectanceIntegrator.h | 372     | -                             | -  | ?
+F SLATE_DECLARES_PRECISION                       | ReflectanceIntegrator.h | 376     | -                             | -  | ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+26 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

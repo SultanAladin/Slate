@@ -1,0 +1,91 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Byte ranges arriving from the storage device, so a decode is driven by range arrival rather than by whole-stream completion.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateMath/Platform/StorageExchange/Api
+%layer      SlateMath
+%sources    1
+%symbols    11
+%annotated  10/11
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S StorageExchange.h | 135 lines | b9ab0035 | 11 sym | Byte ranges arriving from the storage device, so a decode is driven by range arrival rather than by whole-stream completion.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    A DECLARED RANGE
+//------------------------------------------------------------------------------------------------------------------------
+
+T RangeRequest                      | StorageExchange.h | 23-27  | nonallocating,nonthrowing     | -  | One byte range a reader asked the storage device for.
+    has   Offset        std::uint64_t  [-]  ?
+    has   SpannedBytes  std::uint64_t  [-]  ?
+    by    Source/StorageExchange.cpp
+
+E RangeConclusion                   | StorageExchange.h | 34-40  | contract                      | -  | How one declared range ended. bytes than were asked for and every one of them is good; a codec reading the last range of a stream asks for its own read extent and is handed what remains.
+    has   Pending    RangeConclusion  [-]  ?
+    has   Delivered  RangeConclusion  [-]  ?
+    has   Truncated  RangeConclusion  [-]  ?
+    has   Declined   RangeConclusion  [-]  ?
+    by    Source/StorageExchange.cpp
+    note  ⚠️ Truncated is delivered and not refused. A range that reached the end of the stream carries fewer
+
+T RangeArrival                      | StorageExchange.h | 47-54  | owning                        | -  | One range as it came back, and how long the storage device took over it. ask for next from how long the last answer took — and a stream's mean latency is the one figure that tells it nothing about the range it is about to declare.
+    has   Declared       std::uint32_t              [-]  ?
+    has   Concluded      RangeConclusion            [-]  ?
+    has   Offset         std::uint64_t              [-]  ?
+    has   Landed         std::vector<std::uint8_t>  [-]  ?
+    has   LatencyMillis  double                     [-]  ?
+    by    Source/StorageExchange.cpp
+    note  📝 The latency is carried per range rather than per stream, because `20`'s residency decides what to
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE TRANSLATION
+//------------------------------------------------------------------------------------------------------------------------
+
+T StorageExchange                   | StorageExchange.h | 69-133 | owning                        | -  | One opened stream, read by declared range and drained in arrival order. completion — `04` §4. A codec that waited for the whole stream would hold the tick for as long as the largest document takes to read, and `34` §3 applies results on the tick. that read took. The surface is the asynchronous one deliberately: every caller already declares, goes away, and drains, so the read moving onto `34`'s workers changes nothing above this line. Writing it the other way round would put a whole-stream assumption into every codec first.
+    has   RangeCeiling    static constexpr std::uint64_t  [-]  ?
+    has   StreamSlot      void*                           [-]  ?
+    has   StreamSpanned   std::uint64_t                   [-]  ?
+    has   DeclaredCount   std::uint32_t                   [-]  ?
+    has   PendingOrder    std::vector<RangeRequest>       [-]  ?
+    has   PendingOrdinal  std::vector<std::uint32_t>      [-]  ?
+    has   DrainedRanges   std::vector<RangeArrival>       [-]  ?
+    by    Source/StorageExchange.cpp
+    note  🔴 This surface exists so a decode is driven by **range arrival** rather than by whole-stream
+    note  ⚠️ 🚧 Ranges are read synchronously inside `Drain` for now, and the latency reported is the real one
+
+F StorageExchange::~StorageExchange | StorageExchange.h | 76     | destructor                    | -  | ?
+
+F StorageExchange::Open             | StorageExchange.h | 84     | api,nonthrowing               | 🚩 | Opens one stream for reading by range. ExtentExhausted when this exchange already holds one
+    in    Path  const std::string&  [-]  UTF-8
+    out   -     Outcome             [-]  refuses with HostDenied when the stream cannot be opened, and with
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+20 more)
+
+F StorageExchange::Reclaim          | StorageExchange.h | 89     | api,nonthrowing               | ✔️ | Closes the held stream and discards every range not yet drained.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
+
+F StorageExchange::Declare          | StorageExchange.h | 99     | api,nonthrowing               | ✔️ | Declares one range the reader wants. is open, and with ExtentExhausted when the offset lies beyond the stream which is what lets a codec declare the next range while it decodes the one it has.
+    in    Wanted  RangeRequest  [-]  the offset and extent
+    out   -       Outcome       [-]  the ordinal this range is drained under; refuses with HostDenied when no stream
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    note  📝 Declaring is not reading. The ordinal is issued here and the bytes arrive at a later Drain,
+
+F StorageExchange::Drain            | StorageExchange.h | 108    | api,nonthrowing               | 🔴 | Delivers every range that has arrived since the last drain, in declaration order. long one whatever order they were asked in, and a codec reassembling a stream from device order would produce a different result on a device with a different reordering rule.
+    out   -  Arrivals  [-]  ordered by declaration ordinal, never by which range the device answered first
+    by    Api/RequestQueue.h, Api/WindowInterchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+2 more)
+    note  🔴 Declaration order and not arrival order. A storage device answers a short range faster than a
+
+F StorageExchange::PendingCount     | StorageExchange.h | 113    | api,nonallocating,nonthrowing | ✔️ | How many declared ranges have not yet been drained.
+    out   -  std::uint32_t  [-]  ?
+    by    Api/ImpressionSequence.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/StorageExchange.cpp, Source/WorkSequence.cpp
+
+F StorageExchange::SpannedBytes     | StorageExchange.h | 119    | api,nonallocating,nonthrowing | ✔️ | The whole extent of the open stream.
+    out   -  SpannedBytes  [B]  zero while no stream is open
+    by    Api/FileInterchange.h, Api/PersistenceSequence.h, Api/ReferenceIndex.h, Source/FileInterchange.cpp, Source/PersistenceSequence.cpp, Source/ReferenceIndex.cpp, (+1 more)

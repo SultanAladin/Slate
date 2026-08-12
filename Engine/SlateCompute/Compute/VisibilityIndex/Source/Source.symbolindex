@@ -324,6 +324,7 @@ F OrientationOfFace                        | PartitionStructure.cpp  | 48-89   |
     in    FaceOrdinal         std::uint32_t             [-]  ?
     in    OrientationDerived  bool&                     [-]  ?
     out   -                   SurfaceDirection          [-]  ?
+    by    Source/UvSurfaceDepot.cpp
     note  📐 Newell rather than a cross product of the first three corners, because an n-gon's first three corners
     note  📝 Accumulated at 64 bits and narrowed only at the end. The positions are `mm` in document space and
 

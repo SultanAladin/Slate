@@ -92,7 +92,7 @@ F Derive                            | ChartPartition.h | 123     | api,nonthrowi
 F SLATE_DECLARES_PRECISION          | ChartPartition.h | 129     | -                             | -  | ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, (+26 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE STANDING PARTITION
@@ -101,7 +101,7 @@ F SLATE_DECLARES_PRECISION          | ChartPartition.h | 129     | -            
 T ChartPartition                    | ChartPartition.h | 143-193 | owning                        | -  | The partition a surface currently addresses, and the revision every derived artefact keys on. while `20` promotes against it. Re-partitioning moves domain positions, so every derived artefact addressed in the old domain is invalid — and the revision is what makes that discoverable rather than silent. rather than world-referred, which is `68` §6's table read from the storage side.
     has   StandingPartition  DerivedPartition  [-]  ?
     has   PartitionRevision  std::uint64_t     [-]  ?
-    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+    by    Api/UvSurfaceDepot.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/UvSurfaceDepot.cpp
     note  🔴 `68` §6: a re-partition advances the partition revision, and `24` §3 keys transferred results on it
     note  🔴 A camera move, an occupant move and a paint stroke re-derive nothing here. The domain is parametric
 
@@ -114,25 +114,25 @@ F ChartPartition::Adopt             | ChartPartition.h | 153     | api,nonthrowi
 F ChartPartition::Standing          | ChartPartition.h | 159     | api,nonallocating,nonthrowing | ✔️ | The standing partition.
     out   -  const DerivedPartition&  [-]  ?
     pre   PartitionStanding holds
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/ImageSpace.h, Api/OcclusionProjection.h, (+39 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/DisplayScheduler.h, (+66 more)
 
 F ChartPartition::Coordinate        | ChartPartition.h | 166     | api,nonthrowing               | ✔️ | One imported corner's domain coordinate. while no partition stands
     in    CornerOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
-    by    Shared/LatticeProjection.slang.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+    by    Api/ThemeSpecification.h, Shared/LatticeProjection.slang.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/ThemeSpecification.cpp
 
 F ChartPartition::PartitionStanding | ChartPartition.h | 171     | api,nonallocating,nonthrowing | ✔️ | Whether a partition stands at all.
     out   -  bool  [-]  ?
-    by    Api/PartitionClassifier.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp
+    by    Api/PartitionClassifier.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionClassifier.cpp, Source/UvSurfaceDepot.cpp
 
 F ChartPartition::Revision          | ChartPartition.h | 176     | api,nonallocating,nonthrowing | ✔️ | The revision `24` §3 keys on and `20` promotes against.
     out   -  std::uint64_t  [-]  ?
-    by    Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/SeamSpecification.h, Api/TopologyStructure.h, (+13 more)
+    by    Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/PrimitiveStructure.h, Api/SeamSpecification.h, (+16 more)
 
 F ChartPartition::Report            | ChartPartition.h | 187     | api,nonthrowing               | 🚩 | Appends the standing partition's obligations to the register, and its measures beside them. the line and it is the whole reason the register has two structures: a distortion appended every partition would bury the one seam the artist did not expect.
     in    Reporting  ReportSequence&  [-]   where `68` §2's and §4's rows land
     in    Measured   MeasureIndex&    [-]   where §5's occupancy and §4's distortion land
     in    Sampled    TickPoint        [ns]  the tick's own reading
     out   -          void             [-]   ?
-    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/IntakeIndex.h, Api/OcclusionProjection.h, Api/SurfaceTileSpace.h, Source/AssetInterchange.cpp, (+7 more)
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CodeInterchange.h, Api/DisplayProjection.h, Api/HardwareMetrics.h, Api/InstructionExchange.h, (+32 more)
     note  🔴 Terminations and derived seams **append**; occupancy and distortion **overwrite**. `86` §2 draws

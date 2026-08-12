@@ -45,24 +45,24 @@ F PageQueue::Admit             | RequestQueue.h | 61      | api,nonthrowing     
     in    Arriving  const CellDemand&  [-]  ?
     out   -         void               [-]  ?
     post  the arrival count never exceeds ArrivalCeiling; a demand beyond it is discarded and counted
-    by    Api/PointerIntersection.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, (+5 more)
+    by    Api/PointerIntersection.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, Api/UvSurfaceDepot.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+7 more)
     note  ⚠️ A discarded demand is a **deferral**, not a loss. Sampling still touches the cell next
 
 F PageQueue::Arrivals          | RequestQueue.h | 66      | api,nonallocating,nonthrowing | ✔️ | The demands, in first-arrival order.
     out   -  const std::vector<CellDemand>&  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/RequestQueue.cpp
+    by    Api/DiagnosticExtension.h, Source/ConsoleHost.cpp, Source/DiagnosticExtension.cpp, Source/RequestQueue.cpp
 
 F PageQueue::Reclaim           | RequestQueue.h | 71      | api,nonthrowing               | ✔️ | Empties the order, ready for the next drain.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
 
 F PageQueue::ArrivalCount      | RequestQueue.h | 73      | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Source/RequestQueue.cpp
+    by    Api/DiagnosticExtension.h, Source/DiagnosticExtension.cpp, Source/RequestQueue.cpp
 
 F PageQueue::DiscardedCount    | RequestQueue.h | 74      | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/ReportSequence.cpp, Source/RequestQueue.cpp
+    by    Api/RecoverySequence.h, Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/RecoverySequence.cpp, Source/ReportSequence.cpp, Source/RequestQueue.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE DEMANDS
@@ -72,7 +72,7 @@ T RequestQueue                 | RequestQueue.h | 94-125  | owning              
     has   SlotCount        static constexpr std::uint32_t  [-]  ?
     has   RotationSlots    PageQueue[SlotCount]            [-]  ?
     has   RecordedDemands  std::uint64_t                   [-]  ?
-    by    Api/ImpressionSequence.h, Api/SurfaceTileSpace.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/RequestQueue.cpp, Source/SurfaceTileSpace.cpp
+    by    Api/ImpressionSequence.h, Api/PreviewProjection.h, Api/SurfaceTileSpace.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/PreviewProjection.cpp, (+2 more)
     note  🔴 `20` §2.1 ②: demands are read back with a latency of the **rotation depth**. Sampling a non-resident
     note  📝 One slot more than the rotation depth, so the slot being written is never the slot being read.
 
@@ -99,7 +99,7 @@ F RequestQueue::RecordedCount  | RequestQueue.h | 118     | -                   
 
 F RequestQueue::DiscardedCount | RequestQueue.h | 119     | -                             | -  | ?
     out   -  std::uint64_t  [-]  ?
-    by    Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/ReportSequence.cpp, Source/RequestQueue.cpp
+    by    Api/RecoverySequence.h, Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/RecoverySequence.cpp, Source/ReportSequence.cpp, Source/RequestQueue.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE READBACK
@@ -118,7 +118,7 @@ F ReturnIndex::Drain           | RequestQueue.h | 153     | api,nonthrowing     
     in    RotationOrdinal  std::uint64_t  [-]  the rotation now being recorded
     out   -                Outcome        [-]  refuses with ExtentExhausted before the depth has elapsed, and with
     post  the drained slot is emptied and is the slot the caller may write next
-    by    Api/WindowInterchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/WindowInterchange.cpp, Source/WorkSequence.cpp
+    by    Api/StorageExchange.h, Api/WindowInterchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+2 more)
     note  🔴 Refusing a second drain of one rotation is not fussiness. A promotion pass that ran twice would
 
 F ReturnIndex::DrainedRotation | RequestQueue.h | 158     | api,nonallocating,nonthrowing | ✔️ | The rotation last drained; zero before anything has been.

@@ -32,12 +32,13 @@ namespace
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ByteSpace::Construct(const VulkanExchange& Exchange)
+Outcome<bool> ByteSpace::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE || Exchange.ScoredDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge = &Exchange;
+    NamingEdge = &Naming;
 
     vkGetPhysicalDeviceMemoryProperties(Exchange.ScoredDevice(), &VendorDeclared);
 
@@ -155,7 +156,18 @@ Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkD
 
     Extents.push_back(Arriving);
 
-    return Outcome<std::uint32_t>::Deliver(static_cast<std::uint32_t>(Extents.size() - 1u));
+    const std::uint32_t ExtentOrdinal = static_cast<std::uint32_t>(Extents.size() - 1u);
+
+    // 📝 🔴 `06` §7's diagnostic-name gate. The refusal is discarded deliberately: an extent that stands and
+    //    could not be named is still an extent every later claim is sliced from, and refusing the allocation
+    //    over a name would make the diagnostic capability a requirement for drawing anything.
+    NamingEdge->Declare(VK_OBJECT_TYPE_DEVICE_MEMORY,
+                        reinterpret_cast<std::uint64_t>(Arriving.DeviceExtent),
+                        Residency == ExtentResidency::DeviceLocal ? "ByteSpace device-local extent"
+                                                                  : "ByteSpace host-writable extent",
+                        ExtentOrdinal);
+
+    return Outcome<std::uint32_t>::Deliver(ExtentOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

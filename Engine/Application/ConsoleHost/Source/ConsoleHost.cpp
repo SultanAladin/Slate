@@ -43,6 +43,10 @@
 #include "SlateCompute/Compute/AtmosphereIntegrator/Api/AtmosphereIntegrator.h"
 #include "SlateCompute/Compute/ImpressionSequence/Api/ImpressionSequence.h"
 #include "SlateCompute/Compute/ParityRunner/Api/ParityRunner.h"
+#include "SlateCompute/Compute/TransmissionSequence/Api/TransmissionSequence.h"
+#include "SlateCompute/Compute/SpecularProjection/Api/SpecularProjection.h"
+#include "SlateCompute/Compute/SampleIntegrator/Api/SampleIntegrator.h"
+#include "SlateCompute/Compute/DisplayProjection/Api/DisplayProjection.h"
 #include "SlateCompute/Compute/SeamSpecification/Api/SeamSpecification.h"
 #include "SlateCompute/Compute/DomainSpace/Api/DomainSpace.h"
 #include "SlateCompute/Compute/ChartPartition/Api/ChartPartition.h"
@@ -1070,7 +1074,15 @@ void VerifyParity()
         "ClassifyIncircle",
         "ClassifySegmentIntersection",
         "ClassifyIntervalContainment",
-        "ProjectPlanarSample"
+        // 🔴 `02` §5 places `LatticeProjection` at Tier A and gives the reason `54` §2 repeats from the
+        //    consuming side: `82` classifies a position on the host and `70` classifies it on the device.
+        //    Registered as Exact rather than Bounded because both halves of the classification are — the
+        //    unskewing is one correctly-rounded division per axis and the flooring is integral.
+        "ClassifyLatticeCell",
+        "ProjectPlanarSample",
+        "ProjectSubPixelOffset",
+        "TransmissionPrecedes",
+        "ProjectAccumulationWeight"
     };
 
     bool ExactRegistrationsHeld = true;
@@ -1087,7 +1099,7 @@ void VerifyParity()
 
     Report("Every exact entry point registers",
            ExactRegistrationsHeld,
-           "[-] four beside the orientation predicate");
+           "[-] eight beside the orientation predicate");
 
     Slate::ParityRegistration SphericalEntry;
     SphericalEntry.EntryName = "ProjectSphericalSample";
@@ -1123,9 +1135,35 @@ void VerifyParity()
            AtmosphereRegistrationsHeld,
            "[-] both of the mappings that cross the seam in both directions");
 
+    // 🔴 `30` §1's composite and `66` §3's compression are both measured against a bound rather than compared
+    //    for equality, because each carries a division whose last place differs between two toolchains that
+    //    reassociate. Registering them here is what makes their comparison arms run at all — an arm that
+    //    exists and is never registered is uncompared source wearing the appearance of a proof.
+    const char* const BoundedEntryNames[] =
+    {
+        "ResolveExactComposite",
+        "ProjectToneCompressed"
+    };
+
+    bool BoundedRegistrationsHeld = true;
+
+    for (const char* const EntryName : BoundedEntryNames)
+    {
+        Slate::ParityRegistration Registering;
+        Registering.EntryName = EntryName;
+        Registering.Claimed   = Slate::PrecisionGuarantee::Bounded;
+
+        if (!Runner.Register(Registering).ContentPresent)
+            BoundedRegistrationsHeld = false;
+    }
+
+    Report("Every bounded projection registers",
+           BoundedRegistrationsHeld,
+           "[-] the composite `30` resolves and the compression `66` applies");
+
     const std::vector<Slate::ParityReport>& Reports = Runner.Compare();
 
-    Report("One report per registration", Reports.size() == 8u, "[-] in registration order");
+    Report("One report per registration", Reports.size() == 14u, "[-] in registration order");
 
     if (!Reports.empty())
     {
@@ -1150,11 +1188,14 @@ void VerifyParity()
            EverySampleSetCompared,
            "[-] none passed on an empty sample set");
 
-    bool EveryBoundHeld = Reports.size() == 8u;
+    // 📝 Every report is measured rather than the tail from a counted position. An exact arm compares bit for
+    //    bit and leaves its deviation at nothing, so the bound holds over it trivially — and the check no
+    //    longer has to be corrected each time a registration is added ahead of the bounded ones.
+    bool EveryBoundHeld = Reports.size() == 14u;
 
-    for (std::size_t Ordinal = 5u; Ordinal < Reports.size(); ++Ordinal)
+    for (const Slate::ParityReport& Held : Reports)
     {
-        if (Reports[Ordinal].LargestDeviation > Slate::SampleUnitPlaceCeiling)
+        if (Held.LargestDeviation > Slate::SampleUnitPlaceCeiling)
             EveryBoundHeld = false;
     }
 
@@ -1170,10 +1211,10 @@ void VerifyParity()
     Slate::ParityRunner VacantRunner;
 
     Slate::ParityRegistration UncomparedEntry;
-    // 📝 `02` §5's quadrature integrator is unbuilt, so it is the honest choice of a name that is legitimately
-    //    uncompared. It was `ClassifyIncircle` until this batch built one, which is exactly the churn the check
-    //    is meant to force: a vacancy check that names a built entry point has stopped checking anything.
-    UncomparedEntry.EntryName = "IntegrateQuadrature";
+    // 📝 `26`'s outline coverage is unbuilt, so it is the honest choice of a name that is legitimately
+    //    uncompared. It was `IntegrateQuadrature` until that component landed, which is exactly the churn the
+    //    check is meant to force: a vacancy check naming a built entry point has stopped checking anything.
+    UncomparedEntry.EntryName = "ProjectOutlineCoverage";
     UncomparedEntry.Claimed   = Slate::PrecisionGuarantee::Bounded;
 
     VacantRunner.Register(UncomparedEntry);
@@ -1284,6 +1325,16 @@ void VerifyAtmosphere()
     double ZenithBlue  = 0.0;
 
     Atmosphere.SampleTransmittance(0.0, 1.0, ZenithRed, ZenithGreen, ZenithBlue);
+
+    std::printf("  🔍 zenith %.9f %.9f %.9f | rayleigh %.6e %.6e %.6e | ozone %.6e %.6e %.6e | mie %.6e\n",
+                ZenithRed, ZenithGreen, ZenithBlue,
+                Atmosphere.Coefficient().RayleighScattering[0],
+                Atmosphere.Coefficient().RayleighScattering[1],
+                Atmosphere.Coefficient().RayleighScattering[2],
+                Atmosphere.Coefficient().OzoneAbsorption[0],
+                Atmosphere.Coefficient().OzoneAbsorption[1],
+                Atmosphere.Coefficient().OzoneAbsorption[2],
+                Atmosphere.Coefficient().MieExtinction);
 
     Report("A vertical path extinguishes blue hardest",
            ZenithRed > ZenithGreen && ZenithGreen > ZenithBlue && ZenithRed < 1.0,
@@ -2007,11 +2058,11 @@ void VerifySubdivision()
            Inner.Construct(Imported, Conditioned).ContentPresent && Inner.FaceCount() == 1u,
            "[-] over the conditioned face extents");
 
-    // 🔴 The revision gate: a conditioning describing a different seal indexes faces that have moved.
+    // 🔴 The revision gate: a conditioning describing a different seal indexes faces that have moved. A second
+    //    topology, sealed separately — not the same one resealed, which is idempotent and issues nothing.
     Slate::TopologyStructure Reimported;
     Reimported.DeclarePositions(Positions);
     Reimported.DeclareFace({ 0u, 1u, 2u });
-    Reimported.Seal();
     Reimported.Seal();
 
     Slate::BoundingStructure Mismatched;
@@ -3253,6 +3304,189 @@ void VerifyTools()
            "[-] once, before the next capture is taken");
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE RADIANCE CHAIN
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 The four documents between `18` and the display, verified as one chain rather than four components, because
+//    what they share is an ordering and every one of the four defects below is an ordering written backwards.
+void VerifyRadianceChain()
+{
+    std::printf("Radiance chain\n");
+
+    Slate::TransmissionSequence Transmitting;
+
+    Slate::MaterialSpecification Glass;
+    Glass.DeclareReflectance(Slate::ReflectanceSelection::Transmissive);
+
+    Slate::MaterialSpecification Foliage;
+    Foliage.DeclareReflectance(Slate::ReflectanceSelection::Standard);
+    Foliage.DeclareCutoutEnrolment(true);
+    Foliage.DeclareCutoutThreshold(0.4);
+
+    Report("Transmissive resolves here",
+           Slate::BehaviourOf(Glass) == Slate::TransmissionBehaviour::Transmissive,
+           "[-] `62` §2's third row");
+
+    Report("Cutout resolves at `16`",
+           Slate::BehaviourOf(Foliage) == Slate::TransmissionBehaviour::Cutout,
+           "[-] a leaf card is opaque with a hole in it");
+
+    Report("The cutout threshold is the material's own",
+           Slate::CoverageResolved(Foliage, 0.5) && !Slate::CoverageResolved(Foliage, 0.3),
+           "[-] never global — `62` §2");
+
+    // 📐 Four fragments arriving farthest-first into a column of `TransmissionDepth`. The column must end up
+    //    nearest-first regardless of arrival order, which is the ordering the whole document rests on.
+    Slate::TransmissionColumn Column;
+
+    bool OrderHeld = true;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
+    {
+        const double Depth = 0.1 + static_cast<double>(Ordinal) * 0.1;
+
+        Slate::TransmissionFragment Arriving;
+        Arriving.Depth       = Depth;
+        Arriving.DepthKey    = Slate::ProjectTransmissionKey(Depth);
+        Arriving.SurfaceWord = Slate::PackTransmissionSurface(Ordinal, 1u);
+
+        Transmitting.Insert(Column, Arriving, 0.0);
+    }
+
+    for (std::uint32_t Ordinal = 1u; Ordinal < Column.HeldCount; ++Ordinal)
+    {
+        if (Column.Held[Ordinal - 1u].Depth <= Column.Held[Ordinal].Depth)
+            OrderHeld = false;
+    }
+
+    Report("The column is nearest first", OrderHeld, "[-] whatever order the fragments arrived in");
+
+    Report("The ceiling discards the farthest",
+           Column.HeldCount == Slate::TransmissionDepth
+        && Column.TruncatedCount == 6u - Slate::TransmissionDepth
+        && Column.Held[Column.HeldCount - 1u].Depth > 0.1,
+           "[-] `62` §3.1 — never the nearest");
+
+    // 🔴 A fragment behind the resolved opaque depth is discarded. Under the reversed convention "behind" is a
+    //    lesser ordinate, so this is the one comparison whose inversion fills the column with the invisible.
+    Slate::TransmissionColumn Occluded;
+
+    Slate::TransmissionFragment Behind;
+    Behind.Depth       = 0.2;
+    Behind.DepthKey    = Slate::ProjectTransmissionKey(0.2);
+    Behind.SurfaceWord = Slate::PackTransmissionSurface(9u, 0u);
+
+    Report("A fragment behind the opaque depth is discarded",
+           !Transmitting.Insert(Occluded, Behind, 0.5) && Occluded.HeldCount == 0u,
+           "[-] it is not visible and would amend a pixel it does not reach");
+
+    Slate::SpecularProjection Reflecting;
+
+    Slate::ReflectionSpecification Tracing;
+
+    Report("The trace declares", Reflecting.Declare(Tracing).ContentPresent, "[-] the four bounds");
+
+    Slate::ReflectionSpecification Thirded = Tracing;
+    Thirded.ExtentDivisor                  = 3u;
+
+    Report("A third of the display extent is refused",
+           !Reflecting.Declare(Thirded).ContentPresent,
+           "[-] `08` §2 claims the target at half extent and nowhere else");
+
+    // 🔴 `30` §1: at a weight of nothing the composite is the identity, which is what makes every one of the
+    //    four failure rows free and invisible. This is the single most consequential line in that document.
+    const double Standing[3] = { 0.4, 0.5, 0.6 };
+    const double PreAdded[3] = { 0.1, 0.1, 0.1 };
+
+    Slate::TracedReflection Failed;
+    double                  Resolved[3] = { 0.0, 0.0, 0.0 };
+
+    Reflecting.Compose(Standing, PreAdded, Failed, Resolved);
+
+    Report("A failed trace composes to a no-op",
+           Resolved[0] == Standing[0] && Resolved[1] == Standing[1] && Resolved[2] == Standing[2],
+           "[-] the subtraction and the addition cancel");
+
+    Slate::TracedReflection Succeeded;
+    Succeeded.Weight       = 1.0;
+    Succeeded.Resolved     = true;
+    Succeeded.Component[0] = 0.9;
+    Succeeded.Component[1] = 0.9;
+    Succeeded.Component[2] = 0.9;
+
+    Reflecting.Compose(Standing, PreAdded, Succeeded, Resolved);
+
+    Report("A resolved trace swaps rather than adds",
+           std::fabs(Resolved[0] - (Standing[0] - PreAdded[0] + 0.9)) < 1.0e-12,
+           "[-] `18`'s ambient specular is not counted twice");
+
+    Slate::SampleIntegrator Accumulating;
+
+    Report("The rejection declares",
+           Accumulating.Declare(Slate::RejectionSpecification{}).ContentPresent,
+           "[-] both bounds and the ceiling");
+
+    // 🔴 `64` §6 and §8: before one rotation has accumulated, no history describes anything, so every
+    //    classification is refused off the extent whatever the occupant and the depth agree about.
+    Report("No history is read before one exists",
+           !Accumulating.HistoryReadable()
+        && Accumulating.Classify(0.5, 0.5, 7u, 7u, 0.5, 0.5) == Slate::RejectionSubject::OffExtent
+        && Accumulating.Classify(0.5, 0.5, 7u, 8u, 0.5, 0.5) == Slate::RejectionSubject::OffExtent,
+           "[-] a refusal writes the arriving sample whole and the count starts at one");
+
+    // 📝 A rotation that accumulated anything at all leaves a history the next one may read, which is what
+    //    `DeclareRotation` raises — never a separate admission the caller could forget.
+    Accumulating.DeclareRotation(1u, 1u, 0u, 1u);
+
+    Report("A rotation that accumulated leaves a history",
+           Accumulating.HistoryReadable(),
+           "[-] the second rotation onward may reproject one");
+
+    Report("A different occupant refuses",
+           Accumulating.Classify(0.5, 0.5, 8u, 7u, 0.5, 0.5) == Slate::RejectionSubject::OccupantDiffers,
+           "[-] `16` §4.1's resolution and never the partition identity");
+
+    Report("A reprojection off the extent refuses",
+           Accumulating.Classify(1.5, 0.5, 7u, 7u, 0.5, 0.5) == Slate::RejectionSubject::OffExtent,
+           "[-] the leading edge of a moving camera has no history at all");
+
+    Report("The same surface accepts",
+           Accumulating.Classify(0.5, 0.5, 7u, 7u, 0.5, 0.5) == Slate::RejectionSubject::Accepted,
+           "[-] one occupant, one depth, one extent");
+
+    Slate::DisplayProjection Displaying;
+
+    Report("The tone line declares",
+           Displaying.Declare(Slate::ExposureSpecification{},
+                              Slate::ToneSpecification{},
+                              Slate::EncodeSpecification{}).ContentPresent,
+           "[-] the exposure, the compression and the two spaces as one admission");
+
+    // 🔴 `66` §4 and §8: the display space is queried or declared and never assumed to be the working space.
+    //    Admitting the two as one produces an image correct on exactly the machine it was authored on.
+    Slate::EncodeSpecification Assumed;
+    Assumed.Display = Slate::DeclaredWorkingSpace();
+
+    Report("A display space that is the working space is refused",
+           !Displaying.Declare(Slate::ExposureSpecification{}, Slate::ToneSpecification{}, Assumed).ContentPresent,
+           "[-] `36` §9 — and it is silent everywhere else");
+
+    Slate::ToneSpecification Unbounded;
+    Unbounded.WhiteMagnitude = 0.0;
+
+    Report("A white magnitude of nothing is refused",
+           !Displaying.Declare(Slate::ExposureSpecification{},
+                               Unbounded,
+                               Slate::EncodeSpecification{}).ContentPresent,
+           "[-] it would compress the whole scene to nothing");
+
+    // 📐 `66` §2: exposure is a scale on radiance and a doubling per stop, applied before the compression.
+    Report("The exposure scale is a doubling per stop",
+           std::fabs(Displaying.ExposureScale() - 1.0) < 1.0e-12,
+           "[-] a declared exposure of nought scales radiance by one");
+}
+
 }   // namespace
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -3324,6 +3558,9 @@ int main()
     std::printf("\n");
 
     VerifyAtmosphere();
+    std::printf("\n");
+
+    VerifyRadianceChain();
     std::printf("\n");
 
     if (RefusedCount == 0)

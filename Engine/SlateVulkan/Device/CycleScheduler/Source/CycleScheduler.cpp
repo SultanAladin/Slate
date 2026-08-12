@@ -12,12 +12,13 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> CycleScheduler::Construct(const VulkanExchange& Exchange)
+Outcome<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge = &Exchange;
+    NamingEdge = &Naming;
 
     const VkDevice Active = Exchange.ActiveDevice();
 
@@ -33,8 +34,12 @@ Outcome<bool> CycleScheduler::Construct(const VulkanExchange& Exchange)
 
     Slots.assign(RecordingRotationDepth, RotationSlot{});
 
-    for (RotationSlot& Slot : Slots)
+    // 📝 Walked by ordinal rather than by reference, because the rotation slot is what each of the three points
+    //    is named by, and it is the same ordinal `StandingOrdinal` reports the stall against.
+    for (std::uint32_t RotationOrdinal = 0u; RotationOrdinal < RecordingRotationDepth; ++RotationOrdinal)
     {
+        RotationSlot& Slot = Slots[RotationOrdinal];
+
         const bool Constructed =
             vkCreateFence(Active, &CompletionDeclaration, nullptr, &Slot.Completion)        == VK_SUCCESS &&
             vkCreateSemaphore(Active, &OrderingDeclaration, nullptr, &Slot.ImageArrived)    == VK_SUCCESS &&
@@ -48,6 +53,26 @@ Outcome<bool> CycleScheduler::Construct(const VulkanExchange& Exchange)
             return Outcome<bool>::Refuse(
                 { RefusalReason::ExtentExhausted, "the device declined an ordering point of the rotation" });
         }
+
+        // 📝 🔴 `06` §7's diagnostic-name gate. The two semaphores are named apart rather than by one prefix and
+        //    an ordinal, because what a stall report needs is the direction — a rotation waiting on an image that
+        //    never arrived and one whose recording never signalled are different defects with different causes,
+        //    and the addresses alone say only that the rotation stopped. The refusals are discarded for
+        //    `ByteSpace`'s reason.
+        NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
+                            reinterpret_cast<std::uint64_t>(Slot.Completion),
+                            "CycleScheduler rotation completion",
+                            RotationOrdinal);
+
+        NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
+                            reinterpret_cast<std::uint64_t>(Slot.ImageArrived),
+                            "CycleScheduler rotation image arrival",
+                            RotationOrdinal);
+
+        NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
+                            reinterpret_cast<std::uint64_t>(Slot.RecordingDone),
+                            "CycleScheduler rotation recording completion",
+                            RotationOrdinal);
     }
 
     SlotStanding = 0u;
@@ -80,8 +105,11 @@ Outcome<bool> CycleScheduler::Await()
     // 🔴 `06` §7: device loss is reported upward before anything is destroyed. Reported here as the refusal
     //    rather than acted on, because what to destroy and in what order is `06` §4.2's recovery and not this
     //    component's — a wait that tore down its own device would remove the operand the recovery re-scores.
+    if (Reached == VK_ERROR_DEVICE_LOST)
+        return Outcome<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost awaiting the standing slot" });
+
     if (Reached != VK_SUCCESS)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device declined the wait; it may be lost" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device declined the wait" });
 
     return Outcome<bool>::Deliver(true);
 }

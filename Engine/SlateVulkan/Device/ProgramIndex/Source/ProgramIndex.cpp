@@ -12,9 +12,10 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ProgramIndex::Construct(const VulkanExchange&   Exchange,
-                                      ShaderCodec&            Modules,
-                                      const DescriptorIndex&  Descriptors)
+Outcome<bool> ProgramIndex::Construct(const VulkanExchange&      Exchange,
+                                      ShaderCodec&               Modules,
+                                      const DescriptorIndex&     Descriptors,
+                                      const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
@@ -22,6 +23,7 @@ Outcome<bool> ProgramIndex::Construct(const VulkanExchange&   Exchange,
     DeviceEdge     = &Exchange;
     ModuleEdge     = &Modules;
     DescriptorEdge = &Descriptors;
+    NamingEdge     = &Naming;
 
     return Outcome<bool>::Deliver(true);
 }
@@ -217,6 +219,19 @@ Outcome<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& 
 
     Programs.push_back(Held);
 
+    // 📝 🔴 `06` §7's diagnostic-name gate, and named here rather than inside `ReachLayout` because the ordinal
+    //    a layout is named by is the program's — the layout is constructed before the program stands and has no
+    //    ordinal of its own until this point. The refusals are discarded for `ByteSpace`'s reason.
+    NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
+                        reinterpret_cast<std::uint64_t>(Constructed),
+                        "ProgramIndex graphics program",
+                        ProgramOrdinal);
+
+    NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+                        reinterpret_cast<std::uint64_t>(ReachedLayout),
+                        "ProgramIndex graphics reach",
+                        ProgramOrdinal);
+
     return Outcome<std::uint32_t>::Deliver(ProgramOrdinal);
 }
 
@@ -267,6 +282,18 @@ Outcome<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& De
     const std::uint32_t ProgramOrdinal = static_cast<std::uint32_t>(Programs.size());
 
     Programs.push_back(Held);
+
+    // 📝 🔴 `06` §7's gate, as the graphics route names its two. The ordinal runs across both routes because
+    //    `Resolve` addresses one run, so a compute program and a graphics one never share one.
+    NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
+                        reinterpret_cast<std::uint64_t>(Constructed),
+                        "ProgramIndex compute program",
+                        ProgramOrdinal);
+
+    NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+                        reinterpret_cast<std::uint64_t>(ReachedLayout),
+                        "ProgramIndex compute reach",
+                        ProgramOrdinal);
 
     return Outcome<std::uint32_t>::Deliver(ProgramOrdinal);
 }

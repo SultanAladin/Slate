@@ -15,7 +15,7 @@ namespace Slate
 //                                               POSITIONS AND ROTATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 A position in document space or view-relative space, at 64-bit.
+/// 🧩 A position in document space, at 64-bit. The document's own origin is what it is measured from.
 /// note  Scene extents exceed 32-bit relative precision, which is why document space is never 32-bit.
 /// tag   nonallocating, nonthrowing
 struct DocumentPosition
@@ -25,9 +25,25 @@ struct DocumentPosition
     double  PositionZ = 0.0;   // [mm] - along the document z axis
 };
 
+/// 🧩 A position in view-relative space — `02` §3's second space, at 64-bit and measured from the view origin.
+/// note  🔴 A **distinct** structure rather than a second reading of `DocumentPosition`, and the distinctness is
+///       the whole of what it buys. The two carry identical members and mean different things, so one structure
+///       serving both makes a view-relative position passable wherever a document position is expected — which
+///       is `00` §10 conflict 15's defect exactly, and it survived the whole series the first time.
+/// note  📐 Still 64-bit. The narrowing is a separate act with its own routine, because the subtraction and the
+///       narrowing are two decisions and a caller that wants the first without the second is `46` at every
+///       projection it derives. Fusing them is what makes the intermediate unnameable.
+/// tag   nonallocating, nonthrowing
+struct ViewPosition
+{
+    double  PositionX = 0.0;   // [mm] - relative to the view origin
+    double  PositionY = 0.0;   // [mm] - relative to the view origin
+    double  PositionZ = 0.0;   // [mm] - relative to the view origin
+};
+
 /// 🧩 A position after rebasing, narrowed for the device.
-/// note  🔴 Only ever produced by Rebase. A 32-bit position that did not pass through it is jitter with a
-///       plausible-looking cause.
+/// note  🔴 Only ever produced by Narrow or Rebase. A 32-bit position that did not pass through one of them is
+///       jitter with a plausible-looking cause.
 /// tag   nonallocating, nonthrowing
 struct DevicePosition
 {
@@ -110,13 +126,43 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 //                                                       REBASING
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Rebases a document position to the view origin and narrows it for the device.
+/// 🧩 Carries a document position into view-relative space. The subtraction, and nothing else.
+/// in    Subject     [mm]  a position in document space
+/// in    ViewOrigin  [mm]  the current camera position, in document space
+/// out   Relative    [mm]  the same position, measured from the view origin, still at 64-bit
+/// note  📐 This is the half of `02` §3.2 that carries the precision claim. The difference of two 64-bit
+///       quantities is exact to within one unit in the last place of the **larger operand's** exponent, so a
+///       position ten metres from a camera a kilometre from the document origin retains micrometre resolution
+///       here. Narrowing that difference afterwards costs the 32-bit relative precision of ten metres, which is
+///       far below one micrometre; narrowing before the subtraction costs the relative precision of a kilometre.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+ViewPosition Relative(DocumentPosition Subject, DocumentPosition ViewOrigin);
+SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
+
+/// 🧩 Narrows a view-relative position for the device. The narrowing, and nothing else.
+/// in    Subject   [mm]  a position already measured from the view origin
+/// out   Narrowed  [mm]  the same position at 32-bit
+/// note  🔴 Takes a `ViewPosition` and not a `DocumentPosition`, so a caller cannot narrow an unrebased
+///       position by mistake. `02` §8's gate — *every position narrowing to 32-bit is rebased in 64-bit first* —
+///       is discharged by this signature rather than by a review, because the only way to obtain the argument is
+///       to have called `Relative`.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+DevicePosition Narrow(ViewPosition Subject);
+SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
+
+/// 🧩 Rebases a document position to the view origin and narrows it for the device — both halves, at once.
 /// in    Subject    [mm]  a position in document space
 /// in    ViewOrigin [mm]  the current camera position, in document space
 /// out   Rebased    [mm]  relative to the view origin, at 32-bit
 /// note  🔴 The subtraction happens in 64-bit, before the narrowing. Every position crossing into
 ///       `SlateCompute` passes through here; `02` §8 gates it and the failure it prevents reads as a
 ///       driver defect rather than as the arithmetic it is.
+/// note  📝 Exactly `Narrow(Relative(Subject, ViewOrigin))` and is implemented as that composition rather than
+///       as a third arithmetic. It is kept because the fused act is what most callers want and because every
+///       caller in the engine already spells it this way; the two halves exist for the callers — `46` deriving a
+///       projection, `78` measuring a grip — that want the difference before it is narrowed.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 DevicePosition Rebase(DocumentPosition Subject, DocumentPosition ViewOrigin);

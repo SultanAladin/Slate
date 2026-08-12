@@ -174,6 +174,15 @@ function Get-IncludePath([hashtable] $UnitEntry, [string] $VulkanRoot)
         $Paths += (Join-Path $PackageRoot 'imgui')
     }
 
+    # 🔴 `10` §1's codecs compile the vendored readers — stb and fast_obj — into their own translation units,
+    #    so SlateDocument reaches the package root and no other unit does. The scoping is the point: a second
+    #    unit that included one of these headers would compile a second copy of the implementation into the
+    #    link, and the duplicate-symbol failure that follows names the linker rather than the include.
+    if ($UnitEntry.Name -eq 'SlateDocument')
+    {
+        $Paths += $PackageRoot
+    }
+
     return @($Paths | ForEach-Object { "/I$_" })
 }
 
@@ -463,6 +472,11 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
 
     $Linked += (Join-Path $VulkanRoot  'Lib\vulkan-1.lib')
     $Linked += (Join-Path $PackageRoot 'glfw\lib-vc2022\glfw3dll.lib')
+
+    # 📝 🔴 gdi32.lib is named rather than inherited. `04`'s display-density read is the only reference into
+    #    it, and the device context calls either side of that read resolve through the import libraries
+    #    above — so omitting it fails at the one symbol and reads as a defect in the density read itself.
+    $Linked += 'gdi32.lib'
 
     $ExecutablePath = Join-Path $BinaryRoot 'ConsoleHost.exe'
 

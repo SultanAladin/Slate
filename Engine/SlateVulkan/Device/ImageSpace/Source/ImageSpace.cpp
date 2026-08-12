@@ -47,15 +47,34 @@ VkImageAspectFlags ImageSpace::AspectOf(ImageIntent Intent)
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ImageSpace::Construct(const VulkanExchange& Exchange, ByteSpace& BackingSpace)
+Outcome<bool> ImageSpace::Construct(const VulkanExchange&      Exchange,
+                                    ByteSpace&                 BackingSpace,
+                                    const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE || Exchange.ScoredDevice() == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge   = &Exchange;
     BackingBytes = &BackingSpace;
+    NamingEdge   = &Naming;
 
     return Outcome<bool>::Deliver(true);
+}
+
+const char* ImageSpace::NameOf(ImageIntent Intent)
+{
+    // 📝 The intent rather than the target. `TargetSpace` knows which of `08` §2's fifteen an ordinal is and
+    //    this does not, so the name states what the device may do with the image and the ordinal states which
+    //    one it is — and `TargetSpace::Resolve` is what carries the reader from one to the other.
+    switch (Intent)
+    {
+        case ImageIntent::ColourTarget:    return "ImageSpace colour image";
+        case ImageIntent::DepthTarget:     return "ImageSpace depth image";
+        case ImageIntent::ComputeWritable: return "ImageSpace storage image";
+
+        case ImageIntent::SampledOnly:
+        default:                           return "ImageSpace sampled image";
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -191,6 +210,19 @@ Outcome<ImageClaim> ImageSpace::Claim(const ImageShape& Declared)
         Images.push_back(Taken);
         Ordinal = static_cast<std::uint32_t>(Images.size() - 1u);
     }
+
+    // 📝 🔴 `06` §7's diagnostic-name gate. The image and its whole-image view are separate vendor objects and
+    //    are named separately, both by the ordinal the claimant resolves them by. The refusals are discarded
+    //    for `ByteSpace`'s reason — an unnamed image is still the image the claimant asked for.
+    NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
+                        reinterpret_cast<std::uint64_t>(Arriving),
+                        NameOf(Declared.Intent),
+                        Ordinal);
+
+    NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
+                        reinterpret_cast<std::uint64_t>(Whole),
+                        "ImageSpace whole-image view",
+                        Ordinal);
 
     ImageClaim Handed;
     Handed.Extent         = Arriving;
@@ -370,6 +402,15 @@ Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint
     }
 
     Held.LevelViews[LevelOrdinal] = Constructed;
+
+    // 📝 🔴 `06` §7's gate reaches the level view too. It is named by its level rather than by its image,
+    //    because the chain `16` §2 walks constructs one per level over a single image — an ordinal naming the
+    //    image would give every view in the chain one name, and the driver's text could not say which level
+    //    the error was raised against.
+    NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
+                        reinterpret_cast<std::uint64_t>(Constructed),
+                        "ImageSpace level view",
+                        LevelOrdinal);
 
     return Outcome<VkImageView>::Deliver(Constructed);
 }

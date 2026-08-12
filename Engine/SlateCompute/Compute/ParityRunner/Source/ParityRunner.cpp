@@ -10,7 +10,12 @@
 #include "Shared/ContainmentClassifier.slang.h"
 #include "Shared/IncircleClassifier.slang.h"
 #include "Shared/IntersectionClassifier.slang.h"
+#include "Shared/LatticeProjection.slang.h"
 #include "Shared/OrientationClassifier.slang.h"
+#include "Shared/AccumulationProjection.slang.h"
+#include "Shared/ReflectionProjection.slang.h"
+#include "Shared/ToneProjection.slang.h"
+#include "Shared/TransmissionProjection.slang.h"
 #include "Shared/SampleProjection.slang.h"
 
 #include <cstring>
@@ -132,6 +137,37 @@ namespace
         {   0u,  50u,  40u,  60u },   // overlapping, contained by neither
         {   0u,  10u,  20u,  30u },   // disjoint
         { 100u,   0u,  10u,  20u }    // inverted, therefore no interval at all
+    };
+
+    // 📝 One validated lattice each. The set concentrates on the declarations `54` §2 permits and on the cells
+    //    either side of the origin, because flooring below the origin is where a truncating classification
+    //    first departs from a flooring one and the departure is one cell wide.
+    struct LatticeSample
+    {
+        double       PositionAlong           = 0.0;   // [-] - the domain position classified
+        double       PositionAcross          = 0.0;
+        double       CellExtentAlong         = 1.0;   // [-] - the repeating unit, strictly positive
+        double       CellExtentAcross        = 1.0;
+        double       OffsetProgressionAlong  = 0.0;   // [-] - never declared beside the one across
+        double       OffsetProgressionAcross = 0.0;
+        double       SkewAlong               = 0.0;   // [-] - the shear a diagonal repeat declares
+        double       SkewAcross              = 0.0;
+        std::uint32_t  ReflectionMask        = 0u;    // [-] - SlateReflectAlong and SlateReflectAcross, composed
+        std::uint32_t  RotationIncrement     = 0u;    // [-] - quarter turns per step of the cell schedule
+    };
+
+    constexpr LatticeSample LatticeSampleSet[] =
+    {
+        { 0.25,  0.25,  1.0, 1.0,  0.0,  0.0,  0.0, 0.0,  0u,  0u },   // the first cell, nothing declared
+        { 0.0,   0.0,   1.0, 1.0,  0.0,  0.0,  0.0, 0.0,  0u,  0u },   // exactly on the origin's boundary
+        { -0.25, -0.75, 1.0, 1.0,  0.0,  0.0,  0.0, 0.0,  0u,  0u },   // below the origin — flooring, not truncation
+        { -1.0,  -1.0,  1.0, 1.0,  0.0,  0.0,  0.0, 0.0,  0u,  0u },   // exactly on a boundary below the origin
+        { 3.5,   7.25,  2.0, 4.0,  0.0,  0.0,  0.0, 0.0,  1u,  0u },   // unequal extents, mirrored along
+        { 5.5,   2.5,   1.0, 1.0,  0.5,  0.0,  0.0, 0.0,  0u,  0u },   // a row displacement, resolved across first
+        { 5.5,   2.5,   1.0, 1.0,  0.0,  0.5,  0.0, 0.0,  0u,  0u },   // a column displacement, the other order
+        { -2.5,  4.5,   1.0, 1.0,  0.0,  0.0,  0.0, 0.0,  3u,  1u },   // both reflections and a quarter turn
+        { 1.75,  -3.25, 1.0, 1.0,  0.0,  0.0,  0.2, 0.4,  2u,  3u },   // sheared, mirrored across, three turns
+        { 1.0e6,  1.0e6, 1.0, 1.0, 0.0,  0.0,  0.0, 0.0,  1u,  2u }    // far from the origin, where the ordinal is large
     };
 }
 
@@ -293,6 +329,129 @@ const std::vector<ParityReport>& ParityRunner::Compare()
 
             Report.SampleCount = SampleSpan;
         }
+        else if (std::strcmp(Held.EntryName, "ClassifyLatticeCell") == 0)
+        {
+            // 🔴 `02` §5 places `LatticeProjection` at Tier A, so it is compared here rather than trusted:
+            //    `82` classifies a position on the host and `70` classifies it on the device, and a cell
+            //    boundary the two disagree about is a pattern that does not meet itself across a tile edge.
+            const std::uint32_t SampleSpan =
+                static_cast<std::uint32_t>(sizeof(LatticeSampleSet) / sizeof(LatticeSampleSet[0]));
+
+            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            {
+                const LatticeSample& Sample = LatticeSampleSet[Ordinal];
+
+                Signed32 CellAlong    = 0;
+                Signed32 CellAcross   = 0;
+                Real64   WithinAlong  = 0.0;
+                Real64   WithinAcross = 0.0;
+
+                ClassifyLatticeCell(Sample.PositionAlong,           Sample.PositionAcross,
+                                    Sample.CellExtentAlong,         Sample.CellExtentAcross,
+                                    Sample.OffsetProgressionAlong,  Sample.OffsetProgressionAcross,
+                                    Sample.SkewAlong,               Sample.SkewAcross,
+                                    CellAlong, CellAcross, WithinAlong, WithinAcross);
+
+                // 📐 The position within a cell lies in the half-open unit interval, which is what makes the
+                //    cell ordinals a partition of the domain rather than a covering of it. A position landing
+                //    at one belongs to the next cell and has been classified into the wrong one.
+                if (WithinAlong < 0.0 || WithinAlong >= 1.0 || WithinAcross < 0.0 || WithinAcross >= 1.0)
+                    ++Report.DisagreeingCount;
+
+                // 📐 The ordinal and the position within recompose the coordinate they were classified from,
+                //    exactly. The fractional part of a double is itself representable, so the subtraction that
+                //    produced the position within lost nothing and the sum must return the coordinate.
+                //    Compared only where no progression is declared, because a declared progression classifies
+                //    the displaced coordinate rather than the supplied one.
+                if (Sample.OffsetProgressionAlong == 0.0 && Sample.OffsetProgressionAcross == 0.0)
+                {
+                    const Real64 Determinant    = 1.0 - Sample.SkewAlong * Sample.SkewAcross;
+                    const Real64 UnskewedAlong  = (Sample.PositionAlong
+                                                - Sample.SkewAlong  * Sample.PositionAcross) / Determinant;
+                    const Real64 UnskewedAcross = (Sample.PositionAcross
+                                                - Sample.SkewAcross * Sample.PositionAlong)  / Determinant;
+
+                    if (Real64(CellAlong)  + WithinAlong  != UnskewedAlong  / Sample.CellExtentAlong
+                     || Real64(CellAcross) + WithinAcross != UnskewedAcross / Sample.CellExtentAcross)
+                    {
+                        ++Report.DisagreeingCount;
+                    }
+                }
+
+                // 📐 Flooring, never truncation toward zero. The ordinal is never above the coordinate it was
+                //    floored from, which is the statement that separates the two below the origin and the one
+                //    a truncating device form would break by exactly one cell.
+                if (FlooredOrdinal(Sample.PositionAlong) > Sample.PositionAlong)
+                    ++Report.DisagreeingCount;
+
+                Real64 ProjectedAlong  = 0.0;
+                Real64 ProjectedAcross = 0.0;
+
+                ProjectWithinCell(CellAlong, CellAcross, WithinAlong, WithinAcross,
+                                  Sample.ReflectionMask, Sample.RotationIncrement,
+                                  ProjectedAlong, ProjectedAcross);
+
+                // 📐 Bounded by the closed unit interval rather than the half-open one, because reflection
+                //    carries a position at zero onto one. The consumer samples content with it and a position
+                //    outside the interval samples content that was never resolved.
+                if (ProjectedAlong < 0.0 || ProjectedAlong > 1.0
+                 || ProjectedAcross < 0.0 || ProjectedAcross > 1.0)
+                {
+                    ++Report.DisagreeingCount;
+                }
+
+                // 📐 The turn count is taken modulo four, so an increment four greater turns the cell the same
+                //    way. Exactly — the two calls run the same arithmetic and any difference is a lapse in the
+                //    modulus rather than a rounding, which is what a signed turn count would produce.
+                Real64 TurnedAlong  = 0.0;
+                Real64 TurnedAcross = 0.0;
+
+                ProjectWithinCell(CellAlong, CellAcross, WithinAlong, WithinAcross,
+                                  Sample.ReflectionMask, Sample.RotationIncrement + 4u,
+                                  TurnedAlong, TurnedAcross);
+
+                if (TurnedAlong != ProjectedAlong || TurnedAcross != ProjectedAcross)
+                    ++Report.DisagreeingCount;
+
+                // 📐 An undeclared symmetry does nothing at all. A form that reflected on an empty mask would
+                //    mirror alternate cells of a lattice that declared no mirror, which reads as a pattern the
+                //    artist did not ask for rather than as a defect in a predicate.
+                Real64 UnturnedAlong  = 0.0;
+                Real64 UnturnedAcross = 0.0;
+
+                ProjectWithinCell(CellAlong, CellAcross, WithinAlong, WithinAcross, 0u, 0u,
+                                  UnturnedAlong, UnturnedAcross);
+
+                if (UnturnedAlong != WithinAlong || UnturnedAcross != WithinAcross)
+                    ++Report.DisagreeingCount;
+
+                // 📐 The zigzag is a bijection onto the unsigned ordinals: a non-negative ordinal lands on an
+                //    even one and a negative ordinal on an odd one, so no two cells either side of the origin
+                //    can fold onto one variation. `54` §1's variation is a function of the fold alone.
+                if ((ZigzagOrdinal(CellAlong)  & 1u) != (CellAlong  < 0 ? 1u : 0u)
+                 || (ZigzagOrdinal(CellAcross) & 1u) != (CellAcross < 0 ? 1u : 0u))
+                {
+                    ++Report.DisagreeingCount;
+                }
+
+                // 📐 A cell never shares a variation with the cell beside it. `54` §1 concedes that the fold
+                //    cannot be injective and that two distant cells eventually collide; a collision between
+                //    neighbours is a different matter, and reads as two adjacent tiles carrying one variation.
+                if (FoldedCellOrdinal(CellAlong, CellAcross) == FoldedCellOrdinal(CellAlong + 1, CellAcross)
+                 || FoldedCellOrdinal(CellAlong, CellAcross) == FoldedCellOrdinal(CellAlong, CellAcross + 1))
+                {
+                    ++Report.DisagreeingCount;
+                }
+            }
+
+            // 📐 The two ordinals the zigzag is defined by, stated rather than derived. Zero lands on zero and
+            //    minus one on one; a form negating the most negative ordinal directly is undefined and is why
+            //    the negative branch is written against the successor.
+            if (ZigzagOrdinal(0) != 0u || ZigzagOrdinal(-1) != 1u || ZigzagOrdinal(1) != 2u)
+                ++Report.DisagreeingCount;
+
+            Report.SampleCount = SampleSpan;
+        }
         else if (std::strcmp(Held.EntryName, "ProjectPlanarSample") == 0)
         {
             constexpr std::uint32_t SampleSpan = 4096u;
@@ -317,6 +476,42 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                     if (ProjectRadicalTwo(Ordinal + 1u) - ProjectRadicalTwo(Ordinal) != 0.5)
                         ++Report.DisagreeingCount;
                 }
+            }
+
+            Report.SampleCount = SampleSpan;
+        }
+        else if (std::strcmp(Held.EntryName, "ProjectSubPixelOffset") == 0)
+        {
+            // 🔴 `64` §8's gate. The offset is compared for the three properties `82`'s preview depends on:
+            //    it lies **within** the pixel and never at a corner, it repeats on exactly the declared
+            //    length, and the sequence's first ordinal is not the origin. A preview replaying a sequence
+            //    that disagreed with the workspace's converges to a different image than the one on screen.
+            constexpr std::uint32_t SampleSpan = 2048u;
+
+            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            {
+                Real64 OffsetX = 0.0;
+                Real64 OffsetY = 0.0;
+                ProjectSubPixelOffset(Ordinal, OffsetX, OffsetY);
+
+                if (OffsetX <= -0.5 || OffsetX >= 0.5 || OffsetY <= -0.5 || OffsetY >= 0.5)
+                    ++Report.DisagreeingCount;
+
+                // 📐 Exactly periodic on the declared length, so a rotation ordinal that has wrapped carries
+                //    the offset the ordinal it wrapped from carried. Compared exactly — the two calls run the
+                //    same arithmetic on the same ordinal and any difference is a lapse, never a rounding.
+                Real64 WrappedX = 0.0;
+                Real64 WrappedY = 0.0;
+                ProjectSubPixelOffset(Ordinal + Unsigned32(SubPixelSequenceLength), WrappedX, WrappedY);
+
+                if (WrappedX != OffsetX || WrappedY != OffsetY)
+                    ++Report.DisagreeingCount;
+
+                // 📐 The origin is never sampled. A zero offset would place that rotation at the pixel corner
+                //    and the accumulation would converge to a corner-sampled image on one rotation in the
+                //    sequence — which reads as a single sharp rotation among softer ones.
+                if (OffsetX == 0.0 && OffsetY == 0.0)
+                    ++Report.DisagreeingCount;
             }
 
             Report.SampleCount = SampleSpan;
@@ -442,6 +637,131 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             }
 
             Report.SampleCount = AxisSpan * AxisSpan;
+        }
+        else if (std::strcmp(Held.EntryName, "TransmissionPrecedes") == 0)
+        {
+            // 📐 `62` §7 declares the ordering Tier A, so it is compared for the two properties an order has
+            //    rather than against a second implementation: it is **irreflexive** and it is **total**, and a
+            //    lapse in either lets two coplanar panes swap between rotations.
+            constexpr std::uint32_t SampleSpan = 512u;
+
+            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            {
+                const std::uint32_t EarlierKey     = ProjectTransmissionKey(static_cast<double>(Ordinal) / SampleSpan);
+                const std::uint32_t LaterKey       = ProjectTransmissionKey(static_cast<double>(SampleSpan - Ordinal)
+                                                                          / SampleSpan);
+                const std::uint32_t EarlierSurface = PackTransmissionSurface(Ordinal, Ordinal & 0x7Fu);
+                const std::uint32_t LaterSurface   = PackTransmissionSurface(SampleSpan - Ordinal, 3u);
+
+                if (TransmissionPrecedes(EarlierKey, EarlierSurface, EarlierKey, EarlierSurface))
+                    ++Report.DisagreeingCount;
+
+                const bool Forward  = TransmissionPrecedes(EarlierKey, EarlierSurface, LaterKey, LaterSurface);
+                const bool Reversed = TransmissionPrecedes(LaterKey, LaterSurface, EarlierKey, EarlierSurface);
+
+                const bool Identical = EarlierKey == LaterKey && EarlierSurface == LaterSurface;
+
+                if (!Identical && Forward == Reversed)
+                    ++Report.DisagreeingCount;
+
+                // 📐 The packing round-trips exactly, or the pixel resolves to another triangle of the same
+                //    partition — which shades as a surface that is very nearly the right one.
+                if (UnpackTransmissionPartition(EarlierSurface) != Ordinal
+                 || UnpackTransmissionTriangle(EarlierSurface) != (Ordinal & 0x7Fu))
+                {
+                    ++Report.DisagreeingCount;
+                }
+            }
+
+            Report.SampleCount = SampleSpan;
+        }
+        else if (std::strcmp(Held.EntryName, "ResolveExactComposite") == 0)
+        {
+            // 🔴 `30` §1's whole contract, as two identities. At a weight of nothing the composite is the
+            //    identity on the standing radiance — which is what makes every failure free and invisible — and
+            //    at a weight of one it has swapped the pre-added contribution for the traced one exactly.
+            constexpr std::uint32_t SampleSpan = 1024u;
+
+            for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
+            {
+                double Standing = 0.0;
+                double PreAdded = 0.0;
+                ProjectPlanarSample(Ordinal + 1u, Standing, PreAdded);
+
+                const double Traced = ProjectRadicalThree(Ordinal + 7u) * 4.0;
+
+                if (ResolveExactComposite(Standing, PreAdded, Traced, 0.0) != Standing)
+                    ++Report.DisagreeingCount;
+
+                const double Swapped  = ResolveExactComposite(Standing, PreAdded, Traced, 1.0);
+                const double Expected = Standing - PreAdded + Traced;
+
+                const double Deviation = std::fabs(Swapped - Expected) / MachineEpsilon;
+
+                if (Deviation > Report.LargestDeviation)
+                    Report.LargestDeviation = Deviation;
+            }
+
+            Report.SampleCount = SampleSpan;
+        }
+        else if (std::strcmp(Held.EntryName, "ProjectToneCompressed") == 0)
+        {
+            // 🔴 `66` §3's two requirements, measured rather than asserted: the curve is **monotonic** and it
+            //    carries the declared white to exactly full display code. A curve that is monotonic almost
+            //    everywhere lets an artist brighten a highlight and watch it darken.
+            constexpr std::uint32_t SampleSpan = 4096u;
+            constexpr double        White      = 6.0;
+
+            double Preceding = ProjectToneCompressed(0.0, White);
+
+            if (Preceding != 0.0)
+                ++Report.DisagreeingCount;
+
+            for (std::uint32_t Ordinal = 1u; Ordinal <= SampleSpan; ++Ordinal)
+            {
+                const double Magnitude  = static_cast<double>(Ordinal) / SampleSpan * White * 4.0;
+                const double Compressed = ProjectToneCompressed(Magnitude, White);
+
+                if (Compressed < Preceding)
+                    ++Report.DisagreeingCount;
+
+                Preceding = Compressed;
+            }
+
+            const double AtWhite   = ProjectToneCompressed(White, White);
+            const double Deviation = std::fabs(AtWhite - 1.0) / MachineEpsilon;
+
+            if (Deviation > Report.LargestDeviation)
+                Report.LargestDeviation = Deviation;
+
+            Report.SampleCount = SampleSpan;
+        }
+        else if (std::strcmp(Held.EntryName, "ProjectAccumulationWeight") == 0)
+        {
+            // 📐 `64` §3: the weight is one on the first sample, strictly decreasing while the count rises, and
+            //    constant once the ceiling saturates. The third is what keeps a still workspace responsive, and
+            //    it is the one an implementation forgets.
+            constexpr std::uint32_t SampleSpan   = 256u;
+            constexpr std::uint32_t CountCeiling = 64u;
+
+            if (ProjectAccumulationWeight(0u, CountCeiling) != 1.0)
+                ++Report.DisagreeingCount;
+
+            for (std::uint32_t Ordinal = 1u; Ordinal < SampleSpan; ++Ordinal)
+            {
+                const double Earlier = ProjectAccumulationWeight(Ordinal - 1u, CountCeiling);
+                const double Later   = ProjectAccumulationWeight(Ordinal, CountCeiling);
+
+                const bool Saturated = Ordinal > CountCeiling;
+
+                if (Saturated ? Later != Earlier : Later >= Earlier)
+                    ++Report.DisagreeingCount;
+
+                if (ProjectAccumulatedCount(CountCeiling, CountCeiling) != CountCeiling)
+                    ++Report.DisagreeingCount;
+            }
+
+            Report.SampleCount = SampleSpan;
         }
         else
         {

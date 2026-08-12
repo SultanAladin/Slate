@@ -7,27 +7,27 @@
 %scope     root
 %path      Engine
 %layers    8
-%folders   139
-%symbols   2640
+%folders   200
+%symbols   3556
 %protocol  root → layer → folder; never open a source file the folder index already answers
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      APPLICATION
 //------------------------------------------------------------------------------------------------------------------------
 
-I Source | Application | Engine/Application/ConsoleHost/Source/Source.symbolindex | 1 src | 24 sym | Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
+I Source | Application | Engine/Application/ConsoleHost/Source/Source.symbolindex | 1 src | 25 sym | Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        CONTRACT
 //------------------------------------------------------------------------------------------------------------------------
 
-I Contract | Contract | Engine/Contract/Contract.symbolindex | 6 src | 82 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
+I Contract | Contract | Engine/Contract/Contract.symbolindex | 6 src | 84 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                         SHARED
 //------------------------------------------------------------------------------------------------------------------------
 
-I Shared | Shared | Engine/Shared/Shared.symbolindex | 11 src | 115 sym | The scattering medium, the phase functions and the three surface parameterisations — one source, both toolchains.
+I Shared | Shared | Engine/Shared/Shared.symbolindex | 15 src | 140 sym | The count-derived weight, the four rejection tests, and the saturating ceiling that keeps a still workspace responsive.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SLATECOMPUTE
@@ -40,22 +40,36 @@ I Shader | SlateCompute | Engine/SlateCompute/Compute/AtmosphereIntegrator/Shade
 I Source | SlateCompute | Engine/SlateCompute/Compute/AtmosphereIntegrator/Source/Source.symbolindex  | 1 src | 42 sym  | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/ChartPartition/Api/Api.symbolindex              | 1 src | 13 sym  | The parametric domain every paintable surface addresses — cut, flattened, arranged, and measured.
 I Source | SlateCompute | Engine/SlateCompute/Compute/ChartPartition/Source/Source.symbolindex        | 1 src | 15 sym  | Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/DisplayProjection/Api/Api.symbolindex           | 1 src | 17 sym  | `66` — exposure on radiance, one monotonic compression, then primaries and transfer through `36` exactly once.
+I Source | SlateCompute | Engine/SlateCompute/Compute/DisplayProjection/Source/Source.symbolindex     | 1 src | 11 sym  | Exposure first, compression second, primaries third, transfer once — and the refusal that stops one monitor being every monitor.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/DomainSpace/Api/Api.symbolindex                 | 1 src | 10 sym  | Charts arranged into the unit domain at a common scale, separated by at least one apron.
 I Source | SlateCompute | Engine/SlateCompute/Compute/DomainSpace/Source/Source.symbolindex           | 1 src | 6 sym   | Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/EmissionSequence/Api/Api.symbolindex            | 1 src | 17 sym  | `50` §5 — an export resolved from the domain at its declared extent, band by band, never read back from residency.
+I Source | SlateCompute | Engine/SlateCompute/Compute/EmissionSequence/Source/Source.symbolindex      | 1 src | 8 sym   | `50` §5 — the band walk that resolves an emitted image out of the domain, one texel centre at a time.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/ImpressionSequence/Api/Api.symbolindex          | 1 src | 26 sym  | A stroke as ordered impressions against the parametric domain — resampled by arrival, deferred never dropped, sealed once.
 I Source | SlateCompute | Engine/SlateCompute/Compute/ImpressionSequence/Source/Source.symbolindex    | 1 src | 25 sym  | Domain resampling from arrival stamps, the deferral that never coarsens, and the accumulation applied once.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/IntersectionOutline/Api/Api.symbolindex         | 1 src | 12 sym  | `26` — the enrolled set's silhouette, derived from `16`'s targets alone and recorded over the display after `66`.
+I Source | SlateCompute | Engine/SlateCompute/Compute/IntersectionOutline/Source/Source.symbolindex   | 1 src | 11 sym  | Two indexed lookups, one interval comparison, a scalar coverage — and the refusal that stops an occluded outline being merely dimmer.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/OcclusionProjection/Api/Api.symbolindex         | 1 src | 41 sym  | `60`'s two occlusion terms, kept apart — the per-illuminant projection that attenuates the direct term, and the scalar hemisphere that attenuates the ambient.
 I Source | SlateCompute | Engine/SlateCompute/Compute/OcclusionProjection/Source/Source.symbolindex   | 1 src | 32 sym  | Six faces about a position, a subdivision snapped against shimmer, the packing that truncates rather than drops, and the rebuild that almost never runs.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/OverlayProjection/Api/Api.symbolindex           | 1 src | 11 sym  | `80` — non-occupant geometry the artist needs to see, as two recordings whose depth behaviour is opposite and never merged.
+I Source | SlateCompute | Engine/SlateCompute/Compute/OverlayProjection/Source/Source.symbolindex     | 1 src | 10 sym  | Two declarations that differ in exactly one behaviour, presence read straight out of `76`, and nothing that could ever be picked.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/ParityRunner/Api/Api.symbolindex                | 1 src | 6 sym   | Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
-I Source | SlateCompute | Engine/SlateCompute/Compute/ParityRunner/Source/Source.symbolindex          | 1 src | 7 sym   | Registration and comparison over the common sample set.
+I Source | SlateCompute | Engine/SlateCompute/Compute/ParityRunner/Source/Source.symbolindex          | 1 src | 8 sym   | Registration and comparison over the common sample set.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/PreviewProjection/Api/Api.symbolindex           | 1 src | 26 sym  | `82` — what an action will produce, shown before it is committed to, as one speculative extent four consumers share.
+I Source | SlateCompute | Engine/SlateCompute/Compute/PreviewProjection/Source/Source.symbolindex     | 1 src | 17 sym  | `82` — the four previews resolved on the host, each one discarded and re-resolved every rotation.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/PromotionScheduler/Api/Api.symbolindex          | 1 src | 24 sym  | Two independent budgets, spent per rotation, and the ordering eviction follows when they cannot be met.
 I Source | SlateCompute | Engine/SlateCompute/Compute/PromotionScheduler/Source/Source.symbolindex    | 1 src | 17 sym  | The two measures charged apart, the total eviction order, and the cost read from `56`'s entries.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/ReflectanceIntegrator/Api/Api.symbolindex       | 1 src | 26 sym  | `18` — attributes reconstructed rather than read, channels resolved rather than walked, and one target written at every pixel.
 I Source | SlateCompute | Engine/SlateCompute/Compute/ReflectanceIntegrator/Source/Source.symbolindex | 1 src | 37 sym  | Attributes reconstructed from two ordinals, channels resolved once, the four lobes composed, and the lookup that keeps them energy-correct.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/RequestQueue/Api/Api.symbolindex                | 1 src | 17 sym  | Device-written cell demands, drained with latency — the readback half named apart, and the arrival order it yields.
 I Source | SlateCompute | Engine/SlateCompute/Compute/RequestQueue/Source/Source.symbolindex          | 1 src | 13 sym  | Coalescing by cell, the cyclic rotation slots, and the readback that is exactly one depth behind.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/SampleIntegrator/Api/Api.symbolindex            | 1 src | 17 sym  | `64` — one sample per rotation accumulated into convergence, reprojected by motion and reset rather than decayed.
+I Source | SlateCompute | Engine/SlateCompute/Compute/SampleIntegrator/Source/Source.symbolindex      | 1 src | 12 sym  | Motion-driven reprojection, the count-derived weight, and the reset that never decays.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/SeamSpecification/Api/Api.symbolindex           | 1 src | 13 sym  | Where the topology is cut — authored seams that survive every re-partition, derived seams that do not.
 I Source | SlateCompute | Engine/SlateCompute/Compute/SeamSpecification/Source/Source.symbolindex     | 1 src | 11 sym  | Two separately stored sets, and the reclamation that reaches only one of them.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/SpecularProjection/Api/Api.symbolindex          | 1 src | 15 sym  | `30` — screen-space reflection over depth already resolved and radiance already shaded, composed so that nothing is counted twice.
+I Source | SlateCompute | Engine/SlateCompute/Compute/SpecularProjection/Source/Source.symbolindex    | 1 src | 9 sym   | The half-extent claim, the amending recording ordered after `62`, and the composite that cancels to nothing on every failure.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/StrokeSpace/Api/Api.symbolindex                 | 1 src | 12 sym  | The bounded extent one stroke accumulates into — coverage per texel, per touched cell, applied once at Seal.
 I Source | SlateCompute | Engine/SlateCompute/Compute/StrokeSpace/Source/Source.symbolindex           | 1 src | 9 sym   | Sparse tile claiming over the dense cell index, and the commutative coverage accumulation.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/SurfaceDepot/Api/Api.symbolindex                | 1 src | 15 sym  | Derived, evictable, reconstructible artefacts keyed by content — and nothing authored, ever.
@@ -64,6 +78,10 @@ I Api    | SlateCompute | Engine/SlateCompute/Compute/SurfaceTileSpace/Api/Api.s
 I Source | SlateCompute | Engine/SlateCompute/Compute/SurfaceTileSpace/Source/Source.symbolindex      | 1 src | 28 sym  | The coarsening walk that never stalls, the revision comparison, and promotion that evicts only what it may.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/TileSpace/Api/Api.symbolindex                   | 1 src | 16 sym  | Physical tile extents, sliced and reclaimed — slot ledger and byte offsets, and never a texel.
 I Source | SlateCompute | Engine/SlateCompute/Compute/TileSpace/Source/Source.symbolindex             | 1 src | 12 sym  | Claim, release into quarantine, and the reclamation deferred by the rotation depth.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/TransmissionSequence/Api/Api.symbolindex        | 1 src | 18 sym  | `62` — cutout resolved at `16` and never here, transmissive collected into a bounded sorted column, and amended back to front.
+I Source | SlateCompute | Engine/SlateCompute/Compute/TransmissionSequence/Source/Source.symbolindex  | 1 src | 14 sym  | The classification that keeps foliage cheap, the sorted insertion that discards the farthest, and the walk that reads the column backwards.
+I Api    | SlateCompute | Engine/SlateCompute/Compute/UvSurfaceDepot/Api/Api.symbolindex              | 1 src | 13 sym  | `24` — attributes moved from a dense topology onto a sparse one through the domain, converging, and keyed by content.
+I Source | SlateCompute | Engine/SlateCompute/Compute/UvSurfaceDepot/Source/Source.symbolindex        | 1 src | 13 sym  | A Tier A extent test, a rule that chooses among what it admitted, sweeps that converge — and a miss recorded as a miss.
 I Api    | SlateCompute | Engine/SlateCompute/Compute/VisibilityIndex/Api/Api.symbolindex             | 6 src | 103 sym | The hierarchical minimum `16` §2 ② reduces one rotation's depth into, and which level a projected extent is tested at.
 I Shader | SlateCompute | Engine/SlateCompute/Compute/VisibilityIndex/Shader/Shader.symbolindex       | 6 src | 29 sym  | `16` §2 ② — one dispatch per level, reducing the depth target and then the chain into its own coarser levels.
 I Source | SlateCompute | Engine/SlateCompute/Compute/VisibilityIndex/Source/Source.symbolindex       | 6 src | 76 sym  | Halving a display extent into a level chain, and the integer logarithm that picks the level one partition is tested at.
@@ -80,6 +98,8 @@ I Api    | SlateDocument | Engine/SlateDocument/Document/CameraProjection/Api/Ap
 I Source | SlateDocument | Engine/SlateDocument/Document/CameraProjection/Source/Source.symbolindex      | 1 src | 27 sym | Reversed-depth projection derivation, plane extraction, the gesture lifecycle, and the framing solve.
 I Api    | SlateDocument | Engine/SlateDocument/Document/DecalProjection/Api/Api.symbolindex             | 1 src | 26 sym | Placed content — a source, a transform stored against the surface, and the extent it covers in the domain.
 I Source | SlateDocument | Engine/SlateDocument/Document/DecalProjection/Source/Source.symbolindex       | 1 src | 21 sym | The inverse of a decomposed placing transform, the two extent derivations, and the drag that records nothing until release.
+I Api    | SlateDocument | Engine/SlateDocument/Document/DocumentSession/Api/Api.symbolindex             | 1 src | 36 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
+I Source | SlateDocument | Engine/SlateDocument/Document/DocumentSession/Source/Source.symbolindex       | 1 src | 33 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
 I Api    | SlateDocument | Engine/SlateDocument/Document/EnrollmentIndex/Api/Api.symbolindex             | 1 src | 14 sym | Which slots are enrolled in a named subset, compressed by interval rather than stored per occupant.
 I Source | SlateDocument | Engine/SlateDocument/Document/EnrollmentIndex/Source/Source.symbolindex       | 1 src | 11 sym | Interval merging, division, and the exclusion refusal that precedes every write.
 I Api    | SlateDocument | Engine/SlateDocument/Document/IlluminantPopulation/Api/Api.symbolindex        | 1 src | 28 sym | The illuminants `18` integrates — every one an occupant, every one with a size, every extent declared not derived.
@@ -90,12 +110,20 @@ I Api    | SlateDocument | Engine/SlateDocument/Document/MaterialSpecification/A
 I Source | SlateDocument | Engine/SlateDocument/Document/MaterialSpecification/Source/Source.symbolindex | 1 src | 23 sym | The channel inventory per reflectance, declaration validation, and the partition resolution.
 I Api    | SlateDocument | Engine/SlateDocument/Document/OutlinerSequence/Api/Api.symbolindex            | 1 src | 27 sym | The fixed tick order over both relations, the linearisation, the subsets and the name search.
 I Source | SlateDocument | Engine/SlateDocument/Document/OutlinerSequence/Source/Source.symbolindex      | 1 src | 23 sym | The seven steps in order, every mutation a transaction, and the retirement cascade as one of them.
+I Api    | SlateDocument | Engine/SlateDocument/Document/PersistenceSequence/Api/Api.symbolindex         | 1 src | 9 sym  | `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
+I Source | SlateDocument | Engine/SlateDocument/Document/PersistenceSequence/Source/Source.symbolindex   | 1 src | 4 sym  | `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
 I Api    | SlateDocument | Engine/SlateDocument/Document/PointerIntersection/Api/Api.symbolindex         | 1 src | 14 sym | What is under the pointer — resolved on the host, every sample, as one tuple and never as several answers.
 I Source | SlateDocument | Engine/SlateDocument/Document/PointerIntersection/Source/Source.symbolindex   | 1 src | 10 sym | The unprojection, the one traversal that resolves the whole tuple, and the marquee as a narrower camera.
 I Api    | SlateDocument | Engine/SlateDocument/Document/PopulationIndex/Api/Api.symbolindex             | 1 src | 10 sym | Generationally versioned slot ledger — the population every occupant of the document sits inside.
 I Source | SlateDocument | Engine/SlateDocument/Document/PopulationIndex/Source/Source.symbolindex       | 1 src | 8 sym  | Slot issuance, withdrawal and generational resolution.
+I Api    | SlateDocument | Engine/SlateDocument/Document/PrimitiveStructure/Api/Api.symbolindex          | 1 src | 21 sym | Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
+I Source | SlateDocument | Engine/SlateDocument/Document/PrimitiveStructure/Source/Source.symbolindex    | 1 src | 21 sym | Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
 I Api    | SlateDocument | Engine/SlateDocument/Document/PropertySpecification/Api/Api.symbolindex       | 1 src | 15 sym | Typed, named, validated property declarations — validation part of the declaration, never a later step.
 I Source | SlateDocument | Engine/SlateDocument/Document/PropertySpecification/Source/Source.symbolindex | 1 src | 11 sym | The validation each measure declares, the bounding offered beside it, and the write that refuses.
+I Api    | SlateDocument | Engine/SlateDocument/Document/RecoverySequence/Api/Api.symbolindex            | 1 src | 15 sym | `48` §4 — the per-document journal appended as transactions seal, and the replay that is offered and never applied.
+I Source | SlateDocument | Engine/SlateDocument/Document/RecoverySequence/Source/Source.symbolindex      | 1 src | 11 sym | `48` §4 — the per-document journal appended as transactions seal, and the replay that is offered and never applied.
+I Api    | SlateDocument | Engine/SlateDocument/Document/ReferenceIndex/Api/Api.symbolindex              | 1 src | 18 sym | `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
+I Source | SlateDocument | Engine/SlateDocument/Document/ReferenceIndex/Source/Source.symbolindex        | 1 src | 15 sym | `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
 I Api    | SlateDocument | Engine/SlateDocument/Document/RevisionSequence/Api/Api.symbolindex            | 1 src | 11 sym | Ordered, scrubbable sequence of committed transactions, with the drag lifecycle every edit uses.
 I Source | SlateDocument | Engine/SlateDocument/Document/RevisionSequence/Source/Source.symbolindex      | 1 src | 8 sym  | The drag lifecycle, declared merging, and scrubbing in both directions.
 I Api    | SlateDocument | Engine/SlateDocument/Document/RowSequence/Api/Api.symbolindex                 | 1 src | 18 sym | Depth-first linearisation of the enclosure relation, and the counted ordering that scrolls it.
@@ -104,6 +132,8 @@ I Api    | SlateDocument | Engine/SlateDocument/Document/SceneStructure/Api/Api.
 I Source | SlateDocument | Engine/SlateDocument/Document/SceneStructure/Source/Source.symbolindex        | 1 src | 28 sym | Enclosure ordering, gapped label assignment and repair, and downward attachment compounding.
 I Api    | SlateDocument | Engine/SlateDocument/Document/SelectionSequence/Api/Api.symbolindex           | 1 src | 9 sym  | Selection ordering, revised in its own sequence, session-scoped, restored alongside the transaction it served.
 I Source | SlateDocument | Engine/SlateDocument/Document/SelectionSequence/Source/Source.symbolindex     | 1 src | 7 sym  | Sealing, traversal, and the restoration that pairs a document scrub with the selection it served.
+I Api    | SlateDocument | Engine/SlateDocument/Document/SpatialManipulator/Api/Api.symbolindex          | 1 src | 44 sym | `78` — one manipulator that moves, rotates and scales everything movable, and the grips the artist grasps to do it.
+I Source | SlateDocument | Engine/SlateDocument/Document/SpatialManipulator/Source/Source.symbolindex    | 1 src | 46 sym | `78` — the grip layout, the screen-space grasp, and the four drag solves each grip resolves against.
 I Api    | SlateDocument | Engine/SlateDocument/Document/SpatialSubdivision/Api/Api.symbolindex          | 1 src | 40 sym | Three subdivisions, two levels, one traversal — what lets `74` answer the pointer on the host, every sample.
 I Source | SlateDocument | Engine/SlateDocument/Document/SpatialSubdivision/Source/Source.symbolindex    | 1 src | 38 sym | Octant division, nearest-first descent, exact face classification, and refit without rebuild.
 I Api    | SlateDocument | Engine/SlateDocument/Document/SurfaceLayerSequence/Api/Api.symbolindex        | 1 src | 32 sym | The ordered content of one surface — the single source of truth a resident tile is a projection of.
@@ -115,13 +145,21 @@ I Source | SlateDocument | Engine/SlateDocument/Document/ToolSequence/Source/Sou
 I Api    | SlateDocument | Engine/SlateDocument/Document/TopologyConditioning/Api/Api.symbolindex        | 1 src | 24 sym | Derived companions to imported topology — adjacency, welding, orientation, bases and extents. Never a mutation.
 I Source | SlateDocument | Engine/SlateDocument/Document/TopologyConditioning/Source/Source.symbolindex  | 1 src | 26 sym | Lattice welding, corner adjacency, orientation consistency, and conservative extents.
 I Api    | SlateDocument | Engine/SlateDocument/Document/TopologyStructure/Api/Api.symbolindex           | 1 src | 28 sym | Polygon topology exactly as it arrived — sealed once, never mutated, and never repaired.
-I Source | SlateDocument | Engine/SlateDocument/Document/TopologyStructure/Source/Source.symbolindex     | 1 src | 24 sym | Corner run assembly and the seal that closes it.
+I Source | SlateDocument | Engine/SlateDocument/Document/TopologyStructure/Source/Source.symbolindex     | 1 src | 26 sym | Corner run assembly and the seal that closes it.
 I Api    | SlateDocument | Engine/SlateDocument/Document/TrigramIndex/Api/Api.symbolindex                | 1 src | 10 sym | Name search that narrows by trigram and then confirms exactly — approximate index, exact answer.
 I Source | SlateDocument | Engine/SlateDocument/Document/TrigramIndex/Source/Source.symbolindex          | 1 src | 8 sym  | Trigram folding and entry, the rarest-run narrowing, and the exact confirmation over it.
 I Api    | SlateDocument | Engine/SlateDocument/Document/VectorInterchange/Api/Api.symbolindex           | 1 src | 25 sym | Vector outlines and typeface outlines as one thing — the accepted subset, and every refusal positioned.
 I Source | SlateDocument | Engine/SlateDocument/Document/VectorInterchange/Source/Source.symbolindex     | 1 src | 16 sym | Declaration by either route, flattening at a supplied tolerance, and classification per declared rule.
 I Api    | SlateDocument | Engine/SlateDocument/Format/FormatCodec/Api/Api.symbolindex                   | 1 src | 4 sym  | Versioned document stream layout and its declared migrations — never a conditional inside a reader.
 I Source | SlateDocument | Engine/SlateDocument/Format/FormatCodec/Source/Source.symbolindex             | 1 src | 2 sym  | Migration chain resolution over the declared version transformations.
+I Api    | SlateDocument | Engine/SlateDocument/Format/ImageCodec/Api/Api.symbolindex                    | 1 src | 6 sym  | `10` §1 — image streams translated to the texels the file carried, at the depth it carried them, and nothing else.
+I Source | SlateDocument | Engine/SlateDocument/Format/ImageCodec/Source/Source.symbolindex              | 1 src | 15 sym | `10` §1 — image streams translated to the texels the file carried, at the depth it carried them, and nothing else.
+I Api    | SlateDocument | Engine/SlateDocument/Format/TopologyCodec/Api/Api.symbolindex                 | 1 src | 5 sym  | `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
+I Source | SlateDocument | Engine/SlateDocument/Format/TopologyCodec/Source/Source.symbolindex           | 1 src | 9 sym  | `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
+I Api    | SlateDocument | Engine/SlateDocument/Format/TypefaceCodec/Api/Api.symbolindex                 | 1 src | 6 sym  | `10` §1 — typeface streams translated into glyph outlines and the metrics that position them.
+I Source | SlateDocument | Engine/SlateDocument/Format/TypefaceCodec/Source/Source.symbolindex           | 1 src | 7 sym  | `10` §1 — typeface streams translated into glyph outlines and the metrics that position them.
+I Api    | SlateDocument | Engine/SlateDocument/Format/VectorCodec/Api/Api.symbolindex                   | 1 src | 5 sym  | `10` §1 — vector streams translated into `52`'s accepted subset, with every refusal named and positioned.
+I Source | SlateDocument | Engine/SlateDocument/Format/VectorCodec/Source/Source.symbolindex             | 1 src | 13 sym | `10` §1 — vector streams translated into `52`'s accepted subset, with every refusal named and positioned.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       SLATEMATH
@@ -131,22 +169,36 @@ I Api    | SlateMath | Engine/SlateMath/Numeric/ColourProjection/Api/Api.symboli
 I Source | SlateMath | Engine/SlateMath/Numeric/ColourProjection/Source/Source.symbolindex     | 1 src | 10 sym | Primaries derived from chromaticities, the transfers, von Kries adaptation, and the Planckian locus.
 I Api    | SlateMath | Engine/SlateMath/Numeric/CurveSolver/Api/Api.symbolindex                | 1 src | 7 sym  | Planar path evaluation, flattening to a tolerance, and stroke offsetting — the mechanism `52` resolves with.
 I Source | SlateMath | Engine/SlateMath/Numeric/CurveSolver/Source/Source.symbolindex          | 1 src | 8 sym  | Adaptive subdivision, endpoint arc parameterisation, and bevelled offsetting.
+I Api    | SlateMath | Engine/SlateMath/Numeric/LinearSolver/Api/Api.symbolindex               | 1 src | 10 sym | Dense and sparse factorisation — Bounded, and held to refusing a singular system rather than dividing by it.
+I Source | SlateMath | Engine/SlateMath/Numeric/LinearSolver/Source/Source.symbolindex         | 1 src | 4 sym  | Partial-pivoted elimination, the refusal at the pivot floor, and the residual taken against the supply.
 I Api    | SlateMath | Engine/SlateMath/Numeric/QuadratureIntegrator/Api/Api.symbolindex       | 1 src | 9 sym  | Definite integral approximation over a declared domain — derived abscissae, ordered accumulation, no transcribed set.
 I Source | SlateMath | Engine/SlateMath/Numeric/QuadratureIntegrator/Source/Source.symbolindex | 1 src | 6 sym  | Newton on the Legendre recurrence, solved over half the interval and mirrored onto the other.
 I Api    | SlateMath | Engine/SlateMath/Numeric/ReportSequence/Api/Api.symbolindex             | 1 src | 17 sym | The session's reports and its sampled measures — one appended once, one overwritten, and never confused.
 I Source | SlateMath | Engine/SlateMath/Numeric/ReportSequence/Source/Source.symbolindex       | 1 src | 14 sym | Coalescing, the bounded cyclic retention, and the overwriting measure index beside it.
 I Api    | SlateMath | Engine/SlateMath/Numeric/SpectralProjection/Api/Api.symbolindex         | 1 src | 8 sym  | Wavelength domain to tristimulus — the colour-matching functions, analytic, never three sampled wavelengths.
 I Source | SlateMath | Engine/SlateMath/Numeric/SpectralProjection/Source/Source.symbolindex   | 1 src | 3 sym  | The nine-lobe fit, and the normalisation derived from it rather than beside it.
-I Api    | SlateMath | Engine/SlateMath/Numeric/TransformProjection/Api/Api.symbolindex        | 1 src | 13 sym | Decomposed transforms, their composition, and the rebasing that precedes every narrowing to 32-bit.
-I Source | SlateMath | Engine/SlateMath/Numeric/TransformProjection/Source/Source.symbolindex  | 1 src | 4 sym  | Quaternion composition, matrix derivation, and the 64-bit rebasing subtraction.
+I Api    | SlateMath | Engine/SlateMath/Numeric/TransformProjection/Api/Api.symbolindex        | 1 src | 18 sym | Decomposed transforms, their composition, and the rebasing that precedes every narrowing to 32-bit.
+I Source | SlateMath | Engine/SlateMath/Numeric/TransformProjection/Source/Source.symbolindex  | 1 src | 6 sym  | Quaternion composition, matrix derivation, and the 64-bit rebasing subtraction.
 I Api    | SlateMath | Engine/SlateMath/Numeric/UnwrapSolver/Api/Api.symbolindex               | 1 src | 6 sym  | Boundary-first parameterisation — Convergent, and held to reporting which criterion terminated it.
 I Source | SlateMath | Engine/SlateMath/Numeric/UnwrapSolver/Source/Source.symbolindex         | 1 src | 7 sym  | Chord-length boundary mapping, mean-value interior weights, and relaxation against a declared criterion.
 I Api    | SlateMath | Engine/SlateMath/Numeric/WorkSequence/Api/Api.symbolindex               | 1 src | 39 sym | The only thread creation in the repository — declared work, immutable inputs, results applied on the tick.
 I Source | SlateMath | Engine/SlateMath/Numeric/WorkSequence/Source/Source.symbolindex         | 1 src | 23 sym | The reserved interactive worker, cooperative cancellation, and conclusions ordered by declaration.
-I Api    | SlateMath | Engine/SlateMath/Platform/InputExchange/Api/Api.symbolindex             | 1 src | 7 sym  | Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
-I Source | SlateMath | Engine/SlateMath/Platform/InputExchange/Source/Source.symbolindex       | 1 src | 4 sym  | Bounded cyclic arrival ordering over pointer samples.
-I Api    | SlateMath | Engine/SlateMath/Platform/TickSequence/Api/Api.symbolindex              | 1 src | 5 sym  | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
-I Source | SlateMath | Engine/SlateMath/Platform/TickSequence/Source/Source.symbolindex        | 1 src | 5 sym  | Host timeline over the operating system's monotonic counter.
+I Api    | SlateMath | Engine/SlateMath/Platform/ClipboardExchange/Api/Api.symbolindex         | 1 src | 8 sym  | Text and imagery crossing to and from the operating system, taken as a copy that outlives what supplied it.
+I Source | SlateMath | Engine/SlateMath/Platform/ClipboardExchange/Source/Source.symbolindex   | 1 src | 15 sym | The host clipboard opened, copied out of, and closed on every path — including the ones that refuse.
+I Api    | SlateMath | Engine/SlateMath/Platform/CodeInterchange/Api/Api.symbolindex           | 1 src | 13 sym | Foreign compiled code crossing in — opaque tokens, a verified interface hash, no standard type in a signature.
+I Source | SlateMath | Engine/SlateMath/Platform/CodeInterchange/Source/Source.symbolindex     | 1 src | 14 sym | The load, the verification performed before any table is read, and the unload taken on every refusing path.
+I Api    | SlateMath | Engine/SlateMath/Platform/FileInterchange/Api/Api.symbolindex           | 1 src | 9 sym  | One stream surface over three file systems — paths, whole streams, and the write-verify-replace sequence.
+I Source | SlateMath | Engine/SlateMath/Platform/FileInterchange/Source/Source.symbolindex     | 1 src | 11 sym | Paths, whole streams and the write-verify-replace sequence over the host file system.
+I Api    | SlateMath | Engine/SlateMath/Platform/InputExchange/Api/Api.symbolindex             | 1 src | 12 sym | Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
+I Source | SlateMath | Engine/SlateMath/Platform/InputExchange/Source/Source.symbolindex       | 1 src | 21 sym | Bounded cyclic arrival ordering over pointer samples, filled from the host's own pointer surface.
+I Api    | SlateMath | Engine/SlateMath/Platform/InstructionExchange/Api/Api.symbolindex       | 1 src | 7 sym  | The instruction-set specialisation selected once from the host and recorded, so a result names what produced it.
+I Source | SlateMath | Engine/SlateMath/Platform/InstructionExchange/Source/Source.symbolindex | 1 src | 11 sym | The host query, the operating-system consent a wide specialisation additionally needs, and the selection.
+I Api    | SlateMath | Engine/SlateMath/Platform/PlatformInterchange/Api/Api.symbolindex       | 1 src | 7 sym  | Process, thread and locale services translated once, so that nothing above Layer0 carries an OS conditional.
+I Source | SlateMath | Engine/SlateMath/Platform/PlatformInterchange/Source/Source.symbolindex | 1 src | 7 sym  | Process, thread and locale services over the host, behind the layer's one set of conditionals.
+I Api    | SlateMath | Engine/SlateMath/Platform/StorageExchange/Api/Api.symbolindex           | 1 src | 11 sym | Byte ranges arriving from the storage device, so a decode is driven by range arrival rather than by whole-stream completion.
+I Source | SlateMath | Engine/SlateMath/Platform/StorageExchange/Source/Source.symbolindex     | 1 src | 10 sym | Declared byte ranges over the host's storage surface, drained in declaration order with the latency each took.
+I Api    | SlateMath | Engine/SlateMath/Platform/TickSequence/Api/Api.symbolindex              | 1 src | 6 sym  | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
+I Source | SlateMath | Engine/SlateMath/Platform/TickSequence/Source/Source.symbolindex        | 1 src | 6 sym  | Host timeline over the operating system's monotonic counter.
 I Api    | SlateMath | Engine/SlateMath/Platform/WindowInterchange/Api/Api.symbolindex         | 1 src | 8 sym  | One window surface over three window systems — surrenders the native handle and nothing else.
 I Source | SlateMath | Engine/SlateMath/Platform/WindowInterchange/Source/Source.symbolindex   | 1 src | 9 sym  | Windowing over GLFW, linked dynamically through glfw3dll.lib against glfw3.dll.
 
@@ -154,38 +206,47 @@ I Source | SlateMath | Engine/SlateMath/Platform/WindowInterchange/Source/Source
 //                                                        SLATEUI
 //------------------------------------------------------------------------------------------------------------------------
 
-I Api    | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Api/Api.symbolindex       | 1 src | 10 sym | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
-I Source | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Source/Source.symbolindex | 1 src | 9 sym  | The only translation unit in the engine that includes ImGui.
-I Api    | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Api/Api.symbolindex           | 1 src | 10 sym | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
-I Source | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Source/Source.symbolindex     | 1 src | 15 sym | The counted span presented, and every gesture over it turned into a declared intent.
+I Api    | SlateUI | Engine/SlateUI/Interface/GlyphDepot/Api/Api.symbolindex               | 1 src | 21 sym | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
+I Api    | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Api/Api.symbolindex        | 1 src | 10 sym | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
+I Source | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Source/Source.symbolindex  | 1 src | 9 sym  | The only translation unit in the engine that includes ImGui.
+I Api    | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Api/Api.symbolindex            | 1 src | 10 sym | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
+I Source | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Source/Source.symbolindex      | 1 src | 15 sym | The counted span presented, and every gesture over it turned into a declared intent.
+I Api    | SlateUI | Engine/SlateUI/Interface/ThemeSpecification/Api/Api.symbolindex       | 1 src | 10 sym | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
+I Source | SlateUI | Engine/SlateUI/Interface/ThemeSpecification/Source/Source.symbolindex | 1 src | 10 sym | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SLATEVULKAN
 //------------------------------------------------------------------------------------------------------------------------
 
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/AttachmentIndex/Api/Api.symbolindex        | 1 src | 17 sym | The classic render constructs `06` §2.1 settled on, declared over the shared targets and re-derived on an extent change.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/AttachmentIndex/Source/Source.symbolindex  | 1 src | 11 sym | The construct declared from the claimed formats, the span derived over the claimed views, and the two reclamations.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/ByteSpace/Api/Api.symbolindex              | 1 src | 19 sym | Raw device byte extents, claimed in a few large pieces and sliced into the spans every resource sits in.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/ByteSpace/Source/Source.symbolindex        | 1 src | 12 sym | Residency scoring, the first-fit slice, and the coalescing release that keeps an extent from fragmenting away.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/CommandSequence/Api/Api.symbolindex        | 1 src | 11 sym | One recording per rotation slot — where commands are written, and the ordered surrender of them to the queue.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/CommandSequence/Source/Source.symbolindex  | 1 src | 8 sym  | The per-slot recording extents, the open that resets one whole, and the surrender to the one graphics queue.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/CycleScheduler/Api/Api.symbolindex         | 1 src | 11 sym | Orders reuse of N cyclic recording slots — the wait that makes a slot writable and the ordinal that names it.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/CycleScheduler/Source/Source.symbolindex   | 1 src | 9 sym  | The ordering points of every cyclic slot, the bounded wait that reclaims one, and the advance that cycles them.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/DescriptorIndex/Api/Api.symbolindex        | 1 src | 18 sym | Descriptor set layouts constructed once at bring-up, and explicit sets claimed one per rotation slot.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/DescriptorIndex/Source/Source.symbolindex  | 1 src | 12 sym | The layout declaration that closes at bring-up, the extent it is sized against, and the per-rotation write.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/ImageSpace/Api/Api.symbolindex             | 1 src | 18 sym | Device image extents — claimed against a declared shape, viewed once, and carrying the layout each one stands in.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/ImageSpace/Source/Source.symbolindex       | 1 src | 13 sym | The image claim, the one place a layout transition is recorded, and the reclamation that returns both.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/ProgramIndex/Api/Api.symbolindex           | 1 src | 15 sym | Graphics and compute programs constructed once at bring-up, against the layouts and modules already declared.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/ProgramIndex/Source/Source.symbolindex     | 1 src | 8 sym  | The layout every program reaches through, the two construction routes, and the reclamation that returns both.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/RenderSchedule/Api/Api.symbolindex         | 1 src | 16 sym | What is recorded in a rotation slot, in what order, and against which shared targets.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/RenderSchedule/Source/Source.symbolindex   | 1 src | 10 sym | Contribution gating and the ordering derived from declared reads and writes.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/ShaderCodec/Api/Api.symbolindex            | 1 src | 13 sym | Lowered shader streams — read once, verified as SPIR-V, held as vendor modules and specialised at construction.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/ShaderCodec/Source/Source.symbolindex      | 1 src | 7 sym  | The whole-file read, the stream verification that refuses before the vendor sees it, and the held specialisation.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/SpanSpace/Api/Api.symbolindex              | 1 src | 17 sym | Device linear extents, each sliced out of ByteSpace and each declaring what the device is permitted to read it as.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/SpanSpace/Source/Source.symbolindex        | 1 src | 11 sym | The claim, the host write, the recorded transfer and the release of every linear device extent the engine holds.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/VendorClassifier/Api/Api.symbolindex       | 1 src | 2 sym  | Scores vendor implementations into a capability set, once, at bring-up and at recovery.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/VendorClassifier/Source/Source.symbolindex | 1 src | 1 sym  | Enumerated device scored into a capability set and a ranking.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/VulkanExchange/Api/Api.symbolindex         | 1 src | 11 sym | Loader C-ABI, instance and device handles crossing the vendor edge.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/VulkanExchange/Source/Source.symbolindex   | 1 src | 9 sym  | Instance construction, device scoring and the one graphics queue.
-I Api    | SlateVulkan | Engine/SlateVulkan/Device/WindowExchange/Api/Api.symbolindex         | 1 src | 2 sym  | Native window handle ⇄ VkSurfaceKHR — the one place the window system meets the vendor edge.
-I Source | SlateVulkan | Engine/SlateVulkan/Device/WindowExchange/Source/Source.symbolindex   | 1 src | 2 sym  | The surface conversion, taken through the window system that produced the handle.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/AttachmentIndex/Api/Api.symbolindex           | 1 src | 17 sym | The classic render constructs `06` §2.1 settled on, declared over the shared targets and re-derived on an extent change.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/AttachmentIndex/Source/Source.symbolindex     | 1 src | 11 sym | The construct declared from the claimed formats, the span derived over the claimed views, and the two reclamations.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/ByteSpace/Api/Api.symbolindex                 | 1 src | 19 sym | Raw device byte extents, claimed in a few large pieces and sliced into the spans every resource sits in.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/ByteSpace/Source/Source.symbolindex           | 1 src | 12 sym | Residency scoring, the first-fit slice, and the coalescing release that keeps an extent from fragmenting away.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/CommandSequence/Api/Api.symbolindex           | 1 src | 11 sym | One recording per rotation slot — where commands are written, and the ordered surrender of them to the queue.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/CommandSequence/Source/Source.symbolindex     | 1 src | 8 sym  | The per-slot recording extents, the open that resets one whole, and the surrender to the one graphics queue.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/CycleScheduler/Api/Api.symbolindex            | 1 src | 11 sym | Orders reuse of N cyclic recording slots — the wait that makes a slot writable and the ordinal that names it.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/CycleScheduler/Source/Source.symbolindex      | 1 src | 9 sym  | The ordering points of every cyclic slot, the bounded wait that reclaims one, and the advance that cycles them.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/DescriptorIndex/Api/Api.symbolindex           | 1 src | 18 sym | Descriptor set layouts constructed once at bring-up, and explicit sets claimed one per rotation slot.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/DescriptorIndex/Source/Source.symbolindex     | 1 src | 12 sym | The layout declaration that closes at bring-up, the extent it is sized against, and the per-rotation write.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/DiagnosticExtension/Api/Api.symbolindex       | 1 src | 10 sym | `VK_EXT_debug_utils` — queried, enabled and held, so every device object Slate creates carries a name.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/DiagnosticExtension/Source/Source.symbolindex | 1 src | 8 sym  | The loader resolution, the attached sink, the arrival that appends, and the per-object name.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/DisplayScheduler/Api/Api.symbolindex          | 1 src | 19 sym | The presentation chain and the pacing of it — image transitions ordered against a declared latency target.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/DisplayScheduler/Source/Source.symbolindex    | 1 src | 15 sym | The scored format, the established chain, the ordered arrival, and the surrender back to the display.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/HardwareMetrics/Api/Api.symbolindex           | 1 src | 17 sym | Hardware execution duration, measured between recorded timestamps — and reported unavailable rather than zero.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/HardwareMetrics/Source/Source.symbolindex     | 1 src | 13 sym | The timestamp extent, the recorded pair around each declared span, and the readback that reports or refuses.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/ImageSpace/Api/Api.symbolindex                | 1 src | 19 sym | Device image extents — claimed against a declared shape, viewed once, and carrying the layout each one stands in.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/ImageSpace/Source/Source.symbolindex          | 1 src | 14 sym | The image claim, the one place a layout transition is recorded, and the reclamation that returns both.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/ProgramIndex/Api/Api.symbolindex              | 1 src | 15 sym | Graphics and compute programs constructed once at bring-up, against the layouts and modules already declared.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/ProgramIndex/Source/Source.symbolindex        | 1 src | 8 sym  | The layout every program reaches through, the two construction routes, and the reclamation that returns both.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/RenderSchedule/Api/Api.symbolindex            | 1 src | 16 sym | What is recorded in a rotation slot, in what order, and against which shared targets.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/RenderSchedule/Source/Source.symbolindex      | 1 src | 10 sym | Contribution gating and the ordering derived from declared reads and writes.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/ShaderCodec/Api/Api.symbolindex               | 1 src | 13 sym | Lowered shader streams — read once, verified as SPIR-V, held as vendor modules and specialised at construction.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/ShaderCodec/Source/Source.symbolindex         | 1 src | 7 sym  | The whole-file read, the stream verification that refuses before the vendor sees it, and the held specialisation.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/SpanSpace/Api/Api.symbolindex                 | 1 src | 18 sym | Device linear extents, each sliced out of ByteSpace and each declaring what the device is permitted to read it as.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/SpanSpace/Source/Source.symbolindex           | 1 src | 12 sym | The claim, the host write, the recorded transfer and the release of every linear device extent the engine holds.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/VendorClassifier/Api/Api.symbolindex          | 1 src | 2 sym  | Scores vendor implementations into a capability set, once, at bring-up and at recovery.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/VendorClassifier/Source/Source.symbolindex    | 1 src | 1 sym  | Enumerated device scored into a capability set and a ranking.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/VulkanExchange/Api/Api.symbolindex            | 1 src | 11 sym | Loader C-ABI, instance and device handles crossing the vendor edge.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/VulkanExchange/Source/Source.symbolindex      | 1 src | 9 sym  | Instance construction, device scoring and the one graphics queue.
+I Api    | SlateVulkan | Engine/SlateVulkan/Device/WindowExchange/Api/Api.symbolindex            | 1 src | 2 sym  | Native window handle ⇄ VkSurfaceKHR — the one place the window system meets the vendor edge.
+I Source | SlateVulkan | Engine/SlateVulkan/Device/WindowExchange/Source/Source.symbolindex      | 1 src | 2 sym  | The surface conversion, taken through the window system that produced the handle.

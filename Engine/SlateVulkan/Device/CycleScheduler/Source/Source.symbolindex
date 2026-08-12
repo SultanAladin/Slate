@@ -16,47 +16,48 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S CycleScheduler.cpp | 175 lines | 4fc315b6 | 9 sym | The ordering points of every cyclic slot, the bounded wait that reclaims one, and the advance that cycles them.
+S CycleScheduler.cpp | 203 lines | b38fec27 | 9 sym | The ordering points of every cyclic slot, the bounded wait that reclaims one, and the advance that cycles them.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-F CycleScheduler::Construct          | CycleScheduler.cpp | 15-57   | -          | - | ?
-    in    Exchange  const VulkanExchange&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+F CycleScheduler::Construct          | CycleScheduler.cpp | 15-82   | -          | - | ?
+    in    Exchange  const VulkanExchange&       [-]  ?
+    in    Naming    const DiagnosticExtension&  [-]  ?
+    out   -         Outcome<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE WAIT
 //------------------------------------------------------------------------------------------------------------------------
 
-F CycleScheduler::Await              | CycleScheduler.cpp | 63-87   | -          | - | ?
+F CycleScheduler::Await              | CycleScheduler.cpp | 88-115  | -          | - | ?
     out   -  Outcome<bool>  [-]  ?
 
-F CycleScheduler::Arm                | CycleScheduler.cpp | 89-101  | -          | - | ?
+F CycleScheduler::Arm                | CycleScheduler.cpp | 117-129 | -          | - | ?
     out   -  Outcome<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CYCLE
 //------------------------------------------------------------------------------------------------------------------------
 
-F CycleScheduler::Advance            | CycleScheduler.cpp | 107-114 | -          | - | ?
+F CycleScheduler::Advance            | CycleScheduler.cpp | 135-142 | -          | - | ?
     out   -  void  [-]  ?
 
-F CycleScheduler::Standing           | CycleScheduler.cpp | 116-122 | -          | - | ?
+F CycleScheduler::Standing           | CycleScheduler.cpp | 144-150 | -          | - | ?
     out   -  Outcome<RotationSlot>  [-]  ?
 
-F CycleScheduler::StandingOrdinal    | CycleScheduler.cpp | 124-127 | -          | - | ?
+F CycleScheduler::StandingOrdinal    | CycleScheduler.cpp | 152-155 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F CycleScheduler::CompletedRotations | CycleScheduler.cpp | 129-132 | -          | - | ?
+F CycleScheduler::CompletedRotations | CycleScheduler.cpp | 157-160 | -          | - | ?
     out   -  std::uint64_t  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F CycleScheduler::Reclaim            | CycleScheduler.cpp | 138-168 | -          | - | ?
+F CycleScheduler::Reclaim            | CycleScheduler.cpp | 166-196 | -          | - | ?
     out   -  void  [-]  ?
 
-F CycleScheduler::~CycleScheduler    | CycleScheduler.cpp | 170-173 | destructor | - | ?
+F CycleScheduler::~CycleScheduler    | CycleScheduler.cpp | 198-201 | destructor | - | ?

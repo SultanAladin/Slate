@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ImpressionSequence.cpp | 834 lines | 78f921ab | 25 sym | Domain resampling from arrival stamps, the deferral that never coarsens, and the accumulation applied once.
+S ImpressionSequence.cpp | 846 lines | b4ed9ccf | 25 sym | Domain resampling from arrival stamps, the deferral that never coarsens, and the accumulation applied once.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE PAINTING LEVEL
@@ -78,7 +78,7 @@ F ImpressionSequence::Emit                | ImpressionSequence.cpp | 219-254 | -
     in    PathDistance    double               [-]  ?
     out   -               void                 [-]  ?
 
-F ImpressionSequence::Amend               | ImpressionSequence.cpp | 256-355 | - | - | ?
+F ImpressionSequence::Amend               | ImpressionSequence.cpp | 256-367 | - | - | ?
     in    Arriving  const StrokeArrival&  [-]  ?
     out   -         Outcome<bool>         [-]  ?
 
@@ -86,14 +86,14 @@ F ImpressionSequence::Amend               | ImpressionSequence.cpp | 256-355 | -
 //                                                 IMPRESSION RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-F ImpressionSequence::ResolveOne          | ImpressionSequence.cpp | 361-508 | - | - | ?
+F ImpressionSequence::ResolveOne          | ImpressionSequence.cpp | 373-520 | - | - | ?
     in    Impressing       ImpressionSample&  [-]  ?
     in    Residency        SurfaceTileSpace&  [-]  ?
     in    Requesting       RequestQueue&      [-]  ?
     in    RotationOrdinal  std::uint64_t      [-]  ?
     out   -                Outcome<bool>      [-]  ?
 
-F ImpressionSequence::Resolve             | ImpressionSequence.cpp | 510-545 | - | - | ?
+F ImpressionSequence::Resolve             | ImpressionSequence.cpp | 522-557 | - | - | ?
     in    Residency        SurfaceTileSpace&     [-]  ?
     in    Requesting       RequestQueue&         [-]  ?
     in    RotationOrdinal  std::uint64_t         [-]  ?
@@ -103,18 +103,18 @@ F ImpressionSequence::Resolve             | ImpressionSequence.cpp | 510-545 | -
 //                                                  ABANDON AND RECLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-F ImpressionSequence::Abandon             | ImpressionSequence.cpp | 551-568 | - | - | ?
+F ImpressionSequence::Abandon             | ImpressionSequence.cpp | 563-580 | - | - | ?
     in    Residency  SurfaceTileSpace&  [-]  ?
     out   -          void               [-]  ?
 
-F ImpressionSequence::ReclaimSpeculative  | ImpressionSequence.cpp | 570-587 | - | - | ?
+F ImpressionSequence::ReclaimSpeculative  | ImpressionSequence.cpp | 582-599 | - | - | ?
     out   -  Outcome<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SEALING
 //------------------------------------------------------------------------------------------------------------------------
 
-F ImpressionSequence::Seal                | ImpressionSequence.cpp | 593-743 | - | - | ?
+F ImpressionSequence::Seal                | ImpressionSequence.cpp | 605-755 | - | - | ?
     in    Content    SurfaceLayerSequence&  [-]  ?
     in    Revised    RevisionSequence&      [-]  ?
     in    Residency  SurfaceTileSpace&      [-]  ?
@@ -125,7 +125,7 @@ F ImpressionSequence::Seal                | ImpressionSequence.cpp | 593-743 | -
 //                                                      THE INVERSE
 //------------------------------------------------------------------------------------------------------------------------
 
-F Restore                                 | ImpressionSequence.cpp | 749-802 | - | - | ?
+F Restore                                 | ImpressionSequence.cpp | 761-814 | - | - | ?
     in    Sealed   const SealedStroke&    [-]  ?
     in    Content  SurfaceLayerSequence&  [-]  ?
     out   -        Outcome<bool>          [-]  ?
@@ -135,26 +135,26 @@ F Restore                                 | ImpressionSequence.cpp | 749-802 | -
 //                                                      WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-F ImpressionSequence::Impressions         | ImpressionSequence.cpp | 808     | - | - | ?
+F ImpressionSequence::Impressions         | ImpressionSequence.cpp | 820     | - | - | ?
     out   -  const std::vector<ImpressionSample>&  [-]  ?
 
-F ImpressionSequence::Accumulation        | ImpressionSequence.cpp | 809     | - | - | ?
+F ImpressionSequence::Accumulation        | ImpressionSequence.cpp | 821     | - | - | ?
     out   -  const StrokeSpace&  [-]  ?
 
-F ImpressionSequence::ImpressionCount     | ImpressionSequence.cpp | 811-814 | - | - | ?
+F ImpressionSequence::ImpressionCount     | ImpressionSequence.cpp | 823-826 | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F ImpressionSequence::PendingCount        | ImpressionSequence.cpp | 816-827 | - | - | ?
+F ImpressionSequence::PendingCount        | ImpressionSequence.cpp | 828-839 | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F ImpressionSequence::PaintingLevel       | ImpressionSequence.cpp | 829     | - | - | ?
+F ImpressionSequence::PaintingLevel       | ImpressionSequence.cpp | 841     | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F ImpressionSequence::PathLength          | ImpressionSequence.cpp | 830     | - | - | ?
+F ImpressionSequence::PathLength          | ImpressionSequence.cpp | 842     | - | - | ?
     out   -  double  [-]  ?
 
-F ImpressionSequence::StrokeOpen          | ImpressionSequence.cpp | 831     | - | - | ?
+F ImpressionSequence::StrokeOpen          | ImpressionSequence.cpp | 843     | - | - | ?
     out   -  bool  [-]  ?
 
-F ImpressionSequence::SpeculativeDeclared | ImpressionSequence.cpp | 832     | - | - | ?
+F ImpressionSequence::SpeculativeDeclared | ImpressionSequence.cpp | 844     | - | - | ?
     out   -  bool  [-]  ?

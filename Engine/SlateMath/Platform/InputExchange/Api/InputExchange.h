@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "Contract/OutcomeContract.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 
 #include <cstdint>
@@ -63,6 +64,49 @@ public:
 
     static constexpr std::uint32_t ArrivalCapacity = 4096u;   // [-] - samples held between two drains
 
+    InputExchange()                                = default;
+    InputExchange(const InputExchange&)            = delete;
+    InputExchange& operator=(const InputExchange&) = delete;
+    ~InputExchange();
+
+    /// 🧩 Takes the native window's pointer stream and records every sample the device reports on it.
+    /// in    NativeWindowSlot  [-]  `WindowInterchange::NativeHandle`; borrowed and outlives this attachment
+    /// in    HostTimeline      [-]  the process's one timeline, for arrival stamps
+    /// out   Outcome           [-]  refuses with HostDenied when the window declines the attachment, and with
+    ///                              ExtentExhausted when this exchange is already attached
+    /// note  🔴 The axes are read from the operating system's own pointer surface and not from the window
+    ///        system's, because the window system reports a position and nothing else. `04` §3 requires an
+    ///        unreported axis to stay distinguishable from a zero-valued one, and the operating system is the
+    ///        only surface in the chain that states which axes the device actually supplied.
+    /// note  ⚠️ Chains to whatever the window system already installed rather than replacing it. `14`'s
+    ///        interface reads the same device through the window system's accumulated condition, and a
+    ///        replacement here would take that stream away from it silently.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> Attach(void* NativeWindowSlot, const TickSequence& HostTimeline);
+
+    /// 🧩 Returns the pointer stream to whoever held it before this attachment.
+    /// note  Called by the destructor as well, so an exchange that outlives its window releases nothing twice.
+    /// cost  ✔️
+    /// tag   api, nonthrowing
+    void Detach();
+
+    /// 🧩 Stamps an arrival against the attached timeline, for a device that reported no reading of its own.
+    /// out   TickPoint  [ns]  the process origin while nothing is attached
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    TickPoint ArrivalStamp() const;
+
+    /// 🧩 Stamps an arrival from the device's own host-counter reading.
+    /// in    HostCount  [-]   the device's reading; zero falls back to the timeline
+    /// out   TickPoint  [ns]  the process origin while nothing is attached
+    /// note  🔴 `04` §3 stamps at arrival and never at consumption, and the device's own reading is the
+    ///        earliest arrival there is. Taking the timeline here instead would stamp the sample when the
+    ///        process drained the message carrying it, which is the consumption rate wearing an arrival's name.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    TickPoint ArrivalStamp(std::uint64_t HostCount) const;
+
     /// 🧩 Records one arriving sample against the supplied timeline.
     /// in    Arriving   [-]  the sample as the device reported it
     /// cost  ✔️
@@ -88,9 +132,12 @@ public:
 
 private:
 
-    PointerSample  ArrivalOrder[ArrivalCapacity] = {};   // [-] - cyclic; oldest discarded when full
-    std::uint32_t  OldestOrdinal                 = 0u;   // [-] - where the oldest held sample sits
-    std::uint32_t  OccupiedCount                 = 0u;   // [-] - how many are held
+    PointerSample        ArrivalOrder[ArrivalCapacity] = {};        // [-] - cyclic; oldest discarded when full
+    std::uint32_t        OldestOrdinal                 = 0u;        // [-] - where the oldest held sample sits
+    std::uint32_t        OccupiedCount                 = 0u;        // [-] - how many are held
+    void*                AttachedWindowSlot            = nullptr;   // [-] - the native window this reads from
+    void*                PrecedingReceiver             = nullptr;   // [-] - what held the stream before Attach
+    const TickSequence*  Timeline                      = nullptr;   // [-] - borrowed; stamps every arrival
 };
 
 }   // namespace Slate

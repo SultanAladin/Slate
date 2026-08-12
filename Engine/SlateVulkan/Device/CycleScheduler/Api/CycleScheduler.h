@@ -7,6 +7,7 @@
 
 #include "Contract/OutcomeContract.h"
 #include "Contract/ToleranceContract.h"
+#include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
 #include <vulkan/vulkan.h>
@@ -55,15 +56,20 @@ public:
 
     /// 🧩 Constructs the ordering points for every slot in the depth.
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
+    /// in    Naming    [-]  names every ordering point; borrowed and outlives this component
     /// out   Outcome   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     ///                      device declines an ordering point; refused in full, with nothing half-constructed
     /// post  the standing ordinal is zero and every completion is signalled
+    /// note  🔴 `06` §7's diagnostic-name gate. Each of the three points is named by its slot **and** by what it
+    ///        orders, because a stall reports one waiter against one signaller and the two are indistinguishable
+    ///        by address — an unnamed rotation makes every deadlock report the same sentence.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange);
+    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Waits until the slot the standing ordinal names is no longer read, and makes it writable again.
-    /// out   Outcome  [-]  refuses with HostDenied when the device does not complete within the ceiling
+    /// out   Outcome  [-]  refuses with HostDenied when the device does not complete within the ceiling, and
+    ///                     with DeviceLost when the device was lost; nothing is destroyed either way
     /// post  every resource the slot holds may be amended
     /// note  🔴 The ceiling is finite rather than indefinite. An indefinite wait against a lost device is a
     ///        host that stops with no report, and `06` §7 requires the loss to be reported upward before
@@ -114,10 +120,11 @@ private:
     //    than waited on — the two conditions the ceiling exists between.
     static constexpr std::uint64_t CompletionCeilingNanoseconds = 2000000000ull;   // [ns]
 
-    const VulkanExchange*      DeviceEdge  = nullptr;   // [-] - borrowed; never owned
-    std::vector<RotationSlot>  Slots       = {};        // [-] - RecordingRotationDepth entries
-    std::uint32_t              SlotStanding = 0u;       // [-] - which slot is being recorded into
-    std::uint64_t              Rotations    = 0u;       // [-] - advanced through since bring-up
+    const VulkanExchange*      DeviceEdge   = nullptr;   // [-] - borrowed; never owned
+    const DiagnosticExtension* NamingEdge   = nullptr;   // [-] - borrowed; never owned
+    std::vector<RotationSlot>  Slots        = {};        // [-] - RecordingRotationDepth entries
+    std::uint32_t              SlotStanding = 0u;        // [-] - which slot is being recorded into
+    std::uint64_t              Rotations    = 0u;        // [-] - advanced through since bring-up
 };
 
 }   // namespace Slate

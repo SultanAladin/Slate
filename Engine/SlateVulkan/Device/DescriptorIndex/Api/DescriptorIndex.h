@@ -7,6 +7,7 @@
 
 #include "Contract/OutcomeContract.h"
 #include "Contract/ToleranceContract.h"
+#include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
 #include <vulkan/vulkan.h>
@@ -75,11 +76,15 @@ public:
 
     /// 🧩 Takes the device against which every layout and every set is constructed.
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
+    /// in    Naming    [-]  names every layout, the extent and every set; borrowed and outlives this component
     /// out   Outcome   [-]  refuses with CapabilityAbsent when no device is active
     /// post  no layout is declared and no set is claimed
+    /// note  🔴 `06` §7's diagnostic-name gate. A descriptor set is the object the validation layer names most
+    ///        often — every content mismatch is reported against the set rather than against the recording that
+    ///        bound it — so an unnamed set turns each of those reports into an address the reader must resolve.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange);
+    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Declares one layout from its slots, returning the ordinal every later claim names it by.
     /// in    Declared  [-]  the slots, in any order; slot ordinals need not be contiguous
@@ -159,6 +164,7 @@ private:
     const DescriptorSlot* SlotOf(const DeclaredLayout& Holding, std::uint32_t SlotOrdinal) const;
 
     const VulkanExchange*        DeviceEdge       = nullptr;         // [-] - borrowed; never owned
+    const DiagnosticExtension*   NamingEdge       = nullptr;         // [-] - borrowed; never owned
     VkDescriptorPool             DescriptorExtent = VK_NULL_HANDLE;  // [-] - vendor spelling; one, fixed at Fix
     std::vector<DeclaredLayout>  Layouts          = {};              // [-] - every declared layout
     std::vector<ClaimedSet>      Claimed          = {};              // [-] - every claim, rotation-deep

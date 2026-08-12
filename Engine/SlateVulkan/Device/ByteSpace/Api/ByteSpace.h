@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Contract/OutcomeContract.h"
+#include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
 
 #include <vulkan/vulkan.h>
@@ -95,11 +96,15 @@ public:
 
     /// 🧩 Takes the device and reads the vendor declaration every later claim is scored against.
     /// in    Exchange  [-]  the created device; borrowed, never owned, and outlives this component
+    /// in    Naming    [-]  names every vendor allocation taken; borrowed and outlives this component
     /// out   Outcome   [-]  refuses with CapabilityAbsent when no device is active
     /// post  no extent is claimed; the first Claim takes the first one
+    /// note  🔴 `06` §7's diagnostic-name gate is discharged here rather than by the caller. A name declared
+    ///        by whoever happened to call `ConstructExtent` would be absent for the extents this component
+    ///        takes on its own, which is every extent after the first of each residency.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange);
+    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Slices one span of the requested residency, taking a further extent when none can satisfy it.
     /// in    RequestedBytes  [B]  how far the span must run
@@ -170,6 +175,7 @@ private:
     Outcome<std::uint32_t> ConstructExtent(ExtentResidency Residency, VkDeviceSize LeastBytes);
 
     const VulkanExchange*             DeviceEdge      = nullptr;   // [-] - borrowed; never owned
+    const DiagnosticExtension*        NamingEdge      = nullptr;   // [-] - borrowed; never owned
     VkPhysicalDeviceMemoryProperties  VendorDeclared  = {};        // [-] - vendor spelling; read once
     std::vector<SlicedExtent>         Extents         = {};        // [-] - every vendor allocation held
     VkDeviceSize                      NonCoherentAtom = 1u;        // [B] - floor a host-writable span aligns to
