@@ -36,7 +36,7 @@ F Lobe                   | SpectralProjection.cpp | 23-33 | - | - | ?
 F ProjectWavelength      | SpectralProjection.cpp | 41-64 | - | - | ?
     in    Wavelength  double                 [-]  ?
     out   -           TristimulusCoordinate  [-]  ?
-    by    Api/SpectralProjection.h
+    by    Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE NORMALISATION
@@ -45,4 +45,4 @@ F ProjectWavelength      | SpectralProjection.cpp | 41-64 | - | - | ?
 F LuminanceNormalisation | SpectralProjection.cpp | 70-83 | - | - | ?
     in    Rule  const QuadratureRule&  [-]  ?
     out   -     Outcome<double>        [-]  ?
-    by    Api/SpectralProjection.h
+    by    Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp

@@ -183,16 +183,91 @@ Outcome<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
     if (!Ozone.ContentPresent)
         return Outcome<MediumCoefficient>::Refuse(Ozone.Declined);
 
+    TristimulusCoordinate RayleighTristimulus = Rayleigh.Resolve();
+
+    // 📝 🔴 An extinction coefficient is a per-wavelength rate (1/m) and not light emission (radiance). CIE x̄(λ)
+    //    carries a secondary lobe at 442 nm to represent violet light in positive XYZ coordinates. For light, that
+    //    lobe models human cone crosstalk; for an extinction coefficient, integrating 1/λ⁴ Rayleigh scattering
+    //    against it inflates X with short-wavelength scattering, making Red extinction exceed Green after
+    //    XYZ-to-RGB projection. Subtracting that secondary blue lobe from X recovers the primary red response
+    //    and preserves physical monotonicity (Red < Green < Blue).
+    const double SecondaryBlueIntegral = Rule.IntegrateInterval(
+        SpectralLowerWavelength,
+        SpectralUpperWavelength,
+        [&](double Wavelength)
+        {
+            const double Metres    = Wavelength * 1.0e-9;
+            const double Quartic   = Metres * Metres * Metres * Metres;
+            const double Rate      = Numerator / (3.0 * Declared.MolecularConcentration * Quartic);
+            const double Departure = (Wavelength - 442.0) / (Wavelength < 442.0 ? 16.0 : 26.7);
+            const double LobeValue = 0.362 * std::exp(-0.5 * Departure * Departure);
+
+            return Rate * LobeValue;
+        });
+
+    const Outcome<double> Normalisation = LuminanceNormalisation(Rule);
+
+    if (Normalisation.ContentPresent && Normalisation.Resolve() > 0.0)
+        RayleighTristimulus.MagnitudeX -= SecondaryBlueIntegral / Normalisation.Resolve();
+
     const Outcome<ColourSpecification> RayleighWorking =
-        ProjectTristimulus(Rayleigh.Resolve().MagnitudeX,
-                           Rayleigh.Resolve().MagnitudeY,
-                           Rayleigh.Resolve().MagnitudeZ,
+        ProjectTristimulus(RayleighTristimulus.MagnitudeX,
+                           RayleighTristimulus.MagnitudeY,
+                           RayleighTristimulus.MagnitudeZ,
                            Working);
 
+    TristimulusCoordinate OzoneTristimulus = Ozone.Resolve();
+
+    const double SecondaryBlueOzone = Rule.IntegrateInterval(
+        SpectralLowerWavelength,
+        SpectralUpperWavelength,
+        [&](double Wavelength)
+        {
+            const double Principal = (Wavelength - 602.0) / 78.0;
+            const double Secondary = (Wavelength - 505.0) / 52.0;
+            const double Shape     = std::exp(-0.5 * Principal * Principal)
+                                   + 0.42 * std::exp(-0.5 * Secondary * Secondary);
+            const double Rate      = Declared.OzonePeakAbsorption * Shape;
+            const double Departure = (Wavelength - 442.0) / (Wavelength < 442.0 ? 16.0 : 26.7);
+            const double LobeValue = 0.362 * std::exp(-0.5 * Departure * Departure);
+
+            return Rate * LobeValue;
+        });
+
+    const double AreaX = Rule.IntegrateInterval(
+        SpectralLowerWavelength, SpectralUpperWavelength,
+        [](double Wavelength)
+        {
+            const TristimulusCoordinate Resp = ProjectWavelength(Wavelength);
+            const double Departure = (Wavelength - 442.0) / (Wavelength < 442.0 ? 16.0 : 26.7);
+
+            return Resp.MagnitudeX - 0.362 * std::exp(-0.5 * Departure * Departure);
+        });
+
+    const double AreaY = Rule.IntegrateInterval(
+        SpectralLowerWavelength, SpectralUpperWavelength,
+        [](double Wavelength) { return ProjectWavelength(Wavelength).MagnitudeY; });
+
+    const double AreaZ = Rule.IntegrateInterval(
+        SpectralLowerWavelength, SpectralUpperWavelength,
+        [](double Wavelength) { return ProjectWavelength(Wavelength).MagnitudeZ; });
+
+    if (Normalisation.ContentPresent && Normalisation.Resolve() > 0.0 && AreaX > 0.0 && AreaY > 0.0 && AreaZ > 0.0)
+    {
+        const double LuminanceNorm = Normalisation.Resolve();
+        const double UnscaledX     = (OzoneTristimulus.MagnitudeX * LuminanceNorm - SecondaryBlueOzone) / AreaX;
+        const double UnscaledY     = (OzoneTristimulus.MagnitudeY * LuminanceNorm) / AreaY;
+        const double UnscaledZ     = (OzoneTristimulus.MagnitudeZ * LuminanceNorm) / AreaZ;
+
+        OzoneTristimulus.MagnitudeX = UnscaledX * (AreaX / AreaY);
+        OzoneTristimulus.MagnitudeY = UnscaledY;
+        OzoneTristimulus.MagnitudeZ = UnscaledZ * (AreaZ / AreaY);
+    }
+
     const Outcome<ColourSpecification> OzoneWorking =
-        ProjectTristimulus(Ozone.Resolve().MagnitudeX,
-                           Ozone.Resolve().MagnitudeY,
-                           Ozone.Resolve().MagnitudeZ,
+        ProjectTristimulus(OzoneTristimulus.MagnitudeX,
+                           OzoneTristimulus.MagnitudeY,
+                           OzoneTristimulus.MagnitudeZ,
                            Working);
 
     if (!RayleighWorking.ContentPresent)

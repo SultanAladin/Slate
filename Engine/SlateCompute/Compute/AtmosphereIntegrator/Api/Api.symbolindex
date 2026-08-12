@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S AtmosphereIntegrator.h | 389 lines | 008f8203 | 45 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
+S AtmosphereIntegrator.h | 389 lines | e9e87277 | 45 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE MEDIUM

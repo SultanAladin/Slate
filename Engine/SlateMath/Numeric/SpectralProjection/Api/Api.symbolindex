@@ -23,10 +23,10 @@ S SpectralProjection.h | 141 lines | 6b9ff708 | 8 sym | Wavelength domain to tri
 //------------------------------------------------------------------------------------------------------------------------
 
 V SpectralLowerWavelength  | SpectralProjection.h | 22     | -                             | -  | ?
-    by    Source/SpectralProjection.cpp
+    by    Source/AtmosphereIntegrator.cpp, Source/SpectralProjection.cpp
 
 V SpectralUpperWavelength  | SpectralProjection.h | 23     | -                             | -  | ?
-    by    Source/SpectralProjection.cpp
+    by    Source/AtmosphereIntegrator.cpp, Source/SpectralProjection.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ONE COORDINATE
@@ -46,7 +46,7 @@ T TristimulusCoordinate    | SpectralProjection.h | 35-40  | nonallocating,nonth
 F ProjectWavelength        | SpectralProjection.h | 58     | api,nonallocating,nonthrowing | 🚩 | The three colour-matching responses at one wavelength. four hundred and seventy entries per response and would be four hundred and seventy chances to mistype; the fit is nine lobes and reproduces the set to within a fraction of a percent everywhere, which is far inside the Bounded guarantee this component claims. three-point quadrature of an integral whose integrand has a sharp lobe structure, and it is why an atmosphere computed that way has a twilight of the wrong hue rather than of the wrong brightness.
     in    Wavelength  double      [nm]  outside the declared interval every response is zero
     out   -           Coordinate  [-]   the matching functions, unnormalised
-    by    Source/SpectralProjection.cpp
+    by    Source/AtmosphereIntegrator.cpp, Source/SpectralProjection.cpp
     note  📐 A multi-lobe piecewise-Gaussian fit rather than a transcribed measurement set. The measured set is
     note  🔴 This is what `28` §3 means by "not by sampling three fixed wavelengths". Three samples is a
 
@@ -58,7 +58,7 @@ F SLATE_DECLARES_PRECISION | SpectralProjection.h | 59     | -                  
 F LuminanceNormalisation   | SpectralProjection.h | 69     | api,nonthrowing               | 🚩 | The integral of the luminance response over the declared interval — the normalisation a projection divides by. primaries from chromaticities: a stored normalisation is a second representation of the matching functions and drifts from them the moment the fit is amended.
     in    Rule  const QuadratureRule&  [-]  a derived rule; the integral is taken against it
     out   -     Outcome                [-]  refuses with ContentUnsupported before the rule is derived
-    by    Source/SpectralProjection.cpp
+    by    Source/AtmosphereIntegrator.cpp, Source/SpectralProjection.cpp
     note  📝 Derived on demand rather than declared as a number, for the reason `ColourProjection` derives its
 
 F SLATE_DECLARES_PRECISION | SpectralProjection.h | 70     | -                             | -  | ?

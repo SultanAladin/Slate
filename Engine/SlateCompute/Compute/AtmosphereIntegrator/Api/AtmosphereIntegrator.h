@@ -41,7 +41,7 @@ struct MediumSpecification
     double  MieAsymmetry           = 0.80;        // [-]     - forward-biased; zero is isotropic
     double  OzoneCentreAltitude    = 25000.0;     // [m]     - the tent's centre
     double  OzoneHalfWidth         = 15000.0;     // [m]     - the tent falls to nothing at this departure
-    double  OzonePeakAbsorption    = 6.0e-5;      // [1/m]   - at the Chappuis peak, at the tent's centre
+    double  OzonePeakAbsorption    = 6.0e-6;      // [1/m]   - at the Chappuis peak, at the tent's centre
     double  RefractiveIndex        = 1.00029;     // [-]     - of air at sea level
     double  MolecularConcentration = 2.545e25;    // [1/m³]  - at sea level
     double  Depolarisation         = 0.035;       // [-]     - the King correction factor's argument

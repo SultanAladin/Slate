@@ -68,7 +68,7 @@ F QuadratureRule::IntegrateInterval | QuadratureIntegrator.h | 98-113 | api,nont
     in    Evaluate  Integrand                                                                             [-]  the integrand; called once per abscissa, in ordinal order
     in    arrival   order is a different number each run at Bounded, and here the difference reaches the  [-]  ?
     out   -         Integral                                                                              [-]  zero for a degenerate interval, and zero before the rule is derived
-    by    Source/SpectralProjection.cpp
+    by    Source/AtmosphereIntegrator.cpp, Source/SpectralProjection.cpp
     note  🔴 Accumulated in ordinal order, never in whatever order a compiler finds convenient. `02` §5: a sum
     note  ⚠️ An inverted interval integrates to the negation of the forward one rather than refusing, which is
 
