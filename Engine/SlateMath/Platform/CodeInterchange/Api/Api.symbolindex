@@ -82,11 +82,11 @@ F CodeInterchange::Release          | CodeInterchange.h | 142     | api,nonthrow
     in    ModuleOrdinal  std::uint32_t  [-]  a module this component acquired
     out   -              void           [-]  ?
     pre   nothing this process holds points into the module's code or its extents
-    by    Api/ByteSpace.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+13 more)
 
 F CodeInterchange::Reclaim          | CodeInterchange.h | 147     | api,nonthrowing               | 🚩 | Releases every standing module. Called by the destructor as well.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+74 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+75 more)
 
 F CodeInterchange::StandingCount    | CodeInterchange.h | 152     | api,nonallocating,nonthrowing | ✔️ | How many modules stand.
     out   -  std::uint32_t  [-]  ?

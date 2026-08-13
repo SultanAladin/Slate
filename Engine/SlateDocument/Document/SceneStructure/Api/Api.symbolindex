@@ -50,7 +50,7 @@ F EnclosureContains                   | SceneStructure.h | 58-62   | api,nonallo
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 63      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE TWO RELATIONS
@@ -150,7 +150,7 @@ F SceneStructure::RepairLabels        | SceneStructure.h | 194     | api,nonthro
 F SceneStructure::Label               | SceneStructure.h | 201     | api,nonallocating,nonthrowing | ✔️ | One occupant's interval label, for the containment predicate above.
     in    Subject  OccupantIdentity  [-]  the occupant
     out   -        Outcome           [-]  refuses with IdentityStale
-    by    Source/SceneStructure.cpp
+    by    Api/WorkspaceSpace.h, Source/SceneStructure.cpp, Source/WorkspaceStrip.cpp
 
 F SceneStructure::CompoundedTransform | SceneStructure.h | 209     | api,nonthrowing               | ✔️ | One occupant's transform with its whole attachment path compounded into it.
     in    Subject  OccupantIdentity  [-]  the occupant
@@ -214,7 +214,7 @@ F SceneStructure::LabelsNested        | SceneStructure.h | 272     | api,nonallo
 F SceneStructure::Resolved            | SceneStructure.h | 276     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::uint32_t     [-]  ?
-    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SpatialSubdivision.h, Api/SpecularProjection.h, (+33 more)
+    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SpatialSubdivision.h, Api/SpecularProjection.h, (+40 more)
 
 F SceneStructure::Unlink              | SceneStructure.h | 277     | -                             | -  | ?
     in    SlotOrdinal  std::uint32_t  [-]  ?
@@ -226,7 +226,7 @@ F SceneStructure::Link                | SceneStructure.h | 278     | -          
     in    EnclosureSlot         std::uint32_t  [-]  ?
     in    OrderWithinEnclosure  std::uint32_t  [-]  ?
     out   -                     void           [-]  ?
-    by    Source/SceneStructure.cpp
+    by    Api/WorkspaceSpace.h, Source/SceneStructure.cpp, Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp, Source/WorkspaceStripInternal.h
 
 F SceneStructure::EnclosureInterval   | SceneStructure.h | 279     | -                             | -  | ?
     in    EnclosureSlot  std::uint32_t  [-]  ?
@@ -259,4 +259,4 @@ F SceneStructure::CompoundFrom        | SceneStructure.h | 283     | -          
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 300     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

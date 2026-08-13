@@ -42,7 +42,7 @@ T WindowAttachment              | InputExchange.cpp | 52-57   | -          | - |
     has   PrecedingReceiver  WNDPROC         [-]  ?
 
 V Attached                      | InputExchange.cpp | 59      | -          | - | ?
-    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/InterfaceExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
+    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/GlyphDepot.cpp, Source/InterfaceExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
 
 F ResolveAttachment             | InputExchange.cpp | 61-70   | -          | - | ?
     in    WindowSlot  HWND               [-]  ?

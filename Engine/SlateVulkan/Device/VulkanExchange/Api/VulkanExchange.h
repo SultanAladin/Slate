@@ -24,12 +24,14 @@ namespace Slate
 /// tag   nonallocating, nonthrowing
 struct CapabilitySet
 {
-    bool           ComputeRasterAvailable   = false;   // [-]  - `16` may take the compute raster path
-    bool           HalfPrecisionStore       = false;   // [-]  - `28` and `30` may store at half precision
-    bool           TimestampQueryAvailable  = false;   // [-]  - `HardwareMetrics` may measure at all
-    std::uint32_t  GraphicsFamilyOrdinal    = 0u;      // [-]  - the one queue family taken
-    std::uint64_t  LargestExtentClaim       = 0u;      // [B]  - largest single allocation the device allows
-    double         TimestampToMilliseconds  = 0.0;     // [ms] - carried by one timestamp increment
+    bool           ComputeRasterAvailable     = false;   // [-]  - `16` may take the compute raster path
+    bool           HalfPrecisionStore         = false;   // [-]  - `28` and `30` may store at half precision
+    bool           TimestampQueryAvailable    = false;   // [-]  - `HardwareMetrics` may measure at all
+    bool           DynamicRecordingAvailable  = false;   // [-]  - a recording may open a rendering scope with
+                                                         //         no attachment construct declared for it
+    std::uint32_t  GraphicsFamilyOrdinal      = 0u;      // [-]  - the one queue family taken
+    std::uint64_t  LargestExtentClaim         = 0u;      // [B]  - largest single allocation the device allows
+    double         TimestampToMilliseconds    = 0.0;     // [ms] - carried by one timestamp increment
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -58,8 +60,13 @@ public:
 
     /// 🧩 Enumerates devices, scores them, and creates one with its capability set fixed at creation.
     /// in    PresentationSurface [-]  the surface the device must be able to present to
-    /// out   Outcome             [-]  refuses with CapabilityAbsent when no device scores above zero
+    /// out   Outcome             [-]  refuses with CapabilityAbsent when no device scores above zero, and
+    ///                               when the winner offers no dynamic recording
     /// pre   ConstructInstance delivered
+    /// note  🔴 Dynamic recording is enabled here, not negotiated at a recording site. `SlateUI` declares
+    ///       its recording against a rendering scope with no attachment construct, so a device that does
+    ///       not offer the capability is refused by name rather than surfacing later as a vendor error
+    ///       inside the interface library.
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> ConstructDevice(VkSurfaceKHR PresentationSurface);

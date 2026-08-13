@@ -46,7 +46,7 @@ F SLATE_DECLARES_PRECISION | VectorCodec.h | 56    | -               | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
 
 F TranslateText            | VectorCodec.h | 67    | api,nonthrowing | 🔴 | Translates one vector source supplied as text rather than read from a file, retaining the text. the artist reads that as the document having lost their work — `52` §1.
     in    SourceText  const std::string&  [-]  retained on the specification, because there is no file to re-read
@@ -58,4 +58,4 @@ F SLATE_DECLARES_PRECISION | VectorCodec.h | 69    | -               | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

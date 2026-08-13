@@ -38,7 +38,7 @@ F TickSequence::TickSequence | TickSequence.h | 34    | constructor             
 F TickSequence::Advance      | TickSequence.h | 41    | api,nonallocating,nonthrowing | ✔️ | Reads the current ordering point.
     out   -  TickPoint  [ns]  nanoseconds since the origin, never decreasing between two reads
     err   never refuses
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/VectorInterchange.h, (+17 more)
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/VectorInterchange.h, (+18 more)
 
 F TickSequence::Project      | TickSequence.h | 53    | api,nonallocating,nonthrowing | ✔️ | The ordering point a raw host counter reading stands for. timeline's. `04` §3 requires the stamp to survive to `22`, and a sample restamped when the message carrying it was drained carries the drain rate rather than the device rate — which is the defect arrival stamping exists to prevent, reintroduced one layer lower. Projecting the device's own reading keeps the resolution the device actually reported at.
     in    HostCount  std::uint64_t  [-]   a reading of the same counter this timeline fixed its origin against
@@ -50,4 +50,4 @@ F TickSequence::Span         | TickSequence.h | 61    | api,nonallocating,nonthr
     in    Earlier  TickPoint  [ns]  the point taken first
     in    Later    TickPoint  [ns]  the point taken second
     out   -        Duration   [ms]  zero when Later precedes Earlier, never negative
-    by    Api/SurfaceTileSpace.h, Shader/SkyRadiance.slang, Source/ConsoleHost.cpp, Source/DisplayScheduler.cpp, Source/ImpressionSequence.cpp, Source/SpatialManipulator.cpp, (+3 more)
+    by    Api/SurfaceTileSpace.h, Shader/SkyRadiance.slang, Source/ConsoleHost.cpp, Source/ControlLayout.cpp, Source/DisplayScheduler.cpp, Source/ImpressionSequence.cpp, (+7 more)

@@ -168,6 +168,8 @@ Outcome<ThemeSpecification> ResolveActiveTheme(float DeclaredScale)
     Resolved.Extents.PanelHeaderHeight    *= DeclaredScale;
     Resolved.Extents.PanelFooterHeight    *= DeclaredScale;
     Resolved.Extents.SectionHeaderHeight  *= DeclaredScale;
+    Resolved.Extents.ViewportBandTop      *= DeclaredScale;
+    Resolved.Extents.ViewportBandBottom   *= DeclaredScale;
     Resolved.Extents.TabStripHeight       *= DeclaredScale;
     Resolved.Extents.TabSlant             *= DeclaredScale;
     Resolved.Extents.TabInset             *= DeclaredScale;

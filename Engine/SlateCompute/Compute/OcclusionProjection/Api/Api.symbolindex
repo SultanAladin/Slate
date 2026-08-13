@@ -169,7 +169,7 @@ T AmbientOcclusionSequence                  | OcclusionProjection.h | 244-275 | 
 F AmbientOcclusionSequence::Declare         | OcclusionProjection.h | 256     | api,nonthrowing               | ✔️ | Declares what the term is resolved against. divisor that is not two `OcclusionSurface` at half extent and `Shared/`'s upsample reads four taps against that claim; a third of the extent would need a different tap count, and the two would be declared in two places.
     in    Declaring  const AmbientOcclusionSpecification&  [-]  ?
     out   -          Outcome                               [-]  refuses with ContentUnsupported for a radius or sample count of nothing, and for a
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  ⚠️ The divisor is refused above two rather than admitted as a quality setting. `08` §2 claims
 
 F AmbientOcclusionSequence::Resolve         | OcclusionProjection.h | 265     | api,nonthrowing               | ✔️ | The extent the term is resolved at, from one display extent. Rounding down leaves the display's last column with no coarse texel above it, and the upsample then reads outside its own target along one edge.
@@ -178,12 +178,12 @@ F AmbientOcclusionSequence::Resolve         | OcclusionProjection.h | 265     | 
     in    ResolvedAlong   std::uint32_t&  [-]  ?
     in    ResolvedAcross  std::uint32_t&  [-]  ?
     out   -               Outcome         [-]  refuses with ContentUnsupported for a display extent of nothing
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  📐 Rounded **up** on both ordinates, matching `RenderSchedule`'s own fraction-of-display claim.
 
 F AmbientOcclusionSequence::Declared        | OcclusionProjection.h | 270     | -                             | -  | ?
     out   -  const AmbientOcclusionSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+76 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+82 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE METRICS
@@ -248,7 +248,7 @@ F OcclusionProjectionSpace::Rebuild         | OcclusionProjection.h | 359     | 
 F OcclusionProjectionSpace::Standing        | OcclusionProjection.h | 365     | api,nonthrowing               | 🚩 | One illuminant's standing projection.
     in    Illuminant  OccupantIdentity  [-]  ?
     out   -           Outcome           [-]  refuses with ExtentExhausted where the illuminant carries none
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+66 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+76 more)
 
 F OcclusionProjectionSpace::RebuildOwed     | OcclusionProjection.h | 373     | api,nonallocating,nonthrowing | 🚩 | Whether anything is owed a rebuild. so that the ordinary rotation — a camera the artist is orbiting, a stroke they are painting — rebuilds nothing.
     out   -  bool  [-]  ?
@@ -297,11 +297,11 @@ F OcclusionProjectionSpace::Derive          | OcclusionProjection.h | 395     | 
 F OcclusionProjectionSpace::Located         | OcclusionProjection.h | 399     | -                             | -  | ?
     in    Illuminant  OccupantIdentity  [-]  ?
     out   -           std::size_t       [-]  ?
-    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+24 more)
+    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+26 more)
 
 F SLATE_DECLARES_PRECISION                  | OcclusionProjection.h | 413     | -                             | -  | ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

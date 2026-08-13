@@ -46,12 +46,12 @@ F OutlinerPanel::Present          | OutlinerPanel.h | 50     | api,nonthrowing  
     out   -         Outcome            [-]  refuses with HostDenied when no interface tick is open
     pre   InterfaceExchange::Advance delivered and Seal has not
     post  every declared intent sits in the pending run; nothing was applied here
-    by    Api/DisplayScheduler.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp
+    by    Api/DisplayScheduler.h, Api/PanelIndex.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp, Source/PanelIndex.cpp, Source/WorkspacePanel.cpp
 
 F OutlinerPanel::DeclarePresence  | OutlinerPanel.h | 56     | api,nonallocating,nonthrowing | ✔️ | Declares whether the panel is shown at all.
     in    PresenceDeclared  bool  [-]  whether the artist wants it
     out   -                 void  [-]  ?
-    by    Api/SurfaceLayerSequence.h, Source/OutlinerPanel.cpp, Source/SurfaceLayerSequence.cpp
+    by    Api/SurfaceLayerSequence.h, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/SurfaceLayerSequence.cpp
 
 F OutlinerPanel::PresenceStanding | OutlinerPanel.h | 61     | api,nonallocating,nonthrowing | ✔️ | Whether the panel is shown.
     out   -  bool  [-]  ?
@@ -74,7 +74,7 @@ F OutlinerPanel::RowsTouched      | OutlinerPanel.h | 84     | api,nonallocating
 
 F OutlinerPanel::Sought           | OutlinerPanel.h | 89     | api,nonthrowing               | 🚩 | The text the artist is searching names for, empty when nothing is sought.
     out   -  std::string  [-]  ?
-    by    Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/SeamSpecification.cpp, (+2 more)
+    by    Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, (+3 more)
 
 F OutlinerPanel::ConfirmedNames   | OutlinerPanel.h | 94     | api,nonallocating,nonthrowing | ✔️ | How many names the last narrowing confirmed.
     out   -  std::uint32_t  [-]  ?

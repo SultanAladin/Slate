@@ -83,7 +83,7 @@ T AnalyticProjection                   | AnalyticProjection.h | 125-253 | owning
 F AnalyticProjection::Construct        | AnalyticProjection.h | 134     | api,nonallocating,nonthrowing | ✔️ | Takes the content libraries every resolution reads.
     in    Supplied  const AnalyticSources&  [-]  borrowed; each outlives this component
     out   -         Outcome                 [-]  delivers unconditionally; an absent library refuses only where a layer names it
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+61 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+62 more)
 
 F AnalyticProjection::ContentRevision  | AnalyticProjection.h | 149     | api,nonallocating,nonthrowing | 🚩 | The content revision one sequence currently stands at. recorded, one integer per tile, and the answer is almost always "no work": a camera move advances no counter and a moved occupant advances none either, because `72` §1 stores a placing transform relative to the surface it is attached to. stroke in one corner of the domain re-resolves every analytic tile. That is conservative and correct; sharpening it needs a per-entry coverage extent, which `56` §10 carries as open and `PromotionScheduler::Estimate` records from the other side.
     in    Content  const SurfaceLayerSequence&  [-]  the surface's layer sequence
@@ -181,4 +181,4 @@ F SLATE_DECLARES_PRECISION             | AnalyticProjection.h | 257     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+50 more)

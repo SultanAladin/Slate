@@ -75,7 +75,7 @@ F DirectionalAlbedoSurface::Construct            | ReflectanceIntegrator.h | 116
     in    ExtentAlong   std::uint32_t  [-]  ?
     in    ExtentAcross  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an extent of nothing on either axis
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+61 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
 
 F DirectionalAlbedoSurface::Declare              | ReflectanceIntegrator.h | 121     | api,nonallocating,nonthrowing | ✔️ | Writes one texel's three components.
     in    Along          std::uint32_t  [-]  ?
@@ -84,7 +84,7 @@ F DirectionalAlbedoSurface::Declare              | ReflectanceIntegrator.h | 121
     in    SingleScatter  double         [-]  ?
     in    Charlie        double         [-]  ?
     out   -              void           [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F DirectionalAlbedoSurface::Sample               | ReflectanceIntegrator.h | 128     | api,nonallocating,nonthrowing | 🚩 | Samples the three components at a declared coordinate, bilinearly, clamped on both axes. and a roughness of one is fully rough, and a wrapped read at either end returns the opposite end.
     in    CoordinateAlong   double   [-]  ?
@@ -110,7 +110,7 @@ F DirectionalAlbedoSurface::ResidentBytes        | ReflectanceIntegrator.h | 136
 
 F DirectionalAlbedoSurface::Constructed          | ReflectanceIntegrator.h | 137     | -                             | -  | ?
     out   -  bool  [-]  ?
-    by    Api/DescriptorIndex.h, Api/ProgramIndex.h, Api/ShaderCodec.h, Api/SpatialSubdivision.h, Api/SurfaceTileSpace.h, Api/VisibilityRaster.h, (+12 more)
+    by    Api/DescriptorIndex.h, Api/ProgramIndex.h, Api/ShaderCodec.h, Api/SpatialSubdivision.h, Api/SurfaceTileSpace.h, Api/VisibilityRaster.h, (+13 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE CHANNEL SET
@@ -257,4 +257,4 @@ F SLATE_DECLARES_PRECISION                       | ReflectanceIntegrator.h | 376
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

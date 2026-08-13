@@ -69,12 +69,12 @@ F StorageExchange::Open             | StorageExchange.h | 84     | api,nonthrowi
 
 F StorageExchange::Reclaim          | StorageExchange.h | 89     | api,nonthrowing               | ✔️ | Closes the held stream and discards every range not yet drained.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
 
 F StorageExchange::Declare          | StorageExchange.h | 99     | api,nonthrowing               | ✔️ | Declares one range the reader wants. is open, and with ExtentExhausted when the offset lies beyond the stream which is what lets a codec declare the next range while it decodes the one it has.
     in    Wanted  RangeRequest  [-]  the offset and extent
     out   -       Outcome       [-]  the ordinal this range is drained under; refuses with HostDenied when no stream
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  📝 Declaring is not reading. The ordinal is issued here and the bytes arrive at a later Drain,
 
 F StorageExchange::Drain            | StorageExchange.h | 108    | api,nonthrowing               | 🔴 | Delivers every range that has arrived since the last drain, in declaration order. long one whatever order they were asked in, and a codec reassembling a stream from device order would produce a different result on a device with a different reordering rule.

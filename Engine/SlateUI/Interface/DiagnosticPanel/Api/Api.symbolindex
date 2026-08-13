@@ -1,0 +1,85 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The register made visible — reports grouped by their declared class, measures presented at their producer's tier.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/DiagnosticPanel/Api
+%layer      SlateUI
+%sources    1
+%symbols    8
+%annotated  7/8
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S DiagnosticPanel.h | 109 lines | b2194a6b | 8 sym | The register made visible — reports grouped by their declared class, measures presented at their producer's tier.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  WHAT A CLASS WEIGHS
+//------------------------------------------------------------------------------------------------------------------------
+
+E ReportWeight             | DiagnosticPanel.h | 28-33 | contract                      | -  | How much of the artist's attention one report class is worth. problems teaches the artist to ignore it. `Refused` and `Failed` are problems; `Terminated` is the ambiguous row `02` §5 leaves ambiguous on purpose; the rest are information.
+    has   Information  ReportWeight  [-]  ?
+    has   Ambiguous    ReportWeight  [-]  ?
+    has   Problem      ReportWeight  [-]  ?
+    by    Source/DiagnosticPanel.cpp
+    note  🔴 `86` §5: five of the seven classes describe normal operation, and a panel presenting all seven as
+
+F WeightOf                 | DiagnosticPanel.h | 41    | api,nonallocating,nonthrowing | ✔️ | The weight one declared class carries. weight is a presentation that disagrees with the document that made the promise.
+    in    Declared  ReportDisposition  [-]  the disposition the reporting mechanism declared
+    out   -         ReportWeight       [-]  ?
+    by    Source/DiagnosticPanel.cpp
+    note  🔴 Resolved from the declared class alone and never from the report's text — `86` §4.1. An inferred
+
+F PresentedRankOf          | DiagnosticPanel.h | 50    | api,nonallocating,nonthrowing | ✔️ | Where one class sits in the presented order, lowest first. resamples authored content. `Amended` therefore ranks above every other informational class, so it can never sit at the same weight as a residency total — which is a `Measured`, presented last. The elevation is by class and not by matching the origin text, so nothing here infers anything.
+    in    Declared  ReportDisposition  [-]  ?
+    out   -         std::uint32_t      [-]  ?
+    by    Source/DiagnosticPanel.cpp
+    note  ⚠️ `56` §3.1's resampling report is an `Amended`, and it is the one operation in the engine that
+
+F CaptionOf                | DiagnosticPanel.h | 55    | api,nonallocating,nonthrowing | ✔️ | The caption one class is presented under.
+    in    Declared  ReportDisposition  [-]  ?
+    out   -         const char*        [-]  ?
+    by    Source/DiagnosticPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 WHAT THE PANEL CARRIES
+//------------------------------------------------------------------------------------------------------------------------
+
+T DiagnosticPanelCarry     | DiagnosticPanel.h | 66-73 | owning                        | -  | What the panel carries between ticks — presentation only, and the caller owns all of it. presents a residency total from the rotation before last, which reads as a measure that has stopped moving rather than as a panel that has stopped reading.
+    has   VisibleOffset        float  [-]  ?
+    has   MeasuresOpen         bool   [-]  ?
+    has   InformationDeclared  bool   [-]  ?
+    by    Source/DiagnosticPanel.cpp
+    note  🔴 `86` §10 and `14` §1: nothing here is a copy of either structure. A panel holding its own copy
+
+T DiagnosticPanelContext   | DiagnosticPanel.h | 79-84 | nonallocating,nonthrowing     | -  | What the panel presents against — the two structures it reads and the carry it writes. here and neither is copied here.
+    has   Reports   const ReportSequence*  [-]  ?
+    has   Measures  const MeasureIndex*    [-]  ?
+    has   Carry     DiagnosticPanelCarry*  [-]  ?
+    by    Source/DiagnosticPanel.cpp
+    note  🔴 Both structures live in `SlateMath` — `86` §3's link partition, not a preference. Neither is owned
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PRESENTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentDiagnosticPanel   | DiagnosticPanel.h | 101   | api,nonthrowing               | 🚩 | Presents one tick of the register into the rectangle the desk resolved for it. never learns what a report is. so presenting `Retained()` directly satisfies `86` §6 without this component knowing coalescing exists. `Magnitude` as a real, and neither is ever converted into the other. `86` §9 — recomputing a measure for presentation lets the panel disagree with the mechanism that produced it.
+    in    Theme           const ThemeSpecification&  [-]  ?
+    in    Area            const WorkspaceRectangle&  [-]  ?
+    in    PresentContext  void*                      [-]  a `DiagnosticPanelContext*`; a null context presents an empty state
+    out   -               void                       [-]  ?
+    by    Source/DiagnosticPanel.cpp
+    note  🔴 Matches `PanelPresentRoutine` exactly, so a workspace declares it into `PanelIndex` and the desk
+    note  ⚠️ A recurring report presents as one entry carrying its count — the register coalesced it at append,
+    note  ⚠️ A measure is presented at the tier its producer declared: a `Counted` prints as an integer and a
+
+F SLATE_DECLARES_PRECISION | DiagnosticPanel.h | 107   | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

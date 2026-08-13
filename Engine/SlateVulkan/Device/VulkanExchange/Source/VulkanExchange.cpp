@@ -87,6 +87,13 @@ Outcome<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
     if (Winner.Ranking == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device both draws and presents" });
 
+    // 📝 🔴 `SlateUI` declares its recording against a rendering scope carrying its own attachment
+    //    declaration, so a device without dynamic recording is refused here, by the name of the capability
+    //    it lacks. Creating the device anyway would surface the same absence later as an opaque vendor
+    //    error at the first interface recording, with nothing naming what was missing.
+    if (!Winner.Scored.DynamicRecordingAvailable)
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the scored device offers no dynamic recording" });
+
     const float QueuePriority = 1.0f;
 
     VkDeviceQueueCreateInfo QueueDeclaration = {};
@@ -97,11 +104,19 @@ Outcome<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
 
     const char* DeviceExtensions[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-    VkDeviceCreateInfo DeviceDeclaration    = {};
-    DeviceDeclaration.sType                 = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    DeviceDeclaration.queueCreateInfoCount  = 1u;
-    DeviceDeclaration.pQueueCreateInfos     = &QueueDeclaration;
-    DeviceDeclaration.enabledExtensionCount = 1u;
+    // 📝 The capability is scored before it is enabled, so this chain never asks for something the winner
+    //    did not report. Only what Slate consumes is turned on — a feature struct is zero-initialised and
+    //    the remaining core-1.3 features stay off.
+    VkPhysicalDeviceVulkan13Features CoreThirteenFeatures = {};
+    CoreThirteenFeatures.sType                            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    CoreThirteenFeatures.dynamicRendering                 = VK_TRUE;
+
+    VkDeviceCreateInfo DeviceDeclaration      = {};
+    DeviceDeclaration.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    DeviceDeclaration.pNext                   = &CoreThirteenFeatures;
+    DeviceDeclaration.queueCreateInfoCount    = 1u;
+    DeviceDeclaration.pQueueCreateInfos       = &QueueDeclaration;
+    DeviceDeclaration.enabledExtensionCount   = 1u;
     DeviceDeclaration.ppEnabledExtensionNames = DeviceExtensions;
 
     if (vkCreateDevice(Winner.Candidate, &DeviceDeclaration, nullptr, &ActiveDeviceSlot) != VK_SUCCESS)

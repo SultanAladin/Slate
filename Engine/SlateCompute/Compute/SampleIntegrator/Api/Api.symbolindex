@@ -72,7 +72,7 @@ T SampleIntegrator                  | SampleIntegrator.h | 92-199 | owning      
 F SampleIntegrator::Declare         | SampleIntegrator.h | 102    | api,nonthrowing               | ✔️ | Declares what a history is refused for.
     in    Declaring  const RejectionSpecification&  [-]  ?
     out   -          Outcome                        [-]  refuses with ContentUnsupported for a non-positive depth bound or a ceiling of nothing
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F SampleIntegrator::Contribute      | SampleIntegrator.h | 110    | api,nonthrowing               | ✔️ | Contributes `08` §3 ⑦'s recording. the schedule cannot express as a dependency and does not need to: `06`'s rotation orders the two.
     in    Schedule  RenderSchedule&  [-]  ?
@@ -138,7 +138,7 @@ F SampleIntegrator::Report          | SampleIntegrator.h | 189    | api,nonthrow
 
 F SampleIntegrator::Declared        | SampleIntegrator.h | 191    | -                             | -  | ?
     out   -  const RejectionSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+76 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+82 more)
 
 F SampleIntegrator::Metrics         | SampleIntegrator.h | 192    | -                             | -  | ?
     out   -  const ConvergenceMetrics&  [-]  ?
@@ -149,4 +149,4 @@ F SLATE_DECLARES_PRECISION          | SampleIntegrator.h | 203    | -           
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

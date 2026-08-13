@@ -92,7 +92,7 @@ F Derive                            | ChartPartition.h | 123     | api,nonthrowi
 F SLATE_DECLARES_PRECISION          | ChartPartition.h | 129     | -                             | -  | ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE STANDING PARTITION
@@ -114,12 +114,12 @@ F ChartPartition::Adopt             | ChartPartition.h | 153     | api,nonthrowi
 F ChartPartition::Standing          | ChartPartition.h | 159     | api,nonallocating,nonthrowing | ✔️ | The standing partition.
     out   -  const DerivedPartition&  [-]  ?
     pre   PartitionStanding holds
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/DisplayScheduler.h, (+66 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, Api/DisplayScheduler.h, (+76 more)
 
 F ChartPartition::Coordinate        | ChartPartition.h | 166     | api,nonthrowing               | ✔️ | One imported corner's domain coordinate. while no partition stands
     in    CornerOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
-    by    Api/ThemeSpecification.h, Shared/LatticeProjection.slang.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/ThemeSpecification.cpp
+    by    Api/ThemeSpecification.h, Shared/LatticeProjection.slang.h, Source/ChannelPanel.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, (+2 more)
 
 F ChartPartition::PartitionStanding | ChartPartition.h | 171     | api,nonallocating,nonthrowing | ✔️ | Whether a partition stands at all.
     out   -  bool  [-]  ?

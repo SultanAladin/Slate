@@ -60,7 +60,7 @@ F InstructionExchange::Fix     | InstructionExchange.h | 78    | api,nonallocati
 
 F InstructionExchange::Release | InstructionExchange.h | 83    | api,nonallocating,nonthrowing | ✔️ | Returns the selection to the one the host reported.
     out   -  static void  [-]  ?
-    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+13 more)
 
 F InstructionExchange::Naming  | InstructionExchange.h | 90    | api,nonallocating,nonthrowing | ✔️ | The selected specialisation as static text, for `86` and for `02` §7's per-registration reporting.
     in    Reported  InstructionWidth  [-]  the width to name

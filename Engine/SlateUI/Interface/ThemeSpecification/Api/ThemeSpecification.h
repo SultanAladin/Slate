@@ -108,6 +108,8 @@ struct LayoutExtents
     float  PanelHeaderHeight    =  46.0f;   // [px] - the header band, universal across every panel
     float  PanelFooterHeight    =  26.0f;   // [px] - the footer band carrying counts
     float  SectionHeaderHeight  =  29.0f;   // [px] - one accordion section header
+    float  ViewportBandTop      =  46.0f;   // [px] - the band above the tab strip, across the whole display
+    float  ViewportBandBottom   =  26.0f;   // [px] - the band below the desk, across the whole display
     float  TabStripHeight       =  31.0f;   // [px] - the trapezoid tab strip
     float  TabSlant             =  10.0f;   // [px] - horizontal run of a trapezoid's sloped edge
     float  TabInset             =   6.0f;   // [px] - inset from a tab's edge to its caption

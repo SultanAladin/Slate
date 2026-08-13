@@ -124,7 +124,7 @@ F Frame                                  | CameraProjection.cpp | 473-533 | - | 
     in    Least     DocumentPosition              [-]  ?
     in    Greatest  DocumentPosition              [-]  ?
     out   -         Outcome<DecomposedTransform>  [-]  ?
-    by    Api/CameraProjection.h, Source/ConsoleHost.cpp
+    by    Api/CameraProjection.h, Source/ConsoleHost.cpp, Source/ControlText.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CAMERA

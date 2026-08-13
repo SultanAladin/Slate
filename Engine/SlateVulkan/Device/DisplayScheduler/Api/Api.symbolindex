@@ -82,7 +82,7 @@ F DisplayScheduler::Construct         | DisplayScheduler.h | 112    | api,nonthr
     in    Intent         LatencyIntent               [-]   what the artist is optimising for
     out   -              Outcome                     [-]   refuses with CapabilityAbsent when no device is active or the surface declares
     post  `Carries` names the format every display-relative target is claimed at; the chain holds no image
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+61 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
     note  🔴 Refused in full. A chain whose images were constructed and whose views were declined leaves the
     note  🔴 `06` §7's diagnostic-name gate, discharged inside `Establish` so that `Reclaim` names the chain it
 
@@ -91,7 +91,7 @@ F DisplayScheduler::Reclaim           | DisplayScheduler.h | 133    | api,nonthr
     in    DisplayHeight  std::uint32_t  [px]  ?
     out   -              Outcome        [-]   refuses as Construct does
     pre   🔴 the device is idle — every rotation that reads the old chain has completed
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
     note  🔴 `06` §7's extent gate is discharged by the **caller**, in one order: re-establish the chain
     note  ⚠️ A zero extent is refused rather than deferred. A minimised window reports one, and the caller
 
@@ -109,7 +109,7 @@ F DisplayScheduler::Present           | DisplayScheduler.h | 169    | api,nonthr
     in    ImageOrdinal  std::uint32_t        [-]  what `Await` delivered
     out   -             Outcome              [-]  refuses with ContentUnsupported for an ordinal `Await` did not deliver, with
     post  the ordinal is the display's again; `Presented` is raised
-    by    Api/OutlinerPanel.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp
+    by    Api/OutlinerPanel.h, Api/PanelIndex.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp, Source/PanelIndex.cpp, Source/WorkspacePanel.cpp
     note  🔴 Awaits `RecordingDone` and never the completion. The completion is the host's fence and waiting
     note  ⚠️ Reports the chain outgrown as a delivered outcome with `Reclaimed`, not as a refusal. The image
 
@@ -137,7 +137,7 @@ F DisplayScheduler::PacedInterval     | DisplayScheduler.h | 197    | api,nonall
 
 F DisplayScheduler::Presented         | DisplayScheduler.h | 202    | api,nonallocating,nonthrowing | ✔️ | How many images have been surrendered to the display since the chain was established.
     out   -  std::uint64_t  [-]  ?
-    by    Api/DocumentSession.h, Api/OverlayProjection.h, Api/PreviewProjection.h, Api/PropertySpecification.h, Api/ToolSequence.h, Source/ConsoleHost.cpp, (+5 more)
+    by    Api/DocumentSession.h, Api/OverlayProjection.h, Api/PreviewProjection.h, Api/PropertySpecification.h, Api/ToolSequence.h, Source/ConsoleHost.cpp, (+10 more)
 
 F DisplayScheduler::Surrender         | DisplayScheduler.h | 210    | api,nonthrowing               | 🚩 | Destroys every view and the chain, and forgets the extent it stood at. that destroyed the surface it was established against would reclaim what it borrowed.
     out   -  void  [-]  ?

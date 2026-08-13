@@ -45,7 +45,7 @@ F ProjectPointerRay                  | PointerIntersection.h | 60      | api,non
 F SLATE_DECLARES_PRECISION           | PointerIntersection.h | 65      | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ONE ADMITTED SURFACE
@@ -102,12 +102,12 @@ F PointerIntersection::Admit         | PointerIntersection.h | 143     | api,non
 F PointerIntersection::Withdraw      | PointerIntersection.h | 149     | api,nonthrowing               | 🚩 | Withdraws one occupant's surface sources.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant is not admitted
-    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+14 more)
+    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)
 
 F PointerIntersection::Standing      | PointerIntersection.h | 155     | api,nonthrowing               | ✔️ | One admitted occupant's sources.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant is not admitted
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+66 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+76 more)
 
 F PointerIntersection::Resolve       | PointerIntersection.h | 176     | api,nonthrowing               | 🚩 | Resolves one ray to the whole tuple. placement sits **on** a surface, so both always intersect and the surface must be found first to produce the domain position the placement is tested against; §3's ordering is about which is reported as picked, not about which is traversed first. `72`'s extent is rounded outward and a rotated placement's extent is larger than the placement, so the extent alone would pick a decal whose corner the cursor is beside — and `26` §5 outlines the placement rather than its extent, so the two would disagree about what was selected. transform. It is not the interpolated shading perpendicular `38` derives: `78` §2 builds a drag plane from it, and a plane that follows shading curvature slides under the manipulator.
     in    Projected    const ProjectedRay&     [-]  the ray, from `ProjectPointerRay`
@@ -115,7 +115,7 @@ F PointerIntersection::Resolve       | PointerIntersection.h | 176     | api,non
     in    Subsets      const EnrollmentIndex&  [-]  `12`'s enrolments; locked and hidden occupants are never traversed
     in    Placements   const PlacementIndex&   [-]  `72`'s declarations, for precedence 1
     out   -            Resolved                [-]  an unresolved tuple where nothing was met — `74` §3's precedence 3
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  🔴 The traversal runs before the placement test and the precedence is unaffected by that. A
     note  🔴 A placement is confirmed through `ProjectIntoSource` after its extent contains the position.
     note  📝 The orientation is the hit face's own flat perpendicular, rotated by the occupant's composed
@@ -143,10 +143,10 @@ F PointerIntersection::AdmittedCount | PointerIntersection.h | 210     | -      
 F PointerIntersection::Located       | PointerIntersection.h | 214     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::size_t       [-]  ?
-    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+24 more)
+    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+26 more)
 
 F SLATE_DECLARES_PRECISION           | PointerIntersection.h | 222     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

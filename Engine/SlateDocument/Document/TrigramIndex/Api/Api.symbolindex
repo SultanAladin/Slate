@@ -53,12 +53,12 @@ F TrigramIndex::Declare      | TrigramIndex.h | 79     | api,nonthrowing        
     in    Declared  const std::string&  [-]  the name the artist gave it
     out   -         Outcome             [-]  refuses with IdentityStale for an undeclared identity
     post  every trigram run mentioning this occupant describes the new name only
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F TrigramIndex::Withdraw     | TrigramIndex.h | 85     | api,nonthrowing               | 🚩 | Withdraws one occupant's name and every trigram entry that reached it.
     in    Subject  OccupantIdentity  [-]  the occupant being retired or renamed
     out   -        void              [-]  ?
-    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, (+14 more)
+    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, (+16 more)
 
 F TrigramIndex::Narrow       | TrigramIndex.h | 97     | api,nonthrowing               | 🚩 | Narrows to the occupants whose names contain the sought text, then confirms each exactly. is already small, and intersecting costs more than confirming the difference. identity from a slot ordinal alone would hand back a reference that resolves to whatever later took the slot, which is the defect the generation exists to prevent.
     in    Sought  const std::string&  [-]  what the artist typed; shorter than a trigram falls back to confirmation alone
@@ -70,7 +70,7 @@ F TrigramIndex::Narrow       | TrigramIndex.h | 97     | api,nonthrowing        
 F TrigramIndex::DeclaredName | TrigramIndex.h | 102    | api,nonallocating,nonthrowing | ✔️ | One occupant's declared name, empty when it has none.
     in    Subject  OccupantIdentity    [-]  ?
     out   -        const std::string&  [-]  ?
-    by    Api/BrushSpecification.h, Api/DiagnosticExtension.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, Source/BrushSpecification.cpp, Source/DiagnosticExtension.cpp, (+4 more)
+    by    Api/BrushSpecification.h, Api/DiagnosticExtension.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, (+5 more)
 
 F TrigramIndex::NamedCount   | TrigramIndex.h | 107    | api,nonallocating,nonthrowing | ✔️ | How many occupants carry a declared name.
     out   -  std::uint32_t  [-]  ?

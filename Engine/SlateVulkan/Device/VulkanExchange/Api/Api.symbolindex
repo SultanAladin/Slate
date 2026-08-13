@@ -69,15 +69,15 @@ F VulkanExchange::Instance          | VulkanExchange.h | 72    | -              
 
 F VulkanExchange::ScoredDevice      | VulkanExchange.h | 73    | -                         | -  | ?
     out   -  VkPhysicalDevice  [-]  ?
-    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/ByteSpace.cpp, Source/DisplayScheduler.cpp, Source/ImageSpace.cpp, Source/InterfaceExchange.cpp, (+1 more)
+    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/ByteSpace.cpp, Source/DisplayScheduler.cpp, Source/GlyphDepot.cpp, Source/ImageSpace.cpp, (+2 more)
 
 F VulkanExchange::ActiveDevice      | VulkanExchange.h | 74    | -                         | -  | ?
     out   -  VkDevice  [-]  ?
-    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/AttachmentIndex.cpp, Source/ByteSpace.cpp, Source/CommandSequence.cpp, Source/CycleScheduler.cpp, (+10 more)
+    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/AttachmentIndex.cpp, Source/ByteSpace.cpp, Source/CommandSequence.cpp, Source/CycleScheduler.cpp, (+11 more)
 
 F VulkanExchange::GraphicsQueue     | VulkanExchange.h | 75    | -                         | -  | ?
     out   -  VkQueue  [-]  ?
-    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/CommandSequence.cpp, Source/DisplayScheduler.cpp, Source/InterfaceExchange.cpp, Source/VulkanExchange.cpp
+    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/CommandSequence.cpp, Source/DisplayScheduler.cpp, Source/GlyphDepot.cpp, Source/InterfaceExchange.cpp, (+1 more)
 
 F VulkanExchange::Capability        | VulkanExchange.h | 76    | -                         | -  | ?
     out   -  const CapabilitySet&  [-]  ?

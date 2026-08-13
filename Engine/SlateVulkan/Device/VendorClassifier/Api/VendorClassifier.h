@@ -29,6 +29,9 @@ struct ScoredCandidate
 /// out   ScoredCandidate     [-]  Ranking is zero when no queue family both draws and presents
 /// note  A ranking of zero is unusable, which is distinct from a low ranking. A device with no presenting
 ///       graphics family cannot serve Slate at all and is never chosen as a least-bad option.
+/// note  Dynamic recording is scored, not gated. It outranks every other preference, so a candidate that
+///       offers it always wins over one that does not; a host that records no interface still receives a
+///       device. `VulkanExchange::ConstructDevice` is where its absence is refused, by name.
 /// cost  🚩
 /// tag   api, nonallocating, nonthrowing
 ScoredCandidate Classify(VkPhysicalDevice Candidate, VkSurfaceKHR PresentationSurface);

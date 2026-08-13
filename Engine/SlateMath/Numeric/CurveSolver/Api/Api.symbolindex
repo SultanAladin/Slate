@@ -91,4 +91,4 @@ F OffsetOutline            | CurveSolver.h | 114   | api,nonthrowing           |
 F SLATE_DECLARES_PRECISION | CurveSolver.h | 117   | -                         | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

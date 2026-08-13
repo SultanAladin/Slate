@@ -88,7 +88,7 @@ F DisplayProjection::Declare                | DisplayProjection.h | 120    | api
     in    Encoding_  const EncodeSpecification&    [-]  the working and display spaces, and what the format already carries
     out   -          Outcome                       [-]  refuses with ContentUnsupported for a white magnitude of nothing, a blend outside
     post  the metered exposure stands at the declared one and the metering has not yet adapted
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 Refused in full and never in part. A half-admitted declaration leaves the projection crossing
 
 F DisplayProjection::Contribute             | DisplayProjection.h | 131    | api,nonthrowing               | ✔️ | Contributes `08` §3 ⑧'s recording. the tone line, and this recording **is** the tone line — declaring it display-referred would place it among the amenders of its own output.
@@ -141,4 +141,4 @@ F SLATE_DECLARES_PRECISION                  | DisplayProjection.h | 192    | -  
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

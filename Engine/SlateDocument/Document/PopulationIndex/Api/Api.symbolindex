@@ -36,7 +36,7 @@ F OccupancyIndex::Occupy         | PopulationIndex.h | 32     | api,nonthrowing 
 F OccupancyIndex::Release        | PopulationIndex.h | 37     | api,nonallocating,nonthrowing | ✔️ | Declares a slot free.
     in    SlotOrdinal  std::uint32_t  [-]  ?
     out   -            void           [-]  ?
-    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/SpanSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/SpanSpace.h, (+13 more)
 
 F OccupancyIndex::Occupied       | PopulationIndex.h | 42     | api,nonallocating,nonthrowing | ✔️ | Whether a slot is occupied.
     in    SlotOrdinal  std::uint32_t  [-]  ?
@@ -69,12 +69,12 @@ F PopulationIndex::Withdraw      | PopulationIndex.h | 80     | api,nonallocatin
     in    Subject  OccupantIdentity  [-]  the identity to withdraw
     out   -        Outcome           [-]  refuses with IdentityStale when the identity no longer resolves
     post  every reference carrying the prior generation resolves to absent
-    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+14 more)
+    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)
 
 F PopulationIndex::Resolve       | PopulationIndex.h | 88     | api,nonallocating,nonthrowing | ✔️ | Whether an identity still names the occupant it was issued for.
     in    Subject  OccupantIdentity  [-]  the identity to resolve
     out   -        Resolved          [-]  false for a stale generation and for an unoccupied slot alike
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  Comparison is an integer test, at Exact. An identity that collides is not an identity.
 
 F PopulationIndex::EnrolledCount | PopulationIndex.h | 93     | api,nonallocating,nonthrowing | ✔️ | How many occupants are enrolled.

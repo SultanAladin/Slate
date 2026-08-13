@@ -1,0 +1,75 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The ordered content of one surface made visible — every row read from `SurfaceLayerSequence`, nothing held here.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/LayerPanel/Api
+%layer      SlateUI
+%sources    1
+%symbols    6
+%annotated  4/6
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S LayerPanel.h | 96 lines | 4a285e4a | 6 sym | The ordered content of one surface made visible — every row read from `SurfaceLayerSequence`, nothing held here.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 WHAT THE PANEL CARRIES
+//------------------------------------------------------------------------------------------------------------------------
+
+V LayerFoldCapacity        | LayerPanel.h | 25    | -                             | -  | ?
+    by    Source/LayerPanel.cpp
+
+T LayerPanelCarry          | LayerPanel.h | 36-46 | owning                        | -  | What the panel carries between ticks — presentation only, and the caller owns all of it. is an entry, an ordering or a coverage; the folds, the filter, the offset and the drag are layout, and layout inside the document would make opening a fold an undoable edit. that outlives an append names a different entry than it did. Presentation only — a stale choice paints the wrong row for one tick and amends nothing, where a stale identity would need a resolution every tick to say the same thing.
+    has   VisibleOffset   float                    [-]  ?
+    has   Filter          TextCarry                [-]  ?
+    has   FoldOpen        bool[LayerFoldCapacity]  [-]  ?
+    has   ChosenPosition  std::uint32_t            [-]  ?
+    has   ChosenDeclared  bool                     [-]  ?
+    has   ReorderOpen     bool                     [-]  ?
+    has   ReorderOrigin   std::uint32_t            [-]  ?
+    has   ReorderLanding  std::uint32_t            [-]  ?
+    by    Source/LayerPanel.cpp
+    note  🔴 `56` §4 and `14` §4.1: sequence position is the sequence's answer and never this panel's. Nothing here
+    note  ⚠️ The chosen row and the drag are carried as **sequence positions** and not as identities, so a carry
+
+T LayerPanelContext        | LayerPanel.h | 52-56 | nonallocating,nonthrowing     | -  | What the panel presents against — the sequence it reads and the carry it writes. sequence the moment an entry is withdrawn, and the artist sees a layer that no longer exists.
+    has   Sequence  SurfaceLayerSequence*  [-]  ?
+    has   Carry     LayerPanelCarry*       [-]  ?
+    by    Source/LayerPanel.cpp
+    note  🔴 `14` §1's gate: the panel stores neither. A presented sequence holding its own row list drifts from the
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WHAT A ROW READS
+//------------------------------------------------------------------------------------------------------------------------
+
+F CaptionOfSource          | LayerPanel.h | 67    | api,nonallocating,nonthrowing | ✔️ | The caption one content source is presented under. applies to a report class. An inferred caption is a presentation that disagrees with the document.
+    in    Source  LayerContentSource  [-]  ?
+    out   -       const char*         [-]  ?
+    by    Source/LayerPanel.cpp
+    note  🔴 Read from the declared source and never inferred from the entry's content — the same rule `86` §4.1
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PRESENTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentLayerPanel        | LayerPanel.h | 88    | api,nonthrowing               | 🚩 | Presents one tick of the surface's ordered content into the rectangle the desk resolved for it. learns what a layer is. reverse of the sequence position, and the badge counts down the sequence while it counts up the panel. Both numbers exist; the one the artist is shown is the panel's, and the one every call carries is the sequence's. are a distinct thing and are presented as one row, not as a fold — a nested sequence presented as an indented run would let the artist reorder across a boundary the sequence does not have.
+    in    Theme           const ThemeSpecification&  [-]   read by const reference; no colour or extent is spelled in this component
+    in    Area            const WorkspaceRectangle&  [px]  the interior the panel layer handed it, header band included
+    in    PresentContext  void*                      [-]   a `LayerPanelContext*`; a null context or a null sequence presents an empty state
+    out   -               void                       [-]   ?
+    by    Source/LayerPanel.cpp
+    note  🔴 Matches `PanelPresentRoutine` exactly so a workspace declares it into `PanelIndex` and the desk never
+    note  ⚠️ Rows present topmost first. `Entries()` is bottom first — `56` §4 — so the presented ordinal is the
+    note  📝 The reference layer model carries no group nesting, so no row is indented. `56` §4.1's nested sequences
+
+F SLATE_DECLARES_PRECISION | LayerPanel.h | 94    | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

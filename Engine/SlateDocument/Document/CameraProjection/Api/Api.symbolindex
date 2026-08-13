@@ -80,7 +80,7 @@ F Derive                                 | CameraProjection.h | 110     | api,no
 F SLATE_DECLARES_PRECISION               | CameraProjection.h | 111     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+50 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE FRUSTUM
@@ -106,7 +106,7 @@ F FrustumSpace::Construct                | CameraProjection.h | 146     | api,no
     in    Projected  const ViewProjection&  [-]  as `Derive` produced it
     out   -          void                   [-]  ?
     post  every plane is unit-normalised and pushed outward
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+61 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+62 more)
 
 F FrustumSpace::Classify                 | CameraProjection.h | 159     | api,nonallocating,nonthrowing | ✔️ | Classifies one document-space extent against the frustum. millimetres from the document origin classifies against the camera rather than against the origin. corner furthest along the normal decides exclusion and the corner least along it decides straddling; the remaining six carry no additional fact.
     in    Least     DocumentPosition  [mm]  the extent's lower corner, in document space
@@ -169,7 +169,7 @@ F NavigationSequence::Amend              | CameraProjection.h | 225     | api,no
     in    DisplacementAlong   double   [px]  horizontal displacement since the last amendment
     in    DisplacementAcross  double   [px]  vertical displacement since the last amendment
     out   -                   Outcome  [-]   refuses with HostDenied when no gesture is open
-    by    Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+25 more)
+    by    Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
 
 F NavigationSequence::Abandon            | CameraProjection.h | 231     | api,nonallocating,nonthrowing | ✔️ | Ends the gesture with no effect, returning the prior specification.
     out   -  Outcome  [-]  refuses with HostDenied when no gesture is open
@@ -181,7 +181,7 @@ F NavigationSequence::Seal               | CameraProjection.h | 237     | api,no
 
 F NavigationSequence::Amended            | CameraProjection.h | 242     | api,nonallocating,nonthrowing | ✔️ | The camera as the gesture has amended it, for presentation while it is open.
     out   -  const CameraSpecification&  [-]  ?
-    by    Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ReportSequence.h, Api/SpatialManipulator.h, Api/TransmissionSequence.h, Source/BrushSpecification.cpp, (+10 more)
+    by    Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ReportSequence.h, Api/SpatialManipulator.h, Api/TransmissionSequence.h, Source/BrushSpecification.cpp, (+16 more)
 
 F NavigationSequence::GestureOpen        | CameraProjection.h | 247     | api,nonallocating,nonthrowing | ✔️ | Whether a gesture is open.
     out   -  bool  [-]  ?
@@ -196,7 +196,7 @@ F Frame                                  | CameraProjection.h | 275     | api,no
     in    Least     DocumentPosition            [mm]  the extent's lower corner
     in    Greatest  DocumentPosition            [mm]  its upper corner
     out   -         Outcome                     [-]   refuses with ContentUnsupported for an inverted extent or an invalid projection
-    by    Source/CameraProjection.cpp, Source/ConsoleHost.cpp
+    by    Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/ControlText.cpp
     note  🔴 The **placement only** is produced. The projection's extent parameter is left as the artist set it,
     note  ⚠️ For a parallel projection the placement is centred and nothing else can be done — the extent
     note  📐 The distance is solved against the extent's bounding sphere and the lesser of the two half-angles, so
@@ -204,7 +204,7 @@ F Frame                                  | CameraProjection.h | 275     | api,no
 F SLATE_DECLARES_PRECISION               | CameraProjection.h | 278     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+50 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CAMERA
@@ -225,12 +225,12 @@ F CameraProjection::Declare              | CameraProjection.h | 302     | api,no
     in    Subject    OccupantIdentity            [-]  ?
     in    Declaring  const CameraSpecification&  [-]  ?
     out   -          Outcome                     [-]  refuses with IdentityStale for an undeclared identity
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+65 more)
 
 F CameraProjection::Amend                | CameraProjection.h | 308     | api,nonallocating,nonthrowing | ✔️ | Amends the specification, leaving the derivations owed.
     in    Amending  const CameraSpecification&  [-]  ?
     out   -         Outcome                     [-]  refuses with IdentityStale before Declare has delivered
-    by    Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+25 more)
+    by    Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
 
 F CameraProjection::DeclareDisplayExtent | CameraProjection.h | 316     | api,nonallocating,nonthrowing | ✔️ | Declares the display's drawable extent, from which the sensor proportion follows. carrying its author's window proportion opens framed for their monitor and not for the artist's.
     in    Width   std::uint32_t  [-]  ?
@@ -246,7 +246,7 @@ F CameraProjection::Reconcile            | CameraProjection.h | 323     | api,no
 
 F CameraProjection::Declared             | CameraProjection.h | 325     | -                             | -  | ?
     out   -  const CameraSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+76 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticPanel.h, (+82 more)
 
 F CameraProjection::Projected            | CameraProjection.h | 326     | -                             | -  | ?
     out   -  const ViewProjection&  [-]  ?
@@ -258,7 +258,7 @@ F CameraProjection::Frustum              | CameraProjection.h | 327     | -     
 
 F CameraProjection::Occupant             | CameraProjection.h | 332     | api,nonallocating,nonthrowing | ✔️ | Which occupant this camera is.
     out   -  OccupantIdentity  [-]  ?
-    by    Api/DecalProjection.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/RowSequence.h, (+14 more)
+    by    Api/DecalProjection.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/RowSequence.h, (+17 more)
 
 F CameraProjection::Exposure             | CameraProjection.h | 337     | api,nonallocating,nonthrowing | ✔️ | The authored exposure `66` §2 reads.
     out   -  double  [-]  ?
@@ -272,4 +272,4 @@ F SLATE_DECLARES_PRECISION               | CameraProjection.h | 357     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+50 more)

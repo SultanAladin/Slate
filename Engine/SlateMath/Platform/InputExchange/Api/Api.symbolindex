@@ -72,7 +72,7 @@ F InputExchange::Attach         | InputExchange.h | 86     | api,nonthrowing    
 
 F InputExchange::Detach         | InputExchange.h | 92     | api,nonthrowing               | ✔️ | Returns the pointer stream to whoever held it before this attachment.
     out   -  void  [-]  ?
-    by    Source/InputExchange.cpp
+    by    Source/InputExchange.cpp, Source/WorkspaceSpace.cpp
     note  Called by the destructor as well, so an exchange that outlives its window releases nothing twice.
 
 F InputExchange::ArrivalStamp   | InputExchange.h | 98     | api,nonallocating,nonthrowing | ✔️ | Stamps an arrival against the attached timeline, for a device that reported no reading of its own.
@@ -102,4 +102,4 @@ F InputExchange::HeldCount      | InputExchange.h | 126    | api,nonallocating,n
 
 F InputExchange::Reclaim        | InputExchange.h | 131    | api,nonallocating,nonthrowing | ✔️ | Discards every held sample. Called by the consumer once it has read them.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)

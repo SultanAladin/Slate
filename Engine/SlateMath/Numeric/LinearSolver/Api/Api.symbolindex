@@ -74,7 +74,7 @@ F Solve                    | LinearSolver.h | 104   | api,nonthrowing           
 F SLATE_DECLARES_PRECISION | LinearSolver.h | 105   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE SPARSE FORM
@@ -90,7 +90,7 @@ F Solve                    | LinearSolver.h | 127   | api,nonthrowing           
 F SLATE_DECLARES_PRECISION | LinearSolver.h | 128   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE RESIDUAL
@@ -107,4 +107,4 @@ F Measure                  | LinearSolver.h | 147   | api,nonallocating,nonthrow
 F SLATE_DECLARES_PRECISION | LinearSolver.h | 148   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

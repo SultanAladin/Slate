@@ -33,7 +33,7 @@ F DeclareEdge                         | SeamSpecification.h | 37-44  | api,nonal
     in    FirstVertex   std::uint32_t       [-]  ?
     in    SecondVertex  std::uint32_t       [-]  ?
     out   -             constexpr SeamEdge  [-]  ?
-    by    Api/GlyphDepot.h, Source/ChartPartition.cpp, Source/SeamSpecification.cpp
+    by    Api/GlyphDepot.h, Source/ChartPartition.cpp, Source/GlyphDepot.cpp, Source/SeamSpecification.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE SEAMS

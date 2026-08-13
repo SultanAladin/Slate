@@ -54,7 +54,7 @@ F PageQueue::Arrivals          | RequestQueue.h | 66      | api,nonallocating,no
 
 F PageQueue::Reclaim           | RequestQueue.h | 71      | api,nonthrowing               | ✔️ | Empties the order, ready for the next drain.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
 
 F PageQueue::ArrivalCount      | RequestQueue.h | 73      | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -62,7 +62,7 @@ F PageQueue::ArrivalCount      | RequestQueue.h | 73      | -                   
 
 F PageQueue::DiscardedCount    | RequestQueue.h | 74      | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/RecoverySequence.h, Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/RecoverySequence.cpp, Source/ReportSequence.cpp, Source/RequestQueue.cpp
+    by    Api/RecoverySequence.h, Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/RecoverySequence.cpp, Source/ReportSequence.cpp, (+1 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE DEMANDS
@@ -99,7 +99,7 @@ F RequestQueue::RecordedCount  | RequestQueue.h | 118     | -                   
 
 F RequestQueue::DiscardedCount | RequestQueue.h | 119     | -                             | -  | ?
     out   -  std::uint64_t  [-]  ?
-    by    Api/RecoverySequence.h, Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/RecoverySequence.cpp, Source/ReportSequence.cpp, Source/RequestQueue.cpp
+    by    Api/RecoverySequence.h, Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/RecoverySequence.cpp, Source/ReportSequence.cpp, (+1 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE READBACK

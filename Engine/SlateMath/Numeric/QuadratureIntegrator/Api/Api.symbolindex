@@ -74,7 +74,7 @@ F QuadratureRule::IntegrateInterval | QuadratureIntegrator.h | 98-113 | api,nont
 
 F QuadratureRule::DeclaredCount     | QuadratureIntegrator.h | 118    | api,nonallocating,nonthrowing | ✔️ | How many abscissae the rule carries.
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+30 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+36 more)
 
 F QuadratureRule::Derived           | QuadratureIntegrator.h | 123    | api,nonallocating,nonthrowing | ✔️ | Whether the rule has been derived at all.
     out   -  bool  [-]  ?
@@ -83,4 +83,4 @@ F QuadratureRule::Derived           | QuadratureIntegrator.h | 123    | api,nona
 F SLATE_DECLARES_PRECISION          | QuadratureIntegrator.h | 134    | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

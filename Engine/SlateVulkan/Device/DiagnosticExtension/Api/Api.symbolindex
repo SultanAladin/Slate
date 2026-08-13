@@ -44,7 +44,7 @@ F DiagnosticExtension::Construct            | DiagnosticExtension.h | 59      | 
     out   -         Outcome                [-]  refuses with CapabilityAbsent when no instance stands or the loader does not
     pre   `VulkanExchange::ConstructInstance` delivered with the diagnostic requested
     post  driver text arrives at `Register` until Reclaim
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+61 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
     note  🔴 The entry points are resolved through the loader rather than linked. `VK_EXT_debug_utils` is
 
 F DiagnosticExtension::Declare              | DiagnosticExtension.h | 82      | api,nonthrowing               | ✔️ | Names one vendor object, so the driver's text names the object rather than an address. the driver declines the name discharged at each **claim site**, not here. This is the one mechanism that can name an object; the gate is met only once `ByteSpace`, `ImageSpace`, `SpanSpace`, `DescriptorIndex`, `ProgramIndex`, `CommandSequence`, `CycleScheduler` and `DisplayScheduler` each call it. with no diagnostic capability is not a failure, and refusing would make every claim site branch on the configuration to ignore a refusal it expected. third-party exemption and beside the existing `WindowExchange::Convert(…, void* NativeHandle)`. The vendor's own field is `objectHandle` and one spelling at the edge is what the exemption is for. holds this as a borrowed const edge beside the device, and a non-const one would make every such component hold a mutable reference to a capability it only reads.
@@ -52,7 +52,7 @@ F DiagnosticExtension::Declare              | DiagnosticExtension.h | 82      | 
     in    VendorHandle  std::uint64_t  [-]  the object, widened to the vendor's own naming width
     in    DeclaredName  const char*    [-]  static text; the driver copies it and nothing here retains it
     out   -             Outcome        [-]  refuses with CapabilityAbsent when no device stands, and with HostDenied when
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+65 more)
     note  🔴 `06` §7's gate — every device object Slate creates carries a diagnostic name in Debug — is
     note  ⚠️ Delivers as a no-op when nothing negotiated the capability. A name declared in a configuration
     note  📝 `VendorHandle` spells the banned structural word deliberately, under `SKILL-Naming`'s
@@ -64,7 +64,7 @@ F DiagnosticExtension::Declare              | DiagnosticExtension.h | 99      | 
     in    DeclaredPrefix  const char*    [-]  static text naming what the object is; the ordinal is appended to it
     in    Ordinal         std::uint32_t  [-]  the slot the owning component resolves the object by
     out   -               Outcome        [-]  refuses as the two-operand form does, and with ContentUnsupported when the
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+65 more)
     note  🔴 The composition is here rather than at each claim site. Eight components name objects by their
     note  ⚠️ Composed into an automatic extent and read by the driver before this returns, which is what
 
@@ -80,7 +80,7 @@ F DiagnosticExtension::ArrivalCount         | DiagnosticExtension.h | 115     | 
 F DiagnosticExtension::Reclaim              | DiagnosticExtension.h | 121     | api,nonthrowing               | ✔️ | Detaches the sink and forgets every resolved entry point.
     out   -  void  [-]  ?
     pre   nothing is still recording; the instance stands until after this returns
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
 
 F DiagnosticExtension::Arrival              | DiagnosticExtension.h | 135     | -                             | -  | The C-ABI arrival the driver calls, which forwards to the register the construction was given. was executing on. Nothing here allocates and nothing here takes a lock the driver does not already hold — the register's own guard is the only one. declares seven dispositions and none of them is "warning": an error and a validation warning are each a defect in Slate's own use of the vendor rather than normal operation, and `86` §5 — not a mapping here — decides what is presented as a problem. Only those two severities are subscribed to; a bounded register filled with information arrivals is one in which the error that mattered has already been discarded.
     in    Severity    VkDebugUtilsMessageSeverityFlagBitsEXT       [-]  ?

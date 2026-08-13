@@ -8,122 +8,139 @@
 %path       Engine/SlateUI/Interface/GlyphDepot/Api
 %layer      SlateUI
 %sources    1
-%symbols    21
-%annotated  17/21
+%symbols    22
+%annotated  18/22
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S GlyphDepot.h | 206 lines | 1b888917 | 21 sym | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
+S GlyphDepot.h | 220 lines | 5eb394cf | 22 sym | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE GLYPH HANDLE
 //------------------------------------------------------------------------------------------------------------------------
 
-T GlyphHandle                 | GlyphDepot.h | 28-35   | contract,nonallocating,nonthrowing | -  | An opaque reference to one uploaded glyph, resolved to a vendor texture identity inside the source file alone. an integer whose meaning only `GlyphDepot.cpp` knows, exactly as `InterfaceExchange` holds its context.
+T GlyphHandle                    | GlyphDepot.h | 28-35   | contract,nonallocating,nonthrowing | -  | An opaque reference to one uploaded glyph, resolved to a vendor texture identity inside the source file alone. an integer whose meaning only `GlyphDepot.cpp` knows, exactly as `InterfaceExchange` holds its context.
     has   DepotSlot  std::uint64_t  [-]  ?
+    by    Source/GlyphDepot.cpp
     note  🔴 `14` §7: no vendor spelling crosses a public header, and a texture identity is a vendor spelling. This is
 
-F GlyphHandle::HandleDeclared | GlyphDepot.h | 34      | -                                  | ✔️ | Whether this handle names an uploaded glyph at all.
+F GlyphHandle::HandleDeclared    | GlyphDepot.h | 34      | -                                  | ✔️ | Whether this handle names an uploaded glyph at all.
     out   -  constexpr bool  [-]  ?
+    by    Source/GlyphDepot.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                               WHAT THE DEPOT ATTACHES TO
 //------------------------------------------------------------------------------------------------------------------------
 
-T GlyphAttachment             | GlyphDepot.h | 45-51   | nonallocating,nonthrowing          | -  | The device handles one upload needs, supplied once at bring-up. recording, and every allocation here happens inside `Declare` — which is bring-up, never a tick.
+T GlyphAttachment                | GlyphDepot.h | 45-51   | nonallocating,nonthrowing          | -  | The device handles one upload needs, supplied once at bring-up. recording, and every allocation here happens inside `Declare` — which is bring-up, never a tick.
     has   ScoredDevice           VkPhysicalDevice  [-]  ?
     has   ActiveDevice           VkDevice          [-]  ?
     has   GraphicsQueue          VkQueue           [-]  ?
     has   GraphicsFamilyOrdinal  std::uint32_t     [-]  ?
+    by    Source/GlyphDepot.cpp
     note  🔴 The depot never re-queries these and never owns them. `14` §6 forbids allocating a device resource per
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   ONE DECLARED GLYPH
 //------------------------------------------------------------------------------------------------------------------------
 
-T GlyphDeclaration            | GlyphDepot.h | 61-67   | nonallocating,nonthrowing          | -  | One glyph as a tier declares it — its key, its vector source, and the square it rasterises into. span may name a string literal in the declaring translation unit.
+T GlyphDeclaration               | GlyphDepot.h | 61-67   | nonallocating,nonthrowing          | -  | One glyph as a tier declares it — its key, its vector source, and the square it rasterises into. span may name a string literal in the declaring translation unit.
     has   GlyphKey      const char*    [-]  ?
     has   VectorSource  const char*    [-]  ?
     has   SourceExtent  std::uint32_t  [-]  ?
     has   RasterEdge    std::uint32_t  [-]  ?
+    by    Source/GlyphDepot.cpp
     note  The source is a complete vector document in bytes. It is read during `Declare` and never retained, so the
 
-T GlyphTier                   | GlyphDepot.h | 74-79   | nonallocating,nonthrowing          | -  | A named set of glyphs one workspace declares at activation. edits nothing shared. The chrome tier is declared once and read by every workspace; content-hash dedup means a glyph two tiers share uploads once and is torn down when the second releases it.
+T GlyphTier                      | GlyphDepot.h | 74-79   | nonallocating,nonthrowing          | -  | A named set of glyphs one workspace declares at activation. edits nothing shared. The chrome tier is declared once and read by every workspace; content-hash dedup means a glyph two tiers share uploads once and is torn down when the second releases it.
     has   TierName       const char*              [-]  ?
     has   Declarations   const GlyphDeclaration*  [-]  ?
     has   DeclaredCount  std::uint32_t            [-]  ?
+    by    Source/GlyphDepot.cpp
     note  🔴 `14` §1: a workspace's own glyphs are declared beside its panels, so adding a workspace adds a tier and
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE DEPOT
 //------------------------------------------------------------------------------------------------------------------------
 
-T GlyphDepot                  | GlyphDepot.h | 92-204  | owning                             | -  | A store of rasterised, evictable, reconstructible glyphs keyed by the content that produced them. tiers share a glyph while each keeps its own name. Collapsing it to key-to-texture uploads the chrome twisty once per workspace, and the count grows with the workspace count rather than with the art. at workspace activation and a resolution during a tick never allocates.
+T GlyphDepot                     | GlyphDepot.h | 92-218  | owning                             | -  | A store of rasterised, evictable, reconstructible glyphs keyed by the content that produced them. tiers share a glyph while each keeps its own name. Collapsing it to key-to-texture uploads the chrome twisty once per workspace, and the count grows with the workspace count rather than with the art. at workspace activation and a resolution during a tick never allocates.
     has   Attached            GlyphAttachment                                            [-]  ?
     has   KeyedContent        std::unordered_map<std::string, std::uint64_t>             [-]  ?
     has   HeldGlyphs          std::unordered_map<std::uint64_t, UploadedGlyph>           [-]  ?
     has   TieredKeys          std::unordered_map<std::string, std::vector<std::string>>  [-]  ?
     has   DefaultEdge         std::uint32_t                                              [-]  ?
     has   RasteriserStanding  bool                                                       [-]  ?
+    by    Source/GlyphDepot.cpp
     note  🔴 The two-level indirection — key to content hash, content hash to uploaded texture — is what lets two
     note  ⚠️ Every declaration rasterises and uploads. `14` §6 forbids that during recording, so a tier is declared
 
-F GlyphDepot::~GlyphDepot     | GlyphDepot.h | 99      | destructor                         | -  | ?
+F GlyphDepot::~GlyphDepot        | GlyphDepot.h | 99      | destructor                         | -  | ?
 
-F GlyphDepot::Construct       | GlyphDepot.h | 108     | api,nonthrowing                    | 🔴 | Attaches the depot to a device and brings the vector rasteriser up. when the rasteriser declines to start
+F GlyphDepot::Construct          | GlyphDepot.h | 108     | api,nonthrowing                    | 🔴 | Attaches the depot to a device and brings the vector rasteriser up. when the rasteriser declines to start
     in    Arriving  const GlyphAttachment&  [-]  the device handles the uploads use
     out   -         Outcome                 [-]  refuses with CapabilityAbsent when a required handle is absent, and with HostDenied
     post  the depot holds nothing; every tier is declared afterwards
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+61 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
 
-F GlyphDepot::Reclaim         | GlyphDepot.h | 115     | api,nonthrowing                    | 🔴 | Destroys every uploaded glyph and releases the rasteriser. reads after it was freed, and the read succeeds often enough to look like a different defect.
+F GlyphDepot::Reclaim            | GlyphDepot.h | 115     | api,nonthrowing                    | 🔴 | Destroys every uploaded glyph and releases the rasteriser. reads after it was freed, and the read succeeds often enough to look like a different defect.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+74 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
     note  The device is waited idle first: a texture identity a recording still references is one the vendor
 
-F GlyphDepot::Declare         | GlyphDepot.h | 126     | api,nonthrowing                    | 🔴 | Declares one whole tier, rasterising and uploading what is not already held. and with ExtentExhausted when an upload could not be claimed to compare a tier's declaration list against what resolves, one key at a time.
+F GlyphDepot::Declare            | GlyphDepot.h | 126     | api,nonthrowing                    | 🔴 | Declares one whole tier, rasterising and uploading what is not already held. and with ExtentExhausted when an upload could not be claimed to compare a tier's declaration list against what resolves, one key at a time.
     in    Declaring  const GlyphTier&  [-]  the tier, its declarations read here and never retained
     out   -          Outcome           [-]  refuses with ContentUnsupported naming the first key whose source would not rasterise,
     post  every key that delivered resolves; a refused tier leaves the keys before the refusal standing
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 The refusal names **which** key failed. A bare refusal over a partly-filled depot sends the reader
 
-F GlyphDepot::Release         | GlyphDepot.h | 134     | api,nonthrowing                    | 🚩 | Releases one tier's claim on its glyphs, tearing down those no other tier still names.
+F GlyphDepot::Release            | GlyphDepot.h | 134     | api,nonthrowing                    | 🚩 | Releases one tier's claim on its glyphs, tearing down those no other tier still names.
     in    Releasing  const GlyphTier&  [-]  the tier as it was declared
     out   -          Outcome           [-]  refuses with IdentityStale when the tier was never declared
     post  a glyph another standing tier shares is untouched
-    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+13 more)
 
-F GlyphDepot::Resolve         | GlyphDepot.h | 142     | api,nonthrowing                    | 🚩 | Resolves one key to its handle.
+F GlyphDepot::Resolve            | GlyphDepot.h | 142     | api,nonthrowing                    | 🚩 | Resolves one key to its handle.
     in    GlyphKey  const std::string&  [-]  the key a tier declared
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that key
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  What a row calls each time it presents. Never uploads and never mutates the depot.
 
-F GlyphDepot::GlyphHeld       | GlyphDepot.h | 147     | api,nonthrowing                    | 🚩 | Whether one key resolves to an uploaded glyph.
+F GlyphDepot::GlyphHeld          | GlyphDepot.h | 147     | api,nonthrowing                    | 🚩 | Whether one key resolves to an uploaded glyph.
     in    GlyphKey  const std::string&  [-]  ?
     out   -         bool                [-]  ?
+    by    Source/GlyphDepot.cpp
 
-F GlyphDepot::DeclaredEdge    | GlyphDepot.h | 152     | api,nonallocating,nonthrowing      | ✔️ | The square edge a declaration that names none rasterises into.
+F GlyphDepot::ResolveTextureSlot | GlyphDepot.h | 161     | api,nonallocating,nonthrowing      | 🚩 | Turns one handle into the integer a recording paints it with. has been torn down since it was issued here would put a vendor spelling in a public header. This is the same seam `InterfaceExchange` keeps with its context slot — the caller hands the integer straight back to the vendor and never reads it. content hash and the handle carries a texture identity. Held counts are in the tens; a lookup keyed the other way would be a second copy of the same association, drifting from the first.
+    in    Presenting  GlyphHandle  [-]  a handle this depot issued
+    out   -           Outcome      [-]  refuses with IdentityStale when the handle is absent, and when the upload it named
+    by    Source/GlyphDepot.cpp
+    note  🔴 `14` §7 again: the returned integer is the vendor's texture identity widened, and naming that type
+    note  ⚠️ The check is a walk of the uploads rather than an index lookup, because the uploads are keyed by
+
+F GlyphDepot::DeclaredEdge       | GlyphDepot.h | 166     | api,nonallocating,nonthrowing      | ✔️ | The square edge a declaration that names none rasterises into.
     out   -  std::uint32_t  [-]  ?
+    by    Source/GlyphDepot.cpp
 
-F GlyphDepot::DeclareEdge     | GlyphDepot.h | 160     | api,nonthrowing                    | ✔️ | Declares the square edge a declaration that names none rasterises into.
+F GlyphDepot::DeclareEdge        | GlyphDepot.h | 174     | api,nonthrowing                    | ✔️ | Declares the square edge a declaration that names none rasterises into.
     in    RasterEdge  std::uint32_t  [px]  the edge; refused at zero and above the depot's ceiling
     out   -           Outcome        [-]   refuses with ContentUnsupported outside the admitted interval
-    by    Api/SeamSpecification.h, Source/ChartPartition.cpp, Source/SeamSpecification.cpp
+    by    Api/SeamSpecification.h, Source/ChartPartition.cpp, Source/GlyphDepot.cpp, Source/SeamSpecification.cpp
     note  Applies to declarations made after it. A glyph already uploaded keeps the edge it was rasterised at.
 
-F GlyphDepot::UploadedCount   | GlyphDepot.h | 167     | api,nonallocating,nonthrowing      | ✔️ | How many distinct textures the depot holds — what dedup is measured against. the two-level indirection exists for.
+F GlyphDepot::UploadedCount      | GlyphDepot.h | 181     | api,nonallocating,nonthrowing      | ✔️ | How many distinct textures the depot holds — what dedup is measured against. the two-level indirection exists for.
     out   -  std::uint32_t  [-]  ?
+    by    Source/GlyphDepot.cpp
     note  🔍 Fewer than the resolvable key count exactly when two tiers share a glyph, which is the arrangement
 
-F GlyphDepot::KeyCount        | GlyphDepot.h | 172     | api,nonallocating,nonthrowing      | ✔️ | How many keys resolve.
+F GlyphDepot::KeyCount           | GlyphDepot.h | 186     | api,nonallocating,nonthrowing      | ✔️ | How many keys resolve.
     out   -  std::uint32_t  [-]  ?
+    by    Source/GlyphDepot.cpp
 
-T GlyphDepot::UploadedGlyph   | GlyphDepot.h | 178-188 | -                                  | -  | One uploaded glyph — the device chain and the vendor descriptor that names it as a texture.
+T GlyphDepot::UploadedGlyph      | GlyphDepot.h | 192-202 | -                                  | -  | One uploaded glyph — the device chain and the vendor descriptor that names it as a texture.
     has   DeviceImage     VkImage          [-]  ?
     has   ImageExtent     VkDeviceMemory   [-]  ?
     has   ColourView      VkImageView      [-]  ?
@@ -132,20 +149,23 @@ T GlyphDepot::UploadedGlyph   | GlyphDepot.h | 178-188 | -                      
     has   TextureSlot     std::uint64_t    [-]  ?
     has   RasterEdge      std::uint32_t    [-]  ?
     has   NamingCount     std::uint32_t    [-]  ?
+    by    Source/GlyphDepot.cpp
     note  Several keys may name one of these, so it counts the keys that do and is torn down at zero.
 
-F GlyphDepot::ContentHash     | GlyphDepot.h | 190     | -                                  | -  | ?
+F GlyphDepot::ContentHash        | GlyphDepot.h | 204     | -                                  | -  | ?
     in    VectorSource  const char*    [-]  ?
     in    SourceExtent  std::uint32_t  [-]  ?
     in    RasterEdge    std::uint32_t  [-]  ?
     out   -             std::uint64_t  [-]  ?
+    by    Source/GlyphDepot.cpp
 
-F GlyphDepot::Upload          | GlyphDepot.h | 193     | -                                  | -  | ?
+F GlyphDepot::Upload             | GlyphDepot.h | 207     | -                                  | -  | ?
     in    Declaring   const GlyphDeclaration&  [-]  ?
     in    RasterEdge  std::uint32_t            [-]  ?
     out   -           Outcome<std::uint64_t>   [-]  ?
+    by    Source/GlyphDepot.cpp
 
-F GlyphDepot::Withdraw        | GlyphDepot.h | 195     | -                                  | -  | ?
+F GlyphDepot::Withdraw           | GlyphDepot.h | 209     | -                                  | -  | ?
     in    ContentIdentity  std::uint64_t  [-]  ?
     out   -                void           [-]  ?
-    by    Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+14 more)
+    by    Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)

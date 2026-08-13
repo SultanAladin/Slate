@@ -80,7 +80,7 @@ F ProjectIncidence                        | IlluminantPopulation.h | 100     | a
 F SLATE_DECLARES_PRECISION                | IlluminantPopulation.h | 101     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE POPULATION
@@ -99,23 +99,23 @@ F IlluminantPopulation::Declare           | IlluminantPopulation.h | 127     | a
     in    Subject    OccupantIdentity                [-]  ?
     in    Declaring  const IlluminantSpecification&  [-]  ?
     out   -          Outcome                         [-]  refuses with IdentityStale for an undeclared identity, with ContentUnsupported for a
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F IlluminantPopulation::Amend             | IlluminantPopulation.h | 133     | api,nonthrowing               | 🚩 | Amends one declared illuminant, validated exactly as a declaration is.
     in    Subject   OccupantIdentity                [-]  ?
     in    Amending  const IlluminantSpecification&  [-]  ?
     out   -         Outcome                         [-]  refuses with IdentityStale when the occupant declares no illuminant
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+25 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
 
 F IlluminantPopulation::Withdraw          | IlluminantPopulation.h | 139     | api,nonthrowing               | 🚩 | Withdraws one illuminant.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant declares no illuminant
-    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+14 more)
+    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)
 
 F IlluminantPopulation::Resolve           | IlluminantPopulation.h | 145     | api,nonthrowing               | 🚩 | One declared illuminant.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant declares no illuminant
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F IlluminantPopulation::ResolveColour     | IlluminantPopulation.h | 155     | api,nonthrowing               | 🚩 | One illuminant's colour, projected into a declared space. declared temperature lies outside the locus interval authored temperature is what the artist edits; the coordinate is what `18` integrates.
     in    Subject  OccupantIdentity                 [-]  ?
@@ -143,7 +143,7 @@ F IlluminantPopulation::Revision          | IlluminantPopulation.h | 176     | a
 F IlluminantPopulation::Located           | IlluminantPopulation.h | 180     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::size_t       [-]  ?
-    by    Api/DocumentSession.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+24 more)
+    by    Api/DocumentSession.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+26 more)
 
 F IlluminantPopulation::Validate          | IlluminantPopulation.h | 181     | -                             | -  | ?
     in    Declaring  const IlluminantSpecification&  [-]  ?
@@ -216,4 +216,4 @@ F SLATE_DECLARES_PRECISION                | IlluminantPopulation.h | 273     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

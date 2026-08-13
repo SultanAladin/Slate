@@ -1,0 +1,90 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The transaction sequence made visible and scrubbable — every row read from `RevisionSequence`, nothing held here.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/RevisionPanel/Api
+%layer      SlateUI
+%sources    1
+%symbols    7
+%annotated  5/7
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S RevisionPanel.h | 116 lines | 6463b40a | 7 sym | The transaction sequence made visible and scrubbable — every row read from `RevisionSequence`, nothing held here.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 WHAT THE PANEL CARRIES
+//------------------------------------------------------------------------------------------------------------------------
+
+V RevisionFoldCapacity     | RevisionPanel.h | 25    | -                             | -  | ?
+    by    Source/RevisionPanel.cpp
+
+T RevisionPanelCarry       | RevisionPanel.h | 35-46 | owning                        | -  | What the panel carries between ticks — presentation only, and the caller owns all of it. the visible offset and the drag are layout, and layout inside the document would make opening a fold an undoable edit. The carry sits beside the sequence and never inside it. `RevisionSequence` does not carry it, so a caller that never declares it presents every row as unsaved, which is the safe direction: an artist told their work is unsaved loses nothing by saving twice.
+    has   VisibleOffset          float                       [-]  ?
+    has   SavedPosition          std::uint64_t               [-]  ?
+    has   SavedPositionDeclared  bool                        [-]  ?
+    has   FoldOpen               bool[RevisionFoldCapacity]  [-]  ?
+    has   ScrubDragOpen          bool                        [-]  ?
+    has   ScrubDragOrigin        std::uint64_t               [-]  ?
+    has   DiscardPromptOpen      bool                        [-]  ?
+    has   DiscardPromptCount     std::uint64_t               [-]  ?
+    has   DiscardConfirmed       bool                        [-]  ?
+    by    Source/RevisionPanel.cpp
+    note  🔴 `84` §1 and `14` §4.1: nothing here is a transaction and nothing here is scrubbed. The fold states,
+    note  ⚠️ `SavedPosition` arrives from `48` and is the one presented fact that is not a transaction — `84` §5.
+
+T RevisionPanelContext     | RevisionPanel.h | 52-56 | nonallocating,nonthrowing     | -  | What the panel presents against — the sequence it reads and the carry it writes. sequence holding its own row list drifts from the sequence the moment a transaction merges.
+    has   Sequence  RevisionSequence*    [-]  ?
+    has   Carry     RevisionPanelCarry*  [-]  ?
+    by    Source/RevisionPanel.cpp
+    note  🔴 Both are pointers the workspace owns. The panel stores neither, which is `84` §1's gate: a presented
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE DESTRUCTIVE FACT
+//------------------------------------------------------------------------------------------------------------------------
+
+F DiscardCountStanding     | RevisionPanel.h | 73    | api,nonallocating,nonthrowing | ✔️ | How many transactions an edit made at the current position would discard. is the most destructive thing this panel can do, and the tempting implementation discards first and prints a count second — by which time the artist's only remaining choice is to accept it. enforce that, because the edit does not arrive through the panel; the gate is the caller's and this call is what makes it cheap to hold.
+    in    Sequence  const RevisionSequence&  [-]  read and never amended
+    out   -         Count                    [-]  zero when the position is at the end of the sequence
+    by    Source/RevisionPanel.cpp
+    note  🔴 `84` §3.1: this is presented **before** the discard, never reported after. Losing thirty transactions
+    note  ⚠️ A caller admits an edit while this is non-zero only after `DiscardConfirmed` stood. The panel cannot
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE SCRUBBING
+//------------------------------------------------------------------------------------------------------------------------
+
+F ScrubToPosition          | RevisionPanel.h | 90    | api,nonthrowing               | 🚩 | Moves the scrub position to one place in the sequence, replaying every intervening transaction in order. snapshot would arrive at a state the sequence cannot be scrubbed back out of, because the inverses between here and there were never run.
+    in    Sequence  RevisionSequence&  [-]  scrubbed through `Retreat` and `Advance` alone
+    in    Arriving  std::uint64_t      [-]  the position sought; bounded to the committed count
+    out   -         Outcome            [-]  refuses with ContentUnsupported when a replay along the way refused, naming where
+    post  the position is the sought one, or the furthest one every replay along the way delivered
+    by    Source/RevisionPanel.cpp
+    note  🔴 `84` §3: every intervening transaction is replayed and nothing is skipped. A jump that restored a
+    note  🔴 A scrub is **not itself a transaction** — `84` §3 and `10` §2.4. Nothing here opens one.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PRESENTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentRevisionPanel     | RevisionPanel.h | 108   | api,nonthrowing               | 🚩 | Presents one tick of the revision sequence into the rectangle the desk resolved for it. learns what a revision is. The opaque context is the whole reason one desk serves every workspace. `Committed()` directly satisfies `84` §2's requirement without this component knowing merging exists. `84` §4. This component reads `Committed()` and nothing else, so none of them can appear.
+    in    Theme           const ThemeSpecification&  [-]   read by const reference; no colour or extent is spelled in this component
+    in    Area            const WorkspaceRectangle&  [px]  the interior the panel layer handed it, header band included
+    in    PresentContext  void*                      [-]   a `RevisionPanelContext*`; a null context or a null sequence presents an empty state
+    out   -               void                       [-]   ?
+    by    Source/RevisionPanel.cpp
+    note  🔴 Matches `PanelPresentRoutine` exactly so a workspace declares it into `PanelIndex` and the desk never
+    note  ⚠️ Merged transactions present as one row for free — `RevisionSequence` merges at `Seal`, so presenting
+    note  ⚠️ No row is presented for an open transaction, for selection, for tool state or for panel layout —
+
+F SLATE_DECLARES_PRECISION | RevisionPanel.h | 114   | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

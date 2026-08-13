@@ -7,8 +7,8 @@
 %scope     root
 %path      Engine
 %layers    8
-%folders   200
-%symbols   3556
+%folders   215
+%symbols   4033
 %protocol  root → layer → folder; never open a source file the folder index already answers
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -206,13 +206,28 @@ I Source | SlateMath | Engine/SlateMath/Platform/WindowInterchange/Source/Source
 //                                                        SLATEUI
 //------------------------------------------------------------------------------------------------------------------------
 
-I Api    | SlateUI | Engine/SlateUI/Interface/GlyphDepot/Api/Api.symbolindex               | 1 src | 21 sym | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
-I Api    | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Api/Api.symbolindex        | 1 src | 10 sym | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
-I Source | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Source/Source.symbolindex  | 1 src | 9 sym  | The only translation unit in the engine that includes ImGui.
-I Api    | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Api/Api.symbolindex            | 1 src | 10 sym | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
-I Source | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Source/Source.symbolindex      | 1 src | 15 sym | The counted span presented, and every gesture over it turned into a declared intent.
-I Api    | SlateUI | Engine/SlateUI/Interface/ThemeSpecification/Api/Api.symbolindex       | 1 src | 10 sym | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
-I Source | SlateUI | Engine/SlateUI/Interface/ThemeSpecification/Source/Source.symbolindex | 1 src | 10 sym | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
+I Api    | SlateUI | Engine/SlateUI/Interface/ChannelPanel/Api/Api.symbolindex             | 1 src | 10 sym  | One material's twenty channels made visible — every row read from `MaterialIndex`, nothing held here.
+I Source | SlateUI | Engine/SlateUI/Interface/ChannelPanel/Source/Source.symbolindex       | 1 src | 25 sym  | The twenty channels as three sections — consumed, retained and undeclared — over an API that already exists.
+I Api    | SlateUI | Engine/SlateUI/Interface/ControlPanel/Api/Api.symbolindex             | 1 src | 37 sym  | Every primitive control as one immediate-mode free function over a rectangle — no widget owns anything, and the theme arrives by reference.
+I Source | SlateUI | Engine/SlateUI/Interface/ControlPanel/Source/Source.symbolindex       | 6 src | 94 sym  | The four choosing controls — a crossing nub, a run of exclusive pills, a dropped list, and a row of independent switches.
+I Api    | SlateUI | Engine/SlateUI/Interface/DiagnosticPanel/Api/Api.symbolindex          | 1 src | 8 sym   | The register made visible — reports grouped by their declared class, measures presented at their producer's tier.
+I Source | SlateUI | Engine/SlateUI/Interface/DiagnosticPanel/Source/Source.symbolindex    | 1 src | 10 sym  | Seven declared classes presented at three weights, and the measures beneath them — nothing inferred, nothing held.
+I Api    | SlateUI | Engine/SlateUI/Interface/GlyphDepot/Api/Api.symbolindex               | 1 src | 22 sym  | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
+I Source | SlateUI | Engine/SlateUI/Interface/GlyphDepot/Source/Source.symbolindex         | 1 src | 24 sym  | Drives the vector rasteriser and the staging transfer — the one file in which a glyph becomes a vendor texture identity.
+I Api    | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Api/Api.symbolindex        | 1 src | 10 sym  | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
+I Source | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Source/Source.symbolindex  | 1 src | 9 sym   | The only translation unit in the engine that includes ImGui.
+I Api    | SlateUI | Engine/SlateUI/Interface/LayerPanel/Api/Api.symbolindex               | 1 src | 6 sym   | The ordered content of one surface made visible — every row read from `SurfaceLayerSequence`, nothing held here.
+I Source | SlateUI | Engine/SlateUI/Interface/LayerPanel/Source/Source.symbolindex         | 1 src | 28 sym  | `TexturePaint.tsx`'s layer stack, band for band — the 46 px header, the spine, the 50/50 split row and the 26 px footer.
+I Api    | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Api/Api.symbolindex            | 1 src | 10 sym  | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
+I Source | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Source/Source.symbolindex      | 1 src | 15 sym  | The counted span presented, and every gesture over it turned into a declared intent.
+I Api    | SlateUI | Engine/SlateUI/Interface/PropertyPanel/Api/Api.symbolindex            | 1 src | 8 sym   | Any declared property presented without the panel knowing which — one row per declaration, read from `PropertyIndex`.
+I Source | SlateUI | Engine/SlateUI/Interface/PropertyPanel/Source/Source.symbolindex      | 1 src | 16 sym  | One row per declaration, dispatched on the declared measure — the panel names no property and never will.
+I Api    | SlateUI | Engine/SlateUI/Interface/RevisionPanel/Api/Api.symbolindex            | 1 src | 7 sym   | The transaction sequence made visible and scrubbable — every row read from `RevisionSequence`, nothing held here.
+I Source | SlateUI | Engine/SlateUI/Interface/RevisionPanel/Source/Source.symbolindex      | 1 src | 19 sym  | `Inspector.tsx`'s revision timeline over the real sequence — bubble column, spine, card, fold.
+I Api    | SlateUI | Engine/SlateUI/Interface/ThemeSpecification/Api/Api.symbolindex       | 1 src | 10 sym  | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
+I Source | SlateUI | Engine/SlateUI/Interface/ThemeSpecification/Source/Source.symbolindex | 1 src | 10 sym  | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
+I Api    | SlateUI | Engine/SlateUI/Interface/WorkspaceSpace/Api/Api.symbolindex           | 2 src | 75 sym  | The slot ledger a workspace fills at activation and the desk walks each tick — the host names no concrete panel.
+I Source | SlateUI | Engine/SlateUI/Interface/WorkspaceSpace/Source/Source.symbolindex     | 6 src | 109 sym | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SLATEVULKAN

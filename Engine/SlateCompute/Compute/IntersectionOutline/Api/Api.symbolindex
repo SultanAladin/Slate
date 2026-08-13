@@ -49,7 +49,7 @@ F IntersectionOutline::Declare           | IntersectionOutline.h | 81     | api,
     in    Outlining_  const OutlineSpecification&  [-]  the display-pixel width, the dash extent, and the two display-space colours
     out   -           Outcome                      [-]  refuses with ContentUnsupported for a width of nothing, a negative dash extent, an
     post  the specification stands and every consumer below reads it
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 Two renderings that coincide are refused rather than admitted. `26` §2 requires the occluded
     note  🔴 Refused in full and never in part. A half-admitted specification outlines what stands in front in
 
@@ -107,11 +107,11 @@ F IntersectionOutline::Report            | IntersectionOutline.h | 166    | api,
 
 F IntersectionOutline::Outline           | IntersectionOutline.h | 168    | -                             | -  | ?
     out   -  const OutlineSpecification&  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/IntersectionOutline.cpp
+    by    Source/ConsoleHost.cpp, Source/IntersectionOutline.cpp, Source/WorkspaceStrip.cpp
 
 F SLATE_DECLARES_PRECISION               | IntersectionOutline.h | 179    | -                             | -  | ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

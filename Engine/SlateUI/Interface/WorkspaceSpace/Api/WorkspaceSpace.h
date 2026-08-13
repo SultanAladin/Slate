@@ -1025,6 +1025,78 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme,
                            WorkspaceRectangle        DeskArea,
                            const PanelIndex*         Panels);
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE WORKSPACE STRIP
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 No entry was chosen this tick. Distinct from ordinal zero, which is the first registered workspace.
+inline constexpr std::uint32_t AbsentWorkspaceChoice = 0xFFFFFFFFu;   // [-] - the artist chose nothing
+
+/// 🧩 Presents one trapezoid per registered workspace and reports which of them the artist chose.
+/// in    StripArea       [px]  the band between the top viewport band and the desk
+/// in    Captions        [-]   one static caption per registered workspace; static storage, never copied
+/// in    Count           [-]   how many
+/// in    ActiveOrdinal   [-]   which one is standing; outside the count leaves every trapezoid inactive
+/// in    PointerConsumed [-]   raised where the pointer covers the strip, so the desk beneath resolves nothing
+/// out   Choice          [-]   the chosen ordinal, or AbsentWorkspaceChoice where nothing was chosen
+/// note  🔴 `32` §5: this iterates what the application registered and names no concrete workspace. A strip that
+///        spelled one would be the component that makes a standalone host and the editor two different trees.
+/// note  ⚠️ Recorded on the foreground list beside every other trapezoid. A strip painted into a vendor window
+///        would sit beneath the desk's own strips, and the two rows of tabs would occlude each other.
+/// cost  🚩
+/// tag   api, nonthrowing
+std::uint32_t ConstructWorkspaceTabStrip(const ThemeSpecification&  Theme,
+                                         WorkspaceRectangle         StripArea,
+                                         const char* const*         Captions,
+                                         std::uint32_t              Count,
+                                         std::uint32_t              ActiveOrdinal,
+                                         bool&                      PointerConsumed);
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE DEPLOYMENT BRACKET
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 What one bracket tick resolved — the workspace the artist chose, and whether the pointer was taken.
+/// tag   contract, nonallocating, nonthrowing
+struct DeploymentReport
+{
+    std::uint32_t       WorkspaceChoice = AbsentWorkspaceChoice;   // [-]  - the chosen registered workspace
+    bool                PointerConsumed = false;                   // [-]  - the interface took the pointer this tick
+    WorkspaceRectangle  DeskArea        = {};                      // [px] - what the desk was given, for the caller
+};
+
+/// 🧩 The one presentation call an application makes per tick — top band, workspace strip, desk, bottom band.
+/// in    Theme              [-]   the resolved theme; `Enforce` is applied once here and never per panel
+/// in    Space              [-]   the desk, amended in place
+/// in    Panels             [-]   the active workspace's ledger, or null where none is declared
+/// in    Captions           [-]   one caption per registered workspace, for the strip
+/// in    Count              [-]   how many
+/// in    ActiveOrdinal      [-]   which workspace is standing
+/// in    TopBandCaption     [-]   printed at the leading edge of the top band; may be empty
+/// in    BottomBandCaption  [-]   printed at the leading edge of the bottom band; may be empty
+/// in    DisplayWidth       [px]  the whole drawable extent, in interface pixels
+/// in    DisplayHeight      [px]
+/// out   Report             [-]   the choice and the pointer's disposition
+/// pre   an interface tick is open — `InterfaceExchange::Advance` delivered and `Seal` has not
+/// note  🔴 Nothing here opens a vendor window and the desk is **not** wrapped in one. Every quad is recorded on
+///        the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would
+///        clip the trapezoids that overhang their own strip.
+/// note  ⚠️ A display extent that cannot carry both bands and a strip leaves the desk zero height rather than a
+///        negative one. A negative extent inverts every coverage test, and a minimised window would then resolve
+///        the pointer against rectangles the artist cannot see.
+/// cost  🔴
+/// tag   api, nonthrowing
+DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
+                                          WorkspaceSpace&            Space,
+                                          const PanelIndex*          Panels,
+                                          const char* const*         Captions,
+                                          std::uint32_t              Count,
+                                          std::uint32_t              ActiveOrdinal,
+                                          const char*                TopBandCaption,
+                                          const char*                BottomBandCaption,
+                                          float                      DisplayWidth,
+                                          float                      DisplayHeight);
+
 // 📐 Identities, occupant counts and pool indices are Exact. Rectangles, ratios and band fractions are Bounded.
 //    The component claims Bounded, per `00` §3's transitivity rule.
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded, PrecisionGuarantee::Exact);

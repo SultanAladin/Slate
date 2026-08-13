@@ -172,17 +172,17 @@ T TilingIndex                              | TilingSpecification.h | 221-260 | o
 
 F TilingIndex::Declare                     | TilingSpecification.h | 229     | api,nonthrowing               | 🚩 | Declares one tiling and issues its ordinal.
     out   -  Outcome  [-]  refuses with ExtentExhausted at the declared ceiling
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F TilingIndex::Resolve                     | TilingSpecification.h | 235     | api,nonthrowing               | ✔️ | One declared tiling, for reading.
     in    TilingOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+85 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F TilingIndex::Amend                       | TilingSpecification.h | 241     | api,nonthrowing               | ✔️ | One declared tiling, for amending.
     in    TilingOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+25 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
 
 F TilingIndex::Nest                        | TilingSpecification.h | 251     | api,nonthrowing               | 🚩 | Nests one tiling inside a cell of another, at the declared bound. inside itself, and for a nesting that would exceed `TilingNestingCeiling`
     in    EnclosingOrdinal  std::uint32_t  [-]  the tiling whose cell carries it
@@ -193,10 +193,10 @@ F TilingIndex::Nest                        | TilingSpecification.h | 251     | a
 
 F TilingIndex::DeclaredCount               | TilingSpecification.h | 253     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+30 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+36 more)
 
 F SLATE_DECLARES_PRECISION                 | TilingSpecification.h | 264     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

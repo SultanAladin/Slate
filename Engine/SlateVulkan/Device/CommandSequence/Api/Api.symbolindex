@@ -51,7 +51,7 @@ F CommandSequence::Construct          | CommandSequence.h | 71      | api,nonthr
     in    Naming    const DiagnosticExtension&  [-]  names every extent and every recording; borrowed and outlives this component
     out   -         Outcome                     [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     post  `RecordingRotationDepth` recordings stand, none of them open
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CycleScheduler.h, (+61 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CycleScheduler.h, (+62 more)
     note  🔴 `06` §7's diagnostic-name gate. Each recording is named by its rotation slot, which is what the
 
 F CommandSequence::Open               | CommandSequence.h | 81      | api,nonthrowing               | 🚩 | Resets one rotation slot's recording extent and opens its recording for writing. and HostDenied when the device declines the reset or the open
@@ -64,7 +64,7 @@ F CommandSequence::Open               | CommandSequence.h | 81      | api,nonthr
 F CommandSequence::Recording          | CommandSequence.h | 87      | api,nonallocating,nonthrowing | ✔️ | The recording one rotation slot holds, for a document contributing commands to an open slot.
     in    RotationSlot  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an excessive slot or a slot that is not open
-    by    Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/DomainSpace.cpp, Source/OcclusionScheduler.cpp, Source/VectorCodec.cpp, (+1 more)
+    by    Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, (+9 more)
 
 F CommandSequence::Surrender          | CommandSequence.h | 101     | api,nonthrowing               | 🚩 | Closes one rotation slot's recording and surrenders it to the one graphics queue. the device declines the close or the surrender, and DeviceLost when the device was lost; the slot is closed and nothing is destroyed either way — a component clearing an ordering point it does not own is one that clears it at the wrong moment for every other reader of it.
     in    RotationSlot  std::uint32_t             [-]  below `RecordingRotationDepth`
@@ -87,7 +87,7 @@ F CommandSequence::SurrenderImmediate | CommandSequence.h | 117     | api,nonthr
 F CommandSequence::Reclaim            | CommandSequence.h | 123     | api,nonthrowing               | 🚩 | Destroys every recording and every extent.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+74 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+75 more)
 
 T CommandSequence::RecordingSlot      | CommandSequence.h | 127-132 | -                             | -  | ?
     has   RecordingExtent  VkCommandPool    [-]  ?

@@ -40,7 +40,7 @@ T CommittedTransaction              | RevisionSequence.h | 41-50  | owning      
     has   InverseOrdinal  std::uint64_t  [-]  ?
     has   SealedAt        std::uint64_t  [-]  ?
     has   MergeDeclared   bool           [-]  ?
-    by    Api/RecoverySequence.h, Source/RecoverySequence.cpp, Source/RevisionSequence.cpp
+    by    Api/RecoverySequence.h, Source/RecoverySequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp
     note  Scrubbing backwards replays inverses rather than restoring snapshots, which is what lets a paint
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ T RevisionSequence                  | RevisionSequence.h | 60-121 | owning      
     has   OpenTransaction  CommittedTransaction               [-]  ?
     has   ScrubOrdinal     std::uint64_t                      [-]  ?
     has   OpenDeclared     bool                               [-]  ?
-    by    Api/ImpressionSequence.h, Api/OutlinerSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp
+    by    Api/ImpressionSequence.h, Api/OutlinerSequence.h, Api/RevisionPanel.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, (+2 more)
     note  ⚠️ `HistoryStack` is the retired spelling: the sequence is scrubbed in both directions rather
 
 F RevisionSequence::Open            | RevisionSequence.h | 72     | api,nonthrowing               | ✔️ | Opens a transaction. Nothing enters the sequence until it is sealed.
@@ -75,20 +75,20 @@ F RevisionSequence::Seal            | RevisionSequence.h | 86     | api,nonthrow
 
 F RevisionSequence::Retreat         | RevisionSequence.h | 92     | api,nonallocating,nonthrowing | ✔️ | Scrubs one transaction backwards, replaying its inverse.
     out   -  Outcome  [-]  refuses when the scrub position is already at the beginning
-    by    Api/OutlinerSequence.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp, Source/SelectionSequence.cpp
+    by    Api/OutlinerSequence.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp, (+1 more)
 
 F RevisionSequence::Advance         | RevisionSequence.h | 98     | api,nonallocating,nonthrowing | ✔️ | Scrubs one transaction forwards, replaying its forward operation.
     out   -  Outcome  [-]  refuses when the scrub position is already at the end
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+17 more)
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+18 more)
 
 F RevisionSequence::Committed       | RevisionSequence.h | 103    | api,nonallocating,nonthrowing | ✔️ | The committed transactions, in order, for `84` to present.
     out   -  const std::vector<CommittedTransaction>&  [-]  ?
-    by    Api/ByteSpace.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/ImageSpace.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, (+3 more)
+    by    Api/ByteSpace.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/ImageSpace.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, (+4 more)
 
 F RevisionSequence::ScrubPosition   | RevisionSequence.h | 108    | api,nonallocating,nonthrowing | ✔️ | Where the scrub position sits; equal to the committed count when nothing is undone.
     out   -  std::uint64_t  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/DocumentSession.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp
+    by    Source/ConsoleHost.cpp, Source/DocumentSession.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp
 
 F RevisionSequence::TransactionOpen | RevisionSequence.h | 113    | api,nonallocating,nonthrowing | ✔️ | Whether a transaction is currently open.
     out   -  bool  [-]  ?
-    by    Source/DocumentSession.cpp, Source/RevisionSequence.cpp
+    by    Source/DocumentSession.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp
