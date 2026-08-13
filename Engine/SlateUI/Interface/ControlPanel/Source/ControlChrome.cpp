@@ -377,4 +377,108 @@ Outcome<float> AdvanceContentCarousel(const ThemeSpecification&  Theme,
     return Outcome<float>::Deliver(Direction * (1.0f - Eased));
 }
 
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PAINTING SEAM
+//------------------------------------------------------------------------------------------------------------------------
+
+void PresentSurfaceFill(const WorkspaceRectangle& Area, const ThemeColour& Colour, float Rounding)
+{
+    if (Area.Width <= 0.0f || Area.Height <= 0.0f)
+        return;
+
+    const float Shorter  = Area.Width < Area.Height ? Area.Width : Area.Height;
+    const float Bounded  = Rounding > Shorter * 0.5f ? Shorter * 0.5f : (Rounding < 0.0f ? 0.0f : Rounding);
+
+    ImGui::GetForegroundDrawList()->AddRectFilled(ControlInterior::Corner(Area),
+                                                  ControlInterior::Opposite(Area),
+                                                  ControlInterior::Coded(Colour),
+                                                  Bounded);
+}
+
+void PresentSurfaceOutline(const WorkspaceRectangle& Area,
+                           const ThemeColour&        Colour,
+                           float                     Rounding,
+                           float                     Thickness)
+{
+    if (Area.Width <= 0.0f || Area.Height <= 0.0f)
+        return;
+
+    const float Shorter = Area.Width < Area.Height ? Area.Width : Area.Height;
+    const float Bounded = Rounding > Shorter * 0.5f ? Shorter * 0.5f : (Rounding < 0.0f ? 0.0f : Rounding);
+
+    ImGui::GetForegroundDrawList()->AddRect(ControlInterior::Corner(Area),
+                                            ControlInterior::Opposite(Area),
+                                            ControlInterior::Coded(Colour),
+                                            Bounded, 0, Thickness);
+}
+
+void PresentTextRun(const WorkspaceRectangle& Area,
+                    const char*               Text,
+                    const ThemeColour&        Colour,
+                    TextPlacement             Placement,
+                    float                     FontScale)
+{
+    if (Text == nullptr || Text[0] == '\0' || Area.Width <= 0.0f)
+        return;
+
+    // 📝 The scale is folded into the recorded font size rather than into the theme, because the theme's extents
+    //    are already final pixels — `ResolveActiveTheme` folded the density in once and a second multiply here
+    //    would scale the numeric readout twice on a high-density display.
+    const float Bounded  = FontScale < 0.0625f ? 0.0625f : FontScale;
+    const float Recorded = ImGui::GetFontSize() * Bounded;
+    const ImVec2 Measured = ImGui::GetFont()->CalcTextSizeA(Recorded, FLT_MAX, 0.0f, Text);
+
+    float PlacedX = Area.PositionX;
+
+    if (Placement == TextPlacement::Centred)
+        PlacedX = Area.PositionX + (Area.Width - Measured.x) * 0.5f;
+    else if (Placement == TextPlacement::Trailing)
+        PlacedX = Area.PositionX + Area.Width - Measured.x;
+
+    ImDrawList* Recording = ImGui::GetForegroundDrawList();
+
+    Recording->PushClipRect(ControlInterior::Corner(Area), ControlInterior::Opposite(Area), true);
+
+    Recording->AddText(ImGui::GetFont(), Recorded,
+                       ImVec2(PlacedX, Area.PositionY + (Area.Height - Measured.y) * 0.5f),
+                       ControlInterior::Coded(Colour), Text);
+
+    Recording->PopClipRect();
+}
+
+void DeclareClip(const WorkspaceRectangle& Area)
+{
+    ImGui::GetForegroundDrawList()->PushClipRect(ControlInterior::Corner(Area),
+                                                 ControlInterior::Opposite(Area), true);
+}
+
+void ReclaimClip()
+{
+    ImGui::GetForegroundDrawList()->PopClipRect();
+}
+
+float MeasuredTextExtent(const char* Text, float FontScale)
+{
+    if (Text == nullptr || Text[0] == '\0')
+        return 0.0f;
+
+    const float Bounded = FontScale < 0.0625f ? 0.0625f : FontScale;
+
+    return ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize() * Bounded, FLT_MAX, 0.0f, Text).x;
+}
+
+Outcome<float> AdvanceVisibleOffset(float& Carried, const WorkspaceRectangle& Area, float ContentExtent)
+{
+    if (RectangleCovers(Area, ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y))
+        Carried -= ImGui::GetIO().MouseWheel * ImGui::GetFontSize() * 3.0f;
+
+    const float Overflow = ContentExtent - Area.Height;
+    const float Ceiling  = Overflow > 0.0f ? Overflow : 0.0f;
+
+    Carried = Carried < 0.0f ? 0.0f : (Carried > Ceiling ? Ceiling : Carried);
+
+    return Outcome<float>::Deliver(Carried);
+}
+
 }   // namespace Slate

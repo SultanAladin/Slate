@@ -103,6 +103,79 @@ void PresentControlStroke(const WorkspaceRectangle& Area,
                           float                     Rotation);
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PAINTING SEAM
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 🔴 Every panel fills a rectangle, prints a run of text and clips a list. Spelled once here rather than once
+//    per panel: a panel carrying its own copy is a second place the foreground recording is named, and `14` §7's
+//    seam holds only while exactly one component knows which recording the interface paints on.
+
+/// 🧩 Where a text run sits inside the rectangle it was given.
+/// tag   contract
+enum class TextPlacement : std::uint32_t
+{
+    Leading  = 0u,   // [-] - against the left edge, vertically centred
+    Centred  = 1u,   // [-] - centred both ways
+    Trailing = 2u    // [-] - against the right edge, vertically centred
+};
+
+/// 🧩 Fills one rectangle at the declared corner radius.
+/// note  A radius beyond half the shorter span is fully rounded rather than refused — the reference spells
+///        `999px` for exactly that and refusing it would make every pill site carry its own arithmetic.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void PresentSurfaceFill(const WorkspaceRectangle& Area, const ThemeColour& Colour, float Rounding);
+
+/// 🧩 Outlines one rectangle at the declared corner radius and thickness.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void PresentSurfaceOutline(const WorkspaceRectangle&  Area,
+                           const ThemeColour&         Colour,
+                           float                      Rounding,
+                           float                      Thickness);
+
+/// 🧩 Prints one run of text placed inside a rectangle, clipped to it.
+/// in    FontScale  [-]  one leaves the interface font as it stands; refused values below a sixteenth are bounded
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void PresentTextRun(const WorkspaceRectangle&  Area,
+                    const char*                Text,
+                    const ThemeColour&         Colour,
+                    TextPlacement              Placement,
+                    float                      FontScale);
+
+/// 🧩 Narrows the recording to one rectangle until the matching reclaim.
+/// note  🔴 Every declaration is reclaimed on every path out of the scope that made it. An unmatched declaration
+///        leaves the whole rest of the tick clipped to a panel's interior, and the defect presents as the tab
+///        strip vanishing rather than as anything the panel did.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void DeclareClip(const WorkspaceRectangle& Area);
+
+/// 🧩 Returns the recording to whatever it was clipped to before the matching declaration.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void ReclaimClip();
+
+/// 🧩 The horizontal extent one run of text would occupy at the declared scale.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+float MeasuredTextExtent(const char* Text, float FontScale);
+
+/// 🧩 Advances a hand-rolled list's visible offset by the wheel, bounded to what the content leaves.
+/// in    Carried    [px]  the offset, amended in place; zero is the top of the content
+/// in    Area       [px]  the viewport the list is clipped to
+/// in    ContentExtent [px] the whole content's height
+/// out   Outcome    [px]  the bounded offset, delivered so a caller need not read the carry back
+/// note  ⚠️ Bounded against the content **after** the wheel is applied, so a list that shortens beneath a
+///        scrolled view snaps back to content rather than presenting an empty band under the last row.
+/// cost  ✔️
+/// tag   api, nonthrowing
+Outcome<float> AdvanceVisibleOffset(float&                    Carried,
+                                    const WorkspaceRectangle& Area,
+                                    float                     ContentExtent);
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                     THE NUMERIC ENTRIES
 //------------------------------------------------------------------------------------------------------------------------
 
