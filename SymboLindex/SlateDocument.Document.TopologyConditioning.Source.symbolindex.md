@@ -33,6 +33,7 @@ F Quantise                                   | TopologyConditioning.cpp | 39-47 
     in    Subject  DocumentPosition  [-]  ?
     in    Spacing  double            [-]  ?
     out   -        LatticeCell       [-]  ?
+    by    Source/SpatialManipulator.cpp
 
 F CellOrdinal                                | TopologyConditioning.cpp | 49-58   | - | - | ?
     in    Cell  LatticeCell    [-]  ?

@@ -58,7 +58,7 @@ F PlanarArea      | UnwrapSolver.cpp | 94-100  | - | - | ?
 F Solve           | UnwrapSolver.cpp | 108-311 | - | - | ?
     in    Declaring  const UnwrapSpecification&                              [-]  ?
     out   -          Outcome<ConvergentResult<std::vector<PlanarPosition>>>  [-]  ?
-    by    Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp
+    by    Api/LinearSolver.h, Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/LinearSolver.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE DISTORTION
@@ -69,4 +69,4 @@ F Measure         | UnwrapSolver.cpp | 317-395 | - | - | ?
     in    TriangleCorners  const std::vector<std::uint32_t>&     [-]  ?
     in    Flattened        const std::vector<PlanarPosition>&    [-]  ?
     out   -                DistortionMeasure                     [-]  ?
-    by    Api/UnwrapSolver.h, Source/ChartPartition.cpp
+    by    Api/LinearSolver.h, Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/LinearSolver.cpp

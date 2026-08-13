@@ -1,0 +1,110 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Dense and sparse factorisation — Bounded, and held to refusing a singular system rather than dividing by it.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateMath/Numeric/LinearSolver/Api
+%layer      SlateMath
+%sources    1
+%symbols    10
+%annotated  7/10
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S LinearSolver.h | 150 lines | e226a5b8 | 10 sym | Dense and sparse factorisation — Bounded, and held to refusing a singular system rather than dividing by it.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     WHAT IS SOLVED
+//------------------------------------------------------------------------------------------------------------------------
+
+T DenseSystem              | LinearSolver.h | 29-35 | owning                        | -  | One dense system — a square run of coefficients in row order, and the ordinates it is solved against. row-ordered one solves the transposed system, which is a system that exists and has an answer — so nothing refuses, nothing diverges, and the defect surfaces as a transfer that lands mirrored. against one geometry. The factorisation is the expensive half and is shared across every ordinate run rather than repeated per channel.
+    has   Coefficients  std::vector<double>  [-]  ?
+    has   Ordinates     std::vector<double>  [-]  ?
+    has   Order         std::uint32_t        [-]  ?
+    has   OrdinateRuns  std::uint32_t        [-]  ?
+    by    Source/LinearSolver.cpp
+    note  🔴 Row order, and stated rather than inferred. A factorisation reading a column-ordered supply as a
+    note  📝 Several right-hand sides are carried at once because `24` §2 solves one correspondence per channel
+
+T SparseCoefficient        | LinearSolver.h | 42-47 | nonallocating,nonthrowing     | -  | One coefficient at a stated row and column. Everything absent from the supply is zero. by adding one contribution per observation, and an assembler that had to search for its own earlier entry before adding to it would be quadratic in the observation count.
+    has   Row       std::uint32_t  [-]  ?
+    has   Column    std::uint32_t  [-]  ?
+    has   Supplied  double         [-]  ?
+    by    Source/LinearSolver.cpp
+    note  📝 Duplicates at one position accumulate rather than replace. A least-squares normal system is assembled
+
+T SparseSystem             | LinearSolver.h | 57-63 | owning                        | -  | One sparse system — the coefficients that are not zero, and the ordinates it is solved against. construction and factorises in half the arithmetic and without pivoting; a general system is not, and taking a square root of a negative pivot is where an undeclared asymmetry would first be noticed. symmetric is refused with ContentUnsupported rather than factorised into an answer to a system nobody assembled — which would present as a solve that converged to the wrong surface.
+    has   Coefficients      std::vector<SparseCoefficient>  [-]  ?
+    has   Ordinates         std::vector<double>             [-]  ?
+    has   Order             std::uint32_t                   [-]  ?
+    has   DefiniteSymmetry  bool                            [-]  ?
+    by    Source/LinearSolver.cpp
+    note  🔴 Symmetric and positive-definite is **declared**, not detected. `68` §4's mean-value system is both by
+    note  ⚠️ The declaration is checked before it is relied on. A supply that declares symmetry and is not
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    WHAT IS REPORTED
+//------------------------------------------------------------------------------------------------------------------------
+
+T SolvedSystem             | LinearSolver.h | 77-82 | owning                        | -  | The solution, and what the factorisation observed about the system on the way to it. factorised without refusing may still have been within a decimal place of refusing, and a solution carried out of a nearly singular system is a solution whose error bound is nothing like the Tier B one the caller was promised. `86` reads it; `24` §4 reports it beside its miss count. perfectly conditioned system; the pivot floor is where it is refused.
+    has   Solution       std::vector<double>  [-]  ?
+    has   PivotRatio     double               [-]  ?
+    has   ExchangedRows  std::uint32_t        [-]  ?
+    by    Source/LinearSolver.cpp
+    note  🔴 `PivotRatio` is the whole reason this is a structure and not a bare run of doubles. A system that
+    note  📐 The ratio is the least pivot magnitude over the greatest, both taken after elimination. One is a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE DENSE FORM
+//------------------------------------------------------------------------------------------------------------------------
+
+F Solve                    | LinearSolver.h | 104   | api,nonthrowing               | 🔴 | Factorises a dense square system with partial pivoting and solves every ordinate run against it. the order squared, and with ExtentExhausted when a pivot falls below the declared floor coefficients is bounded by two to the order — and it is claimed only because every consumed operation is itself Bounded. Nothing here claims Exact: elimination is a sequence of roundings. components report a termination cause because their last iterate is still an answer; this is Tier B and has no last iterate — a solution produced by dividing through a numerically absent pivot is arbitrary, and delivering it would hand `24` a correspondence assembled out of the rounding. permuting the unknowns, and every system reaching here is assembled from a geometric neighbourhood where the coefficients are already of one magnitude. The pivot ratio reports when that assumption failed.
+    in    Declaring  const DenseSystem&  [-]  the coefficients in row order, the ordinates, and the order of both
+    out   -          Outcome             [-]  refuses with ContentUnsupported for an order of zero or a supply whose extent is not
+    by    Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
+    note  🔴 Bounded, per `02` §5. The bound is the one partial pivoting carries — growth in the eliminated
+    note  🔴 A pivot below `FactorisationPivotFloor` is **refused** and never divided by. `02` §5's Tier C
+    note  📐 Partial pivoting only. Full pivoting exchanges columns as well and buys a tighter bound at the cost of
+
+F SLATE_DECLARES_PRECISION | LinearSolver.h | 105   | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE SPARSE FORM
+//------------------------------------------------------------------------------------------------------------------------
+
+F Solve                    | LinearSolver.h | 127   | api,nonthrowing               | 🔴 | Factorises a sparse square system and solves its single ordinate run against it. column, an ordinate run that is not the order, or a declared symmetry the supply contradicts; refuses with ExtentExhausted when a pivot falls below the declared floor sparse structure. `68` §4's system is one unknown per interior chart position and the systems reaching `24` are per-neighbourhood, both well inside where the filled form costs less than maintaining the occupancy would. The surface is the sparse one so that the day a system arrives that is not, only what is behind this declaration changes. sparse structure creates coefficients at positions the supply left absent, and a caller that assembled against a dense surface would have to be rewritten to assemble against a sparse one — which is the rewrite this declaration is placed here to avoid.
+    in    Declaring  const SparseSystem&  [-]  the coefficients that are not zero, the ordinates, and whether definite symmetry holds
+    out   -          Outcome              [-]  refuses with ContentUnsupported for an order of zero, a coefficient addressing no row or
+    by    Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
+    note  🔴 The factorisation is performed against a filled square of the declared order rather than against a
+    note  ⚠️ Fill-in is exactly why the surface must be the sparse one now rather than later. An elimination on a
+
+F SLATE_DECLARES_PRECISION | LinearSolver.h | 128   | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE RESIDUAL
+//------------------------------------------------------------------------------------------------------------------------
+
+F Measure                  | LinearSolver.h | 147   | api,nonallocating,nonthrowing | 🚩 | Measures ‖A·x − b‖∞ for a solution against the dense system it was solved from. solution whose extent does not match the system, which no caller can reach taken against the eliminated coefficients measures the back substitution alone and reports near zero for a factorisation that lost the system entirely — it would confirm the arithmetic against itself. satisfied correspondence is a visible artefact at one position and a Euclidean norm averages it away against every row that was satisfied.
+    in    Declaring  const DenseSystem&   [-]  the system as it was supplied
+    in    Solved     const SolvedSystem&  [-]  the solution the factorisation produced
+    out   -          Residual             [-]  the greatest absolute departure across every row and every ordinate run; zero for a
+    by    Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
+    note  🔴 Measured against the **supplied** coefficients rather than against the factorised ones. A residual
+    note  📝 The infinity norm rather than the Euclidean one. The caller wants the worst row, because one badly
+
+F SLATE_DECLARES_PRECISION | LinearSolver.h | 148   | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

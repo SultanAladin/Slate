@@ -1,0 +1,115 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The classification that keeps foliage cheap, the sorted insertion that discards the farthest, and the walk that reads the column backwards.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/TransmissionSequence/Source
+%layer      SlateCompute
+%sources    1
+%symbols    14
+%annotated  0/14
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S TransmissionSequence.cpp | 280 lines | 8dfd356c | 14 sym | The classification that keeps foliage cheap, the sorted insertion that discards the farthest, and the walk that reads the column backwards.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE CLASSIFICATION
+//------------------------------------------------------------------------------------------------------------------------
+
+V CollectionRecordingIdentity                | TransmissionSequence.cpp | 24      | - | - | ?
+
+V ResolutionRecordingIdentity                | TransmissionSequence.cpp | 25      | - | - | ?
+
+F Bounded                                    | TransmissionSequence.cpp | 27-30   | - | - | ?
+    in    Magnitude  double  [-]  ?
+    in    Lower      double  [-]  ?
+    in    Upper      double  [-]  ?
+    out   -          double  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+74 more)
+
+F BehaviourOf                                | TransmissionSequence.cpp | 34-47   | - | - | ?
+    in    Declared  const MaterialSpecification&  [-]  ?
+    out   -         TransmissionBehaviour         [-]  ?
+    by    Api/TransmissionSequence.h, Source/ConsoleHost.cpp
+
+F CoverageResolved                           | TransmissionSequence.cpp | 49-52   | - | - | ?
+    in    Declared  const MaterialSpecification&  [-]  ?
+    in    Coverage  double                        [-]  ?
+    out   -         bool                          [-]  ?
+    by    Api/TransmissionSequence.h, Source/ConsoleHost.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE SPECIFICATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F DeclaredTransmission                       | TransmissionSequence.cpp | 58-76   | - | - | ?
+    in    Resolved  const ResolvedChannelSet&  [-]  ?
+    out   -         TransmissionSpecification  [-]  ?
+    by    Api/TransmissionSequence.h
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE RECORDINGS
+//------------------------------------------------------------------------------------------------------------------------
+
+F TransmissionSequence::ContributeCollection | TransmissionSequence.cpp | 82-102  | - | - | ?
+    in    Schedule  RenderSchedule&  [-]  ?
+    out   -         Outcome<bool>    [-]  ?
+
+F TransmissionSequence::ContributeResolution | TransmissionSequence.cpp | 104-124 | - | - | ?
+    in    Schedule  RenderSchedule&  [-]  ?
+    out   -         Outcome<bool>    [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE INSERTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F TransmissionSequence::Insert               | TransmissionSequence.cpp | 130-180 | - | - | ?
+    in    Column       TransmissionColumn&          [-]  ?
+    in    Arriving     const TransmissionFragment&  [-]  ?
+    in    OpaqueDepth  double                       [-]  ?
+    out   -            bool                         [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE AMENDMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F TransmissionSequence::AmendRadiance        | TransmissionSequence.cpp | 186-213 | - | - | ?
+    in    Behind      const double                      [-]  ?
+    in    Declared    const TransmissionSpecification&  [-]  ?
+    in    Shaded      const double                      [-]  ?
+    in    ViewCosine  double                            [-]  ?
+    in    Amended     double                            [-]  ?
+    out   -           void                              [-]  ?
+
+F TransmissionSequence::Resolve              | TransmissionSequence.cpp | 215-239 | - | - | ?
+    in    Column      const TransmissionColumn&                      [-]  ?
+    in    Declared    const std::vector<TransmissionSpecification>&  [-]  ?
+    in    Shaded      const std::vector<std::array<double, 3>>&      [-]  ?
+    in    ViewCosine  const std::vector<double>&                     [-]  ?
+    in    Standing    double                                         [-]  ?
+    out   -           void                                           [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE REPORTING
+//------------------------------------------------------------------------------------------------------------------------
+
+F TransmissionSequence::DeclareRotation      | TransmissionSequence.cpp | 245-253 | - | - | ?
+    in    OccupantCount          std::uint32_t  [-]  ?
+    in    GreatestColumnDepth    std::uint32_t  [-]  ?
+    in    TruncatedThisRotation  std::uint32_t  [-]  ?
+    out   -                      void           [-]  ?
+
+F TransmissionSequence::Report               | TransmissionSequence.cpp | 255-276 | - | - | ?
+    in    Reporting  ReportSequence&  [-]  ?
+    in    Measured   MeasureIndex&    [-]  ?
+    in    Sampled    TickPoint        [-]  ?
+    out   -          void             [-]  ?
+
+F TransmissionSequence::Metrics              | TransmissionSequence.cpp | 278     | - | - | ?
+    out   -  const TransmissionMetrics&  [-]  ?

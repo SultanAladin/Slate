@@ -1,28 +1,34 @@
 //============================================================================================================================================
 //                                                            SLATEUI.SYMBOLINDEX
 //============================================================================================================================================
-// 🧩 Symbol roll for SlateUI — Every primitive control as one immediate-mode free function over a rectangle — no widget owns anything, and the theme arrives by reference.
+// 🧩 Symbol roll for SlateUI — One material's twenty channels made visible — every row read from `MaterialIndex`, nothing held here.
 
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateUI
-%folders  16
-%symbols  463
+%folders  22
+%symbols  562
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Api    | Api/Api.symbolindex       | 34 sym  | Every primitive control as one immediate-mode free function over a rectangle — no widget owns anything, and the theme arrives by reference.
-I Source | Source/Source.symbolindex | 91 sym  | The four choosing controls — a crossing nub, a run of exclusive pills, a dropped list, and a row of independent switches.
+I Api    | Api/Api.symbolindex       | 10 sym  | One material's twenty channels made visible — every row read from `MaterialIndex`, nothing held here.
+I Source | Source/Source.symbolindex | 25 sym  | The twenty channels as three sections — consumed, retained and undeclared — over an API that already exists.
+I Api    | Api/Api.symbolindex       | 37 sym  | Every primitive control as one immediate-mode free function over a rectangle — no widget owns anything, and the theme arrives by reference.
+I Source | Source/Source.symbolindex | 94 sym  | The four choosing controls — a crossing nub, a run of exclusive pills, a dropped list, and a row of independent switches.
 I Api    | Api/Api.symbolindex       | 8 sym   | The register made visible — reports grouped by their declared class, measures presented at their producer's tier.
 I Source | Source/Source.symbolindex | 10 sym  | Seven declared classes presented at three weights, and the measures beneath them — nothing inferred, nothing held.
 I Api    | Api/Api.symbolindex       | 22 sym  | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
 I Source | Source/Source.symbolindex | 24 sym  | Drives the vector rasteriser and the staging transfer — the one file in which a glyph becomes a vendor texture identity.
 I Api    | Api/Api.symbolindex       | 10 sym  | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
 I Source | Source/Source.symbolindex | 9 sym   | The only translation unit in the engine that includes ImGui.
+I Api    | Api/Api.symbolindex       | 6 sym   | The ordered content of one surface made visible — every row read from `SurfaceLayerSequence`, nothing held here.
+I Source | Source/Source.symbolindex | 28 sym  | `TexturePaint.tsx`'s layer stack, band for band — the 46 px header, the spine, the 50/50 split row and the 26 px footer.
 I Api    | Api/Api.symbolindex       | 10 sym  | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
 I Source | Source/Source.symbolindex | 15 sym  | The counted span presented, and every gesture over it turned into a declared intent.
+I Api    | Api/Api.symbolindex       | 8 sym   | Any declared property presented without the panel knowing which — one row per declaration, read from `PropertyIndex`.
+I Source | Source/Source.symbolindex | 16 sym  | One row per declaration, dispatched on the declared measure — the panel names no property and never will.
 I Api    | Api/Api.symbolindex       | 7 sym   | The transaction sequence made visible and scrubbable — every row read from `RevisionSequence`, nothing held here.
 I Source | Source/Source.symbolindex | 19 sym  | `Inspector.tsx`'s revision timeline over the real sequence — bubble column, spine, card, fold.
 I Api    | Api/Api.symbolindex       | 10 sym  | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
@@ -34,6 +40,41 @@ I Source | Source/Source.symbolindex | 109 sym | Declaration, release and resolu
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
+V ChannelNoticeExtent                   | Api/ChannelPanel.h              | 25        | ?
+V ChannelSectionCount                   | Api/ChannelPanel.h              | 28        | ?
+T ChannelPanelCarry                     | Api/ChannelPanel.h              | 38-49     | What the panel carries between ticks — presentation only, and the caller owns all of it. the open picker and the notice are layout, and layout inside the document would make opening a section an undoable edit. It is not a copy of anything the material holds — a refused write leaves the material exactly as it was, so there is nothing here that the document could drift from.
+T ChannelPanelContext                   | Api/ChannelPanel.h              | 59-64     | What the panel presents against — the ledger it reads and the carry it writes. ordinal against the ledger every tick, so a material withdrawn beneath it presents as absent rather than as a stale copy of channels that no longer exist. amended through a call the ledger offers, the row presents the reading and refuses the edit — it does not hold a local value and write it back later.
+F CaptionOfChannel                      | Api/ChannelPanel.h              | 76        | The caption one channel is presented under. a report class. `18` §2's order is the presented order, so the artist reads the channels in the order the document declares them.
+F CaptionOfReflectance                  | Api/ChannelPanel.h              | 81        | The caption one reflectance selection is presented under.
+F CaptionOfChannelSource                | Api/ChannelPanel.h              | 89        | The caption one channel source is presented under. one is where a channel's value comes from and the other is what a layer's content is — and one name over both would read as a shared vocabulary they do not have.
+F CaptionOfChannelMeasure               | Api/ChannelPanel.h              | 94        | The caption one channel measure is presented under.
+F PresentChannelPanel                   | Api/ChannelPanel.h              | 114       | Presents one tick of one material's channels into the rectangle the desk resolved for it. learns what a channel is. is presented in its own section rather than hidden. Hiding it is what makes an artist believe that switching a selection destroyed their work, and they then avoid switching at all. `ChannelConverted`. Neither is re-derived here — `18` §9's inventory and `36` §4's declaration are the material's answers, and a panel that recomputed them could disagree with the dispatch that reads them.
+F SLATE_DECLARES_PRECISION              | Api/ChannelPanel.h              | 121       | ?
+V ChannelRowHeight                      | Source/ChannelPanel.cpp         | 25        | ?
+V NoticeBandHeight                      | Source/ChannelPanel.cpp         | 26        | ?
+V BadgeInset                            | Source/ChannelPanel.cpp         | 27        | ?
+V RowTextExtent                         | Source/ChannelPanel.cpp         | 29        | ?
+V SectionConsumed                       | Source/ChannelPanel.cpp         | 35        | ?
+V SectionRetained                       | Source/ChannelPanel.cpp         | 36        | ?
+V SectionUndeclared                     | Source/ChannelPanel.cpp         | 37        | ?
+F BandOf                                | Source/ChannelPanel.cpp         | 43-46     | ?
+F InsetBy                               | Source/ChannelPanel.cpp         | 48-54     | ?
+F LeftOf                                | Source/ChannelPanel.cpp         | 56-59     | ?
+F RightOf                               | Source/ChannelPanel.cpp         | 61-66     | ?
+F SquareCentred                         | Source/ChannelPanel.cpp         | 68-74     | ?
+F RecordNotice                          | Source/ChannelPanel.cpp         | 83-91     | ?
+F PresentHeaderBand                     | Source/ChannelPanel.cpp         | 97-131    | ?
+F PresentNoticeBand                     | Source/ChannelPanel.cpp         | 133-158   | ?
+F PresentFooterBand                     | Source/ChannelPanel.cpp         | 160-177   | ?
+T ChannelIntent                         | Source/ChannelPanel.cpp         | 187-192   | What one row's tick asked the material for, applied after the whole run has been walked. is reading, and amending inside the walk would present half a tick against one reading and half against another.
+F PresentClassBadge                     | Source/ChannelPanel.cpp         | 195-205   | ?
+F PresentChannelRow                     | Source/ChannelPanel.cpp         | 207-260   | ?
+F PresentChannelEditor                  | Source/ChannelPanel.cpp         | 264-344   | ?
+F CaptionOfChannel                      | Source/ChannelPanel.cpp         | 352-378   | ?
+F CaptionOfReflectance                  | Source/ChannelPanel.cpp         | 380-394   | ?
+F CaptionOfChannelSource                | Source/ChannelPanel.cpp         | 396-407   | ?
+F CaptionOfChannelMeasure               | Source/ChannelPanel.cpp         | 409-420   | ?
+F PresentChannelPanel                   | Source/ChannelPanel.cpp         | 426-644   | ?
 T ControlInteraction                    | Api/ControlPanel.h              | 30-37     | What one control did this tick — the pointer over it, and the three points of an edit's lifecycle. on every `EditDeclared`, and seals on `EditSealed`. A control that reported only "the reading changed" would leave the caller unable to tell a drag from a run of separate edits, and the defect presents as a revision row per pixel of pointer travel — which is exactly `84`'s merge requirement failing. `EditDeclared` may be false on that tick; sealing is not conditional on it.
 E ControlStroke                         | Api/ControlPanel.h              | 47-65     | The chrome glyphs a control paints from line and arc primitives when no uploaded glyph is named. rasteriser. A panel that wants authored art names a depot slot instead and the stroke is not consulted.
 T ControlRowSplit                       | Api/ControlPanel.h              | 73-77     | One control row divided into its label column and the field beside it.
@@ -47,27 +88,30 @@ F PresentTextRun                        | Api/ControlPanel.h              | 141 
 F DeclareClip                           | Api/ControlPanel.h              | 153       | Narrows the recording to one rectangle until the matching reclaim. leaves the whole rest of the tick clipped to a panel's interior, and the defect presents as the tab strip vanishing rather than as anything the panel did.
 F ReclaimClip                           | Api/ControlPanel.h              | 158       | Returns the recording to whatever it was clipped to before the matching declaration.
 F MeasuredTextExtent                    | Api/ControlPanel.h              | 163       | The horizontal extent one run of text would occupy at the declared scale.
-F AdvanceVisibleOffset                  | Api/ControlPanel.h              | 174       | Advances a hand-rolled list's visible offset by the wheel, bounded to what the content leaves. scrolled view snaps back to content rather than presenting an empty band under the last row.
-F PresentValueSlider                    | Api/ControlPanel.h              | 197       | A label, a fixed 78 px value box, and a track whose knob sits at the reading's fraction of its span. ExtentExhausted when the field cannot carry the value box and a grabbable track its knob; clamping the span silently instead gives the artist a control that looks live and is not.
-F PresentScalarEntry                    | Api/ControlPanel.h              | 214       | An unbounded scalar: the same value box, and a centre-knobbed track that accumulates travel rather than mapping position, so the reading may leave any span. readout — a knob that travelled would imply a span this control does not have.
-F PresentVectorEntry                    | Api/ControlPanel.h              | 227       | Three value boxes side by side, each capped with its axis letter, each dragging its own component.
-F PresentBooleanEntry                   | Api/ControlPanel.h              | 243       | A 50×32 travel whose nub crosses on a click. holding its own would be retained state — which this file has none of by construction.
-F PresentSelectionEntry                 | Api/ControlPanel.h              | 255       | A wrapping run of pills, the chosen one filled with the accent and lettered in the on-accent colour.
-T DropdownCarry                         | Api/ControlPanel.h              | 266-272   | What a dropdown carries between ticks — its openness and the anchor its list drops from. open together, which is the defect that follows from a control holding openness of its own.
-F PresentDropdown                       | Api/ControlPanel.h              | 281       | A 26 px head with a caret cap, and a hand-rolled list beneath it. tab overlays are not: every trapezoid is already on that recording, and a popup sits beneath it.
-F PresentSegmentRow                     | Api/ControlPanel.h              | 294       | A 26 px pill row — the reference's `.seg`, filled when it is on. choice, so each pill carries its own boolean and pressing one does not clear the others.
-V ControlTextExtent                     | Api/ControlPanel.h              | 306       | ?
-T TextCarry                             | Api/ControlPanel.h              | 312-318   | One open text edit — the edited text, never the committed one. never written during the edit, so an abandoned rename leaves no trace and a refused seal leaves none.
-F PresentTextEntry                      | Api/ControlPanel.h              | 324       | A rounded field the artist types into, opened by a click and sealed by Enter or by a press elsewhere.
-F PresentInlineTextEditor               | Api/ControlPanel.h              | 335       | A text edit with no field of its own, painted over whatever it is renaming. the trapezoid beneath it stays visible and the artist can see what is being renamed.
-F PresentPathEntry                      | Api/ControlPanel.h              | 345       | A path field and the round browse cap beside it. chooser itself would be a panel holding what it presents.
-F PresentColourEntry                    | Api/ControlPanel.h              | 362       | A fully rounded bar carrying a swatch disc, the coordinate printed, and a caret cap. never spells a transfer — `14` §5 places the interface after the display projection, and a control that converted here would be the second transfer the whole arrangement exists to prevent.
-F PresentMenuPill                       | Api/ControlPanel.h              | 371       | A caption pill that reads as pressable — what a menu band is a run of.
-F PresentGlyphButton                    | Api/ControlPanel.h              | 386       | A square glyph that answers a press — the uploaded glyph when a depot slot is named, the stroke otherwise. painting nothing at all — a missing icon that still answers a press is recoverable, an invisible button is not. The stroke is therefore always supplied, even where a slot is expected to resolve. already documents it as an integer whose meaning only its own source knows.
-F PresentSectionHeader                  | Api/ControlPanel.h              | 396       | A 29 px accordion header with a twisty that turns a quarter as it opens.
-T CarouselCarry                         | Api/ControlPanel.h              | 404-409   | What a carousel carries between ticks — which pane is presented and how far the slide has travelled.
-F AdvanceContentCarousel                | Api/ControlPanel.h              | 419       | Advances a carousel's slide and reports the horizontal offset each pane paints at. body width further along in the direction of travel caller clips its own body — a carousel that clipped for its caller would need to know what a pane is.
-F SLATE_DECLARES_PRECISION              | Api/ControlPanel.h              | 425       | ?
+F ResolveAreaPress                      | Api/ControlPanel.h              | 174       | A press with no hold over one rectangle — what a panel row, a header glyph or a fold twisty answers. any release covering it would fire when a drag that started elsewhere happened to end over it, and the defect presents as a layer collapsing because a slider release landed on its row. component knows which recording the interface paints on, and the same argument holds for who reads the pointer: a panel with its own copy is a second authority on what "pressed" means.
+F ResolvePointerPosition                | Api/ControlPanel.h              | 181       | The pointer this tick, in the same interface pixels every rectangle is spelled in. left the row it began on is precisely the case a per-rectangle answer cannot describe.
+F PointerHeld                           | Api/ControlPanel.h              | 186       | Whether the primary control is down this tick, wherever the pointer is.
+F AdvanceVisibleOffset                  | Api/ControlPanel.h              | 197       | Advances a hand-rolled list's visible offset by the wheel, bounded to what the content leaves. scrolled view snaps back to content rather than presenting an empty band under the last row.
+F PresentValueSlider                    | Api/ControlPanel.h              | 220       | A label, a fixed 78 px value box, and a track whose knob sits at the reading's fraction of its span. ExtentExhausted when the field cannot carry the value box and a grabbable track its knob; clamping the span silently instead gives the artist a control that looks live and is not.
+F PresentScalarEntry                    | Api/ControlPanel.h              | 237       | An unbounded scalar: the same value box, and a centre-knobbed track that accumulates travel rather than mapping position, so the reading may leave any span. readout — a knob that travelled would imply a span this control does not have.
+F PresentVectorEntry                    | Api/ControlPanel.h              | 250       | Three value boxes side by side, each capped with its axis letter, each dragging its own component.
+F PresentBooleanEntry                   | Api/ControlPanel.h              | 266       | A 50×32 travel whose nub crosses on a click. holding its own would be retained state — which this file has none of by construction.
+F PresentSelectionEntry                 | Api/ControlPanel.h              | 278       | A wrapping run of pills, the chosen one filled with the accent and lettered in the on-accent colour.
+T DropdownCarry                         | Api/ControlPanel.h              | 289-295   | What a dropdown carries between ticks — its openness and the anchor its list drops from. open together, which is the defect that follows from a control holding openness of its own.
+F PresentDropdown                       | Api/ControlPanel.h              | 304       | A 26 px head with a caret cap, and a hand-rolled list beneath it. tab overlays are not: every trapezoid is already on that recording, and a popup sits beneath it.
+F PresentSegmentRow                     | Api/ControlPanel.h              | 317       | A 26 px pill row — the reference's `.seg`, filled when it is on. choice, so each pill carries its own boolean and pressing one does not clear the others.
+V ControlTextExtent                     | Api/ControlPanel.h              | 329       | ?
+T TextCarry                             | Api/ControlPanel.h              | 335-341   | One open text edit — the edited text, never the committed one. never written during the edit, so an abandoned rename leaves no trace and a refused seal leaves none.
+F PresentTextEntry                      | Api/ControlPanel.h              | 347       | A rounded field the artist types into, opened by a click and sealed by Enter or by a press elsewhere.
+F PresentInlineTextEditor               | Api/ControlPanel.h              | 358       | A text edit with no field of its own, painted over whatever it is renaming. the trapezoid beneath it stays visible and the artist can see what is being renamed.
+F PresentPathEntry                      | Api/ControlPanel.h              | 368       | A path field and the round browse cap beside it. chooser itself would be a panel holding what it presents.
+F PresentColourEntry                    | Api/ControlPanel.h              | 385       | A fully rounded bar carrying a swatch disc, the coordinate printed, and a caret cap. never spells a transfer — `14` §5 places the interface after the display projection, and a control that converted here would be the second transfer the whole arrangement exists to prevent.
+F PresentMenuPill                       | Api/ControlPanel.h              | 394       | A caption pill that reads as pressable — what a menu band is a run of.
+F PresentGlyphButton                    | Api/ControlPanel.h              | 409       | A square glyph that answers a press — the uploaded glyph when a depot slot is named, the stroke otherwise. painting nothing at all — a missing icon that still answers a press is recoverable, an invisible button is not. The stroke is therefore always supplied, even where a slot is expected to resolve. already documents it as an integer whose meaning only its own source knows.
+F PresentSectionHeader                  | Api/ControlPanel.h              | 419       | A 29 px accordion header with a twisty that turns a quarter as it opens.
+T CarouselCarry                         | Api/ControlPanel.h              | 427-432   | What a carousel carries between ticks — which pane is presented and how far the slide has travelled.
+F AdvanceContentCarousel                | Api/ControlPanel.h              | 442       | Advances a carousel's slide and reports the horizontal offset each pane paints at. body width further along in the direction of travel caller clips its own body — a carousel that clipped for its caller would need to know what a pane is.
+F SLATE_DECLARES_PRECISION              | Api/ControlPanel.h              | 448       | ?
 V ControlInterior                       | Source/ControlChoice.cpp        | 11        | ?
 V PillCaptionInset                      | Source/ControlChoice.cpp        | 22        | ?
 F PillWidth                             | Source/ControlChoice.cpp        | 24-29     | ?
@@ -91,7 +135,10 @@ F PresentTextRun                        | Source/ControlChrome.cpp        | 416-
 F DeclareClip                           | Source/ControlChrome.cpp        | 450-454   | ?
 F ReclaimClip                           | Source/ControlChrome.cpp        | 456-459   | ?
 F MeasuredTextExtent                    | Source/ControlChrome.cpp        | 461-469   | ?
-F AdvanceVisibleOffset                  | Source/ControlChrome.cpp        | 471-482   | ?
+F ResolveAreaPress                      | Source/ControlChrome.cpp        | 479-482   | ?
+F ResolvePointerPosition                | Source/ControlChrome.cpp        | 484-490   | ?
+F PointerHeld                           | Source/ControlChrome.cpp        | 492-495   | ?
+F AdvanceVisibleOffset                  | Source/ControlChrome.cpp        | 497-508   | ?
 F Coded                                 | Source/ControlInterior.h        | 30        | ?
 F Corner                                | Source/ControlInterior.h        | 31        | ?
 F Opposite                              | Source/ControlInterior.h        | 32        | ?
@@ -242,6 +289,40 @@ F InterfaceExchange::Seal               | Source/InterfaceExchange.cpp    | 180-
 F InterfaceExchange::Record             | Source/InterfaceExchange.cpp    | 198-222   | ?
 F InterfaceExchange::PointerCaptured    | Source/InterfaceExchange.cpp    | 231-239   | ?
 F InterfaceExchange::KeyboardCaptured   | Source/InterfaceExchange.cpp    | 241-249   | ?
+V LayerFoldCapacity                     | Api/LayerPanel.h                | 25        | ?
+T LayerPanelCarry                       | Api/LayerPanel.h                | 36-46     | What the panel carries between ticks — presentation only, and the caller owns all of it. is an entry, an ordering or a coverage; the folds, the filter, the offset and the drag are layout, and layout inside the document would make opening a fold an undoable edit. that outlives an append names a different entry than it did. Presentation only — a stale choice paints the wrong row for one tick and amends nothing, where a stale identity would need a resolution every tick to say the same thing.
+T LayerPanelContext                     | Api/LayerPanel.h                | 52-56     | What the panel presents against — the sequence it reads and the carry it writes. sequence the moment an entry is withdrawn, and the artist sees a layer that no longer exists.
+F CaptionOfSource                       | Api/LayerPanel.h                | 67        | The caption one content source is presented under. applies to a report class. An inferred caption is a presentation that disagrees with the document.
+F PresentLayerPanel                     | Api/LayerPanel.h                | 88        | Presents one tick of the surface's ordered content into the rectangle the desk resolved for it. learns what a layer is. reverse of the sequence position, and the badge counts down the sequence while it counts up the panel. Both numbers exist; the one the artist is shown is the panel's, and the one every call carries is the sequence's. are a distinct thing and are presented as one row, not as a fold — a nested sequence presented as an indented run would let the artist reorder across a boundary the sequence does not have.
+F SLATE_DECLARES_PRECISION              | Api/LayerPanel.h                | 94        | ?
+V SpineWidth                            | Source/LayerPanel.cpp           | 26        | ?
+V SpineRail                             | Source/LayerPanel.cpp           | 27        | ?
+V BadgeEdge                             | Source/LayerPanel.cpp           | 28        | ?
+V ThumbnailEdge                         | Source/LayerPanel.cpp           | 29        | ?
+V SubjectDotEdge                        | Source/LayerPanel.cpp           | 30        | ?
+V AddRowHeight                          | Source/LayerPanel.cpp           | 31        | ?
+V ToolbarPadding                        | Source/LayerPanel.cpp           | 32        | ?
+V DropLineHeight                        | Source/LayerPanel.cpp           | 33        | ?
+V FoldRowHeight                         | Source/LayerPanel.cpp           | 34        | ?
+V RowTextExtent                         | Source/LayerPanel.cpp           | 38        | ?
+F BandOf                                | Source/LayerPanel.cpp           | 44-47     | ?
+F InsetBy                               | Source/LayerPanel.cpp           | 49-55     | ?
+F LeftOf                                | Source/LayerPanel.cpp           | 57-60     | ?
+F RightOf                               | Source/LayerPanel.cpp           | 62-67     | ?
+F AfterLeft                             | Source/LayerPanel.cpp           | 69-74     | ?
+F SquareCentred                         | Source/LayerPanel.cpp           | 76-82     | ?
+F PrintRowName                          | Source/LayerPanel.cpp           | 91-94     | ?
+F PrintRowSubline                       | Source/LayerPanel.cpp           | 100-110   | ?
+F RowAdmitted                           | Source/LayerPanel.cpp           | 112-121   | ?
+F PresentHeaderBand                     | Source/LayerPanel.cpp           | 127-163   | ?
+F PresentToolbarBand                    | Source/LayerPanel.cpp           | 167-195   | ?
+F PresentFooterBand                     | Source/LayerPanel.cpp           | 197-213   | ?
+F PresentSpineBadge                     | Source/LayerPanel.cpp           | 219-239   | ?
+T RowIntent                             | Source/LayerPanel.cpp           | 248-255   | What one row's tick asked the sequence for, applied after the whole run has been walked. amend the very vector the walk is iterating, and applying inside the walk invalidates it.
+F PresentSplitRow                       | Source/LayerPanel.cpp           | 257-424   | ?
+F PresentFoldedProperties               | Source/LayerPanel.cpp           | 426-438   | ?
+F CaptionOfSource                       | Source/LayerPanel.cpp           | 446-457   | ?
+F PresentLayerPanel                     | Source/LayerPanel.cpp           | 463-657   | ?
 V NameSearchExtent                      | Api/OutlinerPanel.h             | 23        | ?
 T OutlinerPanel                         | Api/OutlinerPanel.h             | 39-105    | The presentation half of `12` — reads the linearisation, declares intent, stores neither relation. Only the counted span the artist can see is touched, and the scroll position is a row ordinal resolved by count rather than a pixel offset the panel remembers on its own. A panel that mutated the relations where the click arrived would apply against a linearisation that is halfway rebuilt, and would bypass the sequence that undoes it. entry, and whether the panel is shown. None of it is a transaction and none of it is scrubbed.
 F OutlinerPanel::Present                | Api/OutlinerPanel.h             | 50        | Presents one tick of the outliner and declares whatever the artist asked for.
@@ -267,6 +348,30 @@ F OutlinerPanel::Anchored               | Source/OutlinerPanel.cpp        | 380-
 F OutlinerPanel::RowsTouched            | Source/OutlinerPanel.cpp        | 385-388   | ?
 F OutlinerPanel::Sought                 | Source/OutlinerPanel.cpp        | 390-393   | ?
 F OutlinerPanel::ConfirmedNames         | Source/OutlinerPanel.cpp        | 395-398   | ?
+V PropertyRowCapacity                   | Api/PropertyPanel.h             | 25        | ?
+V PropertyNoticeExtent                  | Api/PropertyPanel.h             | 26        | ?
+T PropertyEditReport                    | Api/PropertyPanel.h             | 34-40     | One property's edit lifecycle, reported to whoever owns the transaction. it is a presentation — so it reports the three points and the caller brackets the run. A panel that opened its own would be a second authority on what an edit is, and `76`'s tool parameters would then be recorded twice.
+T PropertyPanelCarry                    | Api/PropertyPanel.h             | 51-61     | What the panel carries between ticks — presentation only, and the caller owns all of it. open dropdowns are layout, and layout inside the document would make opening a dropdown an undoable edit. re-declaration names a different property than it did. Presentation only — a stale carry presents the wrong caret position for one tick and writes nothing, because a write is keyed by identity and not by ordinal.
+T PropertyPanelContext                  | Api/PropertyPanel.h             | 68-72     | What the panel presents against — the declarations it reads and the carry it writes. `Resolve` on the tick it is presented, so a value written by a tool while the panel is open presents immediately rather than on the next click.
+F CaptionOfPropertyMeasure              | Api/PropertyPanel.h             | 83        | The caption one measure is presented under. unrelated enumerations and one name over both would read as a shared vocabulary they do not have.
+F PresentPropertyPanel                  | Api/PropertyPanel.h             | 106       | Presents one tick of the declarations into the rectangle the desk resolved for it. learns what a property is. adds a parameter is presented without this file being edited, and a tool presented by hand-written panel code is a tool the panel must be edited to add. write refuses rather than correcting. A row that wrote first would present a refusal on every drag that touched an endpoint. picking interaction `74` owns; a control invented here could only offer an ordinal the artist cannot map to anything they can see.
+F SLATE_DECLARES_PRECISION              | Api/PropertyPanel.h             | 112       | ?
+V NoticeBandHeight                      | Source/PropertyPanel.cpp        | 19        | ?
+V BadgeInset                            | Source/PropertyPanel.cpp        | 20        | ?
+V RowTextExtent                         | Source/PropertyPanel.cpp        | 22        | ?
+F BandOf                                | Source/PropertyPanel.cpp        | 28-31     | ?
+F InsetBy                               | Source/PropertyPanel.cpp        | 33-39     | ?
+F LeftOf                                | Source/PropertyPanel.cpp        | 41-44     | ?
+F RightOf                               | Source/PropertyPanel.cpp        | 46-51     | ?
+F SquareCentred                         | Source/PropertyPanel.cpp        | 53-59     | ?
+F RecordNotice                          | Source/PropertyPanel.cpp        | 61-69     | ?
+F WriteBounded                          | Source/PropertyPanel.cpp        | 80-102    | ?
+F PresentHeaderBand                     | Source/PropertyPanel.cpp        | 108-144   | ?
+F PresentNoticeBand                     | Source/PropertyPanel.cpp        | 146-168   | ?
+F PresentFooterBand                     | Source/PropertyPanel.cpp        | 170-186   | ?
+F PresentPropertyRow                    | Source/PropertyPanel.cpp        | 194-494   | ?
+F CaptionOfPropertyMeasure              | Source/PropertyPanel.cpp        | 502-516   | ?
+F PresentPropertyPanel                  | Source/PropertyPanel.cpp        | 522-647   | ?
 V RevisionFoldCapacity                  | Api/RevisionPanel.h             | 25        | ?
 T RevisionPanelCarry                    | Api/RevisionPanel.h             | 35-46     | What the panel carries between ticks — presentation only, and the caller owns all of it. the visible offset and the drag are layout, and layout inside the document would make opening a fold an undoable edit. The carry sits beside the sequence and never inside it. `RevisionSequence` does not carry it, so a caller that never declares it presents every row as unsaved, which is the safe direction: an artist told their work is unsaved loses nothing by saving twice.
 T RevisionPanelContext                  | Api/RevisionPanel.h             | 52-56     | What the panel presents against — the sequence it reads and the carry it writes. sequence holding its own row list drifts from the sequence the moment a transaction merges.

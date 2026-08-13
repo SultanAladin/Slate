@@ -8,21 +8,21 @@
 %path       Engine/SlateMath/Platform/InputExchange/Api
 %layer      SlateMath
 %sources    1
-%symbols    7
-%annotated  7/7
+%symbols    12
+%annotated  11/12
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S InputExchange.h | 96 lines | 920bea48 | 7 sym | Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
+S InputExchange.h | 143 lines | 2e905cfa | 12 sym | Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     AXIS PRESENCE
 //------------------------------------------------------------------------------------------------------------------------
 
-T AxisPresence             | InputExchange.h | 23-28 | nonallocating,nonthrowing     | -  | Which optional axes the reporting device supplied on one sample. are different facts, and `22` treats them differently.
+T AxisPresence                  | InputExchange.h | 24-29  | nonallocating,nonthrowing     | -  | Which optional axes the reporting device supplied on one sample. are different facts, and `22` treats them differently.
     has   PressureReported  bool  [-]  ?
     has   TiltReported      bool  [-]  ?
     has   RotationReported  bool  [-]  ?
@@ -32,7 +32,7 @@ T AxisPresence             | InputExchange.h | 23-28 | nonallocating,nonthrowing
 //                                                       ONE SAMPLE
 //------------------------------------------------------------------------------------------------------------------------
 
-T PointerSample            | InputExchange.h | 38-49 | nonallocating,nonthrowing     | -  | One pointer sample, stamped at arrival by `TickSequence`. rate reconstructs only if the arrival stamps survive.
+T PointerSample                 | InputExchange.h | 39-50  | nonallocating,nonthrowing     | -  | One pointer sample, stamped at arrival by `TickSequence`. rate reconstructs only if the arrival stamps survive.
     has   Arrival      TickPoint      [-]  ?
     has   PositionX    double         [-]  ?
     has   PositionY    double         [-]  ?
@@ -49,29 +49,57 @@ T PointerSample            | InputExchange.h | 38-49 | nonallocating,nonthrowing
 //                                                  THE ARRIVAL SEQUENCE
 //------------------------------------------------------------------------------------------------------------------------
 
-T InputExchange            | InputExchange.h | 60-94 | owning                        | -  | The bounded arrival ordering of pointer samples, drained once per tick by the consumer. that outruns the drain loses its oldest samples, which is visible, rather than allocating during an interaction, which is not.
-    has   ArrivalCapacity  static constexpr std::uint32_t  [-]  ?
-    has   ArrivalOrder     PointerSample[ArrivalCapacity]  [-]  ?
-    has   OldestOrdinal    std::uint32_t                   [-]  ?
-    has   OccupiedCount    std::uint32_t                   [-]  ?
+T InputExchange                 | InputExchange.h | 61-141 | owning                        | -  | The bounded arrival ordering of pointer samples, drained once per tick by the consumer. that outruns the drain loses its oldest samples, which is visible, rather than allocating during an interaction, which is not.
+    has   ArrivalCapacity     static constexpr std::uint32_t  [-]  ?
+    has   ArrivalOrder        PointerSample[ArrivalCapacity]  [-]  ?
+    has   OldestOrdinal       std::uint32_t                   [-]  ?
+    has   OccupiedCount       std::uint32_t                   [-]  ?
+    has   AttachedWindowSlot  void*                           [-]  ?
+    has   PrecedingReceiver   void*                           [-]  ?
+    has   Timeline            const TickSequence*             [-]  ?
     by    Source/ConsoleHost.cpp, Source/InputExchange.cpp
     note  ⏱️ Bounded and non-allocating: the oldest sample is discarded when the extent is full. A stroke
 
-F InputExchange::Record    | InputExchange.h | 70    | api,nonallocating,nonthrowing | ✔️ | Records one arriving sample against the supplied timeline.
+F InputExchange::~InputExchange | InputExchange.h | 70     | destructor                    | -  | ?
+
+F InputExchange::Attach         | InputExchange.h | 86     | api,nonthrowing               | 🚩 | Takes the native window's pointer stream and records every sample the device reports on it. ExtentExhausted when this exchange is already attached system's, because the window system reports a position and nothing else. `04` §3 requires an unreported axis to stay distinguishable from a zero-valued one, and the operating system is the only surface in the chain that states which axes the device actually supplied. interface reads the same device through the window system's accumulated condition, and a replacement here would take that stream away from it silently.
+    in    NativeWindowSlot  void*                [-]  `WindowInterchange::NativeHandle`; borrowed and outlives this attachment
+    in    HostTimeline      const TickSequence&  [-]  the process's one timeline, for arrival stamps
+    out   -                 Outcome              [-]  refuses with HostDenied when the window declines the attachment, and with
+    by    Api/OutlinerSequence.h, Api/SceneStructure.h, Source/InputExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
+    note  🔴 The axes are read from the operating system's own pointer surface and not from the window
+    note  ⚠️ Chains to whatever the window system already installed rather than replacing it. `14`'s
+
+F InputExchange::Detach         | InputExchange.h | 92     | api,nonthrowing               | ✔️ | Returns the pointer stream to whoever held it before this attachment.
+    out   -  void  [-]  ?
+    by    Source/InputExchange.cpp, Source/WorkspaceSpace.cpp
+    note  Called by the destructor as well, so an exchange that outlives its window releases nothing twice.
+
+F InputExchange::ArrivalStamp   | InputExchange.h | 98     | api,nonallocating,nonthrowing | ✔️ | Stamps an arrival against the attached timeline, for a device that reported no reading of its own.
+    out   -  TickPoint  [ns]  the process origin while nothing is attached
+    by    Source/InputExchange.cpp
+
+F InputExchange::ArrivalStamp   | InputExchange.h | 108    | api,nonallocating,nonthrowing | ✔️ | Stamps an arrival from the device's own host-counter reading. earliest arrival there is. Taking the timeline here instead would stamp the sample when the process drained the message carrying it, which is the consumption rate wearing an arrival's name.
+    in    HostCount  std::uint64_t  [-]   the device's reading; zero falls back to the timeline
+    out   -          TickPoint      [ns]  the process origin while nothing is attached
+    by    Source/InputExchange.cpp
+    note  🔴 `04` §3 stamps at arrival and never at consumption, and the device's own reading is the
+
+F InputExchange::Record         | InputExchange.h | 114    | api,nonallocating,nonthrowing | ✔️ | Records one arriving sample against the supplied timeline.
     in    Arriving  const PointerSample&  [-]  the sample as the device reported it
     out   -         void                  [-]  ?
-    by    Api/IntakeIndex.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/InputExchange.cpp, (+4 more)
+    by    Api/IntakeIndex.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/InputExchange.cpp, (+5 more)
 
-F InputExchange::Sample    | InputExchange.h | 77    | api,nonallocating,nonthrowing | ✔️ | Reads one held sample in arrival order.
+F InputExchange::Sample         | InputExchange.h | 121    | api,nonallocating,nonthrowing | ✔️ | Reads one held sample in arrival order.
     in    ArrivalOrdinal  std::uint32_t         [-]  zero is the oldest sample still held
     out   -               const PointerSample&  [-]  ?
     pre   ArrivalOrdinal is below HeldCount
-    by    Api/AtmosphereIntegrator.h, Api/SurfaceTileSpace.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/InputExchange.cpp, (+2 more)
+    by    Api/AtmosphereIntegrator.h, Api/ReflectanceIntegrator.h, Api/SurfaceTileSpace.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+4 more)
 
-F InputExchange::HeldCount | InputExchange.h | 82    | api,nonallocating,nonthrowing | ✔️ | How many samples are held.
+F InputExchange::HeldCount      | InputExchange.h | 126    | api,nonallocating,nonthrowing | ✔️ | How many samples are held.
     out   -  std::uint32_t  [-]  ?
-    by    Api/SurfaceDepot.h, Source/ConsoleHost.cpp, Source/InputExchange.cpp, Source/SurfaceDepot.cpp, Source/SurfaceTileSpace.cpp
+    by    Api/SurfaceDepot.h, Api/TransmissionSequence.h, Shared/AccumulationProjection.slang.h, Shared/TransmissionProjection.slang.h, Source/ConsoleHost.cpp, Source/InputExchange.cpp, (+3 more)
 
-F InputExchange::Reclaim   | InputExchange.h | 87    | api,nonallocating,nonthrowing | ✔️ | Discards every held sample. Called by the consumer once it has read them.
+F InputExchange::Reclaim        | InputExchange.h | 131    | api,nonallocating,nonthrowing | ✔️ | Discards every held sample. Called by the consumer once it has read them.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)

@@ -16,23 +16,24 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ProgramIndex.cpp | 333 lines | 3d95ed1b | 8 sym | The layout every program reaches through, the two construction routes, and the reclamation that returns both.
+S ProgramIndex.cpp | 360 lines | 8bc78613 | 8 sym | The layout every program reaches through, the two construction routes, and the reclamation that returns both.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-F ProgramIndex::Construct       | ProgramIndex.cpp | 15-27   | -          | - | ?
-    in    Exchange     const VulkanExchange&   [-]  ?
-    in    Modules      ShaderCodec&            [-]  ?
-    in    Descriptors  const DescriptorIndex&  [-]  ?
-    out   -            Outcome<bool>           [-]  ?
+F ProgramIndex::Construct       | ProgramIndex.cpp | 15-29   | -          | - | ?
+    in    Exchange     const VulkanExchange&       [-]  ?
+    in    Modules      ShaderCodec&                [-]  ?
+    in    Descriptors  const DescriptorIndex&      [-]  ?
+    in    Naming       const DiagnosticExtension&  [-]  ?
+    out   -            Outcome<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE REACH
 //------------------------------------------------------------------------------------------------------------------------
 
-F ProgramIndex::ReachLayout     | ProgramIndex.cpp | 33-71   | -          | - | ?
+F ProgramIndex::ReachLayout     | ProgramIndex.cpp | 35-73   | -          | - | ?
     in    LayoutOrdinals  const std::vector<std::uint32_t>&  [-]  ?
     in    ConstantBytes   std::uint32_t                      [-]  ?
     in    ReachingStages  VkShaderStageFlags                 [-]  ?
@@ -42,7 +43,7 @@ F ProgramIndex::ReachLayout     | ProgramIndex.cpp | 33-71   | -          | - | 
 //                                                   THE GRAPHICS ROUTE
 //------------------------------------------------------------------------------------------------------------------------
 
-F ProgramIndex::DeclareGraphics | ProgramIndex.cpp | 77-221  | -          | - | ?
+F ProgramIndex::DeclareGraphics | ProgramIndex.cpp | 79-236  | -          | - | ?
     in    Declaring  const GraphicsDeclaration&  [-]  ?
     out   -          Outcome<std::uint32_t>      [-]  ?
 
@@ -50,7 +51,7 @@ F ProgramIndex::DeclareGraphics | ProgramIndex.cpp | 77-221  | -          | - | 
 //                                                   THE COMPUTE ROUTE
 //------------------------------------------------------------------------------------------------------------------------
 
-F ProgramIndex::DeclareCompute  | ProgramIndex.cpp | 227-272 | -          | - | ?
+F ProgramIndex::DeclareCompute  | ProgramIndex.cpp | 242-299 | -          | - | ?
     in    Declaring  const ComputeDeclaration&  [-]  ?
     out   -          Outcome<std::uint32_t>     [-]  ?
 
@@ -58,18 +59,18 @@ F ProgramIndex::DeclareCompute  | ProgramIndex.cpp | 227-272 | -          | - | 
 //                                                     THE RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-F ProgramIndex::Resolve         | ProgramIndex.cpp | 278-294 | -          | - | ?
+F ProgramIndex::Resolve         | ProgramIndex.cpp | 305-321 | -          | - | ?
     in    ProgramOrdinal  std::uint32_t                [-]  ?
     out   -               Outcome<ConstructedProgram>  [-]  ?
 
-F ProgramIndex::DeclaredCount   | ProgramIndex.cpp | 296-299 | -          | - | ?
+F ProgramIndex::DeclaredCount   | ProgramIndex.cpp | 323-326 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F ProgramIndex::Reclaim         | ProgramIndex.cpp | 305-326 | -          | - | ?
+F ProgramIndex::Reclaim         | ProgramIndex.cpp | 332-353 | -          | - | ?
     out   -  void  [-]  ?
 
-F ProgramIndex::~ProgramIndex   | ProgramIndex.cpp | 328-331 | destructor | - | ?
+F ProgramIndex::~ProgramIndex   | ProgramIndex.cpp | 355-358 | destructor | - | ?

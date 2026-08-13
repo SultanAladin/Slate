@@ -13,6 +13,9 @@ shader, or engine Markdown you produce** in a session:
 - `AgenticInstuctions/SKILL-Naming.md` — ALL naming (banned words + how to construct a name)
 - `AgenticInstuctions/SKILL-Formatting.md` — formatting, alignment, and the approved emoji whitelist
 
+**Do not load `AgenticInstuctions/SKILL-ResearchFirst.md` or `Mimo.md`.** Those are for the
+Mimo general-purpose agent only. This file is for code work only.
+
 **Do not read them for non-code work.** Questions, explanations, planning discussion, file searches,
 and chat-only answers do not touch these files. The trigger is *generating code or engine documents*,
 not *talking about them*.

@@ -29,6 +29,7 @@ F Widen                           | SpatialSubdivision.cpp | 36-50     | - | - |
     in    Widening  ConditionedExtent&        [-]  ?
     in    Arriving  const ConditionedExtent&  [-]  ?
     out   -         void                      [-]  ?
+    by    Source/ClipboardExchange.cpp, Source/CodeInterchange.cpp, Source/FileInterchange.cpp, Source/StorageExchange.cpp
 
 F ExtentOccupied                  | SpatialSubdivision.cpp | 52-57     | - | - | ?
     in    Held  const ConditionedExtent&  [-]  ?
@@ -42,6 +43,7 @@ F ExtentsOverlap                  | SpatialSubdivision.cpp | 69-75     | - | - |
     in    Left   const ConditionedExtent&  [-]  ?
     in    Right  const ConditionedExtent&  [-]  ?
     out   -      bool                      [-]  ?
+    by    Source/OcclusionProjection.cpp
 
 F ExtentContains                  | SpatialSubdivision.cpp | 77-85     | - | - | ?
     in    Outer  const ConditionedExtent&  [-]  ?
@@ -61,7 +63,7 @@ F SlabInterval                    | SpatialSubdivision.cpp | 90-126    | - | - |
 F Conjugated                      | SpatialSubdivision.cpp | 128-137   | - | - | ?
     in    Subject  RotationQuaternion  [-]  ?
     out   -        RotationQuaternion  [-]  ?
-    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp
+    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/SpatialManipulator.cpp
 
 F RotateSpan                      | SpatialSubdivision.cpp | 139-154   | - | - | ?
     in    Rotation  RotationQuaternion  [-]  ?
@@ -72,7 +74,7 @@ F RotateSpan                      | SpatialSubdivision.cpp | 139-154   | - | - |
     in    OutY      double&             [-]  ?
     in    OutZ      double&             [-]  ?
     out   -         void                [-]  ?
-    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp
+    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialManipulator.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE INNER SUBDIVISION

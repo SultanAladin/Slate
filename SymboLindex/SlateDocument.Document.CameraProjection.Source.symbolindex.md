@@ -31,7 +31,7 @@ F Multiply                               | CameraProjection.cpp | 22-40   | - | 
 F Conjugated                             | CameraProjection.cpp | 42-51   | - | - | ?
     in    Subject  RotationQuaternion  [-]  ?
     out   -        RotationQuaternion  [-]  ?
-    by    Source/DecalProjection.cpp, Source/SpatialSubdivision.cpp
+    by    Source/DecalProjection.cpp, Source/SpatialManipulator.cpp, Source/SpatialSubdivision.cpp
 
 F RotateSpan                             | CameraProjection.cpp | 55-70   | - | - | ?
     in    Rotation  RotationQuaternion  [-]  ?
@@ -42,7 +42,7 @@ F RotateSpan                             | CameraProjection.cpp | 55-70   | - | 
     in    OutY      double&             [-]  ?
     in    OutZ      double&             [-]  ?
     out   -         void                [-]  ?
-    by    Source/DecalProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
+    by    Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialManipulator.cpp, Source/SpatialSubdivision.cpp
 
 F RotationAbout                          | CameraProjection.cpp | 72-90   | - | - | ?
     in    AxisX    double              [-]  ?
@@ -50,6 +50,7 @@ F RotationAbout                          | CameraProjection.cpp | 72-90   | - | 
     in    AxisZ    double              [-]  ?
     in    Radians  double              [-]  ?
     out   -        RotationQuaternion  [-]  ?
+    by    Source/SpatialManipulator.cpp
 
 F ViewDirection                          | CameraProjection.cpp | 94-97   | - | - | ?
     in    Rotation  RotationQuaternion  [-]  ?
@@ -65,7 +66,7 @@ F ViewDirection                          | CameraProjection.cpp | 94-97   | - | 
 F Derive                                 | CameraProjection.cpp | 105-183 | - | - | ?
     in    Declaring  const CameraSpecification&  [-]  ?
     out   -          Outcome<ViewProjection>     [-]  ?
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+8 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+10 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    PLANE EXTRACTION
@@ -123,7 +124,7 @@ F Frame                                  | CameraProjection.cpp | 473-533 | - | 
     in    Least     DocumentPosition              [-]  ?
     in    Greatest  DocumentPosition              [-]  ?
     out   -         Outcome<DecomposedTransform>  [-]  ?
-    by    Api/CameraProjection.h, Source/ConsoleHost.cpp
+    by    Api/CameraProjection.h, Source/ConsoleHost.cpp, Source/ControlText.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CAMERA

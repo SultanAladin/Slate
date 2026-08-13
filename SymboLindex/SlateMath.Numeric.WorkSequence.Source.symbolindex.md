@@ -16,13 +16,13 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S WorkSequence.cpp | 533 lines | 29b66aab | 23 sym | The reserved interactive worker, cooperative cancellation, and conclusions ordered by declaration.
+S WorkSequence.cpp | 539 lines | 1b65f834 | 23 sym | The reserved interactive worker, cooperative cancellation, and conclusions ordered by declaration.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       ONE RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
-T WorkSequence                  | WorkSequence.cpp | 19-29   | -          | - | ?
+T WorkSequence                  | WorkSequence.cpp | 20-30   | -          | - | ?
     has   Declared           WorkDeclaration    [-]  ?
     has   Progressed         WorkProgress       [-]  ?
     has   WithdrawalPosed    std::atomic<bool>  [-]  ?
@@ -37,45 +37,45 @@ T WorkSequence                  | WorkSequence.cpp | 19-29   | -          | - | 
 //                                                       ONE QUEUE
 //------------------------------------------------------------------------------------------------------------------------
 
-F WorkQueue::Admit              | WorkSequence.cpp | 35-39   | -          | - | ?
+F WorkQueue::Admit              | WorkSequence.cpp | 36-40   | -          | - | ?
     in    RecordOrdinal  std::uint32_t  [-]  ?
     out   -              void           [-]  ?
 
-F WorkQueue::Claim              | WorkSequence.cpp | 41-68   | -          | - | ?
+F WorkQueue::Claim              | WorkSequence.cpp | 42-69   | -          | - | ?
     out   -  Outcome<std::uint32_t>  [-]  ?
 
-F WorkQueue::Withdraw           | WorkSequence.cpp | 70-84   | -          | - | ?
+F WorkQueue::Withdraw           | WorkSequence.cpp | 71-85   | -          | - | ?
     in    RecordOrdinal  std::uint32_t  [-]  ?
     out   -              void           [-]  ?
 
-F WorkQueue::PendingCount       | WorkSequence.cpp | 86-89   | -          | - | ?
+F WorkQueue::PendingCount       | WorkSequence.cpp | 87-90   | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-F WorkSequence::Construct       | WorkSequence.cpp | 100-135 | -          | - | ?
+F WorkSequence::Construct       | WorkSequence.cpp | 101-141 | -          | - | ?
     in    RequestedWorkers  std::uint32_t        [-]  ?
     in    HostTimeline      const TickSequence&  [-]  ?
     in    ReportingInto     ReportSequence&      [-]  ?
     out   -                 Outcome<bool>        [-]  ?
 
-F WorkSequence::~WorkSequence   | WorkSequence.cpp | 137-140 | destructor | - | ?
+F WorkSequence::~WorkSequence   | WorkSequence.cpp | 143-146 | destructor | - | ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE WORKERS
 //------------------------------------------------------------------------------------------------------------------------
 
-F WorkSequence::Claimable       | WorkSequence.cpp | 146-163 | -          | - | ?
+F WorkSequence::Claimable       | WorkSequence.cpp | 152-169 | -          | - | ?
     in    WorkerOrdinal  std::uint32_t  [-]  ?
     out   -              bool           [-]  ?
 
-F WorkSequence::Claim           | WorkSequence.cpp | 165-181 | -          | - | ?
+F WorkSequence::Claim           | WorkSequence.cpp | 171-187 | -          | - | ?
     in    WorkerOrdinal  std::uint32_t  [-]  ?
     out   -              std::uint32_t  [-]  ?
 
-F WorkSequence::Serve           | WorkSequence.cpp | 183-229 | -          | - | ?
+F WorkSequence::Serve           | WorkSequence.cpp | 189-235 | -          | - | ?
     in    WorkerOrdinal  std::uint32_t  [-]  ?
     out   -              void           [-]  ?
 
@@ -83,7 +83,7 @@ F WorkSequence::Serve           | WorkSequence.cpp | 183-229 | -          | - | 
 //                                                      DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F WorkSequence::Declare         | WorkSequence.cpp | 235-286 | -          | - | ?
+F WorkSequence::Declare         | WorkSequence.cpp | 241-292 | -          | - | ?
     in    Arriving  const WorkDeclaration&  [-]  ?
     out   -         Outcome<WorkIdentity>   [-]  ?
 
@@ -91,20 +91,20 @@ F WorkSequence::Declare         | WorkSequence.cpp | 235-286 | -          | - | 
 //                                                      CANCELLATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F WorkSequence::Resolved        | WorkSequence.cpp | 292-303 | -          | - | ?
+F WorkSequence::Resolved        | WorkSequence.cpp | 298-309 | -          | - | ?
     in    Subject  WorkIdentity   [-]  ?
     out   -        std::uint32_t  [-]  ?
 
-F WorkSequence::Cancel          | WorkSequence.cpp | 305-329 | -          | - | ?
+F WorkSequence::Cancel          | WorkSequence.cpp | 311-335 | -          | - | ?
     in    Subject            WorkIdentity   [-]  ?
     in    SupersessionPosed  bool           [-]  ?
     out   -                  Outcome<bool>  [-]  ?
 
-F WorkSequence::Withdraw        | WorkSequence.cpp | 331-334 | -          | - | ?
+F WorkSequence::Withdraw        | WorkSequence.cpp | 337-340 | -          | - | ?
     in    Subject  WorkIdentity   [-]  ?
     out   -        Outcome<bool>  [-]  ?
 
-F WorkSequence::Supersede       | WorkSequence.cpp | 336-339 | -          | - | ?
+F WorkSequence::Supersede       | WorkSequence.cpp | 342-345 | -          | - | ?
     in    Subject  WorkIdentity   [-]  ?
     out   -        Outcome<bool>  [-]  ?
 
@@ -112,7 +112,7 @@ F WorkSequence::Supersede       | WorkSequence.cpp | 336-339 | -          | - | 
 //                                                       CONCLUSION
 //------------------------------------------------------------------------------------------------------------------------
 
-F WorkSequence::Seal            | WorkSequence.cpp | 345-397 | -          | - | ?
+F WorkSequence::Seal            | WorkSequence.cpp | 351-403 | -          | - | ?
     in    RecordOrdinal  std::uint32_t         [-]  ?
     in    Resolved_      const Outcome<bool>&  [-]  ?
     out   -              void                  [-]  ?
@@ -121,33 +121,33 @@ F WorkSequence::Seal            | WorkSequence.cpp | 345-397 | -          | - | 
 //                                                        DRAINING
 //------------------------------------------------------------------------------------------------------------------------
 
-F WorkSequence::Drain           | WorkSequence.cpp | 403-421 | -          | - | ?
+F WorkSequence::Drain           | WorkSequence.cpp | 409-427 | -          | - | ?
     out   -  const std::vector<WorkCompletion>&  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-F WorkSequence::Progress        | WorkSequence.cpp | 427-437 | -          | - | ?
+F WorkSequence::Progress        | WorkSequence.cpp | 433-443 | -          | - | ?
     in    Subject  WorkIdentity     [-]  ?
     out   -        Outcome<double>  [-]  ?
 
-F WorkSequence::ProgressCount   | WorkSequence.cpp | 439-452 | -          | - | ?
+F WorkSequence::ProgressCount   | WorkSequence.cpp | 445-458 | -          | - | ?
     in    Subject  WorkIdentity            [-]  ?
     out   -        Outcome<std::uint64_t>  [-]  ?
 
-F WorkSequence::WorkerCount     | WorkSequence.cpp | 454-458 | -          | - | ?
+F WorkSequence::WorkerCount     | WorkSequence.cpp | 460-464 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F WorkSequence::OccupiedWorkers | WorkSequence.cpp | 460-464 | -          | - | ?
+F WorkSequence::OccupiedWorkers | WorkSequence.cpp | 466-470 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F WorkSequence::PendingCount    | WorkSequence.cpp | 466-476 | -          | - | ?
+F WorkSequence::PendingCount    | WorkSequence.cpp | 472-482 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F WorkSequence::Reclaim         | WorkSequence.cpp | 482-531 | -          | - | ?
+F WorkSequence::Reclaim         | WorkSequence.cpp | 488-537 | -          | - | ?
     out   -  void  [-]  ?

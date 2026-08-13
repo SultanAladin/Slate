@@ -31,7 +31,7 @@ F RotateSpan                         | PointerIntersection.cpp | 23-38   | - | -
     in    OutY      double&             [-]  ?
     in    OutZ      double&             [-]  ?
     out   -         void                [-]  ?
-    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/SpatialSubdivision.cpp
+    by    Source/CameraProjection.cpp, Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, Source/SpatialManipulator.cpp, Source/SpatialSubdivision.cpp
 
 F PrecedesInIdentity                 | PointerIntersection.cpp | 42-48   | - | - | ?
     in    Earlier  OccupantIdentity  [-]  ?
@@ -50,7 +50,7 @@ F ProjectPointerRay                  | PointerIntersection.cpp | 56-132  | - | -
     in    DisplayAlong   std::uint32_t            [-]  ?
     in    DisplayAcross  std::uint32_t            [-]  ?
     out   -              Outcome<ProjectedRay>    [-]  ?
-    by    Api/PointerIntersection.h, Source/ConsoleHost.cpp
+    by    Api/PointerIntersection.h, Source/ConsoleHost.cpp, Source/SpatialManipulator.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE ADMISSIONS

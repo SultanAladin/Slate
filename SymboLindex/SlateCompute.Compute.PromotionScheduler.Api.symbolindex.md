@@ -149,11 +149,11 @@ F PromotionScheduler::Ordering        | PromotionScheduler.h | 186     | -      
 
 F PromotionScheduler::Declared        | PromotionScheduler.h | 187     | -                             | -  | ?
     out   -  const PromotionBudget&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+45 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+82 more)
 
 F PromotionScheduler::Remaining       | PromotionScheduler.h | 188     | -                             | -  | ?
     out   -  const PromotionBudget&  [-]  ?
-    by    Shared/SampleProjection.slang.h, Source/AssetInterchange.cpp, Source/CurveSolver.cpp, Source/PromotionScheduler.cpp, Source/RowSequence.cpp, Source/SurfaceTileSpace.cpp
+    by    Shared/SampleProjection.slang.h, Source/AssetInterchange.cpp, Source/ControlChrome.cpp, Source/CurveSolver.cpp, Source/DocumentSession.cpp, Source/FileInterchange.cpp, (+6 more)
 
 F PromotionScheduler::OpenedRotation  | PromotionScheduler.h | 189     | -                             | -  | ?
     out   -  std::uint64_t  [-]  ?

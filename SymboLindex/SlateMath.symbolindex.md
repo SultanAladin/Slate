@@ -6,8 +6,8 @@
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateMath
-%folders  22
-%symbols  235
+%folders  36
+%symbols  403
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
@@ -17,22 +17,36 @@ I Api    | Api/Api.symbolindex       | 23 sym | A coordinate and the space it is
 I Source | Source/Source.symbolindex | 10 sym | Primaries derived from chromaticities, the transfers, von Kries adaptation, and the Planckian locus.
 I Api    | Api/Api.symbolindex       | 7 sym  | Planar path evaluation, flattening to a tolerance, and stroke offsetting — the mechanism `52` resolves with.
 I Source | Source/Source.symbolindex | 8 sym  | Adaptive subdivision, endpoint arc parameterisation, and bevelled offsetting.
+I Api    | Api/Api.symbolindex       | 10 sym | Dense and sparse factorisation — Bounded, and held to refusing a singular system rather than dividing by it.
+I Source | Source/Source.symbolindex | 4 sym  | Partial-pivoted elimination, the refusal at the pivot floor, and the residual taken against the supply.
 I Api    | Api/Api.symbolindex       | 9 sym  | Definite integral approximation over a declared domain — derived abscissae, ordered accumulation, no transcribed set.
 I Source | Source/Source.symbolindex | 6 sym  | Newton on the Legendre recurrence, solved over half the interval and mirrored onto the other.
 I Api    | Api/Api.symbolindex       | 17 sym | The session's reports and its sampled measures — one appended once, one overwritten, and never confused.
 I Source | Source/Source.symbolindex | 14 sym | Coalescing, the bounded cyclic retention, and the overwriting measure index beside it.
 I Api    | Api/Api.symbolindex       | 8 sym  | Wavelength domain to tristimulus — the colour-matching functions, analytic, never three sampled wavelengths.
 I Source | Source/Source.symbolindex | 3 sym  | The nine-lobe fit, and the normalisation derived from it rather than beside it.
-I Api    | Api/Api.symbolindex       | 13 sym | Decomposed transforms, their composition, and the rebasing that precedes every narrowing to 32-bit.
-I Source | Source/Source.symbolindex | 4 sym  | Quaternion composition, matrix derivation, and the 64-bit rebasing subtraction.
+I Api    | Api/Api.symbolindex       | 18 sym | Decomposed transforms, their composition, and the rebasing that precedes every narrowing to 32-bit.
+I Source | Source/Source.symbolindex | 6 sym  | Quaternion composition, matrix derivation, and the 64-bit rebasing subtraction.
 I Api    | Api/Api.symbolindex       | 6 sym  | Boundary-first parameterisation — Convergent, and held to reporting which criterion terminated it.
 I Source | Source/Source.symbolindex | 7 sym  | Chord-length boundary mapping, mean-value interior weights, and relaxation against a declared criterion.
 I Api    | Api/Api.symbolindex       | 39 sym | The only thread creation in the repository — declared work, immutable inputs, results applied on the tick.
 I Source | Source/Source.symbolindex | 23 sym | The reserved interactive worker, cooperative cancellation, and conclusions ordered by declaration.
-I Api    | Api/Api.symbolindex       | 7 sym  | Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
-I Source | Source/Source.symbolindex | 4 sym  | Bounded cyclic arrival ordering over pointer samples.
-I Api    | Api/Api.symbolindex       | 5 sym  | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
-I Source | Source/Source.symbolindex | 5 sym  | Host timeline over the operating system's monotonic counter.
+I Api    | Api/Api.symbolindex       | 8 sym  | Text and imagery crossing to and from the operating system, taken as a copy that outlives what supplied it.
+I Source | Source/Source.symbolindex | 15 sym | The host clipboard opened, copied out of, and closed on every path — including the ones that refuse.
+I Api    | Api/Api.symbolindex       | 13 sym | Foreign compiled code crossing in — opaque tokens, a verified interface hash, no standard type in a signature.
+I Source | Source/Source.symbolindex | 14 sym | The load, the verification performed before any table is read, and the unload taken on every refusing path.
+I Api    | Api/Api.symbolindex       | 9 sym  | One stream surface over three file systems — paths, whole streams, and the write-verify-replace sequence.
+I Source | Source/Source.symbolindex | 11 sym | Paths, whole streams and the write-verify-replace sequence over the host file system.
+I Api    | Api/Api.symbolindex       | 12 sym | Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
+I Source | Source/Source.symbolindex | 21 sym | Bounded cyclic arrival ordering over pointer samples, filled from the host's own pointer surface.
+I Api    | Api/Api.symbolindex       | 7 sym  | The instruction-set specialisation selected once from the host and recorded, so a result names what produced it.
+I Source | Source/Source.symbolindex | 11 sym | The host query, the operating-system consent a wide specialisation additionally needs, and the selection.
+I Api    | Api/Api.symbolindex       | 7 sym  | Process, thread and locale services translated once, so that nothing above Layer0 carries an OS conditional.
+I Source | Source/Source.symbolindex | 7 sym  | Process, thread and locale services over the host, behind the layer's one set of conditionals.
+I Api    | Api/Api.symbolindex       | 11 sym | Byte ranges arriving from the storage device, so a decode is driven by range arrival rather than by whole-stream completion.
+I Source | Source/Source.symbolindex | 10 sym | Declared byte ranges over the host's storage surface, drained in declaration order with the latency each took.
+I Api    | Api/Api.symbolindex       | 6 sym  | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
+I Source | Source/Source.symbolindex | 6 sym  | Host timeline over the operating system's monotonic counter.
 I Api    | Api/Api.symbolindex       | 8 sym  | One window surface over three window systems — surrenders the native handle and nothing else.
 I Source | Source/Source.symbolindex | 9 sym  | Windowing over GLFW, linked dynamically through glfw3dll.lib against glfw3.dll.
 
@@ -40,238 +54,406 @@ I Source | Source/Source.symbolindex | 9 sym  | Windowing over GLFW, linked dyna
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-E TransferSubject                         | Api/ColourProjection.h          | 26-32   | The encoding transfer a colour space applies between its linear light and its stored code. `Linear` here carries no transfer, which is what lets a working space be wide and linear while a display space is neither.
-T ColourSpaceSpecification                | Api/ColourProjection.h          | 45-62   | One colour space: three primaries, a white point, and the transfer it stores its code through. rather than declared as a matrix. A stored matrix is a second representation of the primaries and it drifts from them the moment either is amended. differ are never treated as one because their chromaticities happened to agree to six places.
-F ColourSpaceSpecification::SpaceDeclared | Api/ColourProjection.h          | 61      | Whether this specification names a space at all.
-V WorkingSpaceIdentity                    | Api/ColourProjection.h          | 66      | ?
-V DisplaySpaceIdentity                    | Api/ColourProjection.h          | 67      | ?
-F DeclaredWorkingSpace                    | Api/ColourProjection.h          | 74-89   | The wide linear working space a document is created with. wide-gamut set; `36` §9 leaves which set open and this is a constant, not a shape.
-F DeclaredDisplaySpace                    | Api/ColourProjection.h          | 96-103  | The display space, companded, as a build default until `36` §9's open row is answered. produces an image that is correct on exactly one monitor.
-T ColourSpecification                     | Api/ColourProjection.h          | 115-125 | A coordinate together with the space it is expressed in. three subsystems will each interpret differently, and all three will look plausible. and clamping here would compress a radiance before `66` had a chance to project it.
-F ColourSpecification::ColourDeclared     | Api/ColourProjection.h          | 124     | Whether this colour names the space it is a coordinate in.
-F SpacesAgree                             | Api/ColourProjection.h          | 131-134 | Whether two colours are expressed in the same space.
-F SLATE_DECLARES_PRECISION                | Api/ColourProjection.h          | 135     | ?
-F Project                                 | Api/ColourProjection.h          | 150     | Projects one colour into a declared space, transfers and white point included. white point, encode the target transfer. Exposing the four apart invites a caller to omit one, and the omission that matters — the transfer — produces an image that is merely "a bit washed out".
-F SLATE_DECLARES_PRECISION                | Api/ColourProjection.h          | 153     | ?
-F ProjectTristimulus                      | Api/ColourProjection.h          | 170     | Projects one tristimulus coordinate into a declared space, encoding its transfer. own; whether it needs adapting is a fact about the spectrum that produced it, which this routine cannot see. `ProjectTemperature` adapts before calling here, because a locus coordinate **is** a white point — and that is the one case where the adaptation is knowable at this depth. space without re-deriving the primaries. `AdaptWhite` already crosses this seam in tristimulus, so nothing new is exposed by it.
-F SLATE_DECLARES_PRECISION                | Api/ColourProjection.h          | 174     | ?
-F Encode                                  | Api/ColourProjection.h          | 180     | Applies one space's encoding transfer to a linear coordinate.
-F SLATE_DECLARES_PRECISION                | Api/ColourProjection.h          | 181     | ?
-F Decode                                  | Api/ColourProjection.h          | 186     | Removes one space's encoding transfer, returning linear light.
-F SLATE_DECLARES_PRECISION                | Api/ColourProjection.h          | 187     | ?
-F AdaptWhite                              | Api/ColourProjection.h          | 194     | Adapts a tristimulus coordinate from one white point to another. shifts hue on every saturated colour, which is visible exactly where an artist notices it.
-F SLATE_DECLARES_PRECISION                | Api/ColourProjection.h          | 197     | ?
-F ProjectTemperature                      | Api/ColourProjection.h          | 206     | Derives a white point coordinate from a declared correlated colour temperature. 5600 expects to see 5600 when they return, and a coordinate cannot be inverted back to it exactly.
-F SLATE_DECLARES_PRECISION                | Api/ColourProjection.h          | 208     | ?
-T TristimulusProjection                   | Source/ColourProjection.cpp     | 23-29   | ?
-F Invert                                  | Source/ColourProjection.cpp     | 31-56   | ?
-F Apply                                   | Source/ColourProjection.cpp     | 58-68   | ?
-F DeriveProjection                        | Source/ColourProjection.cpp     | 77-127  | ?
-F Encode                                  | Source/ColourProjection.cpp     | 135-153 | ?
-F Decode                                  | Source/ColourProjection.cpp     | 155-170 | ?
-F AdaptWhite                              | Source/ColourProjection.cpp     | 176-252 | ?
-F Project                                 | Source/ColourProjection.cpp     | 258-318 | ?
-F ProjectTristimulus                      | Source/ColourProjection.cpp     | 324-355 | ?
-F ProjectTemperature                      | Source/ColourProjection.cpp     | 361-427 | ?
-T PlanarPosition                          | Api/CurveSolver.h               | 25-29   | One position in a planar path's own space. predicate over narrowed positions is exact about the wrong positions.
-E SegmentSubject                          | Api/CurveSolver.h               | 39-46   | What a path segment's geometry is, which fixes which control positions below are read. intake with its position named, never approximated by the nearest member.
-T PathSegment                             | Api/CurveSolver.h               | 52-63   | One segment of a planar path, continuing from wherever the preceding segment ended. two segments that the fill rule would then have to guess how to close.
-F Flatten                                 | Api/CurveSolver.h               | 82      | Appends the flattened polyline of one segment, excluding its origin and including its terminus. an outline at whatever reduction level a tile was promoted to, so a fixed tolerance is either wasteful at coarse levels or visibly polygonal at fine ones — `52` §4. more than the tolerance. Uniform subdivision at a fixed count is either wrong on a tight curve or wasteful on a slack one, and a path carries both.
-F Flatten                                 | Api/CurveSolver.h               | 93      | Flattens a whole ordered run of segments into one polyline.
-F OffsetOutline                           | Api/CurveSolver.h               | 114     | Converts a flattened polyline and a half-width into the closed outline of its stroke. ExtentExhausted for a polyline of fewer than two positions the source's own space and a placement scales that space, so a stored width thins when the placement shrinks — correct for a drawing program and wrong for content placed onto a surface at a chosen size. so declaring one here would be inventing an authored property the artist cannot see.
-F SLATE_DECLARES_PRECISION                | Api/CurveSolver.h               | 117     | ?
-V SubdivisionCeiling                      | Source/CurveSolver.cpp          | 25      | ?
-F ChordDeviation                          | Source/CurveSolver.cpp          | 27-44   | ?
-F Interpolate                             | Source/CurveSolver.cpp          | 46-53   | ?
-F SubdivideCubic                          | Source/CurveSolver.cpp          | 55-84   | ?
-F FlattenArc                              | Source/CurveSolver.cpp          | 86-193  | ?
-F Flatten                                 | Source/CurveSolver.cpp          | 201-241 | ?
-F Flatten                                 | Source/CurveSolver.cpp          | 243-260 | ?
-F OffsetOutline                           | Source/CurveSolver.cpp          | 266-319 | ?
-T QuadratureRule                          | Api/QuadratureIntegrator.h      | 36-130  | A Gauss–Legendre rule over the reference interval, derived once and reused. somebody typed, and the same three defects `ColourProjection` met apply here: a sign, a place, and a normalisation, each individually plausible. Newton on the Legendre recurrence has one place to be wrong and converges to the last representable bit from the standard initial estimate. `28`'s three surface builds pay a root-finding solve at every one of a million cells, and would make the abscissae a cost rather than a constant. agreement with the true integral: given the abscissa magnitudes the weighted sum is accumulated in ordinal order and is therefore the same number on every machine and every run — `02` §5's ordered recombination. How well the rule approximates the integrand is fixed by the abscissa count the caller declares, and is the caller's declaration rather than this component's promise.
-F QuadratureRule::Derive                  | Api/QuadratureIntegrator.h      | 54      | Derives the rule of a declared abscissa count. symmetric about the origin and the weights with them — solving both halves would be solving the same equation twice and would let the two halves disagree in their last bit.
-F QuadratureRule::Abscissa                | Api/QuadratureIntegrator.h      | 60      | One abscissa of the reference interval, in ascending order.
-F QuadratureRule::Weight                  | Api/QuadratureIntegrator.h      | 65      | The weight that abscissa carries.
-F QuadratureRule::Project                 | Api/QuadratureIntegrator.h      | 80      | Projects one abscissa onto a declared interval, weight included. before the rule is derived one walk, in ordinal order. `28` integrates three extinction components along one ray, and three separate scalar integrations would evaluate the same density profile three times.
-F QuadratureRule::IntegrateInterval       | Api/QuadratureIntegrator.h      | 98-113  | Integrates one scalar integrand over a declared interval. artist as an atmosphere whose horizon shifts between two runs of an unchanged document. what the definite integral means and what a caller reversing a ray direction relies on.
-F QuadratureRule::DeclaredCount           | Api/QuadratureIntegrator.h      | 118     | How many abscissae the rule carries.
-F QuadratureRule::Derived                 | Api/QuadratureIntegrator.h      | 123     | Whether the rule has been derived at all.
-F SLATE_DECLARES_PRECISION                | Api/QuadratureIntegrator.h      | 134     | ?
-F QuadratureRule::Derive                  | Source/QuadratureIntegrator.cpp | 17-84   | ?
-F QuadratureRule::Abscissa                | Source/QuadratureIntegrator.cpp | 90-93   | ?
-F QuadratureRule::Weight                  | Source/QuadratureIntegrator.cpp | 95-98   | ?
-F QuadratureRule::Project                 | Source/QuadratureIntegrator.cpp | 100-119 | ?
-F QuadratureRule::DeclaredCount           | Source/QuadratureIntegrator.cpp | 121-124 | ?
-F QuadratureRule::Derived                 | Source/QuadratureIntegrator.cpp | 126-129 | ?
-E ReportDisposition                       | Api/ReportSequence.h            | 31-41   | What the engine did, on the artist's behalf, that the artist could not otherwise see. same reason — it names the category rather than the mechanism. Each member below is instead the past participle of what happened, which is the discriminating fact. disposition is a presentation that disagrees with the document that made the promise — `86` §4.1. and a presenter that treats all seven as failures teaches the artist to ignore it.
-T ReportSpecification                     | Api/ReportSequence.h            | 53-62   | One appended report — where it came from, what it applies to, and how many times it has happened. and a report that owned an allocation would allocate on a worker while the tick presents the register. disposition then presents as the most serious thing it could be, which is the direction that gets fixed.
-T ReportSequence                          | Api/ReportSequence.h            | 78-138  | The session's appended reports, bounded, coalesced, and readable from the tick. every origin that must write here sits beneath `SlateUI`, so a register held in the interface could not be written by a single one of the mechanisms obliged to write it. admits one. A report about a failure has to survive the failure, and `34` §5's failed work produces no result to carry it back on. leaves that component nothing to do; the coalescing rule it would have carried is `Coalesces` below.
-F ReportSequence::Append                  | Api/ReportSequence.h            | 100     | Appends one report, coalescing it into a recurrence of the same origin, disposition and subject. reconstructed later from a measure that changed is a report about the wrong instant. integer comparisons per append rather than four thousand string comparisons.
-F ReportSequence::Retained                | Api/ReportSequence.h            | 108     | The retained reports, oldest first, as a copy taken under the register's own guard. hand back storage a worker may be writing while the presenter walks it.
-F ReportSequence::RetainedCount           | Api/ReportSequence.h            | 113     | How many reports are retained now.
-F ReportSequence::AppendedCount           | Api/ReportSequence.h            | 118     | How many occurrences have been appended across the whole session, coalesced ones included.
-F ReportSequence::DiscardedCount          | Api/ReportSequence.h            | 123     | How many retained reports the ceiling has discarded — itself a fact worth presenting.
-F ReportSequence::Reclaim                 | Api/ReportSequence.h            | 128     | Empties the register. Called at process teardown and by nothing else.
-T SampledMeasure                          | Api/ReportSequence.h            | 149-157 | One sampled quantity with a current value — overwritten every time it is sampled. its totals every rotation; appended, that is thousands of entries a minute inside which the one refusal that mattered is unfindable — `86` §2.
-T MeasureIndex                            | Api/ReportSequence.h            | 164-209 | The current reading of every sampled measure, keyed by origin and quantity. never pushed — a producer that pushed its own measure would write from inside a recording, contending with the tick for the state the tick is presenting.
-F MeasureIndex::DeclareCount              | Api/ReportSequence.h            | 175     | Declares one integer measure, replacing whatever the same origin and quantity last read.
-F MeasureIndex::DeclareMagnitude          | Api/ReportSequence.h            | 182     | Declares one real measure, replacing whatever the same origin and quantity last read. the real declaration and quietly change a count into a magnitude.
-F MeasureIndex::Measures                  | Api/ReportSequence.h            | 187     | Every measure currently held, in declaration order.
-F MeasureIndex::Resolve                   | Api/ReportSequence.h            | 197     | One measure's current reading. capability: a metric that reports zero when it could not be measured is confidently wrong.
-F MeasureIndex::Reclaim                   | Api/ReportSequence.h            | 202     | Discards every held measure.
-F MeasureIndex::Located                   | Api/ReportSequence.h            | 206     | ?
-F TextAgrees                              | Source/ReportSequence.cpp       | 22-31   | ?
-F Coalesces                               | Source/ReportSequence.cpp       | 36-45   | ?
-F ReportSequence::Append                  | Source/ReportSequence.cpp       | 53-94   | ?
-F ReportSequence::Retained                | Source/ReportSequence.cpp       | 100-111 | ?
-F ReportSequence::RetainedCount           | Source/ReportSequence.cpp       | 113-117 | ?
-F ReportSequence::AppendedCount           | Source/ReportSequence.cpp       | 119-123 | ?
-F ReportSequence::DiscardedCount          | Source/ReportSequence.cpp       | 125-129 | ?
-F ReportSequence::Reclaim                 | Source/ReportSequence.cpp       | 131-140 | ?
-F MeasureIndex::Located                   | Source/ReportSequence.cpp       | 146-158 | ?
-F MeasureIndex::DeclareCount              | Source/ReportSequence.cpp       | 160-178 | ?
-F MeasureIndex::DeclareMagnitude          | Source/ReportSequence.cpp       | 180-198 | ?
-F MeasureIndex::Measures                  | Source/ReportSequence.cpp       | 200-203 | ?
-F MeasureIndex::Resolve                   | Source/ReportSequence.cpp       | 205-216 | ?
-F MeasureIndex::Reclaim                   | Source/ReportSequence.cpp       | 218-221 | ?
-V SpectralLowerWavelength                 | Api/SpectralProjection.h        | 22      | ?
-V SpectralUpperWavelength                 | Api/SpectralProjection.h        | 23      | ?
-T TristimulusCoordinate                   | Api/SpectralProjection.h        | 35-40   | One tristimulus coordinate, before any space's primaries are applied. coordinate in, and tristimulus is not a space's coordinate — it is what a projection into one starts from. Spelling it as a colour would let a caller store it and have `36`'s rule appear satisfied by a coordinate in no space at all.
-F ProjectWavelength                       | Api/SpectralProjection.h        | 58      | The three colour-matching responses at one wavelength. four hundred and seventy entries per response and would be four hundred and seventy chances to mistype; the fit is nine lobes and reproduces the set to within a fraction of a percent everywhere, which is far inside the Bounded guarantee this component claims. three-point quadrature of an integral whose integrand has a sharp lobe structure, and it is why an atmosphere computed that way has a twilight of the wrong hue rather than of the wrong brightness.
-F SLATE_DECLARES_PRECISION                | Api/SpectralProjection.h        | 59      | ?
-F LuminanceNormalisation                  | Api/SpectralProjection.h        | 69      | The integral of the luminance response over the declared interval — the normalisation a projection divides by. primaries from chromaticities: a stored normalisation is a second representation of the matching functions and drifts from them the moment the fit is amended.
-F SLATE_DECLARES_PRECISION                | Api/SpectralProjection.h        | 70      | ?
-F ProjectSpectrum                         | Api/SpectralProjection.h        | 91-139  | Projects one spectral quantity onto tristimulus, normalised so a flat spectrum of unit magnitude has unit luminance. normalisation vanishes — which is a fit that no longer describes a luminance response integrations would evaluate the caller's spectrum three times, and a spectrum that reads a medium profile is not cheap enough for that to be a matter of taste. not the same as exponentiating per wavelength and projecting the result. `28` does the former, because the latter needs a spectral transmittance surface rather than a tristimulus one; the discrepancy grows with optical depth and is visible only at grazing angles through the whole atmosphere. Declared here so that whoever measures it later finds the reason rather than the symptom.
-F Lobe                                    | Source/SpectralProjection.cpp   | 23-33   | ?
-F ProjectWavelength                       | Source/SpectralProjection.cpp   | 41-64   | ?
-F LuminanceNormalisation                  | Source/SpectralProjection.cpp   | 70-83   | ?
-T DocumentPosition                        | Api/TransformProjection.h       | 21-26   | A position in document space or view-relative space, at 64-bit.
-T DevicePosition                          | Api/TransformProjection.h       | 32-37   | A position after rebasing, narrowed for the device. plausible-looking cause.
-T RotationQuaternion                      | Api/TransformProjection.h       | 43-49   | A rotation as a unit quaternion. containment relation in `12` compound to unbounded depth without drift.
-T DecomposedTransform                     | Api/TransformProjection.h       | 59-66   | A transform stored decomposed — never as a general matrix. caches it, because a cached matrix is a second representation that drifts from the first.
-T ProjectedTransform                      | Api/TransformProjection.h       | 70-76   | A transform as sixteen coefficients, column-major, derived for one use and discarded.
-F Compound                                | Api/TransformProjection.h       | 88      | Compounds two rotations and renormalises the result.
-F SLATE_DECLARES_PRECISION                | Api/TransformProjection.h       | 89      | ?
-F Compound                                | Api/TransformProjection.h       | 97      | Compounds two decomposed transforms without ever forming a matrix.
-F SLATE_DECLARES_PRECISION                | Api/TransformProjection.h       | 99      | ?
-F Project                                 | Api/TransformProjection.h       | 106     | Derives the matrix form of a decomposed transform at the point of use.
-F SLATE_DECLARES_PRECISION                | Api/TransformProjection.h       | 107     | ?
-F Rebase                                  | Api/TransformProjection.h       | 122     | Rebases a document position to the view origin and narrows it for the device. `SlateCompute` passes through here; `02` §8 gates it and the failure it prevents reads as a driver defect rather than as the arithmetic it is.
-F SLATE_DECLARES_PRECISION                | Api/TransformProjection.h       | 123     | ?
-F Compound                                | Source/TransformProjection.cpp  | 17-58   | ?
-F Compound                                | Source/TransformProjection.cpp  | 64-98   | ?
-F Project                                 | Source/TransformProjection.cpp  | 104-134 | ?
-F Rebase                                  | Source/TransformProjection.cpp  | 140-154 | ?
-T UnwrapSpecification                     | Api/UnwrapSolver.h              | 31-38   | One chart handed to the solver — its positions, its triangulation, and its boundary loop. property in object space, so a chart flattens identically wherever the occupant sits and an artist moving a scene re-derives nothing here. and cannot be flattened at all; the caller resolves that by subdividing, which is `68` §4.1's response to a fold and is deliberately the same mechanism.
-T DistortionMeasure                       | Api/UnwrapSolver.h              | 51-58   | Area and angle distortion, measured apart from each other. and no single number expresses both: a surface flattened to preserve angles stretches in area, and an artist painting a repeating pattern cares about area while one placing a decal cares about angle. raw ratio would report the packing scale as though it were a defect of the flattening.
-F Solve                                   | Api/UnwrapSolver.h              | 80      | Flattens one chart, boundary first, and reports which condition terminated it. an out-of-range corner, a boundary loop shorter than three, or a boundary of no extent cause, because a solver that returns its last iterate at the ceiling is indistinguishable from one that converged — and `68` §4's specific consequence is an artist painting on a domain whose distortion nobody measured. weighted average of its neighbours. Mean-value weights are strictly positive, so a convex boundary gives a fold-free embedding by construction rather than by inspection — which is the whole reason the boundary is mapped to a circle rather than to the chart's own silhouette. `68` §4.1 tests for them anyway. Construction narrows the failure; it does not remove it.
-F SLATE_DECLARES_PRECISION                | Api/UnwrapSolver.h              | 81      | ?
-F Measure                                 | Api/UnwrapSolver.h              | 92      | Measures the area and angle distortion of a flattening against the topology it came from. rather than removing them, so they arrive here and would otherwise report an unbounded ratio.
-F SLATE_DECLARES_PRECISION                | Api/UnwrapSolver.h              | 95      | ?
-F SpatialDistance                         | Source/UnwrapSolver.cpp         | 22-29   | ?
-F CornerAngle                             | Source/UnwrapSolver.cpp         | 34-55   | ?
-F PlanarAngle                             | Source/UnwrapSolver.cpp         | 57-75   | ?
-F SpatialArea                             | Source/UnwrapSolver.cpp         | 77-92   | ?
-F PlanarArea                              | Source/UnwrapSolver.cpp         | 94-100  | ?
-F Solve                                   | Source/UnwrapSolver.cpp         | 108-311 | ?
-F Measure                                 | Source/UnwrapSolver.cpp         | 317-395 | ?
-V AbsentWork                              | Api/WorkSequence.h              | 27      | ?
-E WorkPriority                            | Api/WorkSequence.h              | 37-43   | How urgently declared work is wanted, and therefore what it may starve. whole-document export are both long solves, and `34` §4 forbids the export occupying every worker.
-E WorkConclusion                          | Api/WorkSequence.h              | 49-55   | How one declaration ended. superseded cancellation ordinary operation and a withdrawn one the requester's own decision.
-T WorkCancellation                        | Api/WorkSequence.h              | 66-77   | What a resolution reads at each of its declared cancellation points. cancelled declaration still runs to its next declared point and releases what it holds — a worker that is simply never joined leaks its inputs, proportional to how often the artist changes their mind.
-F WorkCancellation::WithdrawalDeclared    | Api/WorkSequence.h              | 73-76   | Whether the requester has withdrawn this declaration.
-T WorkProgress                            | Api/WorkSequence.h              | 89-151  | What a long solve reports while it runs. own rate would contend with the tick for the very state the tick is presenting. and read once per tick, so the contention it could suffer never arises.
-F WorkProgress::DeclareFraction           | Api/WorkSequence.h              | 101-105 | Declares the resolved fraction, clamped to the closed unit interval.
-F WorkProgress::DeclareCount              | Api/WorkSequence.h              | 112-119 | Declares the resolved count out of the spanned count, and the fraction they imply.
-F WorkProgress::Fraction                  | Api/WorkSequence.h              | 124     | The resolved fraction as last declared.
-F WorkProgress::ResolvedCount             | Api/WorkSequence.h              | 129     | The resolved count as last declared.
-F WorkProgress::SpannedCount              | Api/WorkSequence.h              | 134     | The spanned count as last declared; zero declares the span unknown.
-F WorkProgress::Reclaim                   | Api/WorkSequence.h              | 139-144 | Returns every reading to its beginning, for a reused record.
-T WorkDeclaration                         | Api/WorkSequence.h              | 166-174 | One declaration of work to be resolved off the tick. document, the tick's state, or anything in `76`. The requester captures what the work needs at declaration and hands it over, which is the rule that makes every lock here unnecessary. it on the tick after `Drain` delivers it — `34` §3. bounded worker count, waiting is a deadlock that appears only under load, on someone else's machine.
-T WorkCompletion                          | Api/WorkSequence.h              | 178-186 | One concluded declaration, crossing back to the tick.
-T WorkQueue                               | Api/WorkSequence.h              | 196-226 | Pending declarations at one priority level, claimed in declaration order. withdrawal costs a write instead of a shift of everything behind it.
-F WorkQueue::Admit                        | Api/WorkSequence.h              | 203     | Admits one record ordinal at the end of the order.
-F WorkQueue::Claim                        | Api/WorkSequence.h              | 209     | Claims the earliest pending record ordinal.
-F WorkQueue::Withdraw                     | Api/WorkSequence.h              | 214     | Strikes one record ordinal from the order without claiming it.
-F WorkQueue::PendingCount                 | Api/WorkSequence.h              | 219     | How many declarations are pending here.
-T WorkSequence                            | Api/WorkSequence.h              | 239-365 | The workers, their lifetime, and the dispatch order over three priority levels. `50`, `68`, `20`, `24`, `70` and `82` is declared into this and applied by its requester on the tick. delivers completions ordered by declaration ordinal for exactly that reason — an application order that followed completion order would make the same inputs produce two documents on two machines.
-F WorkSequence::WorkSequence              | Api/WorkSequence.h              | 245     | ?
-F WorkSequence::~WorkSequence             | Api/WorkSequence.h              | 248     | ?
-F WorkSequence::Construct                 | Api/WorkSequence.h              | 260     | Constructs the workers, once, at bring-up. the host report and the call moves there when it exists.
-F WorkSequence::Declare                   | Api/WorkSequence.h              | 270     | Declares one unit of work, to be resolved by a worker. declaration carries no resolution claims it; nothing about the calling thread decides when.
-F WorkSequence::Withdraw                  | Api/WorkSequence.h              | 278     | Withdraws one declaration, because the requester no longer wants it.
-F WorkSequence::Supersede                 | Api/WorkSequence.h              | 286     | Withdraws one declaration because a newer one replaces it. superseded cancellation ordinary operation, so nothing is appended to the register for it.
-F WorkSequence::Drain                     | Api/WorkSequence.h              | 302     | Delivers every conclusion recorded since the last drain, in declaration order. delivered as soon as it is recorded, so an earlier declaration still resolving does not hold a later one back. Holding it back would make a `Background` export block every `Interactive` promotion declared after it, which is the starvation `34` §4 forbids outright. index, never by completion. Two independent declarations read disjoint immutable inputs, so the order their results are applied in carries no information and cannot make two machines differ. a worker applying its own result would linearise against `RevisionSequence` from a thread that does not observe the tick's ordering, which `12` invariant 10 forbids.
-F WorkSequence::Progress                  | Api/WorkSequence.h              | 308     | One declaration's resolved fraction.
-F WorkSequence::ProgressCount             | Api/WorkSequence.h              | 314     | One declaration's resolved count.
-F WorkSequence::WorkerCount               | Api/WorkSequence.h              | 319     | How many workers stand.
-F WorkSequence::OccupiedWorkers           | Api/WorkSequence.h              | 324     | How many workers are resolving something now.
-F WorkSequence::PendingCount              | Api/WorkSequence.h              | 329     | How many declarations are pending across every priority.
-F WorkSequence::Reclaim                   | Api/WorkSequence.h              | 335     | Withdraws everything pending, joins every worker, and returns the sequence to its unconstructed state.
-F WorkSequence::Serve                     | Api/WorkSequence.h              | 344     | ?
-F WorkSequence::Claimable                 | Api/WorkSequence.h              | 345     | ?
-F WorkSequence::Claim                     | Api/WorkSequence.h              | 346     | ?
-F WorkSequence::Seal                      | Api/WorkSequence.h              | 347     | ?
-F WorkSequence::Cancel                    | Api/WorkSequence.h              | 348     | ?
-F WorkSequence::Resolved                  | Api/WorkSequence.h              | 349     | ?
-T WorkSequence                            | Source/WorkSequence.cpp         | 19-29   | ?
-F WorkQueue::Admit                        | Source/WorkSequence.cpp         | 35-39   | ?
-F WorkQueue::Claim                        | Source/WorkSequence.cpp         | 41-68   | ?
-F WorkQueue::Withdraw                     | Source/WorkSequence.cpp         | 70-84   | ?
-F WorkQueue::PendingCount                 | Source/WorkSequence.cpp         | 86-89   | ?
-F WorkSequence::Construct                 | Source/WorkSequence.cpp         | 100-135 | ?
-F WorkSequence::~WorkSequence             | Source/WorkSequence.cpp         | 137-140 | ?
-F WorkSequence::Claimable                 | Source/WorkSequence.cpp         | 146-163 | ?
-F WorkSequence::Claim                     | Source/WorkSequence.cpp         | 165-181 | ?
-F WorkSequence::Serve                     | Source/WorkSequence.cpp         | 183-229 | ?
-F WorkSequence::Declare                   | Source/WorkSequence.cpp         | 235-286 | ?
-F WorkSequence::Resolved                  | Source/WorkSequence.cpp         | 292-303 | ?
-F WorkSequence::Cancel                    | Source/WorkSequence.cpp         | 305-329 | ?
-F WorkSequence::Withdraw                  | Source/WorkSequence.cpp         | 331-334 | ?
-F WorkSequence::Supersede                 | Source/WorkSequence.cpp         | 336-339 | ?
-F WorkSequence::Seal                      | Source/WorkSequence.cpp         | 345-397 | ?
-F WorkSequence::Drain                     | Source/WorkSequence.cpp         | 403-421 | ?
-F WorkSequence::Progress                  | Source/WorkSequence.cpp         | 427-437 | ?
-F WorkSequence::ProgressCount             | Source/WorkSequence.cpp         | 439-452 | ?
-F WorkSequence::WorkerCount               | Source/WorkSequence.cpp         | 454-458 | ?
-F WorkSequence::OccupiedWorkers           | Source/WorkSequence.cpp         | 460-464 | ?
-F WorkSequence::PendingCount              | Source/WorkSequence.cpp         | 466-476 | ?
-F WorkSequence::Reclaim                   | Source/WorkSequence.cpp         | 482-531 | ?
-T AxisPresence                            | Api/InputExchange.h             | 23-28   | Which optional axes the reporting device supplied on one sample. are different facts, and `22` treats them differently.
-T PointerSample                           | Api/InputExchange.h             | 38-49   | One pointer sample, stamped at arrival by `TickSequence`. rate reconstructs only if the arrival stamps survive.
-T InputExchange                           | Api/InputExchange.h             | 60-94   | The bounded arrival ordering of pointer samples, drained once per tick by the consumer. that outruns the drain loses its oldest samples, which is visible, rather than allocating during an interaction, which is not.
-F InputExchange::Record                   | Api/InputExchange.h             | 70      | Records one arriving sample against the supplied timeline.
-F InputExchange::Sample                   | Api/InputExchange.h             | 77      | Reads one held sample in arrival order.
-F InputExchange::HeldCount                | Api/InputExchange.h             | 82      | How many samples are held.
-F InputExchange::Reclaim                  | Api/InputExchange.h             | 87      | Discards every held sample. Called by the consumer once it has read them.
-F InputExchange::Record                   | Source/InputExchange.cpp        | 15-30   | ?
-F InputExchange::Sample                   | Source/InputExchange.cpp        | 36-39   | ?
-F InputExchange::HeldCount                | Source/InputExchange.cpp        | 41-44   | ?
-F InputExchange::Reclaim                  | Source/InputExchange.cpp        | 46-50   | ?
-T TickPoint                               | Api/TickSequence.h              | 21-24   | One ordering point on the monotonic host timeline. path the artist drew from arrival stamps, which is the only reason arrival stamps exist.
-T TickSequence                            | Api/TickSequence.h              | 28-55   | The monotonic host timeline. One instance per process, constructed at bring-up.
-F TickSequence::TickSequence              | Api/TickSequence.h              | 34      | Fixes the timeline origin against the host performance counter.
-F TickSequence::Advance                   | Api/TickSequence.h              | 41      | Reads the current ordering point.
-F TickSequence::Span                      | Api/TickSequence.h              | 49      | Duration between two ordering points.
-K WIN32_LEAN_AND_MEAN                     | Source/TickSequence.cpp         | 14      | ?
-K NOMINMAX                                | Source/TickSequence.cpp         | 17      | ?
-F TickSequence::TickSequence              | Source/TickSequence.cpp         | 31-53   | ?
-F TickSequence::Advance                   | Source/TickSequence.cpp         | 59-83   | ?
-F TickSequence::Span                      | Source/TickSequence.cpp         | 89-95   | ?
-T DisplayExtent                           | Api/WindowInterchange.h         | 23-27   | The extent of a window's drawable area. the intermediates; nothing here queues them.
-T WindowInterchange                       | Api/WindowInterchange.h         | 38-81   | A native window over the host window system. is, includes no Vulkan header, and names no presentation chain. `06`'s `WindowExchange` converts the handle; the split is what keeps `SlateMath` device-free.
-F WindowInterchange::~WindowInterchange   | Api/WindowInterchange.h         | 45      | ?
-F WindowInterchange::Open                 | Api/WindowInterchange.h         | 53      | Opens a window of the requested extent and surrenders nothing until it succeeds.
-F WindowInterchange::Drain                | Api/WindowInterchange.h         | 58      | Drains the window system's pending messages into this window's recorded condition.
-F WindowInterchange::NativeHandle         | Api/WindowInterchange.h         | 64      | The opaque native handle, for `06`'s `WindowExchange` and for nothing else.
-F WindowInterchange::CurrentExtent        | Api/WindowInterchange.h         | 69      | The current drawable extent.
-F WindowInterchange::ClosureRequested     | Api/WindowInterchange.h         | 74      | Whether the artist has asked the window system to close this window.
-V OpenWindowCount                         | Source/WindowInterchange.cpp    | 23      | ?
-F AcquireWindowSystem                     | Source/WindowInterchange.cpp    | 25-32   | ?
-F ReleaseWindowSystem                     | Source/WindowInterchange.cpp    | 34-43   | ?
-F WindowInterchange::Open                 | Source/WindowInterchange.cpp    | 50-77   | ?
-F WindowInterchange::~WindowInterchange   | Source/WindowInterchange.cpp    | 79-87   | ?
-F WindowInterchange::Drain                | Source/WindowInterchange.cpp    | 93-109  | ?
-F WindowInterchange::NativeHandle         | Source/WindowInterchange.cpp    | 111-114 | ?
-F WindowInterchange::CurrentExtent        | Source/WindowInterchange.cpp    | 116-119 | ?
-F WindowInterchange::ClosureRequested     | Source/WindowInterchange.cpp    | 121-124 | ?
+E TransferSubject                          | Api/ColourProjection.h          | 26-32   | The encoding transfer a colour space applies between its linear light and its stored code. `Linear` here carries no transfer, which is what lets a working space be wide and linear while a display space is neither.
+T ColourSpaceSpecification                 | Api/ColourProjection.h          | 45-62   | One colour space: three primaries, a white point, and the transfer it stores its code through. rather than declared as a matrix. A stored matrix is a second representation of the primaries and it drifts from them the moment either is amended. differ are never treated as one because their chromaticities happened to agree to six places.
+F ColourSpaceSpecification::SpaceDeclared  | Api/ColourProjection.h          | 61      | Whether this specification names a space at all.
+V WorkingSpaceIdentity                     | Api/ColourProjection.h          | 66      | ?
+V DisplaySpaceIdentity                     | Api/ColourProjection.h          | 67      | ?
+F DeclaredWorkingSpace                     | Api/ColourProjection.h          | 74-89   | The wide linear working space a document is created with. wide-gamut set; `36` §9 leaves which set open and this is a constant, not a shape.
+F DeclaredDisplaySpace                     | Api/ColourProjection.h          | 96-103  | The display space, companded, as a build default until `36` §9's open row is answered. produces an image that is correct on exactly one monitor.
+T ColourSpecification                      | Api/ColourProjection.h          | 115-125 | A coordinate together with the space it is expressed in. three subsystems will each interpret differently, and all three will look plausible. and clamping here would compress a radiance before `66` had a chance to project it.
+F ColourSpecification::ColourDeclared      | Api/ColourProjection.h          | 124     | Whether this colour names the space it is a coordinate in.
+F SpacesAgree                              | Api/ColourProjection.h          | 131-134 | Whether two colours are expressed in the same space.
+F SLATE_DECLARES_PRECISION                 | Api/ColourProjection.h          | 135     | ?
+F Project                                  | Api/ColourProjection.h          | 150     | Projects one colour into a declared space, transfers and white point included. white point, encode the target transfer. Exposing the four apart invites a caller to omit one, and the omission that matters — the transfer — produces an image that is merely "a bit washed out".
+F SLATE_DECLARES_PRECISION                 | Api/ColourProjection.h          | 153     | ?
+F ProjectTristimulus                       | Api/ColourProjection.h          | 170     | Projects one tristimulus coordinate into a declared space, encoding its transfer. own; whether it needs adapting is a fact about the spectrum that produced it, which this routine cannot see. `ProjectTemperature` adapts before calling here, because a locus coordinate **is** a white point — and that is the one case where the adaptation is knowable at this depth. space without re-deriving the primaries. `AdaptWhite` already crosses this seam in tristimulus, so nothing new is exposed by it.
+F SLATE_DECLARES_PRECISION                 | Api/ColourProjection.h          | 174     | ?
+F Encode                                   | Api/ColourProjection.h          | 180     | Applies one space's encoding transfer to a linear coordinate.
+F SLATE_DECLARES_PRECISION                 | Api/ColourProjection.h          | 181     | ?
+F Decode                                   | Api/ColourProjection.h          | 186     | Removes one space's encoding transfer, returning linear light.
+F SLATE_DECLARES_PRECISION                 | Api/ColourProjection.h          | 187     | ?
+F AdaptWhite                               | Api/ColourProjection.h          | 194     | Adapts a tristimulus coordinate from one white point to another. shifts hue on every saturated colour, which is visible exactly where an artist notices it.
+F SLATE_DECLARES_PRECISION                 | Api/ColourProjection.h          | 197     | ?
+F ProjectTemperature                       | Api/ColourProjection.h          | 206     | Derives a white point coordinate from a declared correlated colour temperature. 5600 expects to see 5600 when they return, and a coordinate cannot be inverted back to it exactly.
+F SLATE_DECLARES_PRECISION                 | Api/ColourProjection.h          | 208     | ?
+T TristimulusProjection                    | Source/ColourProjection.cpp     | 23-29   | ?
+F Invert                                   | Source/ColourProjection.cpp     | 31-56   | ?
+F Apply                                    | Source/ColourProjection.cpp     | 58-68   | ?
+F DeriveProjection                         | Source/ColourProjection.cpp     | 77-127  | ?
+F Encode                                   | Source/ColourProjection.cpp     | 135-153 | ?
+F Decode                                   | Source/ColourProjection.cpp     | 155-170 | ?
+F AdaptWhite                               | Source/ColourProjection.cpp     | 176-252 | ?
+F Project                                  | Source/ColourProjection.cpp     | 258-318 | ?
+F ProjectTristimulus                       | Source/ColourProjection.cpp     | 324-355 | ?
+F ProjectTemperature                       | Source/ColourProjection.cpp     | 361-427 | ?
+T PlanarPosition                           | Api/CurveSolver.h               | 25-29   | One position in a planar path's own space. predicate over narrowed positions is exact about the wrong positions.
+E SegmentSubject                           | Api/CurveSolver.h               | 39-46   | What a path segment's geometry is, which fixes which control positions below are read. intake with its position named, never approximated by the nearest member.
+T PathSegment                              | Api/CurveSolver.h               | 52-63   | One segment of a planar path, continuing from wherever the preceding segment ended. two segments that the fill rule would then have to guess how to close.
+F Flatten                                  | Api/CurveSolver.h               | 82      | Appends the flattened polyline of one segment, excluding its origin and including its terminus. an outline at whatever reduction level a tile was promoted to, so a fixed tolerance is either wasteful at coarse levels or visibly polygonal at fine ones — `52` §4. more than the tolerance. Uniform subdivision at a fixed count is either wrong on a tight curve or wasteful on a slack one, and a path carries both.
+F Flatten                                  | Api/CurveSolver.h               | 93      | Flattens a whole ordered run of segments into one polyline.
+F OffsetOutline                            | Api/CurveSolver.h               | 114     | Converts a flattened polyline and a half-width into the closed outline of its stroke. ExtentExhausted for a polyline of fewer than two positions the source's own space and a placement scales that space, so a stored width thins when the placement shrinks — correct for a drawing program and wrong for content placed onto a surface at a chosen size. so declaring one here would be inventing an authored property the artist cannot see.
+F SLATE_DECLARES_PRECISION                 | Api/CurveSolver.h               | 117     | ?
+V SubdivisionCeiling                       | Source/CurveSolver.cpp          | 25      | ?
+F ChordDeviation                           | Source/CurveSolver.cpp          | 27-44   | ?
+F Interpolate                              | Source/CurveSolver.cpp          | 46-53   | ?
+F SubdivideCubic                           | Source/CurveSolver.cpp          | 55-84   | ?
+F FlattenArc                               | Source/CurveSolver.cpp          | 86-193  | ?
+F Flatten                                  | Source/CurveSolver.cpp          | 201-241 | ?
+F Flatten                                  | Source/CurveSolver.cpp          | 243-260 | ?
+F OffsetOutline                            | Source/CurveSolver.cpp          | 266-319 | ?
+T DenseSystem                              | Api/LinearSolver.h              | 29-35   | One dense system — a square run of coefficients in row order, and the ordinates it is solved against. row-ordered one solves the transposed system, which is a system that exists and has an answer — so nothing refuses, nothing diverges, and the defect surfaces as a transfer that lands mirrored. against one geometry. The factorisation is the expensive half and is shared across every ordinate run rather than repeated per channel.
+T SparseCoefficient                        | Api/LinearSolver.h              | 42-47   | One coefficient at a stated row and column. Everything absent from the supply is zero. by adding one contribution per observation, and an assembler that had to search for its own earlier entry before adding to it would be quadratic in the observation count.
+T SparseSystem                             | Api/LinearSolver.h              | 57-63   | One sparse system — the coefficients that are not zero, and the ordinates it is solved against. construction and factorises in half the arithmetic and without pivoting; a general system is not, and taking a square root of a negative pivot is where an undeclared asymmetry would first be noticed. symmetric is refused with ContentUnsupported rather than factorised into an answer to a system nobody assembled — which would present as a solve that converged to the wrong surface.
+T SolvedSystem                             | Api/LinearSolver.h              | 77-82   | The solution, and what the factorisation observed about the system on the way to it. factorised without refusing may still have been within a decimal place of refusing, and a solution carried out of a nearly singular system is a solution whose error bound is nothing like the Tier B one the caller was promised. `86` reads it; `24` §4 reports it beside its miss count. perfectly conditioned system; the pivot floor is where it is refused.
+F Solve                                    | Api/LinearSolver.h              | 104     | Factorises a dense square system with partial pivoting and solves every ordinate run against it. the order squared, and with ExtentExhausted when a pivot falls below the declared floor coefficients is bounded by two to the order — and it is claimed only because every consumed operation is itself Bounded. Nothing here claims Exact: elimination is a sequence of roundings. components report a termination cause because their last iterate is still an answer; this is Tier B and has no last iterate — a solution produced by dividing through a numerically absent pivot is arbitrary, and delivering it would hand `24` a correspondence assembled out of the rounding. permuting the unknowns, and every system reaching here is assembled from a geometric neighbourhood where the coefficients are already of one magnitude. The pivot ratio reports when that assumption failed.
+F SLATE_DECLARES_PRECISION                 | Api/LinearSolver.h              | 105     | ?
+F Solve                                    | Api/LinearSolver.h              | 127     | Factorises a sparse square system and solves its single ordinate run against it. column, an ordinate run that is not the order, or a declared symmetry the supply contradicts; refuses with ExtentExhausted when a pivot falls below the declared floor sparse structure. `68` §4's system is one unknown per interior chart position and the systems reaching `24` are per-neighbourhood, both well inside where the filled form costs less than maintaining the occupancy would. The surface is the sparse one so that the day a system arrives that is not, only what is behind this declaration changes. sparse structure creates coefficients at positions the supply left absent, and a caller that assembled against a dense surface would have to be rewritten to assemble against a sparse one — which is the rewrite this declaration is placed here to avoid.
+F SLATE_DECLARES_PRECISION                 | Api/LinearSolver.h              | 128     | ?
+F Measure                                  | Api/LinearSolver.h              | 147     | Measures ‖A·x − b‖∞ for a solution against the dense system it was solved from. solution whose extent does not match the system, which no caller can reach taken against the eliminated coefficients measures the back substitution alone and reports near zero for a factorisation that lost the system entirely — it would confirm the arithmetic against itself. satisfied correspondence is a visible artefact at one position and a Euclidean norm averages it away against every row that was satisfied.
+F SLATE_DECLARES_PRECISION                 | Api/LinearSolver.h              | 148     | ?
+F Eliminate                                | Source/LinearSolver.cpp         | 27-152  | ?
+F Solve                                    | Source/LinearSolver.cpp         | 160-187 | ?
+F Solve                                    | Source/LinearSolver.cpp         | 193-249 | ?
+F Measure                                  | Source/LinearSolver.cpp         | 255-292 | ?
+T QuadratureRule                           | Api/QuadratureIntegrator.h      | 36-130  | A Gauss–Legendre rule over the reference interval, derived once and reused. somebody typed, and the same three defects `ColourProjection` met apply here: a sign, a place, and a normalisation, each individually plausible. Newton on the Legendre recurrence has one place to be wrong and converges to the last representable bit from the standard initial estimate. `28`'s three surface builds pay a root-finding solve at every one of a million cells, and would make the abscissae a cost rather than a constant. agreement with the true integral: given the abscissa magnitudes the weighted sum is accumulated in ordinal order and is therefore the same number on every machine and every run — `02` §5's ordered recombination. How well the rule approximates the integrand is fixed by the abscissa count the caller declares, and is the caller's declaration rather than this component's promise.
+F QuadratureRule::Derive                   | Api/QuadratureIntegrator.h      | 54      | Derives the rule of a declared abscissa count. symmetric about the origin and the weights with them — solving both halves would be solving the same equation twice and would let the two halves disagree in their last bit.
+F QuadratureRule::Abscissa                 | Api/QuadratureIntegrator.h      | 60      | One abscissa of the reference interval, in ascending order.
+F QuadratureRule::Weight                   | Api/QuadratureIntegrator.h      | 65      | The weight that abscissa carries.
+F QuadratureRule::Project                  | Api/QuadratureIntegrator.h      | 80      | Projects one abscissa onto a declared interval, weight included. before the rule is derived one walk, in ordinal order. `28` integrates three extinction components along one ray, and three separate scalar integrations would evaluate the same density profile three times.
+F QuadratureRule::IntegrateInterval        | Api/QuadratureIntegrator.h      | 98-113  | Integrates one scalar integrand over a declared interval. artist as an atmosphere whose horizon shifts between two runs of an unchanged document. what the definite integral means and what a caller reversing a ray direction relies on.
+F QuadratureRule::DeclaredCount            | Api/QuadratureIntegrator.h      | 118     | How many abscissae the rule carries.
+F QuadratureRule::Derived                  | Api/QuadratureIntegrator.h      | 123     | Whether the rule has been derived at all.
+F SLATE_DECLARES_PRECISION                 | Api/QuadratureIntegrator.h      | 134     | ?
+F QuadratureRule::Derive                   | Source/QuadratureIntegrator.cpp | 17-84   | ?
+F QuadratureRule::Abscissa                 | Source/QuadratureIntegrator.cpp | 90-93   | ?
+F QuadratureRule::Weight                   | Source/QuadratureIntegrator.cpp | 95-98   | ?
+F QuadratureRule::Project                  | Source/QuadratureIntegrator.cpp | 100-119 | ?
+F QuadratureRule::DeclaredCount            | Source/QuadratureIntegrator.cpp | 121-124 | ?
+F QuadratureRule::Derived                  | Source/QuadratureIntegrator.cpp | 126-129 | ?
+E ReportDisposition                        | Api/ReportSequence.h            | 31-41   | What the engine did, on the artist's behalf, that the artist could not otherwise see. same reason — it names the category rather than the mechanism. Each member below is instead the past participle of what happened, which is the discriminating fact. disposition is a presentation that disagrees with the document that made the promise — `86` §4.1. and a presenter that treats all seven as failures teaches the artist to ignore it.
+T ReportSpecification                      | Api/ReportSequence.h            | 53-62   | One appended report — where it came from, what it applies to, and how many times it has happened. and a report that owned an allocation would allocate on a worker while the tick presents the register. disposition then presents as the most serious thing it could be, which is the direction that gets fixed.
+T ReportSequence                           | Api/ReportSequence.h            | 78-138  | The session's appended reports, bounded, coalesced, and readable from the tick. every origin that must write here sits beneath `SlateUI`, so a register held in the interface could not be written by a single one of the mechanisms obliged to write it. admits one. A report about a failure has to survive the failure, and `34` §5's failed work produces no result to carry it back on. leaves that component nothing to do; the coalescing rule it would have carried is `Coalesces` below.
+F ReportSequence::Append                   | Api/ReportSequence.h            | 100     | Appends one report, coalescing it into a recurrence of the same origin, disposition and subject. reconstructed later from a measure that changed is a report about the wrong instant. integer comparisons per append rather than four thousand string comparisons.
+F ReportSequence::Retained                 | Api/ReportSequence.h            | 108     | The retained reports, oldest first, as a copy taken under the register's own guard. hand back storage a worker may be writing while the presenter walks it.
+F ReportSequence::RetainedCount            | Api/ReportSequence.h            | 113     | How many reports are retained now.
+F ReportSequence::AppendedCount            | Api/ReportSequence.h            | 118     | How many occurrences have been appended across the whole session, coalesced ones included.
+F ReportSequence::DiscardedCount           | Api/ReportSequence.h            | 123     | How many retained reports the ceiling has discarded — itself a fact worth presenting.
+F ReportSequence::Reclaim                  | Api/ReportSequence.h            | 128     | Empties the register. Called at process teardown and by nothing else.
+T SampledMeasure                           | Api/ReportSequence.h            | 149-157 | One sampled quantity with a current value — overwritten every time it is sampled. its totals every rotation; appended, that is thousands of entries a minute inside which the one refusal that mattered is unfindable — `86` §2.
+T MeasureIndex                             | Api/ReportSequence.h            | 164-209 | The current reading of every sampled measure, keyed by origin and quantity. never pushed — a producer that pushed its own measure would write from inside a recording, contending with the tick for the state the tick is presenting.
+F MeasureIndex::DeclareCount               | Api/ReportSequence.h            | 175     | Declares one integer measure, replacing whatever the same origin and quantity last read.
+F MeasureIndex::DeclareMagnitude           | Api/ReportSequence.h            | 182     | Declares one real measure, replacing whatever the same origin and quantity last read. the real declaration and quietly change a count into a magnitude.
+F MeasureIndex::Measures                   | Api/ReportSequence.h            | 187     | Every measure currently held, in declaration order.
+F MeasureIndex::Resolve                    | Api/ReportSequence.h            | 197     | One measure's current reading. capability: a metric that reports zero when it could not be measured is confidently wrong.
+F MeasureIndex::Reclaim                    | Api/ReportSequence.h            | 202     | Discards every held measure.
+F MeasureIndex::Located                    | Api/ReportSequence.h            | 206     | ?
+F TextAgrees                               | Source/ReportSequence.cpp       | 22-31   | ?
+F Coalesces                                | Source/ReportSequence.cpp       | 36-45   | ?
+F ReportSequence::Append                   | Source/ReportSequence.cpp       | 53-94   | ?
+F ReportSequence::Retained                 | Source/ReportSequence.cpp       | 100-111 | ?
+F ReportSequence::RetainedCount            | Source/ReportSequence.cpp       | 113-117 | ?
+F ReportSequence::AppendedCount            | Source/ReportSequence.cpp       | 119-123 | ?
+F ReportSequence::DiscardedCount           | Source/ReportSequence.cpp       | 125-129 | ?
+F ReportSequence::Reclaim                  | Source/ReportSequence.cpp       | 131-140 | ?
+F MeasureIndex::Located                    | Source/ReportSequence.cpp       | 146-158 | ?
+F MeasureIndex::DeclareCount               | Source/ReportSequence.cpp       | 160-178 | ?
+F MeasureIndex::DeclareMagnitude           | Source/ReportSequence.cpp       | 180-198 | ?
+F MeasureIndex::Measures                   | Source/ReportSequence.cpp       | 200-203 | ?
+F MeasureIndex::Resolve                    | Source/ReportSequence.cpp       | 205-216 | ?
+F MeasureIndex::Reclaim                    | Source/ReportSequence.cpp       | 218-221 | ?
+V SpectralLowerWavelength                  | Api/SpectralProjection.h        | 22      | ?
+V SpectralUpperWavelength                  | Api/SpectralProjection.h        | 23      | ?
+T TristimulusCoordinate                    | Api/SpectralProjection.h        | 35-40   | One tristimulus coordinate, before any space's primaries are applied. coordinate in, and tristimulus is not a space's coordinate — it is what a projection into one starts from. Spelling it as a colour would let a caller store it and have `36`'s rule appear satisfied by a coordinate in no space at all.
+F ProjectWavelength                        | Api/SpectralProjection.h        | 58      | The three colour-matching responses at one wavelength. four hundred and seventy entries per response and would be four hundred and seventy chances to mistype; the fit is nine lobes and reproduces the set to within a fraction of a percent everywhere, which is far inside the Bounded guarantee this component claims. three-point quadrature of an integral whose integrand has a sharp lobe structure, and it is why an atmosphere computed that way has a twilight of the wrong hue rather than of the wrong brightness.
+F SLATE_DECLARES_PRECISION                 | Api/SpectralProjection.h        | 59      | ?
+F LuminanceNormalisation                   | Api/SpectralProjection.h        | 69      | The integral of the luminance response over the declared interval — the normalisation a projection divides by. primaries from chromaticities: a stored normalisation is a second representation of the matching functions and drifts from them the moment the fit is amended.
+F SLATE_DECLARES_PRECISION                 | Api/SpectralProjection.h        | 70      | ?
+F ProjectSpectrum                          | Api/SpectralProjection.h        | 91-139  | Projects one spectral quantity onto tristimulus, normalised so a flat spectrum of unit magnitude has unit luminance. normalisation vanishes — which is a fit that no longer describes a luminance response integrations would evaluate the caller's spectrum three times, and a spectrum that reads a medium profile is not cheap enough for that to be a matter of taste. not the same as exponentiating per wavelength and projecting the result. `28` does the former, because the latter needs a spectral transmittance surface rather than a tristimulus one; the discrepancy grows with optical depth and is visible only at grazing angles through the whole atmosphere. Declared here so that whoever measures it later finds the reason rather than the symptom.
+F Lobe                                     | Source/SpectralProjection.cpp   | 23-33   | ?
+F ProjectWavelength                        | Source/SpectralProjection.cpp   | 41-64   | ?
+F LuminanceNormalisation                   | Source/SpectralProjection.cpp   | 70-83   | ?
+T DocumentPosition                         | Api/TransformProjection.h       | 21-26   | A position in document space, at 64-bit. The document's own origin is what it is measured from.
+T ViewPosition                             | Api/TransformProjection.h       | 37-42   | A position in view-relative space — `02` §3's second space, at 64-bit and measured from the view origin. the whole of what it buys. The two carry identical members and mean different things, so one structure serving both makes a view-relative position passable wherever a document position is expected — which is `00` §10 conflict 15's defect exactly, and it survived the whole series the first time. narrowing are two decisions and a caller that wants the first without the second is `46` at every projection it derives. Fusing them is what makes the intermediate unnameable.
+T DevicePosition                           | Api/TransformProjection.h       | 48-53   | A position after rebasing, narrowed for the device. jitter with a plausible-looking cause.
+T RotationQuaternion                       | Api/TransformProjection.h       | 59-65   | A rotation as a unit quaternion. containment relation in `12` compound to unbounded depth without drift.
+T DecomposedTransform                      | Api/TransformProjection.h       | 75-82   | A transform stored decomposed — never as a general matrix. caches it, because a cached matrix is a second representation that drifts from the first.
+T ProjectedTransform                       | Api/TransformProjection.h       | 86-92   | A transform as sixteen coefficients, column-major, derived for one use and discarded.
+F Compound                                 | Api/TransformProjection.h       | 104     | Compounds two rotations and renormalises the result.
+F SLATE_DECLARES_PRECISION                 | Api/TransformProjection.h       | 105     | ?
+F Compound                                 | Api/TransformProjection.h       | 113     | Compounds two decomposed transforms without ever forming a matrix.
+F SLATE_DECLARES_PRECISION                 | Api/TransformProjection.h       | 115     | ?
+F Project                                  | Api/TransformProjection.h       | 122     | Derives the matrix form of a decomposed transform at the point of use.
+F SLATE_DECLARES_PRECISION                 | Api/TransformProjection.h       | 123     | ?
+F Relative                                 | Api/TransformProjection.h       | 140     | Carries a document position into view-relative space. The subtraction, and nothing else. quantities is exact to within one unit in the last place of the **larger operand's** exponent, so a position ten metres from a camera a kilometre from the document origin retains micrometre resolution here. Narrowing that difference afterwards costs the 32-bit relative precision of ten metres, which is far below one micrometre; narrowing before the subtraction costs the relative precision of a kilometre.
+F SLATE_DECLARES_PRECISION                 | Api/TransformProjection.h       | 141     | ?
+F Narrow                                   | Api/TransformProjection.h       | 152     | Narrows a view-relative position for the device. The narrowing, and nothing else. position by mistake. `02` §8's gate — *every position narrowing to 32-bit is rebased in 64-bit first* — is discharged by this signature rather than by a review, because the only way to obtain the argument is to have called `Relative`.
+F SLATE_DECLARES_PRECISION                 | Api/TransformProjection.h       | 153     | ?
+F Rebase                                   | Api/TransformProjection.h       | 168     | Rebases a document position to the view origin and narrows it for the device — both halves, at once. `SlateCompute` passes through here; `02` §8 gates it and the failure it prevents reads as a driver defect rather than as the arithmetic it is. as a third arithmetic. It is kept because the fused act is what most callers want and because every caller in the engine already spells it this way; the two halves exist for the callers — `46` deriving a projection, `78` measuring a grip — that want the difference before it is narrowed.
+F SLATE_DECLARES_PRECISION                 | Api/TransformProjection.h       | 169     | ?
+F Compound                                 | Source/TransformProjection.cpp  | 17-58   | ?
+F Compound                                 | Source/TransformProjection.cpp  | 64-98   | ?
+F Project                                  | Source/TransformProjection.cpp  | 104-134 | ?
+F Relative                                 | Source/TransformProjection.cpp  | 140-150 | ?
+F Narrow                                   | Source/TransformProjection.cpp  | 152-162 | ?
+F Rebase                                   | Source/TransformProjection.cpp  | 164-169 | ?
+T UnwrapSpecification                      | Api/UnwrapSolver.h              | 31-38   | One chart handed to the solver — its positions, its triangulation, and its boundary loop. property in object space, so a chart flattens identically wherever the occupant sits and an artist moving a scene re-derives nothing here. and cannot be flattened at all; the caller resolves that by subdividing, which is `68` §4.1's response to a fold and is deliberately the same mechanism.
+T DistortionMeasure                        | Api/UnwrapSolver.h              | 51-58   | Area and angle distortion, measured apart from each other. and no single number expresses both: a surface flattened to preserve angles stretches in area, and an artist painting a repeating pattern cares about area while one placing a decal cares about angle. raw ratio would report the packing scale as though it were a defect of the flattening.
+F Solve                                    | Api/UnwrapSolver.h              | 80      | Flattens one chart, boundary first, and reports which condition terminated it. an out-of-range corner, a boundary loop shorter than three, or a boundary of no extent cause, because a solver that returns its last iterate at the ceiling is indistinguishable from one that converged — and `68` §4's specific consequence is an artist painting on a domain whose distortion nobody measured. weighted average of its neighbours. Mean-value weights are strictly positive, so a convex boundary gives a fold-free embedding by construction rather than by inspection — which is the whole reason the boundary is mapped to a circle rather than to the chart's own silhouette. `68` §4.1 tests for them anyway. Construction narrows the failure; it does not remove it.
+F SLATE_DECLARES_PRECISION                 | Api/UnwrapSolver.h              | 81      | ?
+F Measure                                  | Api/UnwrapSolver.h              | 92      | Measures the area and angle distortion of a flattening against the topology it came from. rather than removing them, so they arrive here and would otherwise report an unbounded ratio.
+F SLATE_DECLARES_PRECISION                 | Api/UnwrapSolver.h              | 95      | ?
+F SpatialDistance                          | Source/UnwrapSolver.cpp         | 22-29   | ?
+F CornerAngle                              | Source/UnwrapSolver.cpp         | 34-55   | ?
+F PlanarAngle                              | Source/UnwrapSolver.cpp         | 57-75   | ?
+F SpatialArea                              | Source/UnwrapSolver.cpp         | 77-92   | ?
+F PlanarArea                               | Source/UnwrapSolver.cpp         | 94-100  | ?
+F Solve                                    | Source/UnwrapSolver.cpp         | 108-311 | ?
+F Measure                                  | Source/UnwrapSolver.cpp         | 317-395 | ?
+V AbsentWork                               | Api/WorkSequence.h              | 27      | ?
+E WorkPriority                             | Api/WorkSequence.h              | 37-43   | How urgently declared work is wanted, and therefore what it may starve. whole-document export are both long solves, and `34` §4 forbids the export occupying every worker.
+E WorkConclusion                           | Api/WorkSequence.h              | 49-55   | How one declaration ended. superseded cancellation ordinary operation and a withdrawn one the requester's own decision.
+T WorkCancellation                         | Api/WorkSequence.h              | 66-77   | What a resolution reads at each of its declared cancellation points. cancelled declaration still runs to its next declared point and releases what it holds — a worker that is simply never joined leaks its inputs, proportional to how often the artist changes their mind.
+F WorkCancellation::WithdrawalDeclared     | Api/WorkSequence.h              | 73-76   | Whether the requester has withdrawn this declaration.
+T WorkProgress                             | Api/WorkSequence.h              | 89-151  | What a long solve reports while it runs. own rate would contend with the tick for the very state the tick is presenting. and read once per tick, so the contention it could suffer never arises.
+F WorkProgress::DeclareFraction            | Api/WorkSequence.h              | 101-105 | Declares the resolved fraction, clamped to the closed unit interval.
+F WorkProgress::DeclareCount               | Api/WorkSequence.h              | 112-119 | Declares the resolved count out of the spanned count, and the fraction they imply.
+F WorkProgress::Fraction                   | Api/WorkSequence.h              | 124     | The resolved fraction as last declared.
+F WorkProgress::ResolvedCount              | Api/WorkSequence.h              | 129     | The resolved count as last declared.
+F WorkProgress::SpannedCount               | Api/WorkSequence.h              | 134     | The spanned count as last declared; zero declares the span unknown.
+F WorkProgress::Reclaim                    | Api/WorkSequence.h              | 139-144 | Returns every reading to its beginning, for a reused record.
+T WorkDeclaration                          | Api/WorkSequence.h              | 166-174 | One declaration of work to be resolved off the tick. document, the tick's state, or anything in `76`. The requester captures what the work needs at declaration and hands it over, which is the rule that makes every lock here unnecessary. it on the tick after `Drain` delivers it — `34` §3. bounded worker count, waiting is a deadlock that appears only under load, on someone else's machine.
+T WorkCompletion                           | Api/WorkSequence.h              | 178-186 | One concluded declaration, crossing back to the tick.
+T WorkQueue                                | Api/WorkSequence.h              | 196-226 | Pending declarations at one priority level, claimed in declaration order. withdrawal costs a write instead of a shift of everything behind it.
+F WorkQueue::Admit                         | Api/WorkSequence.h              | 203     | Admits one record ordinal at the end of the order.
+F WorkQueue::Claim                         | Api/WorkSequence.h              | 209     | Claims the earliest pending record ordinal.
+F WorkQueue::Withdraw                      | Api/WorkSequence.h              | 214     | Strikes one record ordinal from the order without claiming it.
+F WorkQueue::PendingCount                  | Api/WorkSequence.h              | 219     | How many declarations are pending here.
+T WorkSequence                             | Api/WorkSequence.h              | 239-366 | The workers, their lifetime, and the dispatch order over three priority levels. `50`, `68`, `20`, `24`, `70` and `82` is declared into this and applied by its requester on the tick. delivers completions ordered by declaration ordinal for exactly that reason — an application order that followed completion order would make the same inputs produce two documents on two machines.
+F WorkSequence::WorkSequence               | Api/WorkSequence.h              | 245     | ?
+F WorkSequence::~WorkSequence              | Api/WorkSequence.h              | 248     | ?
+F WorkSequence::Construct                  | Api/WorkSequence.h              | 261     | Constructs the workers, once, at bring-up. at bring-up. Nothing here decides how many workers a host should run — `34` §4 does, from a reading this only asks for.
+F WorkSequence::Declare                    | Api/WorkSequence.h              | 271     | Declares one unit of work, to be resolved by a worker. declaration carries no resolution claims it; nothing about the calling thread decides when.
+F WorkSequence::Withdraw                   | Api/WorkSequence.h              | 279     | Withdraws one declaration, because the requester no longer wants it.
+F WorkSequence::Supersede                  | Api/WorkSequence.h              | 287     | Withdraws one declaration because a newer one replaces it. superseded cancellation ordinary operation, so nothing is appended to the register for it.
+F WorkSequence::Drain                      | Api/WorkSequence.h              | 303     | Delivers every conclusion recorded since the last drain, in declaration order. delivered as soon as it is recorded, so an earlier declaration still resolving does not hold a later one back. Holding it back would make a `Background` export block every `Interactive` promotion declared after it, which is the starvation `34` §4 forbids outright. index, never by completion. Two independent declarations read disjoint immutable inputs, so the order their results are applied in carries no information and cannot make two machines differ. a worker applying its own result would linearise against `RevisionSequence` from a thread that does not observe the tick's ordering, which `12` invariant 10 forbids.
+F WorkSequence::Progress                   | Api/WorkSequence.h              | 309     | One declaration's resolved fraction.
+F WorkSequence::ProgressCount              | Api/WorkSequence.h              | 315     | One declaration's resolved count.
+F WorkSequence::WorkerCount                | Api/WorkSequence.h              | 320     | How many workers stand.
+F WorkSequence::OccupiedWorkers            | Api/WorkSequence.h              | 325     | How many workers are resolving something now.
+F WorkSequence::PendingCount               | Api/WorkSequence.h              | 330     | How many declarations are pending across every priority.
+F WorkSequence::Reclaim                    | Api/WorkSequence.h              | 336     | Withdraws everything pending, joins every worker, and returns the sequence to its unconstructed state.
+F WorkSequence::Serve                      | Api/WorkSequence.h              | 345     | ?
+F WorkSequence::Claimable                  | Api/WorkSequence.h              | 346     | ?
+F WorkSequence::Claim                      | Api/WorkSequence.h              | 347     | ?
+F WorkSequence::Seal                       | Api/WorkSequence.h              | 348     | ?
+F WorkSequence::Cancel                     | Api/WorkSequence.h              | 349     | ?
+F WorkSequence::Resolved                   | Api/WorkSequence.h              | 350     | ?
+T WorkSequence                             | Source/WorkSequence.cpp         | 20-30   | ?
+F WorkQueue::Admit                         | Source/WorkSequence.cpp         | 36-40   | ?
+F WorkQueue::Claim                         | Source/WorkSequence.cpp         | 42-69   | ?
+F WorkQueue::Withdraw                      | Source/WorkSequence.cpp         | 71-85   | ?
+F WorkQueue::PendingCount                  | Source/WorkSequence.cpp         | 87-90   | ?
+F WorkSequence::Construct                  | Source/WorkSequence.cpp         | 101-141 | ?
+F WorkSequence::~WorkSequence              | Source/WorkSequence.cpp         | 143-146 | ?
+F WorkSequence::Claimable                  | Source/WorkSequence.cpp         | 152-169 | ?
+F WorkSequence::Claim                      | Source/WorkSequence.cpp         | 171-187 | ?
+F WorkSequence::Serve                      | Source/WorkSequence.cpp         | 189-235 | ?
+F WorkSequence::Declare                    | Source/WorkSequence.cpp         | 241-292 | ?
+F WorkSequence::Resolved                   | Source/WorkSequence.cpp         | 298-309 | ?
+F WorkSequence::Cancel                     | Source/WorkSequence.cpp         | 311-335 | ?
+F WorkSequence::Withdraw                   | Source/WorkSequence.cpp         | 337-340 | ?
+F WorkSequence::Supersede                  | Source/WorkSequence.cpp         | 342-345 | ?
+F WorkSequence::Seal                       | Source/WorkSequence.cpp         | 351-403 | ?
+F WorkSequence::Drain                      | Source/WorkSequence.cpp         | 409-427 | ?
+F WorkSequence::Progress                   | Source/WorkSequence.cpp         | 433-443 | ?
+F WorkSequence::ProgressCount              | Source/WorkSequence.cpp         | 445-458 | ?
+F WorkSequence::WorkerCount                | Source/WorkSequence.cpp         | 460-464 | ?
+F WorkSequence::OccupiedWorkers            | Source/WorkSequence.cpp         | 466-470 | ?
+F WorkSequence::PendingCount               | Source/WorkSequence.cpp         | 472-482 | ?
+F WorkSequence::Reclaim                    | Source/WorkSequence.cpp         | 488-537 | ?
+T ClipboardImage                           | Api/ClipboardExchange.h         | 28-33   | One image taken from or handed to the host clipboard, unpremultiplied and eight bits per component. statement about its alpha, and a premultiplied supply read as unpremultiplied darkens every partly transparent texel — which reads as the imagery being wrong rather than as the convention being unsaid. narrowed by whoever supplies it; nothing here widens a narrow one back and calls it precision.
+T ClipboardExchange                        | Api/ClipboardExchange.h         | 47-102  | The one place clipboard content crosses the operating-system edge. nothing depends on a clipboard surviving — the artist copies something else a second later, and a source holding a reference into the host clipboard would then describe content nobody supplied. narrowing happens here rather than at each caller: a caller that narrowed it itself would narrow it through the process code page, which silently drops every character outside it.
+F ClipboardExchange::ReadText              | Api/ClipboardExchange.h         | 58      | Reads the host clipboard's text. HostDenied when the host declines to open it operation and `86` would otherwise report the artist's own empty clipboard as an OS failure.
+F ClipboardExchange::WriteText             | Api/ClipboardExchange.h         | 65      | Hands text to the host clipboard, replacing whatever it carried.
+F ClipboardExchange::ReadImage             | Api/ClipboardExchange.h         | 76      | Reads the host clipboard's imagery. ContentUnsupported for a layout this translation does not read, and with HostDenied when the host declines to open it stores its rows bottom-up under a positive height and top-down under a negative one, and a reader that ignored the sign delivers half of all clipboard imagery vertically mirrored.
+F ClipboardExchange::WriteImage            | Api/ClipboardExchange.h         | 84      | Hands imagery to the host clipboard, replacing whatever it carried. with HostDenied when the host declines
+F ClipboardExchange::TextCarried           | Api/ClipboardExchange.h         | 90      | Whether the host clipboard currently carries text this translation can read.
+F ClipboardExchange::ImageCarried          | Api/ClipboardExchange.h         | 96      | Whether the host clipboard currently carries imagery this translation can read.
+K WIN32_LEAN_AND_MEAN                      | Source/ClipboardExchange.cpp    | 11      | ?
+K NOMINMAX                                 | Source/ClipboardExchange.cpp    | 14      | ?
+T ClipboardHolder                          | Source/ClipboardExchange.cpp    | 36-74   | ?
+F ClipboardHolder::ClipboardHolder         | Source/ClipboardExchange.cpp    | 40-55   | ?
+F ClipboardHolder::~ClipboardHolder        | Source/ClipboardExchange.cpp    | 60-64   | ?
+F ClipboardHolder::Held                    | Source/ClipboardExchange.cpp    | 66-69   | ?
+V OpenAttemptCeiling                       | Source/ClipboardExchange.cpp    | 76      | ?
+F Narrow                                   | Source/ClipboardExchange.cpp    | 78-94   | ?
+F Widen                                    | Source/ClipboardExchange.cpp    | 96-113  | ?
+F ClipboardExchange::ReadText              | Source/ClipboardExchange.cpp    | 123-159 | ?
+F ClipboardExchange::WriteText             | Source/ClipboardExchange.cpp    | 161-217 | ?
+F ClipboardExchange::ReadImage             | Source/ClipboardExchange.cpp    | 223-373 | ?
+F ClipboardExchange::WriteImage            | Source/ClipboardExchange.cpp    | 375-460 | ?
+F ClipboardExchange::TextCarried           | Source/ClipboardExchange.cpp    | 466-473 | ?
+F ClipboardExchange::ImageCarried          | Source/ClipboardExchange.cpp    | 475-482 | ?
+T SlateExtentExchange                      | Api/CodeInterchange.h           | 36-41   | The reservation surface the host lends to foreign code, so nothing frees an extent it did not reserve. foreign code reserved. Two allocators exist — one per toolchain — and an extent returned to the wrong one corrupts a structure neither side can attribute afterwards.
+T SlateModuleReport                        | Api/CodeInterchange.h           | 51-59   | What a foreign module reports about itself before any of its entry points is taken. different declaration of that table has a table of a different shape, so reading it to find out whether it may be read is the defect the hash exists to prevent. module compiled against the previous spelling reads at, and a module that verified its hash and then read the wrong offsets is worse than one that failed to load.
+V AbsentForeignModule                      | Api/CodeInterchange.h           | 72      | ?
+T ForeignRequirement                       | Api/CodeInterchange.h           | 79-83   | What this process requires of a module before it will take an entry point from it. declaration the hash covers is the caller's — `04` §5's apparatus is one mechanism serving whatever interface a consumer declares, not one interface.
+T CodeInterchange                          | Api/CodeInterchange.h           | 93-163  | The one place genuinely foreign compiled code crosses into this process. because `04` §7 gates that the flat apparatus appears **only** here — a gate over an absent component is a gate nothing can violate and nothing can be checked against. pointer into its code leaves a call landing in an extent the host reassigned, which reports as a fault at an address belonging to no module at all.
+F CodeInterchange::~CodeInterchange        | Api/CodeInterchange.h           | 102     | ?
+F CodeInterchange::Acquire                 | Api/CodeInterchange.h           | 118     | Loads a foreign module, verifies its report, and holds it standing. the module exports no acquisition entry, with VersionUnmigratable when the reported major differs, and with ContentUnsupported when the hash differs or the report names no entry table was compiled against declarations this process has never seen, and accepting it because it is newer reads a table whose shape this process is guessing at. and stayed resident has already run its own initialisation inside this process.
+F CodeInterchange::EntryTable              | Api/CodeInterchange.h           | 128     | The verified entry table of a standing module. what the verified hash covered. Declaring the shape here would make this component depend on every interface any consumer ever loads.
+F CodeInterchange::Report                  | Api/CodeInterchange.h           | 135     | What a standing module reported about itself.
+F CodeInterchange::Release                 | Api/CodeInterchange.h           | 142     | Releases one standing module.
+F CodeInterchange::Reclaim                 | Api/CodeInterchange.h           | 147     | Releases every standing module. Called by the destructor as well.
+F CodeInterchange::StandingCount           | Api/CodeInterchange.h           | 152     | How many modules stand.
+T CodeInterchange::StandingModule          | Api/CodeInterchange.h           | 156-160 | ?
+K WIN32_LEAN_AND_MEAN                      | Source/CodeInterchange.cpp      | 13      | ?
+K NOMINMAX                                 | Source/CodeInterchange.cpp      | 16      | ?
+V AcquisitionEntry                         | Source/CodeInterchange.cpp      | 35      | ?
+F Widen                                    | Source/CodeInterchange.cpp      | 39-56   | ?
+F LoadModule                               | Source/CodeInterchange.cpp      | 60-81   | ?
+F UnloadModule                             | Source/CodeInterchange.cpp      | 83-93   | ?
+F ResolveAcquisition                       | Source/CodeInterchange.cpp      | 95-114  | ?
+F CodeInterchange::Acquire                 | Source/CodeInterchange.cpp      | 122-214 | ?
+F CodeInterchange::EntryTable              | Source/CodeInterchange.cpp      | 220-226 | ?
+F CodeInterchange::Report                  | Source/CodeInterchange.cpp      | 228-237 | ?
+F CodeInterchange::StandingCount           | Source/CodeInterchange.cpp      | 239-250 | ?
+F CodeInterchange::Release                 | Source/CodeInterchange.cpp      | 256-268 | ?
+F CodeInterchange::Reclaim                 | Source/CodeInterchange.cpp      | 270-274 | ?
+F CodeInterchange::~CodeInterchange        | Source/CodeInterchange.cpp      | 276-279 | ?
+E PathContent                              | Api/FileInterchange.h           | 26-32   | What the file system reports a path currently names. caller asked for and acts on. A refusal names a file system that declined to answer at all, which is a different fact and is reported through `Outcome` instead.
+T PathReport                               | Api/FileInterchange.h           | 36-41   | What one path names, and the extent behind it.
+T FileInterchange                          | Api/FileInterchange.h           | 55-122  | The path and whole-stream surface, translated once over three file systems. many bytes it is — a component here that recognised a format would put format knowledge in `Layer0_Platform` and give every codec a second place to disagree with itself. A path narrowed at the call site is a path that is wrong for exactly the artists whose documents are not spelled in ASCII, and it is wrong invisibly until one of them opens a file.
+F FileInterchange::Resolve                 | Api/FileInterchange.h           | 66      | What a path currently names. question "is this here" indistinguishable from a file system that failed to answer it.
+F FileInterchange::ReadStream              | Api/FileInterchange.h           | 76      | Reads a whole stream into an extent the caller then owns. ExtentExhausted when it spans more than the declared ceiling by range arrival reads through that one rather than through this.
+F FileInterchange::WriteStream             | Api/FileInterchange.h           | 93      | Writes a whole stream, verifies what landed, and only then replaces what was there. ExtentExhausted when what landed does not match what was written written beside the target, read back and compared, and only a verified stream replaces the original. Writing over the original directly means a host that dies mid-write has destroyed the artist's document to produce a partial one — and the moment it is most likely to die is a long write of a large document, which is exactly the document worth keeping. is not across two. The staged stream is written **beside the target** for that reason and not
+F FileInterchange::DeclareDirectory        | Api/FileInterchange.h           | 102     | Creates a directory and every absent directory above it. be there, and it is.
+F FileInterchange::Reclaim                 | Api/FileInterchange.h           | 108     | Removes what a path names, when it names a stream.
+F FileInterchange::Append                  | Api/FileInterchange.h           | 116     | Appends one path component to another, with exactly one separator between them.
+K WIN32_LEAN_AND_MEAN                      | Source/FileInterchange.cpp      | 11      | ?
+K NOMINMAX                                 | Source/FileInterchange.cpp      | 14      | ?
+F Widen                                    | Source/FileInterchange.cpp      | 39-56   | ?
+F ProjectRevision                          | Source/FileInterchange.cpp      | 62-68   | ?
+F StagedPath                               | Source/FileInterchange.cpp      | 75-78   | ?
+F FileInterchange::Resolve                 | Source/FileInterchange.cpp      | 86-161  | ?
+F FileInterchange::ReadStream              | Source/FileInterchange.cpp      | 167-245 | ?
+F FileInterchange::WriteStream             | Source/FileInterchange.cpp      | 251-364 | ?
+F FileInterchange::DeclareDirectory        | Source/FileInterchange.cpp      | 370-417 | ?
+F FileInterchange::Reclaim                 | Source/FileInterchange.cpp      | 419-445 | ?
+F FileInterchange::Append                  | Source/FileInterchange.cpp      | 451-487 | ?
+T AxisPresence                             | Api/InputExchange.h             | 24-29   | Which optional axes the reporting device supplied on one sample. are different facts, and `22` treats them differently.
+T PointerSample                            | Api/InputExchange.h             | 39-50   | One pointer sample, stamped at arrival by `TickSequence`. rate reconstructs only if the arrival stamps survive.
+T InputExchange                            | Api/InputExchange.h             | 61-141  | The bounded arrival ordering of pointer samples, drained once per tick by the consumer. that outruns the drain loses its oldest samples, which is visible, rather than allocating during an interaction, which is not.
+F InputExchange::~InputExchange            | Api/InputExchange.h             | 70      | ?
+F InputExchange::Attach                    | Api/InputExchange.h             | 86      | Takes the native window's pointer stream and records every sample the device reports on it. ExtentExhausted when this exchange is already attached system's, because the window system reports a position and nothing else. `04` §3 requires an unreported axis to stay distinguishable from a zero-valued one, and the operating system is the only surface in the chain that states which axes the device actually supplied. interface reads the same device through the window system's accumulated condition, and a replacement here would take that stream away from it silently.
+F InputExchange::Detach                    | Api/InputExchange.h             | 92      | Returns the pointer stream to whoever held it before this attachment.
+F InputExchange::ArrivalStamp              | Api/InputExchange.h             | 98      | Stamps an arrival against the attached timeline, for a device that reported no reading of its own.
+F InputExchange::ArrivalStamp              | Api/InputExchange.h             | 108     | Stamps an arrival from the device's own host-counter reading. earliest arrival there is. Taking the timeline here instead would stamp the sample when the process drained the message carrying it, which is the consumption rate wearing an arrival's name.
+F InputExchange::Record                    | Api/InputExchange.h             | 114     | Records one arriving sample against the supplied timeline.
+F InputExchange::Sample                    | Api/InputExchange.h             | 121     | Reads one held sample in arrival order.
+F InputExchange::HeldCount                 | Api/InputExchange.h             | 126     | How many samples are held.
+F InputExchange::Reclaim                   | Api/InputExchange.h             | 131     | Discards every held sample. Called by the consumer once it has read them.
+K WIN32_LEAN_AND_MEAN                      | Source/InputExchange.cpp        | 12      | ?
+K NOMINMAX                                 | Source/InputExchange.cpp        | 15      | ?
+K _WIN32_WINNT                             | Source/InputExchange.cpp        | 23      | ?
+V AttachmentCapacity                       | Source/InputExchange.cpp        | 50      | ?
+T WindowAttachment                         | Source/InputExchange.cpp        | 52-57   | ?
+V Attached                                 | Source/InputExchange.cpp        | 59      | ?
+F ResolveAttachment                        | Source/InputExchange.cpp        | 61-70   | ?
+V ReportedPressureRange                    | Source/InputExchange.cpp        | 75      | ?
+F ProjectPenAxes                           | Source/InputExchange.cpp        | 77-104  | ?
+F ProjectPenContact                        | Source/InputExchange.cpp        | 109-123 | ?
+F ProjectMouseContact                      | Source/InputExchange.cpp        | 125-139 | ?
+F ReceivePointerMessage                    | Source/InputExchange.cpp        | 150-227 | ?
+F InputExchange::Attach                    | Source/InputExchange.cpp        | 235-306 | ?
+F InputExchange::Detach                    | Source/InputExchange.cpp        | 308-343 | ?
+F InputExchange::~InputExchange            | Source/InputExchange.cpp        | 345-348 | ?
+F InputExchange::ArrivalStamp              | Source/InputExchange.cpp        | 354-360 | ?
+F InputExchange::ArrivalStamp              | Source/InputExchange.cpp        | 362-374 | ?
+F InputExchange::Record                    | Source/InputExchange.cpp        | 380-395 | ?
+F InputExchange::Sample                    | Source/InputExchange.cpp        | 401-404 | ?
+F InputExchange::HeldCount                 | Source/InputExchange.cpp        | 406-409 | ?
+F InputExchange::Reclaim                   | Source/InputExchange.cpp        | 411-415 | ?
+E InstructionWidth                         | Api/InstructionExchange.h       | 22-27   | Which instruction-set specialisation a computation was taken through. Ordered by increasing width. so a caller selects by comparing rather than by testing each. `02` §7's parity is reported against this ordinal, and a parity failure appearing on exactly one specialisation is otherwise unattributable.
+T InstructionReport                        | Api/InstructionExchange.h       | 34-40   | What the host reported about its own instruction set, read once at bring-up. `Supported` — a host that decodes the widest specialisation but reduces its own clock to sustain it runs the narrower one faster, and `06`'s `HardwareMetrics` needs both figures to explain why.
+T InstructionExchange                      | Api/InstructionExchange.h       | 54-91   | The one place an instruction-set specialisation is selected, and the one place the selection is read. differ between two call sites in one run, and a parity failure reported against a specialisation that was not the one used names the wrong specialisation — which is worse than naming none. specialises reads the report and branches once, outside its own inner run. A dispatch surface here would put a function pointer between `Layer1_Numeric` and every arithmetic operation it performs.
+F InstructionExchange::Report              | Api/InstructionExchange.h       | 64      | Reads the host's instruction set, selects a specialisation, and records both. never performs a specialised computation never queries for one.
+F InstructionExchange::Fix                 | Api/InstructionExchange.h       | 78      | Fixes the selection at a stated width, overriding what the host reported. which it cannot do while the selection is fixed at bring-up and never movable. This is what makes that sweep possible, and `SelectionForced` is what keeps a forced run from being reported as the host's own choice. produces a result assembled out of two specialisations, which is the exact defect parity exists to detect — reported as a disagreement between the host and itself.
+F InstructionExchange::Release             | Api/InstructionExchange.h       | 83      | Returns the selection to the one the host reported.
+F InstructionExchange::Naming              | Api/InstructionExchange.h       | 90      | The selected specialisation as static text, for `86` and for `02` §7's per-registration reporting.
+K SLATE_INSTRUCTION_QUERY                  | Source/InstructionExchange.cpp  | 12      | ?
+K SLATE_INSTRUCTION_QUERY                  | Source/InstructionExchange.cpp  | 14      | ?
+F QueryHost                                | Source/InstructionExchange.cpp  | 39-50   | ?
+F ExtendedConsent                          | Source/InstructionExchange.cpp  | 56-68   | ?
+F ResolveSupported                         | Source/InstructionExchange.cpp  | 72-135  | ?
+F ResolveCacheLine                         | Source/InstructionExchange.cpp  | 137-161 | ?
+F StandingReport                           | Source/InstructionExchange.cpp  | 166-183 | ?
+F InstructionExchange::Report              | Source/InstructionExchange.cpp  | 191-194 | ?
+F InstructionExchange::Fix                 | Source/InstructionExchange.cpp  | 196-210 | ?
+F InstructionExchange::Release             | Source/InstructionExchange.cpp  | 212-218 | ?
+F InstructionExchange::Naming              | Source/InstructionExchange.cpp  | 224-237 | ?
+T HostReport                               | Api/PlatformInterchange.h       | 25-32   | What the host reports about itself, read once at bring-up and held for the run. measurement to the host that produced it, and a report re-queried mid-run would attribute two measurements of one run to two different hosts when the operating system revised an answer.
+T PlatformInterchange                      | Api/PlatformInterchange.h       | 43-91   | The one place process, thread and locale services cross in. this reports how many the host has. A component that decided the count here would be a scheduling decision living in the layer that is supposed to have no opinions at all.
+F PlatformInterchange::Resolve             | Api/PlatformInterchange.h       | 52      | Reads the host report, once, and holds it for the run.
+F PlatformInterchange::Report              | Api/PlatformInterchange.h       | 58      | The host report as read at bring-up.
+F PlatformInterchange::DeclareThreadName   | Api/PlatformInterchange.h       | 66      | Names the calling thread, so a host profiler attributes a sample to the work rather than to an ordinal. identically either way — so this reports nothing and refuses nothing.
+F PlatformInterchange::ExecutableDirectory | Api/PlatformInterchange.h       | 75      | The directory the running executable sits in, with a trailing separator. working directory instead makes the engine start only when launched from one place, which is the defect every debugger's default working directory reproduces on the first run.
+F PlatformInterchange::RetainedDirectory   | Api/PlatformInterchange.h       | 85      | The directory the host sets aside for this application's own retained content. executable's own directory is not writable by the artist running it, and the failure appears first on the machine that installed the application properly.
+K WIN32_LEAN_AND_MEAN                      | Source/PlatformInterchange.cpp  | 14      | ?
+K NOMINMAX                                 | Source/PlatformInterchange.cpp  | 17      | ?
+F PlatformInterchange::Resolve             | Source/PlatformInterchange.cpp  | 40-140  | ?
+F PlatformInterchange::Report              | Source/PlatformInterchange.cpp  | 142-145 | ?
+F PlatformInterchange::DeclareThreadName   | Source/PlatformInterchange.cpp  | 151-185 | ?
+F PlatformInterchange::ExecutableDirectory | Source/PlatformInterchange.cpp  | 191-251 | ?
+F PlatformInterchange::RetainedDirectory   | Source/PlatformInterchange.cpp  | 253-339 | ?
+T RangeRequest                             | Api/StorageExchange.h           | 23-27   | One byte range a reader asked the storage device for.
+E RangeConclusion                          | Api/StorageExchange.h           | 34-40   | How one declared range ended. bytes than were asked for and every one of them is good; a codec reading the last range of a stream asks for its own read extent and is handed what remains.
+T RangeArrival                             | Api/StorageExchange.h           | 47-54   | One range as it came back, and how long the storage device took over it. ask for next from how long the last answer took — and a stream's mean latency is the one figure that tells it nothing about the range it is about to declare.
+T StorageExchange                          | Api/StorageExchange.h           | 69-133  | One opened stream, read by declared range and drained in arrival order. completion — `04` §4. A codec that waited for the whole stream would hold the tick for as long as the largest document takes to read, and `34` §3 applies results on the tick. that read took. The surface is the asynchronous one deliberately: every caller already declares, goes away, and drains, so the read moving onto `34`'s workers changes nothing above this line. Writing it the other way round would put a whole-stream assumption into every codec first.
+F StorageExchange::~StorageExchange        | Api/StorageExchange.h           | 76      | ?
+F StorageExchange::Open                    | Api/StorageExchange.h           | 84      | Opens one stream for reading by range. ExtentExhausted when this exchange already holds one
+F StorageExchange::Reclaim                 | Api/StorageExchange.h           | 89      | Closes the held stream and discards every range not yet drained.
+F StorageExchange::Declare                 | Api/StorageExchange.h           | 99      | Declares one range the reader wants. is open, and with ExtentExhausted when the offset lies beyond the stream which is what lets a codec declare the next range while it decodes the one it has.
+F StorageExchange::Drain                   | Api/StorageExchange.h           | 108     | Delivers every range that has arrived since the last drain, in declaration order. long one whatever order they were asked in, and a codec reassembling a stream from device order would produce a different result on a device with a different reordering rule.
+F StorageExchange::PendingCount            | Api/StorageExchange.h           | 113     | How many declared ranges have not yet been drained.
+F StorageExchange::SpannedBytes            | Api/StorageExchange.h           | 119     | The whole extent of the open stream.
+K WIN32_LEAN_AND_MEAN                      | Source/StorageExchange.cpp      | 12      | ?
+K NOMINMAX                                 | Source/StorageExchange.cpp      | 15      | ?
+F Widen                                    | Source/StorageExchange.cpp      | 38-55   | ?
+F StorageExchange::Open                    | Source/StorageExchange.cpp      | 65-133  | ?
+F StorageExchange::Reclaim                 | Source/StorageExchange.cpp      | 135-152 | ?
+F StorageExchange::~StorageExchange        | Source/StorageExchange.cpp      | 154-157 | ?
+F StorageExchange::Declare                 | Source/StorageExchange.cpp      | 163-190 | ?
+F StorageExchange::Drain                   | Source/StorageExchange.cpp      | 196-306 | ?
+F StorageExchange::PendingCount            | Source/StorageExchange.cpp      | 312-315 | ?
+F StorageExchange::SpannedBytes            | Source/StorageExchange.cpp      | 317-320 | ?
+T TickPoint                                | Api/TickSequence.h              | 21-24   | One ordering point on the monotonic host timeline. path the artist drew from arrival stamps, which is the only reason arrival stamps exist.
+T TickSequence                             | Api/TickSequence.h              | 28-67   | The monotonic host timeline. One instance per process, constructed at bring-up.
+F TickSequence::TickSequence               | Api/TickSequence.h              | 34      | Fixes the timeline origin against the host performance counter.
+F TickSequence::Advance                    | Api/TickSequence.h              | 41      | Reads the current ordering point.
+F TickSequence::Project                    | Api/TickSequence.h              | 53      | The ordering point a raw host counter reading stands for. timeline's. `04` §3 requires the stamp to survive to `22`, and a sample restamped when the message carrying it was drained carries the drain rate rather than the device rate — which is the defect arrival stamping exists to prevent, reintroduced one layer lower. Projecting the device's own reading keeps the resolution the device actually reported at.
+F TickSequence::Span                       | Api/TickSequence.h              | 61      | Duration between two ordering points.
+K WIN32_LEAN_AND_MEAN                      | Source/TickSequence.cpp         | 14      | ?
+K NOMINMAX                                 | Source/TickSequence.cpp         | 17      | ?
+F TickSequence::TickSequence               | Source/TickSequence.cpp         | 31-53   | ?
+F TickSequence::Advance                    | Source/TickSequence.cpp         | 59-83   | ?
+F TickSequence::Project                    | Source/TickSequence.cpp         | 89-111  | ?
+F TickSequence::Span                       | Source/TickSequence.cpp         | 117-123 | ?
+T DisplayExtent                            | Api/WindowInterchange.h         | 23-27   | The extent of a window's drawable area. the intermediates; nothing here queues them.
+T WindowInterchange                        | Api/WindowInterchange.h         | 38-81   | A native window over the host window system. is, includes no Vulkan header, and names no presentation chain. `06`'s `WindowExchange` converts the handle; the split is what keeps `SlateMath` device-free.
+F WindowInterchange::~WindowInterchange    | Api/WindowInterchange.h         | 45      | ?
+F WindowInterchange::Open                  | Api/WindowInterchange.h         | 53      | Opens a window of the requested extent and surrenders nothing until it succeeds.
+F WindowInterchange::Drain                 | Api/WindowInterchange.h         | 58      | Drains the window system's pending messages into this window's recorded condition.
+F WindowInterchange::NativeHandle          | Api/WindowInterchange.h         | 64      | The opaque native handle, for `06`'s `WindowExchange` and for nothing else.
+F WindowInterchange::CurrentExtent         | Api/WindowInterchange.h         | 69      | The current drawable extent.
+F WindowInterchange::ClosureRequested      | Api/WindowInterchange.h         | 74      | Whether the artist has asked the window system to close this window.
+V OpenWindowCount                          | Source/WindowInterchange.cpp    | 23      | ?
+F AcquireWindowSystem                      | Source/WindowInterchange.cpp    | 25-32   | ?
+F ReleaseWindowSystem                      | Source/WindowInterchange.cpp    | 34-43   | ?
+F WindowInterchange::Open                  | Source/WindowInterchange.cpp    | 50-77   | ?
+F WindowInterchange::~WindowInterchange    | Source/WindowInterchange.cpp    | 79-87   | ?
+F WindowInterchange::Drain                 | Source/WindowInterchange.cpp    | 93-109  | ?
+F WindowInterchange::NativeHandle          | Source/WindowInterchange.cpp    | 111-114 | ?
+F WindowInterchange::CurrentExtent         | Source/WindowInterchange.cpp    | 116-119 | ?
+F WindowInterchange::ClosureRequested      | Source/WindowInterchange.cpp    | 121-124 | ?

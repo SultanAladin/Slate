@@ -16,25 +16,26 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S CommandSequence.cpp | 311 lines | f2de6185 | 8 sym | The per-slot recording extents, the open that resets one whole, and the surrender to the one graphics queue.
+S CommandSequence.cpp | 358 lines | 8a97331f | 8 sym | The per-slot recording extents, the open that resets one whole, and the surrender to the one graphics queue.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-F CommandSequence::Construct          | CommandSequence.cpp | 15-70   | -          | - | ?
-    in    Exchange  const VulkanExchange&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+F CommandSequence::Construct          | CommandSequence.cpp | 15-93   | -          | - | ?
+    in    Exchange  const VulkanExchange&       [-]  ?
+    in    Naming    const DiagnosticExtension&  [-]  ?
+    out   -         Outcome<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE OPENING
 //------------------------------------------------------------------------------------------------------------------------
 
-F CommandSequence::Open               | CommandSequence.cpp | 76-110  | -          | - | ?
+F CommandSequence::Open               | CommandSequence.cpp | 99-133  | -          | - | ?
     in    RotationSlot  std::uint32_t             [-]  ?
     out   -             Outcome<VkCommandBuffer>  [-]  ?
 
-F CommandSequence::Recording          | CommandSequence.cpp | 112-124 | -          | - | ?
+F CommandSequence::Recording          | CommandSequence.cpp | 135-147 | -          | - | ?
     in    RotationSlot  std::uint32_t             [-]  ?
     out   -             Outcome<VkCommandBuffer>  [-]  ?
 
@@ -42,7 +43,7 @@ F CommandSequence::Recording          | CommandSequence.cpp | 112-124 | -       
 //                                                     THE SURRENDER
 //------------------------------------------------------------------------------------------------------------------------
 
-F CommandSequence::Surrender          | CommandSequence.cpp | 130-176 | -          | - | ?
+F CommandSequence::Surrender          | CommandSequence.cpp | 153-204 | -          | - | ?
     in    RotationSlot  std::uint32_t             [-]  ?
     in    Ordering      const SurrenderOrdering&  [-]  ?
     out   -             Outcome<bool>             [-]  ?
@@ -51,10 +52,10 @@ F CommandSequence::Surrender          | CommandSequence.cpp | 130-176 | -       
 //                                                  OUTSIDE THE ROTATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F CommandSequence::OpenImmediate      | CommandSequence.cpp | 182-213 | -          | - | ?
+F CommandSequence::OpenImmediate      | CommandSequence.cpp | 210-247 | -          | - | ?
     out   -  Outcome<VkCommandBuffer>  [-]  ?
 
-F CommandSequence::SurrenderImmediate | CommandSequence.cpp | 215-270 | -          | - | ?
+F CommandSequence::SurrenderImmediate | CommandSequence.cpp | 249-317 | -          | - | ?
     in    Recorded  VkCommandBuffer  [-]  ?
     out   -         Outcome<bool>    [-]  ?
 
@@ -62,7 +63,7 @@ F CommandSequence::SurrenderImmediate | CommandSequence.cpp | 215-270 | -       
 //                                                      RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F CommandSequence::Reclaim            | CommandSequence.cpp | 276-304 | -          | - | ?
+F CommandSequence::Reclaim            | CommandSequence.cpp | 323-351 | -          | - | ?
     out   -  void  [-]  ?
 
-F CommandSequence::~CommandSequence   | CommandSequence.cpp | 306-309 | destructor | - | ?
+F CommandSequence::~CommandSequence   | CommandSequence.cpp | 353-356 | destructor | - | ?

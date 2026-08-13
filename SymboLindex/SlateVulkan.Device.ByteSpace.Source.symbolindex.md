@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ByteSpace.cpp | 386 lines | e690575d | 12 sym | Residency scoring, the first-fit slice, and the coalescing release that keeps an extent from fragmenting away.
+S ByteSpace.cpp | 398 lines | df21d451 | 12 sym | Residency scoring, the first-fit slice, and the coalescing release that keeps an extent from fragmenting away.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ALIGNMENT ARITHMETIC
@@ -35,15 +35,16 @@ F RaiseToAlignment             | ByteSpace.cpp | 25-28   | -          | - | ?
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-F ByteSpace::Construct         | ByteSpace.cpp | 35-56   | -          | - | ?
-    in    Exchange  const VulkanExchange&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+F ByteSpace::Construct         | ByteSpace.cpp | 35-57   | -          | - | ?
+    in    Exchange  const VulkanExchange&       [-]  ?
+    in    Naming    const DiagnosticExtension&  [-]  ?
+    out   -         Outcome<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   RESIDENCY SCORING
 //------------------------------------------------------------------------------------------------------------------------
 
-F ByteSpace::ClassifyResidency | ByteSpace.cpp | 62-90   | -          | - | ?
+F ByteSpace::ClassifyResidency | ByteSpace.cpp | 63-91   | -          | - | ?
     in    Residency  ExtentResidency         [-]  ?
     out   -          Outcome<std::uint32_t>  [-]  ?
 
@@ -51,7 +52,7 @@ F ByteSpace::ClassifyResidency | ByteSpace.cpp | 62-90   | -          | - | ?
 //                                                   EXTENT ACQUISITION
 //------------------------------------------------------------------------------------------------------------------------
 
-F ByteSpace::ConstructExtent   | ByteSpace.cpp | 96-159  | -          | - | ?
+F ByteSpace::ConstructExtent   | ByteSpace.cpp | 97-171  | -          | - | ?
     in    Residency   ExtentResidency         [-]  ?
     in    LeastBytes  VkDeviceSize            [-]  ?
     out   -           Outcome<std::uint32_t>  [-]  ?
@@ -60,7 +61,7 @@ F ByteSpace::ConstructExtent   | ByteSpace.cpp | 96-159  | -          | - | ?
 //                                                       THE SLICE
 //------------------------------------------------------------------------------------------------------------------------
 
-F ByteSpace::Claim             | ByteSpace.cpp | 165-266 | -          | - | ?
+F ByteSpace::Claim             | ByteSpace.cpp | 177-278 | -          | - | ?
     in    RequestedBytes  VkDeviceSize        [-]  ?
     in    ByteAlignment   VkDeviceSize        [-]  ?
     in    Residency       ExtentResidency     [-]  ?
@@ -71,26 +72,26 @@ F ByteSpace::Claim             | ByteSpace.cpp | 165-266 | -          | - | ?
 //                                                      RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F ByteSpace::Release           | ByteSpace.cpp | 272-318 | -          | - | ?
+F ByteSpace::Release           | ByteSpace.cpp | 284-330 | -          | - | ?
     in    Claimed  const ByteClaim&  [-]  ?
     out   -        void              [-]  ?
 
-F ByteSpace::Reclaim           | ByteSpace.cpp | 320-344 | -          | - | ?
+F ByteSpace::Reclaim           | ByteSpace.cpp | 332-356 | -          | - | ?
     out   -  void  [-]  ?
 
-F ByteSpace::~ByteSpace        | ByteSpace.cpp | 346-349 | destructor | - | ?
+F ByteSpace::~ByteSpace        | ByteSpace.cpp | 358-361 | destructor | - | ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS HELD
 //------------------------------------------------------------------------------------------------------------------------
 
-F ByteSpace::ClaimedBytes      | ByteSpace.cpp | 355-366 | -          | - | ?
+F ByteSpace::ClaimedBytes      | ByteSpace.cpp | 367-378 | -          | - | ?
     in    Residency  ExtentResidency  [-]  ?
     out   -          VkDeviceSize     [-]  ?
 
-F ByteSpace::BackingBytes      | ByteSpace.cpp | 368-379 | -          | - | ?
+F ByteSpace::BackingBytes      | ByteSpace.cpp | 380-391 | -          | - | ?
     in    Residency  ExtentResidency  [-]  ?
     out   -          VkDeviceSize     [-]  ?
 
-F ByteSpace::ExtentCount       | ByteSpace.cpp | 381-384 | -          | - | ?
+F ByteSpace::ExtentCount       | ByteSpace.cpp | 393-396 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

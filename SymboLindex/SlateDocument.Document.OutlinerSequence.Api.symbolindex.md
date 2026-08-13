@@ -45,7 +45,7 @@ T DeclaredIntent                    | OutlinerSequence.h | 54-64  | owning      
     has   OrderWithinEnclosure  std::uint32_t     [-]  ?
     has   StandingEnabled       bool              [-]  ?
     has   SelectionExtended     bool              [-]  ?
-    by    Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+    by    Api/DisplayScheduler.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
     note  ⚠️ An intent carrying only "the selection" would apply against whatever the selection had become by
     note  🔴 `Narrow` is the one intent that addresses no occupant. It carries its sought text and nothing
 
@@ -78,7 +78,7 @@ T OutlinerSequence                  | OutlinerSequence.h | 94-225 | owning      
     has   LiveGenerations      std::vector<std::uint32_t>     [-]  ?
     has   NarrowingSought      std::string                    [-]  ?
     has   NarrowingOwed        bool                           [-]  ?
-    by    Api/OutlinerPanel.h, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+    by    Api/DocumentSession.h, Api/OutlinerPanel.h, Source/DocumentSession.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
     note  🔴 The tick order is ① apply committed intent · ② reconcile the population · ③ compound attachments
     note  ⚠️ No linearisation is observed between ④ and ⑤ — invariant 10. `Rows()` reads the sequence the last
 
@@ -91,14 +91,14 @@ F OutlinerSequence::Enrol           | OutlinerSequence.h | 104    | api,nonthrow
 F OutlinerSequence::Declare         | OutlinerSequence.h | 113    | api,nonthrowing               | ✔️ | Declares one intent, to be applied at the next tick's ①. against a linearisation that is halfway rebuilt.
     in    Arriving  const DeclaredIntent&  [-]  the intent, every operand named
     out   -         Outcome                [-]  refuses with IdentityStale when the subject does not resolve now
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+30 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  Declaring is not applying. An intent that arrives mid-tick is applied at the next ① rather than
 
 F OutlinerSequence::Retreat         | OutlinerSequence.h | 127    | api,nonthrowing               | 🚩 | Scrubs the document one transaction backwards, restoring the selection that transaction applied to. revert while the selection does not, so the next action applies to something other than what the undo appeared to restore. Selection is not in the document's sequence and is not unrevisioned either, and this is the seam where the two meet. clearing it. The artist selected nothing there, so there is nothing to restore.
     in    SealedAt  std::uint64_t  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
     out   -         Outcome        [-]   refuses with ExtentExhausted at the beginning of the revision sequence
     post  🔴 the document position and the standing selection moved together — `12` §11
-    by    Api/RevisionSequence.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp, Source/SelectionSequence.cpp
+    by    Api/RevisionSequence.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp, (+1 more)
     note  🔴 This is the defect `12` §11 warns of, closed: move three occupants, undo, and the transforms
     note  A revision no selection was ever sealed at leaves the standing selection alone rather than
 
@@ -106,7 +106,7 @@ F OutlinerSequence::Advance         | OutlinerSequence.h | 135    | api,nonthrow
     in    SealedAt  std::uint64_t  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
     out   -         Outcome        [-]   refuses with ExtentExhausted at the end of the revision sequence
     post  the document position and the standing selection moved together
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+11 more)
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+18 more)
 
 F OutlinerSequence::Reconcile       | OutlinerSequence.h | 145    | api,nonthrowing               | 🔴 | Runs one whole tick in the fixed order ①–⑦. are checked as each transaction seals.
     in    SealedAt  std::uint64_t  [ns]  the arrival stamp transactions sealed this tick carry
@@ -121,7 +121,7 @@ F OutlinerSequence::Sequenced       | OutlinerSequence.h | 150    | api,nonalloc
 
 F OutlinerSequence::Enrollments     | OutlinerSequence.h | 155    | api,nonallocating,nonthrowing | ✔️ | The named subsets as the last tick left them.
     out   -  const EnrollmentIndex&  [-]  ?
-    by    Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+    by    Api/IntersectionOutline.h, Source/IntersectionOutline.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
 
 F OutlinerSequence::Names           | OutlinerSequence.h | 160    | api,nonallocating,nonthrowing | ✔️ | The name search over the population.
     out   -  const TrigramIndex&  [-]  ?
@@ -133,7 +133,7 @@ F OutlinerSequence::Relations       | OutlinerSequence.h | 165    | api,nonalloc
 
 F OutlinerSequence::Revisions       | OutlinerSequence.h | 170    | api,nonallocating,nonthrowing | ✔️ | The document's committed transactions.
     out   -  const RevisionSequence&  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp
+    by    Source/ConsoleHost.cpp, Source/DocumentSession.cpp, Source/OutlinerSequence.cpp
 
 F OutlinerSequence::Selections      | OutlinerSequence.h | 175    | api,nonallocating,nonthrowing | ✔️ | The session's selections.
     out   -  const SelectionSequence&  [-]  ?
@@ -141,7 +141,7 @@ F OutlinerSequence::Selections      | OutlinerSequence.h | 175    | api,nonalloc
 
 F OutlinerSequence::Sought          | OutlinerSequence.h | 182    | api,nonallocating,nonthrowing | ✔️ | The text the standing row narrowing was derived from, empty when no narrowing stands. narrowing left standing across a rename retains occupants whose names no longer match it.
     out   -  const std::string&  [-]  ?
-    by    Api/OutlinerPanel.h, Api/TrigramIndex.h, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/SeamSpecification.cpp, (+2 more)
+    by    Api/OutlinerPanel.h, Api/TrigramIndex.h, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, (+3 more)
     note  Held so that ⑦ can re-derive the narrowing when a rename changes what it would confirm. A
 
 F OutlinerSequence::Rejected        | OutlinerSequence.h | 187    | api,nonallocating,nonthrowing | ✔️ | Every intent refused since the last time the refusals were drained — what `86` presents.

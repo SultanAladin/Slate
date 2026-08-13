@@ -23,7 +23,7 @@ S CurveSolver.cpp | 321 lines | d5b6654e | 8 sym | Adaptive subdivision, endpoin
 //------------------------------------------------------------------------------------------------------------------------
 
 V SubdivisionCeiling | CurveSolver.cpp | 25      | - | - | ?
-    by    Api/ChartPartition.h, Source/ChartPartition.cpp
+    by    Api/ChartPartition.h, Api/PrimitiveStructure.h, Source/ChartPartition.cpp
 
 F ChordDeviation     | CurveSolver.cpp | 27-44   | - | - | ?
     in    Origin    PlanarPosition  [-]  ?

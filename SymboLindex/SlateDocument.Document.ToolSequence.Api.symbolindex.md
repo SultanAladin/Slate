@@ -51,7 +51,7 @@ E OverlaySubject                   | ToolSequence.h | 49-59   | contract        
     has   Manipulator        OverlaySubject  [-]  ?
     has   Pivot              OverlaySubject  [-]  ?
     has   OverlayCount       OverlaySubject  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
+    by    Api/OverlayProjection.h, Source/ConsoleHost.cpp, Source/OverlayProjection.cpp, Source/ToolSequence.cpp
 
 E DisplaySubject                   | ToolSequence.h | 66-72   | contract                      | -  | How the workspace presents the shaded result. because a document that reopened in someone else's display mode has restored a decision about the machine rather than about the work.
     has   Shaded           DisplaySubject  [-]  ?
@@ -99,26 +99,26 @@ T ToolIndex                        | ToolSequence.h | 119-146 | owning          
 F ToolIndex::Declare               | ToolSequence.h | 128     | api,nonthrowing               | 🚩 | Declares one tool and issues its ordinal. and with ExtentExhausted at the declared ceiling
     in    Declaring  const ToolSpecification&  [-]  ?
     out   -          Outcome                   [-]  refuses with ContentUnsupported for an empty identity or an out-of-range declaration,
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+30 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F ToolIndex::Resolve               | ToolSequence.h | 130     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                      [-]  ?
     out   -            Outcome<const ToolSpecification*>  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F ToolIndex::Amend                 | ToolSequence.h | 131     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                [-]  ?
     out   -            Outcome<ToolSpecification*>  [-]  ?
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+20 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
 
 F ToolIndex::Located               | ToolSequence.h | 137     | api,nonthrowing               | 🚩 | The ordinal one identity was declared at.
     in    Identity  const std::string&  [-]  ?
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
-    by    Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, (+17 more)
+    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+26 more)
 
 F ToolIndex::DeclaredCount         | ToolSequence.h | 139     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/MaterialSpecification.h, Api/ProgramIndex.h, (+19 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+36 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE POINTER CAPTURE
@@ -145,7 +145,7 @@ T ToolSequence                     | ToolSequence.h | 181-304 | owning          
     has   ToolOrdinal       std::uint32_t        [-]  ?
     has   BrushOrdinal      std::uint32_t        [-]  ?
     has   OverlayPresent    bool[OverlaySpan]    [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
+    by    Api/OverlayProjection.h, Source/ConsoleHost.cpp, Source/OverlayProjection.cpp, Source/ToolSequence.cpp
     note  🔴 Nothing here is a transaction and nothing here enters `RevisionSequence` — `14` §4.1. Undo must not
     note  🔴 Held in `SlateDocument.lib` because **both** `SlateCompute` and `SlateUI` read it and `SlateCompute`
     note  ⚠️ Living in `SlateDocument.lib` is a **link-unit** fact and not a persistence one. `48` §2 decides what
@@ -192,7 +192,7 @@ F ToolSequence::DeclareDisplay     | ToolSequence.h | 227     | api,nonthrowing 
 F ToolSequence::DeclareChannel     | ToolSequence.h | 233     | api,nonthrowing               | ✔️ | Declares which of `42`'s channels is presented alone at `ChannelIsolated`.
     in    Declaring  ChannelSubject  [-]  ?
     out   -          Outcome         [-]  refuses with ContentUnsupported for a channel outside `42`'s twenty
-    by    Api/BrushSpecification.h, Api/MaterialSpecification.h, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/ToolSequence.cpp
+    by    Api/BrushSpecification.h, Api/MaterialSpecification.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, (+1 more)
 
 F ToolSequence::DeclareOverlay     | ToolSequence.h | 239     | api,nonthrowing               | ✔️ | Declares whether one of `80`'s overlays is presented.
     in    Declaring        OverlaySubject  [-]  ?
@@ -222,7 +222,7 @@ F ToolSequence::Arbitrate          | ToolSequence.h | 268     | api,nonallocatin
 
 F ToolSequence::Colour             | ToolSequence.h | 270     | -                             | -  | ?
     out   -  const ColourSpecification&  [-]  ?
-    by    Api/PropertySpecification.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/PropertySpecification.cpp, Source/ToolSequence.cpp
+    by    Api/ControlPanel.h, Api/PropertySpecification.h, Api/ThemeSpecification.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, (+8 more)
 
 F ToolSequence::Capture            | ToolSequence.h | 271     | -                             | -  | ?
     out   -  const PointerCapture&  [-]  ?
@@ -246,7 +246,7 @@ F ToolSequence::ActiveBrushOrdinal | ToolSequence.h | 286     | -               
 
 F ToolSequence::Display            | ToolSequence.h | 287     | -                             | -  | ?
     out   -  DisplaySubject  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
+    by    Api/DisplayProjection.h, Source/ConsoleHost.cpp, Source/DisplayProjection.cpp, Source/ToolSequence.cpp
 
 F ToolSequence::IsolatedChannel    | ToolSequence.h | 288     | -                             | -  | ?
     out   -  ChannelSubject  [-]  ?
@@ -255,4 +255,4 @@ F ToolSequence::IsolatedChannel    | ToolSequence.h | 288     | -               
 F ToolSequence::OverlayStanding    | ToolSequence.h | 289     | -                             | -  | ?
     in    Subject  OverlaySubject  [-]  ?
     out   -        bool            [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
+    by    Api/OverlayProjection.h, Source/ConsoleHost.cpp, Source/OverlayProjection.cpp, Source/ToolSequence.cpp

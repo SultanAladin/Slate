@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ImpressionSequence.h | 312 lines | 32af40c7 | 26 sym | A stroke as ordered impressions against the parametric domain — resampled by arrival, deferred never dropped, sealed once.
+S ImpressionSequence.h | 315 lines | a92c3897 | 26 sym | A stroke as ordered impressions against the parametric domain — resampled by arrival, deferred never dropped, sealed once.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE PAINTING LEVEL
@@ -53,7 +53,7 @@ T StrokeArrival                           | ImpressionSequence.h | 81-87   | non
     has   PositionAlong    double         [-]  ?
     has   PositionAcross   double         [-]  ?
     has   SurfaceResolved  bool           [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
+    by    Api/PreviewProjection.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/PreviewProjection.cpp
     note  🚧 The domain position is **supplied**. `74` §1 resolves the pointer on the host against `40`'s
     note  🔴 `SurfaceResolved` is false where the pointer left the surface, and the path **breaks** there rather
 
@@ -69,7 +69,7 @@ T StrokeDeclaration                       | ImpressionSequence.h | 95-104  | own
     has   ComponentCount  std::uint32_t                  [-]  ?
     has   StrokeSeed      std::uint32_t                  [-]  ?
     has   Speculative     bool                           [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
+    by    Api/PreviewProjection.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/PreviewProjection.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  WHAT ONE RESOLVE DID
@@ -79,7 +79,7 @@ T ResolvedRun                             | ImpressionSequence.h | 115-120 | non
     has   ResolvedCount  std::uint32_t  [-]  ?
     has   DeferredCount  std::uint32_t  [-]  ?
     has   PendingCount   std::uint32_t  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
+    by    Api/PreviewProjection.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/PreviewProjection.cpp
     note  🔴 A deferral is a **count**, not a report. `20` §2.2 rules the same for a deferred promotion and the
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ F Restore                                 | ImpressionSequence.h | 155     | api
 //                                                       THE STROKE
 //------------------------------------------------------------------------------------------------------------------------
 
-T ImpressionSequence                      | ImpressionSequence.h | 170-304 | owning                        | -  | One stroke — its resampled path, its impressions, its accumulation, and the one transaction it seals. Abandon ends with no effect, Seal enters **one** transaction. A stroke recording a transaction per pointer sample fills the revision sequence with positions the artist never intended to stop at, and undo then steps back one pixel at a time. resampled against consumption has the display rate baked into it, so the same physical gesture produces a different stroke on a machine that presents at a different rate.
+T ImpressionSequence                      | ImpressionSequence.h | 170-307 | owning                        | -  | One stroke — its resampled path, its impressions, its accumulation, and the one transaction it seals. Abandon ends with no effect, Seal enters **one** transaction. A stroke recording a transaction per pointer sample fills the revision sequence with positions the artist never intended to stop at, and undo then steps back one pixel at a time. resampled against consumption has the display rate baked into it, so the same physical gesture produces a different stroke on a machine that presents at a different rate.
     has   ImpressionCeiling  static constexpr std::uint32_t  [-]  ?
     has   Declared           StrokeDeclaration               [-]  ?
     has   Brush              BrushSpecification              [-]  ?
@@ -128,7 +128,7 @@ T ImpressionSequence                      | ImpressionSequence.h | 170-304 | own
     has   OpenDeclared       bool                            [-]  ?
     has   PathBegun          bool                            [-]  ?
     has   PathBroken         bool                            [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
+    by    Api/PreviewProjection.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
     note  🔴 `10` §2.4's lifecycle, unamended: Open holds the declaration, Amend resamples and records nothing,
     note  🔴 Path resampling reads `04` §3's **arrival** timestamps and never consumption times. A path
 
@@ -137,83 +137,84 @@ F ImpressionSequence::Open                | ImpressionSequence.h | 191     | api
     in    Brushed    const BrushSpecification&  [-]  `58`'s declaration; its parameters are recorded, not referenced — `58` §7
     out   -          Outcome                    [-]  refuses with HostDenied when a stroke is already open, with ContentUnsupported for
     post  nothing is recorded; the accumulation is empty and the path has not begun
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, Api/WindowInterchange.h, (+9 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+20 more)
     note  🚧 An imagery or outline shape refuses here rather than falling back to an analytic profile. The
 
-F ImpressionSequence::Amend               | ImpressionSequence.h | 205     | api,nonthrowing               | 🚩 | Admits one arrival, resampling the path and emitting whatever impressions it reached. drawn quickly place the same impressions. `58` §5 makes spacing relative to the extent, so a brush resized keeps its character rather than becoming a dotted line. cannot come from the next, because the next impression's dynamics are read at a position the walk has not reached — and a spacing that depended on where it lands has no fixed point.
+F ImpressionSequence::Amend               | ImpressionSequence.h | 208     | api,nonthrowing               | 🚩 | Admits one arrival, resampling the path and emitting whatever impressions it reached. drawn quickly place the same impressions. `58` §5 makes spacing relative to the extent, so a brush resized keeps its character rather than becoming a dotted line. cannot come from the next, because the next impression's dynamics are read at a position the walk has not reached — and a spacing that depended on where it lands has no fixed point. walked distance and the spacing are accumulated, so an exact comparison decides the segment's last impression on the residue of the additions rather than on the path the artist drew.
     in    Arriving  const StrokeArrival&  [-]  the pointer sample, its arrival stamp, and `74`'s domain position
     out   -         Outcome               [-]  refuses with HostDenied before Open, and with ExtentExhausted at the ceiling
     post  the path advanced; zero or more impressions were appended, each owed resolution
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+20 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+26 more)
     note  🔴 Resampling is in the **domain** at the brush's own spacing, so a stroke drawn slowly and one
     note  📐 Spacing for the next impression comes from the brush resolved at the **previous** one. It
+    note  📐 An arrival within `SpacingArrivalTolerance` of the next impression has reached it. Both the
 
-F ImpressionSequence::Resolve             | ImpressionSequence.h | 225     | api,nonthrowing               | 🔴 | Resolves whatever impressions the residency now admits, demanding what it does not. against the coarse level, because paint applied at the wrong resolution is authored content that is permanently wrong — unlike a display sample, which is merely briefly coarse. whatever level is promoted and may refine later, because for them the authored thing is the source and the transform rather than the texels. A speculative stroke follows the derived rule for the same reason: nothing speculative is authored, so nothing speculative can be wrong. which is symmetric, so an impression resolving two rotations late lands exactly where it would have — and the artist sees most of a stroke immediately instead of none of it.
+F ImpressionSequence::Resolve             | ImpressionSequence.h | 228     | api,nonthrowing               | 🔴 | Resolves whatever impressions the residency now admits, demanding what it does not. against the coarse level, because paint applied at the wrong resolution is authored content that is permanently wrong — unlike a display sample, which is merely briefly coarse. whatever level is promoted and may refine later, because for them the authored thing is the source and the transform rather than the texels. A speculative stroke follows the derived rule for the same reason: nothing speculative is authored, so nothing speculative can be wrong. which is symmetric, so an impression resolving two rotations late lands exactly where it would have — and the artist sees most of a stroke immediately instead of none of it.
     in    Residency        SurfaceTileSpace&  [-]  the surface's cells and tiles
     in    Requesting       RequestQueue&      [-]  where a demand for a non-resident cell is recorded
     in    RotationOrdinal  std::uint64_t      [-]  the rotation resolving
     out   -                Outcome            [-]  refuses with HostDenied before Open
     post  🔴 a deferred impression stays owed; nothing is dropped and nothing resolves coarse
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  🔴 `22` §2: an impression touching a non-resident cell **demands and defers**. It is not resolved
     note  ⚠️ That rule binds **painted** impressions only. Placed content and tiling resolve through `70` at
     note  🔴 Deferred impressions do not block the ones after them. `StrokeSpace`'s accumulation is `Over`,
 
-F ImpressionSequence::Abandon             | ImpressionSequence.h | 233     | api,nonthrowing               | 🚩 | Ends the stroke with no effect, releasing every tile it pinned.
+F ImpressionSequence::Abandon             | ImpressionSequence.h | 236     | api,nonthrowing               | 🚩 | Ends the stroke with no effect, releasing every tile it pinned.
     in    Residency  SurfaceTileSpace&  [-]  ?
     out   -          void               [-]  ?
     post  no transaction was recorded; the accumulation is reclaimed
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, Source/CameraProjection.cpp, (+7 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, Api/SpatialManipulator.h, Api/VisibilityRaster.h, (+10 more)
 
-F ImpressionSequence::Seal                | ImpressionSequence.h | 251     | api,nonthrowing               | 🔴 | Ends the stroke, applying it once and sealing one transaction. IdentityStale for an entry that no longer resolves, and with ContentUnsupported when the entry's extent no longer matches the stroke's restores base colour and roughness together, which is what the artist performed; two transactions would make them undo separately and neither in isolation is a thing they did. quietly succeeded for one would put a preview in the revision sequence.
+F ImpressionSequence::Seal                | ImpressionSequence.h | 254     | api,nonthrowing               | 🔴 | Ends the stroke, applying it once and sealing one transaction. IdentityStale for an entry that no longer resolves, and with ContentUnsupported when the entry's extent no longer matches the stroke's restores base colour and roughness together, which is what the artist performed; two transactions would make them undo separately and neither in isolation is a thing they did. quietly succeeded for one would put a preview in the revision sequence.
     in    Content    SurfaceLayerSequence&  [-]   the layer sequence holding the painted entry
     in    Revised    RevisionSequence&      [-]   where the transaction is recorded
     in    Residency  SurfaceTileSpace&      [-]   the tiles pinned by the stroke, released here
     in    SealedAt   std::uint64_t          [ns]  the arrival stamp the transaction carries
     out   -          Outcome                [-]   refuses with HostDenied before Open and for a speculative stroke, with
     post  🔴 the accumulated coverage was applied **once**; every touched cell is committed again
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TopologyStructure.h, (+12 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, (+19 more)
     note  🔴 One stroke is one transaction even where the brush wrote several channels — `22` §5. Undo
     note  ⚠️ A speculative stroke refuses. `22` §4.1: a speculative extent never commits, and a Seal that
 
-F ImpressionSequence::ReclaimSpeculative  | ImpressionSequence.h | 262     | api,nonthrowing               | 🚩 | Discards the accumulation without ending the stroke — a speculative extent's per-rotation reclaim. committed stroke, whose accumulation is the only record of what has been painted so far.
+F ImpressionSequence::ReclaimSpeculative  | ImpressionSequence.h | 265     | api,nonthrowing               | 🚩 | Discards the accumulation without ending the stroke — a speculative extent's per-rotation reclaim. committed stroke, whose accumulation is the only record of what has been painted so far.
     out   -  Outcome  [-]  refuses with HostDenied for a committed stroke
-    by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
+    by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/PreviewProjection.cpp
     note  🔴 `22` §4.1: a speculative extent is discarded and re-resolved each rotation. Refuses for a
 
-F ImpressionSequence::Impressions         | ImpressionSequence.h | 264     | -                             | -  | ?
+F ImpressionSequence::Impressions         | ImpressionSequence.h | 267     | -                             | -  | ?
     out   -  const std::vector<ImpressionSample>&  [-]  ?
     by    Source/ImpressionSequence.cpp
 
-F ImpressionSequence::Accumulation        | ImpressionSequence.h | 265     | -                             | -  | ?
+F ImpressionSequence::Accumulation        | ImpressionSequence.h | 268     | -                             | -  | ?
     out   -  const StrokeSpace&  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
+    by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/PreviewProjection.cpp
 
-F ImpressionSequence::ImpressionCount     | ImpressionSequence.h | 267     | -                             | -  | ?
+F ImpressionSequence::ImpressionCount     | ImpressionSequence.h | 270     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
     by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
 
-F ImpressionSequence::PendingCount        | ImpressionSequence.h | 268     | -                             | -  | ?
+F ImpressionSequence::PendingCount        | ImpressionSequence.h | 271     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/WorkSequence.cpp
+    by    Api/StorageExchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/StorageExchange.cpp, Source/WorkSequence.cpp
 
-F ImpressionSequence::PaintingLevel       | ImpressionSequence.h | 269     | -                             | -  | ?
+F ImpressionSequence::PaintingLevel       | ImpressionSequence.h | 272     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
     by    Source/ImpressionSequence.cpp
 
-F ImpressionSequence::PathLength          | ImpressionSequence.h | 270     | -                             | -  | ?
+F ImpressionSequence::PathLength          | ImpressionSequence.h | 273     | -                             | -  | ?
     out   -  double  [-]  ?
     by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
 
-F ImpressionSequence::StrokeOpen          | ImpressionSequence.h | 271     | -                             | -  | ?
+F ImpressionSequence::StrokeOpen          | ImpressionSequence.h | 274     | -                             | -  | ?
     out   -  bool  [-]  ?
     by    Api/ToolSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/ToolSequence.cpp
 
-F ImpressionSequence::SpeculativeDeclared | ImpressionSequence.h | 272     | -                             | -  | ?
+F ImpressionSequence::SpeculativeDeclared | ImpressionSequence.h | 275     | -                             | -  | ?
     out   -  bool  [-]  ?
     by    Source/ImpressionSequence.cpp
 
-F ImpressionSequence::Emit                | ImpressionSequence.h | 276     | -                             | -  | ?
+F ImpressionSequence::Emit                | ImpressionSequence.h | 279     | -                             | -  | ?
     in    PositionAlong   double               [-]  ?
     in    PositionAcross  double               [-]  ?
     in    TangentAlong    double               [-]  ?
@@ -221,9 +222,9 @@ F ImpressionSequence::Emit                | ImpressionSequence.h | 276     | -  
     in    Axes            const ResolvedAxes&  [-]  ?
     in    PathDistance    double               [-]  ?
     out   -               void                 [-]  ?
-    by    Source/ImpressionSequence.cpp
+    by    Source/ImpressionSequence.cpp, Source/PrimitiveStructure.cpp
 
-F ImpressionSequence::ProjectAxes         | ImpressionSequence.h | 279     | -                             | -  | ?
+F ImpressionSequence::ProjectAxes         | ImpressionSequence.h | 282     | -                             | -  | ?
     in    Arriving       const PointerSample&  [-]  ?
     in    TangentAlong   double                [-]  ?
     in    TangentAcross  double                [-]  ?
@@ -232,7 +233,7 @@ F ImpressionSequence::ProjectAxes         | ImpressionSequence.h | 279     | -  
     out   -              ResolvedAxes          [-]  ?
     by    Source/ImpressionSequence.cpp
 
-F ImpressionSequence::ResolveOne          | ImpressionSequence.h | 282     | -                             | -  | ?
+F ImpressionSequence::ResolveOne          | ImpressionSequence.h | 285     | -                             | -  | ?
     in    Impressing       ImpressionSample&  [-]  ?
     in    Residency        SurfaceTileSpace&  [-]  ?
     in    Requesting       RequestQueue&      [-]  ?
@@ -240,8 +241,8 @@ F ImpressionSequence::ResolveOne          | ImpressionSequence.h | 282     | -  
     out   -                Outcome<bool>      [-]  ?
     by    Source/ImpressionSequence.cpp
 
-F SLATE_DECLARES_PRECISION                | ImpressionSequence.h | 310     | -                             | -  | ?
+F SLATE_DECLARES_PRECISION                | ImpressionSequence.h | 313     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

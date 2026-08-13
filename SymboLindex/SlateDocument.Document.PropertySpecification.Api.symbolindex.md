@@ -32,7 +32,7 @@ E PropertyMeasure             | PropertySpecification.h | 27-38   | contract    
     has   Enrolment     PropertyMeasure  [-]  ?
     has   Occupant      PropertyMeasure  [-]  ?
     has   MeasureCount  PropertyMeasure  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    by    Api/PropertyPanel.h, Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp
     note  ⚠️ Not a type tag. `SKILL-Naming.md` bans `Kind` and `Type` as spellings precisely because they name
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -48,7 +48,7 @@ T PropertyValue               | PropertySpecification.h | 49-59   | owning      
     has   TextHeld       std::string          [-]  ?
     has   ColourHeld     ColourSpecification  [-]  ?
     has   OccupantHeld   OccupantIdentity     [-]  ?
-    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    by    Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp
     note  🔴 Held as parallel storage rather than a union, so a value read at the wrong measure is a wrong number
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ T PropertyDeclaration         | PropertySpecification.h | 76-91   | owning      
     has   EnrolledOptions  std::vector<std::string>  [-]  ?
     has   TextExtent       std::uint32_t             [-]  ?
     has   BoundsDeclared   bool                      [-]  ?
-    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    by    Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp
     note  🔴 `10` §2.2: validation is part of the declaration and not a separate step performed by whoever writes
     note  🔴 `42` §2's rule holds here too: an absent value resolves to the **declared** default, which is not
     note  📝 `76` §4 requires every tool parameter to be one of these, so that `ToolPanel` presents any tool
@@ -82,14 +82,14 @@ F Validate                    | PropertySpecification.h | 106     | api,nonthrow
     in    Declared  const PropertyDeclaration&  [-]  the declaration, bounds included
     in    Offered   const PropertyValue&        [-]  the value a caller wishes to write
     out   -         Outcome                     [-]  refuses with ContentUnsupported when the measures disagree or a bound is exceeded, and
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/IlluminantPopulation.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+3 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/IlluminantPopulation.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+4 more)
     note  🔴 A refusal names which bound was exceeded, in static text. `86` §4's register presents that text
 
 F Bounded                     | PropertySpecification.h | 117     | api,nonthrowing               | ✔️ | Brings one value inside a declaration's bounds where the measure admits it. refuse, so a write that bounded silently would accept a value the artist can neither see nor correct. Whoever is presenting a slider bounds first and then writes.
     in    Declared  const PropertyDeclaration&  [-]  the declaration
     in    Offered   const PropertyValue&        [-]  the value; returned bounded at Magnitude, Signed and Ordinal
     out   -         Outcome                     [-]  refuses when the measures disagree, because no bounding can reconcile that
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, (+31 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+74 more)
     note  🔴 Offered as a **separate** call rather than folded into the write. `10` §2.2 requires the write to
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -100,13 +100,13 @@ T PropertyIndex               | PropertySpecification.h | 127-193 | owning      
     has   DeclaredProperties  std::vector<PropertyDeclaration>  [-]  ?
     has   HeldValues          std::vector<PropertyValue>        [-]  ?
     has   ValueDeclared       std::vector<bool>                 [-]  ?
-    by    Api/ToolSequence.h, Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    by    Api/PropertyPanel.h, Api/ToolSequence.h, Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp
     note  🔴 A write validates before it stores, and a refused write leaves the prior value standing. There is no
 
 F PropertyIndex::Declare      | PropertySpecification.h | 139     | api,nonthrowing               | 🚩 | Declares one property, replacing a declaration of the same identity. own default does not satisfy it bounds presents an invalid value on every occupant that never wrote it.
     in    Declaring  const PropertyDeclaration&  [-]  the declaration
     out   -          Outcome                     [-]  refuses with ContentUnsupported for an empty identity, and when the declaration's
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+30 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 The default is validated against its own declaration here. A declaration whose default is out of
 
 F PropertyIndex::Write        | PropertySpecification.h | 149     | api,nonthrowing               | 🚩 | Writes one property's value, validated first. Validate's refusal otherwise
@@ -114,31 +114,31 @@ F PropertyIndex::Write        | PropertySpecification.h | 149     | api,nonthrow
     in    Offered   const PropertyValue&  [-]  the value
     out   -         Outcome               [-]  refuses with ContentUnsupported when nothing declares that identity, and carries
     post  a refused write leaves the prior value standing
-    by    Api/AtmosphereIntegrator.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    by    Api/AtmosphereIntegrator.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp
 
 F PropertyIndex::Resolve      | PropertySpecification.h | 155     | api,nonthrowing               | 🚩 | Reads one property's value, or its declared default where nothing has written it.
     in    Identity  const std::string&  [-]  ?
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F PropertyIndex::Declared     | PropertySpecification.h | 161     | api,nonthrowing               | 🚩 | One property's declaration, for whoever is presenting it.
     in    Identity  const std::string&  [-]  ?
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+45 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+82 more)
 
 F PropertyIndex::Declarations | PropertySpecification.h | 166     | api,nonallocating,nonthrowing | ✔️ | Every declaration, in declaration order.
     out   -  const std::vector<PropertyDeclaration>&  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/MaterialSpecification.cpp, Source/PropertySpecification.cpp
+    by    Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PropertyPanel.h, Api/ReferenceIndex.h, Source/ConsoleHost.cpp, (+6 more)
 
 F PropertyIndex::ValueWritten | PropertySpecification.h | 171     | api,nonthrowing               | 🚩 | Whether one property has been written since it was declared.
     in    Identity  const std::string&  [-]  ?
     out   -         bool                [-]  ?
-    by    Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    by    Api/PropertyPanel.h, Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp
 
 F PropertyIndex::Reclaim      | PropertySpecification.h | 177     | api,nonthrowing               | 🚩 | Returns one property to its declared default.
     in    Identity  const std::string&  [-]  ?
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
 
 F PropertyIndex::ValuesValid  | PropertySpecification.h | 184     | api,nonallocating,nonthrowing | 🚩 | 🔍 Whether every held value satisfies its own declaration. second writer is caught by a gate rather than by an artist.
     out   -  bool  [-]  ?
@@ -148,4 +148,4 @@ F PropertyIndex::ValuesValid  | PropertySpecification.h | 184     | api,nonalloc
 F PropertyIndex::Located      | PropertySpecification.h | 188     | -                             | -  | ?
     in    Identity  const std::string&  [-]  ?
     out   -         std::size_t         [-]  ?
-    by    Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/StrokeSpace.h, Api/SurfaceLayerSequence.h, (+17 more)
+    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+26 more)

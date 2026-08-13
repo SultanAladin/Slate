@@ -28,7 +28,7 @@ E SubsetSubject                       | EnrollmentIndex.h | 28-35  | contract   
     has   Isolation            SubsetSubject  [-]  ?
     has   Lock                 SubsetSubject  [-]  ?
     has   SubsetCount          SubsetSubject  [-]  ?
-    by    Api/OutlinerSequence.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/SpatialSubdivision.cpp
+    by    Api/OutlinerSequence.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IntersectionOutline.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, (+1 more)
     note  ⚠️ `MembershipRegion` and `MembershipIndex` are retired spellings. `Region` is banned and the
     note  🔴 `12` §11: every subset mutation is a transaction. What differs between these is where the
 
@@ -73,7 +73,7 @@ F SubsetsExclusive                    | EnrollmentIndex.h | 82-86  | api,nonallo
 T EnrollmentIndex                     | EnrollmentIndex.h | 96-161 | owning                        | -  | Every named subset over one population, each held as an ordered run of intervals. Two runs that abut are one run: leaving them apart grows the storage without adding a fact to it.
     has   SubsetIntervals  std::vector<EnrolledInterval>[SubsetSpan]  [-]  ?
     has   SubsetCounts     std::uint32_t[SubsetSpan]                  [-]  ?
-    by    Api/OutlinerSequence.h, Api/PointerIntersection.h, Api/SpatialSubdivision.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerPanel.cpp, (+3 more)
+    by    Api/IntersectionOutline.h, Api/OutlinerSequence.h, Api/PointerIntersection.h, Api/SpatialSubdivision.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, (+5 more)
     note  The runs stay sorted and never touch, so an enrolment is a search and a merge rather than an append.
 
 F EnrollmentIndex::Enrol              | EnrollmentIndex.h | 109    | api,nonthrowing               | 🚩 | Enrols one occupant in a subset. ContentUnsupported when a mutually exclusive subset already holds it no partial state behind. `12` §10 rejects at commit and resolves nothing silently.
@@ -98,12 +98,12 @@ F EnrollmentIndex::Enrolled           | EnrollmentIndex.h | 131    | api,nonallo
     in    Subject         OccupantIdentity  [-]  the occupant
     in    EnrolledSubset  SubsetSubject     [-]  which subset
     out   -               Enrolled          [-]  answered by interval comparison over the runs
-    by    Api/IlluminantPopulation.h, Api/TopologyConditioning.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+9 more)
+    by    Api/IlluminantPopulation.h, Api/ReferenceIndex.h, Api/TopologyConditioning.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, (+13 more)
 
 F EnrollmentIndex::Intervals          | EnrollmentIndex.h | 137    | api,nonallocating,nonthrowing | ✔️ | The runs of one subset, in ascending slot order.
     in    EnrolledSubset  SubsetSubject                         [-]  which subset
     out   -               const std::vector<EnrolledInterval>&  [-]  ?
-    by    Source/EnrollmentIndex.cpp
+    by    Source/EnrollmentIndex.cpp, Source/FileInterchange.cpp
 
 F EnrollmentIndex::EnrolledCount      | EnrollmentIndex.h | 142    | api,nonallocating,nonthrowing | ✔️ | How many occupants one subset holds.
     in    EnrolledSubset  SubsetSubject  [-]  ?
@@ -113,7 +113,7 @@ F EnrollmentIndex::EnrolledCount      | EnrollmentIndex.h | 142    | api,nonallo
 F EnrollmentIndex::Reclaim            | EnrollmentIndex.h | 147    | api,nonthrowing               | ✔️ | Empties one subset entirely.
     in    EnrolledSubset  SubsetSubject  [-]  ?
     out   -               void           [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
 
 F EnrollmentIndex::EnrolmentsOccupied | EnrollmentIndex.h | 153    | api,nonallocating,nonthrowing | 🚩 | 🔍 Whether every enrolled slot is occupied at the current generation — invariant 6.
     in    Generations  const std::vector<std::uint32_t>&  [-]  the current generation per slot, zero where the slot is vacant

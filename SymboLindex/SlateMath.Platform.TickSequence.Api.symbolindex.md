@@ -8,15 +8,15 @@
 %path       Engine/SlateMath/Platform/TickSequence/Api
 %layer      SlateMath
 %sources    1
-%symbols    5
-%annotated  5/5
+%symbols    6
+%annotated  6/6
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TickSequence.h | 57 lines | c861a707 | 5 sym | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
+S TickSequence.h | 69 lines | 4411f717 | 6 sym | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    ORDERING POINTS
@@ -24,24 +24,30 @@ S TickSequence.h | 57 lines | c861a707 | 5 sym | Monotonically increasing orderi
 
 T TickPoint                  | TickSequence.h | 21-24 | nonallocating,nonthrowing     | -  | One ordering point on the monotonic host timeline. path the artist drew from arrival stamps, which is the only reason arrival stamps exist.
     has   Ordinal  std::uint64_t  [-]  ?
-    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/ImpressionSequence.h, Api/InputExchange.h, Api/IntakeIndex.h, (+14 more)
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/DisplayProjection.h, Api/DisplayScheduler.h, Api/HardwareMetrics.h, (+38 more)
     note  An input sample stamped at consumption has the display rate baked into it. `22` reconstructs the
 
-T TickSequence               | TickSequence.h | 28-55 | owning                        | -  | The monotonic host timeline. One instance per process, constructed at bring-up.
+T TickSequence               | TickSequence.h | 28-67 | owning                        | -  | The monotonic host timeline. One instance per process, constructed at bring-up.
     has   OriginCount     std::uint64_t  [-]  ?
     has   CountToSeconds  double         [-]  ?
-    by    Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/TickSequence.cpp, Source/WorkSequence.cpp
+    by    Api/DiagnosticExtension.h, Api/DisplayScheduler.h, Api/InputExchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/DiagnosticExtension.cpp, (+6 more)
 
 F TickSequence::TickSequence | TickSequence.h | 34    | constructor                   | ✔️ | Fixes the timeline origin against the host performance counter.
-    by    Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/TickSequence.cpp, Source/WorkSequence.cpp
+    by    Api/DiagnosticExtension.h, Api/DisplayScheduler.h, Api/InputExchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/DiagnosticExtension.cpp, (+6 more)
 
 F TickSequence::Advance      | TickSequence.h | 41    | api,nonallocating,nonthrowing | ✔️ | Reads the current ordering point.
     out   -  TickPoint  [ns]  nanoseconds since the origin, never decreasing between two reads
     err   never refuses
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/VectorInterchange.h, (+11 more)
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/VectorInterchange.h, (+18 more)
 
-F TickSequence::Span         | TickSequence.h | 49    | api,nonallocating,nonthrowing | ✔️ | Duration between two ordering points.
+F TickSequence::Project      | TickSequence.h | 53    | api,nonallocating,nonthrowing | ✔️ | The ordering point a raw host counter reading stands for. timeline's. `04` §3 requires the stamp to survive to `22`, and a sample restamped when the message carrying it was drained carries the drain rate rather than the device rate — which is the defect arrival stamping exists to prevent, reintroduced one layer lower. Projecting the device's own reading keeps the resolution the device actually reported at.
+    in    HostCount  std::uint64_t  [-]   a reading of the same counter this timeline fixed its origin against
+    out   -          TickPoint      [ns]  zero for any reading at or before the origin
+    by    Api/ColourProjection.h, Api/DisplayProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TransformProjection.h, Api/VisibilityRaster.h, (+12 more)
+    note  🔴 A device that stamps its own samples reports them in the host counter's units, not in this
+
+F TickSequence::Span         | TickSequence.h | 61    | api,nonallocating,nonthrowing | ✔️ | Duration between two ordering points.
     in    Earlier  TickPoint  [ns]  the point taken first
     in    Later    TickPoint  [ns]  the point taken second
     out   -        Duration   [ms]  zero when Later precedes Earlier, never negative
-    by    Api/SurfaceTileSpace.h, Shader/SkyRadiance.slang, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/SurfaceTileSpace.cpp, Source/TickSequence.cpp
+    by    Api/SurfaceTileSpace.h, Shader/SkyRadiance.slang, Source/ConsoleHost.cpp, Source/ControlLayout.cpp, Source/DisplayScheduler.cpp, Source/ImpressionSequence.cpp, (+7 more)

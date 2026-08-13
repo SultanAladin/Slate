@@ -40,7 +40,7 @@ T CommittedTransaction              | RevisionSequence.h | 41-50  | owning      
     has   InverseOrdinal  std::uint64_t  [-]  ?
     has   SealedAt        std::uint64_t  [-]  ?
     has   MergeDeclared   bool           [-]  ?
-    by    Source/RevisionSequence.cpp
+    by    Api/RecoverySequence.h, Source/RecoverySequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp
     note  Scrubbing backwards replays inverses rather than restoring snapshots, which is what lets a paint
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -53,42 +53,42 @@ T RevisionSequence                  | RevisionSequence.h | 60-121 | owning      
     has   OpenTransaction  CommittedTransaction               [-]  ?
     has   ScrubOrdinal     std::uint64_t                      [-]  ?
     has   OpenDeclared     bool                               [-]  ?
-    by    Api/ImpressionSequence.h, Api/OutlinerSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp
+    by    Api/ImpressionSequence.h, Api/OutlinerSequence.h, Api/RevisionPanel.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, (+2 more)
     note  ⚠️ `HistoryStack` is the retired spelling: the sequence is scrubbed in both directions rather
 
 F RevisionSequence::Open            | RevisionSequence.h | 72     | api,nonthrowing               | ✔️ | Opens a transaction. Nothing enters the sequence until it is sealed.
     in    Description    const std::string&  [-]  what `84` presents; empty defers to OperationName
     in    OperationName  const std::string&  [-]  the mechanism's spelling, always supplied
     out   -              Outcome             [-]  refuses when a transaction is already open
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/VisibilityRaster.h, Api/WindowInterchange.h, (+9 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+20 more)
 
 F RevisionSequence::Abandon         | RevisionSequence.h | 77     | api,nonallocating,nonthrowing | ✔️ | Ends the open transaction with no effect. The prior content is restored by the caller.
     out   -  void  [-]  ?
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/VisibilityRaster.h, Source/CameraProjection.cpp, (+7 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/SpatialManipulator.h, Api/VisibilityRaster.h, (+10 more)
 
 F RevisionSequence::Seal            | RevisionSequence.h | 86     | api,nonthrowing               | ✔️ | Ends the open transaction and enters exactly one transaction into the sequence.
     in    SealedAt       std::uint64_t  [ns]  the arrival stamp at which the edit ended
     in    MergeDeclared  bool           [-]   whether this operation declares itself mergeable — never inferred
     out   -              Outcome        [-]   refuses when no transaction is open
     post  the scrub position is the end of the sequence
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/SelectionSequence.h, Api/TopologyStructure.h, (+12 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, (+19 more)
 
 F RevisionSequence::Retreat         | RevisionSequence.h | 92     | api,nonallocating,nonthrowing | ✔️ | Scrubs one transaction backwards, replaying its inverse.
     out   -  Outcome  [-]  refuses when the scrub position is already at the beginning
-    by    Api/OutlinerSequence.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp, Source/SelectionSequence.cpp
+    by    Api/OutlinerSequence.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp, (+1 more)
 
 F RevisionSequence::Advance         | RevisionSequence.h | 98     | api,nonallocating,nonthrowing | ✔️ | Scrubs one transaction forwards, replaying its forward operation.
     out   -  Outcome  [-]  refuses when the scrub position is already at the end
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+11 more)
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+18 more)
 
 F RevisionSequence::Committed       | RevisionSequence.h | 103    | api,nonallocating,nonthrowing | ✔️ | The committed transactions, in order, for `84` to present.
     out   -  const std::vector<CommittedTransaction>&  [-]  ?
-    by    Api/ByteSpace.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/ImageSpace.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, (+3 more)
+    by    Api/ByteSpace.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/ImageSpace.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, (+4 more)
 
 F RevisionSequence::ScrubPosition   | RevisionSequence.h | 108    | api,nonallocating,nonthrowing | ✔️ | Where the scrub position sits; equal to the committed count when nothing is undone.
     out   -  std::uint64_t  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp
+    by    Source/ConsoleHost.cpp, Source/DocumentSession.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp
 
 F RevisionSequence::TransactionOpen | RevisionSequence.h | 113    | api,nonallocating,nonthrowing | ✔️ | Whether a transaction is currently open.
     out   -  bool  [-]  ?
-    by    Source/RevisionSequence.cpp
+    by    Source/DocumentSession.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp

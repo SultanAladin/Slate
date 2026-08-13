@@ -25,7 +25,7 @@ S DecalProjection.cpp | 503 lines | 36b65f9f | 21 sym | The inverse of a decompo
 F Conjugated                         | DecalProjection.cpp | 20-29   | - | - | ?
     in    Subject  RotationQuaternion  [-]  ?
     out   -        RotationQuaternion  [-]  ?
-    by    Source/CameraProjection.cpp, Source/SpatialSubdivision.cpp
+    by    Source/CameraProjection.cpp, Source/SpatialManipulator.cpp, Source/SpatialSubdivision.cpp
 
 F RotateSpan                         | DecalProjection.cpp | 33-48   | - | - | ?
     in    Rotation  RotationQuaternion  [-]  ?
@@ -36,7 +36,7 @@ F RotateSpan                         | DecalProjection.cpp | 33-48   | - | - | ?
     in    OutY      double&             [-]  ?
     in    OutZ      double&             [-]  ?
     out   -         void                [-]  ?
-    by    Source/CameraProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialSubdivision.cpp
+    by    Source/CameraProjection.cpp, Source/OcclusionProjection.cpp, Source/PointerIntersection.cpp, Source/SpatialManipulator.cpp, Source/SpatialSubdivision.cpp
 
 F ProjectPlanar                      | DecalProjection.cpp | 52-67   | - | - | ?
     in    Placing       const DecomposedTransform&  [-]  ?

@@ -1,0 +1,46 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/PersistenceSequence/Source
+%layer      SlateDocument
+%sources    1
+%symbols    4
+%annotated  0/4
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S PersistenceSequence.cpp | 97 lines | 5d943563 | 4 sym | `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE VERIFICATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PersistenceSequence::VerifyIdentical | PersistenceSequence.cpp | 18-25 | - | - | ?
+    in    Written  const std::vector<std::uint8_t>&  [-]  ?
+    in    Landed   const std::vector<std::uint8_t>&  [-]  ?
+    out   -        bool                              [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE SEQUENCE
+//------------------------------------------------------------------------------------------------------------------------
+
+F PersistenceSequence::Persist         | PersistenceSequence.cpp | 31-81 | - | - | ?
+    in    Sealed  const SealedContent&            [-]  ?
+    out   -       Outcome<PersistenceConclusion>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE READINGS
+//------------------------------------------------------------------------------------------------------------------------
+
+F PersistenceSequence::LastReached     | PersistenceSequence.cpp | 87-90 | - | - | ?
+    out   -  PersistenceStep  [-]  ?
+
+F PersistenceSequence::ReplacedCount   | PersistenceSequence.cpp | 92-95 | - | - | ?
+    out   -  std::uint32_t  [-]  ?

@@ -8,15 +8,15 @@
 %path       Engine/SlateVulkan/Device/SpanSpace/Source
 %layer      SlateVulkan
 %sources    1
-%symbols    11
-%annotated  0/11
+%symbols    12
+%annotated  0/12
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SpanSpace.cpp | 301 lines | 3f6c0515 | 11 sym | The claim, the host write, the recorded transfer and the release of every linear device extent the engine holds.
+S SpanSpace.cpp | 329 lines | 82b6a6cb | 12 sym | The claim, the host write, the recorded transfer and the release of every linear device extent the engine holds.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION
@@ -24,12 +24,17 @@ S SpanSpace.cpp | 301 lines | 3f6c0515 | 11 sym | The claim, the host write, the
 
 F SpanSpace::~SpanSpace   | SpanSpace.cpp | 17-20   | destructor | - | ?
 
-F SpanSpace::Construct    | SpanSpace.cpp | 22-31   | -          | - | ?
-    in    Exchange      const VulkanExchange&  [-]  ?
-    in    BackingSpace  ByteSpace&             [-]  ?
-    out   -             Outcome<bool>          [-]  ?
+F SpanSpace::Construct    | SpanSpace.cpp | 22-34   | -          | - | ?
+    in    Exchange      const VulkanExchange&       [-]  ?
+    in    BackingSpace  ByteSpace&                  [-]  ?
+    in    Naming        const DiagnosticExtension&  [-]  ?
+    out   -             Outcome<bool>               [-]  ?
 
-F SpanSpace::UsageOf      | SpanSpace.cpp | 33-60   | -          | - | ?
+F SpanSpace::NameOf       | SpanSpace.cpp | 36-51   | -          | - | ?
+    in    Intent  SpanIntent   [-]  ?
+    out   -       const char*  [-]  ?
+
+F SpanSpace::UsageOf      | SpanSpace.cpp | 53-80   | -          | - | ?
     in    Intent  SpanIntent          [-]  ?
     out   -       VkBufferUsageFlags  [-]  ?
 
@@ -37,7 +42,7 @@ F SpanSpace::UsageOf      | SpanSpace.cpp | 33-60   | -          | - | ?
 //                                                       THE CLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-F SpanSpace::Claim        | SpanSpace.cpp | 66-155  | -          | - | ?
+F SpanSpace::Claim        | SpanSpace.cpp | 86-183  | -          | - | ?
     in    Declared  const SpanShape&    [-]  ?
     out   -         Outcome<SpanClaim>  [-]  ?
 
@@ -45,14 +50,14 @@ F SpanSpace::Claim        | SpanSpace.cpp | 66-155  | -          | - | ?
 //                                                       THE WRITES
 //------------------------------------------------------------------------------------------------------------------------
 
-F SpanSpace::Amend        | SpanSpace.cpp | 161-188 | -          | - | ?
+F SpanSpace::Amend        | SpanSpace.cpp | 189-216 | -          | - | ?
     in    SpanOrdinal    std::uint32_t  [-]  ?
     in    Arriving       const void*    [-]  ?
     in    ArrivingBytes  VkDeviceSize   [-]  ?
     in    ByteOffset     VkDeviceSize   [-]  ?
     out   -              Outcome<bool>  [-]  ?
 
-F SpanSpace::Transfer     | SpanSpace.cpp | 190-222 | -          | - | ?
+F SpanSpace::Transfer     | SpanSpace.cpp | 218-250 | -          | - | ?
     in    Recorded       VkCommandBuffer  [-]  ?
     in    SourceOrdinal  std::uint32_t    [-]  ?
     in    TargetOrdinal  std::uint32_t    [-]  ?
@@ -63,23 +68,23 @@ F SpanSpace::Transfer     | SpanSpace.cpp | 190-222 | -          | - | ?
 //                                                       THE READS
 //------------------------------------------------------------------------------------------------------------------------
 
-F SpanSpace::Standing     | SpanSpace.cpp | 228-242 | -          | - | ?
+F SpanSpace::Standing     | SpanSpace.cpp | 256-270 | -          | - | ?
     in    SpanOrdinal  std::uint32_t       [-]  ?
     out   -            Outcome<SpanClaim>  [-]  ?
 
-F SpanSpace::ClaimedCount | SpanSpace.cpp | 244-255 | -          | - | ?
+F SpanSpace::ClaimedCount | SpanSpace.cpp | 272-283 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F SpanSpace::ClaimedBytes | SpanSpace.cpp | 257-268 | -          | - | ?
+F SpanSpace::ClaimedBytes | SpanSpace.cpp | 285-296 | -          | - | ?
     out   -  VkDeviceSize  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F SpanSpace::Release      | SpanSpace.cpp | 274-291 | -          | - | ?
+F SpanSpace::Release      | SpanSpace.cpp | 302-319 | -          | - | ?
     in    SpanOrdinal  std::uint32_t  [-]  ?
     out   -            void           [-]  ?
 
-F SpanSpace::Reclaim      | SpanSpace.cpp | 293-299 | -          | - | ?
+F SpanSpace::Reclaim      | SpanSpace.cpp | 321-327 | -          | - | ?
     out   -  void  [-]  ?

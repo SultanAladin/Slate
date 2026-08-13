@@ -36,16 +36,16 @@ F OccupancyIndex::Occupy         | PopulationIndex.h | 32     | api,nonthrowing 
 F OccupancyIndex::Release        | PopulationIndex.h | 37     | api,nonallocating,nonthrowing | ✔️ | Declares a slot free.
     in    SlotOrdinal  std::uint32_t  [-]  ?
     out   -            void           [-]  ?
-    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, (+7 more)
+    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/SpanSpace.h, (+13 more)
 
 F OccupancyIndex::Occupied       | PopulationIndex.h | 42     | api,nonallocating,nonthrowing | ✔️ | Whether a slot is occupied.
     in    SlotOrdinal  std::uint32_t  [-]  ?
     out   -            bool           [-]  ?
-    by    Api/SurfaceDepot.h, Shared/IncircleClassifier.slang.h, Shared/OrientationClassifier.slang.h, Source/PopulationIndex.cpp, Source/SpanSpace.cpp, Source/SpatialSubdivision.cpp, (+2 more)
+    by    Api/SurfaceDepot.h, Shared/IncircleClassifier.slang.h, Shared/OrientationClassifier.slang.h, Source/ImageCodec.cpp, Source/PopulationIndex.cpp, Source/SpanSpace.cpp, (+5 more)
 
 F OccupancyIndex::SpannedCount   | PopulationIndex.h | 47     | api,nonallocating,nonthrowing | ✔️ | How many slots the ledger spans, occupied or not.
     out   -  std::uint32_t  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/SceneStructure.h, Api/SurfaceLayerSequence.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, (+4 more)
+    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PrimitiveStructure.h, Api/SceneStructure.h, Api/SurfaceLayerSequence.h, (+10 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE POPULATION
@@ -69,12 +69,12 @@ F PopulationIndex::Withdraw      | PopulationIndex.h | 80     | api,nonallocatin
     in    Subject  OccupantIdentity  [-]  the identity to withdraw
     out   -        Outcome           [-]  refuses with IdentityStale when the identity no longer resolves
     post  every reference carrying the prior generation resolves to absent
-    by    Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, Api/TrigramIndex.h, (+11 more)
+    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)
 
 F PopulationIndex::Resolve       | PopulationIndex.h | 88     | api,nonallocating,nonthrowing | ✔️ | Whether an identity still names the occupant it was issued for.
     in    Subject  OccupantIdentity  [-]  the identity to resolve
     out   -        Resolved          [-]  false for a stale generation and for an unoccupied slot alike
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  Comparison is an integer test, at Exact. An identity that collides is not an identity.
 
 F PopulationIndex::EnrolledCount | PopulationIndex.h | 93     | api,nonallocating,nonthrowing | ✔️ | How many occupants are enrolled.

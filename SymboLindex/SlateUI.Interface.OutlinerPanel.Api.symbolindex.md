@@ -46,12 +46,12 @@ F OutlinerPanel::Present          | OutlinerPanel.h | 50     | api,nonthrowing  
     out   -         Outcome            [-]  refuses with HostDenied when no interface tick is open
     pre   InterfaceExchange::Advance delivered and Seal has not
     post  every declared intent sits in the pending run; nothing was applied here
-    by    Source/OutlinerPanel.cpp
+    by    Api/DisplayScheduler.h, Api/PanelIndex.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp, Source/PanelIndex.cpp, Source/WorkspacePanel.cpp
 
 F OutlinerPanel::DeclarePresence  | OutlinerPanel.h | 56     | api,nonallocating,nonthrowing | ✔️ | Declares whether the panel is shown at all.
     in    PresenceDeclared  bool  [-]  whether the artist wants it
     out   -                 void  [-]  ?
-    by    Api/SurfaceLayerSequence.h, Source/OutlinerPanel.cpp, Source/SurfaceLayerSequence.cpp
+    by    Api/SurfaceLayerSequence.h, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/SurfaceLayerSequence.cpp
 
 F OutlinerPanel::PresenceStanding | OutlinerPanel.h | 61     | api,nonallocating,nonthrowing | ✔️ | Whether the panel is shown.
     out   -  bool  [-]  ?
@@ -59,7 +59,7 @@ F OutlinerPanel::PresenceStanding | OutlinerPanel.h | 61     | api,nonallocating
 
 F OutlinerPanel::VisiblePosition  | OutlinerPanel.h | 70     | api,nonallocating,nonthrowing | ✔️ | The counted ordinal at the top of the presented span — the scroll position, as a row. When the counted total changes the offset is restored from that occupant before it is read, so collapsing an enclosure above the view leaves the artist looking at the same occupant rather than at whatever slid under the cursor. An anchor whose occupant left the count keeps its ordinal.
     out   -  std::uint32_t  [-]  ?
-    by    Source/OutlinerPanel.cpp
+    by    Api/DocumentSession.h, Source/DocumentSession.cpp, Source/OutlinerPanel.cpp
     note  Recorded as a count rather than as a pixel offset, and the occupant it names is held alongside it.
 
 F OutlinerPanel::Anchored         | OutlinerPanel.h | 77     | api,nonallocating,nonthrowing | ✔️ | The occupant the presented span is anchored on, undeclared when nothing is counted. never declared as intent and no transaction records it.
@@ -74,7 +74,7 @@ F OutlinerPanel::RowsTouched      | OutlinerPanel.h | 84     | api,nonallocating
 
 F OutlinerPanel::Sought           | OutlinerPanel.h | 89     | api,nonthrowing               | 🚩 | The text the artist is searching names for, empty when nothing is sought.
     out   -  std::string  [-]  ?
-    by    Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/SeamSpecification.cpp, (+2 more)
+    by    Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, (+3 more)
 
 F OutlinerPanel::ConfirmedNames   | OutlinerPanel.h | 94     | api,nonallocating,nonthrowing | ✔️ | How many names the last narrowing confirmed.
     out   -  std::uint32_t  [-]  ?

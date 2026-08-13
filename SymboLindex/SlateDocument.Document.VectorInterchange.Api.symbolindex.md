@@ -25,7 +25,7 @@ S VectorInterchange.h | 247 lines | 03d74c30 | 25 sym | Vector outlines and type
 E FillRule                               | VectorInterchange.h | 27-31   | contract        | -  | Which rule decides a closed path's interior. `ResolveContainment`, which takes it as the one bit the classification depends on.
     has   NonZero  FillRule  [-]  ?
     has   EvenOdd  FillRule  [-]  ?
-    by    Source/AnalyticProjection.cpp, Source/VectorInterchange.cpp
+    by    Source/AnalyticProjection.cpp, Source/TypefaceCodec.cpp, Source/VectorCodec.cpp, Source/VectorInterchange.cpp
     note  Both are accepted — `52` §2. The rule is a declared property of each closed path and is read by
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ T OutlinePath                            | VectorInterchange.h | 41-47   | ownin
     has   Segments   std::vector<PathSegment>  [-]  ?
     has   Rule       FillRule                  [-]  ?
     has   ClosedRun  bool                      [-]  ?
-    by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/TypefaceCodec.cpp, Source/VectorCodec.cpp, Source/VectorInterchange.cpp
     note  🔴 An open path is retained as open rather than closed on arrival. `52` §1's codec translates and does
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ T OutlineSpecification                   | VectorInterchange.h | 60-67   | ownin
     has   OriginPath      std::string               [-]  ?
     has   SourceText      std::string               [-]  ?
     has   ColourDeclared  bool                      [-]  ?
-    by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    by    Api/IntersectionOutline.h, Api/VectorCodec.h, Source/ConsoleHost.cpp, Source/IntersectionOutline.cpp, Source/VectorInterchange.cpp
     note  🔴 `52` §1: a file source and a supplied-text source produce the **identical** specification, and nothing
     note  🔴 A supplied-text source retains its text, because there is no file to re-read. A source whose only copy
 
@@ -62,7 +62,7 @@ T RefusedConstruct                       | VectorInterchange.h | 80-85   | ownin
     has   Construct      std::string    [-]  ?
     has   SourceOrdinal  std::uint32_t  [-]  ?
     has   Declining      Refusal        [-]  ?
-    by    Source/VectorInterchange.cpp
+    by    Api/VectorCodec.h, Source/VectorCodec.cpp, Source/VectorInterchange.cpp
     note  🔴 `52` §2: a refusal names the construct **and the position in the source**. "Unsupported" with no
     note  ⚠️ `00` §5.2's refused set: effect operations, clipping and masking, script and animation, and embedded
 
@@ -94,7 +94,7 @@ F VectorInterchange::Refuse              | VectorInterchange.h | 120     | api,n
     in    SourceOrdinal  std::uint32_t       [-]  ?
     in    Declining      const Refusal&      [-]  ?
     out   -              void                [-]  ?
-    by    Api/SpectralProjection.h, Contract/OutcomeContract.h, Source/AnalyticProjection.cpp, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, Source/AttachmentIndex.cpp, (+62 more)
+    by    Api/SpectralProjection.h, Api/WorkspaceSpace.h, Contract/OutcomeContract.h, Source/AnalyticProjection.cpp, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+102 more)
 
 F VectorInterchange::Flatten             | VectorInterchange.h | 134     | api,nonthrowing | 🔴 | Flattens every path at a tolerance the caller supplies, into one run per path. outline at whatever level a tile was promoted to, so a fixed tolerance is either wasteful at coarse levels or visibly polygonal at fine ones. `CurveSolver` is Bounded, so flattening twice would give two polylines agreeing to a tolerance and differing in their last bit — and an Exact predicate over two different inputs is exact about the wrong thing.
     in    Tolerance  double     [-]  greatest permitted deviation, in the outline's own space
@@ -109,13 +109,13 @@ F VectorInterchange::Classify            | VectorInterchange.h | 148     | api,n
     in    PointY     double                                           [-]  ?
     in    PointY     -                                                [-]  ?
     out   -          Containment                                      [-]  +1 inside, 0 exactly on a boundary, −1 outside
-    by    Api/CameraProjection.h, Api/TilingSpecification.h, Api/VendorClassifier.h, Source/AnalyticProjection.cpp, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, (+6 more)
+    by    Api/CameraProjection.h, Api/SampleIntegrator.h, Api/TilingSpecification.h, Api/VendorClassifier.h, Source/AnalyticProjection.cpp, Source/CameraProjection.cpp, (+8 more)
     note  🔴 A boundary position resolves to zero and not to inside — `70` resolves coverage from this, and a
     note  📝 Where a source declares several paths with differing fill rules, each path is classified under its
 
 F VectorInterchange::Declared            | VectorInterchange.h | 152     | -               | -  | ?
     out   -  const OutlineSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+45 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+82 more)
 
 F VectorInterchange::Refusals            | VectorInterchange.h | 153     | -               | -  | ?
     out   -  const std::vector<RefusedConstruct>&  [-]  ?
@@ -135,7 +135,7 @@ T GlyphSpecification                     | VectorInterchange.h | 173-180 | ownin
     has   Advance        double                    [-]  ?
     has   BearingAlong   double                    [-]  ?
     has   BearingAcross  double                    [-]  ?
-    by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
+    by    Api/TypefaceCodec.h, Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/TypefaceCodec.cpp, Source/VectorInterchange.cpp
     note  🔴 `52` §3: text is resolved to a **glyph sequence** at intake and the glyph sequence is what is stored.
 
 T TypefaceInterchange                    | VectorInterchange.h | 186-234 | owning          | -  | One typeface's glyphs, and the resolved text that reads them. are compatible with this: what is stored is the glyph sequence and the typeface identity either way.
@@ -173,7 +173,7 @@ F TypefaceInterchange::Adjustment        | VectorInterchange.h | 215     | api,n
     in    EarlierGlyph  std::uint32_t  [-]  ?
     in    LaterGlyph    std::uint32_t  [-]  ?
     out   -             double         [-]  ?
-    by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/RowSequence.cpp, Source/VectorInterchange.cpp
+    by    Api/TypefaceCodec.h, Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/RowSequence.cpp, Source/TypefaceCodec.cpp, Source/VectorInterchange.cpp
 
 F TypefaceInterchange::TypefaceIdentity  | VectorInterchange.h | 217     | -               | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -181,11 +181,11 @@ F TypefaceInterchange::TypefaceIdentity  | VectorInterchange.h | 217     | -    
 
 F TypefaceInterchange::UnitsPerEm        | VectorInterchange.h | 218     | -               | -  | ?
     out   -  double  [-]  ?
-    by    Source/AnalyticProjection.cpp, Source/VectorInterchange.cpp
+    by    Api/TypefaceCodec.h, Source/AnalyticProjection.cpp, Source/TypefaceCodec.cpp, Source/VectorInterchange.cpp
 
 F TypefaceInterchange::GlyphCount        | VectorInterchange.h | 219     | -               | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Source/VectorInterchange.cpp
+    by    Api/TypefaceCodec.h, Source/TypefaceCodec.cpp, Source/VectorInterchange.cpp
 
 T TypefaceInterchange::PairAdjustment    | VectorInterchange.h | 223-228 | -               | -  | ?
     has   EarlierGlyph  std::uint32_t  [-]  ?

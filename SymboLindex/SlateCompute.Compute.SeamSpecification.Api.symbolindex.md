@@ -33,7 +33,7 @@ F DeclareEdge                         | SeamSpecification.h | 37-44  | api,nonal
     in    FirstVertex   std::uint32_t       [-]  ?
     in    SecondVertex  std::uint32_t       [-]  ?
     out   -             constexpr SeamEdge  [-]  ?
-    by    Source/ChartPartition.cpp, Source/SeamSpecification.cpp
+    by    Api/GlyphDepot.h, Source/ChartPartition.cpp, Source/GlyphDepot.cpp, Source/SeamSpecification.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE SEAMS
@@ -80,15 +80,15 @@ F SeamSpecification::SeamDeclared     | SeamSpecification.h | 94     | api,nonth
 
 F SeamSpecification::Authored         | SeamSpecification.h | 99     | api,nonallocating,nonthrowing | ✔️ | The authored set, in declaration order.
     out   -  const std::vector<SeamEdge>&  [-]  ?
-    by    Api/SceneStructure.h, Source/ChartPartition.cpp, Source/SceneStructure.cpp, Source/SeamSpecification.cpp
+    by    Api/SceneStructure.h, Source/ChartPartition.cpp, Source/ReflectanceIntegrator.cpp, Source/SceneStructure.cpp, Source/SeamSpecification.cpp, Source/ThemeSpecification.cpp
 
 F SeamSpecification::Derived          | SeamSpecification.h | 104    | api,nonallocating,nonthrowing | ✔️ | The derived set, in derivation order — `86`'s `68` §2 row.
     out   -  const std::vector<SeamEdge>&  [-]  ?
-    by    Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+11 more)
+    by    Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, Source/ColourProjection.cpp, (+15 more)
 
 F SeamSpecification::Revision         | SeamSpecification.h | 111    | api,nonallocating,nonthrowing | ✔️ | The revision the last authored amendment advanced to. input to it, so counting one would make every partition invalidate the partition that produced it.
     out   -  std::uint64_t  [-]  ?
-    by    Api/ChartPartition.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/TopologyStructure.h, (+13 more)
+    by    Api/ChartPartition.h, Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PartitionStructure.h, Api/PrimitiveStructure.h, (+16 more)
     note  Only the authored set advances it. A derived seam is a consequence of the partition rather than an
 
 F SeamSpecification::AuthoredCount    | SeamSpecification.h | 113    | -                             | -  | ?

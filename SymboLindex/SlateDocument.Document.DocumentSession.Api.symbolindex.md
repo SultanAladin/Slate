@@ -1,0 +1,221 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateDocument/Document/DocumentSession/Api
+%layer      SlateDocument
+%sources    1
+%symbols    36
+%annotated  28/36
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S DocumentSession.h | 273 lines | 1ed42e4d | 36 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   WHERE IT CAME FROM
+//------------------------------------------------------------------------------------------------------------------------
+
+E StorageStanding                         | DocumentSession.h | 32-37   | contract                      | -  | Whether an open session has a file behind it yet. it is not a lesser document — it simply has no target for a save until one is declared.
+    has   Undeclared     StorageStanding  [-]  ?
+    has   Declared       StorageStanding  [-]  ?
+    has   StandingCount  StorageStanding  [-]  ?
+    by    Source/DocumentSession.cpp
+    note  📝 A session with no location is a document the artist began rather than opened. It is not an error and
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      ONE SESSION
+//------------------------------------------------------------------------------------------------------------------------
+
+T DocumentSession                         | DocumentSession.h | 55-178  | owning                        | -  | One open document — the population it holds, and everything true of it only while it is open. the **document**; the storage location, unsaved standing, selection, presented camera and outliner expansion are held **here only**; the display space, device residency and `20`'s resident tiles are held itself, so nothing derived is written and nothing derived is stored here either. not written on save. A document that reopened with someone else's selection restored has restored a decision the artist had already finished making, and the first stroke lands on the wrong occupant. and the generation that makes a reference safe is only unique within one of them.
+    in    neither             and are re-derived. A saved derivation is a saved opportunity for the file to disagree with  [-]  ?
+    has   Population          OutlinerSequence                                                                             [-]  ?
+    has   External            ReferenceIndex                                                                               [-]  ?
+    has   Recovery            RecoverySequence                                                                             [-]  ?
+    has   StoragePath         std::string                                                                                  [-]  ?
+    has   Presented           OccupantIdentity                                                                             [-]  ?
+    has   SavedRevision       std::uint64_t                                                                                [-]  ?
+    has   SavedStamp          std::uint64_t                                                                                [-]  ?
+    has   ScrollVisible       std::uint32_t                                                                                [-]  ?
+    has   VersionRead         std::uint32_t                                                                                [-]  ?
+    has   StorageDeclared     StorageStanding                                                                              [-]  ?
+    has   AmendmentsDeclared  bool                                                                                         [-]  ?
+    by    Source/DocumentSession.cpp
+    note  🔴 `48` §2's three columns. The population, revisions, working space, cameras and enrollment are held in
+    note  🔴 `SelectionSequence` sits inside `OutlinerSequence` and is session state — `48` §2 and `12` §11. It is
+    note  ⚠️ Non-copyable. Two copies of one open document are two populations issuing identities from two ledgers,
+
+F DocumentSession::Document               | DocumentSession.h | 66      | api,nonallocating,nonthrowing | ✔️ | The document itself — population, relations, revisions, rows and subsets.
+    out   -  OutlinerSequence&  [-]  ?
+    by    Source/DocumentSession.cpp, Source/VisibilityRaster.cpp
+
+F DocumentSession::Document               | DocumentSession.h | 67      | -                             | -  | ?
+    out   -  const OutlinerSequence&  [-]  ?
+    by    Source/DocumentSession.cpp, Source/VisibilityRaster.cpp
+
+F DocumentSession::References             | DocumentSession.h | 72      | api,nonallocating,nonthrowing | ✔️ | What this document depends on outside itself — `48` §5.
+    out   -  ReferenceIndex&  [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::References             | DocumentSession.h | 73      | -                             | -  | ?
+    out   -  const ReferenceIndex&  [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::Journal                | DocumentSession.h | 78      | api,nonallocating,nonthrowing | ✔️ | This document's own journal — `48` §4.1, one per document and never per application.
+    out   -  RecoverySequence&  [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::Journal                | DocumentSession.h | 79      | -                             | -  | ?
+    out   -  const RecoverySequence&  [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::DeclareStorage         | DocumentSession.h | 87      | api,nonthrowing               | ✔️ | Declares where this session's document lives, and where its journal is written beside it.
+    in    DeclaredPath  const std::string&  [-]  UTF-8; the document's location
+    in    JournalPath   const std::string&  [-]  UTF-8; the journal's own location
+    out   -             Outcome             [-]  refuses with ContentUnsupported when either path is empty
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::Seal                   | DocumentSession.h | 101     | api,nonthrowing               | 🚩 | Captures everything a save reads, from sealed state only — `48` §3. ExtentExhausted when a transaction is open half-finished drag on their behalf commits an edit they had not decided to keep, and it would land in `RevisionSequence` where they can only undo it after the fact. this knows the session; a session that encoded would be a second place the layout is written.
+    in    Encoded   const std::vector<std::uint8_t>&  [-]   the document as `FormatCodec` wrote it; sealed transactions only
+    in    SealedAt  std::uint64_t                     [ns]  the tick's reading at capture
+    out   -         Outcome                           [-]   refuses with ContentUnsupported when no storage location is declared, and with
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, (+19 more)
+    note  🔴 An open transaction refuses the capture rather than being sealed by it. Sealing someone's
+    note  📝 The encoding is handed in rather than performed here. `10`'s codecs know the stream layout and
+
+F DocumentSession::DeclareSaved           | DocumentSession.h | 110     | api,nonthrowing               | 🚩 | Records that a save landed, so the session stops standing amended. the worker would retire it before the requester knew the replacement had landed.
+    in    Concluded  const PersistenceConclusion&  [-]  what `PersistenceSequence::Persist` delivered
+    out   -          void                          [-]  ?
+    post  the journal entries the save subsumes are retired — `48` §3 ④
+    by    Source/DocumentSession.cpp
+    note  📝 Called on the tick, after the save's conclusion is drained from `34`. Retiring the journal from
+
+F DocumentSession::DeclareAmended         | DocumentSession.h | 117     | api,nonallocating,nonthrowing | ✔️ | Records that the document was amended, so a save is owed and the journal has a tail. comparison cannot tell an amendment from a scrub back to the saved position and forward again.
+    out   -  void  [-]  ?
+    by    Source/DocumentSession.cpp
+    note  📝 Declared by whoever sealed the transaction rather than derived from a revision count. A count
+
+F DocumentSession::AmendmentsStanding     | DocumentSession.h | 122     | api,nonallocating,nonthrowing | ✔️ | Whether this session holds amendments the file does not.
+    out   -  bool  [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::DeclarePresentedCamera | DocumentSession.h | 129     | api,nonallocating,nonthrowing | ✔️ | Which camera occupant this session presents. Session state — `48` §2. should each look at it from where they left off, not from where the last person to save was.
+    in    Presenting  OccupantIdentity  [-]  ?
+    out   -           void              [-]  ?
+    by    Source/DocumentSession.cpp
+    note  🔴 The cameras are in the document and which one is presented is not. Two artists opening one file
+
+F DocumentSession::PresentedCamera        | DocumentSession.h | 130     | -                             | -  | ?
+    out   -  OccupantIdentity  [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::DeclareScrollPosition  | DocumentSession.h | 135     | api,nonallocating,nonthrowing | ✔️ | Where the outliner is scrolled to. Session state — `48` §2.
+    in    VisiblePosition  std::uint32_t  [-]  ?
+    out   -                void           [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::ScrollPosition         | DocumentSession.h | 136     | -                             | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::StorageOrigin          | DocumentSession.h | 141     | api,nonallocating,nonthrowing | ✔️ | Where this session's document lives, empty while the standing is Undeclared.
+    out   -  const std::string&  [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::Standing               | DocumentSession.h | 146     | api,nonallocating,nonthrowing | ✔️ | Whether a file stands behind this session yet.
+    out   -  StorageStanding  [-]  ?
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+76 more)
+
+F DocumentSession::SavedThrough           | DocumentSession.h | 151     | api,nonallocating,nonthrowing | ✔️ | The revision ordinal the file on disc carries; zero when nothing has been saved.
+    out   -  std::uint64_t  [-]  ?
+    by    Api/PersistenceSequence.h, Api/RecoverySequence.h, Source/DocumentSession.cpp, Source/PersistenceSequence.cpp, Source/RecoverySequence.cpp
+
+F DocumentSession::SavedAt                | DocumentSession.h | 156     | api,nonallocating,nonthrowing | ✔️ | When the last save landed; zero when nothing has been saved.
+    out   -  std::uint64_t  [-]  ?
+    by    Api/PersistenceSequence.h, Api/RecoverySequence.h, Source/DocumentSession.cpp, Source/PersistenceSequence.cpp, Source/RecoverySequence.cpp
+
+F DocumentSession::DeclareReadVersion     | DocumentSession.h | 161     | api,nonallocating,nonthrowing | ✔️ | The stream version this document was read at, migrated to the current one — `48` §7.
+    in    ReadFrom  std::uint32_t  [-]  ?
+    out   -         void           [-]  ?
+    by    Source/DocumentSession.cpp
+
+F DocumentSession::ReadVersion            | DocumentSession.h | 162     | -                             | -  | ?
+    out   -  std::uint32_t  [-]  ?
+    by    Source/DocumentSession.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   EVERY OPEN SESSION
+//------------------------------------------------------------------------------------------------------------------------
+
+T SessionIndex                            | DocumentSession.h | 192-271 | owning                        | -  | Every open document, and which one the interface presents — `48` §6. for it, one instance beside this index rather than one per session. An artist who sets a brush size and switches document is expressing a preference about how they are working, not about that file. reference an interface panel holds across a tick would otherwise dangle the moment a second document opened, and the defect appears only for artists who work with more than one file at a time.
+    has   SessionCeiling    static constexpr std::uint32_t                 [-]  ?
+    has   Sessions          std::vector<std::unique_ptr<DocumentSession>>  [-]  ?
+    has   PresentedSession  std::uint32_t                                  [-]  ?
+    has   OpenTotal         std::uint32_t                                  [-]  ?
+    by    Source/DocumentSession.cpp
+    note  🔴 `48` §6: tool state is **per application** and is not held here. `ToolSequence` is the declared home
+    note  🔴 Sessions are held behind pointers so that opening or closing one does not move the others. Every
+
+F SessionIndex::Open                      | DocumentSession.h | 207     | api,nonthrowing               | 🚩 | Opens one session and issues the ordinal that addresses it. reference file mid-stroke would otherwise lose the workspace they were painting in.
+    out   -  Outcome  [-]  refuses with ExtentExhausted at the ceiling
+    post  the new session is presented when it is the first one, and is otherwise not
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+20 more)
+    note  📝 Opening a second document does not steal the display from the first. An artist importing a
+
+F SessionIndex::Close                     | DocumentSession.h | 216     | api,nonthrowing               | 🚩 | Closes one session, discarding everything held only while it was open. the answer is a conversation with the artist and this component cannot have one.
+    in    SessionOrdinal  std::uint32_t  [-]  ?
+    out   -               Outcome        [-]  refuses with ExtentExhausted outside the open count
+    post  the presented ordinal moves to another open session, or to none when this was the last
+    by    Api/HardwareMetrics.h, Source/DocumentSession.cpp, Source/HardwareMetrics.cpp
+    note  ⚠️ Nothing here asks whether amendments stand. `48` §4 makes that the caller's question, because
+
+F SessionIndex::Resolve                   | DocumentSession.h | 222     | api,nonthrowing               | ✔️ | One open session.
+    in    SessionOrdinal  std::uint32_t  [-]  ?
+    out   -               Outcome        [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+94 more)
+
+F SessionIndex::Resolve                   | DocumentSession.h | 223     | -                             | -  | ?
+    in    SessionOrdinal  std::uint32_t                    [-]  ?
+    out   -               Outcome<const DocumentSession*>  [-]  ?
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+94 more)
+
+F SessionIndex::DeclarePresented          | DocumentSession.h | 229     | api,nonthrowing               | ✔️ | Declares which session the interface presents — `14` presents one at a time.
+    in    SessionOrdinal  std::uint32_t  [-]  ?
+    out   -               Outcome        [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
+    by    Source/DocumentSession.cpp
+
+F SessionIndex::Presenting                | DocumentSession.h | 235     | api,nonthrowing               | ✔️ | The session the interface presents.
+    out   -  Outcome  [-]  refuses with ExtentExhausted when no session is open
+    by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/OutlinerPanel.cpp, Source/RevisionPanel.cpp
+
+F SessionIndex::Presenting                | DocumentSession.h | 236     | -                             | -  | ?
+    out   -  Outcome<const DocumentSession*>  [-]  ?
+    by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/OutlinerPanel.cpp, Source/RevisionPanel.cpp
+
+F SessionIndex::PresentedOrdinal          | DocumentSession.h | 241     | api,nonallocating,nonthrowing | ✔️ | Which ordinal is presented; the ceiling when nothing is open.
+    out   -  std::uint32_t  [-]  ?
+    by    Source/DocumentSession.cpp, Source/LayerPanel.cpp
+
+F SessionIndex::Located                   | DocumentSession.h | 249     | api,nonthrowing               | 🚩 | The most recently opened session naming one storage location. journals against it, and §4.1's pairing then cannot say which one recovers it.
+    in    StoragePath  const std::string&  [-]  ?
+    out   -            Outcome             [-]  refuses with ExtentExhausted when no open session holds that path
+    by    Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+26 more)
+    note  📝 What an open-file action asks before opening a second copy. Two sessions over one file are two
+
+F SessionIndex::OpenCount                 | DocumentSession.h | 254     | api,nonallocating,nonthrowing | ✔️ | How many sessions are open.
+    out   -  std::uint32_t  [-]  ?
+    by    Source/DocumentSession.cpp
+
+F SessionIndex::SpannedCount              | DocumentSession.h | 259     | api,nonallocating,nonthrowing | ✔️ | How many slots the index spans, open or not.
+    out   -  std::uint32_t  [-]  ?
+    by    Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SceneStructure.h, Api/SurfaceLayerSequence.h, (+10 more)
+
+F SessionIndex::Reclaim                   | DocumentSession.h | 264     | api,nonthrowing               | ✔️ | Closes every session. Called at process teardown and by nothing else.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)

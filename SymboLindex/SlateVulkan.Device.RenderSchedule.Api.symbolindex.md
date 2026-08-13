@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S RenderSchedule.h | 216 lines | 905b0217 | 16 sym | What is recorded in a rotation slot, in what order, and against which shared targets.
+S RenderSchedule.h | 225 lines | d9fd511a | 16 sym | What is recorded in a rotation slot, in what order, and against which shared targets.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     SHARED TARGETS
@@ -39,7 +39,7 @@ E SharedTarget               | RenderSchedule.h | 26-44   | contract            
     has   MultiScatterSurface     SharedTarget  [-]  ?
     has   SkyViewSurface          SharedTarget  [-]  ?
     has   TargetCount             SharedTarget  [-]  ?
-    by    Api/AttachmentIndex.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp, (+1 more)
+    by    Api/AttachmentIndex.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/DisplayProjection.cpp, Source/IntersectionOutline.cpp, Source/OcclusionProjection.cpp, (+9 more)
     note  Declared as one closed enumeration so that the producer and amender lists below are total.
 
 E ExtentRelation             | RenderSchedule.h | 50-55   | contract                      | -  | How a target's extent relates to the display extent. is never touched by a resize. `06` §4.1 gates that both ways.
@@ -75,7 +75,7 @@ F TargetSpace::Claim         | RenderSchedule.h | 95      | api,nonthrowing     
     in    DisplayFormat  VkFormat       [-]   what the display surface itself carries; the vendor spelling
     out   -              Outcome        [-]   refuses with ContentUnsupported for a zero or excessive extent, and with
     post  every target carries an image ordinal, or nothing does — refused in full
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+13 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+14 more)
     note  🔴 Refused in full. A half-claimed target set is one where `08` §3's ordering reads a target that
 
 F TargetSpace::Reclaim       | RenderSchedule.h | 110     | api,nonthrowing               | 🔴 | Re-claims every display-relative and fraction-of-display target against a new display extent. persistent extent is carried across. Re-claiming a subset is how one target keeps the previous extent and reads as a shifted image nobody attributes to the resize.
@@ -83,13 +83,13 @@ F TargetSpace::Reclaim       | RenderSchedule.h | 110     | api,nonthrowing     
     in    DisplayHeight  std::uint32_t  [px]  ?
     out   -              Outcome        [-]   refuses as Claim does; the absolute targets stand untouched either way
     pre   🔴 the device is idle — every rotation that reads the old targets has completed
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+49 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
     note  🔴 `06` §7's fourth gate, verbatim: **every** display-relative target is recreated and no
 
 F TargetSpace::Resolve       | RenderSchedule.h | 116     | api,nonthrowing               | ✔️ | The image one declared target was claimed as.
     in    Target  SharedTarget  [-]  ?
     out   -       Outcome       [-]  refuses with ContentUnsupported when the target is unclaimed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F TargetSpace::OrdinalOf     | RenderSchedule.h | 122     | api,nonallocating,nonthrowing | ✔️ | The image ordinal one target was claimed as, for the transition `ImageSpace` records.
     in    Target  SharedTarget  [-]  ?
@@ -99,7 +99,7 @@ F TargetSpace::OrdinalOf     | RenderSchedule.h | 122     | api,nonallocating,no
 F TargetSpace::Surrender     | RenderSchedule.h | 128     | api,nonthrowing               | 🚩 | Releases every claimed target and forgets the display extent they were claimed against.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/CommandSequence.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, Source/RenderSchedule.cpp, (+1 more)
+    by    Api/AttachmentIndex.h, Api/CommandSequence.h, Api/DisplayScheduler.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+3 more)
 
 F TargetSpace::ShapeOf       | RenderSchedule.h | 134     | -                             | -  | The shape one target is claimed at, derived from its relation and the standing display extent.
     in    Target  SharedTarget  [-]  ?
@@ -113,9 +113,9 @@ F TargetSpace::ShapeOf       | RenderSchedule.h | 134     | -                   
 E RecordingCommand           | RenderSchedule.h | 150-154 | contract                      | -  | What a recording contributes. Authored once by the contributing document, consulted by the orderer.
     has   GraphicsRecording  RecordingCommand  [-]  ?
     has   ComputeDispatch    RecordingCommand  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/VisibilityIndex.cpp
+    by    Source/ConsoleHost.cpp, Source/DisplayProjection.cpp, Source/IntersectionOutline.cpp, Source/OcclusionProjection.cpp, Source/OverlayProjection.cpp, Source/ReflectanceIntegrator.cpp, (+4 more)
 
-T DeclaredRecording          | RenderSchedule.h | 161-171 | owning                        | -  | One declared recording. absent capability must degrade to something, and choosing that something belongs to the contributing document rather than to a branch invented at the recording site.
+T DeclaredRecording          | RenderSchedule.h | 161-180 | owning                        | -  | One declared recording. absent capability must degrade to something, and choosing that something belongs to the contributing document rather than to a branch invented at the recording site.
     has   Identity            const char*                [-]  ?
     has   Reads               std::vector<SharedTarget>  [-]  ?
     has   Produces            std::vector<SharedTarget>  [-]  ?
@@ -124,31 +124,32 @@ T DeclaredRecording          | RenderSchedule.h | 161-171 | owning              
     has   CapabilityRequired  bool                       [-]  ?
     has   Substitution        const char*                [-]  ?
     has   DisplayReferred     bool                       [-]  ?
-    by    Source/ConsoleHost.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp
+    has   AmendmentOrdinal    std::uint32_t              [-]  ?
+    by    Source/ConsoleHost.cpp, Source/DisplayProjection.cpp, Source/IntersectionOutline.cpp, Source/OcclusionProjection.cpp, Source/OverlayProjection.cpp, Source/ReflectanceIntegrator.cpp, (+5 more)
     note  🔴 A recording with a capability requirement and no substitution is rejected at bring-up. An
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE SCHEDULE
 //------------------------------------------------------------------------------------------------------------------------
 
-T RenderSchedule             | RenderSchedule.h | 182-214 | owning                        | -  | The ordered recordings of one rotation, fixed at bring-up and merely executed per rotation. implies a solved dependency structure Slate does not build. The recordings and the target set are both known at bring-up, so the ordering is fixed there too.
+T RenderSchedule             | RenderSchedule.h | 191-223 | owning                        | -  | The ordered recordings of one rotation, fixed at bring-up and merely executed per rotation. implies a solved dependency structure Slate does not build. The recordings and the target set are both known at bring-up, so the ordering is fixed there too.
     has   ContributedOrder   std::vector<DeclaredRecording>  [-]  ?
     has   OrderedRecordings  std::vector<DeclaredRecording>  [-]  ?
     has   OrderingFixed      bool                            [-]  ?
-    by    Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp
+    by    Api/DisplayProjection.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/ReflectanceIntegrator.h, Api/SampleIntegrator.h, (+14 more)
     note  🔴 The term is `RenderSchedule`. "Frame graph" is not a synonym: `Frame` is banned and "graph"
 
-F RenderSchedule::Contribute | RenderSchedule.h | 192     | api,nonthrowing               | ✔️ | Contributes one recording to the schedule. contribution produces a target another recording already produces
+F RenderSchedule::Contribute | RenderSchedule.h | 201     | api,nonthrowing               | ✔️ | Contributes one recording to the schedule. contribution produces a target another recording already produces
     in    Arriving  const DeclaredRecording&  [-]  the declaration the contributing document authored
     out   -         Outcome                   [-]  refuses when a capability is required with no substitution, or when the
-    by    Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/RenderSchedule.cpp, Source/VisibilityIndex.cpp
+    by    Api/DisplayProjection.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/ReflectanceIntegrator.h, Api/SampleIntegrator.h, (+13 more)
 
-F RenderSchedule::Fix        | RenderSchedule.h | 200     | api,nonthrowing               | 🚩 | Fixes the ordering. Derived from the declared reads and writes, never hand-written. when anything scene-referred is ordered after the display-referred line
+F RenderSchedule::Fix        | RenderSchedule.h | 209     | api,nonthrowing               | 🚩 | Fixes the ordering. Derived from the declared reads and writes, never hand-written. when anything scene-referred is ordered after the display-referred line
     out   -  Outcome  [-]  refuses when a target is read by a recording ordered before its producer, or
     post  the ordering is immutable until the next bring-up
-    by    Api/DescriptorIndex.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/RenderSchedule.cpp
+    by    Api/DescriptorIndex.h, Api/InstructionExchange.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/InstructionExchange.cpp, Source/RenderSchedule.cpp
 
-F RenderSchedule::Ordered    | RenderSchedule.h | 206     | api,nonallocating,nonthrowing | ✔️ | The recordings, in the order Fix derived.
+F RenderSchedule::Ordered    | RenderSchedule.h | 215     | api,nonallocating,nonthrowing | ✔️ | The recordings, in the order Fix derived.
     out   -  const std::vector<DeclaredRecording>&  [-]  ?
     pre   Fix delivered
-    by    Source/ConsoleHost.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/VisibilityRaster.cpp
+    by    Source/ConsoleHost.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/VisibilityRaster.cpp, Source/WorkspaceSpace.cpp

@@ -8,15 +8,15 @@
 %path       Engine/SlateMath/Numeric/TransformProjection/Source
 %layer      SlateMath
 %sources    1
-%symbols    4
-%annotated  0/4
+%symbols    6
+%annotated  0/6
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TransformProjection.cpp | 156 lines | 650735a8 | 4 sym | Quaternion composition, matrix derivation, and the 64-bit rebasing subtraction.
+S TransformProjection.cpp | 171 lines | a8accc1a | 6 sym | Quaternion composition, matrix derivation, and the 64-bit rebasing subtraction.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ROTATION COMPOUNDING
@@ -45,13 +45,24 @@ F Compound | TransformProjection.cpp | 64-98   | - | - | ?
 F Project  | TransformProjection.cpp | 104-134 | - | - | ?
     in    Source  const DecomposedTransform&  [-]  ?
     out   -       ProjectedTransform          [-]  ?
-    by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TransformProjection.h, Api/VisibilityRaster.h, Source/AtmosphereIntegrator.cpp, (+6 more)
+    by    Api/ColourProjection.h, Api/DisplayProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TickSequence.h, Api/TransformProjection.h, (+12 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        REBASING
 //------------------------------------------------------------------------------------------------------------------------
 
-F Rebase   | TransformProjection.cpp | 140-154 | - | - | ?
+F Relative | TransformProjection.cpp | 140-150 | - | - | ?
+    in    Subject     DocumentPosition  [-]  ?
+    in    ViewOrigin  DocumentPosition  [-]  ?
+    out   -           ViewPosition      [-]  ?
+    by    Api/TransformProjection.h, Source/VectorCodec.cpp
+
+F Narrow   | TransformProjection.cpp | 152-162 | - | - | ?
+    in    Subject  ViewPosition    [-]  ?
+    out   -        DevicePosition  [-]  ?
+    by    Api/OutlinerSequence.h, Api/TransformProjection.h, Api/TrigramIndex.h, Source/ClipboardExchange.cpp, Source/CodeInterchange.cpp, Source/FileInterchange.cpp, (+5 more)
+
+F Rebase   | TransformProjection.cpp | 164-169 | - | - | ?
     in    Subject     DocumentPosition  [-]  ?
     in    ViewOrigin  DocumentPosition  [-]  ?
     out   -           DevicePosition    [-]  ?

@@ -48,13 +48,13 @@ F RankIndex::Construct           | RowSequence.h | 56      | api,nonthrowing    
     in    RowCount  std::uint32_t  [-]  rows the sequence holds
     out   -         void           [-]  ?
     post  the count of every prefix equals its row ordinal
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+46 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
 
 F RankIndex::Declare             | RowSequence.h | 63      | api,nonallocating,nonthrowing | ✔️ | Declares one row counted or uncounted, adjusting every prefix that contains it.
     in    RowOrdinal      std::uint32_t  [-]  the row
     in    CountedEnabled  bool           [-]  whether it participates in the visible count
     out   -               void           [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+30 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F RankIndex::CountedBefore       | RowSequence.h | 70      | api,nonallocating,nonthrowing | ✔️ | How many rows before this ordinal are counted.
     in    RowOrdinal  std::uint32_t  [-]  exclusive upper bound
@@ -117,7 +117,7 @@ F RowSequence::Rows              | RowSequence.h | 146     | api,nonallocating,n
 
 F RowSequence::Counted           | RowSequence.h | 151     | api,nonallocating,nonthrowing | ✔️ | The counted ordering over those rows.
     out   -  const RankIndex&  [-]  ?
-    by    Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/DepthReduction.cpp, Source/OutlinerPanel.cpp, Source/ReportSequence.cpp, Source/RowSequence.cpp
+    by    Api/ReportSequence.h, Source/ChannelPanel.cpp, Source/CodeInterchange.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, Source/DepthReduction.cpp, (+9 more)
 
 F RowSequence::RowOf             | RowSequence.h | 158     | api,nonallocating,nonthrowing | ✔️ | Which row an occupant sits at.
     in    Subject  OccupantIdentity  [-]  the occupant

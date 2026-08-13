@@ -6,8 +6,8 @@
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateCompute
-%folders  30
-%symbols  706
+%folders  52
+%symbols  1094
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
@@ -20,18 +20,36 @@ I Shader | Shader/Shader.symbolindex | 29 sym  | The one uniform block every atm
 I Source | Source/Source.symbolindex | 42 sym  | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
 I Api    | Api/Api.symbolindex       | 13 sym  | The parametric domain every paintable surface addresses — cut, flattened, arranged, and measured.
 I Source | Source/Source.symbolindex | 15 sym  | Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
+I Api    | Api/Api.symbolindex       | 17 sym  | `66` — exposure on radiance, one monotonic compression, then primaries and transfer through `36` exactly once.
+I Source | Source/Source.symbolindex | 11 sym  | Exposure first, compression second, primaries third, transfer once — and the refusal that stops one monitor being every monitor.
 I Api    | Api/Api.symbolindex       | 10 sym  | Charts arranged into the unit domain at a common scale, separated by at least one apron.
 I Source | Source/Source.symbolindex | 6 sym   | Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
+I Api    | Api/Api.symbolindex       | 17 sym  | `50` §5 — an export resolved from the domain at its declared extent, band by band, never read back from residency.
+I Source | Source/Source.symbolindex | 8 sym   | `50` §5 — the band walk that resolves an emitted image out of the domain, one texel centre at a time.
 I Api    | Api/Api.symbolindex       | 26 sym  | A stroke as ordered impressions against the parametric domain — resampled by arrival, deferred never dropped, sealed once.
 I Source | Source/Source.symbolindex | 25 sym  | Domain resampling from arrival stamps, the deferral that never coarsens, and the accumulation applied once.
+I Api    | Api/Api.symbolindex       | 12 sym  | `26` — the enrolled set's silhouette, derived from `16`'s targets alone and recorded over the display after `66`.
+I Source | Source/Source.symbolindex | 11 sym  | Two indexed lookups, one interval comparison, a scalar coverage — and the refusal that stops an occluded outline being merely dimmer.
+I Api    | Api/Api.symbolindex       | 41 sym  | `60`'s two occlusion terms, kept apart — the per-illuminant projection that attenuates the direct term, and the scalar hemisphere that attenuates the ambient.
+I Source | Source/Source.symbolindex | 32 sym  | Six faces about a position, a subdivision snapped against shimmer, the packing that truncates rather than drops, and the rebuild that almost never runs.
+I Api    | Api/Api.symbolindex       | 11 sym  | `80` — non-occupant geometry the artist needs to see, as two recordings whose depth behaviour is opposite and never merged.
+I Source | Source/Source.symbolindex | 10 sym  | Two declarations that differ in exactly one behaviour, presence read straight out of `76`, and nothing that could ever be picked.
 I Api    | Api/Api.symbolindex       | 6 sym   | Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
-I Source | Source/Source.symbolindex | 7 sym   | Registration and comparison over the common sample set.
+I Source | Source/Source.symbolindex | 8 sym   | Registration and comparison over the common sample set.
+I Api    | Api/Api.symbolindex       | 26 sym  | `82` — what an action will produce, shown before it is committed to, as one speculative extent four consumers share.
+I Source | Source/Source.symbolindex | 17 sym  | `82` — the four previews resolved on the host, each one discarded and re-resolved every rotation.
 I Api    | Api/Api.symbolindex       | 24 sym  | Two independent budgets, spent per rotation, and the ordering eviction follows when they cannot be met.
 I Source | Source/Source.symbolindex | 17 sym  | The two measures charged apart, the total eviction order, and the cost read from `56`'s entries.
+I Api    | Api/Api.symbolindex       | 26 sym  | `18` — attributes reconstructed rather than read, channels resolved rather than walked, and one target written at every pixel.
+I Source | Source/Source.symbolindex | 37 sym  | Attributes reconstructed from two ordinals, channels resolved once, the four lobes composed, and the lookup that keeps them energy-correct.
 I Api    | Api/Api.symbolindex       | 17 sym  | Device-written cell demands, drained with latency — the readback half named apart, and the arrival order it yields.
 I Source | Source/Source.symbolindex | 13 sym  | Coalescing by cell, the cyclic rotation slots, and the readback that is exactly one depth behind.
+I Api    | Api/Api.symbolindex       | 17 sym  | `64` — one sample per rotation accumulated into convergence, reprojected by motion and reset rather than decayed.
+I Source | Source/Source.symbolindex | 12 sym  | Motion-driven reprojection, the count-derived weight, and the reset that never decays.
 I Api    | Api/Api.symbolindex       | 13 sym  | Where the topology is cut — authored seams that survive every re-partition, derived seams that do not.
 I Source | Source/Source.symbolindex | 11 sym  | Two separately stored sets, and the reclamation that reaches only one of them.
+I Api    | Api/Api.symbolindex       | 15 sym  | `30` — screen-space reflection over depth already resolved and radiance already shaded, composed so that nothing is counted twice.
+I Source | Source/Source.symbolindex | 9 sym   | The half-extent claim, the amending recording ordered after `62`, and the composite that cancels to nothing on every failure.
 I Api    | Api/Api.symbolindex       | 12 sym  | The bounded extent one stroke accumulates into — coverage per texel, per touched cell, applied once at Seal.
 I Source | Source/Source.symbolindex | 9 sym   | Sparse tile claiming over the dense cell index, and the commutative coverage accumulation.
 I Api    | Api/Api.symbolindex       | 15 sym  | Derived, evictable, reconstructible artefacts keyed by content — and nothing authored, ever.
@@ -40,6 +58,10 @@ I Api    | Api/Api.symbolindex       | 40 sym  | Resolution-independent paintabl
 I Source | Source/Source.symbolindex | 28 sym  | The coarsening walk that never stalls, the revision comparison, and promotion that evicts only what it may.
 I Api    | Api/Api.symbolindex       | 16 sym  | Physical tile extents, sliced and reclaimed — slot ledger and byte offsets, and never a texel.
 I Source | Source/Source.symbolindex | 12 sym  | Claim, release into quarantine, and the reclamation deferred by the rotation depth.
+I Api    | Api/Api.symbolindex       | 18 sym  | `62` — cutout resolved at `16` and never here, transmissive collected into a bounded sorted column, and amended back to front.
+I Source | Source/Source.symbolindex | 14 sym  | The classification that keeps foliage cheap, the sorted insertion that discards the farthest, and the walk that reads the column backwards.
+I Api    | Api/Api.symbolindex       | 13 sym  | `24` — attributes moved from a dense topology onto a sparse one through the domain, converging, and keyed by content.
+I Source | Source/Source.symbolindex | 13 sym  | A Tier A extent test, a rule that chooses among what it admitted, sweeps that converge — and a miss recorded as a miss.
 I Api    | Api/Api.symbolindex       | 103 sym | The hierarchical minimum `16` §2 ② reduces one rotation's depth into, and which level a projected extent is tested at.
 I Shader | Shader/Shader.symbolindex | 29 sym  | `16` §2 ② — one dispatch per level, reducing the depth target and then the chain into its own coarser levels.
 I Source | Source/Source.symbolindex | 76 sym  | Halving a display extent into a level chain, and the integer logarithm that picks the level one partition is tested at.
@@ -161,45 +183,45 @@ F IntegrateTransmittance                          | Shader/TransmittanceSurface.
 F EncodeHalf                                      | Source/AtmosphereIntegrator.cpp   | 27-60     | ?
 F DecodeHalf                                      | Source/AtmosphereIntegrator.cpp   | 62-88     | ?
 F MediumSpecification::Validate                   | Source/AtmosphereIntegrator.cpp   | 105-129   | ?
-F Resolve                                         | Source/AtmosphereIntegrator.cpp   | 135-228   | ?
-F ResidentSurface::Construct                      | Source/AtmosphereIntegrator.cpp   | 234-248   | ?
-F ResidentSurface::Write                          | Source/AtmosphereIntegrator.cpp   | 250-262   | ?
-F ResidentSurface::Sample                         | Source/AtmosphereIntegrator.cpp   | 264-327   | ?
-F ResidentSurface::Texels                         | Source/AtmosphereIntegrator.cpp   | 329       | ?
-F ResidentSurface::ResidentBytes                  | Source/AtmosphereIntegrator.cpp   | 331-334   | ?
-F ResidentSurface::ExtentAlong                    | Source/AtmosphereIntegrator.cpp   | 336       | ?
-F ResidentSurface::ExtentAcross                   | Source/AtmosphereIntegrator.cpp   | 337       | ?
-F ResidentSurface::SurfaceConstructed             | Source/AtmosphereIntegrator.cpp   | 338       | ?
-F HarmonicBasis                                   | Source/AtmosphereIntegrator.cpp   | 348-359   | ?
-V CosineLobe                                      | Source/AtmosphereIntegrator.cpp   | 364       | ?
-F IrradianceProjection::Evaluate                  | Source/AtmosphereIntegrator.cpp   | 368-385   | ?
-F AtmosphereIntegrator::DeclareMedium             | Source/AtmosphereIntegrator.cpp   | 391-407   | ?
-F AtmosphereIntegrator::DeclareSun                | Source/AtmosphereIntegrator.cpp   | 409-431   | ?
-F AtmosphereIntegrator::DeclareCameraAltitude     | Source/AtmosphereIntegrator.cpp   | 433-450   | ?
-F AtmosphereIntegrator::DeclareAtmospherePresence | Source/AtmosphereIntegrator.cpp   | 452-455   | ?
-F AtmosphereIntegrator::DeclareConstantFloor      | Source/AtmosphereIntegrator.cpp   | 457-466   | ?
-F AtmosphereIntegrator::ShapeProfile              | Source/AtmosphereIntegrator.cpp   | 472-496   | ?
-F AtmosphereIntegrator::BuildTransmittance        | Source/AtmosphereIntegrator.cpp   | 512-595   | ?
-F AtmosphereIntegrator::TransmittanceAt           | Source/AtmosphereIntegrator.cpp   | 597-606   | ?
-F AtmosphereIntegrator::MultiScatterAt            | Source/AtmosphereIntegrator.cpp   | 612-620   | ?
-F AtmosphereIntegrator::BuildMultiScatter         | Source/AtmosphereIntegrator.cpp   | 622-760   | ?
-F AtmosphereIntegrator::BuildSkyView              | Source/AtmosphereIntegrator.cpp   | 775-884   | ?
-F AtmosphereIntegrator::DeriveIrradiance          | Source/AtmosphereIntegrator.cpp   | 890-946   | ?
-F AtmosphereIntegrator::Rebuild                   | Source/AtmosphereIntegrator.cpp   | 952-1012  | ?
-F AtmosphereIntegrator::RebuildOwed               | Source/AtmosphereIntegrator.cpp   | 1014-1017 | ?
-F AtmosphereIntegrator::SampleSkyView             | Source/AtmosphereIntegrator.cpp   | 1023-1053 | ?
-F AtmosphereIntegrator::SampleTransmittance       | Source/AtmosphereIntegrator.cpp   | 1055-1065 | ?
-F AtmosphereIntegrator::AerialTransmittance       | Source/AtmosphereIntegrator.cpp   | 1067-1124 | ?
-F AtmosphereIntegrator::Irradiance                | Source/AtmosphereIntegrator.cpp   | 1130      | ?
-F AtmosphereIntegrator::Transmittance             | Source/AtmosphereIntegrator.cpp   | 1131      | ?
-F AtmosphereIntegrator::MultiScatter              | Source/AtmosphereIntegrator.cpp   | 1132      | ?
-F AtmosphereIntegrator::SkyView                   | Source/AtmosphereIntegrator.cpp   | 1133      | ?
-F AtmosphereIntegrator::ResidentBytes             | Source/AtmosphereIntegrator.cpp   | 1135-1140 | ?
-F AtmosphereIntegrator::MediumRebuildCount        | Source/AtmosphereIntegrator.cpp   | 1142      | ?
-F AtmosphereIntegrator::SkyViewRebuildCount       | Source/AtmosphereIntegrator.cpp   | 1143      | ?
-F AtmosphereIntegrator::Medium                    | Source/AtmosphereIntegrator.cpp   | 1144      | ?
-F AtmosphereIntegrator::Coefficient               | Source/AtmosphereIntegrator.cpp   | 1145      | ?
-F AtmosphereIntegrator::AtmospherePresent         | Source/AtmosphereIntegrator.cpp   | 1146      | ?
+F Resolve                                         | Source/AtmosphereIntegrator.cpp   | 135-303   | ?
+F ResidentSurface::Construct                      | Source/AtmosphereIntegrator.cpp   | 309-323   | ?
+F ResidentSurface::Write                          | Source/AtmosphereIntegrator.cpp   | 325-337   | ?
+F ResidentSurface::Sample                         | Source/AtmosphereIntegrator.cpp   | 339-402   | ?
+F ResidentSurface::Texels                         | Source/AtmosphereIntegrator.cpp   | 404       | ?
+F ResidentSurface::ResidentBytes                  | Source/AtmosphereIntegrator.cpp   | 406-409   | ?
+F ResidentSurface::ExtentAlong                    | Source/AtmosphereIntegrator.cpp   | 411       | ?
+F ResidentSurface::ExtentAcross                   | Source/AtmosphereIntegrator.cpp   | 412       | ?
+F ResidentSurface::SurfaceConstructed             | Source/AtmosphereIntegrator.cpp   | 413       | ?
+F HarmonicBasis                                   | Source/AtmosphereIntegrator.cpp   | 423-434   | ?
+V CosineLobe                                      | Source/AtmosphereIntegrator.cpp   | 439       | ?
+F IrradianceProjection::Evaluate                  | Source/AtmosphereIntegrator.cpp   | 443-460   | ?
+F AtmosphereIntegrator::DeclareMedium             | Source/AtmosphereIntegrator.cpp   | 466-482   | ?
+F AtmosphereIntegrator::DeclareSun                | Source/AtmosphereIntegrator.cpp   | 484-506   | ?
+F AtmosphereIntegrator::DeclareCameraAltitude     | Source/AtmosphereIntegrator.cpp   | 508-525   | ?
+F AtmosphereIntegrator::DeclareAtmospherePresence | Source/AtmosphereIntegrator.cpp   | 527-530   | ?
+F AtmosphereIntegrator::DeclareConstantFloor      | Source/AtmosphereIntegrator.cpp   | 532-541   | ?
+F AtmosphereIntegrator::ShapeProfile              | Source/AtmosphereIntegrator.cpp   | 547-571   | ?
+F AtmosphereIntegrator::BuildTransmittance        | Source/AtmosphereIntegrator.cpp   | 587-670   | ?
+F AtmosphereIntegrator::TransmittanceAt           | Source/AtmosphereIntegrator.cpp   | 672-681   | ?
+F AtmosphereIntegrator::MultiScatterAt            | Source/AtmosphereIntegrator.cpp   | 687-695   | ?
+F AtmosphereIntegrator::BuildMultiScatter         | Source/AtmosphereIntegrator.cpp   | 697-835   | ?
+F AtmosphereIntegrator::BuildSkyView              | Source/AtmosphereIntegrator.cpp   | 850-959   | ?
+F AtmosphereIntegrator::DeriveIrradiance          | Source/AtmosphereIntegrator.cpp   | 965-1021  | ?
+F AtmosphereIntegrator::Rebuild                   | Source/AtmosphereIntegrator.cpp   | 1027-1087 | ?
+F AtmosphereIntegrator::RebuildOwed               | Source/AtmosphereIntegrator.cpp   | 1089-1092 | ?
+F AtmosphereIntegrator::SampleSkyView             | Source/AtmosphereIntegrator.cpp   | 1098-1128 | ?
+F AtmosphereIntegrator::SampleTransmittance       | Source/AtmosphereIntegrator.cpp   | 1130-1140 | ?
+F AtmosphereIntegrator::AerialTransmittance       | Source/AtmosphereIntegrator.cpp   | 1142-1199 | ?
+F AtmosphereIntegrator::Irradiance                | Source/AtmosphereIntegrator.cpp   | 1205      | ?
+F AtmosphereIntegrator::Transmittance             | Source/AtmosphereIntegrator.cpp   | 1206      | ?
+F AtmosphereIntegrator::MultiScatter              | Source/AtmosphereIntegrator.cpp   | 1207      | ?
+F AtmosphereIntegrator::SkyView                   | Source/AtmosphereIntegrator.cpp   | 1208      | ?
+F AtmosphereIntegrator::ResidentBytes             | Source/AtmosphereIntegrator.cpp   | 1210-1215 | ?
+F AtmosphereIntegrator::MediumRebuildCount        | Source/AtmosphereIntegrator.cpp   | 1217      | ?
+F AtmosphereIntegrator::SkyViewRebuildCount       | Source/AtmosphereIntegrator.cpp   | 1218      | ?
+F AtmosphereIntegrator::Medium                    | Source/AtmosphereIntegrator.cpp   | 1219      | ?
+F AtmosphereIntegrator::Coefficient               | Source/AtmosphereIntegrator.cpp   | 1220      | ?
+F AtmosphereIntegrator::AtmospherePresent         | Source/AtmosphereIntegrator.cpp   | 1221      | ?
 T PartitionSpecification                          | Api/ChartPartition.h              | 32-39     | The parameters a partition is derived against. distortion either way. It is declared here rather than in `Contract/` because no second unit reads it.
 T Chart                                           | Api/ChartPartition.h              | 51-60     | One connected piece of topology bounded by seams and by the topology's own boundary. results on the partition revision, and a chart whose member set is unchanged keeps its least face ordinal — so a partition that touched one seam does not renumber every chart and discard every derived artefact for a change the artist cannot see.
 T PartitionMetrics                                | Api/ChartPartition.h              | 68-77     | What the partition reports through `86`.
@@ -228,6 +250,34 @@ F ChartPartition::Coordinate                      | Source/ChartPartition.cpp   
 F ChartPartition::PartitionStanding               | Source/ChartPartition.cpp         | 771       | ?
 F ChartPartition::Revision                        | Source/ChartPartition.cpp         | 772       | ?
 F ChartPartition::Report                          | Source/ChartPartition.cpp         | 778-823   | ?
+E ExposureSubject                                 | Api/DisplayProjection.h           | 30-35     | Where the standing exposure comes from — the artist, or the reduction the metering measured. adapts is one the artist sets and watches drift back, and nothing on the display says which of the two moved it.
+T ExposureSpecification                           | Api/DisplayProjection.h           | 41-47     | What the exposure is, and — where it is metered — how fast it may move. here rather than in `Contract/` because no second unit reads either — `00` §2's rule.
+T ToneSpecification                               | Api/DisplayProjection.h           | 60-64     | What the unbounded scene radiance is compressed into the display's range by. that reaches full display code, so lowering it brightens the image; reading it as a display ceiling inverts the control the artist is given. saturation all the way to clipping, which reads as a hard-edged bloom rather than as a bright highlight.
+T EncodeSpecification                             | Api/DisplayProjection.h           | 78-83     | The two spaces the projection crosses, and whether the presentation format already carries a transfer. space**. `Declare` refuses the two as one, because an image authored under that assumption is correct on the machine it was authored on and silently wrong everywhere else. applies its own transfer, encoded again here, is the twice-encoded defect `66` §4 names — and it presents as an image that is merely a bit washed out, which is why it survives review.
+F EncodeSpecification::DeclaredWorkingSpace       | Api/DisplayProjection.h           | 80        | ?
+F EncodeSpecification::DeclaredDisplaySpace       | Api/DisplayProjection.h           | 81        | ?
+T DisplayProjection                               | Api/DisplayProjection.h           | 99-187    | `66` — the recording, the metering that adapts in stops, and the four ordered operations of `08` §3 ⑧. Exposure applied after the compression is a scale on display code, which brightens a compressed image rather than exposing a scene and never recovers highlight detail. Writing either by hand would be a second implementation of a conversion `02` §5 already declares as one component, and the two would agree until one of them was amended. this. No correction applied to display code recovers what the compression discarded.
+F DisplayProjection::Declare                      | Api/DisplayProjection.h           | 120       | Declares the exposure, the compression and the two spaces as one admission. the unit interval, a metered exposure with no adaptation interval, an undeclared space, and a display space that is the working space one validated space and one that was rejected, which is indistinguishable from a colour-managed path by looking at it.
+F DisplayProjection::Contribute                   | Api/DisplayProjection.h           | 131       | Contributes `08` §3 ⑧'s recording. the tone line, and this recording **is** the tone line — declaring it display-referred would place it among the amenders of its own output.
+F DisplayProjection::AdvanceMetering              | Api/DisplayProjection.h           | 146       | Advances the metered exposure one interval toward the reduction just measured. of nothing crosses a bright scene in one step and a dark one in fifty, which reads as the metering being broken in exactly half of the documents an artist opens. open at the wrong brightness and settle over a second — which reads as the application still loading rather than as the metering working.
+F DisplayProjection::ExposureScale                | Api/DisplayProjection.h           | 155       | The linear scale the standing exposure applies to radiance. has advanced at least once. Before that it is the declared value, so nothing reads an exposure no measurement has yet produced.
+F DisplayProjection::Project                      | Api/DisplayProjection.h           | 167       | Projects one accumulated radiance into display code — the four ordered operations, once each. a coordinate in the declared working space, and with whatever `36` refused compressed against a white magnitude that means nothing in it, and the result is plausible. `36` is called, so ours is withheld rather than applied twice — `66` §4.
+F DisplayProjection::Report                       | Api/DisplayProjection.h           | 174       | Declares every measure; appends nothing. and reporting each advance would mean the register is never quiet.
+F DisplayProjection::Exposure                     | Api/DisplayProjection.h           | 176       | ?
+F DisplayProjection::Tone                         | Api/DisplayProjection.h           | 177       | ?
+F DisplayProjection::Encoding                     | Api/DisplayProjection.h           | 178       | ?
+F SLATE_DECLARES_PRECISION                        | Api/DisplayProjection.h           | 192       | ?
+V DisplayRecordingIdentity                        | Source/DisplayProjection.cpp      | 20        | ?
+V MiddleGreyLuminance                             | Source/DisplayProjection.cpp      | 25        | ?
+F DisplayProjection::Declare                      | Source/DisplayProjection.cpp      | 29-73     | ?
+F DisplayProjection::Contribute                   | Source/DisplayProjection.cpp      | 79-99     | ?
+F DisplayProjection::AdvanceMetering              | Source/DisplayProjection.cpp      | 105-144   | ?
+F DisplayProjection::ExposureScale                | Source/DisplayProjection.cpp      | 146-153   | ?
+F DisplayProjection::Project                      | Source/DisplayProjection.cpp      | 159-211   | ?
+F DisplayProjection::Report                       | Source/DisplayProjection.cpp      | 217-227   | ?
+F DisplayProjection::Exposure                     | Source/DisplayProjection.cpp      | 229       | ?
+F DisplayProjection::Tone                         | Source/DisplayProjection.cpp      | 230       | ?
+F DisplayProjection::Encoding                     | Source/DisplayProjection.cpp      | 231       | ?
 F DeclaredGap                                     | Api/DomainSpace.h                 | 31-34     | The least gap between two adjacent charts, in domain units. narrower than the apron means a tile's duplicated border reads texels belonging to a different chart, and every chart edge in the painted result carries a fringe of a neighbouring chart's content. residency or its promotion — that is the whole content of `00` §10 conflict 30's resolution, and it is what makes this document precede `20` rather than depend on it.
 T ChartExtent                                     | Api/DomainSpace.h                 | 42-47     | One chart's planar extent, before any scale is applied.
 T ChartPlacement                                  | Api/DomainSpace.h                 | 51-58     | Where one chart sits in the unit domain, and at what scale.
@@ -244,6 +294,31 @@ F DomainSpace::Arrange                            | Source/DomainSpace.cpp      
 F DomainSpace::Placements                         | Source/DomainSpace.cpp            | 178       | ?
 F DomainSpace::Occupancy                          | Source/DomainSpace.cpp            | 179       | ?
 F DomainSpace::SettledScale                       | Source/DomainSpace.cpp            | 180       | ?
+V EmissionExtentCeiling                           | Api/EmissionSequence.h            | 28        | ?
+V EmissionBandRows                                | Api/EmissionSequence.h            | 33        | ?
+T EmittedTexels                                   | Api/EmissionSequence.h            | 48-54     | One emitted image's texels, resolved and packed into the arrangement the specification declared. **not** a readback of `20`'s resident tiles. Residency is a display decision bounded by device memory, and an export bounded by what happened to be resident is an export whose content depends on where the artist last looked — which is a defect that reproduces only on the machine that made it. quantising here would quantise twice: once into this and once into the file, and the second one would be quantising an already-quantised value.
+T EmissionSources                                 | Api/EmissionSequence.h            | 65-68     | What an emission resolves through, borrowed and never owned. resolver: an export that resolved by a second implementation would ship an asset that disagrees with what the artist was shown while painting it, and they would have no way to tell which one was wrong.
+F ProjectPlacements                               | Api/EmissionSequence.h            | 90        | Derives the placements one emitted image's arrangement amounts to. densely — component zero of the resolution is the first channel the run names — and the walk scatters its 𝑘th component into the 𝑘th occupied slot. An unordered run would scatter into the wrong slots and produce an image that is plausible and wrong, which is `50` §5.1's whole warning. so nothing declares which components a channel occupies within a resolved texel. The scatter therefore lives in the band walk today. The day `00` §12 is answered and `70` places by the run, the scatter becomes the identity and is deleted; the run is handed over either way, so nothing else moves. entry that silently claimed the two components after it is an entry they cannot see the extent of.
+F SLATE_DECLARES_PRECISION                        | Api/EmissionSequence.h            | 91        | ?
+F ToleranceAtExtent                               | Api/EmissionSequence.h            | 102-105   | The flattening tolerance an emission at one extent resolves at. emission's extent is the artist's declaration and need not be a reduction level at all, so the tolerance is derived from the extent rather than looked up — one texel of what is being written, which is the deviation below which a chord cannot move a sample.
+F SLATE_DECLARES_PRECISION                        | Api/EmissionSequence.h            | 106       | ?
+T EmissionSequence                                | Api/EmissionSequence.h            | 123-200   | One emitted image resolved a band at a time, so a `Background` export never holds a worker for its length. so an export started before an edit contains the state at the moment it started. That is discharged by the caller handing in the sequence it sealed, not by anything here: a component that reached for the live sequence would resolve half its bands from before an edit and half from after, and the seam between them would land somewhere down the middle of the image. both built and are the caller's to drive — an export that half-overwrites last week's export has destroyed a deliverable to produce nothing, and that guarantee lives in the component that owns the replacement rather than in the one that produced the bytes.
+F EmissionSequence::Construct                     | Api/EmissionSequence.h            | 132       | Takes the resolver every band reads.
+F EmissionSequence::Open                          | Api/EmissionSequence.h            | 148       | Opens one image of a validated emission, ready for its first band. ContentUnsupported outside the image count and above the extent ceiling, and with whatever the specification's own validation refused specification is handed in by value and the two calls are separated by however long the artist spent between declaring an export and starting it; validating once and trusting thereafter is trusting a copy, and `50` §5.1's wrong arrangement is exactly what that copy would carry.
+F EmissionSequence::ResolveBand                   | Api/EmissionSequence.h            | 166       | Resolves the next band of rows, and no more than that. resolved, and with whatever `70` refused at the first position it refused at `50` §2's rule for a partial intake is the same rule from the other direction: an image that is resolved above a seam and zero below it is an asset the artist ships without noticing, whereas an export that refused is one they cannot miss. sample places the first texel exactly on the domain boundary, where a seam's two sides are equally near and the resolution picks one arbitrarily.
+F EmissionSequence::ResolutionOwed                | Api/EmissionSequence.h            | 171       | Whether rows remain to be resolved.
+F EmissionSequence::ResolvedRows                  | Api/EmissionSequence.h            | 176       | How many rows have been resolved, for whoever presents the export's progress.
+F EmissionSequence::Seal                          | Api/EmissionSequence.h            | 185       | Hands over the completed image and closes the emission. to a codec is a file that opens, looks approximately right, and is wrong along one edge.
+F EmissionSequence::Reclaim                       | Api/EmissionSequence.h            | 190       | Abandons the standing emission and reclaims its texels.
+F SLATE_DECLARES_PRECISION                        | Api/EmissionSequence.h            | 205       | ?
+F ProjectPlacements                               | Source/EmissionSequence.cpp       | 22-44     | ?
+F EmissionSequence::Construct                     | Source/EmissionSequence.cpp       | 50-65     | ?
+F EmissionSequence::Open                          | Source/EmissionSequence.cpp       | 71-125    | ?
+F EmissionSequence::ResolveBand                   | Source/EmissionSequence.cpp       | 131-216   | ?
+F EmissionSequence::ResolutionOwed                | Source/EmissionSequence.cpp       | 218-221   | ?
+F EmissionSequence::ResolvedRows                  | Source/EmissionSequence.cpp       | 223-226   | ?
+F EmissionSequence::Seal                          | Source/EmissionSequence.cpp       | 232-253   | ?
+F EmissionSequence::Reclaim                       | Source/EmissionSequence.cpp       | 255-269   | ?
 F PaintingLevelOf                                 | Api/ImpressionSequence.h          | 41        | Which reduction level a declared working extent paints at. working extent. Resolving a stroke against a coarser level is not a lower-quality stroke, it is a stroke recorded at a resolution the artist did not choose, and no later promotion recovers it. `MaximumWorkingEdge >> L`. The level is therefore the base-two logarithm of the ratio, and an extent that is not one of the seven is refused rather than rounded to the nearest.
 T ImpressionSample                                | Api/ImpressionSequence.h          | 58-66     | One resolved brush impression on the surface — `22` §1 ④. place; an impression is one term of an ordered accumulation, and the accumulation is what `22` §3 is about. The two words describe different mechanisms and only one of them is Slate's. and the texels backing it are a residency decision made independently — an impression carrying a texel would make a stroke unrecordable at any other working extent.
 T StrokeArrival                                   | Api/ImpressionSequence.h          | 81-87     | One pointer sample, with the domain position `74` resolved it to. subdivision and is unbuilt; declaring the edge instead would put `40` and `74` in this document's Upstream, and `00` §11 gates that a declared edge is a real read. The same choice `28` made for the sun direction, for the same reason. than interpolating across the gap. A stroke that leaves an object and returns must not paint a line between the two points, and the artist has no way to undo half of one stroke.
@@ -251,25 +326,25 @@ T StrokeDeclaration                               | Api/ImpressionSequence.h    
 T ResolvedRun                                     | Api/ImpressionSequence.h          | 115-120   | How one rotation's resolution ended. reasoning is identical one layer up: an impression waiting for a tile is ordinary operation, and a register that appended one per impression per rotation is a register nobody reads.
 T SealedStroke                                    | Api/ImpressionSequence.h          | 134-143   | One committed stroke's inverse, bounded by the extents the stroke touched. surface-wide snapshot per stroke makes a painting session's revision sequence proportional to the surface times the stroke count, and the artist runs out of memory rather than out of undo. already the granularity the stroke claimed, and a sparse inverse would have to carry a texel mask that costs more than the texels it excludes at any realistic coverage.
 F Restore                                         | Api/ImpressionSequence.h          | 155       | Replays one sealed stroke's inverse, returning the touched extents to what stood before it. ContentUnsupported when its extent no longer matches the recorded one path with the values negated — a combination like `Multiply` has no negation, and `Erase` has no inverse expressible as an erase.
-T ImpressionSequence                              | Api/ImpressionSequence.h          | 170-304   | One stroke — its resampled path, its impressions, its accumulation, and the one transaction it seals. Abandon ends with no effect, Seal enters **one** transaction. A stroke recording a transaction per pointer sample fills the revision sequence with positions the artist never intended to stop at, and undo then steps back one pixel at a time. resampled against consumption has the display rate baked into it, so the same physical gesture produces a different stroke on a machine that presents at a different rate.
+T ImpressionSequence                              | Api/ImpressionSequence.h          | 170-307   | One stroke — its resampled path, its impressions, its accumulation, and the one transaction it seals. Abandon ends with no effect, Seal enters **one** transaction. A stroke recording a transaction per pointer sample fills the revision sequence with positions the artist never intended to stop at, and undo then steps back one pixel at a time. resampled against consumption has the display rate baked into it, so the same physical gesture produces a different stroke on a machine that presents at a different rate.
 F ImpressionSequence::Open                        | Api/ImpressionSequence.h          | 191       | Opens a stroke against a declared brush. a working extent that is no reduction level, for a channel placement outside the entry's components, and for a shape source that is not yet resolvable fallback would be a stroke that does not have the silhouette the artist selected, and `58` §8 promises the preview and the committed impression share one shape.
-F ImpressionSequence::Amend                       | Api/ImpressionSequence.h          | 205       | Admits one arrival, resampling the path and emitting whatever impressions it reached. drawn quickly place the same impressions. `58` §5 makes spacing relative to the extent, so a brush resized keeps its character rather than becoming a dotted line. cannot come from the next, because the next impression's dynamics are read at a position the walk has not reached — and a spacing that depended on where it lands has no fixed point.
-F ImpressionSequence::Resolve                     | Api/ImpressionSequence.h          | 225       | Resolves whatever impressions the residency now admits, demanding what it does not. against the coarse level, because paint applied at the wrong resolution is authored content that is permanently wrong — unlike a display sample, which is merely briefly coarse. whatever level is promoted and may refine later, because for them the authored thing is the source and the transform rather than the texels. A speculative stroke follows the derived rule for the same reason: nothing speculative is authored, so nothing speculative can be wrong. which is symmetric, so an impression resolving two rotations late lands exactly where it would have — and the artist sees most of a stroke immediately instead of none of it.
-F ImpressionSequence::Abandon                     | Api/ImpressionSequence.h          | 233       | Ends the stroke with no effect, releasing every tile it pinned.
-F ImpressionSequence::Seal                        | Api/ImpressionSequence.h          | 251       | Ends the stroke, applying it once and sealing one transaction. IdentityStale for an entry that no longer resolves, and with ContentUnsupported when the entry's extent no longer matches the stroke's restores base colour and roughness together, which is what the artist performed; two transactions would make them undo separately and neither in isolation is a thing they did. quietly succeeded for one would put a preview in the revision sequence.
-F ImpressionSequence::ReclaimSpeculative          | Api/ImpressionSequence.h          | 262       | Discards the accumulation without ending the stroke — a speculative extent's per-rotation reclaim. committed stroke, whose accumulation is the only record of what has been painted so far.
-F ImpressionSequence::Impressions                 | Api/ImpressionSequence.h          | 264       | ?
-F ImpressionSequence::Accumulation                | Api/ImpressionSequence.h          | 265       | ?
-F ImpressionSequence::ImpressionCount             | Api/ImpressionSequence.h          | 267       | ?
-F ImpressionSequence::PendingCount                | Api/ImpressionSequence.h          | 268       | ?
-F ImpressionSequence::PaintingLevel               | Api/ImpressionSequence.h          | 269       | ?
-F ImpressionSequence::PathLength                  | Api/ImpressionSequence.h          | 270       | ?
-F ImpressionSequence::StrokeOpen                  | Api/ImpressionSequence.h          | 271       | ?
-F ImpressionSequence::SpeculativeDeclared         | Api/ImpressionSequence.h          | 272       | ?
-F ImpressionSequence::Emit                        | Api/ImpressionSequence.h          | 276       | ?
-F ImpressionSequence::ProjectAxes                 | Api/ImpressionSequence.h          | 279       | ?
-F ImpressionSequence::ResolveOne                  | Api/ImpressionSequence.h          | 282       | ?
-F SLATE_DECLARES_PRECISION                        | Api/ImpressionSequence.h          | 310       | ?
+F ImpressionSequence::Amend                       | Api/ImpressionSequence.h          | 208       | Admits one arrival, resampling the path and emitting whatever impressions it reached. drawn quickly place the same impressions. `58` §5 makes spacing relative to the extent, so a brush resized keeps its character rather than becoming a dotted line. cannot come from the next, because the next impression's dynamics are read at a position the walk has not reached — and a spacing that depended on where it lands has no fixed point. walked distance and the spacing are accumulated, so an exact comparison decides the segment's last impression on the residue of the additions rather than on the path the artist drew.
+F ImpressionSequence::Resolve                     | Api/ImpressionSequence.h          | 228       | Resolves whatever impressions the residency now admits, demanding what it does not. against the coarse level, because paint applied at the wrong resolution is authored content that is permanently wrong — unlike a display sample, which is merely briefly coarse. whatever level is promoted and may refine later, because for them the authored thing is the source and the transform rather than the texels. A speculative stroke follows the derived rule for the same reason: nothing speculative is authored, so nothing speculative can be wrong. which is symmetric, so an impression resolving two rotations late lands exactly where it would have — and the artist sees most of a stroke immediately instead of none of it.
+F ImpressionSequence::Abandon                     | Api/ImpressionSequence.h          | 236       | Ends the stroke with no effect, releasing every tile it pinned.
+F ImpressionSequence::Seal                        | Api/ImpressionSequence.h          | 254       | Ends the stroke, applying it once and sealing one transaction. IdentityStale for an entry that no longer resolves, and with ContentUnsupported when the entry's extent no longer matches the stroke's restores base colour and roughness together, which is what the artist performed; two transactions would make them undo separately and neither in isolation is a thing they did. quietly succeeded for one would put a preview in the revision sequence.
+F ImpressionSequence::ReclaimSpeculative          | Api/ImpressionSequence.h          | 265       | Discards the accumulation without ending the stroke — a speculative extent's per-rotation reclaim. committed stroke, whose accumulation is the only record of what has been painted so far.
+F ImpressionSequence::Impressions                 | Api/ImpressionSequence.h          | 267       | ?
+F ImpressionSequence::Accumulation                | Api/ImpressionSequence.h          | 268       | ?
+F ImpressionSequence::ImpressionCount             | Api/ImpressionSequence.h          | 270       | ?
+F ImpressionSequence::PendingCount                | Api/ImpressionSequence.h          | 271       | ?
+F ImpressionSequence::PaintingLevel               | Api/ImpressionSequence.h          | 272       | ?
+F ImpressionSequence::PathLength                  | Api/ImpressionSequence.h          | 273       | ?
+F ImpressionSequence::StrokeOpen                  | Api/ImpressionSequence.h          | 274       | ?
+F ImpressionSequence::SpeculativeDeclared         | Api/ImpressionSequence.h          | 275       | ?
+F ImpressionSequence::Emit                        | Api/ImpressionSequence.h          | 279       | ?
+F ImpressionSequence::ProjectAxes                 | Api/ImpressionSequence.h          | 282       | ?
+F ImpressionSequence::ResolveOne                  | Api/ImpressionSequence.h          | 285       | ?
+F SLATE_DECLARES_PRECISION                        | Api/ImpressionSequence.h          | 313       | ?
 F PaintingLevelOf                                 | Source/ImpressionSequence.cpp     | 17-27     | ?
 V SpeedReference                                  | Source/ImpressionSequence.cpp     | 39        | ?
 V PathDistanceReference                           | Source/ImpressionSequence.cpp     | 40        | ?
@@ -280,34 +355,195 @@ F BoundedUnit                                     | Source/ImpressionSequence.cp
 F ImpressionSequence::Open                        | Source/ImpressionSequence.cpp     | 80-170    | ?
 F ImpressionSequence::ProjectAxes                 | Source/ImpressionSequence.cpp     | 176-217   | ?
 F ImpressionSequence::Emit                        | Source/ImpressionSequence.cpp     | 219-254   | ?
-F ImpressionSequence::Amend                       | Source/ImpressionSequence.cpp     | 256-355   | ?
-F ImpressionSequence::ResolveOne                  | Source/ImpressionSequence.cpp     | 361-508   | ?
-F ImpressionSequence::Resolve                     | Source/ImpressionSequence.cpp     | 510-545   | ?
-F ImpressionSequence::Abandon                     | Source/ImpressionSequence.cpp     | 551-568   | ?
-F ImpressionSequence::ReclaimSpeculative          | Source/ImpressionSequence.cpp     | 570-587   | ?
-F ImpressionSequence::Seal                        | Source/ImpressionSequence.cpp     | 593-743   | ?
-F Restore                                         | Source/ImpressionSequence.cpp     | 749-802   | ?
-F ImpressionSequence::Impressions                 | Source/ImpressionSequence.cpp     | 808       | ?
-F ImpressionSequence::Accumulation                | Source/ImpressionSequence.cpp     | 809       | ?
-F ImpressionSequence::ImpressionCount             | Source/ImpressionSequence.cpp     | 811-814   | ?
-F ImpressionSequence::PendingCount                | Source/ImpressionSequence.cpp     | 816-827   | ?
-F ImpressionSequence::PaintingLevel               | Source/ImpressionSequence.cpp     | 829       | ?
-F ImpressionSequence::PathLength                  | Source/ImpressionSequence.cpp     | 830       | ?
-F ImpressionSequence::StrokeOpen                  | Source/ImpressionSequence.cpp     | 831       | ?
-F ImpressionSequence::SpeculativeDeclared         | Source/ImpressionSequence.cpp     | 832       | ?
+F ImpressionSequence::Amend                       | Source/ImpressionSequence.cpp     | 256-367   | ?
+F ImpressionSequence::ResolveOne                  | Source/ImpressionSequence.cpp     | 373-520   | ?
+F ImpressionSequence::Resolve                     | Source/ImpressionSequence.cpp     | 522-557   | ?
+F ImpressionSequence::Abandon                     | Source/ImpressionSequence.cpp     | 563-580   | ?
+F ImpressionSequence::ReclaimSpeculative          | Source/ImpressionSequence.cpp     | 582-599   | ?
+F ImpressionSequence::Seal                        | Source/ImpressionSequence.cpp     | 605-755   | ?
+F Restore                                         | Source/ImpressionSequence.cpp     | 761-814   | ?
+F ImpressionSequence::Impressions                 | Source/ImpressionSequence.cpp     | 820       | ?
+F ImpressionSequence::Accumulation                | Source/ImpressionSequence.cpp     | 821       | ?
+F ImpressionSequence::ImpressionCount             | Source/ImpressionSequence.cpp     | 823-826   | ?
+F ImpressionSequence::PendingCount                | Source/ImpressionSequence.cpp     | 828-839   | ?
+F ImpressionSequence::PaintingLevel               | Source/ImpressionSequence.cpp     | 841       | ?
+F ImpressionSequence::PathLength                  | Source/ImpressionSequence.cpp     | 842       | ?
+F ImpressionSequence::StrokeOpen                  | Source/ImpressionSequence.cpp     | 843       | ?
+F ImpressionSequence::SpeculativeDeclared         | Source/ImpressionSequence.cpp     | 844       | ?
+T OutlineSpecification                            | Api/IntersectionOutline.h         | 37-43     | What the outline is drawn as — its extent in display pixels, and the two renderings occlusion selects between. scales with distance makes a selected occupant lose its outline as the artist backs away from it, which reads as the selection having been dropped. carried by the dash extent as well as by the colour, so a document authored against a display where the two colours read alike still shows which part of the selection stands behind something. and is never tone-mapped, so a colour arriving working-referred would be presented uncompressed — and `36` §1's rule that no bare triple exists anywhere is what makes that discoverable rather than silent.
+T IntersectionOutline                             | Api/IntersectionOutline.h         | 60-174    | `26` — enrolment resolved through `42`, the silhouette derived across it, and `08` §3 ⑨'s amendment. submission of the selected occupant would rasterise against a depth the visibility already resolved, and the two disagree at exactly the silhouette the outline is meant to trace. consumer reads that one resolution; a partition ordinal read as though it were an occupant ordinal is `00` §10's conflict 15, and it presents as one object outlining another. this component keeps beside it. A second enrolment structure disagrees with the document exactly while the artist is changing the selection.
+F IntersectionOutline::Declare                    | Api/IntersectionOutline.h         | 81        | Declares the width and the two renderings as one admission. undeclared colour, a colour that is not a coordinate in the display space, and two renderings that differ in neither colour nor dash outline to be visually distinct, and a specification that satisfies the gate in neither colour nor dash has silently withdrawn the only thing that says which part of a selection is behind something. a validated colour and what stands behind in one that was rejected.
+F IntersectionOutline::Contribute                 | Api/IntersectionOutline.h         | 94        | Contributes `08` §3 ⑨'s recording — coverage into `OutlineSurface`, the outline over `DisplaySurface`. tone line, so an outline colour is display code already and the compression must never reach it. Declared scene-referred it would be ordered among `66`'s own inputs and compressed with them, and the artist meets that as a selection outline whose colour changes with the exposure. neither `VisibilityIndex` nor `OccupancySurface` — the outline is not an occupant and nothing downstream may resolve a pixel to it.
+F IntersectionOutline::ClassifyEnrolment          | Api/IntersectionOutline.h         | 110       | Whether the occupant behind one pixel is enrolled in the selection subset. per pixel of the display extent, and a member test that walked a selection would make the outline grow in expense with the size of the selection rather than with the size of the display. interval are all whole. A silhouette derived from a real-valued comparison flickers along its own edge between rotations that resolved the same geometry.
+F IntersectionOutline::ProjectCoverage            | Api/IntersectionOutline.h         | 125       | The coverage one pixel carries, from how far the nearest disagreeing neighbour stands. coverage is a one-pixel staircase along every silhouette, and no amount of care downstream recovers the edge the decision discarded. wider outline fades over a longer run rather than merely covering more pixels solidly.
+F IntersectionOutline::ClassifyOcclusion          | Api/IntersectionOutline.h         | 138       | Whether the enrolled surface at one pixel stands behind what the depth recorded. **below** the recorded one. Written the other way round every selection reads as fully occluded, and the artist meets that as the outline having changed colour for no reason. display pixel from the same projection, so there is no grazing self-comparison to clear.
+F IntersectionOutline::DashStanding               | Api/IntersectionOutline.h         | 149       | Whether the occluded rendering draws at one display position, given the declared dash extent. horizontal silhouette and a vertical one identically. Run on one ordinate it vanishes entirely along every edge parallel to it, which reads as the outline being missing rather than dashed.
+F IntersectionOutline::OutlineColour              | Api/IntersectionOutline.h         | 159       | The colour one outline pixel is recorded in. surface tone-maps, reflects or accumulates it — `26` §6's gate, and the whole reason the recording is ordered after `66`.
+F IntersectionOutline::Report                     | Api/IntersectionOutline.h         | 166       | Declares every measure; appends nothing. working, and reporting each rotation would mean the register is never quiet.
+F IntersectionOutline::Outline                    | Api/IntersectionOutline.h         | 168       | ?
+F SLATE_DECLARES_PRECISION                        | Api/IntersectionOutline.h         | 179       | ?
+V OutlineRecordingIdentity                        | Source/IntersectionOutline.cpp    | 20        | ?
+V DistinctColourDeparture                         | Source/IntersectionOutline.cpp    | 24        | ?
+F IntersectionOutline::Declare                    | Source/IntersectionOutline.cpp    | 28-75     | ?
+F IntersectionOutline::Contribute                 | Source/IntersectionOutline.cpp    | 81-109    | ?
+F IntersectionOutline::ClassifyEnrolment          | Source/IntersectionOutline.cpp    | 115-134   | ?
+F IntersectionOutline::ProjectCoverage            | Source/IntersectionOutline.cpp    | 140-151   | ?
+F IntersectionOutline::ClassifyOcclusion          | Source/IntersectionOutline.cpp    | 153-156   | ?
+F IntersectionOutline::DashStanding               | Source/IntersectionOutline.cpp    | 158-169   | ?
+F IntersectionOutline::OutlineColour              | Source/IntersectionOutline.cpp    | 175-186   | ?
+F IntersectionOutline::Report                     | Source/IntersectionOutline.cpp    | 192-196   | ?
+F IntersectionOutline::Outline                    | Source/IntersectionOutline.cpp    | 198       | ?
+V AbsentProjection                                | Api/OcclusionProjection.h         | 26        | ?
+E OcclusionTerm                                   | Api/OcclusionProjection.h         | 49-54     | Which of `60` §2's two terms a value belongs to. darkens a surface in shadow twice: once because the illuminant is hidden, and once because the geometry hiding it also closes the hemisphere. The artist meets that as contact regions that go black while everything around them is correctly lit, and no amount of adjusting either term fixes it. one; this component is the producer that declaration binds, and a bent orientation's only consumer was indirect lighting, which `00` §5.1 declares absent.
+E ProjectionShape                                 | Api/OcclusionProjection.h         | 65-72     | What shape one illuminant's projection takes, which follows from its emission shape and nothing else. is a second answer to a question the illuminant already answered, and the two disagree the moment an artist changes a point illuminant into a spot.
+F ShapeOfEmission                                 | Api/OcclusionProjection.h         | 80-87     | The projection shape one emission shape implies. `ProjectOcclusionSlot` is: a trivial mapping spelled at the derivation site, the rebuild site and the metrics site is one that acquires a fourth case at exactly one of them.
+V ProjectionExtentTexels                          | Api/OcclusionProjection.h         | 93        | ?
+V DirectionalSubdivisionCount                     | Api/OcclusionProjection.h         | 94        | ?
+V PenumbraSampleCount                             | Api/OcclusionProjection.h         | 95        | ?
+T ProjectionFace                                  | Api/OcclusionProjection.h         | 102-108   | One face of one illuminant's projection. six planes from it; a projection carrying a matrix alone would have to extract them again, and the two extractions are what `Contract/`'s `NearPlaneDepth` exists to keep from disagreeing.
+T DerivedProjection                               | Api/OcclusionProjection.h         | 116-125   | One illuminant's whole projection — every face, and what it was derived against. the switch and `60` §3 declares that an unenrolled illuminant is integrated unattenuated. That is a declared behaviour and not a failure: an artist lighting a workspace with six fill illuminants does not want six projections, and deleting the illuminant is not the alternative they wanted either.
+E InvalidationSubject                             | Api/OcclusionProjection.h         | 137-146   | What changed, so that only what it reaches is rebuilt. otherwise. A camera move rebuilds nothing but the directional subdivision, and a paint stroke rebuilds nothing at all — these are the two things the artist does constantly, and a projection set that rebuilt on either is a workspace that stutters while being used rather than while being changed.
+T OcclusionIndex                                  | Api/OcclusionProjection.h         | 161-213   | Which packed component each reaching illuminant occupies, per partition. `18` integrates that set and this projects it, so the two never disagree about which illuminant occupies which position — which is the whole reason this is derived from that index rather than from the population it was derived from. already truncated there. Both truncations are counted and both are reported, because they are different losses: `44`'s drops the illuminant entirely and this one leaves it unshadowed.
+F OcclusionIndex::Derive                          | Api/OcclusionProjection.h         | 176       | Derives the packing for every partition of a reaching index. and writing unity into it. A slot spent on an illuminant that casts nothing is a slot the fifth illuminant that does cast something cannot have, and the artist meets that as their key light losing its shadow when they add a fill.
+F OcclusionIndex::SlotOf                          | Api/OcclusionProjection.h         | 186       | The packed component one illuminant occupies in one partition. cannot carry it, and with ContentUnsupported where it does not reach it at all partition contributes nothing there and needs no shadow; one that reaches it and truncated contributes its whole direct term unattenuated, and `18` must know which.
+F OcclusionIndex::IlluminantAt                    | Api/OcclusionProjection.h         | 192       | The illuminant one packed component carries in one partition.
+F OcclusionIndex::TruncatedCount                  | Api/OcclusionProjection.h         | 197       | How many illuminants one partition could not pack — the excess `18` integrates unattenuated.
+F OcclusionIndex::TruncatedTotal                  | Api/OcclusionProjection.h         | 199       | ?
+F OcclusionIndex::SpannedCount                    | Api/OcclusionProjection.h         | 200       | ?
+T OcclusionIndex::PackedPartition                 | Api/OcclusionProjection.h         | 204-209   | ?
+T AmbientOcclusionSpecification                   | Api/OcclusionProjection.h         | 229-236   | What the screen-space ambient term is resolved against. with positions reconstructed exactly as `18` §1 reconstructs them and the hemisphere sampled over `02` §6's planar pattern. The pattern is `02` §6's and is never invented here — `64` accumulates `RadianceSurface` across rotations, so a term sampled from a pattern that is not progressive converges to a different value than the one `64` assumes it is averaging. screen does not occlude, and a surface that leaves the workspace edge brightens. `86` does not report it; it is a property of the term, and `00` §5.1's substitution accounting is where it belongs.
+T AmbientOcclusionSequence                        | Api/OcclusionProjection.h         | 244-275   | The screen-space ambient term's declaration and its own metrics. consuming side and `60` §2 from this one. It is a product rather than a choice because they describe different scales: channel 6 is detail the topology does not carry, and this resolves contact the topology does carry.
+F AmbientOcclusionSequence::Declare               | Api/OcclusionProjection.h         | 256       | Declares what the term is resolved against. divisor that is not two `OcclusionSurface` at half extent and `Shared/`'s upsample reads four taps against that claim; a third of the extent would need a different tap count, and the two would be declared in two places.
+F AmbientOcclusionSequence::Resolve               | Api/OcclusionProjection.h         | 265       | The extent the term is resolved at, from one display extent. Rounding down leaves the display's last column with no coarse texel above it, and the upsample then reads outside its own target along one edge.
+F AmbientOcclusionSequence::Declared              | Api/OcclusionProjection.h         | 270       | ?
+T OcclusionMetrics                                | Api/OcclusionProjection.h         | 286-294   | What `60` reports through `86`. `86` §2 draws that line, and a rebuild count appended once per rotation would bury the one truncation the artist did not expect under a thousand readings nobody asked for.
+T OcclusionProjectionSpace                        | Api/OcclusionProjection.h         | 307-408   | Every occlusion-enrolled illuminant's projection, and the two terms `18` attenuates with. term. It **produces** both targets and amends neither. anything is shaded; a term that read shading would be a one-rotation-stale term, and its staleness would be visible exactly when the illuminant moves.
+F OcclusionProjectionSpace::Contribute            | Api/OcclusionProjection.h         | 318       | Contributes `08` §3 ③'s recording. one reconstruction of the same depth. Two recordings would reconstruct the position at every pixel twice to write two scalars.
+F OcclusionProjectionSpace::DeclareCamera         | Api/OcclusionProjection.h         | 331       | Declares the camera every directional subdivision is sized against. rebuilt at a declared moment on the tick rather than whenever something happened to read a camera that had since moved. `28`'s sun direction is supplied for the same reason and by the same rule. extended shapes are world-referred and see what they saw before the camera moved.
+F OcclusionProjectionSpace::Invalidate            | Api/OcclusionProjection.h         | 344       | Records that something changed, so that only what it reaches is owed a rebuild. than refused. They are the two rows an artist triggers constantly, and admitting them here is what lets a caller declare every change it makes without knowing which ones matter — which is the only arrangement where the ones that do not matter stay free.
+F OcclusionProjectionSpace::Rebuild               | Api/OcclusionProjection.h         | 359       | Rebuilds whatever the declared conditions owe, and nothing else. face derivation's own refusal ignored, so `86` can present how many of a scene's illuminants cast nothing. An artist who disabled occlusion on their key light six months ago has no other way to find out.
+F OcclusionProjectionSpace::Standing              | Api/OcclusionProjection.h         | 365       | One illuminant's standing projection.
+F OcclusionProjectionSpace::RebuildOwed           | Api/OcclusionProjection.h         | 373       | Whether anything is owed a rebuild. so that the ordinary rotation — a camera the artist is orbiting, a stroke they are painting — rebuilds nothing.
+F OcclusionProjectionSpace::Report                | Api/OcclusionProjection.h         | 381       | Appends `60` §3.1's truncation and declares every measure beside it. ordinal as the subject, so twelve partitions that each truncated present as twelve entries rather than as one with a count of twelve; `86` §6 refuses the second shape by name.
+F OcclusionProjectionSpace::Index                 | Api/OcclusionProjection.h         | 385       | ?
+F OcclusionProjectionSpace::Index                 | Api/OcclusionProjection.h         | 386       | ?
+F OcclusionProjectionSpace::Ambient               | Api/OcclusionProjection.h         | 387       | ?
+F OcclusionProjectionSpace::Ambient               | Api/OcclusionProjection.h         | 388       | ?
+F OcclusionProjectionSpace::Metrics               | Api/OcclusionProjection.h         | 389       | ?
+F OcclusionProjectionSpace::ProjectionCount       | Api/OcclusionProjection.h         | 391       | ?
+F OcclusionProjectionSpace::Derive                | Api/OcclusionProjection.h         | 395       | ?
+F OcclusionProjectionSpace::Located               | Api/OcclusionProjection.h         | 399       | ?
+F SLATE_DECLARES_PRECISION                        | Api/OcclusionProjection.h         | 413       | ?
+V OcclusionRecordingIdentity                      | Source/OcclusionProjection.cpp    | 22        | ?
+V OcclusionSubstitution                           | Source/OcclusionProjection.cpp    | 27-28     | ?
+V RootHalf                                        | Source/OcclusionProjection.cpp    | 30        | ?
+F FacingOf                                        | Source/OcclusionProjection.cpp    | 36-72     | ?
+F RotateSpan                                      | Source/OcclusionProjection.cpp    | 74-89     | ?
+F SliceBounding                                   | Source/OcclusionProjection.cpp    | 95-160    | ?
+F SnapSlice                                       | Source/OcclusionProjection.cpp    | 166-204   | ?
+F ExtentsOverlap                                  | Source/OcclusionProjection.cpp    | 206-214   | ?
+F OcclusionIndex::Derive                          | Source/OcclusionProjection.cpp    | 222-271   | ?
+F OcclusionIndex::SlotOf                          | Source/OcclusionProjection.cpp    | 273-297   | ?
+F OcclusionIndex::IlluminantAt                    | Source/OcclusionProjection.cpp    | 299-305   | ?
+F OcclusionIndex::TruncatedCount                  | Source/OcclusionProjection.cpp    | 307-310   | ?
+F OcclusionIndex::TruncatedTotal                  | Source/OcclusionProjection.cpp    | 312       | ?
+F OcclusionIndex::SpannedCount                    | Source/OcclusionProjection.cpp    | 314-317   | ?
+F AmbientOcclusionSequence::Declare               | Source/OcclusionProjection.cpp    | 323-343   | ?
+F AmbientOcclusionSequence::Resolve               | Source/OcclusionProjection.cpp    | 345-359   | ?
+F AmbientOcclusionSequence::Declared              | Source/OcclusionProjection.cpp    | 361       | ?
+F OcclusionProjectionSpace::Contribute            | Source/OcclusionProjection.cpp    | 367-385   | ?
+F OcclusionProjectionSpace::DeclareCamera         | Source/OcclusionProjection.cpp    | 391-443   | ?
+F OcclusionProjectionSpace::Located               | Source/OcclusionProjection.cpp    | 449-458   | ?
+F OcclusionProjectionSpace::Invalidate            | Source/OcclusionProjection.cpp    | 460-539   | ?
+F OcclusionProjectionSpace::Derive                | Source/OcclusionProjection.cpp    | 545-768   | ?
+F OcclusionProjectionSpace::Rebuild               | Source/OcclusionProjection.cpp    | 774-836   | ?
+F OcclusionProjectionSpace::Standing              | Source/OcclusionProjection.cpp    | 842-853   | ?
+F OcclusionProjectionSpace::RebuildOwed           | Source/OcclusionProjection.cpp    | 855-867   | ?
+F OcclusionProjectionSpace::Report                | Source/OcclusionProjection.cpp    | 873-905   | ?
+F OcclusionProjectionSpace::Index                 | Source/OcclusionProjection.cpp    | 907       | ?
+F OcclusionProjectionSpace::Index                 | Source/OcclusionProjection.cpp    | 908       | ?
+F OcclusionProjectionSpace::Ambient               | Source/OcclusionProjection.cpp    | 909       | ?
+F OcclusionProjectionSpace::Ambient               | Source/OcclusionProjection.cpp    | 910       | ?
+F OcclusionProjectionSpace::Metrics               | Source/OcclusionProjection.cpp    | 911       | ?
+F OcclusionProjectionSpace::ProjectionCount       | Source/OcclusionProjection.cpp    | 913-916   | ?
+E DepthSubject                                    | Api/OverlayProjection.h           | 31-36     | Which of `08` §3.2's two recordings one overlay belongs to. property of the overlay and never a parameter beside it. A ground lattice that ignores depth is drawn over the object standing on it; a manipulator that respects depth disappears inside the object it manipulates. Both behaviours are correct and they are opposite, which is exactly why one recording cannot carry both.
+F DepthOfOverlay                                  | Api/OverlayProjection.h           | 41-46     | ?
+T OverlaySpecification                            | Api/OverlayProjection.h           | 72-77     | How one overlay is drawn — its colour, its extent in display pixels, and what clears a coplanar comparison. passed through exposure or a tone map. An overlay written scene-referred converges to white with the scene as the exposure rises, and a wireframe that disappears when the artist brightens the workspace is a wireframe that fails precisely while it is being used to see something. Compared without it the two ordinates are the same ordinate, and the overlay reads as stippled along every face it follows rather than as a line.
+T OverlayProjection                               | Api/OverlayProjection.h           | 93-178    | `80` — the two recordings, what each contains, and the presence read out of `76` rather than held here. this from the other side and the consequences of breaking it are three separate defects at once — an overlay in the visibility index would be picked by `74`, outlined by `26`, and shaded by `18`. copy of what is shown disagrees with the toggle the artist just used, and the overlay then appears in one of the two recordings and not the other. the overlay — the manipulator's handles to `78` §4, a guide to the tool that placed it.
+F OverlayProjection::Declare                      | Api/OverlayProjection.h           | 116       | Declares how one overlay is drawn. that is not a coordinate in the display space, an extent of nothing, and a depth offset declared on an overlay whose recording tests no depth between here and the display surface compresses, so such a colour would be presented as display code without ever crossing `36` — an overlay in a plausible but wrong hue rather than a visible mistake. as an offset that had no effect, and the caller then raises it until something else breaks.
+F OverlayProjection::Contribute                   | Api/OverlayProjection.h           | 130       | Contributes both of `08` §3's overlay recordings — ⑩ depth-tested, ⑪ depth-free. overlay has been declared behaviours would have to switch depth state per primitive, which is the merge both documents refuse. one another. ⑪ amends neither depth nor anything else beyond the display. inputs and compressed with the radiance, which is §2's failure exactly.
+F OverlayProjection::OverlayStanding              | Api/OverlayProjection.h           | 141       | Whether one overlay is presented this rotation, as `76` holds it. held here, and this is the whole of the compliance — an overlay `76` has switched off is not drawn on the same rotation the artist switched it off on.
+F OverlayProjection::RecordingOccupied            | Api/OverlayProjection.h           | 152       | Whether either recording has anything to draw this rotation. recordings are still both contributed — the schedule's shape is fixed at bring-up and does not vary with a toggle, or `08`'s ordering would differ between two rotations of the same document.
+F OverlayProjection::Specification                | Api/OverlayProjection.h           | 159       | How one declared overlay is drawn.
+F OverlayProjection::Report                       | Api/OverlayProjection.h           | 169       | Declares how many overlays each recording drew; appends nothing. a report each rotation would mean the register is never quiet — `86` §2's own rule.
+F SLATE_DECLARES_PRECISION                        | Api/OverlayProjection.h           | 183       | ?
+V DepthTestedIdentity                             | Source/OverlayProjection.cpp      | 18        | ?
+V DepthFreeIdentity                               | Source/OverlayProjection.cpp      | 19        | ?
+V OverlayOrigin                                   | Source/OverlayProjection.cpp      | 20        | ?
+F OverlayDeclarable                               | Source/OverlayProjection.cpp      | 22-25     | ?
+F OverlayProjection::Declare                      | Source/OverlayProjection.cpp      | 29-73     | ?
+F OverlayProjection::Contribute                   | Source/OverlayProjection.cpp      | 79-126    | ?
+F OverlayProjection::OverlayStanding              | Source/OverlayProjection.cpp      | 132-144   | ?
+F OverlayProjection::RecordingOccupied            | Source/OverlayProjection.cpp      | 146-161   | ?
+F OverlayProjection::Specification                | Source/OverlayProjection.cpp      | 163-180   | ?
+F OverlayProjection::Report                       | Source/OverlayProjection.cpp      | 186-216   | ?
 T ParityRegistration                              | Api/ParityRunner.h                | 24-29     | One registered `Shared/` entry point and the guarantee it claims.
 T ParityReport                                    | Api/ParityRunner.h                | 37-44     | What one entry point's parity comparison found.
 T ParityRunner                                    | Api/ParityRunner.h                | 55-85     | Classifies registered entry points on both toolchains over a common sample set. declared bound in units in the last place. Convergent entry points are compared within their own convergence criterion. Perceptual entry points are not compared — that is what Perceptual means.
 F ParityRunner::Register                          | Api/ParityRunner.h                | 64        | Registers one `Shared/` entry point for comparison.
 F ParityRunner::Compare                           | Api/ParityRunner.h                | 73        | Compares every registered entry point and reports each one. Until it is, the runner compares the host form against itself and reports the sample counts, which is honest about what was proven rather than reporting an agreement nothing established.
 F ParityRunner::AgreementHeld                     | Api/ParityRunner.h                | 78        | Whether every registered entry point met its claimed guarantee in the last comparison.
-F ParityRunner::Register                          | Source/ParityRunner.cpp           | 25-35     | ?
-T OrientationSample                               | Source/ParityRunner.cpp           | 46-54     | ?
-T IncircleSample                                  | Source/ParityRunner.cpp           | 71-81     | ?
-T SegmentSample                                   | Source/ParityRunner.cpp           | 94-104    | ?
-T IntervalSample                                  | Source/ParityRunner.cpp           | 118-124   | ?
-F ParityRunner::Compare                           | Source/ParityRunner.cpp           | 142-468   | ?
-F ParityRunner::AgreementHeld                     | Source/ParityRunner.cpp           | 470-473   | ?
+F ParityRunner::Register                          | Source/ParityRunner.cpp           | 30-40     | ?
+T OrientationSample                               | Source/ParityRunner.cpp           | 51-59     | ?
+T IncircleSample                                  | Source/ParityRunner.cpp           | 76-86     | ?
+T SegmentSample                                   | Source/ParityRunner.cpp           | 99-109    | ?
+T IntervalSample                                  | Source/ParityRunner.cpp           | 123-129   | ?
+T LatticeSample                                   | Source/ParityRunner.cpp           | 145-157   | ?
+F ParityRunner::Compare                           | Source/ParityRunner.cpp           | 178-788   | ?
+F ParityRunner::AgreementHeld                     | Source/ParityRunner.cpp           | 790-793   | ?
+E SpeculativeSubject                              | Api/PreviewProjection.h           | 36-43     | `82` §2's four consumers, as the one enumeration they are gathered under. therefore carries no entry for the content preview — that one is a comparison the artist asks for directly and belongs to no tool. Folding the two would have made the content preview a tool nobody selects, or would have put an entry in `76`'s enum that no `ToolSpecification` ever names. across all four, which is the whole reason this document gathers them rather than letting each consumer arrive at its own — and the gathering is only true if one enumeration covers them.
+E ThumbnailSubject                                | Api/PreviewProjection.h           | 51-60     | The content a row may present — `82` §3's six entries.
+F ThumbnailDeclared                               | Api/PreviewProjection.h           | 71-77     | Whether one content is presented by a rendered miniature at all — `82` §3's table, as a compile-time answer. chosen for a row, and at row height a glyph outline and a vector outline both reduce to an indistinct mark. A row of decal placements each showing an indistinct mark is worse than a row showing the text. thumbnail that is generated and then discarded by the panel has already been paid for, and it has been paid for once per row per rotation for as long as the row is presented.
+F SLATE_DECLARES_PRECISION                        | Api/PreviewProjection.h           | 78        | ?
+F PresentedBySource                               | Api/PreviewProjection.h           | 83-86     | Whether one content is presented by its source instead — the complement, stated rather than inferred.
+F SLATE_DECLARES_PRECISION                        | Api/PreviewProjection.h           | 87        | ?
+V ThumbnailExtentTexels                           | Api/PreviewProjection.h           | 102       | ?
+T SpeculativeExtent                               | Api/PreviewProjection.h           | 118-126   | One preview as it stands this rotation — `22` §4.1's speculative extent, unamended. than an omission. `20`'s `DeclareUncommitted` is the only thing in the engine that blocks an eviction, this component never calls it, and `22`'s resolution skips it for a speculative stroke — so the gate holds by there being exactly one door and nothing here walking through it. A member would be a second answer that could disagree with the first. re-resolved **each rotation** — it is not a cache with an invalidation rule, and giving it one would make a stale preview a defect to diagnose rather than a state that cannot occur.
+T PreviewSources                                  | Api/PreviewProjection.h           | 138-141   | What every preview resolves through, borrowed and never owned. component. A preview resolved by a second implementation is a preview that disagrees with the committed result in exactly the way `00` §11's Tier B gate exists to catch — and where the two disagree the artist blames the preview, because the preview is the thing that looks provisional.
+T PreviewProjection                               | Api/PreviewProjection.h           | 156-344   | The four previews of `82` §2, resolved on the host and discarded each rotation. The brush preview is the only one that touches a mutating component at all, and it holds that component with `StrokeDeclaration::Speculative` declared, which is what makes `22`'s own Seal refuse it. presented two-dimensionally by `14`, and that is what discharges §6's gate that domain-view painting and placement go through the same paths as their three-dimensional forms: there is one path, so they cannot differ. A separate domain resolution would have been the second path the gate forbids.
+F PreviewProjection::Construct                    | Api/PreviewProjection.h           | 165       | Takes the resolver every preview reads.
+F PreviewProjection::OpenImpression               | Api/PreviewProjection.h           | 185       | Opens the brush preview against a declared brush — `82` §2's first row. and the colour — and not an outline of the radius. `82` §6's fourth gate, and the reason it is a gate: an outline answers "how big" and the artist is asking "what will this look like", which a soft brush at low strength answers very differently from a hard one at the same radius. pass false would be a caller that could commit a preview, and the refusal would then arrive from `22`'s Seal rather than from the component whose whole subject is that it never commits.
+F PreviewProjection::AmendImpression              | Api/PreviewProjection.h           | 196       | Moves the previewed impression to where the cursor now stands. **at** the cursor rather than the trail of every position the cursor has passed through. A committed stroke accumulates because the trail is the stroke; a preview accumulating would answer a question about a stroke the artist has not made.
+F PreviewProjection::ResolveImpression            | Api/PreviewProjection.h           | 206       | Resolves the previewed impression against whatever residency admits, demanding nothing it may pin.
+F PreviewProjection::CloseImpression              | Api/PreviewProjection.h           | 213       | Closes the brush preview. Nothing was recorded, so there is nothing to abandon beyond the accumulation.
+F PreviewProjection::ImpressionCoverage           | Api/PreviewProjection.h           | 218       | The accumulated coverage the preview stands at, for whoever presents it.
+F PreviewProjection::ImpressionStanding           | Api/PreviewProjection.h           | 223       | Whether a brush preview is open.
+F PreviewProjection::ProjectContentAt             | Api/PreviewProjection.h           | 247       | The surface's current content at one domain position — `82` §2's second row, and `82` §4's domain view. level count, and with whatever `70` refused something looked like a moment ago, or what a hidden entry contains, without changing anything to find out — and a preview that mutated to answer would be a preview that has to be undone. presence rule is `56`'s and is not relaxed here; asking `70` to ignore it would have made hiding mean two different things depending on who was asking.
+F PreviewProjection::ProjectPlacementAt           | Api/PreviewProjection.h           | 275       | A placement under the manipulator at one domain position — `82` §2's third row, `72` §3's drag seen. placement drag responsive while the pointer is moving; the refinement is one resolution at the drag's end, and it is the same routine at a different tolerance rather than a second path. is composed against the placement's surface by its caller before this is asked, because `78` §1's four targets each compose it differently and a preview choosing one would preview the wrong one for the other three.
+F PreviewProjection::AmendParameter               | Api/PreviewProjection.h           | 295       | Declares that a dragged parameter has moved, so the standing extent is owed a re-resolution. amendment count is carried so `86` can measure how many re-resolutions one drag cost, and for no other reason — it is not a revision and nothing keys on it.
+F PreviewProjection::AmendmentCount               | Api/PreviewProjection.h           | 300       | How many re-resolutions the standing parameter drag has asked for.
+F PreviewProjection::DeclareExtent                | Api/PreviewProjection.h           | 314       | Declares which of the four is being previewed, and in which rotation.
+F PreviewProjection::Standing                     | Api/PreviewProjection.h           | 322       | The extent as it stands.
+F PreviewProjection::ExtentCurrent                | Api/PreviewProjection.h           | 329       | Whether the standing extent was resolved in the rotation asking. other rotation is not stale content to refresh — it is content that must not be presented at all.
+F PreviewProjection::ReclaimExtent                | Api/PreviewProjection.h           | 334       | Discards the standing extent. Called each rotation, and at every consumer's end.
+F SLATE_DECLARES_PRECISION                        | Api/PreviewProjection.h           | 349       | ?
+V CoarseDragLevel                                 | Source/PreviewProjection.cpp      | 21        | ?
+V FinestLevel                                     | Source/PreviewProjection.cpp      | 25        | ?
+F PreviewProjection::Construct                    | Source/PreviewProjection.cpp      | 33-48     | ?
+F PreviewProjection::OpenImpression               | Source/PreviewProjection.cpp      | 54-77     | ?
+F PreviewProjection::AmendImpression              | Source/PreviewProjection.cpp      | 79-98     | ?
+F PreviewProjection::ResolveImpression            | Source/PreviewProjection.cpp      | 100-115   | ?
+F PreviewProjection::CloseImpression              | Source/PreviewProjection.cpp      | 117-121   | ?
+F PreviewProjection::ImpressionCoverage           | Source/PreviewProjection.cpp      | 123-126   | ?
+F PreviewProjection::ImpressionStanding           | Source/PreviewProjection.cpp      | 128-131   | ?
+F PreviewProjection::ProjectContentAt             | Source/PreviewProjection.cpp      | 137-165   | ?
+F PreviewProjection::ProjectPlacementAt           | Source/PreviewProjection.cpp      | 171-184   | ?
+F PreviewProjection::AmendParameter               | Source/PreviewProjection.cpp      | 190-205   | ?
+F PreviewProjection::AmendmentCount               | Source/PreviewProjection.cpp      | 207-210   | ?
+F PreviewProjection::DeclareExtent                | Source/PreviewProjection.cpp      | 216-246   | ?
+F PreviewProjection::Standing                     | Source/PreviewProjection.cpp      | 248-251   | ?
+F PreviewProjection::ExtentCurrent                | Source/PreviewProjection.cpp      | 253-259   | ?
+F PreviewProjection::ReclaimExtent                | Source/PreviewProjection.cpp      | 261-265   | ?
 T PromotionBudget                                 | Api/PromotionScheduler.h          | 28-32     | What one rotation may spend promoting tiles. alone does not bound analytic resolution, because an analytically resolved tile transfers nothing — it is produced on the device from a source description. A surface carrying many analytic layers can therefore consume unbounded device time while the transfer measure truthfully reports zero. Exceeding either measure defers, and deferral is normal operation rather than an error — `86` §5.
 T PromotionCost                                   | Api/PromotionScheduler.h          | 39-43     | What promoting one tile would cost, against both measures at once. transfer for the first and evaluation for the second, and both must fit — which is why the two are carried together rather than resolved to whichever dominates.
 V EvaluationUnitsPerEntry                         | Api/PromotionScheduler.h          | 49        | ?
@@ -349,6 +585,69 @@ F PromotionScheduler::PromotedCount               | Source/PromotionScheduler.cp
 F PromotionScheduler::DeferredCount               | Source/PromotionScheduler.cpp     | 169       | ?
 F PromotionScheduler::PromotedTotal               | Source/PromotionScheduler.cpp     | 170       | ?
 F PromotionScheduler::DeferredTotal               | Source/PromotionScheduler.cpp     | 171       | ?
+T ReconstructedSurface                            | Api/ReflectanceIntegrator.h       | 41-52     | What one pixel's attributes reconstruct to, from identity and pixel position alone. not write one. Every value below is reconstructed from the partition identity, the triangle index and the pixel position — which is the whole reason the visibility target is two integers rather than a sheaf of surfaces multiplied by the display extent. the two deliberately: handedness must be stored per vertex because a domain that mirrors across a seam inverts it, and an imported basis must be retained rather than recomputed — neither is expressible per pixel. What is per pixel is the interpolation and the re-orthonormalisation against the interpolated perpendicular, and that is what this holds.
+T ReconstructionTriangle                          | Api/ReflectanceIntegrator.h       | 59-65     | One triangle's three corners, as the reconstruction reads them. serves the device dispatch — which has a resident span and no `TopologyStructure` at all — and the host preview, which has the structure and no span. One shape, two suppliers.
+F ReconstructSurface                              | Api/ReflectanceIntegrator.h       | 85        | Reconstructs one pixel's attributes from its triangle and the ray that reached it. by finite differencing across lanes — `18` §1 and §9's second gate. A material's pixel list is spatially scattered, so neighbouring lanes are not neighbouring pixels; differencing across them produces texture filtering that is wrong precisely at material boundaries, which is where every artist looks first. rather than orthonormalised from the orientation. `18` §1.1: a substitute is a fabricated value, which `24` §2 rejects for transfer and which is no better here; `ChannelsSampled` below then withholds the perturbation channels, exactly as `18` §3's unread-channel rule already requires.
+T DirectionalAlbedoSurface                        | Api/ReflectanceIntegrator.h       | 106-144   | `18` §4.1's lookup — three magnitudes over view angle and roughness, derived once and sampled thereafter. surface carrying `28`'s own axis clamping; these three components are not a colour and share no space — the split-sum scale, the single-scatter directional albedo and the Charlie albedo answer three different questions. One spelling covering both is the defect `00` §8 exists to refuse, and it would make `18` inherit an atmosphere parameterisation for a surface the atmosphere never reads. The lookup is derived on the host and sampled on the device, so the mapping crosses the toolchain seam through another is wrong by half a texel everywhere — uniformly, so every metal is simply a little dark.
+F DirectionalAlbedoSurface::Construct             | Api/ReflectanceIntegrator.h       | 116       | Sizes the lookup and clears it.
+F DirectionalAlbedoSurface::Declare               | Api/ReflectanceIntegrator.h       | 121       | Writes one texel's three components.
+F DirectionalAlbedoSurface::Sample                | Api/ReflectanceIntegrator.h       | 128       | Samples the three components at a declared coordinate, bilinearly, clamped on both axes. and a roughness of one is fully rough, and a wrapped read at either end returns the opposite end.
+F DirectionalAlbedoSurface::ExtentAlong           | Api/ReflectanceIntegrator.h       | 134       | ?
+F DirectionalAlbedoSurface::ExtentAcross          | Api/ReflectanceIntegrator.h       | 135       | ?
+F DirectionalAlbedoSurface::ResidentBytes         | Api/ReflectanceIntegrator.h       | 136       | ?
+F DirectionalAlbedoSurface::Constructed           | Api/ReflectanceIntegrator.h       | 137       | ?
+T ResolvedChannelSet                              | Api/ReflectanceIntegrator.h       | 158-162   | The twenty channels resolved at one pixel, and which of them were sampled at all. tile promotion resolves `42`'s declaration against `56`'s sequence once per tile per level, not once per pixel per rotation — a dispatch that walked the sequence would pay its depth at every pixel of every rotation, and the artist's thirtieth layer would cost as much as their first thirty combined. wider than three. A per-measure union would be a second declaration of what `42` already declares.
+F ChannelSampledIn                                | Api/ReflectanceIntegrator.h       | 167-171   | Whether one channel was sampled rather than defaulted.
+T DirectContribution                              | Api/ReflectanceIntegrator.h       | 179-184   | One illuminant's contribution at one pixel, and the two occlusions that attenuated it.
+T AmbientContribution                             | Api/ReflectanceIntegrator.h       | 196-202   | The ambient contribution at one pixel, diffuse and specular apart. at the reflection direction for the specular. **Both** are attenuated by channel 6 and by `60`'s resolved occlusion, and the two occlusions **multiply** rather than one superseding the other — channel 6 is detail the topology does not carry and `60` is contact the topology does carry. source is `28` when the atmosphere is enabled and the constant floor when it is not; beyond that there is no indirect light, and a material that appears to need some is lit incorrectly rather than under-featured. This is substitution point one of `00` §5.1's four.
+T ReflectanceIntegrator                           | Api/ReflectanceIntegrator.h       | 227-371   | `18` — the shading dispatch, the directional-albedo lookup it compensates through, and `RadianceSurface`. included; `62` and `30` amend it afterwards, in that order, as `08` §2 declares. Nothing here reads what was in the target before. reads no material. Without it nothing in the entire schedule writes the background — every other dispatch is per material over pixels that resolved to a surface, and an unoccupied pixel resolved to none. The image would carry a hole exactly where the sky belongs, filled with whatever the rotation slot held previously. bit depths, no slot assignment, no packing order — and refuses to invent one. `ResolvedChannelSet` therefore carries three components per channel and `ResolveChannels` reads through `70`'s declared placements, so the arrangement is the caller's and the row stays open.
+F ReflectanceIntegrator::Contribute               | Api/ReflectanceIntegrator.h       | 235       | Contributes `08` §3 ④'s recording.
+F ReflectanceIntegrator::DeriveDirectionalAlbedo  | Api/ReflectanceIntegrator.h       | 251       | Derives `18` §4.1's directional-albedo lookup, once. split-sum scale, the single-scatter directional albedo that drives §4's compensation, and the Charlie directional albedo for the cloth selection. Derived once at bring-up rather than per rotation: it depends on nothing a document holds, and re-deriving it per rotation would integrate a hemisphere per texel per rotation for a surface that never changes. and sampled on the device, so the mapping crosses the toolchain seam twice and lives in `Shared/` for the reason `28`'s three surface parameterisations do.
+F ReflectanceIntegrator::ResolveChannels          | Api/ReflectanceIntegrator.h       | 270       | Resolves the channel set one material declares at one domain position. sampled**. The mask is consulted before the sample and not after it, so an unread channel costs nothing rather than costing a sample that is then discarded. to zero — `42` §2. An occlusion channel defaulted to zero is a black surface and a transmission channel defaulted to zero is an opaque one; only one of those is right, which is exactly why the default is declared rather than assumed.
+F ReflectanceIntegrator::IntegrateDirect          | Api/ReflectanceIntegrator.h       | 299       | Integrates one illuminant's direct contribution at one pixel. host and `00` §11 gates the agreement at Tier B — a second implementation of the distribution or the attenuation is a preview that converges to a different image than the workspace does. energy at high roughness and the loss reads as rough metal being too dark, which the artist corrects by raising an albedo that was already correct. visibility — `18` §7. Occlusion in the direct term is already resolved by shadowing, and applying the ambient term here would darken a lit surface for standing near another one.
+F ReflectanceIntegrator::IntegrateAmbient         | Api/ReflectanceIntegrator.h       | 321       | Integrates the ambient contribution at one pixel. hemisphere here. `28` §5 derives the convolution when the sky-view surface rebuilds and never per pixel; a hemisphere integral evaluated per shaded pixel is the thing the whole precomputation exists to avoid, and it would be evaluated at every pixel of every rotation rather than at every rebuild.
+F ReflectanceIntegrator::IntegrateUnoccupied      | Api/ReflectanceIntegrator.h       | 340       | Resolves the unoccupied class at one pixel — `18` §5.1. and it exists because every other dispatch is per material over pixels that resolved to a surface.
+F ReflectanceIntegrator::DirectionalAlbedo        | Api/ReflectanceIntegrator.h       | 347       | The directional-albedo lookup, for whoever uploads it.
+F ReflectanceIntegrator::SampleDirectionalAlbedo  | Api/ReflectanceIntegrator.h       | 352       | The lookup's three components at one view angle and roughness.
+F ReflectanceIntegrator::AlbedoDerived            | Api/ReflectanceIntegrator.h       | 358       | ?
+F SLATE_DECLARES_PRECISION                        | Api/ReflectanceIntegrator.h       | 376       | ?
+V ReflectanceRecordingIdentity                    | Source/ReflectanceIntegrator.cpp  | 26        | ?
+T SpatialSpan                                     | Source/ReflectanceIntegrator.cpp  | 31-36     | ?
+F Spanned                                         | Source/ReflectanceIntegrator.cpp  | 38-46     | ?
+F Spanned                                         | Source/ReflectanceIntegrator.cpp  | 48-53     | ?
+F Spanned                                         | Source/ReflectanceIntegrator.cpp  | 55-60     | ?
+F Agreement                                       | Source/ReflectanceIntegrator.cpp  | 62-67     | ?
+F Perpendicular                                   | Source/ReflectanceIntegrator.cpp  | 69-74     | ?
+F Accumulated                                     | Source/ReflectanceIntegrator.cpp  | 76-81     | ?
+F Weighted                                        | Source/ReflectanceIntegrator.cpp  | 83-86     | ?
+F Unitised                                        | Source/ReflectanceIntegrator.cpp  | 88-96     | ?
+F Narrowed                                        | Source/ReflectanceIntegrator.cpp  | 98-106    | ?
+F Bounded                                         | Source/ReflectanceIntegrator.cpp  | 108-111   | ?
+F ChannelOrdinal                                  | Source/ReflectanceIntegrator.cpp  | 113-116   | ?
+F ScalarOf                                        | Source/ReflectanceIntegrator.cpp  | 118-121   | ?
+F TripleOf                                        | Source/ReflectanceIntegrator.cpp  | 123-130   | ?
+F DirectionalAlbedoSurface::Construct             | Source/ReflectanceIntegrator.cpp  | 138-151   | ?
+F DirectionalAlbedoSurface::Declare               | Source/ReflectanceIntegrator.cpp  | 153-167   | ?
+F DirectionalAlbedoSurface::Sample                | Source/ReflectanceIntegrator.cpp  | 169-221   | ?
+F DirectionalAlbedoSurface::ExtentAlong           | Source/ReflectanceIntegrator.cpp  | 223       | ?
+F DirectionalAlbedoSurface::ExtentAcross          | Source/ReflectanceIntegrator.cpp  | 224       | ?
+F DirectionalAlbedoSurface::Constructed           | Source/ReflectanceIntegrator.cpp  | 225       | ?
+F DirectionalAlbedoSurface::ResidentBytes         | Source/ReflectanceIntegrator.cpp  | 227-230   | ?
+F ReconstructSurface                              | Source/ReflectanceIntegrator.cpp  | 236-424   | ?
+F ReflectanceIntegrator::Contribute               | Source/ReflectanceIntegrator.cpp  | 430-454   | ?
+F ReflectanceIntegrator::DeriveDirectionalAlbedo  | Source/ReflectanceIntegrator.cpp  | 460-584   | ?
+F ReflectanceIntegrator::SampleDirectionalAlbedo  | Source/ReflectanceIntegrator.cpp  | 586-597   | ?
+F ReflectanceIntegrator::DirectionalAlbedo        | Source/ReflectanceIntegrator.cpp  | 599       | ?
+F ReflectanceIntegrator::AlbedoDerived            | Source/ReflectanceIntegrator.cpp  | 600       | ?
+F DeclareDefault                                  | Source/ReflectanceIntegrator.cpp  | 612-646   | ?
+F ChannelReadsBasis                               | Source/ReflectanceIntegrator.cpp  | 649-654   | ?
+F ReflectanceIntegrator::ResolveChannels          | Source/ReflectanceIntegrator.cpp  | 658-755   | ?
+F Perturbed                                       | Source/ReflectanceIntegrator.cpp  | 766-786   | ?
+F NormalIncidence                                 | Source/ReflectanceIntegrator.cpp  | 791-802   | ?
+F WidenedParameter                                | Source/ReflectanceIntegrator.cpp  | 808-820   | ?
+F ReflectanceIntegrator::IntegrateDirect          | Source/ReflectanceIntegrator.cpp  | 824-1060  | ?
+F ReflectanceIntegrator::IntegrateAmbient         | Source/ReflectanceIntegrator.cpp  | 1066-1201 | ?
+F ReflectanceIntegrator::IntegrateUnoccupied      | Source/ReflectanceIntegrator.cpp  | 1207-1233 | ?
 T CellDemand                                      | Api/RequestQueue.h                | 26-31     | One cell a sample touched and did not find resident. subdivision numbers every cell of every reduction level in one span. A demand carrying both would be two answers to one question and the two would eventually disagree.
 T PageQueue                                       | Api/RequestQueue.h                | 45-80     | The drained demands of one rotation, in first-arrival order and coalesced. then spends itself against. Ordering by occurrence count instead would promote the largest surface before the one under the cursor, which is exactly backwards. demand with a count of a million, and the count is what a presenter reads to say how badly it is wanted — not what the ordering reads.
 F PageQueue::Admit                                | Api/RequestQueue.h                | 61        | Admits one demand, coalescing it into an earlier demand for the same cell. rotation and demands it again, so the discard costs one rotation of coarseness and nothing else. That is why it is a measure rather than a report — `86` §5.
@@ -379,6 +678,35 @@ F RequestQueue::DiscardedCount                    | Source/RequestQueue.cpp     
 F ReturnIndex::Drain                              | Source/RequestQueue.cpp           | 94-120    | ?
 F ReturnIndex::DrainedRotation                    | Source/RequestQueue.cpp           | 122       | ?
 F ReturnIndex::DrainedCount                       | Source/RequestQueue.cpp           | 123       | ?
+E RejectionSubject                                | Api/SampleIntegrator.h            | 30-37     | Why one pixel's history was refused. `64` §4 — because a partial history of a surface that is no longer there is a coloured ghost, and a ghost fading over ten rotations is more visible than one that is never drawn.
+T RejectionSpecification                          | Api/SampleIntegrator.h            | 43-48     | What the accumulation refuses a history for. second unit reads either — `00` §2's rule.
+T AccumulatedSample                               | Api/SampleIntegrator.h            | 59-63     | One pixel's accumulated result and the count the weight is derived from. one rotation carry different counts wherever one of them was rejected, and a count derived from the rotation would weight the reset pixel as though it had converged.
+T ConvergenceMetrics                              | Api/SampleIntegrator.h            | 67-73     | What `64` reports through `86`.
+T SampleIntegrator                                | Api/SampleIntegrator.h            | 92-199    | `64` — the accumulation, the offset sequence it jitters by, and the invalidations that discard it whole. camera. Depth reprojection is correct only for what did not move, and what did move is exactly the population this document has to handle. Motion covers the camera and the occupant together, so the accumulation does not need to know which happened. values that have been through a non-invertible tone projection, and the average of tone-mapped samples is not the tone-mapped average — bright samples are compressed before averaging and the result is darker than the scene is. slot depends on the one before it. `06`'s rotation is what makes that legal, and `Invalidate` is what keeps it honest across the three moments where no previous result exists.
+F SampleIntegrator::Declare                       | Api/SampleIntegrator.h            | 102       | Declares what a history is refused for.
+F SampleIntegrator::Contribute                    | Api/SampleIntegrator.h            | 110       | Contributes `08` §3 ⑦'s recording. the schedule cannot express as a dependency and does not need to: `06`'s rotation orders the two.
+F SampleIntegrator::OffsetOf                      | Api/SampleIntegrator.h            | 123       | The sub-pixel offset one rotation carries, from `02` §6's sequence. offset applied after resolution shifts an already-resolved image, which resamples rather than samples, and the result is blur rather than convergence. for a preview; a sequence that disagreed would make a preview converge to a different image than the workspace does — `64` §7's Tier A row.
+F SampleIntegrator::Classify                      | Api/SampleIntegrator.h            | 137       | Classifies whether one reprojected history may be accumulated into. re-partition does not discard every pixel's history for a change nobody can see.
+F SampleIntegrator::Accumulate                    | Api/SampleIntegrator.h            | 157       | Accumulates one arriving sample into one pixel's history. `64` §4 — because a decaying ghost is more visible than an absent one. bound would clamp a value the accumulation had already committed to and the count would then describe a convergence toward something the pixel no longer holds.
+F SampleIntegrator::Invalidate                    | Api/SampleIntegrator.h            | 169       | Discards every history, because no previous result describes anything. or after a device loss. In all three the sample count starts at one — a history reprojected across an extent change is a history addressed in pixels that no longer exist.
+F SampleIntegrator::HistoryReadable               | Api/SampleIntegrator.h            | 174       | Whether the accumulation may read a history at all this rotation.
+F SampleIntegrator::DeclareRotation               | Api/SampleIntegrator.h            | 179       | Records what one rotation's accumulation found, for `86`.
+F SampleIntegrator::Report                        | Api/SampleIntegrator.h            | 189       | Declares every measure; appends nothing. camera in motion rejects most of the extent every rotation.
+F SampleIntegrator::Declared                      | Api/SampleIntegrator.h            | 191       | ?
+F SampleIntegrator::Metrics                       | Api/SampleIntegrator.h            | 192       | ?
+F SLATE_DECLARES_PRECISION                        | Api/SampleIntegrator.h            | 203       | ?
+V AccumulationRecordingIdentity                   | Source/SampleIntegrator.cpp       | 18        | ?
+F SampleIntegrator::Declare                       | Source/SampleIntegrator.cpp       | 22-39     | ?
+F SampleIntegrator::Contribute                    | Source/SampleIntegrator.cpp       | 41-65     | ?
+F SampleIntegrator::OffsetOf                      | Source/SampleIntegrator.cpp       | 71-77     | ?
+F SampleIntegrator::Classify                      | Source/SampleIntegrator.cpp       | 83-105    | ?
+F SampleIntegrator::Accumulate                    | Source/SampleIntegrator.cpp       | 111-149   | ?
+F SampleIntegrator::Invalidate                    | Source/SampleIntegrator.cpp       | 155-161   | ?
+F SampleIntegrator::HistoryReadable               | Source/SampleIntegrator.cpp       | 163       | ?
+F SampleIntegrator::DeclareRotation               | Source/SampleIntegrator.cpp       | 169-184   | ?
+F SampleIntegrator::Report                        | Source/SampleIntegrator.cpp       | 186-192   | ?
+F SampleIntegrator::Declared                      | Source/SampleIntegrator.cpp       | 194       | ?
+F SampleIntegrator::Metrics                       | Source/SampleIntegrator.cpp       | 195       | ?
 T SeamEdge                                        | Api/SeamSpecification.h           | 28-32     | One cut edge, named by the two imported vertex ordinals it runs between. neighbour; a seam recorded as a position would then be a seam somewhere else, and the surface would cut through the middle of a chart. imported arrays means the same thing after conditioning as before. A welded ordinal is derived and moves when the welding tolerance moves — which is exactly what an authored seam must survive.
 F DeclareEdge                                     | Api/SeamSpecification.h           | 37-44     | Normalises two imported vertex ordinals into one seam edge.
 T SeamSpecification                               | Api/SeamSpecification.h           | 59-121    | One surface's seams, both sources held apart because they have different lifetimes. discarded by a re-unwrap. An artist who spent an hour marking seams and watched an automatic partition erase them has lost work the program told them it was holding. next partition. Where a surface will not flatten within the declared distortion using the authored set alone, the shortfall is cut and the addition is reported through `86` — a silent extra cut is a seam the artist finds later in the painted result.
@@ -403,6 +731,30 @@ F SeamSpecification::Derived                      | Source/SeamSpecification.cpp
 F SeamSpecification::Revision                     | Source/SeamSpecification.cpp      | 112       | ?
 F SeamSpecification::AuthoredCount                | Source/SeamSpecification.cpp      | 114       | ?
 F SeamSpecification::DerivedCount                 | Source/SeamSpecification.cpp      | 115       | ?
+T ReflectionSpecification                         | Api/SpecularProjection.h          | 29-37     | What the trace is bounded by. here rather than in `Contract/` because no second unit reads one — `00` §2's rule, applied to a number that is a measurement waiting to happen rather than an agreement.
+T TracedReflection                                | Api/SpecularProjection.h          | 44-50     | One traced result and the weight it carries into the composite. pointing away from the camera. `30` §3's table is four rows and one outcome, which is what lets the march terminate anywhere it likes.
+T ReflectionMetrics                               | Api/SpecularProjection.h          | 56-62     | What `30` reports through `86`. as `30` §3 designed it, and reporting one would mean the register is never quiet.
+T SpecularProjection                              | Api/SpecularProjection.h          | 79-179    | `30` — the amending recording, the march, and the composite that subtracts before it adds. `62` and `30` amend it in that order, and `08` §2's amendment list is what makes that legal and ordered. `08` §6 previously gated "no shared target is produced by two recordings" while this section wrote back into a target `18` produced — recorded as `00` §10 conflict 26 and closed by the ordinal. a transmissive occupant shows that occupant. It reads nothing display-referred, so a selection outline appearing inside a mirror is impossible by ordering rather than by a test. needs was already resolved by `16` and shaded by `18`.
+F SpecularProjection::Declare                     | Api/SpecularProjection.h          | 95        | Declares what the trace is bounded by. thickness, and a divisor that is not two `60`'s ambient term refuses one: `08` §2 claims `ReflectionSurface` at half extent, and admitting a third would declare the extent in two places that could disagree.
+F SpecularProjection::Contribute                  | Api/SpecularProjection.h          | 104       | Contributes `08` §3 ⑥'s recording. pre-added contribution and the resolved weight, which is what makes the composite expressible at all — a target carrying the trace result instead would leave nothing to subtract.
+F SpecularProjection::Resolve                     | Api/SpecularProjection.h          | 112       | The extent the trace is resolved at, from one display extent. Rounding down leaves the display's last column with no coarse texel above it.
+F SpecularProjection::March                       | Api/SpecularProjection.h          | 136       | What the caller must sample and where — one step of the march, in display coordinates. low-frequency at all but mirror roughness, and the extent is where the cost lives. the interval six times resolves it to within a sixty-fourth of one step and marching sixty-four times as far costs sixty-four times as much for the same answer. which samples a resident target — and `82`'s host preview, which samples a resolved one. `00` §11 gates the agreement between the two at Tier B, and one routine is the only way it holds.
+F SpecularProjection::Compose                     | Api/SpecularProjection.h          | 155       | Applies `30` §1's composite at one pixel. arithmetic in this document that cannot be got slightly wrong without the error being invisible — a double count brightens uniformly and reads as the material being wrong.
+F SpecularProjection::DeclareRotation             | Api/SpecularProjection.h          | 163       | Records what one rotation's tracing cost, for `86`.
+F SpecularProjection::Report                      | Api/SpecularProjection.h          | 170       | Declares every measure; appends nothing. `30` §3's design operating and not a fact the artist needs told.
+F SpecularProjection::Declared                    | Api/SpecularProjection.h          | 172       | ?
+F SpecularProjection::Metrics                     | Api/SpecularProjection.h          | 173       | ?
+F SpecularProjection::March                       | Api/SpecularProjection.h          | 185-272   | ?
+F SLATE_DECLARES_PRECISION                        | Api/SpecularProjection.h          | 276       | ?
+V ReflectionRecordingIdentity                     | Source/SpecularProjection.cpp     | 18        | ?
+F SpecularProjection::Declare                     | Source/SpecularProjection.cpp     | 22-50     | ?
+F SpecularProjection::Contribute                  | Source/SpecularProjection.cpp     | 56-81     | ?
+F SpecularProjection::Resolve                     | Source/SpecularProjection.cpp     | 87-99     | ?
+F SpecularProjection::Compose                     | Source/SpecularProjection.cpp     | 105-117   | ?
+F SpecularProjection::DeclareRotation             | Source/SpecularProjection.cpp     | 123-130   | ?
+F SpecularProjection::Report                      | Source/SpecularProjection.cpp     | 132-141   | ?
+F SpecularProjection::Declared                    | Source/SpecularProjection.cpp     | 143       | ?
+F SpecularProjection::Metrics                     | Source/SpecularProjection.cpp     | 144       | ?
 V CoverageTileTexels                              | Api/StrokeSpace.h                 | 26        | ?
 V CoverageTileCeiling                             | Api/StrokeSpace.h                 | 34        | ?
 T StrokeSpace                                     | Api/StrokeSpace.h                 | 53-120    | The coverage one stroke has accumulated, held sparsely by cell and reclaimed whole. Applying per impression lets overlapping impressions within one stroke double-darken at their intersections, which is visible wherever an artist slows down — and slowing down is what an artist does at exactly the places they care about. `a + b(1 − a)`, which is symmetric in its two operands — so the accumulated coverage does not depend on the order the impressions were resolved in. That is what lets `22` §2's deferred impression resolve two rotations later without disturbing the ones around it. the values are constants of the stroke and only the coverage varies per texel. Holding values here would be holding one number per channel per texel to store the same number everywhere.
@@ -546,6 +898,64 @@ F TileSpace::ClaimedCount                         | Source/TileSpace.cpp        
 F TileSpace::QuarantinedCount                     | Source/TileSpace.cpp              | 139       | ?
 F TileSpace::FreeCount                            | Source/TileSpace.cpp              | 141-144   | ?
 F TileSpace::LedgerConsistent                     | Source/TileSpace.cpp              | 146-163   | ?
+E TransmissionBehaviour                           | Api/TransmissionSequence.h        | 37-43     | Which of `62` §2's three rows an occupant's material takes. two is the defect that makes foliage cost what glass costs: a leaf card is opaque with a hole in it, and resolving it as transparent puts every leaf into the sorted column below, so a tree becomes the most expensive object in the workspace for no visual gain whatever. `74` and occluded by `60` with no special case in any of them. That is the whole reason the classification lives at `16` rather than here.
+F BehaviourOf                                     | Api/TransmissionSequence.h        | 53        | Which behaviour one declared material takes. answer to a question the reflectance selection and the cutout enrolment already answer, and the two disagree the moment an artist switches a material from transmissive to standard.
+F CoverageResolved                                | Api/TransmissionSequence.h        | 65        | Whether one cutout coverage reading is present at a pixel. makes one artist's foliage disappear while another's grows a halo, and neither can correct it. the classification and `16` owns the resolution; the split is `62` §2's whole content.
+T TransmissionFragment                            | Api/TransmissionSequence.h        | 73-78     | One transmissive fragment, as `TransmissionIndex` carries it.
+T TransmissionColumn                              | Api/TransmissionSequence.h        | 88-93     | One pixel's bounded, depth-sorted transmissive column. amendment dominates, so discarding the farthest is the correct direction and is what `ProjectTransmissionSlot` already encodes. authored and cannot see, and a column that discards silently is one whose depth ceiling nobody can measure against their own scene.
+T TransmissionSpecification                       | Api/TransmissionSequence.h        | 103-110   | What a transmissive occupant declares, read from `42` and added to by nothing. unamended, and the reflectance selection that consumes them is `18` §3's Transmissive.
+F DeclaredTransmission                            | Api/TransmissionSequence.h        | 120       | Reads one fragment's transmission specification out of an already-resolved channel set. once at that position. Resampling here would walk `56`'s layer sequence a second time for the one surface in the scene most likely to be layered.
+T TransmissionMetrics                             | Api/TransmissionSequence.h        | 130-136   | What `62` reports through `86`. appended once per rotation would bury the one truncation the artist did not expect.
+T TransmissionSequence                            | Api/TransmissionSequence.h        | 154-248   | `62` — the two recordings, the sorted collection, and the back-to-front amendment of `RadianceSurface`. transmissive occupant that wrote depth would occlude what is behind it in `16`, and the surface it exists to reveal would never be shaded at all. is deliberate: `60` §3's projections resolve topology, so a transmissive occupant enrolled in one would cast the shadow of a solid object, while a cutout occupant is topology with a coverage test and casts correctly with no special case at all. reads and writes and does not yet order two amenders of one target, so both declare an amendment ordinal and the schedule prefers the lower — the diff below closes that.
+F TransmissionSequence::ContributeCollection      | Api/TransmissionSequence.h        | 170       | Contributes ⑤·i — the collection that writes `TransmissionIndex` and no depth. sorted insertion, so no depth write is performed and the opaque resolution `16` produced stands untouched.
+F TransmissionSequence::ContributeResolution      | Api/TransmissionSequence.h        | 176       | Contributes ⑤·ii — the resolution that amends `RadianceSurface` back to front.
+F TransmissionSequence::Insert                    | Api/TransmissionSequence.h        | 190       | Inserts one fragment into one pixel's column, in depth order. and resolving it would amend a pixel it does not reach. preview through it and `00` §11 gates the agreement, which is why the comparison itself lives in `Shared/` rather than here.
+F TransmissionSequence::AmendRadiance             | Api/TransmissionSequence.h        | 205       | Amends one pixel's standing radiance by one fragment. direct term over `44` §5's reaching set, the same ambient term from `28`, the same models from `18` §3. Nothing about transmission changes how the surface itself is lit; it changes only what survives from behind it.
+F TransmissionSequence::Resolve                   | Api/TransmissionSequence.h        | 222       | Resolves one whole column back to front, amending the radiance behind it. nearest first and read in reverse. Reading it forward composites the near pane under the far one, which reads as two sheets of glass in the wrong order and is not visibly an ordering defect.
+F TransmissionSequence::DeclareRotation           | Api/TransmissionSequence.h        | 231       | Records what one rotation's collection cost, for `86`.
+F TransmissionSequence::Report                    | Api/TransmissionSequence.h        | 241       | Appends `62` §3.1's truncation and declares every measure beside it. subject rather than by the pixel, because a per-pixel subject would present a million entries for one pane of glass and `86` §6's coalescing would then be doing the discarding.
+F TransmissionSequence::Metrics                   | Api/TransmissionSequence.h        | 243       | ?
+F SLATE_DECLARES_PRECISION                        | Api/TransmissionSequence.h        | 253       | ?
+V CollectionRecordingIdentity                     | Source/TransmissionSequence.cpp   | 24        | ?
+V ResolutionRecordingIdentity                     | Source/TransmissionSequence.cpp   | 25        | ?
+F Bounded                                         | Source/TransmissionSequence.cpp   | 27-30     | ?
+F BehaviourOf                                     | Source/TransmissionSequence.cpp   | 34-47     | ?
+F CoverageResolved                                | Source/TransmissionSequence.cpp   | 49-52     | ?
+F DeclaredTransmission                            | Source/TransmissionSequence.cpp   | 58-76     | ?
+F TransmissionSequence::ContributeCollection      | Source/TransmissionSequence.cpp   | 82-102    | ?
+F TransmissionSequence::ContributeResolution      | Source/TransmissionSequence.cpp   | 104-124   | ?
+F TransmissionSequence::Insert                    | Source/TransmissionSequence.cpp   | 130-180   | ?
+F TransmissionSequence::AmendRadiance             | Source/TransmissionSequence.cpp   | 186-213   | ?
+F TransmissionSequence::Resolve                   | Source/TransmissionSequence.cpp   | 215-239   | ?
+F TransmissionSequence::DeclareRotation           | Source/TransmissionSequence.cpp   | 245-253   | ?
+F TransmissionSequence::Report                    | Source/TransmissionSequence.cpp   | 255-276   | ?
+F TransmissionSequence::Metrics                   | Source/TransmissionSequence.cpp   | 278       | ?
+E CorrespondenceSubject                           | Api/UvSurfaceDepot.h              | 31-36     | How one hit is chosen when the search within the extent returns several. disagree exactly where a dense source folds back on itself — and that is the region an artist notices, not the region where every rule agrees.
+T TransferSpecification                           | Api/UvSurfaceDepot.h              | 51-60     | `24` §2's six fields — what is searched, how far, by which rule, for which channels, at what extent. beyond it: `24` §2 requires a miss to be recorded as a miss, and a value found past the extent is the fabricated value that section refuses by name. declared here rather than in `Contract/` because no second unit reads either; `00` §2's rule. are these — `24`'s opening paragraph.
+T SourceCorrespondence                            | Api/UvSurfaceDepot.h              | 71-75     | Which source face one working position corresponds to, and how far away it stood. refused with ExtentExhausted and the caller records it as a miss, which is diagnosable — a fabricated correspondence is not.
+T TransferMetrics                                 | Api/UvSurfaceDepot.h              | 86-92     | What one transfer resolved, and what it missed — per channel, as `24` §4 requires. one channel and nothing in the other nineteen is visually similar to one that missed nothing, and a single total says nothing about which attribute is wrong.
+T UvSurfaceDepot                                  | Api/UvSurfaceDepot.h              | 107-216   | `24` — the transfer, its content key, and its admission into `20`'s depot. No unwrap lives here. from `20`. `68` produces the domain; the only `20` dependency is `SurfaceDepot` residency. That one-way edge is what closed `00` §10's conflict 13, where `24` and `20` each depended on the other and neither could be built first. work by nature and the result crosses back to the tick as a value, exactly as `68`'s derivation does — a transfer that wrote into the document as it ran could not be cancelled between sweeps.
+F UvSurfaceDepot::Declare                         | Api/UvSurfaceDepot.h              | 125       | Declares the transfer parameters as one admission. mask, a domain extent of nothing, a criterion outside the unit interval, an iteration ceiling of nothing, and a rule outside the closed count reports no miss and no resolution and reads as a transfer that succeeded.
+F UvSurfaceDepot::KeyOf                           | Api/UvSurfaceDepot.h              | 138       | The content key one transferred result is held under — `24` §3's five fields, closed. while no partition stands matters. A result keyed without it survives a re-unwrap and is then read at positions that mean something else, which presents as attributes subtly wrong everywhere rather than as a failure.
+F UvSurfaceDepot::Correspond                      | Api/UvSurfaceDepot.h              | 156       | The source face one working position corresponds to, within the declared extent. with ContentUnsupported before Declare gate. A transfer that misclassifies which source surface corresponds produces seam artefacts indistinguishable from unwrap defects, and the two then get debugged together for a long time. are apart because the admission is Exact and the choice is Bounded, and folding them would claim the weaker guarantee for both.
+F UvSurfaceDepot::Transfer                        | Api/UvSurfaceDepot.h              | 175       | Sweeps the working topology's domain positions until the correspondence stops spreading. its ceiling and one that converged produce results that look identical, and the difference is exactly what `24` §4 obliges this to report. missed position against the face a resolved position on its own face corresponded to — and that candidate must still pass the same extent test, so propagation never reaches past the extent. nearest value found beyond the extent, and nothing is filled with zero.
+F UvSurfaceDepot::Admit                           | Api/UvSurfaceDepot.h              | 190       | Admits one transferred result into `20`'s depot, as derived content. gate. Nothing painted is ever stored here: a transferred result that has been painted over is a layer above it in `56`, and the two are addressed at their own levels rather than merged.
+F UvSurfaceDepot::Report                          | Api/UvSurfaceDepot.h              | 205       | Appends the transfer's obligations to the register, and its measures beside them. count appended every transfer buries the one channel that missed under readings nobody asked for — `86` §2, and `68`'s reporting draws the same line.
+F UvSurfaceDepot::Specification                   | Api/UvSurfaceDepot.h              | 210       | ?
+F SLATE_DECLARES_PRECISION                        | Api/UvSurfaceDepot.h              | 221       | ?
+V TransferOrigin                                  | Source/UvSurfaceDepot.cpp         | 22        | ?
+T FaceExtent                                      | Source/UvSurfaceDepot.cpp         | 25-36     | One source face's axis-aligned extent and its centre, as the search reads them.
+F ExtentOfFace                                    | Source/UvSurfaceDepot.cpp         | 41-89     | ?
+F OrientationOfFace                               | Source/UvSurfaceDepot.cpp         | 93-117    | ?
+F DepartureBetween                                | Source/UvSurfaceDepot.cpp         | 119-126   | ?
+F AlignmentBetween                                | Source/UvSurfaceDepot.cpp         | 131-136   | ?
+F UvSurfaceDepot::Declare                         | Source/UvSurfaceDepot.cpp         | 140-185   | ?
+F UvSurfaceDepot::KeyOf                           | Source/UvSurfaceDepot.cpp         | 191-224   | ?
+F UvSurfaceDepot::Correspond                      | Source/UvSurfaceDepot.cpp         | 230-309   | ?
+F UvSurfaceDepot::Transfer                        | Source/UvSurfaceDepot.cpp         | 315-427   | ?
+F UvSurfaceDepot::Admit                           | Source/UvSurfaceDepot.cpp         | 433-442   | ?
+F UvSurfaceDepot::Report                          | Source/UvSurfaceDepot.cpp         | 448-496   | ?
+F UvSurfaceDepot::Specification                   | Source/UvSurfaceDepot.cpp         | 498       | ?
 V ReductionLevelCeiling                           | Api/DepthReduction.h              | 32        | ?
 T ReductionLevel                                  | Api/DepthReduction.h              | 42-46     | One reduction level's extent, in texels. onto it is then tested against a level that never saw the depth recorded there.
 T DepthReduction                                  | Api/DepthReduction.h              | 61-115    | The level chain one display extent reduces through, and the level a projected extent is tested at. many levels that extent carries, how wide each one is, and which of them a given projected extent resolves to. The ordinates live on the device and nowhere else. rotation's, reduced from what phase ② rasterised. `16` §2 requires both, and a single-phase test against last rotation's reduction alone rejects anything that became visible this rotation — which is every silhouette the camera just moved past.

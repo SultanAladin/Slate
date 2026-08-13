@@ -1,0 +1,139 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 `24` — attributes moved from a dense topology onto a sparse one through the domain, converging, and keyed by content.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateCompute/Compute/UvSurfaceDepot/Api
+%layer      SlateCompute
+%sources    1
+%symbols    13
+%annotated  11/13
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S UvSurfaceDepot.h | 226 lines | 3a059f94 | 13 sym | `24` — attributes moved from a dense topology onto a sparse one through the domain, converging, and keyed by content.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                THE CORRESPONDENCE RULE
+//------------------------------------------------------------------------------------------------------------------------
+
+E CorrespondenceSubject         | UvSurfaceDepot.h | 31-36   | contract                  | -  | How one hit is chosen when the search within the extent returns several. disagree exactly where a dense source folds back on itself — and that is the region an artist notices, not the region where every rule agrees.
+    has   LeastDeparture         CorrespondenceSubject  [-]  ?
+    has   LeastAngularDeparture  CorrespondenceSubject  [-]  ?
+    has   CorrespondenceCount    CorrespondenceSubject  [-]  ?
+    by    Source/UvSurfaceDepot.cpp
+    note  🔴 `24` §2 names the rule as a declared field rather than as a convention, because the two rules
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE TRANSFER
+//------------------------------------------------------------------------------------------------------------------------
+
+T TransferSpecification         | UvSurfaceDepot.h | 51-60   | nonallocating,nonthrowing | -  | `24` §2's six fields — what is searched, how far, by which rule, for which channels, at what extent. beyond it: `24` §2 requires a miss to be recorded as a miss, and a value found past the extent is the fabricated value that section refuses by name. declared here rather than in `Contract/` because no second unit reads either; `00` §2's rule. are these — `24`'s opening paragraph.
+    has   SearchExtent          double                 [-]  ?
+    has   Correspondence        CorrespondenceSubject  [-]  ?
+    has   ChannelMask           std::uint32_t          [-]  ?
+    has   DomainExtent          std::uint32_t          [-]  ?
+    has   ConvergenceCriterion  double                 [-]  ?
+    has   IterationCeiling      std::uint32_t          [-]  ?
+    has   SpecificationOrdinal  std::uint64_t          [-]  ?
+    by    Source/UvSurfaceDepot.cpp
+    note  🔴 The search extent is a **ceiling** and never a starting point. Nothing widens it and nothing samples
+    note  🔴 Tier C — the sweep converges against the criterion below and stops at the ceiling. Both figures are
+    note  ⚠️ `Bake` is banned and this is not a euphemism for it. The operation is transfer, and its parameters
+
+T UvSurfaceDepot                | UvSurfaceDepot.h | 107-216 | owning                    | -  | `24` — the transfer, its content key, and its admission into `20`'s depot. No unwrap lives here. from `20`. `68` produces the domain; the only `20` dependency is `SurfaceDepot` residency. That one-way edge is what closed `00` §10's conflict 13, where `24` and `20` each depended on the other and neither could be built first. work by nature and the result crosses back to the tick as a value, exactly as `68`'s derivation does — a transfer that wrote into the document as it ran could not be cancelled between sweeps.
+    has   AbsentCorrespondence  static constexpr std::uint32_t  [-]  ?
+    has   Transferring          TransferSpecification           [-]  ?
+    has   TransferStanding      bool                            [-]  ?
+    by    Source/UvSurfaceDepot.cpp
+    note  🔴 `24` §5: this declares no unwrap, no seam classification and no chart packing, and reads no mechanism
+    note  🔴 Every entry point reads its arguments and mutates none of them. The transfer is `34` `Background`
+
+F UvSurfaceDepot::Declare       | UvSurfaceDepot.h | 125     | api,nonthrowing           | ✔️ | Declares the transfer parameters as one admission. mask, a domain extent of nothing, a criterion outside the unit interval, an iteration ceiling of nothing, and a rule outside the closed count reports no miss and no resolution and reads as a transfer that succeeded.
+    in    Transferring_  const TransferSpecification&  [-]  the extent, the rule, the channels, the domain extent and the two Tier C figures
+    out   -              Outcome                       [-]  refuses with ContentUnsupported for a search extent of nothing, an empty channel
+    post  the specification stands and the key below carries its ordinal
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
+    note  🔴 An empty channel mask is refused rather than admitted as a transfer of nothing. Admitted, it
+
+F UvSurfaceDepot::KeyOf         | UvSurfaceDepot.h | 138     | api,nonthrowing           | ✔️ | The content key one transferred result is held under — `24` §3's five fields, closed. while no partition stands matters. A result keyed without it survives a re-unwrap and is then read at positions that mean something else, which presents as attributes subtly wrong everywhere rather than as a failure.
+    in    Source        const TopologyStructure&  [-]  the dense origin; its seal revision is the first field
+    in    Working       const TopologyStructure&  [-]  the sparse destination carrying the domain
+    in    Partitioning  const ChartPartition&     [-]  `68`'s standing partition, whose revision moves every domain position
+    out   -             Outcome                   [-]  refuses with ContentUnsupported before Declare, for an unsealed topology, and
+    by    Source/UvSurfaceDepot.cpp
+    note  🔴 The partition revision is the field most easily left out and leaving it out is the defect that
+
+F UvSurfaceDepot::Correspond    | UvSurfaceDepot.h | 156     | api,nonthrowing           | 🔴 | The source face one working position corresponds to, within the declared extent. with ContentUnsupported before Declare gate. A transfer that misclassifies which source surface corresponds produces seam artefacts indistinguishable from unwrap defects, and the two then get debugged together for a long time. are apart because the admission is Exact and the choice is Bounded, and folding them would claim the weaker guarantee for both.
+    in    WorkingPosition     DocumentPosition          [mm]  the reconstructed position on the working topology
+    in    WorkingOrientation  SurfaceDirection          [-]   its orientation, along which the angular rule measures
+    in    Source              const TopologyStructure&  [-]   the dense topology searched
+    out   -                   Outcome                   [-]   refuses with ExtentExhausted where nothing stands within the extent, and
+    by    Source/UvSurfaceDepot.cpp
+    note  🔴 The extent test is `IntersectionClassifier`'s volume overlap at Tier A — `24` §2 and §5's second
+    note  📝 The classification admits or rejects; the rule below then chooses among what it admitted. The two
+
+F UvSurfaceDepot::Transfer      | UvSurfaceDepot.h | 175     | api,nonthrowing           | 🔴 | Sweeps the working topology's domain positions until the correspondence stops spreading. its ceiling and one that converged produce results that look identical, and the difference is exactly what `24` §4 obliges this to report. missed position against the face a resolved position on its own face corresponded to — and that candidate must still pass the same extent test, so propagation never reaches past the extent. nearest value found beyond the extent, and nothing is filled with zero.
+    in    Source              const TopologyStructure&           [-]  the dense origin
+    in    Working             const TopologyStructure&           [-]  the sparse destination
+    in    SourceChannelMasks  const std::vector<std::uint32_t>&  [-]  which channels each source face carries; one entry per source face
+    out   -                   ConvergentResult                   [-]  the metrics, the residual at termination, and which criterion ended it
+    by    Api/ColourProjection.h, Api/SpanSpace.h, Shader/MultiScatterSurface.slang, Source/AtmosphereIntegrator.cpp, Source/ColourProjection.cpp, Source/DisplayProjection.cpp, (+3 more)
+    note  🔴 Returned as a `ConvergentResult` and never as a bare value — `02` §5. A transfer that stopped at
+    note  📐 The residual is the fraction of positions **newly** resolved by the sweep. Later sweeps retry a
+    note  🔴 Whatever is still unresolved at termination is recorded as a miss. Nothing is filled from the
+
+F UvSurfaceDepot::Admit         | UvSurfaceDepot.h | 190     | api,nonthrowing           | 🚩 | Admits one transferred result into `20`'s depot, as derived content. gate. Nothing painted is ever stored here: a transferred result that has been painted over is a layer above it in `56`, and the two are addressed at their own levels rather than merged.
+    in    Depot            SurfaceDepot&      [-]  where derived artefacts live and are evicted from
+    in    Keyed            const ContentKey&  [-]  as KeyOf produced it
+    in    ByteExtent       std::uint64_t      [B]  what the result occupies
+    in    RotationOrdinal  std::uint64_t      [-]  the rotation it was derived on
+    out   -                Outcome            [-]  refuses with whatever the depot refused
+    by    Api/PointerIntersection.h, Api/RequestQueue.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+7 more)
+    note  🔴 Declared as an analytic resolution and therefore reconstructible and evictable — `24` §5's last
+
+F UvSurfaceDepot::Report        | UvSurfaceDepot.h | 205     | api,nonthrowing           | 🚩 | Appends the transfer's obligations to the register, and its measures beside them. count appended every transfer buries the one channel that missed under readings nobody asked for — `86` §2, and `68`'s reporting draws the same line.
+    in    Produced   const ConvergentResult<TransferMetrics>&  [-]   as Transfer returned it
+    in    Reporting  ReportSequence&                           [-]   where the termination and the per-channel misses land
+    in    Measured   MeasureIndex&                             [-]   where the counts land
+    in    Sampled    TickPoint                                 [ns]  the tick's own reading
+    out   -          void                                      [-]   ?
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/DisplayProjection.h, Api/HardwareMetrics.h, (+32 more)
+    note  🔴 A termination at the ceiling and a channel that missed **append**; the counts **overwrite**. A
+
+F UvSurfaceDepot::Specification | UvSurfaceDepot.h | 210     | -                         | -  | ?
+    out   -  const TransferSpecification&  [-]  ?
+    by    Api/CameraProjection.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/SampleIntegrator.h, Api/SpecularProjection.h, Source/CameraProjection.cpp, (+5 more)
+
+F SLATE_DECLARES_PRECISION      | UvSurfaceDepot.h | 221     | -                         | -  | ?
+    in    Convergent  PrecisionGuarantee::  [-]  ?
+    in    Convergent  PrecisionGuarantee::  [-]  ?
+    in    Bounded     PrecisionGuarantee::  [-]  ?
+    in    Exact       PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   ONE CORRESPONDENCE
+//------------------------------------------------------------------------------------------------------------------------
+
+T SourceCorrespondence          | UvSurfaceDepot.h | 71-75   | nonallocating,nonthrowing | -  | Which source face one working position corresponds to, and how far away it stood. refused with ExtentExhausted and the caller records it as a miss, which is diagnosable — a fabricated correspondence is not.
+    has   FaceOrdinal  std::uint32_t  [-]  ?
+    has   Departure    double         [-]  ?
+    by    Source/UvSurfaceDepot.cpp
+    note  🔴 Delivered only where the extent test admitted it. There is no "nearest anyway" delivery: a miss is
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                               WHAT THE TRANSFER MEASURED
+//------------------------------------------------------------------------------------------------------------------------
+
+T TransferMetrics               | UvSurfaceDepot.h | 86-92   | nonallocating,nonthrowing | -  | What one transfer resolved, and what it missed — per channel, as `24` §4 requires. one channel and nothing in the other nineteen is visually similar to one that missed nothing, and a single total says nothing about which attribute is wrong.
+    has   DomainCount    std::uint32_t  [-]  ?
+    has   ResolvedCount  std::uint32_t  [-]  ?
+    has   SweepCount     std::uint32_t  [-]  ?
+    by    Source/UvSurfaceDepot.cpp
+    note  🔴 The miss count is **per channel** and not one total. A transfer that missed a tenth of the domain in

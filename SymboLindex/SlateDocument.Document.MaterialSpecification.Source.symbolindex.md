@@ -25,16 +25,18 @@ S MaterialSpecification.cpp | 279 lines | dd247b6e | 23 sym | The channel invent
 F ChannelBit                                    | MaterialSpecification.cpp | 22-25   | - | - | ?
     in    Subject  ChannelSubject           [-]  ?
     out   -        constexpr std::uint32_t  [-]  ?
+    by    Source/UvSurfaceDepot.cpp
 
 F ChannelBit                                    | MaterialSpecification.cpp | 34      | - | - | ?
     in    Opacity  ChannelSubject::  [-]  ?
     out   -        /                 [-]  ?
+    by    Source/UvSurfaceDepot.cpp
 
 F ChannelConsumed                               | MaterialSpecification.cpp | 65-76   | - | - | ?
     in    Selected  ReflectanceSelection  [-]  ?
     in    Channel   ChannelSubject        [-]  ?
     out   -         bool                  [-]  ?
-    by    Api/MaterialSpecification.h
+    by    Api/MaterialSpecification.h, Source/ReflectanceIntegrator.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE MATERIAL

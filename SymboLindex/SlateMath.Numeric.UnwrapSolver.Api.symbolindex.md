@@ -53,7 +53,7 @@ T DistortionMeasure        | UnwrapSolver.h | 51-58 | nonallocating,nonthrowing 
 F Solve                    | UnwrapSolver.h | 80    | api,nonthrowing           | 🔴 | Flattens one chart, boundary first, and reports which condition terminated it. an out-of-range corner, a boundary loop shorter than three, or a boundary of no extent cause, because a solver that returns its last iterate at the ceiling is indistinguishable from one that converged — and `68` §4's specific consequence is an artist painting on a domain whose distortion nobody measured. weighted average of its neighbours. Mean-value weights are strictly positive, so a convex boundary gives a fold-free embedding by construction rather than by inspection — which is the whole reason the boundary is mapped to a circle rather than to the chart's own silhouette. `68` §4.1 tests for them anyway. Construction narrows the failure; it does not remove it.
     in    Declaring  const UnwrapSpecification&  [-]  the chart, its triangulation and its boundary loop
     out   -          Outcome                     [-]  refuses with ContentUnsupported for a triangulation that is not a multiple of three,
-    by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/UnwrapSolver.cpp
+    by    Api/LinearSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
     note  🔴 Convergent, per `02` §5. The result carries its residual, its iteration count and its termination
     note  📐 The boundary is mapped to a circle by chord length and the interior is relaxed toward the mean-value
     note  ⚠️ Fold-free by construction still leaves folds reachable through degenerate source triangles, so
@@ -61,17 +61,17 @@ F Solve                    | UnwrapSolver.h | 80    | api,nonthrowing           
 F SLATE_DECLARES_PRECISION | UnwrapSolver.h | 81    | -                         | -  | ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
 
 F Measure                  | UnwrapSolver.h | 92    | api,nonthrowing           | 🚩 | Measures the area and angle distortion of a flattening against the topology it came from. rather than removing them, so they arrive here and would otherwise report an unbounded ratio.
     in    Positions        const std::vector<DocumentPosition>&  [mm]  the chart's spatial positions
     in    TriangleCorners  const std::vector<std::uint32_t>&     [-]   its triangulation
     in    Flattened        const std::vector<PlanarPosition>&    [-]   the planar positions the solve produced
     out   -                Measured                              [-]   both measures, and where each was worst
-    by    Source/ChartPartition.cpp, Source/UnwrapSolver.cpp
+    by    Api/LinearSolver.h, Source/ChartPartition.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
     note  Degenerate triangles — zero spatial area or zero planar area — contribute nothing. `38` §3 enrols them
 
 F SLATE_DECLARES_PRECISION | UnwrapSolver.h | 95    | -                         | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+24 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)

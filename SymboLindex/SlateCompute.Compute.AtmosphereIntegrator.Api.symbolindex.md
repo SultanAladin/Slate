@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S AtmosphereIntegrator.h | 389 lines | 008f8203 | 45 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
+S AtmosphereIntegrator.h | 389 lines | e9e87277 | 45 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE MEDIUM
@@ -42,7 +42,7 @@ T MediumSpecification                             | AtmosphereIntegrator.h | 33-
 
 F MediumSpecification::Validate                   | AtmosphereIntegrator.h | 56      | api,nonallocating,nonthrowing | ✔️ | Whether the medium describes an atmosphere that can be integrated at all. ozone half width, and for an asymmetry outside the open interval about the origin extent, and the phase magnitude diverges along it.
     out   -  Outcome  [-]  refuses with ContentUnsupported for a non-positive radius, thickness, scale height or
-    by    Api/AssetInterchange.h, Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+3 more)
+    by    Api/AssetInterchange.h, Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+4 more)
     note  📐 An asymmetry reaching unity collapses the forward-scattering lobe onto a direction of zero solid
 
 T MediumCoefficient                               | AtmosphereIntegrator.h | 64-71   | nonallocating,nonthrowing     | -  | The medium's coefficients resolved into the working space, per component. wavelength-neutral by declaration and needs no projection, which is why it is one magnitude rather than three — writing it as three equal ones would invite a later edit to make them differ.
@@ -59,14 +59,14 @@ F Resolve                                         | AtmosphereIntegrator.h | 87 
     in    Working   const ColourSpaceSpecification&  [-]  the space the coefficients are expressed in
     in    Rule      const QuadratureRule&            [-]  a derived rule, integrated over the declared wavelength interval
     out   -         Outcome                          [-]  carries the medium's own refusal, and `02` §5's where the projection declines
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+58 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+94 more)
     note  📐 The Rayleigh coefficient is **derived** from the medium's refractive index, molecular concentration
     note  📝 The ozone absorption is a **fit to measured absorption** rather than a derivation, unlike Rayleigh.
 
 F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 90      | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+24 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+50 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ONE RESIDENT SURFACE
@@ -86,7 +86,7 @@ F ResidentSurface::Construct                      | AtmosphereIntegrator.h | 116
     in    ExtentAcross       std::uint32_t  [-]  ?
     in    WrapAlongDeclared  bool           [-]  the first axis is periodic and its filter wraps rather than clamps
     out   -                  Outcome        [-]  refuses with ContentUnsupported for a zero extent on either axis
-    by    Api/AnalyticProjection.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+46 more)
+    by    Api/AnalyticProjection.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+62 more)
     note  🔴 Wrapping is declared per surface because only ③'s azimuth is periodic. ①'s and ②'s axes are
 
 F ResidentSurface::Write                          | AtmosphereIntegrator.h | 124     | api,nonallocating,nonthrowing | ✔️ | Writes one texel's three components; the fourth is written as unity. three-component format would be a fourth format for the device to negotiate — which `06` §2.1's one-queue, explicit-descriptor spine has no appetite for.
@@ -96,7 +96,7 @@ F ResidentSurface::Write                          | AtmosphereIntegrator.h | 124
     in    Green   double         [-]  ?
     in    Blue    double         [-]  ?
     out   -       void           [-]  ?
-    by    Api/PropertySpecification.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
+    by    Api/PropertySpecification.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp
     note  📝 The fourth component is claimed and unused. `08` §2 declares the format RGBA16F and a
 
 F ResidentSurface::Sample                         | AtmosphereIntegrator.h | 134     | api,nonallocating,nonthrowing | 🚩 | Samples the surface bilinearly at a declared coordinate; the axis declared periodic wraps, the other clamps. periodic. The zenith axis genuinely ends at the zenith, and a wrapped sample there reads the horizon — which appears as a bright ring directly overhead.
@@ -106,24 +106,24 @@ F ResidentSurface::Sample                         | AtmosphereIntegrator.h | 134
     in    Green             double&  [-]  ?
     in    Blue              double&  [-]  ?
     out   -                 void     [-]  ?
-    by    Api/InputExchange.h, Api/SurfaceTileSpace.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/InputExchange.cpp, (+2 more)
+    by    Api/InputExchange.h, Api/ReflectanceIntegrator.h, Api/SurfaceTileSpace.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+4 more)
     note  🔴 Wrapping is declared per surface by `Construct`'s `WrapAlongDeclared`, and only ③'s azimuth is
 
 F ResidentSurface::Texels                         | AtmosphereIntegrator.h | 139     | api,nonallocating,nonthrowing | ✔️ | The encoded texels, for whoever uploads them.
     out   -  const std::vector<std::uint16_t>&  [-]  ?
-    by    Api/AnalyticProjection.h, Api/SurfaceLayerSequence.h, Source/AnalyticProjection.cpp, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+1 more)
+    by    Api/AnalyticProjection.h, Api/ClipboardExchange.h, Api/EmissionSequence.h, Api/SurfaceLayerSequence.h, Source/AnalyticProjection.cpp, Source/AtmosphereIntegrator.cpp, (+6 more)
 
 F ResidentSurface::ResidentBytes                  | AtmosphereIntegrator.h | 144     | api,nonallocating,nonthrowing | ✔️ | What the surface occupies once resident.
     out   -  std::uint64_t  [-]  ?
-    by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
+    by    Api/ReflectanceIntegrator.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ReflectanceIntegrator.cpp
 
 F ResidentSurface::ExtentAlong                    | AtmosphereIntegrator.h | 146     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/DepthReduction.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp
+    by    Api/DepthReduction.h, Api/ReflectanceIntegrator.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp, (+1 more)
 
 F ResidentSurface::ExtentAcross                   | AtmosphereIntegrator.h | 147     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/DepthReduction.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp
+    by    Api/DepthReduction.h, Api/ReflectanceIntegrator.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp, (+1 more)
 
 F ResidentSurface::SurfaceConstructed             | AtmosphereIntegrator.h | 148     | -                             | -  | ?
     out   -  bool  [-]  ?
@@ -150,7 +150,7 @@ F IrradianceProjection::Evaluate                  | AtmosphereIntegrator.h | 187
     in    DirectionY  -               [-]  ?
     in    DirectionZ  -               [-]  ?
     out   -           Red/Green/Blue  [-]  never negative; the reconstruction is clamped at zero
-    by    Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
+    by    Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ReflectanceIntegrator.cpp
     note  ⚠️ A truncated harmonic reconstruction rings, and the ring goes negative where the sky is dark
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -185,7 +185,7 @@ T AtmosphereIntegrator                            | AtmosphereIntegrator.h | 208
     has   SkyViewOwed                 bool                            [-]  ?
     has   PresenceDeclared            bool                            [-]  ?
     has   FloorDeclared               bool                            [-]  ?
-    by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
+    by    Api/ReflectanceIntegrator.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ReflectanceIntegrator.cpp
     note  🔴 `28` §2: strictly ordered ① ② ③, and each surface reads only the surfaces before it. Constructing ③
     note  🔴 The sun direction is **supplied**, not read from `44`. `44` §8 gates that exactly one illuminant is
     note  ⚠️ There is no ground albedo. Hillaire's formulation includes one and it materially brightens the
@@ -227,12 +227,12 @@ F AtmosphereIntegrator::Rebuild                   | AtmosphereIntegrator.h | 269
     in    Rule     const QuadratureRule&            [-]  a derived rule; the optical depths are integrated against it
     out   -        Outcome                          [-]  refuses with ContentUnsupported before a medium is declared or before the rule is
     post  🔴 with nothing owed, nothing is rebuilt and nothing is recorded — `28` §4
-    by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
+    by    Api/OcclusionProjection.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp
     note  🔴 The construction order is ① transmittance, ② multiple scattering reading ①, ③ sky-view reading
 
 F AtmosphereIntegrator::RebuildOwed               | AtmosphereIntegrator.h | 276     | api,nonallocating,nonthrowing | ✔️ | Whether anything is owed a rebuild. what the schedule's contributor reads to decide.
     out   -  bool  [-]  ?
-    by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
+    by    Api/OcclusionProjection.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp
     note  🔴 `28` §4: `28` is conditional in `08` §3. When nothing changed, it records nothing — and this is
 
 F AtmosphereIntegrator::SampleSkyView             | AtmosphereIntegrator.h | 290     | api,nonthrowing               | 🚩 | Samples sky-view radiance along a view direction — `18` §5's specular ambient and `30`'s fallback. surface stands `30` §3 both name the floor as the second of exactly two sources, and a refusal here would make each of them write the fallback again.
@@ -246,7 +246,7 @@ F AtmosphereIntegrator::SampleSkyView             | AtmosphereIntegrator.h | 290
     in    DirectionZ  -               [-]  ?
     out   -           Red/Green/Blue  [-]  radiance, in the working space
     out   -           Outcome         [-]  refuses with ContentUnsupported when the atmosphere is enabled and no sky-view
-    by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
+    by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ReflectanceIntegrator.cpp
     note  🔴 With the atmosphere disabled this delivers the constant floor rather than refusing. `18` §5 and
 
 F AtmosphereIntegrator::SampleTransmittance       | AtmosphereIntegrator.h | 297     | api,nonthrowing               | 🚩 | Samples transmittance from a declared altitude along a declared zenith cosine, to the atmosphere boundary.
@@ -275,7 +275,7 @@ F AtmosphereIntegrator::AerialTransmittance       | AtmosphereIntegrator.h | 313
 
 F AtmosphereIntegrator::Irradiance                | AtmosphereIntegrator.h | 322     | api,nonallocating,nonthrowing | ✔️ | The cosine-convolved irradiance, derived at the last sky-view rebuild — `18` §5's diffuse ambient.
     out   -  const IrradianceProjection&  [-]  ?
-    by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
+    by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ReflectanceIntegrator.cpp
 
 F AtmosphereIntegrator::Transmittance             | AtmosphereIntegrator.h | 324     | -                             | -  | ?
     out   -  const ResidentSurface&  [-]  ?
@@ -291,7 +291,7 @@ F AtmosphereIntegrator::SkyView                   | AtmosphereIntegrator.h | 326
 
 F AtmosphereIntegrator::ResidentBytes             | AtmosphereIntegrator.h | 331     | api,nonallocating,nonthrowing | ✔️ | What all three occupy once resident — `28` §7's first gate, measured rather than asserted.
     out   -  std::uint64_t  [-]  ?
-    by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
+    by    Api/ReflectanceIntegrator.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ReflectanceIntegrator.cpp
 
 F AtmosphereIntegrator::MediumRebuildCount        | AtmosphereIntegrator.h | 338     | api,nonallocating,nonthrowing | ✔️ | How many times each surface has been rebuilt this session. for. A transmittance count that tracks the rotation count is the defect §4 exists to prevent.
     out   -  std::uint32_t  [-]  ?
@@ -357,4 +357,4 @@ F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 385
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+24 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+50 more)

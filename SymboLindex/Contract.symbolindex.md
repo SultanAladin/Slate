@@ -7,94 +7,99 @@
 %scope    layer
 %path     Engine/Contract
 %folders  1
-%symbols  79
+%symbols  84
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Contract | Contract/Contract.symbolindex | 79 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
+I Contract | Contract/Contract.symbolindex | 84 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-E CombineSpecification       | Contract/CombineContract.h   | 27-35   | How arriving content reads against what already stands. them may include another — they are peers in `00` §9.1's stratum 5. `00` §2's rule is written for a constant and the reasoning is the same for a declaration: three copies of one behaviour are three that must agree, and the tick on which they stop agreeing produces a surface whose result depends on whether content arrived as a stroke, as a layer or as a cell — a difference the artist cannot see and cannot correct. is banned by `00` §8, which is why the prose around it reads awkwardly and the identifier does not.
-F CombineValue               | Contract/CombineContract.h   | 56-70   | Combines one arriving channel value into what stands. radiance before `66` had the chance to project it. them. That is the whole distinction between the two: Over accumulates coverage and Replace overwrites it, which is invisible on an opaque surface and decisive on a partly covered one. `ColourSpecification`; the caller applies the scalar form componentwise and keeps the space it carries.
-F CombineCoverage            | Contract/CombineContract.h   | 82-91   | Combines one arriving coverage into the coverage that stands. wrote a value would leave the artist's colour underneath whatever they erased with, visible the moment anything painted over it again.
-T Identity                   | Contract/IdentityContract.h  | 34-47   | A slot ordinal paired with the generation the slot held when the reference was taken.
-F Identity::IdentityDeclared | Contract/IdentityContract.h  | 43-46   | Whether this reference names a slot at all.
-F operator==                 | Contract/IdentityContract.h  | 51-56   | Two identities of the same subject match when both halves match.
-F operator!=                 | Contract/IdentityContract.h  | 58-62   | ?
-A OccupantIdentity           | Contract/IdentityContract.h  | 68      | ?
-A PartitionIdentity          | Contract/IdentityContract.h  | 69      | ?
-A SurfaceIdentity            | Contract/IdentityContract.h  | 70      | ?
-A RecordingIdentity          | Contract/IdentityContract.h  | 71      | ?
-A WorkIdentity               | Contract/IdentityContract.h  | 72      | ?
-A LayerIdentity              | Contract/IdentityContract.h  | 73      | ?
-E RefusalReason              | Contract/OutcomeContract.h   | 19-28   | Why a computation declined to deliver content. Absence without one of these is never reported.
-T Refusal                    | Contract/OutcomeContract.h   | 38-42   | One reported refusal — the reason, plus static text naming the operand it applies to.
-T Outcome                    | Contract/OutcomeContract.h   | 51-90   | Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
-F Outcome::Deliver           | Contract/OutcomeContract.h   | 62-68   | Constructs a delivered outcome around content the computation produced.
-F Outcome::Refuse            | Contract/OutcomeContract.h   | 74-80   | Constructs a refused outcome carrying the reason the content is absent.
-F Outcome::Resolve           | Contract/OutcomeContract.h   | 86-89   | Reads the delivered content.
-E TerminationCause           | Contract/OutcomeContract.h   | 100-104 | Which of the two terminating conditions ended an iteration. that converged, and the ambiguity propagates upward as an unexplained artefact.
-T ConvergentResult           | Contract/OutcomeContract.h   | 108-115 | The result of a Convergent computation. Never returned as a bare approximation.
-E PrecisionGuarantee         | Contract/PrecisionContract.h | 21-27   | The guarantee a computation claims about its result. A greater ordinal is a weaker guarantee.
-F Weaken                     | Contract/PrecisionContract.h | 39-44   | Returns the weaker of two guarantees, which is the one carrying the greater ordinal.
-F WeakestOf                  | Contract/PrecisionContract.h | 51-61   | Folds every consumed guarantee down to the weakest one present in the list.
-K SLATE_DECLARES_PRECISION   | Contract/PrecisionContract.h | 72-74   | ?
-V PhysicalTileTexels         | Contract/ToleranceContract.h | 24      | ?
-V PhysicalTileApron          | Contract/ToleranceContract.h | 25      | ?
-V VirtualCellsPerEdge        | Contract/ToleranceContract.h | 26      | ?
-V MaximumWorkingEdge         | Contract/ToleranceContract.h | 27      | ?
-V TransmissionDepth          | Contract/ToleranceContract.h | 28      | ?
-V DirectOcclusionCapacity    | Contract/ToleranceContract.h | 29      | ?
-V RecordingRotationDepth     | Contract/ToleranceContract.h | 30      | ?
-V DisplayExtentCeiling       | Contract/ToleranceContract.h | 31      | ?
-V SubPixelSequenceLength     | Contract/ToleranceContract.h | 32      | ?
-V IlluminantReachCapacity    | Contract/ToleranceContract.h | 33      | ?
-V TilingNestingCeiling       | Contract/ToleranceContract.h | 34      | ?
-V PartitionTriangleFloor     | Contract/ToleranceContract.h | 43      | ?
-V PartitionTriangleCeiling   | Contract/ToleranceContract.h | 44      | ?
-F SLATE_STATIC_ASSERT        | Contract/ToleranceContract.h | 46      | ?
-V TransmittanceExtentAlong   | Contract/ToleranceContract.h | 53      | ?
-V TransmittanceExtentAcross  | Contract/ToleranceContract.h | 54      | ?
-V MultiScatterExtentAlong    | Contract/ToleranceContract.h | 55      | ?
-V MultiScatterExtentAcross   | Contract/ToleranceContract.h | 56      | ?
-V SkyViewExtentAlong         | Contract/ToleranceContract.h | 57      | ?
-V SkyViewExtentAcross        | Contract/ToleranceContract.h | 58      | ?
-V AtmosphereComponentCount   | Contract/ToleranceContract.h | 59      | ?
-V AtmosphereComponentBytes   | Contract/ToleranceContract.h | 60      | ?
-V AtmosphereComponentBytes   | Contract/ToleranceContract.h | 71      | ?
-F SLATE_STATIC_ASSERT        | Contract/ToleranceContract.h | 79      | ?
-V NearPlaneDepth             | Contract/ToleranceContract.h | 111     | ?
-V FarPlaneDepth              | Contract/ToleranceContract.h | 112     | ?
-V ClipOrdinateSignum         | Contract/ToleranceContract.h | 117     | ?
-V FrustumOutwardMargin       | Contract/ToleranceContract.h | 122     | ?
-V WeldTolerance              | Contract/ToleranceContract.h | 130     | ?
-V ImpressionSpacingFloor     | Contract/ToleranceContract.h | 131     | ?
-V CollinearityTolerance      | Contract/ToleranceContract.h | 132     | ?
-V QuaternionRenormalise      | Contract/ToleranceContract.h | 133     | ?
-V QuadratureConvergence      | Contract/ToleranceContract.h | 141     | ?
-V QuadratureIterationCeiling | Contract/ToleranceContract.h | 142     | ?
-V SunDirectionMateriality    | Contract/ToleranceContract.h | 146     | ?
-V CameraAltitudeMateriality  | Contract/ToleranceContract.h | 147     | ?
-V MachineEpsilon             | Contract/ToleranceContract.h | 159     | ?
-V ExpansionSplitter          | Contract/ToleranceContract.h | 162     | ?
-V Pi                         | Contract/ToleranceContract.h | 171     | ?
-V SampleUnitPlaceCeiling     | Contract/ToleranceContract.h | 176     | ?
-K SLATE_CONSTANT             | Contract/ToolchainContract.h | 34      | ?
-K SLATE_STATIC_ASSERT        | Contract/ToolchainContract.h | 40      | ?
-A Real64                     | Contract/ToolchainContract.h | 42      | ?
-A Real32                     | Contract/ToolchainContract.h | 43      | ?
-A Signed32                   | Contract/ToolchainContract.h | 44      | ?
-A Unsigned32                 | Contract/ToolchainContract.h | 45      | ?
-A Unsigned64                 | Contract/ToolchainContract.h | 46      | ?
-K SLATE_CONSTANT             | Contract/ToolchainContract.h | 56      | ?
-K SLATE_STATIC_ASSERT        | Contract/ToolchainContract.h | 57      | ?
-A Real64                     | Contract/ToolchainContract.h | 59      | ?
-A Real32                     | Contract/ToolchainContract.h | 60      | ?
-A Signed32                   | Contract/ToolchainContract.h | 61      | ?
-A Unsigned32                 | Contract/ToolchainContract.h | 62      | ?
-A Unsigned64                 | Contract/ToolchainContract.h | 63      | ?
+E CombineSpecification        | Contract/CombineContract.h   | 27-35   | How arriving content reads against what already stands. them may include another — they are peers in `00` §9.1's stratum 5. `00` §2's rule is written for a constant and the reasoning is the same for a declaration: three copies of one behaviour are three that must agree, and the tick on which they stop agreeing produces a surface whose result depends on whether content arrived as a stroke, as a layer or as a cell — a difference the artist cannot see and cannot correct. is banned by `00` §8, which is why the prose around it reads awkwardly and the identifier does not.
+F CombineValue                | Contract/CombineContract.h   | 56-70   | Combines one arriving channel value into what stands. radiance before `66` had the chance to project it. them. That is the whole distinction between the two: Over accumulates coverage and Replace overwrites it, which is invisible on an opaque surface and decisive on a partly covered one. `ColourSpecification`; the caller applies the scalar form componentwise and keeps the space it carries.
+F CombineCoverage             | Contract/CombineContract.h   | 82-91   | Combines one arriving coverage into the coverage that stands. wrote a value would leave the artist's colour underneath whatever they erased with, visible the moment anything painted over it again.
+T Identity                    | Contract/IdentityContract.h  | 34-47   | A slot ordinal paired with the generation the slot held when the reference was taken.
+F Identity::IdentityDeclared  | Contract/IdentityContract.h  | 43-46   | Whether this reference names a slot at all.
+F operator==                  | Contract/IdentityContract.h  | 51-56   | Two identities of the same subject match when both halves match.
+F operator!=                  | Contract/IdentityContract.h  | 58-62   | ?
+A OccupantIdentity            | Contract/IdentityContract.h  | 68      | ?
+A PartitionIdentity           | Contract/IdentityContract.h  | 69      | ?
+A SurfaceIdentity             | Contract/IdentityContract.h  | 70      | ?
+A RecordingIdentity           | Contract/IdentityContract.h  | 71      | ?
+A WorkIdentity                | Contract/IdentityContract.h  | 72      | ?
+A LayerIdentity               | Contract/IdentityContract.h  | 73      | ?
+E RefusalReason               | Contract/OutcomeContract.h   | 19-29   | Why a computation declined to deliver content. Absence without one of these is never reported.
+T Refusal                     | Contract/OutcomeContract.h   | 45-49   | One reported refusal — the reason, plus static text naming the operand it applies to.
+T Outcome                     | Contract/OutcomeContract.h   | 58-97   | Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
+F Outcome::Deliver            | Contract/OutcomeContract.h   | 69-75   | Constructs a delivered outcome around content the computation produced.
+F Outcome::Refuse             | Contract/OutcomeContract.h   | 81-87   | Constructs a refused outcome carrying the reason the content is absent.
+F Outcome::Resolve            | Contract/OutcomeContract.h   | 93-96   | Reads the delivered content.
+E TerminationCause            | Contract/OutcomeContract.h   | 107-111 | Which of the two terminating conditions ended an iteration. that converged, and the ambiguity propagates upward as an unexplained artefact.
+T ConvergentResult            | Contract/OutcomeContract.h   | 115-122 | The result of a Convergent computation. Never returned as a bare approximation.
+E PrecisionGuarantee          | Contract/PrecisionContract.h | 21-27   | The guarantee a computation claims about its result. A greater ordinal is a weaker guarantee.
+F Weaken                      | Contract/PrecisionContract.h | 39-44   | Returns the weaker of two guarantees, which is the one carrying the greater ordinal.
+F WeakestOf                   | Contract/PrecisionContract.h | 51-61   | Folds every consumed guarantee down to the weakest one present in the list.
+K SLATE_DECLARES_PRECISION    | Contract/PrecisionContract.h | 72-74   | ?
+V PhysicalTileTexels          | Contract/ToleranceContract.h | 24      | ?
+V PhysicalTileApron           | Contract/ToleranceContract.h | 25      | ?
+V VirtualCellsPerEdge         | Contract/ToleranceContract.h | 26      | ?
+V MaximumWorkingEdge          | Contract/ToleranceContract.h | 27      | ?
+V TransmissionDepth           | Contract/ToleranceContract.h | 28      | ?
+V DirectOcclusionCapacity     | Contract/ToleranceContract.h | 29      | ?
+V RecordingRotationDepth      | Contract/ToleranceContract.h | 30      | ?
+V DisplayExtentCeiling        | Contract/ToleranceContract.h | 31      | ?
+V SubPixelSequenceLength      | Contract/ToleranceContract.h | 32      | ?
+V IlluminantReachCapacity     | Contract/ToleranceContract.h | 33      | ?
+V TilingNestingCeiling        | Contract/ToleranceContract.h | 34      | ?
+V PartitionTriangleFloor      | Contract/ToleranceContract.h | 43      | ?
+V PartitionTriangleCeiling    | Contract/ToleranceContract.h | 44      | ?
+F SLATE_STATIC_ASSERT         | Contract/ToleranceContract.h | 46      | ?
+V TransmittanceExtentAlong    | Contract/ToleranceContract.h | 53      | ?
+V TransmittanceExtentAcross   | Contract/ToleranceContract.h | 54      | ?
+V MultiScatterExtentAlong     | Contract/ToleranceContract.h | 55      | ?
+V MultiScatterExtentAcross    | Contract/ToleranceContract.h | 56      | ?
+V SkyViewExtentAlong          | Contract/ToleranceContract.h | 57      | ?
+V SkyViewExtentAcross         | Contract/ToleranceContract.h | 58      | ?
+V AtmosphereComponentCount    | Contract/ToleranceContract.h | 59      | ?
+V AtmosphereComponentBytes    | Contract/ToleranceContract.h | 60      | ?
+V AtmosphereComponentBytes    | Contract/ToleranceContract.h | 71      | ?
+F SLATE_STATIC_ASSERT         | Contract/ToleranceContract.h | 79      | ?
+V NearPlaneDepth              | Contract/ToleranceContract.h | 111     | ?
+V FarPlaneDepth               | Contract/ToleranceContract.h | 112     | ?
+V ClipOrdinateSignum          | Contract/ToleranceContract.h | 117     | ?
+V FrustumOutwardMargin        | Contract/ToleranceContract.h | 122     | ?
+V WeldTolerance               | Contract/ToleranceContract.h | 130     | ?
+V ImpressionSpacingFloor      | Contract/ToleranceContract.h | 131     | ?
+V CollinearityTolerance       | Contract/ToleranceContract.h | 132     | ?
+V QuaternionRenormalise       | Contract/ToleranceContract.h | 133     | ?
+V SpacingArrivalTolerance     | Contract/ToleranceContract.h | 143     | ?
+V QuadratureConvergence       | Contract/ToleranceContract.h | 151     | ?
+V QuadratureIterationCeiling  | Contract/ToleranceContract.h | 152     | ?
+V FactorisationPivotFloor     | Contract/ToleranceContract.h | 162     | ?
+V SunDirectionMateriality     | Contract/ToleranceContract.h | 166     | ?
+V CameraAltitudeMateriality   | Contract/ToleranceContract.h | 167     | ?
+V ShadowComparisonOffset      | Contract/ToleranceContract.h | 176     | ?
+V ShadowComparisonSlopeFactor | Contract/ToleranceContract.h | 177     | ?
+V AmbientUpsampleDepthBound   | Contract/ToleranceContract.h | 183     | ?
+V MachineEpsilon              | Contract/ToleranceContract.h | 195     | ?
+V ExpansionSplitter           | Contract/ToleranceContract.h | 198     | ?
+V Pi                          | Contract/ToleranceContract.h | 207     | ?
+V SampleUnitPlaceCeiling      | Contract/ToleranceContract.h | 212     | ?
+K SLATE_CONSTANT              | Contract/ToolchainContract.h | 34      | ?
+K SLATE_STATIC_ASSERT         | Contract/ToolchainContract.h | 40      | ?
+A Real64                      | Contract/ToolchainContract.h | 42      | ?
+A Real32                      | Contract/ToolchainContract.h | 43      | ?
+A Signed32                    | Contract/ToolchainContract.h | 44      | ?
+A Unsigned32                  | Contract/ToolchainContract.h | 45      | ?
+A Unsigned64                  | Contract/ToolchainContract.h | 46      | ?
+K SLATE_CONSTANT              | Contract/ToolchainContract.h | 56      | ?
+K SLATE_STATIC_ASSERT         | Contract/ToolchainContract.h | 57      | ?
+A Real64                      | Contract/ToolchainContract.h | 59      | ?
+A Real32                      | Contract/ToolchainContract.h | 60      | ?
+A Signed32                    | Contract/ToolchainContract.h | 61      | ?
+A Unsigned32                  | Contract/ToolchainContract.h | 62      | ?
+A Unsigned64                  | Contract/ToolchainContract.h | 63      | ?

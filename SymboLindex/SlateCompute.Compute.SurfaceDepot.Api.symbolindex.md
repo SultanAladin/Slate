@@ -29,7 +29,7 @@ T ContentKey                    | SurfaceDepot.h | 28-36  | nonallocating,nonthr
     has   SpecificationOrdinal  std::uint64_t  [-]  ?
     has   ExtentTexels          std::uint32_t  [-]  ?
     has   ChannelMask           std::uint32_t  [-]  ?
-    by    Source/SurfaceDepot.cpp
+    by    Api/UvSurfaceDepot.h, Source/SurfaceDepot.cpp, Source/UvSurfaceDepot.cpp
     note  🔴 `24` §3 fixes these fields: both topology revisions, the chart partition revision, the specification,
 
 F KeysAgree                     | SurfaceDepot.h | 43-51  | api,nonallocating,nonthrowing | ✔️ | Whether two keys describe the same derivation. at a revision it does not describe.
@@ -60,7 +60,7 @@ T SurfaceDepot                  | SurfaceDepot.h | 83-153 | owning              
     has   Occupied       std::uint64_t               [-]  ?
     has   ResolvedTotal  std::uint64_t               [-]  ?
     has   EvictedTotal   std::uint64_t               [-]  ?
-    by    Api/SurfaceTileSpace.h, Source/SurfaceDepot.cpp, Source/SurfaceTileSpace.cpp
+    by    Api/SurfaceTileSpace.h, Api/UvSurfaceDepot.h, Source/SurfaceDepot.cpp, Source/SurfaceTileSpace.cpp, Source/UvSurfaceDepot.cpp
     note  🔴 `20` §4: eviction requires reconstructibility. An artefact that cannot be rebuilt is not evictable
     note  🔴 The decision is read from `56` §3 and never made here — `SourceReconstructible` is that document's
     note  ⚠️ `Cache` is banned and the substitution is not a euphemism. A cache is a copy of something that
@@ -68,7 +68,7 @@ T SurfaceDepot                  | SurfaceDepot.h | 83-153 | owning              
 F SurfaceDepot::Construct       | SurfaceDepot.h | 91     | api,nonthrowing               | ✔️ | Sizes the depot to a byte ceiling.
     in    ByteCeiling  std::uint64_t  [-]  ?
     out   -            Outcome        [-]  refuses with ContentUnsupported for a ceiling of zero
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+46 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
 
 F SurfaceDepot::Declare         | SurfaceDepot.h | 105    | api,nonthrowing               | 🚩 | Admits one derived artefact, evicting to make room for it. ExtentExhausted when the artefact alone exceeds the whole ceiling layer sequence; admitting them here would make the artist's work evictable, and it would be evicted under exactly the memory pressure a long painting session produces.
     in    Keyed            const ContentKey&   [-]  what it was derived from
@@ -76,14 +76,14 @@ F SurfaceDepot::Declare         | SurfaceDepot.h | 105    | api,nonthrowing     
     in    ByteExtent       std::uint64_t       [B]  what it occupies
     in    RotationOrdinal  std::uint64_t       [-]  the rotation it was derived on
     out   -                Outcome             [-]  refuses with ContentUnsupported for an unreconstructible source, and with
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+30 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 A painted source is refused. `20` §4: painted texels are authored content and live in `56`'s
 
 F SurfaceDepot::Resolve         | SurfaceDepot.h | 117    | api,nonthrowing               | 🚩 | Resolves one artefact by its content key, marking it recently read. refusal is `20` §2.1's second reconstruction source declining, and the promotion then falls through to the third — which is correct, and slower, and visible only as one deferred tile.
     in    Keyed            const ContentKey&  [-]  ?
     in    RotationOrdinal  std::uint64_t      [-]  ?
     out   -                Outcome            [-]  refuses with ExtentExhausted when nothing matching is held
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, (+58 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  🔴 A key that differs in any field resolves to nothing rather than to the nearest artefact. That
 
 F SurfaceDepot::Evict           | SurfaceDepot.h | 123    | api,nonthrowing               | 🚩 | Evicts least-recently-resolved artefacts until the declared extent is free.
@@ -107,11 +107,11 @@ F SurfaceDepot::ByteCeiling     | SurfaceDepot.h | 136    | -                   
 
 F SurfaceDepot::HeldCount       | SurfaceDepot.h | 137    | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/InputExchange.h, Source/ConsoleHost.cpp, Source/InputExchange.cpp, Source/SurfaceDepot.cpp, Source/SurfaceTileSpace.cpp
+    by    Api/InputExchange.h, Api/TransmissionSequence.h, Shared/AccumulationProjection.slang.h, Shared/TransmissionProjection.slang.h, Source/ConsoleHost.cpp, Source/InputExchange.cpp, (+3 more)
 
 F SurfaceDepot::ResolvedCount   | SurfaceDepot.h | 138    | -                             | -  | ?
     out   -  std::uint64_t  [-]  ?
-    by    Api/ImpressionSequence.h, Api/ShaderCodec.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/ShaderCodec.cpp, (+2 more)
+    by    Api/ImpressionSequence.h, Api/ShaderCodec.h, Api/SpecularProjection.h, Api/UvSurfaceDepot.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+6 more)
 
 F SurfaceDepot::EvictedCount    | SurfaceDepot.h | 139    | -                             | -  | ?
     out   -  std::uint64_t  [-]  ?
