@@ -1,112 +1,499 @@
 //============================================================================================================================================
 //                                                            SLATEUI.SYMBOLINDEX
 //============================================================================================================================================
-// 🧩 Symbol roll for SlateUI — Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
+// 🧩 Symbol roll for SlateUI — Every primitive control as one immediate-mode free function over a rectangle — no widget owns anything, and the theme arrives by reference.
 
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateUI
-%folders  7
-%symbols  85
+%folders  16
+%symbols  463
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Api    | Api/Api.symbolindex       | 21 sym | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
-I Api    | Api/Api.symbolindex       | 10 sym | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
-I Source | Source/Source.symbolindex | 9 sym  | The only translation unit in the engine that includes ImGui.
-I Api    | Api/Api.symbolindex       | 10 sym | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
-I Source | Source/Source.symbolindex | 15 sym | The counted span presented, and every gesture over it turned into a declared intent.
-I Api    | Api/Api.symbolindex       | 10 sym | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
-I Source | Source/Source.symbolindex | 10 sym | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
+I Api    | Api/Api.symbolindex       | 34 sym  | Every primitive control as one immediate-mode free function over a rectangle — no widget owns anything, and the theme arrives by reference.
+I Source | Source/Source.symbolindex | 91 sym  | The four choosing controls — a crossing nub, a run of exclusive pills, a dropped list, and a row of independent switches.
+I Api    | Api/Api.symbolindex       | 8 sym   | The register made visible — reports grouped by their declared class, measures presented at their producer's tier.
+I Source | Source/Source.symbolindex | 10 sym  | Seven declared classes presented at three weights, and the measures beneath them — nothing inferred, nothing held.
+I Api    | Api/Api.symbolindex       | 22 sym  | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
+I Source | Source/Source.symbolindex | 24 sym  | Drives the vector rasteriser and the staging transfer — the one file in which a glyph becomes a vendor texture identity.
+I Api    | Api/Api.symbolindex       | 10 sym  | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
+I Source | Source/Source.symbolindex | 9 sym   | The only translation unit in the engine that includes ImGui.
+I Api    | Api/Api.symbolindex       | 10 sym  | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
+I Source | Source/Source.symbolindex | 15 sym  | The counted span presented, and every gesture over it turned into a declared intent.
+I Api    | Api/Api.symbolindex       | 7 sym   | The transaction sequence made visible and scrubbable — every row read from `RevisionSequence`, nothing held here.
+I Source | Source/Source.symbolindex | 19 sym  | `Inspector.tsx`'s revision timeline over the real sequence — bubble column, spine, card, fold.
+I Api    | Api/Api.symbolindex       | 10 sym  | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
+I Source | Source/Source.symbolindex | 10 sym  | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
+I Api    | Api/Api.symbolindex       | 75 sym  | The slot ledger a workspace fills at activation and the desk walks each tick — the host names no concrete panel.
+I Source | Source/Source.symbolindex | 109 sym | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-T GlyphHandle                           | Api/GlyphDepot.h              | 28-35   | An opaque reference to one uploaded glyph, resolved to a vendor texture identity inside the source file alone. an integer whose meaning only `GlyphDepot.cpp` knows, exactly as `InterfaceExchange` holds its context.
-F GlyphHandle::HandleDeclared           | Api/GlyphDepot.h              | 34      | Whether this handle names an uploaded glyph at all.
-T GlyphAttachment                       | Api/GlyphDepot.h              | 45-51   | The device handles one upload needs, supplied once at bring-up. recording, and every allocation here happens inside `Declare` — which is bring-up, never a tick.
-T GlyphDeclaration                      | Api/GlyphDepot.h              | 61-67   | One glyph as a tier declares it — its key, its vector source, and the square it rasterises into. span may name a string literal in the declaring translation unit.
-T GlyphTier                             | Api/GlyphDepot.h              | 74-79   | A named set of glyphs one workspace declares at activation. edits nothing shared. The chrome tier is declared once and read by every workspace; content-hash dedup means a glyph two tiers share uploads once and is torn down when the second releases it.
-T GlyphDepot                            | Api/GlyphDepot.h              | 92-204  | A store of rasterised, evictable, reconstructible glyphs keyed by the content that produced them. tiers share a glyph while each keeps its own name. Collapsing it to key-to-texture uploads the chrome twisty once per workspace, and the count grows with the workspace count rather than with the art. at workspace activation and a resolution during a tick never allocates.
-F GlyphDepot::~GlyphDepot               | Api/GlyphDepot.h              | 99      | ?
-F GlyphDepot::Construct                 | Api/GlyphDepot.h              | 108     | Attaches the depot to a device and brings the vector rasteriser up. when the rasteriser declines to start
-F GlyphDepot::Reclaim                   | Api/GlyphDepot.h              | 115     | Destroys every uploaded glyph and releases the rasteriser. reads after it was freed, and the read succeeds often enough to look like a different defect.
-F GlyphDepot::Declare                   | Api/GlyphDepot.h              | 126     | Declares one whole tier, rasterising and uploading what is not already held. and with ExtentExhausted when an upload could not be claimed to compare a tier's declaration list against what resolves, one key at a time.
-F GlyphDepot::Release                   | Api/GlyphDepot.h              | 134     | Releases one tier's claim on its glyphs, tearing down those no other tier still names.
-F GlyphDepot::Resolve                   | Api/GlyphDepot.h              | 142     | Resolves one key to its handle.
-F GlyphDepot::GlyphHeld                 | Api/GlyphDepot.h              | 147     | Whether one key resolves to an uploaded glyph.
-F GlyphDepot::DeclaredEdge              | Api/GlyphDepot.h              | 152     | The square edge a declaration that names none rasterises into.
-F GlyphDepot::DeclareEdge               | Api/GlyphDepot.h              | 160     | Declares the square edge a declaration that names none rasterises into.
-F GlyphDepot::UploadedCount             | Api/GlyphDepot.h              | 167     | How many distinct textures the depot holds — what dedup is measured against. the two-level indirection exists for.
-F GlyphDepot::KeyCount                  | Api/GlyphDepot.h              | 172     | How many keys resolve.
-T GlyphDepot::UploadedGlyph             | Api/GlyphDepot.h              | 178-188 | One uploaded glyph — the device chain and the vendor descriptor that names it as a texture.
-F GlyphDepot::ContentHash               | Api/GlyphDepot.h              | 190     | ?
-F GlyphDepot::Upload                    | Api/GlyphDepot.h              | 193     | ?
-F GlyphDepot::Withdraw                  | Api/GlyphDepot.h              | 195     | ?
-T InterfaceAttachment                   | Api/InterfaceExchange.h       | 28-38   | Every device handle the interface library needs, supplied once at bring-up. is an ImGui spelling: the whole point of the seam is that a host including this header links the interface without acquiring ImGui's declarations. `00` §2.2 makes a host that includes `imgui.h` a defect, and a defect that cannot be spelled cannot be committed.
-T InterfaceExchange                     | Api/InterfaceExchange.h       | 50-114  | Holds the interface context and the two vendor attachments that feed it. source file. `00` §2.2: exactly one copy of ImGui exists, compiled inside `SlateUI`. projection, so nothing recorded by this component is ever tone-mapped a second time.
-F InterfaceExchange::~InterfaceExchange | Api/InterfaceExchange.h       | 57      | ?
-F InterfaceExchange::Construct          | Api/InterfaceExchange.h       | 68      | Constructs the interface context over the supplied device handles. HostDenied when the vendor attachment declines `VK_KHR_dynamic_rendering` or a device at Vulkan 1.3. Construct refuses rather than recording into a target the device never agreed to.
-F InterfaceExchange::Reclaim            | Api/InterfaceExchange.h       | 73      | Destroys the interface context and both vendor attachments.
-F InterfaceExchange::Advance            | Api/InterfaceExchange.h       | 79      | Opens one interface tick and reads the window system's accumulated condition.
-F InterfaceExchange::Seal               | Api/InterfaceExchange.h       | 86      | Closes the open tick and assembles its command content, ready to record.
-F InterfaceExchange::Record             | Api/InterfaceExchange.h       | 94      | Records the assembled content into a command recording of the current rotation slot.
-F InterfaceExchange::PointerCaptured    | Api/InterfaceExchange.h       | 99      | Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
-F InterfaceExchange::KeyboardCaptured   | Api/InterfaceExchange.h       | 104     | Whether the interface has taken text entry, so that no shortcut consumes the same key.
-V InterfaceDescriptorCapacity           | Source/InterfaceExchange.cpp  | 24      | ?
-F InterfaceExchange::~InterfaceExchange | Source/InterfaceExchange.cpp  | 31-34   | ?
-F InterfaceExchange::Construct          | Source/InterfaceExchange.cpp  | 36-128  | ?
-F InterfaceExchange::Reclaim            | Source/InterfaceExchange.cpp  | 130-154 | ?
-F InterfaceExchange::Advance            | Source/InterfaceExchange.cpp  | 160-178 | ?
-F InterfaceExchange::Seal               | Source/InterfaceExchange.cpp  | 180-192 | ?
-F InterfaceExchange::Record             | Source/InterfaceExchange.cpp  | 198-222 | ?
-F InterfaceExchange::PointerCaptured    | Source/InterfaceExchange.cpp  | 231-239 | ?
-F InterfaceExchange::KeyboardCaptured   | Source/InterfaceExchange.cpp  | 241-249 | ?
-V NameSearchExtent                      | Api/OutlinerPanel.h           | 23      | ?
-T OutlinerPanel                         | Api/OutlinerPanel.h           | 39-105  | The presentation half of `12` — reads the linearisation, declares intent, stores neither relation. Only the counted span the artist can see is touched, and the scroll position is a row ordinal resolved by count rather than a pixel offset the panel remembers on its own. A panel that mutated the relations where the click arrived would apply against a linearisation that is halfway rebuilt, and would bypass the sequence that undoes it. entry, and whether the panel is shown. None of it is a transaction and none of it is scrubbed.
-F OutlinerPanel::Present                | Api/OutlinerPanel.h           | 50      | Presents one tick of the outliner and declares whatever the artist asked for.
-F OutlinerPanel::DeclarePresence        | Api/OutlinerPanel.h           | 56      | Declares whether the panel is shown at all.
-F OutlinerPanel::PresenceStanding       | Api/OutlinerPanel.h           | 61      | Whether the panel is shown.
-F OutlinerPanel::VisiblePosition        | Api/OutlinerPanel.h           | 70      | The counted ordinal at the top of the presented span — the scroll position, as a row. When the counted total changes the offset is restored from that occupant before it is read, so collapsing an enclosure above the view leaves the artist looking at the same occupant rather than at whatever slid under the cursor. An anchor whose occupant left the count keeps its ordinal.
-F OutlinerPanel::Anchored               | Api/OutlinerPanel.h           | 77      | The occupant the presented span is anchored on, undeclared when nothing is counted. never declared as intent and no transaction records it.
-F OutlinerPanel::RowsTouched            | Api/OutlinerPanel.h           | 84      | How many rows the last presentation actually touched. not to the population. A million occupants that presented a million rows is the defect.
-F OutlinerPanel::Sought                 | Api/OutlinerPanel.h           | 89      | The text the artist is searching names for, empty when nothing is sought.
-F OutlinerPanel::ConfirmedNames         | Api/OutlinerPanel.h           | 94      | How many names the last narrowing confirmed.
-V ReorderPayload                        | Source/OutlinerPanel.cpp      | 21      | ?
-T DraggedRow                            | Source/OutlinerPanel.cpp      | 26-30   | ?
-F DraggedIdentity                       | Source/OutlinerPanel.cpp      | 32-39   | ?
-F CarriedIdentity                       | Source/OutlinerPanel.cpp      | 41-48   | ?
-F DeclareStanding                       | Source/OutlinerPanel.cpp      | 56-67   | ?
-F DeclareSelection                      | Source/OutlinerPanel.cpp      | 71-80   | ?
-F DeclareEnclosure                      | Source/OutlinerPanel.cpp      | 85-97   | ?
-F OutlinerPanel::Present                | Source/OutlinerPanel.cpp      | 105-359 | ?
-F OutlinerPanel::DeclarePresence        | Source/OutlinerPanel.cpp      | 365-368 | ?
-F OutlinerPanel::PresenceStanding       | Source/OutlinerPanel.cpp      | 370-373 | ?
-F OutlinerPanel::VisiblePosition        | Source/OutlinerPanel.cpp      | 375-378 | ?
-F OutlinerPanel::Anchored               | Source/OutlinerPanel.cpp      | 380-383 | ?
-F OutlinerPanel::RowsTouched            | Source/OutlinerPanel.cpp      | 385-388 | ?
-F OutlinerPanel::Sought                 | Source/OutlinerPanel.cpp      | 390-393 | ?
-F OutlinerPanel::ConfirmedNames         | Source/OutlinerPanel.cpp      | 395-398 | ?
-T ThemeColour                           | Api/ThemeSpecification.h      | 28-32   | One interface colour: a coordinate carrying the space it is a coordinate in, plus the fraction it covers. colour whose space nothing states is the shape a transfer function is later added to "fix". Held as a `ColourSpecification` in the display space so the absence of any transfer inside `SlateUI` stays checkable. fraction over the interface's own recording, not a property of the colour — `36` carries no alpha for exactly that reason.
-F Quantize                              | Api/ThemeSpecification.h      | 42      | Quantises one theme colour to the eight-bit-per-channel code the vendor draw surface accepts. Coordinates outside the unit interval are bounded here rather than wrapping, because a wrapped code is a colour the artist sees as a wrong hue rather than as a clipped one.
-F Attenuate                             | Api/ThemeSpecification.h      | 50      | Returns one theme colour at a declared coverage, its coordinate untouched.
-T ThemePalette                          | Api/ThemeSpecification.h      | 60-83   | Every colour the interface draws with, named by what it is drawn on rather than by its hue. literals. A component that spells a colour of its own is the defect this struct exists to prevent.
-T LayoutExtents                         | Api/ThemeSpecification.h      | 95-111  | Every spacing, height and radius the interface lays out with, in interface pixels. of the other. Changing the density must not require an artist to re-author a colour. that answers it is folded in once by `ResolveActiveTheme` rather than multiplied at each read site.
-T ThemeSpecification                    | Api/ThemeSpecification.h      | 120-124 | The palette and the extents together — what every present call is handed by const reference.
-F DeclaredDarkPalette                   | Api/ThemeSpecification.h      | 135     | The built-in dark palette. `SlateUI` reads a field of the value this returns.
-F DeclaredDefaultExtents                | Api/ThemeSpecification.h      | 140     | The built-in layout extents, before any density scale is folded in.
-F ResolveActiveTheme                    | Api/ThemeSpecification.h      | 151     | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
-F Enforce                               | Api/ThemeSpecification.h      | 161     | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
-V CodeCeiling                           | Source/ThemeSpecification.cpp | 25      | ?
-F AuthoredColour                        | Source/ThemeSpecification.cpp | 27-38   | ?
-F QuantizeCoordinate                    | Source/ThemeSpecification.cpp | 42-47   | ?
-F Quantize                              | Source/ThemeSpecification.cpp | 51-59   | ?
-F Attenuate                             | Source/ThemeSpecification.cpp | 61-66   | ?
-F DeclaredDarkPalette                   | Source/ThemeSpecification.cpp | 72-111  | ?
-F DeclaredDefaultExtents                | Source/ThemeSpecification.cpp | 117-123 | ?
-F ResolveActiveTheme                    | Source/ThemeSpecification.cpp | 129-160 | ?
-F StyleCoordinate                       | Source/ThemeSpecification.cpp | 171-177 | ?
-F Enforce                               | Source/ThemeSpecification.cpp | 181-241 | ?
+T ControlInteraction                    | Api/ControlPanel.h              | 30-37     | What one control did this tick — the pointer over it, and the three points of an edit's lifecycle. on every `EditDeclared`, and seals on `EditSealed`. A control that reported only "the reading changed" would leave the caller unable to tell a drag from a run of separate edits, and the defect presents as a revision row per pixel of pointer travel — which is exactly `84`'s merge requirement failing. `EditDeclared` may be false on that tick; sealing is not conditional on it.
+E ControlStroke                         | Api/ControlPanel.h              | 47-65     | The chrome glyphs a control paints from line and arc primitives when no uploaded glyph is named. rasteriser. A panel that wants authored art names a depot slot instead and the stroke is not consulted.
+T ControlRowSplit                       | Api/ControlPanel.h              | 73-77     | One control row divided into its label column and the field beside it.
+F ResolveControlRow                     | Api/ControlPanel.h              | 88        | Divides one row into remix's 88 px label column and the field that takes the remainder. falls back to `LabelColumnRatio`. Frontier clipped the field to nothing instead, and the defect presents as a docked-narrow panel whose sliders are all zero pixels wide and cannot be grabbed at all.
+F PresentControlLabel                   | Api/ControlPanel.h              | 93        | Paints one row's caption in the muted text colour, clipped to its column.
+F PresentControlStroke                  | Api/ControlPanel.h              | 99        | Paints one stroke centred in a square, at the coverage and thickness the caller declares.
+E TextPlacement                         | Api/ControlPanel.h              | 115-120   | Where a text run sits inside the rectangle it was given.
+F PresentSurfaceFill                    | Api/ControlPanel.h              | 127       | Fills one rectangle at the declared corner radius. `999px` for exactly that and refusing it would make every pill site carry its own arithmetic.
+F PresentSurfaceOutline                 | Api/ControlPanel.h              | 132       | Outlines one rectangle at the declared corner radius and thickness.
+F PresentTextRun                        | Api/ControlPanel.h              | 141       | Prints one run of text placed inside a rectangle, clipped to it.
+F DeclareClip                           | Api/ControlPanel.h              | 153       | Narrows the recording to one rectangle until the matching reclaim. leaves the whole rest of the tick clipped to a panel's interior, and the defect presents as the tab strip vanishing rather than as anything the panel did.
+F ReclaimClip                           | Api/ControlPanel.h              | 158       | Returns the recording to whatever it was clipped to before the matching declaration.
+F MeasuredTextExtent                    | Api/ControlPanel.h              | 163       | The horizontal extent one run of text would occupy at the declared scale.
+F AdvanceVisibleOffset                  | Api/ControlPanel.h              | 174       | Advances a hand-rolled list's visible offset by the wheel, bounded to what the content leaves. scrolled view snaps back to content rather than presenting an empty band under the last row.
+F PresentValueSlider                    | Api/ControlPanel.h              | 197       | A label, a fixed 78 px value box, and a track whose knob sits at the reading's fraction of its span. ExtentExhausted when the field cannot carry the value box and a grabbable track its knob; clamping the span silently instead gives the artist a control that looks live and is not.
+F PresentScalarEntry                    | Api/ControlPanel.h              | 214       | An unbounded scalar: the same value box, and a centre-knobbed track that accumulates travel rather than mapping position, so the reading may leave any span. readout — a knob that travelled would imply a span this control does not have.
+F PresentVectorEntry                    | Api/ControlPanel.h              | 227       | Three value boxes side by side, each capped with its axis letter, each dragging its own component.
+F PresentBooleanEntry                   | Api/ControlPanel.h              | 243       | A 50×32 travel whose nub crosses on a click. holding its own would be retained state — which this file has none of by construction.
+F PresentSelectionEntry                 | Api/ControlPanel.h              | 255       | A wrapping run of pills, the chosen one filled with the accent and lettered in the on-accent colour.
+T DropdownCarry                         | Api/ControlPanel.h              | 266-272   | What a dropdown carries between ticks — its openness and the anchor its list drops from. open together, which is the defect that follows from a control holding openness of its own.
+F PresentDropdown                       | Api/ControlPanel.h              | 281       | A 26 px head with a caret cap, and a hand-rolled list beneath it. tab overlays are not: every trapezoid is already on that recording, and a popup sits beneath it.
+F PresentSegmentRow                     | Api/ControlPanel.h              | 294       | A 26 px pill row — the reference's `.seg`, filled when it is on. choice, so each pill carries its own boolean and pressing one does not clear the others.
+V ControlTextExtent                     | Api/ControlPanel.h              | 306       | ?
+T TextCarry                             | Api/ControlPanel.h              | 312-318   | One open text edit — the edited text, never the committed one. never written during the edit, so an abandoned rename leaves no trace and a refused seal leaves none.
+F PresentTextEntry                      | Api/ControlPanel.h              | 324       | A rounded field the artist types into, opened by a click and sealed by Enter or by a press elsewhere.
+F PresentInlineTextEditor               | Api/ControlPanel.h              | 335       | A text edit with no field of its own, painted over whatever it is renaming. the trapezoid beneath it stays visible and the artist can see what is being renamed.
+F PresentPathEntry                      | Api/ControlPanel.h              | 345       | A path field and the round browse cap beside it. chooser itself would be a panel holding what it presents.
+F PresentColourEntry                    | Api/ControlPanel.h              | 362       | A fully rounded bar carrying a swatch disc, the coordinate printed, and a caret cap. never spells a transfer — `14` §5 places the interface after the display projection, and a control that converted here would be the second transfer the whole arrangement exists to prevent.
+F PresentMenuPill                       | Api/ControlPanel.h              | 371       | A caption pill that reads as pressable — what a menu band is a run of.
+F PresentGlyphButton                    | Api/ControlPanel.h              | 386       | A square glyph that answers a press — the uploaded glyph when a depot slot is named, the stroke otherwise. painting nothing at all — a missing icon that still answers a press is recoverable, an invisible button is not. The stroke is therefore always supplied, even where a slot is expected to resolve. already documents it as an integer whose meaning only its own source knows.
+F PresentSectionHeader                  | Api/ControlPanel.h              | 396       | A 29 px accordion header with a twisty that turns a quarter as it opens.
+T CarouselCarry                         | Api/ControlPanel.h              | 404-409   | What a carousel carries between ticks — which pane is presented and how far the slide has travelled.
+F AdvanceContentCarousel                | Api/ControlPanel.h              | 419       | Advances a carousel's slide and reports the horizontal offset each pane paints at. body width further along in the direction of travel caller clips its own body — a carousel that clipped for its caller would need to know what a pane is.
+F SLATE_DECLARES_PRECISION              | Api/ControlPanel.h              | 425       | ?
+V ControlInterior                       | Source/ControlChoice.cpp        | 11        | ?
+V PillCaptionInset                      | Source/ControlChoice.cpp        | 22        | ?
+F PillWidth                             | Source/ControlChoice.cpp        | 24-29     | ?
+F PaintPill                             | Source/ControlChoice.cpp        | 32-48     | One pill: the face, the hover wash and the caption, in whichever of the two conditions it stands.
+F OrdinalAdmitted                       | Source/ControlChoice.cpp        | 51-54     | Whether one ordinal names a choice in a run at all.
+F PresentBooleanEntry                   | Source/ControlChoice.cpp        | 63-100    | ?
+F PresentSelectionEntry                 | Source/ControlChoice.cpp        | 107-181   | ?
+F PresentDropdown                       | Source/ControlChoice.cpp        | 188-325   | ?
+F PresentSegmentRow                     | Source/ControlChoice.cpp        | 332-408   | ?
+V ControlInterior                       | Source/ControlChrome.cpp        | 13        | ?
+V QuarterTurn                           | Source/ControlChrome.cpp        | 20        | ?
+F Coded255                              | Source/ControlChrome.cpp        | 23-28     | One coordinate printed as the eight-bit code an artist reads it as.
+F PresentColourEntry                    | Source/ControlChrome.cpp        | 37-176    | ?
+F PresentMenuPill                       | Source/ControlChrome.cpp        | 183-204   | ?
+F PresentGlyphButton                    | Source/ControlChrome.cpp        | 211-256   | ?
+F PresentSectionHeader                  | Source/ControlChrome.cpp        | 263-323   | ?
+F AdvanceContentCarousel                | Source/ControlChrome.cpp        | 330-378   | ?
+F PresentSurfaceFill                    | Source/ControlChrome.cpp        | 385-397   | ?
+F PresentSurfaceOutline                 | Source/ControlChrome.cpp        | 399-414   | ?
+F PresentTextRun                        | Source/ControlChrome.cpp        | 416-448   | ?
+F DeclareClip                           | Source/ControlChrome.cpp        | 450-454   | ?
+F ReclaimClip                           | Source/ControlChrome.cpp        | 456-459   | ?
+F MeasuredTextExtent                    | Source/ControlChrome.cpp        | 461-469   | ?
+F AdvanceVisibleOffset                  | Source/ControlChrome.cpp        | 471-482   | ?
+F Coded                                 | Source/ControlInterior.h        | 30        | ?
+F Corner                                | Source/ControlInterior.h        | 31        | ?
+F Opposite                              | Source/ControlInterior.h        | 32        | ?
+F Centre                                | Source/ControlInterior.h        | 33        | ?
+F Inset                                 | Source/ControlInterior.h        | 35        | ?
+F CentredBand                           | Source/ControlInterior.h        | 36        | ?
+F LeftSlice                             | Source/ControlInterior.h        | 37        | ?
+F RightSlice                            | Source/ControlInterior.h        | 38        | ?
+F SquareIn                              | Source/ControlInterior.h        | 39        | ?
+T PointerReading                        | Source/ControlInterior.h        | 46-55     | The pointer as one tick sees it, read once so every control in a tick agrees on where it is.
+F ResolvePointer                        | Source/ControlInterior.h        | 57        | ?
+F PointerCovers                         | Source/ControlInterior.h        | 58        | ?
+F ResolvePress                          | Source/ControlInterior.h        | 70        | A press with no hold — what a control that answers a click and never drags reports. any release covering it would fire when a drag started elsewhere happened to end over it, and the defect presents as a section collapsing because a slider release landed on its header. own rectangle needs one, and that control uses `ResolveTrack` instead.
+T TrackHold                             | Source/ControlInterior.h        | 76-81     | One grabbable track: reports the interaction and, while held, the fraction the pointer names. that left the track would otherwise stop amending the moment it did, which is the defect where a slider drops the reading if the artist's hand strays a few pixels below the row.
+F ResolveTrack                          | Source/ControlInterior.h        | 84        | Resolves one track's hold, the claim keyed by an address the caller guarantees is stable across ticks.
+F PaintTrack                            | Source/ControlInterior.h        | 87        | Paints a track, its travelled fill and its knob at a declared fraction.
+F Recording                             | Source/ControlInterior.h        | 97        | ?
+F PaintFill                             | Source/ControlInterior.h        | 99        | ?
+F PaintOutline                          | Source/ControlInterior.h        | 100       | ?
+F PaintDisc                             | Source/ControlInterior.h        | 101       | ?
+F PaintCaption                          | Source/ControlInterior.h        | 104       | Text clipped to a rectangle, aligned by two fractions — zero is left or top, one is right or bottom.
+V ReadoutExtent                         | Source/ControlInterior.h        | 113       | ?
+F Bounded                               | Source/ControlInterior.h        | 116       | One reading bounded to a closed interval, the ends included.
+F PrintReading                          | Source/ControlInterior.h        | 122       | One reading printed to the declared number of decimals, into a caller-owned buffer. not a second authority over it; rounding the carry to what is shown loses precision the artist never asked to lose.
+F PaintValueBox                         | Source/ControlInterior.h        | 127       | The value box — a black centre carrying the readout, capped by a side segment at one end or the other.
+F Coded                                 | Source/ControlLayout.cpp        | 20-23     | ?
+F Corner                                | Source/ControlLayout.cpp        | 25-28     | ?
+F Opposite                              | Source/ControlLayout.cpp        | 30-33     | ?
+F Centre                                | Source/ControlLayout.cpp        | 35-38     | ?
+F Inset                                 | Source/ControlLayout.cpp        | 40-53     | ?
+F CentredBand                           | Source/ControlLayout.cpp        | 55-63     | ?
+F LeftSlice                             | Source/ControlLayout.cpp        | 65-72     | ?
+F RightSlice                            | Source/ControlLayout.cpp        | 74-82     | ?
+F SquareIn                              | Source/ControlLayout.cpp        | 84-94     | ?
+F ResolvePointer                        | Source/ControlLayout.cpp        | 100-115   | ?
+F PointerCovers                         | Source/ControlLayout.cpp        | 117-120   | ?
+F ResolvePress                          | Source/ControlLayout.cpp        | 126-150   | ?
+F ResolveTrack                          | Source/ControlLayout.cpp        | 152-192   | ?
+F PaintTrack                            | Source/ControlLayout.cpp        | 194-228   | ?
+F Recording                             | Source/ControlLayout.cpp        | 237-240   | ?
+F PaintFill                             | Source/ControlLayout.cpp        | 242-253   | ?
+F PaintOutline                          | Source/ControlLayout.cpp        | 255-264   | ?
+F PaintDisc                             | Source/ControlLayout.cpp        | 266-272   | ?
+F PaintCaption                          | Source/ControlLayout.cpp        | 274-296   | ?
+F Bounded                               | Source/ControlLayout.cpp        | 298-301   | ?
+F PrintReading                          | Source/ControlLayout.cpp        | 303-311   | ?
+F PaintValueBox                         | Source/ControlLayout.cpp        | 313-358   | ?
+F ResolveControlRow                     | Source/ControlLayout.cpp        | 367-393   | ?
+F PresentControlLabel                   | Source/ControlLayout.cpp        | 395-398   | ?
+T StrokeMapping                         | Source/ControlLayout.cpp        | 410-417   | ?
+F Placed                                | Source/ControlLayout.cpp        | 419-426   | ?
+F StrokeRun                             | Source/ControlLayout.cpp        | 428-451   | ?
+F PresentControlStroke                  | Source/ControlLayout.cpp        | 455-618   | ?
+V ControlInterior                       | Source/ControlNumeric.cpp       | 13        | ?
+F PresentValueSlider                    | Source/ControlNumeric.cpp       | 24-88     | ?
+F PresentScalarEntry                    | Source/ControlNumeric.cpp       | 95-148    | ?
+F PresentVectorEntry                    | Source/ControlNumeric.cpp       | 155-215   | ?
+V ControlInterior                       | Source/ControlText.cpp          | 11        | ?
+E EditProgress                          | Source/ControlText.cpp          | 21-27     | What one tick of an open edit produced.
+F AdmitCharacter                        | Source/ControlText.cpp          | 34-53     | Inserts one printable character at the caret and advances it.
+F WithdrawCharacter                     | Source/ControlText.cpp          | 56-69     | Removes one character at a named position and draws the tail back over it.
+F AdvanceTextCarry                      | Source/ControlText.cpp          | 71-128    | ?
+F CaretAdvance                          | Source/ControlText.cpp          | 135-144   | The advance of a carry's leading characters, which is where its caret stands.
+F AdvanceField                          | Source/ControlText.cpp          | 150-226   | Resolves one field's opening, typing and sealing, and paints the text and the caret inside it.
+F PresentTextEntry                      | Source/ControlText.cpp          | 235-273   | ?
+F PresentInlineTextEditor               | Source/ControlText.cpp          | 280-350   | ?
+F PresentPathEntry                      | Source/ControlText.cpp          | 357-431   | ?
+E ReportWeight                          | Api/DiagnosticPanel.h           | 28-33     | How much of the artist's attention one report class is worth. problems teaches the artist to ignore it. `Refused` and `Failed` are problems; `Terminated` is the ambiguous row `02` §5 leaves ambiguous on purpose; the rest are information.
+F WeightOf                              | Api/DiagnosticPanel.h           | 41        | The weight one declared class carries. weight is a presentation that disagrees with the document that made the promise.
+F PresentedRankOf                       | Api/DiagnosticPanel.h           | 50        | Where one class sits in the presented order, lowest first. resamples authored content. `Amended` therefore ranks above every other informational class, so it can never sit at the same weight as a residency total — which is a `Measured`, presented last. The elevation is by class and not by matching the origin text, so nothing here infers anything.
+F CaptionOf                             | Api/DiagnosticPanel.h           | 55        | The caption one class is presented under.
+T DiagnosticPanelCarry                  | Api/DiagnosticPanel.h           | 66-73     | What the panel carries between ticks — presentation only, and the caller owns all of it. presents a residency total from the rotation before last, which reads as a measure that has stopped moving rather than as a panel that has stopped reading.
+T DiagnosticPanelContext                | Api/DiagnosticPanel.h           | 79-84     | What the panel presents against — the two structures it reads and the carry it writes. here and neither is copied here.
+F PresentDiagnosticPanel                | Api/DiagnosticPanel.h           | 101       | Presents one tick of the register into the rectangle the desk resolved for it. never learns what a report is. so presenting `Retained()` directly satisfies `86` §6 without this component knowing coalescing exists. `Magnitude` as a real, and neither is ever converted into the other. `86` §9 — recomputing a measure for presentation lets the panel disagree with the mechanism that produced it.
+F SLATE_DECLARES_PRECISION              | Api/DiagnosticPanel.h           | 107       | ?
+F WeightOf                              | Source/DiagnosticPanel.cpp      | 22-45     | ?
+F PresentedRankOf                       | Source/DiagnosticPanel.cpp      | 47-63     | ?
+F CaptionOf                             | Source/DiagnosticPanel.cpp      | 65-78     | ?
+F HueOf                                 | Source/DiagnosticPanel.cpp      | 89-98     | ?
+V EntryHeight                           | Source/DiagnosticPanel.cpp      | 100       | ?
+V MeasureHeight                         | Source/DiagnosticPanel.cpp      | 101       | ?
+V CountBadge                            | Source/DiagnosticPanel.cpp      | 102       | ?
+F PresentEntry                          | Source/DiagnosticPanel.cpp      | 108-178   | ?
+F PresentMeasure                        | Source/DiagnosticPanel.cpp      | 184-210   | ?
+F PresentDiagnosticPanel                | Source/DiagnosticPanel.cpp      | 218-469   | ?
+T GlyphHandle                           | Api/GlyphDepot.h                | 28-35     | An opaque reference to one uploaded glyph, resolved to a vendor texture identity inside the source file alone. an integer whose meaning only `GlyphDepot.cpp` knows, exactly as `InterfaceExchange` holds its context.
+F GlyphHandle::HandleDeclared           | Api/GlyphDepot.h                | 34        | Whether this handle names an uploaded glyph at all.
+T GlyphAttachment                       | Api/GlyphDepot.h                | 45-51     | The device handles one upload needs, supplied once at bring-up. recording, and every allocation here happens inside `Declare` — which is bring-up, never a tick.
+T GlyphDeclaration                      | Api/GlyphDepot.h                | 61-67     | One glyph as a tier declares it — its key, its vector source, and the square it rasterises into. span may name a string literal in the declaring translation unit.
+T GlyphTier                             | Api/GlyphDepot.h                | 74-79     | A named set of glyphs one workspace declares at activation. edits nothing shared. The chrome tier is declared once and read by every workspace; content-hash dedup means a glyph two tiers share uploads once and is torn down when the second releases it.
+T GlyphDepot                            | Api/GlyphDepot.h                | 92-218    | A store of rasterised, evictable, reconstructible glyphs keyed by the content that produced them. tiers share a glyph while each keeps its own name. Collapsing it to key-to-texture uploads the chrome twisty once per workspace, and the count grows with the workspace count rather than with the art. at workspace activation and a resolution during a tick never allocates.
+F GlyphDepot::~GlyphDepot               | Api/GlyphDepot.h                | 99        | ?
+F GlyphDepot::Construct                 | Api/GlyphDepot.h                | 108       | Attaches the depot to a device and brings the vector rasteriser up. when the rasteriser declines to start
+F GlyphDepot::Reclaim                   | Api/GlyphDepot.h                | 115       | Destroys every uploaded glyph and releases the rasteriser. reads after it was freed, and the read succeeds often enough to look like a different defect.
+F GlyphDepot::Declare                   | Api/GlyphDepot.h                | 126       | Declares one whole tier, rasterising and uploading what is not already held. and with ExtentExhausted when an upload could not be claimed to compare a tier's declaration list against what resolves, one key at a time.
+F GlyphDepot::Release                   | Api/GlyphDepot.h                | 134       | Releases one tier's claim on its glyphs, tearing down those no other tier still names.
+F GlyphDepot::Resolve                   | Api/GlyphDepot.h                | 142       | Resolves one key to its handle.
+F GlyphDepot::GlyphHeld                 | Api/GlyphDepot.h                | 147       | Whether one key resolves to an uploaded glyph.
+F GlyphDepot::ResolveTextureSlot        | Api/GlyphDepot.h                | 161       | Turns one handle into the integer a recording paints it with. has been torn down since it was issued here would put a vendor spelling in a public header. This is the same seam `InterfaceExchange` keeps with its context slot — the caller hands the integer straight back to the vendor and never reads it. content hash and the handle carries a texture identity. Held counts are in the tens; a lookup keyed the other way would be a second copy of the same association, drifting from the first.
+F GlyphDepot::DeclaredEdge              | Api/GlyphDepot.h                | 166       | The square edge a declaration that names none rasterises into.
+F GlyphDepot::DeclareEdge               | Api/GlyphDepot.h                | 174       | Declares the square edge a declaration that names none rasterises into.
+F GlyphDepot::UploadedCount             | Api/GlyphDepot.h                | 181       | How many distinct textures the depot holds — what dedup is measured against. the two-level indirection exists for.
+F GlyphDepot::KeyCount                  | Api/GlyphDepot.h                | 186       | How many keys resolve.
+T GlyphDepot::UploadedGlyph             | Api/GlyphDepot.h                | 192-202   | One uploaded glyph — the device chain and the vendor descriptor that names it as a texture.
+F GlyphDepot::ContentHash               | Api/GlyphDepot.h                | 204       | ?
+F GlyphDepot::Upload                    | Api/GlyphDepot.h                | 207       | ?
+F GlyphDepot::Withdraw                  | Api/GlyphDepot.h                | 209       | ?
+V RasteriserClaims                      | Source/GlyphDepot.cpp           | 26        | ?
+V RasterEdgeCeiling                     | Source/GlyphDepot.cpp           | 28        | ?
+T RasterisedGlyph                       | Source/GlyphDepot.cpp           | 33-38     | One rasterised glyph as texels, before any device object exists. nothing between here and the upload reorders a component.
+F ConstructRasteriser                   | Source/GlyphDepot.cpp           | 40-54     | ?
+F ReclaimRasteriser                     | Source/GlyphDepot.cpp           | 56-65     | ?
+F Rasterise                             | Source/GlyphDepot.cpp           | 69-131    | ?
+F ResolveExtentOrdinal                  | Source/GlyphDepot.cpp           | 139-162   | ?
+F ClaimStagingSource                    | Source/GlyphDepot.cpp           | 164-218   | ?
+F TransferIntoImage                     | Source/GlyphDepot.cpp           | 223-325   | ?
+F GlyphDepot::~GlyphDepot               | Source/GlyphDepot.cpp           | 333-336   | ?
+F GlyphDepot::Construct                 | Source/GlyphDepot.cpp           | 338-358   | ?
+F GlyphDepot::Reclaim                   | Source/GlyphDepot.cpp           | 360-398   | ?
+F GlyphDepot::ContentHash               | Source/GlyphDepot.cpp           | 404-426   | ?
+F GlyphDepot::Upload                    | Source/GlyphDepot.cpp           | 432-573   | ?
+F GlyphDepot::Withdraw                  | Source/GlyphDepot.cpp           | 575-606   | ?
+F GlyphDepot::Declare                   | Source/GlyphDepot.cpp           | 612-659   | ?
+F GlyphDepot::Release                   | Source/GlyphDepot.cpp           | 661-691   | ?
+F GlyphDepot::Resolve                   | Source/GlyphDepot.cpp           | 693-709   | ?
+F GlyphDepot::GlyphHeld                 | Source/GlyphDepot.cpp           | 711-714   | ?
+F GlyphDepot::ResolveTextureSlot        | Source/GlyphDepot.cpp           | 716-732   | ?
+F GlyphDepot::DeclaredEdge              | Source/GlyphDepot.cpp           | 734-737   | ?
+F GlyphDepot::DeclareEdge               | Source/GlyphDepot.cpp           | 739-750   | ?
+F GlyphDepot::UploadedCount             | Source/GlyphDepot.cpp           | 752-755   | ?
+F GlyphDepot::KeyCount                  | Source/GlyphDepot.cpp           | 757-760   | ?
+T InterfaceAttachment                   | Api/InterfaceExchange.h         | 28-38     | Every device handle the interface library needs, supplied once at bring-up. is an ImGui spelling: the whole point of the seam is that a host including this header links the interface without acquiring ImGui's declarations. `00` §2.2 makes a host that includes `imgui.h` a defect, and a defect that cannot be spelled cannot be committed.
+T InterfaceExchange                     | Api/InterfaceExchange.h         | 50-114    | Holds the interface context and the two vendor attachments that feed it. source file. `00` §2.2: exactly one copy of ImGui exists, compiled inside `SlateUI`. projection, so nothing recorded by this component is ever tone-mapped a second time.
+F InterfaceExchange::~InterfaceExchange | Api/InterfaceExchange.h         | 57        | ?
+F InterfaceExchange::Construct          | Api/InterfaceExchange.h         | 68        | Constructs the interface context over the supplied device handles. HostDenied when the vendor attachment declines `VK_KHR_dynamic_rendering` or a device at Vulkan 1.3. Construct refuses rather than recording into a target the device never agreed to.
+F InterfaceExchange::Reclaim            | Api/InterfaceExchange.h         | 73        | Destroys the interface context and both vendor attachments.
+F InterfaceExchange::Advance            | Api/InterfaceExchange.h         | 79        | Opens one interface tick and reads the window system's accumulated condition.
+F InterfaceExchange::Seal               | Api/InterfaceExchange.h         | 86        | Closes the open tick and assembles its command content, ready to record.
+F InterfaceExchange::Record             | Api/InterfaceExchange.h         | 94        | Records the assembled content into a command recording of the current rotation slot.
+F InterfaceExchange::PointerCaptured    | Api/InterfaceExchange.h         | 99        | Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
+F InterfaceExchange::KeyboardCaptured   | Api/InterfaceExchange.h         | 104       | Whether the interface has taken text entry, so that no shortcut consumes the same key.
+V InterfaceDescriptorCapacity           | Source/InterfaceExchange.cpp    | 24        | ?
+F InterfaceExchange::~InterfaceExchange | Source/InterfaceExchange.cpp    | 31-34     | ?
+F InterfaceExchange::Construct          | Source/InterfaceExchange.cpp    | 36-128    | ?
+F InterfaceExchange::Reclaim            | Source/InterfaceExchange.cpp    | 130-154   | ?
+F InterfaceExchange::Advance            | Source/InterfaceExchange.cpp    | 160-178   | ?
+F InterfaceExchange::Seal               | Source/InterfaceExchange.cpp    | 180-192   | ?
+F InterfaceExchange::Record             | Source/InterfaceExchange.cpp    | 198-222   | ?
+F InterfaceExchange::PointerCaptured    | Source/InterfaceExchange.cpp    | 231-239   | ?
+F InterfaceExchange::KeyboardCaptured   | Source/InterfaceExchange.cpp    | 241-249   | ?
+V NameSearchExtent                      | Api/OutlinerPanel.h             | 23        | ?
+T OutlinerPanel                         | Api/OutlinerPanel.h             | 39-105    | The presentation half of `12` — reads the linearisation, declares intent, stores neither relation. Only the counted span the artist can see is touched, and the scroll position is a row ordinal resolved by count rather than a pixel offset the panel remembers on its own. A panel that mutated the relations where the click arrived would apply against a linearisation that is halfway rebuilt, and would bypass the sequence that undoes it. entry, and whether the panel is shown. None of it is a transaction and none of it is scrubbed.
+F OutlinerPanel::Present                | Api/OutlinerPanel.h             | 50        | Presents one tick of the outliner and declares whatever the artist asked for.
+F OutlinerPanel::DeclarePresence        | Api/OutlinerPanel.h             | 56        | Declares whether the panel is shown at all.
+F OutlinerPanel::PresenceStanding       | Api/OutlinerPanel.h             | 61        | Whether the panel is shown.
+F OutlinerPanel::VisiblePosition        | Api/OutlinerPanel.h             | 70        | The counted ordinal at the top of the presented span — the scroll position, as a row. When the counted total changes the offset is restored from that occupant before it is read, so collapsing an enclosure above the view leaves the artist looking at the same occupant rather than at whatever slid under the cursor. An anchor whose occupant left the count keeps its ordinal.
+F OutlinerPanel::Anchored               | Api/OutlinerPanel.h             | 77        | The occupant the presented span is anchored on, undeclared when nothing is counted. never declared as intent and no transaction records it.
+F OutlinerPanel::RowsTouched            | Api/OutlinerPanel.h             | 84        | How many rows the last presentation actually touched. not to the population. A million occupants that presented a million rows is the defect.
+F OutlinerPanel::Sought                 | Api/OutlinerPanel.h             | 89        | The text the artist is searching names for, empty when nothing is sought.
+F OutlinerPanel::ConfirmedNames         | Api/OutlinerPanel.h             | 94        | How many names the last narrowing confirmed.
+V ReorderPayload                        | Source/OutlinerPanel.cpp        | 21        | ?
+T DraggedRow                            | Source/OutlinerPanel.cpp        | 26-30     | ?
+F DraggedIdentity                       | Source/OutlinerPanel.cpp        | 32-39     | ?
+F CarriedIdentity                       | Source/OutlinerPanel.cpp        | 41-48     | ?
+F DeclareStanding                       | Source/OutlinerPanel.cpp        | 56-67     | ?
+F DeclareSelection                      | Source/OutlinerPanel.cpp        | 71-80     | ?
+F DeclareEnclosure                      | Source/OutlinerPanel.cpp        | 85-97     | ?
+F OutlinerPanel::Present                | Source/OutlinerPanel.cpp        | 105-359   | ?
+F OutlinerPanel::DeclarePresence        | Source/OutlinerPanel.cpp        | 365-368   | ?
+F OutlinerPanel::PresenceStanding       | Source/OutlinerPanel.cpp        | 370-373   | ?
+F OutlinerPanel::VisiblePosition        | Source/OutlinerPanel.cpp        | 375-378   | ?
+F OutlinerPanel::Anchored               | Source/OutlinerPanel.cpp        | 380-383   | ?
+F OutlinerPanel::RowsTouched            | Source/OutlinerPanel.cpp        | 385-388   | ?
+F OutlinerPanel::Sought                 | Source/OutlinerPanel.cpp        | 390-393   | ?
+F OutlinerPanel::ConfirmedNames         | Source/OutlinerPanel.cpp        | 395-398   | ?
+V RevisionFoldCapacity                  | Api/RevisionPanel.h             | 25        | ?
+T RevisionPanelCarry                    | Api/RevisionPanel.h             | 35-46     | What the panel carries between ticks — presentation only, and the caller owns all of it. the visible offset and the drag are layout, and layout inside the document would make opening a fold an undoable edit. The carry sits beside the sequence and never inside it. `RevisionSequence` does not carry it, so a caller that never declares it presents every row as unsaved, which is the safe direction: an artist told their work is unsaved loses nothing by saving twice.
+T RevisionPanelContext                  | Api/RevisionPanel.h             | 52-56     | What the panel presents against — the sequence it reads and the carry it writes. sequence holding its own row list drifts from the sequence the moment a transaction merges.
+F DiscardCountStanding                  | Api/RevisionPanel.h             | 73        | How many transactions an edit made at the current position would discard. is the most destructive thing this panel can do, and the tempting implementation discards first and prints a count second — by which time the artist's only remaining choice is to accept it. enforce that, because the edit does not arrive through the panel; the gate is the caller's and this call is what makes it cheap to hold.
+F ScrubToPosition                       | Api/RevisionPanel.h             | 90        | Moves the scrub position to one place in the sequence, replaying every intervening transaction in order. snapshot would arrive at a state the sequence cannot be scrubbed back out of, because the inverses between here and there were never run.
+F PresentRevisionPanel                  | Api/RevisionPanel.h             | 108       | Presents one tick of the revision sequence into the rectangle the desk resolved for it. learns what a revision is. The opaque context is the whole reason one desk serves every workspace. `Committed()` directly satisfies `84` §2's requirement without this component knowing merging exists. `84` §4. This component reads `Committed()` and nothing else, so none of them can appear.
+F SLATE_DECLARES_PRECISION              | Api/RevisionPanel.h             | 114       | ?
+V BubbleColumnWidth                     | Source/RevisionPanel.cpp        | 26        | ?
+V BubbleEdge                            | Source/RevisionPanel.cpp        | 27        | ?
+V SpineWidth                            | Source/RevisionPanel.cpp        | 28        | ?
+V RailWidth                             | Source/RevisionPanel.cpp        | 29        | ?
+V NodeEdge                              | Source/RevisionPanel.cpp        | 30        | ?
+V NodeShadowReach                       | Source/RevisionPanel.cpp        | 31        | ?
+V FoldRowHeight                         | Source/RevisionPanel.cpp        | 32        | ?
+V TwistyEdge                            | Source/RevisionPanel.cpp        | 33        | ?
+F FoldStanding                          | Source/RevisionPanel.cpp        | 37-40     | ?
+F Inset                                 | Source/RevisionPanel.cpp        | 42-52     | ?
+F PresentedDescription                  | Source/RevisionPanel.cpp        | 57-65     | ?
+F PresentedStamp                        | Source/RevisionPanel.cpp        | 69-75     | ?
+F DiscardCountStanding                  | Source/RevisionPanel.cpp        | 83-91     | ?
+F ScrubToPosition                       | Source/RevisionPanel.cpp        | 97-118    | ?
+F PresentHeaderBand                     | Source/RevisionPanel.cpp        | 127-171   | ?
+F PresentDiscardBand                    | Source/RevisionPanel.cpp        | 180-260   | ?
+F RowExtentOf                           | Source/RevisionPanel.cpp        | 266-272   | ?
+F PresentRow                            | Source/RevisionPanel.cpp        | 274-426   | ?
+F PresentRevisionPanel                  | Source/RevisionPanel.cpp        | 434-536   | ?
+T ThemeColour                           | Api/ThemeSpecification.h        | 28-32     | One interface colour: a coordinate carrying the space it is a coordinate in, plus the fraction it covers. colour whose space nothing states is the shape a transfer function is later added to "fix". Held as a `ColourSpecification` in the display space so the absence of any transfer inside `SlateUI` stays checkable. fraction over the interface's own recording, not a property of the colour — `36` carries no alpha for exactly that reason.
+F Quantize                              | Api/ThemeSpecification.h        | 42        | Quantises one theme colour to the eight-bit-per-channel code the vendor draw surface accepts. Coordinates outside the unit interval are bounded here rather than wrapping, because a wrapped code is a colour the artist sees as a wrong hue rather than as a clipped one.
+F Attenuate                             | Api/ThemeSpecification.h        | 50        | Returns one theme colour at a declared coverage, its coordinate untouched.
+T ThemePalette                          | Api/ThemeSpecification.h        | 60-87     | Every colour the interface draws with, named by what it is drawn on rather than by its hue. literals. A component that spells a colour of its own is the defect this struct exists to prevent.
+T LayoutExtents                         | Api/ThemeSpecification.h        | 99-145    | Every spacing, height and radius the interface lays out with, in interface pixels. of the other. Changing the density must not require an artist to re-author a colour. that answers it is folded in once by `ResolveActiveTheme` rather than multiplied at each read site.
+T ThemeSpecification                    | Api/ThemeSpecification.h        | 154-158   | The palette and the extents together — what every present call is handed by const reference.
+F DeclaredDarkPalette                   | Api/ThemeSpecification.h        | 169       | The built-in dark palette. `SlateUI` reads a field of the value this returns.
+F DeclaredDefaultExtents                | Api/ThemeSpecification.h        | 174       | The built-in layout extents, before any density scale is folded in.
+F ResolveActiveTheme                    | Api/ThemeSpecification.h        | 185       | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
+F Enforce                               | Api/ThemeSpecification.h        | 195       | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
+V CodeCeiling                           | Source/ThemeSpecification.cpp   | 25        | ?
+F AuthoredColour                        | Source/ThemeSpecification.cpp   | 27-38     | ?
+F QuantizeCoordinate                    | Source/ThemeSpecification.cpp   | 42-47     | ?
+F Quantize                              | Source/ThemeSpecification.cpp   | 51-59     | ?
+F Attenuate                             | Source/ThemeSpecification.cpp   | 61-66     | ?
+F DeclaredDarkPalette                   | Source/ThemeSpecification.cpp   | 72-128    | ?
+F DeclaredDefaultExtents                | Source/ThemeSpecification.cpp   | 134-140   | ?
+F ResolveActiveTheme                    | Source/ThemeSpecification.cpp   | 146-209   | ?
+F StyleCoordinate                       | Source/ThemeSpecification.cpp   | 220-226   | ?
+F Enforce                               | Source/ThemeSpecification.cpp   | 230-290   | ?
+A PanelPresentRoutine                   | Api/PanelIndex.h                | 35-37     | The routine one panel presents through, handed the resolved theme, the rectangle it was given, and the context its workspace threads in. and the context is opaque so one shared outliner routine serves every workspace without naming any. a band whose depth the artist drags, so a panel that read a rectangle from anywhere else would paint at the extent the band had before the drag — and the defect presents as a panel that lags its own frame.
+T PanelSlot                             | Api/PanelIndex.h                | 45-52     | One panel as a workspace declares it — what it is called, where it sits, and how it presents. panel presents would be the `14` §1 defect arriving through the ledger rather than through the panel. buffer leaves the ledger pointing at a dead extent the first time the declaring scope closes.
+V PanelSlotCapacity                     | Api/PanelIndex.h                | 60        | ?
+T PanelIndex                            | Api/PanelIndex.h                | 65-69     | Every panel one workspace declared, in declaration order.
+F ReclaimPanelIndex                     | Api/PanelIndex.h                | 82        | Returns the ledger to empty, releasing every declaration it held. workspace's own and are untouched — this releases the ledger's claim, never the storage behind it.
+F DeclarePanel                          | Api/PanelIndex.h                | 94        | Appends one panel declaration to the ledger. and with ExtentExhausted when the ledger already holds PanelSlotCapacity declarations indistinguishable from one whose present routine never drew. A refusal names which failure occurred.
+F ResolvePanelForSide                   | Api/PanelIndex.h                | 104       | Resolves the first panel declared for one side. is resolved by `WorkspaceSpace` walking the ledger itself rather than by this call returning both.
+F DeclaredPanelCount                    | Api/PanelIndex.h                | 109       | How many declarations the ledger holds.
+A WorkspaceDocumentIdentity             | Api/WorkspaceSpace.h            | 33        | ?
+A WorkspacePanelIdentity                | Api/WorkspaceSpace.h            | 34        | ?
+V WorkspaceTitleExtent                  | Api/WorkspaceSpace.h            | 36        | ?
+E WorkspaceDiscipline                   | Api/WorkspaceSpace.h            | 49-59     | What a document is for — what the catalogue offers and what an unfilled body prints. that becomes a link target, and Phase 5 mints three executables from exactly that meaning; two unrelated meanings on one word inside one build is the collision this avoids. enumerator and lets `WorkspaceSpace` never learn a concrete workspace's name.
+T WorkspaceDocumentSpecification        | Api/WorkspaceSpace.h            | 65-70     | One document the catalogue offers, supplied by the application and never spelled by this component. concrete workspace, which is the whole reason one tree delivers separate editors and one editor both.
+T WorkspaceRectangle                    | Api/WorkspaceSpace.h            | 78-84     | One rectangle in interface pixels — what a leaf, a gutter and a drop preview all resolve to.
+F RectangleCovers                       | Api/WorkspaceSpace.h            | 89-93     | Whether a point lies inside a rectangle, edges included.
+E WorkspacePartitionAxis                | Api/WorkspaceSpace.h            | 99-103    | Which way a partition divides the area it was handed. horizontal gutter. The gutter is part of the partition and not of either link.
+V MinimumLeafExtent                     | Api/WorkspaceSpace.h            | 107       | ?
+T WorkspacePartition                    | Api/WorkspaceSpace.h            | 123-140   | One node of the recursive partition: either a leaf carrying ordered occupants, or a division into two links. while a reference into the pool was held would dangle, and the defect presents as a leaf drawn at another leaf's rectangle rather than as a crash. kinship spellings are banned outright — a division has two halves, not a family. implementation. Frontier carries two copies of this and two copies of the layout recursion beneath it, which is two places a gutter arithmetic amendment has to land and one of them will be missed.
+F Traverse                              | Api/WorkspaceSpace.h            | 154-174   | Visits every occupied partition beneath one link, first half before second, division before its halves. painter can fill the area beneath before the leaves paint over it.
+F ResolveLayout                         | Api/WorkspaceSpace.h            | 188-249   | Resolves the rectangle of every partition beneath one link, and the gutter of every division. moves the gutter to where the pointer was rather than to where it is, and the drag reads as sticky. does not accumulate a drift of half a gutter per level.
+F LocateLeafCovering                    | Api/WorkspaceSpace.h            | 255-274   | The occupied leaf whose resolved rectangle covers a point, or -1 when none does.
+F LocateHolding                         | Api/WorkspaceSpace.h            | 280-295   | The division that holds one link as one of its two halves, or -1 when the link is the origin itself.
+F ClaimPartitionSlot                    | Api/WorkspaceSpace.h            | 307-322   | Claims one pool slot as an empty leaf, reusing a reclaimed slot before growing the pool. than to how many splits the artist has ever made in a session.
+F Partition                             | Api/WorkspaceSpace.h            | 340-407   | Divides one leaf in two, moving its occupants into one half and leaving the other empty. resolved area cannot carry two leaves at MinimumLeafExtent, and with IdentityStale when the target is not an occupied leaf target, a preview, a floating window's return address — therefore stays valid across a split, which is what a scheme that claimed a new index for the division would silently break.
+F ReclaimLeaf                           | Api/WorkspaceSpace.h            | 420-465   | Reclaims one emptied leaf, lifting the other half of its division into the division's own slot. ContentUnsupported when the leaf still carries occupants index is again what keeps every outside reference valid. It costs one copy of a small record.
+E WorkspacePanelSide                    | Api/WorkspaceSpace.h            | 476-484   | Where a panel box is anchored inside a document's body. spanning what those leave, and Centre fills the remainder. Several panels sharing a side split the band along its long axis in list order.
+V PanelEdgeLeft                         | Api/WorkspaceSpace.h            | 489       | ?
+V PanelEdgeRight                        | Api/WorkspaceSpace.h            | 490       | ?
+V PanelEdgeTop                          | Api/WorkspaceSpace.h            | 491       | ?
+V PanelEdgeBottom                       | Api/WorkspaceSpace.h            | 492       | ?
+V PanelBoxCapacity                      | Api/WorkspaceSpace.h            | 496       | ?
+V PanelMinimumExtent                    | Api/WorkspaceSpace.h            | 499       | ?
+V PanelHandleReach                      | Api/WorkspaceSpace.h            | 503       | ?
+V PanelDockFloor                        | Api/WorkspaceSpace.h            | 507       | ?
+V PanelDockCeiling                      | Api/WorkspaceSpace.h            | 508       | ?
+T WorkspacePanelBox                     | Api/WorkspaceSpace.h            | 520-534   | One panel box inside one document's body — a floating overlay until it is docked to a side. re-divided rather than staying where the screen was. A box holding what it presents is the `14` §1 defect arriving through the layout instead of through the panel, and it would also make a panel arrangement outlive the workspace that declared its contents. ordinal, so a floating box cannot be raised by rotating the list the way a floating window is — the rotation would hand every later box the identity of the one before it.
+T WorkspacePanelPlacement               | Api/WorkspaceSpace.h            | 544-553   | Where one panel box resolved to this tick, and the two bands a drag may take hold of. panel follows it along the same side. The last panel on a side has nothing to share with.
+T WorkspaceBodyPlacement                | Api/WorkspaceSpace.h            | 561-568   | Every panel of one body resolved against that body's rectangle, and what the bands left the document. the presenter walks these two runs in the order they are written here. `WorkspacePanelSide::Centre` fills it; otherwise the document's own content does.
+F DeclarePanelBox                       | Api/WorkspaceSpace.h            | 584       | Declares one panel box into one document's body, floating, and names the ledger slot it presents. ContentUnsupported when no identifier is named asks the panel to sit, and honouring it here would place a box the artist did not put there.
+F WithdrawPanelBox                      | Api/WorkspaceSpace.h            | 592       | Withdraws one panel box from one body, releasing its record.
+F AmendPanelBox                         | Api/WorkspaceSpace.h            | 598       | One panel box, for moving, resizing or re-docking it.
+F RaisePanelBox                         | Api/WorkspaceSpace.h            | 610       | Brings one floating panel box in front of every other floating box of the same body. ordinal its identity carries, so rotating the list would hand every box after the raised one the identity of its predecessor — a drag in flight would then be resizing a different panel. the counter is the desk's own and monotonic, so a second raise costs one increment.
+F ResolveBodyPlacement                  | Api/WorkspaceSpace.h            | 625       | Resolves every panel of one body against that body's rectangle, and what the bands leave the document. and the centre is the remainder. Resolving the rows first would give a corner to two bands at once, and the panel that lost the argument paints under the other one. their shares. A drag writes the dragged depth to every panel on that side, so the record stays per-panel while the band stays one band.
+F ResolvePanelLanding                   | Api/WorkspaceSpace.h            | 638       | Resolves which side a released panel drag would dock to, from the five-zone cross over one body. would cover the document the body exists to present, so `Centre` is a side a workspace declares deliberately and never one a careless release mints.
+F DockPanelBox                          | Api/WorkspaceSpace.h            | 652       | Lands one panel box on a side of its own body, or returns it to floating.
+T WorkspaceDocument                     | Api/WorkspaceSpace.h            | 668-680   | One workspace document — what a tab represents, wherever the tab currently lives. layout, and layout inside the document would make moving a panel an undoable edit and would make one document open differently on a machine with a different display.
+T WorkspaceFloatingWindow               | Api/WorkspaceSpace.h            | 686-695   | A torn-out rectangle carrying its own ordered documents and its own tab strip. cannot be raised the same way — its position in its own list is the ordinal its identity carries.
+E WorkspaceDragMode                     | Api/WorkspaceSpace.h            | 706-716   | What the one drag in flight is addressing. Exactly one is open at a time. read a field no branch wrote is where a released panel drag docks a document, which is what the seam between the desk's own seal and the panel layer's exists to keep apart.
+E WorkspaceDragOrigin                   | Api/WorkspaceSpace.h            | 722-726   | What a Window-mode drag was torn from — the drop resolution differs by origin. release leaves it floating. A moved **panel** uses the five-zone cross and always docks over a leaf.
+E WorkspaceDropZone                     | Api/WorkspaceSpace.h            | 730-739   | The landing a released drag would take, resolved from the pointer each tick.
+T WorkspaceDropLanding                  | Api/WorkspaceSpace.h            | 745-751   | Where a release would land, and the rectangle that says so before the artist commits to it. landing that survives the leaf it named being reclaimed underneath it.
+V DockBandFraction                      | Api/WorkspaceSpace.h            | 756       | ?
+V WindowMinimumExtent                   | Api/WorkspaceSpace.h            | 759       | ?
+T WorkspaceDragRecord                   | Api/WorkspaceSpace.h            | 765-795   | The one drag in flight, and the press that has not yet become one. is why the press is recorded apart from the drag: without it every activation would tear.
+V TearThreshold                         | Api/WorkspaceSpace.h            | 799       | ?
+T WorkspaceRenameRecord                 | Api/WorkspaceSpace.h            | 805-811   | One inline title edit, opened by a double-click on a trapezoid. own title is never written until the edit is sealed.
+T WorkspaceOverlayRecord                | Api/WorkspaceSpace.h            | 818-827   | One hand-rolled foreground overlay — the `(+)` minting list or the `(V)` panel list. beneath that list, so a popup would be occluded by the tabs that opened it.
+T WorkspaceSpace                        | Api/WorkspaceSpace.h            | 837-858   | The whole desk: every document owned once, the partition of the docked area, and the floating windows. document by value is the defect where tearing a tab out produces two documents that drift apart.
+F DeclareCatalogue                      | Api/WorkspaceSpace.h            | 872       | Installs the catalogue the application offers and forgets whatever was offered before.
+F ConstructWorkspaceSpace               | Api/WorkspaceSpace.h            | 882       | Seeds the desk with one document of the default catalogue entry and activates it.
+F DeclareDocument                       | Api/WorkspaceSpace.h            | 896       | Mints one document from a catalogue entry and places it in a leaf. when the target is not an occupied leaf rather than holding a per-entry counter means closing document 2 and minting again produces a 2 again, which is what an artist expects of a numbered tab.
+F WithdrawDocument                      | Api/WorkspaceSpace.h            | 904       | Withdraws one document from the desk, reclaiming the leaf it emptied.
+F ResolveDocument                       | Api/WorkspaceSpace.h            | 910       | One document, by identity.
+F AmendDocument                         | Api/WorkspaceSpace.h            | 916       | One document, for amending its title or its panel arrangement.
+F LocateLeafCarrying                    | Api/WorkspaceSpace.h            | 921       | Which leaf currently carries one document, or -1 when a floating window does.
+F LocateWindowCarrying                  | Api/WorkspaceSpace.h            | 926       | Which floating window carries one document, or zero when a leaf does.
+F AmendFloatingWindow                   | Api/WorkspaceSpace.h            | 932       | One floating window, for moving or resizing it.
+F TearDocument                          | Api/WorkspaceSpace.h            | 945       | Lifts one document out of wherever it sits into a floating window of its own. which is what keeps a torn tab and its former self from drifting apart.
+F DockDocument                          | Api/WorkspaceSpace.h            | 960       | Lands one document on a leaf — stacking it, or dividing the leaf and placing it in the new half. whatever `Partition` refused when the leaf is too small to divide reclaimed only after both are done. Reclaiming first lifts a counterpart into the division's slot, and the target index the landing resolved a moment earlier then names a freed slot.
+F StackDocumentInWindow                 | Api/WorkspaceSpace.h            | 969       | Stacks one document onto an existing floating window and activates it there.
+F ReorderOccupant                       | Api/WorkspaceSpace.h            | 979       | Moves one document to a position within the ordered occupants of the leaf or window carrying it.
+F ResolveDropLanding                    | Api/WorkspaceSpace.h            | 993       | Resolves what a release at one point would do, without doing any of it. which is what lets the same call drive the preview each tick and the landing on release.
+F ResolveSpaceLayout                    | Api/WorkspaceSpace.h            | 1006      | Resolves the whole desk's layout for this tick.
+F PresentWorkspaceSpace                 | Api/WorkspaceSpace.h            | 1023      | Presents the whole desk for one tick — layout, bodies, panels, trapezoid strips, overlays, then input. trapezoid cannot be a vendor tab and a vendor popup would be painted beneath the tabs that opened it. workspace's panels against a context that workspace has already released. the identifier it names, which is what makes a panel arrangement testable before any panel exists.
+F SLATE_DECLARES_PRECISION              | Api/WorkspaceSpace.h            | 1030      | ?
+F ReclaimPanelIndex                     | Source/PanelIndex.cpp           | 15-24     | ?
+F DeclarePanel                          | Source/PanelIndex.cpp           | 26-50     | ?
+F ResolvePanelForSide                   | Source/PanelIndex.cpp           | 52-62     | ?
+F DeclaredPanelCount                    | Source/PanelIndex.cpp           | 64-67     | ?
+V StripInterior                         | Source/WorkspaceDrag.cpp        | 15        | ?
+V ResizeGripEdge                        | Source/WorkspaceDrag.cpp        | 24        | ?
+F GripOf                                | Source/WorkspaceDrag.cpp        | 26-31     | ?
+F CarrierStripOf                        | Source/WorkspaceDrag.cpp        | 35-62     | ?
+F TravelledPastThreshold                | Source/WorkspaceDrag.cpp        | 70-73     | ?
+F OpenTearOrReorder                     | Source/WorkspaceDrag.cpp        | 75-123    | ?
+F AdvanceWindowDrag                     | Source/WorkspaceDrag.cpp        | 125-158   | ?
+F AdvanceResizeDrag                     | Source/WorkspaceDrag.cpp        | 160-178   | ?
+F AdvancePartitionDrag                  | Source/WorkspaceDrag.cpp        | 180-218   | ?
+F SealDrag                              | Source/WorkspaceDrag.cpp        | 220-253   | ?
+F AdvanceWorkspaceDrag                  | Source/WorkspaceDrag.cpp        | 264-331   | ?
+F LocateWindowCovering                  | Source/WorkspaceDrag.cpp        | 337-346   | ?
+F PresentFloatingWindows                | Source/WorkspaceDrag.cpp        | 348-440   | ?
+F PaintDragPreview                      | Source/WorkspaceDrag.cpp        | 446-471   | ?
+V StripInterior                         | Source/WorkspacePanel.cpp       | 15        | ?
+F BoxOf                                 | Source/WorkspacePanel.cpp       | 26-38     | ?
+F SlotFor                               | Source/WorkspacePanel.cpp       | 43-57     | ?
+F HeaderOf                              | Source/WorkspacePanel.cpp       | 61-68     | ?
+F InteriorOf                            | Source/WorkspacePanel.cpp       | 70-85     | ?
+F EdgesUnder                            | Source/WorkspacePanel.cpp       | 89-102    | ?
+F PresentOnePanelBox                    | Source/WorkspacePanel.cpp       | 111-297   | ?
+F AdvancePanelMove                      | Source/WorkspacePanel.cpp       | 303-321   | ?
+F AdvancePanelResize                    | Source/WorkspacePanel.cpp       | 323-375   | ?
+F AdvanceBandDepth                      | Source/WorkspacePanel.cpp       | 380-421   | ?
+F AdvanceBandShare                      | Source/WorkspacePanel.cpp       | 426-484   | ?
+F BodyCarrying                          | Source/WorkspacePanel.cpp       | 495-528   | ?
+F PresentPanelLayer                     | Source/WorkspacePanel.cpp       | 530-580   | ?
+F AdvancePanelDrag                      | Source/WorkspacePanel.cpp       | 586-659   | ?
+F SealPanelDrag                         | Source/WorkspacePanel.cpp       | 661-691   | ?
+F CarryTitle                            | Source/WorkspaceSpace.cpp       | 24-27     | ?
+F StemOccurrences                       | Source/WorkspaceSpace.cpp       | 31-49     | ?
+F Located                               | Source/WorkspaceSpace.cpp       | 51-62     | ?
+F Detach                                | Source/WorkspaceSpace.cpp       | 68-124    | ?
+F DeclareCatalogue                      | Source/WorkspaceSpace.cpp       | 132-150   | ?
+F ConstructWorkspaceSpace               | Source/WorkspaceSpace.cpp       | 152-167   | ?
+F DeclareDocument                       | Source/WorkspaceSpace.cpp       | 173-247   | ?
+F WithdrawDocument                      | Source/WorkspaceSpace.cpp       | 249-269   | ?
+F ResolveDocument                       | Source/WorkspaceSpace.cpp       | 275-286   | ?
+F AmendDocument                         | Source/WorkspaceSpace.cpp       | 288-299   | ?
+F LocateLeafCarrying                    | Source/WorkspaceSpace.cpp       | 301-319   | ?
+F LocateWindowCarrying                  | Source/WorkspaceSpace.cpp       | 321-333   | ?
+F AmendFloatingWindow                   | Source/WorkspaceSpace.cpp       | 335-345   | ?
+F TearDocument                          | Source/WorkspaceSpace.cpp       | 351-380   | ?
+F DockDocument                          | Source/WorkspaceSpace.cpp       | 382-445   | ?
+F StackDocumentInWindow                 | Source/WorkspaceSpace.cpp       | 447-481   | ?
+F ReorderOccupant                       | Source/WorkspaceSpace.cpp       | 483-526   | ?
+F BoundedFraction                       | Source/WorkspaceSpace.cpp       | 538-541   | ?
+F LocatedPanel                          | Source/WorkspaceSpace.cpp       | 543-557   | ?
+F SideOccurrences                       | Source/WorkspaceSpace.cpp       | 560-571   | ?
+F DeclarePanelBox                       | Source/WorkspaceSpace.cpp       | 575-632   | ?
+F WithdrawPanelBox                      | Source/WorkspaceSpace.cpp       | 634-647   | ?
+F AmendPanelBox                         | Source/WorkspaceSpace.cpp       | 649-660   | ?
+F RaisePanelBox                         | Source/WorkspaceSpace.cpp       | 662-677   | ?
+F ResolveBodyPlacement                  | Source/WorkspaceSpace.cpp       | 683-920   | ?
+F ResolvePanelLanding                   | Source/WorkspaceSpace.cpp       | 926-976   | ?
+F DockPanelBox                          | Source/WorkspaceSpace.cpp       | 978-1027  | ?
+F PreviewFor                            | Source/WorkspaceSpace.cpp       | 1036-1050 | ?
+F ResolveDropLanding                    | Source/WorkspaceSpace.cpp       | 1054-1139 | ?
+F ResolveSpaceLayout                    | Source/WorkspaceSpace.cpp       | 1141-1149 | ?
+V StripInterior                         | Source/WorkspaceStrip.cpp       | 17        | ?
+F Coded                                 | Source/WorkspaceStrip.cpp       | 31-34     | ?
+F Corner                                | Source/WorkspaceStrip.cpp       | 36-39     | ?
+F Opposite                              | Source/WorkspaceStrip.cpp       | 41-44     | ?
+F PaintTrapezoid                        | Source/WorkspaceStrip.cpp       | 48-61     | ?
+F PaintPlusStroke                       | Source/WorkspaceStrip.cpp       | 67-73     | ?
+F PaintChevronStroke                    | Source/WorkspaceStrip.cpp       | 75-82     | ?
+F PaintCrossStroke                      | Source/WorkspaceStrip.cpp       | 84-92     | ?
+V MinimumTabExtent                      | Source/WorkspaceStrip.cpp       | 98        | ?
+V MaximumTabExtent                      | Source/WorkspaceStrip.cpp       | 99        | ?
+F ResolveTabExtent                      | Source/WorkspaceStrip.cpp       | 101-108   | ?
+F StripOf                               | Source/WorkspaceStrip.cpp       | 110-116   | ?
+F BodyOf                                | Source/WorkspaceStrip.cpp       | 118-129   | ?
+F SquareAt                              | Source/WorkspaceStrip.cpp       | 131-141   | ?
+F AreaOf                                | Source/WorkspaceStrip.cpp       | 143-153   | ?
+F PaintGripStroke                       | Source/WorkspaceStrip.cpp       | 157-167   | ?
+E RenameProgress                        | Source/WorkspaceStrip.cpp       | 179-184   | What one tick of an open rename produced.
+F AdvanceRename                         | Source/WorkspaceStrip.cpp       | 188-222   | ?
+F PresentOccupantStrip                  | Source/WorkspaceStrip.cpp       | 236-477   | ?
+F PaintGutters                          | Source/WorkspaceStrip.cpp       | 490-522   | ?
+F PresentMintingOverlay                 | Source/WorkspaceStrip.cpp       | 530-618   | ?
+F PresentPanelOverlay                   | Source/WorkspaceStrip.cpp       | 625-735   | ?
+F PresentWorkspaceSpace                 | Source/WorkspaceStrip.cpp       | 743-919   | ?
+F Coded                                 | Source/WorkspaceStripInternal.h | 29        | ?
+F Corner                                | Source/WorkspaceStripInternal.h | 30        | ?
+F Opposite                              | Source/WorkspaceStripInternal.h | 31        | ?
+F StripOf                               | Source/WorkspaceStripInternal.h | 33        | ?
+F BodyOf                                | Source/WorkspaceStripInternal.h | 34        | ?
+F SquareAt                              | Source/WorkspaceStripInternal.h | 35        | ?
+F AreaOf                                | Source/WorkspaceStripInternal.h | 36        | ?
+F PaintTrapezoid                        | Source/WorkspaceStripInternal.h | 38        | ?
+F PaintPlusStroke                       | Source/WorkspaceStripInternal.h | 39        | ?
+F PaintChevronStroke                    | Source/WorkspaceStripInternal.h | 40        | ?
+F PaintCrossStroke                      | Source/WorkspaceStripInternal.h | 41        | ?
+F PaintGripStroke                       | Source/WorkspaceStripInternal.h | 42        | ?
+T StripCarrier                          | Source/WorkspaceStripInternal.h | 51-56     | The rectangle a strip and its body occupy, and which of the two things owns it. no index. Both being absent is a carrier nothing can resolve an intent against.
+T DeferredIntent                        | Source/WorkspaceStripInternal.h | 66-98     | Every structural amendment one tick asked for, applied once the whole desk has been traversed. walking. Applying inside the traversal invalidates the very references it is iterating, and the defect presents as a leaf painted at another leaf's rectangle rather than as a crash.
+F PresentOccupantStrip                  | Source/WorkspaceStripInternal.h | 109       | Paints one carrier's body and trapezoid strip and resolves every pointer intent the strip carries. which is not structure — it is the record that lets a click activate and only travel tear.
+F AdvanceWorkspaceDrag                  | Source/WorkspaceStripInternal.h | 125       | Turns a travelled press into a drag, advances the one in flight, and applies it on release.
+F PresentFloatingWindows                | Source/WorkspaceStripInternal.h | 134       | Paints every floating window, topmost last, and resolves the input of the topmost one under the pointer. panels only in leaves would make tearing a tab out of the desk silently discard its panel arrangement.
+F LocateWindowCovering                  | Source/WorkspaceStripInternal.h | 141       | The topmost floating window covering a point, or zero.
+F PaintDragPreview                      | Source/WorkspaceStripInternal.h | 146       | Washes the resolved landing in the accent, above everything else the tick painted. back out of every band leaves the desk exactly as it was found.
+F PresentPanelLayer                     | Source/WorkspaceStripInternal.h | 160       | Presents one body's panel boxes — docked beneath, floating above — and resolves the input each one carries. its own extent would paint at the depth the band carried before the drag rather than the one it carries. recorded over it would sit on top of whatever the workspace draws into the body.
+F AdvancePanelDrag                      | Source/WorkspaceStripInternal.h | 171       | One tick of a panel move, a panel resize or a band re-share, and the landing a release would take. needs the body rectangle the box lives in and the desk's own drag record carries only the document.
+F SealPanelDrag                         | Source/WorkspaceStripInternal.h | 179       | Applies a released panel drag, docking the held box to whichever side the preview named. release has nothing left to apply.
+F BodyCarrying                          | Source/WorkspaceStripInternal.h | 182       | The body rectangle of one document, wherever it sits, or false when nothing carries it.
