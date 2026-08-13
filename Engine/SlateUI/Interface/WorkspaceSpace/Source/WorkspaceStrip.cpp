@@ -617,9 +617,15 @@ void PresentMintingOverlay(const ThemeSpecification& Theme,
         PointerConsumed = true;
 }
 
-// 📝 🚧 The (V) overlay offers one row, and choosing it declares a panel box into the active document. `2e` is what
-//    presents the box; until then the declaration is visible as the document's PanelBoxes extent alone.
-void PresentPanelOverlay(const ThemeSpecification& Theme, WorkspaceSpace& Space, bool& PointerConsumed)
+// 📝 The (V) overlay offers one row per panel the active workspace declared, and choosing one declares a box for that
+//    slot into the active document. The desk names no concrete panel: every caption on it came out of the ledger.
+// 📝 ⚠️ A null ledger, or one holding nothing, offers a single unnamed row. That row declares a box whose identifier
+//    resolves to no slot, which is precisely the arrangement `2e`'s presenter prints an identifier into — it is what
+//    makes docking and resizing testable before one concrete panel has been written.
+void PresentPanelOverlay(const ThemeSpecification& Theme,
+                         WorkspaceSpace&           Space,
+                         const PanelIndex*         Panels,
+                         bool&                     PointerConsumed)
 {
     if (!Space.PanelOverlay.OverlayOpen)
         return;
@@ -629,63 +635,91 @@ void PresentPanelOverlay(const ThemeSpecification& Theme, WorkspaceSpace& Space,
     ImDrawList*          Recording = ImGui::GetForegroundDrawList();
     const ImGuiIO&       Pointing  = ImGui::GetIO();
 
-    const char* Offered = "Panel box";
+    const char* Unnamed = "Panel box";
+
+    const std::uint32_t Offered = Panels != nullptr && Panels->DeclaredCount > 0u ? Panels->DeclaredCount : 1u;
+
+    float Widest = ImGui::CalcTextSize(Unnamed).x;
+
+    for (std::uint32_t Ordinal = 0u; Panels != nullptr && Ordinal < Panels->DeclaredCount; ++Ordinal)
+    {
+        const char* Titled = Panels->DeclaredSlots[Ordinal].PanelTitle;
+
+        if (Titled == nullptr)
+            Titled = Panels->DeclaredSlots[Ordinal].PanelIdentifier;
+
+        if (Titled == nullptr)
+            continue;
+
+        const float Measured = ImGui::CalcTextSize(Titled).x;
+
+        Widest = Measured > Widest ? Measured : Widest;
+    }
 
     WorkspaceRectangle Overlay;
     Overlay.PositionX = Space.PanelOverlay.AnchorX;
     Overlay.PositionY = Space.PanelOverlay.AnchorY;
-    Overlay.Width     = ImGui::CalcTextSize(Offered).x + Extents.PanelPadding * 4.0f;
-    Overlay.Height    = Extents.OverlayRowHeight + Extents.PanelPadding * 2.0f;
+    Overlay.Width     = Widest + Extents.PanelPadding * 4.0f;
+    Overlay.Height    = Extents.OverlayRowHeight * static_cast<float>(Offered) + Extents.PanelPadding * 2.0f;
+
+    // 📝 Nudged back inside the display exactly as the minting overlay is, and for the same reason: a row the artist
+    //    cannot reach is worse than one that opened a few pixels from the button that opened it.
+    if (Overlay.PositionX + Overlay.Width > Pointing.DisplaySize.x)
+        Overlay.PositionX = Pointing.DisplaySize.x - Overlay.Width;
 
     Recording->AddRectFilled(Corner(Overlay), Opposite(Overlay), Coded(Palette.PanelBackground),
                              Extents.CornerRounding);
     Recording->AddRect(Corner(Overlay), Opposite(Overlay), Coded(Palette.PanelBorder), Extents.CornerRounding,
                        0, Extents.BorderThickness);
 
-    WorkspaceRectangle Row;
-    Row.PositionX = Overlay.PositionX + Extents.PanelPadding;
-    Row.PositionY = Overlay.PositionY + Extents.PanelPadding;
-    Row.Width     = Overlay.Width - Extents.PanelPadding * 2.0f;
-    Row.Height    = Extents.OverlayRowHeight;
+    float Travelled = Overlay.PositionY + Extents.PanelPadding;
 
-    const bool Covered = RectangleCovers(Row, Pointing.MousePos.x, Pointing.MousePos.y);
-
-    if (Covered)
+    for (std::uint32_t Ordinal = 0u; Ordinal < Offered; ++Ordinal)
     {
-        Recording->AddRectFilled(Corner(Row), Opposite(Row), Coded(Palette.RowHovered),
-                                 Extents.CornerRounding * 0.5f);
-    }
+        const bool Declared = Panels != nullptr && Ordinal < Panels->DeclaredCount;
 
-    const ImVec2 Measured = ImGui::CalcTextSize(Offered);
+        const char* Identified = Declared ? Panels->DeclaredSlots[Ordinal].PanelIdentifier : nullptr;
+        const char* Titled     = Declared ? Panels->DeclaredSlots[Ordinal].PanelTitle      : nullptr;
 
-    Recording->AddText(ImVec2(Row.PositionX + Extents.PanelPadding,
-                              Row.PositionY + (Row.Height - Measured.y) * 0.5f),
-                       Coded(Palette.TextPrimary), Offered);
+        if (Titled == nullptr)
+            Titled = Identified != nullptr ? Identified : Unnamed;
 
-    if (Covered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-    {
-        PointerConsumed = true;
+        WorkspaceRectangle Row;
+        Row.PositionX = Overlay.PositionX + Extents.PanelPadding;
+        Row.PositionY = Travelled;
+        Row.Width     = Overlay.Width - Extents.PanelPadding * 2.0f;
+        Row.Height    = Extents.OverlayRowHeight;
 
-        const Outcome<WorkspaceDocument*> Amended = AmendDocument(Space, Space.PanelOverlay.TargetDocument);
+        const bool Covered = RectangleCovers(Row, Pointing.MousePos.x, Pointing.MousePos.y);
 
-        if (Amended.ContentPresent)
+        if (Covered)
         {
-            WorkspaceDocument* Standing = Amended.Resolve();
-
-            ++Standing->MintedPanels;
-
-            WorkspacePanelBox Declared;
-            Declared.Identity.SlotOrdinal    = Standing->MintedPanels;
-            Declared.Identity.SlotGeneration = 1u;
-            Declared.OffsetX                 = Extents.PanelPadding * 4.0f;
-            Declared.OffsetY                 = Extents.PanelPadding * 4.0f;
-
-            std::snprintf(Declared.Title, WorkspaceTitleExtent, "Panel %u", Standing->MintedPanels);
-
-            Standing->PanelBoxes.push_back(Declared);
+            Recording->AddRectFilled(Corner(Row), Opposite(Row), Coded(Palette.RowHovered),
+                                     Extents.CornerRounding * 0.5f);
         }
 
-        Space.PanelOverlay.OverlayOpen = false;
+        const ImVec2 Measured = ImGui::CalcTextSize(Titled);
+
+        Recording->AddText(ImVec2(Row.PositionX + Extents.PanelPadding,
+                                  Row.PositionY + (Row.Height - Measured.y) * 0.5f),
+                           Coded(Palette.TextPrimary), Titled);
+
+        if (Covered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            PointerConsumed = true;
+
+            const Outcome<WorkspaceDocument*> Amended = AmendDocument(Space, Space.PanelOverlay.TargetDocument);
+
+            // 🔴 Declared through `DeclarePanelBox` and never by appending a record here. That call owns the
+            //    generational reuse of a reclaimed record, the capacity refusal and the arrival stagger, and a box
+            //    minted beside it would carry a generation of one over a record already on its third identity.
+            if (Amended.ContentPresent)
+                DeclarePanelBox(*Amended.Resolve(), Identified != nullptr ? Identified : Unnamed, Titled);
+
+            Space.PanelOverlay.OverlayOpen = false;
+        }
+
+        Travelled += Extents.OverlayRowHeight;
     }
 
     const bool Outside = !RectangleCovers(Overlay, Pointing.MousePos.x, Pointing.MousePos.y);
@@ -706,7 +740,10 @@ void PresentPanelOverlay(const ThemeSpecification& Theme, WorkspaceSpace& Space,
 //                                                    THE PRESENTATION
 //------------------------------------------------------------------------------------------------------------------------
 
-void PresentWorkspaceSpace(const ThemeSpecification& Theme, WorkspaceSpace& Space, WorkspaceRectangle DeskArea)
+void PresentWorkspaceSpace(const ThemeSpecification& Theme,
+                           WorkspaceSpace&           Space,
+                           WorkspaceRectangle        DeskArea,
+                           const PanelIndex*         Panels)
 {
     ++Space.PresentedTicks;
 
@@ -739,7 +776,7 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme, WorkspaceSpace& Spac
     // 📝 The overlays resolve their input first because they are the topmost thing painted. A strip that consumed
     //    the press first would activate a tab underneath the overlay the artist was aiming at.
     PresentMintingOverlay(Theme, Space, Arriving, PointerConsumed);
-    PresentPanelOverlay(Theme, Space, PointerConsumed);
+    PresentPanelOverlay(Theme, Space, Panels, PointerConsumed);
 
     // 📝 🔴 A leaf under a floating window resolves no input. The windows are painted after the leaves so they sit
     //    above them, so the leaves cannot simply be told the pointer was consumed — they are told separately, by a
@@ -760,11 +797,23 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme, WorkspaceSpace& Spac
                              Space.Partitions[static_cast<std::size_t>(Link)].ActiveOccupant,
                              Arriving, Blocked);
 
+        // 📝 🔴 The panel layer is presented after the leaf's own strip and against the same blocking. A leaf beneath a
+        //    floating window paints its panels and resolves none of their input, which is the guard the strip took two
+        //    lines above — a panel that took the press through a window over it is `14` §4.2's reach-through defect.
+        const WorkspaceDocumentIdentity Active =
+            Space.Partitions[static_cast<std::size_t>(Link)].ActiveOccupant;
+
+        if (Active.IdentityDeclared())
+        {
+            PresentPanelLayer(Theme, Space, Active, BodyOf(Carrier.Area, Theme.Extents.TabStripHeight), Panels,
+                              Arriving, Blocked);
+        }
+
         if (Blocked && !Occluded)
             PointerConsumed = true;
     }
 
-    PresentFloatingWindows(Theme, Space, Arriving, PointerConsumed);
+    PresentFloatingWindows(Theme, Space, Panels, Arriving, PointerConsumed);
 
     PaintGutters(Theme, Space, PointerConsumed);
 
@@ -837,6 +886,27 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme, WorkspaceSpace& Spac
 
     if (Arriving.MintDeclared)
         DeclareDocument(Space, Arriving.MintOrdinal, Arriving.MintLink);
+
+    // 📝 A panel withdrawal empties its record without erasing it, so the boxes after it keep the positions their own
+    //    identities name. Deferred all the same: the walk that declared it is holding the placement that names it.
+    if (Arriving.PanelWithdrawDeclared)
+    {
+        const Outcome<WorkspaceDocument*> Amended = AmendDocument(Space, Arriving.PanelWithdrawBody);
+
+        if (Amended.ContentPresent)
+            WithdrawPanelBox(*Amended.Resolve(), Arriving.PanelWithdrawSubject);
+    }
+
+    // 📝 🔴 A raise and a withdrawal in one tick are two different boxes — the (x) returns before the raise is
+    //    recorded — so the order of these two blocks does not decide which box survives. The raise is applied second
+    //    because a raise of a box the same tick withdrew would climb the counter for a record nothing occupies.
+    if (Arriving.PanelRaiseDeclared)
+    {
+        const Outcome<WorkspaceDocument*> Amended = AmendDocument(Space, Arriving.PanelRaiseBody);
+
+        if (Amended.ContentPresent)
+            RaisePanelBox(*Amended.Resolve(), Arriving.PanelRaiseSubject);
+    }
 
     // 🔴 The preview is painted last, above every strip and window. Painted with the leaves it would be occluded
     //    by the very floating window the artist is dragging, which is the one thing that must stay visible.

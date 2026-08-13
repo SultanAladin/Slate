@@ -58,6 +58,39 @@ PointerReading  ResolvePointer();
 bool            PointerCovers(const PointerReading& Pointer, const WorkspaceRectangle& Area);
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                 THE PRESS AND THE TRACK
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 A press with no hold — what a control that answers a click and never drags reports.
+/// note  🔴 The release is only honoured where the press **began** over the same rectangle. A control that acted on
+///        any release covering it would fire when a drag started elsewhere happened to end over it, and the defect
+///        presents as a section collapsing because a slider release landed on its header.
+/// note  ⚠️ This claims no active identity. Only a control that must keep amending after the pointer has left its
+///        own rectangle needs one, and that control uses `ResolveTrack` instead.
+ControlInteraction ResolvePress(const WorkspaceRectangle& Area);
+
+/// 🧩 One grabbable track: reports the interaction and, while held, the fraction the pointer names.
+/// note  🔴 The hold is identified by the vendor's active identity and not by "the pointer is down over me". A drag
+///        that left the track would otherwise stop amending the moment it did, which is the defect where a slider
+///        drops the reading if the artist's hand strays a few pixels below the row.
+struct TrackHold
+{
+    ControlInteraction  Interaction = {};
+    bool                HoldOpen    = false;   // [-] - this track owns the pointer
+    float               Fraction    = 0.0f;    // [-] - where along it the pointer sits, bounded
+};
+
+/// 🧩 Resolves one track's hold, the claim keyed by an address the caller guarantees is stable across ticks.
+TrackHold ResolveTrack(const WorkspaceRectangle& Area, const void* Anchor);
+
+/// 🧩 Paints a track, its travelled fill and its knob at a declared fraction.
+void PaintTrack(const ThemeSpecification&  Theme,
+                const WorkspaceRectangle&  Area,
+                float                      Fraction,
+                bool                       FillTravelled,
+                bool                       Held);
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                      SHARED PAINTING
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -74,6 +107,13 @@ void PaintCaption(const WorkspaceRectangle&  Area,
                   float                      HorizontalAlignment,
                   float                      VerticalAlignment,
                   float                      FontScale);
+
+// 📝 The readout buffer every control prints into. Sixteen digits of a double plus a sign, a point and a terminator
+//    do not reach this, and a fixed extent keeps every control on these paths allocation-free.
+inline constexpr std::uint32_t ReadoutExtent = 40u;
+
+/// 🧩 One reading bounded to a closed interval, the ends included.
+double Bounded(double Reading, double Floor, double Ceiling);
 
 /// 🧩 One reading printed to the declared number of decimals, into a caller-owned buffer.
 /// note  ⚠️ Printed and never rounded in place. `02`'s tiers make the readout a presentation of the reading and

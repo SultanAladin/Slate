@@ -16,6 +16,11 @@
 namespace Slate
 {
 
+// 📝 The panel ledger is named by reference in the presentation below and never read here, so it is declared rather
+//    than included: `PanelIndex.h` includes this header to spell `WorkspacePanelSide`, and including it back would
+//    be a cycle. The one translation unit that presents panels includes both.
+struct PanelIndex;
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE TWO OCCUPANT SUBJECTS
 //------------------------------------------------------------------------------------------------------------------------
@@ -478,16 +483,45 @@ enum class WorkspacePanelSide : std::uint32_t
     Centre   = 5u    // [-] - whatever the reserved bands leave
 };
 
+// 📝 🔴 The eight resize handles as one bitmask rather than as eight enumerators. A corner is two edges held at
+//    once, and spelling the corners separately is four more cases every arithmetic amendment has to reach — which
+//    is exactly where Frontier's corner drags disagree with its edge drags by a pixel.
+inline constexpr std::uint32_t PanelEdgeLeft   = 1u;   // [-] - the left edge is held
+inline constexpr std::uint32_t PanelEdgeRight  = 2u;   // [-] - the right edge is held
+inline constexpr std::uint32_t PanelEdgeTop    = 4u;   // [-] - the top edge is held
+inline constexpr std::uint32_t PanelEdgeBottom = 8u;   // [-] - the bottom edge is held
+
+// 📝 A body carries a handful of panels, not a population. Bounded so the resolved placement below is a fixed
+//    extent and one tick of layout allocates nothing.
+inline constexpr std::uint32_t PanelBoxCapacity = 12u;   // [-] - panel boxes one body may hold
+
+// 📝 A floating panel narrower or shorter than this cannot carry a header and a body at once.
+inline constexpr float PanelMinimumExtent = 120.0f;   // [px] - the smallest a panel resize may leave a box
+
+// 📝 The reach inside a floating box's own rectangle within which a press names an edge rather than the body. Wider
+//    than the border it paints, because a one pixel target is a target the artist misses.
+inline constexpr float PanelHandleReach = 6.0f;   // [px] - inset within which a press resolves as a resize
+
+// 📝 🔴 A docked band is bounded to these fractions of the body span. Below the floor the panel cannot present its
+//    own header; above the ceiling the document it sits beside stops being the thing the body is for.
+inline constexpr float PanelDockFloor   = 0.12f;   // [-] - shallowest a docked band may be dragged
+inline constexpr float PanelDockCeiling = 0.60f;   // [-] - deepest a docked band may be dragged
+
 /// 🧩 One panel box inside one document's body — a floating overlay until it is docked to a side.
 /// note  ⚠️ Offsets are relative to the body's top-left, so a floating box tracks the body when the desk is
 ///        re-divided rather than staying where the screen was.
-/// note  🚧 The presentation of these is `2e` and is severable. The record is declared now because
-///        `WorkspaceDocument` holds it and the document's extent should not change when `2e` lands.
+/// note  🔴 `DeclaredIdentifier` names a `PanelSlot` in the workspace's own ledger and is never the panel itself.
+///        A box holding what it presents is the `14` §1 defect arriving through the layout instead of through the
+///        panel, and it would also make a panel arrangement outlive the workspace that declared its contents.
+/// note  🔴 `RaiseOrdinal` and not a position in the body's own list. A record's position **is** its identity's
+///        ordinal, so a floating box cannot be raised by rotating the list the way a floating window is — the
+///        rotation would hand every later box the identity of the one before it.
 /// tag   owning
 struct WorkspacePanelBox
 {
     WorkspacePanelIdentity  Identity                     = {};                              // [-]
     char                    Title[WorkspaceTitleExtent]  = {};                              // [-] - header caption
+    const char*             DeclaredIdentifier = nullptr;   // [-]  - the ledger slot it presents; static storage
     WorkspacePanelSide      Side         = WorkspacePanelSide::Floating;                    // [-] - the anchor
     float                   OffsetX      = 0.0f;    // [px] - floating top-left, relative to the body
     float                   OffsetY      = 0.0f;    // [px] - floating top-left, relative to the body
@@ -495,8 +529,132 @@ struct WorkspacePanelBox
     float                   Height       = 160.0f;  // [px] - floating height
     float                   DockExtent   = 0.28f;   // [-]  - docked band depth, a fraction of the body span
     float                   SlotFraction = 1.0f;    // [-]  - share of the band when panels share a side
+    std::uint32_t           RaiseOrdinal = 0u;      // [-]  - highest floats topmost; zero has never been raised
     bool                    SlotOccupied = true;    // [-]  - false marks a reclaimed record
 };
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE RESOLVED PLACEMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Where one panel box resolved to this tick, and the two bands a drag may take hold of.
+/// note  A docked panel carries a depth grip on the band's inner edge always, and a share grip only where another
+///        panel follows it along the same side. The last panel on a side has nothing to share with.
+/// tag   contract, nonallocating, nonthrowing
+struct WorkspacePanelPlacement
+{
+    WorkspacePanelIdentity  Identity          = {};      // [-]  - which box this resolved
+    WorkspaceRectangle      Area              = {};      // [px] - the whole box, header included
+    WorkspaceRectangle      DepthGrip         = {};      // [px] - the band's inner edge, dragged to change depth
+    WorkspaceRectangle      ShareGrip         = {};      // [px] - the divider to the next panel on this side
+    std::uint32_t           RaiseOrdinal      = 0u;      // [-]  - the box's own; the floating run is sorted by it
+    bool                    DepthGripDeclared = false;   // [-]  - false for a floating box
+    bool                    ShareGripDeclared = false;   // [-]  - false for the last panel on a side
+};
+
+/// 🧩 Every panel of one body resolved against that body's rectangle, and what the bands left the document.
+/// note  🔴 Docked first and floating second, in that order, because docked panels paint beneath floating ones and
+///        the presenter walks these two runs in the order they are written here.
+/// note  ⚠️ `CentreArea` is what the reserved bands left. A workspace that declared a panel for
+///        `WorkspacePanelSide::Centre` fills it; otherwise the document's own content does.
+/// tag   contract, nonallocating, nonthrowing
+struct WorkspaceBodyPlacement
+{
+    WorkspacePanelPlacement  Docked[PanelBoxCapacity]   = {};    // [-]  - painted first, beneath the floating run
+    std::uint32_t            DockedCount                = 0u;    // [-]
+    WorkspacePanelPlacement  Overlaid[PanelBoxCapacity] = {};    // [-]  - painted last, in raise order
+    std::uint32_t            OverlaidCount              = 0u;    // [-]
+    WorkspaceRectangle       CentreArea                 = {};    // [px] - what the reserved bands left over
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     PANEL OPERATIONS
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Declares one panel box into one document's body, floating, and names the ledger slot it presents.
+/// in    Standing            [-]  the document the box joins
+/// in    DeclaredIdentifier  [-]  the ledger slot's identifier, retained and never copied; static storage
+/// in    Title               [-]  the header caption, copied into the box's own extent
+/// out   Outcome             [-]  the minted identity; refuses with ExtentExhausted at PanelBoxCapacity and with
+///                                ContentUnsupported when no identifier is named
+/// note  The box arrives floating whatever side its ledger slot declared. A declared side is where a workspace
+///        asks the panel to sit, and honouring it here would place a box the artist did not put there.
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<WorkspacePanelIdentity> DeclarePanelBox(WorkspaceDocument& Standing,
+                                                const char*        DeclaredIdentifier,
+                                                const char*        Title);
+
+/// 🧩 Withdraws one panel box from one body, releasing its record.
+/// out   Outcome  [-]  refuses with IdentityStale when no box resolves
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<bool> WithdrawPanelBox(WorkspaceDocument& Standing, WorkspacePanelIdentity Subject);
+
+/// 🧩 One panel box, for moving, resizing or re-docking it.
+/// out   Outcome  [-]  refuses with IdentityStale when no box resolves
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<WorkspacePanelBox*> AmendPanelBox(WorkspaceDocument& Standing, WorkspacePanelIdentity Subject);
+
+/// 🧩 Brings one floating panel box in front of every other floating box of the same body.
+/// out   Outcome  [-]  refuses with IdentityStale when no box resolves
+/// post  the box carries the body's highest raise ordinal and the floating run presents it last
+/// note  🔴 A raise ordinal and never a rotation of the body's list. A box's position in that list **is** the
+///        ordinal its identity carries, so rotating the list would hand every box after the raised one the
+///        identity of its predecessor — a drag in flight would then be resizing a different panel.
+/// note  A box already topmost is raised again all the same. Refusing that would make the caller test for it, and
+///        the counter is the desk's own and monotonic, so a second raise costs one increment.
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<bool> RaisePanelBox(WorkspaceDocument& Standing, WorkspacePanelIdentity Subject);
+
+/// 🧩 Resolves every panel of one body against that body's rectangle, and what the bands leave the document.
+/// in    Standing         [-]   the document, read and never amended
+/// in    Body             [px]  the body rectangle, beneath the leaf's own tab strip
+/// in    GutterThickness  [px]  from the theme; the depth and share grips are this thick
+/// out   Placement        [-]   docked then floating, and the centre remainder
+/// note  🔴 Left and Right claim full-height columns first, Top and Bottom claim rows spanning what those left,
+///        and the centre is the remainder. Resolving the rows first would give a corner to two bands at once, and
+///        the panel that lost the argument paints under the other one.
+/// note  ⚠️ Several panels on one side take the band depth of the **first** of them and split its long axis by
+///        their shares. A drag writes the dragged depth to every panel on that side, so the record stays per-panel
+///        while the band stays one band.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+WorkspaceBodyPlacement ResolveBodyPlacement(const WorkspaceDocument& Standing,
+                                            WorkspaceRectangle       Body,
+                                            float                    GutterThickness);
+
+/// 🧩 Resolves which side a released panel drag would dock to, from the five-zone cross over one body.
+/// in    Body      [px]  the body the pointer is over
+/// out   Side      [-]   the side a release would take
+/// out   Preview   [px]  what the accent wash covers before the artist commits
+/// note  🔴 The middle of the cross resolves to `Floating` and never to `Centre`. A panel docked over the centre
+///        would cover the document the body exists to present, so `Centre` is a side a workspace declares
+///        deliberately and never one a careless release mints.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+WorkspacePanelSide ResolvePanelLanding(WorkspaceRectangle  Body,
+                                       float               PointerX,
+                                       float               PointerY,
+                                       WorkspaceRectangle& Preview);
+
+/// 🧩 Lands one panel box on a side of its own body, or returns it to floating.
+/// in    Landed     [-]   the side it takes
+/// in    Body       [px]  the body, so a box returning to floating arrives where it was released
+/// in    ReleaseX   [px]  the pointer at the release
+/// in    ReleaseY   [px]
+/// out   Outcome    [-]   refuses with IdentityStale when no box resolves
+/// post  a box docked to a side carries that side's current band depth; one returned to floating keeps its extent
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<bool> DockPanelBox(WorkspaceDocument&     Standing,
+                           WorkspacePanelIdentity Subject,
+                           WorkspacePanelSide     Landed,
+                           WorkspaceRectangle     Body,
+                           float                  ReleaseX,
+                           float                  ReleaseY);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ONE DOCUMENT
@@ -517,12 +675,13 @@ struct WorkspaceDocument
                                                        PanelPartitions = {};   // [-] - the body's docked arrangement
     std::int32_t                                       PanelRoot   = -1;       // [-] - -1 while nothing is docked
     std::uint32_t                                      MintedPanels = 0u;      // [-] - source of "Panel N"
+    std::uint32_t                                      RaisedPanels = 0u;      // [-] - source of RaiseOrdinal
     bool                                               SlotOccupied = true;    // [-] - false marks a reclaimed slot
 };
 
 /// 🧩 A torn-out rectangle carrying its own ordered documents and its own tab strip.
-/// note  🚧 Moved, resized and docked in `2d`. Declared now because the desk holds the list and a document may
-///         already sit in one before any drag exists.
+/// note  ⚠️ The list is the paint order and its last entry is topmost, which is why a raise rotates it. A panel box
+///        cannot be raised the same way — its position in its own list is the ordinal its identity carries.
 /// tag   owning
 struct WorkspaceFloatingWindow
 {
@@ -540,8 +699,9 @@ struct WorkspaceFloatingWindow
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What the one drag in flight is addressing. Exactly one is open at a time.
-/// note  🚧 `2c` writes only None and the pending press. The remaining modes are resolved by `2d`; they are
-///        declared now because the record is one struct and adding a mode later would re-extent the desk.
+/// note  🔴 Exactly one mode is open, and the mode alone says which fields of the record carry meaning. A mode that
+///        read a field no branch wrote is where a released panel drag docks a document, which is what the seam
+///        between the desk's own seal and the panel layer's exists to keep apart.
 /// tag   contract
 enum class WorkspaceDragMode : std::uint32_t
 {
@@ -616,6 +776,17 @@ struct WorkspaceDragRecord
     float                      PendingPressX   = 0.0f;   // [px] - pointer at the press
     float                      PendingPressY   = 0.0f;   // [px]
     float                      PendingTabLeft  = 0.0f;   // [px] - the trapezoid's left at the press
+
+    // 📝 The three panel modes address a box inside one body, so they carry the body's document alongside the box:
+    //    a panel identity is unique within one document and not across the desk.
+    WorkspaceDocumentIdentity  HeldBody       = {};      // [-]  - the document whose body holds the panel
+    WorkspacePanelIdentity     HeldPanel      = {};      // [-]  - the box being moved, resized or re-banded
+    std::uint32_t              HeldEdges      = 0u;      // [-]  - PanelEdge bitmask for a resize; zero absent
+    WorkspacePanelSide         HeldSide       = WorkspacePanelSide::Floating;   // [-] - the band being re-banded
+    bool                       ShareHeld      = false;   // [-]  - a band's share divider, not its depth
+    WorkspaceRectangle         HeldPanelArea  = {};      // [px] - the box's rectangle when the press landed
+
+    WorkspacePanelSide         PreviewSide    = WorkspacePanelSide::Floating;   // [-] - where a release would dock
 
     WorkspaceDropZone          PreviewZone    = WorkspaceDropZone::None;
     std::int32_t               PreviewLink    = -1;      // [-]  - leaf the preview targets
@@ -834,19 +1005,25 @@ WorkspaceDropLanding ResolveDropLanding(const WorkspaceSpace& Space,
 /// tag   api, nonthrowing
 void ResolveSpaceLayout(WorkspaceSpace& Space, WorkspaceRectangle DeskArea, float GutterThickness);
 
-/// 🧩 Presents the whole desk for one tick — layout, bodies, trapezoid strips, overlays, then input.
+/// 🧩 Presents the whole desk for one tick — layout, bodies, panels, trapezoid strips, overlays, then input.
 /// in    Theme     [-]   the resolved theme, read and never held
 /// in    Space     [-]   the desk, amended in place
 /// in    DeskArea  [px]  the area between the two bands, supplied by the bracket
+/// in    Panels    [-]   the active workspace's ledger, or null where no workspace has declared one
 /// pre   an interface tick is open — `InterfaceExchange::Advance` delivered and `Seal` has not
-/// post  layout is current, and every activation, rename and mint the tick carried has been applied
+/// post  layout is current, and every activation, rename, mint and panel amendment the tick carried is applied
 /// note  🔴 Nothing here opens a vendor window. Every quad is recorded on the foreground list, because a
 ///        trapezoid cannot be a vendor tab and a vendor popup would be painted beneath the tabs that opened it.
-/// note  🚧 `2c`. Tear-out, docking preview and the in-body panel layer are `2d` and `2e`; the records they
-///        write are declared above and this call leaves them at rest.
+/// note  🔴 The ledger arrives per tick and is never held. A desk that retained it would present a deactivated
+///        workspace's panels against a context that workspace has already released.
+/// note  ⚠️ A null ledger is not a refusal. Every box still paints its own frame and header, and its body prints
+///        the identifier it names, which is what makes a panel arrangement testable before any panel exists.
 /// cost  🚩
 /// tag   api, nonthrowing
-void PresentWorkspaceSpace(const ThemeSpecification& Theme, WorkspaceSpace& Space, WorkspaceRectangle DeskArea);
+void PresentWorkspaceSpace(const ThemeSpecification& Theme,
+                           WorkspaceSpace&           Space,
+                           WorkspaceRectangle        DeskArea,
+                           const PanelIndex*         Panels);
 
 // 📐 Identities, occupant counts and pool indices are Exact. Rectangles, ratios and band fractions are Bounded.
 //    The component claims Bounded, per `00` §3's transitivity rule.

@@ -24,11 +24,17 @@ namespace Slate
 //                                                      ONE DECLARED PANEL
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The routine one panel presents through, handed the resolved theme and the context its workspace threads in.
+/// 🧩 The routine one panel presents through, handed the resolved theme, the rectangle it was given, and the
+///     context its workspace threads in.
 /// note  🔴 `14` §1: the theme arrives by const reference so no panel can spell a colour or an extent of its own,
 ///        and the context is opaque so one shared outliner routine serves every workspace without naming any.
+/// note  🔴 The rectangle is a parameter and never something the panel resolves for itself. `2e` places a panel in
+///        a band whose depth the artist drags, so a panel that read a rectangle from anywhere else would paint at
+///        the extent the band had before the drag — and the defect presents as a panel that lags its own frame.
 /// tag   contract
-using PanelPresentRoutine = void (*)(const ThemeSpecification& Theme, void* PresentContext);
+using PanelPresentRoutine = void (*)(const ThemeSpecification& Theme,
+                                     const WorkspaceRectangle& Area,
+                                     void*                     PresentContext);
 
 /// 🧩 One panel as a workspace declares it — what it is called, where it sits, and how it presents.
 /// note  🔴 The context is the workspace's own storage and this ledger never owns it. A slot that owned what its

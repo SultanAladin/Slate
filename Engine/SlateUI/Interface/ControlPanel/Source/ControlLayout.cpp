@@ -120,6 +120,114 @@ bool PointerCovers(const PointerReading& Pointer, const WorkspaceRectangle& Area
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                 THE PRESS AND THE TRACK
+//------------------------------------------------------------------------------------------------------------------------
+
+ControlInteraction ResolvePress(const WorkspaceRectangle& Area)
+{
+    const PointerReading Pointer  = ResolvePointer();
+    const ImGuiIO&       Arriving = ImGui::GetIO();
+
+    ControlInteraction Interaction;
+
+    Interaction.PointerOver = PointerCovers(Pointer, Area);
+
+    if (Interaction.PointerOver && Pointer.PressBegan)
+        Interaction.EditOpened = true;
+
+    // 📝 🔴 The press's own origin, not the pointer's position at release. The vendor records where each button
+    //    went down, and reading that is what keeps a release that began on a slider from also sealing whatever
+    //    rectangle the artist happened to let go over.
+    if (Interaction.PointerOver && Pointer.PressEnded)
+    {
+        const ImVec2 Origin = Arriving.MouseClickedPos[ImGuiMouseButton_Left];
+
+        if (RectangleCovers(Area, Origin.x, Origin.y))
+            Interaction.EditSealed = true;
+    }
+
+    return Interaction;
+}
+
+TrackHold ResolveTrack(const WorkspaceRectangle& Area, const void* Anchor)
+{
+    const PointerReading Pointer = ResolvePointer();
+    const ImGuiID        Claim   = ImGui::GetID(Anchor);
+
+    TrackHold Held;
+
+    Held.Interaction.PointerOver = PointerCovers(Pointer, Area);
+
+    if (Held.Interaction.PointerOver && Pointer.PressBegan && ImGui::GetActiveID() == 0u)
+    {
+        ImGui::SetActiveID(Claim, ImGui::GetCurrentWindowRead());
+        Held.Interaction.EditOpened = true;
+    }
+
+    if (ImGui::GetActiveID() == Claim)
+    {
+        Held.HoldOpen = true;
+
+        // 📝 🔴 The claim is renewed every tick it is held. The vendor drops an active identity that no item marked
+        //    alive during the previous tick, and marking alive is something its own item bracket does — which this
+        //    control has none of, because it never enters one. Without the renewal the hold survives exactly one
+        //    tick past the press, and the defect presents as a drag that amends the reading once and then goes
+        //    dead under a pointer that is still down.
+        ImGui::KeepAliveID(Claim);
+
+        if (Pointer.PressEnded || !Pointer.PressHeld)
+        {
+            ImGui::ClearActiveID();
+            Held.HoldOpen                = false;
+            Held.Interaction.EditSealed  = true;
+        }
+    }
+
+    const float Span = Area.Width > 0.0f ? Area.Width : 1.0f;
+
+    Held.Fraction = (Pointer.PositionX - Area.PositionX) / Span;
+    Held.Fraction = Held.Fraction < 0.0f ? 0.0f : (Held.Fraction > 1.0f ? 1.0f : Held.Fraction);
+
+    return Held;
+}
+
+void PaintTrack(const ThemeSpecification&  Theme,
+                const WorkspaceRectangle&  Area,
+                float                      Fraction,
+                bool                       FillTravelled,
+                bool                       Held)
+{
+    const LayoutExtents& Extents = Theme.Extents;
+
+    const WorkspaceRectangle Track = CentredBand(Area, Extents.SliderTrackHeight);
+
+    PaintFill(Track, Theme.Palette.SliderTrack, Extents.EntryRounding);
+
+    if (FillTravelled && Fraction > 0.0f)
+    {
+        WorkspaceRectangle Travelled = Track;
+
+        Travelled.Width = Track.Width * Fraction;
+
+        PaintFill(Travelled, Theme.Palette.SliderFill, Extents.EntryRounding);
+    }
+
+    // 📝 The knob is inset by its own radius at both ends so that it sits inside the track at nought and at one
+    //    rather than half outside it. The reference lets it overhang; the reference is a rounded div and this is a
+    //    quad on a recording, where the overhang reads as a knob that has come loose.
+    const float Radius = Extents.SliderKnobEdge * 0.5f;
+    const float Travel = Track.Width - Radius * 2.0f;
+    const float KnobX  = Track.PositionX + Radius + (Travel > 0.0f ? Travel * Fraction : 0.0f);
+    const float KnobY  = Track.PositionY + Track.Height * 0.5f;
+
+    PaintDisc(KnobX, KnobY, Radius, Theme.Palette.SliderKnob);
+
+    if (Held)
+        PaintDisc(KnobX, KnobY, Radius + Extents.BorderThickness * 3.0f,
+                  Attenuate(Theme.Palette.SelectionMarker, 0.12));
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                      SHARED PAINTING
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -185,6 +293,11 @@ void PaintCaption(const WorkspaceRectangle&  Area,
     Recording()->PushClipRect(Corner(Area), Opposite(Area), true);
     Recording()->AddText(ImGui::GetFont(), ScaledSize, ImVec2(PlacedX, PlacedY), Coded(Colour), Caption);
     Recording()->PopClipRect();
+}
+
+double Bounded(double Reading, double Floor, double Ceiling)
+{
+    return Reading < Floor ? Floor : (Reading > Ceiling ? Ceiling : Reading);
 }
 
 void PrintReading(char* Destination, std::uint32_t DestinationExtent, double Reading, std::uint32_t Decimals)

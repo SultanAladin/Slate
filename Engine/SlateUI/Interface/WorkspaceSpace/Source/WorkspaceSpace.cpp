@@ -526,6 +526,507 @@ Outcome<bool> ReorderOccupant(WorkspaceSpace&           Space,
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                   THE PANEL BOXES
+//------------------------------------------------------------------------------------------------------------------------
+
+namespace
+{
+
+// 📝 Bounded once here so the floor and the ceiling are spelled in one place. A band dragged past either bound is
+//    held at it rather than refused: a drag is a continuous gesture and refusing part way through one reads as a
+//    band that stopped following the pointer for no reason the artist can see.
+float BoundedFraction(float Asked, float Floor, float Ceiling)
+{
+    return Asked < Floor ? Floor : (Asked > Ceiling ? Ceiling : Asked);
+}
+
+std::size_t LocatedPanel(const WorkspaceDocument& Standing, WorkspacePanelIdentity Subject)
+{
+    if (!Subject.IdentityDeclared())
+        return Standing.PanelBoxes.size();
+
+    for (std::size_t Ordinal = 0u; Ordinal < Standing.PanelBoxes.size(); ++Ordinal)
+    {
+        const WorkspacePanelBox& Box = Standing.PanelBoxes[Ordinal];
+
+        if (Box.SlotOccupied && Box.Identity == Subject)
+            return Ordinal;
+    }
+
+    return Standing.PanelBoxes.size();
+}
+
+// 📝 How many occupied boxes already name one side, which is what a newly docked panel's share is resolved against.
+std::uint32_t SideOccurrences(const WorkspaceDocument& Standing, WorkspacePanelSide Side)
+{
+    std::uint32_t Counted = 0u;
+
+    for (const WorkspacePanelBox& Box : Standing.PanelBoxes)
+    {
+        if (Box.SlotOccupied && Box.Side == Side)
+            ++Counted;
+    }
+
+    return Counted;
+}
+
+}   // namespace
+
+Outcome<WorkspacePanelIdentity> DeclarePanelBox(WorkspaceDocument& Standing,
+                                                const char*        DeclaredIdentifier,
+                                                const char*        Title)
+{
+    if (DeclaredIdentifier == nullptr || DeclaredIdentifier[0] == '\0')
+    {
+        return Outcome<WorkspacePanelIdentity>::Refuse(
+            { RefusalReason::ContentUnsupported, "a panel box names no ledger identifier" });
+    }
+
+    // 📝 A reclaimed record is reused with its generation advanced, exactly as a document slot is, so an identity a
+    //    drag is holding across a withdrawal names the record it was issued for and never its successor.
+    std::size_t Claimed = Standing.PanelBoxes.size();
+
+    for (std::size_t Ordinal = 0u; Ordinal < Standing.PanelBoxes.size(); ++Ordinal)
+    {
+        if (!Standing.PanelBoxes[Ordinal].SlotOccupied)
+        {
+            Claimed = Ordinal;
+            break;
+        }
+    }
+
+    if (Claimed == Standing.PanelBoxes.size())
+    {
+        if (Standing.PanelBoxes.size() >= PanelBoxCapacity)
+        {
+            return Outcome<WorkspacePanelIdentity>::Refuse(
+                { RefusalReason::ExtentExhausted, "the body already holds its declared panel capacity" });
+        }
+
+        Standing.PanelBoxes.push_back(WorkspacePanelBox{});
+    }
+
+    WorkspacePanelBox& Minted = Standing.PanelBoxes[Claimed];
+
+    const std::uint32_t Generation = Minted.Identity.SlotGeneration + 1u;
+
+    ++Standing.MintedPanels;
+
+    Minted                            = WorkspacePanelBox{};
+    Minted.Identity.SlotOrdinal       = static_cast<std::uint32_t>(Claimed);
+    Minted.Identity.SlotGeneration    = Generation;
+    Minted.DeclaredIdentifier         = DeclaredIdentifier;
+    Minted.SlotOccupied               = true;
+
+    // 📝 The offsets stagger with the mint count so two boxes declared in a row do not arrive exactly on top of one
+    //    another, which is the arrangement where the artist cannot tell there are two.
+    const float Stagger = static_cast<float>(Standing.MintedPanels % 6u) * 18.0f;
+
+    Minted.OffsetX = 24.0f + Stagger;
+    Minted.OffsetY = 24.0f + Stagger;
+
+    std::snprintf(Minted.Title, WorkspaceTitleExtent, "%s",
+                  Title != nullptr && Title[0] != '\0' ? Title : DeclaredIdentifier);
+
+    return Outcome<WorkspacePanelIdentity>::Deliver(Minted.Identity);
+}
+
+Outcome<bool> WithdrawPanelBox(WorkspaceDocument& Standing, WorkspacePanelIdentity Subject)
+{
+    const std::size_t Resting = LocatedPanel(Standing, Subject);
+
+    if (Resting == Standing.PanelBoxes.size())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "no panel box resolves to that identity" });
+
+    // 📝 The record is emptied rather than erased. Erasing would move every later box's position in the list, and
+    //    the placement the tick already resolved names positions in exactly that list.
+    Standing.PanelBoxes[Resting].SlotOccupied       = false;
+    Standing.PanelBoxes[Resting].DeclaredIdentifier = nullptr;
+
+    return Outcome<bool>::Deliver(true);
+}
+
+Outcome<WorkspacePanelBox*> AmendPanelBox(WorkspaceDocument& Standing, WorkspacePanelIdentity Subject)
+{
+    const std::size_t Resting = LocatedPanel(Standing, Subject);
+
+    if (Resting == Standing.PanelBoxes.size())
+    {
+        return Outcome<WorkspacePanelBox*>::Refuse(
+            { RefusalReason::IdentityStale, "no panel box resolves to that identity" });
+    }
+
+    return Outcome<WorkspacePanelBox*>::Deliver(&Standing.PanelBoxes[Resting]);
+}
+
+Outcome<bool> RaisePanelBox(WorkspaceDocument& Standing, WorkspacePanelIdentity Subject)
+{
+    const std::size_t Resting = LocatedPanel(Standing, Subject);
+
+    if (Resting == Standing.PanelBoxes.size())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "no panel box resolves to that identity" });
+
+    // 📝 The counter only ever climbs, so the raised box is in front of every box raised before it and of every box
+    //    never raised at all. Renumbering the whole body instead would need the boxes sorted, and the sort would
+    //    move the records whose positions their own identities name.
+    ++Standing.RaisedPanels;
+
+    Standing.PanelBoxes[Resting].RaiseOrdinal = Standing.RaisedPanels;
+
+    return Outcome<bool>::Deliver(true);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE BODY PLACEMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+WorkspaceBodyPlacement ResolveBodyPlacement(const WorkspaceDocument& Standing,
+                                            WorkspaceRectangle       Body,
+                                            float                    GutterThickness)
+{
+    WorkspaceBodyPlacement Placed;
+
+    Placed.CentreArea = Body;
+
+    if (Body.Width <= 1.0f || Body.Height <= 1.0f)
+        return Placed;
+
+    // 📝 🔴 The four sides are resolved in a fixed order — columns before rows — so a corner belongs to exactly one
+    //    band. Resolving the rows first would hand the top-left to both the left column and the top row, and the
+    //    panel that lost would paint underneath the other with no way for the artist to reach it.
+    const WorkspacePanelSide Ordered[4] =
+    {
+        WorkspacePanelSide::Left,
+        WorkspacePanelSide::Right,
+        WorkspacePanelSide::Top,
+        WorkspacePanelSide::Bottom
+    };
+
+    for (const WorkspacePanelSide Side : Ordered)
+    {
+        const std::uint32_t Sharing = SideOccurrences(Standing, Side);
+
+        if (Sharing == 0u)
+            continue;
+
+        const bool  Across = Side == WorkspacePanelSide::Left || Side == WorkspacePanelSide::Right;
+        const float Span   = Across ? Placed.CentreArea.Width : Placed.CentreArea.Height;
+
+        // 📝 The band takes the depth of the first panel declared on the side. Every panel there carries its own
+        //    copy, and a depth drag writes all of them, so the record stays per-panel while the band stays one band.
+        float Depth = 0.28f;
+
+        for (const WorkspacePanelBox& Box : Standing.PanelBoxes)
+        {
+            if (Box.SlotOccupied && Box.Side == Side)
+            {
+                Depth = BoundedFraction(Box.DockExtent, PanelDockFloor, PanelDockCeiling);
+                break;
+            }
+        }
+
+        const float BandDepth = Span * Depth;
+
+        WorkspaceRectangle Band = Placed.CentreArea;
+
+        if (Side == WorkspacePanelSide::Left)
+        {
+            Band.Width = BandDepth;
+
+            Placed.CentreArea.PositionX += BandDepth;
+            Placed.CentreArea.Width     -= BandDepth;
+        }
+        else if (Side == WorkspacePanelSide::Right)
+        {
+            Band.PositionX = Placed.CentreArea.PositionX + Placed.CentreArea.Width - BandDepth;
+            Band.Width     = BandDepth;
+
+            Placed.CentreArea.Width -= BandDepth;
+        }
+        else if (Side == WorkspacePanelSide::Top)
+        {
+            Band.Height = BandDepth;
+
+            Placed.CentreArea.PositionY += BandDepth;
+            Placed.CentreArea.Height    -= BandDepth;
+        }
+        else
+        {
+            Band.PositionY = Placed.CentreArea.PositionY + Placed.CentreArea.Height - BandDepth;
+            Band.Height    = BandDepth;
+
+            Placed.CentreArea.Height -= BandDepth;
+        }
+
+        // 📝 The shares are normalised against their own sum rather than trusted to reach one. A withdrawal leaves
+        //    the survivors' shares summing to less than one, and trusting them would leave a gap in the band that
+        //    nothing paints and nothing can be dragged into.
+        float Summed = 0.0f;
+
+        for (const WorkspacePanelBox& Box : Standing.PanelBoxes)
+        {
+            if (Box.SlotOccupied && Box.Side == Side)
+                Summed += Box.SlotFraction > 0.02f ? Box.SlotFraction : 0.02f;
+        }
+
+        if (!(Summed > 0.0f))
+            Summed = 1.0f;
+
+        // 📝 The band is split along its long axis: a column splits vertically, a row horizontally.
+        const float SharedSpan = Across ? Band.Height : Band.Width;
+
+        float Travelled = 0.0f;
+        std::uint32_t PlacedOnSide = 0u;
+
+        for (std::size_t Ordinal = 0u; Ordinal < Standing.PanelBoxes.size(); ++Ordinal)
+        {
+            const WorkspacePanelBox& Box = Standing.PanelBoxes[Ordinal];
+
+            if (!Box.SlotOccupied || Box.Side != Side)
+                continue;
+
+            if (Placed.DockedCount >= PanelBoxCapacity)
+                break;
+
+            const float Share  = (Box.SlotFraction > 0.02f ? Box.SlotFraction : 0.02f) / Summed;
+            const float Extent = SharedSpan * Share;
+
+            WorkspacePanelPlacement Resolved;
+
+            Resolved.Identity = Box.Identity;
+            Resolved.Area     = Band;
+
+            if (Across)
+            {
+                Resolved.Area.PositionY = Band.PositionY + Travelled;
+                Resolved.Area.Height    = Extent;
+            }
+            else
+            {
+                Resolved.Area.PositionX = Band.PositionX + Travelled;
+                Resolved.Area.Width     = Extent;
+            }
+
+            // -- the depth grip, on the band's inner edge --------------------------------------------------------------
+            Resolved.DepthGrip         = Resolved.Area;
+            Resolved.DepthGripDeclared = true;
+
+            if (Side == WorkspacePanelSide::Left)
+            {
+                Resolved.DepthGrip.PositionX = Resolved.Area.PositionX + Resolved.Area.Width - GutterThickness;
+                Resolved.DepthGrip.Width     = GutterThickness;
+            }
+            else if (Side == WorkspacePanelSide::Right)
+            {
+                Resolved.DepthGrip.Width = GutterThickness;
+            }
+            else if (Side == WorkspacePanelSide::Top)
+            {
+                Resolved.DepthGrip.PositionY = Resolved.Area.PositionY + Resolved.Area.Height - GutterThickness;
+                Resolved.DepthGrip.Height    = GutterThickness;
+            }
+            else
+            {
+                Resolved.DepthGrip.Height = GutterThickness;
+            }
+
+            // -- the share grip, only where another panel follows along the side ---------------------------------------
+            if (PlacedOnSide + 1u < Sharing)
+            {
+                Resolved.ShareGripDeclared = true;
+                Resolved.ShareGrip         = Resolved.Area;
+
+                if (Across)
+                {
+                    Resolved.ShareGrip.PositionY = Resolved.Area.PositionY + Resolved.Area.Height - GutterThickness;
+                    Resolved.ShareGrip.Height    = GutterThickness;
+                }
+                else
+                {
+                    Resolved.ShareGrip.PositionX = Resolved.Area.PositionX + Resolved.Area.Width - GutterThickness;
+                    Resolved.ShareGrip.Width     = GutterThickness;
+                }
+            }
+
+            Placed.Docked[Placed.DockedCount] = Resolved;
+            ++Placed.DockedCount;
+            ++PlacedOnSide;
+
+            Travelled += Extent;
+        }
+    }
+
+    // 📝 A panel declared for the centre fills what the bands left rather than reserving a band of its own, so it
+    //    is resolved after every band and takes no grip: there is nothing on the other side of it to drag against.
+    for (const WorkspacePanelBox& Box : Standing.PanelBoxes)
+    {
+        if (!Box.SlotOccupied || Box.Side != WorkspacePanelSide::Centre)
+            continue;
+
+        if (Placed.DockedCount >= PanelBoxCapacity)
+            break;
+
+        WorkspacePanelPlacement Resolved;
+
+        Resolved.Identity = Box.Identity;
+        Resolved.Area     = Placed.CentreArea;
+
+        Placed.Docked[Placed.DockedCount] = Resolved;
+        ++Placed.DockedCount;
+    }
+
+    // -- the floating run, painted last --------------------------------------------------------------------------------
+    // 📝 🔴 Inserted in raise order rather than appended in list order. The list's order is fixed for the body's whole
+    //    life because a record's position is the ordinal its identity carries, so raise order is the only ordering a
+    //    floating box can be given — and without it a box pressed while half under another one paints under it still.
+    for (const WorkspacePanelBox& Box : Standing.PanelBoxes)
+    {
+        if (!Box.SlotOccupied || Box.Side != WorkspacePanelSide::Floating)
+            continue;
+
+        if (Placed.OverlaidCount >= PanelBoxCapacity)
+            break;
+
+        WorkspacePanelPlacement Resolved;
+
+        Resolved.Identity     = Box.Identity;
+        Resolved.RaiseOrdinal = Box.RaiseOrdinal;
+
+        // 📝 The offsets are relative to the body, which is what makes a floating box track its own body when the
+        //    desk is re-divided under it rather than staying where the screen was.
+        Resolved.Area.PositionX = Body.PositionX + Box.OffsetX;
+        Resolved.Area.PositionY = Body.PositionY + Box.OffsetY;
+        Resolved.Area.Width     = Box.Width  < PanelMinimumExtent ? PanelMinimumExtent : Box.Width;
+        Resolved.Area.Height    = Box.Height < PanelMinimumExtent ? PanelMinimumExtent : Box.Height;
+
+        // 📝 The insertion travels back over every entry raised **after** this one and stops at the first raised at
+        //    the same tick or earlier, so two boxes never raised at all keep the order they were declared in.
+        std::uint32_t Landing = Placed.OverlaidCount;
+
+        while (Landing > 0u && Placed.Overlaid[Landing - 1u].RaiseOrdinal > Resolved.RaiseOrdinal)
+        {
+            Placed.Overlaid[Landing] = Placed.Overlaid[Landing - 1u];
+            --Landing;
+        }
+
+        Placed.Overlaid[Landing] = Resolved;
+        ++Placed.OverlaidCount;
+    }
+
+    if (Placed.CentreArea.Width  < 0.0f) Placed.CentreArea.Width  = 0.0f;
+    if (Placed.CentreArea.Height < 0.0f) Placed.CentreArea.Height = 0.0f;
+
+    return Placed;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE PANEL LANDING
+//------------------------------------------------------------------------------------------------------------------------
+
+WorkspacePanelSide ResolvePanelLanding(WorkspaceRectangle  Body,
+                                       float               PointerX,
+                                       float               PointerY,
+                                       WorkspaceRectangle& Preview)
+{
+    Preview = Body;
+
+    if (Body.Width <= 1.0f || Body.Height <= 1.0f || !RectangleCovers(Body, PointerX, PointerY))
+        return WorkspacePanelSide::Floating;
+
+    const float FractionAcross = (PointerX - Body.PositionX) / Body.Width;
+    const float FractionDown   = (PointerY - Body.PositionY) / Body.Height;
+
+    WorkspacePanelSide Landed = WorkspacePanelSide::Floating;
+
+    if      (FractionAcross < DockBandFraction)        Landed = WorkspacePanelSide::Left;
+    else if (FractionAcross > 1.0f - DockBandFraction) Landed = WorkspacePanelSide::Right;
+    else if (FractionDown   < DockBandFraction)        Landed = WorkspacePanelSide::Top;
+    else if (FractionDown   > 1.0f - DockBandFraction) Landed = WorkspacePanelSide::Bottom;
+
+    // 🔴 The middle resolves to Floating and never to Centre. A panel docked over the centre covers the document the
+    //    body exists to present, so Centre is a side a workspace declares deliberately and never one a release mints.
+
+    const float Depth = 0.28f;
+
+    switch (Landed)
+    {
+        case WorkspacePanelSide::Left:
+            Preview.Width = Body.Width * Depth;
+            break;
+
+        case WorkspacePanelSide::Right:
+            Preview.PositionX = Body.PositionX + Body.Width * (1.0f - Depth);
+            Preview.Width     = Body.Width * Depth;
+            break;
+
+        case WorkspacePanelSide::Top:
+            Preview.Height = Body.Height * Depth;
+            break;
+
+        case WorkspacePanelSide::Bottom:
+            Preview.PositionY = Body.PositionY + Body.Height * (1.0f - Depth);
+            Preview.Height    = Body.Height * Depth;
+            break;
+
+        default:
+            break;
+    }
+
+    return Landed;
+}
+
+Outcome<bool> DockPanelBox(WorkspaceDocument&     Standing,
+                           WorkspacePanelIdentity Subject,
+                           WorkspacePanelSide     Landed,
+                           WorkspaceRectangle     Body,
+                           float                  ReleaseX,
+                           float                  ReleaseY)
+{
+    const std::size_t Resting = LocatedPanel(Standing, Subject);
+
+    if (Resting == Standing.PanelBoxes.size())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "no panel box resolves to that identity" });
+
+    // 📝 The count is taken **before** the side is written, so a box already on the side it is being dropped onto
+    //    does not count itself and end up with a share of one over two panels.
+    const std::uint32_t Sharing = SideOccurrences(Standing, Landed);
+
+    WorkspacePanelBox& Docked = Standing.PanelBoxes[Resting];
+
+    if (Landed == WorkspacePanelSide::Floating)
+    {
+        // 📝 A box returned to floating arrives where it was released rather than where it last floated, which is
+        //    the one position the artist has just chosen for it.
+        Docked.Side    = WorkspacePanelSide::Floating;
+        Docked.OffsetX = ReleaseX - Body.PositionX;
+        Docked.OffsetY = ReleaseY - Body.PositionY;
+
+        return Outcome<bool>::Deliver(true);
+    }
+
+    // 📝 The arriving panel takes the band's current depth so the band does not jump when a second panel joins it.
+    float Depth = Docked.DockExtent;
+
+    for (const WorkspacePanelBox& Box : Standing.PanelBoxes)
+    {
+        if (Box.SlotOccupied && Box.Side == Landed && Box.Identity != Subject)
+        {
+            Depth = Box.DockExtent;
+            break;
+        }
+    }
+
+    Docked.Side         = Landed;
+    Docked.DockExtent   = BoundedFraction(Depth, PanelDockFloor, PanelDockCeiling);
+
+    // 📝 An equal share of the side it joined. The placement normalises against the sum, so an equal share here is
+    //    an equal band whatever the panels already there were carrying.
+    Docked.SlotFraction = 1.0f / static_cast<float>(Sharing + 1u);
+
+    return Outcome<bool>::Deliver(true);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                    DROP RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 

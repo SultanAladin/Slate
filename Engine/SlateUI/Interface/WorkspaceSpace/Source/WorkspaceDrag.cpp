@@ -221,6 +221,18 @@ void SealDrag(const ThemeSpecification& Theme, WorkspaceSpace& Space, WorkspaceR
 {
     WorkspaceDragRecord& Held = Space.Dragging;
 
+    // 🔴 A released panel drag is sealed by the panel layer and returns here without touching the desk's own landing.
+    //    A panel lands inside one body and the zones below re-divide the desk, so one seal cannot serve both: the
+    //    defect is a panel dropped on a body's left edge splitting the desk instead of docking in the body.
+    if (Held.Mode == WorkspaceDragMode::PanelBox
+     || Held.Mode == WorkspaceDragMode::PanelResize
+     || Held.Mode == WorkspaceDragMode::PanelBandResize)
+    {
+        SealPanelDrag(Theme, Space);
+
+        return;
+    }
+
     const bool Landed = Held.Mode == WorkspaceDragMode::Window
                      && Held.HeldDocument.IdentityDeclared()
                      && Held.PreviewZone != WorkspaceDropZone::None;
@@ -300,11 +312,14 @@ void AdvanceWorkspaceDrag(const ThemeSpecification& Theme,
             //    Recomputing that geometry here would be a second copy of it, drifting from the first.
             break;
 
-        // 🚧 `2e` raises these three. Declared so the switch is closed and a mode added later is a compile error
-        //    rather than a drag that silently does nothing.
+        // 📝 The three panel modes are advanced by the panel layer, which is the one place a box's body rectangle is
+        //    resolved. Advancing them here would need a second copy of that resolution, drifting from the first.
         case WorkspaceDragMode::PanelBox:
         case WorkspaceDragMode::PanelResize:
         case WorkspaceDragMode::PanelBandResize:
+            AdvancePanelDrag(Theme, Space, PointerX, PointerY);
+            break;
+
         case WorkspaceDragMode::None:
         default:
             break;
@@ -332,6 +347,7 @@ std::uint32_t LocateWindowCovering(const WorkspaceSpace& Space, float PointerX, 
 
 void PresentFloatingWindows(const ThemeSpecification& Theme,
                             WorkspaceSpace&           Space,
+                            const PanelIndex*         Panels,
                             DeferredIntent&           Arriving,
                             bool&                     PointerConsumed)
 {
@@ -366,6 +382,15 @@ void PresentFloatingWindows(const ThemeSpecification& Theme,
         bool Blocked = PointerConsumed || Covering != Standing.Identifier;
 
         PresentOccupantStrip(Theme, Space, Carrier, Standing.Documents, Standing.ActiveDocument, Arriving, Blocked);
+
+        // 📝 🔴 The window's panel layer is presented before its own resize grip is tested, so a panel box sitting over
+        //    the bottom-right corner takes the press that lands on it. Testing the grip first would make the corner of
+        //    the window reach through whatever panel the artist put there, which is the one press it cannot be.
+        if (Standing.ActiveDocument.IdentityDeclared())
+        {
+            PresentPanelLayer(Theme, Space, Standing.ActiveDocument,
+                              BodyOf(Area, Extents.TabStripHeight), Panels, Arriving, Blocked);
+        }
 
         const WorkspaceRectangle Grip = GripOf(Area);
 
@@ -420,7 +445,16 @@ void PresentFloatingWindows(const ThemeSpecification& Theme,
 
 void PaintDragPreview(const ThemeSpecification& Theme, const WorkspaceSpace& Space)
 {
-    if (Space.Dragging.PreviewZone == WorkspaceDropZone::None)
+    // 📝 🔴 Two records name a preview and the mode says which. A desk landing declares a `PreviewZone`; a panel move
+    //    declares a `PreviewSide` and leaves the zone at rest, so gating on the zone alone paints no panel preview at
+    //    all — and a panel dragged towards a band would then dock to a side the artist was never shown.
+    // 📝 A panel heading for `Floating` washes nothing. That landing's preview rectangle is the whole body, and a body
+    //    filled with accent while the box is simply being moved around inside it reads as a dock about to happen.
+    const bool Landing = Space.Dragging.Mode == WorkspaceDragMode::PanelBox
+                       ? Space.Dragging.PreviewSide != WorkspacePanelSide::Floating
+                       : Space.Dragging.PreviewZone != WorkspaceDropZone::None;
+
+    if (!Landing)
         return;
 
     ImDrawList* Recording = ImGui::GetForegroundDrawList();
