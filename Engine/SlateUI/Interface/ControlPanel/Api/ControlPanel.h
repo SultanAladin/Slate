@@ -162,6 +162,29 @@ void ReclaimClip();
 /// tag   api, nonallocating, nonthrowing
 float MeasuredTextExtent(const char* Text, float FontScale);
 
+/// 🧩 A press with no hold over one rectangle — what a panel row, a header glyph or a fold twisty answers.
+/// note  🔴 The release is honoured only where the press **began** over the same rectangle. A panel that acted on
+///        any release covering it would fire when a drag that started elsewhere happened to end over it, and the
+///        defect presents as a layer collapsing because a slider release landed on its row.
+/// note  ⚠️ Spelled here so a panel never reads the vendor's pointer itself. `14` §7's seam holds only while one
+///        component knows which recording the interface paints on, and the same argument holds for who reads the
+///        pointer: a panel with its own copy is a second authority on what "pressed" means.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+ControlInteraction ResolveAreaPress(const WorkspaceRectangle& Area);
+
+/// 🧩 The pointer this tick, in the same interface pixels every rectangle is spelled in.
+/// note  What a reorder drag reads. `ResolveAreaPress` reports only what covers one rectangle, and a drag that has
+///        left the row it began on is precisely the case a per-rectangle answer cannot describe.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void ResolvePointerPosition(float& PositionX, float& PositionY);
+
+/// 🧩 Whether the primary control is down this tick, wherever the pointer is.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+bool PointerHeld();
+
 /// 🧩 Advances a hand-rolled list's visible offset by the wheel, bounded to what the content leaves.
 /// in    Carried    [px]  the offset, amended in place; zero is the top of the content
 /// in    Area       [px]  the viewport the list is clipped to

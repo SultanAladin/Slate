@@ -468,6 +468,32 @@ float MeasuredTextExtent(const char* Text, float FontScale)
     return ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize() * Bounded, FLT_MAX, 0.0f, Text).x;
 }
 
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE POINTER SEAM
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 Three delegations and nothing else. The interior forms are the authority; these exist so a component outside
+//    `ControlPanel/Source/` can reach them without naming a vendor spelling, and so there is exactly one of each.
+
+ControlInteraction ResolveAreaPress(const WorkspaceRectangle& Area)
+{
+    return ControlInterior::ResolvePress(Area);
+}
+
+void ResolvePointerPosition(float& PositionX, float& PositionY)
+{
+    const ControlInterior::PointerReading Pointer = ControlInterior::ResolvePointer();
+
+    PositionX = Pointer.PositionX;
+    PositionY = Pointer.PositionY;
+}
+
+bool PointerHeld()
+{
+    return ControlInterior::ResolvePointer().PressHeld;
+}
+
 Outcome<float> AdvanceVisibleOffset(float& Carried, const WorkspaceRectangle& Area, float ContentExtent)
 {
     if (RectangleCovers(Area, ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y))
