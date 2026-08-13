@@ -54,7 +54,7 @@ F PageQueue::Arrivals          | RequestQueue.h | 66      | api,nonallocating,no
 
 F PageQueue::Reclaim           | RequestQueue.h | 71      | api,nonthrowing               | ✔️ | Empties the order, ready for the next drain.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F PageQueue::ArrivalCount      | RequestQueue.h | 73      | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -118,7 +118,7 @@ F ReturnIndex::Drain           | RequestQueue.h | 153     | api,nonthrowing     
     in    RotationOrdinal  std::uint64_t  [-]  the rotation now being recorded
     out   -                Outcome        [-]  refuses with ExtentExhausted before the depth has elapsed, and with
     post  the drained slot is emptied and is the slot the caller may write next
-    by    Api/StorageExchange.h, Api/WindowInterchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+2 more)
+    by    Api/StorageExchange.h, Api/WindowInterchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+3 more)
     note  🔴 Refusing a second drain of one rotation is not fussiness. A promotion pass that ran twice would
 
 F ReturnIndex::DrainedRotation | RequestQueue.h | 158     | api,nonallocating,nonthrowing | ✔️ | The rotation last drained; zero before anything has been.

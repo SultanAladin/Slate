@@ -51,12 +51,12 @@ F TileSpace::Construct          | TileSpace.h | 59      | api,nonthrowing       
     in    BytesPerTexel  std::uint32_t  [B]  the surface's channel set, as a width
     out   -              Outcome        [-]  refuses with ContentUnsupported for a ceiling or width of zero
     post  every slot is free; nothing is quarantined
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
     note  📝 The ceiling is the caller's, because it follows from how much extent `06` claimed and `06` §3
 
 F TileSpace::Claim              | TileSpace.h | 68      | api,nonthrowing               | ✔️ | Claims one free slot. must evict first, and exhaustion during ordinary painting is residency policy operating as designed. Reporting it would mean the register is never quiet.
     out   -  Outcome  [-]  refuses with ExtentExhausted when every slot is claimed or quarantined
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+14 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+15 more)
     note  🔴 A refusal is **not** a failure — `20` §2.2 and `86` §5. Every slot claimed means the promotion
 
 F TileSpace::Release            | TileSpace.h | 77      | api,nonthrowing               | ✔️ | Releases one claimed slot into quarantine.
@@ -69,7 +69,7 @@ F TileSpace::Release            | TileSpace.h | 77      | api,nonthrowing       
 F TileSpace::Reclaim            | TileSpace.h | 87      | api,nonthrowing               | 🚩 | Returns quarantined slots whose release is older than the rotation depth. immediately is the defect that costs nothing to write and is invisible until a device is fast enough to still be reading the slot.
     in    RotationOrdinal  std::uint64_t  [-]  the rotation now being recorded
     out   -                Reclaimed      [-]  how many slots became free
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
     note  🔴 This is the whole of `20` §5's deferred reclamation, and it is one comparison. Reclaiming
 
 F TileSpace::ByteOffsetOf       | TileSpace.h | 95      | api,nonthrowing               | ✔️ | Where one slot sits inside the surface's backing extent. may not name it. `06` adds the base; nothing here knows one exists.
@@ -92,7 +92,7 @@ F TileSpace::SlotCeiling        | TileSpace.h | 107     | -                     
 
 F TileSpace::ClaimedCount       | TileSpace.h | 108     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+5 more)
+    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+6 more)
 
 F TileSpace::QuarantinedCount   | TileSpace.h | 109     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?

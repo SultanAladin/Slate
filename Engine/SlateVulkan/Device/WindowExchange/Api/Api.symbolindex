@@ -26,11 +26,11 @@ F Convert | WindowExchange.h | 27 | api,nonthrowing | 🚩 | Converts a native w
     in    Instance      VkInstance  [-]  the instance the surface is created against
     in    NativeHandle  void*       [-]  the opaque handle `WindowInterchange` surrendered; never a GLFW spelling above
     out   -             Outcome     [-]  refuses with HostDenied when the window system declines the surface
-    by    Source/WindowExchange.cpp
+    by    Source/WindowExchange.cpp, Source/WorkspaceSequence.cpp
     note  ⚠️ `WindowInterchange` in `SlateMath` and `WindowExchange` here are distinct and both required.
 
 F Reclaim | WindowExchange.h | 32 | api,nonthrowing | ✔️ | Destroys a surface previously converted.
     in    Instance             VkInstance    [-]  ?
     in    PresentationSurface  VkSurfaceKHR  [-]  ?
     out   -                    void          [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)

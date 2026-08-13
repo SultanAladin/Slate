@@ -15,6 +15,7 @@
 #include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
 #include "SlateUI/Interface/WorkspaceSpace/Api/PanelIndex.h"
 #include "SlateUI/Interface/WorkspaceSpace/Api/WorkspaceSpace.h"
+#include "SlateVulkan/Device/AttachmentIndex/Api/AttachmentIndex.h"
 #include "SlateVulkan/Device/ByteSpace/Api/ByteSpace.h"
 #include "SlateVulkan/Device/CommandSequence/Api/CommandSequence.h"
 #include "SlateVulkan/Device/CycleScheduler/Api/CycleScheduler.h"
@@ -85,6 +86,11 @@ struct WorkspaceDeclaration
     LatencyIntent                  Intent          = LatencyIntent::SteadyPacing;  // [-]  - what pacing optimises for
     bool                           DiagnosticRequested = false;                    // [-]  - the vendor's own reporting
 };
+
+// 📝 The roster is walked into a bounded automatic extent every tick — the captions the strip is handed. Bounded
+//    rather than allocated so one tick of the host allocates nothing at all, and refused at bring-up rather than
+//    truncated: a workspace registered and silently absent from the strip is one the artist cannot reach.
+inline constexpr std::uint32_t WorkspaceRosterCeiling = 16u;   // [-] - registered workspaces one host may carry
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE ARBITRATION

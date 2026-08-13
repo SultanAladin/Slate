@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ThemeSpecification.cpp | 292 lines | 36528d75 | 10 sym | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
+S ThemeSpecification.cpp | 294 lines | d9f106b3 | 10 sym | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  COORDINATE ASSEMBLY
@@ -66,20 +66,20 @@ F DeclaredDefaultExtents | ThemeSpecification.cpp | 134-140 | - | - | ?
 //                                                    THE ACTIVE THEME
 //------------------------------------------------------------------------------------------------------------------------
 
-F ResolveActiveTheme     | ThemeSpecification.cpp | 146-209 | - | - | ?
+F ResolveActiveTheme     | ThemeSpecification.cpp | 146-211 | - | - | ?
     in    DeclaredScale  float                        [-]  ?
     out   -              Outcome<ThemeSpecification>  [-]  ?
-    by    Api/ThemeSpecification.h
+    by    Api/ThemeSpecification.h, Source/WorkspaceSequence.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE STYLE MIRROR
 //------------------------------------------------------------------------------------------------------------------------
 
-F StyleCoordinate        | ThemeSpecification.cpp | 220-226 | - | - | ?
+F StyleCoordinate        | ThemeSpecification.cpp | 222-228 | - | - | ?
     in    Colour  const ThemeColour&  [-]  ?
     out   -       ImVec4              [-]  ?
 
-F Enforce                | ThemeSpecification.cpp | 230-290 | - | - | ?
+F Enforce                | ThemeSpecification.cpp | 232-292 | - | - | ?
     in    Theme  const ThemeSpecification&  [-]  ?
     out   -      Outcome<bool>              [-]  ?
-    by    Api/ThemeSpecification.h
+    by    Api/ThemeSpecification.h, Source/WorkspaceBracket.cpp

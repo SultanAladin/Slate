@@ -25,7 +25,7 @@ S WindowInterchange.h | 83 lines | 2e1a2931 | 8 sym | One window surface over th
 T DisplayExtent                         | WindowInterchange.h | 23-27 | nonallocating,nonthrowing     | -  | The extent of a window's drawable area. the intermediates; nothing here queues them.
     has   Width   std::uint32_t  [-]  ?
     has   Height  std::uint32_t  [-]  ?
-    by    Source/WindowInterchange.cpp
+    by    Source/WindowInterchange.cpp, Source/WorkspaceSequence.cpp
     note  ⚠️ A drag produces a new extent many times a second. `06` §4.1 takes the extent once and discards
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -36,7 +36,7 @@ T WindowInterchange                     | WindowInterchange.h | 38-81 | owning  
     has   WindowSlot    void*          [-]  ?
     has   DrawExtent    DisplayExtent  [-]  ?
     has   ClosurePosed  bool           [-]  ?
-    by    Source/WindowInterchange.cpp
+    by    Api/WorkspaceSequence.h, Source/WindowInterchange.cpp
     note  🔴 This component surrenders the native handle and nothing else. It does not know what a surface
 
 F WindowInterchange::~WindowInterchange | WindowInterchange.h | 45    | destructor                    | -  | ?
@@ -45,20 +45,20 @@ F WindowInterchange::Open               | WindowInterchange.h | 53    | api,nont
     in    RequestedExtent  DisplayExtent  [px]  the drawable extent asked of the window system
     in    WindowTitle      const char*    [-]   static text; never allocated, never retained beyond the call
     out   -                Outcome        [-]   refuses with HostDenied when the window system declines
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+20 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+21 more)
 
 F WindowInterchange::Drain              | WindowInterchange.h | 58    | api,nonthrowing               | ✔️ | Drains the window system's pending messages into this window's recorded condition.
     out   -  void  [-]  ?
-    by    Api/RequestQueue.h, Api/StorageExchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+2 more)
+    by    Api/RequestQueue.h, Api/StorageExchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+3 more)
 
 F WindowInterchange::NativeHandle       | WindowInterchange.h | 64    | api,nonallocating,nonthrowing | ✔️ | The opaque native handle, for `06`'s `WindowExchange` and for nothing else.
     out   -  NativeHandle  [-]  null while no window is open
-    by    Api/WindowExchange.h, Source/WindowExchange.cpp, Source/WindowInterchange.cpp
+    by    Api/WindowExchange.h, Source/WindowExchange.cpp, Source/WindowInterchange.cpp, Source/WorkspaceSequence.cpp
 
 F WindowInterchange::CurrentExtent      | WindowInterchange.h | 69    | api,nonallocating,nonthrowing | ✔️ | The current drawable extent.
     out   -  DisplayExtent  [-]  ?
-    by    Source/WindowInterchange.cpp
+    by    Source/WindowInterchange.cpp, Source/WorkspaceSequence.cpp
 
 F WindowInterchange::ClosureRequested   | WindowInterchange.h | 74    | api,nonallocating,nonthrowing | ✔️ | Whether the artist has asked the window system to close this window.
     out   -  bool  [-]  ?
-    by    Source/WindowInterchange.cpp
+    by    Api/WorkspaceSequence.h, Source/WindowInterchange.cpp, Source/WorkspaceSequence.cpp

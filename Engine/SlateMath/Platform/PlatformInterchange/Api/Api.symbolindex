@@ -44,7 +44,7 @@ T PlatformInterchange                      | PlatformInterchange.h | 43-91 | own
 F PlatformInterchange::Resolve             | PlatformInterchange.h | 52    | api,nonthrowing               | 🚩 | Reads the host report, once, and holds it for the run.
     out   -  Outcome  [-]  refuses with HostDenied when the host declines to describe itself
     post  Report returns the same reading for the rest of the run
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
 
 F PlatformInterchange::Report              | PlatformInterchange.h | 58    | api,nonallocating,nonthrowing | ✔️ | The host report as read at bring-up.
     out   -  HostReport  [-]  every reading is zero until Resolve has delivered

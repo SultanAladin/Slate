@@ -68,7 +68,7 @@ T SurfaceDepot                  | SurfaceDepot.h | 83-153 | owning              
 F SurfaceDepot::Construct       | SurfaceDepot.h | 91     | api,nonthrowing               | ✔️ | Sizes the depot to a byte ceiling.
     in    ByteCeiling  std::uint64_t  [-]  ?
     out   -            Outcome        [-]  refuses with ContentUnsupported for a ceiling of zero
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
 
 F SurfaceDepot::Declare         | SurfaceDepot.h | 105    | api,nonthrowing               | 🚩 | Admits one derived artefact, evicting to make room for it. ExtentExhausted when the artefact alone exceeds the whole ceiling layer sequence; admitting them here would make the artist's work evictable, and it would be evicted under exactly the memory pressure a long painting session produces.
     in    Keyed            const ContentKey&   [-]  what it was derived from
@@ -83,7 +83,7 @@ F SurfaceDepot::Resolve         | SurfaceDepot.h | 117    | api,nonthrowing     
     in    Keyed            const ContentKey&  [-]  ?
     in    RotationOrdinal  std::uint64_t      [-]  ?
     out   -                Outcome            [-]  refuses with ExtentExhausted when nothing matching is held
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
     note  🔴 A key that differs in any field resolves to nothing rather than to the nearest artefact. That
 
 F SurfaceDepot::Evict           | SurfaceDepot.h | 123    | api,nonthrowing               | 🚩 | Evicts least-recently-resolved artefacts until the declared extent is free.

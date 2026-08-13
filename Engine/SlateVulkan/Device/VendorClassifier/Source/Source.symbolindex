@@ -16,13 +16,13 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S VendorClassifier.cpp | 91 lines | 45684eda | 1 sym | Enumerated device scored into a capability set and a ranking.
+S VendorClassifier.cpp | 117 lines | bd1d64ab | 1 sym | Enumerated device scored into a capability set and a ranking.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SCORING
 //------------------------------------------------------------------------------------------------------------------------
 
-F Classify | VendorClassifier.cpp | 17-89 | - | - | ?
+F Classify | VendorClassifier.cpp | 17-115 | - | - | ?
     in    Candidate            VkPhysicalDevice  [-]  ?
     in    PresentationSurface  VkSurfaceKHR      [-]  ?
     out   -                    ScoredCandidate   [-]  ?

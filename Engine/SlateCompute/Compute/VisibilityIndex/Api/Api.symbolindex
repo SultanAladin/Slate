@@ -58,7 +58,7 @@ F DepthReduction::Construct                | DepthReduction.h      | 73      | a
     in    DisplayAcross  std::uint32_t  [px]  ?
     out   -              Outcome        [-]   refuses with ContentUnsupported for an extent of zero and with ExtentExhausted
     post  the chain runs from the display extent down to a single texel
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
 
 F DepthReduction::Level                    | DepthReduction.h      | 79      | api,nonthrowing                         | ✔️ | One level's extent.
     in    LevelOrdinal  std::uint32_t  [-]  ?
@@ -79,7 +79,7 @@ F DepthReduction::ChainTexels              | DepthReduction.h      | 97      | a
 
 F DepthReduction::Reclaim                  | DepthReduction.h      | 102     | api,nonthrowing                         | ✔️ | Discards the chain and the extent it was derived against.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, (+77 more)
 
 F DepthReduction::LevelCount               | DepthReduction.h      | 104     | -                                       | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -100,7 +100,7 @@ F DepthReduction::ChainDerived             | DepthReduction.h      | 107     | -
 F SLATE_DECLARES_PRECISION                 | DepthReduction.h      | 119     | -                                       | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                WHICH PHASE IS RECORDED
@@ -236,7 +236,7 @@ F OcclusionScheduler::Construct            | OcclusionScheduler.h  | 176     | a
     out   -            Outcome             [-]  refuses with whatever the layouts, the modules or the programs refused
     pre   🔴 the descriptor declaration is not yet fixed — `Declare` refuses once it is
     post  both programs stand; no chain is derived and no residency is claimable
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
 
 F OcclusionScheduler::Derive               | OcclusionScheduler.h  | 195     | api,nonthrowing                         | 🔴 | Derives the level chain against one display extent and claims the span that holds it. after a derivation reads a chain nothing has reduced into, and what an unwritten span holds is not declared — so the first rotation's phase ① is recorded as testing nothing rather than as testing against arbitrary depth. `ChainReduced` below is what distinguishes them.
     in    DisplayAlong   std::uint32_t  [px]  the extent this rotation is recorded against
@@ -244,7 +244,7 @@ F OcclusionScheduler::Derive               | OcclusionScheduler.h  | 195     | a
     out   -              Outcome        [-]   refuses with whatever `DepthReduction` or the claim refused
     pre   🔴 the device is idle — every rotation reading the previous chain has completed
     post  the chain span stands and the level offsets are held beside it
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/QuadratureIntegrator.h, (+10 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/QuadratureIntegrator.h, (+11 more)
     note  🔴 The chain is **not** cleared on derivation and does not need to be. Phase ① of the first rotation
 
 F OcclusionScheduler::Resolve              | OcclusionScheduler.h  | 209     | api,nonthrowing                         | 🔴 | Claims the culling spans for one resident partitioning. ContentUnsupported for a residency carrying no triangle the life of the residency, so a per-rotation write would rewrite one arrangement with itself — and would do it to a set the previous rotation's dispatch is still reading.
@@ -253,7 +253,7 @@ F OcclusionScheduler::Resolve              | OcclusionScheduler.h  | 209     | a
     out   -                Outcome        [-]  the culling ordinal; refuses with whatever the claim refused and with
     pre   🔴 `DescriptorIndex::Fix` delivered, and `Derive` has claimed the chain
     post  the spans stand and are written every rotation until the topology changes
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
     note  🔴 The descriptor set is written **here**, once per rotation slot. Every span it names stands for
 
 F OcclusionScheduler::Amend                | OcclusionScheduler.h  | 226     | api,nonthrowing                         | 🚩 | Writes one rotation's classification into a residency's span and clears its indirect record. with the declared partition count, and with whatever the write refused The atomic only ever advances a count, so a record carrying the previous rotation's would have this rotation's survivors appended to it — and the draw would issue corners nothing wrote. invocation and reads the standing to skip what the host already rejected, which keeps the classified run at the partition count and lets the entry point's dispatch extent be that same count.
@@ -301,7 +301,7 @@ F OcclusionScheduler::SurvivingOf          | OcclusionScheduler.h  | 279     | a
 F OcclusionScheduler::Reclaim              | OcclusionScheduler.h  | 287     | api,nonthrowing                         | 🚩 | Releases every culling span and the chain.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F OcclusionScheduler::CulledCount          | OcclusionScheduler.h  | 289     | -                                       | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -347,7 +347,7 @@ F SLATE_DECLARES_PRECISION                 | OcclusionScheduler.h  | 346     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  WHAT A TEST ANSWERS
@@ -397,7 +397,7 @@ F ProjectPartitionExtent                   | PartitionClassifier.h | 98      | a
 F SLATE_DECLARES_PRECISION                 | PartitionClassifier.h | 105     | -                                       | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE ORIENTATION CONE
@@ -416,7 +416,7 @@ F OrientationRejected                      | PartitionClassifier.h | 127     | a
 F SLATE_DECLARES_PRECISION                 | PartitionClassifier.h | 133     | -                                       | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 V AbsentPartition                          | PartitionStructure.h  | 28      | -                                       | -  | ?
     by    Api/VisibilityIndex.h, Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp, Source/VisibilityRaster.cpp
@@ -453,7 +453,7 @@ F SLATE_DECLARES_PRECISION                 | PartitionClassifier.h | 176     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ONE PARTITION
@@ -510,7 +510,7 @@ F SLATE_DECLARES_PRECISION                 | PartitionStructure.h  | 133     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                               THE STANDING PARTITIONING
@@ -541,7 +541,7 @@ F PartitionStructure::Declare              | PartitionStructure.h  | 166     | a
 F PartitionStructure::Standing             | PartitionStructure.h  | 172     | api,nonallocating,nonthrowing           | ✔️ | The standing partitioning.
     out   -  const DerivedPartitioning&  [-]  ?
     pre   PartitioningStanding holds
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+76 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+78 more)
 
 F PartitionStructure::IdentityOf           | PartitionStructure.h  | 179     | api,nonthrowing                         | ✔️ | The identity `42` issued for one standing partition. IdentityStale when nothing has been declared since the last adoption
     in    PartitionOrdinal  std::uint32_t  [-]  ?
@@ -550,7 +550,7 @@ F PartitionStructure::IdentityOf           | PartitionStructure.h  | 179     | a
 
 F PartitionStructure::Reclaim              | PartitionStructure.h  | 184     | api,nonthrowing                         | 🚩 | Discards the standing partitioning and every identity taken against it.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F PartitionStructure::PartitioningStanding | PartitionStructure.h  | 186     | -                                       | -  | ?
     out   -  bool  [-]  ?
@@ -615,7 +615,7 @@ F VisibilityIndex::Construct               | VisibilityIndex.h     | 111     | a
     in    DisplayAcross  std::uint32_t  [px]  ?
     out   -              Outcome        [-]   refuses with whatever `DepthReduction` refused
     post  the chain stands; the enrolled partitionings are untouched
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
     note  🔴 A display extent change re-derives the chain and re-derives **nothing else**. The partitionings
 
 F VisibilityIndex::Contribute              | VisibilityIndex.h     | 122     | api,nonthrowing                         | ✔️ | Contributes `08` §3 ②'s recording — the one that produces all four targets. writes depth here: the previous rotation's projection of this same triangle is in hand at exactly this point and is recoverable nowhere downstream. A second recording deriving it from depth alone recovers camera motion and never occupant motion.
@@ -638,7 +638,7 @@ F VisibilityIndex::Resolve                 | VisibilityIndex.h     | 150     | a
     in    Written      VisibilityWord                   [-]  the word read back from the target
     in    Resolutions  const PartitionResolutionIndex&  [-]  the document's resolution
     out   -            Outcome                          [-]  refuses with ContentUnsupported for an unoccupied pixel or an ordinal outside the
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
     note  🔴 Two indexed lookups and no search — the ordinal indexes the identities this component declared,
 
 F VisibilityIndex::Enrolled                | VisibilityIndex.h     | 157     | api,nonthrowing                         | ✔️ | One enrolled topology's standing partitioning.
@@ -652,7 +652,7 @@ F VisibilityIndex::Reduction               | VisibilityIndex.h     | 162     | a
 
 F VisibilityIndex::Reclaim                 | VisibilityIndex.h     | 167     | api,nonthrowing                         | 🚩 | Discards every enrolment and the chain with them.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F VisibilityIndex::EnrolledCount           | VisibilityIndex.h     | 169     | -                                       | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -670,7 +670,7 @@ F SLATE_DECLARES_PRECISION                 | VisibilityIndex.h     | 186     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE COMPOSED VIEW
@@ -689,7 +689,7 @@ F ComposeVisibilityTransform               | VisibilityRaster.h    | 109     | a
 F SLATE_DECLARES_PRECISION                 | VisibilityRaster.h    | 115     | -                                       | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS RESIDENT
@@ -745,7 +745,7 @@ F VisibilityRaster::Construct              | VisibilityRaster.h    | 189     | a
     out   -            Outcome           [-]  refuses with whatever the layout, the modules, the construct or the program refused
     pre   🔴 the descriptor declaration is not yet fixed — `Declare` refuses once it is
     post  the program stands and the residency is claimable
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
 
 F VisibilityRaster::Resolve                | VisibilityRaster.h    | 222     | api,nonthrowing                         | 🔴 | Makes one enrolled partitioning resident, fanning its faces into the triangle run the device draws. ContentUnsupported for an unsealed topology or a partitioning that is not standing `10` admits faces of any corner count and `16` §1 counts the fan triangles the spanned faces amount to; a fan derived differently at the two sites gives the pixel a triangle ordinal `18` resolves to another triangle of the same partition. names stands for the life of the residency, so a per-rotation write would rewrite one arrangement with itself — and would do it to a set the previous rotation's recording is still reading. the surviving run statically, so the vendor requires it bound whether or not the uniform routes through it; the direct claim binds the triangle span there, which is a valid storage read the entry point never performs. caller has not yet surrendered, and returning their bytes at this point hands the free list an extent a recorded transfer still names. `Surrender` below is what releases them.
     in    Enrolled           const PartitionStructure&                                       [-]  the standing partitioning, from `VisibilityIndex::Enrolled`
@@ -758,7 +758,7 @@ F VisibilityRaster::Resolve                | VisibilityRaster.h    | 222     | a
     out   -                  Outcome                                                         [-]  the residency ordinal; refuses with whatever the claim refused and with
     pre   🔴 `DescriptorIndex::Fix` delivered — a set cannot be claimed before the extent it is sliced from
     post  the spans stand and are drawn from every rotation until the topology changes
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
     note  🔴 The fan is derived **here** and matches `MicroSurfacePartition::TriangleCount` by construction.
     note  🔴 The descriptor set is written **here**, once per rotation slot, and never again. Every span it
     note  🔴 Slot three is written for **every** claim, the direct one included. The vertex entry point names
@@ -767,7 +767,7 @@ F VisibilityRaster::Resolve                | VisibilityRaster.h    | 222     | a
 F VisibilityRaster::Surrender              | VisibilityRaster.h    | 236     | api,nonthrowing                         | 🚩 | Releases the staging spans every `Resolve` since the last surrender claimed. surrender. Releasing inside `Resolve` returns bytes to the free list while a recorded transfer still names them, and the next claim then transfers one partitioning's positions out of another's.
     out   -  void  [-]  ?
     pre   🔴 the recording those transfers were written into has been surrendered and has completed
-    by    Api/AttachmentIndex.h, Api/CommandSequence.h, Api/DisplayScheduler.h, Api/RenderSchedule.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+3 more)
+    by    Api/AttachmentIndex.h, Api/CommandSequence.h, Api/DisplayScheduler.h, Api/RenderSchedule.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+4 more)
     note  🔴 Separate from `Resolve` because the transfer is recorded there and completes at the caller's
 
 F VisibilityRaster::Derive                 | VisibilityRaster.h    | 245     | api,nonthrowing                         | 🚩 | Derives the render construct's spans against one display extent.
@@ -775,14 +775,14 @@ F VisibilityRaster::Derive                 | VisibilityRaster.h    | 245     | a
     in    DisplayAcross  std::uint32_t  [px]  ?
     out   -              Outcome        [-]   refuses with whatever `AttachmentIndex` refused
     pre   🔴 the device is idle — every rotation reading the previous spans has completed
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+10 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+11 more)
 
 F VisibilityRaster::Record                 | VisibilityRaster.h    | 261     | api,nonthrowing                         | 🔴 | Records the raster for one rotation slot — the construct, the program, and one draw per residency. whatever the descriptor write or the program resolution refused per `Contract/`'s convention — clearing to unity against a greater-than comparison resolves nothing at all, and the image is empty rather than wrong, which is the failure mode that gets attributed to the geometry. the placements and the composition already admits one — 🚧 the argument arrives with it.
     in    Recorded      VkCommandBuffer        [-]  the open recording of this rotation slot
     in    RotationSlot  std::uint32_t          [-]  below `RecordingRotationDepth`
     in    Viewing       const ViewProjection&  [-]  what `46` derived for this rotation
     out   -             Outcome                [-]  refuses with ContentUnsupported before the spans are derived, and with
-    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/InterfaceExchange.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/InputExchange.cpp, (+5 more)
+    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/InterfaceExchange.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+7 more)
     note  🔴 The depth clear carries `FarPlaneDepth` and the comparison is `VK_COMPARE_OP_GREATER`. Reversed,
     note  ⚠️ Every occupant is drawn at the identity placement, because nothing yet supplies one. `56` holds
 
@@ -800,7 +800,7 @@ F VisibilityRaster::RecordIndirect         | VisibilityRaster.h    | 281     | a
 F VisibilityRaster::Reclaim                | VisibilityRaster.h    | 291     | api,nonthrowing                         | 🚩 | Releases every resident span and every uniform span.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F VisibilityRaster::ResidentCount          | VisibilityRaster.h    | 293     | -                                       | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -818,7 +818,7 @@ F VisibilityRaster::Open                   | VisibilityRaster.h    | 301     | -
     in    Recorded     VkCommandBuffer      [-]  ?
     in    Constructed  ConstructedProgram&  [-]  ?
     out   -            Outcome              [-]  refuses with whatever the span or the program resolution refused
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+20 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+21 more)
 
 F VisibilityRaster::Project                | VisibilityRaster.h    | 305     | -                                       | -  | Writes one residency's uniform for one rotation slot.
     in    Standing           const ResidentPartitioning&  [-]  ?
@@ -853,4 +853,4 @@ F SLATE_DECLARES_PRECISION                 | VisibilityRaster.h    | 352     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)

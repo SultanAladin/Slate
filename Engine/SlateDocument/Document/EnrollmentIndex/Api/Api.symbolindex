@@ -113,7 +113,7 @@ F EnrollmentIndex::EnrolledCount      | EnrollmentIndex.h | 142    | api,nonallo
 F EnrollmentIndex::Reclaim            | EnrollmentIndex.h | 147    | api,nonthrowing               | ✔️ | Empties one subset entirely.
     in    EnrolledSubset  SubsetSubject  [-]  ?
     out   -               void           [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F EnrollmentIndex::EnrolmentsOccupied | EnrollmentIndex.h | 153    | api,nonallocating,nonthrowing | 🚩 | 🔍 Whether every enrolled slot is occupied at the current generation — invariant 6.
     in    Generations  const std::vector<std::uint32_t>&  [-]  the current generation per slot, zero where the slot is vacant

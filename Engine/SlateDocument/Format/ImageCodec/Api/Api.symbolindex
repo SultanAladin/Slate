@@ -48,7 +48,7 @@ F ClassifyContent          | ImageCodec.h | 52    | api,nonallocating,nonthrowin
 F SLATE_DECLARES_PRECISION | ImageCodec.h | 54    | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE TRANSLATION
@@ -67,4 +67,4 @@ F Translate                | ImageCodec.h | 77    | api,nonthrowing             
 F SLATE_DECLARES_PRECISION | ImageCodec.h | 79    | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)

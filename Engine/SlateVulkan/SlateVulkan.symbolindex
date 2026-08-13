@@ -393,28 +393,28 @@ F SpanSpace::ClaimedBytes                   | Source/SpanSpace.cpp           | 2
 F SpanSpace::Release                        | Source/SpanSpace.cpp           | 302-319 | ?
 F SpanSpace::Reclaim                        | Source/SpanSpace.cpp           | 321-327 | ?
 T ScoredCandidate                           | Api/VendorClassifier.h         | 19-24   | One scored candidate device.
-F Classify                                  | Api/VendorClassifier.h         | 34      | Scores one enumerated device against the presentation surface it must serve. graphics family cannot serve Slate at all and is never chosen as a least-bad option.
-F Classify                                  | Source/VendorClassifier.cpp    | 17-89   | ?
-T CapabilitySet                             | Api/VulkanExchange.h           | 25-33   | What the created device is capable of, scored once and consulted thereafter. path becomes conditional on something that cannot change, and those conditionals never all leave.
-T VulkanExchange                            | Api/VulkanExchange.h           | 43-86   | Holds the instance, the physical device, the created device and the one graphics queue. own identifiers wrapping them do not reuse the banned words those spellings contain.
-F VulkanExchange::~VulkanExchange           | Api/VulkanExchange.h           | 50      | ?
-F VulkanExchange::ConstructInstance         | Api/VulkanExchange.h           | 57      | Loads the loader and creates the instance, with the diagnostic capability enabled in Debug only.
-F VulkanExchange::ConstructDevice           | Api/VulkanExchange.h           | 65      | Enumerates devices, scores them, and creates one with its capability set fixed at creation.
-F VulkanExchange::ReclaimDevice             | Api/VulkanExchange.h           | 70      | Destroys every device object and retains the instance, for the recovery in `06` §4.2 ③.
-F VulkanExchange::Instance                  | Api/VulkanExchange.h           | 72      | ?
-F VulkanExchange::ScoredDevice              | Api/VulkanExchange.h           | 73      | ?
-F VulkanExchange::ActiveDevice              | Api/VulkanExchange.h           | 74      | ?
-F VulkanExchange::GraphicsQueue             | Api/VulkanExchange.h           | 75      | ?
-F VulkanExchange::Capability                | Api/VulkanExchange.h           | 76      | ?
+F Classify                                  | Api/VendorClassifier.h         | 37      | Scores one enumerated device against the presentation surface it must serve. graphics family cannot serve Slate at all and is never chosen as a least-bad option. offers it always wins over one that does not; a host that records no interface still receives a device. `VulkanExchange::ConstructDevice` is where its absence is refused, by name.
+F Classify                                  | Source/VendorClassifier.cpp    | 17-115  | ?
+T CapabilitySet                             | Api/VulkanExchange.h           | 25-35   | What the created device is capable of, scored once and consulted thereafter. path becomes conditional on something that cannot change, and those conditionals never all leave.
+T VulkanExchange                            | Api/VulkanExchange.h           | 45-93   | Holds the instance, the physical device, the created device and the one graphics queue. own identifiers wrapping them do not reuse the banned words those spellings contain.
+F VulkanExchange::~VulkanExchange           | Api/VulkanExchange.h           | 52      | ?
+F VulkanExchange::ConstructInstance         | Api/VulkanExchange.h           | 59      | Loads the loader and creates the instance, with the diagnostic capability enabled in Debug only.
+F VulkanExchange::ConstructDevice           | Api/VulkanExchange.h           | 72      | Enumerates devices, scores them, and creates one with its capability set fixed at creation. when the winner offers no dynamic recording its recording against a rendering scope with no attachment construct, so a device that does not offer the capability is refused by name rather than surfacing later as a vendor error inside the interface library.
+F VulkanExchange::ReclaimDevice             | Api/VulkanExchange.h           | 77      | Destroys every device object and retains the instance, for the recovery in `06` §4.2 ③.
+F VulkanExchange::Instance                  | Api/VulkanExchange.h           | 79      | ?
+F VulkanExchange::ScoredDevice              | Api/VulkanExchange.h           | 80      | ?
+F VulkanExchange::ActiveDevice              | Api/VulkanExchange.h           | 81      | ?
+F VulkanExchange::GraphicsQueue             | Api/VulkanExchange.h           | 82      | ?
+F VulkanExchange::Capability                | Api/VulkanExchange.h           | 83      | ?
 F VulkanExchange::ConstructInstance         | Source/VulkanExchange.cpp      | 19-60   | ?
-F VulkanExchange::ConstructDevice           | Source/VulkanExchange.cpp      | 66-122  | ?
-F VulkanExchange::ReclaimDevice             | Source/VulkanExchange.cpp      | 128-140 | ?
-F VulkanExchange::~VulkanExchange           | Source/VulkanExchange.cpp      | 142-151 | ?
-F VulkanExchange::Instance                  | Source/VulkanExchange.cpp      | 157     | ?
-F VulkanExchange::ScoredDevice              | Source/VulkanExchange.cpp      | 158     | ?
-F VulkanExchange::ActiveDevice              | Source/VulkanExchange.cpp      | 159     | ?
-F VulkanExchange::GraphicsQueue             | Source/VulkanExchange.cpp      | 160     | ?
-F VulkanExchange::Capability                | Source/VulkanExchange.cpp      | 161     | ?
+F VulkanExchange::ConstructDevice           | Source/VulkanExchange.cpp      | 66-137  | ?
+F VulkanExchange::ReclaimDevice             | Source/VulkanExchange.cpp      | 143-155 | ?
+F VulkanExchange::~VulkanExchange           | Source/VulkanExchange.cpp      | 157-166 | ?
+F VulkanExchange::Instance                  | Source/VulkanExchange.cpp      | 172     | ?
+F VulkanExchange::ScoredDevice              | Source/VulkanExchange.cpp      | 173     | ?
+F VulkanExchange::ActiveDevice              | Source/VulkanExchange.cpp      | 174     | ?
+F VulkanExchange::GraphicsQueue             | Source/VulkanExchange.cpp      | 175     | ?
+F VulkanExchange::Capability                | Source/VulkanExchange.cpp      | 176     | ?
 F Convert                                   | Api/WindowExchange.h           | 27      | Converts a native window handle from `04` into a presentation surface. The split is what keeps `SlateMath` free of a Vulkan header.
 F Reclaim                                   | Api/WindowExchange.h           | 32      | Destroys a surface previously converted.
 F Convert                                   | Source/WindowExchange.cpp      | 20-36   | ?

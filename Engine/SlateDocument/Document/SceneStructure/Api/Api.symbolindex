@@ -50,7 +50,7 @@ F EnclosureContains                   | SceneStructure.h | 58-62   | api,nonallo
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 63      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE TWO RELATIONS
@@ -126,7 +126,7 @@ F SceneStructure::Attach              | SceneStructure.h | 168     | api,nonthro
     in    Subject             OccupantIdentity  [-]  the occupant that will follow
     in    ProposedAttachment  OccupantIdentity  [-]  what it follows; undeclared makes it an attachment root
     out   -                   Outcome           [-]  refuses with RelationCyclic, or IdentityStale for either operand
-    by    Api/InputExchange.h, Api/OutlinerSequence.h, Source/InputExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
+    by    Api/InputExchange.h, Api/OutlinerSequence.h, Source/InputExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp, Source/WorkspaceSequence.cpp
     note  Attachment may cross enclosure boundaries freely — `12` §10 records that as the reason two
 
 F SceneStructure::AuthorTransform     | SceneStructure.h | 176     | api,nonallocating,nonthrowing | ✔️ | Records the transform the artist authored for one occupant.
@@ -150,7 +150,7 @@ F SceneStructure::RepairLabels        | SceneStructure.h | 194     | api,nonthro
 F SceneStructure::Label               | SceneStructure.h | 201     | api,nonallocating,nonthrowing | ✔️ | One occupant's interval label, for the containment predicate above.
     in    Subject  OccupantIdentity  [-]  the occupant
     out   -        Outcome           [-]  refuses with IdentityStale
-    by    Api/WorkspaceSpace.h, Source/SceneStructure.cpp, Source/WorkspaceStrip.cpp
+    by    Api/WorkspaceSpace.h, Source/SceneStructure.cpp, Source/WorkspaceSequence.cpp, Source/WorkspaceStrip.cpp
 
 F SceneStructure::CompoundedTransform | SceneStructure.h | 209     | api,nonthrowing               | ✔️ | One occupant's transform with its whole attachment path compounded into it.
     in    Subject  OccupantIdentity  [-]  the occupant
@@ -214,7 +214,7 @@ F SceneStructure::LabelsNested        | SceneStructure.h | 272     | api,nonallo
 F SceneStructure::Resolved            | SceneStructure.h | 276     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::uint32_t     [-]  ?
-    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SpatialSubdivision.h, Api/SpecularProjection.h, (+40 more)
+    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SpatialSubdivision.h, Api/SpecularProjection.h, (+41 more)
 
 F SceneStructure::Unlink              | SceneStructure.h | 277     | -                             | -  | ?
     in    SlotOrdinal  std::uint32_t  [-]  ?
@@ -259,4 +259,4 @@ F SceneStructure::CompoundFrom        | SceneStructure.h | 283     | -          
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 300     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)

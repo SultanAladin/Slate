@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S VendorClassifier.h | 36 lines | f9f04938 | 2 sym | Scores vendor implementations into a capability set, once, at bring-up and at recovery.
+S VendorClassifier.h | 39 lines | a79e2654 | 2 sym | Scores vendor implementations into a capability set, once, at bring-up and at recovery.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SCORING
@@ -28,9 +28,10 @@ T ScoredCandidate | VendorClassifier.h | 19-24 | nonallocating,nonthrowing     |
     has   Ranking    std::uint32_t     [-]  ?
     by    Source/VendorClassifier.cpp, Source/VulkanExchange.cpp
 
-F Classify        | VendorClassifier.h | 34    | api,nonallocating,nonthrowing | 🚩 | Scores one enumerated device against the presentation surface it must serve. graphics family cannot serve Slate at all and is never chosen as a least-bad option.
+F Classify        | VendorClassifier.h | 37    | api,nonallocating,nonthrowing | 🚩 | Scores one enumerated device against the presentation surface it must serve. graphics family cannot serve Slate at all and is never chosen as a least-bad option. offers it always wins over one that does not; a host that records no interface still receives a device. `VulkanExchange::ConstructDevice` is where its absence is refused, by name.
     in    Candidate            VkPhysicalDevice  [-]  the enumerated device
     in    PresentationSurface  VkSurfaceKHR      [-]  the surface the device must present to
     out   -                    ScoredCandidate   [-]  Ranking is zero when no queue family both draws and presents
     by    Api/CameraProjection.h, Api/SampleIntegrator.h, Api/TilingSpecification.h, Api/VectorInterchange.h, Source/AnalyticProjection.cpp, Source/CameraProjection.cpp, (+8 more)
     note  A ranking of zero is unusable, which is distinct from a low ranking. A device with no presenting
+    note  Dynamic recording is scored, not gated. It outranks every other preference, so a candidate that

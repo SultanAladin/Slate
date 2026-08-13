@@ -145,11 +145,11 @@ F PromotionScheduler::PromoteOne      | PromotionScheduler.h | 184     | api,non
 
 F PromotionScheduler::Ordering        | PromotionScheduler.h | 186     | -                             | -  | ?
     out   -  EvictionOrdering  [-]  ?
-    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/CommandSequence.cpp, Source/DomainSpace.cpp, Source/PromotionScheduler.cpp, Source/SurfaceTileSpace.cpp
+    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/CommandSequence.cpp, Source/DomainSpace.cpp, Source/PromotionScheduler.cpp, Source/SurfaceTileSpace.cpp, (+1 more)
 
 F PromotionScheduler::Declared        | PromotionScheduler.h | 187     | -                             | -  | ?
     out   -  const PromotionBudget&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+82 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+84 more)
 
 F PromotionScheduler::Remaining       | PromotionScheduler.h | 188     | -                             | -  | ?
     out   -  const PromotionBudget&  [-]  ?

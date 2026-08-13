@@ -78,7 +78,7 @@ F WorkProgress::DeclareCount           | WorkSequence.h | 112-119 | api,nonalloc
     in    Resolved  std::uint64_t  [-]  parts completed
     in    Spanned   std::uint64_t  [-]  parts the solve holds; zero declares the span unknown
     out   -         void           [-]  ?
-    by    Api/ReportSequence.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/DisplayProjection.cpp, Source/OcclusionProjection.cpp, Source/OverlayProjection.cpp, (+6 more)
+    by    Api/ReportSequence.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/DisplayProjection.cpp, Source/OcclusionProjection.cpp, Source/OverlayProjection.cpp, (+7 more)
 
 F WorkProgress::Fraction               | WorkSequence.h | 124     | api,nonallocating,nonthrowing | ✔️ | The resolved fraction as last declared.
     out   -  double  [-]  ?
@@ -94,7 +94,7 @@ F WorkProgress::SpannedCount           | WorkSequence.h | 134     | api,nonalloc
 
 F WorkProgress::Reclaim                | WorkSequence.h | 139-144 | api,nonallocating,nonthrowing | ✔️ | Returns every reading to its beginning, for a reused record.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     DECLARED WORK
@@ -136,7 +136,7 @@ F WorkQueue::Admit                     | WorkSequence.h | 203     | api,nonthrow
 
 F WorkQueue::Claim                     | WorkSequence.h | 209     | api,nonallocating,nonthrowing | ✔️ | Claims the earliest pending record ordinal.
     out   -  Outcome  [-]  refuses with ExtentExhausted when nothing is pending
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+14 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+15 more)
 
 F WorkQueue::Withdraw                  | WorkSequence.h | 214     | api,nonallocating,nonthrowing | ✔️ | Strikes one record ordinal from the order without claiming it.
     in    RecordOrdinal  std::uint32_t  [-]  ?
@@ -183,7 +183,7 @@ F WorkSequence::Construct              | WorkSequence.h | 261     | api,nonthrow
     in    Reporting         ReportSequence&      [-]  where `34` §5's failures are appended
     out   -                 Outcome              [-]  refuses with HostDenied when workers already stand
     post  the worker count is fixed and recorded, so `HardwareMetrics` can attribute a measurement to it
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
     note  📝 A zero request reads the count from `04`'s `PlatformInterchange`, which reports the host once
 
 F WorkSequence::Declare                | WorkSequence.h | 271     | api,nonthrowing               | 🚩 | Declares one unit of work, to be resolved by a worker. declaration carries no resolution claims it; nothing about the calling thread decides when.
@@ -206,7 +206,7 @@ F WorkSequence::Supersede              | WorkSequence.h | 287     | api,nonthrow
 
 F WorkSequence::Drain                  | WorkSequence.h | 303     | api,nonthrowing               | 🚩 | Delivers every conclusion recorded since the last drain, in declaration order. delivered as soon as it is recorded, so an earlier declaration still resolving does not hold a later one back. Holding it back would make a `Background` export block every `Interactive` promotion declared after it, which is the starvation `34` §4 forbids outright. index, never by completion. Two independent declarations read disjoint immutable inputs, so the order their results are applied in carries no information and cannot make two machines differ. a worker applying its own result would linearise against `RevisionSequence` from a thread that does not observe the tick's ordering, which `12` invariant 10 forbids.
     out   -  Completions  [-]  ordered by declaration ordinal within the drain, never by finishing order
-    by    Api/RequestQueue.h, Api/StorageExchange.h, Api/WindowInterchange.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+2 more)
+    by    Api/RequestQueue.h, Api/StorageExchange.h, Api/WindowInterchange.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+3 more)
     note  🔴 The ordering is **within one drain** and is not a global prefix across drains. A conclusion is
     note  📝 `34` §6's determinism rule binds the parts of **one** split solve — recombined by declared
     note  🔴 Called on the tick and nowhere else. The requester applies each result here — `34` §3 — because
@@ -236,7 +236,7 @@ F WorkSequence::PendingCount           | WorkSequence.h | 330     | api,nonalloc
 F WorkSequence::Reclaim                | WorkSequence.h | 336     | api,nonthrowing               | 🔴 | Withdraws everything pending, joins every worker, and returns the sequence to its unconstructed state.
     out   -  void  [-]  ?
     post  every pending declaration has concluded as Withdrawn and is drainable
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F WorkSequence::Serve                  | WorkSequence.h | 345     | -                             | -  | ?
     in    WorkerOrdinal  std::uint32_t  [-]  ?
@@ -251,13 +251,13 @@ F WorkSequence::Claimable              | WorkSequence.h | 346     | -           
 F WorkSequence::Claim                  | WorkSequence.h | 347     | -                             | -  | ?
     in    WorkerOrdinal  std::uint32_t  [-]  ?
     out   -              std::uint32_t  [-]  ?
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+14 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+15 more)
 
 F WorkSequence::Seal                   | WorkSequence.h | 348     | -                             | -  | ?
     in    RecordOrdinal  std::uint32_t         [-]  ?
     in    Resolved       const Outcome<bool>&  [-]  ?
     out   -              void                  [-]  ?
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, (+19 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, (+20 more)
 
 F WorkSequence::Cancel                 | WorkSequence.h | 349     | -                             | -  | ?
     in    Subject            WorkIdentity   [-]  ?
@@ -268,4 +268,4 @@ F WorkSequence::Cancel                 | WorkSequence.h | 349     | -           
 F WorkSequence::Resolved               | WorkSequence.h | 350     | -                             | -  | ?
     in    Subject  WorkIdentity   [-]  ?
     out   -        std::uint32_t  [-]  ?
-    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, (+40 more)
+    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, (+41 more)

@@ -66,7 +66,7 @@ T ImageSpace               | ImageSpace.h | 85-186  | owning                    
     has   BackingBytes  ByteSpace*                  [-]  ?
     has   NamingEdge    const DiagnosticExtension*  [-]  ?
     has   Images        std::vector<HeldImage>      [-]  ?
-    by    Api/OcclusionScheduler.h, Api/RenderSchedule.h, Source/ImageSpace.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp
+    by    Api/OcclusionScheduler.h, Api/RenderSchedule.h, Api/WorkspaceSequence.h, Source/ImageSpace.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp
     note  🔴 This is where `08` §2's "nothing claims a format, an extent or memory" is closed. The shared
     note  ⚠️ An extent change reclaims and re-claims every display-relative image and touches no absolute
 
@@ -77,14 +77,14 @@ F ImageSpace::Construct    | ImageSpace.h | 104     | api,nonthrowing           
     in    BackingSpace  ByteSpace&                  [-]  where image bytes come from; borrowed and outlives this component
     in    Naming        const DiagnosticExtension&  [-]  names every claimed image and every view over it; borrowed and outlives this
     out   -             Outcome                     [-]  refuses with CapabilityAbsent when no device is active
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
     note  🔴 `06` §7's diagnostic-name gate. The image and its views are named separately because they are
 
 F ImageSpace::Claim        | ImageSpace.h | 117     | api,nonthrowing           | 🔴 | Claims one image of the declared shape, slices its bytes, and constructs its whole-image view. zero extent or a format the device declines for the declared intent vendor allocation nothing holds a reference to, and it is reclaimed only at device teardown.
     in    Declared  const ImageShape&  [-]  the shape; nothing about it is inferred from the format
     out   -         Outcome            [-]  refuses with ExtentExhausted when no bytes remain, ContentUnsupported for a
     post  the image stands in VK_IMAGE_LAYOUT_UNDEFINED and is transitioned before first use
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+14 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+15 more)
     note  🔴 Refused in full. An image whose bytes were claimed and whose view was declined leaves a
 
 F ImageSpace::Transition   | ImageSpace.h | 129     | api,nonthrowing           | ✔️ | Records the barrier that carries one image from where it stands to where it is next read. derived from the declared reads and writes, and this is the one place it is recorded.
@@ -100,7 +100,7 @@ F ImageSpace::Transition   | ImageSpace.h | 129     | api,nonthrowing           
 F ImageSpace::Standing     | ImageSpace.h | 135     | api,nonthrowing           | ✔️ | The current record for one claimed image, including the layout the last transition left it in.
     in    ImageOrdinal  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+76 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+78 more)
 
 F ImageSpace::LevelView    | ImageSpace.h | 145     | api,nonthrowing           | 🚩 | Constructs a view over one reduction level, for the chain `16` §2 walks a level at a time. holding a handle the vendor has already reused.
     in    ImageOrdinal  std::uint32_t  [-]  a claimed image whose LevelCount admits the level
@@ -118,15 +118,15 @@ F ImageSpace::Release      | ImageSpace.h | 151     | api,nonthrowing           
 F ImageSpace::Reclaim      | ImageSpace.h | 157     | api,nonthrowing           | 🔴 | Releases every claimed image.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F ImageSpace::ClaimedCount | ImageSpace.h | 159     | -                         | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/DescriptorIndex.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+5 more)
+    by    Api/DescriptorIndex.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+6 more)
 
 F ImageSpace::ClaimedBytes | ImageSpace.h | 160     | -                         | -  | ?
     out   -  VkDeviceSize  [-]  ?
-    by    Api/ByteSpace.h, Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp
+    by    Api/ByteSpace.h, Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp, Source/WorkspaceSequence.cpp
 
 T ImageSpace::HeldImage    | ImageSpace.h | 164-173 | -                         | -  | ?
     has   Extent          VkImage                   [-]  ?

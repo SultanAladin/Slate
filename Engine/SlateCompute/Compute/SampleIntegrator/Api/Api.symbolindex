@@ -138,7 +138,7 @@ F SampleIntegrator::Report          | SampleIntegrator.h | 189    | api,nonthrow
 
 F SampleIntegrator::Declared        | SampleIntegrator.h | 191    | -                             | -  | ?
     out   -  const RejectionSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+82 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+84 more)
 
 F SampleIntegrator::Metrics         | SampleIntegrator.h | 192    | -                             | -  | ?
     out   -  const ConvergenceMetrics&  [-]  ?
@@ -149,4 +149,4 @@ F SLATE_DECLARES_PRECISION          | SampleIntegrator.h | 203    | -           
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)

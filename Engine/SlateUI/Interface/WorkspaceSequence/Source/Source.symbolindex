@@ -1,0 +1,132 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Bring-up in `32` §1's order, the ten-step tick, and teardown as its exact reverse with the rotation drained first.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/WorkspaceSequence/Source
+%layer      SlateUI
+%sources    1
+%symbols    22
+%annotated  0/22
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S WorkspaceSequence.cpp | 857 lines | c437251e | 22 sym | Bring-up in `32` §1's order, the ten-step tick, and teardown as its exact reverse with the rotation drained first.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  WHAT A STEP REPORTS
+//------------------------------------------------------------------------------------------------------------------------
+
+V BringUpOrigin                         | WorkspaceSequence.cpp | 25      | -          | - | ?
+
+V TickOrigin                            | WorkspaceSequence.cpp | 26      | -          | - | ?
+
+F CarryDisplayImage                     | WorkspaceSequence.cpp | 31-54   | -          | - | ?
+    in    Recorded         VkCommandBuffer       [-]  ?
+    in    Extent           VkImage               [-]  ?
+    in    Departing        VkImageLayout         [-]  ?
+    in    Arriving         VkImageLayout         [-]  ?
+    in    DepartingAccess  VkAccessFlags         [-]  ?
+    in    ArrivingAccess   VkAccessFlags         [-]  ?
+    in    DepartingStage   VkPipelineStageFlags  [-]  ?
+    in    ArrivingStage    VkPipelineStageFlags  [-]  ?
+    out   -                void                  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE REGISTER
+//------------------------------------------------------------------------------------------------------------------------
+
+F WorkspaceSequence::Record             | WorkspaceSequence.cpp | 62-73   | -          | - | ?
+    in    Origin     const char*     [-]  ?
+    in    Subject    const char*     [-]  ?
+    in    Declining  const Refusal&  [-]  ?
+    out   -          void            [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        BRING-UP
+//------------------------------------------------------------------------------------------------------------------------
+
+F WorkspaceSequence::Construct          | WorkspaceSequence.cpp | 79-322  | -          | - | ?
+    in    Declaring  const WorkspaceDeclaration&  [-]  ?
+    out   -          Outcome<bool>                [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE STANDING LEDGER
+//------------------------------------------------------------------------------------------------------------------------
+
+F WorkspaceSequence::DeclareStanding    | WorkspaceSequence.cpp | 328-342 | -          | - | ?
+    out   -  void  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE ARRIVED EXTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F WorkspaceSequence::ReclaimExtent      | WorkspaceSequence.cpp | 348-377 | -          | - | ?
+    in    ArrivedWidth   std::uint32_t  [-]  ?
+    in    ArrivedHeight  std::uint32_t  [-]  ?
+    out   -              Outcome<bool>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE ARBITRATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F WorkspaceSequence::Arbitrate          | WorkspaceSequence.cpp | 383-421 | -          | - | ?
+    out   -  PointerArbitration  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        THE TICK
+//------------------------------------------------------------------------------------------------------------------------
+
+F WorkspaceSequence::Advance            | WorkspaceSequence.cpp | 427-758 | -          | - | ?
+    out   -  Outcome<TickReport>  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        TEARDOWN
+//------------------------------------------------------------------------------------------------------------------------
+
+F WorkspaceSequence::Reclaim            | WorkspaceSequence.cpp | 764-821 | -          | - | ?
+    out   -  void  [-]  ?
+
+F WorkspaceSequence::~WorkspaceSequence | WorkspaceSequence.cpp | 823-826 | destructor | - | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       RESOLUTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F WorkspaceSequence::ClosureRequested   | WorkspaceSequence.cpp | 832-835 | -          | - | ?
+    out   -  bool  [-]  ?
+
+F WorkspaceSequence::Theme              | WorkspaceSequence.cpp | 837     | -          | - | ?
+    out   -  const ThemeSpecification&  [-]  ?
+
+F WorkspaceSequence::Desk               | WorkspaceSequence.cpp | 839     | -          | - | ?
+    out   -  WorkspaceSpace&  [-]  ?
+
+F WorkspaceSequence::Desk               | WorkspaceSequence.cpp | 840     | -          | - | ?
+    out   -  const WorkspaceSpace&  [-]  ?
+
+F WorkspaceSequence::Reports            | WorkspaceSequence.cpp | 842     | -          | - | ?
+    out   -  ReportSequence&  [-]  ?
+
+F WorkspaceSequence::Reports            | WorkspaceSequence.cpp | 843     | -          | - | ?
+    out   -  const ReportSequence&  [-]  ?
+
+F WorkspaceSequence::Measures           | WorkspaceSequence.cpp | 845     | -          | - | ?
+    out   -  MeasureIndex&  [-]  ?
+
+F WorkspaceSequence::Measures           | WorkspaceSequence.cpp | 846     | -          | - | ?
+    out   -  const MeasureIndex&  [-]  ?
+
+F WorkspaceSequence::Timeline           | WorkspaceSequence.cpp | 848     | -          | - | ?
+    out   -  const TickSequence&  [-]  ?
+
+F WorkspaceSequence::Declared           | WorkspaceSequence.cpp | 850     | -          | - | ?
+    out   -  const PanelIndex&  [-]  ?
+
+F WorkspaceSequence::CompletedRotations | WorkspaceSequence.cpp | 852-855 | -          | - | ?
+    out   -  std::uint64_t  [-]  ?

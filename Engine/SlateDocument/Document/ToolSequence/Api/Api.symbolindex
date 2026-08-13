@@ -104,7 +104,7 @@ F ToolIndex::Declare               | ToolSequence.h | 128     | api,nonthrowing 
 F ToolIndex::Resolve               | ToolSequence.h | 130     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                      [-]  ?
     out   -            Outcome<const ToolSpecification*>  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
 
 F ToolIndex::Amend                 | ToolSequence.h | 131     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                [-]  ?
@@ -217,12 +217,12 @@ F ToolSequence::Arbitrate          | ToolSequence.h | 268     | api,nonallocatin
     in    ManipulatorOpen    bool      [-]  a drag stands in `78`
     in    StrokeOpen         bool      [-]  a stroke stands in `22`
     out   -                  Claiming  [-]  the standing holder while one stands, the arbitration otherwise
-    by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
+    by    Api/WorkspaceSequence.h, Source/ConsoleHost.cpp, Source/ToolSequence.cpp, Source/WorkspaceSequence.cpp
     note  📝 Declared here rather than in `14` because `22` and `78` both ask it and neither may read
 
 F ToolSequence::Colour             | ToolSequence.h | 270     | -                             | -  | ?
     out   -  const ColourSpecification&  [-]  ?
-    by    Api/ControlPanel.h, Api/PropertySpecification.h, Api/ThemeSpecification.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, (+8 more)
+    by    Api/ControlPanel.h, Api/PropertySpecification.h, Api/ThemeSpecification.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, (+9 more)
 
 F ToolSequence::Capture            | ToolSequence.h | 271     | -                             | -  | ?
     out   -  const PointerCapture&  [-]  ?
@@ -246,7 +246,7 @@ F ToolSequence::ActiveBrushOrdinal | ToolSequence.h | 286     | -               
 
 F ToolSequence::Display            | ToolSequence.h | 287     | -                             | -  | ?
     out   -  DisplaySubject  [-]  ?
-    by    Api/DisplayProjection.h, Source/ConsoleHost.cpp, Source/DisplayProjection.cpp, Source/ToolSequence.cpp
+    by    Api/DisplayProjection.h, Api/WorkspaceSequence.h, Source/ConsoleHost.cpp, Source/DisplayProjection.cpp, Source/ToolSequence.cpp, Source/WorkspaceSequence.cpp
 
 F ToolSequence::IsolatedChannel    | ToolSequence.h | 288     | -                             | -  | ?
     out   -  ChannelSubject  [-]  ?

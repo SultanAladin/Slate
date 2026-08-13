@@ -30,7 +30,7 @@ T DiagnosticExtension                       | DiagnosticExtension.h | 37-156  | 
     has   NameDeclaration   PFN_vkSetDebugUtilsObjectNameEXT     [-]  ?
     has   Forwarded         ArrivalForwarding                    [-]  ?
     has   CapabilityHeld    bool                                 [-]  ?
-    by    Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/ImageSpace.h, (+11 more)
+    by    Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/ImageSpace.h, (+12 more)
     note  🔴 This is `SKILL-Naming`'s narrow reading of `Extension`: a queried, enabled and **owned** optional
     note  🔴 Compiled in every configuration rather than behind `SLATE_DEBUG`. A component compiled out of
     note  ⚠️ Attached **after** `ConstructInstance` and **before** `ConstructDevice`. The capability is
@@ -44,7 +44,7 @@ F DiagnosticExtension::Construct            | DiagnosticExtension.h | 59      | 
     out   -         Outcome                [-]  refuses with CapabilityAbsent when no instance stands or the loader does not
     pre   `VulkanExchange::ConstructInstance` delivered with the diagnostic requested
     post  driver text arrives at `Register` until Reclaim
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
     note  🔴 The entry points are resolved through the loader rather than linked. `VK_EXT_debug_utils` is
 
 F DiagnosticExtension::Declare              | DiagnosticExtension.h | 82      | api,nonthrowing               | ✔️ | Names one vendor object, so the driver's text names the object rather than an address. the driver declines the name discharged at each **claim site**, not here. This is the one mechanism that can name an object; the gate is met only once `ByteSpace`, `ImageSpace`, `SpanSpace`, `DescriptorIndex`, `ProgramIndex`, `CommandSequence`, `CycleScheduler` and `DisplayScheduler` each call it. with no diagnostic capability is not a failure, and refusing would make every claim site branch on the configuration to ignore a refusal it expected. third-party exemption and beside the existing `WindowExchange::Convert(…, void* NativeHandle)`. The vendor's own field is `objectHandle` and one spelling at the edge is what the exemption is for. holds this as a borrowed const edge beside the device, and a non-const one would make every such component hold a mutable reference to a capability it only reads.
@@ -70,7 +70,7 @@ F DiagnosticExtension::Declare              | DiagnosticExtension.h | 99      | 
 
 F DiagnosticExtension::Negotiated           | DiagnosticExtension.h | 108     | api,nonallocating,nonthrowing | ✔️ | Whether the capability was negotiated, for a claim site reporting what it could not name.
     out   -  Negotiated  [-]  false in every configuration that did not request the diagnostic
-    by    Source/DiagnosticExtension.cpp
+    by    Source/DiagnosticExtension.cpp, Source/WorkspaceSequence.cpp
 
 F DiagnosticExtension::ArrivalCount         | DiagnosticExtension.h | 115     | api,nonallocating,nonthrowing | ✔️ | How many diagnostic arrivals the driver has reported since the sink attached. arrival count is what says whether a quiet register means a clean run or a detached sink.
     out   -  std::uint64_t  [-]  ?
@@ -80,7 +80,7 @@ F DiagnosticExtension::ArrivalCount         | DiagnosticExtension.h | 115     | 
 F DiagnosticExtension::Reclaim              | DiagnosticExtension.h | 121     | api,nonthrowing               | ✔️ | Detaches the sink and forgets every resolved entry point.
     out   -  void  [-]  ?
     pre   nothing is still recording; the instance stands until after this returns
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F DiagnosticExtension::Arrival              | DiagnosticExtension.h | 135     | -                             | -  | The C-ABI arrival the driver calls, which forwards to the register the construction was given. was executing on. Nothing here allocates and nothing here takes a lock the driver does not already hold — the register's own guard is the only one. declares seven dispositions and none of them is "warning": an error and a validation warning are each a defect in Slate's own use of the vendor rather than normal operation, and `86` §5 — not a mapping here — decides what is presented as a problem. Only those two severities are subscribed to; a bounded register filled with information arrivals is one in which the error that mattered has already been discarded.
     in    Severity    VkDebugUtilsMessageSeverityFlagBitsEXT       [-]  ?
@@ -88,7 +88,7 @@ F DiagnosticExtension::Arrival              | DiagnosticExtension.h | 135     | 
     in    Arriving    const VkDebugUtilsMessengerCallbackDataEXT*  [-]  ?
     in    Forwarding  void*                                        [-]  ?
     out   -           static VKAPI_ATTR VkBool32 VKAPI_CALL        [-]  ?
-    by    Api/HardwareMetrics.h, Api/InputExchange.h, Api/ReportSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, (+13 more)
+    by    Api/HardwareMetrics.h, Api/InputExchange.h, Api/ReportSequence.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, (+15 more)
     note  🔴 `86` §3.1 admits an append from any thread and this arrives on whichever thread the driver
     note  🔴 Every arrival is appended as `Failed`, so the severity is read by nothing. `ReportSequence`
 

@@ -57,7 +57,7 @@ F HardwareMetrics::Construct          | HardwareMetrics.h | 86      | api,nonthr
     in    Exchange  const VulkanExchange&  [-]  the created device; borrowed and outlives this component
     out   -         Outcome                [-]  refuses with CapabilityAbsent when no device is active
     post  every span reads unavailable until one rotation has completed
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
     note  🔴 Delivers when `TimestampQueryAvailable` is false and constructs no extent. That is `08` §5's
 
 F HardwareMetrics::Declare            | HardwareMetrics.h | 97      | api,nonthrowing               | ✔️ | Declares one span of device execution by name, returning the ordinal that opens and closes it. a name already declared — two spans of one name make one unreadable reading the query extent, and reallocating it invalidates the readings the standing rotations still hold.
@@ -73,7 +73,7 @@ F HardwareMetrics::Open               | HardwareMetrics.h | 109     | api,nonthr
     in    SpanOrdinal   std::uint32_t    [-]  what `Declare` returned
     out   -             Outcome          [-]  refuses with ContentUnsupported for an undeclared ordinal or an excessive slot,
     post  the span's nesting depth is the count of spans standing open around it
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, (+20 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, (+21 more)
     note  ⚠️ Delivers as a no-op without the capability, so the recording site is unconditional.
 
 F HardwareMetrics::Close              | HardwareMetrics.h | 118     | api,nonthrowing               | ✔️ | Records the timestamp that closes one declared span, and leaves it on the nesting depth. with RelationCyclic when the span was not opened in this rotation standing has crossed the nesting, and the depth it reports then belongs to neither of them.
@@ -97,13 +97,13 @@ F HardwareMetrics::Resolve            | HardwareMetrics.h | 142     | api,nonthr
     in    CompletedCount  std::uint64_t  [-]  which rotation the readings belong to, for the lag the reading carries
     out   -               Outcome        [-]  refuses with ContentUnsupported for an excessive slot, HostDenied when the
     pre   🔴 the rotation that recorded into this slot has completed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
     note  ⚠️ A span the rotation declared but never recorded reads unavailable rather than zero. That is the
 
 F HardwareMetrics::Standing           | HardwareMetrics.h | 150     | api,nonthrowing               | ✔️ | One declared span's last resolved reading. member says it was declared and has no reading — two different facts, and `86` presents both.
     in    SpanOrdinal  std::uint32_t  [-]  ?
     out   -            Outcome        [-]  refuses with ContentUnsupported for an undeclared ordinal
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+76 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+78 more)
     note  The delivered span may itself read unavailable. The refusal says the span was never declared; the
 
 F HardwareMetrics::Report             | HardwareMetrics.h | 160     | api,nonthrowing               | 🚩 | Declares every resolved reading into the register the tick samples. span and nothing at all is declared for an unavailable one, so `MeasureIndex::Resolve` refuses rather than reading zero, which is `08` §5 enforced at the presentation rather than promised.
@@ -124,7 +124,7 @@ F HardwareMetrics::DeclaredCount      | HardwareMetrics.h | 170     | api,nonall
 F HardwareMetrics::Reclaim            | HardwareMetrics.h | 176     | api,nonthrowing               | ✔️ | Destroys the timestamp extent and forgets every declared span.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 T HardwareMetrics::DeclaredSpan       | HardwareMetrics.h | 181-186 | -                             | -  | One declared span — its name, where its two timestamps sit, and what it last read.
     has   Declared      const char*    [-]  ?

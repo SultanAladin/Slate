@@ -54,7 +54,7 @@ F InstructionExchange::Report  | InstructionExchange.h | 64    | api,nonallocati
 F InstructionExchange::Fix     | InstructionExchange.h | 78    | api,nonallocating,nonthrowing | ✔️ | Fixes the selection at a stated width, overriding what the host reported. which it cannot do while the selection is fixed at bring-up and never movable. This is what makes that sweep possible, and `SelectionForced` is what keeps a forced run from being reported as the host's own choice. produces a result assembled out of two specialisations, which is the exact defect parity exists to detect — reported as a disagreement between the host and itself.
     in    Fixed  InstructionWidth  [-]  never wider than what the host supports; a wider request is reduced to what it does
     out   -      Applied           [-]  the width actually in force after the call
-    by    Api/DescriptorIndex.h, Api/RenderSchedule.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/InstructionExchange.cpp, Source/RenderSchedule.cpp
+    by    Api/DescriptorIndex.h, Api/RenderSchedule.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/InstructionExchange.cpp, Source/RenderSchedule.cpp, (+1 more)
     note  🔴 `02` §7's parity runner reads a Tier A predicate through every specialisation the host supports,
     note  ⚠️ Never called during a computation. Fixing the width between two halves of one accumulation
 
@@ -65,4 +65,4 @@ F InstructionExchange::Release | InstructionExchange.h | 83    | api,nonallocati
 F InstructionExchange::Naming  | InstructionExchange.h | 90    | api,nonallocating,nonthrowing | ✔️ | The selected specialisation as static text, for `86` and for `02` §7's per-registration reporting.
     in    Reported  InstructionWidth  [-]  the width to name
     out   -         Naming            [-]  static text; never allocated
-    by    Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/ImageSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/ImageSpace.h, (+14 more)

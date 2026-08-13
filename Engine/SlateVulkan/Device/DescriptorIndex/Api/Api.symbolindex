@@ -66,7 +66,7 @@ F DescriptorIndex::Construct        | DescriptorIndex.h | 87      | api,nonthrow
     in    Naming    const DiagnosticExtension&  [-]  names every layout, the extent and every set; borrowed and outlives this component
     out   -         Outcome                     [-]  refuses with CapabilityAbsent when no device is active
     post  no layout is declared and no set is claimed
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
     note  🔴 `06` §7's diagnostic-name gate. A descriptor set is the object the validation layer names most
 
 F DescriptorIndex::Declare          | DescriptorIndex.h | 95      | api,nonthrowing               | 🚩 | Declares one layout from its slots, returning the ordinal every later claim names it by. and with RelationCyclic once the declaration set has been fixed
@@ -78,14 +78,14 @@ F DescriptorIndex::Fix              | DescriptorIndex.h | 105     | api,nonthrow
     in    ConcurrentSets  std::uint32_t  [-]  how many sets the extent must admit, across every layout and every rotation
     out   -               Outcome        [-]  refuses with ExtentExhausted when the device declines the extent
     post  Declare refuses thereafter; Claim delivers
-    by    Api/InstructionExchange.h, Api/RenderSchedule.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/InstructionExchange.cpp, Source/RenderSchedule.cpp
+    by    Api/InstructionExchange.h, Api/RenderSchedule.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/InstructionExchange.cpp, Source/RenderSchedule.cpp, (+1 more)
     note  🔴 One extent sized against the declaration rather than one grown on demand. A descriptor extent
 
 F DescriptorIndex::Claim            | DescriptorIndex.h | 113     | api,nonthrowing               | 🚩 | Claims one set per rotation slot against a declared layout, returning the claim's ordinal.
     in    LayoutOrdinal  std::uint32_t  [-]  a layout this component declared
     out   -              Outcome        [-]  refuses with ExtentExhausted when the extent admits no further set
     post  `RecordingRotationDepth` sets stand and are addressed by the returned ordinal and a rotation slot
-    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+14 more)
+    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+15 more)
 
 F DescriptorIndex::Amend            | DescriptorIndex.h | 124     | api,nonthrowing               | 🚩 | Writes the content of one claimed set for one rotation slot. or above the depth, or a slot the layout does not declare
     in    ClaimOrdinal  std::uint32_t                          [-]  a claim this component issued
@@ -99,7 +99,7 @@ F DescriptorIndex::Resolve          | DescriptorIndex.h | 132     | api,nonalloc
     in    ClaimOrdinal  std::uint32_t  [-]  ?
     in    RotationSlot  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal or an excessive slot
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/FileInterchange.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/FileInterchange.h, (+95 more)
 
 F DescriptorIndex::Layout           | DescriptorIndex.h | 138     | api,nonallocating,nonthrowing | ✔️ | The layout one ordinal names, for the recording that constructs a program against it.
     in    LayoutOrdinal  std::uint32_t  [-]  ?
@@ -109,7 +109,7 @@ F DescriptorIndex::Layout           | DescriptorIndex.h | 138     | api,nonalloc
 F DescriptorIndex::Reclaim          | DescriptorIndex.h | 144     | api,nonthrowing               | 🚩 | Destroys every set, every layout and the extent they were sliced from.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F DescriptorIndex::DeclaredCount    | DescriptorIndex.h | 146     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -117,7 +117,7 @@ F DescriptorIndex::DeclaredCount    | DescriptorIndex.h | 146     | -           
 
 F DescriptorIndex::ClaimedCount     | DescriptorIndex.h | 147     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+5 more)
+    by    Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+6 more)
 
 T DescriptorIndex::DeclaredLayout   | DescriptorIndex.h | 151-155 | -                             | -  | ?
     has   Constructed  VkDescriptorSetLayout        [-]  ?

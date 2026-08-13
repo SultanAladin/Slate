@@ -45,12 +45,12 @@ T StrokeSpace                    | StrokeSpace.h | 53-120 | owning              
 F StrokeSpace::Construct         | StrokeSpace.h | 61     | api,nonthrowing               | 🚩 | Sizes the sparse index; claims nothing.
     out   -  void  [-]  ?
     post  every cell is unclaimed and the touched count is zero
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
 
 F StrokeSpace::Claim             | StrokeSpace.h | 72     | api,nonthrowing               | 🚩 | Claims the coverage tile backing one cell, or resolves the one already claimed. the declared tile ceiling count. It is a guard against a coarser level being painted at with a miscomputed ordinal, and it refuses rather than growing so that a defect there is a refusal instead of an allocation storm.
     in    CellOrdinal  std::uint32_t  [-]  into `20` §1's single ordinal span
     out   -            Outcome        [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/TileSpace.h, (+14 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/TileSpace.h, (+15 more)
     note  📝 Exhaustion is structurally unreachable at the finest level, where the ceiling equals the cell
 
 F StrokeSpace::Located           | StrokeSpace.h | 78     | api,nonthrowing               | ✔️ | The tile backing one cell, if one is claimed.
@@ -80,7 +80,7 @@ F StrokeSpace::TouchedCells      | StrokeSpace.h | 99     | api,nonallocating,no
 
 F StrokeSpace::ClaimedCount      | StrokeSpace.h | 101    | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+5 more)
+    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+6 more)
 
 F StrokeSpace::TouchedTexelCount | StrokeSpace.h | 102    | -                             | -  | ?
     out   -  std::uint64_t  [-]  ?
@@ -88,5 +88,5 @@ F StrokeSpace::TouchedTexelCount | StrokeSpace.h | 102    | -                   
 
 F StrokeSpace::Reclaim           | StrokeSpace.h | 108    | api,nonthrowing               | 🚩 | Discards every claimed tile, keeping the sparse index sized.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
     note  Called at Seal, at Abandon, and once per rotation by a speculative extent — `22` §4.1.

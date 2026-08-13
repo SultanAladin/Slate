@@ -46,7 +46,7 @@ F OutlinerPanel::Present          | OutlinerPanel.h | 50     | api,nonthrowing  
     out   -         Outcome            [-]  refuses with HostDenied when no interface tick is open
     pre   InterfaceExchange::Advance delivered and Seal has not
     post  every declared intent sits in the pending run; nothing was applied here
-    by    Api/DisplayScheduler.h, Api/PanelIndex.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp, Source/PanelIndex.cpp, Source/WorkspacePanel.cpp
+    by    Api/DisplayScheduler.h, Api/PanelIndex.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp, Source/PanelIndex.cpp, Source/WorkspacePanel.cpp, (+1 more)
 
 F OutlinerPanel::DeclarePresence  | OutlinerPanel.h | 56     | api,nonallocating,nonthrowing | ✔️ | Declares whether the panel is shown at all.
     in    PresenceDeclared  bool  [-]  whether the artist wants it

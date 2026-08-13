@@ -46,6 +46,7 @@ F DeclareStanding                 | OutlinerPanel.cpp | 56-67   | - | - | ?
     in    Subject          OccupantIdentity   [-]  ?
     in    StandingEnabled  bool               [-]  ?
     out   -                void               [-]  ?
+    by    Api/WorkspaceSequence.h, Source/WorkspaceSequence.cpp
 
 F DeclareSelection                | OutlinerPanel.cpp | 71-80   | - | - | ?
     in    Outliner           OutlinerSequence&  [-]  ?

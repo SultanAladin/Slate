@@ -74,7 +74,7 @@ F PopulationIndex::Withdraw      | PopulationIndex.h | 80     | api,nonallocatin
 F PopulationIndex::Resolve       | PopulationIndex.h | 88     | api,nonallocating,nonthrowing | ✔️ | Whether an identity still names the occupant it was issued for.
     in    Subject  OccupantIdentity  [-]  the identity to resolve
     out   -        Resolved          [-]  false for a stale generation and for an unoccupied slot alike
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
     note  Comparison is an integer test, at Exact. An identity that collides is not an identity.
 
 F PopulationIndex::EnrolledCount | PopulationIndex.h | 93     | api,nonallocating,nonthrowing | ✔️ | How many occupants are enrolled.

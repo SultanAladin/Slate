@@ -6,8 +6,8 @@
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateUI
-%folders  22
-%symbols  562
+%folders  24
+%symbols  621
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
@@ -33,8 +33,10 @@ I Api    | Api/Api.symbolindex       | 7 sym   | The transaction sequence made v
 I Source | Source/Source.symbolindex | 19 sym  | `Inspector.tsx`'s revision timeline over the real sequence — bubble column, spine, card, fold.
 I Api    | Api/Api.symbolindex       | 10 sym  | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
 I Source | Source/Source.symbolindex | 10 sym  | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
-I Api    | Api/Api.symbolindex       | 75 sym  | The slot ledger a workspace fills at activation and the desk walks each tick — the host names no concrete panel.
-I Source | Source/Source.symbolindex | 109 sym | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
+I Api    | Api/Api.symbolindex       | 29 sym  | Ordered bring-up, the ten-step tick, and teardown as its exact reverse — the whole host, with no concrete workspace named.
+I Source | Source/Source.symbolindex | 22 sym  | Bring-up in `32` §1's order, the ten-step tick, and teardown as its exact reverse with the rotation drained first.
+I Api    | Api/Api.symbolindex       | 79 sym  | The slot ledger a workspace fills at activation and the desk walks each tick — the host names no concrete panel.
+I Source | Source/Source.symbolindex | 113 sym | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -402,12 +404,12 @@ T ThemeColour                           | Api/ThemeSpecification.h        | 28-3
 F Quantize                              | Api/ThemeSpecification.h        | 42        | Quantises one theme colour to the eight-bit-per-channel code the vendor draw surface accepts. Coordinates outside the unit interval are bounded here rather than wrapping, because a wrapped code is a colour the artist sees as a wrong hue rather than as a clipped one.
 F Attenuate                             | Api/ThemeSpecification.h        | 50        | Returns one theme colour at a declared coverage, its coordinate untouched.
 T ThemePalette                          | Api/ThemeSpecification.h        | 60-87     | Every colour the interface draws with, named by what it is drawn on rather than by its hue. literals. A component that spells a colour of its own is the defect this struct exists to prevent.
-T LayoutExtents                         | Api/ThemeSpecification.h        | 99-145    | Every spacing, height and radius the interface lays out with, in interface pixels. of the other. Changing the density must not require an artist to re-author a colour. that answers it is folded in once by `ResolveActiveTheme` rather than multiplied at each read site.
-T ThemeSpecification                    | Api/ThemeSpecification.h        | 154-158   | The palette and the extents together — what every present call is handed by const reference.
-F DeclaredDarkPalette                   | Api/ThemeSpecification.h        | 169       | The built-in dark palette. `SlateUI` reads a field of the value this returns.
-F DeclaredDefaultExtents                | Api/ThemeSpecification.h        | 174       | The built-in layout extents, before any density scale is folded in.
-F ResolveActiveTheme                    | Api/ThemeSpecification.h        | 185       | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
-F Enforce                               | Api/ThemeSpecification.h        | 195       | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
+T LayoutExtents                         | Api/ThemeSpecification.h        | 99-147    | Every spacing, height and radius the interface lays out with, in interface pixels. of the other. Changing the density must not require an artist to re-author a colour. that answers it is folded in once by `ResolveActiveTheme` rather than multiplied at each read site.
+T ThemeSpecification                    | Api/ThemeSpecification.h        | 156-160   | The palette and the extents together — what every present call is handed by const reference.
+F DeclaredDarkPalette                   | Api/ThemeSpecification.h        | 171       | The built-in dark palette. `SlateUI` reads a field of the value this returns.
+F DeclaredDefaultExtents                | Api/ThemeSpecification.h        | 176       | The built-in layout extents, before any density scale is folded in.
+F ResolveActiveTheme                    | Api/ThemeSpecification.h        | 187       | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
+F Enforce                               | Api/ThemeSpecification.h        | 197       | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
 V CodeCeiling                           | Source/ThemeSpecification.cpp   | 25        | ?
 F AuthoredColour                        | Source/ThemeSpecification.cpp   | 27-38     | ?
 F QuantizeCoordinate                    | Source/ThemeSpecification.cpp   | 42-47     | ?
@@ -415,9 +417,60 @@ F Quantize                              | Source/ThemeSpecification.cpp   | 51-5
 F Attenuate                             | Source/ThemeSpecification.cpp   | 61-66     | ?
 F DeclaredDarkPalette                   | Source/ThemeSpecification.cpp   | 72-128    | ?
 F DeclaredDefaultExtents                | Source/ThemeSpecification.cpp   | 134-140   | ?
-F ResolveActiveTheme                    | Source/ThemeSpecification.cpp   | 146-209   | ?
-F StyleCoordinate                       | Source/ThemeSpecification.cpp   | 220-226   | ?
-F Enforce                               | Source/ThemeSpecification.cpp   | 230-290   | ?
+F ResolveActiveTheme                    | Source/ThemeSpecification.cpp   | 146-211   | ?
+F StyleCoordinate                       | Source/ThemeSpecification.cpp   | 222-228   | ?
+F Enforce                               | Source/ThemeSpecification.cpp   | 232-292   | ?
+A WorkspaceDeclareRoutine               | Api/WorkspaceSequence.h         | 41        | The routine one workspace declares its panels through, handed the ledger to fill and its own context. the ledger under a drag in flight, and the box being resized would name a slot that moved beneath it.
+A WorkspacePresentRoutine               | Api/WorkspaceSequence.h         | 47-49     | The routine one workspace presents its own body content through, beneath every panel the desk paints. to whatever the render schedule composited beneath the interface.
+T WorkspaceSpecification                | Api/WorkspaceSequence.h         | 58-66     | One workspace as an application registers it — its caption, its panels, and its own opaque context. lets one tree deliver `PaintHost` with one entry and `EditorHost` with every entry, from the same `WorkspaceSequence` — the difference between the two executables is the length of an array. built from a local buffer dangles the first time the declaring scope closes.
+T WorkspaceDeclaration                  | Api/WorkspaceSequence.h         | 77-88     | Everything an application declares once, before bring-up. brings up is settled by the documents, so a host with a knob for it would be a host that can bring the engine up in an arrangement no document describes.
+V WorkspaceRosterCeiling                | Api/WorkspaceSequence.h         | 93        | ?
+E PointerClaimant                       | Api/WorkspaceSequence.h         | 104-112   | Who owns the pointer, in `14` §4.2's precedence order. drag, then a canvas stroke, then the workspace itself. A stroke that outranked the interface would paint through a panel the artist was aiming at.
+T PointerArbitration                    | Api/WorkspaceSequence.h         | 122-128   | What one tick's arbitration settled — who holds the pointer, and whether text entry is taken. control goes down; every later tick of the same hold returns the standing claimant unchanged. Frontier re-arbitrated each tick and the defect presented as a stroke that stopped the moment the cursor crossed a floating panel — the artist reads that as the brush failing, not as an arbitration. open is the defect it exists to prevent, and text entry opens and closes without a drag.
+T TickReport                            | Api/WorkspaceSequence.h         | 138-146   | What one tick of the sequence resolved, for a host that reports rather than one that decides. rotation is skipped and the next one proceeds — a host treating it as a refusal would stop on a resize.
+T WorkspaceSequence                     | Api/WorkspaceSequence.h         | 166-317   | The whole host: `32` §1's ordered bring-up, `32` §2's ten-step tick, and teardown as the exact reverse. ⑤ `SlateCompute` ⑥ `SlateUI` ⑦ `RenderSchedule`, and two of the steps are constrained by documents rather than by convenience: ⑤ before ⑥ is `12` invariant 10, and ④ before ⑤ is `22` §1 — a transaction addressing a surface position needs that position resolved before the compute that reads it stands. naming the target, appended to the register; a bring-up that quietly reordered it would present the artist with an image composited in an order no document describes. recording that reads it is still executing is a vendor object destroyed under the device, and the report that follows names whichever object the driver noticed rather than the one that was early. application's, threaded through `WorkspaceSpecification::WorkspaceContext` and never held here.
+F WorkspaceSequence::~WorkspaceSequence | Api/WorkspaceSequence.h         | 173       | ?
+F WorkspaceSequence::Construct          | Api/WorkspaceSequence.h         | 188       | Brings the whole host up in `32` §1's order, refusing at the first step that declines. HostDenied when the window system or the interface declines, and whatever the declining step refused — carried verbatim, never re-spelled nothing standing — `Reclaim` has already run over whatever had been constructed constructed, and the vendor reports that as an invalid handle rather than as a bring-up that stopped. sentence in front of every distinct failure the seven steps can report.
+F WorkspaceSequence::Advance            | Api/WorkspaceSequence.h         | 205       | Advances one tick — `32` §2's ten steps, in order, exactly once each. device was lost; a skipped rotation and a re-established chain are delivered outcomes intent ④ advance the interface tick ⑤ present the bracket ⑥ await the rotation slot ⑦ take the display image ⑧ record the schedule and the interface ⑨ surrender the recording ⑩ present the image. The order is `32` §2's and the two constrained adjacencies are recorded on the class above. display-relative target at the same extent, then derive every attachment span over the re-claimed views. Any other order presents one target at the extent the display had before the drag. artist drew from them, and a sample restamped where it was consumed carries the display rate.
+F WorkspaceSequence::Reclaim            | Api/WorkspaceSequence.h         | 214       | Reclaims every step in the exact reverse of bring-up, with the rotation drained first. idle the device seven times over a teardown, and the first drain is already sufficient — no recording is opened after it.
+F WorkspaceSequence::ClosureRequested   | Api/WorkspaceSequence.h         | 219       | Whether the artist has asked the window system to close the window.
+F WorkspaceSequence::Theme              | Api/WorkspaceSequence.h         | 225       | The resolved theme every panel of this host reads.
+F WorkspaceSequence::Desk               | Api/WorkspaceSequence.h         | 230       | The desk, for a host that seeds a second document or reads what the artist arranged.
+F WorkspaceSequence::Desk               | Api/WorkspaceSequence.h         | 231       | ?
+F WorkspaceSequence::Reports            | Api/WorkspaceSequence.h         | 238       | The register every step of bring-up and every tick appends its refusals to. bring-up wrote into. Two registers is one panel presenting an empty list beside a host that refused.
+F WorkspaceSequence::Reports            | Api/WorkspaceSequence.h         | 239       | ?
+F WorkspaceSequence::Measures           | Api/WorkspaceSequence.h         | 247       | The measures the tick samples — the pacing, the rotation count, the arrival interval. measure would declare it at whatever rate it runs at, and the panel would present a figure whose interval nothing states.
+F WorkspaceSequence::Measures           | Api/WorkspaceSequence.h         | 248       | ?
+F WorkspaceSequence::Timeline           | Api/WorkspaceSequence.h         | 253       | The monotonic timeline every arrival is stamped against.
+F WorkspaceSequence::Declared           | Api/WorkspaceSequence.h         | 258       | The ledger the standing workspace declared, for the desk and for nothing that retains it.
+F WorkspaceSequence::CompletedRotations | Api/WorkspaceSequence.h         | 263       | How many rotations have completed since bring-up.
+F WorkspaceSequence::DeclareStanding    | Api/WorkspaceSequence.h         | 270       | Declares the standing workspace's panels into the ledger, emptying whatever the previous one left. activation presents the departing workspace's panels against a context it has already released.
+F WorkspaceSequence::ReclaimExtent      | Api/WorkspaceSequence.h         | 273       | Applies an arrived display extent in `06` §7's order — chain, then targets, then attachment spans.
+F WorkspaceSequence::Arbitrate          | Api/WorkspaceSequence.h         | 276       | Arbitrates the pointer in `14` §4.2's precedence, holding the claimant for the length of a drag.
+F WorkspaceSequence::Record             | Api/WorkspaceSequence.h         | 279       | Appends one refusal to the register, stamped at the arrival this tick was taken at.
+F SLATE_DECLARES_PRECISION              | Api/WorkspaceSequence.h         | 321       | ?
+V BringUpOrigin                         | Source/WorkspaceSequence.cpp    | 25        | ?
+V TickOrigin                            | Source/WorkspaceSequence.cpp    | 26        | ?
+F CarryDisplayImage                     | Source/WorkspaceSequence.cpp    | 31-54     | ?
+F WorkspaceSequence::Record             | Source/WorkspaceSequence.cpp    | 62-73     | ?
+F WorkspaceSequence::Construct          | Source/WorkspaceSequence.cpp    | 79-322    | ?
+F WorkspaceSequence::DeclareStanding    | Source/WorkspaceSequence.cpp    | 328-342   | ?
+F WorkspaceSequence::ReclaimExtent      | Source/WorkspaceSequence.cpp    | 348-377   | ?
+F WorkspaceSequence::Arbitrate          | Source/WorkspaceSequence.cpp    | 383-421   | ?
+F WorkspaceSequence::Advance            | Source/WorkspaceSequence.cpp    | 427-758   | ?
+F WorkspaceSequence::Reclaim            | Source/WorkspaceSequence.cpp    | 764-821   | ?
+F WorkspaceSequence::~WorkspaceSequence | Source/WorkspaceSequence.cpp    | 823-826   | ?
+F WorkspaceSequence::ClosureRequested   | Source/WorkspaceSequence.cpp    | 832-835   | ?
+F WorkspaceSequence::Theme              | Source/WorkspaceSequence.cpp    | 837       | ?
+F WorkspaceSequence::Desk               | Source/WorkspaceSequence.cpp    | 839       | ?
+F WorkspaceSequence::Desk               | Source/WorkspaceSequence.cpp    | 840       | ?
+F WorkspaceSequence::Reports            | Source/WorkspaceSequence.cpp    | 842       | ?
+F WorkspaceSequence::Reports            | Source/WorkspaceSequence.cpp    | 843       | ?
+F WorkspaceSequence::Measures           | Source/WorkspaceSequence.cpp    | 845       | ?
+F WorkspaceSequence::Measures           | Source/WorkspaceSequence.cpp    | 846       | ?
+F WorkspaceSequence::Timeline           | Source/WorkspaceSequence.cpp    | 848       | ?
+F WorkspaceSequence::Declared           | Source/WorkspaceSequence.cpp    | 850       | ?
+F WorkspaceSequence::CompletedRotations | Source/WorkspaceSequence.cpp    | 852-855   | ?
 A PanelPresentRoutine                   | Api/PanelIndex.h                | 35-37     | The routine one panel presents through, handed the resolved theme, the rectangle it was given, and the context its workspace threads in. and the context is opaque so one shared outliner routine serves every workspace without naming any. a band whose depth the artist drags, so a panel that read a rectangle from anywhere else would paint at the extent the band had before the drag — and the defect presents as a panel that lags its own frame.
 T PanelSlot                             | Api/PanelIndex.h                | 45-52     | One panel as a workspace declares it — what it is called, where it sits, and how it presents. panel presents would be the `14` §1 defect arriving through the ledger rather than through the panel. buffer leaves the ledger pointing at a dead extent the first time the declaring scope closes.
 V PanelSlotCapacity                     | Api/PanelIndex.h                | 60        | ?
@@ -492,11 +545,19 @@ F ReorderOccupant                       | Api/WorkspaceSpace.h            | 979 
 F ResolveDropLanding                    | Api/WorkspaceSpace.h            | 993       | Resolves what a release at one point would do, without doing any of it. which is what lets the same call drive the preview each tick and the landing on release.
 F ResolveSpaceLayout                    | Api/WorkspaceSpace.h            | 1006      | Resolves the whole desk's layout for this tick.
 F PresentWorkspaceSpace                 | Api/WorkspaceSpace.h            | 1023      | Presents the whole desk for one tick — layout, bodies, panels, trapezoid strips, overlays, then input. trapezoid cannot be a vendor tab and a vendor popup would be painted beneath the tabs that opened it. workspace's panels against a context that workspace has already released. the identifier it names, which is what makes a panel arrangement testable before any panel exists.
-F SLATE_DECLARES_PRECISION              | Api/WorkspaceSpace.h            | 1030      | ?
+V AbsentWorkspaceChoice                 | Api/WorkspaceSpace.h            | 1033      | ?
+F ConstructWorkspaceTabStrip            | Api/WorkspaceSpace.h            | 1048      | Presents one trapezoid per registered workspace and reports which of them the artist chose. spelled one would be the component that makes a standalone host and the editor two different trees. would sit beneath the desk's own strips, and the two rows of tabs would occlude each other.
+T DeploymentReport                      | Api/WorkspaceSpace.h            | 1061-1066 | What one bracket tick resolved — the workspace the artist chose, and whether the pointer was taken.
+F PresentDeploymentBracket              | Api/WorkspaceSpace.h            | 1089      | The one presentation call an application makes per tick — top band, workspace strip, desk, bottom band. the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would clip the trapezoids that overhang their own strip. negative one. A negative extent inverts every coverage test, and a minimised window would then resolve the pointer against rectangles the artist cannot see.
+F SLATE_DECLARES_PRECISION              | Api/WorkspaceSpace.h            | 1102      | ?
 F ReclaimPanelIndex                     | Source/PanelIndex.cpp           | 15-24     | ?
 F DeclarePanel                          | Source/PanelIndex.cpp           | 26-50     | ?
 F ResolvePanelForSide                   | Source/PanelIndex.cpp           | 52-62     | ?
 F DeclaredPanelCount                    | Source/PanelIndex.cpp           | 64-67     | ?
+V StripInterior                         | Source/WorkspaceBracket.cpp     | 11        | ?
+F PaintViewportBand                     | Source/WorkspaceBracket.cpp     | 23-51     | ?
+F ConstructWorkspaceTabStrip            | Source/WorkspaceBracket.cpp     | 59-137    | ?
+F PresentDeploymentBracket              | Source/WorkspaceBracket.cpp     | 143-219   | ?
 V StripInterior                         | Source/WorkspaceDrag.cpp        | 15        | ?
 V ResizeGripEdge                        | Source/WorkspaceDrag.cpp        | 24        | ?
 F GripOf                                | Source/WorkspaceDrag.cpp        | 26-31     | ?

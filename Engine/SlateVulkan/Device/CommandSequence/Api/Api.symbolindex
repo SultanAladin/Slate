@@ -27,7 +27,7 @@ T SurrenderOrdering                   | CommandSequence.h | 31-37   | nonallocat
     has   AwaitedStage  VkPipelineStageFlags  [-]  ?
     has   Signalled     VkSemaphore           [-]  ?
     has   Completion    VkFence               [-]  ?
-    by    Source/CommandSequence.cpp
+    by    Source/CommandSequence.cpp, Source/WorkspaceSequence.cpp
     note  🔴 The awaited stage is declared alongside the awaited point rather than fixed here. A recording
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ T CommandSequence                     | CommandSequence.h | 51-142  | owning    
     has   NamingEdge                    const DiagnosticExtension*      [-]  ?
     has   Slots                         std::vector<RecordingSlot>      [-]  ?
     has   ImmediateExtent               VkCommandPool                   [-]  ?
-    by    Source/CommandSequence.cpp
+    by    Api/WorkspaceSequence.h, Source/CommandSequence.cpp
     note  🔴 `06` §2.1 settles one graphics queue, so ordering between recordings is their order of surrender
     note  ⚠️ One primary recording per rotation slot, reset whole. Resetting an individual recording costs the
 
@@ -51,7 +51,7 @@ F CommandSequence::Construct          | CommandSequence.h | 71      | api,nonthr
     in    Naming    const DiagnosticExtension&  [-]  names every extent and every recording; borrowed and outlives this component
     out   -         Outcome                     [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     post  `RecordingRotationDepth` recordings stand, none of them open
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CycleScheduler.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CycleScheduler.h, (+64 more)
     note  🔴 `06` §7's diagnostic-name gate. Each recording is named by its rotation slot, which is what the
 
 F CommandSequence::Open               | CommandSequence.h | 81      | api,nonthrowing               | 🚩 | Resets one rotation slot's recording extent and opens its recording for writing. and HostDenied when the device declines the reset or the open
@@ -59,19 +59,19 @@ F CommandSequence::Open               | CommandSequence.h | 81      | api,nonthr
     out   -             Outcome        [-]  the opened recording; refuses with ContentUnsupported for an excessive slot
     pre   🔴 `CycleScheduler::Await` delivered for this slot — the device no longer reads it
     post  the slot is open; Surrender closes it
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+20 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+21 more)
 
 F CommandSequence::Recording          | CommandSequence.h | 87      | api,nonallocating,nonthrowing | ✔️ | The recording one rotation slot holds, for a document contributing commands to an open slot.
     in    RotationSlot  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an excessive slot or a slot that is not open
-    by    Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, (+9 more)
+    by    Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, (+10 more)
 
 F CommandSequence::Surrender          | CommandSequence.h | 101     | api,nonthrowing               | 🚩 | Closes one rotation slot's recording and surrenders it to the one graphics queue. the device declines the close or the surrender, and DeviceLost when the device was lost; the slot is closed and nothing is destroyed either way — a component clearing an ordering point it does not own is one that clears it at the wrong moment for every other reader of it.
     in    RotationSlot  std::uint32_t             [-]  below `RecordingRotationDepth`
     in    Ordering      const SurrenderOrdering&  [-]  what the surrender waits on and signals; any member may be null
     out   -             Outcome                   [-]  refuses with ContentUnsupported for a slot that is not open, HostDenied when
     post  the slot is closed and executing; the completion is signalled when it finishes
-    by    Api/AttachmentIndex.h, Api/DisplayScheduler.h, Api/RenderSchedule.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+3 more)
+    by    Api/AttachmentIndex.h, Api/DisplayScheduler.h, Api/RenderSchedule.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+4 more)
     note  🔴 The completion is cleared by `CycleScheduler::Arm` immediately before this call and never here
 
 F CommandSequence::OpenImmediate      | CommandSequence.h | 109     | api,nonthrowing               | 🚩 | Opens a recording outside the rotation, for the one-off transfers bring-up records. a rotation's — an immediate wait inside a rotation is the whole device serialised on the host.
@@ -87,7 +87,7 @@ F CommandSequence::SurrenderImmediate | CommandSequence.h | 117     | api,nonthr
 F CommandSequence::Reclaim            | CommandSequence.h | 123     | api,nonthrowing               | 🚩 | Destroys every recording and every extent.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+77 more)
 
 T CommandSequence::RecordingSlot      | CommandSequence.h | 127-132 | -                             | -  | ?
     has   RecordingExtent  VkCommandPool    [-]  ?

@@ -78,7 +78,7 @@ F RecoverySequence::Append            | RecoverySequence.h | 106    | api,nonthr
     in    RevisionOrdinal  std::uint64_t                [-]  where it sits in the document's committed order
     out   -                Outcome                      [-]  refuses with ContentUnsupported when no document is declared
     post  the retained count never exceeds EntryCeiling; the oldest entry leaves when it would
-    by    Api/FileInterchange.h, Api/ReportSequence.h, Api/SurfaceLayerSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, (+12 more)
+    by    Api/FileInterchange.h, Api/ReportSequence.h, Api/SurfaceLayerSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, (+13 more)
     note  ⚠️ An entry leaving at the ceiling makes the journal a **suffix** rather than a tail, and a suffix
 
 F RecoverySequence::Retire            | RecoverySequence.h | 115    | api,nonthrowing               | 🚩 | Retires every entry a completed save subsumes — `48` §3 ④. discarded the journal that would have recovered the very transactions it failed to write.
@@ -105,7 +105,7 @@ F RecoverySequence::DeclareUnreadable | RecoverySequence.h | 135    | api,nonall
 F RecoverySequence::Offered           | RecoverySequence.h | 145    | api,nonthrowing               | 🚩 | The entries an accepted offer would replay, in sealing order. replay inside a component that cannot seal a transaction, and every replayed edit would sit outside the sequence that scrubs it.
     in    SavedThrough  std::uint64_t  [-]  the revision ordinal the saved document carries
     out   -             Entries        [-]  those past the save and before any unreadable entry
-    by    Api/PropertySpecification.h, Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp, Source/RecoverySequence.cpp, Source/WorkspaceSpace.cpp, (+1 more)
+    by    Api/PropertySpecification.h, Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp, Source/RecoverySequence.cpp, Source/WorkspaceSequence.cpp, (+2 more)
     note  📝 The caller replays these; this hands them over and applies nothing. Applying here would put the
 
 F RecoverySequence::Retained          | RecoverySequence.h | 150    | api,nonallocating,nonthrowing | ✔️ | Every entry the journal retains, in sealing order.
@@ -126,4 +126,4 @@ F RecoverySequence::DiscardedCount    | RecoverySequence.h | 165    | api,nonall
 
 F RecoverySequence::Reclaim           | RecoverySequence.h | 170    | api,nonthrowing               | ✔️ | Empties the journal. Called when the document it belongs to closes cleanly.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)

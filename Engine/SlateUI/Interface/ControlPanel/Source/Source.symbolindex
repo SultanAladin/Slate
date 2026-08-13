@@ -261,17 +261,17 @@ F AdvanceVisibleOffset    | ControlChrome.cpp  | 497-508 | - | - | ?
 F Coded                   | ControlInterior.h  | 30      | - | - | ?
     in    Colour  const ThemeColour&  [-]  ?
     out   -       ImU32               [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp, (+1 more)
+    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+2 more)
 
 F Corner                  | ControlInterior.h  | 31      | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, (+10 more)
+    by    Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, (+11 more)
 
 F Opposite                | ControlInterior.h  | 32      | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp, (+1 more)
+    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+2 more)
 
 F Centre                  | ControlInterior.h  | 33      | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
@@ -311,17 +311,17 @@ F SquareIn                | ControlInterior.h  | 39      | - | - | ?
 F Coded                   | ControlLayout.cpp  | 20-23   | - | - | ?
     in    Colour  const ThemeColour&  [-]  ?
     out   -       ImU32               [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp, (+1 more)
+    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+2 more)
 
 F Corner                  | ControlLayout.cpp  | 25-28   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, (+10 more)
+    by    Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, (+11 more)
 
 F Opposite                | ControlLayout.cpp  | 30-33   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp, (+1 more)
+    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+2 more)
 
 F Centre                  | ControlLayout.cpp  | 35-38   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
@@ -451,7 +451,7 @@ F PaintTrack              | ControlLayout.cpp  | 194-228 | - | - | ?
 
 F Recording               | ControlInterior.h  | 97      | - | - | ?
     out   -  ImDrawList*  [-]  ?
-    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, (+9 more)
+    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, (+10 more)
 
 F PaintFill               | ControlInterior.h  | 99      | - | - | ?
     in    Area      const WorkspaceRectangle&  [-]  ?
@@ -494,7 +494,7 @@ F Bounded                 | ControlInterior.h  | 116     | - | - | One reading b
     in    Floor    double  [-]  ?
     in    Ceiling  double  [-]  ?
     out   -        double  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+74 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+75 more)
 
 F PrintReading            | ControlInterior.h  | 122     | - | - | One reading printed to the declared number of decimals, into a caller-owned buffer. not a second authority over it; rounding the carry to what is shown loses precision the artist never asked to lose.
     in    Destination        char*          [-]  ?
@@ -518,7 +518,7 @@ F PaintValueBox           | ControlInterior.h  | 127     | - | - | The value box
 
 F Recording               | ControlLayout.cpp  | 237-240 | - | - | ?
     out   -  ImDrawList*  [-]  ?
-    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, (+9 more)
+    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, (+10 more)
 
 F PaintFill               | ControlLayout.cpp  | 242-253 | - | - | ?
     in    Area      const WorkspaceRectangle&  [-]  ?
@@ -558,7 +558,7 @@ F Bounded                 | ControlLayout.cpp  | 298-301 | - | - | ?
     in    Floor    double  [-]  ?
     in    Ceiling  double  [-]  ?
     out   -        double  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+74 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+75 more)
 
 F PrintReading            | ControlLayout.cpp  | 303-311 | - | - | ?
     in    Destination        char*          [-]  ?

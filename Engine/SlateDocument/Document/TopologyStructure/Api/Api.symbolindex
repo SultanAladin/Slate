@@ -97,7 +97,7 @@ F TopologyStructure::DeclareMaterialEnrollment | TopologyStructure.h | 110    | 
 F TopologyStructure::Seal                      | TopologyStructure.h | 121    | api,nonthrowing               | ✔️ | Seals the topology, issuing its revision. Nothing may be declared afterwards. point the content stopped moving, and re-announcing it must not invalidate a conditioning that already describes the same content.
     out   -  Outcome  [-]  refuses with ExtentExhausted when no face was declared
     post  🔴 the revision is distinct from that of every other topology sealed in this process
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, (+19 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, (+20 more)
     note  📝 Idempotent — a second call delivers and does **not** issue a second revision. The seal is the
 
 F TopologyStructure::Sealed                    | TopologyStructure.h | 126    | api,nonallocating,nonthrowing | ✔️ | Whether the topology is sealed and therefore readable.

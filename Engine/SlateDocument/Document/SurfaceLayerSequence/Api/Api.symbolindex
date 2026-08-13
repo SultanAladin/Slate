@@ -121,7 +121,7 @@ F SurfaceLayerSequence::Append              | SurfaceLayerSequence.h | 174     |
     in    Declaring  const LayerSpecification&  [-]  every one of §2's four fields
     out   -          Outcome                    [-]  refuses with ContentUnsupported for a nested entry beyond the declared depth, for
     post  the entry sits last, which is topmost
-    by    Api/FileInterchange.h, Api/RecoverySequence.h, Api/ReportSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, (+12 more)
+    by    Api/FileInterchange.h, Api/RecoverySequence.h, Api/ReportSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, (+13 more)
 
 F SurfaceLayerSequence::Reorder             | SurfaceLayerSequence.h | 185     | api,nonthrowing               | 🚩 | Moves one entry to a declared sequence position. position so the caller's inverse is one ordinal rather than a whole ordering nothing else, which is what makes reordering affordable in `RevisionSequence`.
     in    Subject   LayerIdentity  [-]  the entry
@@ -168,7 +168,7 @@ F SurfaceLayerSequence::Resample            | SurfaceLayerSequence.h | 240     |
 F SurfaceLayerSequence::Resolve             | SurfaceLayerSequence.h | 249     | api,nonthrowing               | ✔️ | One entry, by identity.
     in    Subject  LayerIdentity  [-]  ?
     out   -        Outcome        [-]  refuses with IdentityStale
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
 
 F SurfaceLayerSequence::AmendPainted        | SurfaceLayerSequence.h | 262     | api,nonthrowing               | 🚩 | One entry's painted texels, for the one mechanism permitted to amend them. ContentUnsupported when its source is not PaintedImpressions describes — §3 — so this is the one route by which authored content is written at all, and every write through it is inside a transaction whose inverse is bounded by the extents it touched. resolved projection the source of truth for content the description already holds, and `20` §4 would then evict the artist's edit at the first memory pressure.
     in    Subject  LayerIdentity  [-]  ?
@@ -249,4 +249,4 @@ F SLATE_DECLARES_PRECISION                  | SurfaceLayerSequence.h | 359     |
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)

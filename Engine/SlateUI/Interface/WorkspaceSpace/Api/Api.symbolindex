@@ -8,8 +8,8 @@
 %path       Engine/SlateUI/Interface/WorkspaceSpace/Api
 %layer      SlateUI
 %sources    2
-%symbols    75
-%annotated  57/75
+%symbols    79
+%annotated  60/79
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -17,17 +17,17 @@
 //------------------------------------------------------------------------------------------------------------------------
 
 S PanelIndex.h     | 111 lines  | 8abf89c8 | 8 sym  | The slot ledger a workspace fills at activation and the desk walks each tick — the host names no concrete panel.
-S WorkspaceSpace.h | 1032 lines | 0e26c7c0 | 67 sym | The recursive partition of the desk — leaves holding ordered occupants, partitions holding two links and a draggable gutter.
+S WorkspaceSpace.h | 1104 lines | 2cd81e0e | 71 sym | The recursive partition of the desk — leaves holding ordered occupants, partitions holding two links and a draggable gutter.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   ONE DECLARED PANEL
 //------------------------------------------------------------------------------------------------------------------------
 
-A PanelPresentRoutine            | PanelIndex.h     | 35-37   | contract                           | -  | The routine one panel presents through, handed the resolved theme, the rectangle it was given, and the context its workspace threads in. and the context is opaque so one shared outliner routine serves every workspace without naming any. a band whose depth the artist drags, so a panel that read a rectangle from anywhere else would paint at the extent the band had before the drag — and the defect presents as a panel that lags its own frame.
+A PanelPresentRoutine            | PanelIndex.h     | 35-37     | contract                           | -  | The routine one panel presents through, handed the resolved theme, the rectangle it was given, and the context its workspace threads in. and the context is opaque so one shared outliner routine serves every workspace without naming any. a band whose depth the artist drags, so a panel that read a rectangle from anywhere else would paint at the extent the band had before the drag — and the defect presents as a panel that lags its own frame.
     note  🔴 `14` §1: the theme arrives by const reference so no panel can spell a colour or an extent of its own,
     note  🔴 The rectangle is a parameter and never something the panel resolves for itself. `2e` places a panel in
 
-T PanelSlot                      | PanelIndex.h     | 45-52   | contract,nonallocating,nonthrowing | -  | One panel as a workspace declares it — what it is called, where it sits, and how it presents. panel presents would be the `14` §1 defect arriving through the ledger rather than through the panel. buffer leaves the ledger pointing at a dead extent the first time the declaring scope closes.
+T PanelSlot                      | PanelIndex.h     | 45-52     | contract,nonallocating,nonthrowing | -  | One panel as a workspace declares it — what it is called, where it sits, and how it presents. panel presents would be the `14` §1 defect arriving through the ledger rather than through the panel. buffer leaves the ledger pointing at a dead extent the first time the declaring scope closes.
     has   PanelIdentifier  const char*          [-]  ?
     has   PanelTitle       const char*          [-]  ?
     has   DeclaredSide     WorkspacePanelSide   [-]  ?
@@ -41,27 +41,27 @@ T PanelSlot                      | PanelIndex.h     | 45-52   | contract,nonallo
 //                                                       THE LEDGER
 //------------------------------------------------------------------------------------------------------------------------
 
-V PanelSlotCapacity              | PanelIndex.h     | 60      | -                                  | -  | ?
+V PanelSlotCapacity              | PanelIndex.h     | 60        | -                                  | -  | ?
     by    Source/PanelIndex.cpp, Source/WorkspacePanel.cpp
 
-T PanelIndex                     | PanelIndex.h     | 65-69   | owning                             | -  | Every panel one workspace declared, in declaration order.
+T PanelIndex                     | PanelIndex.h     | 65-69     | owning                             | -  | Every panel one workspace declared, in declaration order.
     has   DeclaredSlots  PanelSlot[PanelSlotCapacity]  [-]  ?
     has   DeclaredCount  std::uint32_t                 [-]  ?
-    by    Api/WorkspaceSpace.h, Source/PanelIndex.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp, Source/WorkspaceStripInternal.h
+    by    Api/WorkspaceSequence.h, Api/WorkspaceSpace.h, Source/PanelIndex.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+3 more)
     note  Declaration order is presentation order within a side, which is the only ordering the ledger carries.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   LEDGER OPERATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-F ReclaimPanelIndex              | PanelIndex.h     | 82      | api,nonallocating,nonthrowing      | ✔️ | Returns the ledger to empty, releasing every declaration it held. workspace's own and are untouched — this releases the ledger's claim, never the storage behind it.
+F ReclaimPanelIndex              | PanelIndex.h     | 82        | api,nonallocating,nonthrowing      | ✔️ | Returns the ledger to empty, releasing every declaration it held. workspace's own and are untouched — this releases the ledger's claim, never the storage behind it.
     in    Ledger  PanelIndex&  [-]  the ledger to empty
     out   -       void         [-]  ?
     post  DeclaredCount is zero and no slot names a context
-    by    Source/PanelIndex.cpp
+    by    Source/PanelIndex.cpp, Source/WorkspaceSequence.cpp
     note  What a workspace calls at deactivation, and before rebuilding its panel set. The contexts are the
 
-F DeclarePanel                   | PanelIndex.h     | 94      | api,nonallocating,nonthrowing      | ✔️ | Appends one panel declaration to the ledger. and with ExtentExhausted when the ledger already holds PanelSlotCapacity declarations indistinguishable from one whose present routine never drew. A refusal names which failure occurred.
+F DeclarePanel                   | PanelIndex.h     | 94        | api,nonallocating,nonthrowing      | ✔️ | Appends one panel declaration to the ledger. and with ExtentExhausted when the ledger already holds PanelSlotCapacity declarations indistinguishable from one whose present routine never drew. A refusal names which failure occurred.
     in    Ledger     PanelIndex&       [-]  the ledger to declare into
     in    Declaring  const PanelSlot&  [-]  the slot, its text pointers retained and never copied
     out   -          Outcome           [-]  refuses with ContentUnsupported when the slot names no identifier or no present routine,
@@ -69,14 +69,14 @@ F DeclarePanel                   | PanelIndex.h     | 94      | api,nonallocatin
     by    Source/PanelIndex.cpp
     note  🔴 Frontier's equivalent ignored the seventeenth registration silently, and the panel that vanished was
 
-F ResolvePanelForSide            | PanelIndex.h     | 104     | api,nonallocating,nonthrowing      | ✔️ | Resolves the first panel declared for one side. is resolved by `WorkspaceSpace` walking the ledger itself rather than by this call returning both.
+F ResolvePanelForSide            | PanelIndex.h     | 104       | api,nonallocating,nonthrowing      | ✔️ | Resolves the first panel declared for one side. is resolved by `WorkspaceSpace` walking the ledger itself rather than by this call returning both.
     in    Ledger        const PanelIndex&   [-]  the ledger to read
     in    ResolvedSide  WorkspacePanelSide  [-]  the side sought
     out   -             Outcome             [-]  refuses with ContentUnsupported when no declaration names that side
     by    Source/PanelIndex.cpp
     note  First by declaration order, which is why order is the ledger's only ordering. A side sharing two panels
 
-F DeclaredPanelCount             | PanelIndex.h     | 109     | api,nonallocating,nonthrowing      | ✔️ | How many declarations the ledger holds.
+F DeclaredPanelCount             | PanelIndex.h     | 109       | api,nonallocating,nonthrowing      | ✔️ | How many declarations the ledger holds.
     in    Ledger  const PanelIndex&  [-]  ?
     out   -       std::uint32_t      [-]  ?
     by    Source/PanelIndex.cpp
@@ -85,20 +85,20 @@ F DeclaredPanelCount             | PanelIndex.h     | 109     | api,nonallocatin
 //                                               THE TWO OCCUPANT SUBJECTS
 //------------------------------------------------------------------------------------------------------------------------
 
-A WorkspaceDocumentIdentity      | WorkspaceSpace.h | 33      | -                                  | -  | ?
-    by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp, Source/WorkspaceStripInternal.h
+A WorkspaceDocumentIdentity      | WorkspaceSpace.h | 33        | -                                  | -  | ?
+    by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSequence.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp, Source/WorkspaceStripInternal.h
 
-A WorkspacePanelIdentity         | WorkspaceSpace.h | 34      | -                                  | -  | ?
+A WorkspacePanelIdentity         | WorkspaceSpace.h | 34        | -                                  | -  | ?
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStripInternal.h
 
-V WorkspaceTitleExtent           | WorkspaceSpace.h | 36      | -                                  | -  | ?
+V WorkspaceTitleExtent           | WorkspaceSpace.h | 36        | -                                  | -  | ?
     by    Api/ControlPanel.h, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DISCIPLINES
 //------------------------------------------------------------------------------------------------------------------------
 
-E WorkspaceDiscipline            | WorkspaceSpace.h | 49-59   | contract                           | -  | What a document is for — what the catalogue offers and what an unfilled body prints. that becomes a link target, and Phase 5 mints three executables from exactly that meaning; two unrelated meanings on one word inside one build is the collision this avoids. enumerator and lets `WorkspaceSpace` never learn a concrete workspace's name.
+E WorkspaceDiscipline            | WorkspaceSpace.h | 49-59     | contract                           | -  | What a document is for — what the catalogue offers and what an unfilled body prints. that becomes a link target, and Phase 5 mints three executables from exactly that meaning; two unrelated meanings on one word inside one build is the collision this avoids. enumerator and lets `WorkspaceSpace` never learn a concrete workspace's name.
     has   Empty            WorkspaceDiscipline  [-]  ?
     has   Painting         WorkspaceDiscipline  [-]  ?
     has   Modelling        WorkspaceDiscipline  [-]  ?
@@ -107,47 +107,48 @@ E WorkspaceDiscipline            | WorkspaceSpace.h | 49-59   | contract        
     has   UV               WorkspaceDiscipline  [-]  ?
     has   Baking           WorkspaceDiscipline  [-]  ?
     has   DisciplineCount  WorkspaceDiscipline  [-]  ?
+    by    Api/WorkspaceSequence.h
     note  ⚠️ Spelled `Discipline` and not `Subject`. `Module.toml` already uses `subject` to mean a source folder
     note  📝 The roster is complete before the workspaces are. A discipline with no workspace behind it costs one
 
-T WorkspaceDocumentSpecification | WorkspaceSpace.h | 65-70   | nonallocating,nonthrowing          | -  | One document the catalogue offers, supplied by the application and never spelled by this component. concrete workspace, which is the whole reason one tree delivers separate editors and one editor both.
+T WorkspaceDocumentSpecification | WorkspaceSpace.h | 65-70     | nonallocating,nonthrowing          | -  | One document the catalogue offers, supplied by the application and never spelled by this component. concrete workspace, which is the whole reason one tree delivers separate editors and one editor both.
     has   Label       const char*          [-]  ?
     has   NameStem    const char*          [-]  ?
     has   Discipline  WorkspaceDiscipline  [-]  ?
-    by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
+    by    Source/WorkspaceSequence.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  🔴 `32` §5: a standalone host hands one of these and the editor hands all of them. Nothing here names a
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   GEOMETRY AND AXIS
 //------------------------------------------------------------------------------------------------------------------------
 
-T WorkspaceRectangle             | WorkspaceSpace.h | 78-84   | nonallocating,nonthrowing          | -  | One rectangle in interface pixels — what a leaf, a gutter and a drop preview all resolve to.
+T WorkspaceRectangle             | WorkspaceSpace.h | 78-84     | nonallocating,nonthrowing          | -  | One rectangle in interface pixels — what a leaf, a gutter and a drop preview all resolve to.
     has   PositionX  float  [-]  ?
     has   PositionY  float  [-]  ?
     has   Width      float  [-]  ?
     has   Height     float  [-]  ?
-    by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/PanelIndex.h, Api/PropertyPanel.h, (+17 more)
+    by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/PanelIndex.h, Api/PropertyPanel.h, (+20 more)
 
-F RectangleCovers                | WorkspaceSpace.h | 89-93   | api,nonallocating,nonthrowing      | ✔️ | Whether a point lies inside a rectangle, edges included.
+F RectangleCovers                | WorkspaceSpace.h | 89-93     | api,nonallocating,nonthrowing      | ✔️ | Whether a point lies inside a rectangle, edges included.
     in    Area       const WorkspaceRectangle&  [-]  ?
     in    PositionX  float                      [-]  ?
     in    PositionY  float                      [-]  ?
     out   -          constexpr bool             [-]  ?
-    by    Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/DiagnosticPanel.cpp, Source/RevisionPanel.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+2 more)
+    by    Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/DiagnosticPanel.cpp, Source/RevisionPanel.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+3 more)
 
-E WorkspacePartitionAxis         | WorkspaceSpace.h | 99-103  | contract                           | -  | Which way a partition divides the area it was handed. horizontal gutter. The gutter is part of the partition and not of either link.
+E WorkspacePartitionAxis         | WorkspaceSpace.h | 99-103    | contract                           | -  | Which way a partition divides the area it was handed. horizontal gutter. The gutter is part of the partition and not of either link.
     has   Row     WorkspacePartitionAxis  [-]  ?
     has   Column  WorkspacePartitionAxis  [-]  ?
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
     note  Row places the two links side by side with a vertical gutter between them; Column stacks them with a
 
-V MinimumLeafExtent              | WorkspaceSpace.h | 107     | -                                  | -  | ?
+V MinimumLeafExtent              | WorkspaceSpace.h | 107       | -                                  | -  | ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ONE PARTITION
 //------------------------------------------------------------------------------------------------------------------------
 
-T WorkspacePartition             | WorkspaceSpace.h | 123-140 | owning                             | -  | One node of the recursive partition: either a leaf carrying ordered occupants, or a division into two links. while a reference into the pool was held would dangle, and the defect presents as a leaf drawn at another leaf's rectangle rather than as a crash. kinship spellings are banned outright — a division has two halves, not a family. implementation. Frontier carries two copies of this and two copies of the layout recursion beneath it, which is two places a gutter arithmetic amendment has to land and one of them will be missed.
+T WorkspacePartition             | WorkspaceSpace.h | 123-140   | owning                             | -  | One node of the recursive partition: either a leaf carrying ordered occupants, or a division into two links. while a reference into the pool was held would dangle, and the defect presents as a leaf drawn at another leaf's rectangle rather than as a crash. kinship spellings are banned outright — a division has two halves, not a family. implementation. Frontier carries two copies of this and two copies of the layout recursion beneath it, which is two places a gutter arithmetic amendment has to land and one of them will be missed.
     has   LeafDeclared    bool                           [-]  ?
     has   SlotOccupied    bool                           [-]  ?
     has   Occupants       std::vector<OccupantIdentity>  [-]  ?
@@ -168,7 +169,7 @@ T WorkspacePartition             | WorkspaceSpace.h | 123-140 | owning          
 //                                                  PARTITION TRAVERSAL
 //------------------------------------------------------------------------------------------------------------------------
 
-F Traverse                       | WorkspaceSpace.h | 154-174 | api,nonallocating,nonthrowing      | 🚩 | Visits every occupied partition beneath one link, first half before second, division before its halves. painter can fill the area beneath before the leaves paint over it.
+F Traverse                       | WorkspaceSpace.h | 154-174   | api,nonallocating,nonthrowing      | 🚩 | Visits every occupied partition beneath one link, first half before second, division before its halves. painter can fill the area beneath before the leaves paint over it.
     in    Partitions  const std::vector<WorkspacePartition<OccupantIdentity>>&  [-]  the pool
     in    Origin      std::int32_t                                              [-]  where to begin; a negative index visits nothing
     in    Visiting    Visitor&&                                                 [-]  invoked as (std::int32_t Link, const WorkspacePartition&)
@@ -176,7 +177,7 @@ F Traverse                       | WorkspaceSpace.h | 154-174 | api,nonallocatin
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  Order matters to the presenter and not to the layout: a division is visited before its halves so a
 
-F ResolveLayout                  | WorkspaceSpace.h | 188-249 | api,nonallocating,nonthrowing      | 🚩 | Resolves the rectangle of every partition beneath one link, and the gutter of every division. moves the gutter to where the pointer was rather than to where it is, and the drag reads as sticky. does not accumulate a drift of half a gutter per level.
+F ResolveLayout                  | WorkspaceSpace.h | 188-249   | api,nonallocating,nonthrowing      | 🚩 | Resolves the rectangle of every partition beneath one link, and the gutter of every division. moves the gutter to where the pointer was rather than to where it is, and the drag reads as sticky. does not accumulate a drift of half a gutter per level.
     in    Partitions       std::vector<WorkspacePartition<OccupantIdentity>>&  [-]   the pool, amended in place
     in    Origin           std::int32_t                                        [-]   where to begin
     in    Area             WorkspaceRectangle                                  [px]  the rectangle the origin occupies
@@ -187,7 +188,7 @@ F ResolveLayout                  | WorkspaceSpace.h | 188-249 | api,nonallocatin
     note  🔴 Run once a tick **before** any input is resolved. A division dragged against last tick's rectangles
     note  ⚠️ The gutter is subtracted from the divided span before the ratio is applied, so a chain of divisions
 
-F LocateLeafCovering             | WorkspaceSpace.h | 255-274 | api,nonallocating,nonthrowing      | 🚩 | The occupied leaf whose resolved rectangle covers a point, or -1 when none does.
+F LocateLeafCovering             | WorkspaceSpace.h | 255-274   | api,nonallocating,nonthrowing      | 🚩 | The occupied leaf whose resolved rectangle covers a point, or -1 when none does.
     in    Partitions  const std::vector<WorkspacePartition<OccupantIdentity>>&  [-]  ?
     in    Origin      std::int32_t                                              [-]  ?
     in    PositionX   float                                                     [-]  ?
@@ -196,7 +197,7 @@ F LocateLeafCovering             | WorkspaceSpace.h | 255-274 | api,nonallocatin
     pre   ResolveLayout ran this tick
     by    Source/WorkspaceSpace.cpp
 
-F LocateHolding                  | WorkspaceSpace.h | 280-295 | api,nonallocating,nonthrowing      | 🚩 | The division that holds one link as one of its two halves, or -1 when the link is the origin itself.
+F LocateHolding                  | WorkspaceSpace.h | 280-295   | api,nonallocating,nonthrowing      | 🚩 | The division that holds one link as one of its two halves, or -1 when the link is the origin itself.
     in    Partitions  const std::vector<WorkspacePartition<OccupantIdentity>>&  [-]  ?
     in    Origin      std::int32_t                                              [-]  ?
     in    HeldLink    std::int32_t                                              [-]  ?
@@ -207,12 +208,12 @@ F LocateHolding                  | WorkspaceSpace.h | 280-295 | api,nonallocatin
 //                                                 CLAIMING AND DIVIDING
 //------------------------------------------------------------------------------------------------------------------------
 
-F ClaimPartitionSlot             | WorkspaceSpace.h | 307-322 | api,nonthrowing                    | ✔️ | Claims one pool slot as an empty leaf, reusing a reclaimed slot before growing the pool. than to how many splits the artist has ever made in a session.
+F ClaimPartitionSlot             | WorkspaceSpace.h | 307-322   | api,nonthrowing                    | ✔️ | Claims one pool slot as an empty leaf, reusing a reclaimed slot before growing the pool. than to how many splits the artist has ever made in a session.
     in    Partitions  std::vector<WorkspacePartition<OccupantIdentity>>&  [-]  ?
     out   -           Link                                                [-]  the claimed index; never negative
     note  💾 Reuse before growth is what keeps the pool's extent proportional to the leaves standing at once rather
 
-F Partition                      | WorkspaceSpace.h | 340-407 | api,nonthrowing                    | 🚩 | Divides one leaf in two, moving its occupants into one half and leaving the other empty. resolved area cannot carry two leaves at MinimumLeafExtent, and with IdentityStale when the target is not an occupied leaf target, a preview, a floating window's return address — therefore stays valid across a split, which is what a scheme that claimed a new index for the division would silently break.
+F Partition                      | WorkspaceSpace.h | 340-407   | api,nonthrowing                    | 🚩 | Divides one leaf in two, moving its occupants into one half and leaving the other empty. resolved area cannot carry two leaves at MinimumLeafExtent, and with IdentityStale when the target is not an occupied leaf target, a preview, a floating window's return address — therefore stays valid across a split, which is what a scheme that claimed a new index for the division would silently break.
     in    Partitions     std::vector<WorkspacePartition<OccupantIdentity>>&  [-]  the pool
     in    RootLink       std::int32_t&                                       [-]  the tree top, amended when the desk was empty
     in    TargetLeaf     std::int32_t                                        [-]  the leaf to divide; negative claims a root instead
@@ -224,7 +225,7 @@ F Partition                      | WorkspaceSpace.h | 340-407 | api,nonthrowing 
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  🔴 The target keeps its own index and becomes the division. Every reference held elsewhere — a drag
 
-F ReclaimLeaf                    | WorkspaceSpace.h | 420-465 | api,nonthrowing                    | 🚩 | Reclaims one emptied leaf, lifting the other half of its division into the division's own slot. ContentUnsupported when the leaf still carries occupants index is again what keeps every outside reference valid. It costs one copy of a small record.
+F ReclaimLeaf                    | WorkspaceSpace.h | 420-465   | api,nonthrowing                    | 🚩 | Reclaims one emptied leaf, lifting the other half of its division into the division's own slot. ContentUnsupported when the leaf still carries occupants index is again what keeps every outside reference valid. It costs one copy of a small record.
     in    Partitions   std::vector<WorkspacePartition<OccupantIdentity>>&  [-]  the pool
     in    RootLink     std::int32_t&                                       [-]  the tree top, cleared when the last leaf leaves
     in    EmptiedLeaf  std::int32_t                                        [-]  the leaf to reclaim
@@ -237,7 +238,7 @@ F ReclaimLeaf                    | WorkspaceSpace.h | 420-465 | api,nonthrowing 
 //                                                 THE IN-BODY PANEL BOX
 //------------------------------------------------------------------------------------------------------------------------
 
-E WorkspacePanelSide             | WorkspaceSpace.h | 476-484 | contract                           | -  | Where a panel box is anchored inside a document's body. spanning what those leave, and Centre fills the remainder. Several panels sharing a side split the band along its long axis in list order.
+E WorkspacePanelSide             | WorkspaceSpace.h | 476-484   | contract                           | -  | Where a panel box is anchored inside a document's body. spanning what those leave, and Centre fills the remainder. Several panels sharing a side split the band along its long axis in list order.
     has   Floating  WorkspacePanelSide  [-]  ?
     has   Left      WorkspacePanelSide  [-]  ?
     has   Right     WorkspacePanelSide  [-]  ?
@@ -247,34 +248,34 @@ E WorkspacePanelSide             | WorkspaceSpace.h | 476-484 | contract        
     by    Api/PanelIndex.h, Source/PanelIndex.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
     note  The four docked sides reserve a band: Left and Right take a full-height column, Top and Bottom take a row
 
-V PanelEdgeLeft                  | WorkspaceSpace.h | 489     | -                                  | -  | ?
+V PanelEdgeLeft                  | WorkspaceSpace.h | 489       | -                                  | -  | ?
     by    Source/WorkspacePanel.cpp
 
-V PanelEdgeRight                 | WorkspaceSpace.h | 490     | -                                  | -  | ?
+V PanelEdgeRight                 | WorkspaceSpace.h | 490       | -                                  | -  | ?
     by    Source/WorkspacePanel.cpp
 
-V PanelEdgeTop                   | WorkspaceSpace.h | 491     | -                                  | -  | ?
+V PanelEdgeTop                   | WorkspaceSpace.h | 491       | -                                  | -  | ?
     by    Source/WorkspacePanel.cpp
 
-V PanelEdgeBottom                | WorkspaceSpace.h | 492     | -                                  | -  | ?
+V PanelEdgeBottom                | WorkspaceSpace.h | 492       | -                                  | -  | ?
     by    Source/WorkspacePanel.cpp
 
-V PanelBoxCapacity               | WorkspaceSpace.h | 496     | -                                  | -  | ?
+V PanelBoxCapacity               | WorkspaceSpace.h | 496       | -                                  | -  | ?
     by    Source/WorkspaceSpace.cpp
 
-V PanelMinimumExtent             | WorkspaceSpace.h | 499     | -                                  | -  | ?
+V PanelMinimumExtent             | WorkspaceSpace.h | 499       | -                                  | -  | ?
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
 
-V PanelHandleReach               | WorkspaceSpace.h | 503     | -                                  | -  | ?
+V PanelHandleReach               | WorkspaceSpace.h | 503       | -                                  | -  | ?
     by    Source/WorkspacePanel.cpp
 
-V PanelDockFloor                 | WorkspaceSpace.h | 507     | -                                  | -  | ?
+V PanelDockFloor                 | WorkspaceSpace.h | 507       | -                                  | -  | ?
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
 
-V PanelDockCeiling               | WorkspaceSpace.h | 508     | -                                  | -  | ?
+V PanelDockCeiling               | WorkspaceSpace.h | 508       | -                                  | -  | ?
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
 
-T WorkspacePanelBox              | WorkspaceSpace.h | 520-534 | owning                             | -  | One panel box inside one document's body — a floating overlay until it is docked to a side. re-divided rather than staying where the screen was. A box holding what it presents is the `14` §1 defect arriving through the layout instead of through the panel, and it would also make a panel arrangement outlive the workspace that declared its contents. ordinal, so a floating box cannot be raised by rotating the list the way a floating window is — the rotation would hand every later box the identity of the one before it.
+T WorkspacePanelBox              | WorkspaceSpace.h | 520-534   | owning                             | -  | One panel box inside one document's body — a floating overlay until it is docked to a side. re-divided rather than staying where the screen was. A box holding what it presents is the `14` §1 defect arriving through the layout instead of through the panel, and it would also make a panel arrangement outlive the workspace that declared its contents. ordinal, so a floating box cannot be raised by rotating the list the way a floating window is — the rotation would hand every later box the identity of the one before it.
     has   Identity            WorkspacePanelIdentity      [-]  ?
     has   Title               char[WorkspaceTitleExtent]  [-]  ?
     has   DeclaredIdentifier  const char*                 [-]  ?
@@ -296,7 +297,7 @@ T WorkspacePanelBox              | WorkspaceSpace.h | 520-534 | owning          
 //                                                 THE RESOLVED PLACEMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-T WorkspacePanelPlacement        | WorkspaceSpace.h | 544-553 | contract,nonallocating,nonthrowing | -  | Where one panel box resolved to this tick, and the two bands a drag may take hold of. panel follows it along the same side. The last panel on a side has nothing to share with.
+T WorkspacePanelPlacement        | WorkspaceSpace.h | 544-553   | contract,nonallocating,nonthrowing | -  | Where one panel box resolved to this tick, and the two bands a drag may take hold of. panel follows it along the same side. The last panel on a side has nothing to share with.
     has   Identity           WorkspacePanelIdentity  [-]  ?
     has   Area               WorkspaceRectangle      [-]  ?
     has   DepthGrip          WorkspaceRectangle      [-]  ?
@@ -307,7 +308,7 @@ T WorkspacePanelPlacement        | WorkspaceSpace.h | 544-553 | contract,nonallo
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
     note  A docked panel carries a depth grip on the band's inner edge always, and a share grip only where another
 
-T WorkspaceBodyPlacement         | WorkspaceSpace.h | 561-568 | contract,nonallocating,nonthrowing | -  | Every panel of one body resolved against that body's rectangle, and what the bands left the document. the presenter walks these two runs in the order they are written here. `WorkspacePanelSide::Centre` fills it; otherwise the document's own content does.
+T WorkspaceBodyPlacement         | WorkspaceSpace.h | 561-568   | contract,nonallocating,nonthrowing | -  | Every panel of one body resolved against that body's rectangle, and what the bands left the document. the presenter walks these two runs in the order they are written here. `WorkspacePanelSide::Centre` fills it; otherwise the document's own content does.
     has   Docked         WorkspacePanelPlacement[PanelBoxCapacity]  [-]  ?
     has   DockedCount    std::uint32_t                              [-]  ?
     has   Overlaid       WorkspacePanelPlacement[PanelBoxCapacity]  [-]  ?
@@ -321,7 +322,7 @@ T WorkspaceBodyPlacement         | WorkspaceSpace.h | 561-568 | contract,nonallo
 //                                                    PANEL OPERATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-F DeclarePanelBox                | WorkspaceSpace.h | 584     | api,nonthrowing                    | 🚩 | Declares one panel box into one document's body, floating, and names the ledger slot it presents. ContentUnsupported when no identifier is named asks the panel to sit, and honouring it here would place a box the artist did not put there.
+F DeclarePanelBox                | WorkspaceSpace.h | 584       | api,nonthrowing                    | 🚩 | Declares one panel box into one document's body, floating, and names the ledger slot it presents. ContentUnsupported when no identifier is named asks the panel to sit, and honouring it here would place a box the artist did not put there.
     in    Standing            WorkspaceDocument&  [-]  the document the box joins
     in    DeclaredIdentifier  const char*         [-]  the ledger slot's identifier, retained and never copied; static storage
     in    Title               const char*         [-]  the header caption, copied into the box's own extent
@@ -329,19 +330,19 @@ F DeclarePanelBox                | WorkspaceSpace.h | 584     | api,nonthrowing 
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  The box arrives floating whatever side its ledger slot declared. A declared side is where a workspace
 
-F WithdrawPanelBox               | WorkspaceSpace.h | 592     | api,nonthrowing                    | 🚩 | Withdraws one panel box from one body, releasing its record.
+F WithdrawPanelBox               | WorkspaceSpace.h | 592       | api,nonthrowing                    | 🚩 | Withdraws one panel box from one body, releasing its record.
     in    Standing  WorkspaceDocument&      [-]  ?
     in    Subject   WorkspacePanelIdentity  [-]  ?
     out   -         Outcome                 [-]  refuses with IdentityStale when no box resolves
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
-F AmendPanelBox                  | WorkspaceSpace.h | 598     | api,nonthrowing                    | 🚩 | One panel box, for moving, resizing or re-docking it.
+F AmendPanelBox                  | WorkspaceSpace.h | 598       | api,nonthrowing                    | 🚩 | One panel box, for moving, resizing or re-docking it.
     in    Standing  WorkspaceDocument&      [-]  ?
     in    Subject   WorkspacePanelIdentity  [-]  ?
     out   -         Outcome                 [-]  refuses with IdentityStale when no box resolves
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
 
-F RaisePanelBox                  | WorkspaceSpace.h | 610     | api,nonthrowing                    | 🚩 | Brings one floating panel box in front of every other floating box of the same body. ordinal its identity carries, so rotating the list would hand every box after the raised one the identity of its predecessor — a drag in flight would then be resizing a different panel. the counter is the desk's own and monotonic, so a second raise costs one increment.
+F RaisePanelBox                  | WorkspaceSpace.h | 610       | api,nonthrowing                    | 🚩 | Brings one floating panel box in front of every other floating box of the same body. ordinal its identity carries, so rotating the list would hand every box after the raised one the identity of its predecessor — a drag in flight would then be resizing a different panel. the counter is the desk's own and monotonic, so a second raise costs one increment.
     in    Standing  WorkspaceDocument&      [-]  ?
     in    Subject   WorkspacePanelIdentity  [-]  ?
     out   -         Outcome                 [-]  refuses with IdentityStale when no box resolves
@@ -350,7 +351,7 @@ F RaisePanelBox                  | WorkspaceSpace.h | 610     | api,nonthrowing 
     note  🔴 A raise ordinal and never a rotation of the body's list. A box's position in that list **is** the
     note  A box already topmost is raised again all the same. Refusing that would make the caller test for it, and
 
-F ResolveBodyPlacement           | WorkspaceSpace.h | 625     | api,nonallocating,nonthrowing      | 🚩 | Resolves every panel of one body against that body's rectangle, and what the bands leave the document. and the centre is the remainder. Resolving the rows first would give a corner to two bands at once, and the panel that lost the argument paints under the other one. their shares. A drag writes the dragged depth to every panel on that side, so the record stays per-panel while the band stays one band.
+F ResolveBodyPlacement           | WorkspaceSpace.h | 625       | api,nonallocating,nonthrowing      | 🚩 | Resolves every panel of one body against that body's rectangle, and what the bands leave the document. and the centre is the remainder. Resolving the rows first would give a corner to two bands at once, and the panel that lost the argument paints under the other one. their shares. A drag writes the dragged depth to every panel on that side, so the record stays per-panel while the band stays one band.
     in    Standing         const WorkspaceDocument&  [-]   the document, read and never amended
     in    Body             WorkspaceRectangle        [px]  the body rectangle, beneath the leaf's own tab strip
     in    GutterThickness  float                     [px]  from the theme; the depth and share grips are this thick
@@ -359,7 +360,7 @@ F ResolveBodyPlacement           | WorkspaceSpace.h | 625     | api,nonallocatin
     note  🔴 Left and Right claim full-height columns first, Top and Bottom claim rows spanning what those left,
     note  ⚠️ Several panels on one side take the band depth of the **first** of them and split its long axis by
 
-F ResolvePanelLanding            | WorkspaceSpace.h | 638     | api,nonallocating,nonthrowing      | ✔️ | Resolves which side a released panel drag would dock to, from the five-zone cross over one body. would cover the document the body exists to present, so `Centre` is a side a workspace declares deliberately and never one a careless release mints.
+F ResolvePanelLanding            | WorkspaceSpace.h | 638       | api,nonallocating,nonthrowing      | ✔️ | Resolves which side a released panel drag would dock to, from the five-zone cross over one body. would cover the document the body exists to present, so `Centre` is a side a workspace declares deliberately and never one a careless release mints.
     in    Body      WorkspaceRectangle   [px]  the body the pointer is over
     in    PointerX  float                [-]   ?
     in    PointerY  float                [-]   ?
@@ -369,7 +370,7 @@ F ResolvePanelLanding            | WorkspaceSpace.h | 638     | api,nonallocatin
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
     note  🔴 The middle of the cross resolves to `Floating` and never to `Centre`. A panel docked over the centre
 
-F DockPanelBox                   | WorkspaceSpace.h | 652     | api,nonthrowing                    | 🚩 | Lands one panel box on a side of its own body, or returns it to floating.
+F DockPanelBox                   | WorkspaceSpace.h | 652       | api,nonthrowing                    | 🚩 | Lands one panel box on a side of its own body, or returns it to floating.
     in    Standing  WorkspaceDocument&      [-]   ?
     in    Subject   WorkspacePanelIdentity  [-]   ?
     in    Landed    WorkspacePanelSide      [-]   the side it takes
@@ -384,7 +385,7 @@ F DockPanelBox                   | WorkspaceSpace.h | 652     | api,nonthrowing 
 //                                                      ONE DOCUMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-T WorkspaceDocument              | WorkspaceSpace.h | 668-680 | owning                             | -  | One workspace document — what a tab represents, wherever the tab currently lives. layout, and layout inside the document would make moving a panel an undoable edit and would make one document open differently on a machine with a different display.
+T WorkspaceDocument              | WorkspaceSpace.h | 668-680   | owning                             | -  | One workspace document — what a tab represents, wherever the tab currently lives. layout, and layout inside the document would make moving a panel an undoable edit and would make one document open differently on a machine with a different display.
     has   Identity         WorkspaceDocumentIdentity                                [-]  ?
     has   Title            char[WorkspaceTitleExtent]                               [-]  ?
     has   Discipline       WorkspaceDiscipline                                      [-]  ?
@@ -397,7 +398,7 @@ T WorkspaceDocument              | WorkspaceSpace.h | 668-680 | owning          
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  🔴 `14` §4.1: everything here is beside the document and never inside it. Its own panel arrangement is
 
-T WorkspaceFloatingWindow        | WorkspaceSpace.h | 686-695 | owning                             | -  | A torn-out rectangle carrying its own ordered documents and its own tab strip. cannot be raised the same way — its position in its own list is the ordinal its identity carries.
+T WorkspaceFloatingWindow        | WorkspaceSpace.h | 686-695   | owning                             | -  | A torn-out rectangle carrying its own ordered documents and its own tab strip. cannot be raised the same way — its position in its own list is the ordinal its identity carries.
     has   Identifier      std::uint32_t                           [-]  ?
     has   Documents       std::vector<WorkspaceDocumentIdentity>  [-]  ?
     has   ActiveDocument  WorkspaceDocumentIdentity               [-]  ?
@@ -412,7 +413,7 @@ T WorkspaceFloatingWindow        | WorkspaceSpace.h | 686-695 | owning          
 //                                                   THE DRAG IN FLIGHT
 //------------------------------------------------------------------------------------------------------------------------
 
-E WorkspaceDragMode              | WorkspaceSpace.h | 706-716 | contract                           | -  | What the one drag in flight is addressing. Exactly one is open at a time. read a field no branch wrote is where a released panel drag docks a document, which is what the seam between the desk's own seal and the panel layer's exists to keep apart.
+E WorkspaceDragMode              | WorkspaceSpace.h | 706-716   | contract                           | -  | What the one drag in flight is addressing. Exactly one is open at a time. read a field no branch wrote is where a released panel drag docks a document, which is what the seam between the desk's own seal and the panel layer's exists to keep apart.
     has   None             WorkspaceDragMode  [-]  ?
     has   Reorder          WorkspaceDragMode  [-]  ?
     has   Window           WorkspaceDragMode  [-]  ?
@@ -421,16 +422,16 @@ E WorkspaceDragMode              | WorkspaceSpace.h | 706-716 | contract        
     has   PanelBox         WorkspaceDragMode  [-]  ?
     has   PanelResize      WorkspaceDragMode  [-]  ?
     has   PanelBandResize  WorkspaceDragMode  [-]  ?
-    by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp
+    by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSequence.cpp, Source/WorkspaceStrip.cpp
     note  🔴 Exactly one mode is open, and the mode alone says which fields of the record carry meaning. A mode that
 
-E WorkspaceDragOrigin            | WorkspaceSpace.h | 722-726 | contract                           | -  | What a Window-mode drag was torn from — the drop resolution differs by origin. release leaves it floating. A moved **panel** uses the five-zone cross and always docks over a leaf.
+E WorkspaceDragOrigin            | WorkspaceSpace.h | 722-726   | contract                           | -  | What a Window-mode drag was torn from — the drop resolution differs by origin. release leaves it floating. A moved **panel** uses the five-zone cross and always docks over a leaf.
     has   Tab    WorkspaceDragOrigin  [-]  ?
     has   Panel  WorkspaceDragOrigin  [-]  ?
     by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
     note  🔴 A torn **tab** floats by default and docks only on a distinct edge or corner band, so a careless
 
-E WorkspaceDropZone              | WorkspaceSpace.h | 730-739 | contract                           | -  | The landing a released drag would take, resolved from the pointer each tick.
+E WorkspaceDropZone              | WorkspaceSpace.h | 730-739   | contract                           | -  | The landing a released drag would take, resolved from the pointer each tick.
     has   None    WorkspaceDropZone  [-]  ?
     has   Strip   WorkspaceDropZone  [-]  ?
     has   Centre  WorkspaceDropZone  [-]  ?
@@ -440,7 +441,7 @@ E WorkspaceDropZone              | WorkspaceSpace.h | 730-739 | contract        
     has   Bottom  WorkspaceDropZone  [-]  ?
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
 
-T WorkspaceDropLanding           | WorkspaceSpace.h | 745-751 | contract,nonallocating,nonthrowing | -  | Where a release would land, and the rectangle that says so before the artist commits to it. landing that survives the leaf it named being reclaimed underneath it.
+T WorkspaceDropLanding           | WorkspaceSpace.h | 745-751   | contract,nonallocating,nonthrowing | -  | Where a release would land, and the rectangle that says so before the artist commits to it. landing that survives the leaf it named being reclaimed underneath it.
     has   Zone         WorkspaceDropZone   [-]  ?
     has   Link         std::int32_t        [-]  ?
     has   Window       std::uint32_t       [-]  ?
@@ -448,13 +449,13 @@ T WorkspaceDropLanding           | WorkspaceSpace.h | 745-751 | contract,nonallo
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
     note  Resolved fresh every tick from the pointer, never accumulated. A landing carried across a tick is a
 
-V DockBandFraction               | WorkspaceSpace.h | 756     | -                                  | -  | ?
+V DockBandFraction               | WorkspaceSpace.h | 756       | -                                  | -  | ?
     by    Source/WorkspaceSpace.cpp
 
-V WindowMinimumExtent            | WorkspaceSpace.h | 759     | -                                  | -  | ?
+V WindowMinimumExtent            | WorkspaceSpace.h | 759       | -                                  | -  | ?
     by    Source/WorkspaceDrag.cpp
 
-T WorkspaceDragRecord            | WorkspaceSpace.h | 765-795 | owning                             | -  | The one drag in flight, and the press that has not yet become one. is why the press is recorded apart from the drag: without it every activation would tear.
+T WorkspaceDragRecord            | WorkspaceSpace.h | 765-795   | owning                             | -  | The one drag in flight, and the press that has not yet become one. is why the press is recorded apart from the drag: without it every activation would tear.
     has   Mode             WorkspaceDragMode          [-]  ?
     has   Origin           WorkspaceDragOrigin        [-]  ?
     has   HeldDocument     WorkspaceDocumentIdentity  [-]  ?
@@ -480,10 +481,10 @@ T WorkspaceDragRecord            | WorkspaceSpace.h | 765-795 | owning          
     by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp
     note  🔴 A click **activates** a tab. Only movement past `TearThreshold` while still held tears it out, which
 
-V TearThreshold                  | WorkspaceSpace.h | 799     | -                                  | -  | ?
+V TearThreshold                  | WorkspaceSpace.h | 799       | -                                  | -  | ?
     by    Source/WorkspaceDrag.cpp
 
-T WorkspaceRenameRecord          | WorkspaceSpace.h | 805-811 | owning                             | -  | One inline title edit, opened by a double-click on a trapezoid. own title is never written until the edit is sealed.
+T WorkspaceRenameRecord          | WorkspaceSpace.h | 805-811   | owning                             | -  | One inline title edit, opened by a double-click on a trapezoid. own title is never written until the edit is sealed.
     has   RenameOpen   bool                        [-]  ?
     has   Subject      WorkspaceDocumentIdentity   [-]  ?
     has   Carry        char[WorkspaceTitleExtent]  [-]  ?
@@ -491,7 +492,7 @@ T WorkspaceRenameRecord          | WorkspaceSpace.h | 805-811 | owning          
     by    Source/WorkspaceStrip.cpp
     note  The carry is the edited title, not the committed one. Abandoning the edit discards it and the document's
 
-T WorkspaceOverlayRecord         | WorkspaceSpace.h | 818-827 | owning                             | -  | One hand-rolled foreground overlay — the `(+)` minting list or the `(V)` panel list. beneath that list, so a popup would be occluded by the tabs that opened it.
+T WorkspaceOverlayRecord         | WorkspaceSpace.h | 818-827   | owning                             | -  | One hand-rolled foreground overlay — the `(+)` minting list or the `(V)` panel list. beneath that list, so a popup would be occluded by the tabs that opened it.
     has   OverlayOpen     bool                       [-]  ?
     has   OpenedTick      std::uint32_t              [-]  ?
     has   AnchorX         float                      [-]  ?
@@ -506,7 +507,7 @@ T WorkspaceOverlayRecord         | WorkspaceSpace.h | 818-827 | owning          
 //                                                        THE DESK
 //------------------------------------------------------------------------------------------------------------------------
 
-T WorkspaceSpace                 | WorkspaceSpace.h | 837-858 | owning                             | -  | The whole desk: every document owned once, the partition of the docked area, and the floating windows. document by value is the defect where tearing a tab out produces two documents that drift apart.
+T WorkspaceSpace                 | WorkspaceSpace.h | 837-858   | owning                             | -  | The whole desk: every document owned once, the partition of the docked area, and the floating windows. document by value is the defect where tearing a tab out produces two documents that drift apart.
     has   Documents                std::vector<WorkspaceDocument>                              [-]  ?
     has   Catalogue                std::vector<WorkspaceDocumentSpecification>                 [-]  ?
     has   DefaultCatalogueOrdinal  std::uint32_t                                               [-]  ?
@@ -519,28 +520,28 @@ T WorkspaceSpace                 | WorkspaceSpace.h | 837-858 | owning          
     has   MintingOverlay           WorkspaceOverlayRecord                                      [-]  ?
     has   PanelOverlay             WorkspaceOverlayRecord                                      [-]  ?
     has   PresentedTicks           std::uint32_t                                               [-]  ?
-    by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp, Source/WorkspaceStripInternal.h
+    by    Api/WorkspaceSequence.h, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSequence.cpp, Source/WorkspaceSpace.cpp, (+2 more)
     note  🔴 A document is owned here exactly once and referenced everywhere else by identity. A leaf holding a
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    DESK OPERATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-F DeclareCatalogue               | WorkspaceSpace.h | 872     | api,nonthrowing                    | 🚩 | Installs the catalogue the application offers and forgets whatever was offered before.
+F DeclareCatalogue               | WorkspaceSpace.h | 872       | api,nonthrowing                    | 🚩 | Installs the catalogue the application offers and forgets whatever was offered before.
     in    Space           WorkspaceSpace&                        [-]  the desk
     in    Offering        const WorkspaceDocumentSpecification*  [-]  the entries, copied here; caller-owned only for the duration of the call
     in    Count           std::uint32_t                          [-]  how many
     in    DefaultOrdinal  std::uint32_t                          [-]  which entry seeds the desk
     out   -               Outcome                                [-]  refuses with ContentUnsupported for an empty offering or an ordinal outside it
-    by    Source/WorkspaceSpace.cpp
+    by    Source/WorkspaceSequence.cpp, Source/WorkspaceSpace.cpp
 
-F ConstructWorkspaceSpace        | WorkspaceSpace.h | 882     | api,nonthrowing                    | 🚩 | Seeds the desk with one document of the default catalogue entry and activates it.
+F ConstructWorkspaceSpace        | WorkspaceSpace.h | 882       | api,nonthrowing                    | 🚩 | Seeds the desk with one document of the default catalogue entry and activates it.
     in    Space  WorkspaceSpace&  [-]  ?
     out   -      Outcome          [-]  refuses with ContentUnsupported when no catalogue has been declared
     pre   DeclareCatalogue delivered
-    by    Source/WorkspaceSpace.cpp
+    by    Source/WorkspaceSequence.cpp, Source/WorkspaceSpace.cpp
 
-F DeclareDocument                | WorkspaceSpace.h | 896     | api,nonthrowing                    | 🚩 | Mints one document from a catalogue entry and places it in a leaf. when the target is not an occupied leaf rather than holding a per-entry counter means closing document 2 and minting again produces a 2 again, which is what an artist expects of a numbered tab.
+F DeclareDocument                | WorkspaceSpace.h | 896       | api,nonthrowing                    | 🚩 | Mints one document from a catalogue entry and places it in a leaf. when the target is not an occupied leaf rather than holding a per-entry counter means closing document 2 and minting again produces a 2 again, which is what an artist expects of a numbered tab.
     in    Space             WorkspaceSpace&  [-]  the desk
     in    CatalogueOrdinal  std::uint32_t    [-]  which entry
     in    TargetLeaf        std::int32_t     [-]  the leaf it joins; negative claims the root when the desk is empty
@@ -549,43 +550,43 @@ F DeclareDocument                | WorkspaceSpace.h | 896     | api,nonthrowing 
     by    Api/RecoverySequence.h, Source/DocumentSession.cpp, Source/RecoverySequence.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  The title is minted as "<NameStem> N", where N counts the documents already carrying that stem. Counting
 
-F WithdrawDocument               | WorkspaceSpace.h | 904     | api,nonthrowing                    | 🚩 | Withdraws one document from the desk, reclaiming the leaf it emptied.
+F WithdrawDocument               | WorkspaceSpace.h | 904       | api,nonthrowing                    | 🚩 | Withdraws one document from the desk, reclaiming the leaf it emptied.
     in    Space    WorkspaceSpace&            [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
     out   -        Outcome                    [-]  refuses with IdentityStale when nothing resolves
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
-F ResolveDocument                | WorkspaceSpace.h | 910     | api,nonthrowing                    | 🚩 | One document, by identity.
+F ResolveDocument                | WorkspaceSpace.h | 910       | api,nonthrowing                    | 🚩 | One document, by identity.
     in    Space    const WorkspaceSpace&      [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
     out   -        Outcome                    [-]  refuses with IdentityStale
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
-F AmendDocument                  | WorkspaceSpace.h | 916     | api,nonthrowing                    | 🚩 | One document, for amending its title or its panel arrangement.
+F AmendDocument                  | WorkspaceSpace.h | 916       | api,nonthrowing                    | 🚩 | One document, for amending its title or its panel arrangement.
     in    Space    WorkspaceSpace&            [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
     out   -        Outcome                    [-]  refuses with IdentityStale
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
-F LocateLeafCarrying             | WorkspaceSpace.h | 921     | api,nonthrowing                    | 🚩 | Which leaf currently carries one document, or -1 when a floating window does.
+F LocateLeafCarrying             | WorkspaceSpace.h | 921       | api,nonthrowing                    | 🚩 | Which leaf currently carries one document, or -1 when a floating window does.
     in    Space    const WorkspaceSpace&      [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
     out   -        std::int32_t               [-]  ?
     by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
 
-F LocateWindowCarrying           | WorkspaceSpace.h | 926     | api,nonthrowing                    | 🚩 | Which floating window carries one document, or zero when a leaf does.
+F LocateWindowCarrying           | WorkspaceSpace.h | 926       | api,nonthrowing                    | 🚩 | Which floating window carries one document, or zero when a leaf does.
     in    Space    const WorkspaceSpace&      [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
     out   -        std::uint32_t              [-]  ?
     by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
 
-F AmendFloatingWindow            | WorkspaceSpace.h | 932     | api,nonthrowing                    | 🚩 | One floating window, for moving or resizing it.
+F AmendFloatingWindow            | WorkspaceSpace.h | 932       | api,nonthrowing                    | 🚩 | One floating window, for moving or resizing it.
     in    Space      WorkspaceSpace&  [-]  ?
     in    WindowKey  std::uint32_t    [-]  ?
     out   -          Outcome          [-]  refuses with IdentityStale when no window carries that key
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
-F TearDocument                   | WorkspaceSpace.h | 945     | api,nonthrowing                    | 🚩 | Lifts one document out of wherever it sits into a floating window of its own. which is what keeps a torn tab and its former self from drifting apart.
+F TearDocument                   | WorkspaceSpace.h | 945       | api,nonthrowing                    | 🚩 | Lifts one document out of wherever it sits into a floating window of its own. which is what keeps a torn tab and its former self from drifting apart.
     in    Space      WorkspaceSpace&            [-]   the desk
     in    Subject    WorkspaceDocumentIdentity  [-]   the document torn out
     in    PositionX  float                      [px]  the window's top-left, already offset by the grab
@@ -595,7 +596,7 @@ F TearDocument                   | WorkspaceSpace.h | 945     | api,nonthrowing 
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
     note  🔴 The document is never copied. It stays owned once by `Documents` and the window names it by identity,
 
-F DockDocument                   | WorkspaceSpace.h | 960     | api,nonthrowing                    | 🚩 | Lands one document on a leaf — stacking it, or dividing the leaf and placing it in the new half. whatever `Partition` refused when the leaf is too small to divide reclaimed only after both are done. Reclaiming first lifts a counterpart into the division's slot, and the target index the landing resolved a moment earlier then names a freed slot.
+F DockDocument                   | WorkspaceSpace.h | 960       | api,nonthrowing                    | 🚩 | Lands one document on a leaf — stacking it, or dividing the leaf and placing it in the new half. whatever `Partition` refused when the leaf is too small to divide reclaimed only after both are done. Reclaiming first lifts a counterpart into the division's slot, and the target index the landing resolved a moment earlier then names a freed slot.
     in    Space       WorkspaceSpace&            [-]  ?
     in    Subject     WorkspaceDocumentIdentity  [-]  ?
     in    TargetLeaf  std::int32_t               [-]  the leaf the landing named
@@ -604,14 +605,14 @@ F DockDocument                   | WorkspaceSpace.h | 960     | api,nonthrowing 
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
     note  🔴 The document is placed **before** it is removed from where it was, and the leaf it emptied is
 
-F StackDocumentInWindow          | WorkspaceSpace.h | 969     | api,nonthrowing                    | 🚩 | Stacks one document onto an existing floating window and activates it there.
+F StackDocumentInWindow          | WorkspaceSpace.h | 969       | api,nonthrowing                    | 🚩 | Stacks one document onto an existing floating window and activates it there.
     in    Space      WorkspaceSpace&            [-]  ?
     in    Subject    WorkspaceDocumentIdentity  [-]  ?
     in    WindowKey  std::uint32_t              [-]  ?
     out   -          Outcome                    [-]  refuses with IdentityStale when the document or the window does not resolve
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
 
-F ReorderOccupant                | WorkspaceSpace.h | 979     | api,nonthrowing                    | 🚩 | Moves one document to a position within the ordered occupants of the leaf or window carrying it.
+F ReorderOccupant                | WorkspaceSpace.h | 979       | api,nonthrowing                    | 🚩 | Moves one document to a position within the ordered occupants of the leaf or window carrying it.
     in    Space           WorkspaceSpace&            [-]  ?
     in    Subject         WorkspaceDocumentIdentity  [-]  ?
     in    CarryingLeaf    std::int32_t               [-]  ?
@@ -621,7 +622,7 @@ F ReorderOccupant                | WorkspaceSpace.h | 979     | api,nonthrowing 
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  Reorder never changes which occupant is active. A tab slid past its neighbour keeps its body presented.
 
-F ResolveDropLanding             | WorkspaceSpace.h | 993     | api,nonallocating,nonthrowing      | 🚩 | Resolves what a release at one point would do, without doing any of it. which is what lets the same call drive the preview each tick and the landing on release.
+F ResolveDropLanding             | WorkspaceSpace.h | 993       | api,nonallocating,nonthrowing      | 🚩 | Resolves what a release at one point would do, without doing any of it. which is what lets the same call drive the preview each tick and the landing on release.
     in    Space          const WorkspaceSpace&  [-]   ?
     in    Origin         WorkspaceDragOrigin    [-]   a torn tab floats unless it reaches an edge band; a moved panel always docks
     in    PointerX       float                  [-]   ?
@@ -632,7 +633,7 @@ F ResolveDropLanding             | WorkspaceSpace.h | 993     | api,nonallocatin
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
     note  🔴 Pure geometry over the rectangles `ResolveLayout` wrote this tick. Nothing here mutates the desk,
 
-F ResolveSpaceLayout             | WorkspaceSpace.h | 1006    | api,nonthrowing                    | 🚩 | Resolves the whole desk's layout for this tick.
+F ResolveSpaceLayout             | WorkspaceSpace.h | 1006      | api,nonthrowing                    | 🚩 | Resolves the whole desk's layout for this tick.
     in    Space            WorkspaceSpace&     [-]   ?
     in    DeskArea         WorkspaceRectangle  [px]  the area between the two bands, supplied by the bracket
     in    GutterThickness  float               [px]  from the theme
@@ -640,7 +641,7 @@ F ResolveSpaceLayout             | WorkspaceSpace.h | 1006    | api,nonthrowing 
     pre   called once a tick, before any input is resolved
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
-F PresentWorkspaceSpace          | WorkspaceSpace.h | 1023    | api,nonthrowing                    | 🚩 | Presents the whole desk for one tick — layout, bodies, panels, trapezoid strips, overlays, then input. trapezoid cannot be a vendor tab and a vendor popup would be painted beneath the tabs that opened it. workspace's panels against a context that workspace has already released. the identifier it names, which is what makes a panel arrangement testable before any panel exists.
+F PresentWorkspaceSpace          | WorkspaceSpace.h | 1023      | api,nonthrowing                    | 🚩 | Presents the whole desk for one tick — layout, bodies, panels, trapezoid strips, overlays, then input. trapezoid cannot be a vendor tab and a vendor popup would be painted beneath the tabs that opened it. workspace's panels against a context that workspace has already released. the identifier it names, which is what makes a panel arrangement testable before any panel exists.
     in    Theme     const ThemeSpecification&  [-]   the resolved theme, read and never held
     in    Space     WorkspaceSpace&            [-]   the desk, amended in place
     in    DeskArea  WorkspaceRectangle         [px]  the area between the two bands, supplied by the bracket
@@ -648,13 +649,59 @@ F PresentWorkspaceSpace          | WorkspaceSpace.h | 1023    | api,nonthrowing 
     out   -         void                       [-]   ?
     pre   an interface tick is open — `InterfaceExchange::Advance` delivered and `Seal` has not
     post  layout is current, and every activation, rename, mint and panel amendment the tick carried is applied
-    by    Source/WorkspaceStrip.cpp
+    by    Source/WorkspaceBracket.cpp, Source/WorkspaceStrip.cpp
     note  🔴 Nothing here opens a vendor window. Every quad is recorded on the foreground list, because a
     note  🔴 The ledger arrives per tick and is never held. A desk that retained it would present a deactivated
     note  ⚠️ A null ledger is not a refusal. Every box still paints its own frame and header, and its body prints
 
-F SLATE_DECLARES_PRECISION       | WorkspaceSpace.h | 1030    | -                                  | -  | ?
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE WORKSPACE STRIP
+//------------------------------------------------------------------------------------------------------------------------
+
+V AbsentWorkspaceChoice          | WorkspaceSpace.h | 1033      | -                                  | -  | ?
+    by    Source/WorkspaceBracket.cpp, Source/WorkspaceSequence.cpp
+
+F ConstructWorkspaceTabStrip     | WorkspaceSpace.h | 1048      | api,nonthrowing                    | 🚩 | Presents one trapezoid per registered workspace and reports which of them the artist chose. spelled one would be the component that makes a standalone host and the editor two different trees. would sit beneath the desk's own strips, and the two rows of tabs would occlude each other.
+    in    Theme            const ThemeSpecification&  [-]   ?
+    in    StripArea        WorkspaceRectangle         [px]  the band between the top viewport band and the desk
+    in    Captions         const char* const*         [-]   one static caption per registered workspace; static storage, never copied
+    in    Count            std::uint32_t              [-]   how many
+    in    ActiveOrdinal    std::uint32_t              [-]   which one is standing; outside the count leaves every trapezoid inactive
+    in    PointerConsumed  bool&                      [-]   raised where the pointer covers the strip, so the desk beneath resolves nothing
+    out   -                Choice                     [-]   the chosen ordinal, or AbsentWorkspaceChoice where nothing was chosen
+    by    Source/WorkspaceBracket.cpp
+    note  🔴 `32` §5: this iterates what the application registered and names no concrete workspace. A strip that
+    note  ⚠️ Recorded on the foreground list beside every other trapezoid. A strip painted into a vendor window
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE DEPLOYMENT BRACKET
+//------------------------------------------------------------------------------------------------------------------------
+
+T DeploymentReport               | WorkspaceSpace.h | 1061-1066 | contract,nonallocating,nonthrowing | -  | What one bracket tick resolved — the workspace the artist chose, and whether the pointer was taken.
+    has   WorkspaceChoice  std::uint32_t       [-]  ?
+    has   PointerConsumed  bool                [-]  ?
+    has   DeskArea         WorkspaceRectangle  [-]  ?
+    by    Source/WorkspaceBracket.cpp, Source/WorkspaceSequence.cpp
+
+F PresentDeploymentBracket       | WorkspaceSpace.h | 1089      | api,nonthrowing                    | 🔴 | The one presentation call an application makes per tick — top band, workspace strip, desk, bottom band. the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would clip the trapezoids that overhang their own strip. negative one. A negative extent inverts every coverage test, and a minimised window would then resolve the pointer against rectangles the artist cannot see.
+    in    Theme              const ThemeSpecification&  [-]   the resolved theme; `Enforce` is applied once here and never per panel
+    in    Space              WorkspaceSpace&            [-]   the desk, amended in place
+    in    Panels             const PanelIndex*          [-]   the active workspace's ledger, or null where none is declared
+    in    Captions           const char* const*         [-]   one caption per registered workspace, for the strip
+    in    Count              std::uint32_t              [-]   how many
+    in    ActiveOrdinal      std::uint32_t              [-]   which workspace is standing
+    in    TopBandCaption     const char*                [-]   printed at the leading edge of the top band; may be empty
+    in    BottomBandCaption  const char*                [-]   printed at the leading edge of the bottom band; may be empty
+    in    DisplayWidth       float                      [px]  the whole drawable extent, in interface pixels
+    in    DisplayHeight      float                      [px]  ?
+    out   -                  Report                     [-]   the choice and the pointer's disposition
+    pre   an interface tick is open — `InterfaceExchange::Advance` delivered and `Seal` has not
+    by    Source/WorkspaceBracket.cpp, Source/WorkspaceSequence.cpp
+    note  🔴 Nothing here opens a vendor window and the desk is **not** wrapped in one. Every quad is recorded on
+    note  ⚠️ A display extent that cannot carry both bands and a strip leaves the desk zero height rather than a
+
+F SLATE_DECLARES_PRECISION       | WorkspaceSpace.h | 1102      | -                                  | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)

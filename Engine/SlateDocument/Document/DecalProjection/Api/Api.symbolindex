@@ -86,7 +86,7 @@ F ProjectPlacementExtent             | DecalProjection.h | 128     | api,nonthro
 F SLATE_DECLARES_PRECISION           | DecalProjection.h | 136     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
 
 F ProjectIntoSource                  | DecalProjection.h | 154     | api,nonallocating,nonthrowing | ✔️ | Carries one domain position into a placement's own source space. it is a transform into a source space, and the source is then one of the other three. That is why text, imagery, vector content and tiling all place identically and why `70` needs no per-source placement path. the scale reciprocated rather than a matrix being inverted, because `02` §3.1 keeps a transform decomposed and a general inversion would reintroduce the drift the decomposition exists to avoid.
     in    Placed          const PlacementSpecification&  [-]  the placement
@@ -132,7 +132,7 @@ F PlacementIndex::Amend              | DecalProjection.h | 197     | api,nonthro
 F PlacementIndex::Resolve            | DecalProjection.h | 203     | api,nonthrowing               | ✔️ | One declared placement.
     in    PlacementOrdinal  std::uint32_t  [-]  ?
     out   -                 Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+94 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+95 more)
 
 F PlacementIndex::Withdraw           | DecalProjection.h | 211     | api,nonthrowing               | ✔️ | Withdraws one placement, returning its slot for reuse. is enclosed under the occupant it is attached to — `00` §10.1 ③ — so it retires with that occupant rather than surviving it as an orphaned reference `56` still names.
     in    PlacementOrdinal  std::uint32_t  [-]  ?
@@ -176,7 +176,7 @@ F PlacementSequence::Open            | DecalProjection.h | 269     | api,nonallo
     in    CameraFollowed    bool                           [-]  true for the screen gesture, false for a domain or projected drag
     out   -                 Outcome                        [-]  refuses with HostDenied when a drag is already open
     post  nothing is recorded; the placement stands unamended until Seal
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+20 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+21 more)
 
 F PlacementSequence::Amend           | DecalProjection.h | 275     | api,nonallocating,nonthrowing | ✔️ | Amends the open drag's placing transform.
     in    Amending  const DecomposedTransform&  [-]  ?
@@ -190,7 +190,7 @@ F PlacementSequence::Abandon         | DecalProjection.h | 281     | api,nonallo
 F PlacementSequence::Seal            | DecalProjection.h | 288     | api,nonallocating,nonthrowing | ✔️ | Ends the drag, returning the specification the caller commits as one transaction.
     out   -  Outcome  [-]  refuses with HostDenied when no drag is open
     post  🔴 the returned specification carries an advanced revision; `70` re-resolves against it
-    by    Api/CameraProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, (+19 more)
+    by    Api/CameraProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, (+20 more)
 
 F PlacementSequence::Amended         | DecalProjection.h | 293     | api,nonallocating,nonthrowing | ✔️ | The placement as the drag has amended it, for `82`'s speculative resolution.
     out   -  const PlacementSpecification&  [-]  ?
@@ -198,7 +198,7 @@ F PlacementSequence::Amended         | DecalProjection.h | 293     | api,nonallo
 
 F PlacementSequence::Subject         | DecalProjection.h | 295     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/CameraProjection.h, Api/CurveSolver.h, Api/DiagnosticExtension.h, Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+59 more)
+    by    Api/CameraProjection.h, Api/CurveSolver.h, Api/DiagnosticExtension.h, Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+61 more)
 
 F PlacementSequence::GestureOpen     | DecalProjection.h | 296     | -                             | -  | ?
     out   -  bool  [-]  ?
@@ -212,4 +212,4 @@ F SLATE_DECLARES_PRECISION           | DecalProjection.h | 310     | -          
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+50 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)

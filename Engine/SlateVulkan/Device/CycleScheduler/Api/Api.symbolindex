@@ -26,7 +26,7 @@ T RotationSlot                       | CycleScheduler.h | 30-35  | nonallocating
     has   Completion     VkFence      [-]  ?
     has   ImageArrived   VkSemaphore  [-]  ?
     has   RecordingDone  VkSemaphore  [-]  ?
-    by    Api/CommandSequence.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/HardwareMetrics.h, Api/OcclusionScheduler.h, Api/VisibilityRaster.h, (+7 more)
+    by    Api/CommandSequence.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/HardwareMetrics.h, Api/OcclusionScheduler.h, Api/VisibilityRaster.h, (+8 more)
     note  🔴 The completion is constructed **signalled**. The first rotation waits on it before anything has
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ T CycleScheduler                     | CycleScheduler.h | 48-128 | owning       
     has   Slots                         std::vector<RotationSlot>       [-]  ?
     has   SlotStanding                  std::uint32_t                   [-]  ?
     has   Rotations                     std::uint64_t                   [-]  ?
-    by    Source/CycleScheduler.cpp
+    by    Api/WorkspaceSequence.h, Source/CycleScheduler.cpp
     note  🔴 `06` §7: every per-recording resource is sized against the rotation depth. `RecordingRotationDepth`
     note  ⚠️ `Advance` is the only writer of the standing ordinal. A caller keeping its own counter and
 
@@ -51,38 +51,38 @@ F CycleScheduler::Construct          | CycleScheduler.h | 68     | api,nonthrowi
     in    Naming    const DiagnosticExtension&  [-]  names every ordering point; borrowed and outlives this component
     out   -         Outcome                     [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     post  the standing ordinal is zero and every completion is signalled
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
     note  🔴 `06` §7's diagnostic-name gate. Each of the three points is named by its slot **and** by what it
 
 F CycleScheduler::Await              | CycleScheduler.h | 79     | api,nonthrowing               | 🔴 | Waits until the slot the standing ordinal names is no longer read, and makes it writable again. with DeviceLost when the device was lost; nothing is destroyed either way host that stops with no report, and `06` §7 requires the loss to be reported upward before anything is destroyed — which cannot happen from inside a wait that never returns.
     out   -  Outcome  [-]  refuses with HostDenied when the device does not complete within the ceiling, and
     post  every resource the slot holds may be amended
-    by    Api/DisplayScheduler.h, Source/CycleScheduler.cpp, Source/DisplayScheduler.cpp
+    by    Api/DisplayScheduler.h, Source/CycleScheduler.cpp, Source/DisplayScheduler.cpp, Source/WorkspaceSequence.cpp
     note  🔴 The ceiling is finite rather than indefinite. An indefinite wait against a lost device is a
 
 F CycleScheduler::Arm                | CycleScheduler.h | 86     | api,nonthrowing               | ✔️ | Clears the completion of the standing slot, immediately before the submission that signals it.
     out   -  Outcome  [-]  refuses with HostDenied when the device declines
     pre   Await delivered for this slot
-    by    Source/CycleScheduler.cpp
+    by    Source/CycleScheduler.cpp, Source/WorkspaceSequence.cpp
 
 F CycleScheduler::Advance            | CycleScheduler.h | 92     | api,nonallocating,nonthrowing | ✔️ | Carries the standing ordinal to the next slot in the cycle.
     out   -  void  [-]  ?
     post  the ordinal is the previous one raised by one, modulo the depth
-    by    Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+18 more)
+    by    Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+20 more)
 
 F CycleScheduler::Standing           | CycleScheduler.h | 98     | api,nonallocating,nonthrowing | ✔️ | The slot the standing ordinal names, for the recording and the display that read it.
     out   -  Outcome  [-]  refuses with CapabilityAbsent before Construct delivered
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/DecalProjection.h, Api/DisplayScheduler.h, (+76 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/DecalProjection.h, Api/DisplayScheduler.h, (+78 more)
 
 F CycleScheduler::StandingOrdinal    | CycleScheduler.h | 103    | api,nonallocating,nonthrowing | ✔️ | Which slot of the depth is standing — what every per-rotation claim is addressed by.
     out   -  std::uint32_t  [-]  ?
-    by    Source/CycleScheduler.cpp
+    by    Api/WorkspaceSequence.h, Source/CycleScheduler.cpp, Source/WorkspaceSequence.cpp
 
 F CycleScheduler::CompletedRotations | CycleScheduler.h | 108    | api,nonallocating,nonthrowing | ✔️ | How many rotations have been advanced through since bring-up, for `86`'s pacing report.
     out   -  std::uint64_t  [-]  ?
-    by    Source/CycleScheduler.cpp
+    by    Api/WorkspaceSequence.h, Source/CycleScheduler.cpp, Source/WorkspaceSequence.cpp
 
 F CycleScheduler::Reclaim            | CycleScheduler.h | 114    | api,nonthrowing               | 🚩 | Destroys every ordering point.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+75 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+77 more)
