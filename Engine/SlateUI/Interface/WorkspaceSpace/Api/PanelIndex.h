@@ -7,29 +7,18 @@
 
 #include "Contract/OutcomeContract.h"
 #include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
+#include "SlateUI/Interface/WorkspaceSpace/Api/WorkspaceSpace.h"
 
 #include <cstdint>
 
 namespace Slate
 {
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                                     WHERE A PANEL SITS
-//------------------------------------------------------------------------------------------------------------------------
-
-/// 🧩 Which side of a workspace body a panel occupies, or that it floats over the body instead.
-/// note  A panel names a side and never a rectangle. `WorkspaceSpace` resolves the side into pixels against the
-///       body it is presenting into, so the same declaration serves a torn-out window and a docked band alike.
-/// tag   contract
-enum class WorkspacePanelSide : std::uint32_t
-{
-    Floating = 0u,   // [-] - over the body, positioned by the artist, above every docked panel
-    Left     = 1u,   // [-] - a band down the left of the body
-    Right    = 2u,   // [-] - a band down the right
-    Top      = 3u,   // [-] - a band across the top, beneath the tab strip
-    Bottom   = 4u,   // [-] - a band across the bottom
-    Centre   = 5u    // [-] - the remainder, which is the workspace surface itself
-};
+// 📝 🔴 `WorkspacePanelSide` is declared once, in `WorkspaceSpace.h`, beside the `WorkspacePanelBox` that anchors
+//    against it. A second identical declaration here compiled only while nothing included both headers; the first
+//    workspace that declares panels and addresses the desk includes both, and a redefinition is not an ODR
+//    allowance the way two identical class definitions in two translation units are — it is an error at the
+//    second declaration. A panel names a side and never a rectangle either way.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ONE DECLARED PANEL

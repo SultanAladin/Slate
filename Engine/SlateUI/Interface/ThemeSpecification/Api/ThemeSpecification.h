@@ -120,13 +120,28 @@ struct LayoutExtents
     float  BorderThickness      =   1.0f;   // [px] - panel outline and separator thickness
     float  LabelColumnWidth     =  88.0f;   // [px] - the label column of a control row
     float  ValueColumnWidth     =  92.0f;   // [px] - the value column beside it
+    float  LabelColumnGap       =  10.0f;   // [px] - between the label column and the field beside it
     float  LabelColumnRatio     =   0.40f;  // [-]  - label fraction where the row is too narrow for the pair
     float  EntryRowHeight       =  30.0f;   // [px] - one numeric entry, slider or dropdown row
     float  EntryRounding        = 999.0f;   // [px] - numeric entry radius; beyond half the height is fully rounded
     float  SideSegmentWidth     =  30.0f;   // [px] - one axis or unit segment inside a numeric entry
+    float  AxisSegmentWidth     =  24.0f;   // [px] - the axis cap of a vector component, narrower than a unit cap
+    float  NumericEntryWidth    =  78.0f;   // [px] - the fixed value box beside a slider
+    float  SliderTrackHeight    =  19.0f;   // [px] - the rounded track a slider knob travels
+    float  SliderKnobEdge       =  21.0f;   // [px] - the knob's diameter, deliberately over the track's height
+    float  SwitchWidth          =  50.0f;   // [px] - a boolean entry's travel
+    float  SwitchHeight         =  32.0f;   // [px]
+    float  SwitchNubEdge        =  24.0f;   // [px] - the nub, inset four each side
+    float  PillRounding         =   9.0f;   // [px] - a selection pill's corner, squarer than a panel's
+    float  SegmentRowHeight     =  26.0f;   // [px] - one segment row pill
+    float  DropdownHeight       =  26.0f;   // [px] - the closed head of a dropdown
+    float  DropdownCaretWidth   =  26.0f;   // [px] - the caret cap at its right
+    float  ColourCircleEdge     =  18.0f;   // [px] - the swatch disc inside a colour bar
+    float  GlyphButtonSmallEdge =  20.0f;   // [px] - the square a row-level glyph button occupies
     float  NumericFontScale     =   1.15f;  // [-]  - enlargement of the numeric readout
     float  SegmentFontScale     =   0.95f;  // [-]  - scale of the axis and unit segment glyphs
     float  GlyphEdge            =  14.0f;   // [px] - the square a row glyph is drawn into
+    float  CarouselTravel       =   0.30f;  // [s]  - the slide a content carousel takes to cross one pane
 };
 
 //------------------------------------------------------------------------------------------------------------------------

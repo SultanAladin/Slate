@@ -180,13 +180,30 @@ Outcome<ThemeSpecification> ResolveActiveTheme(float DeclaredScale)
     Resolved.Extents.BorderThickness      *= DeclaredScale;
     Resolved.Extents.LabelColumnWidth     *= DeclaredScale;
     Resolved.Extents.ValueColumnWidth     *= DeclaredScale;
+    Resolved.Extents.LabelColumnGap       *= DeclaredScale;
     Resolved.Extents.EntryRowHeight       *= DeclaredScale;
     Resolved.Extents.SideSegmentWidth     *= DeclaredScale;
+    Resolved.Extents.AxisSegmentWidth     *= DeclaredScale;
+    Resolved.Extents.NumericEntryWidth    *= DeclaredScale;
+    Resolved.Extents.SliderTrackHeight    *= DeclaredScale;
+    Resolved.Extents.SliderKnobEdge       *= DeclaredScale;
+    Resolved.Extents.SwitchWidth          *= DeclaredScale;
+    Resolved.Extents.SwitchHeight         *= DeclaredScale;
+    Resolved.Extents.SwitchNubEdge        *= DeclaredScale;
+    Resolved.Extents.PillRounding         *= DeclaredScale;
+    Resolved.Extents.SegmentRowHeight     *= DeclaredScale;
+    Resolved.Extents.DropdownHeight       *= DeclaredScale;
+    Resolved.Extents.DropdownCaretWidth   *= DeclaredScale;
+    Resolved.Extents.ColourCircleEdge     *= DeclaredScale;
+    Resolved.Extents.GlyphButtonSmallEdge *= DeclaredScale;
     Resolved.Extents.GlyphEdge            *= DeclaredScale;
 
     // 📝 EntryRounding is deliberately not scaled. It is declared far beyond half of any row height so that the
     //    entry is fully rounded at every density; scaling it would only move it further beyond a bound it already
     //    exceeds, and the vendor bounds it to half the height when it draws.
+
+    // 📝 ⚠️ CarouselTravel is seconds and is not scaled either. A density change must not slow an animation down —
+    //    the two are unrelated quantities, and the only thing they share is this struct.
 
     return Outcome<ThemeSpecification>::Deliver(Resolved);
 }
