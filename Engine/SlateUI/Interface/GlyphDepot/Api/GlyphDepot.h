@@ -146,6 +146,20 @@ public:
     /// tag   api, nonthrowing
     bool GlyphHeld(const std::string& GlyphKey) const;
 
+    /// 🧩 Turns one handle into the integer a recording paints it with.
+    /// in    Presenting  [-]  a handle this depot issued
+    /// out   Outcome     [-]  refuses with IdentityStale when the handle is absent, and when the upload it named
+    ///                        has been torn down since it was issued
+    /// note  🔴 `14` §7 again: the returned integer is the vendor's texture identity widened, and naming that type
+    ///        here would put a vendor spelling in a public header. This is the same seam `InterfaceExchange` keeps
+    ///        with its context slot — the caller hands the integer straight back to the vendor and never reads it.
+    /// note  ⚠️ The check is a walk of the uploads rather than an index lookup, because the uploads are keyed by
+    ///        content hash and the handle carries a texture identity. Held counts are in the tens; a lookup keyed
+    ///        the other way would be a second copy of the same association, drifting from the first.
+    /// cost  🚩
+    /// tag   api, nonallocating, nonthrowing
+    Outcome<std::uint64_t> ResolveTextureSlot(GlyphHandle Presenting) const;
+
     /// 🧩 The square edge a declaration that names none rasterises into.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing

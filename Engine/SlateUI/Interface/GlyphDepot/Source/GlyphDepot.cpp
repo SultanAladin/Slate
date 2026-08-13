@@ -713,6 +713,24 @@ bool GlyphDepot::GlyphHeld(const std::string& GlyphKey) const
     return Resolve(GlyphKey).ContentPresent;
 }
 
+Outcome<std::uint64_t> GlyphDepot::ResolveTextureSlot(GlyphHandle Presenting) const
+{
+    if (!Presenting.HandleDeclared())
+        return Outcome<std::uint64_t>::Refuse({ RefusalReason::IdentityStale, "the handle names no glyph" });
+
+    // 🔴 `Resolve` issues the texture identity itself as the handle's slot, so the handle is **not** a key into
+    //    the uploads — those are keyed by content hash. Confirming the upload still stands is therefore a walk,
+    //    and skipping it hands back a descriptor a released tier already destroyed, which the vendor reads long
+    //    enough to look like a sampling defect rather than a lifetime one.
+    for (const auto& Held : HeldGlyphs)
+    {
+        if (Held.second.TextureSlot == Presenting.DepotSlot)
+            return Outcome<std::uint64_t>::Deliver(Held.second.TextureSlot);
+    }
+
+    return Outcome<std::uint64_t>::Refuse({ RefusalReason::IdentityStale, "the handle names a torn-down upload" });
+}
+
 std::uint32_t GlyphDepot::DeclaredEdge() const
 {
     return DefaultEdge;

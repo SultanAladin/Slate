@@ -578,6 +578,26 @@ enum class WorkspaceDropZone : std::uint32_t
     Bottom = 6u    // [-] - divide, arriving below
 };
 
+/// 🧩 Where a release would land, and the rectangle that says so before the artist commits to it.
+/// note  Resolved fresh every tick from the pointer, never accumulated. A landing carried across a tick is a
+///        landing that survives the leaf it named being reclaimed underneath it.
+/// tag   contract, nonallocating, nonthrowing
+struct WorkspaceDropLanding
+{
+    WorkspaceDropZone   Zone        = WorkspaceDropZone::None;   // [-]  - what a release would do
+    std::int32_t        Link        = -1;                        // [-]  - the leaf it would act on
+    std::uint32_t       Window      = 0u;                        // [-]  - the window it would stack onto
+    WorkspaceRectangle  PreviewArea = {};                        // [px] - what the accent wash covers
+};
+
+// 📝 🔴 The band a tab must reach to dock rather than float. Frontier's fraction, ported: below about a fifth the
+//    artist cannot aim at it against a small leaf, and above about a third the centre of a leaf stops being a
+//    place a tab can be dropped without splitting something.
+inline constexpr float DockBandFraction = 0.22f;   // [-] - share of a body span the edge band claims
+
+// 📝 A floating window narrower than this cannot carry a strip and a grip at once.
+inline constexpr float WindowMinimumExtent = 160.0f;   // [px] - the smallest a resize may leave a window
+
 /// 🧩 The one drag in flight, and the press that has not yet become one.
 /// note  🔴 A click **activates** a tab. Only movement past `TearThreshold` while still held tears it out, which
 ///        is why the press is recorded apart from the drag: without it every activation would tear.
@@ -728,6 +748,83 @@ Outcome<WorkspaceDocument*> AmendDocument(WorkspaceSpace& Space, WorkspaceDocume
 /// cost  🚩
 /// tag   api, nonthrowing
 std::int32_t LocateLeafCarrying(const WorkspaceSpace& Space, WorkspaceDocumentIdentity Subject);
+
+/// 🧩 Which floating window carries one document, or zero when a leaf does.
+/// cost  🚩
+/// tag   api, nonthrowing
+std::uint32_t LocateWindowCarrying(const WorkspaceSpace& Space, WorkspaceDocumentIdentity Subject);
+
+/// 🧩 One floating window, for moving or resizing it.
+/// out   Outcome  [-]  refuses with IdentityStale when no window carries that key
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<WorkspaceFloatingWindow*> AmendFloatingWindow(WorkspaceSpace& Space, std::uint32_t WindowKey);
+
+/// 🧩 Lifts one document out of wherever it sits into a floating window of its own.
+/// in    Space      [-]   the desk
+/// in    Subject    [-]   the document torn out
+/// in    PositionX  [px]  the window's top-left, already offset by the grab
+/// in    PositionY  [px]
+/// out   Outcome    [-]   the minted window's key; refuses with IdentityStale when nothing resolves
+/// post  the emptied leaf, if any, is reclaimed; the document is the new window's only occupant
+/// note  🔴 The document is never copied. It stays owned once by `Documents` and the window names it by identity,
+///        which is what keeps a torn tab and its former self from drifting apart.
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<std::uint32_t> TearDocument(WorkspaceSpace&           Space,
+                                    WorkspaceDocumentIdentity Subject,
+                                    float                     PositionX,
+                                    float                     PositionY);
+
+/// 🧩 Lands one document on a leaf — stacking it, or dividing the leaf and placing it in the new half.
+/// in    TargetLeaf  [-]  the leaf the landing named
+/// in    Zone        [-]  Strip and Centre stack; the four sides divide
+/// out   Outcome     [-]  refuses with IdentityStale when the document or the leaf does not resolve, and with
+///                        whatever `Partition` refused when the leaf is too small to divide
+/// note  🔴 The document is placed **before** it is removed from where it was, and the leaf it emptied is
+///        reclaimed only after both are done. Reclaiming first lifts a counterpart into the division's slot,
+///        and the target index the landing resolved a moment earlier then names a freed slot.
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<bool> DockDocument(WorkspaceSpace&           Space,
+                           WorkspaceDocumentIdentity Subject,
+                           std::int32_t              TargetLeaf,
+                           WorkspaceDropZone         Zone);
+
+/// 🧩 Stacks one document onto an existing floating window and activates it there.
+/// out   Outcome  [-]  refuses with IdentityStale when the document or the window does not resolve
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<bool> StackDocumentInWindow(WorkspaceSpace&           Space,
+                                    WorkspaceDocumentIdentity Subject,
+                                    std::uint32_t             WindowKey);
+
+/// 🧩 Moves one document to a position within the ordered occupants of the leaf or window carrying it.
+/// in    Position  [-]  the ordinal it takes; bounded to the occupant count
+/// out   Outcome   [-]  refuses with IdentityStale when the document does not resolve where it was said to be
+/// note  Reorder never changes which occupant is active. A tab slid past its neighbour keeps its body presented.
+/// cost  🚩
+/// tag   api, nonthrowing
+Outcome<bool> ReorderOccupant(WorkspaceSpace&           Space,
+                              WorkspaceDocumentIdentity Subject,
+                              std::int32_t              CarryingLeaf,
+                              std::uint32_t             CarryingWindow,
+                              std::uint32_t             Position);
+
+/// 🧩 Resolves what a release at one point would do, without doing any of it.
+/// in    Origin         [-]   a torn tab floats unless it reaches an edge band; a moved panel always docks
+/// in    StripHeight    [px]  from the theme, so a strip can be told apart from a body
+/// in    IgnoredWindow  [-]   the window being dragged, which must not resolve as its own target
+/// note  🔴 Pure geometry over the rectangles `ResolveLayout` wrote this tick. Nothing here mutates the desk,
+///        which is what lets the same call drive the preview each tick and the landing on release.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+WorkspaceDropLanding ResolveDropLanding(const WorkspaceSpace& Space,
+                                        WorkspaceDragOrigin   Origin,
+                                        float                 PointerX,
+                                        float                 PointerY,
+                                        float                 StripHeight,
+                                        std::uint32_t         IgnoredWindow);
 
 /// 🧩 Resolves the whole desk's layout for this tick.
 /// in    DeskArea         [px]  the area between the two bands, supplied by the bracket

@@ -3,9 +3,7 @@
 //============================================================================================================================================
 // 🧩 The trapezoid strip every leaf and window carries — foreground quads, hand-rolled overlays, and inline rename.
 
-#include "SlateUI/Interface/WorkspaceSpace/Api/WorkspaceSpace.h"
-
-#include "imgui.h"
+#include "WorkspaceStripInternal.h"
 
 #include <cstdio>
 #include <cstring>
@@ -14,7 +12,13 @@
 namespace Slate
 {
 
-namespace
+// 📝 The shared strip geometry is used on nearly every line below. Named once here rather than qualified at each
+//    use, which is the only reason this using-declaration exists in a translation unit.
+using namespace StripInterior;
+
+// 📝 The geometry below is shared with `WorkspaceDrag.cpp` rather than private to this file. A floating window
+//    carries the same trapezoids as a leaf, and one implementation is the whole reason the internal header exists.
+namespace StripInterior
 {
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -136,6 +140,37 @@ WorkspaceRectangle SquareAt(float PositionX, float PositionY, float Edge)
     return Square;
 }
 
+WorkspaceRectangle AreaOf(const WorkspaceFloatingWindow& Window)
+{
+    WorkspaceRectangle Area;
+
+    Area.PositionX = Window.PositionX;
+    Area.PositionY = Window.PositionY;
+    Area.Width     = Window.Width;
+    Area.Height    = Window.Height;
+
+    return Area;
+}
+
+// 📝 Three rules stepping in from the corner. The grip is a target and not an ornament, so it is painted at the
+//    muted text colour rather than at a border colour the artist reads as an edge.
+void PaintGripStroke(ImDrawList* Recording, const WorkspaceRectangle& Grip, ImU32 Code, float Thickness)
+{
+    for (std::uint32_t Ordinal = 1u; Ordinal <= 3u; ++Ordinal)
+    {
+        const float Stepped = Grip.Width * (0.25f * static_cast<float>(Ordinal));
+
+        Recording->AddLine(ImVec2(Grip.PositionX + Grip.Width,           Grip.PositionY + Grip.Height - Stepped),
+                           ImVec2(Grip.PositionX + Grip.Width - Stepped, Grip.PositionY + Grip.Height),
+                           Code, Thickness);
+    }
+}
+
+}   // namespace StripInterior
+
+namespace
+{
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE INLINE RENAME
 //------------------------------------------------------------------------------------------------------------------------
@@ -186,26 +221,8 @@ RenameProgress AdvanceRename(WorkspaceRenameRecord& Renaming)
     return RenameProgress::Continuing;
 }
 
-//------------------------------------------------------------------------------------------------------------------------
-//                                                    DEFERRED INTENT
-//------------------------------------------------------------------------------------------------------------------------
-
-// 📝 🔴 Every structural amendment the tick asks for is recorded here and applied after the whole desk has been
-//    traversed. Minting a document may grow the partition and document extents, and a growth part way through a
-//    traversal invalidates the very references the traversal is walking.
-struct DeferredIntent
-{
-    bool                       MintDeclared     = false;   // [-] - a (+) entry was chosen
-    std::uint32_t              MintOrdinal      = 0u;      // [-] - which entry
-    std::int32_t               MintLink         = -1;      // [-] - the leaf it lands in
-
-    bool                       WithdrawDeclared = false;   // [-] - a tab's (x) was pressed
-    WorkspaceDocumentIdentity  WithdrawSubject  = {};      // [-] - which document
-
-    bool                       ActivateDeclared = false;   // [-] - a tab was clicked
-    WorkspaceDocumentIdentity  ActivateSubject  = {};      // [-] - which document
-    std::int32_t               ActivateLink     = -1;      // [-] - the leaf carrying it
-};
+// 📝 DeferredIntent now lives in the internal header: a floating window's strip records the same intents a leaf's
+//    does, and two copies of the record would be two places a new intent has to be added.
 
 }   // namespace
 
@@ -213,26 +230,24 @@ struct DeferredIntent
 //                                                    ONE STRIP AND BODY
 //------------------------------------------------------------------------------------------------------------------------
 
-namespace
+namespace StripInterior
 {
 
-// 📝 Paints one leaf's body and its strip, and resolves every pointer intent the strip carries. Structural
-//    amendments are recorded into Arriving rather than applied, for the reason DeferredIntent states.
-void PresentLeaf(const ThemeSpecification&                            Theme,
-                 WorkspaceSpace&                                      Space,
-                 std::int32_t                                         Link,
-                 DeferredIntent&                                      Arriving,
-                 bool&                                                PointerConsumed)
+void PresentOccupantStrip(const ThemeSpecification&                     Theme,
+                          WorkspaceSpace&                               Space,
+                          const StripCarrier&                           Carrier,
+                          const std::vector<WorkspaceDocumentIdentity>& Occupants,
+                          WorkspaceDocumentIdentity                     Active,
+                          DeferredIntent&                               Arriving,
+                          bool&                                         PointerConsumed)
 {
     const LayoutExtents& Extents   = Theme.Extents;
     const ThemePalette&  Palette   = Theme.Palette;
     ImDrawList*          Recording = ImGui::GetForegroundDrawList();
     const ImGuiIO&       Pointing  = ImGui::GetIO();
 
-    WorkspacePartition<WorkspaceDocumentIdentity>& Leaf = Space.Partitions[static_cast<std::size_t>(Link)];
-
-    const WorkspaceRectangle Strip = StripOf(Leaf.Area, Extents.TabStripHeight);
-    const WorkspaceRectangle Body  = BodyOf(Leaf.Area, Extents.TabStripHeight);
+    const WorkspaceRectangle Strip = StripOf(Carrier.Area, Extents.TabStripHeight);
+    const WorkspaceRectangle Body  = BodyOf(Carrier.Area, Extents.TabStripHeight);
 
     Recording->AddRectFilled(Corner(Body), Opposite(Body), Coded(Palette.PanelBackground), Extents.CornerRounding);
     Recording->AddRectFilled(Corner(Strip), Opposite(Strip), Coded(Palette.DeskBackground));
@@ -290,8 +305,10 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
     Recording->PushClipRect(ImVec2(Travelled, Strip.PositionY), ImVec2(TabCeiling, Strip.PositionY + Strip.Height),
                             true);
 
-    for (const WorkspaceDocumentIdentity& Occupant : Leaf.Occupants)
+    for (std::size_t Position = 0u; Position < Occupants.size(); ++Position)
     {
+        const WorkspaceDocumentIdentity Occupant = Occupants[Position];
+
         const Outcome<const WorkspaceDocument*> Resolved = ResolveDocument(Space, Occupant);
 
         if (!Resolved.ContentPresent)
@@ -300,8 +317,8 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
         const WorkspaceDocument* Standing = Resolved.Resolve();
 
         const bool  Renaming   = Space.Renaming.RenameOpen && Space.Renaming.Subject == Occupant;
-        const char* Presented  = Renaming ? Space.Renaming.Carry : Standing->Title;
-        const float TabExtent  = ResolveTabExtent(Extents, Presented);
+        const char* Carried    = Renaming ? Space.Renaming.Carry : Standing->Title;
+        const float TabExtent  = ResolveTabExtent(Extents, Carried);
 
         WorkspaceRectangle Tab;
         Tab.PositionX = Travelled;
@@ -309,17 +326,22 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
         Tab.Width     = TabExtent;
         Tab.Height    = Strip.Height;
 
-        const bool Active  = Leaf.ActiveOccupant == Occupant;
-        const bool Covered = RectangleCovers(Tab, PointerX, PointerY) && PointerX < TabCeiling;
+        const bool Presented = Active == Occupant;
+        const bool Covered   = RectangleCovers(Tab, PointerX, PointerY) && PointerX < TabCeiling;
+        const bool HeldNow   = Space.Dragging.Mode == WorkspaceDragMode::Reorder
+                            && Space.Dragging.HeldDocument == Occupant;
 
-        const ThemeColour Face = Active  ? Palette.ControlActive
-                               : (Covered ? Palette.ControlHovered : Palette.PanelHeader);
+        // 📝 A tab being reordered is named by the subtle accent while it slides, so the artist can see which of
+        //    two adjacent tabs is the one following the pointer.
+        const ThemeColour Face = HeldNow    ? Palette.AccentSubtle
+                               : (Presented ? Palette.ControlActive
+                                            : (Covered ? Palette.ControlHovered : Palette.PanelHeader));
 
         PaintTrapezoid(Recording, Tab, Extents.TabSlant, Coded(Face));
 
         // 📝 The active tab is named by a 2 px underline rather than by a brighter face, which is what the
         //    reference does: a face bright enough to read as active at a glance also reads as a hovered tab.
-        if (Active)
+        if (Presented)
         {
             Recording->AddRectFilled(
                 ImVec2(Tab.PositionX + Extents.TabSlant, Tab.PositionY + Tab.Height - Extents.TabUnderline),
@@ -327,11 +349,11 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
                 Coded(Palette.AccentPrimary));
         }
 
-        const ImVec2 Measured = ImGui::CalcTextSize(Presented);
+        const ImVec2 Measured = ImGui::CalcTextSize(Carried);
         const ImVec2 Caption  = ImVec2(Tab.PositionX + Extents.TabSlant + Extents.TabInset,
                                        Tab.PositionY + (Tab.Height - Measured.y) * 0.5f);
 
-        Recording->AddText(Caption, Coded(Active ? Palette.TextPrimary : Palette.TextMuted), Presented);
+        Recording->AddText(Caption, Coded(Presented ? Palette.TextPrimary : Palette.TextMuted), Carried);
 
         if (Renaming)
         {
@@ -350,7 +372,7 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
 
         const bool WithdrawalCovered = RectangleCovers(Withdrawal, PointerX, PointerY);
 
-        if (Covered || Active)
+        if (Covered || Presented)
         {
             PaintCrossStroke(Recording,
                              Withdrawal.PositionX + Withdrawal.Width * 0.5f,
@@ -358,6 +380,17 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
                              Extents.GlyphEdge * 0.42f,
                              Coded(WithdrawalCovered ? Palette.DangerPrimary : Palette.TextMuted),
                              Extents.TabUnderline * 0.6f);
+        }
+
+        // -- a held tab crossing this one declares the swap ----------------------------------------------------------
+        if (Space.Dragging.Mode == WorkspaceDragMode::Reorder && Covered && !HeldNow
+         && Space.Dragging.HeldDocument.IdentityDeclared())
+        {
+            Arriving.ReorderDeclared = true;
+            Arriving.ReorderSubject  = Space.Dragging.HeldDocument;
+            Arriving.ReorderLink     = Carrier.Link;
+            Arriving.ReorderWindow   = Carrier.Window;
+            Arriving.ReorderPosition = static_cast<std::uint32_t>(Position);
         }
 
         // -- what the pointer asked of this tab --------------------------------------------------------------------
@@ -376,7 +409,8 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
                 //    pointer travels past TearThreshold while still held, so a plain click never tears a tab out.
                 Arriving.ActivateDeclared = true;
                 Arriving.ActivateSubject  = Occupant;
-                Arriving.ActivateLink     = Link;
+                Arriving.ActivateLink     = Carrier.Link;
+                Arriving.ActivateWindow   = Carrier.Window;
 
                 Space.Dragging.PendingDocument = Occupant;
                 Space.Dragging.PendingPressX   = PointerX;
@@ -406,7 +440,7 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
     Recording->PopClipRect();
 
     // -- an unfilled body prints what it is for ----------------------------------------------------------------------
-    if (Leaf.Occupants.empty())
+    if (Occupants.empty())
     {
         const char*  Unfilled = "empty";
         const ImVec2 Measured = ImGui::CalcTextSize(Unfilled);
@@ -425,8 +459,8 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
         Space.MintingOverlay.OpenedTick    = Space.PresentedTicks;
         Space.MintingOverlay.AnchorX       = MintButton.PositionX;
         Space.MintingOverlay.AnchorY       = MintButton.PositionY + MintButton.Height;
-        Space.MintingOverlay.TargetLink    = Link;
-        Space.MintingOverlay.TargetWindow  = 0u;
+        Space.MintingOverlay.TargetLink    = Carrier.Link;
+        Space.MintingOverlay.TargetWindow  = Carrier.Window;
     }
 
     if (!PointerConsumed && PanelButtonCovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
@@ -437,10 +471,15 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
         Space.PanelOverlay.OpenedTick     = Space.PresentedTicks;
         Space.PanelOverlay.AnchorX        = PanelButton.PositionX;
         Space.PanelOverlay.AnchorY        = PanelButton.PositionY + PanelButton.Height;
-        Space.PanelOverlay.TargetLink     = Link;
-        Space.PanelOverlay.TargetDocument = Leaf.ActiveOccupant;
+        Space.PanelOverlay.TargetLink     = Carrier.Link;
+        Space.PanelOverlay.TargetDocument = Active;
     }
 }
+
+}   // namespace StripInterior
+
+namespace
+{
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE GUTTERS
@@ -448,13 +487,15 @@ void PresentLeaf(const ThemeSpecification&                            Theme,
 
 // 📝 The gutter is painted from the division's own cached rectangle, which `ResolveLayout` wrote this tick. Painting
 //    it from the two halves instead would leave a hairline wherever a ratio landed off a whole pixel.
-void PaintGutters(const ThemeSpecification& Theme, const WorkspaceSpace& Space)
+void PaintGutters(const ThemeSpecification& Theme, WorkspaceSpace& Space, bool& PointerConsumed)
 {
     ImDrawList*    Recording = ImGui::GetForegroundDrawList();
     const ImGuiIO& Pointing  = ImGui::GetIO();
 
+    std::int32_t Pressed = -1;
+
     Traverse(Space.Partitions, Space.RootLink,
-             [&](std::int32_t, const WorkspacePartition<WorkspaceDocumentIdentity>& Standing)
+             [&](std::int32_t Link, const WorkspacePartition<WorkspaceDocumentIdentity>& Standing)
              {
                  if (Standing.LeafDeclared || !Standing.LayoutResolved)
                      return;
@@ -464,7 +505,20 @@ void PaintGutters(const ThemeSpecification& Theme, const WorkspaceSpace& Space)
 
                  Recording->AddRectFilled(Corner(Standing.Gutter), Opposite(Standing.Gutter),
                                           Coded(Covered ? Theme.Palette.AccentSubtle : Theme.Palette.PanelBorder));
+
+                 if (Covered && !PointerConsumed && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                     Pressed = Link;
              });
+
+    // 📝 Recorded after the traversal rather than inside it. The traversal is walking the pool by reference and
+    //    the record it writes into is the desk's own, which is the one thing the walk must not see change.
+    if (Pressed >= 0)
+    {
+        Space.Dragging.Mode     = WorkspaceDragMode::Partition;
+        Space.Dragging.HeldLink = Pressed;
+
+        PointerConsumed = true;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -664,6 +718,13 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme, WorkspaceSpace& Spac
 
     Recording->AddRectFilled(Corner(DeskArea), Opposite(DeskArea), Coded(Theme.Palette.DeskBackground));
 
+    DeferredIntent Arriving;
+    bool           PointerConsumed = false;
+
+    // 🔴 The drag advances before anything is painted. A landing applied here re-divides the desk and re-resolves
+    //    the layout, so every rectangle the rest of the tick paints and tests against is the one that now holds.
+    AdvanceWorkspaceDrag(Theme, Space, DeskArea, PointerConsumed);
+
     // 📝 The leaves are collected before any of them is presented. Presenting inside the traversal would run the
     //    pool's own recursion while an intent applied against it could grow the pool.
     std::vector<std::int32_t> Standing;
@@ -675,18 +736,37 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme, WorkspaceSpace& Spac
                      Standing.push_back(Link);
              });
 
-    DeferredIntent Arriving;
-    bool           PointerConsumed = false;
-
     // 📝 The overlays resolve their input first because they are the topmost thing painted. A strip that consumed
     //    the press first would activate a tab underneath the overlay the artist was aiming at.
     PresentMintingOverlay(Theme, Space, Arriving, PointerConsumed);
     PresentPanelOverlay(Theme, Space, PointerConsumed);
 
-    for (const std::int32_t Link : Standing)
-        PresentLeaf(Theme, Space, Link, Arriving, PointerConsumed);
+    // 📝 🔴 A leaf under a floating window resolves no input. The windows are painted after the leaves so they sit
+    //    above them, so the leaves cannot simply be told the pointer was consumed — they are told separately, by a
+    //    coverage test taken before either is presented.
+    const bool Occluded = LocateWindowCovering(Space, ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y) != 0u;
 
-    PaintGutters(Theme, Space);
+    for (const std::int32_t Link : Standing)
+    {
+        StripCarrier Carrier;
+
+        Carrier.Area = Space.Partitions[static_cast<std::size_t>(Link)].Area;
+        Carrier.Link = Link;
+
+        bool Blocked = PointerConsumed || Occluded;
+
+        PresentOccupantStrip(Theme, Space, Carrier,
+                             Space.Partitions[static_cast<std::size_t>(Link)].Occupants,
+                             Space.Partitions[static_cast<std::size_t>(Link)].ActiveOccupant,
+                             Arriving, Blocked);
+
+        if (Blocked && !Occluded)
+            PointerConsumed = true;
+    }
+
+    PresentFloatingWindows(Theme, Space, Arriving, PointerConsumed);
+
+    PaintGutters(Theme, Space, PointerConsumed);
 
     // -- the open rename, sealed or abandoned ---------------------------------------------------------------------------
     if (Space.Renaming.RenameOpen)
@@ -721,12 +801,46 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme, WorkspaceSpace& Spac
         if (Space.Renaming.RenameOpen && Space.Renaming.Subject != Arriving.ActivateSubject)
             Space.Renaming = WorkspaceRenameRecord{};
     }
+    else if (Arriving.ActivateDeclared && Arriving.ActivateWindow != 0u)
+    {
+        const Outcome<WorkspaceFloatingWindow*> Amended = AmendFloatingWindow(Space, Arriving.ActivateWindow);
+
+        if (Amended.ContentPresent)
+            Amended.Resolve()->ActiveDocument = Arriving.ActivateSubject;
+    }
+
+    if (Arriving.ReorderDeclared)
+    {
+        ReorderOccupant(Space, Arriving.ReorderSubject, Arriving.ReorderLink, Arriving.ReorderWindow,
+                        Arriving.ReorderPosition);
+    }
+
+    // 📝 The raise is a rotation of the list and not a re-mint. A window raised by being rebuilt would lose the
+    //    ordering of the documents inside it, which is the ordering its own strip presents.
+    if (Arriving.RaiseDeclared)
+    {
+        for (std::size_t Ordinal = 0u; Ordinal < Space.Floating.size(); ++Ordinal)
+        {
+            if (Space.Floating[Ordinal].Identifier != Arriving.RaiseWindow)
+                continue;
+
+            const WorkspaceFloatingWindow Raised = Space.Floating[Ordinal];
+
+            Space.Floating.erase(Space.Floating.begin() + static_cast<std::ptrdiff_t>(Ordinal));
+            Space.Floating.push_back(Raised);
+            break;
+        }
+    }
 
     if (Arriving.WithdrawDeclared)
         WithdrawDocument(Space, Arriving.WithdrawSubject);
 
     if (Arriving.MintDeclared)
         DeclareDocument(Space, Arriving.MintOrdinal, Arriving.MintLink);
+
+    // 🔴 The preview is painted last, above every strip and window. Painted with the leaves it would be occluded
+    //    by the very floating window the artist is dragging, which is the one thing that must stay visible.
+    PaintDragPreview(Theme, Space);
 
     // 📝 A press released anywhere clears the pending press. `2d` reads it while the button is still held and turns
     //    it into a tear past the threshold; leaving it standing after release would tear on the next press instead.
