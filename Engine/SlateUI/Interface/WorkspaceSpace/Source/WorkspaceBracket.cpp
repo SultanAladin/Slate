@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                          WORKSPACEBRACKET.CPP
 //============================================================================================================================================
-// 🧩 The one call an application makes per tick — top band, workspace strip, desk, bottom band, all on the foreground recording.
+// 🧩 The one call an application makes per tick — workspace strip, desk, bottom band, all on the foreground recording.
 
 #include "SlateUI/Interface/WorkspaceSpace/Source/WorkspaceStripInternal.h"
 
@@ -14,16 +14,16 @@ namespace
 {
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                        THE BANDS
+//                                                       THE FOOTER BAND
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 A band is a filled strip across the whole display with one hairline against the desk and one caption at its
-//    leading edge. Both bands are the same shape and differ only in which edge the hairline sits on, so they are
-//    one routine taking that edge rather than two that drift apart the first time either is amended.
+// 📝 The band is a filled strip across the whole display with one hairline along the edge it meets the desk on and
+//    one caption at its leading edge. Only the footer remains: the display's top row is the workspace strip itself,
+//    because a caption band above it printed the standing workspace's name a second time, once as a trapezoid the
+//    artist can press and once as a rectangle that does nothing.
 void PaintViewportBand(const ThemeSpecification&  Theme,
                        const WorkspaceRectangle&  Area,
-                       const char*                Caption,
-                       bool                       HairlineBelow)
+                       const char*                Caption)
 {
     if (Area.Height <= 0.0f || Area.Width <= 0.0f)
         return;
@@ -34,10 +34,8 @@ void PaintViewportBand(const ThemeSpecification&  Theme,
 
     Recording->AddRectFilled(Corner(Area), Opposite(Area), Coded(Palette.PanelHeader));
 
-    const float HairlineY = HairlineBelow ? Area.PositionY + Area.Height : Area.PositionY;
-
-    Recording->AddLine(ImVec2(Area.PositionX, HairlineY),
-                       ImVec2(Area.PositionX + Area.Width, HairlineY),
+    Recording->AddLine(ImVec2(Area.PositionX, Area.PositionY),
+                       ImVec2(Area.PositionX + Area.Width, Area.PositionY),
                        Coded(Palette.PanelBorder), Extents.BorderThickness);
 
     if (Caption == nullptr || Caption[0] == '\0')
@@ -146,7 +144,6 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
                                           const char* const*         Captions,
                                           std::uint32_t              Count,
                                           std::uint32_t              ActiveOrdinal,
-                                          const char*                TopBandCaption,
                                           const char*                BottomBandCaption,
                                           float                      DisplayWidth,
                                           float                      DisplayHeight)
@@ -159,15 +156,11 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
     //    theme itself would leave whichever panel presented last deciding what the next tick's controls look like.
     Enforce(Theme);
 
-    WorkspaceRectangle TopBand;
-    TopBand.PositionX = 0.0f;
-    TopBand.PositionY = 0.0f;
-    TopBand.Width     = DisplayWidth;
-    TopBand.Height    = Extents.ViewportBandTop;
-
+    // 📐 The workspace strip is the display's first row. Nothing is reserved above it — the trapezoid already names
+    //    the standing workspace, and a caption band repeating that name cost a row of desk for no readable gain.
     WorkspaceRectangle StripArea;
     StripArea.PositionX = 0.0f;
-    StripArea.PositionY = TopBand.Height;
+    StripArea.PositionY = 0.0f;
     StripArea.Width     = DisplayWidth;
     StripArea.Height    = Extents.TabStripHeight;
 
@@ -177,7 +170,7 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
     BottomBand.Width     = DisplayWidth;
     BottomBand.Height    = Extents.ViewportBandBottom;
 
-    // 📐 The desk takes what the three fixed rows leave. Bounded at zero rather than allowed negative: a negative
+    // 📐 The desk takes what the two fixed rows leave. Bounded at zero rather than allowed negative: a negative
     //    height inverts every coverage test in `RectangleCovers`, so a minimised window would resolve presses
     //    against rectangles that cover the whole display instead of none of it.
     const float DeskTop    = StripArea.PositionY + StripArea.Height;
@@ -191,8 +184,6 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
 
     Reported.DeskArea = DeskArea;
 
-    PaintViewportBand(Theme, TopBand, TopBandCaption, true);
-
     // 📝 The strip resolves its input before the desk does, and the desk is presented afterwards, so a press on a
     //    workspace trapezoid never reaches the document tabs beneath it. The two strips sit one above the other
     //    and a press that resolved twice would activate a document while switching workspace.
@@ -202,14 +193,13 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
     if (DeskArea.Height > 0.0f)
         PresentWorkspaceSpace(Theme, Space, DeskArea, Panels);
 
-    PaintViewportBand(Theme, BottomBand, BottomBandCaption, false);
+    PaintViewportBand(Theme, BottomBand, BottomBandCaption);
 
-    // 📝 The bands take the pointer as much as the desk does. A press on the footer that fell through to the
+    // 📝 The band takes the pointer as much as the desk does. A press on the footer that fell through to the
     //    canvas beneath would start a stroke the artist aimed at a status readout.
     const ImGuiIO& Pointing = ImGui::GetIO();
 
-    if (RectangleCovers(TopBand, Pointing.MousePos.x, Pointing.MousePos.y)
-     || RectangleCovers(BottomBand, Pointing.MousePos.x, Pointing.MousePos.y)
+    if (RectangleCovers(BottomBand, Pointing.MousePos.x, Pointing.MousePos.y)
      || RectangleCovers(DeskArea, Pointing.MousePos.x, Pointing.MousePos.y))
     {
         Reported.PointerConsumed = true;

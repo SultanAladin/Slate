@@ -95,6 +95,14 @@ struct DeferredIntent
     bool                       PanelRaiseDeclared    = false;   // [-] - a floating panel box was pressed
     WorkspaceDocumentIdentity  PanelRaiseBody        = {};      // [-] - the body holding it
     WorkspacePanelIdentity     PanelRaiseSubject     = {};      // [-] - which box comes to the front
+
+    // 📝 🔴 A minted box is deferred for the same reason a withdrawn one is, and more sharply: `DeclarePanelBox` grows
+    //    the box pool of the very document whose placements the leaf traversal is holding. The (V) row that declares it
+    //    resolves before that traversal runs, so applying it there is this record's own recorded defect.
+    bool                       PanelMintDeclared     = false;   // [-] - a (V) row was chosen
+    WorkspaceDocumentIdentity  PanelMintBody         = {};      // [-] - the body the box lands in
+    const char*                PanelMintIdentifier   = nullptr; // [-] - the ledger slot it names
+    const char*                PanelMintTitle        = nullptr; // [-] - the caption its header carries
 };
 
 //------------------------------------------------------------------------------------------------------------------------

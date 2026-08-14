@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ThemeSpecification.h | 199 lines | dbde7b5e | 10 sym | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
+S ThemeSpecification.h | 198 lines | e74aad27 | 10 sym | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    ONE THEME COLOUR
@@ -79,7 +79,7 @@ T ThemePalette           | ThemeSpecification.h | 60-87   | owning              
 //                                                   THE LAYOUT EXTENTS
 //------------------------------------------------------------------------------------------------------------------------
 
-T LayoutExtents          | ThemeSpecification.h | 99-147  | owning                             | -  | Every spacing, height and radius the interface lays out with, in interface pixels. of the other. Changing the density must not require an artist to re-author a colour. that answers it is folded in once by `ResolveActiveTheme` rather than multiplied at each read site.
+T LayoutExtents          | ThemeSpecification.h | 99-146  | owning                             | -  | Every spacing, height and radius the interface lays out with, in interface pixels. of the other. Changing the density must not require an artist to re-author a colour. that answers it is folded in once by `ResolveActiveTheme` rather than multiplied at each read site.
     has   PanelPadding          float  [-]  ?
     has   ControlSpacing        float  [-]  ?
     has   CardGap               float  [-]  ?
@@ -90,7 +90,6 @@ T LayoutExtents          | ThemeSpecification.h | 99-147  | owning              
     has   PanelHeaderHeight     float  [-]  ?
     has   PanelFooterHeight     float  [-]  ?
     has   SectionHeaderHeight   float  [-]  ?
-    has   ViewportBandTop       float  [-]  ?
     has   ViewportBandBottom    float  [-]  ?
     has   TabStripHeight        float  [-]  ?
     has   TabSlant              float  [-]  ?
@@ -134,7 +133,7 @@ T LayoutExtents          | ThemeSpecification.h | 99-147  | owning              
 //                                                       THE THEME
 //------------------------------------------------------------------------------------------------------------------------
 
-T ThemeSpecification     | ThemeSpecification.h | 156-160 | owning                             | -  | The palette and the extents together — what every present call is handed by const reference.
+T ThemeSpecification     | ThemeSpecification.h | 155-159 | owning                             | -  | The palette and the extents together — what every present call is handed by const reference.
     has   Palette  ThemePalette   [-]  ?
     has   Extents  LayoutExtents  [-]  ?
     by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/OutlinerPanel.h, Api/PanelIndex.h, (+23 more)
@@ -144,23 +143,23 @@ T ThemeSpecification     | ThemeSpecification.h | 156-160 | owning              
 //                                                    THE RESOLUTIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-F DeclaredDarkPalette    | ThemeSpecification.h | 171     | api,nonthrowing                    | 🚩 | The built-in dark palette. `SlateUI` reads a field of the value this returns.
+F DeclaredDarkPalette    | ThemeSpecification.h | 170     | api,nonthrowing                    | 🚩 | The built-in dark palette. `SlateUI` reads a field of the value this returns.
     out   -  ThemePalette  [-]  ?
     by    Source/ThemeSpecification.cpp
     note  The one translation unit in which a colour literal is permitted. Every other spelling of a colour in
 
-F DeclaredDefaultExtents | ThemeSpecification.h | 176     | api,nonallocating,nonthrowing      | ✔️ | The built-in layout extents, before any density scale is folded in.
+F DeclaredDefaultExtents | ThemeSpecification.h | 175     | api,nonallocating,nonthrowing      | ✔️ | The built-in layout extents, before any density scale is folded in.
     out   -  LayoutExtents  [-]  ?
     by    Source/ThemeSpecification.cpp
 
-F ResolveActiveTheme     | ThemeSpecification.h | 187     | api,nonthrowing                    | 🚩 | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
+F ResolveActiveTheme     | ThemeSpecification.h | 186     | api,nonthrowing                    | 🚩 | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
     in    DeclaredScale  float    [-]  the density multiplier; refused at zero or below rather than silently corrected
     out   -              Outcome  [-]  refuses with ContentUnsupported for a scale at or below zero
     by    Source/ThemeSpecification.cpp, Source/WorkspaceSequence.cpp
     note  🔴 The scale is folded in **here**, once, so every downstream read is already a final pixel extent. A scale
     note  📝 Ratios and font scales are dimensionless and are not folded — scaling `LabelColumnRatio` past one would
 
-F Enforce                | ThemeSpecification.h | 197     | api,nonthrowing                    | 🚩 | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
+F Enforce                | ThemeSpecification.h | 196     | api,nonthrowing                    | 🚩 | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
     in    Theme  const ThemeSpecification&  [-]  the resolved theme
     out   -      Outcome                    [-]  refuses with HostDenied when no interface context is current
     pre   InterfaceExchange::Construct delivered

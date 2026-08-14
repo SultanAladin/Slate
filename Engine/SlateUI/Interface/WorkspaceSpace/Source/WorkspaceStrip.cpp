@@ -525,19 +525,46 @@ void PaintGutters(const ThemeSpecification& Theme, WorkspaceSpace& Space, bool& 
 //                                                     THE OVERLAYS
 //------------------------------------------------------------------------------------------------------------------------
 
+// 📝 More rows than either overlay can offer: the minting list is bounded by the roster and the panel list by
+//    `PanelSlotCapacity`, both well under this. A row past the ceiling is dropped rather than growing an extent.
+constexpr std::uint32_t OverlayRowCeiling = 32u;   // [-] - rows one overlay may carry into the paint pass
+
+/// 🧩 What the overlay resolution decided, carried to the paint pass at the end of the tick.
+/// note  🔴 The two passes exist because input priority and paint order disagree. An overlay must resolve its press
+///        before the strips beneath it and must record its quads after them, and one foreground draw list paints in
+///        call order — so the geometry is resolved once, held here, and recorded last.
+/// tag   owning
+struct OverlayStructure
+{
+    bool                MintingDeclared                       = false;     // [-]  - the (+) list is standing
+    WorkspaceRectangle  MintingArea                           = {};        // [px] - its whole rectangle
+    WorkspaceRectangle  MintingRow[OverlayRowCeiling]         = {};        // [px] - one per catalogue entry
+    bool                MintingRowCovered[OverlayRowCeiling]  = {};        // [-]  - as the resolution found it
+    const char*         MintingRowCaption[OverlayRowCeiling]  = {};        // [-]  - retained by address
+    std::uint32_t       MintingRows                           = 0u;        // [-]  - rows recorded
+
+    bool                PanelDeclared                         = false;     // [-]  - the (V) list is standing
+    WorkspaceRectangle  PanelArea                             = {};        // [px] - its whole rectangle
+    WorkspaceRectangle  PanelRow[OverlayRowCeiling]           = {};        // [px] - one per ledger slot
+    bool                PanelRowCovered[OverlayRowCeiling]    = {};        // [-]  - as the resolution found it
+    const char*         PanelRowCaption[OverlayRowCeiling]    = {};        // [-]  - retained by address
+    std::uint32_t       PanelRows                             = 0u;        // [-]  - rows recorded
+};
+
 // 📝 One overlay is a stack of rows on the foreground list, dismissed by any press that lands outside it — except on
 //    the tick it opened, whose press is the one that opened it.
-void PresentMintingOverlay(const ThemeSpecification& Theme,
+// 🔴 Resolution only. The rows this decided are painted by `PaintOverlayStructure` after every strip and panel has
+//    recorded, because one foreground list draws in call order and an overlay recorded here would be buried.
+void ResolveMintingOverlay(const ThemeSpecification& Theme,
                            WorkspaceSpace&           Space,
                            DeferredIntent&           Arriving,
-                           bool&                     PointerConsumed)
+                           bool&                     PointerConsumed,
+                           OverlayStructure&             Reaching)
 {
     if (!Space.MintingOverlay.OverlayOpen)
         return;
 
     const LayoutExtents& Extents   = Theme.Extents;
-    const ThemePalette&  Palette   = Theme.Palette;
-    ImDrawList*          Recording = ImGui::GetForegroundDrawList();
     const ImGuiIO&       Pointing  = ImGui::GetIO();
 
     float Widest = 0.0f;
@@ -562,10 +589,11 @@ void PresentMintingOverlay(const ThemeSpecification& Theme,
     if (Overlay.PositionX + Overlay.Width > Displayed.x)
         Overlay.PositionX = Displayed.x - Overlay.Width;
 
-    Recording->AddRectFilled(Corner(Overlay), Opposite(Overlay), Coded(Palette.PanelBackground),
-                             Extents.CornerRounding);
-    Recording->AddRect(Corner(Overlay), Opposite(Overlay), Coded(Palette.PanelBorder), Extents.CornerRounding,
-                       0, Extents.BorderThickness);
+    // 📝 The rows are recorded into the reach in the order they are laid out, and the paint pass walks them in that
+    //    same order. One layout, walked twice, is what keeps the row the pointer resolved against and the row the
+    //    artist sees highlighted the same row.
+    Reaching.MintingDeclared = true;
+    Reaching.MintingArea     = Overlay;
 
     float Travelled = Overlay.PositionY + Extents.PanelPadding;
 
@@ -579,17 +607,14 @@ void PresentMintingOverlay(const ThemeSpecification& Theme,
 
         const bool Covered = RectangleCovers(Row, Pointing.MousePos.x, Pointing.MousePos.y);
 
-        if (Covered)
+        if (Reaching.MintingRows < OverlayRowCeiling)
         {
-            Recording->AddRectFilled(Corner(Row), Opposite(Row), Coded(Palette.RowHovered),
-                                     Extents.CornerRounding * 0.5f);
+            Reaching.MintingRow[Reaching.MintingRows]        = Row;
+            Reaching.MintingRowCovered[Reaching.MintingRows] = Covered;
+            Reaching.MintingRowCaption[Reaching.MintingRows] = Space.Catalogue[Ordinal].Label;
+
+            ++Reaching.MintingRows;
         }
-
-        const ImVec2 Measured = ImGui::CalcTextSize(Space.Catalogue[Ordinal].Label);
-
-        Recording->AddText(ImVec2(Row.PositionX + Extents.PanelPadding,
-                                  Row.PositionY + (Row.Height - Measured.y) * 0.5f),
-                           Coded(Palette.TextPrimary), Space.Catalogue[Ordinal].Label);
 
         if (Covered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
         {
@@ -600,6 +625,10 @@ void PresentMintingOverlay(const ThemeSpecification& Theme,
             Arriving.MintLink     = Space.MintingOverlay.TargetLink;
 
             Space.MintingOverlay.OverlayOpen = false;
+
+            // 📝 A chosen row withdraws the overlay from this tick's paint as well as from the next. Leaving it in the
+            //    reach would record one frame of an overlay the artist has already dismissed.
+            Reaching.MintingDeclared = false;
         }
 
         Travelled += Extents.OverlayRowHeight;
@@ -611,6 +640,8 @@ void PresentMintingOverlay(const ThemeSpecification& Theme,
      && Space.MintingOverlay.OpenedTick != Space.PresentedTicks)
     {
         Space.MintingOverlay.OverlayOpen = false;
+
+        Reaching.MintingDeclared = false;
     }
 
     if (!Outside)
@@ -622,17 +653,18 @@ void PresentMintingOverlay(const ThemeSpecification& Theme,
 // 📝 ⚠️ A null ledger, or one holding nothing, offers a single unnamed row. That row declares a box whose identifier
 //    resolves to no slot, which is precisely the arrangement `2e`'s presenter prints an identifier into — it is what
 //    makes docking and resizing testable before one concrete panel has been written.
-void PresentPanelOverlay(const ThemeSpecification& Theme,
+// 🔴 Resolution only, exactly as the minting overlay is, and for the same z-order reason.
+void ResolvePanelOverlay(const ThemeSpecification& Theme,
                          WorkspaceSpace&           Space,
                          const PanelIndex*         Panels,
-                         bool&                     PointerConsumed)
+                         DeferredIntent&           Arriving,
+                         bool&                     PointerConsumed,
+                         OverlayStructure&             Reaching)
 {
     if (!Space.PanelOverlay.OverlayOpen)
         return;
 
     const LayoutExtents& Extents   = Theme.Extents;
-    const ThemePalette&  Palette   = Theme.Palette;
-    ImDrawList*          Recording = ImGui::GetForegroundDrawList();
     const ImGuiIO&       Pointing  = ImGui::GetIO();
 
     const char* Unnamed = "Panel box";
@@ -667,10 +699,8 @@ void PresentPanelOverlay(const ThemeSpecification& Theme,
     if (Overlay.PositionX + Overlay.Width > Pointing.DisplaySize.x)
         Overlay.PositionX = Pointing.DisplaySize.x - Overlay.Width;
 
-    Recording->AddRectFilled(Corner(Overlay), Opposite(Overlay), Coded(Palette.PanelBackground),
-                             Extents.CornerRounding);
-    Recording->AddRect(Corner(Overlay), Opposite(Overlay), Coded(Palette.PanelBorder), Extents.CornerRounding,
-                       0, Extents.BorderThickness);
+    Reaching.PanelDeclared = true;
+    Reaching.PanelArea     = Overlay;
 
     float Travelled = Overlay.PositionY + Extents.PanelPadding;
 
@@ -692,31 +722,31 @@ void PresentPanelOverlay(const ThemeSpecification& Theme,
 
         const bool Covered = RectangleCovers(Row, Pointing.MousePos.x, Pointing.MousePos.y);
 
-        if (Covered)
+        if (Reaching.PanelRows < OverlayRowCeiling)
         {
-            Recording->AddRectFilled(Corner(Row), Opposite(Row), Coded(Palette.RowHovered),
-                                     Extents.CornerRounding * 0.5f);
+            Reaching.PanelRow[Reaching.PanelRows]        = Row;
+            Reaching.PanelRowCovered[Reaching.PanelRows] = Covered;
+            Reaching.PanelRowCaption[Reaching.PanelRows] = Titled;
+
+            ++Reaching.PanelRows;
         }
-
-        const ImVec2 Measured = ImGui::CalcTextSize(Titled);
-
-        Recording->AddText(ImVec2(Row.PositionX + Extents.PanelPadding,
-                                  Row.PositionY + (Row.Height - Measured.y) * 0.5f),
-                           Coded(Palette.TextPrimary), Titled);
 
         if (Covered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
         {
             PointerConsumed = true;
 
-            const Outcome<WorkspaceDocument*> Amended = AmendDocument(Space, Space.PanelOverlay.TargetDocument);
-
-            // 🔴 Declared through `DeclarePanelBox` and never by appending a record here. That call owns the
-            //    generational reuse of a reclaimed record, the capacity refusal and the arrival stagger, and a box
-            //    minted beside it would carry a generation of one over a record already on its third identity.
-            if (Amended.ContentPresent)
-                DeclarePanelBox(*Amended.Resolve(), Identified != nullptr ? Identified : Unnamed, Titled);
+            // 🔴 Declared into the deferred intent rather than applied here. `DeclarePanelBox` grows the box pool of
+            //    the very document the leaf traversal is holding placements into, and this resolution runs before that
+            //    traversal — applying it here is `DeferredIntent`'s own recorded defect, a box painted at another
+            //    box's rectangle. The mint itself still goes through `DeclarePanelBox`, at the end of the tick.
+            Arriving.PanelMintDeclared   = true;
+            Arriving.PanelMintBody       = Space.PanelOverlay.TargetDocument;
+            Arriving.PanelMintIdentifier = Identified != nullptr ? Identified : Unnamed;
+            Arriving.PanelMintTitle      = Titled;
 
             Space.PanelOverlay.OverlayOpen = false;
+
+            Reaching.PanelDeclared = false;
         }
 
         Travelled += Extents.OverlayRowHeight;
@@ -728,10 +758,78 @@ void PresentPanelOverlay(const ThemeSpecification& Theme,
      && Space.PanelOverlay.OpenedTick != Space.PresentedTicks)
     {
         Space.PanelOverlay.OverlayOpen = false;
+
+        Reaching.PanelDeclared = false;
     }
 
     if (!Outside)
         PointerConsumed = true;
+}
+
+// 📝 The two resolutions in the order they must run: the minting list is above the panel list wherever both are open,
+//    so it takes the press first.
+void ResolveOverlayStructure(const ThemeSpecification& Theme,
+                         WorkspaceSpace&           Space,
+                         const PanelIndex*         Panels,
+                         DeferredIntent&           Arriving,
+                         bool&                     PointerConsumed,
+                         OverlayStructure&             Reaching)
+{
+    ResolveMintingOverlay(Theme, Space, Arriving, PointerConsumed, Reaching);
+    ResolvePanelOverlay(Theme, Space, Panels, Arriving, PointerConsumed, Reaching);
+}
+
+// 📝 One rectangle, one border and one row per entry, recorded from what the resolution already decided. Nothing here
+//    tests the pointer: a second coverage test taken at paint time would drift from the one the input resolved against
+//    the moment anything between the two passes moved the desk under it.
+void PaintOneOverlayStructure(const ThemeSpecification&  Theme,
+                          const WorkspaceRectangle&  Overlay,
+                          const WorkspaceRectangle*  Rows,
+                          const bool*                Highlighted,
+                          const char* const*         Captions,
+                          std::uint32_t              Count)
+{
+    const LayoutExtents& Extents   = Theme.Extents;
+    const ThemePalette&  Palette   = Theme.Palette;
+    ImDrawList*          Recording = ImGui::GetForegroundDrawList();
+
+    Recording->AddRectFilled(Corner(Overlay), Opposite(Overlay), Coded(Palette.PanelBackground),
+                             Extents.CornerRounding);
+    Recording->AddRect(Corner(Overlay), Opposite(Overlay), Coded(Palette.PanelBorder), Extents.CornerRounding,
+                       0, Extents.BorderThickness);
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    {
+        if (Highlighted[Ordinal])
+        {
+            Recording->AddRectFilled(Corner(Rows[Ordinal]), Opposite(Rows[Ordinal]), Coded(Palette.RowHovered),
+                                     Extents.CornerRounding * 0.5f);
+        }
+
+        if (Captions[Ordinal] == nullptr)
+            continue;
+
+        const ImVec2 Measured = ImGui::CalcTextSize(Captions[Ordinal]);
+
+        Recording->AddText(ImVec2(Rows[Ordinal].PositionX + Extents.PanelPadding,
+                                  Rows[Ordinal].PositionY + (Rows[Ordinal].Height - Measured.y) * 0.5f),
+                           Coded(Palette.TextPrimary), Captions[Ordinal]);
+    }
+}
+
+void PaintOverlayStructure(const ThemeSpecification& Theme, const OverlayStructure& Reaching)
+{
+    if (Reaching.MintingDeclared)
+    {
+        PaintOneOverlayStructure(Theme, Reaching.MintingArea, Reaching.MintingRow, Reaching.MintingRowCovered,
+                             Reaching.MintingRowCaption, Reaching.MintingRows);
+    }
+
+    if (Reaching.PanelDeclared)
+    {
+        PaintOneOverlayStructure(Theme, Reaching.PanelArea, Reaching.PanelRow, Reaching.PanelRowCovered,
+                             Reaching.PanelRowCaption, Reaching.PanelRows);
+    }
 }
 
 }   // namespace
@@ -773,10 +871,14 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme,
                      Standing.push_back(Link);
              });
 
-    // 📝 The overlays resolve their input first because they are the topmost thing painted. A strip that consumed
-    //    the press first would activate a tab underneath the overlay the artist was aiming at.
-    PresentMintingOverlay(Theme, Space, Arriving, PointerConsumed);
-    PresentPanelOverlay(Theme, Space, Panels, PointerConsumed);
+    // 🔴 The overlays resolve their input here and are painted at the very end of the tick. Both halves are needed
+    //    and they cannot share a position: input must run **before** the strips so a press on a row never reaches the
+    //    tab beneath it, while the quads must record **after** them because one foreground list draws in call order —
+    //    an overlay recorded here is overdrawn by every strip and panel that follows it, which is an overlay the
+    //    artist cannot see and therefore cannot choose a row from.
+    OverlayStructure Reaching;
+
+    ResolveOverlayStructure(Theme, Space, Panels, Arriving, PointerConsumed, Reaching);
 
     // 📝 🔴 A leaf under a floating window resolves no input. The windows are painted after the leaves so they sit
     //    above them, so the leaves cannot simply be told the pointer was consumed — they are told separately, by a
@@ -908,9 +1010,25 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme,
             RaisePanelBox(*Amended.Resolve(), Arriving.PanelRaiseSubject);
     }
 
+    // 📝 The mint arrives after the withdrawal and the raise, so a tick that both emptied a record and chose a row
+    //    hands the emptied record to the mint rather than growing the pool past a slot standing free.
+    if (Arriving.PanelMintDeclared)
+    {
+        const Outcome<WorkspaceDocument*> Amended = AmendDocument(Space, Arriving.PanelMintBody);
+
+        if (Amended.ContentPresent)
+            DeclarePanelBox(*Amended.Resolve(), Arriving.PanelMintIdentifier, Arriving.PanelMintTitle);
+    }
+
     // 🔴 The preview is painted last, above every strip and window. Painted with the leaves it would be occluded
     //    by the very floating window the artist is dragging, which is the one thing that must stay visible.
     PaintDragPreview(Theme, Space);
+
+    // 🔴 And the overlays after even that. This is the second half of the split the resolution above opened: the rows
+    //    were decided before the strips so the press could not reach a tab beneath them, and they record here, after
+    //    every strip, panel, window, gutter and preview, because one foreground list draws in call order. Recorded
+    //    with the resolution they were buried by the whole desk, which is an overlay the artist cannot see.
+    PaintOverlayStructure(Theme, Reaching);
 
     // 📝 A press released anywhere clears the pending press. `2d` reads it while the button is still held and turns
     //    it into a tear past the threshold; leaving it standing after release would tear on the next press instead.

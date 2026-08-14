@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S WorkspaceSequence.cpp | 857 lines | c437251e | 22 sym | Bring-up in `32` §1's order, the ten-step tick, and teardown as its exact reverse with the rotation drained first.
+S WorkspaceSequence.cpp | 857 lines | cf8cd6e0 | 22 sym | Bring-up in `32` §1's order, the ten-step tick, and teardown as its exact reverse with the rotation drained first.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  WHAT A STEP REPORTS

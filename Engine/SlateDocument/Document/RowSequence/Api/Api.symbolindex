@@ -113,7 +113,7 @@ F RowSequence::DeclareNarrowing  | RowSequence.h | 141     | api,nonthrowing    
 
 F RowSequence::Rows              | RowSequence.h | 146     | api,nonallocating,nonthrowing | ✔️ | The rows, in linearised order, including the uncounted ones.
     out   -  const std::vector<SequencedRow>&  [-]  ?
-    by    Source/CameraProjection.cpp, Source/OutlinerPanel.cpp, Source/RowSequence.cpp
+    by    Source/CameraProjection.cpp, Source/OutlinerPanel.cpp, Source/RowSequence.cpp, Source/WorkspaceStrip.cpp
 
 F RowSequence::Counted           | RowSequence.h | 151     | api,nonallocating,nonthrowing | ✔️ | The counted ordering over those rows.
     out   -  const RankIndex&  [-]  ?

@@ -7,7 +7,7 @@
 %scope    layer
 %path     Engine/SlateUI
 %folders  26
-%symbols  630
+%symbols  636
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
@@ -38,7 +38,7 @@ I Source | Source/Source.symbolindex | 10 sym  | The one translation unit in whi
 I Api    | Api/Api.symbolindex       | 29 sym  | Ordered bring-up, the ten-step tick, and teardown as its exact reverse — the whole host, with no concrete workspace named.
 I Source | Source/Source.symbolindex | 22 sym  | Bring-up in `32` §1's order, the ten-step tick, and teardown as its exact reverse with the rotation drained first.
 I Api    | Api/Api.symbolindex       | 79 sym  | The slot ledger a workspace fills at activation and the desk walks each tick — the host names no concrete panel.
-I Source | Source/Source.symbolindex | 113 sym | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
+I Source | Source/Source.symbolindex | 119 sym | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -415,12 +415,12 @@ T ThemeColour                           | Api/ThemeSpecification.h             |
 F Quantize                              | Api/ThemeSpecification.h             | 42        | Quantises one theme colour to the eight-bit-per-channel code the vendor draw surface accepts. Coordinates outside the unit interval are bounded here rather than wrapping, because a wrapped code is a colour the artist sees as a wrong hue rather than as a clipped one.
 F Attenuate                             | Api/ThemeSpecification.h             | 50        | Returns one theme colour at a declared coverage, its coordinate untouched.
 T ThemePalette                          | Api/ThemeSpecification.h             | 60-87     | Every colour the interface draws with, named by what it is drawn on rather than by its hue. literals. A component that spells a colour of its own is the defect this struct exists to prevent.
-T LayoutExtents                         | Api/ThemeSpecification.h             | 99-147    | Every spacing, height and radius the interface lays out with, in interface pixels. of the other. Changing the density must not require an artist to re-author a colour. that answers it is folded in once by `ResolveActiveTheme` rather than multiplied at each read site.
-T ThemeSpecification                    | Api/ThemeSpecification.h             | 156-160   | The palette and the extents together — what every present call is handed by const reference.
-F DeclaredDarkPalette                   | Api/ThemeSpecification.h             | 171       | The built-in dark palette. `SlateUI` reads a field of the value this returns.
-F DeclaredDefaultExtents                | Api/ThemeSpecification.h             | 176       | The built-in layout extents, before any density scale is folded in.
-F ResolveActiveTheme                    | Api/ThemeSpecification.h             | 187       | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
-F Enforce                               | Api/ThemeSpecification.h             | 197       | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
+T LayoutExtents                         | Api/ThemeSpecification.h             | 99-146    | Every spacing, height and radius the interface lays out with, in interface pixels. of the other. Changing the density must not require an artist to re-author a colour. that answers it is folded in once by `ResolveActiveTheme` rather than multiplied at each read site.
+T ThemeSpecification                    | Api/ThemeSpecification.h             | 155-159   | The palette and the extents together — what every present call is handed by const reference.
+F DeclaredDarkPalette                   | Api/ThemeSpecification.h             | 170       | The built-in dark palette. `SlateUI` reads a field of the value this returns.
+F DeclaredDefaultExtents                | Api/ThemeSpecification.h             | 175       | The built-in layout extents, before any density scale is folded in.
+F ResolveActiveTheme                    | Api/ThemeSpecification.h             | 186       | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
+F Enforce                               | Api/ThemeSpecification.h             | 196       | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
 V CodeCeiling                           | Source/ThemeSpecification.cpp        | 25        | ?
 F AuthoredColour                        | Source/ThemeSpecification.cpp        | 27-38     | ?
 F QuantizeCoordinate                    | Source/ThemeSpecification.cpp        | 42-47     | ?
@@ -428,9 +428,9 @@ F Quantize                              | Source/ThemeSpecification.cpp        |
 F Attenuate                             | Source/ThemeSpecification.cpp        | 61-66     | ?
 F DeclaredDarkPalette                   | Source/ThemeSpecification.cpp        | 72-128    | ?
 F DeclaredDefaultExtents                | Source/ThemeSpecification.cpp        | 134-140   | ?
-F ResolveActiveTheme                    | Source/ThemeSpecification.cpp        | 146-211   | ?
-F StyleCoordinate                       | Source/ThemeSpecification.cpp        | 222-228   | ?
-F Enforce                               | Source/ThemeSpecification.cpp        | 232-292   | ?
+F ResolveActiveTheme                    | Source/ThemeSpecification.cpp        | 146-210   | ?
+F StyleCoordinate                       | Source/ThemeSpecification.cpp        | 221-227   | ?
+F Enforce                               | Source/ThemeSpecification.cpp        | 231-291   | ?
 A WorkspaceDeclareRoutine               | Api/WorkspaceSequence.h              | 41        | The routine one workspace declares its panels through, handed the ledger to fill and its own context. the ledger under a drag in flight, and the box being resized would name a slot that moved beneath it.
 A WorkspacePresentRoutine               | Api/WorkspaceSequence.h              | 47-49     | The routine one workspace presents its own body content through, beneath every panel the desk paints. to whatever the render schedule composited beneath the interface.
 T WorkspaceSpecification                | Api/WorkspaceSequence.h              | 58-66     | One workspace as an application registers it — its caption, its panels, and its own opaque context. lets one tree deliver `PaintHost` with one entry and `EditorHost` with every entry, from the same `WorkspaceSequence` — the difference between the two executables is the length of an array. built from a local buffer dangles the first time the declaring scope closes.
@@ -506,83 +506,84 @@ F LocateLeafCovering                    | Api/WorkspaceSpace.h                 |
 F LocateHolding                         | Api/WorkspaceSpace.h                 | 280-295   | The division that holds one link as one of its two halves, or -1 when the link is the origin itself.
 F ClaimPartitionSlot                    | Api/WorkspaceSpace.h                 | 307-322   | Claims one pool slot as an empty leaf, reusing a reclaimed slot before growing the pool. than to how many splits the artist has ever made in a session.
 F Partition                             | Api/WorkspaceSpace.h                 | 340-407   | Divides one leaf in two, moving its occupants into one half and leaving the other empty. resolved area cannot carry two leaves at MinimumLeafExtent, and with IdentityStale when the target is not an occupied leaf target, a preview, a floating window's return address — therefore stays valid across a split, which is what a scheme that claimed a new index for the division would silently break.
-F ReclaimLeaf                           | Api/WorkspaceSpace.h                 | 420-465   | Reclaims one emptied leaf, lifting the other half of its division into the division's own slot. ContentUnsupported when the leaf still carries occupants index is again what keeps every outside reference valid. It costs one copy of a small record.
-E WorkspacePanelSide                    | Api/WorkspaceSpace.h                 | 476-484   | Where a panel box is anchored inside a document's body. spanning what those leave, and Centre fills the remainder. Several panels sharing a side split the band along its long axis in list order.
-V PanelEdgeLeft                         | Api/WorkspaceSpace.h                 | 489       | ?
-V PanelEdgeRight                        | Api/WorkspaceSpace.h                 | 490       | ?
-V PanelEdgeTop                          | Api/WorkspaceSpace.h                 | 491       | ?
-V PanelEdgeBottom                       | Api/WorkspaceSpace.h                 | 492       | ?
-V PanelBoxCapacity                      | Api/WorkspaceSpace.h                 | 496       | ?
-V PanelMinimumExtent                    | Api/WorkspaceSpace.h                 | 499       | ?
-V PanelHandleReach                      | Api/WorkspaceSpace.h                 | 503       | ?
-V PanelDockFloor                        | Api/WorkspaceSpace.h                 | 507       | ?
-V PanelDockCeiling                      | Api/WorkspaceSpace.h                 | 508       | ?
-T WorkspacePanelBox                     | Api/WorkspaceSpace.h                 | 520-534   | One panel box inside one document's body — a floating overlay until it is docked to a side. re-divided rather than staying where the screen was. A box holding what it presents is the `14` §1 defect arriving through the layout instead of through the panel, and it would also make a panel arrangement outlive the workspace that declared its contents. ordinal, so a floating box cannot be raised by rotating the list the way a floating window is — the rotation would hand every later box the identity of the one before it.
-T WorkspacePanelPlacement               | Api/WorkspaceSpace.h                 | 544-553   | Where one panel box resolved to this tick, and the two bands a drag may take hold of. panel follows it along the same side. The last panel on a side has nothing to share with.
-T WorkspaceBodyPlacement                | Api/WorkspaceSpace.h                 | 561-568   | Every panel of one body resolved against that body's rectangle, and what the bands left the document. the presenter walks these two runs in the order they are written here. `WorkspacePanelSide::Centre` fills it; otherwise the document's own content does.
-F DeclarePanelBox                       | Api/WorkspaceSpace.h                 | 590       | Declares one panel box into one document's body, floating, and names the ledger slot it presents. ContentUnsupported when no identifier is named asks the panel to sit, and honouring it here would place a box the artist did not put there.
-F WithdrawPanelBox                      | Api/WorkspaceSpace.h                 | 598       | Withdraws one panel box from one body, releasing its record.
-F AmendPanelBox                         | Api/WorkspaceSpace.h                 | 604       | One panel box, for moving, resizing or re-docking it.
-F RaisePanelBox                         | Api/WorkspaceSpace.h                 | 616       | Brings one floating panel box in front of every other floating box of the same body. ordinal its identity carries, so rotating the list would hand every box after the raised one the identity of its predecessor — a drag in flight would then be resizing a different panel. the counter is the desk's own and monotonic, so a second raise costs one increment.
-F ResolveBodyPlacement                  | Api/WorkspaceSpace.h                 | 631       | Resolves every panel of one body against that body's rectangle, and what the bands leave the document. and the centre is the remainder. Resolving the rows first would give a corner to two bands at once, and the panel that lost the argument paints under the other one. their shares. A drag writes the dragged depth to every panel on that side, so the record stays per-panel while the band stays one band.
-F ResolvePanelLanding                   | Api/WorkspaceSpace.h                 | 644       | Resolves which side a released panel drag would dock to, from the five-zone cross over one body. would cover the document the body exists to present, so `Centre` is a side a workspace declares deliberately and never one a careless release mints.
-F DockPanelBox                          | Api/WorkspaceSpace.h                 | 658       | Lands one panel box on a side of its own body, or returns it to floating.
-T WorkspaceDocument                     | Api/WorkspaceSpace.h                 | 674-686   | One workspace document — what a tab represents, wherever the tab currently lives. layout, and layout inside the document would make moving a panel an undoable edit and would make one document open differently on a machine with a different display.
-T WorkspaceFloatingWindow               | Api/WorkspaceSpace.h                 | 692-701   | A torn-out rectangle carrying its own ordered documents and its own tab strip. cannot be raised the same way — its position in its own list is the ordinal its identity carries.
-E WorkspaceDragMode                     | Api/WorkspaceSpace.h                 | 712-722   | What the one drag in flight is addressing. Exactly one is open at a time. read a field no branch wrote is where a released panel drag docks a document, which is what the seam between the desk's own seal and the panel layer's exists to keep apart.
-E WorkspaceDragOrigin                   | Api/WorkspaceSpace.h                 | 728-732   | What a Window-mode drag was torn from — the drop resolution differs by origin. release leaves it floating. A moved **panel** uses the five-zone cross and always docks over a leaf.
-E WorkspaceDropZone                     | Api/WorkspaceSpace.h                 | 736-745   | The landing a released drag would take, resolved from the pointer each tick.
-T WorkspaceDropLanding                  | Api/WorkspaceSpace.h                 | 751-757   | Where a release would land, and the rectangle that says so before the artist commits to it. landing that survives the leaf it named being reclaimed underneath it.
-V DockBandFraction                      | Api/WorkspaceSpace.h                 | 762       | ?
-V WindowMinimumExtent                   | Api/WorkspaceSpace.h                 | 765       | ?
-T WorkspaceDragRecord                   | Api/WorkspaceSpace.h                 | 771-801   | The one drag in flight, and the press that has not yet become one. is why the press is recorded apart from the drag: without it every activation would tear.
-V TearThreshold                         | Api/WorkspaceSpace.h                 | 805       | ?
-T WorkspaceRenameRecord                 | Api/WorkspaceSpace.h                 | 811-817   | One inline title edit, opened by a double-click on a trapezoid. own title is never written until the edit is sealed.
-T WorkspaceOverlayRecord                | Api/WorkspaceSpace.h                 | 824-833   | One hand-rolled foreground overlay — the `(+)` minting list or the `(V)` panel list. beneath that list, so a popup would be occluded by the tabs that opened it.
-T WorkspaceSpace                        | Api/WorkspaceSpace.h                 | 843-864   | The whole desk: every document owned once, the partition of the docked area, and the floating windows. document by value is the defect where tearing a tab out produces two documents that drift apart.
-F DeclareCatalogue                      | Api/WorkspaceSpace.h                 | 878       | Installs the catalogue the application offers and forgets whatever was offered before.
-F ConstructWorkspaceSpace               | Api/WorkspaceSpace.h                 | 888       | Seeds the desk with one document of the default catalogue entry and activates it.
-F DeclareDocument                       | Api/WorkspaceSpace.h                 | 902       | Mints one document from a catalogue entry and places it in a leaf. when the target is not an occupied leaf rather than holding a per-entry counter means closing document 2 and minting again produces a 2 again, which is what an artist expects of a numbered tab.
-F WithdrawDocument                      | Api/WorkspaceSpace.h                 | 910       | Withdraws one document from the desk, reclaiming the leaf it emptied.
-F ResolveDocument                       | Api/WorkspaceSpace.h                 | 916       | One document, by identity.
-F AmendDocument                         | Api/WorkspaceSpace.h                 | 922       | One document, for amending its title or its panel arrangement.
-F LocateLeafCarrying                    | Api/WorkspaceSpace.h                 | 927       | Which leaf currently carries one document, or -1 when a floating window does.
-F LocateWindowCarrying                  | Api/WorkspaceSpace.h                 | 932       | Which floating window carries one document, or zero when a leaf does.
-F AmendFloatingWindow                   | Api/WorkspaceSpace.h                 | 938       | One floating window, for moving or resizing it.
-F TearDocument                          | Api/WorkspaceSpace.h                 | 951       | Lifts one document out of wherever it sits into a floating window of its own. which is what keeps a torn tab and its former self from drifting apart.
-F DockDocument                          | Api/WorkspaceSpace.h                 | 966       | Lands one document on a leaf — stacking it, or dividing the leaf and placing it in the new half. whatever `Partition` refused when the leaf is too small to divide reclaimed only after both are done. Reclaiming first lifts a counterpart into the division's slot, and the target index the landing resolved a moment earlier then names a freed slot.
-F StackDocumentInWindow                 | Api/WorkspaceSpace.h                 | 975       | Stacks one document onto an existing floating window and activates it there.
-F ReorderOccupant                       | Api/WorkspaceSpace.h                 | 985       | Moves one document to a position within the ordered occupants of the leaf or window carrying it.
-F ResolveDropLanding                    | Api/WorkspaceSpace.h                 | 999       | Resolves what a release at one point would do, without doing any of it. which is what lets the same call drive the preview each tick and the landing on release.
-F ResolveSpaceLayout                    | Api/WorkspaceSpace.h                 | 1012      | Resolves the whole desk's layout for this tick.
-F PresentWorkspaceSpace                 | Api/WorkspaceSpace.h                 | 1029      | Presents the whole desk for one tick — layout, bodies, panels, trapezoid strips, overlays, then input. trapezoid cannot be a vendor tab and a vendor popup would be painted beneath the tabs that opened it. workspace's panels against a context that workspace has already released. the identifier it names, which is what makes a panel arrangement testable before any panel exists.
-V AbsentWorkspaceChoice                 | Api/WorkspaceSpace.h                 | 1039      | ?
-F ConstructWorkspaceTabStrip            | Api/WorkspaceSpace.h                 | 1054      | Presents one trapezoid per registered workspace and reports which of them the artist chose. spelled one would be the component that makes a standalone host and the editor two different trees. would sit beneath the desk's own strips, and the two rows of tabs would occlude each other.
-T DeploymentReport                      | Api/WorkspaceSpace.h                 | 1067-1072 | What one bracket tick resolved — the workspace the artist chose, and whether the pointer was taken.
-F PresentDeploymentBracket              | Api/WorkspaceSpace.h                 | 1095      | The one presentation call an application makes per tick — top band, workspace strip, desk, bottom band. the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would clip the trapezoids that overhang their own strip. negative one. A negative extent inverts every coverage test, and a minimised window would then resolve the pointer against rectangles the artist cannot see.
-F SLATE_DECLARES_PRECISION              | Api/WorkspaceSpace.h                 | 1108      | ?
+F ReclaimLeaf                           | Api/WorkspaceSpace.h                 | 422-470   | Reclaims one emptied leaf, lifting the other half of its division into the division's own slot. ContentUnsupported when the leaf still carries occupants index is again what keeps every outside reference valid. It costs one copy of a small record. holding no leaf paints no strip and so offers nothing to mint the next document from.
+E WorkspacePanelSide                    | Api/WorkspaceSpace.h                 | 481-489   | Where a panel box is anchored inside a document's body. spanning what those leave, and Centre fills the remainder. Several panels sharing a side split the band along its long axis in list order.
+V PanelEdgeLeft                         | Api/WorkspaceSpace.h                 | 494       | ?
+V PanelEdgeRight                        | Api/WorkspaceSpace.h                 | 495       | ?
+V PanelEdgeTop                          | Api/WorkspaceSpace.h                 | 496       | ?
+V PanelEdgeBottom                       | Api/WorkspaceSpace.h                 | 497       | ?
+V PanelBoxCapacity                      | Api/WorkspaceSpace.h                 | 501       | ?
+V PanelMinimumExtent                    | Api/WorkspaceSpace.h                 | 504       | ?
+V PanelHandleReach                      | Api/WorkspaceSpace.h                 | 508       | ?
+V PanelDockFloor                        | Api/WorkspaceSpace.h                 | 512       | ?
+V PanelDockCeiling                      | Api/WorkspaceSpace.h                 | 513       | ?
+T WorkspacePanelBox                     | Api/WorkspaceSpace.h                 | 525-539   | One panel box inside one document's body — a floating overlay until it is docked to a side. re-divided rather than staying where the screen was. A box holding what it presents is the `14` §1 defect arriving through the layout instead of through the panel, and it would also make a panel arrangement outlive the workspace that declared its contents. ordinal, so a floating box cannot be raised by rotating the list the way a floating window is — the rotation would hand every later box the identity of the one before it.
+T WorkspacePanelPlacement               | Api/WorkspaceSpace.h                 | 549-558   | Where one panel box resolved to this tick, and the two bands a drag may take hold of. panel follows it along the same side. The last panel on a side has nothing to share with.
+T WorkspaceBodyPlacement                | Api/WorkspaceSpace.h                 | 566-573   | Every panel of one body resolved against that body's rectangle, and what the bands left the document. the presenter walks these two runs in the order they are written here. `WorkspacePanelSide::Centre` fills it; otherwise the document's own content does.
+F DeclarePanelBox                       | Api/WorkspaceSpace.h                 | 595       | Declares one panel box into one document's body, floating, and names the ledger slot it presents. ContentUnsupported when no identifier is named asks the panel to sit, and honouring it here would place a box the artist did not put there.
+F WithdrawPanelBox                      | Api/WorkspaceSpace.h                 | 603       | Withdraws one panel box from one body, releasing its record.
+F AmendPanelBox                         | Api/WorkspaceSpace.h                 | 609       | One panel box, for moving, resizing or re-docking it.
+F RaisePanelBox                         | Api/WorkspaceSpace.h                 | 621       | Brings one floating panel box in front of every other floating box of the same body. ordinal its identity carries, so rotating the list would hand every box after the raised one the identity of its predecessor — a drag in flight would then be resizing a different panel. the counter is the desk's own and monotonic, so a second raise costs one increment.
+F ResolveBodyPlacement                  | Api/WorkspaceSpace.h                 | 636       | Resolves every panel of one body against that body's rectangle, and what the bands leave the document. and the centre is the remainder. Resolving the rows first would give a corner to two bands at once, and the panel that lost the argument paints under the other one. their shares. A drag writes the dragged depth to every panel on that side, so the record stays per-panel while the band stays one band.
+F ResolvePanelLanding                   | Api/WorkspaceSpace.h                 | 649       | Resolves which side a released panel drag would dock to, from the five-zone cross over one body. would cover the document the body exists to present, so `Centre` is a side a workspace declares deliberately and never one a careless release mints.
+F DockPanelBox                          | Api/WorkspaceSpace.h                 | 663       | Lands one panel box on a side of its own body, or returns it to floating.
+T WorkspaceDocument                     | Api/WorkspaceSpace.h                 | 679-691   | One workspace document — what a tab represents, wherever the tab currently lives. layout, and layout inside the document would make moving a panel an undoable edit and would make one document open differently on a machine with a different display.
+T WorkspaceFloatingWindow               | Api/WorkspaceSpace.h                 | 697-706   | A torn-out rectangle carrying its own ordered documents and its own tab strip. cannot be raised the same way — its position in its own list is the ordinal its identity carries.
+E WorkspaceDragMode                     | Api/WorkspaceSpace.h                 | 717-727   | What the one drag in flight is addressing. Exactly one is open at a time. read a field no branch wrote is where a released panel drag docks a document, which is what the seam between the desk's own seal and the panel layer's exists to keep apart.
+E WorkspaceDragOrigin                   | Api/WorkspaceSpace.h                 | 733-737   | What a Window-mode drag was torn from — the drop resolution differs by origin. release leaves it floating. A moved **panel** uses the five-zone cross and always docks over a leaf.
+E WorkspaceDropZone                     | Api/WorkspaceSpace.h                 | 741-750   | The landing a released drag would take, resolved from the pointer each tick.
+T WorkspaceDropLanding                  | Api/WorkspaceSpace.h                 | 756-762   | Where a release would land, and the rectangle that says so before the artist commits to it. landing that survives the leaf it named being reclaimed underneath it.
+V DockBandFraction                      | Api/WorkspaceSpace.h                 | 767       | ?
+V WindowMinimumExtent                   | Api/WorkspaceSpace.h                 | 770       | ?
+T WorkspaceDragRecord                   | Api/WorkspaceSpace.h                 | 776-806   | The one drag in flight, and the press that has not yet become one. is why the press is recorded apart from the drag: without it every activation would tear.
+V TearThreshold                         | Api/WorkspaceSpace.h                 | 810       | ?
+T WorkspaceRenameRecord                 | Api/WorkspaceSpace.h                 | 816-822   | One inline title edit, opened by a double-click on a trapezoid. own title is never written until the edit is sealed.
+T WorkspaceOverlayRecord                | Api/WorkspaceSpace.h                 | 829-838   | One hand-rolled foreground overlay — the `(+)` minting list or the `(V)` panel list. beneath that list, so a popup would be occluded by the tabs that opened it.
+T WorkspaceSpace                        | Api/WorkspaceSpace.h                 | 848-869   | The whole desk: every document owned once, the partition of the docked area, and the floating windows. document by value is the defect where tearing a tab out produces two documents that drift apart.
+F DeclareCatalogue                      | Api/WorkspaceSpace.h                 | 883       | Installs the catalogue the application offers and forgets whatever was offered before.
+F ConstructWorkspaceSpace               | Api/WorkspaceSpace.h                 | 893       | Seeds the desk with one document of the default catalogue entry and activates it.
+F DeclareDocument                       | Api/WorkspaceSpace.h                 | 907       | Mints one document from a catalogue entry and places it in a leaf. when the target is not an occupied leaf rather than holding a per-entry counter means closing document 2 and minting again produces a 2 again, which is what an artist expects of a numbered tab.
+F WithdrawDocument                      | Api/WorkspaceSpace.h                 | 915       | Withdraws one document from the desk, reclaiming the leaf it emptied.
+F ResolveDocument                       | Api/WorkspaceSpace.h                 | 921       | One document, by identity.
+F AmendDocument                         | Api/WorkspaceSpace.h                 | 927       | One document, for amending its title or its panel arrangement.
+F LocateLeafCarrying                    | Api/WorkspaceSpace.h                 | 932       | Which leaf currently carries one document, or -1 when a floating window does.
+F LocateWindowCarrying                  | Api/WorkspaceSpace.h                 | 937       | Which floating window carries one document, or zero when a leaf does.
+F AmendFloatingWindow                   | Api/WorkspaceSpace.h                 | 943       | One floating window, for moving or resizing it.
+F TearDocument                          | Api/WorkspaceSpace.h                 | 956       | Lifts one document out of wherever it sits into a floating window of its own. which is what keeps a torn tab and its former self from drifting apart.
+F DockDocument                          | Api/WorkspaceSpace.h                 | 971       | Lands one document on a leaf — stacking it, or dividing the leaf and placing it in the new half. whatever `Partition` refused when the leaf is too small to divide reclaimed only after both are done. Reclaiming first lifts a counterpart into the division's slot, and the target index the landing resolved a moment earlier then names a freed slot.
+F StackDocumentInWindow                 | Api/WorkspaceSpace.h                 | 980       | Stacks one document onto an existing floating window and activates it there.
+F ReorderOccupant                       | Api/WorkspaceSpace.h                 | 990       | Moves one document to a position within the ordered occupants of the leaf or window carrying it.
+F ResolveDropLanding                    | Api/WorkspaceSpace.h                 | 1004      | Resolves what a release at one point would do, without doing any of it. which is what lets the same call drive the preview each tick and the landing on release.
+F ResolveSpaceLayout                    | Api/WorkspaceSpace.h                 | 1017      | Resolves the whole desk's layout for this tick.
+F PresentWorkspaceSpace                 | Api/WorkspaceSpace.h                 | 1034      | Presents the whole desk for one tick — layout, bodies, panels, trapezoid strips, overlays, then input. trapezoid cannot be a vendor tab and a vendor popup would be painted beneath the tabs that opened it. workspace's panels against a context that workspace has already released. the identifier it names, which is what makes a panel arrangement testable before any panel exists.
+V AbsentWorkspaceChoice                 | Api/WorkspaceSpace.h                 | 1044      | ?
+F ConstructWorkspaceTabStrip            | Api/WorkspaceSpace.h                 | 1059      | Presents one trapezoid per registered workspace and reports which of them the artist chose. spelled one would be the component that makes a standalone host and the editor two different trees. would sit beneath the desk's own strips, and the two rows of tabs would occlude each other.
+T DeploymentReport                      | Api/WorkspaceSpace.h                 | 1072-1077 | What one bracket tick resolved — the workspace the artist chose, and whether the pointer was taken.
+F PresentDeploymentBracket              | Api/WorkspaceSpace.h                 | 1099      | The one presentation call an application makes per tick — workspace strip, desk, bottom band. the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would clip the trapezoids that overhang their own strip. negative one. A negative extent inverts every coverage test, and a minimised window would then resolve the pointer against rectangles the artist cannot see.
+F SLATE_DECLARES_PRECISION              | Api/WorkspaceSpace.h                 | 1111      | ?
 F ReclaimPanelIndex                     | Source/PanelIndex.cpp                | 15-24     | ?
 F DeclarePanel                          | Source/PanelIndex.cpp                | 26-50     | ?
 F ResolvePanelForSide                   | Source/PanelIndex.cpp                | 52-62     | ?
 F DeclaredPanelCount                    | Source/PanelIndex.cpp                | 64-67     | ?
 V StripInterior                         | Source/WorkspaceBracket.cpp          | 11        | ?
-F PaintViewportBand                     | Source/WorkspaceBracket.cpp          | 23-51     | ?
-F ConstructWorkspaceTabStrip            | Source/WorkspaceBracket.cpp          | 59-137    | ?
-F PresentDeploymentBracket              | Source/WorkspaceBracket.cpp          | 143-219   | ?
+F PaintViewportBand                     | Source/WorkspaceBracket.cpp          | 24-49     | ?
+F ConstructWorkspaceTabStrip            | Source/WorkspaceBracket.cpp          | 57-135    | ?
+F PresentDeploymentBracket              | Source/WorkspaceBracket.cpp          | 141-209   | ?
 V StripInterior                         | Source/WorkspaceDrag.cpp             | 15        | ?
 V ResizeGripEdge                        | Source/WorkspaceDrag.cpp             | 24        | ?
 F GripOf                                | Source/WorkspaceDrag.cpp             | 26-31     | ?
 F CarrierStripOf                        | Source/WorkspaceDrag.cpp             | 35-62     | ?
 F TravelledPastThreshold                | Source/WorkspaceDrag.cpp             | 70-73     | ?
 F OpenTearOrReorder                     | Source/WorkspaceDrag.cpp             | 75-123    | ?
-F AdvanceWindowDrag                     | Source/WorkspaceDrag.cpp             | 125-158   | ?
-F AdvanceResizeDrag                     | Source/WorkspaceDrag.cpp             | 160-178   | ?
-F AdvancePartitionDrag                  | Source/WorkspaceDrag.cpp             | 180-218   | ?
-F SealDrag                              | Source/WorkspaceDrag.cpp             | 220-253   | ?
-F AdvanceWorkspaceDrag                  | Source/WorkspaceDrag.cpp             | 264-331   | ?
-F LocateWindowCovering                  | Source/WorkspaceDrag.cpp             | 337-346   | ?
-F PresentFloatingWindows                | Source/WorkspaceDrag.cpp             | 348-440   | ?
-F PaintDragPreview                      | Source/WorkspaceDrag.cpp             | 446-471   | ?
+F AdvanceReorderDrag                    | Source/WorkspaceDrag.cpp             | 133-185   | ?
+F AdvanceWindowDrag                     | Source/WorkspaceDrag.cpp             | 187-220   | ?
+F AdvanceResizeDrag                     | Source/WorkspaceDrag.cpp             | 222-240   | ?
+F AdvancePartitionDrag                  | Source/WorkspaceDrag.cpp             | 242-280   | ?
+F SealDrag                              | Source/WorkspaceDrag.cpp             | 282-315   | ?
+F AdvanceWorkspaceDrag                  | Source/WorkspaceDrag.cpp             | 326-396   | ?
+F LocateWindowCovering                  | Source/WorkspaceDrag.cpp             | 402-411   | ?
+F PresentFloatingWindows                | Source/WorkspaceDrag.cpp             | 413-505   | ?
+F PaintDragPreview                      | Source/WorkspaceDrag.cpp             | 511-536   | ?
 V StripInterior                         | Source/WorkspacePanel.cpp            | 15        | ?
 F BoxOf                                 | Source/WorkspacePanel.cpp            | 26-38     | ?
 F SlotFor                               | Source/WorkspacePanel.cpp            | 43-57     | ?
@@ -648,9 +649,14 @@ E RenameProgress                        | Source/WorkspaceStrip.cpp            |
 F AdvanceRename                         | Source/WorkspaceStrip.cpp            | 188-222   | ?
 F PresentOccupantStrip                  | Source/WorkspaceStrip.cpp            | 236-477   | ?
 F PaintGutters                          | Source/WorkspaceStrip.cpp            | 490-522   | ?
-F PresentMintingOverlay                 | Source/WorkspaceStrip.cpp            | 530-618   | ?
-F PresentPanelOverlay                   | Source/WorkspaceStrip.cpp            | 625-735   | ?
-F PresentWorkspaceSpace                 | Source/WorkspaceStrip.cpp            | 743-919   | ?
+V OverlayRowCeiling                     | Source/WorkspaceStrip.cpp            | 530       | ?
+T OverlayStructure                      | Source/WorkspaceStrip.cpp            | 537-552   | What the overlay resolution decided, carried to the paint pass at the end of the tick. before the strips beneath it and must record its quads after them, and one foreground draw list paints in call order — so the geometry is resolved once, held here, and recorded last.
+F ResolveMintingOverlay                 | Source/WorkspaceStrip.cpp            | 558-649   | ?
+F ResolvePanelOverlay                   | Source/WorkspaceStrip.cpp            | 657-767   | ?
+F ResolveOverlayStructure               | Source/WorkspaceStrip.cpp            | 771-780   | ?
+F PaintOneOverlayStructure              | Source/WorkspaceStrip.cpp            | 785-818   | ?
+F PaintOverlayStructure                 | Source/WorkspaceStrip.cpp            | 820-833   | ?
+F PresentWorkspaceSpace                 | Source/WorkspaceStrip.cpp            | 841-1037  | ?
 F Coded                                 | Source/WorkspaceStripInternal.h      | 29        | ?
 F Corner                                | Source/WorkspaceStripInternal.h      | 30        | ?
 F Opposite                              | Source/WorkspaceStripInternal.h      | 31        | ?
@@ -664,13 +670,13 @@ F PaintChevronStroke                    | Source/WorkspaceStripInternal.h      |
 F PaintCrossStroke                      | Source/WorkspaceStripInternal.h      | 41        | ?
 F PaintGripStroke                       | Source/WorkspaceStripInternal.h      | 42        | ?
 T StripCarrier                          | Source/WorkspaceStripInternal.h      | 51-56     | The rectangle a strip and its body occupy, and which of the two things owns it. no index. Both being absent is a carrier nothing can resolve an intent against.
-T DeferredIntent                        | Source/WorkspaceStripInternal.h      | 66-98     | Every structural amendment one tick asked for, applied once the whole desk has been traversed. walking. Applying inside the traversal invalidates the very references it is iterating, and the defect presents as a leaf painted at another leaf's rectangle rather than as a crash.
-F PresentOccupantStrip                  | Source/WorkspaceStripInternal.h      | 109       | Paints one carrier's body and trapezoid strip and resolves every pointer intent the strip carries. which is not structure — it is the record that lets a click activate and only travel tear.
-F AdvanceWorkspaceDrag                  | Source/WorkspaceStripInternal.h      | 125       | Turns a travelled press into a drag, advances the one in flight, and applies it on release.
-F PresentFloatingWindows                | Source/WorkspaceStripInternal.h      | 134       | Paints every floating window, topmost last, and resolves the input of the topmost one under the pointer. panels only in leaves would make tearing a tab out of the desk silently discard its panel arrangement.
-F LocateWindowCovering                  | Source/WorkspaceStripInternal.h      | 141       | The topmost floating window covering a point, or zero.
-F PaintDragPreview                      | Source/WorkspaceStripInternal.h      | 146       | Washes the resolved landing in the accent, above everything else the tick painted. back out of every band leaves the desk exactly as it was found.
-F PresentPanelLayer                     | Source/WorkspaceStripInternal.h      | 160       | Presents one body's panel boxes — docked beneath, floating above — and resolves the input each one carries. its own extent would paint at the depth the band carried before the drag rather than the one it carries. recorded over it would sit on top of whatever the workspace draws into the body.
-F AdvancePanelDrag                      | Source/WorkspaceStripInternal.h      | 171       | One tick of a panel move, a panel resize or a band re-share, and the landing a release would take. needs the body rectangle the box lives in and the desk's own drag record carries only the document.
-F SealPanelDrag                         | Source/WorkspaceStripInternal.h      | 179       | Applies a released panel drag, docking the held box to whichever side the preview named. release has nothing left to apply.
-F BodyCarrying                          | Source/WorkspaceStripInternal.h      | 182       | The body rectangle of one document, wherever it sits, or false when nothing carries it.
+T DeferredIntent                        | Source/WorkspaceStripInternal.h      | 66-106    | Every structural amendment one tick asked for, applied once the whole desk has been traversed. walking. Applying inside the traversal invalidates the very references it is iterating, and the defect presents as a leaf painted at another leaf's rectangle rather than as a crash.
+F PresentOccupantStrip                  | Source/WorkspaceStripInternal.h      | 117       | Paints one carrier's body and trapezoid strip and resolves every pointer intent the strip carries. which is not structure — it is the record that lets a click activate and only travel tear.
+F AdvanceWorkspaceDrag                  | Source/WorkspaceStripInternal.h      | 133       | Turns a travelled press into a drag, advances the one in flight, and applies it on release.
+F PresentFloatingWindows                | Source/WorkspaceStripInternal.h      | 142       | Paints every floating window, topmost last, and resolves the input of the topmost one under the pointer. panels only in leaves would make tearing a tab out of the desk silently discard its panel arrangement.
+F LocateWindowCovering                  | Source/WorkspaceStripInternal.h      | 149       | The topmost floating window covering a point, or zero.
+F PaintDragPreview                      | Source/WorkspaceStripInternal.h      | 154       | Washes the resolved landing in the accent, above everything else the tick painted. back out of every band leaves the desk exactly as it was found.
+F PresentPanelLayer                     | Source/WorkspaceStripInternal.h      | 168       | Presents one body's panel boxes — docked beneath, floating above — and resolves the input each one carries. its own extent would paint at the depth the band carried before the drag rather than the one it carries. recorded over it would sit on top of whatever the workspace draws into the body.
+F AdvancePanelDrag                      | Source/WorkspaceStripInternal.h      | 179       | One tick of a panel move, a panel resize or a band re-share, and the landing a release would take. needs the body rectangle the box lives in and the desk's own drag record carries only the document.
+F SealPanelDrag                         | Source/WorkspaceStripInternal.h      | 187       | Applies a released panel drag, docking the held box to whichever side the preview named. release has nothing left to apply.
+F BodyCarrying                          | Source/WorkspaceStripInternal.h      | 190       | The body rectangle of one document, wherever it sits, or false when nothing carries it.

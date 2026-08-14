@@ -193,7 +193,7 @@ F IlluminantIndex::Reaching               | IlluminantPopulation.h | 241     | a
     in    PartitionOrdinal  std::uint32_t  [-]  ?
     in    ReachOrdinal      std::uint32_t  [-]  ?
     out   -                 Outcome        [-]  refuses with ExtentExhausted outside the reaching count
-    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp, Source/OcclusionScheduler.cpp, Source/TopologyCodec.cpp, (+1 more)
+    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp, Source/OcclusionScheduler.cpp, Source/TopologyCodec.cpp, (+2 more)
 
 F IlluminantIndex::TruncatedCount         | IlluminantPopulation.h | 246     | api,nonallocating,nonthrowing | ✔️ | How many illuminants one partition could not carry — `86`'s truncation row.
     in    PartitionOrdinal  std::uint32_t  [-]  ?

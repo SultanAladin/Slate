@@ -415,6 +415,8 @@ Outcome<std::int32_t> Partition(std::vector<WorkspacePartition<OccupantIdentity>
 /// post  the division that held it carries what the other half carried; both reclaimed slots are free
 /// note  🔴 Lifting into the division's **own** index rather than replacing the division with the other half's
 ///         index is again what keeps every outside reference valid. It costs one copy of a small record.
+/// note  ⚠️ The desk's last leaf is the one exception: it is emptied and kept rather than released, because a desk
+///         holding no leaf paints no strip and so offers nothing to mint the next document from.
 /// cost  🚩
 /// tag   api, nonthrowing
 template <typename OccupantIdentity>
@@ -436,10 +438,13 @@ Outcome<bool> ReclaimLeaf(std::vector<WorkspacePartition<OccupantIdentity>>& Par
 
     if (Holding < 0)
     {
-        // 📝 The last leaf on the desk. The desk goes empty rather than keeping a leaf nothing occupies, and the
-        //    next document to arrive claims a fresh root through Partition.
-        Partitions[static_cast<std::size_t>(EmptiedLeaf)].SlotOccupied = false;
-        RootLink = -1;
+        // 🔴 The last leaf on the desk **stays standing**, empty. Releasing it and clearing the root leaves a desk
+        //    with no leaf, and a desk with no leaf paints no strip — no (+) to mint the next document with and no (V)
+        //    to declare a panel from. The artist closes the final tab and the desk is unrecoverable, which is what
+        //    withdrawing, tearing out and docking away the last document each did. An empty leaf prints what it is
+        //    for and carries both its buttons, so the next document arrives through the same strip as every other.
+        Partitions[static_cast<std::size_t>(EmptiedLeaf)].LayoutResolved = false;
+        Partitions[static_cast<std::size_t>(EmptiedLeaf)].ActiveOccupant = OccupantIdentity{};
 
         return Outcome<bool>::Deliver(true);
     }
@@ -1039,7 +1044,7 @@ void PresentWorkspaceSpace(const ThemeSpecification& Theme,
 inline constexpr std::uint32_t AbsentWorkspaceChoice = 0xFFFFFFFFu;   // [-] - the artist chose nothing
 
 /// 🧩 Presents one trapezoid per registered workspace and reports which of them the artist chose.
-/// in    StripArea       [px]  the band between the top viewport band and the desk
+/// in    StripArea       [px]  the display's first row, above the desk
 /// in    Captions        [-]   one static caption per registered workspace; static storage, never copied
 /// in    Count           [-]   how many
 /// in    ActiveOrdinal   [-]   which one is standing; outside the count leaves every trapezoid inactive
@@ -1071,14 +1076,13 @@ struct DeploymentReport
     WorkspaceRectangle  DeskArea        = {};                      // [px] - what the desk was given, for the caller
 };
 
-/// 🧩 The one presentation call an application makes per tick — top band, workspace strip, desk, bottom band.
+/// 🧩 The one presentation call an application makes per tick — workspace strip, desk, bottom band.
 /// in    Theme              [-]   the resolved theme; `Enforce` is applied once here and never per panel
 /// in    Space              [-]   the desk, amended in place
 /// in    Panels             [-]   the active workspace's ledger, or null where none is declared
 /// in    Captions           [-]   one caption per registered workspace, for the strip
 /// in    Count              [-]   how many
 /// in    ActiveOrdinal      [-]   which workspace is standing
-/// in    TopBandCaption     [-]   printed at the leading edge of the top band; may be empty
 /// in    BottomBandCaption  [-]   printed at the leading edge of the bottom band; may be empty
 /// in    DisplayWidth       [px]  the whole drawable extent, in interface pixels
 /// in    DisplayHeight      [px]
@@ -1087,7 +1091,7 @@ struct DeploymentReport
 /// note  🔴 Nothing here opens a vendor window and the desk is **not** wrapped in one. Every quad is recorded on
 ///        the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would
 ///        clip the trapezoids that overhang their own strip.
-/// note  ⚠️ A display extent that cannot carry both bands and a strip leaves the desk zero height rather than a
+/// note  ⚠️ A display extent that cannot carry the band and the strip leaves the desk zero height rather than a
 ///        negative one. A negative extent inverts every coverage test, and a minimised window would then resolve
 ///        the pointer against rectangles the artist cannot see.
 /// cost  🔴
@@ -1098,7 +1102,6 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
                                           const char* const*         Captions,
                                           std::uint32_t              Count,
                                           std::uint32_t              ActiveOrdinal,
-                                          const char*                TopBandCaption,
                                           const char*                BottomBandCaption,
                                           float                      DisplayWidth,
                                           float                      DisplayHeight);

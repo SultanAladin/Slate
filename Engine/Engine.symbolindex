@@ -8,7 +8,7 @@
 %path      Engine
 %layers    8
 %folders   221
-%symbols   4104
+%symbols   4110
 %protocol  root → layer → folder; never open a source file the folder index already answers
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -233,7 +233,7 @@ I Source | SlateUI | Engine/SlateUI/Interface/ThemeSpecification/Source/Source.s
 I Api    | SlateUI | Engine/SlateUI/Interface/WorkspaceSequence/Api/Api.symbolindex               | 1 src | 29 sym  | Ordered bring-up, the ten-step tick, and teardown as its exact reverse — the whole host, with no concrete workspace named.
 I Source | SlateUI | Engine/SlateUI/Interface/WorkspaceSequence/Source/Source.symbolindex         | 1 src | 22 sym  | Bring-up in `32` §1's order, the ten-step tick, and teardown as its exact reverse with the rotation drained first.
 I Api    | SlateUI | Engine/SlateUI/Interface/WorkspaceSpace/Api/Api.symbolindex                  | 2 src | 79 sym  | The slot ledger a workspace fills at activation and the desk walks each tick — the host names no concrete panel.
-I Source | SlateUI | Engine/SlateUI/Interface/WorkspaceSpace/Source/Source.symbolindex            | 7 src | 113 sym | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
+I Source | SlateUI | Engine/SlateUI/Interface/WorkspaceSpace/Source/Source.symbolindex            | 7 src | 119 sym | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SLATEVULKAN

@@ -492,14 +492,14 @@ Outcome<TickReport> WorkspaceSequence::Advance()
             Captions[Ordinal] = Roster[Ordinal].Caption;
 
         // 📝 🚧 The centre routine is presented **before** the bracket so the desk's panels paint over it rather than
-        //    under it, and the rectangle it is handed is derived from the same three theme extents the bracket
+        //    under it, and the rectangle it is handed is derived from the same two theme extents the bracket
         //    derives its own from. Two derivations of one rectangle is `00` §2's case and it is open: the closing
         //    move is for the bracket to take the routine as an operand, which is a `WorkspaceSpace` amendment.
         if (Roster[StandingEntry].PresentCentre != nullptr)
         {
             const LayoutExtents& Extents = ActiveTheme.Extents;
 
-            const float DeskTop    = Extents.ViewportBandTop + Extents.TabStripHeight;
+            const float DeskTop    = Extents.TabStripHeight;
             const float DeskBottom = static_cast<float>(Display.StandingHeight()) - Extents.ViewportBandBottom;
 
             WorkspaceRectangle CentreArea;
@@ -514,7 +514,7 @@ Outcome<TickReport> WorkspaceSequence::Advance()
 
         const DeploymentReport Bracketed =
             PresentDeploymentBracket(ActiveTheme, Space, &Ledger, Captions, RosterCount, StandingEntry,
-                                     Roster[StandingEntry].Caption, "",
+                                     "",
                                      static_cast<float>(Display.StandingWidth()),
                                      static_cast<float>(Display.StandingHeight()));
 

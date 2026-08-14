@@ -122,6 +122,68 @@ void OpenTearOrReorder(const ThemeSpecification& Theme,
     Held.PendingDocument = WorkspaceDocumentIdentity{};
 }
 
+// 📝 🔴 A reorder promotes to a tear the moment the pointer leaves the strip it opened in, and this branch is what
+//    makes a tab tearable at all. The threshold is six pixels and the press lands on a trapezoid, so six pixels of
+//    travel from there is still inside the same strip on nearly every drag — a reorder that could not promote is a
+//    desk whose tabs slide along their own row and can never be pulled out of it, which is exactly what the artist
+//    meets as "the tab will not come off".
+// 📝 A lone document in a floating window is **moved with its window** rather than torn into a second one. Tearing
+//    it would release the window it is the only occupant of and mint an identical one in its place, and the artist
+//    sees that as the window blinking out and back a tab-width away.
+void AdvanceReorderDrag(const ThemeSpecification& Theme,
+                        WorkspaceSpace&           Space,
+                        WorkspaceRectangle        DeskArea,
+                        float                     PointerX,
+                        float                     PointerY)
+{
+    WorkspaceDragRecord& Held = Space.Dragging;
+
+    WorkspaceRectangle Origin;
+
+    if (!CarrierStripOf(Space, Held.HeldDocument, Theme.Extents.TabStripHeight, Origin))
+        return;
+
+    if (RectangleCovers(Origin, PointerX, PointerY))
+        return;
+
+    const std::uint32_t Carrying = LocateWindowCarrying(Space, Held.HeldDocument);
+
+    for (const WorkspaceFloatingWindow& Standing : Space.Floating)
+    {
+        if (Standing.Identifier != Carrying || Carrying == 0u || Standing.Documents.size() != 1u)
+            continue;
+
+        Held.Mode        = WorkspaceDragMode::Window;
+        Held.HeldWindow  = Carrying;
+        Held.HeldLink    = -1;
+        Held.GrabOffsetX = PointerX - Standing.PositionX;
+        Held.GrabOffsetY = PointerY - Standing.PositionY;
+
+        return;
+    }
+
+    // 📝 The grab is measured from where the tab sat when it was pressed, exactly as the opening tear measures it,
+    //    so a promotion and a tear place the arriving window under the pointer at the same point on its caption.
+    const float GrabX = Held.PendingPressX - Held.PendingTabLeft;
+    const float GrabY = Theme.Extents.TabStripHeight * 0.5f;
+
+    const Outcome<std::uint32_t> Torn =
+        TearDocument(Space, Held.HeldDocument, PointerX - GrabX, PointerY - GrabY);
+
+    if (!Torn.ContentPresent)
+        return;
+
+    Held.Mode        = WorkspaceDragMode::Window;
+    Held.HeldWindow  = Torn.Resolve();
+    Held.HeldLink    = -1;
+    Held.GrabOffsetX = GrabX;
+    Held.GrabOffsetY = GrabY;
+
+    // 🔴 The tear reclaimed a leaf, so every rectangle resolved earlier this tick names a leaf that has left the
+    //    desk. Re-resolved here rather than next tick, for the same reason the opening tear re-resolves.
+    ResolveSpaceLayout(Space, DeskArea, Theme.Extents.GutterThickness);
+}
+
 void AdvanceWindowDrag(const ThemeSpecification& Theme,
                        WorkspaceSpace&           Space,
                        float                     PointerX,
@@ -308,8 +370,11 @@ void AdvanceWorkspaceDrag(const ThemeSpecification& Theme,
             break;
 
         case WorkspaceDragMode::Reorder:
-            // 📝 The swap is declared by the strip, which is the one place each trapezoid's rectangle is known.
-            //    Recomputing that geometry here would be a second copy of it, drifting from the first.
+            // 📝 The swap itself is declared by the strip, which is the one place each trapezoid's rectangle is
+            //    known. Recomputing that geometry here would be a second copy of it, drifting from the first. What
+            //    is decided here is only whether the reorder is still a reorder — travel that leaves the strip
+            //    promotes it to a tear.
+            AdvanceReorderDrag(Theme, Space, DeskArea, PointerX, PointerY);
             break;
 
         // 📝 The three panel modes are advanced by the panel layer, which is the one place a box's body rectangle is
