@@ -142,11 +142,11 @@ F TilingSpecification::Classify            | TilingSpecification.h | 187     | a
 
 F TilingSpecification::Lattice             | TilingSpecification.h | 189     | -                             | -  | ?
     out   -  const LatticeSpecification&  [-]  ?
-    by    Source/TilingSpecification.cpp
+    by    Source/CanvasPanel.cpp, Source/TilingSpecification.cpp
 
 F TilingSpecification::Content             | TilingSpecification.h | 190     | -                             | -  | ?
     out   -  const std::vector<CellContent>&  [-]  ?
-    by    Api/AnalyticProjection.h, Api/EmissionSequence.h, Api/FileInterchange.h, Api/ImpressionSequence.h, Api/PersistenceSequence.h, Api/PreviewProjection.h, (+13 more)
+    by    Api/AnalyticProjection.h, Api/AssetPanel.h, Api/EmissionSequence.h, Api/FileInterchange.h, Api/ImpressionSequence.h, Api/PersistenceSequence.h, (+15 more)
 
 F TilingSpecification::Variation           | TilingSpecification.h | 191     | -                             | -  | ?
     out   -  const VariationSpecification&  [-]  ?
@@ -177,7 +177,7 @@ F TilingIndex::Declare                     | TilingSpecification.h | 229     | a
 F TilingIndex::Resolve                     | TilingSpecification.h | 235     | api,nonthrowing               | ✔️ | One declared tiling, for reading.
     in    TilingOrdinal  std::uint32_t  [-]  ?
     out   -              Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F TilingIndex::Amend                       | TilingSpecification.h | 241     | api,nonthrowing               | ✔️ | One declared tiling, for amending.
     in    TilingOrdinal  std::uint32_t  [-]  ?
@@ -199,4 +199,4 @@ F SLATE_DECLARES_PRECISION                 | TilingSpecification.h | 264     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

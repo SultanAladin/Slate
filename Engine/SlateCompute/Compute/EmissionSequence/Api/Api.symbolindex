@@ -66,7 +66,7 @@ F ProjectPlacements                | EmissionSequence.h | 90      | api,nonthrow
 F SLATE_DECLARES_PRECISION         | EmissionSequence.h | 91      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
 
 F ToleranceAtExtent                | EmissionSequence.h | 102-105 | api,nonallocating,nonthrowing | ✔️ | The flattening tolerance an emission at one extent resolves at. emission's extent is the artist's declaration and need not be a reduction level at all, so the tolerance is derived from the extent rather than looked up — one texel of what is being written, which is the deviation below which a chord cannot move a sample.
     in    ExtentTexels  std::uint32_t  [px]  per edge of the emitted image
@@ -77,7 +77,7 @@ F ToleranceAtExtent                | EmissionSequence.h | 102-105 | api,nonalloc
 F SLATE_DECLARES_PRECISION         | EmissionSequence.h | 106     | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE EMISSION
@@ -138,4 +138,4 @@ F SLATE_DECLARES_PRECISION         | EmissionSequence.h | 205     | -           
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

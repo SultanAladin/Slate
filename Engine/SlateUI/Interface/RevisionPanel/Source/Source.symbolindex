@@ -50,7 +50,7 @@ F Inset                | RevisionPanel.cpp | 42-52   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Reach  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp
+    by    Source/AssetPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp
 
 F PresentedDescription | RevisionPanel.cpp | 57-65   | - | - | ?
     in    Standing          const CommittedTransaction&  [-]  ?
@@ -91,7 +91,7 @@ F PresentHeaderBand    | RevisionPanel.cpp | 127-171 | - | - | ?
     in    Area      const WorkspaceRectangle&  [-]  ?
     in    Sequence  const RevisionSequence&    [-]  ?
     out   -         void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, (+1 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                THE DISCARD CONFIRMATION

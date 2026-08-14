@@ -49,7 +49,7 @@ T FileInterchange                   | FileInterchange.h | 55-122 | owning       
 F FileInterchange::Resolve          | FileInterchange.h | 66     | api,nonthrowing           | ✔️ | What a path currently names. question "is this here" indistinguishable from a file system that failed to answer it.
     in    Path  const std::string&  [-]  UTF-8
     out   -     Outcome             [-]  refuses with HostDenied when the file system declined to answer
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
     note  📝 An absent path is delivered as Absent rather than refused. Refusing would make the ordinary
 
 F FileInterchange::ReadStream       | FileInterchange.h | 76     | api,nonthrowing           | 🔴 | Reads a whole stream into an extent the caller then owns. ExtentExhausted when it spans more than the declared ceiling by range arrival reads through that one rather than through this.

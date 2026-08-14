@@ -58,6 +58,7 @@ F PaintCaretStroke     | CanvasPanel.cpp | 60-67   | - | - | ?
 //------------------------------------------------------------------------------------------------------------------------
 
 V CaptionExtent        | CanvasPanel.cpp | 73      | - | - | ?
+    by    Source/AssetPanel.cpp
 
 V OverlayRowCeiling    | CanvasPanel.cpp | 74      | - | - | ?
     by    Source/WorkspaceStrip.cpp
@@ -65,12 +66,12 @@ V OverlayRowCeiling    | CanvasPanel.cpp | 74      | - | - | ?
 F CaptionOf            | CanvasPanel.cpp | 76-85   | - | - | ?
     in    Presented  CanvasProjection  [-]  ?
     out   -          const char*       [-]  ?
-    by    Api/DiagnosticPanel.h, Source/DiagnosticPanel.cpp
+    by    Api/AssetPanel.h, Api/DiagnosticPanel.h, Api/EntryPanel.h, Source/AssetPanel.cpp, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp
 
 F CaptionOf            | CanvasPanel.cpp | 87-90   | - | - | ?
     in    Standing  bool         [-]  ?
     out   -         const char*  [-]  ?
-    by    Api/DiagnosticPanel.h, Source/DiagnosticPanel.cpp
+    by    Api/AssetPanel.h, Api/DiagnosticPanel.h, Api/EntryPanel.h, Source/AssetPanel.cpp, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp
 
 F AppendSegment        | CanvasPanel.cpp | 94-105  | - | - | ?
     in    Carry    char*        [-]  ?
@@ -152,7 +153,7 @@ F PresentHeaderBand    | CanvasPanel.cpp | 396-448 | - | - | ?
     in    Canvas           CanvasSpecification&       [-]  ?
     in    PointerConsumed  bool&                      [-]  ?
     out   -                void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE CANVAS AREA
@@ -175,7 +176,7 @@ F PresentFooterBand    | CanvasPanel.cpp | 515-580 | - | - | ?
     in    Canvas           CanvasSpecification&       [-]  ?
     in    PointerConsumed  bool&                      [-]  ?
     out   -                void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 WHAT EACH LIST OFFERS

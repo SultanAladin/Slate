@@ -79,7 +79,7 @@ F SpecularProjection::Resolve         | SpecularProjection.h | 112     | api,non
     in    ResolvedAlong   std::uint32_t&  [-]  ?
     in    ResolvedAcross  std::uint32_t&  [-]  ?
     out   -               Outcome         [-]  refuses with ContentUnsupported for a display extent of nothing
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
     note  📐 Rounded **up** on both ordinates, matching `RenderSchedule`'s own fraction-of-display claim.
 
 F SpecularProjection::March           | SpecularProjection.h | 136     | api,nonthrowing               | 🔴 | What the caller must sample and where — one step of the march, in display coordinates. low-frequency at all but mirror roughness, and the extent is where the cost lives. the interval six times resolves it to within a sixty-fourth of one step and marching sixty-four times as far costs sixty-four times as much for the same answer. which samples a resident target — and `82`'s host preview, which samples a resolved one. `00` §11 gates the agreement between the two at Tier B, and one routine is the only way it holds.
@@ -120,7 +120,7 @@ F SpecularProjection::Report          | SpecularProjection.h | 170     | api,non
 
 F SpecularProjection::Declared        | SpecularProjection.h | 172     | -                             | -  | ?
     out   -  const ReflectionSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+84 more)
+    by    Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, (+89 more)
 
 F SpecularProjection::Metrics         | SpecularProjection.h | 173     | -                             | -  | ?
     out   -  const ReflectionMetrics&  [-]  ?
@@ -145,4 +145,4 @@ F SLATE_DECLARES_PRECISION            | SpecularProjection.h | 276     | -      
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

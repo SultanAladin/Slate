@@ -108,7 +108,7 @@ F CellSpace::Construct                  | SurfaceTileSpace.h | 148     | api,non
 F CellSpace::Held                       | SurfaceTileSpace.h | 154     | api,nonthrowing               | ✔️ | One record, for reading.
     in    CellOrdinal  std::uint32_t  [-]  ?
     out   -            Outcome        [-]  refuses with ContentUnsupported outside the span
-    by    Api/AnalyticProjection.h, Api/SampleIntegrator.h, Api/SurfaceDepot.h, Api/TransmissionSequence.h, Shared/AtmosphereProjection.slang.h, Source/AnalyticProjection.cpp, (+56 more)
+    by    Api/AnalyticProjection.h, Api/SampleIntegrator.h, Api/SurfaceDepot.h, Api/TransmissionSequence.h, Shared/AtmosphereProjection.slang.h, Source/AnalyticProjection.cpp, (+58 more)
 
 F CellSpace::Amend                      | SurfaceTileSpace.h | 160     | api,nonthrowing               | ✔️ | One record, for amending.
     in    CellOrdinal  std::uint32_t  [-]  ?
@@ -246,7 +246,7 @@ F SurfaceTileSpace::Cells               | SurfaceTileSpace.h | 337     | -      
 
 F SurfaceTileSpace::Tiles               | SurfaceTileSpace.h | 338     | -                             | -  | ?
     out   -  const TileSpace&  [-]  ?
-    by    Source/SurfaceTileSpace.cpp
+    by    Api/AssetPanel.h, Source/AssetPanel.cpp, Source/SurfaceTileSpace.cpp
 
 F SurfaceTileSpace::Depot               | SurfaceTileSpace.h | 339     | -                             | -  | ?
     out   -  SurfaceDepot&  [-]  ?
@@ -280,4 +280,4 @@ F SLATE_DECLARES_PRECISION              | SurfaceTileSpace.h | 366     | -      
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

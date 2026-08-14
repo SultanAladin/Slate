@@ -180,7 +180,7 @@ F ManipulationLayout::Grasp          | SpatialManipulator.h | 210     | api,nont
 F ManipulationLayout::Resolve        | SpatialManipulator.h | 220     | api,nonthrowing               | ✔️ | One laid-out grip.
     in    GripOrdinal  std::uint32_t  [-]  ?
     out   -            Outcome        [-]  refuses with ContentUnsupported outside the laid-out count and for an undeclared grip
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F ManipulationLayout::Grips          | SpatialManipulator.h | 229     | api,nonallocating,nonthrowing | ✔️ | Every laid-out grip, for whoever records them. `OverlaySubject::Manipulator`. The manipulator contributes no recording of its own: a second one would be a second place `08`'s ordering is declared, and the two would order differently the first time either was amended.
     out   -  const std::vector<ManipulationGrip>&  [-]  ?
@@ -301,4 +301,4 @@ F SLATE_DECLARES_PRECISION           | SpatialManipulator.h | 407     | -       
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

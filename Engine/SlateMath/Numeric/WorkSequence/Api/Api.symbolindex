@@ -82,7 +82,7 @@ F WorkProgress::DeclareCount           | WorkSequence.h | 112-119 | api,nonalloc
 
 F WorkProgress::Fraction               | WorkSequence.h | 124     | api,nonallocating,nonthrowing | ✔️ | The resolved fraction as last declared.
     out   -  double  [-]  ?
-    by    Shader/MultiScatterSurface.slang, Source/AtmosphereIntegrator.cpp, Source/BrushSpecification.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, (+7 more)
+    by    Shader/MultiScatterSurface.slang, Source/AssetPanel.cpp, Source/AtmosphereIntegrator.cpp, Source/BrushSpecification.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, (+9 more)
 
 F WorkProgress::ResolvedCount          | WorkSequence.h | 129     | api,nonallocating,nonthrowing | ✔️ | The resolved count as last declared.
     out   -  std::uint64_t  [-]  ?
@@ -268,4 +268,4 @@ F WorkSequence::Cancel                 | WorkSequence.h | 349     | -           
 F WorkSequence::Resolved               | WorkSequence.h | 350     | -                             | -  | ?
     in    Subject  WorkIdentity   [-]  ?
     out   -        std::uint32_t  [-]  ?
-    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, (+41 more)
+    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, (+43 more)

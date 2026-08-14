@@ -155,7 +155,7 @@ F ImpressionSequence::Resolve             | ImpressionSequence.h | 228     | api
     in    RotationOrdinal  std::uint64_t      [-]  the rotation resolving
     out   -                Outcome            [-]  refuses with HostDenied before Open
     post  🔴 a deferred impression stays owed; nothing is dropped and nothing resolves coarse
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
     note  🔴 `22` §2: an impression touching a non-resident cell **demands and defers**. It is not resolved
     note  ⚠️ That rule binds **painted** impressions only. Placed content and tiling resolve through `70` at
     note  🔴 Deferred impressions do not block the ones after them. `StrokeSpace`'s accumulation is `Over`,
@@ -245,4 +245,4 @@ F SLATE_DECLARES_PRECISION                | ImpressionSequence.h | 313     | -  
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

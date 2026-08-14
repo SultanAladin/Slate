@@ -57,31 +57,31 @@ F BandOf                  | LayerPanel.cpp | 44-47   | - | - | ?
     in    Offset  float                      [-]  ?
     in    Height  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F InsetBy                 | LayerPanel.cpp | 49-55   | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
     in    Margin  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F LeftOf                  | LayerPanel.cpp | 57-60   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F RightOf                 | LayerPanel.cpp | 62-67   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F AfterLeft               | LayerPanel.cpp | 69-74   | - | - | ?
     in    Area      const WorkspaceRectangle&  [-]  ?
     in    Consumed  float                      [-]  ?
     out   -         WorkspaceRectangle         [-]  ?
-    by    Source/OutlinerPanel.cpp
+    by    Source/AssetPanel.cpp, Source/OutlinerPanel.cpp
 
 F SquareCentred           | LayerPanel.cpp | 76-82   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
@@ -121,7 +121,7 @@ F PresentHeaderBand       | LayerPanel.cpp | 127-163 | - | - | ?
     in    Band        const WorkspaceRectangle&  [-]  ?
     in    EntryCount  std::uint32_t              [-]  ?
     out   -           void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
 
 F PresentToolbarBand      | LayerPanel.cpp | 167-195 | - | - | ?
     in    Theme  const ThemeSpecification&  [-]  ?
@@ -137,7 +137,7 @@ F PresentFooterBand       | LayerPanel.cpp | 197-213 | - | - | ?
     in    PresentedCount  std::uint32_t              [-]  ?
     in    MaskedCount     std::uint32_t              [-]  ?
     out   -               void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE SPINE

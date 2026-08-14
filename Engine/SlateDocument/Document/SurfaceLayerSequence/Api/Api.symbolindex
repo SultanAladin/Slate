@@ -168,7 +168,7 @@ F SurfaceLayerSequence::Resample            | SurfaceLayerSequence.h | 240     |
 F SurfaceLayerSequence::Resolve             | SurfaceLayerSequence.h | 249     | api,nonthrowing               | ✔️ | One entry, by identity.
     in    Subject  LayerIdentity  [-]  ?
     out   -        Outcome        [-]  refuses with IdentityStale
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F SurfaceLayerSequence::AmendPainted        | SurfaceLayerSequence.h | 262     | api,nonthrowing               | 🚩 | One entry's painted texels, for the one mechanism permitted to amend them. ContentUnsupported when its source is not PaintedImpressions describes — §3 — so this is the one route by which authored content is written at all, and every write through it is inside a transaction whose inverse is bounded by the extents it touched. resolved projection the source of truth for content the description already holds, and `20` §4 would then evict the artist's edit at the first memory pressure.
     in    Subject  LayerIdentity  [-]  ?
@@ -179,7 +179,7 @@ F SurfaceLayerSequence::AmendPainted        | SurfaceLayerSequence.h | 262     |
 
 F SurfaceLayerSequence::Entries             | SurfaceLayerSequence.h | 267     | api,nonallocating,nonthrowing | ✔️ | The entries, in sequence order — bottom first.
     out   -  const std::vector<LayerSpecification>&  [-]  ?
-    by    Api/RecoverySequence.h, Source/AnalyticProjection.cpp, Source/LayerPanel.cpp, Source/PromotionScheduler.cpp, Source/RecoverySequence.cpp, Source/SpatialSubdivision.cpp, (+1 more)
+    by    Api/RecoverySequence.h, Api/TexturePaintSpecification.h, Source/AnalyticProjection.cpp, Source/LayerPanel.cpp, Source/PromotionScheduler.cpp, Source/RecoverySequence.cpp, (+3 more)
 
 F SurfaceLayerSequence::Nested              | SurfaceLayerSequence.h | 273     | api,nonthrowing               | ✔️ | One nested sequence, by ordinal.
     in    NestedOrdinal  std::uint32_t  [-]  ?
@@ -224,7 +224,7 @@ F SurfaceLayerSequence::NestedCount         | SurfaceLayerSequence.h | 310     |
 F SurfaceLayerSequence::Located             | SurfaceLayerSequence.h | 322     | -                             | -  | ?
     in    Subject  LayerIdentity  [-]  ?
     out   -        std::size_t    [-]  ?
-    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+26 more)
+    by    Api/DocumentSession.h, Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, (+28 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE ENTRIES
@@ -249,4 +249,4 @@ F SLATE_DECLARES_PRECISION                  | SurfaceLayerSequence.h | 359     |
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

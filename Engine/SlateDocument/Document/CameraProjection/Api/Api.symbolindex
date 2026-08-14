@@ -80,7 +80,7 @@ F Derive                                 | CameraProjection.h | 110     | api,no
 F SLATE_DECLARES_PRECISION               | CameraProjection.h | 111     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CanvasPanel.h, (+56 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE FRUSTUM
@@ -204,7 +204,7 @@ F Frame                                  | CameraProjection.h | 275     | api,no
 F SLATE_DECLARES_PRECISION               | CameraProjection.h | 278     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CanvasPanel.h, (+56 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CAMERA
@@ -246,7 +246,7 @@ F CameraProjection::Reconcile            | CameraProjection.h | 323     | api,no
 
 F CameraProjection::Declared             | CameraProjection.h | 325     | -                             | -  | ?
     out   -  const CameraSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticPanel.h, (+84 more)
+    by    Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
 
 F CameraProjection::Projected            | CameraProjection.h | 326     | -                             | -  | ?
     out   -  const ViewProjection&  [-]  ?
@@ -272,4 +272,4 @@ F SLATE_DECLARES_PRECISION               | CameraProjection.h | 357     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CanvasPanel.h, (+56 more)

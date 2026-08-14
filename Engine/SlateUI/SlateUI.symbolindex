@@ -1,24 +1,30 @@
 //============================================================================================================================================
 //                                                            SLATEUI.SYMBOLINDEX
 //============================================================================================================================================
-// 🧩 Symbol roll for SlateUI — One material's twenty channels made visible — every row read from `MaterialIndex`, nothing held here.
+// 🧩 Symbol roll for SlateUI — The offered content made browsable — a folder column, a tile area, and every band's control live before one asset is declared.
 
 %format   symbolindex 1.0
 %scope    layer
 %path     Engine/SlateUI
-%folders  26
-%symbols  636
+%folders  32
+%symbols  784
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
+I Api    | Api/Api.symbolindex       | 19 sym  | The offered content made browsable — a folder column, a tile area, and every band's control live before one asset is declared.
+I Source | Source/Source.symbolindex | 39 sym  | Six bands, three narrowings and two empty states — every control live before one asset has been offered.
+I Api    | Api/Api.symbolindex       | 12 sym  | One viewport's tick — the band arithmetic, the three hand-rolled overlays, and the quads that frame a canvas nothing has drawn into yet.
+I Source | Source/Source.symbolindex | 26 sym  | One viewport's tick — the band arithmetic, the three hand-rolled overlays, and the quads that frame a canvas nothing has drawn into yet.
 I Api    | Api/Api.symbolindex       | 10 sym  | One material's twenty channels made visible — every row read from `MaterialIndex`, nothing held here.
 I Source | Source/Source.symbolindex | 25 sym  | The twenty channels as three sections — consumed, retained and undeclared — over an API that already exists.
 I Api    | Api/Api.symbolindex       | 37 sym  | Every primitive control as one immediate-mode free function over a rectangle — no widget owns anything, and the theme arrives by reference.
 I Source | Source/Source.symbolindex | 94 sym  | The four choosing controls — a crossing nub, a run of exclusive pills, a dropped list, and a row of independent switches.
 I Api    | Api/Api.symbolindex       | 8 sym   | The register made visible — reports grouped by their declared class, measures presented at their producer's tier.
 I Source | Source/Source.symbolindex | 10 sym  | Seven declared classes presented at three weights, and the measures beneath them — nothing inferred, nothing held.
+I Api    | Api/Api.symbolindex       | 16 sym  | The control centre — every primitive in `ControlPanel` presented live under one accordion, each holding a reading the panel does not own.
+I Source | Source/Source.symbolindex | 36 sym  | Six accordion sections over the whole of `ControlPanel` — measured once, laid out once, and every refusal counted rather than raised.
 I Api    | Api/Api.symbolindex       | 22 sym  | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
 I Source | Source/Source.symbolindex | 24 sym  | Drives the vector rasteriser and the staging transfer — the one file in which a glyph becomes a vendor texture identity.
 I Api    | Api/Api.symbolindex       | 10 sym  | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
@@ -31,8 +37,8 @@ I Api    | Api/Api.symbolindex       | 8 sym   | Any declared property presented
 I Source | Source/Source.symbolindex | 16 sym  | One row per declaration, dispatched on the declared measure — the panel names no property and never will.
 I Api    | Api/Api.symbolindex       | 7 sym   | The transaction sequence made visible and scrubbable — every row read from `RevisionSequence`, nothing held here.
 I Source | Source/Source.symbolindex | 19 sym  | `Inspector.tsx`'s revision timeline over the real sequence — bubble column, spine, card, fold.
-I Api    | Api/Api.symbolindex       | 4 sym   | The one concrete workspace — six panels declared into a ledger, and the storage every one of them presents against.
-I Source | Source/Source.symbolindex | 3 sym   | The six declarations one painting workspace makes, and nothing else — every panel it names is already routine-shaped.
+I Api    | Api/Api.symbolindex       | 4 sym   | The one concrete workspace — nine panels declared into a ledger, and the storage every one of them presents against.
+I Source | Source/Source.symbolindex | 3 sym   | The nine declarations one painting workspace makes, and nothing else — every panel it names is already routine-shaped.
 I Api    | Api/Api.symbolindex       | 10 sym  | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
 I Source | Source/Source.symbolindex | 10 sym  | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
 I Api    | Api/Api.symbolindex       | 29 sym  | Ordered bring-up, the ten-step tick, and teardown as its exact reverse — the whole host, with no concrete workspace named.
@@ -44,6 +50,102 @@ I Source | Source/Source.symbolindex | 119 sym | Declaration, release and resolu
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
+V AssetEntryCapacity                    | Api/AssetPanel.h                     | 26        | ?
+V AssetFolderCapacity                   | Api/AssetPanel.h                     | 27        | ?
+V AssetCaptionExtent                    | Api/AssetPanel.h                     | 28        | ?
+E AssetContent                          | Api/AssetPanel.h                     | 39-47     | What one offered entry is, resolved from the declaration and never inferred from its caption. component deciding what a surface is, and the first authored extension nobody listed presents as an entry the artist cannot open for a reason the panel invented.
+F CaptionOf                             | Api/AssetPanel.h                     | 52        | The caption one content is presented under.
+F StrokeOf                              | Api/AssetPanel.h                     | 59        | The stroke one content is drawn with where no thumbnail has been uploaded. colour would be a second palette spelled inside a panel.
+T AssetEntry                            | Api/AssetPanel.h                     | 65-73     | One offered entry, as whoever declared it spelled it. local buffer leaves the panel printing a released extent the first tick after the declaring scope closes.
+T AssetFolder                           | Api/AssetPanel.h                     | 83-89     | One row of the folder column — its caption, its depth, and whether its fold is open. linearisation and never a relation. `12` §7 makes the same split for the outliner and for the same reason.
+E AssetPresentation                     | Api/AssetPanel.h                     | 97-101    | Whether the entries present as tiles or as one row apiece.
+E AssetOrdering                         | Api/AssetPanel.h                     | 107-113   | What the entries are ordered by. run it was handed would reorder storage its declarer still holds ordinals into.
+T AssetSpecification                    | Api/AssetPanel.h                     | 130-156   | Everything the asset panel presents and carries — the offered runs, and the presentation the artist chose. is layout and never document — `14` §4.1 — so a host threading in a pointer would be a host deciding which folder is open, and closing the workspace would become a destructive edit. which is the state the panel is complete in: every band, every control and both empty states present and answer the pointer before one asset exists. that shortens beneath a chosen ordinal is the ordinary case — a folder collapsing narrows it — and a trusted ordinal would read past the count on the tick that narrowing happened.
+T AssetBands                            | Api/AssetPanel.h                     | 168-177   | The stacked bands, and the two halves the body between them divides into. control in `ControlPanel` reserves a label column through `ResolveControlRow` — a caption of `nullptr` suppresses the caption and not the column — so three controls sharing one row leaves each of them a field narrower than the primitive accepts, and all three refuse at every width a docked panel takes.
+F ResolveAssetBands                     | Api/AssetPanel.h                     | 189       | Resolves the bands from the rectangle the desk gave the panel. `RectangleCovers`, and a panel dragged below its bands would then resolve presses against rectangles covering the whole display instead of none of it.
+F EntrySurvives                         | Api/AssetPanel.h                     | 202       | Whether one entry survives the standing folder, the content narrowing and the search entry together. predicate is the defect where a footer reads "12 assets" over an area presenting nine.
+F SurvivingCount                        | Api/AssetPanel.h                     | 207       | How many entries survive the three narrowings.
+F PresentAssets                         | Api/AssetPanel.h                     | 225       | Presents one tick of the asset panel into the rectangle the desk resolved. through `ControlPanel`'s seam, which `14` §7 holds to exactly one component knowing which recording the interface paints on. refusal per tick per panel would append to `86`'s register on the ordinary path of an empty folder.
+F PresentAssetPanel                     | Api/AssetPanel.h                     | 237       | The presentation routine matching `PanelPresentRoutine`. learns what an asset is.
+F ResolveAssetSlot                      | Api/AssetPanel.h                     | 250       | Resolves a panel slot for the asset panel. context, and it presents as a panel painted against released storage.
+F SLATE_DECLARES_PRECISION              | Api/AssetPanel.h                     | 257       | ?
+F CaptionOf                             | Source/AssetPanel.cpp                | 18-29     | ?
+F StrokeOf                              | Source/AssetPanel.cpp                | 31-42     | ?
+V TileCaptionBand                       | Source/AssetPanel.cpp                | 54        | ?
+V TileFloor                             | Source/AssetPanel.cpp                | 55        | ?
+V TileCeiling                           | Source/AssetPanel.cpp                | 56        | ?
+V ColumnFloor                           | Source/AssetPanel.cpp                | 57        | ?
+V ColumnCeiling                         | Source/AssetPanel.cpp                | 58        | ?
+V DividerReach                          | Source/AssetPanel.cpp                | 59        | ?
+V TileTrackWidth                        | Source/AssetPanel.cpp                | 60        | ?
+V TileTrackFloor                        | Source/AssetPanel.cpp                | 61        | ?
+V OrderingWidth                         | Source/AssetPanel.cpp                | 62        | ?
+V OfferedOrderings                      | Source/AssetPanel.cpp                | 67        | ?
+V NarrowingCaptions                     | Source/AssetPanel.cpp                | 72        | ?
+F BandOf                                | Source/AssetPanel.cpp                | 78-88     | ?
+F InsetBy                               | Source/AssetPanel.cpp                | 90-103    | ?
+F LeftOf                                | Source/AssetPanel.cpp                | 105-115   | ?
+F RightOf                               | Source/AssetPanel.cpp                | 117-127   | ?
+F AfterLeft                             | Source/AssetPanel.cpp                | 129-140   | ?
+F CentredWithin                         | Source/AssetPanel.cpp                | 142-152   | ?
+F Bounded                               | Source/AssetPanel.cpp                | 154-157   | ?
+T EntryIntent                           | Source/AssetPanel.cpp                | 166-174   | ?
+F ComparedCaptions                      | Source/AssetPanel.cpp                | 182-188   | ?
+F Precedes                              | Source/AssetPanel.cpp                | 193-229   | ?
+F ResolvePresentedOrder                 | Source/AssetPanel.cpp                | 234-262   | ?
+F CarryByteExtent                       | Source/AssetPanel.cpp                | 271-294   | ?
+F PresentHeaderBand                     | Source/AssetPanel.cpp                | 300-365   | ?
+F PresentSearchBand                     | Source/AssetPanel.cpp                | 371-401   | ?
+F PresentNarrowBand                     | Source/AssetPanel.cpp                | 407-455   | ?
+F PresentFolderColumn                   | Source/AssetPanel.cpp                | 461-603   | ?
+F PresentOneTile                        | Source/AssetPanel.cpp                | 609-675   | ?
+F PresentOneRow                         | Source/AssetPanel.cpp                | 681-723   | ?
+F PresentEntryArea                      | Source/AssetPanel.cpp                | 729-827   | ?
+F PresentFooterBand                     | Source/AssetPanel.cpp                | 833-943   | ?
+F ResolveAssetBands                     | Source/AssetPanel.cpp                | 951-992   | ?
+F EntrySurvives                         | Source/AssetPanel.cpp                | 998-1056  | ?
+F SurvivingCount                        | Source/AssetPanel.cpp                | 1058-1066 | ?
+F PresentAssets                         | Source/AssetPanel.cpp                | 1072-1164 | ?
+F PresentAssetPanel                     | Source/AssetPanel.cpp                | 1170-1183 | ?
+F ResolveAssetSlot                      | Source/AssetPanel.cpp                | 1189-1203 | ?
+V CanvasExtentCount                     | Api/CanvasPanel.h                    | 22        | ?
+T CanvasExtent                          | Api/CanvasPanel.h                    | 25-30     | One offered canvas extent — resolution and caption.
+E CanvasProjection                      | Api/CanvasPanel.h                    | 36-40     | ?
+T CanvasOverlayRecord                   | Api/CanvasPanel.h                    | 47-53     | What one overlay remembers between ticks — its open state, where it opened, and the tick it opened on.
+T CanvasSpecification                   | Api/CanvasPanel.h                    | 62-92     | Everything the viewport panel carries — declarations, overlays, and readout toggles. them beside the document — a host threading in a pointer would be a host deciding what the canvas resolves into.
+T CanvasBands                           | Api/CanvasPanel.h                    | 99-104    | The three resolved bands — header, canvas area, and footer.
+F ResolveCanvasExtent                   | Api/CanvasPanel.h                    | 116       | Resolves a canvas extent from its ordinal.
+F ResolveCanvasBands                    | Api/CanvasPanel.h                    | 129       | Resolves the three bands from a body rectangle.
+F PresentCanvas                         | Api/CanvasPanel.h                    | 143       | Presents one tick of the canvas panel into the rectangle the desk resolved.
+F PresentCanvasPanel                    | Api/CanvasPanel.h                    | 158       | The presentation routine matching `PanelPresentRoutine`. never learns what a canvas specification is.
+F ResolveCanvasSlot                     | Api/CanvasPanel.h                    | 173       | Resolves a panel slot for the canvas panel. is a dangling context.
+F SLATE_DECLARES_PRECISION              | Api/CanvasPanel.h                    | 177       | ?
+F Coded                                 | Source/CanvasPanel.cpp               | 30-33     | ?
+F Corner                                | Source/CanvasPanel.cpp               | 35-38     | ?
+F Opposite                              | Source/CanvasPanel.cpp               | 40-43     | ?
+F SquareAt                              | Source/CanvasPanel.cpp               | 45-55     | ?
+F PaintCaretStroke                      | Source/CanvasPanel.cpp               | 60-67     | ?
+V CaptionExtent                         | Source/CanvasPanel.cpp               | 73        | ?
+V OverlayRowCeiling                     | Source/CanvasPanel.cpp               | 74        | ?
+F CaptionOf                             | Source/CanvasPanel.cpp               | 76-85     | ?
+F CaptionOf                             | Source/CanvasPanel.cpp               | 87-90     | ?
+F AppendSegment                         | Source/CanvasPanel.cpp               | 94-105    | ?
+F ComposeExtentCaption                  | Source/CanvasPanel.cpp               | 107-119   | ?
+T OverlayReach                          | Source/CanvasPanel.cpp               | 126-134   | What one overlay's resolution decided, carried to the paint pass at the end of the tick.
+F ResolveOverlay                        | Source/CanvasPanel.cpp               | 140-226   | ?
+F PaintOverlayReach                     | Source/CanvasPanel.cpp               | 231-263   | ?
+F PresentCaretButton                    | Source/CanvasPanel.cpp               | 271-319   | ?
+F ResolveCanvasExtent                   | Source/CanvasPanel.cpp               | 327-346   | ?
+F ResolveCanvasBands                    | Source/CanvasPanel.cpp               | 352-387   | ?
+F PresentHeaderBand                     | Source/CanvasPanel.cpp               | 396-448   | ?
+F PresentCanvasArea                     | Source/CanvasPanel.cpp               | 454-509   | ?
+F PresentFooterBand                     | Source/CanvasPanel.cpp               | 515-580   | ?
+F ResolveHeaderList                     | Source/CanvasPanel.cpp               | 588-616   | ?
+F ResolveCanvasList                     | Source/CanvasPanel.cpp               | 618-642   | ?
+F ResolveFooterList                     | Source/CanvasPanel.cpp               | 644-672   | ?
+F PresentCanvas                         | Source/CanvasPanel.cpp               | 680-706   | ?
+F PresentCanvasPanel                    | Source/CanvasPanel.cpp               | 712-718   | ?
+F ResolveCanvasSlot                     | Source/CanvasPanel.cpp               | 720-731   | ?
 V ChannelNoticeExtent                   | Api/ChannelPanel.h                   | 25        | ?
 V ChannelSectionCount                   | Api/ChannelPanel.h                   | 28        | ?
 T ChannelPanelCarry                     | Api/ChannelPanel.h                   | 38-49     | What the panel carries between ticks — presentation only, and the caller owns all of it. the open picker and the notice are layout, and layout inside the document would make opening a section an undoable edit. It is not a copy of anything the material holds — a refused write leaves the material exactly as it was, so there is nothing here that the document could drift from.
@@ -228,6 +330,58 @@ V CountBadge                            | Source/DiagnosticPanel.cpp           |
 F PresentEntry                          | Source/DiagnosticPanel.cpp           | 108-178   | ?
 F PresentMeasure                        | Source/DiagnosticPanel.cpp           | 184-210   | ?
 F PresentDiagnosticPanel                | Source/DiagnosticPanel.cpp           | 218-469   | ?
+E EntrySection                          | Api/EntryPanel.h                     | 29-37     | The families the accordion divides `ControlPanel`'s surface into, one section apiece. a switch does not know that `ControlChoice.cpp` holds it, and a panel organised by source layout is a panel whose organisation is only legible to whoever wrote it.
+V EntrySectionCount                     | Api/EntryPanel.h                     | 42        | ?
+F CaptionOf                             | Api/EntryPanel.h                     | 47        | The caption one section's header prints.
+V EntryComponentCount                   | Api/EntryPanel.h                     | 53        | ?
+V EntryBlendCount                       | Api/EntryPanel.h                     | 54        | ?
+V EntryChannelCount                     | Api/EntryPanel.h                     | 55        | ?
+V EntrySamplingCount                    | Api/EntryPanel.h                     | 56        | ?
+V EntryPillCount                        | Api/EntryPanel.h                     | 57        | ?
+V EntryPaneCount                        | Api/EntryPanel.h                     | 58        | ?
+T EntrySpecification                    | Api/EntryPanel.h                     | 75-117    | Every reading the sections edit, and the presentation the artist left the panel in. `AssetSpecification` are. `14` §4.1 places what the artist chose to look at beside the document and not inside it, so a host threading a pointer in would make closing a workspace a destructive edit. it demonstrates and exercises `ControlPanel`, and a reading of it wired to a brush would make the same control authoritative in two panels at once — which is the divergence `14` §1 forbids. controls sharing one carry are two controls that open together, and two dropdowns doing it is the defect `DropdownCarry`'s own note names.
+F SectionExtent                         | Api/EntryPanel.h                     | 132       | The vertical extent one section's body occupies while it is open, its own header excluded. what the walk lays out, the body's visible offset is bounded against an extent nothing presents — and the artist meets that as a list that scrolls past its own last control or stops short of it.
+F PresentedExtent                       | Api/EntryPanel.h                     | 137       | The whole body's extent, every header and every open section together.
+F PresentEntries                        | Api/EntryPanel.h                     | 156       | Presents one tick of the control centre into the rectangle the desk resolved. through `ControlPanel`'s seam, which `14` §7 holds to exactly one component knowing which recording the interface paints on. refusal per tick per narrow control would append to `86`'s register on the ordinary path of a panel docked into a narrow column.
+F PresentEntryPanel                     | Api/EntryPanel.h                     | 168       | The presentation routine matching `PanelPresentRoutine`. learns what a control is.
+F ResolveEntrySlot                      | Api/EntryPanel.h                     | 181       | Resolves a panel slot for the control centre. presents as a panel painted against released storage.
+F SLATE_DECLARES_PRECISION              | Api/EntryPanel.h                     | 188       | ?
+F CaptionOf                             | Source/EntryPanel.cpp                | 17-29     | ?
+V OfferedBlends                         | Source/EntryPanel.cpp                | 40        | ?
+V OfferedChannels                       | Source/EntryPanel.cpp                | 41        | ?
+V OfferedSampling                       | Source/EntryPanel.cpp                | 42        | ?
+V OfferedPills                          | Source/EntryPanel.cpp                | 43        | ?
+V OfferedPanes                          | Source/EntryPanel.cpp                | 44        | ?
+V OfferedGlyphCount                     | Source/EntryPanel.cpp                | 49        | ?
+V CarouselBodyHeight                    | Source/EntryPanel.cpp                | 68        | ?
+V SectionInset                          | Source/EntryPanel.cpp                | 69        | ?
+F RowPitch                              | Source/EntryPanel.cpp                | 71        | ?
+F SwitchPitch                           | Source/EntryPanel.cpp                | 72        | ?
+F SegmentPitch                          | Source/EntryPanel.cpp                | 73        | ?
+F DropdownPitch                         | Source/EntryPanel.cpp                | 74        | ?
+F GlyphPitch                            | Source/EntryPanel.cpp                | 75        | ?
+F SelectionPitch                        | Source/EntryPanel.cpp                | 80-83     | ?
+F PickerExtent                          | Source/EntryPanel.cpp                | 88-91     | ?
+F RowAt                                 | Source/EntryPanel.cpp                | 97-107    | ?
+F InsetBy                               | Source/EntryPanel.cpp                | 109-120   | ?
+F RightOf                               | Source/EntryPanel.cpp                | 122-132   | ?
+F CentredWithin                         | Source/EntryPanel.cpp                | 134-144   | ?
+T SectionWalk                           | Source/EntryPanel.cpp                | 154-158   | What one section's walk carries — where it is stacking, and what refused along the way. specification mid-walk is a count the footer reads while it is still growing, and the footer then prints a different number every tick for a panel nobody is touching.
+F RowVisible                            | Source/EntryPanel.cpp                | 162-165   | ?
+F Counted                               | Source/EntryPanel.cpp                | 167-171   | ?
+F PresentNumericSection                 | Source/EntryPanel.cpp                | 177-241   | ?
+F PresentChoiceSection                  | Source/EntryPanel.cpp                | 247-309   | ?
+F PresentTextSection                    | Source/EntryPanel.cpp                | 315-345   | ?
+F PresentColourSection                  | Source/EntryPanel.cpp                | 351-376   | ?
+F PresentChromeSection                  | Source/EntryPanel.cpp                | 382-453   | ?
+F PresentCarouselSection                | Source/EntryPanel.cpp                | 459-543   | ?
+F PresentHeaderBand                     | Source/EntryPanel.cpp                | 549-594   | ?
+F PresentFooterBand                     | Source/EntryPanel.cpp                | 600-639   | ?
+F SectionExtent                         | Source/EntryPanel.cpp                | 647-673   | ?
+F PresentedExtent                       | Source/EntryPanel.cpp                | 675-688   | ?
+F PresentEntries                        | Source/EntryPanel.cpp                | 694-802   | ?
+F PresentEntryPanel                     | Source/EntryPanel.cpp                | 808-821   | ?
+F ResolveEntrySlot                      | Source/EntryPanel.cpp                | 827-841   | ?
 T GlyphHandle                           | Api/GlyphDepot.h                     | 28-35     | An opaque reference to one uploaded glyph, resolved to a vendor texture identity inside the source file alone. an integer whose meaning only `GlyphDepot.cpp` knows, exactly as `InterfaceExchange` holds its context.
 F GlyphHandle::HandleDeclared           | Api/GlyphDepot.h                     | 34        | Whether this handle names an uploaded glyph at all.
 T GlyphAttachment                       | Api/GlyphDepot.h                     | 45-51     | The device handles one upload needs, supplied once at bring-up. recording, and every allocation here happens inside `Declare` — which is bring-up, never a tick.
@@ -404,13 +558,13 @@ F PresentDiscardBand                    | Source/RevisionPanel.cpp             |
 F RowExtentOf                           | Source/RevisionPanel.cpp             | 266-272   | ?
 F PresentRow                            | Source/RevisionPanel.cpp             | 274-426   | ?
 F PresentRevisionPanel                  | Source/RevisionPanel.cpp             | 434-536   | ?
-T PaintWorkspaceContext                 | Api/TexturePaintSpecification.h      | 44-68     | Everything the texture-painting workspace presents against, owned by the application and never by the engine. `WorkspaceSpecification::WorkspaceContext`. Nothing beneath `SlateUI` learns this record exists, which is what lets `PaintHost` carry one roster entry and `EditorHost` carry every one from the same tree. puts layout beside the document, and a workspace that owned a sequence would make closing a workspace a destructive edit rather than a change of what is presented. as long as the workspace is standing. A context built inside `DeclareTexturePaintPanels` would be a dead extent by the first tick that presented it. register the bring-up writes into is `WorkspaceSequence`'s own, handed in by the host.
-F DeclareTexturePaintPanels             | Api/TexturePaintSpecification.h      | 87        | Declares the workspace's six panels into the ledger the sequence handed it. nothing about what a layer, a channel or a revision is. at construction. A host that swaps the material ordinal or opens a second document between activations would otherwise present the panels against whatever was standing when the record was first filled. `WorkspaceSpace::DeclarePanelBox` lands every box floating regardless.
-F ResolveTexturePaintWorkspace          | Api/TexturePaintSpecification.h      | 103       | The roster entry a host registers for texture painting. `RenderSchedule` put beneath the interface, and a routine painting over it here would hide the surface the workspace exists to present. roster `WorkspaceSpecification` warns about, and it presents as panels drawn against released storage.
-F SLATE_DECLARES_PRECISION              | Api/TexturePaintSpecification.h      | 107       | ?
-V TexturePaintPanelCount                | Source/TexturePaintSpecification.cpp | 19        | ?
-F DeclareTexturePaintPanels             | Source/TexturePaintSpecification.cpp | 27-74     | ?
-F ResolveTexturePaintWorkspace          | Source/TexturePaintSpecification.cpp | 80-92     | ?
+T PaintWorkspaceContext                 | Api/TexturePaintSpecification.h      | 48-82     | Everything the texture-painting workspace presents against, owned by the application and never by the engine. `WorkspaceSpecification::WorkspaceContext`. Nothing beneath `SlateUI` learns this record exists, which is what lets `PaintHost` carry one roster entry and `EditorHost` carry every one from the same tree. puts layout beside the document, and a workspace that owned a sequence would make closing a workspace a destructive edit rather than a change of what is presented. as long as the workspace is standing. A context built inside `DeclareTexturePaintPanels` would be a dead extent by the first tick that presented it. The canvas, the browser and the control centre hold no separate context at all — each is addressed directly, which is why each is a member and not a local too. register the bring-up writes into is `WorkspaceSequence`'s own, handed in by the host.
+F DeclareTexturePaintPanels             | Api/TexturePaintSpecification.h      | 101       | Declares the workspace's nine panels into the ledger the sequence handed it. nothing about what a layer, a channel or a revision is. at construction. A host that swaps the material ordinal or opens a second document between activations would otherwise present the panels against whatever was standing when the record was first filled. `WorkspaceSpace::DeclarePanelBox` lands every box floating regardless.
+F ResolveTexturePaintWorkspace          | Api/TexturePaintSpecification.h      | 117       | The roster entry a host registers for texture painting. `RenderSchedule` put beneath the interface, and a routine painting over it here would hide the surface the workspace exists to present. roster `WorkspaceSpecification` warns about, and it presents as panels drawn against released storage.
+F SLATE_DECLARES_PRECISION              | Api/TexturePaintSpecification.h      | 121       | ?
+V TexturePaintPanelCount                | Source/TexturePaintSpecification.cpp | 21        | ?
+F DeclareTexturePaintPanels             | Source/TexturePaintSpecification.cpp | 29-94     | ?
+F ResolveTexturePaintWorkspace          | Source/TexturePaintSpecification.cpp | 100-117   | ?
 T ThemeColour                           | Api/ThemeSpecification.h             | 28-32     | One interface colour: a coordinate carrying the space it is a coordinate in, plus the fraction it covers. colour whose space nothing states is the shape a transfer function is later added to "fix". Held as a `ColourSpecification` in the display space so the absence of any transfer inside `SlateUI` stays checkable. fraction over the interface's own recording, not a property of the colour — `36` carries no alpha for exactly that reason.
 F Quantize                              | Api/ThemeSpecification.h             | 42        | Quantises one theme colour to the eight-bit-per-channel code the vendor draw surface accepts. Coordinates outside the unit interval are bounded here rather than wrapping, because a wrapped code is a colour the artist sees as a wrong hue rather than as a clipped one.
 F Attenuate                             | Api/ThemeSpecification.h             | 50        | Returns one theme colour at a declared coverage, its coordinate untouched.
@@ -559,8 +713,8 @@ F PresentWorkspaceSpace                 | Api/WorkspaceSpace.h                 |
 V AbsentWorkspaceChoice                 | Api/WorkspaceSpace.h                 | 1044      | ?
 F ConstructWorkspaceTabStrip            | Api/WorkspaceSpace.h                 | 1059      | Presents one trapezoid per registered workspace and reports which of them the artist chose. spelled one would be the component that makes a standalone host and the editor two different trees. would sit beneath the desk's own strips, and the two rows of tabs would occlude each other.
 T DeploymentReport                      | Api/WorkspaceSpace.h                 | 1072-1077 | What one bracket tick resolved — the workspace the artist chose, and whether the pointer was taken.
-F PresentDeploymentBracket              | Api/WorkspaceSpace.h                 | 1099      | The one presentation call an application makes per tick — workspace strip, desk, bottom band. the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would clip the trapezoids that overhang their own strip. negative one. A negative extent inverts every coverage test, and a minimised window would then resolve the pointer against rectangles the artist cannot see.
-F SLATE_DECLARES_PRECISION              | Api/WorkspaceSpace.h                 | 1111      | ?
+F PresentDeploymentBracket              | Api/WorkspaceSpace.h                 | 1104      | The one presentation call an application makes per tick — workspace strip, desk, bottom band. the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would clip the trapezoids that overhang their own strip. negative one. A negative extent inverts every coverage test, and a minimised window would then resolve the pointer against rectangles the artist cannot see. first row instead. One trapezoid that cannot be switched away from is a readout, not a strip, and stacking it above the desk leaf's own document strip reads as a workspace nested inside a workspace. The reported choice is `AbsentWorkspaceChoice` on every such tick, which is what a caller already handles — there is nothing to switch to below two entries.
+F SLATE_DECLARES_PRECISION              | Api/WorkspaceSpace.h                 | 1116      | ?
 F ReclaimPanelIndex                     | Source/PanelIndex.cpp                | 15-24     | ?
 F DeclarePanel                          | Source/PanelIndex.cpp                | 26-50     | ?
 F ResolvePanelForSide                   | Source/PanelIndex.cpp                | 52-62     | ?
@@ -568,7 +722,7 @@ F DeclaredPanelCount                    | Source/PanelIndex.cpp                |
 V StripInterior                         | Source/WorkspaceBracket.cpp          | 11        | ?
 F PaintViewportBand                     | Source/WorkspaceBracket.cpp          | 24-49     | ?
 F ConstructWorkspaceTabStrip            | Source/WorkspaceBracket.cpp          | 57-135    | ?
-F PresentDeploymentBracket              | Source/WorkspaceBracket.cpp          | 141-209   | ?
+F PresentDeploymentBracket              | Source/WorkspaceBracket.cpp          | 141-223   | ?
 V StripInterior                         | Source/WorkspaceDrag.cpp             | 15        | ?
 V ResizeGripEdge                        | Source/WorkspaceDrag.cpp             | 24        | ?
 F GripOf                                | Source/WorkspaceDrag.cpp             | 26-31     | ?

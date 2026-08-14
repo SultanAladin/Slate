@@ -113,11 +113,11 @@ F RowSequence::DeclareNarrowing  | RowSequence.h | 141     | api,nonthrowing    
 
 F RowSequence::Rows              | RowSequence.h | 146     | api,nonallocating,nonthrowing | ✔️ | The rows, in linearised order, including the uncounted ones.
     out   -  const std::vector<SequencedRow>&  [-]  ?
-    by    Source/CameraProjection.cpp, Source/OutlinerPanel.cpp, Source/RowSequence.cpp, Source/WorkspaceStrip.cpp
+    by    Api/AssetPanel.h, Source/AssetPanel.cpp, Source/CameraProjection.cpp, Source/CanvasPanel.cpp, Source/OutlinerPanel.cpp, Source/RowSequence.cpp, (+1 more)
 
 F RowSequence::Counted           | RowSequence.h | 151     | api,nonallocating,nonthrowing | ✔️ | The counted ordering over those rows.
     out   -  const RankIndex&  [-]  ?
-    by    Api/ReportSequence.h, Source/ChannelPanel.cpp, Source/CodeInterchange.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, Source/DepthReduction.cpp, (+9 more)
+    by    Api/ReportSequence.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/CodeInterchange.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, (+11 more)
 
 F RowSequence::RowOf             | RowSequence.h | 158     | api,nonallocating,nonthrowing | ✔️ | Which row an occupant sits at.
     in    Subject  OccupantIdentity  [-]  the occupant

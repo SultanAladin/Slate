@@ -35,7 +35,7 @@ F PresentedRankOf        | DiagnosticPanel.cpp | 47-63   | - | - | ?
 F CaptionOf              | DiagnosticPanel.cpp | 65-78   | - | - | ?
     in    Declared  ReportDisposition  [-]  ?
     out   -         const char*        [-]  ?
-    by    Api/DiagnosticPanel.h
+    by    Api/AssetPanel.h, Api/DiagnosticPanel.h, Api/EntryPanel.h, Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/EntryPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE THREE HUES

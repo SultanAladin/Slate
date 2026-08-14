@@ -63,7 +63,7 @@ F SelectionSequence::RestoreAt         | SelectionSequence.h | 75    | api,nonth
 
 F SelectionSequence::Standing          | SelectionSequence.h | 80    | api,nonallocating,nonthrowing | ✔️ | The selection standing now.
     out   -  const std::vector<OccupantIdentity>&  [-]  ?
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+83 more)
+    by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
 
 F SelectionSequence::Committed         | SelectionSequence.h | 85    | api,nonallocating,nonthrowing | ✔️ | The committed selections, in order.
     out   -  const std::vector<CommittedSelection>&  [-]  ?

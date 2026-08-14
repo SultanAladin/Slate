@@ -106,7 +106,7 @@ F GlyphDepot::Release            | GlyphDepot.h | 134     | api,nonthrowing     
 F GlyphDepot::Resolve            | GlyphDepot.h | 142     | api,nonthrowing                    | 🚩 | Resolves one key to its handle.
     in    GlyphKey  const std::string&  [-]  the key a tier declared
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that key
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
     note  What a row calls each time it presents. Never uploads and never mutates the depot.
 
 F GlyphDepot::GlyphHeld          | GlyphDepot.h | 147     | api,nonthrowing                    | 🚩 | Whether one key resolves to an uploaded glyph.

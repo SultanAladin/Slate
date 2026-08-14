@@ -142,7 +142,7 @@ F MeasureIndex::Resolve          | ReportSequence.h | 197     | api,nonthrowing 
     in    Origin    const char*  [-]  static text naming document and section
     in    Measured  const char*  [-]  static text naming the quantity
     out   -         Outcome      [-]  refuses with ExtentExhausted when nothing has declared it
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
     note  An undeclared measure refuses rather than reading zero. `08` §5 rules the same for an unmeasurable
 
 F MeasureIndex::Reclaim          | ReportSequence.h | 202     | api,nonthrowing               | ✔️ | Discards every held measure.
@@ -153,4 +153,4 @@ F MeasureIndex::Located          | ReportSequence.h | 206     | -               
     in    Origin    const char*  [-]  ?
     in    Measured  const char*  [-]  ?
     out   -         std::size_t  [-]  ?
-    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/SpatialSubdivision.h, (+26 more)
+    by    Api/DocumentSession.h, Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, (+28 more)

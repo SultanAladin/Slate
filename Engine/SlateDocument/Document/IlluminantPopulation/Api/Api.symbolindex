@@ -80,7 +80,7 @@ F ProjectIncidence                        | IlluminantPopulation.h | 100     | a
 F SLATE_DECLARES_PRECISION                | IlluminantPopulation.h | 101     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE POPULATION
@@ -115,7 +115,7 @@ F IlluminantPopulation::Withdraw          | IlluminantPopulation.h | 139     | a
 F IlluminantPopulation::Resolve           | IlluminantPopulation.h | 145     | api,nonthrowing               | 🚩 | One declared illuminant.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant declares no illuminant
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F IlluminantPopulation::ResolveColour     | IlluminantPopulation.h | 155     | api,nonthrowing               | 🚩 | One illuminant's colour, projected into a declared space. declared temperature lies outside the locus interval authored temperature is what the artist edits; the coordinate is what `18` integrates.
     in    Subject  OccupantIdentity                 [-]  ?
@@ -143,7 +143,7 @@ F IlluminantPopulation::Revision          | IlluminantPopulation.h | 176     | a
 F IlluminantPopulation::Located           | IlluminantPopulation.h | 180     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::size_t       [-]  ?
-    by    Api/DocumentSession.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+26 more)
+    by    Api/DocumentSession.h, Api/EntryPanel.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+28 more)
 
 F IlluminantPopulation::Validate          | IlluminantPopulation.h | 181     | -                             | -  | ?
     in    Declaring  const IlluminantSpecification&  [-]  ?
@@ -193,7 +193,7 @@ F IlluminantIndex::Reaching               | IlluminantPopulation.h | 241     | a
     in    PartitionOrdinal  std::uint32_t  [-]  ?
     in    ReachOrdinal      std::uint32_t  [-]  ?
     out   -                 Outcome        [-]  refuses with ExtentExhausted outside the reaching count
-    by    Api/OcclusionProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp, Source/OcclusionScheduler.cpp, Source/TopologyCodec.cpp, (+2 more)
+    by    Api/OcclusionProjection.h, Source/CanvasPanel.cpp, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp, Source/OcclusionScheduler.cpp, (+3 more)
 
 F IlluminantIndex::TruncatedCount         | IlluminantPopulation.h | 246     | api,nonallocating,nonthrowing | ✔️ | How many illuminants one partition could not carry — `86`'s truncation row.
     in    PartitionOrdinal  std::uint32_t  [-]  ?
@@ -216,4 +216,4 @@ F SLATE_DECLARES_PRECISION                | IlluminantPopulation.h | 273     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

@@ -72,7 +72,7 @@ F CycleScheduler::Advance            | CycleScheduler.h | 92     | api,nonalloca
 
 F CycleScheduler::Standing           | CycleScheduler.h | 98     | api,nonallocating,nonthrowing | ✔️ | The slot the standing ordinal names, for the recording and the display that read it.
     out   -  Outcome  [-]  refuses with CapabilityAbsent before Construct delivered
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/DecalProjection.h, Api/DisplayScheduler.h, (+83 more)
+    by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/DecalProjection.h, (+88 more)
 
 F CycleScheduler::StandingOrdinal    | CycleScheduler.h | 103    | api,nonallocating,nonthrowing | ✔️ | Which slot of the depth is standing — what every per-rotation claim is addressed by.
     out   -  std::uint32_t  [-]  ?

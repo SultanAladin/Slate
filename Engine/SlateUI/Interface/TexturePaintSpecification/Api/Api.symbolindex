@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                              API.SYMBOLINDEX
 //============================================================================================================================================
-// 🧩 The one concrete workspace — six panels declared into a ledger, and the storage every one of them presents against.
+// 🧩 The one concrete workspace — nine panels declared into a ledger, and the storage every one of them presents against.
 
 %format     symbolindex 1.0
 %scope      folder
@@ -16,13 +16,13 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TexturePaintSpecification.h | 109 lines | a43c0d00 | 4 sym | The one concrete workspace — six panels declared into a ledger, and the storage every one of them presents against.
+S TexturePaintSpecification.h | 123 lines | fdf1e3e4 | 4 sym | The one concrete workspace — nine panels declared into a ledger, and the storage every one of them presents against.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE WORKSPACE STORAGE
 //------------------------------------------------------------------------------------------------------------------------
 
-T PaintWorkspaceContext        | TexturePaintSpecification.h | 44-68 | owning                        | -  | Everything the texture-painting workspace presents against, owned by the application and never by the engine. `WorkspaceSpecification::WorkspaceContext`. Nothing beneath `SlateUI` learns this record exists, which is what lets `PaintHost` carry one roster entry and `EditorHost` carry every one from the same tree. puts layout beside the document, and a workspace that owned a sequence would make closing a workspace a destructive edit rather than a change of what is presented. as long as the workspace is standing. A context built inside `DeclareTexturePaintPanels` would be a dead extent by the first tick that presented it. register the bring-up writes into is `WorkspaceSequence`'s own, handed in by the host.
+T PaintWorkspaceContext        | TexturePaintSpecification.h | 48-82 | owning                        | -  | Everything the texture-painting workspace presents against, owned by the application and never by the engine. `WorkspaceSpecification::WorkspaceContext`. Nothing beneath `SlateUI` learns this record exists, which is what lets `PaintHost` carry one roster entry and `EditorHost` carry every one from the same tree. puts layout beside the document, and a workspace that owned a sequence would make closing a workspace a destructive edit rather than a change of what is presented. as long as the workspace is standing. A context built inside `DeclareTexturePaintPanels` would be a dead extent by the first tick that presented it. The canvas, the browser and the control centre hold no separate context at all — each is addressed directly, which is why each is a member and not a local too. register the bring-up writes into is `WorkspaceSequence`'s own, handed in by the host.
     has   Layers                     SurfaceLayerSequence*   [-]  ?
     has   Materials                  MaterialIndex*          [-]  ?
     has   Declarations               PropertyIndex*          [-]  ?
@@ -31,6 +31,9 @@ T PaintWorkspaceContext        | TexturePaintSpecification.h | 44-68 | owning   
     has   Measures                   const MeasureIndex*     [-]  ?
     has   Outlined                   OutlinerSequence*       [-]  ?
     has   MaterialOrdinal            std::uint32_t           [-]  ?
+    has   Canvas                     CanvasSpecification     [-]  ?
+    has   Assets                     AssetSpecification      [-]  ?
+    has   Entries                    EntrySpecification      [-]  ?
     has   OutlinerCarry              OutlinerPanelCarry      [-]  ?
     has   LayerCarry                 LayerPanelCarry         [-]  ?
     has   ChannelCarry               ChannelPanelCarry       [-]  ?
@@ -53,8 +56,8 @@ T PaintWorkspaceContext        | TexturePaintSpecification.h | 44-68 | owning   
 //                                                 THE PANEL DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F DeclareTexturePaintPanels    | TexturePaintSpecification.h | 87    | api,nonallocating,nonthrowing | 🚩 | Declares the workspace's six panels into the ledger the sequence handed it. nothing about what a layer, a channel or a revision is. at construction. A host that swaps the material ordinal or opens a second document between activations would otherwise present the panels against whatever was standing when the record was first filled. `WorkspaceSpace::DeclarePanelBox` lands every box floating regardless.
-    in    Ledger            PanelIndex&  [-]  emptied by the caller before this runs; six declarations arrive
+F DeclareTexturePaintPanels    | TexturePaintSpecification.h | 101   | api,nonallocating,nonthrowing | 🚩 | Declares the workspace's nine panels into the ledger the sequence handed it. nothing about what a layer, a channel or a revision is. at construction. A host that swaps the material ordinal or opens a second document between activations would otherwise present the panels against whatever was standing when the record was first filled. `WorkspaceSpace::DeclarePanelBox` lands every box floating regardless.
+    in    Ledger            PanelIndex&  [-]  emptied by the caller before this runs; nine declarations arrive
     in    WorkspaceContext  void*        [-]  a `PaintWorkspaceContext*`; a null context declares nothing at all
     out   -                 void         [-]  ?
     post  the ledger carries one slot per panel, each addressing a context this record owns
@@ -67,15 +70,15 @@ F DeclareTexturePaintPanels    | TexturePaintSpecification.h | 87    | api,nonal
 //                                                     THE WORKSPACE
 //------------------------------------------------------------------------------------------------------------------------
 
-F ResolveTexturePaintWorkspace | TexturePaintSpecification.h | 103   | api,nonallocating,nonthrowing | ✔️ | The roster entry a host registers for texture painting. `RenderSchedule` put beneath the interface, and a routine painting over it here would hide the surface the workspace exists to present. roster `WorkspaceSpecification` warns about, and it presents as panels drawn against released storage.
+F ResolveTexturePaintWorkspace | TexturePaintSpecification.h | 117   | api,nonallocating,nonthrowing | ✔️ | The roster entry a host registers for texture painting. `RenderSchedule` put beneath the interface, and a routine painting over it here would hide the surface the workspace exists to present. roster `WorkspaceSpecification` warns about, and it presents as panels drawn against released storage.
     in    Standing  PaintWorkspaceContext&  [-]  the storage, whose address the entry carries; it must outlive the host
     out   -         Entry                   [-]  caption, stem, discipline and the declaration routine, filled and ready to register
     by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/TexturePaintSpecification.cpp
     note  🔴 `PresentCentre` is left null deliberately. The centre of a painting workspace is the composited image
     note  ⚠️ The returned entry points at `Standing`. Registering an entry built from a temporary is the dangling
 
-F SLATE_DECLARES_PRECISION     | TexturePaintSpecification.h | 107   | -                             | -  | ?
+F SLATE_DECLARES_PRECISION     | TexturePaintSpecification.h | 121   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

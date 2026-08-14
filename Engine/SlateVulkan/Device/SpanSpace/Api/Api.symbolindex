@@ -103,7 +103,7 @@ F SpanSpace::Transfer     | SpanSpace.h | 146     | api,nonthrowing           | 
 F SpanSpace::Standing     | SpanSpace.h | 156     | api,nonthrowing           | ✔️ | The current record for one claimed span.
     in    SpanOrdinal  std::uint32_t  [-]  a claim this component issued
     out   -            Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+83 more)
+    by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
 
 F SpanSpace::Release      | SpanSpace.h | 163     | api,nonthrowing           | 🚩 | Destroys one span and returns its bytes.
     in    SpanOrdinal  std::uint32_t  [-]  a claim this component issued; an unclaimed ordinal is a no-op

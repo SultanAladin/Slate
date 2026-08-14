@@ -1,0 +1,270 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Six accordion sections over the whole of `ControlPanel` — measured once, laid out once, and every refusal counted rather than raised.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/EntryPanel/Source
+%layer      SlateUI
+%sources    1
+%symbols    36
+%annotated  1/36
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S EntryPanel.cpp | 843 lines | faf7eccd | 36 sym | Six accordion sections over the whole of `ControlPanel` — measured once, laid out once, and every refusal counted rather than raised.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE SECTION TABLE
+//------------------------------------------------------------------------------------------------------------------------
+
+F CaptionOf              | EntryPanel.cpp | 17-29   | - | - | ?
+    in    Declared  EntrySection  [-]  ?
+    out   -         const char*   [-]  ?
+    by    Api/AssetPanel.h, Api/DiagnosticPanel.h, Api/EntryPanel.h, Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/DiagnosticPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE OFFERED RUNS
+//------------------------------------------------------------------------------------------------------------------------
+
+V OfferedBlends          | EntryPanel.cpp | 40      | - | - | ?
+
+V OfferedChannels        | EntryPanel.cpp | 41      | - | - | ?
+
+V OfferedSampling        | EntryPanel.cpp | 42      | - | - | ?
+
+V OfferedPills           | EntryPanel.cpp | 43      | - | - | ?
+
+V OfferedPanes           | EntryPanel.cpp | 44      | - | - | ?
+
+V OfferedGlyphCount      | EntryPanel.cpp | 49      | - | - | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE LOCAL EXTENTS
+//------------------------------------------------------------------------------------------------------------------------
+
+V CarouselBodyHeight     | EntryPanel.cpp | 68      | - | - | ?
+
+V SectionInset           | EntryPanel.cpp | 69      | - | - | ?
+
+F RowPitch               | EntryPanel.cpp | 71      | - | - | ?
+    in    Extents  const LayoutExtents&  [-]  ?
+    out   -        float                 [-]  ?
+    by    Source/LayerPanel.cpp
+
+F SwitchPitch            | EntryPanel.cpp | 72      | - | - | ?
+    in    Extents  const LayoutExtents&  [-]  ?
+    out   -        float                 [-]  ?
+
+F SegmentPitch           | EntryPanel.cpp | 73      | - | - | ?
+    in    Extents  const LayoutExtents&  [-]  ?
+    out   -        float                 [-]  ?
+
+F DropdownPitch          | EntryPanel.cpp | 74      | - | - | ?
+    in    Extents  const LayoutExtents&  [-]  ?
+    out   -        float                 [-]  ?
+
+F GlyphPitch             | EntryPanel.cpp | 75      | - | - | ?
+    in    Extents  const LayoutExtents&  [-]  ?
+    out   -        float                 [-]  ?
+
+F SelectionPitch         | EntryPanel.cpp | 80-83   | - | - | ?
+    in    Extents  const LayoutExtents&  [-]  ?
+    out   -        float                 [-]  ?
+
+F PickerExtent           | EntryPanel.cpp | 88-91   | - | - | ?
+    in    Extents  const LayoutExtents&  [-]  ?
+    out   -        float                 [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE LOCAL GEOMETRY
+//------------------------------------------------------------------------------------------------------------------------
+
+F RowAt                  | EntryPanel.cpp | 97-107  | - | - | ?
+    in    Body       const WorkspaceRectangle&  [-]  ?
+    in    PositionY  float                      [-]  ?
+    in    Height     float                      [-]  ?
+    out   -          WorkspaceRectangle         [-]  ?
+
+F InsetBy                | EntryPanel.cpp | 109-120 | - | - | ?
+    in    Area        const WorkspaceRectangle&  [-]  ?
+    in    Horizontal  float                      [-]  ?
+    out   -           WorkspaceRectangle         [-]  ?
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+
+F RightOf                | EntryPanel.cpp | 122-132 | - | - | ?
+    in    Area   const WorkspaceRectangle&  [-]  ?
+    in    Width  float                      [-]  ?
+    out   -      WorkspaceRectangle         [-]  ?
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+
+F CentredWithin          | EntryPanel.cpp | 134-144 | - | - | ?
+    in    Area    const WorkspaceRectangle&  [-]  ?
+    in    Width   float                      [-]  ?
+    in    Height  float                      [-]  ?
+    out   -       WorkspaceRectangle         [-]  ?
+    by    Source/AssetPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        THE WALK
+//------------------------------------------------------------------------------------------------------------------------
+
+T SectionWalk            | EntryPanel.cpp | 154-158 | - | - | What one section's walk carries — where it is stacking, and what refused along the way. specification mid-walk is a count the footer reads while it is still growing, and the footer then prints a different number every tick for a panel nobody is touching.
+    has   Travelled  float          [-]  ?
+    has   Refused    std::uint32_t  [-]  ?
+    note  🔴 The refusal count is accumulated here and written back once, after the walk. A count written into the
+
+F RowVisible             | EntryPanel.cpp | 162-165 | - | - | ?
+    in    Body  const WorkspaceRectangle&  [-]  ?
+    in    Row   const WorkspaceRectangle&  [-]  ?
+    out   -     bool                       [-]  ?
+
+F Counted                | EntryPanel.cpp | 167-171 | - | - | ?
+    in    Walk      SectionWalk&                        [-]  ?
+    in    Reported  const Outcome<ControlInteraction>&  [-]  ?
+    out   -         void                                [-]  ?
+    by    Api/ReportSequence.h, Api/RowSequence.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/CodeInterchange.cpp, Source/ConsoleHost.cpp, (+11 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE NUMERIC SECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentNumericSection  | EntryPanel.cpp | 177-241 | - | - | ?
+    in    Theme     const ThemeSpecification&  [-]  ?
+    in    Body      const WorkspaceRectangle&  [-]  ?
+    in    Standing  EntrySpecification&        [-]  ?
+    in    Walk      SectionWalk&               [-]  ?
+    out   -         void                       [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE CHOICE SECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentChoiceSection   | EntryPanel.cpp | 247-309 | - | - | ?
+    in    Theme     const ThemeSpecification&  [-]  ?
+    in    Body      const WorkspaceRectangle&  [-]  ?
+    in    Standing  EntrySpecification&        [-]  ?
+    in    Walk      SectionWalk&               [-]  ?
+    out   -         void                       [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE TEXT SECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentTextSection     | EntryPanel.cpp | 315-345 | - | - | ?
+    in    Theme     const ThemeSpecification&  [-]  ?
+    in    Body      const WorkspaceRectangle&  [-]  ?
+    in    Standing  EntrySpecification&        [-]  ?
+    in    Walk      SectionWalk&               [-]  ?
+    out   -         void                       [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE COLOUR SECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentColourSection   | EntryPanel.cpp | 351-376 | - | - | ?
+    in    Theme     const ThemeSpecification&  [-]  ?
+    in    Body      const WorkspaceRectangle&  [-]  ?
+    in    Standing  EntrySpecification&        [-]  ?
+    in    Walk      SectionWalk&               [-]  ?
+    out   -         void                       [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE CHROME SECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentChromeSection   | EntryPanel.cpp | 382-453 | - | - | ?
+    in    Theme     const ThemeSpecification&  [-]  ?
+    in    Body      const WorkspaceRectangle&  [-]  ?
+    in    Standing  EntrySpecification&        [-]  ?
+    in    Walk      SectionWalk&               [-]  ?
+    out   -         void                       [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE CAROUSEL SECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentCarouselSection | EntryPanel.cpp | 459-543 | - | - | ?
+    in    Theme     const ThemeSpecification&  [-]  ?
+    in    Body      const WorkspaceRectangle&  [-]  ?
+    in    Standing  EntrySpecification&        [-]  ?
+    in    Walk      SectionWalk&               [-]  ?
+    out   -         void                       [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE HEADER BAND
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentHeaderBand      | EntryPanel.cpp | 549-594 | - | - | ?
+    in    Theme     const ThemeSpecification&  [-]  ?
+    in    Band      const WorkspaceRectangle&  [-]  ?
+    in    Standing  EntrySpecification&        [-]  ?
+    out   -         void                       [-]  ?
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE FOOTER BAND
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentFooterBand      | EntryPanel.cpp | 600-639 | - | - | ?
+    in    Theme         const ThemeSpecification&  [-]  ?
+    in    Band          const WorkspaceRectangle&  [-]  ?
+    in    Standing      const EntrySpecification&  [-]  ?
+    in    OpenSections  std::uint32_t              [-]  ?
+    out   -             void                       [-]  ?
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE SECTION EXTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F SectionExtent          | EntryPanel.cpp | 647-673 | - | - | ?
+    in    Extents   const LayoutExtents&       [-]  ?
+    in    Standing  const EntrySpecification&  [-]  ?
+    in    Declared  EntrySection               [-]  ?
+    out   -         float                      [-]  ?
+    by    Api/EntryPanel.h
+
+F PresentedExtent        | EntryPanel.cpp | 675-688 | - | - | ?
+    in    Extents   const LayoutExtents&       [-]  ?
+    in    Standing  const EntrySpecification&  [-]  ?
+    out   -         float                      [-]  ?
+    by    Api/EntryPanel.h
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PRESENTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentEntries         | EntryPanel.cpp | 694-802 | - | - | ?
+    in    Theme     const ThemeSpecification&  [-]  ?
+    in    Area      const WorkspaceRectangle&  [-]  ?
+    in    Standing  EntrySpecification&        [-]  ?
+    out   -         void                       [-]  ?
+    by    Api/EntryPanel.h
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE PANEL ROUTINE
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentEntryPanel      | EntryPanel.cpp | 808-821 | - | - | ?
+    in    Theme           const ThemeSpecification&  [-]  ?
+    in    Area            const WorkspaceRectangle&  [-]  ?
+    in    PresentContext  void*                      [-]  ?
+    out   -               void                       [-]  ?
+    by    Api/EntryPanel.h
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE LEDGER SLOT
+//------------------------------------------------------------------------------------------------------------------------
+
+F ResolveEntrySlot       | EntryPanel.cpp | 827-841 | - | - | ?
+    in    PanelIdentifier  const char*          [-]  ?
+    in    PanelTitle       const char*          [-]  ?
+    in    DeclaredSide     WorkspacePanelSide   [-]  ?
+    in    Standing         EntrySpecification&  [-]  ?
+    out   -                PanelSlot            [-]  ?
+    by    Api/EntryPanel.h, Source/TexturePaintSpecification.cpp

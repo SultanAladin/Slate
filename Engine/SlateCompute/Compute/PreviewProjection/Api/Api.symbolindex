@@ -54,7 +54,7 @@ F ThumbnailDeclared                     | PreviewProjection.h | 71-77   | api,no
 F SLATE_DECLARES_PRECISION              | PreviewProjection.h | 78      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
 
 F PresentedBySource                     | PreviewProjection.h | 83-86   | api,nonallocating,nonthrowing | ✔️ | Whether one content is presented by its source instead — the complement, stated rather than inferred.
     in    Presented  ThumbnailSubject  [-]  ?
@@ -63,7 +63,7 @@ F PresentedBySource                     | PreviewProjection.h | 83-86   | api,no
 F SLATE_DECLARES_PRECISION              | PreviewProjection.h | 87      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
 
 V ThumbnailExtentTexels                 | PreviewProjection.h | 102     | -                             | -  | ?
 
@@ -213,7 +213,7 @@ F PreviewProjection::DeclareExtent      | PreviewProjection.h | 314     | api,no
 
 F PreviewProjection::Standing           | PreviewProjection.h | 322     | api,nonallocating,nonthrowing | ✔️ | The extent as it stands.
     out   -  const SpeculativeExtent&  [-]  ?
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+83 more)
+    by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
 
 F PreviewProjection::ExtentCurrent      | PreviewProjection.h | 329     | api,nonallocating,nonthrowing | ✔️ | Whether the standing extent was resolved in the rotation asking. other rotation is not stale content to refresh — it is content that must not be presented at all.
     in    RotationOrdinal  std::uint64_t  [-]  ?
@@ -229,4 +229,4 @@ F SLATE_DECLARES_PRECISION              | PreviewProjection.h | 349     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

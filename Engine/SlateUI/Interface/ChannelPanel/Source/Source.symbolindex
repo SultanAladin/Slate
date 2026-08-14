@@ -48,25 +48,25 @@ F BandOf                  | ChannelPanel.cpp | 43-46   | - | - | ?
     in    Offset  float                      [-]  ?
     in    Height  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F InsetBy                 | ChannelPanel.cpp | 48-54   | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
     in    Margin  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F LeftOf                  | ChannelPanel.cpp | 56-59   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F RightOf                 | ChannelPanel.cpp | 61-66   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F SquareCentred           | ChannelPanel.cpp | 68-74   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
@@ -94,7 +94,7 @@ F PresentHeaderBand       | ChannelPanel.cpp | 97-131  | - | - | ?
     in    MaterialName  const char*                [-]  ?
     in    Selected      ReflectanceSelection       [-]  ?
     out   -             void                       [-]  ?
-    by    Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
 
 F PresentNoticeBand       | ChannelPanel.cpp | 133-158 | - | - | ?
     in    Theme  const ThemeSpecification&  [-]  ?
@@ -110,7 +110,7 @@ F PresentFooterBand       | ChannelPanel.cpp | 160-177 | - | - | ?
     in    RetainedCount   std::uint32_t              [-]  ?
     in    CutoutEnrolled  bool                       [-]  ?
     out   -               void                       [-]  ?
-    by    Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    ONE CHANNEL ROW

@@ -64,7 +64,7 @@ F CommandSequence::Open               | CommandSequence.h | 81      | api,nonthr
 F CommandSequence::Recording          | CommandSequence.h | 87      | api,nonallocating,nonthrowing | ✔️ | The recording one rotation slot holds, for a document contributing commands to an open slot.
     in    RotationSlot  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an excessive slot or a slot that is not open
-    by    Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, (+10 more)
+    by    Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, (+11 more)
 
 F CommandSequence::Surrender          | CommandSequence.h | 101     | api,nonthrowing               | 🚩 | Closes one rotation slot's recording and surrenders it to the one graphics queue. the device declines the close or the surrender, and DeviceLost when the device was lost; the slot is closed and nothing is destroyed either way — a component clearing an ordering point it does not own is one that clears it at the wrong moment for every other reader of it.
     in    RotationSlot  std::uint32_t             [-]  below `RecordingRotationDepth`

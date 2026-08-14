@@ -1,0 +1,19 @@
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://freetokenfaucet.com/anthropic",
+    "ANTHROPIC_MODEL": "deepseek-v4-flash",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-flash",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-flash",
+    "ANTHROPIC_AUTH_TOKEN": "tf_15b3e54605ae427aabef81a677eb7f12"
+  },
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "model": "sonnet",
+  "effortLevel": "high",
+  "skipWorkflowUsageWarning": true,
+  "skipDangerousModePermissionPrompt": true,
+  "voiceEnabled": true,
+  "theme": "dark"
+}

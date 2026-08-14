@@ -54,6 +54,7 @@ F GeneratedSurface::EmitFace    | PrimitiveStructure.cpp | 72-76   | - | - | ?
     out   -             void           [-]  ?
 
 V Turn                          | PrimitiveStructure.cpp | 79      | - | - | ?
+    by    Api/EntryPanel.h, Source/EntryPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE BOX

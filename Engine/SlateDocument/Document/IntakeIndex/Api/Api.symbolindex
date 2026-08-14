@@ -57,7 +57,7 @@ T IntakeIndex                  | IntakeIndex.h | 61-104 | owning                
 F IntakeIndex::Record          | IntakeIndex.h | 68     | api,nonthrowing               | 🚩 | Records one intake.
     in    Arriving  const IntakeRecord&  [-]  ?
     out   -         void                 [-]  ?
-    by    Api/InputExchange.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+7 more)
+    by    Api/InputExchange.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, (+8 more)
 
 F IntakeIndex::Report          | IntakeIndex.h | 79     | api,nonthrowing               | 🚩 | Appends every unreported assumption to the register. a worker appending here would be correct but would report before the requester had applied the result — so the artist would read about a model that is not yet in their document.
     in    Reporting  ReportSequence&  [-]   where `86` §4's `50` §3 row lands
@@ -74,7 +74,7 @@ F IntakeIndex::Records         | IntakeIndex.h | 84     | api,nonallocating,nont
 F IntakeIndex::Resolve         | IntakeIndex.h | 90     | api,nonthrowing               | 🚩 | The most recent intake of one origin.
     in    OriginPath  const std::string&  [-]  ?
     out   -           Outcome             [-]  refuses with ExtentExhausted when nothing arrived from there
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F IntakeIndex::AssumptionCount | IntakeIndex.h | 95     | api,nonallocating,nonthrowing | ✔️ | How many intakes carried an assumption.
     out   -  std::uint32_t  [-]  ?

@@ -88,7 +88,7 @@ F InputExchange::ArrivalStamp   | InputExchange.h | 108    | api,nonallocating,n
 F InputExchange::Record         | InputExchange.h | 114    | api,nonallocating,nonthrowing | ✔️ | Records one arriving sample against the supplied timeline.
     in    Arriving  const PointerSample&  [-]  the sample as the device reported it
     out   -         void                  [-]  ?
-    by    Api/IntakeIndex.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+7 more)
+    by    Api/IntakeIndex.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, (+8 more)
 
 F InputExchange::Sample         | InputExchange.h | 121    | api,nonallocating,nonthrowing | ✔️ | Reads one held sample in arrival order.
     in    ArrivalOrdinal  std::uint32_t         [-]  zero is the oldest sample still held

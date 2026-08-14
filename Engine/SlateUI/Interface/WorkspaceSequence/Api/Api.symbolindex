@@ -163,7 +163,7 @@ F WorkspaceSequence::ClosureRequested   | WorkspaceSequence.h | 219     | api,no
 F WorkspaceSequence::Theme              | WorkspaceSequence.h | 225     | api,nonallocating,nonthrowing      | ✔️ | The resolved theme every panel of this host reads.
     out   -  const ThemeSpecification&  [-]  ?
     pre   Construct delivered
-    by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/OutlinerPanel.h, Api/PanelIndex.h, (+23 more)
+    by    Api/AssetPanel.h, Api/CanvasPanel.h, Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/EntryPanel.h, (+29 more)
 
 F WorkspaceSequence::Desk               | WorkspaceSequence.h | 230     | api,nonallocating,nonthrowing      | ✔️ | The desk, for a host that seeds a second document or reads what the artist arranged.
     out   -  WorkspaceSpace&  [-]  ?
@@ -197,7 +197,7 @@ F WorkspaceSequence::Timeline           | WorkspaceSequence.h | 253     | api,no
 
 F WorkspaceSequence::Declared           | WorkspaceSequence.h | 258     | api,nonallocating,nonthrowing      | ✔️ | The ledger the standing workspace declared, for the desk and for nothing that retains it.
     out   -  const PanelIndex&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+84 more)
+    by    Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, (+89 more)
 
 F WorkspaceSequence::CompletedRotations | WorkspaceSequence.h | 263     | api,nonallocating,nonthrowing      | ✔️ | How many rotations have completed since bring-up.
     out   -  std::uint64_t  [-]  ?
@@ -223,10 +223,10 @@ F WorkspaceSequence::Record             | WorkspaceSequence.h | 279     | -     
     in    Subject    const char*     [-]  ?
     in    Declining  const Refusal&  [-]  ?
     out   -          void            [-]  ?
-    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+7 more)
+    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, (+8 more)
 
 F SLATE_DECLARES_PRECISION              | WorkspaceSequence.h | 321     | -                                  | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

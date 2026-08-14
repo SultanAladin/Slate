@@ -36,7 +36,7 @@ F Bounded                     | PropertySpecification.cpp | 131-168 | - | - | ?
     in    Declared  const PropertyDeclaration&  [-]  ?
     in    Offered   const PropertyValue&        [-]  ?
     out   -         Outcome<PropertyValue>      [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+77 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+81 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATIONS

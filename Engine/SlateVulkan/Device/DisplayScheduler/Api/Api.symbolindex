@@ -109,7 +109,7 @@ F DisplayScheduler::Present           | DisplayScheduler.h | 169    | api,nonthr
     in    ImageOrdinal  std::uint32_t        [-]  what `Await` delivered
     out   -             Outcome              [-]  refuses with ContentUnsupported for an ordinal `Await` did not deliver, with
     post  the ordinal is the display's again; `Presented` is raised
-    by    Api/PanelIndex.h, Source/DisplayScheduler.cpp, Source/PanelIndex.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSequence.cpp
+    by    Api/PanelIndex.h, Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/DisplayScheduler.cpp, Source/EntryPanel.cpp, Source/PanelIndex.cpp, (+2 more)
     note  🔴 Awaits `RecordingDone` and never the completion. The completion is the host's fence and waiting
     note  ⚠️ Reports the chain outgrown as a delivered outcome with `Reclaimed`, not as a refusal. The image
 
@@ -137,7 +137,7 @@ F DisplayScheduler::PacedInterval     | DisplayScheduler.h | 197    | api,nonall
 
 F DisplayScheduler::Presented         | DisplayScheduler.h | 202    | api,nonallocating,nonthrowing | ✔️ | How many images have been surrendered to the display since the chain was established.
     out   -  std::uint64_t  [-]  ?
-    by    Api/DocumentSession.h, Api/OverlayProjection.h, Api/PreviewProjection.h, Api/PropertySpecification.h, Api/ToolSequence.h, Source/ConsoleHost.cpp, (+11 more)
+    by    Api/DocumentSession.h, Api/OverlayProjection.h, Api/PreviewProjection.h, Api/PropertySpecification.h, Api/ToolSequence.h, Source/AssetPanel.cpp, (+13 more)
 
 F DisplayScheduler::Surrender         | DisplayScheduler.h | 210    | api,nonthrowing               | 🚩 | Destroys every view and the chain, and forgets the extent it stood at. that destroyed the surface it was established against would reclaim what it borrowed.
     out   -  void  [-]  ?

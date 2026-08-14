@@ -97,13 +97,13 @@ F HardwareMetrics::Resolve            | HardwareMetrics.h | 142     | api,nonthr
     in    CompletedCount  std::uint64_t  [-]  which rotation the readings belong to, for the lag the reading carries
     out   -               Outcome        [-]  refuses with ContentUnsupported for an excessive slot, HostDenied when the
     pre   🔴 the rotation that recorded into this slot has completed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
     note  ⚠️ A span the rotation declared but never recorded reads unavailable rather than zero. That is the
 
 F HardwareMetrics::Standing           | HardwareMetrics.h | 150     | api,nonthrowing               | ✔️ | One declared span's last resolved reading. member says it was declared and has no reading — two different facts, and `86` presents both.
     in    SpanOrdinal  std::uint32_t  [-]  ?
     out   -            Outcome        [-]  refuses with ContentUnsupported for an undeclared ordinal
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+83 more)
+    by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
     note  The delivered span may itself read unavailable. The refusal says the span was never declared; the
 
 F HardwareMetrics::Report             | HardwareMetrics.h | 160     | api,nonthrowing               | 🚩 | Declares every resolved reading into the register the tick samples. span and nothing at all is declared for an unavailable one, so `MeasureIndex::Resolve` refuses rather than reading zero, which is `08` §5 enforced at the presentation rather than promised.

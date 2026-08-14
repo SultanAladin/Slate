@@ -79,7 +79,7 @@ F PresentBooleanEntry     | ControlChoice.cpp  | 63-100  | - | - | ?
     in    Caption  const char*                  [-]  ?
     in    Carried  bool&                        [-]  ?
     out   -        Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h, Source/PropertyPanel.cpp
+    by    Api/ControlPanel.h, Source/EntryPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE SELECTION ENTRY
@@ -93,7 +93,7 @@ F PresentSelectionEntry   | ControlChoice.cpp  | 107-181 | - | - | ?
     in    ChoiceCount     std::uint32_t                [-]  ?
     in    CarriedOrdinal  std::uint32_t&               [-]  ?
     out   -               Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h
+    by    Api/ControlPanel.h, Source/EntryPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE DROPDOWN
@@ -108,7 +108,7 @@ F PresentDropdown         | ControlChoice.cpp  | 188-325 | - | - | ?
     in    Carry           DropdownCarry&               [-]  ?
     in    PresentedTick   std::uint32_t                [-]  ?
     out   -               Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h, Source/PropertyPanel.cpp
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/EntryPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE SEGMENT ROW
@@ -121,7 +121,7 @@ F PresentSegmentRow       | ControlChoice.cpp  | 332-408 | - | - | ?
     in    Carried       bool*                        [-]  ?
     in    SegmentCount  std::uint32_t                [-]  ?
     out   -             Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/EntryPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE COLOUR ENTRY
@@ -134,7 +134,7 @@ F PresentColourEntry      | ControlChrome.cpp  | 37-176  | - | - | ?
     in    Carried     ThemeColour&                 [-]  ?
     in    PickerOpen  bool&                        [-]  ?
     out   -           Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
+    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE MENU PILL
@@ -146,7 +146,7 @@ F PresentMenuPill         | ControlChrome.cpp  | 183-204 | - | - | ?
     in    Caption      const char*                  [-]  ?
     in    Highlighted  bool                         [-]  ?
     out   -            Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h, Source/DiagnosticPanel.cpp, Source/RevisionPanel.cpp
+    by    Api/ControlPanel.h, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp, Source/RevisionPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE GLYPH BUTTON
@@ -159,7 +159,7 @@ F PresentGlyphButton      | ControlChrome.cpp  | 211-256 | - | - | ?
     in    DepotSlot    std::uint64_t                [-]  ?
     in    Highlighted  bool                         [-]  ?
     out   -            Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/EntryPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE SECTION HEADER
@@ -172,7 +172,7 @@ F PresentSectionHeader    | ControlChrome.cpp  | 263-323 | - | - | ?
     in    SectionOpen  bool&                        [-]  ?
     in    Trailing     const char*                  [-]  ?
     out   -            Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp
+    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE CONTENT CAROUSEL
@@ -183,7 +183,7 @@ F AdvanceContentCarousel  | ControlChrome.cpp  | 330-378 | - | - | ?
     in    Carry            CarouselCarry&             [-]  ?
     in    ElapsedInterval  float                      [-]  ?
     out   -                Outcome<float>             [-]  ?
-    by    Api/ControlPanel.h
+    by    Api/ControlPanel.h, Source/EntryPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE PAINTING SEAM
@@ -194,7 +194,7 @@ F PresentSurfaceFill      | ControlChrome.cpp  | 385-397 | - | - | ?
     in    Colour    const ThemeColour&         [-]  ?
     in    Rounding  float                      [-]  ?
     out   -         void                       [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, (+3 more)
 
 F PresentSurfaceOutline   | ControlChrome.cpp  | 399-414 | - | - | ?
     in    Area       const WorkspaceRectangle&  [-]  ?
@@ -202,7 +202,7 @@ F PresentSurfaceOutline   | ControlChrome.cpp  | 399-414 | - | - | ?
     in    Rounding   float                      [-]  ?
     in    Thickness  float                      [-]  ?
     out   -          void                       [-]  ?
-    by    Api/ControlPanel.h, Source/LayerPanel.cpp, Source/RevisionPanel.cpp
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/LayerPanel.cpp, Source/RevisionPanel.cpp
 
 F PresentTextRun          | ControlChrome.cpp  | 416-448 | - | - | ?
     in    Area       const WorkspaceRectangle&  [-]  ?
@@ -211,16 +211,16 @@ F PresentTextRun          | ControlChrome.cpp  | 416-448 | - | - | ?
     in    Placement  TextPlacement              [-]  ?
     in    FontScale  float                      [-]  ?
     out   -          void                       [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, (+3 more)
 
 F DeclareClip             | ControlChrome.cpp  | 450-454 | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     void                       [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, (+3 more)
 
 F ReclaimClip             | ControlChrome.cpp  | 456-459 | - | - | ?
     out   -  void  [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, (+3 more)
 
 F MeasuredTextExtent      | ControlChrome.cpp  | 461-469 | - | - | ?
     in    Text       const char*  [-]  ?
@@ -235,24 +235,24 @@ F MeasuredTextExtent      | ControlChrome.cpp  | 461-469 | - | - | ?
 F ResolveAreaPress        | ControlChrome.cpp  | 479-482 | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ControlInteraction         [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F ResolvePointerPosition  | ControlChrome.cpp  | 484-490 | - | - | ?
     in    PositionX  float&  [-]  ?
     in    PositionY  float&  [-]  ?
     out   -          void    [-]  ?
-    by    Api/ControlPanel.h, Source/LayerPanel.cpp
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/LayerPanel.cpp
 
 F PointerHeld             | ControlChrome.cpp  | 492-495 | - | - | ?
     out   -  bool  [-]  ?
-    by    Api/ControlPanel.h, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F AdvanceVisibleOffset    | ControlChrome.cpp  | 497-508 | - | - | ?
     in    Carried        float&                     [-]  ?
     in    Area           const WorkspaceRectangle&  [-]  ?
     in    ContentExtent  float                      [-]  ?
     out   -              Outcome<float>             [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, (+3 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   CODES AND GEOMETRY
@@ -261,28 +261,28 @@ F AdvanceVisibleOffset    | ControlChrome.cpp  | 497-508 | - | - | ?
 F Coded                   | ControlInterior.h  | 30      | - | - | ?
     in    Colour  const ThemeColour&  [-]  ?
     out   -       ImU32               [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+2 more)
+    by    Source/CanvasPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+3 more)
 
 F Corner                  | ControlInterior.h  | 31      | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, (+11 more)
+    by    Source/CanvasPanel.cpp, Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/DecalProjection.cpp, (+12 more)
 
 F Opposite                | ControlInterior.h  | 32      | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+2 more)
+    by    Source/CanvasPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+3 more)
 
 F Centre                  | ControlInterior.h  | 33      | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Api/WorkspaceSpace.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/ControlLayout.cpp, Source/OcclusionProjection.cpp, Source/PrimitiveStructure.cpp, (+2 more)
+    by    Api/WorkspaceSpace.h, Source/CameraProjection.cpp, Source/CanvasPanel.cpp, Source/ConsoleHost.cpp, Source/ControlLayout.cpp, Source/OcclusionProjection.cpp, (+3 more)
 
 F Inset                   | ControlInterior.h  | 35      | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
     in    Margin  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/RevisionPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/RevisionPanel.cpp
 
 F CentredBand             | ControlInterior.h  | 36      | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
@@ -311,28 +311,28 @@ F SquareIn                | ControlInterior.h  | 39      | - | - | ?
 F Coded                   | ControlLayout.cpp  | 20-23   | - | - | ?
     in    Colour  const ThemeColour&  [-]  ?
     out   -       ImU32               [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+2 more)
+    by    Source/CanvasPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+3 more)
 
 F Corner                  | ControlLayout.cpp  | 25-28   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/DecalProjection.cpp, Source/OcclusionProjection.cpp, (+11 more)
+    by    Source/CanvasPanel.cpp, Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/DecalProjection.cpp, (+12 more)
 
 F Opposite                | ControlLayout.cpp  | 30-33   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, (+2 more)
+    by    Source/CanvasPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+3 more)
 
 F Centre                  | ControlLayout.cpp  | 35-38   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Api/WorkspaceSpace.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/ControlInterior.h, Source/OcclusionProjection.cpp, Source/PrimitiveStructure.cpp, (+2 more)
+    by    Api/WorkspaceSpace.h, Source/CameraProjection.cpp, Source/CanvasPanel.cpp, Source/ConsoleHost.cpp, Source/ControlInterior.h, Source/OcclusionProjection.cpp, (+3 more)
 
 F Inset                   | ControlLayout.cpp  | 40-53   | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
     in    Margin  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/RevisionPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/RevisionPanel.cpp
 
 F CentredBand             | ControlLayout.cpp  | 55-63   | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
@@ -451,7 +451,7 @@ F PaintTrack              | ControlLayout.cpp  | 194-228 | - | - | ?
 
 F Recording               | ControlInterior.h  | 97      | - | - | ?
     out   -  ImDrawList*  [-]  ?
-    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, (+10 more)
+    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, (+11 more)
 
 F PaintFill               | ControlInterior.h  | 99      | - | - | ?
     in    Area      const WorkspaceRectangle&  [-]  ?
@@ -494,7 +494,7 @@ F Bounded                 | ControlInterior.h  | 116     | - | - | One reading b
     in    Floor    double  [-]  ?
     in    Ceiling  double  [-]  ?
     out   -        double  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+77 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+81 more)
 
 F PrintReading            | ControlInterior.h  | 122     | - | - | One reading printed to the declared number of decimals, into a caller-owned buffer. not a second authority over it; rounding the carry to what is shown loses precision the artist never asked to lose.
     in    Destination        char*          [-]  ?
@@ -518,7 +518,7 @@ F PaintValueBox           | ControlInterior.h  | 127     | - | - | The value box
 
 F Recording               | ControlLayout.cpp  | 237-240 | - | - | ?
     out   -  ImDrawList*  [-]  ?
-    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, (+10 more)
+    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, (+11 more)
 
 F PaintFill               | ControlLayout.cpp  | 242-253 | - | - | ?
     in    Area      const WorkspaceRectangle&  [-]  ?
@@ -558,7 +558,7 @@ F Bounded                 | ControlLayout.cpp  | 298-301 | - | - | ?
     in    Floor    double  [-]  ?
     in    Ceiling  double  [-]  ?
     out   -        double  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+77 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+81 more)
 
 F PrintReading            | ControlLayout.cpp  | 303-311 | - | - | ?
     in    Destination        char*          [-]  ?
@@ -630,7 +630,7 @@ F PresentControlStroke    | ControlLayout.cpp  | 455-618 | - | - | ?
     in    Thickness  float                      [-]  ?
     in    Rotation   float                      [-]  ?
     out   -          void                       [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, (+2 more)
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/LayerPanel.cpp, (+3 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE VALUE SLIDER
@@ -646,7 +646,7 @@ F PresentValueSlider      | ControlNumeric.cpp | 24-88   | - | - | ?
     in    Unit      const char*                  [-]  ?
     in    Decimals  std::uint32_t                [-]  ?
     out   -         Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
+    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE SCALAR ENTRY
@@ -661,7 +661,7 @@ F PresentScalarEntry      | ControlNumeric.cpp | 95-148  | - | - | ?
     in    Unit      const char*                  [-]  ?
     in    Decimals  std::uint32_t                [-]  ?
     out   -         Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h, Source/PropertyPanel.cpp
+    by    Api/ControlPanel.h, Source/EntryPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE VECTOR ENTRY
@@ -675,7 +675,7 @@ F PresentVectorEntry      | ControlNumeric.cpp | 155-215 | - | - | ?
     in    Step      double                       [-]  ?
     in    Decimals  std::uint32_t                [-]  ?
     out   -         Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h
+    by    Api/ControlPanel.h, Source/EntryPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE CARET ACCUMULATOR
@@ -729,7 +729,7 @@ F PresentTextEntry        | ControlText.cpp    | 235-273 | - | - | ?
     in    Carry        TextCarry&                   [-]  ?
     in    Placeholder  const char*                  [-]  ?
     out   -            Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
+    by    Api/ControlPanel.h, Source/AssetPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE INLINE TEXT EDITOR
@@ -753,4 +753,4 @@ F PresentPathEntry        | ControlText.cpp    | 357-431 | - | - | ?
     in    Carry           TextCarry&                   [-]  ?
     in    BrowseDeclared  bool&                        [-]  ?
     out   -               Outcome<ControlInteraction>  [-]  ?
-    by    Api/ControlPanel.h
+    by    Api/ControlPanel.h, Source/EntryPanel.cpp

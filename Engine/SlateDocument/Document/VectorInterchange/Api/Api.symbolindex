@@ -94,7 +94,7 @@ F VectorInterchange::Refuse              | VectorInterchange.h | 120     | api,n
     in    SourceOrdinal  std::uint32_t       [-]  ?
     in    Declining      const Refusal&      [-]  ?
     out   -              void                [-]  ?
-    by    Api/SpectralProjection.h, Api/WorkspaceSpace.h, Contract/OutcomeContract.h, Source/AnalyticProjection.cpp, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+102 more)
+    by    Api/SpectralProjection.h, Api/WorkspaceSpace.h, Contract/OutcomeContract.h, Source/AnalyticProjection.cpp, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+103 more)
 
 F VectorInterchange::Flatten             | VectorInterchange.h | 134     | api,nonthrowing | 🔴 | Flattens every path at a tolerance the caller supplies, into one run per path. outline at whatever level a tile was promoted to, so a fixed tolerance is either wasteful at coarse levels or visibly polygonal at fine ones. `CurveSolver` is Bounded, so flattening twice would give two polylines agreeing to a tolerance and differing in their last bit — and an Exact predicate over two different inputs is exact about the wrong thing.
     in    Tolerance  double     [-]  greatest permitted deviation, in the outline's own space
@@ -115,7 +115,7 @@ F VectorInterchange::Classify            | VectorInterchange.h | 148     | api,n
 
 F VectorInterchange::Declared            | VectorInterchange.h | 152     | -               | -  | ?
     out   -  const OutlineSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+84 more)
+    by    Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, (+89 more)
 
 F VectorInterchange::Refusals            | VectorInterchange.h | 153     | -               | -  | ?
     out   -  const std::vector<RefusedConstruct>&  [-]  ?

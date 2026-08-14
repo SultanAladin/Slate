@@ -59,14 +59,14 @@ F Resolve                                         | AtmosphereIntegrator.h | 87 
     in    Working   const ColourSpaceSpecification&  [-]  the space the coefficients are expressed in
     in    Rule      const QuadratureRule&            [-]  a derived rule, integrated over the declared wavelength interval
     out   -         Outcome                          [-]  carries the medium's own refusal, and `02` §5's where the projection declines
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+97 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+100 more)
     note  📐 The Rayleigh coefficient is **derived** from the medium's refractive index, molecular concentration
     note  📝 The ozone absorption is a **fit to measured absorption** rather than a derivation, unlike Rayleigh.
 
 F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 90      | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/CanvasPanel.h, (+56 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ONE RESIDENT SURFACE
@@ -357,4 +357,4 @@ F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 385
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/CanvasPanel.h, (+56 more)

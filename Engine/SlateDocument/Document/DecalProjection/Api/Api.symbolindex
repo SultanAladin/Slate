@@ -86,7 +86,7 @@ F ProjectPlacementExtent             | DecalProjection.h | 128     | api,nonthro
 F SLATE_DECLARES_PRECISION           | DecalProjection.h | 136     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
 
 F ProjectIntoSource                  | DecalProjection.h | 154     | api,nonallocating,nonthrowing | ✔️ | Carries one domain position into a placement's own source space. it is a transform into a source space, and the source is then one of the other three. That is why text, imagery, vector content and tiling all place identically and why `70` needs no per-source placement path. the scale reciprocated rather than a matrix being inverted, because `02` §3.1 keeps a transform decomposed and a general inversion would reintroduce the drift the decomposition exists to avoid.
     in    Placed          const PlacementSpecification&  [-]  the placement
@@ -132,7 +132,7 @@ F PlacementIndex::Amend              | DecalProjection.h | 197     | api,nonthro
 F PlacementIndex::Resolve            | DecalProjection.h | 203     | api,nonthrowing               | ✔️ | One declared placement.
     in    PlacementOrdinal  std::uint32_t  [-]  ?
     out   -                 Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+100 more)
 
 F PlacementIndex::Withdraw           | DecalProjection.h | 211     | api,nonthrowing               | ✔️ | Withdraws one placement, returning its slot for reuse. is enclosed under the occupant it is attached to — `00` §10.1 ③ — so it retires with that occupant rather than surviving it as an orphaned reference `56` still names.
     in    PlacementOrdinal  std::uint32_t  [-]  ?
@@ -212,4 +212,4 @@ F SLATE_DECLARES_PRECISION           | DecalProjection.h | 310     | -          
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

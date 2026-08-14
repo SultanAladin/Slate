@@ -40,25 +40,25 @@ F BandOf                   | PropertyPanel.cpp | 28-31   | - | - | ?
     in    Offset  float                      [-]  ?
     in    Height  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F InsetBy                  | PropertyPanel.cpp | 33-39   | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
     in    Margin  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F LeftOf                   | PropertyPanel.cpp | 41-44   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F RightOf                  | PropertyPanel.cpp | 46-51   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F SquareCentred            | PropertyPanel.cpp | 53-59   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
@@ -92,7 +92,7 @@ F PresentHeaderBand        | PropertyPanel.cpp | 108-144 | - | - | ?
     in    Band           const WorkspaceRectangle&  [-]  ?
     in    DeclaredCount  std::uint32_t              [-]  ?
     out   -              void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, (+1 more)
 
 F PresentNoticeBand        | PropertyPanel.cpp | 146-168 | - | - | ?
     in    Theme  const ThemeSpecification&  [-]  ?
@@ -107,7 +107,7 @@ F PresentFooterBand        | PropertyPanel.cpp | 170-186 | - | - | ?
     in    DeclaredCount  std::uint32_t              [-]  ?
     in    WrittenCount   std::uint32_t              [-]  ?
     out   -              void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ONE ROW

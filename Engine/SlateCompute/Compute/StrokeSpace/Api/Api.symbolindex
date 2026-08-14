@@ -56,7 +56,7 @@ F StrokeSpace::Claim             | StrokeSpace.h | 72     | api,nonthrowing     
 F StrokeSpace::Located           | StrokeSpace.h | 78     | api,nonthrowing               | ✔️ | The tile backing one cell, if one is claimed.
     in    CellOrdinal  std::uint32_t  [-]  ?
     out   -            Outcome        [-]  refuses with ExtentExhausted when the cell is untouched
-    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+26 more)
+    by    Api/DocumentSession.h, Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, (+28 more)
 
 F StrokeSpace::Accumulate        | StrokeSpace.h | 89     | api,nonallocating,nonthrowing | ✔️ | Accumulates one impression's coverage at one texel of one claimed tile. impressions overlap, and the excess is invisible in the accumulation and abrupt at the apply.
     in    TileOrdinal  std::uint32_t  [-]   as `Claim` delivered it
@@ -72,7 +72,7 @@ F StrokeSpace::Coverage          | StrokeSpace.h | 94     | api,nonallocating,no
     in    Along        std::uint32_t  [-]  ?
     in    Across       std::uint32_t  [-]  ?
     out   -            double         [-]  ?
-    by    Api/AnalyticProjection.h, Api/SurfaceLayerSequence.h, Api/ThemeSpecification.h, Api/TransmissionSequence.h, Source/AnalyticProjection.cpp, Source/ChannelPanel.cpp, (+8 more)
+    by    Api/AnalyticProjection.h, Api/EntryPanel.h, Api/SurfaceLayerSequence.h, Api/ThemeSpecification.h, Api/TransmissionSequence.h, Source/AnalyticProjection.cpp, (+10 more)
 
 F StrokeSpace::TouchedCells      | StrokeSpace.h | 99     | api,nonallocating,nonthrowing | ✔️ | The cells this stroke has touched, in claim order.
     out   -  const std::vector<std::uint32_t>&  [-]  ?

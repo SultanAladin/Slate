@@ -215,7 +215,7 @@ F BrushSpecification::Resolve            | BrushSpecification.h | 293     | api,
     in    ImpressionOrdinal  std::uint32_t        [-]  the impression's position within the stroke
     in    StrokeSeed         std::uint32_t        [-]  recorded with the transaction — `58` §6
     out   -                  Resolved             [-]  extent, rotation, strength, spacing and displacement
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+100 more)
     note  🔴 The variation reads `02` §6's shared permutation at Tier A, so the sequence `82` previews with
     note  🔴 An absent axis takes its dynamic's declared fallback. Reading zero would make a pressure brush
 
@@ -247,7 +247,7 @@ F BrushSpecification::Dynamics           | BrushSpecification.h | 306     | -   
 
 F BrushSpecification::Extent             | BrushSpecification.h | 308     | -                             | -  | ?
     out   -  double  [-]  ?
-    by    Api/DisplayScheduler.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/OcclusionProjection.h, Api/PartitionStructure.h, Api/SpanSpace.h, (+25 more)
+    by    Api/AssetPanel.h, Api/DisplayScheduler.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/OcclusionProjection.h, Api/PartitionStructure.h, (+28 more)
 
 F BrushSpecification::Combination        | BrushSpecification.h | 309     | -                             | -  | ?
     out   -  CombineSpecification  [-]  ?
@@ -256,7 +256,7 @@ F BrushSpecification::Combination        | BrushSpecification.h | 309     | -   
 F BrushSpecification::ChannelDeclared    | BrushSpecification.h | 314     | api,nonthrowing               | 🚩 | Whether the brush writes one of `42`'s channels.
     in    Channel  ChannelSubject  [-]  ?
     out   -        bool            [-]  ?
-    by    Api/MaterialSpecification.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, Source/MaterialSpecification.cpp
+    by    Api/EntryPanel.h, Api/MaterialSpecification.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/MaterialSpecification.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE BRUSHES
@@ -280,7 +280,7 @@ F BrushIndex::Declare                    | BrushSpecification.h | 347     | api,
 F BrushIndex::Resolve                    | BrushSpecification.h | 349     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t                       [-]  ?
     out   -             Outcome<const BrushSpecification*>  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+100 more)
 
 F BrushIndex::Amend                      | BrushSpecification.h | 350     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t                 [-]  ?
@@ -326,4 +326,4 @@ F SLATE_DECLARES_PRECISION               | BrushSpecification.h | 394     | -   
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/CameraProjection.h, Api/CanvasPanel.h, (+56 more)

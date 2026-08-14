@@ -96,7 +96,7 @@ F BoundingStructure::IntersectRay   | SpatialSubdivision.h | 108     | api,nonth
 
 F BoundingStructure::Extent         | SpatialSubdivision.h | 117     | api,nonallocating,nonthrowing | ✔️ | The whole structure's extent, in object space.
     out   -  ConditionedExtent  [-]  ?
-    by    Api/BrushSpecification.h, Api/DisplayScheduler.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/OcclusionProjection.h, Api/PartitionStructure.h, (+25 more)
+    by    Api/AssetPanel.h, Api/BrushSpecification.h, Api/DisplayScheduler.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/OcclusionProjection.h, (+28 more)
 
 F BoundingStructure::RecordCount    | SpatialSubdivision.h | 119     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -181,7 +181,7 @@ F OctantSpace::Refit                | SpatialSubdivision.h | 207     | api,nonth
 F OctantSpace::Standing             | SpatialSubdivision.h | 213     | api,nonthrowing               | 🚩 | Surrenders one admitted occupant's standing record.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant is not admitted
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+83 more)
+    by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
 
 F OctantSpace::Construct            | SpatialSubdivision.h | 219     | api,nonthrowing               | 🔴 | Rebuilds the subdivision's shape over every admitted occupant.
     out   -  Outcome<bool>  [-]  ?
@@ -235,7 +235,7 @@ T OctantSpace::OctantRecord         | SpatialSubdivision.h | 266-272 | -        
 F OctantSpace::Located              | SpatialSubdivision.h | 274     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::size_t       [-]  ?
-    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+26 more)
+    by    Api/DocumentSession.h, Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, (+28 more)
 
 F OctantSpace::Divide               | SpatialSubdivision.h | 275     | -                             | -  | ?
     in    RecordOrdinal  std::uint32_t  [-]  ?
@@ -288,7 +288,7 @@ F AxisSpace::Resolve                | SpatialSubdivision.h | 334     | api,nonth
     in    PositionAlong   double   [-]  ?
     in    PositionAcross  double   [-]  ?
     out   -               Outcome  [-]  refuses with ExtentExhausted when no placement contains it
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F AxisSpace::Overlapping            | SpatialSubdivision.h | 339     | api,nonthrowing               | 🚩 | Every placement whose extent overlaps a domain extent.
     in    Extent  DomainExtent                [-]  ?
@@ -303,4 +303,4 @@ F SLATE_DECLARES_PRECISION          | SpatialSubdivision.h | 350     | -        
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

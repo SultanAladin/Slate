@@ -1094,6 +1094,11 @@ struct DeploymentReport
 /// note  ⚠️ A display extent that cannot carry the band and the strip leaves the desk zero height rather than a
 ///        negative one. A negative extent inverts every coverage test, and a minimised window would then resolve
 ///        the pointer against rectangles the artist cannot see.
+/// note  🔴 A single registered workspace is presented with **no roster row**, and the desk takes the display's
+///        first row instead. One trapezoid that cannot be switched away from is a readout, not a strip, and stacking
+///        it above the desk leaf's own document strip reads as a workspace nested inside a workspace. The reported
+///        choice is `AbsentWorkspaceChoice` on every such tick, which is what a caller already handles — there is
+///        nothing to switch to below two entries.
 /// cost  🔴
 /// tag   api, nonthrowing
 DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,

@@ -23,7 +23,7 @@ S OutlinerPanel.cpp | 624 lines | de3190d1 | 22 sym | The counted span presented
 //------------------------------------------------------------------------------------------------------------------------
 
 V RowHeight            | OutlinerPanel.cpp | 27      | - | - | ?
-    by    Api/ThemeSpecification.h, Source/ThemeSpecification.cpp
+    by    Api/ThemeSpecification.h, Source/AssetPanel.cpp, Source/ThemeSpecification.cpp
 
 V IndentStep           | OutlinerPanel.cpp | 28      | - | - | ?
 
@@ -48,31 +48,31 @@ F BandOf               | OutlinerPanel.cpp | 41-44   | - | - | ?
     in    Offset  float                      [-]  ?
     in    Height  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
 
 F InsetBy              | OutlinerPanel.cpp | 46-52   | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
     in    Margin  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
 
 F LeftOf               | OutlinerPanel.cpp | 54-57   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
 
 F RightOf              | OutlinerPanel.cpp | 59-64   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
 
 F AfterLeft            | OutlinerPanel.cpp | 66-71   | - | - | ?
     in    Area      const WorkspaceRectangle&  [-]  ?
     in    Consumed  float                      [-]  ?
     out   -         WorkspaceRectangle         [-]  ?
-    by    Source/LayerPanel.cpp
+    by    Source/AssetPanel.cpp, Source/LayerPanel.cpp
 
 F SquareCentred        | OutlinerPanel.cpp | 73-79   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
@@ -114,7 +114,7 @@ F PresentHeaderBand    | OutlinerPanel.cpp | 134-168 | - | - | ?
     in    Band          const WorkspaceRectangle&  [-]  ?
     in    CountedTotal  std::uint32_t              [-]  ?
     out   -             void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
 
 F PresentToolbarBand   | OutlinerPanel.cpp | 171-213 | - | - | ?
     in    Theme     const ThemeSpecification&  [-]  ?
@@ -131,7 +131,7 @@ F PresentFooterBand    | OutlinerPanel.cpp | 215-231 | - | - | ?
     in    SelectedCount  std::uint32_t              [-]  ?
     in    ExcludedCount  std::uint32_t              [-]  ?
     out   -              void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ONE ROW

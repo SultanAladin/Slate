@@ -17,7 +17,7 @@
 //------------------------------------------------------------------------------------------------------------------------
 
 S PanelIndex.h     | 111 lines  | 8abf89c8 | 8 sym  | The slot ledger a workspace fills at activation and the desk walks each tick — the host names no concrete panel.
-S WorkspaceSpace.h | 1113 lines | 7436ac41 | 71 sym | The recursive partition of the desk — leaves holding ordered occupants, partitions holding two links and a draggable gutter.
+S WorkspaceSpace.h | 1118 lines | f12ed074 | 71 sym | The recursive partition of the desk — leaves holding ordered occupants, partitions holding two links and a draggable gutter.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   ONE DECLARED PANEL
@@ -33,7 +33,7 @@ T PanelSlot                      | PanelIndex.h     | 45-52     | contract,nonal
     has   DeclaredSide     WorkspacePanelSide   [-]  ?
     has   Present          PanelPresentRoutine  [-]  ?
     has   PresentContext   void*                [-]  ?
-    by    Source/PanelIndex.cpp, Source/TexturePaintSpecification.cpp, Source/WorkspacePanel.cpp
+    by    Api/AssetPanel.h, Api/CanvasPanel.h, Api/EntryPanel.h, Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/EntryPanel.cpp, (+3 more)
     note  🔴 The context is the workspace's own storage and this ledger never owns it. A slot that owned what its
     note  ⚠️ Both text pointers name static storage. Nothing here is copied, so a declaration built from a local
 
@@ -127,14 +127,14 @@ T WorkspaceRectangle             | WorkspaceSpace.h | 78-84     | nonallocating,
     has   PositionY  float  [-]  ?
     has   Width      float  [-]  ?
     has   Height     float  [-]  ?
-    by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/OutlinerPanel.h, Api/PanelIndex.h, (+22 more)
+    by    Api/AssetPanel.h, Api/CanvasPanel.h, Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/EntryPanel.h, (+28 more)
 
 F RectangleCovers                | WorkspaceSpace.h | 89-93     | api,nonallocating,nonthrowing      | ✔️ | Whether a point lies inside a rectangle, edges included.
     in    Area       const WorkspaceRectangle&  [-]  ?
     in    PositionX  float                      [-]  ?
     in    PositionY  float                      [-]  ?
     out   -          constexpr bool             [-]  ?
-    by    Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/DiagnosticPanel.cpp, Source/RevisionPanel.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+3 more)
+    by    Source/CanvasPanel.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/DiagnosticPanel.cpp, Source/RevisionPanel.cpp, Source/WorkspaceBracket.cpp, (+4 more)
 
 E WorkspacePartitionAxis         | WorkspaceSpace.h | 99-103    | contract                           | -  | Which way a partition divides the area it was handed. horizontal gutter. The gutter is part of the partition and not of either link.
     has   Row     WorkspacePartitionAxis  [-]  ?
@@ -246,7 +246,7 @@ E WorkspacePanelSide             | WorkspaceSpace.h | 481-489   | contract      
     has   Top       WorkspacePanelSide  [-]  ?
     has   Bottom    WorkspacePanelSide  [-]  ?
     has   Centre    WorkspacePanelSide  [-]  ?
-    by    Api/PanelIndex.h, Source/PanelIndex.cpp, Source/TexturePaintSpecification.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
+    by    Api/AssetPanel.h, Api/EntryPanel.h, Api/PanelIndex.h, Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/EntryPanel.cpp, (+5 more)
     note  The four docked sides reserve a band: Left and Right take a full-height column, Top and Bottom take a row
 
 V PanelEdgeLeft                  | WorkspaceSpace.h | 494       | -                                  | -  | ?
@@ -684,7 +684,7 @@ T DeploymentReport               | WorkspaceSpace.h | 1072-1077 | contract,nonal
     has   DeskArea         WorkspaceRectangle  [-]  ?
     by    Source/WorkspaceBracket.cpp, Source/WorkspaceSequence.cpp
 
-F PresentDeploymentBracket       | WorkspaceSpace.h | 1099      | api,nonthrowing                    | 🔴 | The one presentation call an application makes per tick — workspace strip, desk, bottom band. the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would clip the trapezoids that overhang their own strip. negative one. A negative extent inverts every coverage test, and a minimised window would then resolve the pointer against rectangles the artist cannot see.
+F PresentDeploymentBracket       | WorkspaceSpace.h | 1104      | api,nonthrowing                    | 🔴 | The one presentation call an application makes per tick — workspace strip, desk, bottom band. the foreground list because a trapezoid cannot be a vendor tab, and a vendor window over the desk would clip the trapezoids that overhang their own strip. negative one. A negative extent inverts every coverage test, and a minimised window would then resolve the pointer against rectangles the artist cannot see. first row instead. One trapezoid that cannot be switched away from is a readout, not a strip, and stacking it above the desk leaf's own document strip reads as a workspace nested inside a workspace. The reported choice is `AbsentWorkspaceChoice` on every such tick, which is what a caller already handles — there is nothing to switch to below two entries.
     in    Theme              const ThemeSpecification&  [-]   the resolved theme; `Enforce` is applied once here and never per panel
     in    Space              WorkspaceSpace&            [-]   the desk, amended in place
     in    Panels             const PanelIndex*          [-]   the active workspace's ledger, or null where none is declared
@@ -699,9 +699,10 @@ F PresentDeploymentBracket       | WorkspaceSpace.h | 1099      | api,nonthrowin
     by    Source/WorkspaceBracket.cpp, Source/WorkspaceSequence.cpp
     note  🔴 Nothing here opens a vendor window and the desk is **not** wrapped in one. Every quad is recorded on
     note  ⚠️ A display extent that cannot carry the band and the strip leaves the desk zero height rather than a
+    note  🔴 A single registered workspace is presented with **no roster row**, and the desk takes the display's
 
-F SLATE_DECLARES_PRECISION       | WorkspaceSpace.h | 1111      | -                                  | -  | ?
+F SLATE_DECLARES_PRECISION       | WorkspaceSpace.h | 1116      | -                                  | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)

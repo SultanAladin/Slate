@@ -91,7 +91,7 @@ F AttachmentIndex::Derive           | AttachmentIndex.h | 123     | api,nonthrow
 F AttachmentIndex::Resolve          | AttachmentIndex.h | 131     | api,nonallocating,nonthrowing | ✔️ | The construct and the span one ordinal names, for the recording that opens it. with ExtentExhausted before Derive has covered it
     in    ConstructOrdinal  std::uint32_t  [-]  an ordinal this component issued
     out   -                 Outcome        [-]  refuses with ContentUnsupported for an ordinal naming no construct, and
-    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+100 more)
 
 F AttachmentIndex::ConstructOf      | AttachmentIndex.h | 140     | api,nonallocating,nonthrowing | ✔️ | The construct alone, for `ProgramIndex` constructing a program before any span is derived. is known, and only the formats enter that construction. Requiring a derived span to construct a program would order the two the wrong way round.
     in    ConstructOrdinal  std::uint32_t  [-]  ?

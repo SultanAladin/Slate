@@ -53,7 +53,7 @@ F ProjectWavelength        | SpectralProjection.h | 58     | api,nonallocating,n
 F SLATE_DECLARES_PRECISION | SpectralProjection.h | 59     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
 
 F LuminanceNormalisation   | SpectralProjection.h | 69     | api,nonthrowing               | 🚩 | The integral of the luminance response over the declared interval — the normalisation a projection divides by. primaries from chromaticities: a stored normalisation is a second representation of the matching functions and drifts from them the moment the fit is amended.
     in    Rule  const QuadratureRule&  [-]  a derived rule; the integral is taken against it
@@ -64,7 +64,7 @@ F LuminanceNormalisation   | SpectralProjection.h | 69     | api,nonthrowing    
 F SLATE_DECLARES_PRECISION | SpectralProjection.h | 70     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE PROJECTION

@@ -25,21 +25,21 @@ S ThemeSpecification.h | 198 lines | e74aad27 | 10 sym | The one palette and the
 T ThemeColour            | ThemeSpecification.h | 28-32   | contract,nonallocating,nonthrowing | -  | One interface colour: a coordinate carrying the space it is a coordinate in, plus the fraction it covers. colour whose space nothing states is the shape a transfer function is later added to "fix". Held as a `ColourSpecification` in the display space so the absence of any transfer inside `SlateUI` stays checkable. fraction over the interface's own recording, not a property of the colour — `36` carries no alpha for exactly that reason.
     has   Coordinate  ColourSpecification  [-]  ?
     has   Coverage    double               [-]  ?
-    by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, (+7 more)
+    by    Api/ControlPanel.h, Api/EntryPanel.h, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, (+9 more)
     note  🔴 `36` §1 and `14` §5 together: a packed integer would be a bare triple whose space nothing states, and a
     note  ⚠️ Coverage is not part of `ColourSpecification` and never becomes part of it. Coverage is a compositing
 
 F Quantize               | ThemeSpecification.h | 42      | api,nonallocating,nonthrowing      | ✔️ | Quantises one theme colour to the eight-bit-per-channel code the vendor draw surface accepts. Coordinates outside the unit interval are bounded here rather than wrapping, because a wrapped code is a colour the artist sees as a wrong hue rather than as a clipped one.
     in    Colour  const ThemeColour&  [-]  the colour, coordinates read in the display space
     out   -       Code                [-]  packed as red in the low byte, then green, blue and coverage
-    by    Source/ControlLayout.cpp, Source/ThemeSpecification.cpp, Source/WorkspaceStrip.cpp
+    by    Source/CanvasPanel.cpp, Source/ControlLayout.cpp, Source/ThemeSpecification.cpp, Source/WorkspaceStrip.cpp
     note  🔴 The only place a theme colour becomes a bare integer, and it is a quantisation and not a projection.
 
 F Attenuate              | ThemeSpecification.h | 50      | api,nonallocating,nonthrowing      | ✔️ | Returns one theme colour at a declared coverage, its coordinate untouched.
     in    Colour            ThemeColour  [-]  the colour to re-cover
     in    DeclaredCoverage  double       [-]  the fraction, bounded to the unit interval
     out   -                 ThemeColour  [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlLayout.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp, (+2 more)
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ChannelPanel.cpp, Source/ControlLayout.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, (+4 more)
     note  What a hover tint or a disabled row is — the same colour at less coverage, never a second literal.
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ T ThemePalette           | ThemeSpecification.h | 60-87   | owning              
     has   SliderFill          ThemeColour  [-]  ?
     has   SliderKnob          ThemeColour  [-]  ?
     has   KnobText            ThemeColour  [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlText.cpp, Source/DiagnosticPanel.cpp, Source/RevisionPanel.cpp, Source/ThemeSpecification.cpp, (+4 more)
+    by    Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlText.cpp, Source/DiagnosticPanel.cpp, (+7 more)
     note  🔴 A second palette — light, high contrast — is one more value of this struct and never a parallel set of
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ T LayoutExtents          | ThemeSpecification.h | 99-146  | owning              
     has   SegmentFontScale      float  [-]  ?
     has   GlyphEdge             float  [-]  ?
     has   CarouselTravel        float  [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/ControlNumeric.cpp, Source/ControlText.cpp, Source/DiagnosticPanel.cpp, (+7 more)
+    by    Api/AssetPanel.h, Api/CanvasPanel.h, Api/EntryPanel.h, Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/ControlChoice.cpp, (+13 more)
     note  📝 Held apart from the palette so a density profile is one value of this struct and re-tinting is one value
     note  ⚠️ These are interface pixels and not device pixels. `14` §8's high-density question is open, and the scale
 
@@ -136,7 +136,7 @@ T LayoutExtents          | ThemeSpecification.h | 99-146  | owning              
 T ThemeSpecification     | ThemeSpecification.h | 155-159 | owning                             | -  | The palette and the extents together — what every present call is handed by const reference.
     has   Palette  ThemePalette   [-]  ?
     has   Extents  LayoutExtents  [-]  ?
-    by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/OutlinerPanel.h, Api/PanelIndex.h, (+23 more)
+    by    Api/AssetPanel.h, Api/CanvasPanel.h, Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/EntryPanel.h, (+29 more)
     note  🔴 `14` §4.1 places this beside the document. No transaction records it and undo never steps through it.
 
 //------------------------------------------------------------------------------------------------------------------------

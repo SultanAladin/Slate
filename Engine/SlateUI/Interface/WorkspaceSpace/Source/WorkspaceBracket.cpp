@@ -158,11 +158,19 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
 
     // 📐 The workspace strip is the display's first row. Nothing is reserved above it — the trapezoid already names
     //    the standing workspace, and a caption band repeating that name cost a row of desk for no readable gain.
+    // 📐 🔴 A single registered workspace is presented with no roster row at all. The row would carry exactly one
+    //    trapezoid that cannot be switched away from, and it would sit directly above the desk leaf's own document
+    //    strip — two stacked strips reading as a workspace nested inside a workspace. Worse, the roster row is the
+    //    one an artist meets first and it is the one that does the least: `ConstructWorkspaceTabStrip` resolves a
+    //    choice and nothing else, so it declares no panel, begins no drag and answers no `(+)`. Suppressing it hands
+    //    its row to the desk, whose `PresentOccupantStrip` carries the panel list, the mint, the drag and the tear.
+    const bool RosterPresented = Count > 1u;
+
     WorkspaceRectangle StripArea;
     StripArea.PositionX = 0.0f;
     StripArea.PositionY = 0.0f;
     StripArea.Width     = DisplayWidth;
-    StripArea.Height    = Extents.TabStripHeight;
+    StripArea.Height    = RosterPresented ? Extents.TabStripHeight : 0.0f;
 
     WorkspaceRectangle BottomBand;
     BottomBand.PositionX = 0.0f;
@@ -187,8 +195,14 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
     // 📝 The strip resolves its input before the desk does, and the desk is presented afterwards, so a press on a
     //    workspace trapezoid never reaches the document tabs beneath it. The two strips sit one above the other
     //    and a press that resolved twice would activate a document while switching workspace.
-    Reported.WorkspaceChoice = ConstructWorkspaceTabStrip(Theme, StripArea, Captions, Count, ActiveOrdinal,
-                                                          Reported.PointerConsumed);
+    // 📝 The suppressed roster is skipped outright rather than left to refuse on its own zero height. It reports no
+    //    choice either way, but a call that paints nothing still takes the pointer on its last coverage test — and
+    //    a zero-height rectangle at the display's top edge covers the row of desk immediately beneath it.
+    if (RosterPresented)
+    {
+        Reported.WorkspaceChoice = ConstructWorkspaceTabStrip(Theme, StripArea, Captions, Count, ActiveOrdinal,
+                                                              Reported.PointerConsumed);
+    }
 
     if (DeskArea.Height > 0.0f)
         PresentWorkspaceSpace(Theme, Space, DeskArea, Panels);

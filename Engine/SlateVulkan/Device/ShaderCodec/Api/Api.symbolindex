@@ -59,7 +59,7 @@ F ShaderCodec::Resolve            | ShaderCodec.h | 80      | api,nonthrowing   
     in    UnitName    const std::string&  [-]  the unit the stream was lowered under, for example "SlateVulkan"
     in    StreamStem  const std::string&  [-]  the source's stem without its extension, for example "VisibilitySurface"
     out   -           Outcome             [-]  the module ordinal; refuses with HostDenied when the stream cannot be read,
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
     note  A stream already read is not read twice; the standing ordinal is delivered instead.
 
 F ShaderCodec::Stage              | ShaderCodec.h | 92      | api,nonthrowing           | ✔️ | The stage declaration one module supplies to a program, with its specialisation folded in. at the program's construction, and a declaration returned by value is read after the call that produced it has already surrendered its stack.

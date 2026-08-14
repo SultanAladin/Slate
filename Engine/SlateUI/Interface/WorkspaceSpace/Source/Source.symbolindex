@@ -17,7 +17,7 @@
 //------------------------------------------------------------------------------------------------------------------------
 
 S PanelIndex.cpp           | 69 lines   | bdf2ea6b | 4 sym  | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
-S WorkspaceBracket.cpp     | 211 lines  | c669c303 | 4 sym  | The one call an application makes per tick — workspace strip, desk, bottom band, all on the foreground recording.
+S WorkspaceBracket.cpp     | 225 lines  | 546fe638 | 4 sym  | The one call an application makes per tick — workspace strip, desk, bottom band, all on the foreground recording.
 S WorkspaceDrag.cpp        | 539 lines  | 80439e82 | 15 sym | The one drag in flight — the press that becomes a tear, the window that follows the pointer, and the landing on release.
 S WorkspacePanel.cpp       | 694 lines  | 61044e4f | 15 sym | The in-body panel layer — docked bands beneath, floating boxes above, and the three drags each of them carries.
 S WorkspaceSpace.cpp       | 1151 lines | 2f46b220 | 30 sym | Minting, withdrawal and layout for the desk — the recursion itself is templated and lives in the header.
@@ -94,7 +94,7 @@ F ConstructWorkspaceTabStrip | WorkspaceBracket.cpp     | 57-135    | -      | -
 //                                                 THE DEPLOYMENT BRACKET
 //------------------------------------------------------------------------------------------------------------------------
 
-F PresentDeploymentBracket   | WorkspaceBracket.cpp     | 141-209   | -      | - | ?
+F PresentDeploymentBracket   | WorkspaceBracket.cpp     | 141-223   | -      | - | ?
     in    Theme              const ThemeSpecification&  [-]  ?
     in    Space              WorkspaceSpace&            [-]  ?
     in    Panels             const PanelIndex*          [-]  ?
@@ -400,7 +400,7 @@ F Located                    | WorkspaceSpace.cpp       | 51-62     | -      | -
     in    Space    const WorkspaceSpace&      [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
     out   -        std::size_t                [-]  ?
-    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+26 more)
+    by    Api/DocumentSession.h, Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, (+28 more)
 
 F Detach                     | WorkspaceSpace.cpp       | 68-124    | -      | - | ?
     in    Space    WorkspaceSpace&            [-]  ?
@@ -623,17 +623,17 @@ F ResolveSpaceLayout         | WorkspaceSpace.cpp       | 1141-1149 | -      | -
 F Coded                      | WorkspaceStrip.cpp       | 31-34     | -      | - | ?
     in    Colour  const ThemeColour&  [-]  ?
     out   -       ImU32               [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+2 more)
+    by    Source/CanvasPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, (+3 more)
 
 F Corner                     | WorkspaceStrip.cpp       | 36-39     | -      | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/DecalProjection.cpp, (+11 more)
+    by    Source/CanvasPanel.cpp, Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, (+12 more)
 
 F Opposite                   | WorkspaceStrip.cpp       | 41-44     | -      | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+2 more)
+    by    Source/CanvasPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, (+3 more)
 
 F PaintTrapezoid             | WorkspaceStrip.cpp       | 48-61     | -      | - | ?
     in    Recording  ImDrawList*                [-]  ?
@@ -703,7 +703,7 @@ F SquareAt                   | WorkspaceStrip.cpp       | 131-141   | -      | -
     in    PositionY  float               [-]  ?
     in    Edge       float               [-]  ?
     out   -          WorkspaceRectangle  [-]  ?
-    by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStripInternal.h
+    by    Source/CanvasPanel.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStripInternal.h
 
 F AreaOf                     | WorkspaceStrip.cpp       | 143-153   | -      | - | ?
     in    Window  const WorkspaceFloatingWindow&  [-]  ?
@@ -761,6 +761,7 @@ F PaintGutters               | WorkspaceStrip.cpp       | 490-522   | -      | -
 //------------------------------------------------------------------------------------------------------------------------
 
 V OverlayRowCeiling          | WorkspaceStrip.cpp       | 530       | -      | - | ?
+    by    Source/CanvasPanel.cpp
 
 T OverlayStructure           | WorkspaceStrip.cpp       | 537-552   | owning | - | What the overlay resolution decided, carried to the paint pass at the end of the tick. before the strips beneath it and must record its quads after them, and one foreground draw list paints in call order — so the geometry is resolved once, held here, and recorded last.
     has   MintingDeclared    bool                                   [-]  ?
@@ -836,17 +837,17 @@ F PresentWorkspaceSpace      | WorkspaceStrip.cpp       | 841-1037  | -      | -
 F Coded                      | WorkspaceStripInternal.h | 29        | -      | - | ?
     in    Colour  const ThemeColour&  [-]  ?
     out   -       ImU32               [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+2 more)
+    by    Source/CanvasPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, (+3 more)
 
 F Corner                     | WorkspaceStripInternal.h | 30        | -      | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/DecalProjection.cpp, (+11 more)
+    by    Source/CanvasPanel.cpp, Source/ConsoleHost.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, (+12 more)
 
 F Opposite                   | WorkspaceStripInternal.h | 31        | -      | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ImVec2                     [-]  ?
-    by    Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, Source/WorkspaceDrag.cpp, (+2 more)
+    by    Source/CanvasPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/WorkspaceBracket.cpp, (+3 more)
 
 F StripOf                    | WorkspaceStripInternal.h | 33        | -      | - | ?
     in    Area         const WorkspaceRectangle&  [-]  ?
@@ -865,7 +866,7 @@ F SquareAt                   | WorkspaceStripInternal.h | 35        | -      | -
     in    PositionY  float               [-]  ?
     in    Edge       float               [-]  ?
     out   -          WorkspaceRectangle  [-]  ?
-    by    Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp
+    by    Source/CanvasPanel.cpp, Source/WorkspaceDrag.cpp, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp
 
 F AreaOf                     | WorkspaceStripInternal.h | 36        | -      | - | ?
     in    Window  const WorkspaceFloatingWindow&  [-]  ?

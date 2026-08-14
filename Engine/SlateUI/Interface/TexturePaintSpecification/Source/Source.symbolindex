@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                             SOURCE.SYMBOLINDEX
 //============================================================================================================================================
-// 🧩 The six declarations one painting workspace makes, and nothing else — every panel it names is already routine-shaped.
+// 🧩 The nine declarations one painting workspace makes, and nothing else — every panel it names is already routine-shaped.
 
 %format     symbolindex 1.0
 %scope      folder
@@ -16,19 +16,19 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TexturePaintSpecification.cpp | 94 lines | 11e4b3ba | 3 sym | The six declarations one painting workspace makes, and nothing else — every panel it names is already routine-shaped.
+S TexturePaintSpecification.cpp | 119 lines | b25cab5a | 3 sym | The nine declarations one painting workspace makes, and nothing else — every panel it names is already routine-shaped.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE DECLARED EXTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-V TexturePaintPanelCount       | TexturePaintSpecification.cpp | 19    | - | - | ?
+V TexturePaintPanelCount       | TexturePaintSpecification.cpp | 21      | - | - | ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE PANEL DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F DeclareTexturePaintPanels    | TexturePaintSpecification.cpp | 27-74 | - | - | ?
+F DeclareTexturePaintPanels    | TexturePaintSpecification.cpp | 29-94   | - | - | ?
     in    Ledger            PanelIndex&  [-]  ?
     in    WorkspaceContext  void*        [-]  ?
     out   -                 void         [-]  ?
@@ -38,7 +38,7 @@ F DeclareTexturePaintPanels    | TexturePaintSpecification.cpp | 27-74 | - | - |
 //                                                     THE WORKSPACE
 //------------------------------------------------------------------------------------------------------------------------
 
-F ResolveTexturePaintWorkspace | TexturePaintSpecification.cpp | 80-92 | - | - | ?
+F ResolveTexturePaintWorkspace | TexturePaintSpecification.cpp | 100-117 | - | - | ?
     in    Standing  PaintWorkspaceContext&  [-]  ?
     out   -         WorkspaceSpecification  [-]  ?
     by    Api/TexturePaintSpecification.h, Source/EditorHost.cpp, Source/PaintHost.cpp

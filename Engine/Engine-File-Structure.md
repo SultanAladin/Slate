@@ -1,6 +1,6 @@
 # Engine Folder Structure
 
-Source: `Engine/` — files of type `.cpp` / `.h` / `.slang` (271 files) and `.comp` / `.bat` / `.ps1` (none found).
+Source: `Engine/` — files of type `.cpp` / `.h` / `.slang` (277 files) and `.comp` / `.bat` / `.ps1` (none found).
 
 ```
 Engine/
@@ -461,6 +461,16 @@ Engine/
 │               └── WindowInterchange.cpp
 ├── SlateUI/
 │   └── Interface/
+│       ├── AssetPanel/
+│       │   ├── Api/
+│       │   │   └── AssetPanel.h
+│       │   └── Source/
+│       │       └── AssetPanel.cpp
+│       ├── CanvasPanel/
+│       │   ├── Api/
+│       │   │   └── CanvasPanel.h
+│       │   └── Source/
+│       │       └── CanvasPanel.cpp
 │       ├── ChannelPanel/
 │       │   ├── Api/
 │       │   │   └── ChannelPanel.h
@@ -481,6 +491,11 @@ Engine/
 │       │   │   └── DiagnosticPanel.h
 │       │   └── Source/
 │       │       └── DiagnosticPanel.cpp
+│       ├── EntryPanel/
+│       │   ├── Api/
+│       │   │   └── EntryPanel.h
+│       │   └── Source/
+│       │       └── EntryPanel.cpp
 │       ├── GlyphDepot/
 │       │   └── Api/
 │       │       └── GlyphDepot.h

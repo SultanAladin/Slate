@@ -1,0 +1,208 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The offered content made browsable — a folder column, a tile area, and every band's control live before one asset is declared.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/AssetPanel/Api
+%layer      SlateUI
+%sources    1
+%symbols    19
+%annotated  15/19
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S AssetPanel.h | 259 lines | 2e6dbda4 | 19 sym | The offered content made browsable — a folder column, a tile area, and every band's control live before one asset is declared.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE DECLARED EXTENTS
+//------------------------------------------------------------------------------------------------------------------------
+
+V AssetEntryCapacity       | AssetPanel.h | 26      | -                                  | -  | ?
+    by    Source/AssetPanel.cpp
+
+V AssetFolderCapacity      | AssetPanel.h | 27      | -                                  | -  | ?
+    by    Source/AssetPanel.cpp
+
+V AssetCaptionExtent       | AssetPanel.h | 28      | -                                  | -  | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 WHAT AN ENTRY CARRIES
+//------------------------------------------------------------------------------------------------------------------------
+
+E AssetContent             | AssetPanel.h | 39-47   | contract                           | -  | What one offered entry is, resolved from the declaration and never inferred from its caption. component deciding what a surface is, and the first authored extension nobody listed presents as an entry the artist cannot open for a reason the panel invented.
+    has   Surface     AssetContent  [-]  ?
+    has   Material    AssetContent  [-]  ?
+    has   Brush       AssetContent  [-]  ?
+    has   Geometry    AssetContent  [-]  ?
+    has   Document    AssetContent  [-]  ?
+    has   Undeclared  AssetContent  [-]  ?
+    by    Source/AssetPanel.cpp
+    note  🔴 Declared by whoever offers the entry. A panel that read the content out of a file suffix would be the
+
+F CaptionOf                | AssetPanel.h | 52      | api,nonallocating,nonthrowing      | ✔️ | The caption one content is presented under.
+    in    Declared  AssetContent  [-]  ?
+    out   -         const char*   [-]  ?
+    by    Api/DiagnosticPanel.h, Api/EntryPanel.h, Source/AssetPanel.cpp, Source/CanvasPanel.cpp, Source/DiagnosticPanel.cpp, Source/EntryPanel.cpp
+
+F StrokeOf                 | AssetPanel.h | 59      | api,nonallocating,nonthrowing      | ✔️ | The stroke one content is drawn with where no thumbnail has been uploaded. colour would be a second palette spelled inside a panel.
+    in    Declared  AssetContent   [-]  ?
+    out   -         ControlStroke  [-]  ?
+    by    Source/AssetPanel.cpp
+    note  📝 A stroke and not a colour. The tile face already carries the palette's tile hue, and a per-content
+
+T AssetEntry               | AssetPanel.h | 65-73   | contract,nonallocating,nonthrowing | -  | One offered entry, as whoever declared it spelled it. local buffer leaves the panel printing a released extent the first tick after the declaring scope closes.
+    has   Caption         const char*    [-]  ?
+    has   Detail          const char*    [-]  ?
+    has   Content         AssetContent   [-]  ?
+    has   FolderOrdinal   std::uint32_t  [-]  ?
+    has   ByteExtent      std::uint64_t  [-]  ?
+    has   ChosenDeclared  bool           [-]  ?
+    by    Source/AssetPanel.cpp
+    note  ⚠️ Both text pointers name storage the declarer owns. Nothing here is copied, so an entry built from a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 WHAT A FOLDER CARRIES
+//------------------------------------------------------------------------------------------------------------------------
+
+T AssetFolder              | AssetPanel.h | 83-89   | contract,nonallocating,nonthrowing | -  | One row of the folder column — its caption, its depth, and whether its fold is open. linearisation and never a relation. `12` §7 makes the same split for the outliner and for the same reason.
+    has   Caption         const char*    [-]  ?
+    has   Depth           std::uint32_t  [-]  ?
+    has   CountedEntries  std::uint32_t  [-]  ?
+    has   FolderOpen      bool           [-]  ?
+    by    Source/AssetPanel.cpp
+    note  📝 Depth is carried rather than derived from an enclosure link, because the column presents a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 HOW THE AREA PRESENTS
+//------------------------------------------------------------------------------------------------------------------------
+
+E AssetPresentation        | AssetPanel.h | 97-101  | contract                           | -  | Whether the entries present as tiles or as one row apiece.
+    has   Tiles  AssetPresentation  [-]  ?
+    has   Rows   AssetPresentation  [-]  ?
+    by    Source/AssetPanel.cpp
+
+E AssetOrdering            | AssetPanel.h | 107-113 | contract                           | -  | What the entries are ordered by. run it was handed would reorder storage its declarer still holds ordinals into.
+    has   Caption   AssetOrdering  [-]  ?
+    has   Content   AssetOrdering  [-]  ?
+    has   Extent    AssetOrdering  [-]  ?
+    has   Declared  AssetOrdering  [-]  ?
+    by    Source/AssetPanel.cpp
+    note  ⚠️ Ordering is resolved at presentation and the declared run is never permuted. A panel that sorted the
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                THE ASSET SPECIFICATION
+//------------------------------------------------------------------------------------------------------------------------
+
+T AssetSpecification       | AssetPanel.h | 130-156 | owning                             | -  | Everything the asset panel presents and carries — the offered runs, and the presentation the artist chose. is layout and never document — `14` §4.1 — so a host threading in a pointer would be a host deciding which folder is open, and closing the workspace would become a destructive edit. which is the state the panel is complete in: every band, every control and both empty states present and answer the pointer before one asset exists. that shortens beneath a chosen ordinal is the ordinary case — a folder collapsing narrows it — and a trusted ordinal would read past the count on the tick that narrowing happened.
+    has   Offered          AssetEntry[AssetEntryCapacity]    [-]  ?
+    has   OfferedCount     std::uint32_t                     [-]  ?
+    has   Folders          AssetFolder[AssetFolderCapacity]  [-]  ?
+    has   FolderCount      std::uint32_t                     [-]  ?
+    has   ChosenFolder     std::uint32_t                     [-]  ?
+    has   ChosenEntry      std::uint32_t                     [-]  ?
+    has   EntryChosen      bool                              [-]  ?
+    has   Presentation     AssetPresentation                 [-]  ?
+    has   Ordering         AssetOrdering                     [-]  ?
+    has   ContentDeclared  bool[6]                           [-]  ?
+    has   Sought           TextCarry                         [-]  ?
+    has   OrderingCarry    DropdownCarry                     [-]  ?
+    has   TileExtent       double                            [-]  ?
+    has   VisibleOffset    float                             [-]  ?
+    has   FolderOffset     float                             [-]  ?
+    has   ColumnFraction   float                             [-]  ?
+    has   ColumnHeld       bool                              [-]  ?
+    has   TileHeld         bool                              [-]  ?
+    has   PresentedTicks   std::uint32_t                     [-]  ?
+    by    Api/TexturePaintSpecification.h, Source/AssetPanel.cpp
+    note  🔴 Held by value and not by pointer, exactly as `CanvasSpecification` is. What the artist chose to look at
+    note  🔴 The two runs are declared **into** this record by whoever offers content. Both counts are zero here,
+    note  ⚠️ `ChosenEntry` is an ordinal into `Offered` and is bounded at every read rather than trusted. A run
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE BAND ARITHMETIC
+//------------------------------------------------------------------------------------------------------------------------
+
+T AssetBands               | AssetPanel.h | 168-177 | contract,nonallocating,nonthrowing | -  | The stacked bands, and the two halves the body between them divides into. control in `ControlPanel` reserves a label column through `ResolveControlRow` — a caption of `nullptr` suppresses the caption and not the column — so three controls sharing one row leaves each of them a field narrower than the primitive accepts, and all three refuse at every width a docked panel takes.
+    has   HeaderBand    WorkspaceRectangle  [-]  ?
+    has   SearchBand    WorkspaceRectangle  [-]  ?
+    has   NarrowBand    WorkspaceRectangle  [-]  ?
+    has   FolderColumn  WorkspaceRectangle  [-]  ?
+    has   Divider       WorkspaceRectangle  [-]  ?
+    has   EntryArea     WorkspaceRectangle  [-]  ?
+    has   FooterBand    WorkspaceRectangle  [-]  ?
+    by    Source/AssetPanel.cpp
+    note  🔴 The search entry has a band to itself and does not share one with the ordering head. Every labelled
+
+F ResolveAssetBands        | AssetPanel.h | 189     | api,nonallocating,nonthrowing      | ✔️ | Resolves the bands from the rectangle the desk gave the panel. `RectangleCovers`, and a panel dragged below its bands would then resolve presses against rectangles covering the whole display instead of none of it.
+    in    Extents         const LayoutExtents&       [-]   read for the four band heights and the divider's thickness
+    in    Area            const WorkspaceRectangle&  [px]  the whole panel
+    in    ColumnFraction  float                      [-]   the folder column's share, bounded here and not by the caller
+    out   -               Bands                      [px]  the six rectangles, none overlapping
+    by    Source/AssetPanel.cpp
+    note  ⚠️ Every band is bounded at zero height rather than allowed negative. A negative extent inverts
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE NARROWING
+//------------------------------------------------------------------------------------------------------------------------
+
+F EntrySurvives            | AssetPanel.h | 202     | api,nonallocating,nonthrowing      | ✔️ | Whether one entry survives the standing folder, the content narrowing and the search entry together. predicate is the defect where a footer reads "12 assets" over an area presenting nine.
+    in    Standing  const AssetSpecification&  [-]  the specification, read for all three narrowings
+    in    Ordinal   std::uint32_t              [-]  which entry; outside the count answers false rather than reading past it
+    out   -         bool                       [-]  ?
+    by    Source/AssetPanel.cpp
+    note  📝 One place, so the count in the footer and the run in the area cannot disagree. Two copies of this
+
+F SurvivingCount           | AssetPanel.h | 207     | api,nonallocating,nonthrowing      | ✔️ | How many entries survive the three narrowings.
+    in    Standing  const AssetSpecification&  [-]  ?
+    out   -         std::uint32_t              [-]  ?
+    by    Source/AssetPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PRESENTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentAssets            | AssetPanel.h | 225     | api,nonthrowing                    | 🚩 | Presents one tick of the asset panel into the rectangle the desk resolved. through `ControlPanel`'s seam, which `14` §7 holds to exactly one component knowing which recording the interface paints on. refusal per tick per panel would append to `86`'s register on the ordinary path of an empty folder.
+    in    Theme     const ThemeSpecification&  [-]   read for the palette and the band extents; never held
+    in    Area      const WorkspaceRectangle&  [px]  the interior the desk resolved, honoured exactly
+    in    Standing  AssetSpecification&        [-]   the specification, amended in place by every control on every band
+    out   -         void                       [-]   ?
+    post  the panel is painted onto the foreground recording and the artist's choices are written back
+    by    Source/AssetPanel.cpp
+    note  🔴 Nothing here opens a vendor window and nothing here reads the vendor pointer. Every quad leaves
+    note  ⚠️ Neither empty state is a refusal. A panel offered nothing presents its bands and says so, because a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE PANEL ROUTINE
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentAssetPanel        | AssetPanel.h | 237     | api,nonthrowing                    | 🚩 | The presentation routine matching `PanelPresentRoutine`. learns what an asset is.
+    in    Theme           const ThemeSpecification&  [-]  ?
+    in    Area            const WorkspaceRectangle&  [-]  ?
+    in    PresentContext  void*                      [-]  an `AssetSpecification*`; a null context presents nothing at all
+    out   -               void                       [-]  ?
+    by    Source/AssetPanel.cpp
+    note  🔴 Matches `PanelPresentRoutine` exactly, so a workspace declares it into `PanelIndex` and the desk never
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE LEDGER SLOT
+//------------------------------------------------------------------------------------------------------------------------
+
+F ResolveAssetSlot         | AssetPanel.h | 250     | api,nonallocating,nonthrowing      | ✔️ | Resolves a panel slot for the asset panel. context, and it presents as a panel painted against released storage.
+    in    PanelIdentifier  const char*          [-]  ?
+    in    PanelTitle       const char*          [-]  ?
+    in    DeclaredSide     WorkspacePanelSide   [-]  ?
+    in    Standing         AssetSpecification&  [-]  the specification the slot will address for as long as the workspace stands
+    out   -                Slot                 [-]  the resolved slot, ready for ledger registration
+    by    Source/AssetPanel.cpp, Source/TexturePaintSpecification.cpp
+    note  🔴 The returned slot points at `Standing`. Registering a slot built from a temporary is a dangling
+
+F SLATE_DECLARES_PRECISION | AssetPanel.h | 257     | -                                  | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/CanvasPanel.h, (+56 more)

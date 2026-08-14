@@ -1,14 +1,16 @@
 //============================================================================================================================================
 //                                                       TEXTUREPAINTSPECIFICATION.H
 //============================================================================================================================================
-// 🧩 The one concrete workspace — six panels declared into a ledger, and the storage every one of them presents against.
+// 🧩 The one concrete workspace — nine panels declared into a ledger, and the storage every one of them presents against.
 
 #pragma once
 
 #include "Contract/PrecisionContract.h"
+#include "SlateUI/Interface/AssetPanel/Api/AssetPanel.h"
 #include "SlateUI/Interface/CanvasPanel/Api/CanvasPanel.h"
 #include "SlateUI/Interface/ChannelPanel/Api/ChannelPanel.h"
 #include "SlateUI/Interface/DiagnosticPanel/Api/DiagnosticPanel.h"
+#include "SlateUI/Interface/EntryPanel/Api/EntryPanel.h"
 #include "SlateUI/Interface/LayerPanel/Api/LayerPanel.h"
 #include "SlateUI/Interface/OutlinerPanel/Api/OutlinerPanel.h"
 #include "SlateUI/Interface/PropertyPanel/Api/PropertyPanel.h"
@@ -38,7 +40,8 @@ namespace Slate
 ///        destructive edit rather than a change of what is presented.
 /// note  ⚠️ The six panel contexts are members rather than locals because the ledger retains their addresses for
 ///        as long as the workspace is standing. A context built inside `DeclareTexturePaintPanels` would be a dead
-///        extent by the first tick that presented it.
+///        extent by the first tick that presented it. The canvas, the browser and the control centre hold no
+///        separate context at all — each is addressed directly, which is why each is a member and not a local too.
 /// note  📝 `Reports` and `Measures` are const because `DiagnosticPanel` reads them and nothing here appends. The
 ///        register the bring-up writes into is `WorkspaceSequence`'s own, handed in by the host.
 /// tag   owning
@@ -55,7 +58,13 @@ struct PaintWorkspaceContext
 
     // 📝 🔴 Held by value and not by pointer. The viewport's declarations are layout and never document, so `14` §4.1 keeps
     //    them beside the document — a host threading in a pointer would be a host deciding what the canvas resolves into.
-    CanvasSpecification     Canvas = {};   // [-] - the viewport panel's own declarations, owned by the workspace
+    CanvasSpecification     Canvas   = {};   // [-] - the viewport panel's own declarations, owned by the workspace
+
+    // 📝 🔴 By value for the same reason, and the two of them for one more: neither names anything the document holds.
+    //    The browser presents whatever entries a host declared into it and carries none itself, and the control centre's
+    //    every reading is its own. A reading here wired to a brush would make one control authoritative in two panels.
+    AssetSpecification      Assets   = {};   // [-] - the browser's narrowing, ordering, folders and presentation
+    EntrySpecification      Entries  = {};   // [-] - the control centre's readings and which sections stand open
 
     OutlinerPanelCarry      OutlinerCarry   = {};        // [-] - the anchor, the search entry and the reorder drag
     LayerPanelCarry         LayerCarry      = {};        // [-] - folds, filter, offset and the reorder drag
@@ -76,8 +85,8 @@ struct PaintWorkspaceContext
 //                                                THE PANEL DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Declares the workspace's six panels into the ledger the sequence handed it.
-/// in    Ledger           [-]  emptied by the caller before this runs; six declarations arrive
+/// 🧩 Declares the workspace's nine panels into the ledger the sequence handed it.
+/// in    Ledger           [-]  emptied by the caller before this runs; nine declarations arrive
 /// in    WorkspaceContext [-]  a `PaintWorkspaceContext*`; a null context declares nothing at all
 /// post  the ledger carries one slot per panel, each addressing a context this record owns
 /// note  🔴 Matches `WorkspaceDeclareRoutine` exactly, so `WorkspaceSequence` calls it at activation and learns

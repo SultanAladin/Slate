@@ -104,7 +104,7 @@ F ToolIndex::Declare               | ToolSequence.h | 128     | api,nonthrowing 
 F ToolIndex::Resolve               | ToolSequence.h | 130     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                      [-]  ?
     out   -            Outcome<const ToolSpecification*>  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F ToolIndex::Amend                 | ToolSequence.h | 131     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                [-]  ?
@@ -114,7 +114,7 @@ F ToolIndex::Amend                 | ToolSequence.h | 131     | -               
 F ToolIndex::Located               | ToolSequence.h | 137     | api,nonthrowing               | 🚩 | The ordinal one identity was declared at.
     in    Identity  const std::string&  [-]  ?
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
-    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+26 more)
+    by    Api/DocumentSession.h, Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, (+28 more)
 
 F ToolIndex::DeclaredCount         | ToolSequence.h | 139     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
@@ -222,7 +222,7 @@ F ToolSequence::Arbitrate          | ToolSequence.h | 268     | api,nonallocatin
 
 F ToolSequence::Colour             | ToolSequence.h | 270     | -                             | -  | ?
     out   -  const ColourSpecification&  [-]  ?
-    by    Api/ControlPanel.h, Api/PropertySpecification.h, Api/ThemeSpecification.h, Source/AttachmentIndex.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, (+9 more)
+    by    Api/ControlPanel.h, Api/EntryPanel.h, Api/PropertySpecification.h, Api/ThemeSpecification.h, Source/AttachmentIndex.cpp, Source/CanvasPanel.cpp, (+12 more)
 
 F ToolSequence::Capture            | ToolSequence.h | 271     | -                             | -  | ?
     out   -  const PointerCapture&  [-]  ?

@@ -141,7 +141,7 @@ F OutlinerSequence::Selections      | OutlinerSequence.h | 175    | api,nonalloc
 
 F OutlinerSequence::Sought          | OutlinerSequence.h | 182    | api,nonallocating,nonthrowing | ✔️ | The text the standing row narrowing was derived from, empty when no narrowing stands. narrowing left standing across a rename retains occupants whose names no longer match it.
     out   -  const std::string&  [-]  ?
-    by    Api/OutlinerPanel.h, Api/TrigramIndex.h, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, (+3 more)
+    by    Api/AssetPanel.h, Api/OutlinerPanel.h, Api/TrigramIndex.h, Source/AssetPanel.cpp, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, (+5 more)
     note  Held so that ⑦ can re-derive the narrowing when a rename changes what it would confirm. A
 
 F OutlinerSequence::Rejected        | OutlinerSequence.h | 187    | api,nonallocating,nonthrowing | ✔️ | Every intent refused since the last time the refusals were drained — what `86` presents.

@@ -83,7 +83,7 @@ F SurfaceDepot::Resolve         | SurfaceDepot.h | 117    | api,nonthrowing     
     in    Keyed            const ContentKey&  [-]  ?
     in    RotationOrdinal  std::uint64_t      [-]  ?
     out   -                Outcome            [-]  refuses with ExtentExhausted when nothing matching is held
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
     note  🔴 A key that differs in any field resolves to nothing rather than to the nearest artefact. That
 
 F SurfaceDepot::Evict           | SurfaceDepot.h | 123    | api,nonthrowing               | 🚩 | Evicts least-recently-resolved artefacts until the declared extent is free.

@@ -73,7 +73,7 @@ F InterfaceExchange::Record             | InterfaceExchange.h | 94     | api,non
     in    CommandRecording  VkCommandBuffer  [-]  a recording already inside a dynamic rendering scope over DisplaySurface
     out   -                 Outcome          [-]  refuses when nothing has been sealed since the last Advance
     pre   Seal delivered
-    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/VisibilityRaster.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, (+7 more)
+    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/VisibilityRaster.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, (+8 more)
 
 F InterfaceExchange::PointerCaptured    | InterfaceExchange.h | 99     | api,nonallocating,nonthrowing | ✔️ | Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
     out   -  bool  [-]  ?
