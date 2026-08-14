@@ -91,7 +91,7 @@ F PresentHeaderBand    | RevisionPanel.cpp | 127-171 | - | - | ?
     in    Area      const WorkspaceRectangle&  [-]  ?
     in    Sequence  const RevisionSequence&    [-]  ?
     out   -         void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                THE DISCARD CONFIRMATION
@@ -124,6 +124,7 @@ F PresentRow           | RevisionPanel.cpp | 274-426 | - | - | ?
     in    Carry     RevisionPanelCarry&          [-]  ?
     in    Sequence  RevisionSequence&            [-]  ?
     out   -         void                         [-]  ?
+    by    Source/OutlinerPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE PRESENTATION
@@ -134,4 +135,4 @@ F PresentRevisionPanel | RevisionPanel.cpp | 434-536 | - | - | ?
     in    Area            const WorkspaceRectangle&  [-]  ?
     in    PresentContext  void*                      [-]  ?
     out   -               void                       [-]  ?
-    by    Api/RevisionPanel.h
+    by    Api/RevisionPanel.h, Source/TexturePaintSpecification.cpp

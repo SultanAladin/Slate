@@ -84,17 +84,17 @@ bool WriteBounded(PropertyIndex&              Declarations,
 {
     const Outcome<PropertyValue> Brought = Bounded(Declared, Offered);
 
-    if (!Brought.Delivered())
+    if (!Brought.ContentPresent)
     {
-        RecordNotice(Carry, Brought.Reason().Text);
+        RecordNotice(Carry, Brought.Declined.Detail);
         return false;
     }
 
-    const Outcome<bool> Landed = Declarations.Write(Declared.Identity, Brought.Value());
+    const Outcome<bool> Landed = Declarations.Write(Declared.Identity, Brought.Resolve());
 
-    if (!Landed.Delivered())
+    if (!Landed.ContentPresent)
     {
-        RecordNotice(Carry, Landed.Reason().Text);
+        RecordNotice(Carry, Landed.Declined.Detail);
         return false;
     }
 
@@ -200,7 +200,7 @@ float PresentPropertyRow(const ThemeSpecification&   Theme,
 {
     const Outcome<PropertyValue> Standing = Declarations.Resolve(Declared.Identity);
 
-    if (!Standing.Delivered())
+    if (!Standing.ContentPresent)
     {
         PresentTextRun(Row, Declared.Presented.c_str(), Theme.Palette.TextMuted, TextPlacement::Leading, 1.0f);
         return Theme.Extents.EntryRowHeight;
@@ -216,7 +216,7 @@ float PresentPropertyRow(const ThemeSpecification&   Theme,
                            ? static_cast<std::size_t>(RowOrdinal)
                            : PropertyRowCapacity - 1u;
 
-    PropertyValue Offered = Standing.Value();
+    PropertyValue Offered = Standing.Resolve();
 
     ControlInteraction Reported = {};
     bool               Amended  = false;
@@ -229,9 +229,9 @@ float PresentPropertyRow(const ThemeSpecification&   Theme,
 
         const Outcome<ControlInteraction> Answered = PresentBooleanEntry(Theme, Row, Caption, Carried);
 
-        if (Answered.Delivered())
+        if (Answered.ContentPresent)
         {
-            Reported = Answered.Value();
+            Reported = Answered.Resolve();
 
             if (Reported.EditDeclared && Carried != Offered.TruthDeclared)
             {
@@ -255,13 +255,13 @@ float PresentPropertyRow(const ThemeSpecification&   Theme,
                                      Declared.LowerMagnitude, Declared.UpperMagnitude, "\xC2\xB7", 3u)
                 : PresentScalarEntry(Theme, Row, Caption, Carried, 0.01, "\xC2\xB7", 3u);
 
-        if (!Answered.Delivered())
+        if (!Answered.ContentPresent)
         {
-            RecordNotice(Carry, Answered.Reason().Text);
+            RecordNotice(Carry, Answered.Declined.Detail);
             break;
         }
 
-        Reported = Answered.Value();
+        Reported = Answered.Resolve();
 
         if (Reported.EditDeclared && Carried != Offered.MagnitudeHeld)
         {
@@ -278,13 +278,13 @@ float PresentPropertyRow(const ThemeSpecification&   Theme,
         const Outcome<ControlInteraction> Answered =
             PresentScalarEntry(Theme, Row, Caption, Carried, 1.0, "\xC2\xB7", 0u);
 
-        if (!Answered.Delivered())
+        if (!Answered.ContentPresent)
         {
-            RecordNotice(Carry, Answered.Reason().Text);
+            RecordNotice(Carry, Answered.Declined.Detail);
             break;
         }
 
-        Reported = Answered.Value();
+        Reported = Answered.Resolve();
 
         const std::int64_t Rounded = static_cast<std::int64_t>(Carried < 0.0 ? Carried - 0.5 : Carried + 0.5);
 
@@ -303,13 +303,13 @@ float PresentPropertyRow(const ThemeSpecification&   Theme,
         const Outcome<ControlInteraction> Answered =
             PresentScalarEntry(Theme, Row, Caption, Carried, 1.0, "\xC2\xB7", 0u);
 
-        if (!Answered.Delivered())
+        if (!Answered.ContentPresent)
         {
-            RecordNotice(Carry, Answered.Reason().Text);
+            RecordNotice(Carry, Answered.Declined.Detail);
             break;
         }
 
-        Reported = Answered.Value();
+        Reported = Answered.Resolve();
 
         // 📝 Negative travel is floored at nought here rather than wrapping. An unsigned count that wrapped
         //    presents as a colossal number the artist reads as corruption, and `Bounded` cannot undo it because
@@ -357,13 +357,13 @@ float PresentPropertyRow(const ThemeSpecification&   Theme,
             PresentDropdown(Theme, Split.FieldArea, Choices, Presented, Carried,
                             Carry.ChoiceCarries[Slot], Carry.PresentedTicks);
 
-        if (!Answered.Delivered())
+        if (!Answered.ContentPresent)
         {
-            RecordNotice(Carry, Answered.Reason().Text);
+            RecordNotice(Carry, Answered.Declined.Detail);
             break;
         }
 
-        Reported = Answered.Value();
+        Reported = Answered.Resolve();
 
         if (Reported.EditDeclared && static_cast<std::uint64_t>(Carried) != Offered.OrdinalHeld)
         {
@@ -388,13 +388,13 @@ float PresentPropertyRow(const ThemeSpecification&   Theme,
         const Outcome<ControlInteraction> Answered =
             PresentTextEntry(Theme, Row, Caption, Editing, "");
 
-        if (!Answered.Delivered())
+        if (!Answered.ContentPresent)
         {
-            RecordNotice(Carry, Answered.Reason().Text);
+            RecordNotice(Carry, Answered.Declined.Detail);
             break;
         }
 
-        Reported = Answered.Value();
+        Reported = Answered.Resolve();
 
         // 📝 🔴 Written on the seal and never on every keystroke. `10` §2.4 makes the whole edit one transaction,
         //    and a write per character would put a revision row on each one — which is exactly the merge failure
@@ -417,13 +417,13 @@ float PresentPropertyRow(const ThemeSpecification&   Theme,
         const Outcome<ControlInteraction> Answered =
             PresentColourEntry(Theme, Row, Caption, Carried, Carry.PickerOpen[Slot]);
 
-        if (!Answered.Delivered())
+        if (!Answered.ContentPresent)
         {
-            RecordNotice(Carry, Answered.Reason().Text);
+            RecordNotice(Carry, Answered.Declined.Detail);
             break;
         }
 
-        Reported = Answered.Value();
+        Reported = Answered.Resolve();
 
         if (Reported.EditDeclared)
         {

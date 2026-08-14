@@ -78,7 +78,7 @@ T OutlinerSequence                  | OutlinerSequence.h | 94-225 | owning      
     has   LiveGenerations      std::vector<std::uint32_t>     [-]  ?
     has   NarrowingSought      std::string                    [-]  ?
     has   NarrowingOwed        bool                           [-]  ?
-    by    Api/DocumentSession.h, Api/OutlinerPanel.h, Source/DocumentSession.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp
+    by    Api/DocumentSession.h, Api/OutlinerPanel.h, Api/TexturePaintSpecification.h, Source/DocumentSession.cpp, Source/EditorHost.cpp, Source/OutlinerPanel.cpp, (+2 more)
     note  🔴 The tick order is ① apply committed intent · ② reconcile the population · ③ compound attachments
     note  ⚠️ No linearisation is observed between ④ and ⑤ — invariant 10. `Rows()` reads the sequence the last
 
@@ -106,7 +106,7 @@ F OutlinerSequence::Advance         | OutlinerSequence.h | 135    | api,nonthrow
     in    SealedAt  std::uint64_t  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
     out   -         Outcome        [-]   refuses with ExtentExhausted at the end of the revision sequence
     post  the document position and the standing selection moved together
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+20 more)
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+22 more)
 
 F OutlinerSequence::Reconcile       | OutlinerSequence.h | 145    | api,nonthrowing               | 🔴 | Runs one whole tick in the fixed order ①–⑦. are checked as each transaction seals.
     in    SealedAt  std::uint64_t  [ns]  the arrival stamp transactions sealed this tick carry
@@ -133,7 +133,7 @@ F OutlinerSequence::Relations       | OutlinerSequence.h | 165    | api,nonalloc
 
 F OutlinerSequence::Revisions       | OutlinerSequence.h | 170    | api,nonallocating,nonthrowing | ✔️ | The document's committed transactions.
     out   -  const RevisionSequence&  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/DocumentSession.cpp, Source/OutlinerSequence.cpp
+    by    Api/TexturePaintSpecification.h, Source/ConsoleHost.cpp, Source/DocumentSession.cpp, Source/EditorHost.cpp, Source/OutlinerSequence.cpp, Source/PaintHost.cpp, (+1 more)
 
 F OutlinerSequence::Selections      | OutlinerSequence.h | 175    | api,nonallocating,nonthrowing | ✔️ | The session's selections.
     out   -  const SelectionSequence&  [-]  ?

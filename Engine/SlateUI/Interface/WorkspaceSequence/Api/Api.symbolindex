@@ -35,7 +35,7 @@ T WorkspaceSpecification                | WorkspaceSequence.h | 58-66   | contra
     has   DeclarePanels     WorkspaceDeclareRoutine  [-]  ?
     has   PresentCentre     WorkspacePresentRoutine  [-]  ?
     has   WorkspaceContext  void*                    [-]  ?
-    by    Source/WorkspaceSequence.cpp
+    by    Api/TexturePaintSpecification.h, Source/EditorHost.cpp, Source/PaintHost.cpp, Source/TexturePaintSpecification.cpp, Source/WorkspaceSequence.cpp
     note  🔴 `32` §5: the roster is the application's and this component never spells an entry of it. That is what
     note  ⚠️ Both text pointers and the context are the application's storage. Nothing here is copied, so a roster
 
@@ -53,7 +53,7 @@ T WorkspaceDeclaration                  | WorkspaceSequence.h | 77-88   | contra
     has   DensityScale         float                          [-]  ?
     has   Intent               LatencyIntent                  [-]  ?
     has   DiagnosticRequested  bool                           [-]  ?
-    by    Source/WorkspaceSequence.cpp
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/WorkspaceSequence.cpp
     note  🔴 The roster and the display extent are the only two things a host chooses. Everything else the sequence
 
 V WorkspaceRosterCeiling                | WorkspaceSequence.h | 93      | -                                  | -  | ?
@@ -93,7 +93,7 @@ T TickReport                            | WorkspaceSequence.h | 138-146 | contra
     has   RotationSkipped    bool                [-]  ?
     has   ExtentReclaimed    bool                [-]  ?
     has   ClosureRequested   bool                [-]  ?
-    by    Source/WorkspaceSequence.cpp
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/WorkspaceSequence.cpp
     note  ⚠️ `RotationSkipped` is not a failure. A chain the display retired delivers no image to record into, so the
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ T WorkspaceSequence                     | WorkspaceSequence.h | 166-317 | owning
     has   StandingEntry     std::uint32_t                  [-]  ?
     has   Arbitrated        PointerArbitration             [-]  ?
     has   SequenceStanding  bool                           [-]  ?
-    by    Source/WorkspaceSequence.cpp
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/WorkspaceSequence.cpp
     note  🔴 `32` §1's order is ① `SlateMath` ② `WindowInterchange` ③ `SlateVulkan` ④ `SlateDocument`
     note  🔴 Step ⑦ **validates and does not repair**. A schedule whose ordering cannot be derived is a refusal
     note  🔴 Teardown is the exact reverse **with the rotation drained first**. Reclaiming a component while a
@@ -138,14 +138,14 @@ F WorkspaceSequence::Construct          | WorkspaceSequence.h | 188     | api,no
     in    Declaring  const WorkspaceDeclaration&  [-]  the roster, the extent and the pacing intent
     out   -          Outcome                      [-]  refuses with ContentUnsupported for an empty roster or a standing ordinal outside it,
     post  delivered leaves every step standing and the standing workspace's ledger declared; refused leaves
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  🔴 Refused in full. A half-brought-up host is one whose teardown reclaims components that were never
     note  ⚠️ The refusal is the declining step's own, carried up unchanged. Re-spelling it here would put one
 
 F WorkspaceSequence::Advance            | WorkspaceSequence.h | 205     | api,nonthrowing                    | 🔴 | Advances one tick — `32` §2's ten steps, in order, exactly once each. device was lost; a skipped rotation and a re-established chain are delivered outcomes intent ④ advance the interface tick ⑤ present the bracket ⑥ await the rotation slot ⑦ take the display image ⑧ record the schedule and the interface ⑨ surrender the recording ⑩ present the image. The order is `32` §2's and the two constrained adjacencies are recorded on the class above. display-relative target at the same extent, then derive every attachment span over the re-claimed views. Any other order presents one target at the extent the display had before the drag. artist drew from them, and a sample restamped where it was consumed carries the display rate.
     out   -  Outcome  [-]  refuses with CapabilityAbsent before Construct delivered, and with DeviceLost when the
     post  one image was presented, or the report names why none was
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, (+20 more)
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, (+22 more)
     note  🔴 The ten steps are ① drain the window system ② arbitrate the pointer ③ apply the document's pending
     note  🔴 An arrived extent is applied in `06` §7's order — re-establish the chain, re-claim every
     note  ⚠️ Input carries **arrival** stamps and never consumption stamps. `22` reconstructs the path the
@@ -153,17 +153,17 @@ F WorkspaceSequence::Advance            | WorkspaceSequence.h | 205     | api,no
 F WorkspaceSequence::Reclaim            | WorkspaceSequence.h | 214     | api,nonthrowing                    | 🔴 | Reclaims every step in the exact reverse of bring-up, with the rotation drained first. idle the device seven times over a teardown, and the first drain is already sufficient — no recording is opened after it.
     out   -  void  [-]  ?
     post  nothing stands; a second call does nothing
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
     note  🔴 The rotation is drained before the first reclaim and not between them. Draining per component would
 
 F WorkspaceSequence::ClosureRequested   | WorkspaceSequence.h | 219     | api,nonallocating,nonthrowing      | ✔️ | Whether the artist has asked the window system to close the window.
     out   -  bool  [-]  ?
-    by    Api/WindowInterchange.h, Source/WindowInterchange.cpp, Source/WorkspaceSequence.cpp
+    by    Api/WindowInterchange.h, Source/EditorHost.cpp, Source/PaintHost.cpp, Source/WindowInterchange.cpp, Source/WorkspaceSequence.cpp
 
 F WorkspaceSequence::Theme              | WorkspaceSequence.h | 225     | api,nonallocating,nonthrowing      | ✔️ | The resolved theme every panel of this host reads.
     out   -  const ThemeSpecification&  [-]  ?
     pre   Construct delivered
-    by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/PanelIndex.h, Api/PropertyPanel.h, (+21 more)
+    by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/OutlinerPanel.h, Api/PanelIndex.h, (+23 more)
 
 F WorkspaceSequence::Desk               | WorkspaceSequence.h | 230     | api,nonallocating,nonthrowing      | ✔️ | The desk, for a host that seeds a second document or reads what the artist arranged.
     out   -  WorkspaceSpace&  [-]  ?
@@ -175,21 +175,21 @@ F WorkspaceSequence::Desk               | WorkspaceSequence.h | 231     | -     
 
 F WorkspaceSequence::Reports            | WorkspaceSequence.h | 238     | api,nonallocating,nonthrowing      | ✔️ | The register every step of bring-up and every tick appends its refusals to. bring-up wrote into. Two registers is one panel presenting an empty list beside a host that refused.
     out   -  ReportSequence&  [-]  ?
-    by    Api/DiagnosticPanel.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/WorkspaceSequence.cpp
+    by    Api/DiagnosticPanel.h, Api/TexturePaintSpecification.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp, (+2 more)
     note  🔴 Held here rather than in the host so that `DiagnosticPanel` presents the same register the
 
 F WorkspaceSequence::Reports            | WorkspaceSequence.h | 239     | -                                  | -  | ?
     out   -  const ReportSequence&  [-]  ?
-    by    Api/DiagnosticPanel.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/WorkspaceSequence.cpp
+    by    Api/DiagnosticPanel.h, Api/TexturePaintSpecification.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp, (+2 more)
 
 F WorkspaceSequence::Measures           | WorkspaceSequence.h | 247     | api,nonallocating,nonthrowing      | ✔️ | The measures the tick samples — the pacing, the rotation count, the arrival interval. measure would declare it at whatever rate it runs at, and the panel would present a figure whose interval nothing states.
     out   -  MeasureIndex&  [-]  ?
-    by    Api/DiagnosticPanel.h, Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/ReportSequence.cpp, Source/WorkspaceSequence.cpp
+    by    Api/DiagnosticPanel.h, Api/ReportSequence.h, Api/TexturePaintSpecification.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/EditorHost.cpp, (+4 more)
     note  🔴 `86` §10: sampled **by the tick** and never pushed by a producer. A producer that declared its own
 
 F WorkspaceSequence::Measures           | WorkspaceSequence.h | 248     | -                                  | -  | ?
     out   -  const MeasureIndex&  [-]  ?
-    by    Api/DiagnosticPanel.h, Api/ReportSequence.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/ReportSequence.cpp, Source/WorkspaceSequence.cpp
+    by    Api/DiagnosticPanel.h, Api/ReportSequence.h, Api/TexturePaintSpecification.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/EditorHost.cpp, (+4 more)
 
 F WorkspaceSequence::Timeline           | WorkspaceSequence.h | 253     | api,nonallocating,nonthrowing      | ✔️ | The monotonic timeline every arrival is stamped against.
     out   -  const TickSequence&  [-]  ?
@@ -229,4 +229,4 @@ F SLATE_DECLARES_PRECISION              | WorkspaceSequence.h | 321     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

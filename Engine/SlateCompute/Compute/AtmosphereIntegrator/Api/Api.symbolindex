@@ -59,14 +59,14 @@ F Resolve                                         | AtmosphereIntegrator.h | 87 
     in    Working   const ColourSpaceSpecification&  [-]  the space the coefficients are expressed in
     in    Rule      const QuadratureRule&            [-]  a derived rule, integrated over the declared wavelength interval
     out   -         Outcome                          [-]  carries the medium's own refusal, and `02` §5's where the projection declines
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+95 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+97 more)
     note  📐 The Rayleigh coefficient is **derived** from the medium's refractive index, molecular concentration
     note  📝 The ozone absorption is a **fit to measured absorption** rather than a derivation, unlike Rayleigh.
 
 F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 90      | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ONE RESIDENT SURFACE
@@ -86,7 +86,7 @@ F ResidentSurface::Construct                      | AtmosphereIntegrator.h | 116
     in    ExtentAcross       std::uint32_t  [-]  ?
     in    WrapAlongDeclared  bool           [-]  the first axis is periodic and its filter wraps rather than clamps
     out   -                  Outcome        [-]  refuses with ContentUnsupported for a zero extent on either axis
-    by    Api/AnalyticProjection.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+66 more)
     note  🔴 Wrapping is declared per surface because only ③'s azimuth is periodic. ①'s and ②'s axes are
 
 F ResidentSurface::Write                          | AtmosphereIntegrator.h | 124     | api,nonallocating,nonthrowing | ✔️ | Writes one texel's three components; the fourth is written as unity. three-component format would be a fourth format for the device to negotiate — which `06` §2.1's one-queue, explicit-descriptor spine has no appetite for.
@@ -357,4 +357,4 @@ F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 385
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)

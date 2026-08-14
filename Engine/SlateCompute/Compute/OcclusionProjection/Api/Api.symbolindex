@@ -178,7 +178,7 @@ F AmbientOcclusionSequence::Resolve         | OcclusionProjection.h | 265     | 
     in    ResolvedAlong   std::uint32_t&  [-]  ?
     in    ResolvedAcross  std::uint32_t&  [-]  ?
     out   -               Outcome         [-]  refuses with ContentUnsupported for a display extent of nothing
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
     note  📐 Rounded **up** on both ordinates, matching `RenderSchedule`'s own fraction-of-display claim.
 
 F AmbientOcclusionSequence::Declared        | OcclusionProjection.h | 270     | -                             | -  | ?
@@ -248,7 +248,7 @@ F OcclusionProjectionSpace::Rebuild         | OcclusionProjection.h | 359     | 
 F OcclusionProjectionSpace::Standing        | OcclusionProjection.h | 365     | api,nonthrowing               | 🚩 | One illuminant's standing projection.
     in    Illuminant  OccupantIdentity  [-]  ?
     out   -           Outcome           [-]  refuses with ExtentExhausted where the illuminant carries none
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+78 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+83 more)
 
 F OcclusionProjectionSpace::RebuildOwed     | OcclusionProjection.h | 373     | api,nonallocating,nonthrowing | 🚩 | Whether anything is owed a rebuild. so that the ordinary rotation — a camera the artist is orbiting, a stroke they are painting — rebuilds nothing.
     out   -  bool  [-]  ?
@@ -304,4 +304,4 @@ F SLATE_DECLARES_PRECISION                  | OcclusionProjection.h | 413     | 
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

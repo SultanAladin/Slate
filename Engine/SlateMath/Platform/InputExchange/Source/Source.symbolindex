@@ -8,15 +8,15 @@
 %path       Engine/SlateMath/Platform/InputExchange/Source
 %layer      SlateMath
 %sources    1
-%symbols    21
-%annotated  0/21
+%symbols    22
+%annotated  0/22
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S InputExchange.cpp | 417 lines | b6a1502f | 21 sym | Bounded cyclic arrival ordering over pointer samples, filled from the host's own pointer surface.
+S InputExchange.cpp | 429 lines | b8225e1c | 22 sym | Bounded cyclic arrival ordering over pointer samples, filled from the host's own pointer surface.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -30,36 +30,38 @@ K NOMINMAX                      | InputExchange.cpp | 15      | -          | - |
 
 K _WIN32_WINNT                  | InputExchange.cpp | 23      | -          | - | ?
 
+K GLFW_EXPOSE_NATIVE_WIN32      | InputExchange.cpp | 34      | -          | - | ?
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE ATTACHED WINDOWS
 //------------------------------------------------------------------------------------------------------------------------
 
-V AttachmentCapacity            | InputExchange.cpp | 50      | -          | - | ?
+V AttachmentCapacity            | InputExchange.cpp | 59      | -          | - | ?
 
-T WindowAttachment              | InputExchange.cpp | 52-57   | -          | - | ?
+T WindowAttachment              | InputExchange.cpp | 61-66   | -          | - | ?
     has   WindowSlot         HWND            [-]  ?
     has   ReportingInto      InputExchange*  [-]  ?
     has   PrecedingReceiver  WNDPROC         [-]  ?
 
-V Attached                      | InputExchange.cpp | 59      | -          | - | ?
+V Attached                      | InputExchange.cpp | 68      | -          | - | ?
     by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/GlyphDepot.cpp, Source/InterfaceExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp, (+1 more)
 
-F ResolveAttachment             | InputExchange.cpp | 61-70   | -          | - | ?
+F ResolveAttachment             | InputExchange.cpp | 70-79   | -          | - | ?
     in    WindowSlot  HWND               [-]  ?
     out   -           WindowAttachment*  [-]  ?
 
-V ReportedPressureRange         | InputExchange.cpp | 75      | -          | - | ?
+V ReportedPressureRange         | InputExchange.cpp | 84      | -          | - | ?
 
-F ProjectPenAxes                | InputExchange.cpp | 77-104  | -          | - | ?
+F ProjectPenAxes                | InputExchange.cpp | 86-113  | -          | - | ?
     in    Reported  const POINTER_PEN_INFO&  [-]  ?
     in    Filling   PointerSample&           [-]  ?
     out   -         void                     [-]  ?
 
-F ProjectPenContact             | InputExchange.cpp | 109-123 | -          | - | ?
+F ProjectPenContact             | InputExchange.cpp | 118-132 | -          | - | ?
     in    Reported  const POINTER_PEN_INFO&  [-]  ?
     out   -         std::uint32_t            [-]  ?
 
-F ProjectMouseContact           | InputExchange.cpp | 125-139 | -          | - | ?
+F ProjectMouseContact           | InputExchange.cpp | 134-148 | -          | - | ?
     in    HeldButtons  WPARAM         [-]  ?
     out   -            std::uint32_t  [-]  ?
 
@@ -67,7 +69,7 @@ F ProjectMouseContact           | InputExchange.cpp | 125-139 | -          | - |
 //                                                  THE POINTER SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-F ReceivePointerMessage         | InputExchange.cpp | 150-227 | -          | - | ?
+F ReceivePointerMessage         | InputExchange.cpp | 159-236 | -          | - | ?
     in    WindowSlot  HWND              [-]  ?
     in    Message     UINT              [-]  ?
     in    Arriving    WPARAM            [-]  ?
@@ -78,24 +80,24 @@ F ReceivePointerMessage         | InputExchange.cpp | 150-227 | -          | - |
 //                                                       ATTACHMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-F InputExchange::Attach         | InputExchange.cpp | 235-306 | -          | - | ?
+F InputExchange::Attach         | InputExchange.cpp | 244-318 | -          | - | ?
     in    NativeWindowSlot  void*                [-]  ?
     in    HostTimeline      const TickSequence&  [-]  ?
     out   -                 Outcome<bool>        [-]  ?
 
-F InputExchange::Detach         | InputExchange.cpp | 308-343 | -          | - | ?
+F InputExchange::Detach         | InputExchange.cpp | 320-355 | -          | - | ?
     out   -  void  [-]  ?
 
-F InputExchange::~InputExchange | InputExchange.cpp | 345-348 | destructor | - | ?
+F InputExchange::~InputExchange | InputExchange.cpp | 357-360 | destructor | - | ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ARRIVAL STAMPS
 //------------------------------------------------------------------------------------------------------------------------
 
-F InputExchange::ArrivalStamp   | InputExchange.cpp | 354-360 | -          | - | ?
+F InputExchange::ArrivalStamp   | InputExchange.cpp | 366-372 | -          | - | ?
     out   -  TickPoint  [-]  ?
 
-F InputExchange::ArrivalStamp   | InputExchange.cpp | 362-374 | -          | - | ?
+F InputExchange::ArrivalStamp   | InputExchange.cpp | 374-386 | -          | - | ?
     in    HostCount  std::uint64_t  [-]  ?
     out   -          TickPoint      [-]  ?
 
@@ -103,7 +105,7 @@ F InputExchange::ArrivalStamp   | InputExchange.cpp | 362-374 | -          | - |
 //                                                        ARRIVAL
 //------------------------------------------------------------------------------------------------------------------------
 
-F InputExchange::Record         | InputExchange.cpp | 380-395 | -          | - | ?
+F InputExchange::Record         | InputExchange.cpp | 392-407 | -          | - | ?
     in    Arriving  const PointerSample&  [-]  ?
     out   -         void                  [-]  ?
 
@@ -111,12 +113,12 @@ F InputExchange::Record         | InputExchange.cpp | 380-395 | -          | - |
 //                                                         DRAIN
 //------------------------------------------------------------------------------------------------------------------------
 
-F InputExchange::Sample         | InputExchange.cpp | 401-404 | -          | - | ?
+F InputExchange::Sample         | InputExchange.cpp | 413-416 | -          | - | ?
     in    ArrivalOrdinal  std::uint32_t         [-]  ?
     out   -               const PointerSample&  [-]  ?
 
-F InputExchange::HeldCount      | InputExchange.cpp | 406-409 | -          | - | ?
+F InputExchange::HeldCount      | InputExchange.cpp | 418-421 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
-F InputExchange::Reclaim        | InputExchange.cpp | 411-415 | -          | - | ?
+F InputExchange::Reclaim        | InputExchange.cpp | 423-427 | -          | - | ?
     out   -  void  [-]  ?

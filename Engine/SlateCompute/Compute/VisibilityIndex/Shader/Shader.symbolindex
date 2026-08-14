@@ -40,7 +40,7 @@ F SourceAt                     | DepthReduction.slang    | 26-34   | -          
 F main                         | DepthReduction.slang    | 51-85   | -                         | -  | ?
     in    SV_DispatchThreadID  uint3 Dispatched :  [-]  ?
     out   -                    void                [-]  ?
-    by    Shader/OcclusionCulling.slang, Source/ConsoleHost.cpp
+    by    Shader/OcclusionCulling.slang, Source/ConsoleHost.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
@@ -84,7 +84,7 @@ F Compact                      | OcclusionCulling.slang  | 74-91   | -          
 F main                         | OcclusionCulling.slang  | 104-153 | -                         | -  | ?
     in    SV_DispatchThreadID  uint3 Dispatched :  [-]  ?
     out   -                    void                [-]  ?
-    by    Shader/DepthReduction.slang, Source/ConsoleHost.cpp
+    by    Shader/DepthReduction.slang, Source/ConsoleHost.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE THREE RECORDS

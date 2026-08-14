@@ -37,7 +37,7 @@ F DeclarePanel               | PanelIndex.cpp           | 26-50     | - | - | ?
     in    Ledger     PanelIndex&       [-]  ?
     in    Declaring  const PanelSlot&  [-]  ?
     out   -          Outcome<bool>     [-]  ?
-    by    Api/PanelIndex.h
+    by    Api/PanelIndex.h, Source/TexturePaintSpecification.cpp
 
 F ResolvePanelForSide        | PanelIndex.cpp           | 52-62     | - | - | ?
     in    Ledger        const PanelIndex&   [-]  ?

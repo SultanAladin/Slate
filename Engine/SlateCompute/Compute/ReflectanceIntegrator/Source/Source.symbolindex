@@ -34,18 +34,18 @@ F Spanned                                        | ReflectanceIntegrator.cpp | 3
     in    OrdinateY  double       [-]  ?
     in    OrdinateZ  double       [-]  ?
     out   -          SpatialSpan  [-]  ?
-    by    Api/WorkSequence.h, Source/AttachmentIndex.cpp, Source/ClipboardExchange.cpp, Source/DepthReduction.cpp, Source/DescriptorIndex.cpp, Source/ImageCodec.cpp, (+8 more)
+    by    Api/WorkSequence.h, Source/AttachmentIndex.cpp, Source/ClipboardExchange.cpp, Source/DepthReduction.cpp, Source/DescriptorIndex.cpp, Source/ImageCodec.cpp, (+9 more)
 
 F Spanned                                        | ReflectanceIntegrator.cpp | 48-53     | - | - | ?
     in    Later    DocumentPosition  [-]  ?
     in    Earlier  DocumentPosition  [-]  ?
     out   -        SpatialSpan       [-]  ?
-    by    Api/WorkSequence.h, Source/AttachmentIndex.cpp, Source/ClipboardExchange.cpp, Source/DepthReduction.cpp, Source/DescriptorIndex.cpp, Source/ImageCodec.cpp, (+8 more)
+    by    Api/WorkSequence.h, Source/AttachmentIndex.cpp, Source/ClipboardExchange.cpp, Source/DepthReduction.cpp, Source/DescriptorIndex.cpp, Source/ImageCodec.cpp, (+9 more)
 
 F Spanned                                        | ReflectanceIntegrator.cpp | 55-60     | - | - | ?
     in    Held  SurfaceDirection  [-]  ?
     out   -     SpatialSpan       [-]  ?
-    by    Api/WorkSequence.h, Source/AttachmentIndex.cpp, Source/ClipboardExchange.cpp, Source/DepthReduction.cpp, Source/DescriptorIndex.cpp, Source/ImageCodec.cpp, (+8 more)
+    by    Api/WorkSequence.h, Source/AttachmentIndex.cpp, Source/ClipboardExchange.cpp, Source/DepthReduction.cpp, Source/DescriptorIndex.cpp, Source/ImageCodec.cpp, (+9 more)
 
 F Agreement                                      | ReflectanceIntegrator.cpp | 62-67     | - | - | ?
     in    Left   SpatialSpan  [-]  ?
@@ -85,7 +85,7 @@ F Bounded                                        | ReflectanceIntegrator.cpp | 1
     in    Lower      double  [-]  ?
     in    Upper      double  [-]  ?
     out   -          double  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+75 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+77 more)
 
 F ChannelOrdinal                                 | ReflectanceIntegrator.cpp | 113-116   | - | - | ?
     in    Channel  ChannelSubject         [-]  ?

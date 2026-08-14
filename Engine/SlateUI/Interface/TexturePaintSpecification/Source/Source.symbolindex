@@ -1,0 +1,44 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The six declarations one painting workspace makes, and nothing else — every panel it names is already routine-shaped.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/TexturePaintSpecification/Source
+%layer      SlateUI
+%sources    1
+%symbols    3
+%annotated  0/3
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S TexturePaintSpecification.cpp | 94 lines | 11e4b3ba | 3 sym | The six declarations one painting workspace makes, and nothing else — every panel it names is already routine-shaped.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE DECLARED EXTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+V TexturePaintPanelCount       | TexturePaintSpecification.cpp | 19    | - | - | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE PANEL DECLARATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F DeclareTexturePaintPanels    | TexturePaintSpecification.cpp | 27-74 | - | - | ?
+    in    Ledger            PanelIndex&  [-]  ?
+    in    WorkspaceContext  void*        [-]  ?
+    out   -                 void         [-]  ?
+    by    Api/TexturePaintSpecification.h
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE WORKSPACE
+//------------------------------------------------------------------------------------------------------------------------
+
+F ResolveTexturePaintWorkspace | TexturePaintSpecification.cpp | 80-92 | - | - | ?
+    in    Standing  PaintWorkspaceContext&  [-]  ?
+    out   -         WorkspaceSpecification  [-]  ?
+    by    Api/TexturePaintSpecification.h, Source/EditorHost.cpp, Source/PaintHost.cpp

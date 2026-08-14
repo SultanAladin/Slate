@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PropertyPanel.cpp | 649 lines | 4f453941 | 16 sym | One row per declaration, dispatched on the declared measure — the panel names no property and never will.
+S PropertyPanel.cpp | 649 lines | 9c2e1592 | 16 sym | One row per declaration, dispatched on the declared measure — the panel names no property and never will.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -29,7 +29,7 @@ V BadgeInset               | PropertyPanel.cpp | 20      | - | - | ?
     by    Source/ChannelPanel.cpp
 
 V RowTextExtent            | PropertyPanel.cpp | 22      | - | - | ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     SMALL GEOMETRY
@@ -40,31 +40,31 @@ F BandOf                   | PropertyPanel.cpp | 28-31   | - | - | ?
     in    Offset  float                      [-]  ?
     in    Height  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F InsetBy                  | PropertyPanel.cpp | 33-39   | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
     in    Margin  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F LeftOf                   | PropertyPanel.cpp | 41-44   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F RightOf                  | PropertyPanel.cpp | 46-51   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F SquareCentred            | PropertyPanel.cpp | 53-59   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     in    Edge  float                      [-]  ?
     out   -     WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F RecordNotice             | PropertyPanel.cpp | 61-69   | - | - | ?
     in    Carry   PropertyPanelCarry&  [-]  ?
@@ -92,7 +92,7 @@ F PresentHeaderBand        | PropertyPanel.cpp | 108-144 | - | - | ?
     in    Band           const WorkspaceRectangle&  [-]  ?
     in    DeclaredCount  std::uint32_t              [-]  ?
     out   -              void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/RevisionPanel.cpp
 
 F PresentNoticeBand        | PropertyPanel.cpp | 146-168 | - | - | ?
     in    Theme  const ThemeSpecification&  [-]  ?
@@ -107,7 +107,7 @@ F PresentFooterBand        | PropertyPanel.cpp | 170-186 | - | - | ?
     in    DeclaredCount  std::uint32_t              [-]  ?
     in    WrittenCount   std::uint32_t              [-]  ?
     out   -              void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ONE ROW
@@ -140,4 +140,4 @@ F PresentPropertyPanel     | PropertyPanel.cpp | 522-647 | - | - | ?
     in    Area            const WorkspaceRectangle&  [-]  ?
     in    PresentContext  void*                      [-]  ?
     out   -               void                       [-]  ?
-    by    Api/PropertyPanel.h
+    by    Api/PropertyPanel.h, Source/TexturePaintSpecification.cpp

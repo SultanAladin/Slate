@@ -80,7 +80,7 @@ F ProjectIncidence                        | IlluminantPopulation.h | 100     | a
 F SLATE_DECLARES_PRECISION                | IlluminantPopulation.h | 101     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE POPULATION
@@ -115,7 +115,7 @@ F IlluminantPopulation::Withdraw          | IlluminantPopulation.h | 139     | a
 F IlluminantPopulation::Resolve           | IlluminantPopulation.h | 145     | api,nonthrowing               | 🚩 | One declared illuminant.
     in    Subject  OccupantIdentity  [-]  ?
     out   -        Outcome           [-]  refuses with IdentityStale when the occupant declares no illuminant
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
 
 F IlluminantPopulation::ResolveColour     | IlluminantPopulation.h | 155     | api,nonthrowing               | 🚩 | One illuminant's colour, projected into a declared space. declared temperature lies outside the locus interval authored temperature is what the artist edits; the coordinate is what `18` integrates.
     in    Subject  OccupantIdentity                 [-]  ?
@@ -134,7 +134,7 @@ F IlluminantPopulation::Enrolled          | IlluminantPopulation.h | 166     | a
 
 F IlluminantPopulation::EnrolledCount     | IlluminantPopulation.h | 171     | api,nonallocating,nonthrowing | ✔️ | How many illuminants are declared.
     out   -  std::uint32_t  [-]  ?
-    by    Api/EnrollmentIndex.h, Api/PopulationIndex.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+2 more)
+    by    Api/EnrollmentIndex.h, Api/PopulationIndex.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+3 more)
 
 F IlluminantPopulation::Revision          | IlluminantPopulation.h | 176     | api,nonallocating,nonthrowing | ✔️ | The revision the last amendment advanced to; `IlluminantIndex` compares counters against it.
     out   -  std::uint64_t  [-]  ?
@@ -216,4 +216,4 @@ F SLATE_DECLARES_PRECISION                | IlluminantPopulation.h | 273     | -
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

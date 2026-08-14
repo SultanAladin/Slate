@@ -8,74 +8,70 @@
 %path       Engine/SlateUI/Interface/OutlinerPanel/Api
 %layer      SlateUI
 %sources    1
-%symbols    10
-%annotated  9/10
+%symbols    5
+%annotated  3/5
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S OutlinerPanel.h | 107 lines | 8f27c297 | 10 sym | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
+S OutlinerPanel.h | 100 lines | f4cef2af | 5 sym | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                THE SEARCH ENTRY EXTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-V NameSearchExtent                | OutlinerPanel.h | 23     | -                             | -  | ?
+V NameSearchExtent         | OutlinerPanel.h | 26    | -                         | -  | ?
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                   THE OUTLINER PANEL
+//                                                 WHAT THE PANEL CARRIES
 //------------------------------------------------------------------------------------------------------------------------
 
-T OutlinerPanel                   | OutlinerPanel.h | 39-105 | owning                        | -  | The presentation half of `12` — reads the linearisation, declares intent, stores neither relation. Only the counted span the artist can see is touched, and the scroll position is a row ordinal resolved by count rather than a pixel offset the panel remembers on its own. A panel that mutated the relations where the click arrived would apply against a linearisation that is halfway rebuilt, and would bypass the sequence that undoes it. entry, and whether the panel is shown. None of it is a transaction and none of it is scrubbed.
-    has   VisibleAnchor        std::uint32_t           [-]  ?
-    has   RowsPresented        std::uint32_t           [-]  ?
-    has   ConfirmedCount       std::uint32_t           [-]  ?
-    has   CountedWhenAnchored  std::uint32_t           [-]  ?
-    has   AnchoredOccupant     OccupantIdentity        [-]  ?
-    has   PresenceEnabled      bool                    [-]  ?
-    has   SoughtEntry          char[NameSearchExtent]  [-]  ?
-    by    Source/OutlinerPanel.cpp
+T OutlinerPanelCarry       | OutlinerPanel.h | 45-57 | owning                    | -  | What the panel carries between ticks — presentation only, and the caller owns all of it. Only the counted span the artist can see is touched, and the visible position is a row ordinal resolved by count rather than a pixel offset the panel remembers on its own. A panel that mutated the relations where the click arrived would apply against a linearisation that is halfway rebuilt, and would bypass the sequence that undoes it. entry, and the drag in flight. None of it is a transaction and none of it is scrubbed. position. A row's ordinal changes whenever an enclosure above it collapses, which is the one event this carry exists to absorb; a stale ordinal would move the view on a collapse made elsewhere.
+    has   VisibleOffset        float             [-]  ?
+    has   Sought               TextCarry         [-]  ?
+    has   ConfirmedCount       std::uint32_t     [-]  ?
+    has   VisibleAnchor        std::uint32_t     [-]  ?
+    has   CountedWhenAnchored  std::uint32_t     [-]  ?
+    has   RowsPresented        std::uint32_t     [-]  ?
+    has   AnchoredOccupant     OccupantIdentity  [-]  ?
+    has   DraggedOccupant      OccupantIdentity  [-]  ?
+    has   LandingOccupant      OccupantIdentity  [-]  ?
+    has   ReorderOpen          bool              [-]  ?
+    by    Api/TexturePaintSpecification.h, Source/OutlinerPanel.cpp
     note  🔴 `12` §7 and `14` §6: the rows are read through `RankIndex` and the relations are never read here.
     note  🔴 Every mutation leaves through `OutlinerSequence::Declare` and is applied at the next tick's ①.
-    note  ⚠️ What is held here is what `14` §4.1 places beside the document — the scroll position, the search
+    note  ⚠️ What is held here is what `14` §4.1 places beside the document — the visible offset, the search
+    note  ⚠️ The anchor is carried as an **identity** and not as an ordinal, unlike `LayerPanelCarry`'s chosen
 
-F OutlinerPanel::Present          | OutlinerPanel.h | 50     | api,nonthrowing               | 🚩 | Presents one tick of the outliner and declares whatever the artist asked for.
-    in    Outliner  OutlinerSequence&  [-]  the sequence to read from and declare into
-    out   -         Outcome            [-]  refuses with HostDenied when no interface tick is open
-    pre   InterfaceExchange::Advance delivered and Seal has not
+//------------------------------------------------------------------------------------------------------------------------
+//                                                WHAT IT PRESENTS AGAINST
+//------------------------------------------------------------------------------------------------------------------------
+
+T OutlinerPanelContext     | OutlinerPanel.h | 68-72 | nonallocating,nonthrowing | -  | What the panel presents against — the sequence it reads and declares into, and the carry it writes. list drifts from the linearisation the moment an occupant is retired, and the artist sees a row for something that no longer exists.
+    has   Outliner  OutlinerSequence*    [-]  ?
+    has   Carry     OutlinerPanelCarry*  [-]  ?
+    by    Api/TexturePaintSpecification.h, Source/OutlinerPanel.cpp
+    note  🔴 `14` §1's gate: the panel stores neither relation nor row. A presented outliner holding its own row
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PRESENTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentOutlinerPanel     | OutlinerPanel.h | 92    | api,nonthrowing           | 🚩 | Presents one tick of the outliner into the rectangle the desk resolved, and declares whatever was asked. never learns what a row, an enclosure or a subset is. of its own would paint at the depth its band carried before a drag rather than the one it carries now, and the two answers disagree the first tick the band is moved. and a refusal raised per panel per tick would append to the register on a path that cannot arise.
+    in    Theme           const ThemeSpecification&  [-]   read for the palette and the band extents; never held
+    in    Area            const WorkspaceRectangle&  [px]  the interior the desk resolved for this panel, honoured exactly
+    in    PresentContext  void*                      [-]   an `OutlinerPanelContext*`; a null context presents an empty state
+    out   -               void                       [-]   ?
     post  every declared intent sits in the pending run; nothing was applied here
-    by    Api/DisplayScheduler.h, Api/PanelIndex.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp, Source/PanelIndex.cpp, Source/WorkspacePanel.cpp, (+1 more)
+    by    Source/OutlinerPanel.cpp, Source/TexturePaintSpecification.cpp
+    note  🔴 Matches `PanelPresentRoutine` exactly, so a workspace declares it into `PanelIndex` and the desk
+    note  🔴 The rectangle is the desk's answer and this panel asks no second one. A panel that opened a window
+    note  ⚠️ Nothing here refuses. `14` §7 puts the interface context's existence on the desk that calls this,
 
-F OutlinerPanel::DeclarePresence  | OutlinerPanel.h | 56     | api,nonallocating,nonthrowing | ✔️ | Declares whether the panel is shown at all.
-    in    PresenceDeclared  bool  [-]  whether the artist wants it
-    out   -                 void  [-]  ?
-    by    Api/SurfaceLayerSequence.h, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/SurfaceLayerSequence.cpp
-
-F OutlinerPanel::PresenceStanding | OutlinerPanel.h | 61     | api,nonallocating,nonthrowing | ✔️ | Whether the panel is shown.
-    out   -  bool  [-]  ?
-    by    Source/OutlinerPanel.cpp
-
-F OutlinerPanel::VisiblePosition  | OutlinerPanel.h | 70     | api,nonallocating,nonthrowing | ✔️ | The counted ordinal at the top of the presented span — the scroll position, as a row. When the counted total changes the offset is restored from that occupant before it is read, so collapsing an enclosure above the view leaves the artist looking at the same occupant rather than at whatever slid under the cursor. An anchor whose occupant left the count keeps its ordinal.
-    out   -  std::uint32_t  [-]  ?
-    by    Api/DocumentSession.h, Source/DocumentSession.cpp, Source/OutlinerPanel.cpp
-    note  Recorded as a count rather than as a pixel offset, and the occupant it names is held alongside it.
-
-F OutlinerPanel::Anchored         | OutlinerPanel.h | 77     | api,nonallocating,nonthrowing | ✔️ | The occupant the presented span is anchored on, undeclared when nothing is counted. never declared as intent and no transaction records it.
-    out   -  OccupantIdentity  [-]  ?
-    by    Source/OutlinerPanel.cpp
-    note  🔴 `14` §4.1 state, not the document's. Held so the scroll survives a count adjustment; it is
-
-F OutlinerPanel::RowsTouched      | OutlinerPanel.h | 84     | api,nonallocating,nonthrowing | ✔️ | How many rows the last presentation actually touched. not to the population. A million occupants that presented a million rows is the defect.
-    out   -  std::uint32_t  [-]  ?
-    by    Source/OutlinerPanel.cpp
-    note  🔍 The measurement `12` §7 is checked against: it stays proportional to the panel's height and
-
-F OutlinerPanel::Sought           | OutlinerPanel.h | 89     | api,nonthrowing               | 🚩 | The text the artist is searching names for, empty when nothing is sought.
-    out   -  std::string  [-]  ?
-    by    Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/ChartPartition.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, (+3 more)
-
-F OutlinerPanel::ConfirmedNames   | OutlinerPanel.h | 94     | api,nonallocating,nonthrowing | ✔️ | How many names the last narrowing confirmed.
-    out   -  std::uint32_t  [-]  ?
-    by    Source/OutlinerPanel.cpp
+F SLATE_DECLARES_PRECISION | OutlinerPanel.h | 98    | -                         | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

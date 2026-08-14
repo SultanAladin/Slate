@@ -31,7 +31,7 @@ F Bounded                                    | TransmissionSequence.cpp | 27-30 
     in    Lower      double  [-]  ?
     in    Upper      double  [-]  ?
     out   -          double  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+75 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+77 more)
 
 F BehaviourOf                                | TransmissionSequence.cpp | 34-47   | - | - | ?
     in    Declared  const MaterialSpecification&  [-]  ?

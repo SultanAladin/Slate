@@ -94,7 +94,7 @@ F WorkProgress::SpannedCount           | WorkSequence.h | 134     | api,nonalloc
 
 F WorkProgress::Reclaim                | WorkSequence.h | 139-144 | api,nonallocating,nonthrowing | ✔️ | Returns every reading to its beginning, for a reused record.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     DECLARED WORK
@@ -183,7 +183,7 @@ F WorkSequence::Construct              | WorkSequence.h | 261     | api,nonthrow
     in    Reporting         ReportSequence&      [-]  where `34` §5's failures are appended
     out   -                 Outcome              [-]  refuses with HostDenied when workers already stand
     post  the worker count is fixed and recorded, so `HardwareMetrics` can attribute a measurement to it
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  📝 A zero request reads the count from `04`'s `PlatformInterchange`, which reports the host once
 
 F WorkSequence::Declare                | WorkSequence.h | 271     | api,nonthrowing               | 🚩 | Declares one unit of work, to be resolved by a worker. declaration carries no resolution claims it; nothing about the calling thread decides when.
@@ -236,7 +236,7 @@ F WorkSequence::PendingCount           | WorkSequence.h | 330     | api,nonalloc
 F WorkSequence::Reclaim                | WorkSequence.h | 336     | api,nonthrowing               | 🔴 | Withdraws everything pending, joins every worker, and returns the sequence to its unconstructed state.
     out   -  void  [-]  ?
     post  every pending declaration has concluded as Withdrawn and is drainable
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F WorkSequence::Serve                  | WorkSequence.h | 345     | -                             | -  | ?
     in    WorkerOrdinal  std::uint32_t  [-]  ?

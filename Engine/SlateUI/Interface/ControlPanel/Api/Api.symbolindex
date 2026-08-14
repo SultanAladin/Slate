@@ -28,7 +28,7 @@ T ControlInteraction       | ControlPanel.h | 30-37   | contract,nonallocating,n
     has   EditDeclared   bool  [-]  ?
     has   EditSealed     bool  [-]  ?
     has   EditAbandoned  bool  [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/ControlNumeric.cpp, (+5 more)
+    by    Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlInterior.h, Source/ControlLayout.cpp, Source/ControlNumeric.cpp, (+6 more)
     note  🔴 `10` §2.4: a drag is **one** transaction and not one per tick. A caller opens on `EditOpened`, amends
     note  ⚠️ `EditSealed` arrives on the tick the pointer is released and carries no further amendment with it.
 
@@ -53,7 +53,7 @@ E ControlStroke            | ControlPanel.h | 47-65   | contract                
     has   Reload   ControlStroke  [-]  ?
     has   Circle   ControlStroke  [-]  ?
     has   Grip     ControlStroke  [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
+    by    Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, (+2 more)
     note  📝 Flat single-colour chrome is a dozen strokes, and a stroke costs no upload, no descriptor and no
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -86,7 +86,7 @@ F PresentControlStroke     | ControlPanel.h | 99      | api,nonallocating,nonthr
     in    Thickness  float                      [-]    ?
     in    Rotation   float                      [rad]  applied about the square's centre; a twisty opens at a quarter turn
     out   -          void                       [-]    ?
-    by    Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
+    by    Source/ChannelPanel.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, Source/ControlLayout.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, (+2 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE PAINTING SEAM
@@ -96,14 +96,14 @@ E TextPlacement            | ControlPanel.h | 115-120 | contract                
     has   Leading   TextPlacement  [-]  ?
     has   Centred   TextPlacement  [-]  ?
     has   Trailing  TextPlacement  [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
 
 F PresentSurfaceFill       | ControlPanel.h | 127     | api,nonallocating,nonthrowing      | ✔️ | Fills one rectangle at the declared corner radius. `999px` for exactly that and refusing it would make every pill site carry its own arithmetic.
     in    Area      const WorkspaceRectangle&  [-]  ?
     in    Colour    const ThemeColour&         [-]  ?
     in    Rounding  float                      [-]  ?
     out   -         void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
     note  A radius beyond half the shorter span is fully rounded rather than refused — the reference spells
 
 F PresentSurfaceOutline    | ControlPanel.h | 132     | api,nonallocating,nonthrowing      | ✔️ | Outlines one rectangle at the declared corner radius and thickness.
@@ -121,28 +121,28 @@ F PresentTextRun           | ControlPanel.h | 141     | api,nonallocating,nonthr
     in    Placement  TextPlacement              [-]  ?
     in    FontScale  float                      [-]  one leaves the interface font as it stands; refused values below a sixteenth are bounded
     out   -          void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
 
 F DeclareClip              | ControlPanel.h | 153     | api,nonallocating,nonthrowing      | ✔️ | Narrows the recording to one rectangle until the matching reclaim. leaves the whole rest of the tick clipped to a panel's interior, and the defect presents as the tab strip vanishing rather than as anything the panel did.
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
     note  🔴 Every declaration is reclaimed on every path out of the scope that made it. An unmatched declaration
 
 F ReclaimClip              | ControlPanel.h | 158     | api,nonallocating,nonthrowing      | ✔️ | Returns the recording to whatever it was clipped to before the matching declaration.
     out   -  void  [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
 
 F MeasuredTextExtent       | ControlPanel.h | 163     | api,nonallocating,nonthrowing      | ✔️ | The horizontal extent one run of text would occupy at the declared scale.
     in    Text       const char*  [-]  ?
     in    FontScale  float        [-]  ?
     out   -          float        [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F ResolveAreaPress         | ControlPanel.h | 174     | api,nonallocating,nonthrowing      | ✔️ | A press with no hold over one rectangle — what a panel row, a header glyph or a fold twisty answers. any release covering it would fire when a drag that started elsewhere happened to end over it, and the defect presents as a layer collapsing because a slider release landed on its row. component knows which recording the interface paints on, and the same argument holds for who reads the pointer: a panel with its own copy is a second authority on what "pressed" means.
     in    Area  const WorkspaceRectangle&  [-]  ?
     out   -     ControlInteraction         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
     note  🔴 The release is honoured only where the press **began** over the same rectangle. A panel that acted on
     note  ⚠️ Spelled here so a panel never reads the vendor's pointer itself. `14` §7's seam holds only while one
 
@@ -155,14 +155,14 @@ F ResolvePointerPosition   | ControlPanel.h | 181     | api,nonallocating,nonthr
 
 F PointerHeld              | ControlPanel.h | 186     | api,nonallocating,nonthrowing      | ✔️ | Whether the primary control is down this tick, wherever the pointer is.
     out   -  bool  [-]  ?
-    by    Source/ControlChrome.cpp, Source/LayerPanel.cpp
+    by    Source/ControlChrome.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp
 
 F AdvanceVisibleOffset     | ControlPanel.h | 197     | api,nonthrowing                    | ✔️ | Advances a hand-rolled list's visible offset by the wheel, bounded to what the content leaves. scrolled view snaps back to content rather than presenting an empty band under the last row.
     in    Carried        float&                     [px]  the offset, amended in place; zero is the top of the content
     in    Area           const WorkspaceRectangle&  [px]  the viewport the list is clipped to
     in    ContentExtent  float                      [px]  the whole content's height
     out   -              Outcome                    [px]  the bounded offset, delivered so a caller need not read the carry back
-    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, (+1 more)
     note  ⚠️ Bounded against the content **after** the wheel is applied, so a list that shortens beneath a
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -269,7 +269,7 @@ T TextCarry                | ControlPanel.h | 335-341 | owning                  
     has   Carried        char[ControlTextExtent]  [-]  ?
     has   CarryExtent    std::uint32_t            [-]  ?
     has   CaretPosition  std::uint32_t            [-]  ?
-    by    Api/LayerPanel.h, Api/PropertyPanel.h, Source/ControlText.cpp, Source/PropertyPanel.cpp
+    by    Api/LayerPanel.h, Api/OutlinerPanel.h, Api/PropertyPanel.h, Source/ControlText.cpp, Source/PropertyPanel.cpp
     note  🔴 Sealing writes the carry back to whatever owns the text; abandoning discards it. The owner's text is
 
 F PresentTextEntry         | ControlPanel.h | 347     | api,nonthrowing                    | 🚩 | A rounded field the artist types into, opened by a click and sealed by Enter or by a press elsewhere.
@@ -279,7 +279,7 @@ F PresentTextEntry         | ControlPanel.h | 347     | api,nonthrowing         
     in    Carry        TextCarry&                 [-]  ?
     in    Placeholder  const char*                [-]  ?
     out   -            Outcome                    [-]  refuses with ExtentExhausted when the field is narrower than one glyph
-    by    Source/ControlText.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ControlText.cpp, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F PresentInlineTextEditor  | ControlPanel.h | 358     | api,nonthrowing                    | 🚩 | A text edit with no field of its own, painted over whatever it is renaming. the trapezoid beneath it stays visible and the artist can see what is being renamed.
     in    Theme  const ThemeSpecification&    [-]  ?
@@ -359,4 +359,4 @@ F SLATE_DECLARES_PRECISION | ControlPanel.h | 448     | -                       
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

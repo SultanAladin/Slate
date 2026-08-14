@@ -83,13 +83,13 @@ F TargetSpace::Reclaim       | RenderSchedule.h | 110     | api,nonthrowing     
     in    DisplayHeight  std::uint32_t  [px]  ?
     out   -              Outcome        [-]   refuses as Claim does; the absolute targets stand untouched either way
     pre   🔴 the device is idle — every rotation that reads the old targets has completed
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
     note  🔴 `06` §7's fourth gate, verbatim: **every** display-relative target is recreated and no
 
 F TargetSpace::Resolve       | RenderSchedule.h | 116     | api,nonthrowing               | ✔️ | The image one declared target was claimed as.
     in    Target  SharedTarget  [-]  ?
     out   -       Outcome       [-]  refuses with ContentUnsupported when the target is unclaimed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
 
 F TargetSpace::OrdinalOf     | RenderSchedule.h | 122     | api,nonallocating,nonthrowing | ✔️ | The image ordinal one target was claimed as, for the transition `ImageSpace` records.
     in    Target  SharedTarget  [-]  ?

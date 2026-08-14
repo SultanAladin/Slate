@@ -64,7 +64,7 @@ T ReportSequence                 | ReportSequence.h | 78-138  | owning          
     has   OccupiedCount     std::uint32_t                     [-]  ?
     has   AppendedReports   std::uint64_t                     [-]  ?
     has   DiscardedReports  std::uint64_t                     [-]  ?
-    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/DiagnosticExtension.h, Api/DiagnosticPanel.h, Api/IntakeIndex.h, (+21 more)
+    by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/DiagnosticExtension.h, Api/DiagnosticPanel.h, Api/IntakeIndex.h, (+22 more)
     note  🔴 This lives in `SlateMath` and not in `SlateUI`. `86` §3 gives the reason and it is the link partition:
     note  🔴 `86` §3.1: an append is admitted from any thread, and this is the one structure in the engine that
     note  📝 `86` §1 also names a `ReportClassifier`. §4.1 forbids inferring a disposition from the text, which
@@ -96,7 +96,7 @@ F ReportSequence::DiscardedCount | ReportSequence.h | 123     | api,nonallocatin
 
 F ReportSequence::Reclaim        | ReportSequence.h | 128     | api,nonthrowing               | ✔️ | Empties the register. Called at process teardown and by nothing else.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ONE MEASURE
@@ -114,7 +114,7 @@ T SampledMeasure                 | ReportSequence.h | 149-157 | nonallocating,no
 
 T MeasureIndex                   | ReportSequence.h | 164-209 | owning                        | -  | The current reading of every sampled measure, keyed by origin and quantity. never pushed — a producer that pushed its own measure would write from inside a recording, contending with the tick for the state the tick is presenting.
     has   SampledMeasures  std::vector<SampledMeasure>  [-]  ?
-    by    Api/ChartPartition.h, Api/DiagnosticPanel.h, Api/DisplayProjection.h, Api/HardwareMetrics.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, (+21 more)
+    by    Api/ChartPartition.h, Api/DiagnosticPanel.h, Api/DisplayProjection.h, Api/HardwareMetrics.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, (+22 more)
     note  🔴 Written on the tick only and therefore unguarded. `86` §2.1: measures are sampled by the tick and
 
 F MeasureIndex::DeclareCount     | ReportSequence.h | 175     | api,nonthrowing               | 🚩 | Declares one integer measure, replacing whatever the same origin and quantity last read.
@@ -136,18 +136,18 @@ F MeasureIndex::DeclareMagnitude | ReportSequence.h | 182     | api,nonthrowing 
 
 F MeasureIndex::Measures         | ReportSequence.h | 187     | api,nonallocating,nonthrowing | ✔️ | Every measure currently held, in declaration order.
     out   -  const std::vector<SampledMeasure>&  [-]  ?
-    by    Api/DiagnosticPanel.h, Api/WorkspaceSequence.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/ReportSequence.cpp, Source/WorkspaceSequence.cpp
+    by    Api/DiagnosticPanel.h, Api/TexturePaintSpecification.h, Api/WorkspaceSequence.h, Source/ConsoleHost.cpp, Source/DiagnosticPanel.cpp, Source/EditorHost.cpp, (+4 more)
 
 F MeasureIndex::Resolve          | ReportSequence.h | 197     | api,nonthrowing               | 🚩 | One measure's current reading. capability: a metric that reports zero when it could not be measured is confidently wrong.
     in    Origin    const char*  [-]  static text naming document and section
     in    Measured  const char*  [-]  static text naming the quantity
     out   -         Outcome      [-]  refuses with ExtentExhausted when nothing has declared it
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
     note  An undeclared measure refuses rather than reading zero. `08` §5 rules the same for an unmeasurable
 
 F MeasureIndex::Reclaim          | ReportSequence.h | 202     | api,nonthrowing               | ✔️ | Discards every held measure.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F MeasureIndex::Located          | ReportSequence.h | 206     | -                             | -  | ?
     in    Origin    const char*  [-]  ?

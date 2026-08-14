@@ -130,7 +130,7 @@ F DocumentSession::StorageOrigin          | DocumentSession.h | 141     | api,no
 
 F DocumentSession::Standing               | DocumentSession.h | 146     | api,nonallocating,nonthrowing | ✔️ | Whether a file stands behind this session yet.
     out   -  StorageStanding  [-]  ?
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+78 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+83 more)
 
 F DocumentSession::SavedThrough           | DocumentSession.h | 151     | api,nonallocating,nonthrowing | ✔️ | The revision ordinal the file on disc carries; zero when nothing has been saved.
     out   -  std::uint64_t  [-]  ?
@@ -178,12 +178,12 @@ F SessionIndex::Close                     | DocumentSession.h | 216     | api,no
 F SessionIndex::Resolve                   | DocumentSession.h | 222     | api,nonthrowing               | ✔️ | One open session.
     in    SessionOrdinal  std::uint32_t  [-]  ?
     out   -               Outcome        [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+97 more)
 
 F SessionIndex::Resolve                   | DocumentSession.h | 223     | -                             | -  | ?
     in    SessionOrdinal  std::uint32_t                    [-]  ?
     out   -               Outcome<const DocumentSession*>  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+97 more)
 
 F SessionIndex::DeclarePresented          | DocumentSession.h | 229     | api,nonthrowing               | ✔️ | Declares which session the interface presents — `14` presents one at a time.
     in    SessionOrdinal  std::uint32_t  [-]  ?
@@ -192,11 +192,11 @@ F SessionIndex::DeclarePresented          | DocumentSession.h | 229     | api,no
 
 F SessionIndex::Presenting                | DocumentSession.h | 235     | api,nonthrowing               | ✔️ | The session the interface presents.
     out   -  Outcome  [-]  refuses with ExtentExhausted when no session is open
-    by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/OutlinerPanel.cpp, Source/RevisionPanel.cpp
+    by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/RevisionPanel.cpp
 
 F SessionIndex::Presenting                | DocumentSession.h | 236     | -                             | -  | ?
     out   -  Outcome<const DocumentSession*>  [-]  ?
-    by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/OutlinerPanel.cpp, Source/RevisionPanel.cpp
+    by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/RevisionPanel.cpp
 
 F SessionIndex::PresentedOrdinal          | DocumentSession.h | 241     | api,nonallocating,nonthrowing | ✔️ | Which ordinal is presented; the ceiling when nothing is open.
     out   -  std::uint32_t  [-]  ?
@@ -218,4 +218,4 @@ F SessionIndex::SpannedCount              | DocumentSession.h | 259     | api,no
 
 F SessionIndex::Reclaim                   | DocumentSession.h | 264     | api,nonthrowing               | ✔️ | Closes every session. Called at process teardown and by nothing else.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)

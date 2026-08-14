@@ -89,7 +89,7 @@ F Bounded                     | PropertySpecification.h | 117     | api,nonthrow
     in    Declared  const PropertyDeclaration&  [-]  the declaration
     in    Offered   const PropertyValue&        [-]  the value; returned bounded at Magnitude, Signed and Ordinal
     out   -         Outcome                     [-]  refuses when the measures disagree, because no bounding can reconcile that
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+75 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+77 more)
     note  🔴 Offered as a **separate** call rather than folded into the write. `10` §2.2 requires the write to
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ T PropertyIndex               | PropertySpecification.h | 127-193 | owning      
     has   DeclaredProperties  std::vector<PropertyDeclaration>  [-]  ?
     has   HeldValues          std::vector<PropertyValue>        [-]  ?
     has   ValueDeclared       std::vector<bool>                 [-]  ?
-    by    Api/PropertyPanel.h, Api/ToolSequence.h, Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp
+    by    Api/PropertyPanel.h, Api/TexturePaintSpecification.h, Api/ToolSequence.h, Source/ConsoleHost.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp, (+2 more)
     note  🔴 A write validates before it stores, and a refused write leaves the prior value standing. There is no
 
 F PropertyIndex::Declare      | PropertySpecification.h | 139     | api,nonthrowing               | 🚩 | Declares one property, replacing a declaration of the same identity. own default does not satisfy it bounds presents an invalid value on every occupant that never wrote it.
@@ -119,7 +119,7 @@ F PropertyIndex::Write        | PropertySpecification.h | 149     | api,nonthrow
 F PropertyIndex::Resolve      | PropertySpecification.h | 155     | api,nonthrowing               | 🚩 | Reads one property's value, or its declared default where nothing has written it.
     in    Identity  const std::string&  [-]  ?
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
 
 F PropertyIndex::Declared     | PropertySpecification.h | 161     | api,nonthrowing               | 🚩 | One property's declaration, for whoever is presenting it.
     in    Identity  const std::string&  [-]  ?
@@ -128,7 +128,7 @@ F PropertyIndex::Declared     | PropertySpecification.h | 161     | api,nonthrow
 
 F PropertyIndex::Declarations | PropertySpecification.h | 166     | api,nonallocating,nonthrowing | ✔️ | Every declaration, in declaration order.
     out   -  const std::vector<PropertyDeclaration>&  [-]  ?
-    by    Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PropertyPanel.h, Api/ReferenceIndex.h, Source/ConsoleHost.cpp, (+6 more)
+    by    Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/PropertyPanel.h, Api/ReferenceIndex.h, Api/TexturePaintSpecification.h, (+10 more)
 
 F PropertyIndex::ValueWritten | PropertySpecification.h | 171     | api,nonthrowing               | 🚩 | Whether one property has been written since it was declared.
     in    Identity  const std::string&  [-]  ?
@@ -138,7 +138,7 @@ F PropertyIndex::ValueWritten | PropertySpecification.h | 171     | api,nonthrow
 F PropertyIndex::Reclaim      | PropertySpecification.h | 177     | api,nonthrowing               | 🚩 | Returns one property to its declared default.
     in    Identity  const std::string&  [-]  ?
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F PropertyIndex::ValuesValid  | PropertySpecification.h | 184     | api,nonallocating,nonthrowing | 🚩 | 🔍 Whether every held value satisfies its own declaration. second writer is caught by a gate rather than by an artist.
     out   -  bool  [-]  ?

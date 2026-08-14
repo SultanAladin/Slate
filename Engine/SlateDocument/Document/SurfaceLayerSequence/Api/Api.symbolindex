@@ -112,7 +112,7 @@ T SurfaceLayerSequence                      | SurfaceLayerSequence.h | 162-329 |
     has   IssuedGeneration     std::uint32_t                      [-]  ?
     has   Depth                std::uint32_t                      [-]  ?
     has   DescribedRevision    std::uint64_t                      [-]  ?
-    by    Api/AnalyticProjection.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/LayerPanel.h, Api/PreviewProjection.h, Api/PromotionScheduler.h, (+10 more)
+    by    Api/AnalyticProjection.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/LayerPanel.h, Api/PreviewProjection.h, Api/PromotionScheduler.h, (+13 more)
     note  ⚠️ `Stack` is banned. The ordered content of a surface is a `SurfaceLayerSequence` and a position in it
     note  🔴 `56` §4: sequence position is the sole answer to "what is on top". No entry carries a depth, a
     note  🔴 `56` §7: nothing here addresses a tile, a texel population or a device resource. Entries address
@@ -134,7 +134,7 @@ F SurfaceLayerSequence::DeclarePresence     | SurfaceLayerSequence.h | 193     |
     in    Subject          LayerIdentity  [-]  ?
     in    PresenceEnabled  bool           [-]  ?
     out   -                Outcome        [-]  refuses with IdentityStale; carries the prior standing as the inverse
-    by    Api/OutlinerPanel.h, Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/SurfaceLayerSequence.cpp
+    by    Source/LayerPanel.cpp, Source/SurfaceLayerSequence.cpp
     note  ⚠️ A recorded amendment, per `56` §6. An artist who hides a layer, saves, reopens and finds it
 
 F SurfaceLayerSequence::DeclareCombination  | SurfaceLayerSequence.h | 199     | api,nonthrowing               | 🚩 | Amends one entry's combination.
@@ -168,7 +168,7 @@ F SurfaceLayerSequence::Resample            | SurfaceLayerSequence.h | 240     |
 F SurfaceLayerSequence::Resolve             | SurfaceLayerSequence.h | 249     | api,nonthrowing               | ✔️ | One entry, by identity.
     in    Subject  LayerIdentity  [-]  ?
     out   -        Outcome        [-]  refuses with IdentityStale
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
 
 F SurfaceLayerSequence::AmendPainted        | SurfaceLayerSequence.h | 262     | api,nonthrowing               | 🚩 | One entry's painted texels, for the one mechanism permitted to amend them. ContentUnsupported when its source is not PaintedImpressions describes — §3 — so this is the one route by which authored content is written at all, and every write through it is inside a transaction whose inverse is bounded by the extents it touched. resolved projection the source of truth for content the description already holds, and `20` §4 would then evict the artist's edit at the first memory pressure.
     in    Subject  LayerIdentity  [-]  ?
@@ -249,4 +249,4 @@ F SLATE_DECLARES_PRECISION                  | SurfaceLayerSequence.h | 359     |
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

@@ -1,14 +1,20 @@
 # Engine Folder Structure
 
-Source: `Engine/` — files of type `.cpp` / `.h` / `.slang` (238 files) and `.comp` / `.bat` / `.ps1` (none found).
+Source: `Engine/` — files of type `.cpp` / `.h` / `.slang` (271 files) and `.comp` / `.bat` / `.ps1` (none found).
 
 ```
 Engine/
 ├── Application/
 │   ├── Module.toml
-│   └── ConsoleHost/
+│   ├── ConsoleHost/
+│   │   └── Source/
+│   │       └── ConsoleHost.cpp
+│   ├── EditorHost/
+│   │   └── Source/
+│   │       └── EditorHost.cpp
+│   └── PaintHost/
 │       └── Source/
-│           └── ConsoleHost.cpp
+│           └── PaintHost.cpp
 ├── Contract/
 │   ├── CombineContract.h
 │   ├── IdentityContract.h
@@ -503,14 +509,21 @@ Engine/
 │       │   │   └── RevisionPanel.h
 │       │   └── Source/
 │       │       └── RevisionPanel.cpp
+│       ├── TexturePaintSpecification/
+│       │   ├── Api/
+│       │   │   └── TexturePaintSpecification.h
+│       │   └── Source/
+│       │       └── TexturePaintSpecification.cpp
 │       ├── ThemeSpecification/
 │       │   ├── Api/
 │       │   │   └── ThemeSpecification.h
 │       │   └── Source/
 │       │       └── ThemeSpecification.cpp
 │       ├── WorkspaceSequence/
-│       │   └── Api/
-│       │       └── WorkspaceSequence.h
+│       │   ├── Api/
+│       │   │   └── WorkspaceSequence.h
+│       │   └── Source/
+│       │       └── WorkspaceSequence.cpp
 │       └── WorkspaceSpace/
 │           ├── Api/
 │           │   ├── PanelIndex.h

@@ -66,7 +66,7 @@ F ProjectPlacements                | EmissionSequence.h | 90      | api,nonthrow
 F SLATE_DECLARES_PRECISION         | EmissionSequence.h | 91      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
 
 F ToleranceAtExtent                | EmissionSequence.h | 102-105 | api,nonallocating,nonthrowing | ✔️ | The flattening tolerance an emission at one extent resolves at. emission's extent is the artist's declaration and need not be a reduction level at all, so the tolerance is derived from the extent rather than looked up — one texel of what is being written, which is the deviation below which a chord cannot move a sample.
     in    ExtentTexels  std::uint32_t  [px]  per edge of the emitted image
@@ -77,7 +77,7 @@ F ToleranceAtExtent                | EmissionSequence.h | 102-105 | api,nonalloc
 F SLATE_DECLARES_PRECISION         | EmissionSequence.h | 106     | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE EMISSION
@@ -97,7 +97,7 @@ T EmissionSequence                 | EmissionSequence.h | 123-200 | owning      
 F EmissionSequence::Construct      | EmissionSequence.h | 132     | api,nonallocating,nonthrowing | ✔️ | Takes the resolver every band reads.
     in    Supplied  const EmissionSources&  [-]  borrowed; outlives this component
     out   -         Outcome                 [-]  refuses with ContentUnsupported for an absent resolver
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
 
 F EmissionSequence::Open           | EmissionSequence.h | 148     | api,nonthrowing               | 🔴 | Opens one image of a validated emission, ready for its first band. ContentUnsupported outside the image count and above the extent ceiling, and with whatever the specification's own validation refused specification is handed in by value and the two calls are separated by however long the artist spent between declaring an export and starting it; validating once and trusting thereafter is trusting a copy, and `50` §5.1's wrong arrangement is exactly what that copy would carry.
     in    Declaring     const EmissionSpecification&  [-]  the emission specification; validated here, again, and not assumed
@@ -132,10 +132,10 @@ F EmissionSequence::Seal           | EmissionSequence.h | 185     | api,nonthrow
 
 F EmissionSequence::Reclaim        | EmissionSequence.h | 190     | api,nonthrowing               | 🚩 | Abandons the standing emission and reclaims its texels.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F SLATE_DECLARES_PRECISION         | EmissionSequence.h | 205     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

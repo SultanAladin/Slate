@@ -66,7 +66,7 @@ F DescriptorIndex::Construct        | DescriptorIndex.h | 87      | api,nonthrow
     in    Naming    const DiagnosticExtension&  [-]  names every layout, the extent and every set; borrowed and outlives this component
     out   -         Outcome                     [-]  refuses with CapabilityAbsent when no device is active
     post  no layout is declared and no set is claimed
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  🔴 `06` §7's diagnostic-name gate. A descriptor set is the object the validation layer names most
 
 F DescriptorIndex::Declare          | DescriptorIndex.h | 95      | api,nonthrowing               | 🚩 | Declares one layout from its slots, returning the ordinal every later claim names it by. and with RelationCyclic once the declaration set has been fixed
@@ -99,7 +99,7 @@ F DescriptorIndex::Resolve          | DescriptorIndex.h | 132     | api,nonalloc
     in    ClaimOrdinal  std::uint32_t  [-]  ?
     in    RotationSlot  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal or an excessive slot
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/FileInterchange.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/FileInterchange.h, (+97 more)
 
 F DescriptorIndex::Layout           | DescriptorIndex.h | 138     | api,nonallocating,nonthrowing | ✔️ | The layout one ordinal names, for the recording that constructs a program against it.
     in    LayoutOrdinal  std::uint32_t  [-]  ?
@@ -109,7 +109,7 @@ F DescriptorIndex::Layout           | DescriptorIndex.h | 138     | api,nonalloc
 F DescriptorIndex::Reclaim          | DescriptorIndex.h | 144     | api,nonthrowing               | 🚩 | Destroys every set, every layout and the extent they were sliced from.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F DescriptorIndex::DeclaredCount    | DescriptorIndex.h | 146     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?

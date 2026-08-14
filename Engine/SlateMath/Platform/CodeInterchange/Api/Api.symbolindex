@@ -86,7 +86,7 @@ F CodeInterchange::Release          | CodeInterchange.h | 142     | api,nonthrow
 
 F CodeInterchange::Reclaim          | CodeInterchange.h | 147     | api,nonthrowing               | 🚩 | Releases every standing module. Called by the destructor as well.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+79 more)
 
 F CodeInterchange::StandingCount    | CodeInterchange.h | 152     | api,nonallocating,nonthrowing | ✔️ | How many modules stand.
     out   -  std::uint32_t  [-]  ?

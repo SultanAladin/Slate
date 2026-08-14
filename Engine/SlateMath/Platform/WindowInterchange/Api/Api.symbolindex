@@ -61,4 +61,4 @@ F WindowInterchange::CurrentExtent      | WindowInterchange.h | 69    | api,nona
 
 F WindowInterchange::ClosureRequested   | WindowInterchange.h | 74    | api,nonallocating,nonthrowing | ✔️ | Whether the artist has asked the window system to close this window.
     out   -  bool  [-]  ?
-    by    Api/WorkspaceSequence.h, Source/WindowInterchange.cpp, Source/WorkspaceSequence.cpp
+    by    Api/WorkspaceSequence.h, Source/EditorHost.cpp, Source/PaintHost.cpp, Source/WindowInterchange.cpp, Source/WorkspaceSequence.cpp

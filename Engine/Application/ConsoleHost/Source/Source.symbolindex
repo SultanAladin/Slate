@@ -183,4 +183,4 @@ F VerifyRadianceChain | ConsoleHost.cpp | 3313-3488 | - | - | ?
 
 F main                | ConsoleHost.cpp | 3496-3574 | - | - | ?
     out   -  int  [-]  ?
-    by    Shader/DepthReduction.slang, Shader/OcclusionCulling.slang
+    by    Shader/DepthReduction.slang, Shader/OcclusionCulling.slang, Source/EditorHost.cpp, Source/PaintHost.cpp

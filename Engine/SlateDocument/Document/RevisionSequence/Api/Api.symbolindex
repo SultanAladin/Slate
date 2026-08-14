@@ -53,7 +53,7 @@ T RevisionSequence                  | RevisionSequence.h | 60-121 | owning      
     has   OpenTransaction  CommittedTransaction               [-]  ?
     has   ScrubOrdinal     std::uint64_t                      [-]  ?
     has   OpenDeclared     bool                               [-]  ?
-    by    Api/ImpressionSequence.h, Api/OutlinerSequence.h, Api/RevisionPanel.h, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, (+2 more)
+    by    Api/ImpressionSequence.h, Api/OutlinerSequence.h, Api/RevisionPanel.h, Api/TexturePaintSpecification.h, Source/ConsoleHost.cpp, Source/EditorHost.cpp, (+5 more)
     note  ⚠️ `HistoryStack` is the retired spelling: the sequence is scrubbed in both directions rather
 
 F RevisionSequence::Open            | RevisionSequence.h | 72     | api,nonthrowing               | ✔️ | Opens a transaction. Nothing enters the sequence until it is sealed.
@@ -79,7 +79,7 @@ F RevisionSequence::Retreat         | RevisionSequence.h | 92     | api,nonalloc
 
 F RevisionSequence::Advance         | RevisionSequence.h | 98     | api,nonallocating,nonthrowing | ✔️ | Scrubs one transaction forwards, replaying its forward operation.
     out   -  Outcome  [-]  refuses when the scrub position is already at the end
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+20 more)
+    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+22 more)
 
 F RevisionSequence::Committed       | RevisionSequence.h | 103    | api,nonallocating,nonthrowing | ✔️ | The committed transactions, in order, for `84` to present.
     out   -  const std::vector<CommittedTransaction>&  [-]  ?

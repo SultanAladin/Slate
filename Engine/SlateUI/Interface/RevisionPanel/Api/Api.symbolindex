@@ -35,14 +35,14 @@ T RevisionPanelCarry       | RevisionPanel.h | 35-46 | owning                   
     has   DiscardPromptOpen      bool                        [-]  ?
     has   DiscardPromptCount     std::uint64_t               [-]  ?
     has   DiscardConfirmed       bool                        [-]  ?
-    by    Source/RevisionPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/RevisionPanel.cpp
     note  🔴 `84` §1 and `14` §4.1: nothing here is a transaction and nothing here is scrubbed. The fold states,
     note  ⚠️ `SavedPosition` arrives from `48` and is the one presented fact that is not a transaction — `84` §5.
 
 T RevisionPanelContext     | RevisionPanel.h | 52-56 | nonallocating,nonthrowing     | -  | What the panel presents against — the sequence it reads and the carry it writes. sequence holding its own row list drifts from the sequence the moment a transaction merges.
     has   Sequence  RevisionSequence*    [-]  ?
     has   Carry     RevisionPanelCarry*  [-]  ?
-    by    Source/RevisionPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/RevisionPanel.cpp
     note  🔴 Both are pointers the workspace owns. The panel stores neither, which is `84` §1's gate: a presented
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -78,7 +78,7 @@ F PresentRevisionPanel     | RevisionPanel.h | 108   | api,nonthrowing          
     in    Area            const WorkspaceRectangle&  [px]  the interior the panel layer handed it, header band included
     in    PresentContext  void*                      [-]   a `RevisionPanelContext*`; a null context or a null sequence presents an empty state
     out   -               void                       [-]   ?
-    by    Source/RevisionPanel.cpp
+    by    Source/RevisionPanel.cpp, Source/TexturePaintSpecification.cpp
     note  🔴 Matches `PanelPresentRoutine` exactly so a workspace declares it into `PanelIndex` and the desk never
     note  ⚠️ Merged transactions present as one row for free — `RevisionSequence` merges at `Seal`, so presenting
     note  ⚠️ No row is presented for an open transaction, for selection, for tool state or for panel layout —
@@ -87,4 +87,4 @@ F SLATE_DECLARES_PRECISION | RevisionPanel.h | 114   | -                        
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

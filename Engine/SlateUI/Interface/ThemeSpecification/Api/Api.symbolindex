@@ -137,7 +137,7 @@ T LayoutExtents          | ThemeSpecification.h | 99-147  | owning              
 T ThemeSpecification     | ThemeSpecification.h | 156-160 | owning                             | -  | The palette and the extents together — what every present call is handed by const reference.
     has   Palette  ThemePalette   [-]  ?
     has   Extents  LayoutExtents  [-]  ?
-    by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/PanelIndex.h, Api/PropertyPanel.h, (+21 more)
+    by    Api/ChannelPanel.h, Api/ControlPanel.h, Api/DiagnosticPanel.h, Api/LayerPanel.h, Api/OutlinerPanel.h, Api/PanelIndex.h, (+23 more)
     note  🔴 `14` §4.1 places this beside the document. No transaction records it and undo never steps through it.
 
 //------------------------------------------------------------------------------------------------------------------------

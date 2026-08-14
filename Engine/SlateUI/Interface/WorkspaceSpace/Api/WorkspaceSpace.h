@@ -571,6 +571,12 @@ struct WorkspaceBodyPlacement
 //                                                     PANEL OPERATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
+// 📝 The document is named by reference through every operation below and read by none of them, so it is declared
+//    here and defined further down beside the floating window it travels with. Moving the definition up instead
+//    would put a body holding panel boxes above the box record it holds, which is the same ordering fault read
+//    from the other end.
+struct WorkspaceDocument;
+
 /// 🧩 Declares one panel box into one document's body, floating, and names the ledger slot it presents.
 /// in    Standing            [-]  the document the box joins
 /// in    DeclaredIdentifier  [-]  the ledger slot's identifier, retained and never copied; static storage

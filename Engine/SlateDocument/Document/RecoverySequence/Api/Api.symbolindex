@@ -126,4 +126,4 @@ F RecoverySequence::DiscardedCount    | RecoverySequence.h | 165    | api,nonall
 
 F RecoverySequence::Reclaim           | RecoverySequence.h | 170    | api,nonthrowing               | ✔️ | Empties the journal. Called when the document it belongs to closes cleanly.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)

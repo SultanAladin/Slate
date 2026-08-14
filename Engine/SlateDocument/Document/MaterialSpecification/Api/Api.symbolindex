@@ -104,7 +104,7 @@ F MeasureCarriesColour                          | MaterialSpecification.h | 125-
 F SLATE_DECLARES_PRECISION                      | MaterialSpecification.h | 129     | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ONE CHANNEL
@@ -197,7 +197,7 @@ T MaterialIndex                                 | MaterialSpecification.h | 233-
     has   Declared         std::vector<MaterialSpecification>  [-]  ?
     has   DeclaredNames    std::vector<std::string>            [-]  ?
     has   AbsentName       std::string                         [-]  ?
-    by    Api/AssetInterchange.h, Api/ChannelPanel.h, Api/EmissionSequence.h, Source/AssetInterchange.cpp, Source/ChannelPanel.cpp, Source/ConsoleHost.cpp, (+2 more)
+    by    Api/AssetInterchange.h, Api/ChannelPanel.h, Api/EmissionSequence.h, Api/TexturePaintSpecification.h, Source/AssetInterchange.cpp, Source/ChannelPanel.cpp, (+5 more)
     note  🔴 `42` §6: editing a material changes every occupant enrolled in it, in one transaction. The `56` layer
 
 F MaterialIndex::Declare                        | MaterialSpecification.h | 242     | api,nonthrowing               | 🚩 | Declares one material and issues its identity.
@@ -208,7 +208,7 @@ F MaterialIndex::Declare                        | MaterialSpecification.h | 242 
 F MaterialIndex::Resolve                        | MaterialSpecification.h | 248     | api,nonthrowing               | ✔️ | One declared material, for reading.
     in    MaterialOrdinal  std::uint32_t  [-]  ?
     out   -                Outcome        [-]  refuses with ContentUnsupported outside the declared count
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
 
 F MaterialIndex::Amend                          | MaterialSpecification.h | 254     | api,nonthrowing               | ✔️ | One declared material, for amending.
     in    MaterialOrdinal  std::uint32_t  [-]  ?
@@ -246,7 +246,7 @@ T PartitionResolutionIndex                      | MaterialSpecification.h | 292-
 
 F PartitionResolutionIndex::Reclaim             | MaterialSpecification.h | 299     | api,nonthrowing               | ✔️ | Discards every entry, ahead of a rebuild.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F PartitionResolutionIndex::Declare             | MaterialSpecification.h | 307     | api,nonthrowing               | 🚩 | Declares one partition's resolution, issuing its identity. the declared ceiling
     in    Resolving  const ResolvedPartition&  [-]  the occupant, material and face range
@@ -256,7 +256,7 @@ F PartitionResolutionIndex::Declare             | MaterialSpecification.h | 307 
 F PartitionResolutionIndex::Resolve             | MaterialSpecification.h | 314     | api,nonthrowing               | ✔️ | Resolves one partition identity. re-partition since the identity was taken looks like
     in    Subject  PartitionIdentity  [-]  ?
     out   -        Outcome            [-]  refuses with IdentityStale when the generation no longer matches — which is what a
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
 
 F PartitionResolutionIndex::Revision            | MaterialSpecification.h | 319     | api,nonallocating,nonthrowing | ✔️ | The revision the last rebuild advanced to; `70` §2 compares counters against it.
     out   -  std::uint64_t  [-]  ?

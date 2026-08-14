@@ -108,12 +108,12 @@ F EnrollmentIndex::Intervals          | EnrollmentIndex.h | 137    | api,nonallo
 F EnrollmentIndex::EnrolledCount      | EnrollmentIndex.h | 142    | api,nonallocating,nonthrowing | ✔️ | How many occupants one subset holds.
     in    EnrolledSubset  SubsetSubject  [-]  ?
     out   -               std::uint32_t  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/PopulationIndex.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+2 more)
+    by    Api/IlluminantPopulation.h, Api/PopulationIndex.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+3 more)
 
 F EnrollmentIndex::Reclaim            | EnrollmentIndex.h | 147    | api,nonthrowing               | ✔️ | Empties one subset entirely.
     in    EnrolledSubset  SubsetSubject  [-]  ?
     out   -               void           [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F EnrollmentIndex::EnrolmentsOccupied | EnrollmentIndex.h | 153    | api,nonallocating,nonthrowing | 🚩 | 🔍 Whether every enrolled slot is occupied at the current generation — invariant 6.
     in    Generations  const std::vector<std::uint32_t>&  [-]  the current generation per slot, zero where the slot is vacant

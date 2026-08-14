@@ -7,7 +7,7 @@
 %scope    layer
 %path     Engine/SlateMath
 %folders  36
-%symbols  403
+%symbols  404
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
@@ -38,7 +38,7 @@ I Source | Source/Source.symbolindex | 14 sym | The load, the verification perfo
 I Api    | Api/Api.symbolindex       | 9 sym  | One stream surface over three file systems — paths, whole streams, and the write-verify-replace sequence.
 I Source | Source/Source.symbolindex | 11 sym | Paths, whole streams and the write-verify-replace sequence over the host file system.
 I Api    | Api/Api.symbolindex       | 12 sym | Timestamped device samples crossing in, with absent axes distinguishable from zero-valued ones.
-I Source | Source/Source.symbolindex | 21 sym | Bounded cyclic arrival ordering over pointer samples, filled from the host's own pointer surface.
+I Source | Source/Source.symbolindex | 22 sym | Bounded cyclic arrival ordering over pointer samples, filled from the host's own pointer surface.
 I Api    | Api/Api.symbolindex       | 7 sym  | The instruction-set specialisation selected once from the host and recorded, so a result names what produced it.
 I Source | Source/Source.symbolindex | 11 sym | The host query, the operating-system consent a wide specialisation additionally needs, and the selection.
 I Api    | Api/Api.symbolindex       | 7 sym  | Process, thread and locale services translated once, so that nothing above Layer0 carries an OS conditional.
@@ -357,24 +357,25 @@ F InputExchange::Reclaim                   | Api/InputExchange.h             | 1
 K WIN32_LEAN_AND_MEAN                      | Source/InputExchange.cpp        | 12      | ?
 K NOMINMAX                                 | Source/InputExchange.cpp        | 15      | ?
 K _WIN32_WINNT                             | Source/InputExchange.cpp        | 23      | ?
-V AttachmentCapacity                       | Source/InputExchange.cpp        | 50      | ?
-T WindowAttachment                         | Source/InputExchange.cpp        | 52-57   | ?
-V Attached                                 | Source/InputExchange.cpp        | 59      | ?
-F ResolveAttachment                        | Source/InputExchange.cpp        | 61-70   | ?
-V ReportedPressureRange                    | Source/InputExchange.cpp        | 75      | ?
-F ProjectPenAxes                           | Source/InputExchange.cpp        | 77-104  | ?
-F ProjectPenContact                        | Source/InputExchange.cpp        | 109-123 | ?
-F ProjectMouseContact                      | Source/InputExchange.cpp        | 125-139 | ?
-F ReceivePointerMessage                    | Source/InputExchange.cpp        | 150-227 | ?
-F InputExchange::Attach                    | Source/InputExchange.cpp        | 235-306 | ?
-F InputExchange::Detach                    | Source/InputExchange.cpp        | 308-343 | ?
-F InputExchange::~InputExchange            | Source/InputExchange.cpp        | 345-348 | ?
-F InputExchange::ArrivalStamp              | Source/InputExchange.cpp        | 354-360 | ?
-F InputExchange::ArrivalStamp              | Source/InputExchange.cpp        | 362-374 | ?
-F InputExchange::Record                    | Source/InputExchange.cpp        | 380-395 | ?
-F InputExchange::Sample                    | Source/InputExchange.cpp        | 401-404 | ?
-F InputExchange::HeldCount                 | Source/InputExchange.cpp        | 406-409 | ?
-F InputExchange::Reclaim                   | Source/InputExchange.cpp        | 411-415 | ?
+K GLFW_EXPOSE_NATIVE_WIN32                 | Source/InputExchange.cpp        | 34      | ?
+V AttachmentCapacity                       | Source/InputExchange.cpp        | 59      | ?
+T WindowAttachment                         | Source/InputExchange.cpp        | 61-66   | ?
+V Attached                                 | Source/InputExchange.cpp        | 68      | ?
+F ResolveAttachment                        | Source/InputExchange.cpp        | 70-79   | ?
+V ReportedPressureRange                    | Source/InputExchange.cpp        | 84      | ?
+F ProjectPenAxes                           | Source/InputExchange.cpp        | 86-113  | ?
+F ProjectPenContact                        | Source/InputExchange.cpp        | 118-132 | ?
+F ProjectMouseContact                      | Source/InputExchange.cpp        | 134-148 | ?
+F ReceivePointerMessage                    | Source/InputExchange.cpp        | 159-236 | ?
+F InputExchange::Attach                    | Source/InputExchange.cpp        | 244-318 | ?
+F InputExchange::Detach                    | Source/InputExchange.cpp        | 320-355 | ?
+F InputExchange::~InputExchange            | Source/InputExchange.cpp        | 357-360 | ?
+F InputExchange::ArrivalStamp              | Source/InputExchange.cpp        | 366-372 | ?
+F InputExchange::ArrivalStamp              | Source/InputExchange.cpp        | 374-386 | ?
+F InputExchange::Record                    | Source/InputExchange.cpp        | 392-407 | ?
+F InputExchange::Sample                    | Source/InputExchange.cpp        | 413-416 | ?
+F InputExchange::HeldCount                 | Source/InputExchange.cpp        | 418-421 | ?
+F InputExchange::Reclaim                   | Source/InputExchange.cpp        | 423-427 | ?
 E InstructionWidth                         | Api/InstructionExchange.h       | 22-27   | Which instruction-set specialisation a computation was taken through. Ordered by increasing width. so a caller selects by comparing rather than by testing each. `02` §7's parity is reported against this ordinal, and a parity failure appearing on exactly one specialisation is otherwise unattributable.
 T InstructionReport                        | Api/InstructionExchange.h       | 34-40   | What the host reported about its own instruction set, read once at bring-up. `Supported` — a host that decodes the widest specialisation but reduces its own clock to sustain it runs the narrower one faster, and `06`'s `HardwareMetrics` needs both figures to explain why.
 T InstructionExchange                      | Api/InstructionExchange.h       | 54-91   | The one place an instruction-set specialisation is selected, and the one place the selection is read. differ between two call sites in one run, and a parity failure reported against a specialisation that was not the one used names the wrong specialisation — which is worse than naming none. specialises reads the report and branches once, outside its own inner run. A dispatch surface here would put a function pointer between `Layer1_Numeric` and every arithmetic operation it performs.

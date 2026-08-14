@@ -51,7 +51,7 @@ V EntryHeight            | DiagnosticPanel.cpp | 100     | - | - | ?
 V MeasureHeight          | DiagnosticPanel.cpp | 101     | - | - | ?
 
 V CountBadge             | DiagnosticPanel.cpp | 102     | - | - | ?
-    by    Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/LayerPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       ONE ENTRY
@@ -82,4 +82,4 @@ F PresentDiagnosticPanel | DiagnosticPanel.cpp | 218-469 | - | - | ?
     in    Area            const WorkspaceRectangle&  [-]  ?
     in    PresentContext  void*                      [-]  ?
     out   -               void                       [-]  ?
-    by    Api/DiagnosticPanel.h
+    by    Api/DiagnosticPanel.h, Source/TexturePaintSpecification.cpp

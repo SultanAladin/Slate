@@ -79,7 +79,7 @@ F ByteSpace::Construct         | ByteSpace.h | 107     | api,nonthrowing        
     in    Naming    const DiagnosticExtension&  [-]  names every vendor allocation taken; borrowed and outlives this component
     out   -         Outcome                     [-]  refuses with CapabilityAbsent when no device is active
     post  no extent is claimed; the first Claim takes the first one
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+66 more)
     note  🔴 `06` §7's diagnostic-name gate is discharged here rather than by the caller. A name declared
 
 F ByteSpace::Claim             | ByteSpace.h | 120     | api,nonthrowing               | 🚩 | Slices one span of the requested residency, taking a further extent when none can satisfy it. cannot use and cannot release, and the release path is the one nobody exercises.
@@ -102,7 +102,7 @@ F ByteSpace::Release           | ByteSpace.h | 133     | api,nonthrowing        
 F ByteSpace::Reclaim           | ByteSpace.h | 139     | api,nonthrowing               | 🚩 | Destroys every vendor allocation and forgets every slice.
     out   -  void  [-]  ?
     pre   the device is idle and no claim this component issued is still recorded against
-    by    Api/AttachmentIndex.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+79 more)
 
 F ByteSpace::ClaimedBytes      | ByteSpace.h | 144     | api,nonallocating,nonthrowing | ✔️ | What is claimed and what is held, per residency — the two halves `86` reports separately.
     in    Residency  ExtentResidency  [-]  ?

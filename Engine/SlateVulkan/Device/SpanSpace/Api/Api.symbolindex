@@ -72,7 +72,7 @@ F SpanSpace::Construct    | SpanSpace.h | 103     | api,nonthrowing           | 
     in    BackingSpace  ByteSpace&                  [-]  where span bytes come from; borrowed and outlives this component
     in    Naming        const DiagnosticExtension&  [-]  names every claimed span; borrowed and outlives this component
     out   -             Outcome                     [-]  refuses with CapabilityAbsent when no device is active
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  🔴 `06` §7's diagnostic-name gate. Each span is named by its intent and its ordinal, which is
 
 F SpanSpace::Claim        | SpanSpace.h | 116     | api,nonthrowing           | 🔴 | Claims one span of the declared shape and binds the bytes it occupies. a zero span or an intent outside the declared set allocation nothing holds a reference to, reclaimed only at device teardown.
@@ -103,7 +103,7 @@ F SpanSpace::Transfer     | SpanSpace.h | 146     | api,nonthrowing           | 
 F SpanSpace::Standing     | SpanSpace.h | 156     | api,nonthrowing           | ✔️ | The current record for one claimed span.
     in    SpanOrdinal  std::uint32_t  [-]  a claim this component issued
     out   -            Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+78 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+83 more)
 
 F SpanSpace::Release      | SpanSpace.h | 163     | api,nonthrowing           | 🚩 | Destroys one span and returns its bytes.
     in    SpanOrdinal  std::uint32_t  [-]  a claim this component issued; an unclaimed ordinal is a no-op
@@ -114,7 +114,7 @@ F SpanSpace::Release      | SpanSpace.h | 163     | api,nonthrowing           | 
 F SpanSpace::Reclaim      | SpanSpace.h | 169     | api,nonthrowing           | 🔴 | Releases every claimed span.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F SpanSpace::ClaimedCount | SpanSpace.h | 171     | -                         | -  | ?
     out   -  std::uint32_t  [-]  ?

@@ -35,7 +35,7 @@ T ChannelPanelCarry        | ChannelPanel.h | 38-49 | owning                    
     has   Notice          char[ChannelNoticeExtent]  [-]  ?
     has   NoticeDeclared  bool                       [-]  ?
     has   PresentedTicks  std::uint32_t              [-]  ?
-    by    Source/ChannelPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/ChannelPanel.cpp
     note  🔴 `14` §4.1 and `42` §5: nothing here is a channel, a selection or a threshold. The folds, the offset,
     note  ⚠️ The notice is the text of the **last refusal**, kept so the artist reads why a write did not land.
 
@@ -43,7 +43,7 @@ T ChannelPanelContext      | ChannelPanel.h | 59-64 | nonallocating,nonthrowing 
     has   Materials        MaterialIndex*      [-]  ?
     has   MaterialOrdinal  std::uint32_t       [-]  ?
     has   Carry            ChannelPanelCarry*  [-]  ?
-    by    Source/ChannelPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/ChannelPanel.cpp
     note  🔴 `14` §1's gate: the panel stores neither, and it does not store the material either. It resolves the
     note  ⚠️ `MaterialSpecification`'s API is presented **against** and never copied. Where a channel cannot be
 
@@ -82,7 +82,7 @@ F PresentChannelPanel      | ChannelPanel.h | 114   | api,nonthrowing           
     in    Area            const WorkspaceRectangle&  [px]  the interior the panel layer handed it, header band included
     in    PresentContext  void*                      [-]   a `ChannelPanelContext*`; a null context or an unresolved ordinal presents empty
     out   -               void                       [-]   ?
-    by    Source/ChannelPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/TexturePaintSpecification.cpp
     note  🔴 Matches `PanelPresentRoutine` exactly so a workspace declares it into `PanelIndex` and the desk never
     note  🔴 `42` §5: a channel declared for a reflectance the material no longer selects is **retained**, and it
     note  ⚠️ Whether a channel is sampled is read from `ChannelSampled` and whether it is converted from
@@ -91,4 +91,4 @@ F SLATE_DECLARES_PRECISION | ChannelPanel.h | 121   | -                         
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+53 more)

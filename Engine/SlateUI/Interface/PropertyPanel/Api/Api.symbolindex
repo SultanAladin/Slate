@@ -44,14 +44,14 @@ T PropertyPanelCarry       | PropertyPanel.h | 51-61 | owning                   
     has   NoticeDeclared  bool                                [-]  ?
     has   PresentedTicks  std::uint32_t                       [-]  ?
     has   Reported        PropertyEditReport                  [-]  ?
-    by    Source/PropertyPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/PropertyPanel.cpp
     note  🔴 `14` §4.1: nothing here is a value or a declaration. The folds, the offset, the text carries and the
     note  ⚠️ The text and dropdown carries are addressed by **row ordinal**, so a carry that outlives a
 
 T PropertyPanelContext     | PropertyPanel.h | 68-72 | nonallocating,nonthrowing          | -  | What the panel presents against — the declarations it reads and the carry it writes. `Resolve` on the tick it is presented, so a value written by a tool while the panel is open presents immediately rather than on the next click.
     has   Declarations  PropertyIndex*       [-]  ?
     has   Carry         PropertyPanelCarry*  [-]  ?
-    by    Source/PropertyPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/PropertyPanel.cpp
     note  🔴 `14` §1's gate: the panel stores neither, and it holds no value of its own. Every reading comes from
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -73,7 +73,7 @@ F PresentPropertyPanel     | PropertyPanel.h | 106   | api,nonthrowing          
     in    Area            const WorkspaceRectangle&  [px]  the interior the panel layer handed it, header band included
     in    PresentContext  void*                      [-]   a `PropertyPanelContext*`; a null context presents an empty state
     out   -               void                       [-]   ?
-    by    Source/PropertyPanel.cpp
+    by    Source/PropertyPanel.cpp, Source/TexturePaintSpecification.cpp
     note  🔴 Matches `PanelPresentRoutine` exactly so a workspace declares it into `PanelIndex` and the desk never
     note  🔴 `76` §4's whole point: the panel presents whatever is declared and names no property. A tool that
     note  🔴 A row **bounds and then writes** — `PropertySpecification.h` requires exactly that order, because a
@@ -83,4 +83,4 @@ F SLATE_DECLARES_PRECISION | PropertyPanel.h | 112   | -                        
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

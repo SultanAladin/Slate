@@ -83,11 +83,11 @@ F GlyphDepot::Construct          | GlyphDepot.h | 108     | api,nonthrowing     
     in    Arriving  const GlyphAttachment&  [-]  the device handles the uploads use
     out   -         Outcome                 [-]  refuses with CapabilityAbsent when a required handle is absent, and with HostDenied
     post  the depot holds nothing; every tier is declared afterwards
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
 
 F GlyphDepot::Reclaim            | GlyphDepot.h | 115     | api,nonthrowing                    | 🔴 | Destroys every uploaded glyph and releases the rasteriser. reads after it was freed, and the read succeeds often enough to look like a different defect.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
     note  The device is waited idle first: a texture identity a recording still references is one the vendor
 
 F GlyphDepot::Declare            | GlyphDepot.h | 126     | api,nonthrowing                    | 🔴 | Declares one whole tier, rasterising and uploading what is not already held. and with ExtentExhausted when an upload could not be claimed to compare a tier's declaration list against what resolves, one key at a time.
@@ -106,7 +106,7 @@ F GlyphDepot::Release            | GlyphDepot.h | 134     | api,nonthrowing     
 F GlyphDepot::Resolve            | GlyphDepot.h | 142     | api,nonthrowing                    | 🚩 | Resolves one key to its handle.
     in    GlyphKey  const std::string&  [-]  the key a tier declared
     out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that key
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
     note  What a row calls each time it presents. Never uploads and never mutates the depot.
 
 F GlyphDepot::GlyphHeld          | GlyphDepot.h | 147     | api,nonthrowing                    | 🚩 | Whether one key resolves to an uploaded glyph.

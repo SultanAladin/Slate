@@ -70,7 +70,7 @@ F PrimitiveGenerable            | PrimitiveStructure.h | 81-91   | api,nonalloca
 F SLATE_DECLARES_PRECISION      | PrimitiveStructure.h | 92      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE GENERATION
@@ -89,7 +89,7 @@ F GeneratePrimitive             | PrimitiveStructure.h | 116     | api,nonthrowi
 F SLATE_DECLARES_PRECISION      | PrimitiveStructure.h | 117     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
 
 F ProjectPrimitiveExtent        | PrimitiveStructure.h | 128     | api,nonallocating,nonthrowing | ✔️ | The half-extents the generated solid actually occupies, before any transform places it. a subdivision or frame a camera before generating anything. The torus is the only entry where the answer is not the three half-extents, and it is the reason this exists rather than being assumed.
     in    Declaring  const PrimitiveSpecification&  [-]   the parameters
@@ -103,7 +103,7 @@ F ProjectPrimitiveExtent        | PrimitiveStructure.h | 128     | api,nonalloca
 F SLATE_DECLARES_PRECISION      | PrimitiveStructure.h | 131     | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATIONS
@@ -134,7 +134,7 @@ F PrimitiveIndex::Amend         | PrimitiveStructure.h | 170     | api,nonthrowi
 F PrimitiveIndex::Resolve       | PrimitiveStructure.h | 176     | api,nonthrowing               | ✔️ | One declared primitive's parameters.
     in    PrimitiveOrdinal  std::uint32_t  [-]  ?
     out   -                 Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
 
 F PrimitiveIndex::Withdraw      | PrimitiveStructure.h | 184     | api,nonthrowing               | ✔️ | Withdraws one primitive, returning its slot for reuse. every ordinal above it and every occupant naming one would name a different primitive.
     in    PrimitiveOrdinal  std::uint32_t  [-]  ?
@@ -157,7 +157,7 @@ F PrimitiveIndex::SpannedCount  | PrimitiveStructure.h | 200     | api,nonalloca
 
 F PrimitiveIndex::Reclaim       | PrimitiveStructure.h | 205     | api,nonthrowing               | ✔️ | Discards every declaration. Called when the document holding them closes.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 T PrimitiveIndex::HeldPrimitive | PrimitiveStructure.h | 209-214 | -                             | -  | ?
     has   Declared          PrimitiveSpecification  [-]  ?

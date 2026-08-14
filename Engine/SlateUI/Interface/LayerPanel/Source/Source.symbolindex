@@ -32,18 +32,21 @@ V BadgeEdge               | LayerPanel.cpp | 28      | - | - | ?
 V ThumbnailEdge           | LayerPanel.cpp | 29      | - | - | ?
 
 V SubjectDotEdge          | LayerPanel.cpp | 30      | - | - | ?
+    by    Source/OutlinerPanel.cpp
 
 V AddRowHeight            | LayerPanel.cpp | 31      | - | - | ?
 
 V ToolbarPadding          | LayerPanel.cpp | 32      | - | - | ?
+    by    Source/OutlinerPanel.cpp
 
 V DropLineHeight          | LayerPanel.cpp | 33      | - | - | ?
+    by    Source/OutlinerPanel.cpp
 
 V FoldRowHeight           | LayerPanel.cpp | 34      | - | - | ?
     by    Source/RevisionPanel.cpp
 
 V RowTextExtent           | LayerPanel.cpp | 38      | - | - | ?
-    by    Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     SMALL GEOMETRY
@@ -54,36 +57,37 @@ F BandOf                  | LayerPanel.cpp | 44-47   | - | - | ?
     in    Offset  float                      [-]  ?
     in    Height  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F InsetBy                 | LayerPanel.cpp | 49-55   | - | - | ?
     in    Area    const WorkspaceRectangle&  [-]  ?
     in    Margin  float                      [-]  ?
     out   -       WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F LeftOf                  | LayerPanel.cpp | 57-60   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F RightOf                 | LayerPanel.cpp | 62-67   | - | - | ?
     in    Area   const WorkspaceRectangle&  [-]  ?
     in    Width  float                      [-]  ?
     out   -      WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 F AfterLeft               | LayerPanel.cpp | 69-74   | - | - | ?
     in    Area      const WorkspaceRectangle&  [-]  ?
     in    Consumed  float                      [-]  ?
     out   -         WorkspaceRectangle         [-]  ?
+    by    Source/OutlinerPanel.cpp
 
 F SquareCentred           | LayerPanel.cpp | 76-82   | - | - | ?
     in    Area  const WorkspaceRectangle&  [-]  ?
     in    Edge  float                      [-]  ?
     out   -     WorkspaceRectangle         [-]  ?
-    by    Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE ROW READINGS
@@ -106,6 +110,7 @@ F RowAdmitted             | LayerPanel.cpp | 112-121 | - | - | ?
     in    RowName  const char*             [-]  ?
     in    Subline  const char*             [-]  ?
     out   -        bool                    [-]  ?
+    by    Source/OutlinerPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE BANDS
@@ -116,13 +121,14 @@ F PresentHeaderBand       | LayerPanel.cpp | 127-163 | - | - | ?
     in    Band        const WorkspaceRectangle&  [-]  ?
     in    EntryCount  std::uint32_t              [-]  ?
     out   -           void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
 
 F PresentToolbarBand      | LayerPanel.cpp | 167-195 | - | - | ?
     in    Theme  const ThemeSpecification&  [-]  ?
     in    Band   const WorkspaceRectangle&  [-]  ?
     in    Carry  LayerPanelCarry&           [-]  ?
     out   -      bool                       [-]  ?
+    by    Source/OutlinerPanel.cpp
 
 F PresentFooterBand       | LayerPanel.cpp | 197-213 | - | - | ?
     in    Theme           const ThemeSpecification&  [-]  ?
@@ -131,7 +137,7 @@ F PresentFooterBand       | LayerPanel.cpp | 197-213 | - | - | ?
     in    PresentedCount  std::uint32_t              [-]  ?
     in    MaskedCount     std::uint32_t              [-]  ?
     out   -               void                       [-]  ?
-    by    Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
+    by    Source/ChannelPanel.cpp, Source/OutlinerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE SPINE
@@ -154,6 +160,7 @@ T RowIntent               | LayerPanel.cpp | 248-255 | - | - | What one row's ti
     has   PresenceSubject   std::uint32_t  [-]  ?
     has   WithdrawDeclared  bool           [-]  ?
     has   WithdrawSubject   std::uint32_t  [-]  ?
+    by    Source/OutlinerPanel.cpp
     note  🔴 Deferred for the same reason `WorkspaceStripInternal.h`'s intent is: `DeclarePresence` and `Reorder`
 
 F PresentSplitRow         | LayerPanel.cpp | 257-424 | - | - | ?
@@ -194,4 +201,4 @@ F PresentLayerPanel       | LayerPanel.cpp | 463-657 | - | - | ?
     in    Area            const WorkspaceRectangle&  [-]  ?
     in    PresentContext  void*                      [-]  ?
     out   -               void                       [-]  ?
-    by    Api/LayerPanel.h
+    by    Api/LayerPanel.h, Source/TexturePaintSpecification.cpp

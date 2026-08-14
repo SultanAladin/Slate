@@ -34,14 +34,14 @@ T LayerPanelCarry          | LayerPanel.h | 36-46 | owning                      
     has   ReorderOpen     bool                     [-]  ?
     has   ReorderOrigin   std::uint32_t            [-]  ?
     has   ReorderLanding  std::uint32_t            [-]  ?
-    by    Source/LayerPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/LayerPanel.cpp
     note  🔴 `56` §4 and `14` §4.1: sequence position is the sequence's answer and never this panel's. Nothing here
     note  ⚠️ The chosen row and the drag are carried as **sequence positions** and not as identities, so a carry
 
 T LayerPanelContext        | LayerPanel.h | 52-56 | nonallocating,nonthrowing     | -  | What the panel presents against — the sequence it reads and the carry it writes. sequence the moment an entry is withdrawn, and the artist sees a layer that no longer exists.
     has   Sequence  SurfaceLayerSequence*  [-]  ?
     has   Carry     LayerPanelCarry*       [-]  ?
-    by    Source/LayerPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/LayerPanel.cpp
     note  🔴 `14` §1's gate: the panel stores neither. A presented sequence holding its own row list drifts from the
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ F PresentLayerPanel        | LayerPanel.h | 88    | api,nonthrowing             
     in    Area            const WorkspaceRectangle&  [px]  the interior the panel layer handed it, header band included
     in    PresentContext  void*                      [-]   a `LayerPanelContext*`; a null context or a null sequence presents an empty state
     out   -               void                       [-]   ?
-    by    Source/LayerPanel.cpp
+    by    Source/LayerPanel.cpp, Source/TexturePaintSpecification.cpp
     note  🔴 Matches `PanelPresentRoutine` exactly so a workspace declares it into `PanelIndex` and the desk never
     note  ⚠️ Rows present topmost first. `Entries()` is bottom first — `56` §4 — so the presented ordinal is the
     note  📝 The reference layer model carries no group nesting, so no row is indented. `56` §4.1's nested sequences
@@ -72,4 +72,4 @@ F SLATE_DECLARES_PRECISION | LayerPanel.h | 94    | -                           
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

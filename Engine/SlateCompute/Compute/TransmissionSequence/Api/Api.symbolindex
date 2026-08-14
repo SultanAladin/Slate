@@ -147,7 +147,7 @@ F TransmissionSequence::Resolve              | TransmissionSequence.h | 222     
     in    Standing       double                                         [-]  what `18` left in `RadianceSurface`, amended in place
     in    ViewCosine[-]  one per held fragment                          [-]  ?
     out   -              void                                           [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
     note  🔴 Walked from the **last** held entry to the first, which is far to near — the column is stored
 
 F TransmissionSequence::DeclareRotation      | TransmissionSequence.h | 231     | api,nonallocating,nonthrowing | ✔️ | Records what one rotation's collection cost, for `86`.
@@ -174,4 +174,4 @@ F SLATE_DECLARES_PRECISION                   | TransmissionSequence.h | 253     
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

@@ -69,7 +69,7 @@ F StorageExchange::Open             | StorageExchange.h | 84     | api,nonthrowi
 
 F StorageExchange::Reclaim          | StorageExchange.h | 89     | api,nonthrowing               | ✔️ | Closes the held stream and discards every range not yet drained.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F StorageExchange::Declare          | StorageExchange.h | 99     | api,nonthrowing               | ✔️ | Declares one range the reader wants. is open, and with ExtentExhausted when the offset lies beyond the stream which is what lets a codec declare the next range while it decodes the one it has.
     in    Wanted  RangeRequest  [-]  the offset and extent

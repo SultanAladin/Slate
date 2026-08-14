@@ -1,14 +1,17 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                             OUTLINERPANEL.H
 //============================================================================================================================================
 // 🧩 Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
 
 #pragma once
 
+#include "Contract/PrecisionContract.h"
 #include "SlateDocument/Document/OutlinerSequence/Api/OutlinerSequence.h"
+#include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
+#include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
+#include "SlateUI/Interface/WorkspaceSpace/Api/WorkspaceSpace.h"
 
 #include <cstdint>
-#include <string>
 
 namespace Slate
 {
@@ -23,85 +26,75 @@ namespace Slate
 inline constexpr std::uint32_t NameSearchExtent = 64u;   // [-] - characters the search entry accepts, terminator included
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                  THE OUTLINER PANEL
+//                                                  WHAT THE PANEL CARRIES
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The presentation half of `12` — reads the linearisation, declares intent, stores neither relation.
+/// 🧩 What the panel carries between ticks — presentation only, and the caller owns all of it.
 /// note  🔴 `12` §7 and `14` §6: the rows are read through `RankIndex` and the relations are never read here.
-///        Only the counted span the artist can see is touched, and the scroll position is a row ordinal
+///        Only the counted span the artist can see is touched, and the visible position is a row ordinal
 ///        resolved by count rather than a pixel offset the panel remembers on its own.
 /// note  🔴 Every mutation leaves through `OutlinerSequence::Declare` and is applied at the next tick's ①.
 ///        A panel that mutated the relations where the click arrived would apply against a linearisation that
 ///        is halfway rebuilt, and would bypass the sequence that undoes it.
-/// note  ⚠️ What is held here is what `14` §4.1 places beside the document — the scroll position, the search
-///        entry, and whether the panel is shown. None of it is a transaction and none of it is scrubbed.
+/// note  ⚠️ What is held here is what `14` §4.1 places beside the document — the visible offset, the search
+///        entry, and the drag in flight. None of it is a transaction and none of it is scrubbed.
+/// note  ⚠️ The anchor is carried as an **identity** and not as an ordinal, unlike `LayerPanelCarry`'s chosen
+///        position. A row's ordinal changes whenever an enclosure above it collapses, which is the one event
+///        this carry exists to absorb; a stale ordinal would move the view on a collapse made elsewhere.
 /// tag   owning
-class OutlinerPanel
+struct OutlinerPanelCarry
 {
-public:
-
-    /// 🧩 Presents one tick of the outliner and declares whatever the artist asked for.
-    /// in    Outliner  [-]  the sequence to read from and declare into
-    /// out   Outcome   [-]  refuses with HostDenied when no interface tick is open
-    /// pre   InterfaceExchange::Advance delivered and Seal has not
-    /// post  every declared intent sits in the pending run; nothing was applied here
-    /// cost  🚩
-    /// tag   api, nonthrowing
-    Outcome<bool> Present(OutlinerSequence& Outliner);
-
-    /// 🧩 Declares whether the panel is shown at all.
-    /// in    PresenceDeclared  [-]  whether the artist wants it
-    /// cost  ✔️
-    /// tag   api, nonallocating, nonthrowing
-    void DeclarePresence(bool PresenceDeclared);
-
-    /// 🧩 Whether the panel is shown.
-    /// cost  ✔️
-    /// tag   api, nonallocating, nonthrowing
-    bool PresenceStanding() const;
-
-    /// 🧩 The counted ordinal at the top of the presented span — the scroll position, as a row.
-    /// note  Recorded as a count rather than as a pixel offset, and the occupant it names is held alongside it.
-    ///        When the counted total changes the offset is restored from that occupant before it is read, so
-    ///        collapsing an enclosure above the view leaves the artist looking at the same occupant rather than
-    ///        at whatever slid under the cursor. An anchor whose occupant left the count keeps its ordinal.
-    /// cost  ✔️
-    /// tag   api, nonallocating, nonthrowing
-    std::uint32_t VisiblePosition() const;
-
-    /// 🧩 The occupant the presented span is anchored on, undeclared when nothing is counted.
-    /// note  🔴 `14` §4.1 state, not the document's. Held so the scroll survives a count adjustment; it is
-    ///        never declared as intent and no transaction records it.
-    /// cost  ✔️
-    /// tag   api, nonallocating, nonthrowing
-    OccupantIdentity Anchored() const;
-
-    /// 🧩 How many rows the last presentation actually touched.
-    /// note  🔍 The measurement `12` §7 is checked against: it stays proportional to the panel's height and
-    ///        not to the population. A million occupants that presented a million rows is the defect.
-    /// cost  ✔️
-    /// tag   api, nonallocating, nonthrowing
-    std::uint32_t RowsTouched() const;
-
-    /// 🧩 The text the artist is searching names for, empty when nothing is sought.
-    /// cost  🚩
-    /// tag   api, nonthrowing
-    std::string Sought() const;
-
-    /// 🧩 How many names the last narrowing confirmed.
-    /// cost  ✔️
-    /// tag   api, nonallocating, nonthrowing
-    std::uint32_t ConfirmedNames() const;
-
-private:
-
-    std::uint32_t     VisibleAnchor                 = 0u;     // [-] - counted ordinal at the top of the span
-    std::uint32_t     RowsPresented                 = 0u;     // [-] - rows the last presentation touched
-    std::uint32_t     ConfirmedCount                = 0u;     // [-] - names the last narrowing confirmed
-    std::uint32_t     CountedWhenAnchored           = 0u;     // [-] - counted total the anchor was observed at
-    OccupantIdentity  AnchoredOccupant              = {};     // [-] - who the span is anchored on, not where
-    bool              PresenceEnabled               = true;   // [-] - whether the panel is shown
-    char              SoughtEntry[NameSearchExtent] = {};     // [-] - what the interface writes the search into
+    float             VisibleOffset                 = 0.0f;   // [px] - top of the presented span
+    TextCarry         Sought                        = {};     // [-]  - the search entry, wired and not decorative
+    std::uint32_t     ConfirmedCount                = 0u;     // [-]  - names the last narrowing confirmed
+    std::uint32_t     VisibleAnchor                 = 0u;     // [-]  - counted ordinal at the top of the span
+    std::uint32_t     CountedWhenAnchored           = 0u;     // [-]  - counted total the anchor was observed at
+    std::uint32_t     RowsPresented                 = 0u;     // [-]  - rows the last presentation touched
+    OccupantIdentity  AnchoredOccupant              = {};     // [-]  - who the span is anchored on, not where
+    OccupantIdentity  DraggedOccupant               = {};     // [-]  - what a reorder drag took hold of
+    OccupantIdentity  LandingOccupant               = {};     // [-]  - the enclosure a release would declare
+    bool              ReorderOpen                   = false;  // [-]  - a reorder drag is running
 };
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   WHAT IT PRESENTS AGAINST
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 What the panel presents against — the sequence it reads and declares into, and the carry it writes.
+/// note  🔴 `14` §1's gate: the panel stores neither relation nor row. A presented outliner holding its own row
+///        list drifts from the linearisation the moment an occupant is retired, and the artist sees a row for
+///        something that no longer exists.
+/// tag   nonallocating, nonthrowing
+struct OutlinerPanelContext
+{
+    OutlinerSequence*    Outliner = nullptr;   // [-] - `12` owns it; intent declared into it, never applied here
+    OutlinerPanelCarry*  Carry    = nullptr;   // [-] - the workspace's own storage
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE PRESENTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Presents one tick of the outliner into the rectangle the desk resolved, and declares whatever was asked.
+/// in    Theme          [-]   read for the palette and the band extents; never held
+/// in    Area           [px]  the interior the desk resolved for this panel, honoured exactly
+/// in    PresentContext [-]   an `OutlinerPanelContext*`; a null context presents an empty state
+/// post  every declared intent sits in the pending run; nothing was applied here
+/// note  🔴 Matches `PanelPresentRoutine` exactly, so a workspace declares it into `PanelIndex` and the desk
+///        never learns what a row, an enclosure or a subset is.
+/// note  🔴 The rectangle is the desk's answer and this panel asks no second one. A panel that opened a window
+///        of its own would paint at the depth its band carried before a drag rather than the one it carries
+///        now, and the two answers disagree the first tick the band is moved.
+/// note  ⚠️ Nothing here refuses. `14` §7 puts the interface context's existence on the desk that calls this,
+///        and a refusal raised per panel per tick would append to the register on a path that cannot arise.
+/// cost  🚩
+/// tag   api, nonthrowing
+void PresentOutlinerPanel(const ThemeSpecification&  Theme,
+                          const WorkspaceRectangle&  Area,
+                          void*                      PresentContext);
+
+// 📐 Ordinals, counts and identities are Exact integers. Rectangles, offsets and row pitches are Bounded. The
+//    component claims Bounded, per `00` §3's transitivity rule.
+SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded, PrecisionGuarantee::Exact);
 
 }   // namespace Slate

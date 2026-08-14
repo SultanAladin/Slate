@@ -49,7 +49,7 @@ T FileInterchange                   | FileInterchange.h | 55-122 | owning       
 F FileInterchange::Resolve          | FileInterchange.h | 66     | api,nonthrowing           | ✔️ | What a path currently names. question "is this here" indistinguishable from a file system that failed to answer it.
     in    Path  const std::string&  [-]  UTF-8
     out   -     Outcome             [-]  refuses with HostDenied when the file system declined to answer
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
     note  📝 An absent path is delivered as Absent rather than refused. Refusing would make the ordinary
 
 F FileInterchange::ReadStream       | FileInterchange.h | 76     | api,nonthrowing           | 🔴 | Reads a whole stream into an extent the caller then owns. ExtentExhausted when it spans more than the declared ceiling by range arrival reads through that one rather than through this.
@@ -76,7 +76,7 @@ F FileInterchange::DeclareDirectory | FileInterchange.h | 102    | api,nonthrowi
 F FileInterchange::Reclaim          | FileInterchange.h | 108    | api,nonthrowing           | ✔️ | Removes what a path names, when it names a stream.
     in    Path  const std::string&  [-]  ?
     out   -     Outcome             [-]  refuses with HostDenied when the file system declined; delivers for an absent path
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F FileInterchange::Append           | FileInterchange.h | 116    | api,nonthrowing           | ✔️ | Appends one path component to another, with exactly one separator between them.
     in    Leading   const std::string&  [-]  UTF-8; a trailing separator is neither required nor doubled

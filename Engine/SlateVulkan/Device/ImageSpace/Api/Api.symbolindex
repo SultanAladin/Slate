@@ -77,7 +77,7 @@ F ImageSpace::Construct    | ImageSpace.h | 104     | api,nonthrowing           
     in    BackingSpace  ByteSpace&                  [-]  where image bytes come from; borrowed and outlives this component
     in    Naming        const DiagnosticExtension&  [-]  names every claimed image and every view over it; borrowed and outlives this
     out   -             Outcome                     [-]  refuses with CapabilityAbsent when no device is active
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  🔴 `06` §7's diagnostic-name gate. The image and its views are named separately because they are
 
 F ImageSpace::Claim        | ImageSpace.h | 117     | api,nonthrowing           | 🔴 | Claims one image of the declared shape, slices its bytes, and constructs its whole-image view. zero extent or a format the device declines for the declared intent vendor allocation nothing holds a reference to, and it is reclaimed only at device teardown.
@@ -100,7 +100,7 @@ F ImageSpace::Transition   | ImageSpace.h | 129     | api,nonthrowing           
 F ImageSpace::Standing     | ImageSpace.h | 135     | api,nonthrowing           | ✔️ | The current record for one claimed image, including the layout the last transition left it in.
     in    ImageOrdinal  std::uint32_t  [-]  ?
     out   -             Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+78 more)
+    by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+83 more)
 
 F ImageSpace::LevelView    | ImageSpace.h | 145     | api,nonthrowing           | 🚩 | Constructs a view over one reduction level, for the chain `16` §2 walks a level at a time. holding a handle the vendor has already reused.
     in    ImageOrdinal  std::uint32_t  [-]  a claimed image whose LevelCount admits the level
@@ -118,7 +118,7 @@ F ImageSpace::Release      | ImageSpace.h | 151     | api,nonthrowing           
 F ImageSpace::Reclaim      | ImageSpace.h | 157     | api,nonthrowing           | 🔴 | Releases every claimed image.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F ImageSpace::ClaimedCount | ImageSpace.h | 159     | -                         | -  | ?
     out   -  std::uint32_t  [-]  ?

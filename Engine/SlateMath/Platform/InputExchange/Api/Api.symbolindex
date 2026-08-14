@@ -102,4 +102,4 @@ F InputExchange::HeldCount      | InputExchange.h | 126    | api,nonallocating,n
 
 F InputExchange::Reclaim        | InputExchange.h | 131    | api,nonallocating,nonthrowing | ✔️ | Discards every held sample. Called by the consumer once it has read them.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)

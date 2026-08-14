@@ -80,7 +80,7 @@ F Derive                                 | CameraProjection.h | 110     | api,no
 F SLATE_DECLARES_PRECISION               | CameraProjection.h | 111     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE FRUSTUM
@@ -106,7 +106,7 @@ F FrustumSpace::Construct                | CameraProjection.h | 146     | api,no
     in    Projected  const ViewProjection&  [-]  as `Derive` produced it
     out   -          void                   [-]  ?
     post  every plane is unit-normalised and pushed outward
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+66 more)
 
 F FrustumSpace::Classify                 | CameraProjection.h | 159     | api,nonallocating,nonthrowing | ✔️ | Classifies one document-space extent against the frustum. millimetres from the document origin classifies against the camera rather than against the origin. corner furthest along the normal decides exclusion and the corner least along it decides straddling; the remaining six carry no additional fact.
     in    Least     DocumentPosition  [mm]  the extent's lower corner, in document space
@@ -204,7 +204,7 @@ F Frame                                  | CameraProjection.h | 275     | api,no
 F SLATE_DECLARES_PRECISION               | CameraProjection.h | 278     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CAMERA
@@ -272,4 +272,4 @@ F SLATE_DECLARES_PRECISION               | CameraProjection.h | 357     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/ChannelPanel.h, Api/ChartPartition.h, (+53 more)

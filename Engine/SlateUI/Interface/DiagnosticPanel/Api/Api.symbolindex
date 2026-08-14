@@ -54,14 +54,14 @@ T DiagnosticPanelCarry     | DiagnosticPanel.h | 66-73 | owning                 
     has   VisibleOffset        float  [-]  ?
     has   MeasuresOpen         bool   [-]  ?
     has   InformationDeclared  bool   [-]  ?
-    by    Source/DiagnosticPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/DiagnosticPanel.cpp
     note  🔴 `86` §10 and `14` §1: nothing here is a copy of either structure. A panel holding its own copy
 
 T DiagnosticPanelContext   | DiagnosticPanel.h | 79-84 | nonallocating,nonthrowing     | -  | What the panel presents against — the two structures it reads and the carry it writes. here and neither is copied here.
     has   Reports   const ReportSequence*  [-]  ?
     has   Measures  const MeasureIndex*    [-]  ?
     has   Carry     DiagnosticPanelCarry*  [-]  ?
-    by    Source/DiagnosticPanel.cpp
+    by    Api/TexturePaintSpecification.h, Source/DiagnosticPanel.cpp
     note  🔴 Both structures live in `SlateMath` — `86` §3's link partition, not a preference. Neither is owned
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -73,7 +73,7 @@ F PresentDiagnosticPanel   | DiagnosticPanel.h | 101   | api,nonthrowing        
     in    Area            const WorkspaceRectangle&  [-]  ?
     in    PresentContext  void*                      [-]  a `DiagnosticPanelContext*`; a null context presents an empty state
     out   -               void                       [-]  ?
-    by    Source/DiagnosticPanel.cpp
+    by    Source/DiagnosticPanel.cpp, Source/TexturePaintSpecification.cpp
     note  🔴 Matches `PanelPresentRoutine` exactly, so a workspace declares it into `PanelIndex` and the desk
     note  ⚠️ A recurring report presents as one entry carrying its count — the register coalesced it at append,
     note  ⚠️ A measure is presented at the tier its producer declared: a `Counted` prints as an integer and a
@@ -82,4 +82,4 @@ F SLATE_DECLARES_PRECISION | DiagnosticPanel.h | 107   | -                      
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+51 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+53 more)

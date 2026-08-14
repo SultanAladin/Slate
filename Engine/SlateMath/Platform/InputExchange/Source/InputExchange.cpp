@@ -26,6 +26,15 @@
     #include <windows.h>
     #include <windowsx.h>
 
+    // 📝 🔴 The handle this exchange is surrendered is `WindowInterchange::NativeHandle`, which is GLFW's own
+    //    window record and not the operating system's window. The native accessor below is the one call that
+    //    converts between them, and `04` §7 puts it here because this is already a platform file — asking
+    //    `WindowInterchange` to surrender an `HWND` instead would put an operating-system spelling in a header
+    //    every layer above includes.
+    #define GLFW_EXPOSE_NATIVE_WIN32
+    #include <GLFW/glfw3.h>
+    #include <GLFW/glfw3native.h>
+
     // 📝 The pointer surface lives in user32. Declared here rather than in the build script so that the
     //    dependency travels with the one file that reaches for it, in the archive that carries it.
     #if defined(_MSC_VER)
@@ -244,7 +253,7 @@ Outcome<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& 
 
     // 📝 GLFW surrenders its own window record rather than the operating system's, so the native window is
     //    taken from it here. This is the one place the two spellings meet, and it is inside the platform layer.
-    HWND WindowSlot = static_cast<HWND>(NativeWindowSlot);
+    HWND WindowSlot = glfwGetWin32Window(static_cast<GLFWwindow*>(NativeWindowSlot));
 
     if (IsWindow(WindowSlot) == FALSE)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the surrendered handle names no window" });
@@ -286,7 +295,10 @@ Outcome<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& 
 
     Vacant->PrecedingReceiver = reinterpret_cast<WNDPROC>(Preceding);
 
-    AttachedWindowSlot = NativeWindowSlot;
+    // 🔴 The **converted** handle is retained and never the one surrendered. `Detach` resolves its attachment by
+    //    this record, and holding GLFW's pointer here would look up a window that was never attached — the
+    //    procedure would then be left installed on a window whose owner has gone.
+    AttachedWindowSlot = WindowSlot;
     PrecedingReceiver  = reinterpret_cast<void*>(Preceding);
     Timeline           = &HostTimeline;
 

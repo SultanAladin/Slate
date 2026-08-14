@@ -1,46 +1,90 @@
 //============================================================================================================================================
 //                                                             SOURCE.SYMBOLINDEX
 //============================================================================================================================================
-// 🧩 The counted span presented, and every gesture over it turned into a declared intent.
+// 🧩 The counted span presented inside the rectangle the desk resolved, and every gesture over it turned into a declared intent.
 
 %format     symbolindex 1.0
 %scope      folder
 %path       Engine/SlateUI/Interface/OutlinerPanel/Source
 %layer      SlateUI
 %sources    1
-%symbols    15
-%annotated  0/15
+%symbols    22
+%annotated  1/22
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S OutlinerPanel.cpp | 400 lines | c139dd25 | 15 sym | The counted span presented, and every gesture over it turned into a declared intent.
+S OutlinerPanel.cpp | 624 lines | de3190d1 | 22 sym | The counted span presented inside the rectangle the desk resolved, and every gesture over it turned into a declared intent.
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                 THE REORDERING PAYLOAD
+//                                                 THE REFERENCE GEOMETRY
 //------------------------------------------------------------------------------------------------------------------------
 
-V ReorderPayload                  | OutlinerPanel.cpp | 21      | - | - | ?
+V RowHeight            | OutlinerPanel.cpp | 27      | - | - | ?
+    by    Api/ThemeSpecification.h, Source/ThemeSpecification.cpp
 
-T DraggedRow                      | OutlinerPanel.cpp | 26-30   | - | - | ?
-    has   SlotOrdinal     std::uint32_t  [-]  ?
-    has   SlotGeneration  std::uint32_t  [-]  ?
+V IndentStep           | OutlinerPanel.cpp | 28      | - | - | ?
 
-F DraggedIdentity                 | OutlinerPanel.cpp | 32-39   | - | - | ?
-    in    Carried  const DraggedRow&  [-]  ?
-    out   -        OccupantIdentity   [-]  ?
+V SubjectDotEdge       | OutlinerPanel.cpp | 29      | - | - | ?
+    by    Source/LayerPanel.cpp
 
-F CarriedIdentity                 | OutlinerPanel.cpp | 41-48   | - | - | ?
-    in    Dragging  OccupantIdentity  [-]  ?
-    out   -         DraggedRow        [-]  ?
+V DropLineHeight       | OutlinerPanel.cpp | 30      | - | - | ?
+    by    Source/LayerPanel.cpp
+
+V ToolbarPadding       | OutlinerPanel.cpp | 31      | - | - | ?
+    by    Source/LayerPanel.cpp
+
+V RowTextExtent        | OutlinerPanel.cpp | 35      | - | - | ?
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     SMALL GEOMETRY
+//------------------------------------------------------------------------------------------------------------------------
+
+F BandOf               | OutlinerPanel.cpp | 41-44   | - | - | ?
+    in    Area    const WorkspaceRectangle&  [-]  ?
+    in    Offset  float                      [-]  ?
+    in    Height  float                      [-]  ?
+    out   -       WorkspaceRectangle         [-]  ?
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+
+F InsetBy              | OutlinerPanel.cpp | 46-52   | - | - | ?
+    in    Area    const WorkspaceRectangle&  [-]  ?
+    in    Margin  float                      [-]  ?
+    out   -       WorkspaceRectangle         [-]  ?
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+
+F LeftOf               | OutlinerPanel.cpp | 54-57   | - | - | ?
+    in    Area   const WorkspaceRectangle&  [-]  ?
+    in    Width  float                      [-]  ?
+    out   -      WorkspaceRectangle         [-]  ?
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+
+F RightOf              | OutlinerPanel.cpp | 59-64   | - | - | ?
+    in    Area   const WorkspaceRectangle&  [-]  ?
+    in    Width  float                      [-]  ?
+    out   -      WorkspaceRectangle         [-]  ?
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+
+F AfterLeft            | OutlinerPanel.cpp | 66-71   | - | - | ?
+    in    Area      const WorkspaceRectangle&  [-]  ?
+    in    Consumed  float                      [-]  ?
+    out   -         WorkspaceRectangle         [-]  ?
+    by    Source/LayerPanel.cpp
+
+F SquareCentred        | OutlinerPanel.cpp | 73-79   | - | - | ?
+    in    Area  const WorkspaceRectangle&  [-]  ?
+    in    Edge  float                      [-]  ?
+    out   -     WorkspaceRectangle         [-]  ?
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    DECLARING INTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-F DeclareStanding                 | OutlinerPanel.cpp | 56-67   | - | - | ?
+F DeclareStanding      | OutlinerPanel.cpp | 87-98   | - | - | ?
     in    Outliner         OutlinerSequence&  [-]  ?
     in    Declared         OutlinerIntent     [-]  ?
     in    Subject          OccupantIdentity   [-]  ?
@@ -48,13 +92,13 @@ F DeclareStanding                 | OutlinerPanel.cpp | 56-67   | - | - | ?
     out   -                void               [-]  ?
     by    Api/WorkspaceSequence.h, Source/WorkspaceSequence.cpp
 
-F DeclareSelection                | OutlinerPanel.cpp | 71-80   | - | - | ?
+F DeclareSelection     | OutlinerPanel.cpp | 102-111 | - | - | ?
     in    Outliner           OutlinerSequence&  [-]  ?
     in    Subject            OccupantIdentity   [-]  ?
     in    SelectionExtended  bool               [-]  ?
     out   -                  void               [-]  ?
 
-F DeclareEnclosure                | OutlinerPanel.cpp | 85-97   | - | - | ?
+F DeclareEnclosure     | OutlinerPanel.cpp | 116-128 | - | - | ?
     in    Outliner              OutlinerSequence&  [-]  ?
     in    Subject               OccupantIdentity   [-]  ?
     in    ProposedEnclosure     OccupantIdentity   [-]  ?
@@ -62,35 +106,72 @@ F DeclareEnclosure                | OutlinerPanel.cpp | 85-97   | - | - | ?
     out   -                     void               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                       THE BANDS
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentHeaderBand    | OutlinerPanel.cpp | 134-168 | - | - | ?
+    in    Theme         const ThemeSpecification&  [-]  ?
+    in    Band          const WorkspaceRectangle&  [-]  ?
+    in    CountedTotal  std::uint32_t              [-]  ?
+    out   -             void                       [-]  ?
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
+
+F PresentToolbarBand   | OutlinerPanel.cpp | 171-213 | - | - | ?
+    in    Theme     const ThemeSpecification&  [-]  ?
+    in    Band      const WorkspaceRectangle&  [-]  ?
+    in    Outliner  OutlinerSequence&          [-]  ?
+    in    Carry     OutlinerPanelCarry&        [-]  ?
+    out   -         void                       [-]  ?
+    by    Source/LayerPanel.cpp
+
+F PresentFooterBand    | OutlinerPanel.cpp | 215-231 | - | - | ?
+    in    Theme          const ThemeSpecification&  [-]  ?
+    in    Band           const WorkspaceRectangle&  [-]  ?
+    in    CountedTotal   std::uint32_t              [-]  ?
+    in    SelectedCount  std::uint32_t              [-]  ?
+    in    ExcludedCount  std::uint32_t              [-]  ?
+    out   -              void                       [-]  ?
+    by    Source/ChannelPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        ONE ROW
+//------------------------------------------------------------------------------------------------------------------------
+
+T RowIntent            | OutlinerPanel.cpp | 241-250 | - | - | What one row's tick asked the sequence for, applied after the whole span has been walked. expansion queries beneath it do read the linearisation — and applying inside the walk would present a row against relations that a later row in the same tick has already changed.
+    has   StandingDeclared  bool              [-]  ?
+    has   StandingSubject   OutlinerIntent    [-]  ?
+    has   StandingOccupant  OccupantIdentity  [-]  ?
+    has   StandingArriving  bool              [-]  ?
+    has   SelectDeclared    bool              [-]  ?
+    has   SelectOccupant    OccupantIdentity  [-]  ?
+    has   SelectExtended    bool              [-]  ?
+    by    Source/LayerPanel.cpp
+    note  🔴 Deferred because `Declare` appends to the pending run the walk does not read, but the subset and
+
+F RowAdmitted          | OutlinerPanel.cpp | 252-261 | - | - | ?
+    in    Carry    const OutlinerPanelCarry&  [-]  ?
+    in    RowName  const char*                [-]  ?
+    out   -        bool                       [-]  ?
+    by    Source/LayerPanel.cpp
+
+F PresentRow           | OutlinerPanel.cpp | 263-420 | - | - | ?
+    in    Theme      const ThemeSpecification&  [-]  ?
+    in    Row        const WorkspaceRectangle&  [-]  ?
+    in    Presented  const SequencedRow&        [-]  ?
+    in    RowName    const char*                [-]  ?
+    in    Subsets    const EnrollmentIndex&     [-]  ?
+    in    Carry      OutlinerPanelCarry&        [-]  ?
+    in    Arriving   RowIntent&                 [-]  ?
+    out   -          void                       [-]  ?
+    by    Source/RevisionPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                    THE PRESENTATION
 //------------------------------------------------------------------------------------------------------------------------
 
-F OutlinerPanel::Present          | OutlinerPanel.cpp | 105-359 | - | - | ?
-    in    Outliner  OutlinerSequence&  [-]  ?
-    out   -         Outcome<bool>      [-]  ?
-
-//------------------------------------------------------------------------------------------------------------------------
-//                                                      WHAT IS READ
-//------------------------------------------------------------------------------------------------------------------------
-
-F OutlinerPanel::DeclarePresence  | OutlinerPanel.cpp | 365-368 | - | - | ?
-    in    PresenceDeclared  bool  [-]  ?
-    out   -                 void  [-]  ?
-
-F OutlinerPanel::PresenceStanding | OutlinerPanel.cpp | 370-373 | - | - | ?
-    out   -  bool  [-]  ?
-
-F OutlinerPanel::VisiblePosition  | OutlinerPanel.cpp | 375-378 | - | - | ?
-    out   -  std::uint32_t  [-]  ?
-
-F OutlinerPanel::Anchored         | OutlinerPanel.cpp | 380-383 | - | - | ?
-    out   -  OccupantIdentity  [-]  ?
-
-F OutlinerPanel::RowsTouched      | OutlinerPanel.cpp | 385-388 | - | - | ?
-    out   -  std::uint32_t  [-]  ?
-
-F OutlinerPanel::Sought           | OutlinerPanel.cpp | 390-393 | - | - | ?
-    out   -  std::string  [-]  ?
-
-F OutlinerPanel::ConfirmedNames   | OutlinerPanel.cpp | 395-398 | - | - | ?
-    out   -  std::uint32_t  [-]  ?
+F PresentOutlinerPanel | OutlinerPanel.cpp | 428-622 | - | - | ?
+    in    Theme           const ThemeSpecification&  [-]  ?
+    in    Area            const WorkspaceRectangle&  [-]  ?
+    in    PresentContext  void*                      [-]  ?
+    out   -               void                       [-]  ?
+    by    Api/OutlinerPanel.h, Source/TexturePaintSpecification.cpp

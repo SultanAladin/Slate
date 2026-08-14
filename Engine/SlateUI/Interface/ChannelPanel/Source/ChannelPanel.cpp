@@ -291,10 +291,10 @@ bool PresentChannelEditor(const ThemeSpecification&    Theme,
         const Outcome<ControlInteraction> Reported =
             PresentColourEntry(Theme, Row, "constant", Carried, Carry.PickerOpen[Ordinal]);
 
-        if (!Reported.Delivered())
+        if (!Reported.ContentPresent)
             return false;
 
-        if (Reported.Value().EditDeclared)
+        if (Reported.Resolve().EditDeclared)
         {
             // 📝 🔴 The coordinate is written back and the space is carried through untouched. `36` §1 and
             //    `14` §5: no transfer is spelled anywhere in `SlateUI`, and a projection here would be the second
@@ -320,16 +320,16 @@ bool PresentChannelEditor(const ThemeSpecification&    Theme,
         PresentValueSlider(Theme, Row, "constant", Carried,
                            Amending.LowerMagnitude, Amending.UpperMagnitude, "\xC2\xB7", 3u);
 
-    if (!Reported.Delivered())
+    if (!Reported.ContentPresent)
     {
         // 📝 A refused slider is presented as its reason rather than as a control that silently did not appear.
         //    `Floor == Ceiling` is the ordinary case here — a channel whose interval was never widened — and the
         //    artist needs to be told that, not left with a blank row.
-        RecordNotice(Carry, Reported.Reason().Text);
+        RecordNotice(Carry, Reported.Declined.Detail);
         return false;
     }
 
-    if (Reported.Value().EditDeclared)
+    if (Reported.Resolve().EditDeclared)
     {
         Amending.ConstantScalar = Carried;
 
@@ -447,13 +447,13 @@ void PresentChannelPanel(const ThemeSpecification&  Theme,
     //    would present twenty channels of released storage.
     const Outcome<const MaterialSpecification*> Resolved = Materials.Resolve(Standing->MaterialOrdinal);
 
-    if (!Resolved.Delivered() || Resolved.Value() == nullptr)
+    if (!Resolved.ContentPresent || Resolved.Resolve() == nullptr)
     {
         PresentTextRun(Area, "No material", Theme.Palette.TextMuted, TextPlacement::Centred, 1.0f);
         return;
     }
 
-    const MaterialSpecification& Material = *Resolved.Value();
+    const MaterialSpecification& Material = *Resolved.Resolve();
     const ReflectanceSelection   Selected = Material.Reflectance();
 
     //----------------------------------------------------------------------------------------------------------------
@@ -479,7 +479,9 @@ void PresentChannelPanel(const ThemeSpecification&  Theme,
             ++RetainedCount;
     }
 
-    PresentHeaderBand(Theme, HeaderBand, Materials.DeclaredName(Standing->MaterialOrdinal), Selected);
+    // 📝 The name arrives as a `std::string` the index owns and outlives this call, so the header band is handed
+    //    its characters directly rather than a copy made to satisfy the signature.
+    PresentHeaderBand(Theme, HeaderBand, Materials.DeclaredName(Standing->MaterialOrdinal).c_str(), Selected);
 
     if (Carry.NoticeDeclared)
     {
@@ -623,20 +625,20 @@ void PresentChannelPanel(const ThemeSpecification&  Theme,
     {
         const Outcome<MaterialSpecification*> Amendable = Materials.Amend(Standing->MaterialOrdinal);
 
-        if (!Amendable.Delivered() || Amendable.Value() == nullptr)
+        if (!Amendable.ContentPresent || Amendable.Resolve() == nullptr)
         {
-            RecordNotice(Carry, Amendable.Delivered() ? "the material could not be amended"
-                                                      : Amendable.Reason().Text);
+            RecordNotice(Carry, Amendable.ContentPresent ? "the material could not be amended"
+                                                         : Amendable.Declined.Detail);
         }
         else
         {
             // 📝 🔴 The material validates the amendment and refuses it whole. The panel does not pre-validate and
             //    does not correct — `10` §2.2 puts validation in the declaration, and a panel that bounded the
             //    value first would hide from the artist that their reading was out of bounds at all.
-            const Outcome<bool> Landed = Amendable.Value()->DeclareChannel(Arriving.Subject, Arriving.Declaring);
+            const Outcome<bool> Landed = Amendable.Resolve()->DeclareChannel(Arriving.Subject, Arriving.Declaring);
 
-            if (!Landed.Delivered())
-                RecordNotice(Carry, Landed.Reason().Text);
+            if (!Landed.ContentPresent)
+                RecordNotice(Carry, Landed.Declined.Detail);
         }
     }
 

@@ -104,7 +104,7 @@ F ToolIndex::Declare               | ToolSequence.h | 128     | api,nonthrowing 
 F ToolIndex::Resolve               | ToolSequence.h | 130     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                      [-]  ?
     out   -            Outcome<const ToolSpecification*>  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+95 more)
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+97 more)
 
 F ToolIndex::Amend                 | ToolSequence.h | 131     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                [-]  ?

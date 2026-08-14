@@ -48,7 +48,7 @@ F RankIndex::Construct           | RowSequence.h | 56      | api,nonthrowing    
     in    RowCount  std::uint32_t  [-]  rows the sequence holds
     out   -         void           [-]  ?
     post  the count of every prefix equals its row ordinal
-    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+64 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
 
 F RankIndex::Declare             | RowSequence.h | 63      | api,nonallocating,nonthrowing | ✔️ | Declares one row counted or uncounted, adjusting every prefix that contains it.
     in    RowOrdinal      std::uint32_t  [-]  the row

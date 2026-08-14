@@ -1,0 +1,27 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The standalone painting executable — one roster entry, the documents it presents against, and no engine logic at all.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/Application/PaintHost/Source
+%layer      Application
+%sources    1
+%symbols    1
+%annotated  0/1
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S PaintHost.cpp | 82 lines | 2fd43782 | 1 sym | The standalone painting executable — one roster entry, the documents it presents against, and no engine logic at all.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+F main | PaintHost.cpp | 21-82 | - | - | ?
+    out   -  int  [-]  ?
+    by    Shader/DepthReduction.slang, Shader/OcclusionCulling.slang, Source/ConsoleHost.cpp, Source/EditorHost.cpp
