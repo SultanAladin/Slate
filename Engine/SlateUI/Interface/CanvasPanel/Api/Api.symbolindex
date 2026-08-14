@@ -1,0 +1,150 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 One viewport's tick — the band arithmetic, the three hand-rolled overlays, and the quads that frame a canvas nothing has drawn into yet.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/CanvasPanel/Api
+%layer      SlateUI
+%sources    1
+%symbols    12
+%annotated  9/12
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S CanvasPanel.h | 179 lines | 0fbe28fb | 12 sym | One viewport's tick — the band arithmetic, the three hand-rolled overlays, and the quads that frame a canvas nothing has drawn into yet.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE CANVAS EXTENTS
+//------------------------------------------------------------------------------------------------------------------------
+
+V CanvasExtentCount        | CanvasPanel.h | 22     | -                             | -  | ?
+    by    Source/CanvasPanel.cpp
+
+T CanvasExtent             | CanvasPanel.h | 25-30  | -                             | -  | One offered canvas extent — resolution and caption.
+    has   Width    std::uint32_t  [-]  ?
+    has   Height   std::uint32_t  [-]  ?
+    has   Caption  const char*    [-]  ?
+    by    Source/CanvasPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE CANVAS PROJECTION
+//------------------------------------------------------------------------------------------------------------------------
+
+E CanvasProjection         | CanvasPanel.h | 36-40  | -                             | -  | ?
+    has   Perspective   CanvasProjection  [-]  ?
+    has   Orthographic  CanvasProjection  [-]  ?
+    by    Source/CanvasPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE OVERLAY RECORD
+//------------------------------------------------------------------------------------------------------------------------
+
+T CanvasOverlayRecord      | CanvasPanel.h | 47-53  | -                             | -  | What one overlay remembers between ticks — its open state, where it opened, and the tick it opened on.
+    has   OverlayOpen  bool           [-]  ?
+    has   AnchorX      float          [-]  ?
+    has   AnchorY      float          [-]  ?
+    has   OpenedTick   std::uint32_t  [-]  ?
+    by    Source/CanvasPanel.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                THE CANVAS SPECIFICATION
+//------------------------------------------------------------------------------------------------------------------------
+
+T CanvasSpecification      | CanvasPanel.h | 62-92  | -                             | -  | Everything the viewport panel carries — declarations, overlays, and readout toggles. them beside the document — a host threading in a pointer would be a host deciding what the canvas resolves into.
+    has   HeaderOverlay         CanvasOverlayRecord  [-]  ?
+    has   CanvasOverlay         CanvasOverlayRecord  [-]  ?
+    has   FooterOverlay         CanvasOverlayRecord  [-]  ?
+    has   Projection            CanvasProjection     [-]  ?
+    has   ExtentOrdinal         std::uint32_t        [-]  ?
+    has   LatticeStanding       bool                 [-]  ?
+    has   AxisStanding          bool                 [-]  ?
+    has   WireframeStanding     bool                 [-]  ?
+    has   ExtentReadout         bool                 [-]  ?
+    has   MagnificationReadout  bool                 [-]  ?
+    has   OffsetReadout         bool                 [-]  ?
+    has   RotationReadout       bool                 [-]  ?
+    has   Magnification         float                [-]  ?
+    has   OffsetAlong           float                [-]  ?
+    has   OffsetAcross          float                [-]  ?
+    has   RotationYaw           float                [-]  ?
+    has   RotationPitch         float                [-]  ?
+    has   RotationRoll          float                [-]  ?
+    has   PresentedTicks        std::uint32_t        [-]  ?
+    by    Api/TexturePaintSpecification.h, Source/CanvasPanel.cpp
+    note  📝 🔴 Held by value and not by pointer. The viewport's declarations are layout and never document, so `14` §4.1 keeps
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE BAND ARITHMETIC
+//------------------------------------------------------------------------------------------------------------------------
+
+T CanvasBands              | CanvasPanel.h | 99-104 | -                             | -  | The three resolved bands — header, canvas area, and footer.
+    has   HeaderBand  WorkspaceRectangle  [-]  ?
+    has   CanvasArea  WorkspaceRectangle  [-]  ?
+    has   FooterBand  WorkspaceRectangle  [-]  ?
+    by    Source/CanvasPanel.cpp
+
+F ResolveCanvasBands       | CanvasPanel.h | 129    | api,nonallocating,nonthrowing | ✔️ | Resolves the three bands from a body rectangle.
+    in    Extents  const LayoutExtents&  [-]   layout extents from theme
+    in    Body     WorkspaceRectangle    [px]  the panel's body rectangle
+    out   -        Bands                 [px]  the three resolved bands
+    by    Source/CanvasPanel.cpp
+    note  📝 The header takes its declared height, footer takes its declared height, canvas takes the remainder.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE OFFERED EXTENTS
+//------------------------------------------------------------------------------------------------------------------------
+
+F ResolveCanvasExtent      | CanvasPanel.h | 116    | api,nonallocating,nonthrowing | ✔️ | Resolves a canvas extent from its ordinal.
+    in    ExtentOrdinal  std::uint32_t  [-]  which extent to resolve (0-3)
+    out   -              Extent         [-]  the resolved extent, or refusal if ordinal is out of range
+    by    Source/CanvasPanel.cpp
+    note  📝 The one place an image extent literal is permitted in this component.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PRESENTATION
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentCanvas            | CanvasPanel.h | 143    | api,nonthrowing               | 🚩 | Presents one tick of the canvas panel into the rectangle the desk resolved.
+    in    Theme   const ThemeSpecification&  [-]   read for the palette and the band extents; never held
+    in    Body    WorkspaceRectangle         [px]  the interior the desk resolved for this panel, honoured exactly
+    in    Canvas  CanvasSpecification&       [-]   the canvas specification, mutated for overlay state
+    out   -       void                       [-]   ?
+    post  the canvas panel is painted into the foreground list
+    by    Source/CanvasPanel.cpp
+    note  🔴 The three overlays are hand-rolled rather than using vendor widgets.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE PANEL ROUTINE
+//------------------------------------------------------------------------------------------------------------------------
+
+F PresentCanvasPanel       | CanvasPanel.h | 158    | api,nonthrowing               | 🚩 | The presentation routine matching `PanelPresentRoutine`. never learns what a canvas specification is.
+    in    Theme           const ThemeSpecification&  [-]   read for the palette and the band extents; never held
+    in    Area            const WorkspaceRectangle&  [px]  the interior the desk resolved for this panel, honoured exactly
+    in    PresentContext  void*                      [-]   a `CanvasSpecification*`; a null context presents nothing
+    out   -               void                       [-]   ?
+    post  the canvas panel is painted
+    by    Source/CanvasPanel.cpp
+    note  🔴 Matches `PanelPresentRoutine` exactly, so a workspace declares it into `PanelIndex` and the desk
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE LEDGER SLOT
+//------------------------------------------------------------------------------------------------------------------------
+
+F ResolveCanvasSlot        | CanvasPanel.h | 173    | api,nonallocating,nonthrowing | ✔️ | Resolves a panel slot for the canvas panel. is a dangling context.
+    in    PanelIdentifier  const char*           [-]  the panel's identifier string
+    in    PanelTitle       const char*           [-]  the panel's title string
+    in    Canvas           CanvasSpecification&  [-]  reference to the canvas specification
+    out   -                Slot                  [-]  the resolved panel slot, ready for ledger registration
+    by    Source/CanvasPanel.cpp, Source/TexturePaintSpecification.cpp
+    note  🔴 The returned slot points at the Canvas reference. Registering a slot built from a temporary
+
+F SLATE_DECLARES_PRECISION | CanvasPanel.h | 177    | -                             | -  | ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Bounded  PrecisionGuarantee::  [-]  ?
+    in    Exact    PrecisionGuarantee::  [-]  ?
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChannelPanel.h, (+54 more)

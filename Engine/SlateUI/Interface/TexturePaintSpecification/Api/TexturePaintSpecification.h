@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Contract/PrecisionContract.h"
+#include "SlateUI/Interface/CanvasPanel/Api/CanvasPanel.h"
 #include "SlateUI/Interface/ChannelPanel/Api/ChannelPanel.h"
 #include "SlateUI/Interface/DiagnosticPanel/Api/DiagnosticPanel.h"
 #include "SlateUI/Interface/LayerPanel/Api/LayerPanel.h"
@@ -51,6 +52,10 @@ struct PaintWorkspaceContext
     const MeasureIndex*     Measures        = nullptr;   // [-] - sampled by the tick, never pushed
     OutlinerSequence*       Outlined        = nullptr;   // [-] - `12` owns it; intent declared into it
     std::uint32_t           MaterialOrdinal = 0u;        // [-] - which material the channel rows resolve
+
+    // 📝 🔴 Held by value and not by pointer. The viewport's declarations are layout and never document, so `14` §4.1 keeps
+    //    them beside the document — a host threading in a pointer would be a host deciding what the canvas resolves into.
+    CanvasSpecification     Canvas = {};   // [-] - the viewport panel's own declarations, owned by the workspace
 
     OutlinerPanelCarry      OutlinerCarry   = {};        // [-] - the anchor, the search entry and the reorder drag
     LayerPanelCarry         LayerCarry      = {};        // [-] - folds, filter, offset and the reorder drag

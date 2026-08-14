@@ -16,7 +16,7 @@ namespace
 
 // 📝 Six, and the ledger holds sixteen. The count is spelled once so the array literal and the loop that walks it
 //    cannot disagree — which is the whole class of defect where a seventh panel is written and never presented.
-constexpr std::uint32_t TexturePaintPanelCount = 6u;   // [-] - panels this workspace declares
+constexpr std::uint32_t TexturePaintPanelCount = 7u;   // [-] - panels this workspace declares
 
 }   // namespace
 
@@ -71,6 +71,11 @@ void DeclareTexturePaintPanels(PanelIndex& Ledger, void* WorkspaceContext)
         //    settles both at compile time, so a check here would test a fact the array has already decided.
         DeclarePanel(Ledger, Declaring[SlotOrdinal]);
     }
+
+    // 📝 The viewport is declared separately using ResolveCanvasSlot. The (V) list offers whatever the standing workspace declared into its
+    //    ledger, so the viewport becomes reachable the moment the paint workspace declares this slot. Two lines here, and no host changes at
+    //    all — EditorHost.cpp and PaintHost.cpp only assign pointers into the context and are untouched by a by-value member.
+    DeclarePanel(Ledger, ResolveCanvasSlot("Canvas", "Viewport", Standing->Canvas));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
