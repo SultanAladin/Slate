@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                          INTERFACEEXCHANGE.CPP
 //============================================================================================================================================
 // 🧩 The only translation unit in the engine that includes ImGui.
@@ -257,9 +257,13 @@ Deliver<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording)
     //    is legal and costs a recorded nothing; skipping it here keeps the recording out of the rotation's
     //    measured duration entirely.
     if (AssembledContent->DisplaySize.x <= 0.0f || AssembledContent->DisplaySize.y <= 0.0f)
+    {
+        ContentAssembled = false;
         return Deliver<bool>::Deliver(true);
+    }
 
     ImGui_ImplVulkan_RenderDrawData(AssembledContent, CommandRecording);
+    ContentAssembled = false;
 
     return Deliver<bool>::Deliver(true);
 }
