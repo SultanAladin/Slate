@@ -11,6 +11,7 @@
 #include "SlateUI/Interface/WorkspaceSpace/Api/WorkspaceSpace.h"
 
 #include <cstdint>
+#include <vector>
 
 namespace Slate
 {
@@ -446,5 +447,103 @@ Outcome<float> AdvanceContentCarousel(const ThemeSpecification&  Theme,
 // 📐 Captions, ordinals and choice counts are Exact. Rectangles, readings, fractions and travel are Bounded.
 //    The component claims Bounded, per `00` §3's transitivity rule.
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded, PrecisionGuarantee::Exact);
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE CONTROL SHELF
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 🔴 The top-centre slide-down control centre — a per-workspace property inspector. The notch mirrors the bottom
+//    asset shelf, settling via spring dynamics. This section declares the shelf's carry, its family taxonomy, and
+//    the free functions that drive it, all of which live in ControlPanel.cpp.
+
+/// 🧩 One rail tab the shelf presents for the active workspace.
+/// tag   contract, nonallocating, nonthrowing
+struct ControlCategoryTab
+{
+    const char*  Name      = nullptr;   // [-] - the caption, static storage, never copied
+    int          Family    = 0;         // [-] - which content family this tab belongs to
+    bool         Populated = false;     // [-] - the family has content to present
+};
+
+/// 🧩 What the pointer took hold of when it went down on the shelf.
+/// tag   contract
+constexpr int ControlPivotDormant = 0;   // [-] - nothing is held
+constexpr int ControlPivotGrip    = 1;   // [-] - the notch silhouette is held; horizontal drift is permitted
+
+/// 🧩 Content family ordinals — which panel of properties the shelf surfaces.
+/// tag   contract
+constexpr int ControlFamilyProperties = 0;   // [-] - material / object properties
+constexpr int ControlFamilySettings   = 1;   // [-] - workspace and application settings
+constexpr int ControlFamilyChannels   = 2;   // [-] - material channel editor
+constexpr int ControlFamilyLayers     = 3;   // [-] - layer stack
+constexpr int ControlFamilyOutliner   = 4;   // [-] - scene outliner
+constexpr int ControlFamilyHistory    = 5;   // [-] - undo / redo history
+
+/// 🧩 The control shelf's full carry — offset, velocity, latched intent, and the rail tabs for the active workspace.
+/// note  🔴 Owned by the workspace and passed by reference everywhere. A control holding its own openness would be
+///        a second authority on what the shelf does, and `14` §4.1 places carries beside the caller for exactly this.
+/// tag   owning
+struct ControlShelf
+{
+    std::vector<ControlCategoryTab>  Tabs;           // [-] - the rail tabs for the standing workspace
+    int                              ActiveFamily  = ControlFamilyProperties;  // [-] - which content family is presented
+    float                            SlideOffset   = 0.0f;   // [px] - current displacement, 0 closed → reveal open
+    float                            SlideVelocity = 0.0f;   // [px/s] - current velocity, seeded by the release flick
+    bool                             OpenEnabled   = false;  // [-]  - the latched open intent
+    float                            StartOffset   = 0.0f;   // [px] - the offset the hold opened at
+    int                              PivotMode     = ControlPivotDormant;  // [-] - what the hold took hold of
+    bool                             DragActive    = false;  // [-]  - a drag is live this tick
+    float                            DragVelocity  = 0.0f;   // [px/s] - smoothed pointer speed at release
+    float                            Drift         = 0.0f;   // [px] - the notch's horizontal travel along its edge
+};
+
+/// 🧩 Rebuilds the rail tabs for the active workspace and keeps the selected family valid across a workspace switch.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void InitializeControlShelf(ControlShelf& Shelf);
+
+/// 🧩 Arms the shelf open toward a declared reveal height.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void EnableControlShelf(ControlShelf& Shelf, float RevealHeight);
+
+/// 🧩 Latches the shelf closed and zeroes the velocity.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void DisableControlShelf(ControlShelf& Shelf);
+
+/// 🧩 Returns the reveal height for a given screen height, bounded by the theme's ceiling.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+float ResolveControlShelfRevealHeight(float ScreenHeight);
+
+/// 🧩 Reverses the latched intent.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void ToggleControlShelf(ControlShelf& Shelf, float ScreenHeight);
+
+/// 🧩 Whether the shelf must take the pointer away from everything beneath it.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+bool ControlShelfCapturingPointer(const ControlShelf& Shelf, float CursorX, float CursorY);
+
+/// 🧩 Advances the shelf's drag by one tick of pointer travel.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void ResolveControlShelfInteraction(ControlShelf& Shelf, float DeltaX, float DeltaY, float DeltaSeconds, bool PointerHeld);
+
+/// 🧩 Decides open or closed on release, consulting the flick test, the distance test and the latched intent.
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+void ResolveControlShelfRelease(ControlShelf& Shelf, float RevealHeight);
+
+/// 🧩 One tick of the shelf's body — the rail, the content area, and the notch over all of it.
+/// in    Theme           [-]   read for the palette and every extent; never held
+/// in    ActiveWorkspace [-]   which workspace is standing, for the tab taxonomy
+/// cost  🔴
+/// tag   api, nonallocating, nonthrowing
+void ConstructControlShelf(ControlShelf&              Shelf,
+                           const ThemeSpecification&  Theme,
+                           int                        ActiveWorkspace);
 
 }   // namespace Slate

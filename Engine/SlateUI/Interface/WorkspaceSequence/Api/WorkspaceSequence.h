@@ -11,6 +11,7 @@
 #include "SlateMath/Platform/InputExchange/Api/InputExchange.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 #include "SlateMath/Platform/WindowInterchange/Api/WindowInterchange.h"
+#include "SlateUI/Interface/DrawerPanel/Api/DrawerPanel.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
 #include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
 #include "SlateUI/Interface/WorkspaceSpace/Api/PanelIndex.h"
@@ -40,6 +41,17 @@ namespace Slate
 /// tag   contract
 using WorkspaceDeclareRoutine = void (*)(PanelIndex& Ledger, void* WorkspaceContext);
 
+/// 🧩 The routine one workspace declares its two edge drawers through, handed the index to fill and its own context.
+/// note  🔴 Separate from the panel declaration and not folded into it. A drawer is not a panel: it docks nowhere,
+///        takes no share of the desk, and is presented above everything the desk paints. One routine filling both
+///        would put the drawer's record inside the ledger that `ReclaimPanelIndex` empties, and the reveal an artist
+///        dragged out would close every time a panel was minted.
+/// note  ⚠️ Called at activation, exactly as the panel routine is, and for the same reason — both address storage
+///        the workspace owns, so a declaration retained across an activation names a record the departing workspace
+///        has already released.
+/// tag   contract
+using WorkspaceDrawerRoutine = void (*)(DrawerIndex& Drawers, void* WorkspaceContext);
+
 /// 🧩 The routine one workspace presents its own body content through, beneath every panel the desk paints.
 /// note  ⚠️ Optional. A workspace whose whole surface is panels declares none, and the centre remainder is left
 ///        to whatever the render schedule composited beneath the interface.
@@ -61,6 +73,7 @@ struct WorkspaceSpecification
     const char*              NameStem         = "Workspace";                     // [-] - minted titles read "<stem> N"
     WorkspaceDiscipline      Discipline       = WorkspaceDiscipline::Empty;      // [-] - what its documents are for
     WorkspaceDeclareRoutine  DeclarePanels    = nullptr;                          // [-] - fills the ledger at activation
+    WorkspaceDrawerRoutine   DeclareDrawers   = nullptr;                          // [-] - fills the drawer index, likewise
     WorkspacePresentRoutine  PresentCentre    = nullptr;                          // [-] - optional body content
     void*                    WorkspaceContext = nullptr;                          // [-] - the application's storage
 };
@@ -257,6 +270,13 @@ public:
     /// tag   api, nonallocating, nonthrowing
     const PanelIndex& Declared() const;
 
+    /// 🧩 The two edge drawers the standing workspace declared, on the same terms.
+    /// note  ⚠️ A workspace declaring no drawer routine reports an index naming neither, which the bracket presents
+    ///        as nothing at all. That is not a refusal — a workspace with nothing to browse has no bottom drawer.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    const DrawerIndex& DeclaredDrawers() const;
+
     /// 🧩 How many rotations have completed since bring-up.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -304,6 +324,7 @@ private:
     ThemeSpecification   ActiveTheme     = {};        // [-] - resolved once, at the declared density
     WorkspaceSpace       Space           = {};        // [-] - the desk
     PanelIndex           Ledger          = {};        // [-] - the standing workspace's declarations
+    DrawerIndex          EdgeDrawers     = {};        // [-] - and its two edge drawers, above every panel of them
 
     // -- ⑦ RenderSchedule ---------------------------------------------------------------------------------------------
     RenderSchedule       Schedule        = {};        // [-] - validated at bring-up, never repaired

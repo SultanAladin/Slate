@@ -5,6 +5,8 @@
 
 #include "SlateUI/Interface/WorkspaceSpace/Source/WorkspaceStripInternal.h"
 
+#include "SlateUI/Interface/DrawerPanel/Api/DrawerPanel.h"
+
 namespace Slate
 {
 
@@ -46,6 +48,127 @@ void PaintViewportBand(const ThemeSpecification&  Theme,
     Recording->AddText(ImVec2(Area.PositionX + Extents.PanelPadding * 2.0f,
                               Area.PositionY + (Area.Height - Measured.y) * 0.5f),
                        Coded(Palette.TextMuted), Caption);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE EDGE DRAWERS
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 🔴 Whether either declared drawer is holding the pointer, asked **before** the desk resolves anything. A drawer
+//    owns no vendor window, so a panel sitting under the open sheet would otherwise answer the same press — the desk
+//    would hover a row the artist cannot see, and a click meant for a control inside the drawer would activate a tab
+//    beneath it as well. This is the whole of what "the drawers are above every panel" means mechanically.
+bool DrawersCapturingPointer(const ThemeSpecification&  Theme,
+                             const DrawerIndex*         Drawers,
+                             float                      DisplayWidth,
+                             float                      DisplayHeight)
+{
+    if (Drawers == nullptr)
+        return false;
+
+    const LayoutExtents& Extents = Theme.Extents;
+
+    if (Drawers->BottomDrawer.Drawer != nullptr
+     && DrawerCapturingPointer(*Drawers->BottomDrawer.Drawer, Extents, DisplayWidth, DisplayHeight))
+    {
+        return true;
+    }
+
+    return Drawers->TopDrawer.Drawer != nullptr
+        && DrawerCapturingPointer(*Drawers->TopDrawer.Drawer, Extents, DisplayWidth, DisplayHeight);
+}
+
+// 📝 What the pointer carried before a drawer took it, held only across the calls that paint beneath the drawer.
+// 📝 🔴 The wheel and the three button rows are suspended and **not** the position. A desk that also lost the cursor
+//    would report every row unhovered and repaint its whole strip the tick a drawer opened; the source suspends
+//    exactly these five, and the hover a panel resolves beneath an open sheet is invisible under it anyway.
+struct PointerSuspension
+{
+    float  Wheel           = 0.0f;      // [-] - vertical wheel travel this tick
+    float  WheelSideways   = 0.0f;      // [-] - horizontal
+    bool   Pressing[5]     = {};        // [-] - the button is down
+    bool   PressBegun[5]   = {};        // [-] - it went down this tick
+    bool   PressEnded[5]   = {};        // [-] - it came up this tick
+    bool   Suspended       = false;     // [-] - the rows above are worth restoring
+};
+
+// 📝 🔴 Blinds the pointer for the calls that paint beneath an open drawer, exactly as the source does. The desk is
+//    still presented — a desk skipped outright would vanish from behind a sheet that only covers part of it — but it
+//    is presented against a pointer that presses nothing. This is what "the drawers are above every panel" means
+//    mechanically: a drawer owns no vendor window, so nothing else stops the panel under the cursor answering the
+//    same press, and the sheet would drag while a tab beneath it activated.
+void SuspendPointer(PointerSuspension& Suspension)
+{
+    ImGuiIO& Pointing = ImGui::GetIO();
+
+    Pointing.WantCaptureMouse = true;
+
+    Suspension.Wheel         = Pointing.MouseWheel;
+    Suspension.WheelSideways = Pointing.MouseWheelH;
+    Pointing.MouseWheel      = 0.0f;
+    Pointing.MouseWheelH     = 0.0f;
+
+    for (int Button = 0; Button < 5; ++Button)
+    {
+        Suspension.Pressing[Button]   = Pointing.MouseDown[Button];
+        Suspension.PressBegun[Button] = Pointing.MouseClicked[Button];
+        Suspension.PressEnded[Button] = Pointing.MouseReleased[Button];
+
+        Pointing.MouseDown[Button]     = false;
+        Pointing.MouseClicked[Button]  = false;
+        Pointing.MouseReleased[Button] = false;
+    }
+
+    Suspension.Suspended = true;
+}
+
+// 📝 🔴 And hands it back before the drawer itself paints, so the notch reads the true press to drag on and the body's
+//    own controls read the true clicks to act on. The pass beneath already ran blind; restoring here shields it and
+//    nothing else. Omitting this is the defect where an open drawer stops answering its own controls.
+void RestorePointer(const PointerSuspension& Suspension)
+{
+    if (!Suspension.Suspended)
+        return;
+
+    ImGuiIO& Pointing = ImGui::GetIO();
+
+    Pointing.MouseWheel  = Suspension.Wheel;
+    Pointing.MouseWheelH = Suspension.WheelSideways;
+
+    for (int Button = 0; Button < 5; ++Button)
+    {
+        Pointing.MouseDown[Button]     = Suspension.Pressing[Button];
+        Pointing.MouseClicked[Button]  = Suspension.PressBegun[Button];
+        Pointing.MouseReleased[Button] = Suspension.PressEnded[Button];
+    }
+}
+
+// 📝 The bottom drawer is presented first and the top one over it, so where both are dragged fully open the control
+//    centre is the one the artist reaches. That ordering is the same one the two reveals already imply — only the top
+//    drawer covers the whole display, so only it can be the sheet in front.
+bool PresentEdgeDrawers(const ThemeSpecification&  Theme,
+                        const DrawerIndex*         Drawers,
+                        float                      DisplayWidth,
+                        float                      DisplayHeight)
+{
+    if (Drawers == nullptr)
+        return false;
+
+    bool Consumed = false;
+
+    if (Drawers->BottomDrawer.Drawer != nullptr)
+    {
+        Consumed = PresentDrawer(Theme, *Drawers->BottomDrawer.Drawer, DisplayWidth, DisplayHeight,
+                                 Drawers->BottomDrawer.Body, Drawers->BottomDrawer.BodyContext) || Consumed;
+    }
+
+    if (Drawers->TopDrawer.Drawer != nullptr)
+    {
+        Consumed = PresentDrawer(Theme, *Drawers->TopDrawer.Drawer, DisplayWidth, DisplayHeight,
+                                 Drawers->TopDrawer.Body, Drawers->TopDrawer.BodyContext) || Consumed;
+    }
+
+    return Consumed;
 }
 
 }   // namespace
@@ -141,6 +264,7 @@ std::uint32_t ConstructWorkspaceTabStrip(const ThemeSpecification&  Theme,
 DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
                                           WorkspaceSpace&            Space,
                                           const PanelIndex*          Panels,
+                                          const DrawerIndex*         Drawers,
                                           const char* const*         Captions,
                                           std::uint32_t              Count,
                                           std::uint32_t              ActiveOrdinal,
@@ -198,6 +322,17 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
     // 📝 The suppressed roster is skipped outright rather than left to refuse on its own zero height. It reports no
     //    choice either way, but a call that paints nothing still takes the pointer on its last coverage test — and
     //    a zero-height rectangle at the display's top edge covers the row of desk immediately beneath it.
+    // 🔴 Asked here, before one rectangle beneath a drawer has resolved anything. A drawer opened over the desk hides
+    //    the strip, the gutters and the panel bodies, and none of them know it: they own vendor windows only through
+    //    the foreground recording, which arbitrates nothing. Consulted after the desk, the claim would arrive one call
+    //    too late — the tab under the cursor would already have taken the press.
+    const bool DrawersHolding = DrawersCapturingPointer(Theme, Drawers, DisplayWidth, DisplayHeight);
+
+    PointerSuspension Suspended;
+
+    if (DrawersHolding)
+        SuspendPointer(Suspended);
+
     if (RosterPresented)
     {
         Reported.WorkspaceChoice = ConstructWorkspaceTabStrip(Theme, StripArea, Captions, Count, ActiveOrdinal,
@@ -218,6 +353,14 @@ DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
     {
         Reported.PointerConsumed = true;
     }
+
+    RestorePointer(Suspended);
+
+    // 🔴 And painted last, over the band as much as over the desk. The two halves are not interchangeable: the claim
+    //    is read before anything beneath resolves, the quads are recorded after everything beneath is drawn. Painting
+    //    early would put the sheet under the footer strip; claiming late would put the press under the tabs.
+    if (PresentEdgeDrawers(Theme, Drawers, DisplayWidth, DisplayHeight) || DrawersHolding)
+        Reported.PointerConsumed = true;
 
     return Reported;
 }

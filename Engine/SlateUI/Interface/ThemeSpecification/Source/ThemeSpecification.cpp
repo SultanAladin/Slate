@@ -199,6 +199,26 @@ Outcome<ThemeSpecification> ResolveActiveTheme(float DeclaredScale)
     Resolved.Extents.GlyphButtonSmallEdge *= DeclaredScale;
     Resolved.Extents.GlyphEdge            *= DeclaredScale;
 
+    // 📝 The drawer's extents scale with everything else, and so do its two velocity thresholds. The pointer's own
+    //    delta arrives in the coordinate space the interface paints in, which is the space the scale enlarges — a
+    //    flick threshold left unscaled would need twice the hand movement at twice the density to read as a flick.
+    Resolved.Extents.DrawerGripWidth      *= DeclaredScale;
+    Resolved.Extents.DrawerGripHeight     *= DeclaredScale;
+    Resolved.Extents.DrawerFinalizeOffset *= DeclaredScale;
+    Resolved.Extents.DrawerFlickVelocity  *= DeclaredScale;
+    Resolved.Extents.DrawerBodyClearance  *= DeclaredScale;
+    Resolved.Extents.DrawerContentWidth   *= DeclaredScale;
+    Resolved.Extents.DrawerContentInset   *= DeclaredScale;
+    Resolved.Extents.DrawerContentPadding *= DeclaredScale;
+    Resolved.Extents.DrawerFrameMinimum   *= DeclaredScale;
+    Resolved.Extents.DrawerRevealCeiling  *= DeclaredScale;
+    Resolved.Extents.SlideOffsetRest      *= DeclaredScale;
+    Resolved.Extents.SlideVelocityRest    *= DeclaredScale;
+
+    // 📝 🔴 The spring's own constants are **not** scaled and neither are the two scrim coverages, the reveal
+    //    fraction, the curve subdivision or the velocity blend. Stiffness is [1/s²] and damping [1/s]: scaling them
+    //    would retune the settle at every density, and a coverage or a fraction scaled past one has no meaning at all.
+
     // 📝 EntryRounding is deliberately not scaled. It is declared far beyond half of any row height so that the
     //    entry is fully rounded at every density; scaling it would only move it further beyond a bound it already
     //    exceeds, and the vendor bounds it to half the height when it draws.

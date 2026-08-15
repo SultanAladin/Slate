@@ -21,6 +21,11 @@ namespace Slate
 //    be a cycle. The one translation unit that presents panels includes both.
 struct PanelIndex;
 
+// 📝 The drawer index is named by pointer in the bracket below and never read here, for the same reason. `DrawerPanel`
+//    includes `PanelIndex.h` to spell its body routine, and `PanelIndex.h` includes this header — including the drawer
+//    back would close the cycle. The one translation unit that presents drawers includes all three.
+struct DrawerIndex;
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE TWO OCCUPANT SUBJECTS
 //------------------------------------------------------------------------------------------------------------------------
@@ -1076,10 +1081,11 @@ struct DeploymentReport
     WorkspaceRectangle  DeskArea        = {};                      // [px] - what the desk was given, for the caller
 };
 
-/// 🧩 The one presentation call an application makes per tick — workspace strip, desk, bottom band.
+/// 🧩 The one presentation call an application makes per tick — workspace strip, desk, bottom band, both drawers.
 /// in    Theme              [-]   the resolved theme; `Enforce` is applied once here and never per panel
 /// in    Space              [-]   the desk, amended in place
 /// in    Panels             [-]   the active workspace's ledger, or null where none is declared
+/// in    Drawers            [-]   the active workspace's two edge drawers, or null where none is declared
 /// in    Captions           [-]   one caption per registered workspace, for the strip
 /// in    Count              [-]   how many
 /// in    ActiveOrdinal      [-]   which workspace is standing
@@ -1099,11 +1105,16 @@ struct DeploymentReport
 ///        it above the desk leaf's own document strip reads as a workspace nested inside a workspace. The reported
 ///        choice is `AbsentWorkspaceChoice` on every such tick, which is what a caller already handles — there is
 ///        nothing to switch to below two entries.
+/// note  🔴 A drawer that is capturing the pointer is consulted **before** the desk is presented, and both drawers
+///        are painted **after** it. A drawer owns no vendor window, so nothing else stops the panel under the cursor
+///        resolving the same press — the pre-desk claim is the whole mechanism by which the drawers sit above every
+///        panel rather than merely in front of them, and the order of the two halves is not interchangeable.
 /// cost  🔴
 /// tag   api, nonthrowing
 DeploymentReport PresentDeploymentBracket(const ThemeSpecification&  Theme,
                                           WorkspaceSpace&            Space,
                                           const PanelIndex*          Panels,
+                                          const DrawerIndex*         Drawers,
                                           const char* const*         Captions,
                                           std::uint32_t              Count,
                                           std::uint32_t              ActiveOrdinal,

@@ -143,6 +143,31 @@ struct LayoutExtents
     float  SegmentFontScale     =   0.95f;  // [-]  - scale of the axis and unit segment glyphs
     float  GlyphEdge            =  14.0f;   // [px] - the square a row glyph is drawn into
     float  CarouselTravel       =   0.30f;  // [s]  - the slide a content carousel takes to cross one pane
+
+    // -- the edge drawers and the spring that settles them ------------------------------------------------------
+    // 📝 🔴 Every number one drawer drags by lives here and not beside the drawer. `14` §1 admits no component
+    //    spelling its own extent, and the notch is the case that most invites it: eight of these are thresholds
+    //    rather than sizes, and a threshold spelled at its use site is one nothing else can be tuned against.
+    float  DrawerGripWidth      = 200.0f;   // [px]   - the notch silhouette's horizontal extent
+    float  DrawerGripHeight     =  36.0f;   // [px]   - its vertical extent, shelf to shoulder
+    float  DrawerFinalizeOffset = 120.0f;   // [px]   - travel past this on release settles the drawer the other way
+    float  DrawerFlickVelocity  = 1000.0f;  // [px/s] - a release faster than this overrides the travel test
+    float  DrawerBodyClearance  =  50.0f;   // [px]   - below this reveal the sheet's margins are not a drag surface
+    float  DrawerContentWidth   = 980.0f;   // [px]   - the centred content column's ceiling
+    float  DrawerContentInset   =  40.0f;   // [px]   - what the column leaves either side at narrow displays
+    float  DrawerContentPadding =  12.0f;   // [px]   - between the sheet's edge and the framed body
+    float  DrawerFrameMinimum   =  10.0f;   // [px]   - below this frame height the body is not drawn at all
+    float  DrawerRevealFraction =   0.55f;  // [-]    - the bottom drawer's share of the display height
+    float  DrawerRevealCeiling  = 460.0f;   // [px]   - and its ceiling, whichever of the two is smaller
+    float  DrawerScrimBottom    =   0.470588f;   // [-] - the bottom drawer's wash over the desk, fully open
+    float  DrawerScrimTop       =   0.549020f;   // [-] - the top drawer's, which reveals the whole display
+    float  DrawerCurveSegments  =  24.0f;   // [-]    - subdivisions per shoulder of the silhouette's two curves
+    float  DrawerVelocityRecent =   0.35f;  // [-]    - the arriving share of the smoothed pointer speed
+    float  SlideStiffness       = 320.0f;   // [-]    - the reveal spring's constant
+    float  SlideDamping         =  34.0f;   // [-]    - its viscous coefficient
+    float  SlideOffsetRest      =   0.5f;   // [px]   - within this of the target counts as arrived
+    float  SlideVelocityRest    =   4.0f;   // [px/s] - below this speed counts as stopped
+    float  SlideMaximumStep     =   0.032f; // [s]    - the step is bounded here, so a stalled tick cannot overshoot
 };
 
 //------------------------------------------------------------------------------------------------------------------------

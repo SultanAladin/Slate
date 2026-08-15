@@ -332,6 +332,11 @@ void WorkspaceSequence::DeclareStanding()
     //    panel whose contents are a different workspace's.
     ReclaimPanelIndex(Ledger);
 
+    // 🔴 And the drawer index with it, for the same reason and in the same place. A drawer declaration carried across
+    //    an activation addresses a `DrawerSpecification` the departing workspace owned, and the arriving workspace
+    //    would drag a reveal whose offset, pivot and latched intent live in storage nothing presents any more.
+    EdgeDrawers = DrawerIndex{};
+
     if (Roster == nullptr || StandingEntry >= RosterCount)
         return;
 
@@ -339,6 +344,9 @@ void WorkspaceSequence::DeclareStanding()
 
     if (Standing.DeclarePanels != nullptr)
         Standing.DeclarePanels(Ledger, Standing.WorkspaceContext);
+
+    if (Standing.DeclareDrawers != nullptr)
+        Standing.DeclareDrawers(EdgeDrawers, Standing.WorkspaceContext);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -512,8 +520,13 @@ Outcome<TickReport> WorkspaceSequence::Advance()
                 Roster[StandingEntry].PresentCentre(ActiveTheme, CentreArea, Roster[StandingEntry].WorkspaceContext);
         }
 
+        // 🔴 The drawer index is handed across beside the ledger and never separately. `PresentDeploymentBracket`
+        //    asks the drawers for the pointer **before** the desk resolves anything and paints them **after** it,
+        //    and both halves read the one operand — a bracket called without it presents a workspace whose declared
+        //    drawers exist in the sequence and nowhere the artist can reach.
         const DeploymentReport Bracketed =
-            PresentDeploymentBracket(ActiveTheme, Space, &Ledger, Captions, RosterCount, StandingEntry,
+            PresentDeploymentBracket(ActiveTheme, Space, &Ledger, &EdgeDrawers,
+                                     Captions, RosterCount, StandingEntry,
                                      "",
                                      static_cast<float>(Display.StandingWidth()),
                                      static_cast<float>(Display.StandingHeight()));
@@ -776,6 +789,11 @@ void WorkspaceSequence::Reclaim()
     //--- ⑥ SlateUI --------------------------------------------------------------------------------------------------
     ReclaimPanelIndex(Ledger);
 
+    // 🔴 The drawer index is emptied beside the ledger and for the same reason. Every declaration in it addresses a
+    //    `DrawerSpecification` the workspace owns, and the host releases that storage after this returns — a retained
+    //    declaration is a spring, an offset and a latched intent living in an extent nothing occupies.
+    EdgeDrawers = DrawerIndex{};
+
     Space = WorkspaceSpace{};
 
     Interface.Reclaim();
@@ -848,6 +866,8 @@ const MeasureIndex&       WorkspaceSequence::Measures() const{ return Measured; 
 const TickSequence&       WorkspaceSequence::Timeline() const{ return HostTimeline; }
 
 const PanelIndex&         WorkspaceSequence::Declared() const{ return Ledger;       }
+
+const DrawerIndex&        WorkspaceSequence::DeclaredDrawers() const { return EdgeDrawers; }
 
 std::uint64_t WorkspaceSequence::CompletedRotations() const
 {
