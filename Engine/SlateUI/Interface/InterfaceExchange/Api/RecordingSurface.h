@@ -246,6 +246,13 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool Excluded(const PlaneExtent& Extent) const;
 
+    /// 🧩 Returns the surface to its constructed condition, releasing every unmatched Confine.
+    /// note  🔴 Called instead of placement-new over a live object. Re-constructing over storage without
+    ///       first destroying what sits in it is a defect the compiler will never report.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Reset();
+
 private:
 
     void*             CommandSlot   = nullptr;   // [-] - opaque; the ImGui spelling stays in the source file

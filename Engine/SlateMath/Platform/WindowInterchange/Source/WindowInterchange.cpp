@@ -72,6 +72,7 @@ Outcome<bool> WindowInterchange::Open(DisplayExtent RequestedExtent, const char*
 
     WindowSlot = OpenedWindow;
     Drain();
+    AdoptExtent();
 
     return Outcome<bool>::Deliver(true);
 }
@@ -121,6 +122,25 @@ DisplayExtent WindowInterchange::CurrentExtent() const
 bool WindowInterchange::ClosureRequested() const
 {
     return ClosurePosed;
+}
+
+void WindowInterchange::Await()
+{
+    if (WindowSlot == nullptr)
+        return;
+
+    glfwWaitEvents();
+}
+
+bool WindowInterchange::ExtentAltered() const
+{
+    return DrawExtent.Width  != AdoptedExtent.Width
+        || DrawExtent.Height != AdoptedExtent.Height;
+}
+
+void WindowInterchange::AdoptExtent()
+{
+    AdoptedExtent = DrawExtent;
 }
 
 }   // namespace Slate

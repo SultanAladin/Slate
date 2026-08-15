@@ -57,6 +57,22 @@ public:
     /// tag   api, nonthrowing
     void Drain();
 
+    /// 🧩 Blocks until the window system has something to report — what a minimised window waits on.
+    /// note  🔴 A host that spins on a zero extent burns a core for as long as the window stays iconified.
+    /// cost  ✔️
+    /// tag   api, nonthrowing
+    void Await();
+
+    /// 🧩 Whether the drawable extent moved since it was last adopted.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool ExtentAltered() const;
+
+    /// 🧩 Marks the standing extent as the one the presentation chain was re-established against.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void AdoptExtent();
+
     /// 🧩 The opaque native handle, for `06`'s `WindowExchange` and for nothing else.
     /// out   NativeHandle [-]  null while no window is open
     /// cost  ✔️
@@ -77,6 +93,7 @@ private:
 
     void*          WindowSlot   = nullptr;   // [-]  - opaque; the GLFW spelling stays in the source file
     DisplayExtent  DrawExtent   = {};        // [px] - refreshed by Drain
+    DisplayExtent  AdoptedExtent = {};       // [px] - what the presentation chain was built against
     bool           ClosurePosed = false;     // [-]  - the artist asked; nothing has acted on it yet
 };
 

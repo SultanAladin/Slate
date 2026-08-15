@@ -8,6 +8,7 @@
 #include "imgui.h"
 
 #include <cmath>
+#include <cfloat>
 
 namespace Slate
 {
@@ -93,6 +94,16 @@ Outcome<bool> RecordingSurface::Adopt()
     ConfineDepth = 0u;
 
     return Outcome<bool>::Deliver(true);
+}
+
+void RecordingSurface::Reset()
+{
+    // 📝 The clip stack belongs to the vendor's own list and is released by the tick that owned it. Only
+    //    this surface's reckoning of the depth is dropped here.
+    CommandSlot    = nullptr;
+    ArrivedPointer = {};
+    ArrivedDisplay = {};
+    ConfineDepth   = 0u;
 }
 
 const PointerCondition& RecordingSurface::Pointer() const
@@ -323,7 +334,7 @@ void RecordingSurface::TextRun(float Along, float Across, InkOrdinate Ink, const
         return;
 
     ImDrawList*   Target   = Commands(CommandSlot);
-    const ImFont* Typeface = ImGui::GetFont();
+    ImFont*       Typeface = const_cast<ImFont*>(ImGui::GetFont());
     const ImU32   Vendored = Vendor(Ink);
     const float   Added    = Tracking * PointSize;
 
@@ -382,7 +393,7 @@ void RecordingSurface::TextRunTruncated(float Along, float Across, float Ceiling
         return;
     }
 
-    const ImFont* Typeface     = ImGui::GetFont();
+    ImFont*       Typeface     = const_cast<ImFont*>(ImGui::GetFont());
     const float   EllipsisSpan = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, "...").x;
     const float   Admissible   = CeilingAlong - EllipsisSpan;
 
@@ -416,7 +427,7 @@ float RecordingSurface::MeasureRun(const char* Text, float PointSize, float Trac
     if (Text == nullptr || Text[0] == '\0' || ImGui::GetCurrentContext() == nullptr)
         return 0.0f;
 
-    const ImFont* Typeface = ImGui::GetFont();
+    ImFont*       Typeface = const_cast<ImFont*>(ImGui::GetFont());
     const float   Measured = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Text).x;
 
     if (Tracking == 0.0f)
@@ -468,10 +479,18 @@ bool RecordingSurface::Excluded(const PlaneExtent& Extent) const
     if (CommandSlot == nullptr)
         return true;
 
-    const ImVec4 Standing = Commands(CommandSlot)->_ClipRectStack.back();
+    // 📝 🔴 The previous read took `_ClipRectStack.back()` on a vector the vendor is free to leave empty
+    //    between ticks. `back()` on an empty ImVector reads one element before the allocation.
+    const ImDrawList* Target = Commands(CommandSlot);
 
-    return Extent.MostAlong  <= Standing.x || Extent.LeastAlong  >= Standing.z
-        || Extent.MostAcross <= Standing.y || Extent.LeastAcross >= Standing.w;
+    if (Target->_ClipRectStack.Size == 0)
+        return false;
+
+    const ImVec2 Least = Target->GetClipRectMin();
+    const ImVec2 Most  = Target->GetClipRectMax();
+
+    return Extent.MostAlong  <= Least.x || Extent.LeastAlong  >= Most.x
+        || Extent.MostAcross <= Least.y || Extent.LeastAcross >= Most.y;
 }
 
 }   // namespace Slate

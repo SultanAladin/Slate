@@ -85,6 +85,25 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Seal();
 
+    /// 🧩 Closes an open tick without assembling it, so that nothing downstream may record it.
+    /// out   Outcome  [-]  delivers true when no tick was open; abandoning nothing is not a defect
+    /// post  no tick is open and Record refuses until the next Advance and Seal
+    /// note  🔴 The escape a host takes when anything between Advance and Seal declines. A tick left open
+    ///       makes every subsequent Advance refuse with "a tick is already open" for the life of the
+    ///       process, and the interface stops responding with no error anywhere.
+    /// cost  ✔️
+    /// tag   api, nonthrowing
+    Outcome<bool> Abandon();
+
+    /// 🧩 Restates the rotation depth to the vendor attachment after a presentation chain was re-established.
+    /// in    RotationDepth  [-]  the depth the new chain carries
+    /// out   Outcome        [-]  refuses when no context is constructed
+    /// note  ⚠️ A vendor attachment holding a stale image count sizes its own per-image storage wrongly and
+    ///       records past the end of it on the first tick after a resize.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Outcome<bool> Renegotiate(std::uint32_t RotationDepth);
+
     /// 🧩 Records the assembled content into a command recording of the current rotation slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface
     /// out   Outcome          [-]  refuses when nothing has been sealed since the last Advance
@@ -111,6 +130,8 @@ private:
                                                                //       the source file
     bool                 TickOpen          = false;            // [-] - Advance delivered, Seal has not
     bool                 ContentAssembled  = false;            // [-] - Seal delivered, Record has not
+    bool                 WindowAttached    = false;            // [-] - the window system attachment stands
+    bool                 VendorAttached    = false;            // [-] - the vendor attachment stands
 };
 
 }   // namespace Slate

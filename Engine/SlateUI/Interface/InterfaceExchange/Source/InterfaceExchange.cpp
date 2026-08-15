@@ -98,6 +98,8 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the window system attachment declined" });
     }
 
+    WindowAttached = true;
+
     VkFormat DeclaredColourFormat = Attached.ColourTargetFormat;
 
     VkPipelineRenderingCreateInfoKHR RecordingDeclaration = {};
@@ -124,6 +126,8 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the vendor attachment declined" });
     }
 
+    VendorAttached = true;
+
     return Outcome<bool>::Deliver(true);
 }
 
@@ -137,8 +141,15 @@ void InterfaceExchange::Reclaim()
     if (Attached.ActiveDevice != VK_NULL_HANDLE)
         vkDeviceWaitIdle(Attached.ActiveDevice);
 
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    // 📝 🔴 Each shutdown is gated on its own attachment having stood. The vendor shutdown asserts on a
+    //    backend that was never initialised, so the failure path out of Construct used to abort the
+    //    process instead of reporting the refusal it had already built.
+    if (VendorAttached)
+        ImGui_ImplVulkan_Shutdown();
+
+    if (WindowAttached)
+        ImGui_ImplGlfw_Shutdown();
+
     ImGui::DestroyContext(static_cast<ImGuiContext*>(ContextSlot));
 
     if (DescriptorSlot != VK_NULL_HANDLE)
@@ -150,6 +161,8 @@ void InterfaceExchange::Reclaim()
     ContextSlot      = nullptr;
     TickOpen         = false;
     ContentAssembled = false;
+    WindowAttached   = false;
+    VendorAttached   = false;
     Attached         = {};
 }
 
@@ -187,6 +200,36 @@ Outcome<bool> InterfaceExchange::Seal()
 
     TickOpen         = false;
     ContentAssembled = true;
+
+    return Outcome<bool>::Deliver(true);
+}
+
+Outcome<bool> InterfaceExchange::Abandon()
+{
+    if (!TickOpen)
+        return Outcome<bool>::Deliver(true);
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+    ImGui::EndFrame();
+
+    TickOpen         = false;
+    ContentAssembled = false;
+
+    return Outcome<bool>::Deliver(true);
+}
+
+Outcome<bool> InterfaceExchange::Renegotiate(std::uint32_t RotationDepth)
+{
+    if (ContextSlot == nullptr || !VendorAttached)
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no vendor attachment stands" });
+
+    if (RotationDepth < 2u)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a rotation depth below two" });
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+    ImGui_ImplVulkan_SetMinImageCount(RotationDepth);
+
+    Attached.RotationDepth = RotationDepth;
 
     return Outcome<bool>::Deliver(true);
 }
