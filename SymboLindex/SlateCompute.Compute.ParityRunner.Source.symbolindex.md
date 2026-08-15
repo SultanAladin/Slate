@@ -24,7 +24,7 @@ S ParityRunner.cpp | 795 lines | ceb30ff7 | 8 sym | Registration and comparison 
 
 F ParityRunner::Register      | ParityRunner.cpp | 30-40   | - | - | ?
     in    Arriving  const ParityRegistration&  [-]  ?
-    out   -         Outcome<bool>              [-]  ?
+    out   -         Deliver<bool>              [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE COMMON SAMPLE SET

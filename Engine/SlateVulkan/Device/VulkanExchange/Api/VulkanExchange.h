@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <vulkan/vulkan.h>
 
@@ -53,14 +53,14 @@ public:
 
     /// 🧩 Loads the loader and creates the instance, with the diagnostic capability enabled in Debug only.
     /// in    DiagnosticRequested [-]  true only under SLATE_DEBUG; the caller does not decide otherwise
-    /// out   Outcome             [-]  refuses with CapabilityAbsent when no loader or no instance
+    /// out   Deliver             [-]  refuses with CapabilityAbsent when no loader or no instance
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> ConstructInstance(bool DiagnosticRequested);
+    Deliver<bool> ConstructInstance(bool DiagnosticRequested);
 
     /// 🧩 Enumerates devices, scores them, and creates one with its capability set fixed at creation.
     /// in    PresentationSurface [-]  the surface the device must be able to present to
-    /// out   Outcome             [-]  refuses with CapabilityAbsent when no device scores above zero, and
+    /// out   Deliver             [-]  refuses with CapabilityAbsent when no device scores above zero, and
     ///                               when the winner offers no dynamic recording
     /// pre   ConstructInstance delivered
     /// note  🔴 Dynamic recording is enabled here, not negotiated at a recording site. `SlateUI` declares
@@ -69,7 +69,7 @@ public:
     ///       inside the interface library.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> ConstructDevice(VkSurfaceKHR PresentationSurface);
+    Deliver<bool> ConstructDevice(VkSurfaceKHR PresentationSurface);
 
     /// 🧩 Destroys every device object and retains the instance, for the recovery in `06` §4.2 ③.
     /// cost  🚩

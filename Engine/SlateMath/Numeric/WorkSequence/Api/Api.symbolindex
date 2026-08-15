@@ -106,7 +106,7 @@ T WorkDeclaration                      | WorkSequence.h | 166-174 | owning      
     has   ProgressReported  bool          [-]  ?
     by    Source/ConsoleHost.cpp, Source/WorkSequence.cpp
     note  🔴 `34` §2: the resolution reads inputs that are **immutable for its whole run**. It may not read the
-    note  🔴 The resolution mutates nothing and commits nothing. It returns an Outcome, and the requester applies
+    note  🔴 The resolution mutates nothing and commits nothing. It returns an Deliver, and the requester applies
     note  ⚠️ There is deliberately no field naming another declaration. `34` §4 forbids waiting on one: with a
 
 T WorkCompletion                       | WorkSequence.h | 178-186 | nonallocating,nonthrowing     | -  | One concluded declaration, crossing back to the tick.
@@ -135,7 +135,7 @@ F WorkQueue::Admit                     | WorkSequence.h | 203     | api,nonthrow
     by    Api/PointerIntersection.h, Api/RequestQueue.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, Api/UvSurfaceDepot.h, Source/ConsoleHost.cpp, (+7 more)
 
 F WorkQueue::Claim                     | WorkSequence.h | 209     | api,nonallocating,nonthrowing | ✔️ | Claims the earliest pending record ordinal.
-    out   -  Outcome  [-]  refuses with ExtentExhausted when nothing is pending
+    out   -  Deliver  [-]  refuses with ExtentExhausted when nothing is pending
     by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+15 more)
 
 F WorkQueue::Withdraw                  | WorkSequence.h | 214     | api,nonallocating,nonthrowing | ✔️ | Strikes one record ordinal from the order without claiming it.
@@ -181,26 +181,26 @@ F WorkSequence::Construct              | WorkSequence.h | 261     | api,nonthrow
     in    RequestedWorkers  std::uint32_t        [-]  workers wanted; zero derives the count from the host
     in    HostTimeline      const TickSequence&  [-]  the process's one timeline, for conclusion stamps
     in    Reporting         ReportSequence&      [-]  where `34` §5's failures are appended
-    out   -                 Outcome              [-]  refuses with HostDenied when workers already stand
+    out   -                 Deliver              [-]  refuses with HostDenied when workers already stand
     post  the worker count is fixed and recorded, so `HardwareMetrics` can attribute a measurement to it
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  📝 A zero request reads the count from `04`'s `PlatformInterchange`, which reports the host once
 
 F WorkSequence::Declare                | WorkSequence.h | 271     | api,nonthrowing               | 🚩 | Declares one unit of work, to be resolved by a worker. declaration carries no resolution claims it; nothing about the calling thread decides when.
     in    Arriving  const WorkDeclaration&  [-]  the declaration, its inputs already captured
-    out   -         Outcome                 [-]  refuses with HostDenied when no worker stands, and with ContentUnsupported when the
+    out   -         Deliver                 [-]  refuses with HostDenied when no worker stands, and with ContentUnsupported when the
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  Declaring is not spawning. The declaration takes its place in its priority's order and a worker
 
 F WorkSequence::Withdraw               | WorkSequence.h | 279     | api,nonthrowing               | ✔️ | Withdraws one declaration, because the requester no longer wants it.
     in    Subject  WorkIdentity  [-]  the identity Declare issued
-    out   -        Outcome       [-]  refuses with IdentityStale when the declaration has already concluded
+    out   -        Deliver       [-]  refuses with IdentityStale when the declaration has already concluded
     post  the declaration concludes as Withdrawn and produces no result — `34` §5
     by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, (+16 more)
 
 F WorkSequence::Supersede              | WorkSequence.h | 287     | api,nonthrowing               | ✔️ | Withdraws one declaration because a newer one replaces it. superseded cancellation ordinary operation, so nothing is appended to the register for it.
     in    Subject  WorkIdentity  [-]  ?
-    out   -        Outcome       [-]  refuses with IdentityStale when the declaration has already concluded
+    out   -        Deliver       [-]  refuses with IdentityStale when the declaration has already concluded
     by    Api/SurfaceDepot.h, Source/SurfaceDepot.cpp, Source/WorkSequence.cpp
     note  Reported apart from a withdrawal so the requester can tell the two apart. `86` §5 rules a
 
@@ -213,12 +213,12 @@ F WorkSequence::Drain                  | WorkSequence.h | 303     | api,nonthrow
 
 F WorkSequence::Progress               | WorkSequence.h | 309     | api,nonthrowing               | ✔️ | One declaration's resolved fraction.
     in    Subject  WorkIdentity  [-]  ?
-    out   -        Outcome       [-]  refuses with IdentityStale once the declaration has concluded
+    out   -        Deliver       [-]  refuses with IdentityStale once the declaration has concluded
     by    Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/WorkSequence.cpp
 
 F WorkSequence::ProgressCount          | WorkSequence.h | 315     | api,nonthrowing               | ✔️ | One declaration's resolved count.
     in    Subject  WorkIdentity  [-]  ?
-    out   -        Outcome       [-]  refuses with IdentityStale once the declaration has concluded
+    out   -        Deliver       [-]  refuses with IdentityStale once the declaration has concluded
     by    Source/WorkSequence.cpp
 
 F WorkSequence::WorkerCount            | WorkSequence.h | 320     | api,nonallocating,nonthrowing | ✔️ | How many workers stand.
@@ -255,14 +255,14 @@ F WorkSequence::Claim                  | WorkSequence.h | 347     | -           
 
 F WorkSequence::Seal                   | WorkSequence.h | 348     | -                             | -  | ?
     in    RecordOrdinal  std::uint32_t         [-]  ?
-    in    Resolved       const Outcome<bool>&  [-]  ?
+    in    Resolved       const Deliver<bool>&  [-]  ?
     out   -              void                  [-]  ?
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, (+20 more)
 
 F WorkSequence::Cancel                 | WorkSequence.h | 349     | -                             | -  | ?
     in    Subject            WorkIdentity   [-]  ?
     in    SupersessionPosed  bool           [-]  ?
-    out   -                  Outcome<bool>  [-]  ?
+    out   -                  Deliver<bool>  [-]  ?
     by    Source/WorkSequence.cpp
 
 F WorkSequence::Resolved               | WorkSequence.h | 350     | -                             | -  | ?

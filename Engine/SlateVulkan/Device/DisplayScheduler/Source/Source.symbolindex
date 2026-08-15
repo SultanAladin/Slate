@@ -24,7 +24,7 @@ S DisplayScheduler.cpp | 466 lines | 5f8b01bc | 15 sym | The scored format, the 
 
 F DisplayScheduler::ScoreFormat       | DisplayScheduler.cpp | 15-42   | -          | - | ?
     in    Surface  VkSurfaceKHR                 [-]  ?
-    out   -        Outcome<VkSurfaceFormatKHR>  [-]  ?
+    out   -        Deliver<VkSurfaceFormatKHR>  [-]  ?
 
 F DisplayScheduler::ScorePacing       | DisplayScheduler.cpp | 44-74   | -          | - | ?
     in    Surface  VkSurfaceKHR      [-]  ?
@@ -42,15 +42,15 @@ F DisplayScheduler::Construct         | DisplayScheduler.cpp | 80-108  | -      
     in    DisplayWidth   std::uint32_t               [-]  ?
     in    DisplayHeight  std::uint32_t               [-]  ?
     in    Intent         LatencyIntent               [-]  ?
-    out   -              Outcome<bool>               [-]  ?
+    out   -              Deliver<bool>               [-]  ?
 
 F DisplayScheduler::Reclaim           | DisplayScheduler.cpp | 110-123 | -          | - | ?
     in    DisplayWidth   std::uint32_t  [-]  ?
     in    DisplayHeight  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 F DisplayScheduler::Establish         | DisplayScheduler.cpp | 125-283 | -          | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE ARRIVAL
@@ -59,7 +59,7 @@ F DisplayScheduler::Establish         | DisplayScheduler.cpp | 125-283 | -      
 F DisplayScheduler::Await             | DisplayScheduler.cpp | 289-367 | -          | - | ?
     in    Standing  const RotationSlot&    [-]  ?
     in    Timeline  const TickSequence&    [-]  ?
-    out   -         Outcome<ArrivedImage>  [-]  ?
+    out   -         Deliver<ArrivedImage>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE SURRENDER
@@ -68,7 +68,7 @@ F DisplayScheduler::Await             | DisplayScheduler.cpp | 289-367 | -      
 F DisplayScheduler::Present           | DisplayScheduler.cpp | 373-411 | -          | - | ?
     in    Standing      const RotationSlot&  [-]  ?
     in    ImageOrdinal  std::uint32_t        [-]  ?
-    out   -             Outcome<bool>        [-]  ?
+    out   -             Deliver<bool>        [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE READINGS

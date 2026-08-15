@@ -32,14 +32,14 @@ F SelectionSequence::Seal              | SelectionSequence.cpp | 15-30 | - | - |
 //------------------------------------------------------------------------------------------------------------------------
 
 F SelectionSequence::Retreat           | SelectionSequence.cpp | 36-49 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F SelectionSequence::Advance           | SelectionSequence.cpp | 51-60 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F SelectionSequence::RestoreAt         | SelectionSequence.cpp | 62-78 | - | - | ?
     in    RevisionOrdinal  std::uint64_t  [-]  ?
-    out   -                Outcome<bool>  [-]  ?
+    out   -                Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ

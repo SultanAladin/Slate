@@ -89,7 +89,7 @@ F ElementNamed      | VectorCodec.cpp | 487-500 | - | - | Whether an element's o
 
 F TranslateSource   | VectorCodec.cpp | 503-580 | - | - | Translates one whole vector source, whichever route it arrived by.
     in    Source  const std::string&       [-]  ?
-    out   -       Outcome<DecodedOutline>  [-]  ?
+    out   -       Deliver<DecodedOutline>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE TRANSLATION
@@ -98,10 +98,10 @@ F TranslateSource   | VectorCodec.cpp | 503-580 | - | - | Translates one whole v
 F Translate         | VectorCodec.cpp | 588-606 | - | - | ?
     in    Stream      const std::vector<std::uint8_t>&  [-]  ?
     in    OriginPath  const std::string&                [-]  ?
-    out   -           Outcome<DecodedOutline>           [-]  ?
+    out   -           Deliver<DecodedOutline>           [-]  ?
     by    Api/ImageCodec.h, Api/SpatialManipulator.h, Api/TopologyCodec.h, Api/TypefaceCodec.h, Api/VectorCodec.h, Source/ImageCodec.cpp, (+3 more)
 
 F TranslateText     | VectorCodec.cpp | 608-627 | - | - | ?
     in    SourceText  const std::string&       [-]  ?
-    out   -           Outcome<DecodedOutline>  [-]  ?
+    out   -           Deliver<DecodedOutline>  [-]  ?
     by    Api/VectorCodec.h

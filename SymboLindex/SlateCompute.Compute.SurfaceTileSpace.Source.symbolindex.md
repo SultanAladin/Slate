@@ -24,19 +24,19 @@ S SurfaceTileSpace.cpp | 623 lines | c4055d81 | 28 sym | The coarsening walk tha
 
 F OrdinalOf                             | SurfaceTileSpace.cpp | 15-27   | - | - | ?
     in    Addressed  CellAddress             [-]  ?
-    out   -          Outcome<std::uint32_t>  [-]  ?
+    out   -          Deliver<std::uint32_t>  [-]  ?
     by    Api/RenderSchedule.h, Api/SurfaceTileSpace.h, Source/ImpressionSequence.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp
 
 F AddressOf                             | SurfaceTileSpace.cpp | 29-51   | - | - | ?
     in    CellOrdinal  std::uint32_t         [-]  ?
-    out   -            Outcome<CellAddress>  [-]  ?
+    out   -            Deliver<CellAddress>  [-]  ?
     by    Api/SurfaceTileSpace.h, Source/ImpressionSequence.cpp
 
 F OrdinalAt                             | SurfaceTileSpace.cpp | 53-76   | - | - | ?
     in    Level           std::uint32_t           [-]  ?
     in    PositionAlong   double                  [-]  ?
     in    PositionAcross  double                  [-]  ?
-    out   -               Outcome<std::uint32_t>  [-]  ?
+    out   -               Deliver<std::uint32_t>  [-]  ?
     by    Api/SurfaceTileSpace.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -48,11 +48,11 @@ F CellSpace::Construct                  | SurfaceTileSpace.cpp | 82-99   | - | -
 
 F CellSpace::Held                       | SurfaceTileSpace.cpp | 101-107 | - | - | ?
     in    CellOrdinal  std::uint32_t               [-]  ?
-    out   -            Outcome<const CellRecord*>  [-]  ?
+    out   -            Deliver<const CellRecord*>  [-]  ?
 
 F CellSpace::Amend                      | SurfaceTileSpace.cpp | 109-115 | - | - | ?
     in    CellOrdinal  std::uint32_t         [-]  ?
-    out   -            Outcome<CellRecord*>  [-]  ?
+    out   -            Deliver<CellRecord*>  [-]  ?
 
 F CellSpace::Records                    | SurfaceTileSpace.cpp | 117     | - | - | ?
     out   -  const std::vector<CellRecord>&  [-]  ?
@@ -81,7 +81,7 @@ F SurfaceTileSpace::Construct           | SurfaceTileSpace.cpp | 152-206 | - | -
     in    SurfaceOrdinal_  std::uint32_t  [-]  ?
     in    BytesPerTexel    std::uint32_t  [-]  ?
     in    SlotCeiling      std::uint32_t  [-]  ?
-    out   -                Outcome<bool>  [-]  ?
+    out   -                Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SAMPLING
@@ -93,12 +93,12 @@ F SurfaceTileSpace::Sample              | SurfaceTileSpace.cpp | 212-271 | - | -
     in    PositionAcross   double                [-]  ?
     in    RotationOrdinal  std::uint64_t         [-]  ?
     in    Requesting       RequestQueue&         [-]  ?
-    out   -                Outcome<SampledCell>  [-]  ?
+    out   -                Deliver<SampledCell>  [-]  ?
 
 F SurfaceTileSpace::SampleGuaranteed    | SurfaceTileSpace.cpp | 273-304 | - | - | ?
     in    PositionAlong   double                [-]  ?
     in    PositionAcross  double                [-]  ?
-    out   -               Outcome<SampledCell>  [-]  ?
+    out   -               Deliver<SampledCell>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   UNCOMMITTED PAINT
@@ -107,7 +107,7 @@ F SurfaceTileSpace::SampleGuaranteed    | SurfaceTileSpace.cpp | 273-304 | - | -
 F SurfaceTileSpace::DeclareUncommitted  | SurfaceTileSpace.cpp | 310-336 | - | - | ?
     in    CellOrdinal          std::uint32_t  [-]  ?
     in    UncommittedDeclared  bool           [-]  ?
-    out   -                    Outcome<bool>  [-]  ?
+    out   -                    Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       PROMOTION
@@ -116,7 +116,7 @@ F SurfaceTileSpace::DeclareUncommitted  | SurfaceTileSpace.cpp | 310-336 | - | -
 F SurfaceTileSpace::ClaimOrEvict        | SurfaceTileSpace.cpp | 342-400 | - | - | ?
     in    Scheduling       PromotionScheduler&     [-]  ?
     in    RotationOrdinal  std::uint64_t           [-]  ?
-    out   -                Outcome<std::uint32_t>  [-]  ?
+    out   -                Deliver<std::uint32_t>  [-]  ?
 
 F SurfaceTileSpace::Promote             | SurfaceTileSpace.cpp | 402-483 | - | - | ?
     in    CellOrdinal      std::uint32_t                  [-]  ?
@@ -124,11 +124,11 @@ F SurfaceTileSpace::Promote             | SurfaceTileSpace.cpp | 402-483 | - | -
     in    ContentRevision  std::uint64_t                  [-]  ?
     in    Scheduling       PromotionScheduler&            [-]  ?
     in    RotationOrdinal  std::uint64_t                  [-]  ?
-    out   -                Outcome<PromotionDisposition>  [-]  ?
+    out   -                Deliver<PromotionDisposition>  [-]  ?
 
 F SurfaceTileSpace::DeclareApronWritten | SurfaceTileSpace.cpp | 485-498 | - | - | ?
     in    CellOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome<bool>  [-]  ?
+    out   -            Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  EVICTION AND RECLAIM
@@ -137,7 +137,7 @@ F SurfaceTileSpace::DeclareApronWritten | SurfaceTileSpace.cpp | 485-498 | - | -
 F SurfaceTileSpace::Evict               | SurfaceTileSpace.cpp | 504-533 | - | - | ?
     in    CellOrdinal      std::uint32_t  [-]  ?
     in    RotationOrdinal  std::uint64_t  [-]  ?
-    out   -                Outcome<bool>  [-]  ?
+    out   -                Deliver<bool>  [-]  ?
 
 F SurfaceTileSpace::Reconcile           | SurfaceTileSpace.cpp | 535-538 | - | - | ?
     in    RotationOrdinal  std::uint64_t  [-]  ?

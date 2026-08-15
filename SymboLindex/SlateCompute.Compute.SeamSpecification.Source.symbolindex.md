@@ -35,12 +35,12 @@ F Located                             | SeamSpecification.cpp | 18-30   | - | - 
 F SeamSpecification::DeclareAuthored  | SeamSpecification.cpp | 38-52   | - | - | ?
     in    FirstVertex   std::uint32_t  [-]  ?
     in    SecondVertex  std::uint32_t  [-]  ?
-    out   -             Outcome<bool>  [-]  ?
+    out   -             Deliver<bool>  [-]  ?
 
 F SeamSpecification::WithdrawAuthored | SeamSpecification.cpp | 54-66   | - | - | ?
     in    FirstVertex   std::uint32_t  [-]  ?
     in    SecondVertex  std::uint32_t  [-]  ?
-    out   -             Outcome<bool>  [-]  ?
+    out   -             Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     DERIVED SEAMS

@@ -79,7 +79,7 @@ F DiscardCountStanding | RevisionPanel.cpp | 83-91   | - | - | ?
 F ScrubToPosition      | RevisionPanel.cpp | 97-118  | - | - | ?
     in    Sequence  RevisionSequence&  [-]  ?
     in    Arriving  std::uint64_t      [-]  ?
-    out   -         Outcome<bool>      [-]  ?
+    out   -         Deliver<bool>      [-]  ?
     by    Api/RevisionPanel.h
 
 //------------------------------------------------------------------------------------------------------------------------

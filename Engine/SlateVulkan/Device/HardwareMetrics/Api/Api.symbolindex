@@ -55,14 +55,14 @@ F HardwareMetrics::~HardwareMetrics   | HardwareMetrics.h | 75      | destructor
 
 F HardwareMetrics::Construct          | HardwareMetrics.h | 86      | api,nonthrowing               | 🚩 | Constructs the timestamp extent every recorded span writes into, sized against the rotation depth. substitution — metrics report unavailable, not zero — and refusing instead would make bring-up fail on a device that can draw everything Slate draws.
     in    Exchange  const VulkanExchange&  [-]  the created device; borrowed and outlives this component
-    out   -         Outcome                [-]  refuses with CapabilityAbsent when no device is active
+    out   -         Deliver                [-]  refuses with CapabilityAbsent when no device is active
     post  every span reads unavailable until one rotation has completed
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  🔴 Delivers when `TimestampQueryAvailable` is false and constructs no extent. That is `08` §5's
 
 F HardwareMetrics::Declare            | HardwareMetrics.h | 97      | api,nonthrowing               | ✔️ | Declares one span of device execution by name, returning the ordinal that opens and closes it. a name already declared — two spans of one name make one unreadable reading the query extent, and reallocating it invalidates the readings the standing rotations still hold.
     in    SpanName  const char*  [-]  static text; the recording's own identity, so a reading names what it timed
-    out   -         Outcome      [-]  refuses with ExtentExhausted above `SpanCeiling`, and with ContentUnsupported for
+    out   -         Deliver      [-]  refuses with ExtentExhausted above `SpanCeiling`, and with ContentUnsupported for
     pre   no rotation is recording; every span is declared at bring-up
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 Declared at bring-up like the recordings themselves. A span declared mid-run would have to grow
@@ -71,7 +71,7 @@ F HardwareMetrics::Open               | HardwareMetrics.h | 109     | api,nonthr
     in    Recorded      VkCommandBuffer  [-]  the recording being written into
     in    RotationSlot  std::uint32_t    [-]  which slot of the depth is standing
     in    SpanOrdinal   std::uint32_t    [-]  what `Declare` returned
-    out   -             Outcome          [-]  refuses with ContentUnsupported for an undeclared ordinal or an excessive slot,
+    out   -             Deliver          [-]  refuses with ContentUnsupported for an undeclared ordinal or an excessive slot,
     post  the span's nesting depth is the count of spans standing open around it
     by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, (+21 more)
     note  ⚠️ Delivers as a no-op without the capability, so the recording site is unconditional.
@@ -80,14 +80,14 @@ F HardwareMetrics::Close              | HardwareMetrics.h | 118     | api,nonthr
     in    Recorded      VkCommandBuffer  [-]  ?
     in    RotationSlot  std::uint32_t    [-]  ?
     in    SpanOrdinal   std::uint32_t    [-]  ?
-    out   -             Outcome          [-]  refuses with ContentUnsupported for an undeclared ordinal or an excessive slot, and
+    out   -             Deliver          [-]  refuses with ContentUnsupported for an undeclared ordinal or an excessive slot, and
     by    Api/DocumentSession.h, Source/DocumentSession.cpp, Source/HardwareMetrics.cpp
     note  🔴 Closed in the reverse order it was opened. A span closed while a span opened inside it is still
 
 F HardwareMetrics::Clear              | HardwareMetrics.h | 128     | api,nonthrowing               | ✔️ | Clears one rotation slot's timestamps, immediately before the recording that writes them. whatever the previous rotation wrote, which is a plausible duration attributed to the wrong rotation — the one failure a metric cannot be caught in, because nothing about it looks wrong.
     in    Recorded      VkCommandBuffer  [-]  ?
     in    RotationSlot  std::uint32_t    [-]  ?
-    out   -             Outcome          [-]  refuses with ContentUnsupported for an excessive slot
+    out   -             Deliver          [-]  refuses with ContentUnsupported for an excessive slot
     pre   🔴 `CycleScheduler::Await` delivered for this slot — the device no longer reads its timestamps
     by    Source/HardwareMetrics.cpp
     note  🔴 Cleared before the recording rather than after the readback. An uncleared timestamp reads as
@@ -95,14 +95,14 @@ F HardwareMetrics::Clear              | HardwareMetrics.h | 128     | api,nonthr
 F HardwareMetrics::Resolve            | HardwareMetrics.h | 142     | api,nonthrowing               | 🚩 | Reads back one completed rotation's timestamps and resolves each declared span's duration. device declines the readback, and DeviceLost when the device was lost — a measurement reports the loss rather than absorbing it as absent data conditional recording of `28`, whose atmosphere spans rebuild only on change — and a zero there would report the rebuild as free rather than as absent.
     in    RotationSlot    std::uint32_t  [-]  a slot whose completion has been awaited
     in    CompletedCount  std::uint64_t  [-]  which rotation the readings belong to, for the lag the reading carries
-    out   -               Outcome        [-]  refuses with ContentUnsupported for an excessive slot, HostDenied when the
+    out   -               Deliver        [-]  refuses with ContentUnsupported for an excessive slot, HostDenied when the
     pre   🔴 the rotation that recorded into this slot has completed
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
     note  ⚠️ A span the rotation declared but never recorded reads unavailable rather than zero. That is the
 
 F HardwareMetrics::Standing           | HardwareMetrics.h | 150     | api,nonthrowing               | ✔️ | One declared span's last resolved reading. member says it was declared and has no reading — two different facts, and `86` presents both.
     in    SpanOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome        [-]  refuses with ContentUnsupported for an undeclared ordinal
+    out   -            Deliver        [-]  refuses with ContentUnsupported for an undeclared ordinal
     by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
     note  The delivered span may itself read unavailable. The refusal says the span was never declared; the
 

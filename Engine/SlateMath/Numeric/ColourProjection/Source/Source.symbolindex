@@ -84,7 +84,7 @@ F Project               | ColourProjection.cpp | 258-318 | - | - | ?
     in    Arriving       ColourSpecification              [-]  ?
     in    ArrivingSpace  const ColourSpaceSpecification&  [-]  ?
     in    Target         const ColourSpaceSpecification&  [-]  ?
-    out   -              Outcome<ColourSpecification>     [-]  ?
+    out   -              Deliver<ColourSpecification>     [-]  ?
     by    Api/ColourProjection.h, Api/DisplayProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TickSequence.h, Api/TransformProjection.h, (+12 more)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -96,7 +96,7 @@ F ProjectTristimulus    | ColourProjection.cpp | 324-355 | - | - | ?
     in    TristimulusY  double                           [-]  ?
     in    TristimulusZ  double                           [-]  ?
     in    Target        const ColourSpaceSpecification&  [-]  ?
-    out   -             Outcome<ColourSpecification>     [-]  ?
+    out   -             Deliver<ColourSpecification>     [-]  ?
     by    Api/ColourProjection.h, Source/AtmosphereIntegrator.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -106,5 +106,5 @@ F ProjectTristimulus    | ColourProjection.cpp | 324-355 | - | - | ?
 F ProjectTemperature    | ColourProjection.cpp | 361-427 | - | - | ?
     in    Temperature  double                           [-]  ?
     in    Target       const ColourSpaceSpecification&  [-]  ?
-    out   -            Outcome<ColourSpecification>     [-]  ?
+    out   -            Deliver<ColourSpecification>     [-]  ?
     by    Api/ColourProjection.h, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp

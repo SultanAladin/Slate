@@ -57,7 +57,7 @@ F PlanarArea      | UnwrapSolver.cpp | 94-100  | - | - | ?
 
 F Solve           | UnwrapSolver.cpp | 108-311 | - | - | ?
     in    Declaring  const UnwrapSpecification&                              [-]  ?
-    out   -          Outcome<ConvergentResult<std::vector<PlanarPosition>>>  [-]  ?
+    out   -          Deliver<ConvergentResult<std::vector<PlanarPosition>>>  [-]  ?
     by    Api/LinearSolver.h, Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/LinearSolver.cpp
 
 //------------------------------------------------------------------------------------------------------------------------

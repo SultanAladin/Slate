@@ -57,7 +57,7 @@ F SLATE_DECLARES_PRECISION | ImageCodec.h | 54    | -                           
 F Translate                | ImageCodec.h | 77    | api,nonthrowing               | 🔴 | Translates one image stream into the texels it contained, retaining its component depth verbatim. declined, and with ExtentExhausted for a stream too long to address decoder exposes. Declaring one anyway is the defect the gate exists to prevent — an image with an assumed space is a colour error with no traceable origin. `50` §3 records the assumption at intake instead, where it is reported through `86` rather than made silently. Radiance stream arrives as single-precision, because narrowing here is a precision loss nobody can afterwards attribute to anything.
     in    Stream      const std::vector<std::uint8_t>&  [-]  the whole stream, as `StorageExchange` drained it
     in    OriginPath  const std::string&                [-]  where it was read from; carried into the record, never parsed for meaning
-    out   -           Outcome                           [-]  refuses with ContentUnsupported for an unrecognised layout or a stream the decoder
+    out   -           Deliver                           [-]  refuses with ContentUnsupported for an unrecognised layout or a stream the decoder
     pre   the stream has landed in full — a partial stream classifies but does not translate
     err   never throws; the decoder's own reason is carried verbatim in the refusal
     by    Api/SpatialManipulator.h, Api/TopologyCodec.h, Api/TypefaceCodec.h, Api/VectorCodec.h, Source/ImageCodec.cpp, Source/SpatialManipulator.cpp, (+3 more)

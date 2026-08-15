@@ -38,7 +38,7 @@ F ImageSpace::Construct    | ImageSpace.cpp | 50-62   | -          | - | ?
     in    Exchange      const VulkanExchange&       [-]  ?
     in    BackingSpace  ByteSpace&                  [-]  ?
     in    Naming        const DiagnosticExtension&  [-]  ?
-    out   -             Outcome<bool>               [-]  ?
+    out   -             Deliver<bool>               [-]  ?
 
 F ImageSpace::NameOf       | ImageSpace.cpp | 64-78   | -          | - | ?
     in    Intent  ImageIntent  [-]  ?
@@ -50,7 +50,7 @@ F ImageSpace::NameOf       | ImageSpace.cpp | 64-78   | -          | - | ?
 
 F ImageSpace::Claim        | ImageSpace.cpp | 84-235  | -          | - | ?
     in    Declared  const ImageShape&    [-]  ?
-    out   -         Outcome<ImageClaim>  [-]  ?
+    out   -         Deliver<ImageClaim>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE TRANSITION
@@ -66,7 +66,7 @@ F ImageSpace::Transition   | ImageSpace.cpp | 295-342 | -          | - | ?
     in    Recorded      VkCommandBuffer  [-]  ?
     in    ImageOrdinal  std::uint32_t    [-]  ?
     in    Arriving      VkImageLayout    [-]  ?
-    out   -             Outcome<bool>    [-]  ?
+    out   -             Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS CLAIMED
@@ -74,12 +74,12 @@ F ImageSpace::Transition   | ImageSpace.cpp | 295-342 | -          | - | ?
 
 F ImageSpace::Standing     | ImageSpace.cpp | 348-363 | -          | - | ?
     in    ImageOrdinal  std::uint32_t        [-]  ?
-    out   -             Outcome<ImageClaim>  [-]  ?
+    out   -             Deliver<ImageClaim>  [-]  ?
 
 F ImageSpace::LevelView    | ImageSpace.cpp | 365-416 | -          | - | ?
     in    ImageOrdinal  std::uint32_t         [-]  ?
     in    LevelOrdinal  std::uint32_t         [-]  ?
-    out   -             Outcome<VkImageView>  [-]  ?
+    out   -             Deliver<VkImageView>  [-]  ?
 
 F ImageSpace::ClaimedCount | ImageSpace.cpp | 418-429 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

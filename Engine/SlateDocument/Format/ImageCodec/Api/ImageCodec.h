@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateDocument/Document/AssetInterchange/Api/AssetInterchange.h"
 
@@ -61,7 +61,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
 /// 🧩 Translates one image stream into the texels it contained, retaining its component depth verbatim.
 /// in    Stream      [-]  the whole stream, as `StorageExchange` drained it
 /// in    OriginPath  [-]  where it was read from; carried into the record, never parsed for meaning
-/// out   Outcome     [-]  refuses with ContentUnsupported for an unrecognised layout or a stream the decoder
+/// out   Deliver     [-]  refuses with ContentUnsupported for an unrecognised layout or a stream the decoder
 ///                        declined, and with ExtentExhausted for a stream too long to address
 /// err   never throws; the decoder's own reason is carried verbatim in the refusal
 /// cost  🔴
@@ -74,7 +74,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
 ///        Radiance stream arrives as single-precision, because narrowing here is a precision loss nobody can
 ///        afterwards attribute to anything.
 /// tag   api, nonthrowing
-Outcome<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath);
+Deliver<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
                          PrecisionGuarantee::Exact);

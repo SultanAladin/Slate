@@ -57,11 +57,11 @@ F SceneStructure::RelabelOwed         | SceneStructure.cpp | 76-79   | - | - | ?
 
 F SceneStructure::Admit               | SceneStructure.cpp | 85-115  | - | - | ?
     in    Arriving  OccupantIdentity  [-]  ?
-    out   -         Outcome<bool>     [-]  ?
+    out   -         Deliver<bool>     [-]  ?
 
 F SceneStructure::Retire              | SceneStructure.cpp | 117-202 | - | - | ?
     in    Departing  OccupantIdentity  [-]  ?
-    out   -          Outcome<bool>     [-]  ?
+    out   -          Deliver<bool>     [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   ENCLOSURE ORDERING
@@ -81,7 +81,7 @@ F SceneStructure::Enclose             | SceneStructure.cpp | 271-316 | - | - | ?
     in    Subject               OccupantIdentity  [-]  ?
     in    ProposedEnclosure     OccupantIdentity  [-]  ?
     in    OrderWithinEnclosure  std::uint32_t     [-]  ?
-    out   -                     Outcome<bool>     [-]  ?
+    out   -                     Deliver<bool>     [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    LABEL ASSIGNMENT
@@ -103,14 +103,14 @@ F SceneStructure::AssignLabels        | SceneStructure.cpp | 396-442 | - | - | ?
     in    EnclosureSlot  std::uint32_t  [-]  ?
     in    Available      IntervalLabel  [-]  ?
     in    Depth          std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 F SceneStructure::RepairLabels        | SceneStructure.cpp | 444-476 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F SceneStructure::Label               | SceneStructure.cpp | 478-489 | - | - | ?
     in    Subject  OccupantIdentity        [-]  ?
-    out   -        Outcome<IntervalLabel>  [-]  ?
+    out   -        Deliver<IntervalLabel>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 ATTACHMENT COMPOUNDING
@@ -119,24 +119,24 @@ F SceneStructure::Label               | SceneStructure.cpp | 478-489 | - | - | ?
 F SceneStructure::Attach              | SceneStructure.cpp | 495-545 | - | - | ?
     in    Subject             OccupantIdentity  [-]  ?
     in    ProposedAttachment  OccupantIdentity  [-]  ?
-    out   -                   Outcome<bool>     [-]  ?
+    out   -                   Deliver<bool>     [-]  ?
 
 F SceneStructure::AuthorTransform     | SceneStructure.cpp | 547-557 | - | - | ?
     in    Subject   OccupantIdentity            [-]  ?
     in    Authored  const DecomposedTransform&  [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 F SceneStructure::CompoundFrom        | SceneStructure.cpp | 559-581 | - | - | ?
     in    SlotOrdinal  std::uint32_t  [-]  ?
     in    Depth        std::uint32_t  [-]  ?
-    out   -            Outcome<bool>  [-]  ?
+    out   -            Deliver<bool>  [-]  ?
 
 F SceneStructure::CompoundAttachments | SceneStructure.cpp | 583-605 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F SceneStructure::CompoundedTransform | SceneStructure.cpp | 607-618 | - | - | ?
     in    Subject  OccupantIdentity              [-]  ?
-    out   -        Outcome<DecomposedTransform>  [-]  ?
+    out   -        Deliver<DecomposedTransform>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    CYCLE REJECTION

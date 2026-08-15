@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 #include <string>
@@ -72,11 +72,11 @@ public:
     /// 🧩 Declares one occupant's name, replacing whatever it held before.
     /// in    Subject   [-]  the occupant
     /// in    Declared  [-]  the name the artist gave it
-    /// out   Outcome   [-]  refuses with IdentityStale for an undeclared identity
+    /// out   Deliver   [-]  refuses with IdentityStale for an undeclared identity
     /// post  every trigram run mentioning this occupant describes the new name only
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(OccupantIdentity Subject, const std::string& Declared);
+    Deliver<bool> Declare(OccupantIdentity Subject, const std::string& Declared);
 
     /// 🧩 Withdraws one occupant's name and every trigram entry that reached it.
     /// in    Subject  [-]  the occupant being retired or renamed

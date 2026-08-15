@@ -63,7 +63,7 @@ and update it whenever a folder or subsystem is added, moved, or renamed.
 - C++20 standard, `/MD` in every configuration, `SLATE_DEBUG` for debug selection, `_DEBUG` never.
 - Every exported computation carries `SLATE_DECLARES_PRECISION(...)` naming what it claims and what it consumes. The transitivity rule is a `static_assert`, not a review item.
 - Identities are `Identity<Subject>` with distinct tags. A `PartitionIdentity` must not be passable where an `OccupantIdentity` is expected — conflict 15 was exactly that mistake surviving the whole series.
-- Absence carries a reason. Use `Outcome<T>` with a `Refusal`, not `std::optional`, wherever a document says something is refused or reported.
+- Absence carries a reason. Use `Deliver<T>` with a `Refusal`, not `std::optional`, wherever a document says something is refused or reported.
 - A `Convergent` computation returns `ConvergentResult<T>` and never a bare value. `02` §5: a solver that returns its last iterate at the ceiling is indistinguishable from one that converged.
 - Prefer `constexpr` and compile-time checks over runtime validation wherever a gate can be expressed that way. Half of `00` §11 is mechanisable in the type system.
 - No exceptions across a unit seam. No `new`/`delete` outside an extent slicer.

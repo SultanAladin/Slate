@@ -82,7 +82,7 @@ T AnalyticProjection                   | AnalyticProjection.h | 125-253 | owning
 
 F AnalyticProjection::Construct        | AnalyticProjection.h | 134     | api,nonallocating,nonthrowing | ✔️ | Takes the content libraries every resolution reads.
     in    Supplied  const AnalyticSources&  [-]  borrowed; each outlives this component
-    out   -         Outcome                 [-]  delivers unconditionally; an absent library refuses only where a layer names it
+    out   -         Deliver                 [-]  delivers unconditionally; an absent library refuses only where a layer names it
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+66 more)
 
 F AnalyticProjection::ContentRevision  | AnalyticProjection.h | 149     | api,nonallocating,nonthrowing | 🚩 | The content revision one sequence currently stands at. recorded, one integer per tile, and the answer is almost always "no work": a camera move advances no counter and a moved occupant advances none either, because `72` §1 stores a placing transform relative to the surface it is attached to. stroke in one corner of the domain re-resolves every analytic tile. That is conservative and correct; sharpening it needs a per-entry coverage extent, which `56` §10 carries as open and `PromotionScheduler::Estimate` records from the other side.
@@ -99,7 +99,7 @@ F AnalyticProjection::ResolveAt        | AnalyticProjection.h | 168     | api,no
     in    PositionAcross  double                                [-]  its second
     in    Tolerance       double                                [-]  the flattening tolerance, from `ToleranceAtLevel`
     in    ComponentCount  std::uint32_t                         [-]  components the caller's texel carries
-    out   -               Outcome                               [-]  refuses with ContentUnsupported for a component count above the ceiling, and
+    out   -               Deliver                               [-]  refuses with ContentUnsupported for a component count above the ceiling, and
     by    Source/AnalyticProjection.cpp, Source/EmissionSequence.cpp, Source/PreviewProjection.cpp, Source/ReflectanceIntegrator.cpp
     note  🔴 This is the form `74` §1 and `82` §5 read on the host, and `ResolveTile` below walks it. One
     note  ⚠️ Flattening happens **inside** this call, so resolving a tile through it directly would flatten
@@ -109,7 +109,7 @@ F AnalyticProjection::ResolveTile      | AnalyticProjection.h | 191     | api,no
     in    Placements      const std::vector<ChannelPlacement>&  [-]  where each channel sits among the components
     in    Addressed       CellAddress                           [-]  the cell the tile backs — level, along, across
     in    ComponentCount  std::uint32_t                         [-]  components per texel
-    out   -               Outcome                               [-]  refuses with ContentUnsupported outside the level count or above the component
+    out   -               Deliver                               [-]  refuses with ContentUnsupported outside the level count or above the component
     post  the returned run is `StoredTexelsPerEdge` squared texels, interleaved
     by    Source/AnalyticProjection.cpp
     note  🔴 The **apron** is resolved along with the interior, per `20` §1. A tile whose apron were left
@@ -127,7 +127,7 @@ F AnalyticProjection::ResolveEntryAt   | AnalyticProjection.h | 206     | -     
     in    PositionAcross  double                     [-]  ?
     in    Tolerance       double                     [-]  ?
     in    ComponentCount  std::uint32_t              [-]  ?
-    out   -               Outcome<ResolvedSample>    [-]  ?
+    out   -               Deliver<ResolvedSample>    [-]  ?
     by    Source/AnalyticProjection.cpp
 
 F AnalyticProjection::ResolveOutlineAt | AnalyticProjection.h | 212     | -                             | -  | ?
@@ -135,7 +135,7 @@ F AnalyticProjection::ResolveOutlineAt | AnalyticProjection.h | 212     | -     
     in    SourceAlong    double                   [-]  ?
     in    SourceAcross   double                   [-]  ?
     in    Tolerance      double                   [-]  ?
-    out   -              Outcome<ResolvedSample>  [-]  ?
+    out   -              Deliver<ResolvedSample>  [-]  ?
     by    Source/AnalyticProjection.cpp
 
 F AnalyticProjection::ResolveTextAt    | AnalyticProjection.h | 217     | -                             | -  | ?
@@ -143,7 +143,7 @@ F AnalyticProjection::ResolveTextAt    | AnalyticProjection.h | 217     | -     
     in    SourceAlong    double                   [-]  ?
     in    SourceAcross   double                   [-]  ?
     in    Tolerance      double                   [-]  ?
-    out   -              Outcome<ResolvedSample>  [-]  ?
+    out   -              Deliver<ResolvedSample>  [-]  ?
     by    Source/AnalyticProjection.cpp
 
 F AnalyticProjection::ResolveTilingAt  | AnalyticProjection.h | 222     | -                             | -  | ?
@@ -152,7 +152,7 @@ F AnalyticProjection::ResolveTilingAt  | AnalyticProjection.h | 222     | -     
     in    SourceAcross   double                   [-]  ?
     in    Tolerance      double                   [-]  ?
     in    NestingDepth   std::uint32_t            [-]  ?
-    out   -              Outcome<ResolvedSample>  [-]  ?
+    out   -              Deliver<ResolvedSample>  [-]  ?
     by    Source/AnalyticProjection.cpp
 
 F AnalyticProjection::ResolvePlacedAt  | AnalyticProjection.h | 228     | -                             | -  | ?
@@ -160,7 +160,7 @@ F AnalyticProjection::ResolvePlacedAt  | AnalyticProjection.h | 228     | -     
     in    PositionAlong     double                   [-]  ?
     in    PositionAcross    double                   [-]  ?
     in    Tolerance         double                   [-]  ?
-    out   -                 Outcome<ResolvedSample>  [-]  ?
+    out   -                 Deliver<ResolvedSample>  [-]  ?
     by    Source/AnalyticProjection.cpp
 
 T AnalyticProjection::FlattenedOutline | AnalyticProjection.h | 240-245 | owning                        | -  | One outline flattened at one tolerance, held for the duration of one walk. loosely and the two runs are different runs. Keyed by ordinal alone, a tile at level three would read the run level nought left behind and resolve a polyline eight times finer than it asked for. What is cached is a derivation of the supplied libraries, not a state of this component.

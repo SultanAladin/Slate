@@ -28,7 +28,7 @@ F SpanSpace::Construct    | SpanSpace.cpp | 22-34   | -          | - | ?
     in    Exchange      const VulkanExchange&       [-]  ?
     in    BackingSpace  ByteSpace&                  [-]  ?
     in    Naming        const DiagnosticExtension&  [-]  ?
-    out   -             Outcome<bool>               [-]  ?
+    out   -             Deliver<bool>               [-]  ?
 
 F SpanSpace::NameOf       | SpanSpace.cpp | 36-51   | -          | - | ?
     in    Intent  SpanIntent   [-]  ?
@@ -44,7 +44,7 @@ F SpanSpace::UsageOf      | SpanSpace.cpp | 53-80   | -          | - | ?
 
 F SpanSpace::Claim        | SpanSpace.cpp | 86-183  | -          | - | ?
     in    Declared  const SpanShape&    [-]  ?
-    out   -         Outcome<SpanClaim>  [-]  ?
+    out   -         Deliver<SpanClaim>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE WRITES
@@ -55,14 +55,14 @@ F SpanSpace::Amend        | SpanSpace.cpp | 189-216 | -          | - | ?
     in    Arriving       const void*    [-]  ?
     in    ArrivingBytes  VkDeviceSize   [-]  ?
     in    ByteOffset     VkDeviceSize   [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 F SpanSpace::Transfer     | SpanSpace.cpp | 218-250 | -          | - | ?
     in    Recorded       VkCommandBuffer  [-]  ?
     in    SourceOrdinal  std::uint32_t    [-]  ?
     in    TargetOrdinal  std::uint32_t    [-]  ?
     in    TransferBytes  VkDeviceSize     [-]  ?
-    out   -              Outcome<bool>    [-]  ?
+    out   -              Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE READS
@@ -70,7 +70,7 @@ F SpanSpace::Transfer     | SpanSpace.cpp | 218-250 | -          | - | ?
 
 F SpanSpace::Standing     | SpanSpace.cpp | 256-270 | -          | - | ?
     in    SpanOrdinal  std::uint32_t       [-]  ?
-    out   -            Outcome<SpanClaim>  [-]  ?
+    out   -            Deliver<SpanClaim>  [-]  ?
 
 F SpanSpace::ClaimedCount | SpanSpace.cpp | 272-283 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

@@ -24,7 +24,7 @@ S VulkanExchange.cpp | 163 lines | fa49f080 | 9 sym | Instance construction, dev
 
 F VulkanExchange::ConstructInstance | VulkanExchange.cpp | 19-60   | -          | - | ?
     in    DiagnosticRequested  bool           [-]  ?
-    out   -                    Outcome<bool>  [-]  ?
+    out   -                    Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                         DEVICE
@@ -32,7 +32,7 @@ F VulkanExchange::ConstructInstance | VulkanExchange.cpp | 19-60   | -          
 
 F VulkanExchange::ConstructDevice   | VulkanExchange.cpp | 66-122  | -          | - | ?
     in    PresentationSurface  VkSurfaceKHR   [-]  ?
-    out   -                    Outcome<bool>  [-]  ?
+    out   -                    Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECLAMATION

@@ -61,22 +61,22 @@ F Widen                             | ClipboardExchange.cpp | 96-113  | -       
 //------------------------------------------------------------------------------------------------------------------------
 
 F ClipboardExchange::ReadText       | ClipboardExchange.cpp | 123-159 | -           | - | ?
-    out   -  Outcome<std::string>  [-]  ?
+    out   -  Deliver<std::string>  [-]  ?
 
 F ClipboardExchange::WriteText      | ClipboardExchange.cpp | 161-217 | -           | - | ?
     in    Supplied  const std::string&  [-]  ?
-    out   -         Outcome<bool>       [-]  ?
+    out   -         Deliver<bool>       [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE IMAGERY
 //------------------------------------------------------------------------------------------------------------------------
 
 F ClipboardExchange::ReadImage      | ClipboardExchange.cpp | 223-373 | -           | - | ?
-    out   -  Outcome<ClipboardImage>  [-]  ?
+    out   -  Deliver<ClipboardImage>  [-]  ?
 
 F ClipboardExchange::WriteImage     | ClipboardExchange.cpp | 375-460 | -           | - | ?
     in    Supplied  const ClipboardImage&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS CARRIED

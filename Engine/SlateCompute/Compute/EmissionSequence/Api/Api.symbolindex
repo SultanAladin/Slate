@@ -96,21 +96,21 @@ T EmissionSequence                 | EmissionSequence.h | 123-200 | owning      
 
 F EmissionSequence::Construct      | EmissionSequence.h | 132     | api,nonallocating,nonthrowing | ✔️ | Takes the resolver every band reads.
     in    Supplied  const EmissionSources&  [-]  borrowed; outlives this component
-    out   -         Outcome                 [-]  refuses with ContentUnsupported for an absent resolver
+    out   -         Deliver                 [-]  refuses with ContentUnsupported for an absent resolver
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
 
 F EmissionSequence::Open           | EmissionSequence.h | 148     | api,nonthrowing               | 🔴 | Opens one image of a validated emission, ready for its first band. ContentUnsupported outside the image count and above the extent ceiling, and with whatever the specification's own validation refused specification is handed in by value and the two calls are separated by however long the artist spent between declaring an export and starting it; validating once and trusting thereafter is trusting a copy, and `50` §5.1's wrong arrangement is exactly what that copy would carry.
     in    Declaring     const EmissionSpecification&  [-]  the emission specification; validated here, again, and not assumed
     in    Materials     const MaterialIndex&          [-]  the declared materials, so a channel no material declares is refused
     in    ImageOrdinal  std::uint32_t                 [-]  which of the specification's images this emission produces
-    out   -             Outcome                       [-]  refuses with HostDenied before Construct and while an emission stands, with
+    out   -             Deliver                       [-]  refuses with HostDenied before Construct and while an emission stands, with
     post  🔴 the texel run is allocated once, whole, so no band reallocates mid-emission
     by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+21 more)
     note  🔴 `Validate` is asked here even though `AssetInterchange::DeclareEmission` asked it already. The
 
 F EmissionSequence::ResolveBand    | EmissionSequence.h | 166     | api,nonthrowing               | 🔴 | Resolves the next band of rows, and no more than that. resolved, and with whatever `70` refused at the first position it refused at `50` §2's rule for a partial intake is the same rule from the other direction: an image that is resolved above a seam and zero below it is an asset the artist ships without noticing, whereas an export that refused is one they cannot miss. sample places the first texel exactly on the domain boundary, where a seam's two sides are equally near and the resolution picks one arbitrarily.
     in    Content  const SurfaceLayerSequence&  [-]  the sealed layer sequence the emission reads
-    out   -        Outcome                      [-]  refuses with HostDenied before Open, with ExtentExhausted once every row is
+    out   -        Deliver                      [-]  refuses with HostDenied before Open, with ExtentExhausted once every row is
     post  the delivered count is rows resolved this call; zero is never delivered
     by    Source/EmissionSequence.cpp
     note  🔴 A refusal from `70` abandons the **whole** emission rather than leaving the band half-written.
@@ -125,7 +125,7 @@ F EmissionSequence::ResolvedRows   | EmissionSequence.h | 176     | api,nonalloc
     by    Source/EmissionSequence.cpp
 
 F EmissionSequence::Seal           | EmissionSequence.h | 185     | api,nonthrowing               | 🚩 | Hands over the completed image and closes the emission. to a codec is a file that opens, looks approximately right, and is wrong along one edge.
-    out   -  Outcome  [-]  refuses with HostDenied before Open and with ExtentExhausted while rows remain
+    out   -  Deliver  [-]  refuses with HostDenied before Open and with ExtentExhausted while rows remain
     post  🔴 the emission is closed; the texels are moved out and this holds none
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, (+20 more)
     note  🔴 Refuses while rows remain rather than delivering what stands. A partially resolved image handed

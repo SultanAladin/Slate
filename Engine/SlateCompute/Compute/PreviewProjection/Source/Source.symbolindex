@@ -32,7 +32,7 @@ V FinestLevel                           | PreviewProjection.cpp | 25      | - | 
 
 F PreviewProjection::Construct          | PreviewProjection.cpp | 33-48   | - | - | ?
     in    Supplied  const PreviewSources&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE BRUSH PREVIEW
@@ -41,17 +41,17 @@ F PreviewProjection::Construct          | PreviewProjection.cpp | 33-48   | - | 
 F PreviewProjection::OpenImpression     | PreviewProjection.cpp | 54-77   | - | - | ?
     in    Declaring  const StrokeDeclaration&   [-]  ?
     in    Brushed    const BrushSpecification&  [-]  ?
-    out   -          Outcome<bool>              [-]  ?
+    out   -          Deliver<bool>              [-]  ?
 
 F PreviewProjection::AmendImpression    | PreviewProjection.cpp | 79-98   | - | - | ?
     in    Arriving  const StrokeArrival&  [-]  ?
-    out   -         Outcome<bool>         [-]  ?
+    out   -         Deliver<bool>         [-]  ?
 
 F PreviewProjection::ResolveImpression  | PreviewProjection.cpp | 100-115 | - | - | ?
     in    Residency        SurfaceTileSpace&     [-]  ?
     in    Requesting       RequestQueue&         [-]  ?
     in    RotationOrdinal  std::uint64_t         [-]  ?
-    out   -                Outcome<ResolvedRun>  [-]  ?
+    out   -                Deliver<ResolvedRun>  [-]  ?
 
 F PreviewProjection::CloseImpression    | PreviewProjection.cpp | 117-121 | - | - | ?
     in    Residency  SurfaceTileSpace&  [-]  ?
@@ -74,7 +74,7 @@ F PreviewProjection::ProjectContentAt   | PreviewProjection.cpp | 137-165 | - | 
     in    PositionAcross  double                                [-]  ?
     in    Level           std::uint32_t                         [-]  ?
     in    ComponentCount  std::uint32_t                         [-]  ?
-    out   -               Outcome<ResolvedSample>               [-]  ?
+    out   -               Deliver<ResolvedSample>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE PLACEMENT PREVIEW
@@ -87,7 +87,7 @@ F PreviewProjection::ProjectPlacementAt | PreviewProjection.cpp | 171-184 | - | 
     in    PositionAcross  double                                [-]  ?
     in    CoarseDeclared  bool                                  [-]  ?
     in    ComponentCount  std::uint32_t                         [-]  ?
-    out   -               Outcome<ResolvedSample>               [-]  ?
+    out   -               Deliver<ResolvedSample>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE PARAMETER PREVIEW
@@ -95,7 +95,7 @@ F PreviewProjection::ProjectPlacementAt | PreviewProjection.cpp | 171-184 | - | 
 
 F PreviewProjection::AmendParameter     | PreviewProjection.cpp | 190-205 | - | - | ?
     in    RotationOrdinal  std::uint64_t  [-]  ?
-    out   -                Outcome<bool>  [-]  ?
+    out   -                Deliver<bool>  [-]  ?
 
 F PreviewProjection::AmendmentCount     | PreviewProjection.cpp | 207-210 | - | - | ?
     out   -  std::uint32_t  [-]  ?
@@ -109,7 +109,7 @@ F PreviewProjection::DeclareExtent      | PreviewProjection.cpp | 216-246 | - | 
     in    SurfaceOrdinal   std::uint32_t       [-]  ?
     in    RequestedLevel   std::uint32_t       [-]  ?
     in    RotationOrdinal  std::uint64_t       [-]  ?
-    out   -                Outcome<bool>       [-]  ?
+    out   -                Deliver<bool>       [-]  ?
 
 F PreviewProjection::Standing           | PreviewProjection.cpp | 248-251 | - | - | ?
     out   -  const SpeculativeExtent&  [-]  ?

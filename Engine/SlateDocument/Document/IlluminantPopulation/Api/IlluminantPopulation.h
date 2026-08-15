@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
@@ -91,13 +91,13 @@ struct IncidenceProjection
 /// 🧩 Projects one illuminant's incidence at one shaded position.
 /// in    Declared  [-]   the illuminant
 /// in    Shaded    [mm]  the position being lit, in document space
-/// out   Outcome   [-]   refuses with ContentUnsupported for a shape with no declared size
+/// out   Deliver   [-]   refuses with ContentUnsupported for a shape with no declared size
 /// note  ⚠️ An attenuation of zero is a legitimate result and is delivered rather than refused. The position is
 ///        outside the declared extent or outside the cone, and `18` multiplies by zero — which costs less than a
 ///        refusal the integrator would have to branch on.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Outcome<IncidenceProjection> ProjectIncidence(const IlluminantSpecification& Declared, DocumentPosition Shaded);
+Deliver<IncidenceProjection> ProjectIncidence(const IlluminantSpecification& Declared, DocumentPosition Shaded);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -119,46 +119,46 @@ class IlluminantPopulation
 public:
 
     /// 🧩 Declares one illuminant against an enrolled occupant.
-    /// out   Outcome  [-]  refuses with IdentityStale for an undeclared identity, with ContentUnsupported for a
+    /// out   Deliver  [-]  refuses with IdentityStale for an undeclared identity, with ContentUnsupported for a
     ///                     shape of zero size or a non-positive extent, and with HostDenied for a second
     ///                     atmospheric source
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(OccupantIdentity Subject, const IlluminantSpecification& Declaring);
+    Deliver<bool> Declare(OccupantIdentity Subject, const IlluminantSpecification& Declaring);
 
     /// 🧩 Amends one declared illuminant, validated exactly as a declaration is.
-    /// out   Outcome  [-]  refuses with IdentityStale when the occupant declares no illuminant
+    /// out   Deliver  [-]  refuses with IdentityStale when the occupant declares no illuminant
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(OccupantIdentity Subject, const IlluminantSpecification& Amending);
+    Deliver<bool> Amend(OccupantIdentity Subject, const IlluminantSpecification& Amending);
 
     /// 🧩 Withdraws one illuminant.
-    /// out   Outcome  [-]  refuses with IdentityStale when the occupant declares no illuminant
+    /// out   Deliver  [-]  refuses with IdentityStale when the occupant declares no illuminant
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Withdraw(OccupantIdentity Subject);
+    Deliver<bool> Withdraw(OccupantIdentity Subject);
 
     /// 🧩 One declared illuminant.
-    /// out   Outcome  [-]  refuses with IdentityStale when the occupant declares no illuminant
+    /// out   Deliver  [-]  refuses with IdentityStale when the occupant declares no illuminant
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<IlluminantSpecification> Resolve(OccupantIdentity Subject) const;
+    Deliver<IlluminantSpecification> Resolve(OccupantIdentity Subject) const;
 
     /// 🧩 One illuminant's colour, projected into a declared space.
     /// in    Working  [-]  the space to express the colour in — `36` §2's working space
-    /// out   Outcome  [-]  refuses with IdentityStale for an unknown occupant, and carries `36`'s refusal when a
+    /// out   Deliver  [-]  refuses with IdentityStale for an unknown occupant, and carries `36`'s refusal when a
     ///                     declared temperature lies outside the locus interval
     /// note  📝 A declared temperature is projected here and is **not** written back over the declaration. The
     ///        authored temperature is what the artist edits; the coordinate is what `18` integrates.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<ColourSpecification> ResolveColour(OccupantIdentity Subject, const ColourSpaceSpecification& Working) const;
+    Deliver<ColourSpecification> ResolveColour(OccupantIdentity Subject, const ColourSpaceSpecification& Working) const;
 
     /// 🧩 The occupant enrolled as `28`'s atmospheric source.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when none is enrolled
+    /// out   Deliver  [-]  refuses with ExtentExhausted when none is enrolled
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> AtmosphericSource() const;
+    Deliver<OccupantIdentity> AtmosphericSource() const;
 
     /// 🧩 Every declared illuminant, in identity order.
     /// cost  ✔️
@@ -178,7 +178,7 @@ public:
 private:
 
     std::size_t   Located(OccupantIdentity Subject) const;
-    Outcome<bool> Validate(const IlluminantSpecification& Declaring, OccupantIdentity Subject) const;
+    Deliver<bool> Validate(const IlluminantSpecification& Declaring, OccupantIdentity Subject) const;
 
     std::vector<OccupantIdentity>         EnrolledOrder;         // [-] - ascending by slot, then by generation
     std::vector<IlluminantSpecification>  Declarations;          // [-] - parallel to it
@@ -219,13 +219,13 @@ public:
     /// post  every partition carries its reaching set, ordered by illuminant identity
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Derive(const IlluminantPopulation& Illuminants, const std::vector<PartitionExtent>& Extents);
+    Deliver<bool> Derive(const IlluminantPopulation& Illuminants, const std::vector<PartitionExtent>& Extents);
 
     /// 🧩 Re-derives one partition's reaching set — the row `44` §5 reaches when an occupant moved.
-    /// out   Outcome  [-]  refuses with ExtentExhausted outside the derived partition count
+    /// out   Deliver  [-]  refuses with ExtentExhausted outside the derived partition count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DerivePartition(const IlluminantPopulation& Illuminants,
+    Deliver<bool> DerivePartition(const IlluminantPopulation& Illuminants,
                                   std::uint32_t               PartitionOrdinal,
                                   PartitionExtent             Extent);
 
@@ -235,10 +235,10 @@ public:
     std::uint32_t ReachingCount(std::uint32_t PartitionOrdinal) const;
 
     /// 🧩 One reaching illuminant, in identity order.
-    /// out   Outcome  [-]  refuses with ExtentExhausted outside the reaching count
+    /// out   Deliver  [-]  refuses with ExtentExhausted outside the reaching count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const;
+    Deliver<OccupantIdentity> Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const;
 
     /// 🧩 How many illuminants one partition could not carry — `86`'s truncation row.
     /// cost  ✔️

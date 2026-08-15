@@ -49,7 +49,7 @@ F MaterialSpecification::DeclareReflectance     | MaterialSpecification.cpp | 82
 F MaterialSpecification::DeclareChannel         | MaterialSpecification.cpp | 89-129  | - | - | ?
     in    Channel    ChannelSubject               [-]  ?
     in    Declaring  const ChannelSpecification&  [-]  ?
-    out   -          Outcome<bool>                [-]  ?
+    out   -          Deliver<bool>                [-]  ?
 
 F MaterialSpecification::DeclareCutoutThreshold | MaterialSpecification.cpp | 131-134 | - | - | ?
     in    Threshold  double  [-]  ?
@@ -86,15 +86,15 @@ F MaterialSpecification::ChannelConverted       | MaterialSpecification.cpp | 16
 
 F MaterialIndex::Declare                        | MaterialSpecification.cpp | 180-194 | - | - | ?
     in    Named  const std::string&      [-]  ?
-    out   -      Outcome<std::uint32_t>  [-]  ?
+    out   -      Deliver<std::uint32_t>  [-]  ?
 
 F MaterialIndex::Resolve                        | MaterialSpecification.cpp | 196-205 | - | - | ?
     in    MaterialOrdinal  std::uint32_t                          [-]  ?
-    out   -                Outcome<const MaterialSpecification*>  [-]  ?
+    out   -                Deliver<const MaterialSpecification*>  [-]  ?
 
 F MaterialIndex::Amend                          | MaterialSpecification.cpp | 207-213 | - | - | ?
     in    MaterialOrdinal  std::uint32_t                    [-]  ?
-    out   -                Outcome<MaterialSpecification*>  [-]  ?
+    out   -                Deliver<MaterialSpecification*>  [-]  ?
 
 F MaterialIndex::DeclaredName                   | MaterialSpecification.cpp | 215-218 | - | - | ?
     in    MaterialOrdinal  std::uint32_t       [-]  ?
@@ -112,11 +112,11 @@ F PartitionResolutionIndex::Reclaim             | MaterialSpecification.cpp | 22
 
 F PartitionResolutionIndex::Declare             | MaterialSpecification.cpp | 239-260 | - | - | ?
     in    Resolving  const ResolvedPartition&    [-]  ?
-    out   -          Outcome<PartitionIdentity>  [-]  ?
+    out   -          Deliver<PartitionIdentity>  [-]  ?
 
 F PartitionResolutionIndex::Resolve             | MaterialSpecification.cpp | 262-274 | - | - | ?
     in    Subject  PartitionIdentity           [-]  ?
-    out   -        Outcome<ResolvedPartition>  [-]  ?
+    out   -        Deliver<ResolvedPartition>  [-]  ?
 
 F PartitionResolutionIndex::Revision            | MaterialSpecification.cpp | 276     | - | - | ?
     out   -  std::uint64_t  [-]  ?

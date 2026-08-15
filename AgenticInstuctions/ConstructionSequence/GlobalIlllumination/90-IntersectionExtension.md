@@ -91,16 +91,16 @@ capability and this document follows it without variation.
 
 ```cpp
 /// 🧩 The traversal capability the created device was scored at.
-/// out   Outcome  [-]  refuses with CapabilityAbsent before ConstructDevice has delivered
-/// note  🔴 `Outcome<T>` with a Refusal and never a bare capability. `86` presents the reason to the artist
+/// out   Deliver  [-]  refuses with CapabilityAbsent before ConstructDevice has delivered
+/// note  🔴 `Deliver<T>` with a Refusal and never a bare capability. `86` presents the reason to the artist
 ///       when their device cannot trace, and "ScreenTraced" and "not yet scored" are different answers that
 ///       a bare enumeration cannot tell apart.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Outcome<TraversalCapability> Negotiated() const;
+Deliver<TraversalCapability> Negotiated() const;
 ```
 
-`RefusalReason::CapabilityAbsent` already exists in `OutcomeContract.h` and is the correct reason. No new refusal
+`RefusalReason::CapabilityAbsent` already exists in `DeliveryContract.h` and is the correct reason. No new refusal
 reason is added by this branch.
 
 ## 5. Substitution
@@ -136,7 +136,7 @@ occupies: before the device is created, consulted after.
 - **Gate:** The traversal group is negotiated as one; a partial group is absent.
 - **Gate:** The capability is a `CapabilitySet` member, scored at creation, never re-queried.
 - **Gate:** A low capability is scored, never refused; only `06`'s existing refusals reject a device.
-- **Gate:** `Negotiated` returns `Outcome<TraversalCapability>`, never a bare enumeration.
+- **Gate:** `Negotiated` returns `Deliver<TraversalCapability>`, never a bare enumeration.
 - **Gate:** No extension is negotiated that no document in this branch reads.
 - **Gate:** `08` §5 carries both substitution rows, and no recording site branches on the capability directly.
 - **Gate:** Vendor spellings are verbatim; Slate's own identifiers here carry no banned word.

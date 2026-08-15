@@ -37,7 +37,7 @@ F ReleaseWindowSystem                   | WindowInterchange.cpp | 34-43   | -   
 F WindowInterchange::Open               | WindowInterchange.cpp | 50-77   | -          | - | ?
     in    RequestedExtent  DisplayExtent  [-]  ?
     in    WindowTitle      const char*    [-]  ?
-    out   -                Outcome<bool>  [-]  ?
+    out   -                Deliver<bool>  [-]  ?
 
 F WindowInterchange::~WindowInterchange | WindowInterchange.cpp | 79-87   | destructor | - | ?
 

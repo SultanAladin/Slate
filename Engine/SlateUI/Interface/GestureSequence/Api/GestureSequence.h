@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 
 #include <cstdint>

@@ -19,20 +19,20 @@ const char* const ReflectionRecordingIdentity = "30-SpecularProjection";
 
 }   // namespace
 
-Outcome<bool> SpecularProjection::Declare(const ReflectionSpecification& Declaring)
+Deliver<bool> SpecularProjection::Declare(const ReflectionSpecification& Declaring)
 {
     if (Declaring.MarchCeiling == 0u)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a march of no step resolves nothing" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a march of no step resolves nothing" });
 
     if (!(Declaring.ThicknessBound > 0.0))
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a thickness of nothing admits no crossing at all" });
     }
 
     if (Declaring.RoughnessCeiling < 0.0 || Declaring.RoughnessCeiling > 1.0)
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the roughness ceiling lies outside the channel's own interval" });
     }
 
@@ -40,20 +40,20 @@ Outcome<bool> SpecularProjection::Declare(const ReflectionSpecification& Declari
     //    extent and nowhere else, and a third of the extent would declare it in two places that can disagree.
     if (Declaring.ExtentDivisor != 2u)
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "`08` §2 claims the target at half extent and nowhere else" });
     }
 
     Specification = Declaring;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> SpecularProjection::Contribute(RenderSchedule& Schedule) const
+Deliver<bool> SpecularProjection::Contribute(RenderSchedule& Schedule) const
 {
     DeclaredRecording Declared;
     Declared.Identity = ReflectionRecordingIdentity;
@@ -84,18 +84,18 @@ Outcome<bool> SpecularProjection::Contribute(RenderSchedule& Schedule) const
 //                                                      THE EXTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> SpecularProjection::Resolve(std::uint32_t  DisplayAlong,
+Deliver<bool> SpecularProjection::Resolve(std::uint32_t  DisplayAlong,
                                           std::uint32_t  DisplayAcross,
                                           std::uint32_t& ResolvedAlong,
                                           std::uint32_t& ResolvedAcross) const
 {
     if (DisplayAlong == 0u || DisplayAcross == 0u)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of nothing" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of nothing" });
 
     ResolvedAlong  = (DisplayAlong  + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
     ResolvedAcross = (DisplayAcross + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

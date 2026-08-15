@@ -55,7 +55,7 @@ std::uint32_t OccupancyIndex::SpannedCount() const
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<OccupantIdentity> PopulationIndex::Enrol()
+Deliver<OccupantIdentity> PopulationIndex::Enrol()
 {
     std::uint32_t SlotOrdinal = 0u;
 
@@ -70,7 +70,7 @@ Outcome<OccupantIdentity> PopulationIndex::Enrol()
     {
         if (SlotGenerations.size() >= PopulationCeiling)
         {
-            return Outcome<OccupantIdentity>::Refuse(
+            return Deliver<OccupantIdentity>::Refuse(
                 { RefusalReason::ExtentExhausted, "the population reached its declared ceiling" });
         }
 
@@ -85,17 +85,17 @@ Outcome<OccupantIdentity> PopulationIndex::Enrol()
     Issued.SlotOrdinal    = SlotOrdinal;
     Issued.SlotGeneration = SlotGenerations[SlotOrdinal];
 
-    return Outcome<OccupantIdentity>::Deliver(Issued);
+    return Deliver<OccupantIdentity>::Deliver(Issued);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
+Deliver<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
 {
     if (!Resolve(Subject))
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the identity no longer resolves" });
+        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the identity no longer resolves" });
 
     Occupancy.Release(Subject.SlotOrdinal);
 
@@ -106,7 +106,7 @@ Outcome<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
     ReleasedOrdinals.push_back(Subject.SlotOrdinal);
     --OccupiedCount;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

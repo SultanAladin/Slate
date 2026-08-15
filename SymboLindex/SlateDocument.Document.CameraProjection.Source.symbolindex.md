@@ -65,7 +65,7 @@ F ViewDirection                          | CameraProjection.cpp | 94-97   | - | 
 
 F Derive                                 | CameraProjection.cpp | 105-183 | - | - | ?
     in    Declaring  const CameraSpecification&  [-]  ?
-    out   -          Outcome<ViewProjection>     [-]  ?
+    out   -          Deliver<ViewProjection>     [-]  ?
     by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+10 more)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -96,18 +96,18 @@ F FrustumSpace::Plane                    | CameraProjection.cpp | 304-307 | - | 
 F NavigationSequence::Open               | CameraProjection.cpp | 313-324 | - | - | ?
     in    Declaring_  NavigationSubject           [-]  ?
     in    Standing    const CameraSpecification&  [-]  ?
-    out   -           Outcome<bool>               [-]  ?
+    out   -           Deliver<bool>               [-]  ?
 
 F NavigationSequence::Amend              | CameraProjection.cpp | 326-439 | - | - | ?
     in    DisplacementAlong   double         [-]  ?
     in    DisplacementAcross  double         [-]  ?
-    out   -                   Outcome<bool>  [-]  ?
+    out   -                   Deliver<bool>  [-]  ?
 
 F NavigationSequence::Abandon            | CameraProjection.cpp | 441-452 | - | - | ?
-    out   -  Outcome<CameraSpecification>  [-]  ?
+    out   -  Deliver<CameraSpecification>  [-]  ?
 
 F NavigationSequence::Seal               | CameraProjection.cpp | 454-464 | - | - | ?
-    out   -  Outcome<CameraSpecification>  [-]  ?
+    out   -  Deliver<CameraSpecification>  [-]  ?
 
 F NavigationSequence::Amended            | CameraProjection.cpp | 466     | - | - | ?
     out   -  const CameraSpecification&  [-]  ?
@@ -123,7 +123,7 @@ F Frame                                  | CameraProjection.cpp | 473-533 | - | 
     in    Standing  const CameraSpecification&    [-]  ?
     in    Least     DocumentPosition              [-]  ?
     in    Greatest  DocumentPosition              [-]  ?
-    out   -         Outcome<DecomposedTransform>  [-]  ?
+    out   -         Deliver<DecomposedTransform>  [-]  ?
     by    Api/CameraProjection.h, Source/ConsoleHost.cpp, Source/ControlText.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -133,19 +133,19 @@ F Frame                                  | CameraProjection.cpp | 473-533 | - | 
 F CameraProjection::Declare              | CameraProjection.cpp | 539-549 | - | - | ?
     in    Subject    OccupantIdentity            [-]  ?
     in    Declaring  const CameraSpecification&  [-]  ?
-    out   -          Outcome<bool>               [-]  ?
+    out   -          Deliver<bool>               [-]  ?
 
 F CameraProjection::Amend                | CameraProjection.cpp | 551-560 | - | - | ?
     in    Amending  const CameraSpecification&  [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 F CameraProjection::DeclareDisplayExtent | CameraProjection.cpp | 562-571 | - | - | ?
     in    Width   std::uint32_t  [-]  ?
     in    Height  std::uint32_t  [-]  ?
-    out   -       Outcome<bool>  [-]  ?
+    out   -       Deliver<bool>  [-]  ?
 
 F CameraProjection::Reconcile            | CameraProjection.cpp | 573-586 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F CameraProjection::Declared             | CameraProjection.cpp | 588     | - | - | ?
     out   -  const CameraSpecification&  [-]  ?

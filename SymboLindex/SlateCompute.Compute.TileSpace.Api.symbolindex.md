@@ -49,20 +49,20 @@ T TileSpace                     | TileSpace.h | 45-133  | owning                
 F TileSpace::Construct          | TileSpace.h | 59      | api,nonthrowing               | 🚩 | Sizes the ledger to a slot ceiling and a declared texel width. refuses a reserved claim rather than granting a smaller one. Deriving it here would mean deriving it from a device this component is forbidden to name.
     in    SlotCeiling    std::uint32_t  [-]  tiles the surface's backing extent holds
     in    BytesPerTexel  std::uint32_t  [B]  the surface's channel set, as a width
-    out   -              Outcome        [-]  refuses with ContentUnsupported for a ceiling or width of zero
+    out   -              Deliver        [-]  refuses with ContentUnsupported for a ceiling or width of zero
     post  every slot is free; nothing is quarantined
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
     note  📝 The ceiling is the caller's, because it follows from how much extent `06` claimed and `06` §3
 
 F TileSpace::Claim              | TileSpace.h | 68      | api,nonthrowing               | ✔️ | Claims one free slot. must evict first, and exhaustion during ordinary painting is residency policy operating as designed. Reporting it would mean the register is never quiet.
-    out   -  Outcome  [-]  refuses with ExtentExhausted when every slot is claimed or quarantined
+    out   -  Deliver  [-]  refuses with ExtentExhausted when every slot is claimed or quarantined
     by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, (+14 more)
     note  🔴 A refusal is **not** a failure — `20` §2.2 and `86` §5. Every slot claimed means the promotion
 
 F TileSpace::Release            | TileSpace.h | 77      | api,nonthrowing               | ✔️ | Releases one claimed slot into quarantine.
     in    SlotOrdinal      std::uint32_t  [-]  the slot
     in    RotationOrdinal  std::uint64_t  [-]  the rotation the release happened on
-    out   -                Outcome        [-]  refuses with ContentUnsupported for an unclaimed or out-of-range slot
+    out   -                Deliver        [-]  refuses with ContentUnsupported for an unclaimed or out-of-range slot
     post  the slot is unusable until `RecordingRotationDepth` rotations have passed
     by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, (+13 more)
 
@@ -74,7 +74,7 @@ F TileSpace::Reclaim            | TileSpace.h | 87      | api,nonthrowing       
 
 F TileSpace::ByteOffsetOf       | TileSpace.h | 95      | api,nonthrowing               | ✔️ | Where one slot sits inside the surface's backing extent. may not name it. `06` adds the base; nothing here knows one exists.
     in    SlotOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome        [-]  refuses with ContentUnsupported outside the ceiling
+    out   -            Deliver        [-]  refuses with ContentUnsupported outside the ceiling
     by    Source/TileSpace.cpp
     note  A byte offset rather than an address, because the extent it indexes is `06`'s and this component
 

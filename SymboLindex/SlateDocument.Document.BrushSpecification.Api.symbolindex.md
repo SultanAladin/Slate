@@ -173,30 +173,30 @@ T BrushSpecification                     | BrushSpecification.h | 227-326 | owni
 
 F BrushSpecification::DeclareShape       | BrushSpecification.h | 235     | api,nonthrowing               | ✔️ | Declares the impression shape.
     in    Declaring  const ImpressionShape&  [-]  ?
-    out   -          Outcome                 [-]  refuses with ContentUnsupported for an undeclared profile at an analytic source
+    out   -          Deliver                 [-]  refuses with ContentUnsupported for an undeclared profile at an analytic source
     by    Source/BrushSpecification.cpp, Source/ConsoleHost.cpp
 
 F BrushSpecification::DeclareExtent      | BrushSpecification.h | 244     | api,nonthrowing               | ✔️ | Declares the impression extent, in domain units. It is the domain here, which is the answer that makes a stroke survive a change of working resolution; the open row stands and nothing above reads a screen extent.
     in    Extent  double   [-]  ?
-    out   -       Outcome  [-]  refuses with ContentUnsupported for a non-positive extent
+    out   -       Deliver  [-]  refuses with ContentUnsupported for a non-positive extent
     by    Api/PreviewProjection.h, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/PreviewProjection.cpp
     note  🚧 `58` §11 and `22` §7 both carry whether the extent is declared in the domain or in screen terms.
 
 F BrushSpecification::DeclareSpacing     | BrushSpecification.h | 253     | api,nonthrowing               | ✔️ | Declares the spacing, bounded below by the declared floor. below its declared spacing paints a stroke the artist did not ask for and cannot account for.
     in    RelativeSpacing  double   [-]  ?
-    out   -                Outcome  [-]  refuses with ContentUnsupported for a non-positive spacing
+    out   -                Deliver  [-]  refuses with ContentUnsupported for a non-positive spacing
     post  the floor's having been reached is recorded, and is reported through `86` by `Report`
     by    Source/BrushSpecification.cpp, Source/ConsoleHost.cpp
     note  🔴 The floor is applied and **said**, never applied silently — `58` §5. A brush quietly coarsened
 
 F BrushSpecification::DeclareChannel     | BrushSpecification.h | 260     | api,nonthrowing               | 🚩 | Declares one channel and the value written to it. declaring no space, and for a channel already declared
     in    Declaring  const BrushChannelValue&  [-]  ?
-    out   -          Outcome                   [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour value
+    out   -          Deliver                   [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour value
     by    Api/MaterialSpecification.h, Api/ToolSequence.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, (+1 more)
 
 F BrushSpecification::DeclareDynamic     | BrushSpecification.h | 269     | api,nonthrowing               | 🚩 | Declares one dynamic. axis or parameter, and for a second dynamic on the same parameter whichever the resolution applied second would win by accident of declaration order.
     in    Declaring  const DynamicSpecification&  [-]  ?
-    out   -          Outcome                      [-]  refuses with ContentUnsupported for an undeclared progression, for an out-of-range
+    out   -          Deliver                      [-]  refuses with ContentUnsupported for an undeclared progression, for an out-of-range
     by    Source/BrushSpecification.cpp
     note  🔴 One dynamic per parameter. Two dynamics driving one radius is two answers to one question, and
 
@@ -274,17 +274,17 @@ T BrushIndex                             | BrushSpecification.h | 337-365 | owni
 F BrushIndex::Declare                    | BrushSpecification.h | 347     | api,nonthrowing               | 🚩 | Declares one brush and issues its ordinal.
     in    Named     const std::string&  [-]  what the artist calls it; may be empty
     in    Grouping  const std::string&  [-]  which grouping it is presented under; may be empty
-    out   -         Outcome             [-]  refuses with ExtentExhausted at the declared ceiling
+    out   -         Deliver             [-]  refuses with ExtentExhausted at the declared ceiling
     by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+65 more)
 
 F BrushIndex::Resolve                    | BrushSpecification.h | 349     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t                       [-]  ?
-    out   -             Outcome<const BrushSpecification*>  [-]  ?
+    out   -             Deliver<const BrushSpecification*>  [-]  ?
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+94 more)
 
 F BrushIndex::Amend                      | BrushSpecification.h | 350     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t                 [-]  ?
-    out   -             Outcome<BrushSpecification*>  [-]  ?
+    out   -             Deliver<BrushSpecification*>  [-]  ?
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
 
 F BrushIndex::DeclaredName               | BrushSpecification.h | 352     | -                             | -  | ?

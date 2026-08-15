@@ -78,7 +78,7 @@ T EmissionSpecification                  | AssetInterchange.h | 103-118 | owning
 
 F EmissionSpecification::Validate        | AssetInterchange.h | 117     | api,nonthrowing               | 🚩 | Whether the specification describes an export that can be produced at all. component, a colour-carrying channel in an image declaring no space, and a channel occupying two components anywhere in the specification it loaded second. Refused here rather than discovered by whoever ships the asset.
     in    Materials  const MaterialIndex&  [-]  the declared materials, so a channel no material declares is refused
-    out   -          Outcome               [-]  refuses with ContentUnsupported for an extent of zero, an image with no occupied
+    out   -          Deliver               [-]  refuses with ContentUnsupported for an extent of zero, an image with no occupied
     by    Api/AtmosphereIntegrator.h, Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+4 more)
     note  🔴 A channel emitted twice is two answers to one question, and the consumer reads whichever image
 
@@ -111,7 +111,7 @@ F AssetInterchange::IntakeTopology       | AssetInterchange.h | 170     | api,no
     in    Decoded   const DecodedTopology&  [-]  the decoded specification, faithful to the source
     in    Into      TopologyStructure&      [-]  the structure to enrol into; untouched when the intake refuses
     in    Recorded  IntakeIndex&            [-]  where the assumption, if any, is recorded
-    out   -         Outcome                 [-]  refuses with ContentUnsupported for absent positions or absent face indexing — `50`
+    out   -         Deliver                 [-]  refuses with ContentUnsupported for absent positions or absent face indexing — `50`
     by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp
     note  🔴 Unit scale is applied **once, at intake**, and is never carried as a per-occupant multiplier.
     note  🔴 Every construct named in `UnsupportedNamed` is recorded **at intake** rather than at export.
@@ -119,14 +119,14 @@ F AssetInterchange::IntakeTopology       | AssetInterchange.h | 170     | api,no
 F AssetInterchange::IntakeImage          | AssetInterchange.h | 182     | api,nonthrowing               | 🚩 | Records one decoded image's declared space, or the assumption made in its absence. the working space, and reads the channel measure from `42` at the point of use. There is no inference here from file name, channel count or encoding — and this is the document where the temptation lives, because a file called `_normal` looks like a helpful signal.
     in    Decoded   const DecodedImage&  [-]  the decoded image, its original retained
     in    Recorded  IntakeIndex&         [-]  where the assumption, if any, is recorded
-    out   -         Outcome              [-]  refuses with ContentUnsupported for an image of no extent or no component
+    out   -         Deliver              [-]  refuses with ContentUnsupported for an image of no extent or no component
     by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp
     note  🔴 `50` §4: this document **declares** and does not convert. `36` §3 converts once, at intake, into
 
 F AssetInterchange::DeclareEmission      | AssetInterchange.h | 192     | api,nonthrowing               | 🚩 | Whether an emission may be started against the current document. wrong arrangement and the doubled channel are caught — before the artist has waited for an export.
     in    Declaring  const EmissionSpecification&  [-]  the emission specification
     in    Materials  const MaterialIndex&          [-]  the declared materials
-    out   -          Outcome                       [-]  carries the specification's own refusal
+    out   -          Deliver                       [-]  carries the specification's own refusal
     by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp
     note  🚧 `50` §5's resolution waits on `56`, `70` and `20`. Validation does not, and it is where the
 

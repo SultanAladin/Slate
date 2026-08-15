@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateMath/Numeric/ColourProjection/Api/ColourProjection.h"
 
@@ -174,13 +174,13 @@ public:
     /// 🧩 Declares one channel.
     /// in    Channel    [-]  which of the twenty
     /// in    Declaring  [-]  its source, measure, default and interval
-    /// out   Outcome    [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour default
+    /// out   Deliver    [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour default
     ///                       carrying no space, and for a default outside the declared interval
     /// note  🔴 The default is validated against its own interval here, for `10` §2.2's reason: a default outside
     ///        its bounds is an invalid value presented on every surface that never overrode it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring);
+    Deliver<bool> DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring);
 
     /// 🧩 Declares the coverage threshold a cutout occupant is resolved against.
     /// note  🔴 Per material, never global — `62` §2. A single threshold across a document makes one artist's
@@ -236,22 +236,22 @@ public:
 
     /// 🧩 Declares one material and issues its identity.
     /// in    Named    [-]  what the artist calls it; may be empty
-    /// out   Outcome  [-]  refuses with ExtentExhausted at the declared ceiling
+    /// out   Deliver  [-]  refuses with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Declare(const std::string& Named);
+    Deliver<std::uint32_t> Declare(const std::string& Named);
 
     /// 🧩 One declared material, for reading.
-    /// out   Outcome  [-]  refuses with ContentUnsupported outside the declared count
+    /// out   Deliver  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const MaterialSpecification*> Resolve(std::uint32_t MaterialOrdinal) const;
+    Deliver<const MaterialSpecification*> Resolve(std::uint32_t MaterialOrdinal) const;
 
     /// 🧩 One declared material, for amending.
-    /// out   Outcome  [-]  refuses with ContentUnsupported outside the declared count
+    /// out   Deliver  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<MaterialSpecification*> Amend(std::uint32_t MaterialOrdinal);
+    Deliver<MaterialSpecification*> Amend(std::uint32_t MaterialOrdinal);
 
     const std::string& DeclaredName(std::uint32_t MaterialOrdinal) const;
     std::uint32_t      DeclaredCount() const;
@@ -300,18 +300,18 @@ public:
 
     /// 🧩 Declares one partition's resolution, issuing its identity.
     /// in    Resolving  [-]  the occupant, material and face range
-    /// out   Outcome    [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
+    /// out   Deliver    [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
     ///                       the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<PartitionIdentity> Declare(const ResolvedPartition& Resolving);
+    Deliver<PartitionIdentity> Declare(const ResolvedPartition& Resolving);
 
     /// 🧩 Resolves one partition identity.
-    /// out   Outcome  [-]  refuses with IdentityStale when the generation no longer matches — which is what a
+    /// out   Deliver  [-]  refuses with IdentityStale when the generation no longer matches — which is what a
     ///                     re-partition since the identity was taken looks like
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<ResolvedPartition> Resolve(PartitionIdentity Subject) const;
+    Deliver<ResolvedPartition> Resolve(PartitionIdentity Subject) const;
 
     /// 🧩 The revision the last rebuild advanced to; `70` §2 compares counters against it.
     /// cost  ✔️

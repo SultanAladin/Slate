@@ -24,7 +24,7 @@ S ImpressionSequence.cpp | 846 lines | b4ed9ccf | 25 sym | Domain resampling fro
 
 F PaintingLevelOf                         | ImpressionSequence.cpp | 17-27   | - | - | ?
     in    WorkingExtent  std::uint32_t           [-]  ?
-    out   -              Outcome<std::uint32_t>  [-]  ?
+    out   -              Deliver<std::uint32_t>  [-]  ?
     by    Api/ImpressionSequence.h, Source/ConsoleHost.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -55,7 +55,7 @@ F BoundedUnit                             | ImpressionSequence.cpp | 69-72   | -
 F ImpressionSequence::Open                | ImpressionSequence.cpp | 80-170  | - | - | ?
     in    Declaring  const StrokeDeclaration&   [-]  ?
     in    Brushed    const BrushSpecification&  [-]  ?
-    out   -          Outcome<bool>              [-]  ?
+    out   -          Deliver<bool>              [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RESAMPLING
@@ -80,7 +80,7 @@ F ImpressionSequence::Emit                | ImpressionSequence.cpp | 219-254 | -
 
 F ImpressionSequence::Amend               | ImpressionSequence.cpp | 256-367 | - | - | ?
     in    Arriving  const StrokeArrival&  [-]  ?
-    out   -         Outcome<bool>         [-]  ?
+    out   -         Deliver<bool>         [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 IMPRESSION RESOLUTION
@@ -91,13 +91,13 @@ F ImpressionSequence::ResolveOne          | ImpressionSequence.cpp | 373-520 | -
     in    Residency        SurfaceTileSpace&  [-]  ?
     in    Requesting       RequestQueue&      [-]  ?
     in    RotationOrdinal  std::uint64_t      [-]  ?
-    out   -                Outcome<bool>      [-]  ?
+    out   -                Deliver<bool>      [-]  ?
 
 F ImpressionSequence::Resolve             | ImpressionSequence.cpp | 522-557 | - | - | ?
     in    Residency        SurfaceTileSpace&     [-]  ?
     in    Requesting       RequestQueue&         [-]  ?
     in    RotationOrdinal  std::uint64_t         [-]  ?
-    out   -                Outcome<ResolvedRun>  [-]  ?
+    out   -                Deliver<ResolvedRun>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ABANDON AND RECLAIM
@@ -108,7 +108,7 @@ F ImpressionSequence::Abandon             | ImpressionSequence.cpp | 563-580 | -
     out   -          void               [-]  ?
 
 F ImpressionSequence::ReclaimSpeculative  | ImpressionSequence.cpp | 582-599 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SEALING
@@ -119,7 +119,7 @@ F ImpressionSequence::Seal                | ImpressionSequence.cpp | 605-755 | -
     in    Revised    RevisionSequence&      [-]  ?
     in    Residency  SurfaceTileSpace&      [-]  ?
     in    SealedAt   std::uint64_t          [-]  ?
-    out   -          Outcome<SealedStroke>  [-]  ?
+    out   -          Deliver<SealedStroke>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE INVERSE
@@ -128,7 +128,7 @@ F ImpressionSequence::Seal                | ImpressionSequence.cpp | 605-755 | -
 F Restore                                 | ImpressionSequence.cpp | 761-814 | - | - | ?
     in    Sealed   const SealedStroke&    [-]  ?
     in    Content  SurfaceLayerSequence&  [-]  ?
-    out   -        Outcome<bool>          [-]  ?
+    out   -        Deliver<bool>          [-]  ?
     by    Api/ImpressionSequence.h, Source/ConsoleHost.cpp
 
 //------------------------------------------------------------------------------------------------------------------------

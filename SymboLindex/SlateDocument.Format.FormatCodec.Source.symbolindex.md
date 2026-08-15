@@ -30,5 +30,5 @@ V DeclaredSignature | FormatCodec.cpp | 26    | - | - | ?
 
 F ResolveMigration  | FormatCodec.cpp | 33-74 | - | - | ?
     in    Heading  const StreamHeading&    [-]  ?
-    out   -        Outcome<std::uint32_t>  [-]  ?
+    out   -        Deliver<std::uint32_t>  [-]  ?
     by    Api/FormatCodec.h, Source/ConsoleHost.cpp

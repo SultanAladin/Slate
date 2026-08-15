@@ -73,7 +73,7 @@ F IntakeIndex::Records         | IntakeIndex.h | 84     | api,nonallocating,nont
 
 F IntakeIndex::Resolve         | IntakeIndex.h | 90     | api,nonthrowing               | 🚩 | The most recent intake of one origin.
     in    OriginPath  const std::string&  [-]  ?
-    out   -           Outcome             [-]  refuses with ExtentExhausted when nothing arrived from there
+    out   -           Deliver             [-]  refuses with ExtentExhausted when nothing arrived from there
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F IntakeIndex::AssumptionCount | IntakeIndex.h | 95     | api,nonallocating,nonthrowing | ✔️ | How many intakes carried an assumption.

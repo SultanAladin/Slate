@@ -30,7 +30,7 @@ S VisibilityRaster.cpp    | 849 lines | 09b31257 | 17 sym | The composition, the
 F DepthReduction::Construct                | DepthReduction.cpp      | 15-61   | - | - | ?
     in    DisplayAlong   std::uint32_t  [-]  ?
     in    DisplayAcross  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 F DepthReduction::Reclaim                  | DepthReduction.cpp      | 63-70   | - | - | ?
     out   -  void  [-]  ?
@@ -42,7 +42,7 @@ F OcclusionScheduler::Construct            | OcclusionScheduler.cpp  | 46-151  |
     in    Modules      ShaderCodec&        [-]  ?
     in    Descriptors  DescriptorIndex&    [-]  ?
     in    Programs     ProgramIndex&       [-]  ?
-    out   -            Outcome<bool>       [-]  ?
+    out   -            Deliver<bool>       [-]  ?
 
 V VisibilityRecordingIdentity              | VisibilityIndex.cpp     | 22      | - | - | ?
 
@@ -51,7 +51,7 @@ V RecordingSubstitution                    | VisibilityIndex.cpp     | 29      |
 F VisibilityIndex::Construct               | VisibilityIndex.cpp     | 33-38   | - | - | ?
     in    DisplayAlong   std::uint32_t  [-]  ?
     in    DisplayAcross  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 F VisibilityIndex::Reclaim                 | VisibilityIndex.cpp     | 40-48   | - | - | ?
     out   -  void  [-]  ?
@@ -62,7 +62,7 @@ F VisibilityRaster::Construct              | VisibilityRaster.cpp    | 68-182  |
     in    Descriptors  DescriptorIndex&  [-]  ?
     in    Programs     ProgramIndex&     [-]  ?
     in    Attachments  AttachmentIndex&  [-]  ?
-    out   -            Outcome<bool>     [-]  ?
+    out   -            Deliver<bool>     [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    LEVEL SELECTION
@@ -70,12 +70,12 @@ F VisibilityRaster::Construct              | VisibilityRaster.cpp    | 68-182  |
 
 F DepthReduction::Level                    | DepthReduction.cpp      | 76-82   | - | - | ?
     in    LevelOrdinal  std::uint32_t            [-]  ?
-    out   -             Outcome<ReductionLevel>  [-]  ?
+    out   -             Deliver<ReductionLevel>  [-]  ?
 
 F DepthReduction::LevelOfExtent            | DepthReduction.cpp      | 84-106  | - | - | ?
     in    ProjectedAlong   std::uint32_t           [-]  ?
     in    ProjectedAcross  std::uint32_t           [-]  ?
-    out   -                Outcome<std::uint32_t>  [-]  ?
+    out   -                Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE READS
@@ -100,13 +100,13 @@ F OcclusionScheduler::RecordOf             | OcclusionScheduler.cpp  | 910-927 |
     in    CullingOrdinal  std::uint32_t      [-]  ?
     in    RotationSlot    std::uint32_t      [-]  ?
     in    Phase           CullingPhase       [-]  ?
-    out   -               Outcome<VkBuffer>  [-]  ?
+    out   -               Deliver<VkBuffer>  [-]  ?
 
 F OcclusionScheduler::SurvivingOf          | OcclusionScheduler.cpp  | 929-946 | - | - | ?
     in    CullingOrdinal  std::uint32_t      [-]  ?
     in    RotationSlot    std::uint32_t      [-]  ?
     in    Phase           CullingPhase       [-]  ?
-    out   -               Outcome<VkBuffer>  [-]  ?
+    out   -               Deliver<VkBuffer>  [-]  ?
 
 F OcclusionScheduler::CulledCount          | OcclusionScheduler.cpp  | 948     | - | - | ?
     out   -  std::uint32_t  [-]  ?
@@ -128,7 +128,7 @@ F PartitionStructure::Standing             | PartitionStructure.cpp  | 431-434 |
 
 F PartitionStructure::IdentityOf           | PartitionStructure.cpp  | 436-448 | - | - | ?
     in    PartitionOrdinal  std::uint32_t               [-]  ?
-    out   -                 Outcome<PartitionIdentity>  [-]  ?
+    out   -                 Deliver<PartitionIdentity>  [-]  ?
 
 F PartitionStructure::PartitioningStanding | PartitionStructure.cpp  | 450-453 | - | - | ?
     out   -  bool  [-]  ?
@@ -144,7 +144,7 @@ F PartitionStructure::PartitionCount       | PartitionStructure.cpp  | 465-468 |
 
 F VisibilityIndex::Enrolled                | VisibilityIndex.cpp     | 185-191 | - | - | ?
     in    EnrolmentOrdinal  std::uint32_t                       [-]  ?
-    out   -                 Outcome<const PartitionStructure*>  [-]  ?
+    out   -                 Deliver<const PartitionStructure*>  [-]  ?
 
 F VisibilityIndex::Reduction               | VisibilityIndex.cpp     | 193-196 | - | - | ?
     out   -  const DepthReduction&  [-]  ?
@@ -185,7 +185,7 @@ F OcclusionScheduler::Order                | OcclusionScheduler.cpp  | 157-171 |
 F OcclusionScheduler::Derive               | OcclusionScheduler.cpp  | 177-378 | - | - | ?
     in    DisplayAlong   std::uint32_t  [-]  ?
     in    DisplayAcross  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RESIDENCY
@@ -198,7 +198,7 @@ F OcclusionScheduler::Abandon              | OcclusionScheduler.cpp  | 384-420 |
 F OcclusionScheduler::Resolve              | OcclusionScheduler.cpp  | 422-626 | - | - | ?
     in    TriangleCeiling  std::uint32_t           [-]  ?
     in    PartitionCount   std::uint32_t           [-]  ?
-    out   -                Outcome<std::uint32_t>  [-]  ?
+    out   -                Deliver<std::uint32_t>  [-]  ?
 
 F VisibilityRaster::Resolve                | VisibilityRaster.cpp    | 343-546 | - | - | ?
     in    Enrolled        const PartitionStructure&  [-]  ?
@@ -207,7 +207,7 @@ F VisibilityRaster::Resolve                | VisibilityRaster.cpp    | 343-546 |
     in    Culling         const OcclusionScheduler*  [-]  ?
     in    CullingOrdinal  std::uint32_t              [-]  ?
     in    Recorded        VkCommandBuffer            [-]  ?
-    out   -               Outcome<std::uint32_t>     [-]  ?
+    out   -               Deliver<std::uint32_t>     [-]  ?
 
 F VisibilityRaster::Surrender              | VisibilityRaster.cpp    | 548-557 | - | - | ?
     out   -  void  [-]  ?
@@ -220,7 +220,7 @@ F OcclusionScheduler::Amend                | OcclusionScheduler.cpp  | 632-684 |
     in    CullingOrdinal  std::uint32_t                            [-]  ?
     in    RotationSlot    std::uint32_t                            [-]  ?
     in    Classified      const std::vector<ClassifiedPartition>&  [-]  ?
-    out   -               Outcome<bool>                            [-]  ?
+    out   -               Deliver<bool>                            [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REDUCTION
@@ -230,12 +230,12 @@ F OcclusionScheduler::ReduceLevel          | OcclusionScheduler.cpp  | 690-758 |
     in    Recorded      VkCommandBuffer  [-]  ?
     in    RotationSlot  std::uint32_t    [-]  ?
     in    LevelOrdinal  std::uint32_t    [-]  ?
-    out   -             Outcome<bool>    [-]  ?
+    out   -             Deliver<bool>    [-]  ?
 
 F OcclusionScheduler::Reduce               | OcclusionScheduler.cpp  | 760-804 | - | - | ?
     in    Recorded      VkCommandBuffer  [-]  ?
     in    RotationSlot  std::uint32_t    [-]  ?
-    out   -             Outcome<bool>    [-]  ?
+    out   -             Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE CULL
@@ -245,7 +245,7 @@ F OcclusionScheduler::Cull                 | OcclusionScheduler.cpp  | 810-904 |
     in    Recorded      VkCommandBuffer  [-]  ?
     in    RotationSlot  std::uint32_t    [-]  ?
     in    Phase         CullingPhase     [-]  ?
-    out   -             Outcome<bool>    [-]  ?
+    out   -             Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE RECLAMATION
@@ -351,13 +351,13 @@ F CloseCone                                | PartitionStructure.cpp  | 118-134 |
 F DerivePartitioning                       | PartitionStructure.cpp  | 142-358 | - | - | ?
     in    Imported     const TopologyStructure&      [-]  ?
     in    Conditioned  const TopologyConditioning&   [-]  ?
-    out   -            Outcome<DerivedPartitioning>  [-]  ?
+    out   -            Deliver<DerivedPartitioning>  [-]  ?
     by    Api/PartitionStructure.h, Source/VisibilityIndex.cpp
 
 F VisibilityRaster::Derive                 | VisibilityRaster.cpp    | 563-569 | - | - | ?
     in    DisplayAlong   std::uint32_t  [-]  ?
     in    DisplayAcross  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                ADOPTION AND DECLARATION
@@ -365,12 +365,12 @@ F VisibilityRaster::Derive                 | VisibilityRaster.cpp    | 563-569 |
 
 F PartitionStructure::Adopt                | PartitionStructure.cpp  | 364-380 | - | - | ?
     in    Arriving  const DerivedPartitioning&  [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 F PartitionStructure::Declare              | PartitionStructure.cpp  | 382-417 | - | - | ?
     in    Resolutions  PartitionResolutionIndex&  [-]  ?
     in    Occupant     OccupantIdentity           [-]  ?
-    out   -            Outcome<bool>              [-]  ?
+    out   -            Deliver<bool>              [-]  ?
 
 F PartitionStructure::Reclaim              | PartitionStructure.cpp  | 419-425 | - | - | ?
     out   -  void  [-]  ?
@@ -381,12 +381,12 @@ F PartitionStructure::Reclaim              | PartitionStructure.cpp  | 419-425 |
 
 F VisibilityIndex::Contribute              | VisibilityIndex.cpp     | 54-79   | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 F VisibilityRaster::Open                   | VisibilityRaster.cpp    | 575-639 | - | - | ?
     in    Recorded     VkCommandBuffer           [-]  ?
     in    Constructed  ConstructedProgram&       [-]  ?
-    out   -            Outcome<ConstructedSpan>  [-]  ?
+    out   -            Deliver<ConstructedSpan>  [-]  ?
 
 F VisibilityRaster::Project                | VisibilityRaster.cpp    | 641-667 | - | - | ?
     in    Standing           const ResidentPartitioning&  [-]  ?
@@ -394,13 +394,13 @@ F VisibilityRaster::Project                | VisibilityRaster.cpp    | 641-667 |
     in    Viewing            const ViewProjection&        [-]  ?
     in    Covering           const ConstructedSpan&       [-]  ?
     in    SurvivingResolved  bool                         [-]  ?
-    out   -                  Outcome<bool>                [-]  ?
+    out   -                  Deliver<bool>                [-]  ?
 
 F VisibilityRaster::Record                 | VisibilityRaster.cpp    | 669-727 | - | - | ?
     in    Recorded      VkCommandBuffer        [-]  ?
     in    RotationSlot  std::uint32_t          [-]  ?
     in    Viewing       const ViewProjection&  [-]  ?
-    out   -             Outcome<bool>          [-]  ?
+    out   -             Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       ENROLMENT
@@ -411,7 +411,7 @@ F VisibilityIndex::Enroll                  | VisibilityIndex.cpp     | 85-149  |
     in    Imported     const TopologyStructure&     [-]  ?
     in    Conditioned  const TopologyConditioning&  [-]  ?
     in    Resolutions  PartitionResolutionIndex&    [-]  ?
-    out   -            Outcome<std::uint32_t>       [-]  ?
+    out   -            Deliver<std::uint32_t>       [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RESOLUTION
@@ -420,7 +420,7 @@ F VisibilityIndex::Enroll                  | VisibilityIndex.cpp     | 85-149  |
 F VisibilityIndex::Resolve                 | VisibilityIndex.cpp     | 155-179 | - | - | ?
     in    Written      VisibilityWord                   [-]  ?
     in    Resolutions  const PartitionResolutionIndex&  [-]  ?
-    out   -            Outcome<ResolvedPartition>       [-]  ?
+    out   -            Deliver<ResolvedPartition>       [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE COMPOSITION
@@ -446,7 +446,7 @@ F VisibilityRaster::Fan                    | VisibilityRaster.cpp    | 188-264 |
     in    Enrolled       const PartitionStructure&               [-]  ?
     in    Imported       const TopologyStructure&                [-]  ?
     in    EnrolmentBase  std::uint32_t                           [-]  ?
-    out   -              Outcome<std::vector<UploadedTriangle>>  [-]  ?
+    out   -              Deliver<std::vector<UploadedTriangle>>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE STAGING
@@ -457,7 +457,7 @@ F VisibilityRaster::Stage                  | VisibilityRaster.cpp    | 270-317 |
     in    ArrivingBytes  VkDeviceSize            [-]  ?
     in    Intent         SpanIntent              [-]  ?
     in    Recorded       VkCommandBuffer         [-]  ?
-    out   -              Outcome<std::uint32_t>  [-]  ?
+    out   -              Deliver<std::uint32_t>  [-]  ?
 
 F VisibilityRaster::Abandon                | VisibilityRaster.cpp    | 319-337 | - | - | ?
     in    Abandoned  ResidentPartitioning&  [-]  ?
@@ -473,4 +473,4 @@ F VisibilityRaster::RecordIndirect         | VisibilityRaster.cpp    | 733-813 |
     in    Viewing       const ViewProjection&      [-]  ?
     in    Culling       const OcclusionScheduler&  [-]  ?
     in    Phase         CullingPhase               [-]  ?
-    out   -             Outcome<bool>              [-]  ?
+    out   -             Deliver<bool>              [-]  ?

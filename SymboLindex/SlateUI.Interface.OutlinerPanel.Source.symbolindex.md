@@ -66,7 +66,7 @@ F DeclareEnclosure                | OutlinerPanel.cpp | 85-97   | - | - | ?
 
 F OutlinerPanel::Present          | OutlinerPanel.cpp | 105-359 | - | - | ?
     in    Outliner  OutlinerSequence&  [-]  ?
-    out   -         Outcome<bool>      [-]  ?
+    out   -         Deliver<bool>      [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ

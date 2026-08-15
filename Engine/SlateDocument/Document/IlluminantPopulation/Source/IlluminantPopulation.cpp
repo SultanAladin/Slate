@@ -56,12 +56,12 @@ void EmissionDirection(RotationQuaternion Rotation, double& OutX, double& OutY, 
 //                                                     VALIDATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Declaring,
+Deliver<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Declaring,
                                              OccupantIdentity               Subject) const
 {
     if (Declaring.ExtentReach <= 0.0)
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the declared extent reaches nothing" });
     }
 
@@ -74,12 +74,12 @@ Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Decl
         case EmissionShape::Spot:
         {
             if (Declaring.EmissionRadius <= 0.0)
-                return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the emission radius is zero" });
+                return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the emission radius is zero" });
 
             if (Declaring.Emission == EmissionShape::Spot
              && (Declaring.ConeAngle <= 0.0 || Declaring.ConeAngle >= 180.0))
             {
-                return Outcome<bool>::Refuse(
+                return Deliver<bool>::Refuse(
                     { RefusalReason::ContentUnsupported, "the cone angle encloses no direction" });
             }
 
@@ -89,7 +89,7 @@ Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Decl
         case EmissionShape::Directional:
         {
             if (Declaring.AngularSize <= 0.0)
-                return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the angular size is zero" });
+                return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the angular size is zero" });
 
             break;
         }
@@ -97,25 +97,25 @@ Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Decl
         case EmissionShape::Extended:
         {
             if (Declaring.ExtendedWidth <= 0.0 || Declaring.ExtendedHeight <= 0.0)
-                return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the extended shape has no area" });
+                return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the extended shape has no area" });
 
             break;
         }
 
         case EmissionShape::ShapeCount:
-            return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such emission shape" });
+            return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such emission shape" });
     }
 
     // 🔴 `36` §1: a colour without its space is refused rather than assumed to be in the working space. Where a
     //    temperature is declared instead there is no coordinate yet, so nothing is compared.
     if (!Declaring.TemperatureDeclared && !Declaring.DeclaredColour.ColourDeclared())
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the illuminant declares neither a colour space nor a temperature" });
     }
 
     if (!Declaring.AtmosphericSource)
-        return Outcome<bool>::Deliver(true);
+        return Deliver<bool>::Deliver(true);
 
     for (std::size_t Ordinal = 0u; Ordinal < Declarations.size(); ++Ordinal)
     {
@@ -125,11 +125,11 @@ Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Decl
         if (EnrolledOrder[Ordinal] == Subject)
             continue;
 
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::HostDenied, "the document already enrols an atmospheric source" });
     }
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -154,12 +154,12 @@ std::size_t IlluminantPopulation::Located(OccupantIdentity Subject) const
     return Lower;
 }
 
-Outcome<bool> IlluminantPopulation::Declare(OccupantIdentity Subject, const IlluminantSpecification& Declaring)
+Deliver<bool> IlluminantPopulation::Declare(OccupantIdentity Subject, const IlluminantSpecification& Declaring)
 {
     if (!Subject.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity lights nothing" });
+        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity lights nothing" });
 
-    const Outcome<bool> Validated = Validate(Declaring, Subject);
+    const Deliver<bool> Validated = Validate(Declaring, Subject);
 
     if (!Validated.ContentPresent)
         return Validated;
@@ -178,17 +178,17 @@ Outcome<bool> IlluminantPopulation::Declare(OccupantIdentity Subject, const Illu
 
     ++DeclaredRevision;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> IlluminantPopulation::Amend(OccupantIdentity Subject, const IlluminantSpecification& Amending)
+Deliver<bool> IlluminantPopulation::Amend(OccupantIdentity Subject, const IlluminantSpecification& Amending)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ >= EnrolledOrder.size() || !(EnrolledOrder[Located_] == Subject))
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant declares no illuminant" });
+        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant declares no illuminant" });
 
-    const Outcome<bool> Validated = Validate(Amending, Subject);
+    const Deliver<bool> Validated = Validate(Amending, Subject);
 
     if (!Validated.ContentPresent)
         return Validated;
@@ -196,44 +196,44 @@ Outcome<bool> IlluminantPopulation::Amend(OccupantIdentity Subject, const Illumi
     Declarations[Located_] = Amending;
     ++DeclaredRevision;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> IlluminantPopulation::Withdraw(OccupantIdentity Subject)
+Deliver<bool> IlluminantPopulation::Withdraw(OccupantIdentity Subject)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ >= EnrolledOrder.size() || !(EnrolledOrder[Located_] == Subject))
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant declares no illuminant" });
+        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant declares no illuminant" });
 
     EnrolledOrder.erase(EnrolledOrder.begin() + static_cast<std::ptrdiff_t>(Located_));
     Declarations.erase(Declarations.begin() + static_cast<std::ptrdiff_t>(Located_));
 
     ++DeclaredRevision;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<IlluminantSpecification> IlluminantPopulation::Resolve(OccupantIdentity Subject) const
+Deliver<IlluminantSpecification> IlluminantPopulation::Resolve(OccupantIdentity Subject) const
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ >= EnrolledOrder.size() || !(EnrolledOrder[Located_] == Subject))
     {
-        return Outcome<IlluminantSpecification>::Refuse(
+        return Deliver<IlluminantSpecification>::Refuse(
             { RefusalReason::IdentityStale, "the occupant declares no illuminant" });
     }
 
-    return Outcome<IlluminantSpecification>::Deliver(Declarations[Located_]);
+    return Deliver<IlluminantSpecification>::Deliver(Declarations[Located_]);
 }
 
-Outcome<ColourSpecification> IlluminantPopulation::ResolveColour(OccupantIdentity                Subject,
+Deliver<ColourSpecification> IlluminantPopulation::ResolveColour(OccupantIdentity                Subject,
                                                                  const ColourSpaceSpecification& Working) const
 {
-    const Outcome<IlluminantSpecification> Declared = Resolve(Subject);
+    const Deliver<IlluminantSpecification> Declared = Resolve(Subject);
 
     if (!Declared.ContentPresent)
-        return Outcome<ColourSpecification>::Refuse(Declared.Declined);
+        return Deliver<ColourSpecification>::Refuse(Declared.Declined);
 
     const IlluminantSpecification& Held = Declared.Resolve();
 
@@ -241,7 +241,7 @@ Outcome<ColourSpecification> IlluminantPopulation::ResolveColour(OccupantIdentit
         return ProjectTemperature(Held.Temperature, Working);
 
     if (Held.DeclaredColour.SpaceIdentity == Working.SpaceIdentity)
-        return Outcome<ColourSpecification>::Deliver(Held.DeclaredColour);
+        return Deliver<ColourSpecification>::Deliver(Held.DeclaredColour);
 
     // 📝 A colour declared in another space is projected rather than refused. `36` §1 requires the space to
     //    travel with the coordinate, and the whole point of it travelling is that this conversion can happen.
@@ -251,15 +251,15 @@ Outcome<ColourSpecification> IlluminantPopulation::ResolveColour(OccupantIdentit
     return Project(Held.DeclaredColour, Arriving, Working);
 }
 
-Outcome<OccupantIdentity> IlluminantPopulation::AtmosphericSource() const
+Deliver<OccupantIdentity> IlluminantPopulation::AtmosphericSource() const
 {
     for (std::size_t Ordinal = 0u; Ordinal < Declarations.size(); ++Ordinal)
     {
         if (Declarations[Ordinal].AtmosphericSource)
-            return Outcome<OccupantIdentity>::Deliver(EnrolledOrder[Ordinal]);
+            return Deliver<OccupantIdentity>::Deliver(EnrolledOrder[Ordinal]);
     }
 
-    return Outcome<OccupantIdentity>::Refuse(
+    return Deliver<OccupantIdentity>::Refuse(
         { RefusalReason::ExtentExhausted, "no illuminant is enrolled as the atmospheric source" });
 }
 
@@ -275,7 +275,7 @@ std::uint32_t IlluminantPopulation::EnrolledCount() const
 //                                                     INCIDENCE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<IncidenceProjection> ProjectIncidence(const IlluminantSpecification& Declared, DocumentPosition Shaded)
+Deliver<IncidenceProjection> ProjectIncidence(const IlluminantSpecification& Declared, DocumentPosition Shaded)
 {
     IncidenceProjection Projected;
 
@@ -299,7 +299,7 @@ Outcome<IncidenceProjection> ProjectIncidence(const IlluminantSpecification& Dec
         Projected.SolidExtent  = 2.0 * Pi * (1.0 - std::cos(HalfAngle));
         Projected.Attenuation  = 1.0;
 
-        return Outcome<IncidenceProjection>::Deliver(Projected);
+        return Deliver<IncidenceProjection>::Deliver(Projected);
     }
 
     const double SpanX = Declared.Placement.Translation.PositionX - Shaded.PositionX;
@@ -310,7 +310,7 @@ Outcome<IncidenceProjection> ProjectIncidence(const IlluminantSpecification& Dec
 
     if (Distance <= 0.0)
     {
-        return Outcome<IncidenceProjection>::Refuse(
+        return Deliver<IncidenceProjection>::Refuse(
             { RefusalReason::ContentUnsupported, "the shaded position coincides with the illuminant" });
     }
 
@@ -341,7 +341,7 @@ Outcome<IncidenceProjection> ProjectIncidence(const IlluminantSpecification& Dec
     // 📝 The declared extent is a hard cutoff and the falloff within it is physical. Beyond it the attenuation is
     //    zero rather than merely small, which is what makes `44` §5's reach index exact rather than approximate.
     if (Distance >= Declared.ExtentReach)
-        return Outcome<IncidenceProjection>::Deliver(Projected);
+        return Deliver<IncidenceProjection>::Deliver(Projected);
 
     double Attenuation = 1.0 / (Distance * Distance);
 
@@ -370,7 +370,7 @@ Outcome<IncidenceProjection> ProjectIncidence(const IlluminantSpecification& Dec
 
     Projected.Attenuation = Attenuation * Declared.RadiantIntensity;
 
-    return Outcome<IncidenceProjection>::Deliver(Projected);
+    return Deliver<IncidenceProjection>::Deliver(Projected);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -398,7 +398,7 @@ bool ReachesExtent(const IlluminantSpecification& Declared, PartitionExtent Exte
 
 }   // namespace
 
-Outcome<bool> IlluminantIndex::Derive(const IlluminantPopulation&          Illuminants,
+Deliver<bool> IlluminantIndex::Derive(const IlluminantPopulation&          Illuminants,
                                       const std::vector<PartitionExtent>&  Extents)
 {
     ReachingSets.assign(Extents.size(), {});
@@ -407,7 +407,7 @@ Outcome<bool> IlluminantIndex::Derive(const IlluminantPopulation&          Illum
 
     for (std::uint32_t PartitionOrdinal = 0u; PartitionOrdinal < Extents.size(); ++PartitionOrdinal)
     {
-        const Outcome<bool> Derived = DerivePartition(Illuminants, PartitionOrdinal, Extents[PartitionOrdinal]);
+        const Deliver<bool> Derived = DerivePartition(Illuminants, PartitionOrdinal, Extents[PartitionOrdinal]);
 
         if (!Derived.ContentPresent)
             return Derived;
@@ -415,15 +415,15 @@ Outcome<bool> IlluminantIndex::Derive(const IlluminantPopulation&          Illum
 
     DescribedOrdinal = Illuminants.Revision();
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> IlluminantIndex::DerivePartition(const IlluminantPopulation& Illuminants,
+Deliver<bool> IlluminantIndex::DerivePartition(const IlluminantPopulation& Illuminants,
                                                std::uint32_t               PartitionOrdinal,
                                                PartitionExtent             Extent)
 {
     if (PartitionOrdinal >= ReachingSets.size())
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no such partition" });
+        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "no such partition" });
 
     std::vector<OccupantIdentity>& Reaching_ = ReachingSets[PartitionOrdinal];
 
@@ -437,7 +437,7 @@ Outcome<bool> IlluminantIndex::DerivePartition(const IlluminantPopulation& Illum
     //    `44` §6 depends on it and `18` integrates in exactly this order.
     for (const OccupantIdentity& Subject : Illuminants.Enrolled())
     {
-        const Outcome<IlluminantSpecification> Declared = Illuminants.Resolve(Subject);
+        const Deliver<IlluminantSpecification> Declared = Illuminants.Resolve(Subject);
 
         if (!Declared.ContentPresent || !ReachesExtent(Declared.Resolve(), Extent))
             continue;
@@ -455,7 +455,7 @@ Outcome<bool> IlluminantIndex::DerivePartition(const IlluminantPopulation& Illum
 
     TruncatedAccumulated += TruncatedCounts[PartitionOrdinal];
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 std::uint32_t IlluminantIndex::ReachingCount(std::uint32_t PartitionOrdinal) const
@@ -466,12 +466,12 @@ std::uint32_t IlluminantIndex::ReachingCount(std::uint32_t PartitionOrdinal) con
     return static_cast<std::uint32_t>(ReachingSets[PartitionOrdinal].size());
 }
 
-Outcome<OccupantIdentity> IlluminantIndex::Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const
+Deliver<OccupantIdentity> IlluminantIndex::Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const
 {
     if (PartitionOrdinal >= ReachingSets.size() || ReachOrdinal >= ReachingSets[PartitionOrdinal].size())
-        return Outcome<OccupantIdentity>::Refuse({ RefusalReason::ExtentExhausted, "no such reaching illuminant" });
+        return Deliver<OccupantIdentity>::Refuse({ RefusalReason::ExtentExhausted, "no such reaching illuminant" });
 
-    return Outcome<OccupantIdentity>::Deliver(ReachingSets[PartitionOrdinal][ReachOrdinal]);
+    return Deliver<OccupantIdentity>::Deliver(ReachingSets[PartitionOrdinal][ReachOrdinal]);
 }
 
 std::uint32_t IlluminantIndex::TruncatedCount(std::uint32_t PartitionOrdinal) const

@@ -35,13 +35,13 @@ F ReclaimPanelIndex       | PanelIndex.cpp           | 15-24     | - | - | ?
 F DeclarePanel            | PanelIndex.cpp           | 26-50     | - | - | ?
     in    Ledger     PanelIndex&       [-]  ?
     in    Declaring  const PanelSlot&  [-]  ?
-    out   -          Outcome<bool>     [-]  ?
+    out   -          Deliver<bool>     [-]  ?
     by    Api/PanelIndex.h
 
 F ResolvePanelForSide     | PanelIndex.cpp           | 52-62     | - | - | ?
     in    Ledger        const PanelIndex&   [-]  ?
     in    ResolvedSide  WorkspacePanelSide  [-]  ?
-    out   -             Outcome<PanelSlot>  [-]  ?
+    out   -             Deliver<PanelSlot>  [-]  ?
     by    Api/PanelIndex.h
 
 F DeclaredPanelCount      | PanelIndex.cpp           | 64-67     | - | - | ?
@@ -364,12 +364,12 @@ F DeclareCatalogue        | WorkspaceSpace.cpp       | 132-150   | - | - | ?
     in    Offering        const WorkspaceDocumentSpecification*  [-]  ?
     in    Count           std::uint32_t                          [-]  ?
     in    DefaultOrdinal  std::uint32_t                          [-]  ?
-    out   -               Outcome<bool>                          [-]  ?
+    out   -               Deliver<bool>                          [-]  ?
     by    Api/WorkspaceSpace.h
 
 F ConstructWorkspaceSpace | WorkspaceSpace.cpp       | 152-167   | - | - | ?
     in    Space  WorkspaceSpace&                     [-]  ?
-    out   -      Outcome<WorkspaceDocumentIdentity>  [-]  ?
+    out   -      Deliver<WorkspaceDocumentIdentity>  [-]  ?
     by    Api/WorkspaceSpace.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -380,13 +380,13 @@ F DeclareDocument         | WorkspaceSpace.cpp       | 173-247   | - | - | ?
     in    Space             WorkspaceSpace&                     [-]  ?
     in    CatalogueOrdinal  std::uint32_t                       [-]  ?
     in    TargetLeaf        std::int32_t                        [-]  ?
-    out   -                 Outcome<WorkspaceDocumentIdentity>  [-]  ?
+    out   -                 Deliver<WorkspaceDocumentIdentity>  [-]  ?
     by    Api/RecoverySequence.h, Api/WorkspaceSpace.h, Source/DocumentSession.cpp, Source/RecoverySequence.cpp, Source/WorkspaceStrip.cpp
 
 F WithdrawDocument        | WorkspaceSpace.cpp       | 249-269   | - | - | ?
     in    Space    WorkspaceSpace&            [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
-    out   -        Outcome<bool>              [-]  ?
+    out   -        Deliver<bool>              [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspaceStrip.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -396,13 +396,13 @@ F WithdrawDocument        | WorkspaceSpace.cpp       | 249-269   | - | - | ?
 F ResolveDocument         | WorkspaceSpace.cpp       | 275-286   | - | - | ?
     in    Space    const WorkspaceSpace&              [-]  ?
     in    Subject  WorkspaceDocumentIdentity          [-]  ?
-    out   -        Outcome<const WorkspaceDocument*>  [-]  ?
+    out   -        Deliver<const WorkspaceDocument*>  [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp
 
 F AmendDocument           | WorkspaceSpace.cpp       | 288-299   | - | - | ?
     in    Space    WorkspaceSpace&              [-]  ?
     in    Subject  WorkspaceDocumentIdentity    [-]  ?
-    out   -        Outcome<WorkspaceDocument*>  [-]  ?
+    out   -        Deliver<WorkspaceDocument*>  [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspacePanel.cpp, Source/WorkspaceStrip.cpp
 
 F LocateLeafCarrying      | WorkspaceSpace.cpp       | 301-319   | - | - | ?
@@ -420,7 +420,7 @@ F LocateWindowCarrying    | WorkspaceSpace.cpp       | 321-333   | - | - | ?
 F AmendFloatingWindow     | WorkspaceSpace.cpp       | 335-345   | - | - | ?
     in    Space      WorkspaceSpace&                    [-]  ?
     in    WindowKey  std::uint32_t                      [-]  ?
-    out   -          Outcome<WorkspaceFloatingWindow*>  [-]  ?
+    out   -          Deliver<WorkspaceFloatingWindow*>  [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspaceDrag.cpp, Source/WorkspaceStrip.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -432,7 +432,7 @@ F TearDocument            | WorkspaceSpace.cpp       | 351-380   | - | - | ?
     in    Subject    WorkspaceDocumentIdentity  [-]  ?
     in    PositionX  float                      [-]  ?
     in    PositionY  float                      [-]  ?
-    out   -          Outcome<std::uint32_t>     [-]  ?
+    out   -          Deliver<std::uint32_t>     [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspaceDrag.cpp
 
 F DockDocument            | WorkspaceSpace.cpp       | 382-445   | - | - | ?
@@ -440,14 +440,14 @@ F DockDocument            | WorkspaceSpace.cpp       | 382-445   | - | - | ?
     in    Subject     WorkspaceDocumentIdentity  [-]  ?
     in    TargetLeaf  std::int32_t               [-]  ?
     in    Zone        WorkspaceDropZone          [-]  ?
-    out   -           Outcome<bool>              [-]  ?
+    out   -           Deliver<bool>              [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspaceDrag.cpp
 
 F StackDocumentInWindow   | WorkspaceSpace.cpp       | 447-481   | - | - | ?
     in    Space      WorkspaceSpace&            [-]  ?
     in    Subject    WorkspaceDocumentIdentity  [-]  ?
     in    WindowKey  std::uint32_t              [-]  ?
-    out   -          Outcome<bool>              [-]  ?
+    out   -          Deliver<bool>              [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspaceDrag.cpp
 
 F ReorderOccupant         | WorkspaceSpace.cpp       | 483-526   | - | - | ?
@@ -456,7 +456,7 @@ F ReorderOccupant         | WorkspaceSpace.cpp       | 483-526   | - | - | ?
     in    CarryingLeaf    std::int32_t               [-]  ?
     in    CarryingWindow  std::uint32_t              [-]  ?
     in    Position        std::uint32_t              [-]  ?
-    out   -               Outcome<bool>              [-]  ?
+    out   -               Deliver<bool>              [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspaceStrip.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -483,25 +483,25 @@ F DeclarePanelBox         | WorkspaceSpace.cpp       | 575-632   | - | - | ?
     in    Standing            WorkspaceDocument&               [-]  ?
     in    DeclaredIdentifier  const char*                      [-]  ?
     in    Title               const char*                      [-]  ?
-    out   -                   Outcome<WorkspacePanelIdentity>  [-]  ?
+    out   -                   Deliver<WorkspacePanelIdentity>  [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspaceStrip.cpp
 
 F WithdrawPanelBox        | WorkspaceSpace.cpp       | 634-647   | - | - | ?
     in    Standing  WorkspaceDocument&      [-]  ?
     in    Subject   WorkspacePanelIdentity  [-]  ?
-    out   -         Outcome<bool>           [-]  ?
+    out   -         Deliver<bool>           [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspaceStrip.cpp
 
 F AmendPanelBox           | WorkspaceSpace.cpp       | 649-660   | - | - | ?
     in    Standing  WorkspaceDocument&           [-]  ?
     in    Subject   WorkspacePanelIdentity       [-]  ?
-    out   -         Outcome<WorkspacePanelBox*>  [-]  ?
+    out   -         Deliver<WorkspacePanelBox*>  [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspacePanel.cpp
 
 F RaisePanelBox           | WorkspaceSpace.cpp       | 662-677   | - | - | ?
     in    Standing  WorkspaceDocument&      [-]  ?
     in    Subject   WorkspacePanelIdentity  [-]  ?
-    out   -         Outcome<bool>           [-]  ?
+    out   -         Deliver<bool>           [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspaceStrip.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -534,7 +534,7 @@ F DockPanelBox            | WorkspaceSpace.cpp       | 978-1027  | - | - | ?
     in    Body      WorkspaceRectangle      [-]  ?
     in    ReleaseX  float                   [-]  ?
     in    ReleaseY  float                   [-]  ?
-    out   -         Outcome<bool>           [-]  ?
+    out   -         Deliver<bool>           [-]  ?
     by    Api/WorkspaceSpace.h, Source/WorkspacePanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -43,7 +43,7 @@ F Widen                             | StorageExchange.cpp | 38-55   | -         
 
 F StorageExchange::Open             | StorageExchange.cpp | 65-133  | -          | - | ?
     in    Path  const std::string&  [-]  ?
-    out   -     Outcome<bool>       [-]  ?
+    out   -     Deliver<bool>       [-]  ?
 
 F StorageExchange::Reclaim          | StorageExchange.cpp | 135-152 | -          | - | ?
     out   -  void  [-]  ?
@@ -56,7 +56,7 @@ F StorageExchange::~StorageExchange | StorageExchange.cpp | 154-157 | destructor
 
 F StorageExchange::Declare          | StorageExchange.cpp | 163-190 | -          | - | ?
     in    Wanted  RangeRequest            [-]  ?
-    out   -       Outcome<std::uint32_t>  [-]  ?
+    out   -       Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE DRAIN

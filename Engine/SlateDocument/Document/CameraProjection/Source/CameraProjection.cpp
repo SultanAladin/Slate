@@ -102,23 +102,23 @@ void ViewDirection(RotationQuaternion Rotation, double& OutX, double& OutY, doub
 //                                                  THE VIEW PROJECTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ViewProjection> Derive(const CameraSpecification& Declaring)
+Deliver<ViewProjection> Derive(const CameraSpecification& Declaring)
 {
     if (!Declaring.Clipping.IntervalValid())
     {
-        return Outcome<ViewProjection>::Refuse(
+        return Deliver<ViewProjection>::Refuse(
             { RefusalReason::ContentUnsupported, "the clipping interval has no interior" });
     }
 
     if (Declaring.SensorProportion <= 0.0)
     {
-        return Outcome<ViewProjection>::Refuse(
+        return Deliver<ViewProjection>::Refuse(
             { RefusalReason::ContentUnsupported, "the sensor proportion is not positive" });
     }
 
     if (Declaring.ExtentParameter <= 0.0)
     {
-        return Outcome<ViewProjection>::Refuse(
+        return Deliver<ViewProjection>::Refuse(
             { RefusalReason::ContentUnsupported, "the projection's extent parameter has no interior" });
     }
 
@@ -152,7 +152,7 @@ Outcome<ViewProjection> Derive(const CameraSpecification& Declaring)
 
         if (!(Cotangent > 0.0))
         {
-            return Outcome<ViewProjection>::Refuse(
+            return Deliver<ViewProjection>::Refuse(
                 { RefusalReason::ContentUnsupported, "the angular field does not resolve a projection" });
         }
 
@@ -179,7 +179,7 @@ Outcome<ViewProjection> Derive(const CameraSpecification& Declaring)
     Derived.Projected = Projecting;
     Derived.Composed  = Multiply(Projecting, Derived.ViewRotation);
 
-    return Outcome<ViewProjection>::Deliver(Derived);
+    return Deliver<ViewProjection>::Deliver(Derived);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -310,23 +310,23 @@ const FrustumPlane& FrustumSpace::Plane(std::uint32_t PlaneOrdinal) const
 //                                                     NAVIGATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> NavigationSequence::Open(NavigationSubject Declaring_, const CameraSpecification& Standing)
+Deliver<bool> NavigationSequence::Open(NavigationSubject Declaring_, const CameraSpecification& Standing)
 {
     if (OpenDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "a navigation gesture is already open" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "a navigation gesture is already open" });
 
     PriorCamera   = Standing;
     AmendedCamera = Standing;
     Declaring     = Declaring_;
     OpenDeclared  = true;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double DisplacementAcross)
+Deliver<bool> NavigationSequence::Amend(double DisplacementAlong, double DisplacementAcross)
 {
     if (!OpenDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no navigation gesture is open" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no navigation gesture is open" });
 
     DocumentPosition& Position = AmendedCamera.Placement.Translation;
     RotationQuaternion Rotation = AmendedCamera.Placement.Rotation;
@@ -372,7 +372,7 @@ Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double Displac
             Position.PositionY = AmendedCamera.FocusPosition.PositionY + PitchedY;
             Position.PositionZ = AmendedCamera.FocusPosition.PositionZ + PitchedZ;
 
-            return Outcome<bool>::Deliver(true);
+            return Deliver<bool>::Deliver(true);
         }
 
         case NavigationSubject::Pan:
@@ -396,7 +396,7 @@ Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double Displac
             AmendedCamera.FocusPosition.PositionY += RightY * AlongScale + UpwardY * AcrossScale;
             AmendedCamera.FocusPosition.PositionZ += RightZ * AlongScale + UpwardZ * AcrossScale;
 
-            return Outcome<bool>::Deliver(true);
+            return Deliver<bool>::Deliver(true);
         }
 
         case NavigationSubject::Dolly:
@@ -410,7 +410,7 @@ Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double Displac
             Position.PositionY += ForwardY * Advance;
             Position.PositionZ += ForwardZ * Advance;
 
-            return Outcome<bool>::Deliver(true);
+            return Deliver<bool>::Deliver(true);
         }
 
         case NavigationSubject::Zoom:
@@ -428,39 +428,39 @@ Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double Displac
 
             AmendedCamera.ExtentParameter = Amending;
 
-            return Outcome<bool>::Deliver(true);
+            return Deliver<bool>::Deliver(true);
         }
 
         case NavigationSubject::NavigationCount:
             break;
     }
 
-    return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the declared gesture has no amendment" });
+    return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the declared gesture has no amendment" });
 }
 
-Outcome<CameraSpecification> NavigationSequence::Abandon()
+Deliver<CameraSpecification> NavigationSequence::Abandon()
 {
     if (!OpenDeclared)
-        return Outcome<CameraSpecification>::Refuse({ RefusalReason::HostDenied, "no navigation gesture is open" });
+        return Deliver<CameraSpecification>::Refuse({ RefusalReason::HostDenied, "no navigation gesture is open" });
 
     const CameraSpecification Restored = PriorCamera;
 
     AmendedCamera = PriorCamera;
     OpenDeclared  = false;
 
-    return Outcome<CameraSpecification>::Deliver(Restored);
+    return Deliver<CameraSpecification>::Deliver(Restored);
 }
 
-Outcome<CameraSpecification> NavigationSequence::Seal()
+Deliver<CameraSpecification> NavigationSequence::Seal()
 {
     if (!OpenDeclared)
-        return Outcome<CameraSpecification>::Refuse({ RefusalReason::HostDenied, "no navigation gesture is open" });
+        return Deliver<CameraSpecification>::Refuse({ RefusalReason::HostDenied, "no navigation gesture is open" });
 
     const CameraSpecification Sealed = AmendedCamera;
 
     OpenDeclared = false;
 
-    return Outcome<CameraSpecification>::Deliver(Sealed);
+    return Deliver<CameraSpecification>::Deliver(Sealed);
 }
 
 const CameraSpecification& NavigationSequence::Amended() const { return AmendedCamera; }
@@ -470,7 +470,7 @@ bool                       NavigationSequence::GestureOpen() const { return Open
 //                                                      FRAMING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<DecomposedTransform> Frame(const CameraSpecification& Standing,
+Deliver<DecomposedTransform> Frame(const CameraSpecification& Standing,
                                    DocumentPosition           Least,
                                    DocumentPosition           Greatest)
 {
@@ -478,13 +478,13 @@ Outcome<DecomposedTransform> Frame(const CameraSpecification& Standing,
      || Greatest.PositionY < Least.PositionY
      || Greatest.PositionZ < Least.PositionZ)
     {
-        return Outcome<DecomposedTransform>::Refuse(
+        return Deliver<DecomposedTransform>::Refuse(
             { RefusalReason::ContentUnsupported, "the extent is inverted and contains nothing" });
     }
 
     if (!Standing.Clipping.IntervalValid() || Standing.ExtentParameter <= 0.0 || Standing.SensorProportion <= 0.0)
     {
-        return Outcome<DecomposedTransform>::Refuse(
+        return Deliver<DecomposedTransform>::Refuse(
             { RefusalReason::ContentUnsupported, "the camera declares no projection to frame against" });
     }
 
@@ -529,60 +529,60 @@ Outcome<DecomposedTransform> Frame(const CameraSpecification& Standing,
     Framed.Translation.PositionY = Centre.PositionY - ForwardY * Distance;
     Framed.Translation.PositionZ = Centre.PositionZ - ForwardZ * Distance;
 
-    return Outcome<DecomposedTransform>::Deliver(Framed);
+    return Deliver<DecomposedTransform>::Deliver(Framed);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE CAMERA
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> CameraProjection::Declare(OccupantIdentity Subject, const CameraSpecification& Declaring)
+Deliver<bool> CameraProjection::Declare(OccupantIdentity Subject, const CameraSpecification& Declaring)
 {
     if (!Subject.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "a camera declares no occupant" });
+        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "a camera declares no occupant" });
 
     CameraOccupant = Subject;
     Specification  = Declaring;
     ReconcileOwed  = true;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> CameraProjection::Amend(const CameraSpecification& Amending)
+Deliver<bool> CameraProjection::Amend(const CameraSpecification& Amending)
 {
     if (!CameraOccupant.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "no camera has been declared" });
+        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "no camera has been declared" });
 
     Specification = Amending;
     ReconcileOwed = true;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> CameraProjection::DeclareDisplayExtent(std::uint32_t Width, std::uint32_t Height)
+Deliver<bool> CameraProjection::DeclareDisplayExtent(std::uint32_t Width, std::uint32_t Height)
 {
     if (Width == 0u || Height == 0u)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero has no proportion" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero has no proportion" });
 
     Specification.SensorProportion = static_cast<double>(Width) / static_cast<double>(Height);
     ReconcileOwed                  = true;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> CameraProjection::Reconcile()
+Deliver<bool> CameraProjection::Reconcile()
 {
-    const Outcome<ViewProjection> Derived = Derive(Specification);
+    const Deliver<ViewProjection> Derived = Derive(Specification);
 
     if (!Derived.ContentPresent)
-        return Outcome<bool>::Refuse(Derived.Declined);
+        return Deliver<bool>::Refuse(Derived.Declined);
 
     DerivedView = Derived.Resolve();
     DerivedFrustum.Construct(DerivedView);
 
     ReconcileOwed = false;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 const CameraSpecification& CameraProjection::Declared() const   { return Specification;  }

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 #include "Shared/ToneProjection.slang.h"
@@ -108,7 +108,7 @@ public:
     /// in    Exposing_  [-]  which of the two subjects drives the exposure, and its bounds
     /// in    Toning_    [-]  the scene white and the hue behaviour
     /// in    Encoding_  [-]  the working and display spaces, and what the format already carries
-    /// out   Outcome    [-]  refuses with ContentUnsupported for a white magnitude of nothing, a blend outside
+    /// out   Deliver    [-]  refuses with ContentUnsupported for a white magnitude of nothing, a blend outside
     ///                       the unit interval, a metered exposure with no adaptation interval, an undeclared
     ///                       space, and a display space that is the working space
     /// post  the metered exposure stands at the declared one and the metering has not yet adapted
@@ -117,23 +117,23 @@ public:
     ///        path by looking at it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(const ExposureSpecification& Exposing_,
+    Deliver<bool> Declare(const ExposureSpecification& Exposing_,
                           const ToneSpecification&     Toning_,
                           const EncodeSpecification&   Encoding_);
 
     /// 🧩 Contributes `08` §3 ⑧'s recording.
-    /// out   Outcome  [-]  refuses with whatever the schedule refused
+    /// out   Deliver  [-]  refuses with whatever the schedule refused
     /// note  🔴 Declared scene-referred although it produces display code. The flag orders a recording *after*
     ///        the tone line, and this recording **is** the tone line — declaring it display-referred would place
     ///        it among the amenders of its own output.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Contribute(RenderSchedule& Schedule) const;
+    Deliver<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Advances the metered exposure one interval toward the reduction just measured.
     /// in    ReducedLuminance  [-]  the reduction `86`'s tick measured over the accumulated radiance
     /// in    ElapsedSeconds    [s]  since the previous advance
-    /// out   Outcome           [-]  refuses with ContentUnsupported for a declared exposure and for a reduction
+    /// out   Deliver           [-]  refuses with ContentUnsupported for a declared exposure and for a reduction
     ///                              of nothing
     /// note  📐 The adaptation is linear **in stops** and not in radiance. An adaptation linear in radiance
     ///        crosses a bright scene in one step and a dark one in fifty, which reads as the metering being
@@ -143,7 +143,7 @@ public:
     ///        loading rather than as the metering working.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> AdvanceMetering(double ReducedLuminance, double ElapsedSeconds);
+    Deliver<bool> AdvanceMetering(double ReducedLuminance, double ElapsedSeconds);
 
     /// 🧩 The linear scale the standing exposure applies to radiance.
     /// out   Scale  [-]  a doubling per stop, through `Shared/`'s own routine
@@ -156,7 +156,7 @@ public:
 
     /// 🧩 Projects one accumulated radiance into display code — the four ordered operations, once each.
     /// in    Accumulated  [-]  scene-referred, in the working space, unbounded above
-    /// out   Outcome      [-]  refuses with ContentUnsupported for an undeclared colour and for one that is not
+    /// out   Deliver      [-]  refuses with ContentUnsupported for an undeclared colour and for one that is not
     ///                         a coordinate in the declared working space, and with whatever `36` refused
     /// note  🔴 The arriving space is compared rather than assumed. A radiance that arrived in another space is
     ///        compressed against a white magnitude that means nothing in it, and the result is plausible.
@@ -164,7 +164,7 @@ public:
     ///        `36` is called, so ours is withheld rather than applied twice — `66` §4.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<ColourSpecification> Project(const ColourSpecification& Accumulated) const;
+    Deliver<ColourSpecification> Project(const ColourSpecification& Accumulated) const;
 
     /// 🧩 Declares every measure; appends nothing.
     /// note  🔴 `66` appears in no row of `86` §4's register. An exposure that adapts is the metering working,

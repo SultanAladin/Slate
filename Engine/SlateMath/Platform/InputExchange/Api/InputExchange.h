@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 
 #include <cstdint>
@@ -72,7 +72,7 @@ public:
     /// 🧩 Takes the native window's pointer stream and records every sample the device reports on it.
     /// in    NativeWindowSlot  [-]  `WindowInterchange::NativeHandle`; borrowed and outlives this attachment
     /// in    HostTimeline      [-]  the process's one timeline, for arrival stamps
-    /// out   Outcome           [-]  refuses with HostDenied when the window declines the attachment, and with
+    /// out   Deliver           [-]  refuses with HostDenied when the window declines the attachment, and with
     ///                              ExtentExhausted when this exchange is already attached
     /// note  🔴 The axes are read from the operating system's own pointer surface and not from the window
     ///        system's, because the window system reports a position and nothing else. `04` §3 requires an
@@ -83,7 +83,7 @@ public:
     ///        replacement here would take that stream away from it silently.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Attach(void* NativeWindowSlot, const TickSequence& HostTimeline);
+    Deliver<bool> Attach(void* NativeWindowSlot, const TickSequence& HostTimeline);
 
     /// 🧩 Returns the pointer stream to whoever held it before this attachment.
     /// note  Called by the destructor as well, so an exchange that outlives its window releases nothing twice.

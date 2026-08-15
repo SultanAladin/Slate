@@ -204,7 +204,7 @@ F ManipulationLayout::Layout         | SpatialManipulator.cpp | 558-713   | - | 
     in    Orientation  RotationQuaternion       [-]  ?
     in    Camera       const CameraProjection&  [-]  ?
     in    Addressing   ManipulatedSubject       [-]  ?
-    out   -            Outcome<bool>            [-]  ?
+    out   -            Deliver<bool>            [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE GRASP
@@ -216,11 +216,11 @@ F ManipulationLayout::Grasp          | SpatialManipulator.cpp | 719-785   | - | 
     in    PointerAcross  double                   [-]  ?
     in    DisplayAlong   std::uint32_t            [-]  ?
     in    DisplayAcross  std::uint32_t            [-]  ?
-    out   -              Outcome<std::uint32_t>   [-]  ?
+    out   -              Deliver<std::uint32_t>   [-]  ?
 
 F ManipulationLayout::Resolve        | SpatialManipulator.cpp | 787-802   | - | - | ?
     in    GripOrdinal  std::uint32_t                     [-]  ?
-    out   -            Outcome<const ManipulationGrip*>  [-]  ?
+    out   -            Deliver<const ManipulationGrip*>  [-]  ?
 
 F ManipulationLayout::Grips          | SpatialManipulator.cpp | 804-807   | - | - | ?
     out   -  const std::vector<ManipulationGrip>&  [-]  ?
@@ -252,7 +252,7 @@ F ManipulationSequence::Open         | SpatialManipulator.cpp | 843-961   | - | 
     in    PointerAcross  double                     [-]  ?
     in    DisplayAlong   std::uint32_t              [-]  ?
     in    DisplayAcross  std::uint32_t              [-]  ?
-    out   -              Outcome<bool>              [-]  ?
+    out   -              Deliver<bool>              [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    AMENDING A DRAG
@@ -264,17 +264,17 @@ F ManipulationSequence::Amend        | SpatialManipulator.cpp | 967-1115  | - | 
     in    DisplayAlong   std::uint32_t  [-]  ?
     in    DisplayAcross  std::uint32_t  [-]  ?
     in    SnapDeclared   bool           [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ENDING A DRAG
 //------------------------------------------------------------------------------------------------------------------------
 
 F ManipulationSequence::Abandon      | SpatialManipulator.cpp | 1121-1140 | - | - | ?
-    out   -  Outcome<ManipulationAmendment>  [-]  ?
+    out   -  Deliver<ManipulationAmendment>  [-]  ?
 
 F ManipulationSequence::Seal         | SpatialManipulator.cpp | 1142-1157 | - | - | ?
-    out   -  Outcome<ManipulationAmendment>  [-]  ?
+    out   -  Deliver<ManipulationAmendment>  [-]  ?
 
 F ManipulationSequence::Amended      | SpatialManipulator.cpp | 1159-1162 | - | - | ?
     out   -  const ManipulationAmendment&  [-]  ?

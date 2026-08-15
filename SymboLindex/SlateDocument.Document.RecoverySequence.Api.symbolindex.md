@@ -69,14 +69,14 @@ T RecoverySequence                    | RecoverySequence.h | 77-179 | owning    
 F RecoverySequence::DeclareDocument   | RecoverySequence.h | 94     | api,nonthrowing               | ✔️ | Names the document this journal belongs to, and the journal's own storage location. did not know its document could be replayed into whichever document happened to be open.
     in    DeclaredDocument  const std::string&  [-]  UTF-8; the document the journal is offered against
     in    DeclaredJournal   const std::string&  [-]  UTF-8; where the journal itself is written
-    out   -                 Outcome             [-]  refuses with ContentUnsupported when either path is empty
+    out   -                 Deliver             [-]  refuses with ContentUnsupported when either path is empty
     by    Api/WorkspaceSpace.h, Source/DocumentSession.cpp, Source/RecoverySequence.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  🔴 Both paths are held because §4.1's pairing is what makes the offer meaningful. A journal that
 
 F RecoverySequence::Append            | RecoverySequence.h | 106    | api,nonthrowing               | 🚩 | Appends one sealed transaction to the journal. cannot be replayed from the saved file. OfferReplay reports that as PartlyOffered, so the artist is told the recovery is partial rather than handed a document assembled from a gap.
     in    Sealing          const CommittedTransaction&  [-]  the transaction as `RevisionSequence` sealed it
     in    RevisionOrdinal  std::uint64_t                [-]  where it sits in the document's committed order
-    out   -                Outcome                      [-]  refuses with ContentUnsupported when no document is declared
+    out   -                Deliver                      [-]  refuses with ContentUnsupported when no document is declared
     post  the retained count never exceeds EntryCeiling; the oldest entry leaves when it would
     by    Api/FileInterchange.h, Api/ReportSequence.h, Api/SurfaceLayerSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, (+12 more)
     note  ⚠️ An entry leaving at the ceiling makes the journal a **suffix** rather than a tail, and a suffix

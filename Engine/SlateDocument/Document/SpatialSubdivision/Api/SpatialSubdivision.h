@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateDocument/Document/EnrollmentIndex/Api/EnrollmentIndex.h"
 #include "SlateDocument/Document/TopologyConditioning/Api/TopologyConditioning.h"
@@ -81,14 +81,14 @@ public:
     /// 🧩 Builds the subdivision over one sealed topology's conditioned face extents.
     /// in    Imported    [-]  the sealed topology
     /// in    Conditioned [-]  its conditioning, whose face extents are already rounded outward
-    /// out   Outcome     [-]  refuses with HostDenied for an unsealed topology, and with ExtentExhausted when the
+    /// out   Deliver     [-]  refuses with HostDenied for an unsealed topology, and with ExtentExhausted when the
     ///                        conditioning describes a different revision
     /// note  🔴 The conditioning's revision is compared against the topology's. A structure built over extents
     ///        derived from a different seal indexes faces that have moved, and every intersection it resolves is
     ///        confidently wrong.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const TopologyStructure& Imported, const TopologyConditioning& Conditioned);
+    Deliver<bool> Construct(const TopologyStructure& Imported, const TopologyConditioning& Conditioned);
 
     /// 🧩 Intersects one ray, in the occupant's own object space.
     /// in    Origin            [mm]  the ray's origin, in object space
@@ -186,37 +186,37 @@ class OctantSpace
 public:
 
     /// 🧩 Admits one occupant, or amends the one already admitted at that identity.
-    /// out   Outcome  [-]  refuses with IdentityStale for an undeclared identity
+    /// out   Deliver  [-]  refuses with IdentityStale for an undeclared identity
     /// post  the subdivision is owed a rebuild before the admission is traversable
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Admit(const AdmittedOccupant& Arriving);
+    Deliver<bool> Admit(const AdmittedOccupant& Arriving);
 
     /// 🧩 Withdraws one occupant.
-    /// out   Outcome  [-]  refuses with IdentityStale when the occupant is not admitted
+    /// out   Deliver  [-]  refuses with IdentityStale when the occupant is not admitted
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Withdraw(OccupantIdentity Subject);
+    Deliver<bool> Withdraw(OccupantIdentity Subject);
 
     /// 🧩 Refits one occupant's extent and composed transform, without rebuilding.
-    /// out   Outcome  [-]  refuses with IdentityStale when the occupant is not admitted
+    /// out   Deliver  [-]  refuses with IdentityStale when the occupant is not admitted
     /// note  🔴 This is `40` §4's most frequent row and it is deliberately cheap. The subdivision's shape is
     ///        untouched; only the extents along the path to the occupant's record widen.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Refit(OccupantIdentity Subject, const DecomposedTransform& Composed, ConditionedExtent Extent);
+    Deliver<bool> Refit(OccupantIdentity Subject, const DecomposedTransform& Composed, ConditionedExtent Extent);
 
     /// 🧩 Surrenders one admitted occupant's standing record.
-    /// out   Outcome  [-]  refuses with IdentityStale when the occupant is not admitted
+    /// out   Deliver  [-]  refuses with IdentityStale when the occupant is not admitted
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<AdmittedOccupant> Standing(OccupantIdentity Subject) const;
+    Deliver<AdmittedOccupant> Standing(OccupantIdentity Subject) const;
 
     /// 🧩 Rebuilds the subdivision's shape over every admitted occupant.
     /// post  the shape is optimal for the current extents; nothing is owed
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct();
+    Deliver<bool> Construct();
 
     /// 🧩 Resolves the nearest occupant surface along one document-space ray — `74`'s precedence 2.
     /// in    Origin      [mm]  the ray's origin, in document space
@@ -322,16 +322,16 @@ public:
     void Construct(const std::vector<DomainExtent>& Declaring);
 
     /// 🧩 Amends one placement's extent without rebuilding — the row `40` §4 reaches when a placement moved.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when no placement carries that ordinal
+    /// out   Deliver  [-]  refuses with ExtentExhausted when no placement carries that ordinal
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Refit(std::uint32_t PlacementOrdinal, DomainExtent Amending);
+    Deliver<bool> Refit(std::uint32_t PlacementOrdinal, DomainExtent Amending);
 
     /// 🧩 Resolves the topmost placement containing one domain position.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when no placement contains it
+    /// out   Deliver  [-]  refuses with ExtentExhausted when no placement contains it
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Resolve(double PositionAlong, double PositionAcross) const;
+    Deliver<std::uint32_t> Resolve(double PositionAlong, double PositionAcross) const;
 
     /// 🧩 Every placement whose extent overlaps a domain extent.
     /// cost  🚩

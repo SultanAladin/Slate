@@ -380,15 +380,15 @@ bool InitializeComponentOverlayInscription(ComponentOverlayInscription& Inscript
     PipelineInfo.pDynamicState       = &Dynamic;
     PipelineInfo.layout              = Inscription.PipelineLayout;
 
-    VkResult Outcome = vkCreateGraphicsPipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Inscription.Pipeline);
+    VkResult Deliver = vkCreateGraphicsPipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Inscription.Pipeline);
 
     vkDestroyShaderModule(Host.Device, VertexModule, Host.Allocator);
     vkDestroyShaderModule(Host.Device, FragmentModule, Host.Allocator);
 
-    if (Outcome != VK_SUCCESS)
+    if (Deliver != VK_SUCCESS)
     {
         FinalizeComponentOverlayInscription(Inscription);
-        ISSUE_FAULT("component-overlay", "graphics pipeline creation failed (VkResult %d)", (int)Outcome);
+        ISSUE_FAULT("component-overlay", "graphics pipeline creation failed (VkResult %d)", (int)Deliver);
         return false;
     }
 

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
@@ -98,7 +98,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 /// 🧩 Generates one primitive into a sealed topology.
 /// in    Declaring  [-]  the parameters
 /// in    Generated  [-]  an unsealed topology; positions, faces, coordinates and perpendiculars are declared into it
-/// out   Outcome    [-]  refuses with ContentUnsupported for a specification `PrimitiveGenerable` rejects, and
+/// out   Deliver    [-]  refuses with ContentUnsupported for a specification `PrimitiveGenerable` rejects, and
 ///                       with HostDenied for a topology that is already sealed
 /// post  🔴 the topology is sealed; its revision has advanced and nothing further may be declared into it
 /// note  🔴 The topology is sealed **here**, at the end of generation, because a primitive is complete by
@@ -113,7 +113,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 ///        read as an edge.
 /// cost  🔴
 /// tag   api, nonthrowing
-Outcome<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, TopologyStructure& Generated);
+Deliver<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, TopologyStructure& Generated);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 /// 🧩 The half-extents the generated solid actually occupies, before any transform places it.
@@ -151,37 +151,37 @@ public:
 
     /// 🧩 Declares one primitive's parameters and issues the ordinal it is addressed by.
     /// in    Declaring  [-]  the parameters
-    /// out   Outcome    [-]  refuses with ContentUnsupported for a specification `PrimitiveGenerable` rejects,
+    /// out   Deliver    [-]  refuses with ContentUnsupported for a specification `PrimitiveGenerable` rejects,
     ///                       and with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Declare(const PrimitiveSpecification& Declaring);
+    Deliver<std::uint32_t> Declare(const PrimitiveSpecification& Declaring);
 
     /// 🧩 Amends one primitive's parameters, advancing its revision where the generated surface would differ.
     /// in    PrimitiveOrdinal  [-]  an ordinal this component issued
     /// in    Amending          [-]  the amended parameters
-    /// out   Outcome           [-]  refuses with ContentUnsupported for an unclaimed ordinal or a specification
+    /// out   Deliver           [-]  refuses with ContentUnsupported for an unclaimed ordinal or a specification
     ///                              `PrimitiveGenerable` rejects
     /// note  🔴 The revision advances only where the amendment changes the generated surface. Every member here
     ///        does, which is why the comparison is over the whole specification — but stating it that way is what
     ///        keeps a later member that does *not* from silently forcing a re-generation of every occupant.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending);
+    Deliver<bool> Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending);
 
     /// 🧩 One declared primitive's parameters.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const PrimitiveSpecification*> Resolve(std::uint32_t PrimitiveOrdinal) const;
+    Deliver<const PrimitiveSpecification*> Resolve(std::uint32_t PrimitiveOrdinal) const;
 
     /// 🧩 Withdraws one primitive, returning its slot for reuse.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// note  ⚠️ The slot is reused rather than erased, exactly as `72`'s placements are. Erasing would renumber
     ///        every ordinal above it and every occupant naming one would name a different primitive.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Withdraw(std::uint32_t PrimitiveOrdinal);
+    Deliver<bool> Withdraw(std::uint32_t PrimitiveOrdinal);
 
     /// 🧩 One primitive's revision, so a consumer knows whether its generated surface is still current.
     /// out   Revision  [-]  zero for an unclaimed ordinal, which no generated surface ever recorded

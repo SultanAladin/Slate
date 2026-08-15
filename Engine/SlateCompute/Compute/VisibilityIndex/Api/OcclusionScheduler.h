@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/DepthReduction.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/PartitionClassifier.h"
@@ -168,12 +168,12 @@ public:
     /// in    Modules      [-]  where both lowered streams are resolved; borrowed, non-const for the declaration
     /// in    Descriptors  [-]  where both layouts are declared; borrowed and outlives this component
     /// in    Programs     [-]  where both programs are constructed; borrowed and outlives this component
-    /// out   Outcome      [-]  refuses with whatever the layouts, the modules or the programs refused
+    /// out   Deliver      [-]  refuses with whatever the layouts, the modules or the programs refused
     /// pre   🔴 the descriptor declaration is not yet fixed — `Declare` refuses once it is
     /// post  both programs stand; no chain is derived and no residency is claimable
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(SpanSpace&        Spans,
+    Deliver<bool> Construct(SpanSpace&        Spans,
                             ImageSpace&       Images,
                             const TargetSpace& Claimed,
                             ShaderCodec&      Modules,
@@ -183,7 +183,7 @@ public:
     /// 🧩 Derives the level chain against one display extent and claims the span that holds it.
     /// in    DisplayAlong   [px]  the extent this rotation is recorded against
     /// in    DisplayAcross  [px]
-    /// out   Outcome        [-]   refuses with whatever `DepthReduction` or the claim refused
+    /// out   Deliver        [-]   refuses with whatever `DepthReduction` or the claim refused
     /// pre   🔴 the device is idle — every rotation reading the previous chain has completed
     /// post  the chain span stands and the level offsets are held beside it
     /// note  🔴 The chain is **not** cleared on derivation and does not need to be. Phase ① of the first rotation
@@ -192,12 +192,12 @@ public:
     ///        against arbitrary depth. `ChainReduced` below is what distinguishes them.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Deliver<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
 
     /// 🧩 Claims the culling spans for one resident partitioning.
     /// in    TriangleCeiling  [-]  triangles the residency's fan carries; the surviving run is sized to it
     /// in    PartitionCount   [-]  partitions the enrolment declared
-    /// out   Outcome          [-]  the culling ordinal; refuses with whatever the claim refused and with
+    /// out   Deliver          [-]  the culling ordinal; refuses with whatever the claim refused and with
     ///                             ContentUnsupported for a residency carrying no triangle
     /// pre   🔴 `DescriptorIndex::Fix` delivered, and `Derive` has claimed the chain
     /// post  the spans stand and are written every rotation until the topology changes
@@ -206,13 +206,13 @@ public:
     ///        would do it to a set the previous rotation's dispatch is still reading.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Resolve(std::uint32_t TriangleCeiling, std::uint32_t PartitionCount);
+    Deliver<std::uint32_t> Resolve(std::uint32_t TriangleCeiling, std::uint32_t PartitionCount);
 
     /// 🧩 Writes one rotation's classification into a residency's span and clears its indirect record.
     /// in    CullingOrdinal  [-]  an ordinal this component issued
     /// in    RotationSlot    [-]  below `RecordingRotationDepth`
     /// in    Classified      [-]  one entry per partition, as `ClassifyPartition` produced them in order
-    /// out   Outcome         [-]  refuses with ContentUnsupported for an unclaimed ordinal or a run disagreeing
+    /// out   Deliver         [-]  refuses with ContentUnsupported for an unclaimed ordinal or a run disagreeing
     ///                            with the declared partition count, and with whatever the write refused
     /// pre   🔴 no recording that reads this rotation slot's spans is still executing
     /// note  🔴 **Both** phases' records are cleared to a corner count of nought here and never on the device.
@@ -223,14 +223,14 @@ public:
     ///        run at the partition count and lets the entry point's dispatch extent be that same count.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(std::uint32_t                             CullingOrdinal,
+    Deliver<bool> Amend(std::uint32_t                             CullingOrdinal,
                         std::uint32_t                             RotationSlot,
                         const std::vector<ClassifiedPartition>&   Classified);
 
     /// 🧩 Records ② — one dispatch per level, reducing the depth target into the chain.
     /// in    Recorded      [-]  the open recording of this rotation slot
     /// in    RotationSlot  [-]  below `RecordingRotationDepth`
-    /// out   Outcome       [-]  refuses with ContentUnsupported before the chain is derived, and with whatever
+    /// out   Deliver       [-]  refuses with ContentUnsupported before the chain is derived, and with whatever
     ///                          the descriptor write, the transition or the program resolution refused
     /// post  ChainReduced holds; phase ③ may be recorded against it
     /// note  🔴 One barrier **between** every pair of levels and not one before the run. Each level reads the
@@ -243,13 +243,13 @@ public:
     ///        from the wrong one.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Reduce(VkCommandBuffer Recorded, std::uint32_t RotationSlot);
+    Deliver<bool> Reduce(VkCommandBuffer Recorded, std::uint32_t RotationSlot);
 
     /// 🧩 Records ① or ③ — one dispatch per residency, testing its partitions and compacting the survivors.
     /// in    Recorded      [-]  the open recording of this rotation slot
     /// in    RotationSlot  [-]  below `RecordingRotationDepth`
     /// in    Phase         [-]  which reduction is being tested against
-    /// out   Outcome       [-]  refuses with ContentUnsupported before the chain is derived, before `Amend` has
+    /// out   Deliver       [-]  refuses with ContentUnsupported before the chain is derived, before `Amend` has
     ///                          written this rotation slot, and for `AgainstCurrent` before `Reduce` was recorded
     /// post  every residency's record names the corners its survivors amount to
     /// note  🔴 The barrier after the dispatch declares the record as an **indirect** read and the surviving run
@@ -258,25 +258,25 @@ public:
     ///        invocation — which draws a prefix of the survivors and reads as geometry culled at random.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Cull(VkCommandBuffer Recorded, std::uint32_t RotationSlot, CullingPhase Phase);
+    Deliver<bool> Cull(VkCommandBuffer Recorded, std::uint32_t RotationSlot, CullingPhase Phase);
 
     /// 🧩 The record and the surviving run one residency's draw is issued from.
     /// in    CullingOrdinal  [-]  an ordinal this component issued
     /// in    RotationSlot    [-]  below `RecordingRotationDepth`
     /// in    Phase           [-]  which of the two phases the draw follows
-    /// out   Outcome         [-]  the indirect record's vendor span; refuses with ContentUnsupported for an
+    /// out   Deliver         [-]  the indirect record's vendor span; refuses with ContentUnsupported for an
     ///                            unclaimed ordinal or an excessive rotation slot
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<VkBuffer> RecordOf(std::uint32_t CullingOrdinal,
+    Deliver<VkBuffer> RecordOf(std::uint32_t CullingOrdinal,
                                std::uint32_t RotationSlot,
                                CullingPhase  Phase) const;
 
     /// 🧩 The compacted triangle ordinals one residency's vertex stage resolves through.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<VkBuffer> SurvivingOf(std::uint32_t CullingOrdinal,
+    Deliver<VkBuffer> SurvivingOf(std::uint32_t CullingOrdinal,
                                   std::uint32_t RotationSlot,
                                   CullingPhase  Phase) const;
 
@@ -308,8 +308,8 @@ private:
     /// in    Recorded      [-]  the recording being written into
     /// in    RotationSlot  [-]  below `RecordingRotationDepth`
     /// in    LevelOrdinal  [-]  the level being written; nought reads the depth target
-    /// out   Outcome       [-]  refuses with whatever the write or the resolution refused
-    Outcome<bool> ReduceLevel(VkCommandBuffer  Recorded,
+    /// out   Deliver       [-]  refuses with whatever the write or the resolution refused
+    Deliver<bool> ReduceLevel(VkCommandBuffer  Recorded,
                               std::uint32_t    RotationSlot,
                               std::uint32_t    LevelOrdinal);
 

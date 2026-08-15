@@ -14,29 +14,29 @@ namespace Slate
 //                                                     THE DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> RecoverySequence::DeclareDocument(const std::string& DeclaredDocument, const std::string& DeclaredJournal)
+Deliver<bool> RecoverySequence::DeclareDocument(const std::string& DeclaredDocument, const std::string& DeclaredJournal)
 {
     if (DeclaredDocument.empty() || DeclaredJournal.empty())
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a journal knows which document it belongs to — `48` §4.1" });
     }
 
     DocumentPath = DeclaredDocument;
     JournalPath  = DeclaredJournal;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE APPENDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> RecoverySequence::Append(const CommittedTransaction& Sealing, std::uint64_t RevisionOrdinal)
+Deliver<bool> RecoverySequence::Append(const CommittedTransaction& Sealing, std::uint64_t RevisionOrdinal)
 {
     if (DocumentPath.empty())
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "no document is declared for this journal — `48` §4.1" });
     }
 
@@ -57,7 +57,7 @@ Outcome<bool> RecoverySequence::Append(const CommittedTransaction& Sealing, std:
         ++DiscardedTotal;
     }
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

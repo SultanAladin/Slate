@@ -63,7 +63,7 @@ F DiscardCountStanding     | RevisionPanel.h | 73    | api,nonallocating,nonthro
 F ScrubToPosition          | RevisionPanel.h | 90    | api,nonthrowing               | 🚩 | Moves the scrub position to one place in the sequence, replaying every intervening transaction in order. snapshot would arrive at a state the sequence cannot be scrubbed back out of, because the inverses between here and there were never run.
     in    Sequence  RevisionSequence&  [-]  scrubbed through `Retreat` and `Advance` alone
     in    Arriving  std::uint64_t      [-]  the position sought; bounded to the committed count
-    out   -         Outcome            [-]  refuses with ContentUnsupported when a replay along the way refused, naming where
+    out   -         Deliver            [-]  refuses with ContentUnsupported when a replay along the way refused, naming where
     post  the position is the sought one, or the furthest one every replay along the way delivered
     by    Source/RevisionPanel.cpp
     note  🔴 `84` §3: every intervening transaction is replayed and nothing is skipped. A jump that restored a

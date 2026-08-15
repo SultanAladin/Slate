@@ -106,7 +106,7 @@ F Project                                 | ColourProjection.h | 150     | api,n
     in    Arriving       ColourSpecification              [-]  the colour, carrying the space it is a coordinate in
     in    ArrivingSpace  const ColourSpaceSpecification&  [-]  ?
     in    Target         const ColourSpaceSpecification&  [-]  the space to express it in
-    out   -              Outcome                          [-]  refuses with ContentUnsupported when either space is undeclared
+    out   -              Deliver                          [-]  refuses with ContentUnsupported when either space is undeclared
     by    Api/DisplayProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TickSequence.h, Api/TransformProjection.h, Api/VisibilityRaster.h, (+12 more)
     note  🔴 The whole conversion in one call: decode the arriving transfer, project the primaries, adapt the
 
@@ -122,7 +122,7 @@ F ProjectTristimulus                      | ColourProjection.h | 170     | api,n
     in    Target        const ColourSpaceSpecification&  [-]  the space to express it in
     in    TristimulusY  -                                [-]  ?
     in    TristimulusZ  -                                [-]  ?
-    out   -             Outcome                          [-]  refuses with ContentUnsupported for an undeclared or degenerate target space
+    out   -             Deliver                          [-]  refuses with ContentUnsupported for an undeclared or degenerate target space
     by    Source/AtmosphereIntegrator.cpp, Source/ColourProjection.cpp
     note  🔴 No white adaptation is applied. A tristimulus coordinate is absolute and carries no white of its
     note  📝 Declared so that `28` may resolve a spectrally projected extinction coefficient into the working
@@ -174,7 +174,7 @@ F SLATE_DECLARES_PRECISION                | ColourProjection.h | 197     | -    
 F ProjectTemperature                      | ColourProjection.h | 206     | api,nonallocating,nonthrowing | ✔️ | Derives a white point coordinate from a declared correlated colour temperature. 5600 expects to see 5600 when they return, and a coordinate cannot be inverted back to it exactly.
     in    Temperature  double                           [K]  1667 to 25000; outside that the locus approximation is refused
     in    Target       const ColourSpaceSpecification&  [-]  ?
-    out   -            Outcome                          [-]  refuses with ContentUnsupported outside the declared interval
+    out   -            Deliver                          [-]  refuses with ContentUnsupported outside the declared interval
     by    Source/ColourProjection.cpp, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
     note  🔴 `36` §5: the temperature is retained as the authored value by whoever declared it. An artist who set
 

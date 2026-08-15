@@ -52,7 +52,7 @@ T DistortionMeasure        | UnwrapSolver.h | 51-58 | nonallocating,nonthrowing 
 
 F Solve                    | UnwrapSolver.h | 80    | api,nonthrowing           | 🔴 | Flattens one chart, boundary first, and reports which condition terminated it. an out-of-range corner, a boundary loop shorter than three, or a boundary of no extent cause, because a solver that returns its last iterate at the ceiling is indistinguishable from one that converged — and `68` §4's specific consequence is an artist painting on a domain whose distortion nobody measured. weighted average of its neighbours. Mean-value weights are strictly positive, so a convex boundary gives a fold-free embedding by construction rather than by inspection — which is the whole reason the boundary is mapped to a circle rather than to the chart's own silhouette. `68` §4.1 tests for them anyway. Construction narrows the failure; it does not remove it.
     in    Declaring  const UnwrapSpecification&  [-]  the chart, its triangulation and its boundary loop
-    out   -          Outcome                     [-]  refuses with ContentUnsupported for a triangulation that is not a multiple of three,
+    out   -          Deliver                     [-]  refuses with ContentUnsupported for a triangulation that is not a multiple of three,
     by    Api/LinearSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
     note  🔴 Convergent, per `02` §5. The result carries its residual, its iteration count and its termination
     note  📐 The boundary is mapped to a circle by chord length and the interior is relaxed toward the mean-value

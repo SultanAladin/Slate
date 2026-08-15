@@ -35,7 +35,7 @@ F DecodeHalf                                      | AtmosphereIntegrator.cpp | 6
 //------------------------------------------------------------------------------------------------------------------------
 
 F MediumSpecification::Validate                   | AtmosphereIntegrator.cpp | 105-129   | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                               THE SPECTRAL COEFFICIENTS
@@ -45,7 +45,7 @@ F Resolve                                         | AtmosphereIntegrator.cpp | 1
     in    Declared  const MediumSpecification&       [-]  ?
     in    Working   const ColourSpaceSpecification&  [-]  ?
     in    Rule      const QuadratureRule&            [-]  ?
-    out   -         Outcome<MediumCoefficient>       [-]  ?
+    out   -         Deliver<MediumCoefficient>       [-]  ?
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ F ResidentSurface::Construct                      | AtmosphereIntegrator.cpp | 3
     in    ExtentAlong_       std::uint32_t  [-]  ?
     in    ExtentAcross_      std::uint32_t  [-]  ?
     in    WrapAlongDeclared  bool           [-]  ?
-    out   -                  Outcome<bool>  [-]  ?
+    out   -                  Deliver<bool>  [-]  ?
 
 F ResidentSurface::Write                          | AtmosphereIntegrator.cpp | 325-337   | - | - | ?
     in    Along   std::uint32_t  [-]  ?
@@ -117,17 +117,17 @@ F IrradianceProjection::Evaluate                  | AtmosphereIntegrator.cpp | 4
 
 F AtmosphereIntegrator::DeclareMedium             | AtmosphereIntegrator.cpp | 466-482   | - | - | ?
     in    Declaring  const MediumSpecification&  [-]  ?
-    out   -          Outcome<bool>               [-]  ?
+    out   -          Deliver<bool>               [-]  ?
 
 F AtmosphereIntegrator::DeclareSun                | AtmosphereIntegrator.cpp | 484-506   | - | - | ?
     in    DirectionX  double         [-]  ?
     in    DirectionY  double         [-]  ?
     in    DirectionZ  double         [-]  ?
-    out   -           Outcome<bool>  [-]  ?
+    out   -           Deliver<bool>  [-]  ?
 
 F AtmosphereIntegrator::DeclareCameraAltitude     | AtmosphereIntegrator.cpp | 508-525   | - | - | ?
     in    Altitude  double         [-]  ?
-    out   -         Outcome<bool>  [-]  ?
+    out   -         Deliver<bool>  [-]  ?
 
 F AtmosphereIntegrator::DeclareAtmospherePresence | AtmosphereIntegrator.cpp | 527-530   | - | - | ?
     in    PresenceEnabled  bool  [-]  ?
@@ -135,7 +135,7 @@ F AtmosphereIntegrator::DeclareAtmospherePresence | AtmosphereIntegrator.cpp | 5
 
 F AtmosphereIntegrator::DeclareConstantFloor      | AtmosphereIntegrator.cpp | 532-541   | - | - | ?
     in    Declaring  const ColourSpecification&  [-]  ?
-    out   -          Outcome<bool>               [-]  ?
+    out   -          Deliver<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE MEDIUM PROFILES
@@ -150,7 +150,7 @@ F AtmosphereIntegrator::ShapeProfile              | AtmosphereIntegrator.cpp | 5
 
 F AtmosphereIntegrator::BuildTransmittance        | AtmosphereIntegrator.cpp | 587-670   | - | - | ?
     in    Rule  const QuadratureRule&  [-]  ?
-    out   -     Outcome<bool>          [-]  ?
+    out   -     Deliver<bool>          [-]  ?
 
 F AtmosphereIntegrator::TransmittanceAt           | AtmosphereIntegrator.cpp | 672-681   | - | - | ?
     in    Radius        double   [-]  ?
@@ -173,14 +173,14 @@ F AtmosphereIntegrator::MultiScatterAt            | AtmosphereIntegrator.cpp | 6
     out   -                void     [-]  ?
 
 F AtmosphereIntegrator::BuildMultiScatter         | AtmosphereIntegrator.cpp | 697-835   | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 ③ THE SKY-VIEW SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
 F AtmosphereIntegrator::BuildSkyView              | AtmosphereIntegrator.cpp | 850-959   | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                THE HARMONIC CONVOLUTION
@@ -196,7 +196,7 @@ F AtmosphereIntegrator::DeriveIrradiance          | AtmosphereIntegrator.cpp | 9
 F AtmosphereIntegrator::Rebuild                   | AtmosphereIntegrator.cpp | 1027-1087 | - | - | ?
     in    Working  const ColourSpaceSpecification&  [-]  ?
     in    Rule     const QuadratureRule&            [-]  ?
-    out   -        Outcome<bool>                    [-]  ?
+    out   -        Deliver<bool>                    [-]  ?
 
 F AtmosphereIntegrator::RebuildOwed               | AtmosphereIntegrator.cpp | 1089-1092 | - | - | ?
     out   -  bool  [-]  ?
@@ -212,7 +212,7 @@ F AtmosphereIntegrator::SampleSkyView             | AtmosphereIntegrator.cpp | 1
     in    Red         double&        [-]  ?
     in    Green       double&        [-]  ?
     in    Blue        double&        [-]  ?
-    out   -           Outcome<bool>  [-]  ?
+    out   -           Deliver<bool>  [-]  ?
 
 F AtmosphereIntegrator::SampleTransmittance       | AtmosphereIntegrator.cpp | 1130-1140 | - | - | ?
     in    Altitude      double         [-]  ?
@@ -220,7 +220,7 @@ F AtmosphereIntegrator::SampleTransmittance       | AtmosphereIntegrator.cpp | 1
     in    Red           double&        [-]  ?
     in    Green         double&        [-]  ?
     in    Blue          double&        [-]  ?
-    out   -             Outcome<bool>  [-]  ?
+    out   -             Deliver<bool>  [-]  ?
 
 F AtmosphereIntegrator::AerialTransmittance       | AtmosphereIntegrator.cpp | 1142-1199 | - | - | ?
     in    Altitude    double                 [-]  ?
@@ -232,7 +232,7 @@ F AtmosphereIntegrator::AerialTransmittance       | AtmosphereIntegrator.cpp | 1
     in    Red         double&                [-]  ?
     in    Green       double&                [-]  ?
     in    Blue        double&                [-]  ?
-    out   -           Outcome<bool>          [-]  ?
+    out   -           Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   WHAT IS PRESENTED

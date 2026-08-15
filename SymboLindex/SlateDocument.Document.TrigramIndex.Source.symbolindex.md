@@ -43,7 +43,7 @@ F TrigramIndex::Enter        | TrigramIndex.cpp | 86-113  | - | - | ?
 F TrigramIndex::Declare      | TrigramIndex.cpp | 115-141 | - | - | ?
     in    Subject   OccupantIdentity    [-]  ?
     in    Declared  const std::string&  [-]  ?
-    out   -         Outcome<bool>       [-]  ?
+    out   -         Deliver<bool>       [-]  ?
 
 F TrigramIndex::Withdraw     | TrigramIndex.cpp | 143-170 | - | - | ?
     in    Subject  OccupantIdentity  [-]  ?

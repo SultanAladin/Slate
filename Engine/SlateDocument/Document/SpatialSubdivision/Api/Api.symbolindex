@@ -77,7 +77,7 @@ T BoundingStructure                 | SpatialSubdivision.h | 77-157  | owning   
 F BoundingStructure::Construct      | SpatialSubdivision.h | 91      | api,nonthrowing               | 🔴 | Builds the subdivision over one sealed topology's conditioned face extents. conditioning describes a different revision derived from a different seal indexes faces that have moved, and every intersection it resolves is confidently wrong.
     in    Imported     const TopologyStructure&     [-]  the sealed topology
     in    Conditioned  const TopologyConditioning&  [-]  its conditioning, whose face extents are already rounded outward
-    out   -            Outcome                      [-]  refuses with HostDenied for an unsealed topology, and with ExtentExhausted when the
+    out   -            Deliver                      [-]  refuses with HostDenied for an unsealed topology, and with ExtentExhausted when the
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  🔴 The conditioning's revision is compared against the topology's. A structure built over extents
 
@@ -161,30 +161,30 @@ T OctantSpace                       | SpatialSubdivision.h | 184-290 | owning   
 
 F OctantSpace::Admit                | SpatialSubdivision.h | 193     | api,nonthrowing               | 🚩 | Admits one occupant, or amends the one already admitted at that identity.
     in    Arriving  const AdmittedOccupant&  [-]  ?
-    out   -         Outcome                  [-]  refuses with IdentityStale for an undeclared identity
+    out   -         Deliver                  [-]  refuses with IdentityStale for an undeclared identity
     post  the subdivision is owed a rebuild before the admission is traversable
     by    Api/PointerIntersection.h, Api/RequestQueue.h, Api/SceneStructure.h, Api/UvSurfaceDepot.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+7 more)
 
 F OctantSpace::Withdraw             | SpatialSubdivision.h | 199     | api,nonthrowing               | 🚩 | Withdraws one occupant.
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome           [-]  refuses with IdentityStale when the occupant is not admitted
+    out   -        Deliver           [-]  refuses with IdentityStale when the occupant is not admitted
     by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, (+16 more)
 
 F OctantSpace::Refit                | SpatialSubdivision.h | 207     | api,nonthrowing               | 🚩 | Refits one occupant's extent and composed transform, without rebuilding. untouched; only the extents along the path to the occupant's record widen.
     in    Subject   OccupantIdentity            [-]  ?
     in    Composed  const DecomposedTransform&  [-]  ?
     in    Extent    ConditionedExtent           [-]  ?
-    out   -         Outcome                     [-]  refuses with IdentityStale when the occupant is not admitted
+    out   -         Deliver                     [-]  refuses with IdentityStale when the occupant is not admitted
     by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
     note  🔴 This is `40` §4's most frequent row and it is deliberately cheap. The subdivision's shape is
 
 F OctantSpace::Standing             | SpatialSubdivision.h | 213     | api,nonthrowing               | 🚩 | Surrenders one admitted occupant's standing record.
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome           [-]  refuses with IdentityStale when the occupant is not admitted
+    out   -        Deliver           [-]  refuses with IdentityStale when the occupant is not admitted
     by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
 
 F OctantSpace::Construct            | SpatialSubdivision.h | 219     | api,nonthrowing               | 🔴 | Rebuilds the subdivision's shape over every admitted occupant.
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
     post  the shape is optimal for the current extents; nothing is owed
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
 
@@ -281,13 +281,13 @@ F AxisSpace::Construct              | SpatialSubdivision.h | 322     | api,nonth
 F AxisSpace::Refit                  | SpatialSubdivision.h | 328     | api,nonthrowing               | 🚩 | Amends one placement's extent without rebuilding — the row `40` §4 reaches when a placement moved.
     in    PlacementOrdinal  std::uint32_t  [-]  ?
     in    Amending          DomainExtent   [-]  ?
-    out   -                 Outcome        [-]  refuses with ExtentExhausted when no placement carries that ordinal
+    out   -                 Deliver        [-]  refuses with ExtentExhausted when no placement carries that ordinal
     by    Source/ConsoleHost.cpp, Source/SpatialSubdivision.cpp
 
 F AxisSpace::Resolve                | SpatialSubdivision.h | 334     | api,nonthrowing               | 🚩 | Resolves the topmost placement containing one domain position.
     in    PositionAlong   double   [-]  ?
     in    PositionAcross  double   [-]  ?
-    out   -               Outcome  [-]  refuses with ExtentExhausted when no placement contains it
+    out   -               Deliver  [-]  refuses with ExtentExhausted when no placement contains it
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F AxisSpace::Overlapping            | SpatialSubdivision.h | 339     | api,nonthrowing               | 🚩 | Every placement whose extent overlaps a domain extent.

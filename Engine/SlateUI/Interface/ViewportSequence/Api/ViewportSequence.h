@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
@@ -45,22 +45,22 @@ public:
     /// in    Arriving [-]  the device handles and the window the interface reads from
     /// in    North    [-]  what the upper drawer's tongue carries
     /// in    South    [-]  what the lower drawer's tongue carries
-    /// out   Outcome  [-]  refuses with CapabilityAbsent when no interface context is current, and with
+    /// out   Deliver  [-]  refuses with CapabilityAbsent when no interface context is current, and with
     ///                     ExtentExhausted when the integrator declines a drawer spring
     /// post  both drawers stand Closed and settled; nothing moves until a pointer arrives
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const InterfaceAttachment& Arriving,
+    Deliver<bool> Construct(const InterfaceAttachment& Arriving,
                             const DrawerDeclaration&   North,
                             const DrawerDeclaration&   South);
 
     /// 🧩 Opens one interface tick, resolves the appearance, and drives the spring physics.
     /// in    ElapsedMilliseconds  [-]  what `TickSequence::Span` measured between this tick and the last
-    /// out   Outcome              [-]  refuses when no context is constructed, or when a tick is already open
+    /// out   Deliver              [-]  refuses when no context is constructed, or when a tick is already open
     /// post  the drawers have advanced; the surface is ready to record into
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Advance(double ElapsedMilliseconds);
+    Deliver<bool> Advance(double ElapsedMilliseconds);
 
     /// 🧩 Records the drawer chrome — shadows, bodies, edges, grips and tongues.
     /// note  Panels must not record before this call. The drawer bodies define the clipping extents
@@ -76,32 +76,32 @@ public:
     void DrawerPanels();
 
     /// 🧩 Closes the panel recording window and seals the interface tick.
-    /// out   Outcome  [-]  refuses when no tick is open
+    /// out   Deliver  [-]  refuses when no tick is open
     /// post  the assembled content is ready for Record
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> SealPanels();
+    Deliver<bool> SealPanels();
 
     /// 🧩 Closes an open tick without assembling it — the escape from any refusal after Advance.
-    /// out   Outcome  [-]  delivers true when no tick was open
+    /// out   Deliver  [-]  delivers true when no tick was open
     /// note  🔴 A host that returns to the top of its loop after Advance declined must call this. A tick
     ///       left open refuses every subsequent Advance for the life of the process.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Abandon();
+    Deliver<bool> Abandon();
 
     /// 🧩 Restates the rotation depth after a presentation chain was re-established.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Renegotiate(std::uint32_t RotationDepth);
+    Deliver<bool> Renegotiate(std::uint32_t RotationDepth);
 
     /// 🧩 Records the assembled content into a command recording of the current rotation slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope
-    /// out   Outcome          [-]  refuses when nothing has been sealed since the last Advance
+    /// out   Deliver          [-]  refuses when nothing has been sealed since the last Advance
     /// pre   SealPanels delivered
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Record(VkCommandBuffer CommandRecording);
+    Deliver<bool> Record(VkCommandBuffer CommandRecording);
 
     /// 🧩 The two drawers, for the host to query pose and extent.
     /// cost  ✔️

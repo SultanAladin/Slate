@@ -77,7 +77,7 @@ F ByteSpace::~ByteSpace        | ByteSpace.h | 95      | destructor             
 F ByteSpace::Construct         | ByteSpace.h | 107     | api,nonthrowing               | ✔️ | Takes the device and reads the vendor declaration every later claim is scored against. by whoever happened to call `ConstructExtent` would be absent for the extents this component takes on its own, which is every extent after the first of each residency.
     in    Exchange  const VulkanExchange&       [-]  the created device; borrowed, never owned, and outlives this component
     in    Naming    const DiagnosticExtension&  [-]  names every vendor allocation taken; borrowed and outlives this component
-    out   -         Outcome                     [-]  refuses with CapabilityAbsent when no device is active
+    out   -         Deliver                     [-]  refuses with CapabilityAbsent when no device is active
     post  no extent is claimed; the first Claim takes the first one
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+62 more)
     note  🔴 `06` §7's diagnostic-name gate is discharged here rather than by the caller. A name declared
@@ -87,7 +87,7 @@ F ByteSpace::Claim             | ByteSpace.h | 120     | api,nonthrowing        
     in    ByteAlignment   VkDeviceSize     [B]  the alignment the vendor declared for what occupies it; zero reads as one
     in    Residency       ExtentResidency  [-]  device-local or host-writable
     in    Standing        ClaimStanding    [-]  what exhaustion means for this claimant
-    out   -               Outcome          [-]  refuses with ExtentExhausted, in full, with nothing partially claimed
+    out   -               Deliver          [-]  refuses with ExtentExhausted, in full, with nothing partially claimed
     err   refuses with ContentUnsupported for a zero span or an alignment that is not a power of two
     by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+14 more)
     note  🔴 The refusal is whole. A claim that half-succeeded would leave the caller holding a span it
@@ -135,11 +135,11 @@ T ByteSpace::SlicedExtent      | ByteSpace.h | 158-167 | -                      
 
 F ByteSpace::ClassifyResidency | ByteSpace.h | 171     | -                             | -  | Scores what the device declares for the one entry that satisfies a residency.
     in    Residency  ExtentResidency  [-]  ?
-    out   -          Outcome          [-]  refuses with CapabilityAbsent when nothing declared carries the properties
+    out   -          Deliver          [-]  refuses with CapabilityAbsent when nothing declared carries the properties
     by    Source/ByteSpace.cpp
 
 F ByteSpace::ConstructExtent   | ByteSpace.h | 175     | -                             | -  | Takes one further vendor allocation, at least as large as the span that could not be satisfied.
     in    Residency   ExtentResidency  [-]  ?
     in    LeastBytes  VkDeviceSize     [-]  ?
-    out   -           Outcome          [-]  refuses with ExtentExhausted when the vendor declines the allocation
+    out   -           Deliver          [-]  refuses with ExtentExhausted when the vendor declines the allocation
     by    Source/ByteSpace.cpp

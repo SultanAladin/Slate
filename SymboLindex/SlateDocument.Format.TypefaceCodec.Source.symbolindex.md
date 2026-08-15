@@ -54,7 +54,7 @@ F TranslateShape              | TypefaceCodec.cpp | 51-108  | - | - | Converts o
 F Translate                   | TypefaceCodec.cpp | 116-207 | - | - | ?
     in    Stream        const std::vector<std::uint8_t>&  [-]  ?
     in    GlyphCeiling  std::uint32_t                     [-]  ?
-    out   -             Outcome<DecodedTypeface>          [-]  ?
+    out   -             Deliver<DecodedTypeface>          [-]  ?
     by    Api/ImageCodec.h, Api/SpatialManipulator.h, Api/TopologyCodec.h, Api/TypefaceCodec.h, Api/VectorCodec.h, Source/ImageCodec.cpp, (+3 more)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -64,5 +64,5 @@ F Translate                   | TypefaceCodec.cpp | 116-207 | - | - | ?
 F ResolveCodepoint            | TypefaceCodec.cpp | 213-243 | - | - | ?
     in    Stream     const std::vector<std::uint8_t>&  [-]  ?
     in    Codepoint  std::uint32_t                     [-]  ?
-    out   -          Outcome<std::uint32_t>            [-]  ?
+    out   -          Deliver<std::uint32_t>            [-]  ?
     by    Api/TypefaceCodec.h

@@ -109,7 +109,7 @@ F TripleOf                                       | ReflectanceIntegrator.cpp | 1
 F DirectionalAlbedoSurface::Construct            | ReflectanceIntegrator.cpp | 138-151   | - | - | ?
     in    ExtentAlong_   std::uint32_t  [-]  ?
     in    ExtentAcross_  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 F DirectionalAlbedoSurface::Declare              | ReflectanceIntegrator.cpp | 153-167   | - | - | ?
     in    Along          std::uint32_t  [-]  ?
@@ -158,7 +158,7 @@ F ReconstructSurface                             | ReflectanceIntegrator.cpp | 2
 
 F ReflectanceIntegrator::Contribute              | ReflectanceIntegrator.cpp | 430-454   | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                           THE DIRECTIONAL-ALBEDO DERIVATION
@@ -166,7 +166,7 @@ F ReflectanceIntegrator::Contribute              | ReflectanceIntegrator.cpp | 4
 
 F ReflectanceIntegrator::DeriveDirectionalAlbedo | ReflectanceIntegrator.cpp | 460-584   | - | - | ?
     in    Rule  const QuadratureRule&  [-]  ?
-    out   -     Outcome<bool>          [-]  ?
+    out   -     Deliver<bool>          [-]  ?
 
 F ReflectanceIntegrator::SampleDirectionalAlbedo | ReflectanceIntegrator.cpp | 586-597   | - | - | ?
     in    ViewCosine           double   [-]  ?
@@ -203,7 +203,7 @@ F ReflectanceIntegrator::ResolveChannels         | ReflectanceIntegrator.cpp | 6
     in    Placements     const std::vector<ChannelPlacement>&  [-]  ?
     in    Reconstructed  const ReconstructedSurface&           [-]  ?
     in    Tolerance      double                                [-]  ?
-    out   -              Outcome<ResolvedChannelSet>           [-]  ?
+    out   -              Deliver<ResolvedChannelSet>           [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DIRECT TERM
@@ -249,7 +249,7 @@ F ReflectanceIntegrator::IntegrateAmbient        | ReflectanceIntegrator.cpp | 1
     in    ViewX              double                        [-]  ?
     in    ViewY              double                        [-]  ?
     in    ViewZ              double                        [-]  ?
-    out   -                  Outcome<AmbientContribution>  [-]  ?
+    out   -                  Deliver<AmbientContribution>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE UNOCCUPIED CLASS
@@ -263,4 +263,4 @@ F ReflectanceIntegrator::IntegrateUnoccupied     | ReflectanceIntegrator.cpp | 1
     in    Red         double&                      [-]  ?
     in    Green       double&                      [-]  ?
     in    Blue        double&                      [-]  ?
-    out   -           Outcome<bool>                [-]  ?
+    out   -           Deliver<bool>                [-]  ?

@@ -59,11 +59,11 @@ F DeclaredTransmission                       | TransmissionSequence.cpp | 58-76 
 
 F TransmissionSequence::ContributeCollection | TransmissionSequence.cpp | 82-102  | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 F TransmissionSequence::ContributeResolution | TransmissionSequence.cpp | 104-124 | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE INSERTION

@@ -43,7 +43,7 @@ T OutlinerPanel                   | OutlinerPanel.h | 39-105 | owning           
 
 F OutlinerPanel::Present          | OutlinerPanel.h | 50     | api,nonthrowing               | 🚩 | Presents one tick of the outliner and declares whatever the artist asked for.
     in    Outliner  OutlinerSequence&  [-]  the sequence to read from and declare into
-    out   -         Outcome            [-]  refuses with HostDenied when no interface tick is open
+    out   -         Deliver            [-]  refuses with HostDenied when no interface tick is open
     pre   InterfaceExchange::Advance delivered and Seal has not
     post  every declared intent sits in the pending run; nothing was applied here
     by    Api/DisplayScheduler.h, Api/PanelIndex.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp, Source/PanelIndex.cpp, Source/WorkspacePanel.cpp

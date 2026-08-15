@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 
@@ -158,7 +158,7 @@ private:
 /// note  🔴 `34` §2: the resolution reads inputs that are **immutable for its whole run**. It may not read the
 ///        document, the tick's state, or anything in `76`. The requester captures what the work needs at
 ///        declaration and hands it over, which is the rule that makes every lock here unnecessary.
-/// note  🔴 The resolution mutates nothing and commits nothing. It returns an Outcome, and the requester applies
+/// note  🔴 The resolution mutates nothing and commits nothing. It returns an Deliver, and the requester applies
 ///        it on the tick after `Drain` delivers it — `34` §3.
 /// note  ⚠️ There is deliberately no field naming another declaration. `34` §4 forbids waiting on one: with a
 ///        bounded worker count, waiting is a deadlock that appears only under load, on someone else's machine.
@@ -170,7 +170,7 @@ struct WorkDeclaration
     bool          ProgressReported = false;                     // [-] - whether the resolution declares progress
 
     // 📝 The captured inputs live inside this callable, which is why they are the requester's to make immutable.
-    std::function<Outcome<bool>(const WorkCancellation&, WorkProgress&)>  Resolve;   // [-] - the whole of the work
+    std::function<Deliver<bool>(const WorkCancellation&, WorkProgress&)>  Resolve;   // [-] - the whole of the work
 };
 
 /// 🧩 One concluded declaration, crossing back to the tick.
@@ -203,10 +203,10 @@ public:
     void Admit(std::uint32_t RecordOrdinal);
 
     /// 🧩 Claims the earliest pending record ordinal.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when nothing is pending
+    /// out   Deliver  [-]  refuses with ExtentExhausted when nothing is pending
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> Claim();
+    Deliver<std::uint32_t> Claim();
 
     /// 🧩 Strikes one record ordinal from the order without claiming it.
     /// cost  ✔️
@@ -251,40 +251,40 @@ public:
     /// in    RequestedWorkers  [-]  workers wanted; zero derives the count from the host
     /// in    HostTimeline      [-]  the process's one timeline, for conclusion stamps
     /// in    Reporting         [-]  where `34` §5's failures are appended
-    /// out   Outcome           [-]  refuses with HostDenied when workers already stand
+    /// out   Deliver           [-]  refuses with HostDenied when workers already stand
     /// post  the worker count is fixed and recorded, so `HardwareMetrics` can attribute a measurement to it
     /// note  📝 A zero request reads the count from `04`'s `PlatformInterchange`, which reports the host once
     ///        at bring-up. Nothing here decides how many workers a host should run — `34` §4 does, from a
     ///        reading this only asks for.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t RequestedWorkers, const TickSequence& HostTimeline, ReportSequence& Reporting);
+    Deliver<bool> Construct(std::uint32_t RequestedWorkers, const TickSequence& HostTimeline, ReportSequence& Reporting);
 
     /// 🧩 Declares one unit of work, to be resolved by a worker.
     /// in    Arriving  [-]  the declaration, its inputs already captured
-    /// out   Outcome   [-]  refuses with HostDenied when no worker stands, and with ContentUnsupported when the
+    /// out   Deliver   [-]  refuses with HostDenied when no worker stands, and with ContentUnsupported when the
     ///                      declaration carries no resolution
     /// note  Declaring is not spawning. The declaration takes its place in its priority's order and a worker
     ///        claims it; nothing about the calling thread decides when.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<WorkIdentity> Declare(const WorkDeclaration& Arriving);
+    Deliver<WorkIdentity> Declare(const WorkDeclaration& Arriving);
 
     /// 🧩 Withdraws one declaration, because the requester no longer wants it.
     /// in    Subject  [-]  the identity Declare issued
-    /// out   Outcome  [-]  refuses with IdentityStale when the declaration has already concluded
+    /// out   Deliver  [-]  refuses with IdentityStale when the declaration has already concluded
     /// post  the declaration concludes as Withdrawn and produces no result — `34` §5
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Withdraw(WorkIdentity Subject);
+    Deliver<bool> Withdraw(WorkIdentity Subject);
 
     /// 🧩 Withdraws one declaration because a newer one replaces it.
-    /// out   Outcome  [-]  refuses with IdentityStale when the declaration has already concluded
+    /// out   Deliver  [-]  refuses with IdentityStale when the declaration has already concluded
     /// note  Reported apart from a withdrawal so the requester can tell the two apart. `86` §5 rules a
     ///        superseded cancellation ordinary operation, so nothing is appended to the register for it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Supersede(WorkIdentity Subject);
+    Deliver<bool> Supersede(WorkIdentity Subject);
 
     /// 🧩 Delivers every conclusion recorded since the last drain, in declaration order.
     /// out   Completions  [-]  ordered by declaration ordinal within the drain, never by finishing order
@@ -303,16 +303,16 @@ public:
     const std::vector<WorkCompletion>& Drain();
 
     /// 🧩 One declaration's resolved fraction.
-    /// out   Outcome  [-]  refuses with IdentityStale once the declaration has concluded
+    /// out   Deliver  [-]  refuses with IdentityStale once the declaration has concluded
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<double> Progress(WorkIdentity Subject) const;
+    Deliver<double> Progress(WorkIdentity Subject) const;
 
     /// 🧩 One declaration's resolved count.
-    /// out   Outcome  [-]  refuses with IdentityStale once the declaration has concluded
+    /// out   Deliver  [-]  refuses with IdentityStale once the declaration has concluded
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint64_t> ProgressCount(WorkIdentity Subject) const;
+    Deliver<std::uint64_t> ProgressCount(WorkIdentity Subject) const;
 
     /// 🧩 How many workers stand.
     /// cost  ✔️
@@ -345,8 +345,8 @@ private:
     void          Serve(std::uint32_t WorkerOrdinal);
     bool          Claimable(std::uint32_t WorkerOrdinal) const;
     std::uint32_t Claim(std::uint32_t WorkerOrdinal);
-    void          Seal(std::uint32_t RecordOrdinal, const Outcome<bool>& Resolved);
-    Outcome<bool> Cancel(WorkIdentity Subject, bool SupersessionPosed);
+    void          Seal(std::uint32_t RecordOrdinal, const Deliver<bool>& Resolved);
+    Deliver<bool> Cancel(WorkIdentity Subject, bool SupersessionPosed);
     std::uint32_t Resolved(WorkIdentity Subject) const;
 
     std::vector<std::thread>                   Workers;                     // [-] - fixed at Construct

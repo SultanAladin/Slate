@@ -108,7 +108,7 @@ T PromotionScheduler                  | PromotionScheduler.h | 135-206 | owning 
 
 F PromotionScheduler::DeclareBudget   | PromotionScheduler.h | 145     | api,nonthrowing               | ✔️ | Declares what one rotation may spend. content genuinely has no evaluation to bound, and refusing it would force a fictitious number.
     in    Declaring  const PromotionBudget&  [-]  ?
-    out   -          Outcome                 [-]  refuses with ContentUnsupported when both measures are zero
+    out   -          Deliver                 [-]  refuses with ContentUnsupported when both measures are zero
     by    Source/PromotionScheduler.cpp
     note  A budget of zero on one measure alone is admitted deliberately: a document with no analytic
 
@@ -119,7 +119,7 @@ F PromotionScheduler::DeclareOrdering | PromotionScheduler.h | 150     | api,non
 
 F PromotionScheduler::OpenRotation    | PromotionScheduler.h | 160     | api,nonthrowing               | ✔️ | Opens one rotation, restoring the whole budget. its unspent remainder forward would let a still workspace bank several rotations of promotion and spend them all on the rotation the artist finally moved — which is precisely the stall the budget exists to prevent.
     in    RotationOrdinal  std::uint64_t  [-]  ?
-    out   -                Outcome        [-]  refuses with HostDenied when the rotation is not later than the one last opened
+    out   -                Deliver        [-]  refuses with HostDenied when the rotation is not later than the one last opened
     by    Source/PromotionScheduler.cpp
     note  🔴 The budget is per rotation and is restored here rather than accumulated. A budget that carried
 
@@ -130,7 +130,7 @@ F PromotionScheduler::Admits          | PromotionScheduler.h | 165     | api,non
 
 F PromotionScheduler::Charge          | PromotionScheduler.h | 172     | api,nonthrowing               | ✔️ | Charges a cost against what remains.
     in    Costing  const PromotionCost&  [-]  ?
-    out   -        Outcome               [-]  refuses with ExtentExhausted when it does not fit
+    out   -        Deliver               [-]  refuses with ExtentExhausted when it does not fit
     post  a refused charge spends nothing
     by    Source/PromotionScheduler.cpp, Source/SurfaceTileSpace.cpp
 

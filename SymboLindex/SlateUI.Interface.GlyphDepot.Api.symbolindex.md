@@ -81,7 +81,7 @@ F GlyphDepot::~GlyphDepot        | GlyphDepot.h | 99      | destructor          
 
 F GlyphDepot::Construct          | GlyphDepot.h | 108     | api,nonthrowing                    | 🔴 | Attaches the depot to a device and brings the vector rasteriser up. when the rasteriser declines to start
     in    Arriving  const GlyphAttachment&  [-]  the device handles the uploads use
-    out   -         Outcome                 [-]  refuses with CapabilityAbsent when a required handle is absent, and with HostDenied
+    out   -         Deliver                 [-]  refuses with CapabilityAbsent when a required handle is absent, and with HostDenied
     post  the depot holds nothing; every tier is declared afterwards
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
 
@@ -92,20 +92,20 @@ F GlyphDepot::Reclaim            | GlyphDepot.h | 115     | api,nonthrowing     
 
 F GlyphDepot::Declare            | GlyphDepot.h | 126     | api,nonthrowing                    | 🔴 | Declares one whole tier, rasterising and uploading what is not already held. and with ExtentExhausted when an upload could not be claimed to compare a tier's declaration list against what resolves, one key at a time.
     in    Declaring  const GlyphTier&  [-]  the tier, its declarations read here and never retained
-    out   -          Outcome           [-]  refuses with ContentUnsupported naming the first key whose source would not rasterise,
+    out   -          Deliver           [-]  refuses with ContentUnsupported naming the first key whose source would not rasterise,
     post  every key that delivered resolves; a refused tier leaves the keys before the refusal standing
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 The refusal names **which** key failed. A bare refusal over a partly-filled depot sends the reader
 
 F GlyphDepot::Release            | GlyphDepot.h | 134     | api,nonthrowing                    | 🚩 | Releases one tier's claim on its glyphs, tearing down those no other tier still names.
     in    Releasing  const GlyphTier&  [-]  the tier as it was declared
-    out   -          Outcome           [-]  refuses with IdentityStale when the tier was never declared
+    out   -          Deliver           [-]  refuses with IdentityStale when the tier was never declared
     post  a glyph another standing tier shares is untouched
     by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+13 more)
 
 F GlyphDepot::Resolve            | GlyphDepot.h | 142     | api,nonthrowing                    | 🚩 | Resolves one key to its handle.
     in    GlyphKey  const std::string&  [-]  the key a tier declared
-    out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that key
+    out   -         Deliver             [-]  refuses with ContentUnsupported when nothing declares that key
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  What a row calls each time it presents. Never uploads and never mutates the depot.
 
@@ -116,7 +116,7 @@ F GlyphDepot::GlyphHeld          | GlyphDepot.h | 147     | api,nonthrowing     
 
 F GlyphDepot::ResolveTextureSlot | GlyphDepot.h | 161     | api,nonallocating,nonthrowing      | 🚩 | Turns one handle into the integer a recording paints it with. has been torn down since it was issued here would put a vendor spelling in a public header. This is the same seam `InterfaceExchange` keeps with its context slot — the caller hands the integer straight back to the vendor and never reads it. content hash and the handle carries a texture identity. Held counts are in the tens; a lookup keyed the other way would be a second copy of the same association, drifting from the first.
     in    Presenting  GlyphHandle  [-]  a handle this depot issued
-    out   -           Outcome      [-]  refuses with IdentityStale when the handle is absent, and when the upload it named
+    out   -           Deliver      [-]  refuses with IdentityStale when the handle is absent, and when the upload it named
     by    Source/GlyphDepot.cpp
     note  🔴 `14` §7 again: the returned integer is the vendor's texture identity widened, and naming that type
     note  ⚠️ The check is a walk of the uploads rather than an index lookup, because the uploads are keyed by
@@ -127,7 +127,7 @@ F GlyphDepot::DeclaredEdge       | GlyphDepot.h | 166     | api,nonallocating,no
 
 F GlyphDepot::DeclareEdge        | GlyphDepot.h | 174     | api,nonthrowing                    | ✔️ | Declares the square edge a declaration that names none rasterises into.
     in    RasterEdge  std::uint32_t  [px]  the edge; refused at zero and above the depot's ceiling
-    out   -           Outcome        [-]   refuses with ContentUnsupported outside the admitted interval
+    out   -           Deliver        [-]   refuses with ContentUnsupported outside the admitted interval
     by    Api/SeamSpecification.h, Source/ChartPartition.cpp, Source/GlyphDepot.cpp, Source/SeamSpecification.cpp
     note  Applies to declarations made after it. A glyph already uploaded keeps the edge it was rasterised at.
 
@@ -162,7 +162,7 @@ F GlyphDepot::ContentHash        | GlyphDepot.h | 204     | -                   
 F GlyphDepot::Upload             | GlyphDepot.h | 207     | -                                  | -  | ?
     in    Declaring   const GlyphDeclaration&  [-]  ?
     in    RasterEdge  std::uint32_t            [-]  ?
-    out   -           Outcome<std::uint64_t>   [-]  ?
+    out   -           Deliver<std::uint64_t>   [-]  ?
     by    Source/GlyphDepot.cpp
 
 F GlyphDepot::Withdraw           | GlyphDepot.h | 209     | -                                  | -  | ?

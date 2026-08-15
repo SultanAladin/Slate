@@ -12,23 +12,23 @@ namespace Slate
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<OccupantIdentity> OutlinerSequence::Enrol(const std::string& DeclaredName)
+Deliver<OccupantIdentity> OutlinerSequence::Enrol(const std::string& DeclaredName)
 {
-    const Outcome<OccupantIdentity> Enrolled = Population.Enrol();
+    const Deliver<OccupantIdentity> Enrolled = Population.Enrol();
 
     if (!Enrolled.ContentPresent)
         return Enrolled;
 
     const OccupantIdentity Arriving = Enrolled.Resolve();
 
-    const Outcome<bool> Admitted = NestingRelations.Admit(Arriving);
+    const Deliver<bool> Admitted = NestingRelations.Admit(Arriving);
 
     if (!Admitted.ContentPresent)
     {
         // 📝 The slot is withdrawn again rather than left enrolled in a population the relations do not hold.
         //    A slot present in one and absent from the other is invariant 6 broken at the moment of arrival.
         Population.Withdraw(Arriving);
-        return Outcome<OccupantIdentity>::Refuse(Admitted.Declined);
+        return Deliver<OccupantIdentity>::Refuse(Admitted.Declined);
     }
 
     if (!DeclaredName.empty())
@@ -45,23 +45,23 @@ Outcome<OccupantIdentity> OutlinerSequence::Enrol(const std::string& DeclaredNam
     //    at ⑦. Without it the arrival is hidden by a search its own name may well confirm.
     NarrowingOwed = true;
 
-    return Outcome<OccupantIdentity>::Deliver(Arriving);
+    return Deliver<OccupantIdentity>::Deliver(Arriving);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   DECLARED INTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> OutlinerSequence::Declare(const DeclaredIntent& Arriving)
+Deliver<bool> OutlinerSequence::Declare(const DeclaredIntent& Arriving)
 {
     // 📝 Narrowing addresses the whole sequence rather than one occupant, so it is the one intent admitted
     //    with an undeclared subject. Every other intent names what it applies to and is gated on it here.
     if (Arriving.Declared != OutlinerIntent::Narrow && !Population.Resolve(Arriving.Subject))
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the intent addresses no enrolled occupant" });
+        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the intent addresses no enrolled occupant" });
 
     PendingDeclarations.push_back(Arriving);
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 void OutlinerSequence::Reject(const DeclaredIntent& Refused, const Refusal& Declining)
@@ -79,25 +79,25 @@ void OutlinerSequence::Reject(const DeclaredIntent& Refused, const Refusal& Decl
 
 // 📝 The subset half of a selection, taken on its own so that a selection arriving as intent and one restored
 //    by a scrub reach the same enrolment without the scrub sealing a selection the artist never made.
-Outcome<bool> OutlinerSequence::EnrolSelection(const std::vector<OccupantIdentity>& Standing)
+Deliver<bool> OutlinerSequence::EnrolSelection(const std::vector<OccupantIdentity>& Standing)
 {
     Subsets.Reclaim(SubsetSubject::Selection);
 
     for (const OccupantIdentity& Enrolling : Standing)
     {
-        const Outcome<bool> Held = Subsets.Enrol(Enrolling, SubsetSubject::Selection);
+        const Deliver<bool> Held = Subsets.Enrol(Enrolling, SubsetSubject::Selection);
 
         if (!Held.ContentPresent)
             return Held;
     }
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> OutlinerSequence::ApplySelection(const std::vector<OccupantIdentity>& Standing,
+Deliver<bool> OutlinerSequence::ApplySelection(const std::vector<OccupantIdentity>& Standing,
                                                std::uint64_t                        SealedAt)
 {
-    const Outcome<bool> Enrolled = EnrolSelection(Standing);
+    const Deliver<bool> Enrolled = EnrolSelection(Standing);
 
     if (!Enrolled.ContentPresent)
         return Enrolled;
@@ -109,10 +109,10 @@ Outcome<bool> OutlinerSequence::ApplySelection(const std::vector<OccupantIdentit
     //    applier's signature the same, so nothing has to know which of them consults the clock.
     static_cast<void>(SealedAt);
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> OutlinerSequence::ApplySubset(const DeclaredIntent& Applying,
+Deliver<bool> OutlinerSequence::ApplySubset(const DeclaredIntent& Applying,
                                             SubsetSubject         Addressed,
                                             std::uint64_t         SealedAt)
 {
@@ -155,12 +155,12 @@ Outcome<bool> OutlinerSequence::ApplySubset(const DeclaredIntent& Applying,
         return ApplySelection(Standing, SealedAt);
     }
 
-    const Outcome<bool> Opened = Revised.Open("", Applying.StandingEnabled ? "EnrolSubset" : "UnenrolSubset");
+    const Deliver<bool> Opened = Revised.Open("", Applying.StandingEnabled ? "EnrolSubset" : "UnenrolSubset");
 
     if (!Opened.ContentPresent)
         return Opened;
 
-    const Outcome<bool> Enrolled = Applying.StandingEnabled
+    const Deliver<bool> Enrolled = Applying.StandingEnabled
                                  ? Subsets.Enrol(Applying.Subject, Addressed)
                                  : Subsets.Unenrol(Applying.Subject, Addressed);
 
@@ -179,7 +179,7 @@ Outcome<bool> OutlinerSequence::ApplySubset(const DeclaredIntent& Applying,
 //                                                  NARROWING INTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> OutlinerSequence::ApplyNarrowing(const DeclaredIntent& Applying)
+Deliver<bool> OutlinerSequence::ApplyNarrowing(const DeclaredIntent& Applying)
 {
     // 📝 `14` §4.1 places the sought text beside the document, so narrowing is not a transaction and nothing
     //    here opens one. The text is held rather than the confirmed set, because the set has to be derived
@@ -190,10 +190,10 @@ Outcome<bool> OutlinerSequence::ApplyNarrowing(const DeclaredIntent& Applying)
     // 🔴 The rows are not narrowed here. ① runs before ⑤ rebuilds them, so a set confirmed now would be
     //    retained against row ordinals the rebuild is about to reassign. The narrowing is derived at ⑦, where
     //    both the rows and the search entries are final.
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> OutlinerSequence::DeriveNarrowing()
+Deliver<bool> OutlinerSequence::DeriveNarrowing()
 {
     if (NarrowingSought.empty())
         return Linearisation.DeclareNarrowing({}, false);
@@ -207,9 +207,9 @@ Outcome<bool> OutlinerSequence::DeriveNarrowing()
 //                                                      SCRUBBING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> OutlinerSequence::Retreat(std::uint64_t SealedAt)
+Deliver<bool> OutlinerSequence::Retreat(std::uint64_t SealedAt)
 {
-    const Outcome<bool> Scrubbed = Revised.Retreat();
+    const Deliver<bool> Scrubbed = Revised.Retreat();
 
     if (!Scrubbed.ContentPresent)
         return Scrubbed;
@@ -219,7 +219,7 @@ Outcome<bool> OutlinerSequence::Retreat(std::uint64_t SealedAt)
     //    recorded its own navigation is one no artist can reason about.
     if (Selected.RestoreAt(Revised.ScrubPosition()).ContentPresent)
     {
-        const Outcome<bool> Enrolled = EnrolSelection(Selected.Standing());
+        const Deliver<bool> Enrolled = EnrolSelection(Selected.Standing());
 
         if (!Enrolled.ContentPresent)
             return Enrolled;
@@ -227,19 +227,19 @@ Outcome<bool> OutlinerSequence::Retreat(std::uint64_t SealedAt)
 
     static_cast<void>(SealedAt);
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> OutlinerSequence::Advance(std::uint64_t SealedAt)
+Deliver<bool> OutlinerSequence::Advance(std::uint64_t SealedAt)
 {
-    const Outcome<bool> Scrubbed = Revised.Advance();
+    const Deliver<bool> Scrubbed = Revised.Advance();
 
     if (!Scrubbed.ContentPresent)
         return Scrubbed;
 
     if (Selected.RestoreAt(Revised.ScrubPosition()).ContentPresent)
     {
-        const Outcome<bool> Enrolled = EnrolSelection(Selected.Standing());
+        const Deliver<bool> Enrolled = EnrolSelection(Selected.Standing());
 
         if (!Enrolled.ContentPresent)
             return Enrolled;
@@ -247,25 +247,25 @@ Outcome<bool> OutlinerSequence::Advance(std::uint64_t SealedAt)
 
     static_cast<void>(SealedAt);
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                THE RETIREMENT CASCADE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> OutlinerSequence::RetireCascade(const DeclaredIntent& Applying, std::uint64_t SealedAt)
+Deliver<bool> OutlinerSequence::RetireCascade(const DeclaredIntent& Applying, std::uint64_t SealedAt)
 {
     // 🔴 `12` §12: retirement is one transaction including its whole cascade. A cascade committed as several
     //    transactions is undone in pieces, and the intermediate pieces are states the document was never in.
-    const Outcome<bool> Opened = Revised.Open("", "RetireOccupant");
+    const Deliver<bool> Opened = Revised.Open("", "RetireOccupant");
 
     if (!Opened.ContentPresent)
         return Opened;
 
     // 📝 The relations re-enclose what the occupant enclosed and reattach what followed it. `12` §12 makes
     //    that a declared policy rather than a default: deleting a group deletes the group, not the work.
-    const Outcome<bool> Withdrawn = NestingRelations.Retire(Applying.Subject);
+    const Deliver<bool> Withdrawn = NestingRelations.Retire(Applying.Subject);
 
     if (!Withdrawn.ContentPresent)
     {
@@ -287,7 +287,7 @@ Outcome<bool> OutlinerSequence::RetireCascade(const DeclaredIntent& Applying, st
 //                                                   APPLYING INTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std::uint64_t SealedAt)
+Deliver<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std::uint64_t SealedAt)
 {
     switch (Applying.Declared)
     {
@@ -295,12 +295,12 @@ Outcome<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std:
         {
             // 🔴 Reordering a row is a transaction against the enclosure relation, committed like any other
             //    edit. `12` §7: a drag that mutated the relation directly would bypass undo entirely.
-            const Outcome<bool> Opened = Revised.Open("", "EncloseOccupant");
+            const Deliver<bool> Opened = Revised.Open("", "EncloseOccupant");
 
             if (!Opened.ContentPresent)
                 return Opened;
 
-            const Outcome<bool> Enclosed = NestingRelations.Enclose(Applying.Subject,
+            const Deliver<bool> Enclosed = NestingRelations.Enclose(Applying.Subject,
                                                                    Applying.RelatedOccupant,
                                                                    Applying.OrderWithinEnclosure);
 
@@ -315,12 +315,12 @@ Outcome<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std:
 
         case OutlinerIntent::Attach:
         {
-            const Outcome<bool> Opened = Revised.Open("", "AttachOccupant");
+            const Deliver<bool> Opened = Revised.Open("", "AttachOccupant");
 
             if (!Opened.ContentPresent)
                 return Opened;
 
-            const Outcome<bool> Attached = NestingRelations.Attach(Applying.Subject, Applying.RelatedOccupant);
+            const Deliver<bool> Attached = NestingRelations.Attach(Applying.Subject, Applying.RelatedOccupant);
 
             if (!Attached.ContentPresent)
             {
@@ -333,7 +333,7 @@ Outcome<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std:
 
         case OutlinerIntent::Rename:
         {
-            const Outcome<bool> Opened = Revised.Open("", "RenameOccupant");
+            const Deliver<bool> Opened = Revised.Open("", "RenameOccupant");
 
             if (!Opened.ContentPresent)
                 return Opened;
@@ -371,14 +371,14 @@ Outcome<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std:
             return ApplyNarrowing(Applying);
     }
 
-    return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the declared intent has no applier" });
+    return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the declared intent has no applier" });
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE TICK ORDER
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
+Deliver<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
 {
     // ① Apply committed intent. Every refusal is reported and the intent is never partly applied.
     for (const DeclaredIntent& Applying : PendingDeclarations)
@@ -389,7 +389,7 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
             continue;
         }
 
-        const Outcome<bool> Applied = ApplyIntent(Applying, SealedAt);
+        const Deliver<bool> Applied = ApplyIntent(Applying, SealedAt);
 
         if (!Applied.ContentPresent)
             Reject(Applying, Applied.Declined);
@@ -410,13 +410,13 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
 
     // ③ Reconcile the attachment relation, compounding transforms downward from each attachment root. Before
     //    ④ deliberately: transforms must be final before anything spatial is derived from them.
-    const Outcome<bool> Compounded = NestingRelations.CompoundAttachments();
+    const Deliver<bool> Compounded = NestingRelations.CompoundAttachments();
 
     if (!Compounded.ContentPresent)
         return Compounded;
 
     // ④ Reconcile the enclosure relation, repairing interval labels where gaps were exhausted.
-    const Outcome<bool> Repaired = NestingRelations.RepairLabels();
+    const Deliver<bool> Repaired = NestingRelations.RepairLabels();
 
     if (!Repaired.ContentPresent)
         return Repaired;
@@ -426,14 +426,14 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     //    transaction seals, which is why they are not repeated here.
     if (!NestingRelations.RelationsAcyclic() || !NestingRelations.LabelsNested())
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::RelationCyclic, "a relation held a cycle or a label was not strictly nested" });
     }
 #endif
 
     // ⑤ Rebuild the rows and adjust the counts. After ④ deliberately: rows rebuilt against stale labels
     //    produce an order that is briefly wrong and is displayed while it is.
-    const Outcome<bool> Linearized = Linearisation.Linearize(NestingRelations);
+    const Deliver<bool> Linearized = Linearisation.Linearize(NestingRelations);
 
     if (!Linearized.ContentPresent)
         return Linearized;
@@ -442,7 +442,7 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     //    remains is confirming that no enrolment outlived its occupant.
     if (!Subsets.EnrolmentsOccupied(LiveGenerations))
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::IdentityStale, "a subset held a slot that is no longer occupied" });
     }
 
@@ -460,7 +460,7 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     //    are only final now, so a set confirmed earlier would be retained against rows the rebuild discarded.
     if (NarrowingOwed)
     {
-        const Outcome<bool> Narrowed = DeriveNarrowing();
+        const Deliver<bool> Narrowed = DeriveNarrowing();
 
         if (!Narrowed.ContentPresent)
             return Narrowed;
@@ -468,7 +468,7 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
         NarrowingOwed = false;
     }
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

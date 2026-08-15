@@ -25,19 +25,19 @@ S TileSpace.cpp | 165 lines | 9574b87e | 12 sym | Claim, release into quarantine
 F TileSpace::Construct          | TileSpace.cpp | 15-47   | - | - | ?
     in    SlotCeiling_   std::uint32_t  [-]  ?
     in    BytesPerTexel  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   CLAIM AND RELEASE
 //------------------------------------------------------------------------------------------------------------------------
 
 F TileSpace::Claim              | TileSpace.cpp | 53-68   | - | - | ?
-    out   -  Outcome<std::uint32_t>  [-]  ?
+    out   -  Deliver<std::uint32_t>  [-]  ?
 
 F TileSpace::Release            | TileSpace.cpp | 70-85   | - | - | ?
     in    SlotOrdinal      std::uint32_t  [-]  ?
     in    RotationOrdinal  std::uint64_t  [-]  ?
-    out   -                Outcome<bool>  [-]  ?
+    out   -                Deliver<bool>  [-]  ?
 
 F TileSpace::Reclaim            | TileSpace.cpp | 87-116  | - | - | ?
     in    RotationOrdinal  std::uint64_t  [-]  ?
@@ -49,7 +49,7 @@ F TileSpace::Reclaim            | TileSpace.cpp | 87-116  | - | - | ?
 
 F TileSpace::ByteOffsetOf       | TileSpace.cpp | 122-128 | - | - | ?
     in    SlotOrdinal  std::uint32_t           [-]  ?
-    out   -            Outcome<std::uint64_t>  [-]  ?
+    out   -            Deliver<std::uint64_t>  [-]  ?
 
 F TileSpace::StoredBytesPerTile | TileSpace.cpp | 130     | - | - | ?
     out   -  std::uint64_t  [-]  ?

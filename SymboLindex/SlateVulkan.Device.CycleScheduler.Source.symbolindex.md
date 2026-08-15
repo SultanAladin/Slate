@@ -25,17 +25,17 @@ S CycleScheduler.cpp | 203 lines | b38fec27 | 9 sym | The ordering points of eve
 F CycleScheduler::Construct          | CycleScheduler.cpp | 15-82   | -          | - | ?
     in    Exchange  const VulkanExchange&       [-]  ?
     in    Naming    const DiagnosticExtension&  [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE WAIT
 //------------------------------------------------------------------------------------------------------------------------
 
 F CycleScheduler::Await              | CycleScheduler.cpp | 88-115  | -          | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F CycleScheduler::Arm                | CycleScheduler.cpp | 117-129 | -          | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CYCLE
@@ -45,7 +45,7 @@ F CycleScheduler::Advance            | CycleScheduler.cpp | 135-142 | -         
     out   -  void  [-]  ?
 
 F CycleScheduler::Standing           | CycleScheduler.cpp | 144-150 | -          | - | ?
-    out   -  Outcome<RotationSlot>  [-]  ?
+    out   -  Deliver<RotationSlot>  [-]  ?
 
 F CycleScheduler::StandingOrdinal    | CycleScheduler.cpp | 152-155 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

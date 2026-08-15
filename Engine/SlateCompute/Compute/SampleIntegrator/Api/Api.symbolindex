@@ -71,12 +71,12 @@ T SampleIntegrator                  | SampleIntegrator.h | 92-199 | owning      
 
 F SampleIntegrator::Declare         | SampleIntegrator.h | 102    | api,nonthrowing               | ✔️ | Declares what a history is refused for.
     in    Declaring  const RejectionSpecification&  [-]  ?
-    out   -          Outcome                        [-]  refuses with ContentUnsupported for a non-positive depth bound or a ceiling of nothing
+    out   -          Deliver                        [-]  refuses with ContentUnsupported for a non-positive depth bound or a ceiling of nothing
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F SampleIntegrator::Contribute      | SampleIntegrator.h | 110    | api,nonthrowing               | ✔️ | Contributes `08` §3 ⑦'s recording. the schedule cannot express as a dependency and does not need to: `06`'s rotation orders the two.
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome          [-]  refuses with whatever the schedule refused
+    out   -         Deliver          [-]  refuses with whatever the schedule refused
     by    Api/DisplayProjection.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/ReflectanceIntegrator.h, Api/RenderSchedule.h, (+13 more)
     note  📝 Produces `AccumulationSurface` and amends nothing. It reads its own previous rotation slot, which
 

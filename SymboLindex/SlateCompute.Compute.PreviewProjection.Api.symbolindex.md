@@ -108,7 +108,7 @@ T PreviewProjection                     | PreviewProjection.h | 156-344 | owning
 
 F PreviewProjection::Construct          | PreviewProjection.h | 165     | api,nonallocating,nonthrowing | ✔️ | Takes the resolver every preview reads.
     in    Supplied  const PreviewSources&  [-]  borrowed; outlives this component
-    out   -         Outcome                [-]  refuses with ContentUnsupported for an absent resolver
+    out   -         Deliver                [-]  refuses with ContentUnsupported for an absent resolver
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -118,7 +118,7 @@ F PreviewProjection::Construct          | PreviewProjection.h | 165     | api,no
 F PreviewProjection::OpenImpression     | PreviewProjection.h | 185     | api,nonthrowing               | 🚩 | Opens the brush preview against a declared brush — `82` §2's first row. and the colour — and not an outline of the radius. `82` §6's fourth gate, and the reason it is a gate: an outline answers "how big" and the artist is asking "what will this look like", which a soft brush at low strength answers very differently from a hard one at the same radius. pass false would be a caller that could commit a preview, and the refusal would then arrive from `22`'s Seal rather than from the component whose whole subject is that it never commits.
     in    Declaring  const StrokeDeclaration&   [-]  the surface, the entry and the packing; Speculative is declared here, not by the caller
     in    Brushed    const BrushSpecification&  [-]  `58`'s declaration, resolved exactly as a committed stroke resolves it
-    out   -          Outcome                    [-]  refuses with HostDenied when a preview is already open, and with whatever `22` refused
+    out   -          Deliver                    [-]  refuses with HostDenied when a preview is already open, and with whatever `22` refused
     post  🔴 the held stroke is speculative; it pins no tile and can never seal
     by    Source/PreviewProjection.cpp
     note  🔴 The preview shows the **resolved impression** — extent, coverage falloff, the combine specification
@@ -126,7 +126,7 @@ F PreviewProjection::OpenImpression     | PreviewProjection.h | 185     | api,no
 
 F PreviewProjection::AmendImpression    | PreviewProjection.h | 196     | api,nonthrowing               | 🚩 | Moves the previewed impression to where the cursor now stands. **at** the cursor rather than the trail of every position the cursor has passed through. A committed stroke accumulates because the trail is the stroke; a preview accumulating would answer a question about a stroke the artist has not made.
     in    Arriving  const StrokeArrival&  [-]  the pointer sample and the domain position `74` resolved it to
-    out   -         Outcome               [-]  refuses with HostDenied before Open, and with whatever `22` refused
+    out   -         Deliver               [-]  refuses with HostDenied before Open, and with whatever `22` refused
     by    Source/PreviewProjection.cpp
     note  📝 The accumulation is reclaimed before the arrival is admitted, so the preview shows the impression
 
@@ -134,7 +134,7 @@ F PreviewProjection::ResolveImpression  | PreviewProjection.h | 206     | api,no
     in    Residency        SurfaceTileSpace&  [-]  the surface's cells and tiles
     in    Requesting       RequestQueue&      [-]  where a demand for a non-resident cell is recorded
     in    RotationOrdinal  std::uint64_t      [-]  the rotation resolving
-    out   -                Outcome            [-]  refuses with HostDenied before Open
+    out   -                Deliver            [-]  refuses with HostDenied before Open
     post  🔴 nothing was pinned; `DeclareUncommitted` was not called and cannot have been
     by    Source/PreviewProjection.cpp
 
@@ -162,7 +162,7 @@ F PreviewProjection::ProjectContentAt   | PreviewProjection.h | 247     | api,no
     in    PositionAcross  double                                [-]  its second
     in    Level           std::uint32_t                         [-]  the reduction level the tolerance is taken at; zero is finest
     in    ComponentCount  std::uint32_t                         [-]  components per texel
-    out   -               Outcome                               [-]  refuses with HostDenied before Construct, with ContentUnsupported outside the
+    out   -               Deliver                               [-]  refuses with HostDenied before Construct, with ContentUnsupported outside the
     post  🔴 nothing was mutated; no transaction exists and no revision advanced
     by    Source/PreviewProjection.cpp
     note  🔴 This is a **read**. `82` §2 is explicit that its value is comparison — the artist wants to see what
@@ -179,7 +179,7 @@ F PreviewProjection::ProjectPlacementAt | PreviewProjection.h | 275     | api,no
     in    PositionAcross  double                                [-]  its second
     in    CoarseDeclared  bool                                  [-]  true resolves at the coarse level `70` §5 permits, for the drag itself
     in    ComponentCount  std::uint32_t                         [-]  components per texel
-    out   -               Outcome                               [-]  refuses as `ProjectContentAt` does
+    out   -               Deliver                               [-]  refuses as `ProjectContentAt` does
     by    Source/PreviewProjection.cpp
     note  📝 Coarse **then** refine, exactly as `70` §5 permits and no further. The coarse pass is what keeps a
     note  ⚠️ The dragged transform is in the **supplied sequence** and is not a parameter here. `78`'s amendment
@@ -190,7 +190,7 @@ F PreviewProjection::ProjectPlacementAt | PreviewProjection.h | 275     | api,no
 
 F PreviewProjection::AmendParameter     | PreviewProjection.h | 295     | api,nonallocating,nonthrowing | ✔️ | Declares that a dragged parameter has moved, so the standing extent is owed a re-resolution. amendment count is carried so `86` can measure how many re-resolutions one drag cost, and for no other reason — it is not a revision and nothing keys on it.
     in    RotationOrdinal  std::uint64_t  [-]  the rotation the amendment arrived in
-    out   -                Outcome        [-]  refuses with HostDenied when no extent stands
+    out   -                Deliver        [-]  refuses with HostDenied when no extent stands
     post  🔴 nothing is recorded; `10` §2.4's transaction stays open and its Seal is the caller's
     by    Source/PreviewProjection.cpp
     note  🔴 `82` §2's fourth row: every Amend is a re-resolution and **none** of them is recorded. The
@@ -208,7 +208,7 @@ F PreviewProjection::DeclareExtent      | PreviewProjection.h | 314     | api,no
     in    SurfaceOrdinal   std::uint32_t       [-]  the surface it addresses
     in    RequestedLevel   std::uint32_t       [-]  the level it asks for
     in    RotationOrdinal  std::uint64_t       [-]  the rotation declaring it
-    out   -                Outcome             [-]  refuses with ContentUnsupported for the closed count and outside the level count
+    out   -                Deliver             [-]  refuses with ContentUnsupported for the closed count and outside the level count
     by    Api/BrushSpecification.h, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/PreviewProjection.cpp
 
 F PreviewProjection::Standing           | PreviewProjection.h | 322     | api,nonallocating,nonthrowing | ✔️ | The extent as it stands.

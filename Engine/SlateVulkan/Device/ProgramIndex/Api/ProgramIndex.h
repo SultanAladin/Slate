@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateVulkan/Device/DescriptorIndex/Api/DescriptorIndex.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/ShaderCodec/Api/ShaderCodec.h"
@@ -126,43 +126,43 @@ public:
     /// in    Modules      [-]  where the stage declarations come from; borrowed and outlives this component
     /// in    Descriptors  [-]  where the set layouts come from; borrowed and outlives this component
     /// in    Naming       [-]  names every program and every layout; borrowed and outlives this component
-    /// out   Outcome      [-]  refuses with CapabilityAbsent when no device is active
+    /// out   Deliver      [-]  refuses with CapabilityAbsent when no device is active
     /// post  no program is declared
     /// note  🔴 `06` §7's diagnostic-name gate. The program and the layout it reaches through are named
     ///        separately and by the same ordinal, because they are two vendor objects a recording binds one
     ///        after the other — and the errors the two raise read alike until the objects are told apart.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange&      Exchange,
+    Deliver<bool> Construct(const VulkanExchange&      Exchange,
                             ShaderCodec&               Modules,
                             const DescriptorIndex&     Descriptors,
                             const DiagnosticExtension& Naming);
 
     /// 🧩 Constructs one graphics program, returning the ordinal every later resolution names it by.
     /// in    Declaring  [-]  the modules, layouts, render construct and depth behaviour
-    /// out   Outcome    [-]  refuses with ContentUnsupported for an unresolved module, an undeclared layout or
+    /// out   Deliver    [-]  refuses with ContentUnsupported for an unresolved module, an undeclared layout or
     ///                       an absent render construct, and with HostDenied when the device declines it
     /// post  nothing is retained on a refusal — the layout is destroyed before the refusal returns
     /// note  🔴 The two stage declarations are taken from `ShaderCodec` rather than assembled here, so the
     ///       specialisation the vendor reads at construction is held where its addresses stay put.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> DeclareGraphics(const GraphicsDeclaration& Declaring);
+    Deliver<std::uint32_t> DeclareGraphics(const GraphicsDeclaration& Declaring);
 
     /// 🧩 Constructs one compute program, returning the ordinal every later resolution names it by.
     /// in    Declaring  [-]  the module, the layouts and the constant run
-    /// out   Outcome    [-]  refuses as DeclareGraphics does, less the render construct
+    /// out   Deliver    [-]  refuses as DeclareGraphics does, less the render construct
     /// post  nothing is retained on a refusal
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> DeclareCompute(const ComputeDeclaration& Declaring);
+    Deliver<std::uint32_t> DeclareCompute(const ComputeDeclaration& Declaring);
 
     /// 🧩 The program one ordinal names, for the recording that records against it.
     /// in    ProgramOrdinal  [-]  an ordinal this component issued
-    /// out   Outcome         [-]  refuses with ContentUnsupported for an ordinal naming no program
+    /// out   Deliver         [-]  refuses with ContentUnsupported for an ordinal naming no program
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<ConstructedProgram> Resolve(std::uint32_t ProgramOrdinal) const;
+    Deliver<ConstructedProgram> Resolve(std::uint32_t ProgramOrdinal) const;
 
     /// 🧩 Destroys every program and every layout constructed for one.
     /// pre   the device is idle and no recording that reads them is still executing
@@ -185,8 +185,8 @@ private:
     /// in    LayoutOrdinals  [-]  declared layouts, in set order; an empty run declares no set
     /// in    ConstantBytes   [B]  the recorded constant run; nought declares none
     /// in    ReachingStages  [-]  which stages read the constant run, as the vendor spells them
-    /// out   Outcome         [-]  refuses with ContentUnsupported for an undeclared layout ordinal
-    Outcome<VkPipelineLayout> ReachLayout(const std::vector<std::uint32_t>&  LayoutOrdinals,
+    /// out   Deliver         [-]  refuses with ContentUnsupported for an undeclared layout ordinal
+    Deliver<VkPipelineLayout> ReachLayout(const std::vector<std::uint32_t>&  LayoutOrdinals,
                                           std::uint32_t                     ConstantBytes,
                                           VkShaderStageFlags                ReachingStages);
 

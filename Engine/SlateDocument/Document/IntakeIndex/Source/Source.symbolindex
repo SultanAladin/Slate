@@ -44,7 +44,7 @@ F IntakeIndex::Records         | IntakeIndex.cpp | 65    | - | - | ?
 
 F IntakeIndex::Resolve         | IntakeIndex.cpp | 67-76 | - | - | ?
     in    OriginPath  const std::string&     [-]  ?
-    out   -           Outcome<IntakeRecord>  [-]  ?
+    out   -           Deliver<IntakeRecord>  [-]  ?
 
 F IntakeIndex::AssumptionCount | IntakeIndex.cpp | 78    | - | - | ?
     out   -  std::uint32_t  [-]  ?

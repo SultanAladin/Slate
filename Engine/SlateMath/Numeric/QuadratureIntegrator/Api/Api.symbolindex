@@ -34,7 +34,7 @@ T QuadratureRule                    | QuadratureIntegrator.h | 36-130 | owning  
 
 F QuadratureRule::Derive            | QuadratureIntegrator.h | 54     | api,nonthrowing               | 🔴 | Derives the rule of a declared abscissa count. symmetric about the origin and the weights with them — solving both halves would be solving the same equation twice and would let the two halves disagree in their last bit.
     in    Requested  std::uint32_t  [-]  abscissae; a rule of n integrates a polynomial of degree 2n−1 exactly
-    out   -          Outcome        [-]  refuses with ContentUnsupported for zero, and with ExtentExhausted above the ceiling
+    out   -          Deliver        [-]  refuses with ContentUnsupported for zero, and with ExtentExhausted above the ceiling
     post  the abscissae are in ascending order and the weights sum to the reference interval's width
     by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+11 more)
     note  📐 Only half the roots are solved for. The Legendre polynomials are even or odd, so the roots are
@@ -58,7 +58,7 @@ F QuadratureRule::Project           | QuadratureIntegrator.h | 80     | api,nont
     in    Weighting  double&        [-]  ?
     out   -          Position       [-]  where the abscissa lands
     out   -          Weighting      [-]  the weight scaled to the interval
-    out   -          Outcome        [-]  refuses with ExtentExhausted outside the declared count, and with ContentUnsupported
+    out   -          Deliver        [-]  refuses with ExtentExhausted outside the declared count, and with ContentUnsupported
     by    Api/ColourProjection.h, Api/DisplayProjection.h, Api/SpectralProjection.h, Api/TickSequence.h, Api/TransformProjection.h, Api/VisibilityRaster.h, (+12 more)
     note  📝 Exposed so that a caller integrating several components at once accumulates them side by side in
 

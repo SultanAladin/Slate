@@ -77,5 +77,5 @@ F ClassifyContent         | TopologyCodec.cpp | 123-128 | - | - | ?
 F Translate               | TopologyCodec.cpp | 134-313 | - | - | ?
     in    Stream      const std::vector<std::uint8_t>&  [-]  ?
     in    OriginPath  const std::string&                [-]  ?
-    out   -           Outcome<DecodedTopology>          [-]  ?
+    out   -           Deliver<DecodedTopology>          [-]  ?
     by    Api/ImageCodec.h, Api/SpatialManipulator.h, Api/TopologyCodec.h, Api/TypefaceCodec.h, Api/VectorCodec.h, Source/ImageCodec.cpp, (+3 more)

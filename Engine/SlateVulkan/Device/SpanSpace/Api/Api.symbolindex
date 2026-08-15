@@ -71,13 +71,13 @@ F SpanSpace::Construct    | SpanSpace.h | 103     | api,nonthrowing           | 
     in    Exchange      const VulkanExchange&       [-]  the created device; borrowed, never owned, and outlives this component
     in    BackingSpace  ByteSpace&                  [-]  where span bytes come from; borrowed and outlives this component
     in    Naming        const DiagnosticExtension&  [-]  names every claimed span; borrowed and outlives this component
-    out   -             Outcome                     [-]  refuses with CapabilityAbsent when no device is active
+    out   -             Deliver                     [-]  refuses with CapabilityAbsent when no device is active
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  🔴 `06` §7's diagnostic-name gate. Each span is named by its intent and its ordinal, which is
 
 F SpanSpace::Claim        | SpanSpace.h | 116     | api,nonthrowing           | 🔴 | Claims one span of the declared shape and binds the bytes it occupies. a zero span or an intent outside the declared set allocation nothing holds a reference to, reclaimed only at device teardown.
     in    Declared  const SpanShape&  [-]  the shape; nothing about it is inferred from the intent but its permitted reads
-    out   -         Outcome           [-]  refuses with ExtentExhausted when no bytes remain, and with ContentUnsupported for
+    out   -         Deliver           [-]  refuses with ExtentExhausted when no bytes remain, and with ContentUnsupported for
     post  the span stands and is written by a transfer, or through its host address where it carries one
     by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/StrokeSpace.h, Api/TileSpace.h, (+15 more)
     note  🔴 Refused in full. A span whose bytes were claimed and whose binding was declined leaves a vendor
@@ -87,7 +87,7 @@ F SpanSpace::Amend        | SpanSpace.h | 129     | api,nonthrowing           | 
     in    Arriving       const void*    [-]  what is written; read for ArrivingBytes and never retained
     in    ArrivingBytes  VkDeviceSize   [B]  how far the write runs
     in    ByteOffset     VkDeviceSize   [B]  where in the span the write begins
-    out   -              Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal or a device-local
+    out   -              Deliver        [-]  refuses with ContentUnsupported for an unclaimed ordinal or a device-local
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
     note  🔴 The span is host-coherent, so nothing is flushed here. `ByteSpace` claims the host-writable
 
@@ -96,13 +96,13 @@ F SpanSpace::Transfer     | SpanSpace.h | 146     | api,nonthrowing           | 
     in    SourceOrdinal  std::uint32_t    [-]  a claim this component issued, declared as a transfer source
     in    TargetOrdinal  std::uint32_t    [-]  a claim this component issued
     in    TransferBytes  VkDeviceSize     [B]  how far the transfer runs; zero reads as the whole of the source
-    out   -              Outcome          [-]  refuses with ContentUnsupported for an unclaimed ordinal and with
+    out   -              Deliver          [-]  refuses with ContentUnsupported for an unclaimed ordinal and with
     by    Api/ColourProjection.h, Api/UvSurfaceDepot.h, Shader/MultiScatterSurface.slang, Source/AtmosphereIntegrator.cpp, Source/ColourProjection.cpp, Source/DisplayProjection.cpp, (+3 more)
     note  ⚠️ The barrier that makes the transferred bytes readable is the caller's, because only the caller
 
 F SpanSpace::Standing     | SpanSpace.h | 156     | api,nonthrowing           | ✔️ | The current record for one claimed span.
     in    SpanOrdinal  std::uint32_t  [-]  a claim this component issued
-    out   -            Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    out   -            Deliver        [-]  refuses with ContentUnsupported for an unclaimed ordinal
     by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
 
 F SpanSpace::Release      | SpanSpace.h | 163     | api,nonthrowing           | 🚩 | Destroys one span and returns its bytes.

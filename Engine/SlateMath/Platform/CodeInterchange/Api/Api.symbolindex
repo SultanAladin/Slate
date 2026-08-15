@@ -62,20 +62,20 @@ F CodeInterchange::~CodeInterchange | CodeInterchange.h | 102     | destructor  
 F CodeInterchange::Acquire          | CodeInterchange.h | 118     | api,nonthrowing               | 🔴 | Loads a foreign module, verifies its report, and holds it standing. the module exports no acquisition entry, with VersionUnmigratable when the reported major differs, and with ContentUnsupported when the hash differs or the report names no entry table was compiled against declarations this process has never seen, and accepting it because it is newer reads a table whose shape this process is guessing at. and stayed resident has already run its own initialisation inside this process.
     in    ModulePath  const std::string&  [-]  the host path of the compiled module
     in    Required    ForeignRequirement  [-]  the interface this process declares and will accept nothing else for
-    out   -           Outcome             [-]  the module ordinal; refuses with HostDenied when the host declines the load or
+    out   -           Deliver             [-]  the module ordinal; refuses with HostDenied when the host declines the load or
     by    Source/CodeInterchange.cpp
     note  🔴 The major is compared for **equality** and not for "at least". A module reporting a later major
     note  ⚠️ The module is unloaded again on every refusing path. A module that loaded, failed verification
 
 F CodeInterchange::EntryTable       | CodeInterchange.h | 128     | api,nonallocating,nonthrowing | ✔️ | The verified entry table of a standing module. what the verified hash covered. Declaring the shape here would make this component depend on every interface any consumer ever loads.
     in    ModuleOrdinal  std::uint32_t  [-]  a module this component acquired
-    out   -              Outcome        [-]  refuses with IdentityStale for an ordinal no module stands at
+    out   -              Deliver        [-]  refuses with IdentityStale for an ordinal no module stands at
     by    Source/CodeInterchange.cpp
     note  🔴 Read as an opaque address and given its shape by the caller, which is the only side that knows
 
 F CodeInterchange::Report           | CodeInterchange.h | 135     | api,nonallocating,nonthrowing | ✔️ | What a standing module reported about itself.
     in    ModuleOrdinal  std::uint32_t  [-]  a module this component acquired
-    out   -              Outcome        [-]  refuses with IdentityStale for an ordinal no module stands at
+    out   -              Deliver        [-]  refuses with IdentityStale for an ordinal no module stands at
     by    Api/AssetInterchange.h, Api/BrushSpecification.h, Api/ChartPartition.h, Api/DisplayProjection.h, Api/HardwareMetrics.h, Api/InstructionExchange.h, (+32 more)
 
 F CodeInterchange::Release          | CodeInterchange.h | 142     | api,nonthrowing               | 🚩 | Releases one standing module.

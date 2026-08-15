@@ -171,7 +171,7 @@ void ClassifyBorder(ivec2 Centre, ivec2 Bounds, uint Target, int Radius, out boo
             ivec2 Neighbour = Centre + ivec2(OffsetX, OffsetY);
             if (InsideRegion(Neighbour, Bounds, Target)) continue;
 
-            // 📝 Three outcomes, not two. Only a neighbour measurably FARTHER (or sky) proves the boundary faces open space; a neighbour measurably
+            // 📝 Three results, not two. Only a neighbour measurably FARTHER (or sky) proves the boundary faces open space; a neighbour measurably
             //    NEARER proves that direction is occluded. A neighbour inside the slack in EITHER direction is the contact seam where two surfaces
             //    meet — it proves nothing and must vote for neither, which is exactly what the original version got wrong by counting it as visible.
             if (NeighbourOccludes(Neighbour, Bounds, CentreDistance))

@@ -25,7 +25,7 @@ S PropertySpecification.cpp | 298 lines | ce1c58e4 | 11 sym | The validation eac
 F Validate                    | PropertySpecification.cpp | 17-125  | - | - | ?
     in    Declared  const PropertyDeclaration&  [-]  ?
     in    Offered   const PropertyValue&        [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
     by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, (+4 more)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -35,7 +35,7 @@ F Validate                    | PropertySpecification.cpp | 17-125  | - | - | ?
 F Bounded                     | PropertySpecification.cpp | 131-168 | - | - | ?
     in    Declared  const PropertyDeclaration&  [-]  ?
     in    Offered   const PropertyValue&        [-]  ?
-    out   -         Outcome<PropertyValue>      [-]  ?
+    out   -         Deliver<PropertyValue>      [-]  ?
     by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+81 more)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -48,20 +48,20 @@ F PropertyIndex::Located      | PropertySpecification.cpp | 174-183 | - | - | ?
 
 F PropertyIndex::Declare      | PropertySpecification.cpp | 185-216 | - | - | ?
     in    Declaring  const PropertyDeclaration&  [-]  ?
-    out   -          Outcome<bool>               [-]  ?
+    out   -          Deliver<bool>               [-]  ?
 
 F PropertyIndex::Write        | PropertySpecification.cpp | 218-234 | - | - | ?
     in    Identity  const std::string&    [-]  ?
     in    Offered   const PropertyValue&  [-]  ?
-    out   -         Outcome<bool>         [-]  ?
+    out   -         Deliver<bool>         [-]  ?
 
 F PropertyIndex::Resolve      | PropertySpecification.cpp | 236-247 | - | - | ?
     in    Identity  const std::string&      [-]  ?
-    out   -         Outcome<PropertyValue>  [-]  ?
+    out   -         Deliver<PropertyValue>  [-]  ?
 
 F PropertyIndex::Declared     | PropertySpecification.cpp | 249-260 | - | - | ?
     in    Identity  const std::string&            [-]  ?
-    out   -         Outcome<PropertyDeclaration>  [-]  ?
+    out   -         Deliver<PropertyDeclaration>  [-]  ?
 
 F PropertyIndex::Declarations | PropertySpecification.cpp | 262-265 | - | - | ?
     out   -  const std::vector<PropertyDeclaration>&  [-]  ?
@@ -72,7 +72,7 @@ F PropertyIndex::ValueWritten | PropertySpecification.cpp | 267-272 | - | - | ?
 
 F PropertyIndex::Reclaim      | PropertySpecification.cpp | 274-285 | - | - | ?
     in    Identity  const std::string&  [-]  ?
-    out   -         Outcome<bool>       [-]  ?
+    out   -         Deliver<bool>       [-]  ?
 
 F PropertyIndex::ValuesValid  | PropertySpecification.cpp | 287-296 | - | - | ?
     out   -  bool  [-]  ?

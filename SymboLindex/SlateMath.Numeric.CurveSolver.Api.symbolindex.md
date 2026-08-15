@@ -83,7 +83,7 @@ F OffsetOutline            | CurveSolver.h | 114   | api,nonthrowing           |
     in    Traversed  const std::vector<PlanarPosition>&  [-]  the flattened polyline, in traversal order
     in    HalfWidth  double                              [-]  half the stroke width, in the path's own space
     in    ClosedRun  bool                                [-]  whether the polyline closes back on its origin
-    out   -          Outcome                             [-]  refuses with ContentUnsupported for a non-positive half-width, and with
+    out   -          Deliver                             [-]  refuses with ContentUnsupported for a non-positive half-width, and with
     by    Source/ConsoleHost.cpp, Source/CurveSolver.cpp
     note  🔴 `52` §2 converts strokes at **intake** rather than storing a width. A stroke width is a distance in
     note  🚧 Joins are bevelled and both terminals are butt. `52` §6 carries no row for cap and join declarations,

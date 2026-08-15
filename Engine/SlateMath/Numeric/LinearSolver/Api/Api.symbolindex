@@ -65,7 +65,7 @@ T SolvedSystem             | LinearSolver.h | 77-82 | owning                    
 
 F Solve                    | LinearSolver.h | 104   | api,nonthrowing               | 🔴 | Factorises a dense square system with partial pivoting and solves every ordinate run against it. the order squared, and with ExtentExhausted when a pivot falls below the declared floor coefficients is bounded by two to the order — and it is claimed only because every consumed operation is itself Bounded. Nothing here claims Exact: elimination is a sequence of roundings. components report a termination cause because their last iterate is still an answer; this is Tier B and has no last iterate — a solution produced by dividing through a numerically absent pivot is arbitrary, and delivering it would hand `24` a correspondence assembled out of the rounding. permuting the unknowns, and every system reaching here is assembled from a geometric neighbourhood where the coefficients are already of one magnitude. The pivot ratio reports when that assumption failed.
     in    Declaring  const DenseSystem&  [-]  the coefficients in row order, the ordinates, and the order of both
-    out   -          Outcome             [-]  refuses with ContentUnsupported for an order of zero or a supply whose extent is not
+    out   -          Deliver             [-]  refuses with ContentUnsupported for an order of zero or a supply whose extent is not
     by    Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
     note  🔴 Bounded, per `02` §5. The bound is the one partial pivoting carries — growth in the eliminated
     note  🔴 A pivot below `FactorisationPivotFloor` is **refused** and never divided by. `02` §5's Tier C
@@ -82,7 +82,7 @@ F SLATE_DECLARES_PRECISION | LinearSolver.h | 105   | -                         
 
 F Solve                    | LinearSolver.h | 127   | api,nonthrowing               | 🔴 | Factorises a sparse square system and solves its single ordinate run against it. column, an ordinate run that is not the order, or a declared symmetry the supply contradicts; refuses with ExtentExhausted when a pivot falls below the declared floor sparse structure. `68` §4's system is one unknown per interior chart position and the systems reaching `24` are per-neighbourhood, both well inside where the filled form costs less than maintaining the occupancy would. The surface is the sparse one so that the day a system arrives that is not, only what is behind this declaration changes. sparse structure creates coefficients at positions the supply left absent, and a caller that assembled against a dense surface would have to be rewritten to assemble against a sparse one — which is the rewrite this declaration is placed here to avoid.
     in    Declaring  const SparseSystem&  [-]  the coefficients that are not zero, the ordinates, and whether definite symmetry holds
-    out   -          Outcome              [-]  refuses with ContentUnsupported for an order of zero, a coefficient addressing no row or
+    out   -          Deliver              [-]  refuses with ContentUnsupported for an order of zero, a coefficient addressing no row or
     by    Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
     note  🔴 The factorisation is performed against a filled square of the declared order rather than against a
     note  ⚠️ Fill-in is exactly why the surface must be the sparse one now rather than later. An elimination on a

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 
 #include <cstdint>
@@ -94,16 +94,16 @@ public:
     ~MotionIntegrator()                                  = default;
 
     /// 🧩 Enrols a spring and delivers the ordinal the caller advances it by.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when the capacity is full
+    /// out   Deliver  [-]  refuses with ExtentExhausted when the capacity is full
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> EnrolSpring(const MotionScale& Motion, double Seated);
+    Deliver<std::uint32_t> EnrolSpring(const MotionScale& Motion, double Seated);
 
     /// 🧩 Enrols an eased traverse and delivers its ordinal.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when the capacity is full
+    /// out   Deliver  [-]  refuses with ExtentExhausted when the capacity is full
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> EnrolEased(double Seated);
+    Deliver<std::uint32_t> EnrolEased(double Seated);
 
     /// 🧩 The enrolled spring at one ordinal, for the caller to read and re-target.
     /// pre   the ordinal was delivered by EnrolSpring

@@ -33,7 +33,7 @@ F RelationOfTarget           | RenderSchedule.cpp | 115-122 | - | - | ?
 
 F TargetSpace::ShapeOf       | RenderSchedule.cpp | 128-183 | - | - | ?
     in    Target  SharedTarget         [-]  ?
-    out   -       Outcome<ImageShape>  [-]  ?
+    out   -       Deliver<ImageShape>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CLAIM
@@ -44,12 +44,12 @@ F TargetSpace::Claim         | RenderSchedule.cpp | 189-241 | - | - | ?
     in    DisplayWidth   std::uint32_t  [-]  ?
     in    DisplayHeight  std::uint32_t  [-]  ?
     in    DisplayFormat  VkFormat       [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 F TargetSpace::Reclaim       | RenderSchedule.cpp | 243-297 | - | - | ?
     in    DisplayWidth   std::uint32_t  [-]  ?
     in    DisplayHeight  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS CLAIMED
@@ -57,11 +57,11 @@ F TargetSpace::Reclaim       | RenderSchedule.cpp | 243-297 | - | - | ?
 
 F TargetSpace::Resolve       | RenderSchedule.cpp | 303-311 | - | - | ?
     in    Target  SharedTarget         [-]  ?
-    out   -       Outcome<ImageClaim>  [-]  ?
+    out   -       Deliver<ImageClaim>  [-]  ?
 
 F TargetSpace::OrdinalOf     | RenderSchedule.cpp | 313-324 | - | - | ?
     in    Target  SharedTarget            [-]  ?
-    out   -       Outcome<std::uint32_t>  [-]  ?
+    out   -       Deliver<std::uint32_t>  [-]  ?
 
 F TargetSpace::Surrender     | RenderSchedule.cpp | 326-350 | - | - | ?
     out   -  void  [-]  ?
@@ -72,14 +72,14 @@ F TargetSpace::Surrender     | RenderSchedule.cpp | 326-350 | - | - | ?
 
 F RenderSchedule::Contribute | RenderSchedule.cpp | 356-390 | - | - | ?
     in    Arriving  const DeclaredRecording&  [-]  ?
-    out   -         Outcome<bool>             [-]  ?
+    out   -         Deliver<bool>             [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ORDERING
 //------------------------------------------------------------------------------------------------------------------------
 
 F RenderSchedule::Fix        | RenderSchedule.cpp | 396-483 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F RenderSchedule::Ordered    | RenderSchedule.cpp | 485-488 | - | - | ?
     out   -  const std::vector<DeclaredRecording>&  [-]  ?

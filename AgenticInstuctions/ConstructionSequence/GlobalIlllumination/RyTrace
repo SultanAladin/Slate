@@ -95,8 +95,8 @@ Copy/// 🧩 Scores the device into one of four traversal capabilities; refuses 
 /// err   Refusal::CapabilityUnmet when compute or the depth-extremum pyramid cannot be constructed
 /// tag   api, host
 SLATE_DECLARES_PRECISION(TierA, TierA)
-Outcome<TraversalCapability> ClassifyTraversal(const VulkanExchange& ActiveExchange);
-🔴 Outcome<T> with a Refusal, never std::optional — absence here carries a reason, and the reason is what 86-DiagnosticPanel shows the artist when their card cannot trace.
+Deliver<TraversalCapability> ClassifyTraversal(const VulkanExchange& ActiveExchange);
+🔴 Deliver<T> with a Refusal, never std::optional — absence here carries a reason, and the reason is what 86-DiagnosticPanel shows the artist when their card cannot trace.
 
 Part 4 — Algorithms, in the order you will implement them, with sources
 ✔️ low · 🚩 medium · 🔴 high — cost rises left to right, measured on a 1060 6GB at 960×540.
@@ -231,7 +231,7 @@ Every phase ends at something on screen that can be compared against a reference
 
 Phase 0 — one afternoon. vulkaninfo | Select-String -Pattern "rayQuery|accelerationStructure" in PowerShell, per CLAUDE.md's shell rule. Then 86-DiagnosticPanel gains a GPU timestamp readout, because 08 §5 already declares that absent timestamp queries report unavailable, not zero, and you will optimize only what it reports.
 
-Phase 1 — 1 week if ray query is present, 3 if not. 88-IntersectionExtension. Negotiation, Outcome<TraversalCapability>, TLAS/BLAS extents, refit through 34 at Background priority exactly as 40 §4 specifies for host rebuilds. Deliverable: an ambient-occlusion image, traced, correct.
+Phase 1 — 1 week if ray query is present, 3 if not. 88-IntersectionExtension. Negotiation, Deliver<TraversalCapability>, TLAS/BLAS extents, refit through 34 at Background priority exactly as 40 §4 specifies for host rebuilds. Deliverable: an ambient-occlusion image, traced, correct.
 
 Phase 2 — 1–2 weeks. Ground truth. Verify 18-ReflectanceIntegrator and 64-SampleIntegrator against a 1000-sample progressive reference. Add the Owen-scrambled sequence as a consumer of 02 §6 — this is new work, not a retune. Add multiple-importance sampling with the power heuristic and compensation. 🔴 Without this reference image every later phase is guesswork; it is the cheapest insurance in the whole sequence.
 
@@ -254,4 +254,4 @@ Scene scale: triangle count, how much is skinned or topology-dynamic, and illumi
 
 And the thing to stop believing: the plan told you 40-SpatialSubdivision gives you a head start on device traversal. It does not. Read 40 again — it is explicitly a host-side structure whose entire justification is that 74 answers pointer picks without reading back a device target, and its BoundingStructure lives in object space specifically so occupant motion is a refit. That is a correct and valuable design, and it is nearly orthogonal to a device BVH consumed by ray query. You have a good picking structure. You do not yet have a tracing structure. Budget T1 accordingly, and let the driver own traversal on T2 and T3 where it can.
 
-Give me those two answers and the first drop is 88-IntersectionExtension plus 90-ReservoirDepot, written to their real destinations in Slate's conventions — headers ruled at 142, banners at 122, Outcome<T> throughout, Greek glyphs where the mathematics has them.
+Give me those two answers and the first drop is 88-IntersectionExtension plus 90-ReservoirDepot, written to their real destinations in Slate's conventions — headers ruled at 142, banners at 122, Deliver<T> throughout, Greek glyphs where the mathematics has them.

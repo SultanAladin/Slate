@@ -83,7 +83,7 @@ F Derive                            | ChartPartition.h | 123     | api,nonthrowi
     in    Declaring     const PartitionSpecification&  [-]  the parameters
     in    Cancellation  const WorkCancellation&        [-]  read between charts — `34` §5's cooperative points
     in    Progressed    WorkProgress&                  [-]  charts resolved out of charts spanned
-    out   -             Outcome                        [-]  refuses with HostDenied for an unsealed topology or a withdrawn declaration, and with
+    out   -             Deliver                        [-]  refuses with HostDenied for an unsealed topology or a withdrawn declaration, and with
     by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+10 more)
     note  🔴 Reads nothing but its arguments and mutates none of them, which is exactly `34` §2's requirement.
     note  🔴 A chart that is not a disc and a chart that folds are answered by the **same** mechanism: subdivide
@@ -107,7 +107,7 @@ T ChartPartition                    | ChartPartition.h | 143-193 | owning       
 
 F ChartPartition::Adopt             | ChartPartition.h | 153     | api,nonthrowing               | 🚩 | Adopts a derived partition on the tick, advancing the revision.
     in    Arriving  const DerivedPartition&  [-]  as `Derive` produced it
-    out   -         Outcome                  [-]  refuses with ContentUnsupported for a partition carrying no chart
+    out   -         Deliver                  [-]  refuses with ContentUnsupported for a partition carrying no chart
     post  the revision advanced; every artefact keyed on the prior one is discoverably stale
     by    Api/PartitionStructure.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionStructure.cpp, Source/VisibilityIndex.cpp
 
@@ -118,7 +118,7 @@ F ChartPartition::Standing          | ChartPartition.h | 159     | api,nonalloca
 
 F ChartPartition::Coordinate        | ChartPartition.h | 166     | api,nonthrowing               | ✔️ | One imported corner's domain coordinate. while no partition stands
     in    CornerOrdinal  std::uint32_t  [-]  ?
-    out   -              Outcome        [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
+    out   -              Deliver        [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
     by    Api/ThemeSpecification.h, Shared/LatticeProjection.slang.h, Source/ChannelPanel.cpp, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, (+2 more)
 
 F ChartPartition::PartitionStanding | ChartPartition.h | 171     | api,nonallocating,nonthrowing | ✔️ | Whether a partition stands at all.

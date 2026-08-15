@@ -86,21 +86,21 @@ F DisplayProjection::Declare                | DisplayProjection.h | 120    | api
     in    Exposing_  const ExposureSpecification&  [-]  which of the two subjects drives the exposure, and its bounds
     in    Toning_    const ToneSpecification&      [-]  the scene white and the hue behaviour
     in    Encoding_  const EncodeSpecification&    [-]  the working and display spaces, and what the format already carries
-    out   -          Outcome                       [-]  refuses with ContentUnsupported for a white magnitude of nothing, a blend outside
+    out   -          Deliver                       [-]  refuses with ContentUnsupported for a white magnitude of nothing, a blend outside
     post  the metered exposure stands at the declared one and the metering has not yet adapted
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 Refused in full and never in part. A half-admitted declaration leaves the projection crossing
 
 F DisplayProjection::Contribute             | DisplayProjection.h | 131    | api,nonthrowing               | ✔️ | Contributes `08` §3 ⑧'s recording. the tone line, and this recording **is** the tone line — declaring it display-referred would place it among the amenders of its own output.
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome          [-]  refuses with whatever the schedule refused
+    out   -         Deliver          [-]  refuses with whatever the schedule refused
     by    Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/ReflectanceIntegrator.h, Api/RenderSchedule.h, Api/SampleIntegrator.h, (+13 more)
     note  🔴 Declared scene-referred although it produces display code. The flag orders a recording *after*
 
 F DisplayProjection::AdvanceMetering        | DisplayProjection.h | 146    | api,nonallocating,nonthrowing | ✔️ | Advances the metered exposure one interval toward the reduction just measured. of nothing crosses a bright scene in one step and a dark one in fifty, which reads as the metering being broken in exactly half of the documents an artist opens. open at the wrong brightness and settle over a second — which reads as the application still loading rather than as the metering working.
     in    ReducedLuminance  double   [-]  the reduction `86`'s tick measured over the accumulated radiance
     in    ElapsedSeconds    double   [s]  since the previous advance
-    out   -                 Outcome  [-]  refuses with ContentUnsupported for a declared exposure and for a reduction
+    out   -                 Deliver  [-]  refuses with ContentUnsupported for a declared exposure and for a reduction
     by    Source/DisplayProjection.cpp
     note  📐 The adaptation is linear **in stops** and not in radiance. An adaptation linear in radiance
     note  📝 The first advance arrives at its target rather than adapting toward it, so a document does not
@@ -112,7 +112,7 @@ F DisplayProjection::ExposureScale          | DisplayProjection.h | 155    | api
 
 F DisplayProjection::Project                | DisplayProjection.h | 167    | api,nonthrowing               | 🚩 | Projects one accumulated radiance into display code — the four ordered operations, once each. a coordinate in the declared working space, and with whatever `36` refused compressed against a white magnitude that means nothing in it, and the result is plausible. `36` is called, so ours is withheld rather than applied twice — `66` §4.
     in    Accumulated  const ColourSpecification&  [-]  scene-referred, in the working space, unbounded above
-    out   -            Outcome                     [-]  refuses with ContentUnsupported for an undeclared colour and for one that is not
+    out   -            Deliver                     [-]  refuses with ContentUnsupported for an undeclared colour and for one that is not
     by    Api/ColourProjection.h, Api/QuadratureIntegrator.h, Api/SpectralProjection.h, Api/TickSequence.h, Api/TransformProjection.h, Api/VisibilityRaster.h, (+12 more)
     note  🔴 The arriving space is compared rather than assumed. A radiance that arrived in another space is
     note  🔴 Where the presentation format carries its own transfer, the display space is linearised before

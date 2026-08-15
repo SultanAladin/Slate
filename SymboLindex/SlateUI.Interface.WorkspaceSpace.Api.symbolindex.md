@@ -64,7 +64,7 @@ F ReclaimPanelIndex              | PanelIndex.h     | 82      | api,nonallocatin
 F DeclarePanel                   | PanelIndex.h     | 94      | api,nonallocating,nonthrowing      | ✔️ | Appends one panel declaration to the ledger. and with ExtentExhausted when the ledger already holds PanelSlotCapacity declarations indistinguishable from one whose present routine never drew. A refusal names which failure occurred.
     in    Ledger     PanelIndex&       [-]  the ledger to declare into
     in    Declaring  const PanelSlot&  [-]  the slot, its text pointers retained and never copied
-    out   -          Outcome           [-]  refuses with ContentUnsupported when the slot names no identifier or no present routine,
+    out   -          Deliver           [-]  refuses with ContentUnsupported when the slot names no identifier or no present routine,
     post  a delivered declaration resolves for its side; a refused one leaves the ledger exactly as it was
     by    Source/PanelIndex.cpp
     note  🔴 Frontier's equivalent ignored the seventeenth registration silently, and the panel that vanished was
@@ -72,7 +72,7 @@ F DeclarePanel                   | PanelIndex.h     | 94      | api,nonallocatin
 F ResolvePanelForSide            | PanelIndex.h     | 104     | api,nonallocating,nonthrowing      | ✔️ | Resolves the first panel declared for one side. is resolved by `WorkspaceSpace` walking the ledger itself rather than by this call returning both.
     in    Ledger        const PanelIndex&   [-]  the ledger to read
     in    ResolvedSide  WorkspacePanelSide  [-]  the side sought
-    out   -             Outcome             [-]  refuses with ContentUnsupported when no declaration names that side
+    out   -             Deliver             [-]  refuses with ContentUnsupported when no declaration names that side
     by    Source/PanelIndex.cpp
     note  First by declaration order, which is why order is the ledger's only ordering. A side sharing two panels
 
@@ -219,7 +219,7 @@ F Partition                      | WorkspaceSpace.h | 340-407 | api,nonthrowing 
     in    Axis           WorkspacePartitionAxis                              [-]  which way the gutter runs
     in    Ratio          float                                               [-]  the first half's share, bounded to [0.05, 0.95]
     in    ArrivingFirst  bool                                                [-]  whether the **new empty** half takes the first position
-    out   -              Outcome                                             [-]  the new empty leaf's index; refuses with ExtentExhausted when the target's
+    out   -              Deliver                                             [-]  the new empty leaf's index; refuses with ExtentExhausted when the target's
     post  the target index becomes the division; the former occupants sit in a freshly claimed leaf
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  🔴 The target keeps its own index and becomes the division. Every reference held elsewhere — a drag
@@ -228,7 +228,7 @@ F ReclaimLeaf                    | WorkspaceSpace.h | 420-465 | api,nonthrowing 
     in    Partitions   std::vector<WorkspacePartition<OccupantIdentity>>&  [-]  the pool
     in    RootLink     std::int32_t&                                       [-]  the tree top, cleared when the last leaf leaves
     in    EmptiedLeaf  std::int32_t                                        [-]  the leaf to reclaim
-    out   -            Outcome                                             [-]  refuses with IdentityStale when the index is not an occupied leaf, and with
+    out   -            Deliver                                             [-]  refuses with IdentityStale when the index is not an occupied leaf, and with
     post  the division that held it carries what the other half carried; both reclaimed slots are free
     by    Source/WorkspaceSpace.cpp
     note  🔴 Lifting into the division's **own** index rather than replacing the division with the other half's
@@ -325,26 +325,26 @@ F DeclarePanelBox                | WorkspaceSpace.h | 584     | api,nonthrowing 
     in    Standing            WorkspaceDocument&  [-]  the document the box joins
     in    DeclaredIdentifier  const char*         [-]  the ledger slot's identifier, retained and never copied; static storage
     in    Title               const char*         [-]  the header caption, copied into the box's own extent
-    out   -                   Outcome             [-]  the minted identity; refuses with ExtentExhausted at PanelBoxCapacity and with
+    out   -                   Deliver             [-]  the minted identity; refuses with ExtentExhausted at PanelBoxCapacity and with
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  The box arrives floating whatever side its ledger slot declared. A declared side is where a workspace
 
 F WithdrawPanelBox               | WorkspaceSpace.h | 592     | api,nonthrowing                    | 🚩 | Withdraws one panel box from one body, releasing its record.
     in    Standing  WorkspaceDocument&      [-]  ?
     in    Subject   WorkspacePanelIdentity  [-]  ?
-    out   -         Outcome                 [-]  refuses with IdentityStale when no box resolves
+    out   -         Deliver                 [-]  refuses with IdentityStale when no box resolves
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
 F AmendPanelBox                  | WorkspaceSpace.h | 598     | api,nonthrowing                    | 🚩 | One panel box, for moving, resizing or re-docking it.
     in    Standing  WorkspaceDocument&      [-]  ?
     in    Subject   WorkspacePanelIdentity  [-]  ?
-    out   -         Outcome                 [-]  refuses with IdentityStale when no box resolves
+    out   -         Deliver                 [-]  refuses with IdentityStale when no box resolves
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
 
 F RaisePanelBox                  | WorkspaceSpace.h | 610     | api,nonthrowing                    | 🚩 | Brings one floating panel box in front of every other floating box of the same body. ordinal its identity carries, so rotating the list would hand every box after the raised one the identity of its predecessor — a drag in flight would then be resizing a different panel. the counter is the desk's own and monotonic, so a second raise costs one increment.
     in    Standing  WorkspaceDocument&      [-]  ?
     in    Subject   WorkspacePanelIdentity  [-]  ?
-    out   -         Outcome                 [-]  refuses with IdentityStale when no box resolves
+    out   -         Deliver                 [-]  refuses with IdentityStale when no box resolves
     post  the box carries the body's highest raise ordinal and the floating run presents it last
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  🔴 A raise ordinal and never a rotation of the body's list. A box's position in that list **is** the
@@ -376,7 +376,7 @@ F DockPanelBox                   | WorkspaceSpace.h | 652     | api,nonthrowing 
     in    Body      WorkspaceRectangle      [px]  the body, so a box returning to floating arrives where it was released
     in    ReleaseX  float                   [px]  the pointer at the release
     in    ReleaseY  float                   [px]  ?
-    out   -         Outcome                 [-]   refuses with IdentityStale when no box resolves
+    out   -         Deliver                 [-]   refuses with IdentityStale when no box resolves
     post  a box docked to a side carries that side's current band depth; one returned to floating keeps its extent
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp
 
@@ -531,12 +531,12 @@ F DeclareCatalogue               | WorkspaceSpace.h | 872     | api,nonthrowing 
     in    Offering        const WorkspaceDocumentSpecification*  [-]  the entries, copied here; caller-owned only for the duration of the call
     in    Count           std::uint32_t                          [-]  how many
     in    DefaultOrdinal  std::uint32_t                          [-]  which entry seeds the desk
-    out   -               Outcome                                [-]  refuses with ContentUnsupported for an empty offering or an ordinal outside it
+    out   -               Deliver                                [-]  refuses with ContentUnsupported for an empty offering or an ordinal outside it
     by    Source/WorkspaceSpace.cpp
 
 F ConstructWorkspaceSpace        | WorkspaceSpace.h | 882     | api,nonthrowing                    | 🚩 | Seeds the desk with one document of the default catalogue entry and activates it.
     in    Space  WorkspaceSpace&  [-]  ?
-    out   -      Outcome          [-]  refuses with ContentUnsupported when no catalogue has been declared
+    out   -      Deliver          [-]  refuses with ContentUnsupported when no catalogue has been declared
     pre   DeclareCatalogue delivered
     by    Source/WorkspaceSpace.cpp
 
@@ -544,7 +544,7 @@ F DeclareDocument                | WorkspaceSpace.h | 896     | api,nonthrowing 
     in    Space             WorkspaceSpace&  [-]  the desk
     in    CatalogueOrdinal  std::uint32_t    [-]  which entry
     in    TargetLeaf        std::int32_t     [-]  the leaf it joins; negative claims the root when the desk is empty
-    out   -                 Outcome          [-]  refuses with ContentUnsupported outside the catalogue, and with IdentityStale
+    out   -                 Deliver          [-]  refuses with ContentUnsupported outside the catalogue, and with IdentityStale
     post  the minted document is the target leaf's active occupant
     by    Api/RecoverySequence.h, Source/DocumentSession.cpp, Source/RecoverySequence.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  The title is minted as "<NameStem> N", where N counts the documents already carrying that stem. Counting
@@ -552,19 +552,19 @@ F DeclareDocument                | WorkspaceSpace.h | 896     | api,nonthrowing 
 F WithdrawDocument               | WorkspaceSpace.h | 904     | api,nonthrowing                    | 🚩 | Withdraws one document from the desk, reclaiming the leaf it emptied.
     in    Space    WorkspaceSpace&            [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
-    out   -        Outcome                    [-]  refuses with IdentityStale when nothing resolves
+    out   -        Deliver                    [-]  refuses with IdentityStale when nothing resolves
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
 F ResolveDocument                | WorkspaceSpace.h | 910     | api,nonthrowing                    | 🚩 | One document, by identity.
     in    Space    const WorkspaceSpace&      [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
-    out   -        Outcome                    [-]  refuses with IdentityStale
+    out   -        Deliver                    [-]  refuses with IdentityStale
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
 F AmendDocument                  | WorkspaceSpace.h | 916     | api,nonthrowing                    | 🚩 | One document, for amending its title or its panel arrangement.
     in    Space    WorkspaceSpace&            [-]  ?
     in    Subject  WorkspaceDocumentIdentity  [-]  ?
-    out   -        Outcome                    [-]  refuses with IdentityStale
+    out   -        Deliver                    [-]  refuses with IdentityStale
     by    Source/WorkspacePanel.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
 F LocateLeafCarrying             | WorkspaceSpace.h | 921     | api,nonthrowing                    | 🚩 | Which leaf currently carries one document, or -1 when a floating window does.
@@ -582,7 +582,7 @@ F LocateWindowCarrying           | WorkspaceSpace.h | 926     | api,nonthrowing 
 F AmendFloatingWindow            | WorkspaceSpace.h | 932     | api,nonthrowing                    | 🚩 | One floating window, for moving or resizing it.
     in    Space      WorkspaceSpace&  [-]  ?
     in    WindowKey  std::uint32_t    [-]  ?
-    out   -          Outcome          [-]  refuses with IdentityStale when no window carries that key
+    out   -          Deliver          [-]  refuses with IdentityStale when no window carries that key
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
 
 F TearDocument                   | WorkspaceSpace.h | 945     | api,nonthrowing                    | 🚩 | Lifts one document out of wherever it sits into a floating window of its own. which is what keeps a torn tab and its former self from drifting apart.
@@ -590,7 +590,7 @@ F TearDocument                   | WorkspaceSpace.h | 945     | api,nonthrowing 
     in    Subject    WorkspaceDocumentIdentity  [-]   the document torn out
     in    PositionX  float                      [px]  the window's top-left, already offset by the grab
     in    PositionY  float                      [px]  ?
-    out   -          Outcome                    [-]   the minted window's key; refuses with IdentityStale when nothing resolves
+    out   -          Deliver                    [-]   the minted window's key; refuses with IdentityStale when nothing resolves
     post  the emptied leaf, if any, is reclaimed; the document is the new window's only occupant
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
     note  🔴 The document is never copied. It stays owned once by `Documents` and the window names it by identity,
@@ -600,7 +600,7 @@ F DockDocument                   | WorkspaceSpace.h | 960     | api,nonthrowing 
     in    Subject     WorkspaceDocumentIdentity  [-]  ?
     in    TargetLeaf  std::int32_t               [-]  the leaf the landing named
     in    Zone        WorkspaceDropZone          [-]  Strip and Centre stack; the four sides divide
-    out   -           Outcome                    [-]  refuses with IdentityStale when the document or the leaf does not resolve, and with
+    out   -           Deliver                    [-]  refuses with IdentityStale when the document or the leaf does not resolve, and with
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
     note  🔴 The document is placed **before** it is removed from where it was, and the leaf it emptied is
 
@@ -608,7 +608,7 @@ F StackDocumentInWindow          | WorkspaceSpace.h | 969     | api,nonthrowing 
     in    Space      WorkspaceSpace&            [-]  ?
     in    Subject    WorkspaceDocumentIdentity  [-]  ?
     in    WindowKey  std::uint32_t              [-]  ?
-    out   -          Outcome                    [-]  refuses with IdentityStale when the document or the window does not resolve
+    out   -          Deliver                    [-]  refuses with IdentityStale when the document or the window does not resolve
     by    Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp
 
 F ReorderOccupant                | WorkspaceSpace.h | 979     | api,nonthrowing                    | 🚩 | Moves one document to a position within the ordered occupants of the leaf or window carrying it.
@@ -617,7 +617,7 @@ F ReorderOccupant                | WorkspaceSpace.h | 979     | api,nonthrowing 
     in    CarryingLeaf    std::int32_t               [-]  ?
     in    CarryingWindow  std::uint32_t              [-]  ?
     in    Position        std::uint32_t              [-]  the ordinal it takes; bounded to the occupant count
-    out   -               Outcome                    [-]  refuses with IdentityStale when the document does not resolve where it was said to be
+    out   -               Deliver                    [-]  refuses with IdentityStale when the document does not resolve where it was said to be
     by    Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp
     note  Reorder never changes which occupant is active. A tab slid past its neighbour keeps its body presented.
 

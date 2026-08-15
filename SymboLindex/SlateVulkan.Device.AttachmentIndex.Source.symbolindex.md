@@ -29,7 +29,7 @@ F AttachmentIndex::LayoutOf         | AttachmentIndex.cpp | 15-19   | -         
 F AttachmentIndex::Construct        | AttachmentIndex.cpp | 21-30   | -          | - | ?
     in    Exchange  const VulkanExchange&  [-]  ?
     in    Claimed   const TargetSpace&     [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION
@@ -37,7 +37,7 @@ F AttachmentIndex::Construct        | AttachmentIndex.cpp | 21-30   | -         
 
 F AttachmentIndex::Declare          | AttachmentIndex.cpp | 36-151  | -          | - | ?
     in    Declaring  const ConstructDeclaration&  [-]  ?
-    out   -          Outcome<std::uint32_t>       [-]  ?
+    out   -          Deliver<std::uint32_t>       [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE DERIVATION
@@ -46,7 +46,7 @@ F AttachmentIndex::Declare          | AttachmentIndex.cpp | 36-151  | -         
 F AttachmentIndex::Derive           | AttachmentIndex.cpp | 157-242 | -          | - | ?
     in    DisplayWidth   std::uint32_t  [-]  ?
     in    DisplayHeight  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RESOLUTION
@@ -54,11 +54,11 @@ F AttachmentIndex::Derive           | AttachmentIndex.cpp | 157-242 | -         
 
 F AttachmentIndex::Resolve          | AttachmentIndex.cpp | 248-271 | -          | - | ?
     in    ConstructOrdinal  std::uint32_t             [-]  ?
-    out   -                 Outcome<ConstructedSpan>  [-]  ?
+    out   -                 Deliver<ConstructedSpan>  [-]  ?
 
 F AttachmentIndex::ConstructOf      | AttachmentIndex.cpp | 273-282 | -          | - | ?
     in    ConstructOrdinal  std::uint32_t          [-]  ?
-    out   -                 Outcome<VkRenderPass>  [-]  ?
+    out   -                 Deliver<VkRenderPass>  [-]  ?
 
 F AttachmentIndex::DeclaredCount    | AttachmentIndex.cpp | 284-287 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

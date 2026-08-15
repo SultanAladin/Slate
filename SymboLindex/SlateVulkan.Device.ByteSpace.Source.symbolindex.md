@@ -38,7 +38,7 @@ F RaiseToAlignment             | ByteSpace.cpp | 25-28   | -          | - | ?
 F ByteSpace::Construct         | ByteSpace.cpp | 35-57   | -          | - | ?
     in    Exchange  const VulkanExchange&       [-]  ?
     in    Naming    const DiagnosticExtension&  [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   RESIDENCY SCORING
@@ -46,7 +46,7 @@ F ByteSpace::Construct         | ByteSpace.cpp | 35-57   | -          | - | ?
 
 F ByteSpace::ClassifyResidency | ByteSpace.cpp | 63-91   | -          | - | ?
     in    Residency  ExtentResidency         [-]  ?
-    out   -          Outcome<std::uint32_t>  [-]  ?
+    out   -          Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   EXTENT ACQUISITION
@@ -55,7 +55,7 @@ F ByteSpace::ClassifyResidency | ByteSpace.cpp | 63-91   | -          | - | ?
 F ByteSpace::ConstructExtent   | ByteSpace.cpp | 97-171  | -          | - | ?
     in    Residency   ExtentResidency         [-]  ?
     in    LeastBytes  VkDeviceSize            [-]  ?
-    out   -           Outcome<std::uint32_t>  [-]  ?
+    out   -           Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE SLICE
@@ -66,7 +66,7 @@ F ByteSpace::Claim             | ByteSpace.cpp | 177-278 | -          | - | ?
     in    ByteAlignment   VkDeviceSize        [-]  ?
     in    Residency       ExtentResidency     [-]  ?
     in    Standing        ClaimStanding       [-]  ?
-    out   -               Outcome<ByteClaim>  [-]  ?
+    out   -               Deliver<ByteClaim>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECLAMATION

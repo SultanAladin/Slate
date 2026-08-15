@@ -48,7 +48,7 @@ F SamplePainted                        | AnalyticProjection.cpp | 70-109   | - |
 
 F AnalyticProjection::Construct        | AnalyticProjection.cpp | 117-125  | - | - | ?
     in    Supplied_  const AnalyticSources&  [-]  ?
-    out   -          Outcome<bool>           [-]  ?
+    out   -          Deliver<bool>           [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE FLATTENING CACHE
@@ -68,7 +68,7 @@ F AnalyticProjection::ResolveOutlineAt | AnalyticProjection.cpp | 164-204  | - |
     in    SourceAlong    double                   [-]  ?
     in    SourceAcross   double                   [-]  ?
     in    Tolerance      double                   [-]  ?
-    out   -              Outcome<ResolvedSample>  [-]  ?
+    out   -              Deliver<ResolvedSample>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   BARE OUTLINE RUNS
@@ -103,7 +103,7 @@ F AnalyticProjection::ResolveTextAt    | AnalyticProjection.cpp | 305-376  | - |
     in    SourceAlong    double                   [-]  ?
     in    SourceAcross   double                   [-]  ?
     in    Tolerance      double                   [-]  ?
-    out   -              Outcome<ResolvedSample>  [-]  ?
+    out   -              Deliver<ResolvedSample>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                         TILING
@@ -115,7 +115,7 @@ F AnalyticProjection::ResolveTilingAt  | AnalyticProjection.cpp | 382-494  | - |
     in    SourceAcross   double                   [-]  ?
     in    Tolerance      double                   [-]  ?
     in    NestingDepth   std::uint32_t            [-]  ?
-    out   -              Outcome<ResolvedSample>  [-]  ?
+    out   -              Deliver<ResolvedSample>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     PLACED CONTENT
@@ -126,7 +126,7 @@ F AnalyticProjection::ResolvePlacedAt  | AnalyticProjection.cpp | 500-547  | - |
     in    PositionAlong     double                   [-]  ?
     in    PositionAcross    double                   [-]  ?
     in    Tolerance         double                   [-]  ?
-    out   -                 Outcome<ResolvedSample>  [-]  ?
+    out   -                 Deliver<ResolvedSample>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       ONE ENTRY
@@ -138,7 +138,7 @@ F AnalyticProjection::ResolveEntryAt   | AnalyticProjection.cpp | 553-700  | - |
     in    PositionAcross  double                     [-]  ?
     in    Tolerance       double                     [-]  ?
     in    ComponentCount  std::uint32_t              [-]  ?
-    out   -               Outcome<ResolvedSample>    [-]  ?
+    out   -               Deliver<ResolvedSample>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE CONTENT REVISION
@@ -159,7 +159,7 @@ F AnalyticProjection::ResolveAt        | AnalyticProjection.cpp | 754-837  | - |
     in    PositionAcross  double                                [-]  ?
     in    Tolerance       double                                [-]  ?
     in    ComponentCount  std::uint32_t                         [-]  ?
-    out   -               Outcome<ResolvedSample>               [-]  ?
+    out   -               Deliver<ResolvedSample>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ONE TILE
@@ -170,7 +170,7 @@ F AnalyticProjection::ResolveTile      | AnalyticProjection.cpp | 843-934  | - |
     in    Placements      const std::vector<ChannelPlacement>&  [-]  ?
     in    Addressed       CellAddress                           [-]  ?
     in    ComponentCount  std::uint32_t                         [-]  ?
-    out   -               Outcome<ResolvedTile>                 [-]  ?
+    out   -               Deliver<ResolvedTile>                 [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS PRESENT

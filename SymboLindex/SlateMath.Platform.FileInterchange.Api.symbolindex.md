@@ -22,7 +22,7 @@ S FileInterchange.h | 124 lines | 10119f91 | 9 sym | One stream surface over thr
 //                                                   WHAT A PATH NAMES
 //------------------------------------------------------------------------------------------------------------------------
 
-E PathContent                       | FileInterchange.h | 26-32  | contract                  | -  | What the file system reports a path currently names. caller asked for and acts on. A refusal names a file system that declined to answer at all, which is a different fact and is reported through `Outcome` instead.
+E PathContent                       | FileInterchange.h | 26-32  | contract                  | -  | What the file system reports a path currently names. caller asked for and acts on. A refusal names a file system that declined to answer at all, which is a different fact and is reported through `Deliver` instead.
     has   Absent     PathContent  [-]  ?
     has   Stream     PathContent  [-]  ?
     has   Directory  PathContent  [-]  ?
@@ -48,13 +48,13 @@ T FileInterchange                   | FileInterchange.h | 55-122 | owning       
 
 F FileInterchange::Resolve          | FileInterchange.h | 66     | api,nonthrowing           | ✔️ | What a path currently names. question "is this here" indistinguishable from a file system that failed to answer it.
     in    Path  const std::string&  [-]  UTF-8
-    out   -     Outcome             [-]  refuses with HostDenied when the file system declined to answer
+    out   -     Deliver             [-]  refuses with HostDenied when the file system declined to answer
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  📝 An absent path is delivered as Absent rather than refused. Refusing would make the ordinary
 
 F FileInterchange::ReadStream       | FileInterchange.h | 76     | api,nonthrowing           | 🔴 | Reads a whole stream into an extent the caller then owns. ExtentExhausted when it spans more than the declared ceiling by range arrival reads through that one rather than through this.
     in    Path  const std::string&  [-]  UTF-8
-    out   -     Outcome             [-]  refuses with HostDenied when the stream cannot be opened, and with
+    out   -     Deliver             [-]  refuses with HostDenied when the stream cannot be opened, and with
     by    Api/ShaderCodec.h, Source/FileInterchange.cpp, Source/ShaderCodec.cpp
     note  ⚠️ Whole-stream. `StorageExchange` is the surface for a stream read by range, and a codec driven
 
@@ -62,20 +62,20 @@ F FileInterchange::WriteStream      | FileInterchange.h | 93     | api,nonthrowi
     in    Path     const std::string&                                   [-]  UTF-8; what the caller wants to end up holding the content
     in    Content  const std::vector<std::uint8_t>&                     [-]  the bytes to write
     in    a        temporary directory that may sit on another volume.  [-]  ?
-    out   -        Outcome                                              [-]  refuses with HostDenied when the file system declined, and with
+    out   -        Deliver                                              [-]  refuses with HostDenied when the file system declined, and with
     by    Source/FileInterchange.cpp, Source/PersistenceSequence.cpp
     note  🔴 `48` §3's sequence, and the reason this is one routine rather than three. The content is
     note  ⚠️ The replacement is the file system's own rename, which is atomic within one file system and
 
 F FileInterchange::DeclareDirectory | FileInterchange.h | 102    | api,nonthrowing           | 🚩 | Creates a directory and every absent directory above it. be there, and it is.
     in    Path  const std::string&  [-]  UTF-8
-    out   -     Outcome             [-]  refuses with HostDenied when the file system declined
+    out   -     Deliver             [-]  refuses with HostDenied when the file system declined
     by    Source/FileInterchange.cpp
     note  📝 A directory that already exists is delivered rather than refused — the caller asked for it to
 
 F FileInterchange::Reclaim          | FileInterchange.h | 108    | api,nonthrowing           | ✔️ | Removes what a path names, when it names a stream.
     in    Path  const std::string&  [-]  ?
-    out   -     Outcome             [-]  refuses with HostDenied when the file system declined; delivers for an absent path
+    out   -     Deliver             [-]  refuses with HostDenied when the file system declined; delivers for an absent path
     by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
 
 F FileInterchange::Append           | FileInterchange.h | 116    | api,nonthrowing           | ✔️ | Appends one path component to another, with exactly one separator between them.

@@ -33,7 +33,7 @@ K NOMINMAX                                 | PlatformInterchange.cpp | 17      |
 //------------------------------------------------------------------------------------------------------------------------
 
 F PlatformInterchange::Resolve             | PlatformInterchange.cpp | 40-140  | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F PlatformInterchange::Report              | PlatformInterchange.cpp | 142-145 | - | - | ?
     out   -  const HostReport&  [-]  ?
@@ -51,8 +51,8 @@ F PlatformInterchange::DeclareThreadName   | PlatformInterchange.cpp | 151-185 |
 //------------------------------------------------------------------------------------------------------------------------
 
 F PlatformInterchange::ExecutableDirectory | PlatformInterchange.cpp | 191-251 | - | - | ?
-    out   -  Outcome<std::string>  [-]  ?
+    out   -  Deliver<std::string>  [-]  ?
 
 F PlatformInterchange::RetainedDirectory   | PlatformInterchange.cpp | 253-339 | - | - | ?
     in    ApplicationName  const char*           [-]  ?
-    out   -                Outcome<std::string>  [-]  ?
+    out   -                Deliver<std::string>  [-]  ?

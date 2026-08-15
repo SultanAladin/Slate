@@ -1,5 +1,5 @@
 ﻿//============================================================================================================================================
-//                                                            OUTCOMECONTRACT.H
+//                                                            DELIVERYCONTRACT.H
 //============================================================================================================================================
 // 🧩 Absence that carries a reason, and a convergent result that reports which criterion terminated it.
 
@@ -49,38 +49,38 @@ struct Refusal
 };
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                       OUTCOME
+//                                                       DELIVERY
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
 /// note  ⚠️ Delivered is default-constructed when ContentPresent is false. Read it only through Resolve.
 /// tag   contract, nonallocating, nonthrowing
 template <typename Content>
-struct Outcome
+struct ContentDelivery
 {
     Content  Delivered      = Content{};   // [-] - meaningful only while ContentPresent holds
     Refusal  Declined       = {};          // [-] - meaningful only while ContentPresent is false
     bool     ContentPresent = false;       // [-] - the discriminant, and the only thing read first
 
-    /// 🧩 Constructs a delivered outcome around content the computation produced.
+    /// 🧩 Constructs a delivered result around content the computation produced.
     /// in    Produced   [-]  the content to deliver
-    /// out   Outcome    [-]  ContentPresent holds
+    /// out   Deliver    [-]  ContentPresent holds
     /// cost  ✔️
-    static constexpr Outcome Deliver(const Content& Produced)
+    static constexpr ContentDelivery Deliver(const Content& Produced)
     {
-        Outcome Constructed;
+        ContentDelivery Constructed;
         Constructed.Delivered      = Produced;
         Constructed.ContentPresent = true;
         return Constructed;
     }
 
-    /// 🧩 Constructs a refused outcome carrying the reason the content is absent.
+    /// 🧩 Constructs a refused result carrying the reason the content is absent.
     /// in    Declining  [-]  the reason and the operand it applies to
-    /// out   Outcome    [-]  ContentPresent is false
+    /// out   Deliver    [-]  ContentPresent is false
     /// cost  ✔️
-    static constexpr Outcome Refuse(const Refusal& Declining)
+    static constexpr ContentDelivery Refuse(const Refusal& Declining)
     {
-        Outcome Constructed;
+        ContentDelivery Constructed;
         Constructed.Declined       = Declining;
         Constructed.ContentPresent = false;
         return Constructed;
@@ -95,6 +95,13 @@ struct Outcome
         return Delivered;
     }
 };
+
+/// 🧩 Public spelling for content delivered or refused across one fallible call.
+/// note  An alias permits `Deliver<Content>::Deliver(Produced)`: a class named Deliver cannot declare a static
+///       function carrying its own name because C++ reserves that spelling for its constructor.
+/// tag   contract, nonallocating, nonthrowing
+template <typename Content>
+using Deliver = ContentDelivery<Content>;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  CONVERGENT RESULT

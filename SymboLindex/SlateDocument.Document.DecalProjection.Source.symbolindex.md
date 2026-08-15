@@ -80,7 +80,7 @@ F ProjectPlacementExtent             | DecalProjection.cpp | 146-275 | - | - | ?
     in    SequenceOrdinal    std::uint32_t                         [-]  ?
     in    Imported           const TopologyStructure&              [-]  ?
     in    CornerCoordinates  const std::vector<DomainCoordinate>&  [-]  ?
-    out   -                  Outcome<DomainExtent>                 [-]  ?
+    out   -                  Deliver<DomainExtent>                 [-]  ?
     by    Api/DecalProjection.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -89,20 +89,20 @@ F ProjectPlacementExtent             | DecalProjection.cpp | 146-275 | - | - | ?
 
 F PlacementIndex::Declare            | DecalProjection.cpp | 281-339 | - | - | ?
     in    Declaring  const PlacementSpecification&  [-]  ?
-    out   -          Outcome<std::uint32_t>         [-]  ?
+    out   -          Deliver<std::uint32_t>         [-]  ?
 
 F PlacementIndex::Amend              | DecalProjection.cpp | 341-382 | - | - | ?
     in    PlacementOrdinal  std::uint32_t                  [-]  ?
     in    Amending          const PlacementSpecification&  [-]  ?
-    out   -                 Outcome<bool>                  [-]  ?
+    out   -                 Deliver<bool>                  [-]  ?
 
 F PlacementIndex::Resolve            | DecalProjection.cpp | 384-393 | - | - | ?
     in    PlacementOrdinal  std::uint32_t                           [-]  ?
-    out   -                 Outcome<const PlacementSpecification*>  [-]  ?
+    out   -                 Deliver<const PlacementSpecification*>  [-]  ?
 
 F PlacementIndex::Withdraw           | DecalProjection.cpp | 395-411 | - | - | ?
     in    PlacementOrdinal  std::uint32_t  [-]  ?
-    out   -                 Outcome<bool>  [-]  ?
+    out   -                 Deliver<bool>  [-]  ?
 
 F PlacementIndex::Revision           | DecalProjection.cpp | 413-419 | - | - | ?
     in    PlacementOrdinal  std::uint32_t  [-]  ?
@@ -119,17 +119,17 @@ F PlacementSequence::Open            | DecalProjection.cpp | 430-444 | - | - | ?
     in    PlacementOrdinal  std::uint32_t                  [-]  ?
     in    Standing          const PlacementSpecification&  [-]  ?
     in    CameraFollowed_   bool                           [-]  ?
-    out   -                 Outcome<bool>                  [-]  ?
+    out   -                 Deliver<bool>                  [-]  ?
 
 F PlacementSequence::Amend           | DecalProjection.cpp | 446-454 | - | - | ?
     in    Amending  const DecomposedTransform&  [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 F PlacementSequence::Abandon         | DecalProjection.cpp | 456-472 | - | - | ?
-    out   -  Outcome<PlacementSpecification>  [-]  ?
+    out   -  Deliver<PlacementSpecification>  [-]  ?
 
 F PlacementSequence::Seal            | DecalProjection.cpp | 474-496 | - | - | ?
-    out   -  Outcome<PlacementSpecification>  [-]  ?
+    out   -  Deliver<PlacementSpecification>  [-]  ?
 
 F PlacementSequence::Amended         | DecalProjection.cpp | 498     | - | - | ?
     out   -  const PlacementSpecification&  [-]  ?

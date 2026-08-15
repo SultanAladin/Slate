@@ -141,9 +141,9 @@ bool ConstructRasterPipeline(SoftwareRasterization& Software, const char* Shader
     VkComputePipelineCreateInfo PipelineInformation = { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
     PipelineInformation.stage  = StageInformation;
     PipelineInformation.layout = Software.RasterLayout;
-    const VkResult Outcome = vkCreateComputePipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInformation, Host.Allocator, &Software.RasterPipeline);
+    const VkResult Deliver = vkCreateComputePipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInformation, Host.Allocator, &Software.RasterPipeline);
     vkDestroyShaderModule(Host.Device, Module, Host.Allocator);
-    if (Outcome != VK_SUCCESS)
+    if (Deliver != VK_SUCCESS)
     {
         Software.RasterPipeline = VK_NULL_HANDLE;
         ReportSoftwareRaster("raster compute pipeline creation failed");
@@ -284,10 +284,10 @@ bool ConstructResolvePipeline(SoftwareRasterization& Software,
     PipelineInfo.pDynamicState       = &Dynamic;
     PipelineInfo.layout              = Software.ResolveLayout;
 
-    VkResult Outcome = vkCreateGraphicsPipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Software.ResolvePipeline);
+    VkResult Deliver = vkCreateGraphicsPipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Software.ResolvePipeline);
     vkDestroyShaderModule(Host.Device, VertexModule, Host.Allocator);
     vkDestroyShaderModule(Host.Device, FragmentModule, Host.Allocator);
-    if (Outcome != VK_SUCCESS)
+    if (Deliver != VK_SUCCESS)
     {
         Software.ResolvePipeline = VK_NULL_HANDLE;
         ReportSoftwareRaster("resolve graphics pipeline creation failed");

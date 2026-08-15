@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateDocument/Document/RevisionSequence/Api/RevisionSequence.h"
 
 #include <cstdint>
@@ -86,24 +86,24 @@ public:
     /// 🧩 Names the document this journal belongs to, and the journal's own storage location.
     /// in    DeclaredDocument  [-]  UTF-8; the document the journal is offered against
     /// in    DeclaredJournal   [-]  UTF-8; where the journal itself is written
-    /// out   Outcome           [-]  refuses with ContentUnsupported when either path is empty
+    /// out   Deliver           [-]  refuses with ContentUnsupported when either path is empty
     /// note  🔴 Both paths are held because §4.1's pairing is what makes the offer meaningful. A journal that
     ///        did not know its document could be replayed into whichever document happened to be open.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareDocument(const std::string& DeclaredDocument, const std::string& DeclaredJournal);
+    Deliver<bool> DeclareDocument(const std::string& DeclaredDocument, const std::string& DeclaredJournal);
 
     /// 🧩 Appends one sealed transaction to the journal.
     /// in    Sealing  [-]  the transaction as `RevisionSequence` sealed it
     /// in    RevisionOrdinal  [-]  where it sits in the document's committed order
-    /// out   Outcome  [-]  refuses with ContentUnsupported when no document is declared
+    /// out   Deliver  [-]  refuses with ContentUnsupported when no document is declared
     /// post  the retained count never exceeds EntryCeiling; the oldest entry leaves when it would
     /// note  ⚠️ An entry leaving at the ceiling makes the journal a **suffix** rather than a tail, and a suffix
     ///        cannot be replayed from the saved file. OfferReplay reports that as PartlyOffered, so the artist
     ///        is told the recovery is partial rather than handed a document assembled from a gap.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Append(const CommittedTransaction& Sealing, std::uint64_t RevisionOrdinal);
+    Deliver<bool> Append(const CommittedTransaction& Sealing, std::uint64_t RevisionOrdinal);
 
     /// 🧩 Retires every entry a completed save subsumes — `48` §3 ④.
     /// in    SavedThrough  [-]  the revision ordinal the saved document carries

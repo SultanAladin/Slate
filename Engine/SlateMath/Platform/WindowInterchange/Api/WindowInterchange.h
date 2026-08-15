@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 
@@ -47,10 +47,10 @@ public:
     /// 🧩 Opens a window of the requested extent and surrenders nothing until it succeeds.
     /// in    RequestedExtent [px]  the drawable extent asked of the window system
     /// in    WindowTitle     [-]   static text; never allocated, never retained beyond the call
-    /// out   Outcome         [-]   refuses with HostDenied when the window system declines
+    /// out   Deliver         [-]   refuses with HostDenied when the window system declines
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Open(DisplayExtent RequestedExtent, const char* WindowTitle);
+    Deliver<bool> Open(DisplayExtent RequestedExtent, const char* WindowTitle);
 
     /// 🧩 Drains the window system's pending messages into this window's recorded condition.
     /// cost  ✔️

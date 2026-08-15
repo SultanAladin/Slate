@@ -35,7 +35,7 @@ F OverlayDeclarable                    | OverlayProjection.cpp | 22-25   | - | -
 F OverlayProjection::Declare           | OverlayProjection.cpp | 29-73   | - | - | ?
     in    Presented  OverlaySubject               [-]  ?
     in    Declaring  const OverlaySpecification&  [-]  ?
-    out   -          Outcome<bool>                [-]  ?
+    out   -          Deliver<bool>                [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORDINGS
@@ -43,7 +43,7 @@ F OverlayProjection::Declare           | OverlayProjection.cpp | 29-73   | - | -
 
 F OverlayProjection::Contribute        | OverlayProjection.cpp | 79-126  | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE PRESENCE
@@ -61,7 +61,7 @@ F OverlayProjection::RecordingOccupied | OverlayProjection.cpp | 146-161 | - | -
 
 F OverlayProjection::Specification     | OverlayProjection.cpp | 163-180 | - | - | ?
     in    Presented  OverlaySubject                        [-]  ?
-    out   -          Outcome<const OverlaySpecification*>  [-]  ?
+    out   -          Deliver<const OverlaySpecification*>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REPORTING

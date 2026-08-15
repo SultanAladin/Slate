@@ -4,7 +4,7 @@
 // ðŸ§© The CPU single-click picker, cluster-native path: cast one object-space Ray against a DisplayPolygons' triangles, keep the
 //    nearest hit, and resolve it â€” through the TriangleOrigin provenance + the AdjacencyIndex â€” back to a source face / nearest
 //    corner vertex / nearest real loop edge. This is the mouse-selection path: the runtime builds the ray from the clicked
-//    viewport's camera, hands it here with the specimen's display mirror + adjacency, and the returned PickOutcome names the
+//    viewport's camera, hands it here with the specimen's display mirror + adjacency, and the returned PickDelivery names the
 //    component to select. No half-edge (TopologyStructure) is needed â€” the non-edit path resolves entirely off the cluster.
 // ðŸ“ Classification is barycentric (resolution-independent, enough for the authored tri/quad/N-gon cases): the largest corner
 //    weight names the snapped vertex, the smallest weight names the opposite triangle side, and the face is always the hit
@@ -38,11 +38,11 @@ constexpr uint64_t InvalidEdgeKey = 0xFFFFFFFFFFFFFFFFull;
 //                                                            STRUCTS
 //------------------------------------------------------------------------------------------------------------------------
 
-// ðŸ“ The outcome of one component pick. HitEnabled is false for a ray that missed every triangle (all other fields are then
+// ðŸ“ The result of one component pick. HitEnabled is false for a ray that missed every triangle (all other fields are then
 //    meaningless). On a hit: Distance is the parametric t along the object-space ray, HitPoint is the object-space hit, Face is
 //    the resolved source face ordinal (always valid on a hit), Vertex is the nearest source corner vertex, and Edge is the
 //    nearest real loop edge's packed key â€” InvalidEdgeKey on a fan diagonal.
-struct PickOutcome
+struct PickDelivery
 {
     bool     HitEnabled      = false;                   // [-]  - true iff the ray hit a triangle
     uint32_t TriangleOrdinal = InvalidCornerReference;  // [-]  - display triangle the ray hit
@@ -62,7 +62,7 @@ struct PickOutcome
 // facing away from the ray are skipped so the pick resolves against the visible front shell only; true accepts either facing
 // (X-ray). Cluster supplies the corner-vertex positions the triangles are cast against. A miss returns HitEnabled false.
 // O(triangles); a BVH refit is the later acceleration.
-PickOutcome ResolveElementPick(const Ray&              ObjectRay,
+PickDelivery ResolveElementPick(const Ray&              ObjectRay,
                                const PolygonCluster&   Cluster,
                                const DisplayPolygons&  Display,
                                const AdjacencyIndex&   Adjacency,

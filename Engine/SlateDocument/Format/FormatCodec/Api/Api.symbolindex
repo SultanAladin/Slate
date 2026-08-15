@@ -48,6 +48,6 @@ T DeclaredMigration    | FormatCodec.h | 40-44 | nonallocating,nonthrowing     |
 
 F ResolveMigration     | FormatCodec.h | 57    | api,nonallocating,nonthrowing | ✔️ | Reads a document stream's heading and reports whether a migration path reaches the current version. not decide whether the result is fit to use.
     in    Heading  const StreamHeading&  [-]  the heading as the stream carried it
-    out   -        Outcome               [-]  refuses with VersionUnmigratable when no declared chain reaches CurrentStreamVersion
+    out   -        Deliver               [-]  refuses with VersionUnmigratable when no declared chain reaches CurrentStreamVersion
     by    Source/ConsoleHost.cpp, Source/FormatCodec.cpp
     note  A codec translates a stream and does nothing else. It does not condition what it decoded and does

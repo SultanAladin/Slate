@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateDocument/Document/BrushSpecification/Api/BrushSpecification.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
 #include "SlateDocument/Document/PointerIntersection/Api/PointerIntersection.h"
@@ -121,20 +121,20 @@ class ToolIndex
 public:
 
     /// 🧩 Declares one tool and issues its ordinal.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an empty identity or an out-of-range declaration,
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an empty identity or an out-of-range declaration,
     ///                     and with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Declare(const ToolSpecification& Declaring);
+    Deliver<std::uint32_t> Declare(const ToolSpecification& Declaring);
 
-    Outcome<const ToolSpecification*> Resolve(std::uint32_t ToolOrdinal) const;
-    Outcome<ToolSpecification*>       Amend(std::uint32_t ToolOrdinal);
+    Deliver<const ToolSpecification*> Resolve(std::uint32_t ToolOrdinal) const;
+    Deliver<ToolSpecification*>       Amend(std::uint32_t ToolOrdinal);
 
     /// 🧩 The ordinal one identity was declared at.
-    /// out   Outcome  [-]  refuses with ContentUnsupported when nothing declares that identity
+    /// out   Deliver  [-]  refuses with ContentUnsupported when nothing declares that identity
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Located(const std::string& Identity) const;
+    Deliver<std::uint32_t> Located(const std::string& Identity) const;
 
     std::uint32_t DeclaredCount() const;
 
@@ -198,19 +198,19 @@ public:
     const BrushIndex& Brushes() const;
 
     /// 🧩 Activates one declared tool.
-    /// out   Outcome  [-]  refuses with ContentUnsupported outside the declared tool count
+    /// out   Deliver  [-]  refuses with ContentUnsupported outside the declared tool count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareTool(std::uint32_t ToolOrdinal);
+    Deliver<bool> DeclareTool(std::uint32_t ToolOrdinal);
 
     /// 🧩 Activates one declared brush.
-    /// out   Outcome  [-]  refuses with ContentUnsupported outside the declared brush count
+    /// out   Deliver  [-]  refuses with ContentUnsupported outside the declared brush count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareBrush(std::uint32_t BrushOrdinal);
+    Deliver<bool> DeclareBrush(std::uint32_t BrushOrdinal);
 
     /// 🧩 Declares the active colour.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a colour declaring no space
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a colour declaring no space
     /// note  🔴 `36` §1: no bare triple. A colour without its space is a number three subsystems will each
     ///        interpret differently, and all three will look plausible.
     /// note  ⚠️ `36` §6 rules a colour sampled from the workspace **scene-referred**, sampled before `66`. What
@@ -218,43 +218,43 @@ public:
     ///        that says so.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareColour(const ColourSpecification& Declaring);
+    Deliver<bool> DeclareColour(const ColourSpecification& Declaring);
 
     /// 🧩 Declares how the workspace presents the shaded result.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a mode outside the declared set
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a mode outside the declared set
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareDisplay(DisplaySubject Declaring);
+    Deliver<bool> DeclareDisplay(DisplaySubject Declaring);
 
     /// 🧩 Declares which of `42`'s channels is presented alone at `ChannelIsolated`.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a channel outside `42`'s twenty
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a channel outside `42`'s twenty
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareChannel(ChannelSubject Declaring);
+    Deliver<bool> DeclareChannel(ChannelSubject Declaring);
 
     /// 🧩 Declares whether one of `80`'s overlays is presented.
-    /// out   Outcome  [-]  refuses with ContentUnsupported outside the declared set
+    /// out   Deliver  [-]  refuses with ContentUnsupported outside the declared set
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareOverlay(OverlaySubject Declaring, bool PresenceEnabled);
+    Deliver<bool> DeclareOverlay(OverlaySubject Declaring, bool PresenceEnabled);
 
     /// 🧩 Takes the pointer at a declared precedence, recording the pick it was taken against.
     /// in    Claiming  [-]  which level is claiming it
     /// in    Opened    [-]  the pick as `74` resolved it at this instant
-    /// out   Outcome   [-]  refuses with HostDenied while a capture already stands
+    /// out   Deliver   [-]  refuses with HostDenied while a capture already stands
     /// note  🔴 A standing capture is **not** stolen by a stronger claimant. `76` §3 and `14` §4.2: capture
     ///        persists for the whole drag, and re-arbitrating per sample is the defect where a stroke stops the
     ///        moment the cursor crosses a floating panel. Arbitration happens before capture is taken, once.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> OpenCapture(PointerPrecedence Claiming, const ResolvedPointer& Opened);
+    Deliver<bool> OpenCapture(PointerPrecedence Claiming, const ResolvedPointer& Opened);
 
     /// 🧩 Releases the standing capture.
-    /// out   Outcome  [-]  refuses with HostDenied when no capture stands
+    /// out   Deliver  [-]  refuses with HostDenied when no capture stands
     /// note  🔴 Releasing is an explicit event and never a consequence of the pointer moving elsewhere.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> ReleaseCapture();
+    Deliver<bool> ReleaseCapture();
 
     /// 🧩 Which precedence would take the pointer, given what is open and where the pointer is.
     /// in    InterfaceReported  [-]  the interface reports the pointer over itself — `14` §4.2's level 1
@@ -271,16 +271,16 @@ public:
     const PointerCapture&       Capture() const;
 
     /// 🧩 The active tool, refusing where none has been activated.
-    /// out   Outcome  [-]  refuses with ContentUnsupported before a tool is declared active
+    /// out   Deliver  [-]  refuses with ContentUnsupported before a tool is declared active
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const ToolSpecification*> ActiveTool() const;
+    Deliver<const ToolSpecification*> ActiveTool() const;
 
     /// 🧩 The active brush, refusing where none has been activated.
-    /// out   Outcome  [-]  refuses with ContentUnsupported before a brush is declared active
+    /// out   Deliver  [-]  refuses with ContentUnsupported before a brush is declared active
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const BrushSpecification*> ActiveBrush() const;
+    Deliver<const BrushSpecification*> ActiveBrush() const;
 
     std::uint32_t   ActiveToolOrdinal() const;
     std::uint32_t   ActiveBrushOrdinal() const;

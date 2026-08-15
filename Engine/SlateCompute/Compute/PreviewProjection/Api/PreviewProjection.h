@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateCompute/Compute/AnalyticProjection/Api/AnalyticProjection.h"
 #include "SlateCompute/Compute/ImpressionSequence/Api/ImpressionSequence.h"
@@ -159,10 +159,10 @@ public:
 
     /// 🧩 Takes the resolver every preview reads.
     /// in    Supplied  [-]  borrowed; outlives this component
-    /// out   Outcome   [-]  refuses with ContentUnsupported for an absent resolver
+    /// out   Deliver   [-]  refuses with ContentUnsupported for an absent resolver
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(const PreviewSources& Supplied);
+    Deliver<bool> Construct(const PreviewSources& Supplied);
 
     //--------------------------------------------------------------------------------------------------------------------
     //                                                  THE BRUSH PREVIEW
@@ -171,7 +171,7 @@ public:
     /// 🧩 Opens the brush preview against a declared brush — `82` §2's first row.
     /// in    Declaring  [-]  the surface, the entry and the packing; Speculative is declared here, not by the caller
     /// in    Brushed    [-]  `58`'s declaration, resolved exactly as a committed stroke resolves it
-    /// out   Outcome    [-]  refuses with HostDenied when a preview is already open, and with whatever `22` refused
+    /// out   Deliver    [-]  refuses with HostDenied when a preview is already open, and with whatever `22` refused
     /// post  🔴 the held stroke is speculative; it pins no tile and can never seal
     /// note  🔴 The preview shows the **resolved impression** — extent, coverage falloff, the combine specification
     ///        and the colour — and not an outline of the radius. `82` §6's fourth gate, and the reason it is a gate:
@@ -182,28 +182,28 @@ public:
     ///        `22`'s Seal rather than from the component whose whole subject is that it never commits.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> OpenImpression(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
+    Deliver<bool> OpenImpression(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
 
     /// 🧩 Moves the previewed impression to where the cursor now stands.
     /// in    Arriving  [-]  the pointer sample and the domain position `74` resolved it to
-    /// out   Outcome   [-]  refuses with HostDenied before Open, and with whatever `22` refused
+    /// out   Deliver   [-]  refuses with HostDenied before Open, and with whatever `22` refused
     /// note  📝 The accumulation is reclaimed before the arrival is admitted, so the preview shows the impression
     ///        **at** the cursor rather than the trail of every position the cursor has passed through. A committed
     ///        stroke accumulates because the trail is the stroke; a preview accumulating would answer a question
     ///        about a stroke the artist has not made.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> AmendImpression(const StrokeArrival& Arriving);
+    Deliver<bool> AmendImpression(const StrokeArrival& Arriving);
 
     /// 🧩 Resolves the previewed impression against whatever residency admits, demanding nothing it may pin.
     /// in    Residency        [-]  the surface's cells and tiles
     /// in    Requesting       [-]  where a demand for a non-resident cell is recorded
     /// in    RotationOrdinal  [-]  the rotation resolving
-    /// out   Outcome          [-]  refuses with HostDenied before Open
+    /// out   Deliver          [-]  refuses with HostDenied before Open
     /// post  🔴 nothing was pinned; `DeclareUncommitted` was not called and cannot have been
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<ResolvedRun> ResolveImpression(SurfaceTileSpace& Residency,
+    Deliver<ResolvedRun> ResolveImpression(SurfaceTileSpace& Residency,
                                            RequestQueue&     Requesting,
                                            std::uint64_t     RotationOrdinal);
 
@@ -233,7 +233,7 @@ public:
     /// in    PositionAcross  [-]  its second
     /// in    Level           [-]  the reduction level the tolerance is taken at; zero is finest
     /// in    ComponentCount  [-]  components per texel
-    /// out   Outcome         [-]  refuses with HostDenied before Construct, with ContentUnsupported outside the
+    /// out   Deliver         [-]  refuses with HostDenied before Construct, with ContentUnsupported outside the
     ///                            level count, and with whatever `70` refused
     /// post  🔴 nothing was mutated; no transaction exists and no revision advanced
     /// note  🔴 This is a **read**. `82` §2 is explicit that its value is comparison — the artist wants to see what
@@ -244,7 +244,7 @@ public:
     ///        mean two different things depending on who was asking.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<ResolvedSample> ProjectContentAt(const SurfaceLayerSequence&           Content,
+    Deliver<ResolvedSample> ProjectContentAt(const SurfaceLayerSequence&           Content,
                                              const std::vector<ChannelPlacement>&  Placements,
                                              double                                PositionAlong,
                                              double                                PositionAcross,
@@ -262,7 +262,7 @@ public:
     /// in    PositionAcross  [-]  its second
     /// in    CoarseDeclared  [-]  true resolves at the coarse level `70` §5 permits, for the drag itself
     /// in    ComponentCount  [-]  components per texel
-    /// out   Outcome         [-]  refuses as `ProjectContentAt` does
+    /// out   Deliver         [-]  refuses as `ProjectContentAt` does
     /// note  📝 Coarse **then** refine, exactly as `70` §5 permits and no further. The coarse pass is what keeps a
     ///        placement drag responsive while the pointer is moving; the refinement is one resolution at the drag's
     ///        end, and it is the same routine at a different tolerance rather than a second path.
@@ -272,7 +272,7 @@ public:
     ///        the other three.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<ResolvedSample> ProjectPlacementAt(const SurfaceLayerSequence&           Content,
+    Deliver<ResolvedSample> ProjectPlacementAt(const SurfaceLayerSequence&           Content,
                                                const std::vector<ChannelPlacement>&  Placements,
                                                double                                PositionAlong,
                                                double                                PositionAcross,
@@ -285,14 +285,14 @@ public:
 
     /// 🧩 Declares that a dragged parameter has moved, so the standing extent is owed a re-resolution.
     /// in    RotationOrdinal  [-]  the rotation the amendment arrived in
-    /// out   Outcome          [-]  refuses with HostDenied when no extent stands
+    /// out   Deliver          [-]  refuses with HostDenied when no extent stands
     /// post  🔴 nothing is recorded; `10` §2.4's transaction stays open and its Seal is the caller's
     /// note  🔴 `82` §2's fourth row: every Amend is a re-resolution and **none** of them is recorded. The
     ///        amendment count is carried so `86` can measure how many re-resolutions one drag cost, and for no
     ///        other reason — it is not a revision and nothing keys on it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> AmendParameter(std::uint64_t RotationOrdinal);
+    Deliver<bool> AmendParameter(std::uint64_t RotationOrdinal);
 
     /// 🧩 How many re-resolutions the standing parameter drag has asked for.
     /// cost  ✔️
@@ -308,10 +308,10 @@ public:
     /// in    SurfaceOrdinal   [-]  the surface it addresses
     /// in    RequestedLevel   [-]  the level it asks for
     /// in    RotationOrdinal  [-]  the rotation declaring it
-    /// out   Outcome          [-]  refuses with ContentUnsupported for the closed count and outside the level count
+    /// out   Deliver          [-]  refuses with ContentUnsupported for the closed count and outside the level count
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> DeclareExtent(SpeculativeSubject Previewed,
+    Deliver<bool> DeclareExtent(SpeculativeSubject Previewed,
                                 std::uint32_t      SurfaceOrdinal,
                                 std::uint32_t      RequestedLevel,
                                 std::uint64_t      RotationOrdinal);

@@ -44,5 +44,5 @@ F ProjectWavelength      | SpectralProjection.cpp | 41-64 | - | - | ?
 
 F LuminanceNormalisation | SpectralProjection.cpp | 70-83 | - | - | ?
     in    Rule  const QuadratureRule&  [-]  ?
-    out   -     Outcome<double>        [-]  ?
+    out   -     Deliver<double>        [-]  ?
     by    Api/SpectralProjection.h, Source/AtmosphereIntegrator.cpp

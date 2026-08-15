@@ -141,7 +141,7 @@ F MeasureIndex::Measures         | ReportSequence.h | 187     | api,nonallocatin
 F MeasureIndex::Resolve          | ReportSequence.h | 197     | api,nonthrowing               | 🚩 | One measure's current reading. capability: a metric that reports zero when it could not be measured is confidently wrong.
     in    Origin    const char*  [-]  static text naming document and section
     in    Measured  const char*  [-]  static text naming the quantity
-    out   -         Outcome      [-]  refuses with ExtentExhausted when nothing has declared it
+    out   -         Deliver      [-]  refuses with ExtentExhausted when nothing has declared it
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  An undeclared measure refuses rather than reading zero. `08` §5 rules the same for an unmeasurable
 

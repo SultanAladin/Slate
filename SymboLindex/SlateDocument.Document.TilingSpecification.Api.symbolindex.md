@@ -35,7 +35,7 @@ T LatticeSpecification                     | TilingSpecification.h | 31-52   | n
     note  🔴 These five **compose**. Herringbone is reflection on one axis combined with a rotation increment and
 
 F LatticeSpecification::Validate           | TilingSpecification.h | 51      | api,nonallocating,nonthrowing | ✔️ | Whether the lattice can be classified at all. one texel of the maximum working extent, and for both offset progressions at once displacement depending on the column and a column displacement depending on the row have no consistent inverse, and a lattice that cannot be inverted cannot be sampled — which is exactly what `70` does at every promotion.
-    out   -  Outcome  [-]  refuses with ContentUnsupported for a non-positive extent, for an extent finer than
+    out   -  Deliver  [-]  refuses with ContentUnsupported for a non-positive extent, for an extent finer than
     by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/IlluminantPopulation.h, Api/PropertySpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+4 more)
     note  🔴 Both progressions together are refused rather than resolved in a declared order. A row
 
@@ -113,18 +113,18 @@ T TilingSpecification                      | TilingSpecification.h | 144-210 | o
 
 F TilingSpecification::DeclareLattice      | TilingSpecification.h | 152     | api,nonthrowing               | ✔️ | Declares the lattice, validated before it is held.
     in    Declaring  const LatticeSpecification&  [-]  ?
-    out   -          Outcome                      [-]  carries the lattice's own refusal
+    out   -          Deliver                      [-]  carries the lattice's own refusal
     by    Source/TilingSpecification.cpp
 
 F TilingSpecification::DeclareContent      | TilingSpecification.h | 162     | api,nonthrowing               | 🚩 | Appends one content element to the cell, at the end of the ordering. space, and for a nested source in a tiling that is already nested where the complexity artists want lives; unbounded nesting makes resolution cost unbounded, and `20` §2.2's evaluation-cost budget cannot bound what it cannot predict.
     in    Declaring  const CellContent&  [-]  ?
-    out   -          Outcome             [-]  refuses with ContentUnsupported for a non-positive scale, for a colour declaring no
+    out   -          Deliver             [-]  refuses with ContentUnsupported for a non-positive scale, for a colour declaring no
     by    Source/TilingSpecification.cpp
     note  🔴 `54` §3: nesting is bounded at `TilingNestingCeiling`. A weave whose thread is itself a weave is
 
 F TilingSpecification::DeclareVariation    | TilingSpecification.h | 169     | api,nonthrowing               | ✔️ | Declares how cells differ. variation interval
     in    Declaring  const VariationSpecification&  [-]  ?
-    out   -          Outcome                        [-]  refuses with ContentUnsupported for a declared span of zero, and for an inverted
+    out   -          Deliver                        [-]  refuses with ContentUnsupported for a declared span of zero, and for an inverted
     by    Api/BrushSpecification.h, Source/BrushSpecification.cpp, Source/TilingSpecification.cpp
 
 F TilingSpecification::DeclareNestingDepth | TilingSpecification.h | 176     | api,nonallocating,nonthrowing | ✔️ | Declares this tiling as nested inside another, which bars it from nesting one itself. nested element afterwards rather than only at the moment it is admitted.
@@ -136,7 +136,7 @@ F TilingSpecification::DeclareNestingDepth | TilingSpecification.h | 176     | a
 F TilingSpecification::Classify            | TilingSpecification.h | 187     | api,nonthrowing               | ✔️ | Classifies one domain position into its cell. through arithmetic written here. `54` §5's gate is that the host and the device agree about which cell a position falls in, and two implementations of one boundary are two that will disagree.
     in    PositionAlong   double   [-]  the domain's first axis
     in    PositionAcross  double   [-]  its second
-    out   -               Outcome  [-]  refuses with ContentUnsupported while no valid lattice is declared
+    out   -               Deliver  [-]  refuses with ContentUnsupported while no valid lattice is declared
     by    Api/CameraProjection.h, Api/SampleIntegrator.h, Api/VectorInterchange.h, Api/VendorClassifier.h, Source/AnalyticProjection.cpp, Source/CameraProjection.cpp, (+8 more)
     note  🔴 Classification goes through `02` §5's `LatticeProjection` in `Shared/`, at Tier A, and never
 
@@ -171,23 +171,23 @@ T TilingIndex                              | TilingSpecification.h | 221-260 | o
     note  🔴 The bound is enforced **here** rather than inside a tiling, because a tiling cannot see what it has
 
 F TilingIndex::Declare                     | TilingSpecification.h | 229     | api,nonthrowing               | 🚩 | Declares one tiling and issues its ordinal.
-    out   -  Outcome  [-]  refuses with ExtentExhausted at the declared ceiling
+    out   -  Deliver  [-]  refuses with ExtentExhausted at the declared ceiling
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F TilingIndex::Resolve                     | TilingSpecification.h | 235     | api,nonthrowing               | ✔️ | One declared tiling, for reading.
     in    TilingOrdinal  std::uint32_t  [-]  ?
-    out   -              Outcome        [-]  refuses with ContentUnsupported outside the declared count
+    out   -              Deliver        [-]  refuses with ContentUnsupported outside the declared count
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F TilingIndex::Amend                       | TilingSpecification.h | 241     | api,nonthrowing               | ✔️ | One declared tiling, for amending.
     in    TilingOrdinal  std::uint32_t  [-]  ?
-    out   -              Outcome        [-]  refuses with ContentUnsupported outside the declared count
+    out   -              Deliver        [-]  refuses with ContentUnsupported outside the declared count
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
 
 F TilingIndex::Nest                        | TilingSpecification.h | 251     | api,nonthrowing               | 🚩 | Nests one tiling inside a cell of another, at the declared bound. inside itself, and for a nesting that would exceed `TilingNestingCeiling`
     in    EnclosingOrdinal  std::uint32_t  [-]  the tiling whose cell carries it
     in    NestedOrdinal     std::uint32_t  [-]  the tiling being nested
-    out   -                 Outcome        [-]  refuses with ContentUnsupported for an unknown ordinal, for a tiling nested
+    out   -                 Deliver        [-]  refuses with ContentUnsupported for an unknown ordinal, for a tiling nested
     post  the nested tiling refuses a nested element of its own from this point
     by    Api/SurfaceLayerSequence.h, Source/SurfaceLayerSequence.cpp, Source/TilingSpecification.cpp
 

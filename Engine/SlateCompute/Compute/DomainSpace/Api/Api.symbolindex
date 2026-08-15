@@ -61,7 +61,7 @@ T DomainSpace               | DomainSpace.h | 71-113 | owning                   
 F DomainSpace::Arrange      | DomainSpace.h | 86     | api,nonthrowing               | 🔴 | Arranges every chart into the unit domain, disjoint and gapped. when no scale admits every chart unscaled height and then by ordinal, both scale-invariant, so the same charts arrange identically on every machine and every run. A packing whose order depended on the scale would arrange differently at each bisection step and the search would not converge to anything reproducible.
     in    Extents      const std::vector<ChartExtent>&  [-]  one entry per chart, in its own flattened units
     in    CommonScale  bool                             [-]  true packs at one scale; false is `68` §10's open row and is refused
-    out   -            Outcome                          [-]  refuses with ContentUnsupported for a per-chart scale, and with ExtentExhausted
+    out   -            Deliver                          [-]  refuses with ContentUnsupported for a per-chart scale, and with ExtentExhausted
     by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/DomainSpace.cpp
     note  📐 The common scale is solved by bisection over a deterministic shelf packing: the ordering is by
 

@@ -40,23 +40,23 @@ F AxisReported                           | BrushSpecification.cpp | 43-73   | - 
 
 F BrushSpecification::DeclareShape       | BrushSpecification.cpp | 81-95   | - | - | ?
     in    Declaring  const ImpressionShape&  [-]  ?
-    out   -          Outcome<bool>           [-]  ?
+    out   -          Deliver<bool>           [-]  ?
 
 F BrushSpecification::DeclareExtent      | BrushSpecification.cpp | 97-105  | - | - | ?
     in    Extent  double         [-]  ?
-    out   -       Outcome<bool>  [-]  ?
+    out   -       Deliver<bool>  [-]  ?
 
 F BrushSpecification::DeclareSpacing     | BrushSpecification.cpp | 107-127 | - | - | ?
     in    RelativeSpacing  double         [-]  ?
-    out   -                Outcome<bool>  [-]  ?
+    out   -                Deliver<bool>  [-]  ?
 
 F BrushSpecification::DeclareChannel     | BrushSpecification.cpp | 129-150 | - | - | ?
     in    Declaring  const BrushChannelValue&  [-]  ?
-    out   -          Outcome<bool>             [-]  ?
+    out   -          Deliver<bool>             [-]  ?
 
 F BrushSpecification::DeclareDynamic     | BrushSpecification.cpp | 152-175 | - | - | ?
     in    Declaring  const DynamicSpecification&  [-]  ?
-    out   -          Outcome<bool>                [-]  ?
+    out   -          Deliver<bool>                [-]  ?
 
 F BrushSpecification::DeclareCombination | BrushSpecification.cpp | 177-180 | - | - | ?
     in    Declaring  CombineSpecification  [-]  ?
@@ -121,15 +121,15 @@ F BrushSpecification::ChannelDeclared    | BrushSpecification.cpp | 302-311 | - 
 F BrushIndex::Declare                    | BrushSpecification.cpp | 317-329 | - | - | ?
     in    Named     const std::string&      [-]  ?
     in    Grouping  const std::string&      [-]  ?
-    out   -         Outcome<std::uint32_t>  [-]  ?
+    out   -         Deliver<std::uint32_t>  [-]  ?
 
 F BrushIndex::Resolve                    | BrushSpecification.cpp | 331-337 | - | - | ?
     in    BrushOrdinal  std::uint32_t                       [-]  ?
-    out   -             Outcome<const BrushSpecification*>  [-]  ?
+    out   -             Deliver<const BrushSpecification*>  [-]  ?
 
 F BrushIndex::Amend                      | BrushSpecification.cpp | 339-345 | - | - | ?
     in    BrushOrdinal  std::uint32_t                 [-]  ?
-    out   -             Outcome<BrushSpecification*>  [-]  ?
+    out   -             Deliver<BrushSpecification*>  [-]  ?
 
 F BrushIndex::DeclaredName               | BrushSpecification.cpp | 347-350 | - | - | ?
     in    BrushOrdinal  std::uint32_t       [-]  ?

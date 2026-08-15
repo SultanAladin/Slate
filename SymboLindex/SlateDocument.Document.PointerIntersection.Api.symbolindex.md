@@ -37,7 +37,7 @@ F ProjectPointerRay                  | PointerIntersection.h | 60      | api,non
     in    PointerAcross  double                   [px]  its second, zero at the top edge
     in    DisplayAlong   std::uint32_t            [px]  the drawable extent this pointer position was reported against
     in    DisplayAcross  std::uint32_t            [px]  ?
-    out   -              Outcome                  [-]   refuses with ContentUnsupported for a zero display extent or a projection with no
+    out   -              Deliver                  [-]   refuses with ContentUnsupported for a zero display extent or a projection with no
     by    Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/SpatialManipulator.cpp
     note  🔴 The projection's own coefficients are read rather than a second unprojection being derived. `46` §3
     note  ⚠️ A camera owing a reconciliation refuses rather than projecting through the standing derivation. `46`
@@ -95,18 +95,18 @@ T PointerIntersection                | PointerIntersection.h | 131-217 | owning 
 
 F PointerIntersection::Admit         | PointerIntersection.h | 143     | api,nonthrowing               | 🚩 | Admits one occupant's surface sources, or amends the ones already admitted at that identity. when a coordinate run disagrees with the topology's corner count reads past its end at whichever triangle happens to touch the last corner, which is a pick that is correct almost everywhere.
     in    Arriving  const AdmittedSurface&  [-]  ?
-    out   -         Outcome                 [-]  refuses with IdentityStale for an undeclared identity, and with ContentUnsupported
+    out   -         Deliver                 [-]  refuses with IdentityStale for an undeclared identity, and with ContentUnsupported
     by    Api/RequestQueue.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, Api/UvSurfaceDepot.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+7 more)
     note  📝 The coordinate count is confirmed here rather than at the hit. A run that is one corner short
 
 F PointerIntersection::Withdraw      | PointerIntersection.h | 149     | api,nonthrowing               | 🚩 | Withdraws one occupant's surface sources.
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome           [-]  refuses with IdentityStale when the occupant is not admitted
+    out   -        Deliver           [-]  refuses with IdentityStale when the occupant is not admitted
     by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)
 
 F PointerIntersection::Standing      | PointerIntersection.h | 155     | api,nonthrowing               | ✔️ | One admitted occupant's sources.
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome           [-]  refuses with IdentityStale when the occupant is not admitted
+    out   -        Deliver           [-]  refuses with IdentityStale when the occupant is not admitted
     by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+76 more)
 
 F PointerIntersection::Resolve       | PointerIntersection.h | 176     | api,nonthrowing               | 🚩 | Resolves one ray to the whole tuple. placement sits **on** a surface, so both always intersect and the surface must be found first to produce the domain position the placement is tested against; §3's ordering is about which is reported as picked, not about which is traversed first. `72`'s extent is rounded outward and a rotated placement's extent is larger than the placement, so the extent alone would pick a decal whose corner the cursor is beside — and `26` §5 outlines the placement rather than its extent, so the two would disagree about what was selected. transform. It is not the interpolated shading perpendicular `38` derives: `78` §2 builds a drag plane from it, and a plane that follows shading curvature slides under the manipulator.

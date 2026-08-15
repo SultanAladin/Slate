@@ -84,19 +84,19 @@ T OutlinerSequence                  | OutlinerSequence.h | 94-225 | owning      
 
 F OutlinerSequence::Enrol           | OutlinerSequence.h | 104    | api,nonthrowing               | 🚩 | Enrols one occupant into the population and both relations, with a name.
     in    DeclaredName  const std::string&  [-]  what the artist called it; may be empty
-    out   -             Outcome             [-]  refuses with ExtentExhausted at the population ceiling
+    out   -             Deliver             [-]  refuses with ExtentExhausted at the population ceiling
     post  the occupant sits last in the root ordering, attached to nothing, in no subset
     by    Api/EnrollmentIndex.h, Api/PopulationIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp, Source/PopulationIndex.cpp
 
 F OutlinerSequence::Declare         | OutlinerSequence.h | 113    | api,nonthrowing               | ✔️ | Declares one intent, to be applied at the next tick's ①. against a linearisation that is halfway rebuilt.
     in    Arriving  const DeclaredIntent&  [-]  the intent, every operand named
-    out   -         Outcome                [-]  refuses with IdentityStale when the subject does not resolve now
+    out   -         Deliver                [-]  refuses with IdentityStale when the subject does not resolve now
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  Declaring is not applying. An intent that arrives mid-tick is applied at the next ① rather than
 
 F OutlinerSequence::Retreat         | OutlinerSequence.h | 127    | api,nonthrowing               | 🚩 | Scrubs the document one transaction backwards, restoring the selection that transaction applied to. revert while the selection does not, so the next action applies to something other than what the undo appeared to restore. Selection is not in the document's sequence and is not unrevisioned either, and this is the seam where the two meet. clearing it. The artist selected nothing there, so there is nothing to restore.
     in    SealedAt  std::uint64_t  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
-    out   -         Outcome        [-]   refuses with ExtentExhausted at the beginning of the revision sequence
+    out   -         Deliver        [-]   refuses with ExtentExhausted at the beginning of the revision sequence
     post  🔴 the document position and the standing selection moved together — `12` §11
     by    Api/RevisionSequence.h, Api/SelectionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp, (+1 more)
     note  🔴 This is the defect `12` §11 warns of, closed: move three occupants, undo, and the transforms
@@ -104,13 +104,13 @@ F OutlinerSequence::Retreat         | OutlinerSequence.h | 127    | api,nonthrow
 
 F OutlinerSequence::Advance         | OutlinerSequence.h | 135    | api,nonthrowing               | 🚩 | Scrubs the document one transaction forwards, restoring the selection that transaction applied to.
     in    SealedAt  std::uint64_t  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
-    out   -         Outcome        [-]   refuses with ExtentExhausted at the end of the revision sequence
+    out   -         Deliver        [-]   refuses with ExtentExhausted at the end of the revision sequence
     post  the document position and the standing selection moved together
     by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+18 more)
 
 F OutlinerSequence::Reconcile       | OutlinerSequence.h | 145    | api,nonthrowing               | 🔴 | Runs one whole tick in the fixed order ①–⑦. are checked as each transaction seals.
     in    SealedAt  std::uint64_t  [ns]  the arrival stamp transactions sealed this tick carry
-    out   -         Outcome        [-]   refuses when a step refuses; the refusal carries that step's reason
+    out   -         Deliver        [-]   refuses when a step refuses; the refusal carries that step's reason
     post  🔴 all ten invariants hold; nothing observed the linearisation between ④ and ⑤
     by    Api/CameraProjection.h, Api/SurfaceTileSpace.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/SurfaceTileSpace.cpp
     note  🔍 Invariants 3 and 4 are checked here on every reconciliation under SLATE_DEBUG; the remainder
@@ -159,40 +159,40 @@ F OutlinerSequence::InvariantsHeld  | OutlinerSequence.h | 198    | api,nonalloc
 F OutlinerSequence::ApplyIntent     | OutlinerSequence.h | 202    | -                             | -  | ?
     in    Applying  const DeclaredIntent&  [-]  ?
     in    SealedAt  std::uint64_t          [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
     by    Source/OutlinerSequence.cpp
 
 F OutlinerSequence::ApplySubset     | OutlinerSequence.h | 203    | -                             | -  | ?
     in    Applying   const DeclaredIntent&  [-]  ?
     in    Addressed  SubsetSubject          [-]  ?
     in    SealedAt   std::uint64_t          [-]  ?
-    out   -          Outcome<bool>          [-]  ?
+    out   -          Deliver<bool>          [-]  ?
     by    Source/OutlinerSequence.cpp
 
 F OutlinerSequence::ApplyNarrowing  | OutlinerSequence.h | 204    | -                             | -  | ?
     in    Applying  const DeclaredIntent&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
     by    Source/OutlinerSequence.cpp
 
 F OutlinerSequence::DeriveNarrowing | OutlinerSequence.h | 205    | -                             | -  | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
     by    Source/OutlinerSequence.cpp
 
 F OutlinerSequence::ApplySelection  | OutlinerSequence.h | 206    | -                             | -  | ?
     in    Standing  const std::vector<OccupantIdentity>&  [-]  ?
     in    SealedAt  std::uint64_t                         [-]  ?
-    out   -         Outcome<bool>                         [-]  ?
+    out   -         Deliver<bool>                         [-]  ?
     by    Source/OutlinerSequence.cpp
 
 F OutlinerSequence::EnrolSelection  | OutlinerSequence.h | 207    | -                             | -  | ?
     in    Standing  const std::vector<OccupantIdentity>&  [-]  ?
-    out   -         Outcome<bool>                         [-]  ?
+    out   -         Deliver<bool>                         [-]  ?
     by    Source/OutlinerSequence.cpp
 
 F OutlinerSequence::RetireCascade   | OutlinerSequence.h | 208    | -                             | -  | ?
     in    Applying  const DeclaredIntent&  [-]  ?
     in    SealedAt  std::uint64_t          [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
     by    Source/OutlinerSequence.cpp
 
 F OutlinerSequence::Reject          | OutlinerSequence.h | 209    | -                             | -  | ?

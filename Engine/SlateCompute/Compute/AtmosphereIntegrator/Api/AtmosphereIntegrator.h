@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 #include "Shared/AtmosphereProjection.slang.h"
@@ -47,13 +47,13 @@ struct MediumSpecification
     double  Depolarisation         = 0.035;       // [-]     - the King correction factor's argument
 
     /// 🧩 Whether the medium describes an atmosphere that can be integrated at all.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a non-positive radius, thickness, scale height or
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a non-positive radius, thickness, scale height or
     ///                     ozone half width, and for an asymmetry outside the open interval about the origin
     /// note  📐 An asymmetry reaching unity collapses the forward-scattering lobe onto a direction of zero solid
     ///        extent, and the phase magnitude diverges along it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Validate() const;
+    Deliver<bool> Validate() const;
 };
 
 /// 🧩 The medium's coefficients resolved into the working space, per component.
@@ -74,7 +74,7 @@ struct MediumCoefficient
 /// in    Declared  [-]  the medium
 /// in    Working   [-]  the space the coefficients are expressed in
 /// in    Rule      [-]  a derived rule, integrated over the declared wavelength interval
-/// out   Outcome   [-]  carries the medium's own refusal, and `02` §5's where the projection declines
+/// out   Deliver   [-]  carries the medium's own refusal, and `02` §5's where the projection declines
 /// note  📐 The Rayleigh coefficient is **derived** from the medium's refractive index, molecular concentration
 ///        and depolarisation rather than transcribed as three magnitudes. Transcribed, the three are correct for
 ///        exactly one set of primaries and one working space, and a document declaring a wider space would get a
@@ -84,7 +84,7 @@ struct MediumCoefficient
 ///        the same first-principles standing for both.
 /// cost  🔴
 /// tag   api, nonthrowing
-Outcome<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
+Deliver<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
                                    const ColourSpaceSpecification& Working,
                                    const QuadratureRule&           Rule);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
@@ -107,13 +107,13 @@ public:
 
     /// 🧩 Claims the surface at a declared extent, every texel zero.
     /// in    WrapAlongDeclared  [-]  the first axis is periodic and its filter wraps rather than clamps
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a zero extent on either axis
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a zero extent on either axis
     /// note  🔴 Wrapping is declared per surface because only ③'s azimuth is periodic. ①'s and ②'s axes are
     ///        altitude and sun zenith, both genuinely bounded — a wrapped sample at ③'s zenith would read the
     ///        horizon while standing at the pole, which appears as a bright ring directly overhead.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross, bool WrapAlongDeclared);
+    Deliver<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross, bool WrapAlongDeclared);
 
     /// 🧩 Writes one texel's three components; the fourth is written as unity.
     /// note  📝 The fourth component is claimed and unused. `08` §2 declares the format RGBA16F and a
@@ -217,27 +217,27 @@ public:
     static constexpr std::uint32_t IrradianceSampleCount      = 256u;  // [-] - sphere samples per rebuild
 
     /// 🧩 Declares the medium, which owes all three surfaces a rebuild.
-    /// out   Outcome  [-]  carries the medium's own refusal
+    /// out   Deliver  [-]  carries the medium's own refusal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareMedium(const MediumSpecification& Declaring);
+    Deliver<bool> DeclareMedium(const MediumSpecification& Declaring);
 
     /// 🧩 Declares the direction toward the atmospheric source, as `44`'s enrolled illuminant reports it.
     /// in    DirectionX  [-]  toward the sun; normalised here, so an unnormalised direction is admitted
     /// in    DirectionY  [-]  the local zenith is the second axis, matching `46`'s upward convention
     /// in    DirectionZ  [-]
-    /// out   Outcome     [-]  refuses with ContentUnsupported for a direction of no length
+    /// out   Deliver     [-]  refuses with ContentUnsupported for a direction of no length
     /// post  🔴 the sky-view surface is owed a rebuild only when the direction moved **materially** — `28` §4
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareSun(double DirectionX, double DirectionY, double DirectionZ);
+    Deliver<bool> DeclareSun(double DirectionX, double DirectionY, double DirectionZ);
 
     /// 🧩 Declares the camera's altitude above the planet surface.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an altitude outside the declared atmosphere
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an altitude outside the declared atmosphere
     /// post  the sky-view surface is owed a rebuild only when the altitude changed materially
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareCameraAltitude(double Altitude);
+    Deliver<bool> DeclareCameraAltitude(double Altitude);
 
     /// 🧩 Declares whether the atmosphere is present at all.
     /// note  🔴 `28` §7's last gate: with the atmosphere disabled, `18` falls back to the constant floor and `30`
@@ -248,17 +248,17 @@ public:
     void DeclareAtmospherePresence(bool PresenceEnabled);
 
     /// 🧩 Declares the constant floor the disabled atmosphere resolves to.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a colour declaring no space — `36` §1
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a colour declaring no space — `36` §1
     /// note  🚧 `18` §10 carries the floor's magnitude as an open row and records that it blocks nothing
     ///        structural. It is declared by the caller here rather than chosen, which is what keeps the row open.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareConstantFloor(const ColourSpecification& Declaring);
+    Deliver<bool> DeclareConstantFloor(const ColourSpecification& Declaring);
 
     /// 🧩 Rebuilds whatever the declared conditions owe, in construction order, and nothing else.
     /// in    Working  [-]  the space the radiance is expressed in
     /// in    Rule     [-]  a derived rule; the optical depths are integrated against it
-    /// out   Outcome  [-]  refuses with ContentUnsupported before a medium is declared or before the rule is
+    /// out   Deliver  [-]  refuses with ContentUnsupported before a medium is declared or before the rule is
     ///                     derived, and carries `Resolve`'s refusal where the spectral projection declines
     /// post  🔴 with nothing owed, nothing is rebuilt and nothing is recorded — `28` §4
     /// note  🔴 The construction order is ① transmittance, ② multiple scattering reading ①, ③ sky-view reading
@@ -266,7 +266,7 @@ public:
     ///        the medium being re-integrated.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Rebuild(const ColourSpaceSpecification& Working, const QuadratureRule& Rule);
+    Deliver<bool> Rebuild(const ColourSpaceSpecification& Working, const QuadratureRule& Rule);
 
     /// 🧩 Whether anything is owed a rebuild.
     /// note  🔴 `28` §4: `28` is conditional in `08` §3. When nothing changed, it records nothing — and this is
@@ -280,27 +280,27 @@ public:
     /// in    DirectionY  [-]
     /// in    DirectionZ  [-]
     /// out   Red/Green/Blue  [-]  radiance, in the working space
-    /// out   Outcome     [-]  refuses with ContentUnsupported when the atmosphere is enabled and no sky-view
+    /// out   Deliver     [-]  refuses with ContentUnsupported when the atmosphere is enabled and no sky-view
     ///                        surface stands
     /// note  🔴 With the atmosphere disabled this delivers the constant floor rather than refusing. `18` §5 and
     ///        `30` §3 both name the floor as the second of exactly two sources, and a refusal here would make
     ///        each of them write the fallback again.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> SampleSkyView(double DirectionX, double DirectionY, double DirectionZ,
+    Deliver<bool> SampleSkyView(double DirectionX, double DirectionY, double DirectionZ,
                                 double& Red, double& Green, double& Blue) const;
 
     /// 🧩 Samples transmittance from a declared altitude along a declared zenith cosine, to the atmosphere boundary.
-    /// out   Outcome  [-]  refuses with ContentUnsupported before ① stands
+    /// out   Deliver  [-]  refuses with ContentUnsupported before ① stands
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> SampleTransmittance(double Altitude, double ZenithCosine,
+    Deliver<bool> SampleTransmittance(double Altitude, double ZenithCosine,
                                       double& Red, double& Green, double& Blue) const;
 
     /// 🧩 Transmittance over a bounded distance along a view ray — `28` §6's aerial perspective.
     /// in    Altitude  [m]  where the ray begins
     /// in    Distance  [m]  how far along it the surface sits
-    /// out   Outcome   [-]  refuses with ContentUnsupported before a medium is declared or before the rule is derived
+    /// out   Deliver   [-]  refuses with ContentUnsupported before a medium is declared or before the rule is derived
     /// note  🔴 Integrated directly rather than read from ①. ① holds transmittance **to the atmosphere boundary**
     ///        and the ratio trick that recovers a bounded segment from it loses its conditioning near the horizon,
     ///        which is exactly where distant geometry sits. `28` §8 leaves whether aerial perspective earns a
@@ -310,7 +310,7 @@ public:
     ///        as unnaturally crisp against a correct sky — `28` §6.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> AerialTransmittance(double Altitude,
+    Deliver<bool> AerialTransmittance(double Altitude,
                                       double DirectionX, double DirectionY, double DirectionZ,
                                       double Distance,
                                       const QuadratureRule& Rule,
@@ -345,9 +345,9 @@ public:
 private:
 
     void          ShapeProfile();
-    Outcome<bool> BuildTransmittance(const QuadratureRule& Rule);
-    Outcome<bool> BuildMultiScatter();
-    Outcome<bool> BuildSkyView();
+    Deliver<bool> BuildTransmittance(const QuadratureRule& Rule);
+    Deliver<bool> BuildMultiScatter();
+    Deliver<bool> BuildSkyView();
     void          DeriveIrradiance();
 
     void          TransmittanceAt(double Radius, double ZenithCosine,

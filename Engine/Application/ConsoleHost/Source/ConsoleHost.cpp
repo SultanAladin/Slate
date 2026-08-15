@@ -4,7 +4,7 @@
 // 🧩 Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 
@@ -499,7 +499,7 @@ void VerifyReporting()
     Measured.DeclareCount("06 §3 ByteSpace", "Claimed", 1024u, HostTimeline.Advance());
     Measured.DeclareCount("06 §3 ByteSpace", "Claimed", 2048u, HostTimeline.Advance());
 
-    const Slate::Outcome<Slate::SampledMeasure> Resolved = Measured.Resolve("06 §3 ByteSpace", "Claimed");
+    const Slate::Deliver<Slate::SampledMeasure> Resolved = Measured.Resolve("06 §3 ByteSpace", "Claimed");
 
     Report("A measure overwrites",
            Measured.Measures().size() == 1u && Resolved.ContentPresent && Resolved.Resolve().Counted == 2048ull,
@@ -546,14 +546,14 @@ void VerifyWork()
         Progressed.DeclareCount(8u, 8u);
         ResolvedCount.fetch_add(1u, std::memory_order_relaxed);
 
-        return Slate::Outcome<bool>::Deliver(true);
+        return Slate::Deliver<bool>::Deliver(true);
     };
 
     std::vector<Slate::WorkIdentity> Declared;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 32u; ++Ordinal)
     {
-        const Slate::Outcome<Slate::WorkIdentity> Issued = Working.Declare(Declaring);
+        const Slate::Deliver<Slate::WorkIdentity> Issued = Working.Declare(Declaring);
 
         if (Issued.ContentPresent)
             Declared.push_back(Issued.Resolve());
@@ -640,10 +640,10 @@ void VerifyWork()
     Refusing.Priority = Slate::WorkPriority::Background;
     Refusing.Resolve  = [](const Slate::WorkCancellation&, Slate::WorkProgress&)
     {
-        return Slate::Outcome<bool>::Refuse({ Slate::RefusalReason::ExtentExhausted, "declined deliberately" });
+        return Slate::Deliver<bool>::Refuse({ Slate::RefusalReason::ExtentExhausted, "declined deliberately" });
     };
 
-    const Slate::Outcome<Slate::WorkIdentity> Declining = Working.Declare(Refusing);
+    const Slate::Deliver<Slate::WorkIdentity> Declining = Working.Declare(Refusing);
 
     bool RefusalConcluded = false;
 
@@ -699,7 +699,7 @@ void VerifyColour()
     Neutral.BlueCoordinate  = 0.5;
     Neutral.SpaceIdentity   = Slate::WorkingSpaceIdentity;
 
-    const Slate::Outcome<Slate::ColourSpecification> Projected = Slate::Project(Neutral, Working, Display);
+    const Slate::Deliver<Slate::ColourSpecification> Projected = Slate::Project(Neutral, Working, Display);
 
     const bool NeutralHeld = Projected.ContentPresent
                           && std::fabs(Projected.Resolve().RedCoordinate
@@ -711,7 +711,7 @@ void VerifyColour()
 
     // 📐 Projected back, the coordinate returns to itself within the Bounded guarantee. A transfer applied twice
     //    or omitted once is the most common defect in a display path and it reads as "a bit washed out".
-    const Slate::Outcome<Slate::ColourSpecification> Returned =
+    const Slate::Deliver<Slate::ColourSpecification> Returned =
         Projected.ContentPresent ? Slate::Project(Projected.Resolve(), Display, Working)
                                  : Projected;
 
@@ -872,7 +872,7 @@ void VerifyDocument()
 
     Slate::PopulationIndex Population;
 
-    const Slate::Outcome<Slate::OccupantIdentity> FirstEnrolment = Population.Enrol();
+    const Slate::Deliver<Slate::OccupantIdentity> FirstEnrolment = Population.Enrol();
 
     Report("PopulationIndex enrols", FirstEnrolment.ContentPresent, "[-] an identity was issued");
 
@@ -893,7 +893,7 @@ void VerifyDocument()
 
     // 📝 🔴 The reused slot must not issue an identity equal to the withdrawn one. This is the property the
     //    whole generational scheme exists for, so it is measured rather than assumed.
-    const Slate::Outcome<Slate::OccupantIdentity> SecondEnrolment = Population.Enrol();
+    const Slate::Deliver<Slate::OccupantIdentity> SecondEnrolment = Population.Enrol();
 
     Report("A reused slot issues a new generation",
            SecondEnrolment.ContentPresent && SecondEnrolment.Resolve() != Enrolled,
@@ -931,7 +931,7 @@ void VerifyDocument()
     CurrentHeading.Signature     = 0x45544C53u;
     CurrentHeading.StreamVersion = Slate::CurrentStreamVersion;
 
-    const Slate::Outcome<std::uint32_t> Resolved = Slate::ResolveMigration(CurrentHeading);
+    const Slate::Deliver<std::uint32_t> Resolved = Slate::ResolveMigration(CurrentHeading);
 
     Report("A current stream needs no migration",
            Resolved.ContentPresent && Resolved.Resolve() == 0u,
@@ -940,7 +940,7 @@ void VerifyDocument()
     Slate::StreamHeading LaterHeading = CurrentHeading;
     LaterHeading.StreamVersion        = Slate::CurrentStreamVersion + 1u;
 
-    const Slate::Outcome<std::uint32_t> RefusedVersion = Slate::ResolveMigration(LaterHeading);
+    const Slate::Deliver<std::uint32_t> RefusedVersion = Slate::ResolveMigration(LaterHeading);
 
     Report("A later stream is refused",
            !RefusedVersion.ContentPresent
@@ -1467,7 +1467,7 @@ void VerifyMaterials()
 
     Slate::MaterialIndex Materials;
 
-    const Slate::Outcome<std::uint32_t> Declared = Materials.Declare("Painted metal");
+    const Slate::Deliver<std::uint32_t> Declared = Materials.Declare("Painted metal");
 
     Report("A material is declared", Declared.ContentPresent, "[-] addressed by identity");
 
@@ -1545,7 +1545,7 @@ void VerifyMaterials()
     Resolving.MaterialOrdinal         = Declared.Resolve();
     Resolving.FaceCount               = 96u;
 
-    const Slate::Outcome<Slate::PartitionIdentity> Issued = Resolutions.Declare(Resolving);
+    const Slate::Deliver<Slate::PartitionIdentity> Issued = Resolutions.Declare(Resolving);
 
     Report("A partition resolves to an occupant",
            Issued.ContentPresent
@@ -1728,7 +1728,7 @@ void VerifyCamera()
            !Slate::Derive(Inverted).ContentPresent && !Inverted.Clipping.IntervalValid(),
            "[-] a frustum with no interior is refused, never derived");
 
-    const Slate::Outcome<Slate::ViewProjection> Projected = Slate::Derive(Declaring);
+    const Slate::Deliver<Slate::ViewProjection> Projected = Slate::Derive(Declaring);
 
     Report("A declared camera projects", Projected.ContentPresent, "[-] the composed matrix exists");
 
@@ -1824,7 +1824,7 @@ void VerifyCamera()
     for (std::uint32_t Ordinal = 0u; Ordinal < 50u; ++Ordinal)
         Navigating.Amend(4.0, 0.0);
 
-    const Slate::Outcome<Slate::CameraSpecification> Sealed = Navigating.Seal();
+    const Slate::Deliver<Slate::CameraSpecification> Sealed = Navigating.Seal();
 
     Report("An orbit preserves the focus distance",
            Sealed.ContentPresent
@@ -1840,7 +1840,7 @@ void VerifyCamera()
     Abandoning.Open(Slate::NavigationSubject::Pan, Declaring);
     Abandoning.Amend(100.0, 100.0);
 
-    const Slate::Outcome<Slate::CameraSpecification> Restored = Abandoning.Abandon();
+    const Slate::Deliver<Slate::CameraSpecification> Restored = Abandoning.Abandon();
 
     Report("Abandonment restores the prior camera",
            Restored.ContentPresent
@@ -1848,7 +1848,7 @@ void VerifyCamera()
            "[-] no partial state");
 
     // 🔴 Framing changes the placement only. A framing that also changed the field would change the composition.
-    const Slate::Outcome<Slate::DecomposedTransform> Framed = Slate::Frame(Declaring, NearLeast, NearGreatest);
+    const Slate::Deliver<Slate::DecomposedTransform> Framed = Slate::Frame(Declaring, NearLeast, NearGreatest);
 
     Report("Framing produces a placement",
            Framed.ContentPresent,
@@ -1861,7 +1861,7 @@ void VerifyCamera()
     Slate::CameraSpecification Zoomed = Declaring;
     Zoomed.ExtentParameter             = 20.0;
 
-    const Slate::Outcome<Slate::DecomposedTransform> Narrower = Slate::Frame(Zoomed, NearLeast, NearGreatest);
+    const Slate::Deliver<Slate::DecomposedTransform> Narrower = Slate::Frame(Zoomed, NearLeast, NearGreatest);
 
     Report("A narrower field frames from further back",
            Framed.ContentPresent && Narrower.ContentPresent
@@ -1965,7 +1965,7 @@ void VerifyIlluminants()
     Slate::DocumentPosition Shaded;
     Shaded.PositionX = 100.0;
 
-    const Slate::Outcome<Slate::IncidenceProjection> Near = Slate::ProjectIncidence(Declaring, Shaded);
+    const Slate::Deliver<Slate::IncidenceProjection> Near = Slate::ProjectIncidence(Declaring, Shaded);
 
     Report("Incidence resolves within the extent",
            Near.ContentPresent && Near.Resolve().Attenuation > 0.0 && Near.Resolve().SolidExtent > 0.0,
@@ -1974,7 +1974,7 @@ void VerifyIlluminants()
     Slate::DocumentPosition Distant;
     Distant.PositionX = 5000.0;
 
-    const Slate::Outcome<Slate::IncidenceProjection> Far = Slate::ProjectIncidence(Declaring, Distant);
+    const Slate::Deliver<Slate::IncidenceProjection> Far = Slate::ProjectIncidence(Declaring, Distant);
 
     Report("Beyond the declared extent attenuates to zero",
            Far.ContentPresent && Far.Resolve().Attenuation == 0.0,
@@ -2299,7 +2299,7 @@ void VerifyPartition()
     Slate::WorkCancellation       Posed;
     Slate::WorkProgress           Progressed;
 
-    const Slate::Outcome<Slate::DerivedPartition> Derived =
+    const Slate::Deliver<Slate::DerivedPartition> Derived =
         Slate::Derive(Imported, Conditioned, Seams, Declaring, Posed, Progressed);
 
     Report("A disc derives one chart",
@@ -2348,7 +2348,7 @@ void VerifyPartition()
     Seams.DeclareAuthored(5u, 9u);
     Seams.DeclareAuthored(9u, 13u);
 
-    const Slate::Outcome<Slate::DerivedPartition> Cut =
+    const Slate::Deliver<Slate::DerivedPartition> Cut =
         Slate::Derive(Imported, Conditioned, Seams, Declaring, Posed, Progressed);
 
     Report("An authored seam cuts the topology",
@@ -2722,7 +2722,7 @@ void VerifyStroke()
            !Slate::PaintingLevelOf(100u).ContentPresent,
            "[-] refuses rather than rounding to the nearest");
 
-    const Slate::Outcome<std::uint32_t> Coarsest = Slate::PaintingLevelOf(Slate::CoverageTileTexels);
+    const Slate::Deliver<std::uint32_t> Coarsest = Slate::PaintingLevelOf(Slate::CoverageTileTexels);
 
     Report("The coarsest extent resolves its level",
            Coarsest.ContentPresent && Coarsest.Resolve() == Slate::ReductionLevelCount - 1u,
@@ -2745,7 +2745,7 @@ void VerifyStroke()
     Painting.Painted.Texels.assign(static_cast<std::size_t>(Slate::CoverageTileTexels)
                                  * Slate::CoverageTileTexels * 3u, 0.0f);
 
-    const Slate::Outcome<Slate::LayerIdentity> Appended = Content.Append(Painting);
+    const Slate::Deliver<Slate::LayerIdentity> Appended = Content.Append(Painting);
 
     Report("A painted entry appends", Appended.ContentPresent, "[-] at the declared extent");
 
@@ -2756,7 +2756,7 @@ void VerifyStroke()
     Analytic.Source        = Slate::LayerContentSource::AnalyticResolution;
     Analytic.SourceOrdinal = 1u;
 
-    const Slate::Outcome<Slate::LayerIdentity> Described = Content.Append(Analytic);
+    const Slate::Deliver<Slate::LayerIdentity> Described = Content.Append(Analytic);
 
     Report("A described entry refuses amendment",
            Described.ContentPresent && !Content.AmendPainted(Described.Resolve()).ContentPresent,
@@ -2870,7 +2870,7 @@ void VerifyStroke()
 
     Slate::RequestQueue Requesting;
 
-    const Slate::Outcome<Slate::ResolvedRun> Ran = Stroke.Resolve(Residency, Requesting, 1u);
+    const Slate::Deliver<Slate::ResolvedRun> Ran = Stroke.Resolve(Residency, Requesting, 1u);
 
     Report("Every impression resolved",
            Ran.ContentPresent && Ran.Resolve().DeferredCount == 0u && Stroke.PendingCount() == 0u,
@@ -2886,7 +2886,7 @@ void VerifyStroke()
 
     Slate::RevisionSequence Revised;
 
-    const Slate::Outcome<Slate::SealedStroke> Sealed =
+    const Slate::Deliver<Slate::SealedStroke> Sealed =
         Stroke.Seal(Content, Revised, Residency, 1000000000ull);
 
     Report("The stroke seals one transaction",
@@ -2901,7 +2901,7 @@ void VerifyStroke()
            Sealed.ContentPresent && Sealed.Resolve().Recorded.StrokeSeed == 7u,
            "[-] `58` §6: parameters recorded, never a reference");
 
-    const Slate::Outcome<const Slate::LayerSpecification*> Written = Content.Resolve(Appended.Resolve());
+    const Slate::Deliver<const Slate::LayerSpecification*> Written = Content.Resolve(Appended.Resolve());
 
     // 📐 The impression at the path's origin covers the texel under it at full coverage, so the red component
     //    there is the brush's own. A zero would mean the coverage never reached the entry at all.
@@ -2942,7 +2942,7 @@ void VerifyStroke()
 
     const std::uint64_t DemandedBefore = Requesting.RecordedCount();
 
-    const Slate::Outcome<Slate::ResolvedRun> Waiting = Deferred.Resolve(Residency, Requesting, 2u);
+    const Slate::Deliver<Slate::ResolvedRun> Waiting = Deferred.Resolve(Residency, Requesting, 2u);
 
     Report("A non-resident cell defers rather than coarsening",
            Waiting.ContentPresent && Waiting.Resolve().DeferredCount == 1u && Deferred.PendingCount() == 1u,
@@ -3060,7 +3060,7 @@ void VerifyPointer()
 
     Camera.Reconcile();
 
-    const Slate::Outcome<Slate::ProjectedRay> Centred =
+    const Slate::Deliver<Slate::ProjectedRay> Centred =
         Slate::ProjectPointerRay(Camera, 256.0, 256.0, 512u, 512u);
 
     Report("A centred pointer casts along the view direction",
@@ -3073,7 +3073,7 @@ void VerifyPointer()
     // 📐 The projection already applies `ClipOrdinateSignum`, so a pointer above the centre must cast upward in
     //    document space. A second inversion here would only be visible on this axis, which reads as a camera
     //    that is subtly mis-aimed rather than as an inversion.
-    const Slate::Outcome<Slate::ProjectedRay> Upper =
+    const Slate::Deliver<Slate::ProjectedRay> Upper =
         Slate::ProjectPointerRay(Camera, 256.0, 64.0, 512u, 512u);
 
     Report("The display's downward ordinate is not inverted twice",
@@ -3144,7 +3144,7 @@ void VerifyPointer()
     //    to a pixel offset from centre by the perspective scale at ten millimetres.
     const double OffsetPixels = 256.0 + 0.5 * 256.0 / (10.0 * std::tan(22.5 * Slate::Pi / 180.0));
 
-    const Slate::Outcome<Slate::ProjectedRay> AtPlacement =
+    const Slate::Deliver<Slate::ProjectedRay> AtPlacement =
         Slate::ProjectPointerRay(Camera, OffsetPixels, 512.0 - OffsetPixels, 512u, 512u);
 
     const Slate::ResolvedPointer Placed =
@@ -3215,7 +3215,7 @@ void VerifyTools()
 
     Painting.Parameters.Declare(Strength);
 
-    const Slate::Outcome<std::uint32_t> Declared = Held.Tools().Declare(Painting);
+    const Slate::Deliver<std::uint32_t> Declared = Held.Tools().Declare(Painting);
 
     Report("A tool is declared", Declared.ContentPresent, "[-] with its parameters");
 

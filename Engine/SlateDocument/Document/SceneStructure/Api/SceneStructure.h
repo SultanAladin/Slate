@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Shared/ContainmentClassifier.slang.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
@@ -126,87 +126,87 @@ public:
 
     /// 🧩 Admits one enrolled occupant into both relations, unenclosed and unattached.
     /// in    Arriving  [-]  the identity `PopulationIndex` issued
-    /// out   Outcome   [-]  refuses with IdentityStale for an undeclared identity
+    /// out   Deliver   [-]  refuses with IdentityStale for an undeclared identity
     /// post  the occupant sits last in the root ordering and is its own attachment root
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Admit(OccupantIdentity Arriving);
+    Deliver<bool> Admit(OccupantIdentity Arriving);
 
     /// 🧩 Withdraws one occupant from both relations, re-enclosing what it enclosed.
     /// in    Departing  [-]  the identity being retired
-    /// out   Outcome    [-]  refuses with IdentityStale when the identity does not resolve here
+    /// out   Deliver    [-]  refuses with IdentityStale when the identity does not resolve here
     /// post  🔴 enclosed occupants are re-enclosed by the departing occupant's enclosure and are not retired
     ///       with it; attached occupants keep their compounded transform and take its attachment
     /// note  `12` §12 states the policy in one sentence — deleting a group deletes the group, not the work
     ///       inside it. The caller seals the whole cascade as one transaction.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Retire(OccupantIdentity Departing);
+    Deliver<bool> Retire(OccupantIdentity Departing);
 
     /// 🧩 Places one occupant in an enclosure at a declared position in its ordering.
     /// in    Subject               [-]  the occupant being placed
     /// in    ProposedEnclosure    [-]  the enclosing occupant; undeclared returns it to the root ordering
     /// in    OrderWithinEnclosure [-]  position in the enclosure's ordering; clamped to its end
-    /// out   Outcome              [-]  refuses with RelationCyclic when the change would close a cycle, and
+    /// out   Deliver              [-]  refuses with RelationCyclic when the change would close a cycle, and
     ///                                with IdentityStale when either identity does not resolve
     /// note  🔴 The refusal never applies the change. Both operands stay readable through RejectedRelation
     ///       on the caller so that `86` can name them without this seam allocating a message.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Enclose(OccupantIdentity Subject,
+    Deliver<bool> Enclose(OccupantIdentity Subject,
                           OccupantIdentity ProposedEnclosure,
                           std::uint32_t    OrderWithinEnclosure);
 
     /// 🧩 Attaches one occupant to another so that it follows its motion.
     /// in    Subject             [-]  the occupant that will follow
     /// in    ProposedAttachment  [-]  what it follows; undeclared makes it an attachment root
-    /// out   Outcome             [-]  refuses with RelationCyclic, or IdentityStale for either operand
+    /// out   Deliver             [-]  refuses with RelationCyclic, or IdentityStale for either operand
     /// note  Attachment may cross enclosure boundaries freely — `12` §10 records that as the reason two
     ///       relations exist rather than one.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Attach(OccupantIdentity Subject, OccupantIdentity ProposedAttachment);
+    Deliver<bool> Attach(OccupantIdentity Subject, OccupantIdentity ProposedAttachment);
 
     /// 🧩 Records the transform the artist authored for one occupant.
     /// in    Subject   [-]  the occupant
     /// in    Authored  [-]  its own transform, before any attachment is compounded into it
-    /// out   Outcome   [-]  refuses with IdentityStale
+    /// out   Deliver   [-]  refuses with IdentityStale
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> AuthorTransform(OccupantIdentity Subject, const DecomposedTransform& Authored);
+    Deliver<bool> AuthorTransform(OccupantIdentity Subject, const DecomposedTransform& Authored);
 
     /// 🧩 Compounds every occupant's transform downward from its attachment root — tick step ③.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when a chain exceeds the declared depth ceiling
+    /// out   Deliver  [-]  refuses with ExtentExhausted when a chain exceeds the declared depth ceiling
     /// post  every occupant's compounded transform depends only on its attachment root path
     /// note  🔴 Runs before enclosure is reconciled. Transforms must be final before anything spatial is
     ///       derived from them, which `12` §4 makes an ordering rather than a preference.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> CompoundAttachments();
+    Deliver<bool> CompoundAttachments();
 
     /// 🧩 Repairs interval labels across every span whose gap was exhausted — tick step ④.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when the root span itself cannot hold the ordering
+    /// out   Deliver  [-]  refuses with ExtentExhausted when the root span itself cannot hold the ordering
     /// post  labels are strictly nested and no linearisation has yet been observed against them
     /// note  Relabelling covers the exhausted span and escalates outward only while the span above it also
     ///       refuses. A whole-population relabel is the last resort, never the first.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> RepairLabels();
+    Deliver<bool> RepairLabels();
 
     /// 🧩 One occupant's interval label, for the containment predicate above.
     /// in    Subject  [-]  the occupant
-    /// out   Outcome  [-]  refuses with IdentityStale
+    /// out   Deliver  [-]  refuses with IdentityStale
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<IntervalLabel> Label(OccupantIdentity Subject) const;
+    Deliver<IntervalLabel> Label(OccupantIdentity Subject) const;
 
     /// 🧩 One occupant's transform with its whole attachment path compounded into it.
     /// in    Subject  [-]  the occupant
-    /// out   Outcome  [-]  refuses with IdentityStale
+    /// out   Deliver  [-]  refuses with IdentityStale
     /// pre   CompoundAttachments delivered within this tick
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<DecomposedTransform> CompoundedTransform(OccupantIdentity Subject) const;
+    Deliver<DecomposedTransform> CompoundedTransform(OccupantIdentity Subject) const;
 
     /// 🧩 Whether enclosing Subject in ProposedEnclosure would close a cycle.
     /// in    Subject            [-]  the occupant being placed
@@ -278,9 +278,9 @@ private:
     void          Link(std::uint32_t SlotOrdinal, std::uint32_t EnclosureSlot, std::uint32_t OrderWithinEnclosure);
     IntervalLabel EnclosureInterval(std::uint32_t EnclosureSlot) const;
     bool          LabelBetween(std::uint32_t SlotOrdinal);
-    Outcome<bool> AssignLabels(std::uint32_t EnclosureSlot, IntervalLabel Available, std::uint32_t Depth);
+    Deliver<bool> AssignLabels(std::uint32_t EnclosureSlot, IntervalLabel Available, std::uint32_t Depth);
     void          DeclareExhausted(std::uint32_t EnclosureSlot);
-    Outcome<bool> CompoundFrom(std::uint32_t SlotOrdinal, std::uint32_t Depth);
+    Deliver<bool> CompoundFrom(std::uint32_t SlotOrdinal, std::uint32_t Depth);
 
     std::vector<EnclosureRecord>      Enclosures;                 // [-] - indexed by slot ordinal
     std::vector<AttachmentRecord>     Attachments;                // [-] - indexed by slot ordinal

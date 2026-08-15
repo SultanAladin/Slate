@@ -44,7 +44,7 @@ F WindowInterchange::~WindowInterchange | WindowInterchange.h | 45    | destruct
 F WindowInterchange::Open               | WindowInterchange.h | 53    | api,nonthrowing               | 🚩 | Opens a window of the requested extent and surrenders nothing until it succeeds.
     in    RequestedExtent  DisplayExtent  [px]  the drawable extent asked of the window system
     in    WindowTitle      const char*    [-]   static text; never allocated, never retained beyond the call
-    out   -                Outcome        [-]   refuses with HostDenied when the window system declines
+    out   -                Deliver        [-]   refuses with HostDenied when the window system declines
     by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+21 more)
 
 F WindowInterchange::Drain              | WindowInterchange.h | 58    | api,nonthrowing               | ✔️ | Drains the window system's pending messages into this window's recorded condition.

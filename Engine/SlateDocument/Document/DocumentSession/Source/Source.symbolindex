@@ -47,7 +47,7 @@ F DocumentSession::Journal                | DocumentSession.cpp | 42-45   | - | 
 F DocumentSession::DeclareStorage         | DocumentSession.cpp | 51-64   | - | - | ?
     in    DeclaredPath  const std::string&  [-]  ?
     in    JournalPath   const std::string&  [-]  ?
-    out   -             Outcome<bool>       [-]  ?
+    out   -             Deliver<bool>       [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE SEALING
@@ -56,7 +56,7 @@ F DocumentSession::DeclareStorage         | DocumentSession.cpp | 51-64   | - | 
 F DocumentSession::Seal                   | DocumentSession.cpp | 70-98   | - | - | ?
     in    Encoded   const std::vector<std::uint8_t>&  [-]  ?
     in    SealedAt  std::uint64_t                     [-]  ?
-    out   -         Outcome<SealedContent>            [-]  ?
+    out   -         Deliver<SealedContent>            [-]  ?
 
 F DocumentSession::DeclareSaved           | DocumentSession.cpp | 100-111 | - | - | ?
     in    Concluded  const PersistenceConclusion&  [-]  ?
@@ -110,36 +110,36 @@ F DocumentSession::ReadVersion            | DocumentSession.cpp | 172-175 | - | 
 //------------------------------------------------------------------------------------------------------------------------
 
 F SessionIndex::Open                      | DocumentSession.cpp | 181-217 | - | - | ?
-    out   -  Outcome<std::uint32_t>  [-]  ?
+    out   -  Deliver<std::uint32_t>  [-]  ?
 
 F SessionIndex::Close                     | DocumentSession.cpp | 219-247 | - | - | ?
     in    SessionOrdinal  std::uint32_t  [-]  ?
-    out   -               Outcome<bool>  [-]  ?
+    out   -               Deliver<bool>  [-]  ?
 
 F SessionIndex::Resolve                   | DocumentSession.cpp | 249-257 | - | - | ?
     in    SessionOrdinal  std::uint32_t              [-]  ?
-    out   -               Outcome<DocumentSession*>  [-]  ?
+    out   -               Deliver<DocumentSession*>  [-]  ?
 
 F SessionIndex::Resolve                   | DocumentSession.cpp | 259-267 | - | - | ?
     in    SessionOrdinal  std::uint32_t                    [-]  ?
-    out   -               Outcome<const DocumentSession*>  [-]  ?
+    out   -               Deliver<const DocumentSession*>  [-]  ?
 
 F SessionIndex::DeclarePresented          | DocumentSession.cpp | 269-279 | - | - | ?
     in    SessionOrdinal  std::uint32_t  [-]  ?
-    out   -               Outcome<bool>  [-]  ?
+    out   -               Deliver<bool>  [-]  ?
 
 F SessionIndex::Presenting                | DocumentSession.cpp | 281-284 | - | - | ?
-    out   -  Outcome<DocumentSession*>  [-]  ?
+    out   -  Deliver<DocumentSession*>  [-]  ?
 
 F SessionIndex::Presenting                | DocumentSession.cpp | 286-289 | - | - | ?
-    out   -  Outcome<const DocumentSession*>  [-]  ?
+    out   -  Deliver<const DocumentSession*>  [-]  ?
 
 F SessionIndex::PresentedOrdinal          | DocumentSession.cpp | 291-294 | - | - | ?
     out   -  std::uint32_t  [-]  ?
 
 F SessionIndex::Located                   | DocumentSession.cpp | 296-309 | - | - | ?
     in    StoragePath  const std::string&      [-]  ?
-    out   -            Outcome<std::uint32_t>  [-]  ?
+    out   -            Deliver<std::uint32_t>  [-]  ?
 
 F SessionIndex::OpenCount                 | DocumentSession.cpp | 311-314 | - | - | ?
     out   -  std::uint32_t  [-]  ?

@@ -50,7 +50,7 @@ F IntervalEnrolled                    | EnrollmentIndex.cpp | 76-81   | - | - | 
 F EnrollmentIndex::Enrol              | EnrollmentIndex.cpp | 87-113  | - | - | ?
     in    Subject         OccupantIdentity  [-]  ?
     in    EnrolledSubset  SubsetSubject     [-]  ?
-    out   -               Outcome<bool>     [-]  ?
+    out   -               Deliver<bool>     [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       WITHDRAWAL
@@ -59,7 +59,7 @@ F EnrollmentIndex::Enrol              | EnrollmentIndex.cpp | 87-113  | - | - | 
 F EnrollmentIndex::Unenrol            | EnrollmentIndex.cpp | 119-161 | - | - | ?
     in    Subject         OccupantIdentity  [-]  ?
     in    EnrolledSubset  SubsetSubject     [-]  ?
-    out   -               Outcome<bool>     [-]  ?
+    out   -               Deliver<bool>     [-]  ?
 
 F EnrollmentIndex::UnenrolEverywhere  | EnrollmentIndex.cpp | 163-167 | - | - | ?
     in    Subject  OccupantIdentity  [-]  ?

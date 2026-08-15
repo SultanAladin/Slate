@@ -25,7 +25,7 @@ S WindowExchange.h | 34 lines | ff830e25 | 2 sym | Native window handle ⇄ VkSu
 F Convert | WindowExchange.h | 27 | api,nonthrowing | 🚩 | Converts a native window handle from `04` into a presentation surface. The split is what keeps `SlateMath` free of a Vulkan header.
     in    Instance      VkInstance  [-]  the instance the surface is created against
     in    NativeHandle  void*       [-]  the opaque handle `WindowInterchange` surrendered; never a GLFW spelling above
-    out   -             Outcome     [-]  refuses with HostDenied when the window system declines the surface
+    out   -             Deliver     [-]  refuses with HostDenied when the window system declines the surface
     by    Source/WindowExchange.cpp, Source/WorkspaceSequence.cpp
     note  ⚠️ `WindowInterchange` in `SlateMath` and `WindowExchange` here are distinct and both required.
 

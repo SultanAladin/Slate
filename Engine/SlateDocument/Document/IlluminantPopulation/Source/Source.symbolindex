@@ -42,7 +42,7 @@ F EmissionDirection                       | IlluminantPopulation.cpp | 32-51   |
 F IlluminantPopulation::Validate          | IlluminantPopulation.cpp | 59-133  | - | - | ?
     in    Declaring  const IlluminantSpecification&  [-]  ?
     in    Subject    OccupantIdentity                [-]  ?
-    out   -          Outcome<bool>                   [-]  ?
+    out   -          Deliver<bool>                   [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      DECLARATION
@@ -55,28 +55,28 @@ F IlluminantPopulation::Located           | IlluminantPopulation.cpp | 139-155 |
 F IlluminantPopulation::Declare           | IlluminantPopulation.cpp | 157-182 | - | - | ?
     in    Subject    OccupantIdentity                [-]  ?
     in    Declaring  const IlluminantSpecification&  [-]  ?
-    out   -          Outcome<bool>                   [-]  ?
+    out   -          Deliver<bool>                   [-]  ?
 
 F IlluminantPopulation::Amend             | IlluminantPopulation.cpp | 184-200 | - | - | ?
     in    Subject   OccupantIdentity                [-]  ?
     in    Amending  const IlluminantSpecification&  [-]  ?
-    out   -         Outcome<bool>                   [-]  ?
+    out   -         Deliver<bool>                   [-]  ?
 
 F IlluminantPopulation::Withdraw          | IlluminantPopulation.cpp | 202-215 | - | - | ?
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome<bool>     [-]  ?
+    out   -        Deliver<bool>     [-]  ?
 
 F IlluminantPopulation::Resolve           | IlluminantPopulation.cpp | 217-228 | - | - | ?
     in    Subject  OccupantIdentity                  [-]  ?
-    out   -        Outcome<IlluminantSpecification>  [-]  ?
+    out   -        Deliver<IlluminantSpecification>  [-]  ?
 
 F IlluminantPopulation::ResolveColour     | IlluminantPopulation.cpp | 230-252 | - | - | ?
     in    Subject  OccupantIdentity                 [-]  ?
     in    Working  const ColourSpaceSpecification&  [-]  ?
-    out   -        Outcome<ColourSpecification>     [-]  ?
+    out   -        Deliver<ColourSpecification>     [-]  ?
 
 F IlluminantPopulation::AtmosphericSource | IlluminantPopulation.cpp | 254-264 | - | - | ?
-    out   -  Outcome<OccupantIdentity>  [-]  ?
+    out   -  Deliver<OccupantIdentity>  [-]  ?
 
 F IlluminantPopulation::Enrolled          | IlluminantPopulation.cpp | 266     | - | - | ?
     out   -  const std::vector<OccupantIdentity>&  [-]  ?
@@ -94,7 +94,7 @@ F IlluminantPopulation::EnrolledCount     | IlluminantPopulation.cpp | 269-272 |
 F ProjectIncidence                        | IlluminantPopulation.cpp | 278-374 | - | - | ?
     in    Declared  const IlluminantSpecification&  [-]  ?
     in    Shaded    DocumentPosition                [-]  ?
-    out   -         Outcome<IncidenceProjection>    [-]  ?
+    out   -         Deliver<IncidenceProjection>    [-]  ?
     by    Api/IlluminantPopulation.h, Source/ConsoleHost.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -109,13 +109,13 @@ F ReachesExtent                           | IlluminantPopulation.cpp | 385-397 |
 F IlluminantIndex::Derive                 | IlluminantPopulation.cpp | 401-419 | - | - | ?
     in    Illuminants  const IlluminantPopulation&          [-]  ?
     in    Extents      const std::vector<PartitionExtent>&  [-]  ?
-    out   -            Outcome<bool>                        [-]  ?
+    out   -            Deliver<bool>                        [-]  ?
 
 F IlluminantIndex::DerivePartition        | IlluminantPopulation.cpp | 421-459 | - | - | ?
     in    Illuminants       const IlluminantPopulation&  [-]  ?
     in    PartitionOrdinal  std::uint32_t                [-]  ?
     in    Extent            PartitionExtent              [-]  ?
-    out   -                 Outcome<bool>                [-]  ?
+    out   -                 Deliver<bool>                [-]  ?
 
 F IlluminantIndex::ReachingCount          | IlluminantPopulation.cpp | 461-467 | - | - | ?
     in    PartitionOrdinal  std::uint32_t  [-]  ?
@@ -124,7 +124,7 @@ F IlluminantIndex::ReachingCount          | IlluminantPopulation.cpp | 461-467 |
 F IlluminantIndex::Reaching               | IlluminantPopulation.cpp | 469-475 | - | - | ?
     in    PartitionOrdinal  std::uint32_t              [-]  ?
     in    ReachOrdinal      std::uint32_t              [-]  ?
-    out   -                 Outcome<OccupantIdentity>  [-]  ?
+    out   -                 Deliver<OccupantIdentity>  [-]  ?
 
 F IlluminantIndex::TruncatedCount         | IlluminantPopulation.cpp | 477-480 | - | - | ?
     in    PartitionOrdinal  std::uint32_t  [-]  ?

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateDocument/Document/EnrollmentIndex/Api/EnrollmentIndex.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
@@ -69,29 +69,29 @@ public:
 
     /// 🧩 Derives every companion in `38` §1 from one sealed topology.
     /// in    Imported  [-]  the topology, sealed and therefore immutable for this whole run
-    /// out   Outcome   [-]  refuses with HostDenied for an unsealed topology
+    /// out   Deliver   [-]  refuses with HostDenied for an unsealed topology
     /// post  every read below describes the supplied topology at its sealed revision
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Condition(const TopologyStructure& Imported);
+    Deliver<bool> Condition(const TopologyStructure& Imported);
 
     /// 🧩 The welded position one imported vertex belongs to.
     /// in    VertexOrdinal  [-]  an imported vertex
-    /// out   Outcome        [-]  refuses with ContentUnsupported outside the vertex count
+    /// out   Deliver        [-]  refuses with ContentUnsupported outside the vertex count
     /// note  🔴 `38` §2: two vertices at the same position with different ordinals are one point on the surface
     ///        and two points in the file. `68` unwraps against the welded positions so a chart does not split at
     ///        every coordinate discontinuity, and `18` reads the imported ordinals so authored coordinates live.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> WeldedPosition(std::uint32_t VertexOrdinal) const;
+    Deliver<std::uint32_t> WeldedPosition(std::uint32_t VertexOrdinal) const;
 
     /// 🧩 The corner across the edge one corner opens, where exactly one face is adjacent there.
-    /// out   Outcome  [-]  refuses with ContentUnsupported at a boundary or non-manifold edge
+    /// out   Deliver  [-]  refuses with ContentUnsupported at a boundary or non-manifold edge
     /// note  Refuses rather than reporting a chosen one of several. An adjacency that picks arbitrarily makes a
     ///        traversal's result depend on face declaration order, and `34` §6 forbids exactly that shape.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> AdjacentCorner(std::uint32_t CornerOrdinal) const;
+    Deliver<std::uint32_t> AdjacentCorner(std::uint32_t CornerOrdinal) const;
 
     /// 🧩 Whether one face is enrolled under a degeneracy condition.
     /// note  Answered by interval comparison, per `38` §3, so an excluded population costs nothing to skip.

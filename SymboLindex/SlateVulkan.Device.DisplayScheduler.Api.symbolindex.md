@@ -80,7 +80,7 @@ F DisplayScheduler::Construct         | DisplayScheduler.h | 112    | api,nonthr
     in    DisplayWidth   std::uint32_t               [px]  the extent the window reports now
     in    DisplayHeight  std::uint32_t               [px]  the extent the window reports now
     in    Intent         LatencyIntent               [-]   what the artist is optimising for
-    out   -              Outcome                     [-]   refuses with CapabilityAbsent when no device is active or the surface declares
+    out   -              Deliver                     [-]   refuses with CapabilityAbsent when no device is active or the surface declares
     post  `Carries` names the format every display-relative target is claimed at; the chain holds no image
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
     note  🔴 Refused in full. A chain whose images were constructed and whose views were declined leaves the
@@ -89,7 +89,7 @@ F DisplayScheduler::Construct         | DisplayScheduler.h | 112    | api,nonthr
 F DisplayScheduler::Reclaim           | DisplayScheduler.h | 133    | api,nonthrowing               | 🔴 | Re-establishes the chain at a new extent, retaining the format the targets were claimed at. here, then `TargetSpace::Reclaim` at the same extent, then `AttachmentIndex::Derive` over the re-claimed views. A chain re-established without the targets following is a display image at the arrived extent composited from targets at the previous one, which reads as a shifted image rather than as a resize that was half applied. stops rotating instead of establishing a chain no image can be claimed from.
     in    DisplayWidth   std::uint32_t  [px]  the arrived extent; an intermediate drag extent is the caller's to discard
     in    DisplayHeight  std::uint32_t  [px]  ?
-    out   -              Outcome        [-]   refuses as Construct does
+    out   -              Deliver        [-]   refuses as Construct does
     pre   🔴 the device is idle — every rotation that reads the old chain has completed
     by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+75 more)
     note  🔴 `06` §7's extent gate is discharged by the **caller**, in one order: re-establish the chain
@@ -98,7 +98,7 @@ F DisplayScheduler::Reclaim           | DisplayScheduler.h | 133    | api,nonthr
 F DisplayScheduler::Await             | DisplayScheduler.h | 153    | api,nonthrowing               | 🚩 | Takes the next display image, ordering its arrival against the standing rotation slot. already taken, HostDenied when the display neither delivers an image nor reports the chain outgrown within the arrival ceiling, and DeviceLost when the device was lost; the chain is left standing for the recovery to reclaim writes colour. An arrival ordered on nothing is a recording that writes an image the display is still reading, and the artist sees the previous rotation's stroke tear through this one's. `ImageOrdinal` is what says which. A chain the display has merely outgrown delivers a usable image — present it, then re-establish. A chain it has retired delivers `AbsentDisplayImage` and no view: there is nothing to record into, so the caller re-establishes and skips the rotation. A caller reading `Reclaimed` alone would record into a null view on the second of the two.
     in    Standing  const RotationSlot&  [-]  the rotation slot this image is recorded into; its `ImageArrived` is signalled
     in    Timeline  const TickSequence&  [-]  measures the interval between this arrival and the last
-    out   -         Outcome              [-]  refuses with CapabilityAbsent when no chain stands, RelationCyclic when an image is
+    out   -         Deliver              [-]  refuses with CapabilityAbsent when no chain stands, RelationCyclic when an image is
     post  the delivered ordinal is the caller's until `Present` returns it
     by    Api/CycleScheduler.h, Source/CycleScheduler.cpp, Source/DisplayScheduler.cpp
     note  🔴 The arrival is ordered on `RotationSlot::ImageArrived`, which the recording waits on before it
@@ -107,11 +107,11 @@ F DisplayScheduler::Await             | DisplayScheduler.h | 153    | api,nonthr
 F DisplayScheduler::Present           | DisplayScheduler.h | 169    | api,nonthrowing               | 🚩 | Surrenders one taken image back to the display, ordered behind the recording that wrote it. HostDenied when the display declines it, and with DeviceLost when the device was lost; the ordinal is released to the display either way on it here would serialise the host against the device once per rotation — which is the whole purpose of the rotation depth, spent. was presented either way, and refusing would make the caller treat a resize as a lost rotation.
     in    Standing      const RotationSlot&  [-]  the same slot `Await` was given; its `RecordingDone` is awaited
     in    ImageOrdinal  std::uint32_t        [-]  what `Await` delivered
-    out   -             Outcome              [-]  refuses with ContentUnsupported for an ordinal `Await` did not deliver, with
+    out   -             Deliver              [-]  refuses with ContentUnsupported for an ordinal `Await` did not deliver, with
     post  the ordinal is the display's again; `Presented` is raised
     by    Api/OutlinerPanel.h, Api/PanelIndex.h, Source/DisplayScheduler.cpp, Source/OutlinerPanel.cpp, Source/PanelIndex.cpp, Source/WorkspacePanel.cpp
     note  🔴 Awaits `RecordingDone` and never the completion. The completion is the host's fence and waiting
-    note  ⚠️ Reports the chain outgrown as a delivered outcome with `Reclaimed`, not as a refusal. The image
+    note  ⚠️ Reports the chain outgrown as a delivered result with `Reclaimed`, not as a refusal. The image
 
 F DisplayScheduler::Carries           | DisplayScheduler.h | 177    | api,nonallocating,nonthrowing | ✔️ | What the surface carries, which is the format every display-relative target is claimed at. the format of the display rather than a declared one, and this is the only place that is known.
     out   -  Format  [-]  VK_FORMAT_UNDEFINED before Construct delivered
@@ -147,7 +147,7 @@ F DisplayScheduler::Surrender         | DisplayScheduler.h | 210    | api,nonthr
 
 F DisplayScheduler::ScoreFormat       | DisplayScheduler.h | 225    | -                             | -  | Scores the surface's declared formats and takes the one `08` §2's display target is claimed at. `08` §3 ⑧ is exposure, tone map and OETF in one recording — and a sRGB surface would apply it a second time in hardware, which the artist reads as a washed-out surface rather than as a double encoding.
     in    Surface  VkSurfaceKHR                 [-]  ?
-    out   -        Outcome<VkSurfaceFormatKHR>  [-]  ?
+    out   -        Deliver<VkSurfaceFormatKHR>  [-]  ?
     by    Source/DisplayScheduler.cpp
     note  🔴 An unsigned-normalised format is taken over a sRGB-encoded one. `66` applies the OETF itself —
 
@@ -159,5 +159,5 @@ F DisplayScheduler::ScorePacing       | DisplayScheduler.h | 230    | -         
     note  🔴 Every surface admits `VK_PRESENT_MODE_FIFO_KHR` by declaration, so it is the fallback for both
 
 F DisplayScheduler::Establish         | DisplayScheduler.h | 233    | -                             | -  | Establishes the chain and its views at the standing extent, retiring whatever stood before.
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
     by    Source/DisplayScheduler.cpp

@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateDocument/Document/OutlinerSequence/Api/OutlinerSequence.h"
 #include "SlateDocument/Document/PersistenceSequence/Api/PersistenceSequence.h"
 #include "SlateDocument/Document/RecoverySequence/Api/RecoverySequence.h"
@@ -81,15 +81,15 @@ public:
     /// 🧩 Declares where this session's document lives, and where its journal is written beside it.
     /// in    DeclaredPath  [-]  UTF-8; the document's location
     /// in    JournalPath   [-]  UTF-8; the journal's own location
-    /// out   Outcome       [-]  refuses with ContentUnsupported when either path is empty
+    /// out   Deliver       [-]  refuses with ContentUnsupported when either path is empty
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareStorage(const std::string& DeclaredPath, const std::string& JournalPath);
+    Deliver<bool> DeclareStorage(const std::string& DeclaredPath, const std::string& JournalPath);
 
     /// 🧩 Captures everything a save reads, from sealed state only — `48` §3.
     /// in    Encoded   [-]  the document as `FormatCodec` wrote it; sealed transactions only
     /// in    SealedAt  [ns] the tick's reading at capture
-    /// out   Outcome   [-]  refuses with ContentUnsupported when no storage location is declared, and with
+    /// out   Deliver   [-]  refuses with ContentUnsupported when no storage location is declared, and with
     ///                      ExtentExhausted when a transaction is open
     /// note  🔴 An open transaction refuses the capture rather than being sealed by it. Sealing someone's
     ///        half-finished drag on their behalf commits an edit they had not decided to keep, and it would
@@ -98,7 +98,7 @@ public:
     ///        this knows the session; a session that encoded would be a second place the layout is written.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<SealedContent> Seal(const std::vector<std::uint8_t>& Encoded, std::uint64_t SealedAt) const;
+    Deliver<SealedContent> Seal(const std::vector<std::uint8_t>& Encoded, std::uint64_t SealedAt) const;
 
     /// 🧩 Records that a save landed, so the session stops standing amended.
     /// in    Concluded  [-]  what `PersistenceSequence::Persist` delivered
@@ -198,42 +198,42 @@ public:
     static constexpr std::uint32_t SessionCeiling = 64u;   // [-] - documents open at once
 
     /// 🧩 Opens one session and issues the ordinal that addresses it.
-    /// out   Outcome  [-]  refuses with ExtentExhausted at the ceiling
+    /// out   Deliver  [-]  refuses with ExtentExhausted at the ceiling
     /// post  the new session is presented when it is the first one, and is otherwise not
     /// note  📝 Opening a second document does not steal the display from the first. An artist importing a
     ///        reference file mid-stroke would otherwise lose the workspace they were painting in.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Open();
+    Deliver<std::uint32_t> Open();
 
     /// 🧩 Closes one session, discarding everything held only while it was open.
-    /// out   Outcome  [-]  refuses with ExtentExhausted outside the open count
+    /// out   Deliver  [-]  refuses with ExtentExhausted outside the open count
     /// post  the presented ordinal moves to another open session, or to none when this was the last
     /// note  ⚠️ Nothing here asks whether amendments stand. `48` §4 makes that the caller's question, because
     ///        the answer is a conversation with the artist and this component cannot have one.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Close(std::uint32_t SessionOrdinal);
+    Deliver<bool> Close(std::uint32_t SessionOrdinal);
 
     /// 🧩 One open session.
-    /// out   Outcome  [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
+    /// out   Deliver  [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<DocumentSession*>       Resolve(std::uint32_t SessionOrdinal);
-    Outcome<const DocumentSession*> Resolve(std::uint32_t SessionOrdinal) const;
+    Deliver<DocumentSession*>       Resolve(std::uint32_t SessionOrdinal);
+    Deliver<const DocumentSession*> Resolve(std::uint32_t SessionOrdinal) const;
 
     /// 🧩 Declares which session the interface presents — `14` presents one at a time.
-    /// out   Outcome  [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
+    /// out   Deliver  [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclarePresented(std::uint32_t SessionOrdinal);
+    Deliver<bool> DeclarePresented(std::uint32_t SessionOrdinal);
 
     /// 🧩 The session the interface presents.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when no session is open
+    /// out   Deliver  [-]  refuses with ExtentExhausted when no session is open
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<DocumentSession*>       Presenting();
-    Outcome<const DocumentSession*> Presenting() const;
+    Deliver<DocumentSession*>       Presenting();
+    Deliver<const DocumentSession*> Presenting() const;
 
     /// 🧩 Which ordinal is presented; the ceiling when nothing is open.
     /// cost  ✔️
@@ -241,12 +241,12 @@ public:
     std::uint32_t PresentedOrdinal() const;
 
     /// 🧩 The most recently opened session naming one storage location.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when no open session holds that path
+    /// out   Deliver  [-]  refuses with ExtentExhausted when no open session holds that path
     /// note  📝 What an open-file action asks before opening a second copy. Two sessions over one file are two
     ///        journals against it, and §4.1's pairing then cannot say which one recovers it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Located(const std::string& StoragePath) const;
+    Deliver<std::uint32_t> Located(const std::string& StoragePath) const;
 
     /// 🧩 How many sessions are open.
     /// cost  ✔️

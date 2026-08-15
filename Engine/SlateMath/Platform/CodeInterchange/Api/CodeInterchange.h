@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 #include <string>
@@ -104,7 +104,7 @@ public:
     /// 🧩 Loads a foreign module, verifies its report, and holds it standing.
     /// in    ModulePath   [-]  the host path of the compiled module
     /// in    Required     [-]  the interface this process declares and will accept nothing else for
-    /// out   Outcome      [-]  the module ordinal; refuses with HostDenied when the host declines the load or
+    /// out   Deliver      [-]  the module ordinal; refuses with HostDenied when the host declines the load or
     ///                         the module exports no acquisition entry, with VersionUnmigratable when the
     ///                         reported major differs, and with ContentUnsupported when the hash differs or the
     ///                         report names no entry table
@@ -115,24 +115,24 @@ public:
     ///        and stayed resident has already run its own initialisation inside this process.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Acquire(const std::string& ModulePath, ForeignRequirement Required);
+    Deliver<std::uint32_t> Acquire(const std::string& ModulePath, ForeignRequirement Required);
 
     /// 🧩 The verified entry table of a standing module.
     /// in    ModuleOrdinal [-]  a module this component acquired
-    /// out   Outcome       [-]  refuses with IdentityStale for an ordinal no module stands at
+    /// out   Deliver       [-]  refuses with IdentityStale for an ordinal no module stands at
     /// note  🔴 Read as an opaque address and given its shape by the caller, which is the only side that knows
     ///        what the verified hash covered. Declaring the shape here would make this component depend on
     ///        every interface any consumer ever loads.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<const void*> EntryTable(std::uint32_t ModuleOrdinal) const;
+    Deliver<const void*> EntryTable(std::uint32_t ModuleOrdinal) const;
 
     /// 🧩 What a standing module reported about itself.
     /// in    ModuleOrdinal [-]  a module this component acquired
-    /// out   Outcome       [-]  refuses with IdentityStale for an ordinal no module stands at
+    /// out   Deliver       [-]  refuses with IdentityStale for an ordinal no module stands at
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<const SlateModuleReport*> Report(std::uint32_t ModuleOrdinal) const;
+    Deliver<const SlateModuleReport*> Report(std::uint32_t ModuleOrdinal) const;
 
     /// 🧩 Releases one standing module.
     /// in    ModuleOrdinal [-]  a module this component acquired

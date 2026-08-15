@@ -23,7 +23,7 @@ S TilingSpecification.cpp | 246 lines | 7e6d6fda | 16 sym | Lattice validation, 
 //------------------------------------------------------------------------------------------------------------------------
 
 F LatticeSpecification::Validate           | TilingSpecification.cpp | 17-47   | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      DECLARATION
@@ -31,15 +31,15 @@ F LatticeSpecification::Validate           | TilingSpecification.cpp | 17-47   |
 
 F TilingSpecification::DeclareLattice      | TilingSpecification.cpp | 53-64   | - | - | ?
     in    Declaring  const LatticeSpecification&  [-]  ?
-    out   -          Outcome<bool>                [-]  ?
+    out   -          Deliver<bool>                [-]  ?
 
 F TilingSpecification::DeclareContent      | TilingSpecification.cpp | 66-85   | - | - | ?
     in    Declaring  const CellContent&  [-]  ?
-    out   -          Outcome<bool>       [-]  ?
+    out   -          Deliver<bool>       [-]  ?
 
 F TilingSpecification::DeclareVariation    | TilingSpecification.cpp | 87-98   | - | - | ?
     in    Declaring  const VariationSpecification&  [-]  ?
-    out   -          Outcome<bool>                  [-]  ?
+    out   -          Deliver<bool>                  [-]  ?
 
 F TilingSpecification::DeclareNestingDepth | TilingSpecification.cpp | 100-103 | - | - | ?
     in    ArrivingDepth  std::uint32_t  [-]  ?
@@ -52,7 +52,7 @@ F TilingSpecification::DeclareNestingDepth | TilingSpecification.cpp | 100-103 |
 F TilingSpecification::Classify            | TilingSpecification.cpp | 109-165 | - | - | ?
     in    PositionAlong   double                   [-]  ?
     in    PositionAcross  double                   [-]  ?
-    out   -               Outcome<ClassifiedCell>  [-]  ?
+    out   -               Deliver<ClassifiedCell>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
@@ -78,20 +78,20 @@ F TilingSpecification::LatticeDeclared     | TilingSpecification.cpp | 175     |
 //------------------------------------------------------------------------------------------------------------------------
 
 F TilingIndex::Declare                     | TilingSpecification.cpp | 181-191 | - | - | ?
-    out   -  Outcome<std::uint32_t>  [-]  ?
+    out   -  Deliver<std::uint32_t>  [-]  ?
 
 F TilingIndex::Resolve                     | TilingSpecification.cpp | 193-199 | - | - | ?
     in    TilingOrdinal  std::uint32_t                        [-]  ?
-    out   -              Outcome<const TilingSpecification*>  [-]  ?
+    out   -              Deliver<const TilingSpecification*>  [-]  ?
 
 F TilingIndex::Amend                       | TilingSpecification.cpp | 201-207 | - | - | ?
     in    TilingOrdinal  std::uint32_t                  [-]  ?
-    out   -              Outcome<TilingSpecification*>  [-]  ?
+    out   -              Deliver<TilingSpecification*>  [-]  ?
 
 F TilingIndex::Nest                        | TilingSpecification.cpp | 209-239 | - | - | ?
     in    EnclosingOrdinal  std::uint32_t  [-]  ?
     in    NestedOrdinal     std::uint32_t  [-]  ?
-    out   -                 Outcome<bool>  [-]  ?
+    out   -                 Deliver<bool>  [-]  ?
 
 F TilingIndex::DeclaredCount               | TilingSpecification.cpp | 241-244 | - | - | ?
     out   -  std::uint32_t  [-]  ?

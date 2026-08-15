@@ -78,7 +78,7 @@ F PresentBooleanEntry     | ControlChoice.cpp  | 63-100  | - | - | ?
     in    Area     const WorkspaceRectangle&    [-]  ?
     in    Caption  const char*                  [-]  ?
     in    Carried  bool&                        [-]  ?
-    out   -        Outcome<ControlInteraction>  [-]  ?
+    out   -        Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -92,7 +92,7 @@ F PresentSelectionEntry   | ControlChoice.cpp  | 107-181 | - | - | ?
     in    Choices         const char* const*           [-]  ?
     in    ChoiceCount     std::uint32_t                [-]  ?
     in    CarriedOrdinal  std::uint32_t&               [-]  ?
-    out   -               Outcome<ControlInteraction>  [-]  ?
+    out   -               Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ F PresentDropdown         | ControlChoice.cpp  | 188-325 | - | - | ?
     in    CarriedOrdinal  std::uint32_t&               [-]  ?
     in    Carry           DropdownCarry&               [-]  ?
     in    PresentedTick   std::uint32_t                [-]  ?
-    out   -               Outcome<ControlInteraction>  [-]  ?
+    out   -               Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ F PresentSegmentRow       | ControlChoice.cpp  | 332-408 | - | - | ?
     in    Captions      const char* const*           [-]  ?
     in    Carried       bool*                        [-]  ?
     in    SegmentCount  std::uint32_t                [-]  ?
-    out   -             Outcome<ControlInteraction>  [-]  ?
+    out   -             Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ F PresentColourEntry      | ControlChrome.cpp  | 37-176  | - | - | ?
     in    Caption     const char*                  [-]  ?
     in    Carried     ThemeColour&                 [-]  ?
     in    PickerOpen  bool&                        [-]  ?
-    out   -           Outcome<ControlInteraction>  [-]  ?
+    out   -           Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -145,7 +145,7 @@ F PresentMenuPill         | ControlChrome.cpp  | 183-204 | - | - | ?
     in    Area         const WorkspaceRectangle&    [-]  ?
     in    Caption      const char*                  [-]  ?
     in    Highlighted  bool                         [-]  ?
-    out   -            Outcome<ControlInteraction>  [-]  ?
+    out   -            Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h, Source/DiagnosticPanel.cpp, Source/RevisionPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -158,7 +158,7 @@ F PresentGlyphButton      | ControlChrome.cpp  | 211-256 | - | - | ?
     in    Stroke       ControlStroke                [-]  ?
     in    DepotSlot    std::uint64_t                [-]  ?
     in    Highlighted  bool                         [-]  ?
-    out   -            Outcome<ControlInteraction>  [-]  ?
+    out   -            Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -171,7 +171,7 @@ F PresentSectionHeader    | ControlChrome.cpp  | 263-323 | - | - | ?
     in    Caption      const char*                  [-]  ?
     in    SectionOpen  bool&                        [-]  ?
     in    Trailing     const char*                  [-]  ?
-    out   -            Outcome<ControlInteraction>  [-]  ?
+    out   -            Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -182,7 +182,7 @@ F AdvanceContentCarousel  | ControlChrome.cpp  | 330-378 | - | - | ?
     in    Theme            const ThemeSpecification&  [-]  ?
     in    Carry            CarouselCarry&             [-]  ?
     in    ElapsedInterval  float                      [-]  ?
-    out   -                Outcome<float>             [-]  ?
+    out   -                Deliver<float>             [-]  ?
     by    Api/ControlPanel.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -251,7 +251,7 @@ F AdvanceVisibleOffset    | ControlChrome.cpp  | 497-508 | - | - | ?
     in    Carried        float&                     [-]  ?
     in    Area           const WorkspaceRectangle&  [-]  ?
     in    ContentExtent  float                      [-]  ?
-    out   -              Outcome<float>             [-]  ?
+    out   -              Deliver<float>             [-]  ?
     by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -645,7 +645,7 @@ F PresentValueSlider      | ControlNumeric.cpp | 24-88   | - | - | ?
     in    Ceiling   double                       [-]  ?
     in    Unit      const char*                  [-]  ?
     in    Decimals  std::uint32_t                [-]  ?
-    out   -         Outcome<ControlInteraction>  [-]  ?
+    out   -         Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h, Source/ChannelPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -660,7 +660,7 @@ F PresentScalarEntry      | ControlNumeric.cpp | 95-148  | - | - | ?
     in    Step      double                       [-]  ?
     in    Unit      const char*                  [-]  ?
     in    Decimals  std::uint32_t                [-]  ?
-    out   -         Outcome<ControlInteraction>  [-]  ?
+    out   -         Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -674,7 +674,7 @@ F PresentVectorEntry      | ControlNumeric.cpp | 155-215 | - | - | ?
     in    Carried   double                       [-]  ?
     in    Step      double                       [-]  ?
     in    Decimals  std::uint32_t                [-]  ?
-    out   -         Outcome<ControlInteraction>  [-]  ?
+    out   -         Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -728,7 +728,7 @@ F PresentTextEntry        | ControlText.cpp    | 235-273 | - | - | ?
     in    Caption      const char*                  [-]  ?
     in    Carry        TextCarry&                   [-]  ?
     in    Placeholder  const char*                  [-]  ?
-    out   -            Outcome<ControlInteraction>  [-]  ?
+    out   -            Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -739,7 +739,7 @@ F PresentInlineTextEditor | ControlText.cpp    | 280-350 | - | - | ?
     in    Theme  const ThemeSpecification&    [-]  ?
     in    Area   const WorkspaceRectangle&    [-]  ?
     in    Carry  TextCarry&                   [-]  ?
-    out   -      Outcome<ControlInteraction>  [-]  ?
+    out   -      Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -752,5 +752,5 @@ F PresentPathEntry        | ControlText.cpp    | 357-431 | - | - | ?
     in    Caption         const char*                  [-]  ?
     in    Carry           TextCarry&                   [-]  ?
     in    BrowseDeclared  bool&                        [-]  ?
-    out   -               Outcome<ControlInteraction>  [-]  ?
+    out   -               Deliver<ControlInteraction>  [-]  ?
     by    Api/ControlPanel.h

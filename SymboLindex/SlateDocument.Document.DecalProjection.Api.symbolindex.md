@@ -76,7 +76,7 @@ F ProjectPlacementExtent             | DecalProjection.h | 128     | api,nonthro
     in    SequenceOrdinal    std::uint32_t                         [-]  the placement's position in `56`'s sequence — `00` §10.1 ③'s one ordinal
     in    Imported           const TopologyStructure&              [-]  the sealed topology the surface carries
     in    CornerCoordinates  const std::vector<DomainCoordinate>&  [-]  one domain coordinate per imported corner
-    out   -                  Outcome                               [-]  refuses with ContentUnsupported for an unsealed topology, a coordinate run
+    out   -                  Deliver                               [-]  refuses with ContentUnsupported for an unsealed topology, a coordinate run
     by    Source/DecalProjection.cpp
     note  🔴 The two modes derive their extent by different routes and neither is the other's special case. A
     note  🔴 The coordinates are **supplied** rather than read from `68`. A surface carrying an imported domain
@@ -119,24 +119,24 @@ T PlacementIndex                     | DecalProjection.h | 175-234 | owning     
 
 F PlacementIndex::Declare            | DecalProjection.h | 185     | api,nonthrowing               | 🚩 | Declares one placement and issues the ordinal `56` refers to it by. source outside the declared set or a projected volume of no extent, and with ExtentExhausted at the declared ceiling
     in    Declaring  const PlacementSpecification&  [-]  ?
-    out   -          Outcome                        [-]  refuses with IdentityStale for an undeclared occupant, with ContentUnsupported for a
+    out   -          Deliver                        [-]  refuses with IdentityStale for an undeclared occupant, with ContentUnsupported for a
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+65 more)
 
 F PlacementIndex::Amend              | DecalProjection.h | 197     | api,nonthrowing               | ✔️ | Amends one placement, advancing its revision only where `00` §10.1 ② requires it. **not** when the combination or the back-facing rule did. `70` §2's comparison is what re-resolves a tile, and re-resolving on a combination change would re-resolve a value the combination is applied to afterwards.
     in    PlacementOrdinal  std::uint32_t                  [-]  an ordinal this component issued
     in    Amending          const PlacementSpecification&  [-]  the amended specification
-    out   -                 Outcome                        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    out   -                 Deliver                        [-]  refuses with ContentUnsupported for an unclaimed ordinal
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
     note  🔴 The revision advances when the placing transform, the source or the channel mask changed, and
 
 F PlacementIndex::Resolve            | DecalProjection.h | 203     | api,nonthrowing               | ✔️ | One declared placement.
     in    PlacementOrdinal  std::uint32_t  [-]  ?
-    out   -                 Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    out   -                 Deliver        [-]  refuses with ContentUnsupported for an unclaimed ordinal
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+94 more)
 
 F PlacementIndex::Withdraw           | DecalProjection.h | 211     | api,nonthrowing               | ✔️ | Withdraws one placement, returning its slot for reuse. is enclosed under the occupant it is attached to — `00` §10.1 ③ — so it retires with that occupant rather than surviving it as an orphaned reference `56` still names.
     in    PlacementOrdinal  std::uint32_t  [-]  ?
-    out   -                 Outcome<bool>  [-]  ?
+    out   -                 Deliver<bool>  [-]  ?
     by    Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)
     note  🔴 Called from `12` §12's retirement cascade, inside that cascade's single transaction. A placement
 
@@ -174,21 +174,21 @@ F PlacementSequence::Open            | DecalProjection.h | 269     | api,nonallo
     in    PlacementOrdinal  std::uint32_t                  [-]  the placement being positioned
     in    Standing          const PlacementSpecification&  [-]  its specification as it stands; restored by Abandon
     in    CameraFollowed    bool                           [-]  true for the screen gesture, false for a domain or projected drag
-    out   -                 Outcome                        [-]  refuses with HostDenied when a drag is already open
+    out   -                 Deliver                        [-]  refuses with HostDenied when a drag is already open
     post  nothing is recorded; the placement stands unamended until Seal
     by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+20 more)
 
 F PlacementSequence::Amend           | DecalProjection.h | 275     | api,nonallocating,nonthrowing | ✔️ | Amends the open drag's placing transform.
     in    Amending  const DecomposedTransform&  [-]  ?
-    out   -         Outcome                     [-]  refuses with HostDenied when no drag is open
+    out   -         Deliver                     [-]  refuses with HostDenied when no drag is open
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
 
 F PlacementSequence::Abandon         | DecalProjection.h | 281     | api,nonallocating,nonthrowing | ✔️ | Ends the drag with no effect, returning the specification that stood at Open.
-    out   -  Outcome  [-]  refuses with HostDenied when no drag is open
+    out   -  Deliver  [-]  refuses with HostDenied when no drag is open
     by    Api/CameraProjection.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, Api/SpatialManipulator.h, Api/VisibilityRaster.h, (+10 more)
 
 F PlacementSequence::Seal            | DecalProjection.h | 288     | api,nonallocating,nonthrowing | ✔️ | Ends the drag, returning the specification the caller commits as one transaction.
-    out   -  Outcome  [-]  refuses with HostDenied when no drag is open
+    out   -  Deliver  [-]  refuses with HostDenied when no drag is open
     post  🔴 the returned specification carries an advanced revision; `70` re-resolves against it
     by    Api/CameraProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, (+19 more)
 

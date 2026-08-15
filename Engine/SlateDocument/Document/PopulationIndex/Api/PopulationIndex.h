@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 #include <vector>
@@ -69,15 +69,15 @@ public:
     /// err   refuses with ExtentExhausted when the population reaches its declared ceiling
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> Enrol();
+    Deliver<OccupantIdentity> Enrol();
 
     /// 🧩 Withdraws one occupant and advances the slot's generation.
     /// in    Subject  [-]  the identity to withdraw
-    /// out   Outcome  [-]  refuses with IdentityStale when the identity no longer resolves
+    /// out   Deliver  [-]  refuses with IdentityStale when the identity no longer resolves
     /// post  every reference carrying the prior generation resolves to absent
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Withdraw(OccupantIdentity Subject);
+    Deliver<bool> Withdraw(OccupantIdentity Subject);
 
     /// 🧩 Whether an identity still names the occupant it was issued for.
     /// in    Subject  [-]  the identity to resolve

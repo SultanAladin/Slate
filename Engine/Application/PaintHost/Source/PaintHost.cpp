@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // 🧩 The standalone painting executable — Vulkan bring-up, the tick loop, and the two drawers.
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 #include "SlateMath/Platform/WindowInterchange/Api/WindowInterchange.h"
@@ -47,7 +47,7 @@ int main()
     // ② The window.
     WindowInterchange Window;
 
-    const Outcome<bool> WindowOpened = Window.Open({ InitialWidth, InitialHeight }, WindowTitle);
+    const Deliver<bool> WindowOpened = Window.Open({ InitialWidth, InitialHeight }, WindowTitle);
     if (!WindowOpened.ContentPresent)
     {
         std::printf("PaintHost \u2014 the window system declined\n");
@@ -63,7 +63,7 @@ int main()
     const bool DiagnosticRequested = false;
 #endif
 
-    const Outcome<bool> InstanceBuilt = DeviceEdge.ConstructInstance(DiagnosticRequested);
+    const Deliver<bool> InstanceBuilt = DeviceEdge.ConstructInstance(DiagnosticRequested);
     if (!InstanceBuilt.ContentPresent)
     {
         std::printf("PaintHost \u2014 no Vulkan instance could be constructed\n");
@@ -71,7 +71,7 @@ int main()
     }
 
     // ④ The presentation surface.
-    const Outcome<VkSurfaceKHR> SurfaceConverted = Convert(DeviceEdge.Instance(),
+    const Deliver<VkSurfaceKHR> SurfaceConverted = Convert(DeviceEdge.Instance(),
                                                            Window.NativeHandle());
     if (!SurfaceConverted.ContentPresent)
     {
@@ -85,14 +85,14 @@ int main()
     ReportSequence DiagnosticRegister;
     DiagnosticExtension DiagnosticEdge;
 
-    const Outcome<bool> DiagnosticBuilt = DiagnosticEdge.Construct(DeviceEdge, DiagnosticRegister, Timeline);
+    const Deliver<bool> DiagnosticBuilt = DiagnosticEdge.Construct(DeviceEdge, DiagnosticRegister, Timeline);
     if (!DiagnosticBuilt.ContentPresent)
     {
         std::printf("PaintHost \u2014 the diagnostic extension was not negotiated\n");
     }
 
     // ⑥ The device.
-    const Outcome<bool> DeviceBuilt = DeviceEdge.ConstructDevice(PresentationSurface);
+    const Deliver<bool> DeviceBuilt = DeviceEdge.ConstructDevice(PresentationSurface);
     if (!DeviceBuilt.ContentPresent)
     {
         std::printf("PaintHost \u2014 no Vulkan device could be constructed\n");
@@ -102,7 +102,7 @@ int main()
     // ⑦ The presentation chain.
     DisplayScheduler DisplayChain;
 
-    const Outcome<bool> ChainBuilt = DisplayChain.Construct(DeviceEdge, DiagnosticEdge,
+    const Deliver<bool> ChainBuilt = DisplayChain.Construct(DeviceEdge, DiagnosticEdge,
                                                             PresentationSurface,
                                                             InitialWidth, InitialHeight,
                                                             LatencyIntent::SteadyPacing);
@@ -115,7 +115,7 @@ int main()
     // ⑧ The cyclic recording slots.
     CycleScheduler Rotation;
 
-    const Outcome<bool> RotationBuilt = Rotation.Construct(DeviceEdge, DiagnosticEdge);
+    const Deliver<bool> RotationBuilt = Rotation.Construct(DeviceEdge, DiagnosticEdge);
     if (!RotationBuilt.ContentPresent)
     {
         std::printf("PaintHost \u2014 the recording rotation was refused\n");
@@ -125,7 +125,7 @@ int main()
     // ⑨ The command recording sequence.
     CommandSequence Commands;
 
-    const Outcome<bool> CommandsBuilt = Commands.Construct(DeviceEdge, DiagnosticEdge);
+    const Deliver<bool> CommandsBuilt = Commands.Construct(DeviceEdge, DiagnosticEdge);
     if (!CommandsBuilt.ContentPresent)
     {
         std::printf("PaintHost \u2014 the command sequence was refused\n");
@@ -156,7 +156,7 @@ int main()
     SouthDrawer.TongueSubject = SymbolSubject::FolderClosed;
     SouthDrawer.PoseCount     = 3u;
 
-    const Outcome<bool> ViewportBuilt = Viewport.Construct(InterfaceArriving, NorthDrawer, SouthDrawer);
+    const Deliver<bool> ViewportBuilt = Viewport.Construct(InterfaceArriving, NorthDrawer, SouthDrawer);
     if (!ViewportBuilt.ContentPresent)
     {
         std::printf("PaintHost \u2014 the viewport sequence was refused\n");
@@ -181,7 +181,7 @@ int main()
             continue;
 
         // ② Await the next rotation slot.
-        const Outcome<bool> SlotReady = Rotation.Await();
+        const Deliver<bool> SlotReady = Rotation.Await();
         if (!SlotReady.ContentPresent)
         {
             std::printf("PaintHost \u2014 the rotation slot was lost\n");
@@ -191,11 +191,11 @@ int main()
         const std::uint32_t SlotOrdinal = Rotation.StandingOrdinal();
 
         // ③ Await the next display image.
-        const Outcome<RotationSlot> Standing = Rotation.Standing();
+        const Deliver<RotationSlot> Standing = Rotation.Standing();
         if (!Standing.ContentPresent)
             break;
 
-        const Outcome<ArrivedImage> Arrived = DisplayChain.Await(Standing.Resolve(), Timeline);
+        const Deliver<ArrivedImage> Arrived = DisplayChain.Await(Standing.Resolve(), Timeline);
         if (!Arrived.ContentPresent)
         {
             if (Arrived.Declined.DeclaredReason == RefusalReason::DeviceLost)
@@ -218,12 +218,12 @@ int main()
         }
 
         // ④ Arm the rotation before the submission.
-        const Outcome<bool> Armed = Rotation.Arm();
+        const Deliver<bool> Armed = Rotation.Arm();
         if (!Armed.ContentPresent)
             break;
 
         // ⑤ Open the command recording for this rotation slot.
-        const Outcome<VkCommandBuffer> Recording = Commands.Open(SlotOrdinal);
+        const Deliver<VkCommandBuffer> Recording = Commands.Open(SlotOrdinal);
         if (!Recording.ContentPresent)
             break;
 
@@ -252,7 +252,7 @@ int main()
         const double    ElapsedMs = TickSequence::Span(PreviousTick, TickNow);
         PreviousTick = TickNow;
 
-        const Outcome<bool> Ticked = Viewport.Advance(ElapsedMs);
+        const Deliver<bool> Ticked = Viewport.Advance(ElapsedMs);
         if (!Ticked.ContentPresent)
             continue;
 
@@ -283,18 +283,18 @@ int main()
         Viewport.DrawerPanels();
 
         // ⑩ Close the panel window and seal the interface tick.
-        const Outcome<bool> Sealed = Viewport.SealPanels();
+        const Deliver<bool> Sealed = Viewport.SealPanels();
         if (!Sealed.ContentPresent)
             continue;
 
         // ⑪ Record the assembled interface content into the command buffer.
-        const Outcome<bool> InterfaceRecorded = Viewport.Record(Recording.Resolve());
+        const Deliver<bool> InterfaceRecorded = Viewport.Record(Recording.Resolve());
 
         // ⑫ End the dynamic rendering scope.
         vkCmdEndRendering(Recording.Resolve());
 
         // ⑬ Surrender the recording to the queue.
-        const Outcome<bool> Surrendered = Commands.Surrender(SlotOrdinal, SurrenderOrdering{
+        const Deliver<bool> Surrendered = Commands.Surrender(SlotOrdinal, SurrenderOrdering{
             .Awaited      = Standing.Resolve().ImageArrived,
             .AwaitedStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             .Signalled    = Standing.Resolve().RecordingDone,
@@ -305,7 +305,7 @@ int main()
             break;
 
         // ⑭ Present the display image.
-        const Outcome<bool> Presented = DisplayChain.Present(Standing.Resolve(), Arrived.Resolve().ImageOrdinal);
+        const Deliver<bool> Presented = DisplayChain.Present(Standing.Resolve(), Arrived.Resolve().ImageOrdinal);
         if (!Presented.ContentPresent)
             break;
 

@@ -37,13 +37,13 @@ namespace
 //                                                         PUBLIC FUNCTIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-PickOutcome ResolveElementPick(const Ray&              ObjectRay,
+PickDelivery ResolveElementPick(const Ray&              ObjectRay,
                                const PolygonCluster&   Cluster,
                                const DisplayPolygons&  Display,
                                const AdjacencyIndex&   Adjacency,
                                bool                    BackfaceSelectEnabled)
 {
-    PickOutcome Outcome = {};
+    PickDelivery Deliver = {};
 
     const std::vector<Vector3d>& Position      = Cluster.Attributes.Position;
     const uint32_t               VertexCount   = (uint32_t)Position.size();
@@ -90,7 +90,7 @@ PickOutcome ResolveElementPick(const Ray&              ObjectRay,
         }
     }
 
-    if (!NearestFound) return Outcome;   // HitEnabled stays false
+    if (!NearestFound) return Deliver;   // HitEnabled stays false
 
     // --- Resolve the nearest hit to its face / vertex / edge. --------------------------------------------------------
     const TriangleOrigin& Origin = Display.TriangleOrigins[NearestTriangle];
@@ -103,16 +103,16 @@ PickOutcome ResolveElementPick(const Ray&              ObjectRay,
     const double WeightB = NearestU;
     const double WeightC = NearestV;
 
-    Outcome.HitEnabled      = true;
-    Outcome.TriangleOrdinal = NearestTriangle;
-    Outcome.Distance        = NearestDistance;
-    Outcome.Face            = Origin.SourceFace;
-    Outcome.HitPoint        = AddVector(ObjectRay.Origin, ScaleVector(ObjectRay.Direction, NearestDistance));
+    Deliver.HitEnabled      = true;
+    Deliver.TriangleOrdinal = NearestTriangle;
+    Deliver.Distance        = NearestDistance;
+    Deliver.Face            = Origin.SourceFace;
+    Deliver.HitPoint        = AddVector(ObjectRay.Origin, ScaleVector(ObjectRay.Direction, NearestDistance));
 
     // 📝 Snapped vertex: the corner carrying the largest weight (the hit sits nearest it).
-    if (WeightA >= WeightB && WeightA >= WeightC)      Outcome.Vertex = VertexIndexA;
-    else if (WeightB >= WeightA && WeightB >= WeightC) Outcome.Vertex = VertexIndexB;
-    else                                               Outcome.Vertex = VertexIndexC;
+    if (WeightA >= WeightB && WeightA >= WeightC)      Deliver.Vertex = VertexIndexA;
+    else if (WeightB >= WeightA && WeightB >= WeightC) Deliver.Vertex = VertexIndexB;
+    else                                               Deliver.Vertex = VertexIndexC;
 
     // 📝 Nearest triangle side: opposite the SMALLEST-weight corner (that corner is farthest, so the hit is nearest the side
     //    joining the other two). If those two source vertices form a real loop edge in the adjacency, that is the picked edge;
@@ -124,10 +124,10 @@ PickOutcome ResolveElementPick(const Ray&              ObjectRay,
 
     const uint64_t CandidateKey = EncodeEdgeKey(SideStart, SideEnd);
     if (Adjacency.EdgeFaces.find(CandidateKey) != Adjacency.EdgeFaces.end())
-        Outcome.Edge = CandidateKey;   // a real loop edge
+        Deliver.Edge = CandidateKey;   // a real loop edge
     // else: fan diagonal — Edge stays InvalidEdgeKey
 
-    return Outcome;
+    return Deliver;
 }
 
 } // namespace Frontier

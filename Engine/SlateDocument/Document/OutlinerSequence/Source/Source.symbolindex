@@ -24,7 +24,7 @@ S OutlinerSequence.cpp | 534 lines | dcda05db | 23 sym | The seven steps in orde
 
 F OutlinerSequence::Enrol           | OutlinerSequence.cpp | 15-49   | - | - | ?
     in    DeclaredName  const std::string&         [-]  ?
-    out   -             Outcome<OccupantIdentity>  [-]  ?
+    out   -             Deliver<OccupantIdentity>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    DECLARED INTENT
@@ -32,7 +32,7 @@ F OutlinerSequence::Enrol           | OutlinerSequence.cpp | 15-49   | - | - | ?
 
 F OutlinerSequence::Declare         | OutlinerSequence.cpp | 55-65   | - | - | ?
     in    Arriving  const DeclaredIntent&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
 
 F OutlinerSequence::Reject          | OutlinerSequence.cpp | 67-74   | - | - | ?
     in    Refused    const DeclaredIntent&  [-]  ?
@@ -45,18 +45,18 @@ F OutlinerSequence::Reject          | OutlinerSequence.cpp | 67-74   | - | - | ?
 
 F OutlinerSequence::EnrolSelection  | OutlinerSequence.cpp | 82-95   | - | - | ?
     in    Standing  const std::vector<OccupantIdentity>&  [-]  ?
-    out   -         Outcome<bool>                         [-]  ?
+    out   -         Deliver<bool>                         [-]  ?
 
 F OutlinerSequence::ApplySelection  | OutlinerSequence.cpp | 97-113  | - | - | ?
     in    Standing  const std::vector<OccupantIdentity>&  [-]  ?
     in    SealedAt  std::uint64_t                         [-]  ?
-    out   -         Outcome<bool>                         [-]  ?
+    out   -         Deliver<bool>                         [-]  ?
 
 F OutlinerSequence::ApplySubset     | OutlinerSequence.cpp | 115-176 | - | - | ?
     in    Applying   const DeclaredIntent&  [-]  ?
     in    Addressed  SubsetSubject          [-]  ?
     in    SealedAt   std::uint64_t          [-]  ?
-    out   -          Outcome<bool>          [-]  ?
+    out   -          Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    NARROWING INTENT
@@ -64,10 +64,10 @@ F OutlinerSequence::ApplySubset     | OutlinerSequence.cpp | 115-176 | - | - | ?
 
 F OutlinerSequence::ApplyNarrowing  | OutlinerSequence.cpp | 182-194 | - | - | ?
     in    Applying  const DeclaredIntent&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
 
 F OutlinerSequence::DeriveNarrowing | OutlinerSequence.cpp | 196-204 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       SCRUBBING
@@ -75,11 +75,11 @@ F OutlinerSequence::DeriveNarrowing | OutlinerSequence.cpp | 196-204 | - | - | ?
 
 F OutlinerSequence::Retreat         | OutlinerSequence.cpp | 210-231 | - | - | ?
     in    SealedAt  std::uint64_t  [-]  ?
-    out   -         Outcome<bool>  [-]  ?
+    out   -         Deliver<bool>  [-]  ?
 
 F OutlinerSequence::Advance         | OutlinerSequence.cpp | 233-251 | - | - | ?
     in    SealedAt  std::uint64_t  [-]  ?
-    out   -         Outcome<bool>  [-]  ?
+    out   -         Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE RETIREMENT CASCADE
@@ -88,7 +88,7 @@ F OutlinerSequence::Advance         | OutlinerSequence.cpp | 233-251 | - | - | ?
 F OutlinerSequence::RetireCascade   | OutlinerSequence.cpp | 257-284 | - | - | ?
     in    Applying  const DeclaredIntent&  [-]  ?
     in    SealedAt  std::uint64_t          [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    APPLYING INTENT
@@ -97,7 +97,7 @@ F OutlinerSequence::RetireCascade   | OutlinerSequence.cpp | 257-284 | - | - | ?
 F OutlinerSequence::ApplyIntent     | OutlinerSequence.cpp | 290-375 | - | - | ?
     in    Applying  const DeclaredIntent&  [-]  ?
     in    SealedAt  std::uint64_t          [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE TICK ORDER
@@ -105,7 +105,7 @@ F OutlinerSequence::ApplyIntent     | OutlinerSequence.cpp | 290-375 | - | - | ?
 
 F OutlinerSequence::Reconcile       | OutlinerSequence.cpp | 381-472 | - | - | ?
     in    SealedAt  std::uint64_t  [-]  ?
-    out   -         Outcome<bool>  [-]  ?
+    out   -         Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ

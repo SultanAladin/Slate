@@ -117,7 +117,7 @@ F GenerateAnnularSector         | PrimitiveStructure.cpp | 436-468 | - | - | ?
 F GeneratePrimitive             | PrimitiveStructure.cpp | 476-551 | - | - | ?
     in    Declaring  const PrimitiveSpecification&  [-]  ?
     in    Generated  TopologyStructure&             [-]  ?
-    out   -          Outcome<bool>                  [-]  ?
+    out   -          Deliver<bool>                  [-]  ?
     by    Api/PrimitiveStructure.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -137,20 +137,20 @@ F ProjectPrimitiveExtent        | PrimitiveStructure.cpp | 557-592 | - | - | ?
 
 F PrimitiveIndex::Declare       | PrimitiveStructure.cpp | 598-636 | - | - | ?
     in    Declaring  const PrimitiveSpecification&  [-]  ?
-    out   -          Outcome<std::uint32_t>         [-]  ?
+    out   -          Deliver<std::uint32_t>         [-]  ?
 
 F PrimitiveIndex::Amend         | PrimitiveStructure.cpp | 638-674 | - | - | ?
     in    PrimitiveOrdinal  std::uint32_t                  [-]  ?
     in    Amending          const PrimitiveSpecification&  [-]  ?
-    out   -                 Outcome<bool>                  [-]  ?
+    out   -                 Deliver<bool>                  [-]  ?
 
 F PrimitiveIndex::Resolve       | PrimitiveStructure.cpp | 676-685 | - | - | ?
     in    PrimitiveOrdinal  std::uint32_t                           [-]  ?
-    out   -                 Outcome<const PrimitiveSpecification*>  [-]  ?
+    out   -                 Deliver<const PrimitiveSpecification*>  [-]  ?
 
 F PrimitiveIndex::Withdraw      | PrimitiveStructure.cpp | 687-701 | - | - | ?
     in    PrimitiveOrdinal  std::uint32_t  [-]  ?
-    out   -                 Outcome<bool>  [-]  ?
+    out   -                 Deliver<bool>  [-]  ?
 
 F PrimitiveIndex::Revision      | PrimitiveStructure.cpp | 703-711 | - | - | ?
     in    PrimitiveOrdinal  std::uint32_t  [-]  ?

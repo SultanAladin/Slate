@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateDocument/Document/EnrollmentIndex/Api/EnrollmentIndex.h"
 #include "SlateDocument/Document/PopulationIndex/Api/PopulationIndex.h"
 #include "SlateDocument/Document/RevisionSequence/Api/RevisionSequence.h"
@@ -97,24 +97,24 @@ public:
 
     /// 🧩 Enrols one occupant into the population and both relations, with a name.
     /// in    DeclaredName  [-]  what the artist called it; may be empty
-    /// out   Outcome       [-]  refuses with ExtentExhausted at the population ceiling
+    /// out   Deliver       [-]  refuses with ExtentExhausted at the population ceiling
     /// post  the occupant sits last in the root ordering, attached to nothing, in no subset
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> Enrol(const std::string& DeclaredName);
+    Deliver<OccupantIdentity> Enrol(const std::string& DeclaredName);
 
     /// 🧩 Declares one intent, to be applied at the next tick's ①.
     /// in    Arriving  [-]  the intent, every operand named
-    /// out   Outcome   [-]  refuses with IdentityStale when the subject does not resolve now
+    /// out   Deliver   [-]  refuses with IdentityStale when the subject does not resolve now
     /// note  Declaring is not applying. An intent that arrives mid-tick is applied at the next ① rather than
     ///        against a linearisation that is halfway rebuilt.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(const DeclaredIntent& Arriving);
+    Deliver<bool> Declare(const DeclaredIntent& Arriving);
 
     /// 🧩 Scrubs the document one transaction backwards, restoring the selection that transaction applied to.
     /// in    SealedAt  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
-    /// out   Outcome   [-]   refuses with ExtentExhausted at the beginning of the revision sequence
+    /// out   Deliver   [-]   refuses with ExtentExhausted at the beginning of the revision sequence
     /// post  🔴 the document position and the standing selection moved together — `12` §11
     /// note  🔴 This is the defect `12` §11 warns of, closed: move three occupants, undo, and the transforms
     ///        revert while the selection does not, so the next action applies to something other than what
@@ -124,25 +124,25 @@ public:
     ///        clearing it. The artist selected nothing there, so there is nothing to restore.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Retreat(std::uint64_t SealedAt);
+    Deliver<bool> Retreat(std::uint64_t SealedAt);
 
     /// 🧩 Scrubs the document one transaction forwards, restoring the selection that transaction applied to.
     /// in    SealedAt  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
-    /// out   Outcome   [-]   refuses with ExtentExhausted at the end of the revision sequence
+    /// out   Deliver   [-]   refuses with ExtentExhausted at the end of the revision sequence
     /// post  the document position and the standing selection moved together
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Advance(std::uint64_t SealedAt);
+    Deliver<bool> Advance(std::uint64_t SealedAt);
 
     /// 🧩 Runs one whole tick in the fixed order ①–⑦.
     /// in    SealedAt  [ns]  the arrival stamp transactions sealed this tick carry
-    /// out   Outcome   [-]   refuses when a step refuses; the refusal carries that step's reason
+    /// out   Deliver   [-]   refuses when a step refuses; the refusal carries that step's reason
     /// post  🔴 all ten invariants hold; nothing observed the linearisation between ④ and ⑤
     /// note  🔍 Invariants 3 and 4 are checked here on every reconciliation under SLATE_DEBUG; the remainder
     ///        are checked as each transaction seals.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Reconcile(std::uint64_t SealedAt);
+    Deliver<bool> Reconcile(std::uint64_t SealedAt);
 
     /// 🧩 The rows the last completed tick linearised.
     /// cost  ✔️
@@ -199,13 +199,13 @@ public:
 
 private:
 
-    Outcome<bool> ApplyIntent(const DeclaredIntent& Applying, std::uint64_t SealedAt);
-    Outcome<bool> ApplySubset(const DeclaredIntent& Applying, SubsetSubject Addressed, std::uint64_t SealedAt);
-    Outcome<bool> ApplyNarrowing(const DeclaredIntent& Applying);
-    Outcome<bool> DeriveNarrowing();
-    Outcome<bool> ApplySelection(const std::vector<OccupantIdentity>& Standing, std::uint64_t SealedAt);
-    Outcome<bool> EnrolSelection(const std::vector<OccupantIdentity>& Standing);
-    Outcome<bool> RetireCascade(const DeclaredIntent& Applying, std::uint64_t SealedAt);
+    Deliver<bool> ApplyIntent(const DeclaredIntent& Applying, std::uint64_t SealedAt);
+    Deliver<bool> ApplySubset(const DeclaredIntent& Applying, SubsetSubject Addressed, std::uint64_t SealedAt);
+    Deliver<bool> ApplyNarrowing(const DeclaredIntent& Applying);
+    Deliver<bool> DeriveNarrowing();
+    Deliver<bool> ApplySelection(const std::vector<OccupantIdentity>& Standing, std::uint64_t SealedAt);
+    Deliver<bool> EnrolSelection(const std::vector<OccupantIdentity>& Standing);
+    Deliver<bool> RetireCascade(const DeclaredIntent& Applying, std::uint64_t SealedAt);
     void          Reject(const DeclaredIntent& Refused, const Refusal& Declining);
 
     PopulationIndex                Population;                   // [-] - `10`'s slot ledger, reconciled at ②

@@ -12,16 +12,16 @@ namespace Slate
 //                                                        THE TOOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> ToolIndex::Declare(const ToolSpecification& Declaring)
+Deliver<std::uint32_t> ToolIndex::Declare(const ToolSpecification& Declaring)
 {
     if (Declaring.Identity.empty())
-        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a tool declares no identity" });
+        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a tool declares no identity" });
 
     if (Declaring.Claimed  == PointerPrecedence::PrecedenceCount
      || Declaring.Previewed == PreviewSubject::PreviewCount
      || Declaring.Recorded  == TransactionSubject::SubjectCount)
     {
-        return Outcome<std::uint32_t>::Refuse(
+        return Deliver<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "no such precedence, preview or transaction shape" });
     }
 
@@ -32,46 +32,46 @@ Outcome<std::uint32_t> ToolIndex::Declare(const ToolSpecification& Declaring)
     {
         if (Held.Identity == Declaring.Identity)
         {
-            return Outcome<std::uint32_t>::Refuse(
+            return Deliver<std::uint32_t>::Refuse(
                 { RefusalReason::ContentUnsupported, "a tool already declares that identity" });
         }
     }
 
     if (Declared.size() >= ToolCeiling)
-        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the tool ceiling was reached" });
+        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the tool ceiling was reached" });
 
     const std::uint32_t ToolOrdinal = static_cast<std::uint32_t>(Declared.size());
 
     Declared.push_back(Declaring);
 
-    return Outcome<std::uint32_t>::Deliver(ToolOrdinal);
+    return Deliver<std::uint32_t>::Deliver(ToolOrdinal);
 }
 
-Outcome<const ToolSpecification*> ToolIndex::Resolve(std::uint32_t ToolOrdinal) const
+Deliver<const ToolSpecification*> ToolIndex::Resolve(std::uint32_t ToolOrdinal) const
 {
     if (ToolOrdinal >= Declared.size())
-        return Outcome<const ToolSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tool" });
+        return Deliver<const ToolSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tool" });
 
-    return Outcome<const ToolSpecification*>::Deliver(&Declared[ToolOrdinal]);
+    return Deliver<const ToolSpecification*>::Deliver(&Declared[ToolOrdinal]);
 }
 
-Outcome<ToolSpecification*> ToolIndex::Amend(std::uint32_t ToolOrdinal)
+Deliver<ToolSpecification*> ToolIndex::Amend(std::uint32_t ToolOrdinal)
 {
     if (ToolOrdinal >= Declared.size())
-        return Outcome<ToolSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tool" });
+        return Deliver<ToolSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tool" });
 
-    return Outcome<ToolSpecification*>::Deliver(&Declared[ToolOrdinal]);
+    return Deliver<ToolSpecification*>::Deliver(&Declared[ToolOrdinal]);
 }
 
-Outcome<std::uint32_t> ToolIndex::Located(const std::string& Identity) const
+Deliver<std::uint32_t> ToolIndex::Located(const std::string& Identity) const
 {
     for (std::size_t Ordinal = 0u; Ordinal < Declared.size(); ++Ordinal)
     {
         if (Declared[Ordinal].Identity == Identity)
-            return Outcome<std::uint32_t>::Deliver(static_cast<std::uint32_t>(Ordinal));
+            return Deliver<std::uint32_t>::Deliver(static_cast<std::uint32_t>(Ordinal));
     }
 
-    return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "nothing declares that tool" });
+    return Deliver<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "nothing declares that tool" });
 }
 
 std::uint32_t ToolIndex::DeclaredCount() const
@@ -88,66 +88,66 @@ const ToolIndex&  ToolSequence::Tools() const   { return DeclaredTools;   }
 BrushIndex&       ToolSequence::Brushes()       { return DeclaredBrushes; }
 const BrushIndex& ToolSequence::Brushes() const { return DeclaredBrushes; }
 
-Outcome<bool> ToolSequence::DeclareTool(std::uint32_t ToolOrdinal_)
+Deliver<bool> ToolSequence::DeclareTool(std::uint32_t ToolOrdinal_)
 {
     if (!DeclaredTools.Resolve(ToolOrdinal_).ContentPresent)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such tool" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such tool" });
 
     ToolOrdinal = ToolOrdinal_;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> ToolSequence::DeclareBrush(std::uint32_t BrushOrdinal_)
+Deliver<bool> ToolSequence::DeclareBrush(std::uint32_t BrushOrdinal_)
 {
     if (!DeclaredBrushes.Resolve(BrushOrdinal_).ContentPresent)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such brush" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such brush" });
 
     BrushOrdinal = BrushOrdinal_;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> ToolSequence::DeclareColour(const ColourSpecification& Declaring)
+Deliver<bool> ToolSequence::DeclareColour(const ColourSpecification& Declaring)
 {
     // 🔴 `36` §1: a colour without its space is refused rather than assumed to be in the working space. An
     //    assumed space here is the defect `36` exists to prevent, placed where every stroke reads it.
     if (!Declaring.ColourDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the colour declares no space" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the colour declares no space" });
 
     ActiveColour = Declaring;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> ToolSequence::DeclareDisplay(DisplaySubject Declaring)
+Deliver<bool> ToolSequence::DeclareDisplay(DisplaySubject Declaring)
 {
     if (Declaring == DisplaySubject::DisplayCount)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such display mode" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such display mode" });
 
     PresentedDisplay = Declaring;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> ToolSequence::DeclareChannel(ChannelSubject Declaring)
+Deliver<bool> ToolSequence::DeclareChannel(ChannelSubject Declaring)
 {
     if (Declaring == ChannelSubject::ChannelCount)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such channel" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such channel" });
 
     PresentedChannel = Declaring;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> ToolSequence::DeclareOverlay(OverlaySubject Declaring, bool PresenceEnabled)
+Deliver<bool> ToolSequence::DeclareOverlay(OverlaySubject Declaring, bool PresenceEnabled)
 {
     if (Declaring == OverlaySubject::OverlayCount)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such overlay" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such overlay" });
 
     OverlayPresent[static_cast<std::size_t>(Declaring)] = PresenceEnabled;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -176,32 +176,32 @@ PointerPrecedence ToolSequence::Arbitrate(bool InterfaceReported,
     return PointerPrecedence::Workspace;
 }
 
-Outcome<bool> ToolSequence::OpenCapture(PointerPrecedence Claiming, const ResolvedPointer& Opened)
+Deliver<bool> ToolSequence::OpenCapture(PointerPrecedence Claiming, const ResolvedPointer& Opened)
 {
     if (Claiming == PointerPrecedence::PrecedenceCount)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such precedence" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such precedence" });
 
     // 🔴 A stronger claimant does **not** steal a standing capture. Arbitration happens once, before capture is
     //    taken; re-arbitrating mid-drag is the defect where a stroke stops the moment the cursor crosses a
     //    floating panel, and it is exactly the case `14` §4.2 declares against.
     if (StandingCapture.CaptureDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "a capture already stands" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "a capture already stands" });
 
     StandingCapture.Holder          = Claiming;
     StandingCapture.Opened          = Opened;
     StandingCapture.CaptureDeclared = true;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> ToolSequence::ReleaseCapture()
+Deliver<bool> ToolSequence::ReleaseCapture()
 {
     if (!StandingCapture.CaptureDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no capture stands" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no capture stands" });
 
     StandingCapture = PointerCapture{};
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -211,22 +211,22 @@ Outcome<bool> ToolSequence::ReleaseCapture()
 const ColourSpecification& ToolSequence::Colour() const  { return ActiveColour;    }
 const PointerCapture&      ToolSequence::Capture() const { return StandingCapture; }
 
-Outcome<const ToolSpecification*> ToolSequence::ActiveTool() const
+Deliver<const ToolSpecification*> ToolSequence::ActiveTool() const
 {
     if (ToolOrdinal == AbsentTool)
     {
-        return Outcome<const ToolSpecification*>::Refuse(
+        return Deliver<const ToolSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no tool is active" });
     }
 
     return DeclaredTools.Resolve(ToolOrdinal);
 }
 
-Outcome<const BrushSpecification*> ToolSequence::ActiveBrush() const
+Deliver<const BrushSpecification*> ToolSequence::ActiveBrush() const
 {
     if (BrushOrdinal == AbsentTool)
     {
-        return Outcome<const BrushSpecification*>::Refuse(
+        return Deliver<const BrushSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no brush is active" });
     }
 

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 #include "Shared/OcclusionProjection.slang.h"
@@ -165,7 +165,7 @@ public:
     /// 🧩 Derives the packing for every partition of a reaching index.
     /// in    Reaching     [-]  `44` §5's index, already derived against this rotation's partitions
     /// in    Illuminants  [-]  the population, for each reaching illuminant's enrolment
-    /// out   Outcome      [-]  refuses with ContentUnsupported when the reaching index spans no partition
+    /// out   Deliver      [-]  refuses with ContentUnsupported when the reaching index spans no partition
     /// post  every partition carries a slot per occlusion-enrolled illuminant it can hold, and a truncation count
     /// note  🔴 An illuminant **not enrolled for occlusion** occupies no slot at all rather than occupying one
     ///        and writing unity into it. A slot spent on an illuminant that casts nothing is a slot the fifth
@@ -173,23 +173,23 @@ public:
     ///        losing its shadow when they add a fill.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Derive(const IlluminantIndex& Reaching, const IlluminantPopulation& Illuminants);
+    Deliver<bool> Derive(const IlluminantIndex& Reaching, const IlluminantPopulation& Illuminants);
 
     /// 🧩 The packed component one illuminant occupies in one partition.
-    /// out   Outcome  [-]  refuses with ExtentExhausted where the illuminant reaches the partition and the word
+    /// out   Deliver  [-]  refuses with ExtentExhausted where the illuminant reaches the partition and the word
     ///                     cannot carry it, and with ContentUnsupported where it does not reach it at all
     /// note  📝 The two refusals are different facts and are spelled apart. An illuminant that does not reach a
     ///        partition contributes nothing there and needs no shadow; one that reaches it and truncated
     ///        contributes its whole direct term unattenuated, and `18` must know which.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> SlotOf(std::uint32_t PartitionOrdinal, OccupantIdentity Illuminant) const;
+    Deliver<std::uint32_t> SlotOf(std::uint32_t PartitionOrdinal, OccupantIdentity Illuminant) const;
 
     /// 🧩 The illuminant one packed component carries in one partition.
-    /// out   Outcome  [-]  refuses with ExtentExhausted where the slot is unoccupied
+    /// out   Deliver  [-]  refuses with ExtentExhausted where the slot is unoccupied
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> IlluminantAt(std::uint32_t PartitionOrdinal, std::uint32_t Slot) const;
+    Deliver<OccupantIdentity> IlluminantAt(std::uint32_t PartitionOrdinal, std::uint32_t Slot) const;
 
     /// 🧩 How many illuminants one partition could not pack — the excess `18` integrates unattenuated.
     /// cost  ✔️
@@ -246,23 +246,23 @@ class AmbientOcclusionSequence
 public:
 
     /// 🧩 Declares what the term is resolved against.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a radius or sample count of nothing, and for a
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a radius or sample count of nothing, and for a
     ///                     divisor that is not two
     /// note  ⚠️ The divisor is refused above two rather than admitted as a quality setting. `08` §2 claims
     ///        `OcclusionSurface` at half extent and `Shared/`'s upsample reads four taps against that claim; a
     ///        third of the extent would need a different tap count, and the two would be declared in two places.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(const AmbientOcclusionSpecification& Declaring);
+    Deliver<bool> Declare(const AmbientOcclusionSpecification& Declaring);
 
     /// 🧩 The extent the term is resolved at, from one display extent.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a display extent of nothing
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a display extent of nothing
     /// note  📐 Rounded **up** on both ordinates, matching `RenderSchedule`'s own fraction-of-display claim.
     ///        Rounding down leaves the display's last column with no coarse texel above it, and the upsample
     ///        then reads outside its own target along one edge.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Resolve(std::uint32_t DisplayAlong,
+    Deliver<bool> Resolve(std::uint32_t DisplayAlong,
                           std::uint32_t DisplayAcross,
                           std::uint32_t& ResolvedAlong,
                           std::uint32_t& ResolvedAcross) const;
@@ -309,17 +309,17 @@ class OcclusionProjectionSpace
 public:
 
     /// 🧩 Contributes `08` §3 ③'s recording.
-    /// out   Outcome  [-]  refuses with whatever the schedule refused
+    /// out   Deliver  [-]  refuses with whatever the schedule refused
     /// note  📝 Both targets are produced by one recording rather than by two, because both are resolved from
     ///        one reconstruction of the same depth. Two recordings would reconstruct the position at every pixel
     ///        twice to write two scalars.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Contribute(RenderSchedule& Schedule) const;
+    Deliver<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Declares the camera every directional subdivision is sized against.
     /// in    Declaring  [-]  the presented camera, as `46` holds it
-    /// out   Outcome    [-]  refuses with ContentUnsupported for a camera declaring no valid clipping interval
+    /// out   Deliver    [-]  refuses with ContentUnsupported for a camera declaring no valid clipping interval
     /// post  a directional projection is owed a rebuild only where the camera moved materially
     /// note  🔴 Supplied rather than reached for through a held reference, so that a directional subdivision is
     ///        rebuilt at a declared moment on the tick rather than whenever something happened to read a camera
@@ -328,27 +328,27 @@ public:
     ///        extended shapes are world-referred and see what they saw before the camera moved.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareCamera(const CameraSpecification& Declaring);
+    Deliver<bool> DeclareCamera(const CameraSpecification& Declaring);
 
     /// 🧩 Records that something changed, so that only what it reaches is owed a rebuild.
     /// in    Declared  [-]  which of `60` §4's rows
     /// in    Subject   [-]  the illuminant that changed, or the moved occupant's identity; may be undeclared
     /// in    Extent    [mm] what the change reaches, for the rows that test reach
-    /// out   Outcome   [-]  refuses with ContentUnsupported for a subject outside the declared set
+    /// out   Deliver   [-]  refuses with ContentUnsupported for a subject outside the declared set
     /// note  🔴 `RadiantIntensity` and `OccupantPainted` invalidate **nothing**, and both are admitted rather
     ///        than refused. They are the two rows an artist triggers constantly, and admitting them here is what
     ///        lets a caller declare every change it makes without knowing which ones matter — which is the only
     ///        arrangement where the ones that do not matter stay free.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Invalidate(InvalidationSubject Declared,
+    Deliver<bool> Invalidate(InvalidationSubject Declared,
                              OccupantIdentity    Subject,
                              PartitionExtent     Extent);
 
     /// 🧩 Rebuilds whatever the declared conditions owe, and nothing else.
     /// in    Illuminants      [-]  the population; every occlusion-enrolled member is projected
     /// in    RotationOrdinal  [-]  the rotation rebuilding
-    /// out   Outcome          [-]  refuses with ContentUnsupported before a camera is declared, and carries a
+    /// out   Deliver          [-]  refuses with ContentUnsupported before a camera is declared, and carries a
     ///                             face derivation's own refusal
     /// post  🔴 with nothing owed, nothing is rebuilt and nothing is recorded
     /// note  🔴 An illuminant not enrolled for occlusion is **counted** and skipped rather than silently
@@ -356,13 +356,13 @@ public:
     ///        disabled occlusion on their key light six months ago has no other way to find out.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Rebuild(const IlluminantPopulation& Illuminants, std::uint64_t RotationOrdinal);
+    Deliver<bool> Rebuild(const IlluminantPopulation& Illuminants, std::uint64_t RotationOrdinal);
 
     /// 🧩 One illuminant's standing projection.
-    /// out   Outcome  [-]  refuses with ExtentExhausted where the illuminant carries none
+    /// out   Deliver  [-]  refuses with ExtentExhausted where the illuminant carries none
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<const DerivedProjection*> Standing(OccupantIdentity Illuminant) const;
+    Deliver<const DerivedProjection*> Standing(OccupantIdentity Illuminant) const;
 
     /// 🧩 Whether anything is owed a rebuild.
     /// note  🔴 What the schedule's contributor reads to decide whether ③ records at all. `60` §4's table exists
@@ -392,7 +392,7 @@ public:
 
 private:
 
-    Outcome<DerivedProjection> Derive(const IlluminantSpecification& Declared,
+    Deliver<DerivedProjection> Derive(const IlluminantSpecification& Declared,
                                       OccupantIdentity               Illuminant,
                                       std::uint64_t                  RotationOrdinal) const;
 

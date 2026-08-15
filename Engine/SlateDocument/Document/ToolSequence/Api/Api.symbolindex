@@ -98,22 +98,22 @@ T ToolIndex                        | ToolSequence.h | 119-146 | owning          
 
 F ToolIndex::Declare               | ToolSequence.h | 128     | api,nonthrowing               | 🚩 | Declares one tool and issues its ordinal. and with ExtentExhausted at the declared ceiling
     in    Declaring  const ToolSpecification&  [-]  ?
-    out   -          Outcome                   [-]  refuses with ContentUnsupported for an empty identity or an out-of-range declaration,
+    out   -          Deliver                   [-]  refuses with ContentUnsupported for an empty identity or an out-of-range declaration,
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F ToolIndex::Resolve               | ToolSequence.h | 130     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                      [-]  ?
-    out   -            Outcome<const ToolSpecification*>  [-]  ?
+    out   -            Deliver<const ToolSpecification*>  [-]  ?
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F ToolIndex::Amend                 | ToolSequence.h | 131     | -                             | -  | ?
     in    ToolOrdinal  std::uint32_t                [-]  ?
-    out   -            Outcome<ToolSpecification*>  [-]  ?
+    out   -            Deliver<ToolSpecification*>  [-]  ?
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
 
 F ToolIndex::Located               | ToolSequence.h | 137     | api,nonthrowing               | 🚩 | The ordinal one identity was declared at.
     in    Identity  const std::string&  [-]  ?
-    out   -         Outcome             [-]  refuses with ContentUnsupported when nothing declares that identity
+    out   -         Deliver             [-]  refuses with ContentUnsupported when nothing declares that identity
     by    Api/DocumentSession.h, Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, (+28 more)
 
 F ToolIndex::DeclaredCount         | ToolSequence.h | 139     | -                             | -  | ?
@@ -169,46 +169,46 @@ F ToolSequence::Brushes            | ToolSequence.h | 198     | -               
 
 F ToolSequence::DeclareTool        | ToolSequence.h | 204     | api,nonthrowing               | ✔️ | Activates one declared tool.
     in    ToolOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome        [-]  refuses with ContentUnsupported outside the declared tool count
+    out   -            Deliver        [-]  refuses with ContentUnsupported outside the declared tool count
     by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
 
 F ToolSequence::DeclareBrush       | ToolSequence.h | 210     | api,nonthrowing               | ✔️ | Activates one declared brush.
     in    BrushOrdinal  std::uint32_t  [-]  ?
-    out   -             Outcome        [-]  refuses with ContentUnsupported outside the declared brush count
+    out   -             Deliver        [-]  refuses with ContentUnsupported outside the declared brush count
     by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
 
 F ToolSequence::DeclareColour      | ToolSequence.h | 221     | api,nonthrowing               | ✔️ | Declares the active colour. interpret differently, and all three will look plausible. arrives here is therefore in the working space, and a display-referred sample is a separate action that says so.
     in    Declaring  const ColourSpecification&  [-]  ?
-    out   -          Outcome                     [-]  refuses with ContentUnsupported for a colour declaring no space
+    out   -          Deliver                     [-]  refuses with ContentUnsupported for a colour declaring no space
     by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
     note  🔴 `36` §1: no bare triple. A colour without its space is a number three subsystems will each
     note  ⚠️ `36` §6 rules a colour sampled from the workspace **scene-referred**, sampled before `66`. What
 
 F ToolSequence::DeclareDisplay     | ToolSequence.h | 227     | api,nonthrowing               | ✔️ | Declares how the workspace presents the shaded result.
     in    Declaring  DisplaySubject  [-]  ?
-    out   -          Outcome         [-]  refuses with ContentUnsupported for a mode outside the declared set
+    out   -          Deliver         [-]  refuses with ContentUnsupported for a mode outside the declared set
     by    Source/ToolSequence.cpp
 
 F ToolSequence::DeclareChannel     | ToolSequence.h | 233     | api,nonthrowing               | ✔️ | Declares which of `42`'s channels is presented alone at `ChannelIsolated`.
     in    Declaring  ChannelSubject  [-]  ?
-    out   -          Outcome         [-]  refuses with ContentUnsupported for a channel outside `42`'s twenty
+    out   -          Deliver         [-]  refuses with ContentUnsupported for a channel outside `42`'s twenty
     by    Api/BrushSpecification.h, Api/MaterialSpecification.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, (+1 more)
 
 F ToolSequence::DeclareOverlay     | ToolSequence.h | 239     | api,nonthrowing               | ✔️ | Declares whether one of `80`'s overlays is presented.
     in    Declaring        OverlaySubject  [-]  ?
     in    PresenceEnabled  bool            [-]  ?
-    out   -                Outcome         [-]  refuses with ContentUnsupported outside the declared set
+    out   -                Deliver         [-]  refuses with ContentUnsupported outside the declared set
     by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
 
 F ToolSequence::OpenCapture        | ToolSequence.h | 250     | api,nonthrowing               | ✔️ | Takes the pointer at a declared precedence, recording the pick it was taken against. persists for the whole drag, and re-arbitrating per sample is the defect where a stroke stops the moment the cursor crosses a floating panel. Arbitration happens before capture is taken, once.
     in    Claiming  PointerPrecedence       [-]  which level is claiming it
     in    Opened    const ResolvedPointer&  [-]  the pick as `74` resolved it at this instant
-    out   -         Outcome                 [-]  refuses with HostDenied while a capture already stands
+    out   -         Deliver                 [-]  refuses with HostDenied while a capture already stands
     by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
     note  🔴 A standing capture is **not** stolen by a stronger claimant. `76` §3 and `14` §4.2: capture
 
 F ToolSequence::ReleaseCapture     | ToolSequence.h | 257     | api,nonthrowing               | ✔️ | Releases the standing capture.
-    out   -  Outcome  [-]  refuses with HostDenied when no capture stands
+    out   -  Deliver  [-]  refuses with HostDenied when no capture stands
     by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
     note  🔴 Releasing is an explicit event and never a consequence of the pointer moving elsewhere.
 
@@ -229,11 +229,11 @@ F ToolSequence::Capture            | ToolSequence.h | 271     | -               
     by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
 
 F ToolSequence::ActiveTool         | ToolSequence.h | 277     | api,nonthrowing               | ✔️ | The active tool, refusing where none has been activated.
-    out   -  Outcome  [-]  refuses with ContentUnsupported before a tool is declared active
+    out   -  Deliver  [-]  refuses with ContentUnsupported before a tool is declared active
     by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
 
 F ToolSequence::ActiveBrush        | ToolSequence.h | 283     | api,nonthrowing               | ✔️ | The active brush, refusing where none has been activated.
-    out   -  Outcome  [-]  refuses with ContentUnsupported before a brush is declared active
+    out   -  Deliver  [-]  refuses with ContentUnsupported before a brush is declared active
     by    Source/ConsoleHost.cpp, Source/ToolSequence.cpp
 
 F ToolSequence::ActiveToolOrdinal  | ToolSequence.h | 285     | -                             | -  | ?

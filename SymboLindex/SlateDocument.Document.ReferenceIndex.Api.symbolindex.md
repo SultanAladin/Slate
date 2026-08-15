@@ -78,25 +78,25 @@ T ReferenceIndex                           | ReferenceIndex.h | 102-192 | owning
 
 F ReferenceIndex::Declare                  | ReferenceIndex.h | 113     | api,nonthrowing                         | 🚩 | Declares one external dependency and issues the ordinal that addresses it. Admitting it would put a permanent unknown into the document with nothing able to settle it.
     in    Arriving  const DeclaredReference&  [-]  the reference; Retention is honoured as given
-    out   -         Outcome                   [-]  refuses with ContentUnsupported for a Referenced entry naming no path
+    out   -         Deliver                   [-]  refuses with ContentUnsupported for a Referenced entry naming no path
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  📝 A Referenced entry with no path cannot be looked for, so it could only ever stand Unresolved.
 
 F ReferenceIndex::DeclareRetention         | ReferenceIndex.h | 119     | api,nonthrowing                         | ✔️ | Declares one reference embedded or referenced, per the document's own answer.
     in    ReferenceOrdinal  std::uint32_t       [-]  ?
     in    Declaring         ReferenceRetention  [-]  ?
-    out   -                 Outcome             [-]  refuses with ExtentExhausted outside the declared count
+    out   -                 Deliver             [-]  refuses with ExtentExhausted outside the declared count
     by    Source/ReferenceIndex.cpp
 
 F ReferenceIndex::DeclareResolved          | ReferenceIndex.h | 125     | api,nonthrowing                         | ✔️ | Declares one reference found, with the extent it spans.
     in    ReferenceOrdinal  std::uint32_t  [-]  ?
     in    SpannedBytes      std::uint64_t  [-]  ?
-    out   -                 Outcome        [-]  refuses with ExtentExhausted outside the declared count
+    out   -                 Deliver        [-]  refuses with ExtentExhausted outside the declared count
     by    Source/ReferenceIndex.cpp
 
 F ReferenceIndex::DeclareAbsent            | ReferenceIndex.h | 134     | api,nonthrowing                         | ✔️ | Declares one reference missing — enrolled, reported, and never replaced. to go and find, and clearing it turns a recoverable absence into a permanent one.
     in    ReferenceOrdinal  std::uint32_t  [-]  ?
-    out   -                 Outcome        [-]  refuses with ExtentExhausted outside the declared count
+    out   -                 Deliver        [-]  refuses with ExtentExhausted outside the declared count
     post  the occupant stays enrolled and the origin path stays exactly as the document wrote it
     by    Api/SurfaceTileSpace.h, Source/ReferenceIndex.cpp, Source/SurfaceTileSpace.cpp
     note  🔴 The path is retained rather than cleared. It is the only thing that tells the artist which file
@@ -115,7 +115,7 @@ F ReferenceIndex::Declared                 | ReferenceIndex.h | 150     | api,no
 
 F ReferenceIndex::Resolve                  | ReferenceIndex.h | 156     | api,nonthrowing                         | 🚩 | The most recently declared reference naming one origin path.
     in    OriginPath  const std::string&  [-]  ?
-    out   -           Outcome             [-]  refuses with ExtentExhausted when nothing declares that path
+    out   -           Deliver             [-]  refuses with ExtentExhausted when nothing declares that path
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F ReferenceIndex::DeclareTypefaceRetention | ReferenceIndex.h | 164     | api,nonallocating,nonthrowing           | ✔️ | Declares whether this document embeds its typeface outlines or refers to them. that the answer is **recorded in the document**, so a file made under one answer opens correctly under the other. A build-wide constant would make the same file mean two things on two builds.

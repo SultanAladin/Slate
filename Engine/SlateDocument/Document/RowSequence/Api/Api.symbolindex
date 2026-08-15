@@ -63,12 +63,12 @@ F RankIndex::CountedBefore       | RowSequence.h | 70      | api,nonallocating,n
 
 F RankIndex::RowAtVisible        | RowSequence.h | 77      | api,nonallocating,nonthrowing | ✔️ | Which row carries the visible row at a declared position — the first scroll question.
     in    VisibleOrdinal  std::uint32_t  [-]  position among counted rows, zero-based
-    out   -               Outcome        [-]  refuses with ExtentExhausted past the last counted row
+    out   -               Deliver        [-]  refuses with ExtentExhausted past the last counted row
     by    Source/OutlinerPanel.cpp, Source/RowSequence.cpp
 
 F RankIndex::VisibleOfRow        | RowSequence.h | 84      | api,nonallocating,nonthrowing | ✔️ | What visible position a row sits at — the second scroll question.
     in    RowOrdinal  std::uint32_t  [-]  the row
-    out   -           Outcome        [-]  refuses with ExtentExhausted for an uncounted or out-of-span row
+    out   -           Deliver        [-]  refuses with ExtentExhausted for an uncounted or out-of-span row
     by    Source/OutlinerPanel.cpp, Source/RowSequence.cpp
 
 F RankIndex::CountedTotal        | RowSequence.h | 89      | api,nonallocating,nonthrowing | ✔️ | How many rows are counted in total.
@@ -91,14 +91,14 @@ T RowSequence                    | RowSequence.h | 107-180 | owning             
 
 F RowSequence::Linearize         | RowSequence.h | 117     | api,nonthrowing               | 🔴 | Linearises the enclosure relation depth-first — tick step ⑤.
     in    Relations  const SceneStructure&  [-]  the reconciled relations, labels already repaired
-    out   -          Outcome                [-]  refuses with ExtentExhausted when a relabel is still owed
+    out   -          Deliver                [-]  refuses with ExtentExhausted when a relabel is still owed
     post  row order is fully determined by the enclosure relation and its ordering — invariant 9
     by    Source/OutlinerSequence.cpp, Source/RowSequence.cpp
 
 F RowSequence::DeclareExpansion  | RowSequence.h | 129     | api,nonthrowing               | 🚩 | Declares one occupant's enclosed rows counted or uncounted, and re-derives the counts below it. it forward. Held on the row alone it would be erased by every rebuild, and a collapsed enclosure would reopen on the following tick without the artist touching it.
     in    Subject           OccupantIdentity  [-]  the enclosing occupant
     in    ExpansionEnabled  bool              [-]  whether its enclosed rows are counted
-    out   -                 Outcome           [-]  refuses with IdentityStale when the occupant holds no row
+    out   -                 Deliver           [-]  refuses with IdentityStale when the occupant holds no row
     by    Source/OutlinerSequence.cpp, Source/RowSequence.cpp
     note  A collapse is a count adjustment over the occupant's own span, never a re-linearisation.
     note  🔴 Recorded against the slot rather than against the row, so that the next linearisation carries
@@ -106,7 +106,7 @@ F RowSequence::DeclareExpansion  | RowSequence.h | 129     | api,nonthrowing    
 F RowSequence::DeclareNarrowing  | RowSequence.h | 141     | api,nonthrowing               | 🚩 | Declares which occupants a standing narrowing retains, or withdraws the narrowing entirely. tick makes the cost of a search proportional to the population for as long as the text stands; a declared subset is derived once, where the text changed.
     in    Retained           const std::vector<OccupantIdentity>&  [-]  the occupants a narrowing confirmed, read only while one is declared
     in    NarrowingDeclared  bool                                  [-]  false returns every row to the count and ignores Retained
-    out   -                  Outcome                               [-]  refuses with IdentityStale when a retained occupant holds no slot here
+    out   -                  Deliver                               [-]  refuses with IdentityStale when a retained occupant holds no slot here
     by    Source/OutlinerSequence.cpp, Source/RowSequence.cpp
     note  🔴 `12` §10 rules row narrowing a subset rather than a predicate. A predicate re-derived every
     note  A narrowed row leaves the count and stays in the sequence, exactly as a collapsed one does.
@@ -121,7 +121,7 @@ F RowSequence::Counted           | RowSequence.h | 151     | api,nonallocating,n
 
 F RowSequence::RowOf             | RowSequence.h | 158     | api,nonallocating,nonthrowing | ✔️ | Which row an occupant sits at.
     in    Subject  OccupantIdentity  [-]  the occupant
-    out   -        Outcome           [-]  refuses with IdentityStale when the occupant holds no row
+    out   -        Deliver           [-]  refuses with IdentityStale when the occupant holds no row
     by    Source/OutlinerPanel.cpp, Source/RowSequence.cpp
 
 F RowSequence::NarrowingStanding | RowSequence.h | 163     | api,nonallocating,nonthrowing | ✔️ | Whether a narrowing stands over the rows.

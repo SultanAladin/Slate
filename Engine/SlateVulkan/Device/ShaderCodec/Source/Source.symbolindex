@@ -25,7 +25,7 @@ S ShaderCodec.cpp | 229 lines | a457180e | 7 sym | The whole-file read, the stre
 F ShaderCodec::Construct     | ShaderCodec.cpp | 16-30   | -          | - | ?
     in    Exchange         const VulkanExchange&  [-]  ?
     in    StreamDirectory  const std::string&     [-]  ?
-    out   -                Outcome<bool>          [-]  ?
+    out   -                Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE READ
@@ -33,7 +33,7 @@ F ShaderCodec::Construct     | ShaderCodec.cpp | 16-30   | -          | - | ?
 
 F ShaderCodec::ReadStream    | ShaderCodec.cpp | 36-88   | -          | - | ?
     in    StreamPath  const std::string&                   [-]  ?
-    out   -           Outcome<std::vector<std::uint32_t>>  [-]  ?
+    out   -           Deliver<std::vector<std::uint32_t>>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RESOLUTION
@@ -42,7 +42,7 @@ F ShaderCodec::ReadStream    | ShaderCodec.cpp | 36-88   | -          | - | ?
 F ShaderCodec::Resolve       | ShaderCodec.cpp | 94-139  | -          | - | ?
     in    UnitName    const std::string&      [-]  ?
     in    StreamStem  const std::string&      [-]  ?
-    out   -           Outcome<std::uint32_t>  [-]  ?
+    out   -           Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE STAGE
@@ -52,7 +52,7 @@ F ShaderCodec::Stage         | ShaderCodec.cpp | 145-195 | -          | - | ?
     in    ModuleOrdinal  std::uint32_t                             [-]  ?
     in    Reading        VkShaderStageFlagBits                     [-]  ?
     in    Fixed          const std::vector<SpecialisedConstant>&   [-]  ?
-    out   -              Outcome<VkPipelineShaderStageCreateInfo>  [-]  ?
+    out   -              Deliver<VkPipelineShaderStageCreateInfo>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECLAMATION

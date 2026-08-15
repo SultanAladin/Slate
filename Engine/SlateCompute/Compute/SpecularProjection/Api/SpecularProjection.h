@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Shared/ReflectionProjection.slang.h"
 #include "SlateCompute/Compute/TransmissionSequence/Api/TransmissionSequence.h"
@@ -38,7 +38,7 @@ struct ReflectionSpecification
 
 /// 🧩 One traced result and the weight it carries into the composite.
 /// note  🔴 `Weight` is nothing on **every** failure — off the extent, past the ceiling, behind a surface, or
-///        pointing away from the camera. `30` §3's table is four rows and one outcome, which is what lets the
+///        pointing away from the camera. `30` §3's table is four rows and one result, which is what lets the
 ///        march terminate anywhere it likes.
 /// tag   nonallocating, nonthrowing
 struct TracedReflection
@@ -85,31 +85,31 @@ public:
     static constexpr std::uint32_t AmendmentOrdinal = 30u;   // [-] - `08` §3 ⑥
 
     /// 🧩 Declares what the trace is bounded by.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a march ceiling of nothing, a non-positive
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a march ceiling of nothing, a non-positive
     ///                     thickness, and a divisor that is not two
     /// note  ⚠️ The divisor is refused above two rather than admitted as a quality setting, for the reason
     ///        `60`'s ambient term refuses one: `08` §2 claims `ReflectionSurface` at half extent, and admitting
     ///        a third would declare the extent in two places that could disagree.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(const ReflectionSpecification& Declaring);
+    Deliver<bool> Declare(const ReflectionSpecification& Declaring);
 
     /// 🧩 Contributes `08` §3 ⑥'s recording.
-    /// out   Outcome  [-]  refuses with whatever the schedule refused
+    /// out   Deliver  [-]  refuses with whatever the schedule refused
     /// note  📝 Produces `ReflectionSurface` and amends `RadianceSurface`. The produced target carries `18`'s
     ///        pre-added contribution and the resolved weight, which is what makes the composite expressible at
     ///        all — a target carrying the trace result instead would leave nothing to subtract.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Contribute(RenderSchedule& Schedule) const;
+    Deliver<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 The extent the trace is resolved at, from one display extent.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a display extent of nothing
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a display extent of nothing
     /// note  📐 Rounded **up** on both ordinates, matching `RenderSchedule`'s own fraction-of-display claim.
     ///        Rounding down leaves the display's last column with no coarse texel above it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Resolve(std::uint32_t  DisplayAlong,
+    Deliver<bool> Resolve(std::uint32_t  DisplayAlong,
                           std::uint32_t  DisplayAcross,
                           std::uint32_t& ResolvedAlong,
                           std::uint32_t& ResolvedAcross) const;

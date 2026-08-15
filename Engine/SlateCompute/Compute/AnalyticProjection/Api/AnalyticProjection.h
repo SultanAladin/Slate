@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/CombineContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateCompute/Compute/SurfaceTileSpace/Api/SurfaceTileSpace.h"
 #include "SlateDocument/Document/DecalProjection/Api/DecalProjection.h"
@@ -128,10 +128,10 @@ public:
 
     /// 🧩 Takes the content libraries every resolution reads.
     /// in    Supplied  [-]  borrowed; each outlives this component
-    /// out   Outcome   [-]  delivers unconditionally; an absent library refuses only where a layer names it
+    /// out   Deliver   [-]  delivers unconditionally; an absent library refuses only where a layer names it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(const AnalyticSources& Supplied);
+    Deliver<bool> Construct(const AnalyticSources& Supplied);
 
     /// 🧩 The content revision one sequence currently stands at.
     /// in    Content  [-]  the surface's layer sequence
@@ -155,7 +155,7 @@ public:
     /// in    PositionAcross  [-]  its second
     /// in    Tolerance       [-]  the flattening tolerance, from `ToleranceAtLevel`
     /// in    ComponentCount  [-]  components the caller's texel carries
-    /// out   Outcome         [-]  refuses with ContentUnsupported for a component count above the ceiling, and
+    /// out   Deliver         [-]  refuses with ContentUnsupported for a component count above the ceiling, and
     ///                            with whatever a source refused
     /// note  🔴 This is the form `74` §1 and `82` §5 read on the host, and `ResolveTile` below walks it. One
     ///        routine and not two, because a preview resolved by a second implementation is a preview that
@@ -165,7 +165,7 @@ public:
     ///        a promotion calls; this one is for a single position and says so.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<ResolvedSample> ResolveAt(const SurfaceLayerSequence&           Content,
+    Deliver<ResolvedSample> ResolveAt(const SurfaceLayerSequence&           Content,
                                       const std::vector<ChannelPlacement>&  Placements,
                                       double                                PositionAlong,
                                       double                                PositionAcross,
@@ -177,7 +177,7 @@ public:
     /// in    Placements      [-]  where each channel sits among the components
     /// in    Addressed       [-]  the cell the tile backs — level, along, across
     /// in    ComponentCount  [-]  components per texel
-    /// out   Outcome         [-]  refuses with ContentUnsupported outside the level count or above the component
+    /// out   Deliver         [-]  refuses with ContentUnsupported outside the level count or above the component
     ///                            ceiling, and with whatever a source refused
     /// post  the returned run is `StoredTexelsPerEdge` squared texels, interleaved
     /// note  🔴 The **apron** is resolved along with the interior, per `20` §1. A tile whose apron were left
@@ -188,7 +188,7 @@ public:
     ///        not vary across it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<ResolvedTile> ResolveTile(const SurfaceLayerSequence&           Content,
+    Deliver<ResolvedTile> ResolveTile(const SurfaceLayerSequence&           Content,
                                       const std::vector<ChannelPlacement>&  Placements,
                                       CellAddress                           Addressed,
                                       std::uint32_t                         ComponentCount) const;
@@ -203,29 +203,29 @@ public:
 
 private:
 
-    Outcome<ResolvedSample> ResolveEntryAt(const LayerSpecification&  Held,
+    Deliver<ResolvedSample> ResolveEntryAt(const LayerSpecification&  Held,
                                            double                     PositionAlong,
                                            double                     PositionAcross,
                                            double                     Tolerance,
                                            std::uint32_t              ComponentCount) const;
 
-    Outcome<ResolvedSample> ResolveOutlineAt(std::uint32_t  SourceOrdinal,
+    Deliver<ResolvedSample> ResolveOutlineAt(std::uint32_t  SourceOrdinal,
                                              double         SourceAlong,
                                              double         SourceAcross,
                                              double         Tolerance) const;
 
-    Outcome<ResolvedSample> ResolveTextAt(std::uint32_t  SourceOrdinal,
+    Deliver<ResolvedSample> ResolveTextAt(std::uint32_t  SourceOrdinal,
                                           double         SourceAlong,
                                           double         SourceAcross,
                                           double         Tolerance) const;
 
-    Outcome<ResolvedSample> ResolveTilingAt(std::uint32_t  TilingOrdinal,
+    Deliver<ResolvedSample> ResolveTilingAt(std::uint32_t  TilingOrdinal,
                                             double         SourceAlong,
                                             double         SourceAcross,
                                             double         Tolerance,
                                             std::uint32_t  NestingDepth) const;
 
-    Outcome<ResolvedSample> ResolvePlacedAt(std::uint32_t  PlacementOrdinal,
+    Deliver<ResolvedSample> ResolvePlacedAt(std::uint32_t  PlacementOrdinal,
                                             double         PositionAlong,
                                             double         PositionAcross,
                                             double         Tolerance) const;

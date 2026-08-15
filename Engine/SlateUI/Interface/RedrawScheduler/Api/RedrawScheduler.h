@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 
@@ -79,14 +79,14 @@ public:
 
     /// 🧩 Enrols one panel and delivers the ordinal it is marked by thereafter.
     /// in    Naming   [-]  static text naming the panel; presented by the diagnostic overlay only
-    /// out   Outcome  [-]  refuses with ExtentExhausted when the capacity is full
+    /// out   Deliver  [-]  refuses with ExtentExhausted when the capacity is full
     /// post  the enrolled panel stands at Rearrange — nothing has ever been solved for it
     /// note  🔴 A panel arrives marked at the dearest mark rather than quiet. The alternative is a panel
     ///        that enrols during a quiet tick and is never recorded at all, which reads as a panel that
     ///        failed to open rather than as a mark that was never raised.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> Enrol(const char* Naming);
+    Deliver<std::uint32_t> Enrol(const char* Naming);
 
     /// 🧩 Raises one panel's mark to the dearer of what it carries and what is declared.
     /// in    PanelOrdinal  [-]  what Enrol delivered; an unenrolled ordinal marks nothing

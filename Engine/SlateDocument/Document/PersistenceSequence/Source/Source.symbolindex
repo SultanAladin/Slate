@@ -33,7 +33,7 @@ F PersistenceSequence::VerifyIdentical | PersistenceSequence.cpp | 18-25 | - | -
 
 F PersistenceSequence::Persist         | PersistenceSequence.cpp | 31-81 | - | - | ?
     in    Sealed  const SealedContent&            [-]  ?
-    out   -       Outcome<PersistenceConclusion>  [-]  ?
+    out   -       Deliver<PersistenceConclusion>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE READINGS

@@ -35,7 +35,7 @@ SlateMath/              + RootSolver, SystemSolver, PolynomialSolver
 Shared/                 (existing exact predicates — reused, never duplicated)
         │
 Contract/               + GeometryContract.h, TopologyContract.h, ReferenceContract.h
-SlateGeometry may not name SlateDocument. It knows nothing of occupants, revisions, selection or the outliner. It takes specifications in and returns Outcome<SolidStructure> out. This is what makes it fuzz‑testable in isolation and what stops the kernel from acquiring an opinion about the UI — the failure that produced your third rewrite.
+SlateGeometry may not name SlateDocument. It knows nothing of occupants, revisions, selection or the outliner. It takes specifications in and returns Deliver<SolidStructure> out. This is what makes it fuzz‑testable in isolation and what stops the kernel from acquiring an opinion about the UI — the failure that produced your third rewrite.
 
 SlateFeature may not name SlateCompute or SlateVulkan. It produces exact geometry and identity; the device sees only what a Depot hands it.
 
@@ -212,7 +212,7 @@ Bound. Subdivide both surfaces' parameter domains, bounding each patch by its co
 Seed. For each surviving pair, solve the 4‑variable system S₁(u₁,v₁) − S₂(u₂,v₂) = 0 by interval Newton. Interval Newton either proves a unique root in the box, proves none, or subdivides — it never returns a root that is not there, which is the property a marcher cannot supply.
 March. From each seed, step along the intersection tangent (the cross product of the two normals), correcting back onto both surfaces by a two‑surface Newton at each step. Step length adapts to the local curvature so chord deviation stays under ResolutionTolerance / 8.
 Terminate at a domain boundary, at a closure back to the seed, or at a singular point where the normals are parallel. Singular points are reported, not stepped over: a tangential intersection is a real geometric condition and BooleanSolver needs to know.
-Refuse if the marching budget is exhausted, if a step fails to converge, or if a singular point cannot be classified. Outcome<IntersectionResult> with ContentUnsupported and the two surface ordinals named.
+Refuse if the marching budget is exhausted, if a step fails to converge, or if a singular point cannot be classified. Deliver<IntersectionResult> with ContentUnsupported and the two surface ordinals named.
 That last point is the whole difference between a kernel you can trust and one you cannot. A boolean that cannot compute an intersection must refuse, never approximate. Refusal produces a feature in error that the user can inspect and re‑pose; approximation produces a body that is subtly wrong and is discovered six features later.
 
 4. Modeling operations
@@ -342,7 +342,7 @@ ConstraintSolver builds the sparse residual system and solves by Levenberg–Mar
 Degrees of freedom = variables − rank of the Jacobian. Rank via sparse QR with column pivoting, not by counting constraints — counting is wrong the moment anything is redundant.
 Redundancy: constraints in the null space, named individually so the panel can offer to remove one.
 Conflict: an inconsistent subsystem, isolated to the minimal conflicting set by removing constraints and re‑testing (bounded search).
-Termination cause, per Contract/OutcomeContract.h's existing TerminationCause — Convergent guarantee, exactly like UnwrapSolver.
+Termination cause, per Contract/DeliveryContract.h's existing TerminationCause — Convergent guarantee, exactly like UnwrapSolver.
 Under‑constrained is normal and is presented, not refused; a sketch with DOF > 0 still extrudes.
 
 7. Selection — the failure that started this
@@ -409,7 +409,7 @@ Reporting	SlateMath/ReportSequence	all
 Threading	SlateMath/WorkSequence	all long solves
 Enforced in C++ by:
 
-Outcome<T> on every fallible surface. No exceptions, no error codes, no out‑parameter‑plus‑bool. This already exists and the kernel adopts it unchanged.
+Deliver<T> on every fallible surface. No exceptions, no error codes, no out‑parameter‑plus‑bool. This already exists and the kernel adopts it unchanged.
 A closed tagged union for geometry, so adding a surface subject forces every switch to be revisited — the compiler finds the sites, not a grep.
 Templates over the surface tag for the tessellation walk and the intersection dispatch, so the per‑subject code is the differences and the walk is written once.
 Non‑owning spans in every signature, so no routine can quietly take ownership and no caller can be uncertain who frees.

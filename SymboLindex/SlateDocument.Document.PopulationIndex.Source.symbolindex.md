@@ -42,7 +42,7 @@ F OccupancyIndex::SpannedCount   | PopulationIndex.cpp | 49-52   | - | - | ?
 //------------------------------------------------------------------------------------------------------------------------
 
 F PopulationIndex::Enrol         | PopulationIndex.cpp | 58-89   | - | - | ?
-    out   -  Outcome<OccupantIdentity>  [-]  ?
+    out   -  Deliver<OccupantIdentity>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       WITHDRAWAL
@@ -50,7 +50,7 @@ F PopulationIndex::Enrol         | PopulationIndex.cpp | 58-89   | - | - | ?
 
 F PopulationIndex::Withdraw      | PopulationIndex.cpp | 95-110  | - | - | ?
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome<bool>     [-]  ?
+    out   -        Deliver<bool>     [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOLUTION

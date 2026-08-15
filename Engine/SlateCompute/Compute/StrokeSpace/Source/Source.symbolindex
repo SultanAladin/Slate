@@ -31,11 +31,11 @@ F StrokeSpace::Construct         | StrokeSpace.cpp | 15-23   | - | - | ?
 
 F StrokeSpace::Claim             | StrokeSpace.cpp | 29-56   | - | - | ?
     in    CellOrdinal  std::uint32_t           [-]  ?
-    out   -            Outcome<std::uint32_t>  [-]  ?
+    out   -            Deliver<std::uint32_t>  [-]  ?
 
 F StrokeSpace::Located           | StrokeSpace.cpp | 58-64   | - | - | ?
     in    CellOrdinal  std::uint32_t           [-]  ?
-    out   -            Outcome<std::uint32_t>  [-]  ?
+    out   -            Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ACCUMULATION

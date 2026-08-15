@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // 🧩 The combined editor — Vulkan bring-up, the tick loop, and the two drawers.
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 #include "SlateMath/Platform/WindowInterchange/Api/WindowInterchange.h"
@@ -70,7 +70,7 @@ int main()
     }
 
     // ④ The presentation surface.
-    const Outcome<VkSurfaceKHR> SurfaceConverted = Convert(DeviceEdge.Instance(), Window.NativeHandle());
+    const Deliver<VkSurfaceKHR> SurfaceConverted = Convert(DeviceEdge.Instance(), Window.NativeHandle());
     if (!SurfaceConverted.ContentPresent)
     {
         std::printf("%s \u2014 the presentation surface was refused\n", HostName);
@@ -186,7 +186,7 @@ int main()
         }
 
         const std::uint32_t         SlotOrdinal = Rotation.StandingOrdinal();
-        const Outcome<RotationSlot> Standing    = Rotation.Standing();
+        const Deliver<RotationSlot> Standing    = Rotation.Standing();
 
         if (!Standing.ContentPresent)
             break;
@@ -213,7 +213,7 @@ int main()
 
         // ⑥ Acquire the display image. A chain that was outgrown is re-established and the sealed content
         //    is discarded — it is rebuilt whole next tick and nothing device-side has been opened yet.
-        const Outcome<ArrivedImage> Arrived = DisplayChain.Await(Standing.Resolve(), Timeline);
+        const Deliver<ArrivedImage> Arrived = DisplayChain.Await(Standing.Resolve(), Timeline);
 
         if (!Arrived.ContentPresent)
         {
@@ -236,7 +236,7 @@ int main()
         }
 
         // ⑦ Open the recording. From here every path reaches the surrender.
-        const Outcome<VkCommandBuffer> Recording = Commands.Open(SlotOrdinal);
+        const Deliver<VkCommandBuffer> Recording = Commands.Open(SlotOrdinal);
 
         if (!Recording.ContentPresent)
         {
@@ -272,7 +272,7 @@ int main()
         if (!Rotation.Arm().ContentPresent)
             break;
 
-        const Outcome<bool> Surrendered = Commands.Surrender(SlotOrdinal, SurrenderOrdering{
+        const Deliver<bool> Surrendered = Commands.Surrender(SlotOrdinal, SurrenderOrdering{
             .Awaited      = Standing.Resolve().ImageArrived,
             .AwaitedStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             .Signalled    = Standing.Resolve().RecordingDone,

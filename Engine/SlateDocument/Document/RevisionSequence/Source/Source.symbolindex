@@ -25,7 +25,7 @@ S RevisionSequence.cpp | 119 lines | 8c6dba74 | 8 sym | The drag lifecycle, decl
 F RevisionSequence::Open            | RevisionSequence.cpp | 15-26   | - | - | ?
     in    Description    const std::string&  [-]  ?
     in    OperationName  const std::string&  [-]  ?
-    out   -              Outcome<bool>       [-]  ?
+    out   -              Deliver<bool>       [-]  ?
 
 F RevisionSequence::Abandon         | RevisionSequence.cpp | 28-32   | - | - | ?
     out   -  void  [-]  ?
@@ -37,17 +37,17 @@ F RevisionSequence::Abandon         | RevisionSequence.cpp | 28-32   | - | - | ?
 F RevisionSequence::Seal            | RevisionSequence.cpp | 38-76   | - | - | ?
     in    SealedAt       std::uint64_t  [-]  ?
     in    MergeDeclared  bool           [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       SCRUBBING
 //------------------------------------------------------------------------------------------------------------------------
 
 F RevisionSequence::Retreat         | RevisionSequence.cpp | 82-89   | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F RevisionSequence::Advance         | RevisionSequence.cpp | 91-98   | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      PRESENTATION

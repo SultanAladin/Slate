@@ -42,7 +42,7 @@ F WorkQueue::Admit              | WorkSequence.cpp | 36-40   | -          | - | 
     out   -              void           [-]  ?
 
 F WorkQueue::Claim              | WorkSequence.cpp | 42-69   | -          | - | ?
-    out   -  Outcome<std::uint32_t>  [-]  ?
+    out   -  Deliver<std::uint32_t>  [-]  ?
 
 F WorkQueue::Withdraw           | WorkSequence.cpp | 71-85   | -          | - | ?
     in    RecordOrdinal  std::uint32_t  [-]  ?
@@ -59,7 +59,7 @@ F WorkSequence::Construct       | WorkSequence.cpp | 101-141 | -          | - | 
     in    RequestedWorkers  std::uint32_t        [-]  ?
     in    HostTimeline      const TickSequence&  [-]  ?
     in    ReportingInto     ReportSequence&      [-]  ?
-    out   -                 Outcome<bool>        [-]  ?
+    out   -                 Deliver<bool>        [-]  ?
 
 F WorkSequence::~WorkSequence   | WorkSequence.cpp | 143-146 | destructor | - | ?
 
@@ -85,7 +85,7 @@ F WorkSequence::Serve           | WorkSequence.cpp | 189-235 | -          | - | 
 
 F WorkSequence::Declare         | WorkSequence.cpp | 241-292 | -          | - | ?
     in    Arriving  const WorkDeclaration&  [-]  ?
-    out   -         Outcome<WorkIdentity>   [-]  ?
+    out   -         Deliver<WorkIdentity>   [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CANCELLATION
@@ -98,15 +98,15 @@ F WorkSequence::Resolved        | WorkSequence.cpp | 298-309 | -          | - | 
 F WorkSequence::Cancel          | WorkSequence.cpp | 311-335 | -          | - | ?
     in    Subject            WorkIdentity   [-]  ?
     in    SupersessionPosed  bool           [-]  ?
-    out   -                  Outcome<bool>  [-]  ?
+    out   -                  Deliver<bool>  [-]  ?
 
 F WorkSequence::Withdraw        | WorkSequence.cpp | 337-340 | -          | - | ?
     in    Subject  WorkIdentity   [-]  ?
-    out   -        Outcome<bool>  [-]  ?
+    out   -        Deliver<bool>  [-]  ?
 
 F WorkSequence::Supersede       | WorkSequence.cpp | 342-345 | -          | - | ?
     in    Subject  WorkIdentity   [-]  ?
-    out   -        Outcome<bool>  [-]  ?
+    out   -        Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       CONCLUSION
@@ -114,7 +114,7 @@ F WorkSequence::Supersede       | WorkSequence.cpp | 342-345 | -          | - | 
 
 F WorkSequence::Seal            | WorkSequence.cpp | 351-403 | -          | - | ?
     in    RecordOrdinal  std::uint32_t         [-]  ?
-    in    Resolved_      const Outcome<bool>&  [-]  ?
+    in    Resolved_      const Deliver<bool>&  [-]  ?
     out   -              void                  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -130,11 +130,11 @@ F WorkSequence::Drain           | WorkSequence.cpp | 409-427 | -          | - | 
 
 F WorkSequence::Progress        | WorkSequence.cpp | 433-443 | -          | - | ?
     in    Subject  WorkIdentity     [-]  ?
-    out   -        Outcome<double>  [-]  ?
+    out   -        Deliver<double>  [-]  ?
 
 F WorkSequence::ProgressCount   | WorkSequence.cpp | 445-458 | -          | - | ?
     in    Subject  WorkIdentity            [-]  ?
-    out   -        Outcome<std::uint64_t>  [-]  ?
+    out   -        Deliver<std::uint64_t>  [-]  ?
 
 F WorkSequence::WorkerCount     | WorkSequence.cpp | 460-464 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/GestureSequence/Api/GestureSequence.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
@@ -94,13 +94,13 @@ public:
     /// in    North       [-]  what the upper drawer's tongue carries
     /// in    South       [-]  what the lower drawer's tongue carries
     /// in    Arrived     [-]  the display extent this tick reported
-    /// out   Outcome     [-]  refuses with ContentUnsupported for a display extent at or below zero, and
+    /// out   Deliver     [-]  refuses with ContentUnsupported for a display extent at or below zero, and
     ///                        with ExtentExhausted when the integrator declines a spring
     /// err   refused in full; a partial enrolment would leave one drawer driving the other's ordinate
     /// post  both drawers stand Closed and settled; nothing moves until a contact arrives
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Construct(MotionIntegrator&              Motion,
+    Deliver<bool> Construct(MotionIntegrator&              Motion,
                             const AppearanceSpecification& Appearance,
                             const DrawerDeclaration&       North,
                             const DrawerDeclaration&       South,

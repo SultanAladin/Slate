@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 #include <string>
@@ -77,11 +77,11 @@ public:
 
     /// 🧩 Opens one stream for reading by range.
     /// in    Path     [-]  UTF-8
-    /// out   Outcome  [-]  refuses with HostDenied when the stream cannot be opened, and with
+    /// out   Deliver  [-]  refuses with HostDenied when the stream cannot be opened, and with
     ///                     ExtentExhausted when this exchange already holds one
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Open(const std::string& Path);
+    Deliver<bool> Open(const std::string& Path);
 
     /// 🧩 Closes the held stream and discards every range not yet drained.
     /// cost  ✔️
@@ -90,13 +90,13 @@ public:
 
     /// 🧩 Declares one range the reader wants.
     /// in    Wanted   [-]  the offset and extent
-    /// out   Outcome  [-]  the ordinal this range is drained under; refuses with HostDenied when no stream
+    /// out   Deliver  [-]  the ordinal this range is drained under; refuses with HostDenied when no stream
     ///                     is open, and with ExtentExhausted when the offset lies beyond the stream
     /// note  📝 Declaring is not reading. The ordinal is issued here and the bytes arrive at a later Drain,
     ///        which is what lets a codec declare the next range while it decodes the one it has.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Declare(RangeRequest Wanted);
+    Deliver<std::uint32_t> Declare(RangeRequest Wanted);
 
     /// 🧩 Delivers every range that has arrived since the last drain, in declaration order.
     /// out   Arrivals  [-]  ordered by declaration ordinal, never by which range the device answered first

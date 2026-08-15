@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityIndex.h"
 #include "SlateCompute/Compute/VisibilityIndex/Api/OcclusionScheduler.h"
@@ -181,12 +181,12 @@ public:
     /// in    Descriptors  [-]  where the layout is declared; borrowed and outlives this component
     /// in    Programs     [-]  where the program is constructed; borrowed and outlives this component
     /// in    Attachments  [-]  where the render construct is declared; borrowed and outlives this component
-    /// out   Outcome      [-]  refuses with whatever the layout, the modules, the construct or the program refused
+    /// out   Deliver      [-]  refuses with whatever the layout, the modules, the construct or the program refused
     /// pre   🔴 the descriptor declaration is not yet fixed — `Declare` refuses once it is
     /// post  the program stands and the residency is claimable
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(SpanSpace&        Spans,
+    Deliver<bool> Construct(SpanSpace&        Spans,
                             ShaderCodec&      Modules,
                             DescriptorIndex&  Descriptors,
                             ProgramIndex&     Programs,
@@ -199,7 +199,7 @@ public:
     /// in    Culling       [-]  where the surviving runs come from; null declares the direct route only
     /// in    CullingOrdinal[-]  an ordinal `OcclusionScheduler::Resolve` issued, or AbsentSpan
     /// in    Recorded      [-]  an immediate recording the transfers are written into
-    /// out   Outcome       [-]  the residency ordinal; refuses with whatever the claim refused and with
+    /// out   Deliver       [-]  the residency ordinal; refuses with whatever the claim refused and with
     ///                          ContentUnsupported for an unsealed topology or a partitioning that is not standing
     /// pre   🔴 `DescriptorIndex::Fix` delivered — a set cannot be claimed before the extent it is sliced from
     /// post  the spans stand and are drawn from every rotation until the topology changes
@@ -219,7 +219,7 @@ public:
     ///        extent a recorded transfer still names. `Surrender` below is what releases them.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Resolve(const PartitionStructure&  Enrolled,
+    Deliver<std::uint32_t> Resolve(const PartitionStructure&  Enrolled,
                                    const TopologyStructure&   Imported,
                                    std::uint32_t              EnrolmentBase,
                                    const OcclusionScheduler*  Culling,
@@ -238,17 +238,17 @@ public:
     /// 🧩 Derives the render construct's spans against one display extent.
     /// in    DisplayAlong   [px]  the extent this rotation is recorded against
     /// in    DisplayAcross  [px]
-    /// out   Outcome        [-]   refuses with whatever `AttachmentIndex` refused
+    /// out   Deliver        [-]   refuses with whatever `AttachmentIndex` refused
     /// pre   🔴 the device is idle — every rotation reading the previous spans has completed
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Deliver<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
 
     /// 🧩 Records the raster for one rotation slot — the construct, the program, and one draw per residency.
     /// in    Recorded      [-]  the open recording of this rotation slot
     /// in    RotationSlot  [-]  below `RecordingRotationDepth`
     /// in    Viewing       [-]  what `46` derived for this rotation
-    /// out   Outcome       [-]  refuses with ContentUnsupported before the spans are derived, and with
+    /// out   Deliver       [-]  refuses with ContentUnsupported before the spans are derived, and with
     ///                          whatever the descriptor write or the program resolution refused
     /// note  🔴 The depth clear carries `FarPlaneDepth` and the comparison is `VK_COMPARE_OP_GREATER`. Reversed,
     ///        per `Contract/`'s convention — clearing to unity against a greater-than comparison resolves nothing
@@ -258,7 +258,7 @@ public:
     ///        the placements and the composition already admits one — 🚧 the argument arrives with it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Record(VkCommandBuffer        Recorded,
+    Deliver<bool> Record(VkCommandBuffer        Recorded,
                          std::uint32_t          RotationSlot,
                          const ViewProjection&  Viewing);
 
@@ -268,7 +268,7 @@ public:
     /// in    Viewing       [-]  what `46` derived for this rotation
     /// in    Culling       [-]  the scheduler whose records the draws are issued from
     /// in    Phase         [-]  which of `16` §2's two phases this draw follows
-    /// out   Outcome       [-]  refuses with ContentUnsupported for a residency that declared no culling
+    /// out   Deliver       [-]  refuses with ContentUnsupported for a residency that declared no culling
     ///                          ordinal, and with whatever the record resolution refused
     /// note  🔴 The corner count is the device's and is never the host's. `vkCmdDrawIndirect` reads it from the
     ///        record the cull advanced, so the host neither knows nor needs to know how many partitions
@@ -278,7 +278,7 @@ public:
     ///        read, so nothing further is issued here.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> RecordIndirect(VkCommandBuffer           Recorded,
+    Deliver<bool> RecordIndirect(VkCommandBuffer           Recorded,
                                  std::uint32_t             RotationSlot,
                                  const ViewProjection&     Viewing,
                                  const OcclusionScheduler& Culling,
@@ -297,12 +297,12 @@ public:
 private:
 
     /// 🧩 Opens the render construct, sets the extent, binds the program, and hands back the covering span.
-    /// out   Outcome  [-]  refuses with whatever the span or the program resolution refused
-    Outcome<ConstructedSpan> Open(VkCommandBuffer Recorded, ConstructedProgram& Constructed);
+    /// out   Deliver  [-]  refuses with whatever the span or the program resolution refused
+    Deliver<ConstructedSpan> Open(VkCommandBuffer Recorded, ConstructedProgram& Constructed);
 
     /// 🧩 Writes one residency's uniform for one rotation slot.
     /// in    SurvivingResolved [-]  non-zero routes the corner through the surviving run
-    Outcome<bool> Project(const ResidentPartitioning& Standing,
+    Deliver<bool> Project(const ResidentPartitioning& Standing,
                           std::uint32_t               RotationSlot,
                           const ViewProjection&       Viewing,
                           const ConstructedSpan&      Covering,
@@ -312,8 +312,8 @@ private:
     /// in    Enrolled      [-]  the standing partitioning
     /// in    Imported      [-]  the sealed topology
     /// in    EnrolmentBase [-]  the document-wide ordinal the partitions begin at
-    /// out   Outcome       [-]  the fanned run; refuses with ContentUnsupported when the two disagree on a face
-    Outcome<std::vector<UploadedTriangle>> Fan(const PartitionStructure&  Enrolled,
+    /// out   Deliver       [-]  the fanned run; refuses with ContentUnsupported when the two disagree on a face
+    Deliver<std::vector<UploadedTriangle>> Fan(const PartitionStructure&  Enrolled,
                                                const TopologyStructure&   Imported,
                                                std::uint32_t              EnrolmentBase) const;
 
@@ -322,8 +322,8 @@ private:
     /// in    ArrivingBytes  [B]  how far the span runs
     /// in    Intent         [-]  what the device is permitted to read the resident span as
     /// in    Recorded       [-]  the immediate recording the transfer is written into
-    /// out   Outcome        [-]  the resident span's ordinal; refuses with whatever the claim refused
-    Outcome<std::uint32_t> Stage(const void*      Arriving,
+    /// out   Deliver        [-]  the resident span's ordinal; refuses with whatever the claim refused
+    Deliver<std::uint32_t> Stage(const void*      Arriving,
                                  VkDeviceSize     ArrivingBytes,
                                  SpanIntent       Intent,
                                  VkCommandBuffer  Recorded);

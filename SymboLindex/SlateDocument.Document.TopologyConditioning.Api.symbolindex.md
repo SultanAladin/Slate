@@ -67,19 +67,19 @@ T TopologyConditioning                       | TopologyConditioning.h | 66-167 |
 
 F TopologyConditioning::Condition            | TopologyConditioning.h | 76     | api,nonthrowing               | 🔴 | Derives every companion in `38` §1 from one sealed topology.
     in    Imported  const TopologyStructure&  [-]  the topology, sealed and therefore immutable for this whole run
-    out   -         Outcome                   [-]  refuses with HostDenied for an unsealed topology
+    out   -         Deliver                   [-]  refuses with HostDenied for an unsealed topology
     post  every read below describes the supplied topology at its sealed revision
     by    Contract/ToolchainContract.h, Source/ConsoleHost.cpp, Source/TopologyConditioning.cpp
 
 F TopologyConditioning::WeldedPosition       | TopologyConditioning.h | 86     | api,nonthrowing               | ✔️ | The welded position one imported vertex belongs to. and two points in the file. `68` unwraps against the welded positions so a chart does not split at every coordinate discontinuity, and `18` reads the imported ordinals so authored coordinates live.
     in    VertexOrdinal  std::uint32_t  [-]  an imported vertex
-    out   -              Outcome        [-]  refuses with ContentUnsupported outside the vertex count
+    out   -              Deliver        [-]  refuses with ContentUnsupported outside the vertex count
     by    Source/ChartPartition.cpp, Source/TopologyConditioning.cpp
     note  🔴 `38` §2: two vertices at the same position with different ordinals are one point on the surface
 
 F TopologyConditioning::AdjacentCorner       | TopologyConditioning.h | 94     | api,nonthrowing               | ✔️ | The corner across the edge one corner opens, where exactly one face is adjacent there. traversal's result depend on face declaration order, and `34` §6 forbids exactly that shape.
     in    CornerOrdinal  std::uint32_t  [-]  ?
-    out   -              Outcome        [-]  refuses with ContentUnsupported at a boundary or non-manifold edge
+    out   -              Deliver        [-]  refuses with ContentUnsupported at a boundary or non-manifold edge
     by    Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionStructure.cpp, Source/TopologyConditioning.cpp
     note  Refuses rather than reporting a chosen one of several. An adjacency that picks arbitrarily makes a
 

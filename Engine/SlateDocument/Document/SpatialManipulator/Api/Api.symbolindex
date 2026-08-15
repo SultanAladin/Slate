@@ -159,7 +159,7 @@ F ManipulationLayout::Layout         | SpatialManipulator.h | 188     | api,nont
     in    Orientation  RotationQuaternion       [-]   the reference orientation's rotation, already resolved by the caller
     in    Camera       const CameraProjection&  [-]   the camera the extent is held constant against; its derivation must not be owed
     in    Addressing   ManipulatedSubject       [-]   which of `78` §1's targets is being manipulated
-    out   -            Outcome                  [-]   refuses with ContentUnsupported for the closed target count and for a camera whose
+    out   -            Deliver                  [-]   refuses with ContentUnsupported for the closed target count and for a camera whose
     post  every grip this target offers is declared; the rest stand undeclared and are never intersected
     by    Api/DescriptorIndex.h, Source/DescriptorIndex.cpp, Source/ProgramIndex.cpp, Source/SpatialManipulator.cpp, Source/VisibilityRaster.cpp
     note  🔴 A camera owing a reconciliation refuses rather than laying out against the standing derivation.
@@ -172,14 +172,14 @@ F ManipulationLayout::Grasp          | SpatialManipulator.h | 210     | api,nont
     in    DisplayAlong   std::uint32_t                                                                     [px]  the drawable extent the position was reported against
     in    DisplayAcross  std::uint32_t                                                                     [px]  ?
     in    `14`           §4.2, and it runs **before** `74` is consulted at all. The manipulator writes no  [-]   ?
-    out   -              Outcome                                                                           [-]   the grip ordinal grasped; refuses with ContentUnsupported when the pointer
+    out   -              Deliver                                                                           [-]   the grip ordinal grasped; refuses with ContentUnsupported when the pointer
     by    Source/SpatialManipulator.cpp
     note  🔴 `78` §4: this is a **separate** screen-space test against the grips' own geometry, at precedence 2
     note  📝 The nearest grip along the ray wins, and ties go to the lower ordinal. The layout orders the axis
 
 F ManipulationLayout::Resolve        | SpatialManipulator.h | 220     | api,nonthrowing               | ✔️ | One laid-out grip.
     in    GripOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome        [-]  refuses with ContentUnsupported outside the laid-out count and for an undeclared grip
+    out   -            Deliver        [-]  refuses with ContentUnsupported outside the laid-out count and for an undeclared grip
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F ManipulationLayout::Grips          | SpatialManipulator.h | 229     | api,nonallocating,nonthrowing | ✔️ | Every laid-out grip, for whoever records them. `OverlaySubject::Manipulator`. The manipulator contributes no recording of its own: a second one would be a second place `08`'s ordering is declared, and the two would order differently the first time either was amended.
@@ -256,7 +256,7 @@ F ManipulationSequence::Open         | SpatialManipulator.h | 314     | api,nont
     in    PointerAcross  double                     [px]  ?
     in    DisplayAlong   std::uint32_t              [px]  the drawable extent
     in    DisplayAcross  std::uint32_t              [px]  ?
-    out   -              Outcome                    [-]   refuses with HostDenied when a drag is already open, and with ContentUnsupported
+    out   -              Deliver                    [-]   refuses with HostDenied when a drag is already open, and with ContentUnsupported
     post  🔴 the drag axis or plane is fixed; nothing is recorded until Seal
     by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+21 more)
     note  🔴 The camera is read **here and once**. `78` §2's rule is about the plane, and a plane fixed from a
@@ -267,17 +267,17 @@ F ManipulationSequence::Amend        | SpatialManipulator.h | 336     | api,nont
     in    DisplayAlong   std::uint32_t  [px]  the drawable extent
     in    DisplayAcross  std::uint32_t  [px]  ?
     in    SnapDeclared   bool           [-]   true snaps the amendment to the declared increment
-    out   -              Outcome        [-]   refuses with HostDenied when no drag is open, and with ContentUnsupported for a
+    out   -              Deliver        [-]   refuses with HostDenied when no drag is open, and with ContentUnsupported for a
     post  nothing is recorded; the amendment is readable and the target is unamended until Seal
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
     note  📝 The pointer's position is taken rather than its displacement since the last sample. Accumulating
 
 F ManipulationSequence::Abandon      | SpatialManipulator.h | 346     | api,nonallocating,nonthrowing | ✔️ | Ends the drag with no effect. The caller restores what stood at Open.
-    out   -  Outcome  [-]  refuses with HostDenied when no drag is open
+    out   -  Deliver  [-]  refuses with HostDenied when no drag is open
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, (+10 more)
 
 F ManipulationSequence::Seal         | SpatialManipulator.h | 353     | api,nonallocating,nonthrowing | ✔️ | Ends the drag, returning the amendment the caller commits as **one** transaction.
-    out   -  Outcome  [-]  refuses with HostDenied when no drag is open
+    out   -  Deliver  [-]  refuses with HostDenied when no drag is open
     post  🔴 exactly one transaction enters `RevisionSequence`, sealed by the caller — `78` §2 and §5
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, (+20 more)
 

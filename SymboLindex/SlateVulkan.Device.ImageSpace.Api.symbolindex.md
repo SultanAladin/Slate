@@ -76,13 +76,13 @@ F ImageSpace::Construct    | ImageSpace.h | 104     | api,nonthrowing           
     in    Exchange      const VulkanExchange&       [-]  the created device; borrowed and outlives this component
     in    BackingSpace  ByteSpace&                  [-]  where image bytes come from; borrowed and outlives this component
     in    Naming        const DiagnosticExtension&  [-]  names every claimed image and every view over it; borrowed and outlives this
-    out   -             Outcome                     [-]  refuses with CapabilityAbsent when no device is active
+    out   -             Deliver                     [-]  refuses with CapabilityAbsent when no device is active
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
     note  🔴 `06` §7's diagnostic-name gate. The image and its views are named separately because they are
 
 F ImageSpace::Claim        | ImageSpace.h | 117     | api,nonthrowing           | 🔴 | Claims one image of the declared shape, slices its bytes, and constructs its whole-image view. zero extent or a format the device declines for the declared intent vendor allocation nothing holds a reference to, and it is reclaimed only at device teardown.
     in    Declared  const ImageShape&  [-]  the shape; nothing about it is inferred from the format
-    out   -         Outcome            [-]  refuses with ExtentExhausted when no bytes remain, ContentUnsupported for a
+    out   -         Deliver            [-]  refuses with ExtentExhausted when no bytes remain, ContentUnsupported for a
     post  the image stands in VK_IMAGE_LAYOUT_UNDEFINED and is transitioned before first use
     by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+14 more)
     note  🔴 Refused in full. An image whose bytes were claimed and whose view was declined leaves a
@@ -92,20 +92,20 @@ F ImageSpace::Transition   | ImageSpace.h | 129     | api,nonthrowing           
     in    ImageOrdinal     std::uint32_t                                                      [-]  ?
     in    Arriving         VkImageLayout                                                      [-]  the layout the next recording requires
     in    ImageOrdinal[-]  the claim's ordinal; the record is amended, not the caller's copy  [-]  ?
-    out   -                Outcome                                                            [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    out   -                Deliver                                                            [-]  refuses with ContentUnsupported for an unclaimed ordinal
     post  the recorded layout is the arriving one; a repeat transition to the same layout is a no-op
     by    Source/ImageSpace.cpp, Source/OcclusionScheduler.cpp
     note  🔴 `08` §4: no contributing document issues a layout transition directly. The barrier is
 
 F ImageSpace::Standing     | ImageSpace.h | 135     | api,nonthrowing           | ✔️ | The current record for one claimed image, including the layout the last transition left it in.
     in    ImageOrdinal  std::uint32_t  [-]  ?
-    out   -             Outcome        [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    out   -             Deliver        [-]  refuses with ContentUnsupported for an unclaimed ordinal
     by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DecalProjection.h, (+76 more)
 
 F ImageSpace::LevelView    | ImageSpace.h | 145     | api,nonthrowing           | 🚩 | Constructs a view over one reduction level, for the chain `16` §2 walks a level at a time. holding a handle the vendor has already reused.
     in    ImageOrdinal  std::uint32_t  [-]  a claimed image whose LevelCount admits the level
     in    LevelOrdinal  std::uint32_t  [-]  the level; zero is the full extent
-    out   -             Outcome        [-]  refuses with ContentUnsupported outside the declared level count
+    out   -             Deliver        [-]  refuses with ContentUnsupported outside the declared level count
     by    Source/ImageSpace.cpp
     note  The view is owned here and reclaimed with the image. A caller destroying one leaves the ledger
 

@@ -73,7 +73,7 @@ T IncidenceProjection                     | IlluminantPopulation.h | 81-89   | n
 F ProjectIncidence                        | IlluminantPopulation.h | 100     | api,nonallocating,nonthrowing | ✔️ | Projects one illuminant's incidence at one shaded position. outside the declared extent or outside the cone, and `18` multiplies by zero — which costs less than a refusal the integrator would have to branch on.
     in    Declared  const IlluminantSpecification&  [-]   the illuminant
     in    Shaded    DocumentPosition                [mm]  the position being lit, in document space
-    out   -         Outcome                         [-]   refuses with ContentUnsupported for a shape with no declared size
+    out   -         Deliver                         [-]   refuses with ContentUnsupported for a shape with no declared size
     by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
     note  ⚠️ An attenuation of zero is a legitimate result and is delivered rather than refused. The position is
 
@@ -98,34 +98,34 @@ T IlluminantPopulation                    | IlluminantPopulation.h | 117-186 | o
 F IlluminantPopulation::Declare           | IlluminantPopulation.h | 127     | api,nonthrowing               | 🚩 | Declares one illuminant against an enrolled occupant. shape of zero size or a non-positive extent, and with HostDenied for a second atmospheric source
     in    Subject    OccupantIdentity                [-]  ?
     in    Declaring  const IlluminantSpecification&  [-]  ?
-    out   -          Outcome                         [-]  refuses with IdentityStale for an undeclared identity, with ContentUnsupported for a
+    out   -          Deliver                         [-]  refuses with IdentityStale for an undeclared identity, with ContentUnsupported for a
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F IlluminantPopulation::Amend             | IlluminantPopulation.h | 133     | api,nonthrowing               | 🚩 | Amends one declared illuminant, validated exactly as a declaration is.
     in    Subject   OccupantIdentity                [-]  ?
     in    Amending  const IlluminantSpecification&  [-]  ?
-    out   -         Outcome                         [-]  refuses with IdentityStale when the occupant declares no illuminant
+    out   -         Deliver                         [-]  refuses with IdentityStale when the occupant declares no illuminant
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
 
 F IlluminantPopulation::Withdraw          | IlluminantPopulation.h | 139     | api,nonthrowing               | 🚩 | Withdraws one illuminant.
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome           [-]  refuses with IdentityStale when the occupant declares no illuminant
+    out   -        Deliver           [-]  refuses with IdentityStale when the occupant declares no illuminant
     by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)
 
 F IlluminantPopulation::Resolve           | IlluminantPopulation.h | 145     | api,nonthrowing               | 🚩 | One declared illuminant.
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome           [-]  refuses with IdentityStale when the occupant declares no illuminant
+    out   -        Deliver           [-]  refuses with IdentityStale when the occupant declares no illuminant
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
 
 F IlluminantPopulation::ResolveColour     | IlluminantPopulation.h | 155     | api,nonthrowing               | 🚩 | One illuminant's colour, projected into a declared space. declared temperature lies outside the locus interval authored temperature is what the artist edits; the coordinate is what `18` integrates.
     in    Subject  OccupantIdentity                 [-]  ?
     in    Working  const ColourSpaceSpecification&  [-]  the space to express the colour in — `36` §2's working space
-    out   -        Outcome                          [-]  refuses with IdentityStale for an unknown occupant, and carries `36`'s refusal when a
+    out   -        Deliver                          [-]  refuses with IdentityStale for an unknown occupant, and carries `36`'s refusal when a
     by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
     note  📝 A declared temperature is projected here and is **not** written back over the declaration. The
 
 F IlluminantPopulation::AtmosphericSource | IlluminantPopulation.h | 161     | api,nonthrowing               | ✔️ | The occupant enrolled as `28`'s atmospheric source.
-    out   -  Outcome  [-]  refuses with ExtentExhausted when none is enrolled
+    out   -  Deliver  [-]  refuses with ExtentExhausted when none is enrolled
     by    Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp
 
 F IlluminantPopulation::Enrolled          | IlluminantPopulation.h | 166     | api,nonallocating,nonthrowing | ✔️ | Every declared illuminant, in identity order.
@@ -148,7 +148,7 @@ F IlluminantPopulation::Located           | IlluminantPopulation.h | 180     | -
 F IlluminantPopulation::Validate          | IlluminantPopulation.h | 181     | -                             | -  | ?
     in    Declaring  const IlluminantSpecification&  [-]  ?
     in    Subject    OccupantIdentity                [-]  ?
-    out   -          Outcome<bool>                   [-]  ?
+    out   -          Deliver<bool>                   [-]  ?
     by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/PropertySpecification.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+4 more)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -173,7 +173,7 @@ T IlluminantIndex                         | IlluminantPopulation.h | 212-269 | o
 F IlluminantIndex::Derive                 | IlluminantPopulation.h | 222     | api,nonthrowing               | 🔴 | Derives the whole index against a declared partition set.
     in    Illuminants  const IlluminantPopulation&          [-]  the population
     in    Extents      const std::vector<PartitionExtent>&  [-]  one extent per partition, in partition order
-    out   -            Outcome<bool>                        [-]  ?
+    out   -            Deliver<bool>                        [-]  ?
     post  every partition carries its reaching set, ordered by illuminant identity
     by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+11 more)
 
@@ -181,7 +181,7 @@ F IlluminantIndex::DerivePartition        | IlluminantPopulation.h | 228     | a
     in    Illuminants       const IlluminantPopulation&  [-]  ?
     in    PartitionOrdinal  std::uint32_t                [-]  ?
     in    Extent            PartitionExtent              [-]  ?
-    out   -                 Outcome                      [-]  refuses with ExtentExhausted outside the derived partition count
+    out   -                 Deliver                      [-]  refuses with ExtentExhausted outside the derived partition count
     by    Source/IlluminantPopulation.cpp
 
 F IlluminantIndex::ReachingCount          | IlluminantPopulation.h | 235     | api,nonallocating,nonthrowing | ✔️ | How many illuminants reach one partition.
@@ -192,7 +192,7 @@ F IlluminantIndex::ReachingCount          | IlluminantPopulation.h | 235     | a
 F IlluminantIndex::Reaching               | IlluminantPopulation.h | 241     | api,nonthrowing               | ✔️ | One reaching illuminant, in identity order.
     in    PartitionOrdinal  std::uint32_t  [-]  ?
     in    ReachOrdinal      std::uint32_t  [-]  ?
-    out   -                 Outcome        [-]  refuses with ExtentExhausted outside the reaching count
+    out   -                 Deliver        [-]  refuses with ExtentExhausted outside the reaching count
     by    Api/OcclusionProjection.h, Source/CanvasPanel.cpp, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, Source/OcclusionProjection.cpp, Source/OcclusionScheduler.cpp, (+3 more)
 
 F IlluminantIndex::TruncatedCount         | IlluminantPopulation.h | 246     | api,nonallocating,nonthrowing | ✔️ | How many illuminants one partition could not carry — `86`'s truncation row.

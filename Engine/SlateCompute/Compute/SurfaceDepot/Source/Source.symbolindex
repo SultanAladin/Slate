@@ -24,7 +24,7 @@ S SurfaceDepot.cpp | 185 lines | 54d1e141 | 11 sym | The reconstructibility refu
 
 F SurfaceDepot::Construct       | SurfaceDepot.cpp | 15-25   | - | - | ?
     in    ByteCeiling_  std::uint64_t  [-]  ?
-    out   -             Outcome<bool>  [-]  ?
+    out   -             Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       ADMISSION
@@ -35,7 +35,7 @@ F SurfaceDepot::Declare         | SurfaceDepot.cpp | 31-79   | - | - | ?
     in    Source           LayerContentSource  [-]  ?
     in    ByteExtent       std::uint64_t       [-]  ?
     in    RotationOrdinal  std::uint64_t       [-]  ?
-    out   -                Outcome<bool>       [-]  ?
+    out   -                Deliver<bool>       [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOLUTION
@@ -44,7 +44,7 @@ F SurfaceDepot::Declare         | SurfaceDepot.cpp | 31-79   | - | - | ?
 F SurfaceDepot::Resolve         | SurfaceDepot.cpp | 85-102  | - | - | ?
     in    Keyed            const ContentKey&       [-]  ?
     in    RotationOrdinal  std::uint64_t           [-]  ?
-    out   -                Outcome<DepotArtefact>  [-]  ?
+    out   -                Deliver<DepotArtefact>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        EVICTION

@@ -24,7 +24,7 @@ S AssetInterchange.cpp | 349 lines | a7b2500f | 10 sym | Faithful enrolment, uni
 
 F EmissionSpecification::Validate        | AssetInterchange.cpp | 23-86   | - | - | ?
     in    Materials  const MaterialIndex&  [-]  ?
-    out   -          Outcome<bool>         [-]  ?
+    out   -          Deliver<bool>         [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE NAMING
@@ -47,7 +47,7 @@ F AssetInterchange::IntakeTopology       | AssetInterchange.cpp | 152-266 | - | 
     in    Decoded   const DecodedTopology&  [-]  ?
     in    Into      TopologyStructure&      [-]  ?
     in    Recorded  IntakeIndex&            [-]  ?
-    out   -         Outcome<bool>           [-]  ?
+    out   -         Deliver<bool>           [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      IMAGE INTAKE
@@ -56,7 +56,7 @@ F AssetInterchange::IntakeTopology       | AssetInterchange.cpp | 152-266 | - | 
 F AssetInterchange::IntakeImage          | AssetInterchange.cpp | 272-306 | - | - | ?
     in    Decoded   const DecodedImage&  [-]  ?
     in    Recorded  IntakeIndex&         [-]  ?
-    out   -         Outcome<bool>        [-]  ?
+    out   -         Deliver<bool>        [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE EMISSION
@@ -65,7 +65,7 @@ F AssetInterchange::IntakeImage          | AssetInterchange.cpp | 272-306 | - | 
 F AssetInterchange::DeclareEmission      | AssetInterchange.cpp | 312-323 | - | - | ?
     in    Declaring  const EmissionSpecification&  [-]  ?
     in    Materials  const MaterialIndex&          [-]  ?
-    out   -          Outcome<bool>                 [-]  ?
+    out   -          Deliver<bool>                 [-]  ?
 
 F AssetInterchange::Emission             | AssetInterchange.cpp | 325     | - | - | ?
     out   -  const EmissionSpecification&  [-]  ?

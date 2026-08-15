@@ -58,7 +58,7 @@ F ResolveAcquisition                | CodeInterchange.cpp | 95-114  | -         
 F CodeInterchange::Acquire          | CodeInterchange.cpp | 122-214 | -          | - | ?
     in    ModulePath  const std::string&      [-]  ?
     in    Required    ForeignRequirement      [-]  ?
-    out   -           Outcome<std::uint32_t>  [-]  ?
+    out   -           Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
@@ -66,11 +66,11 @@ F CodeInterchange::Acquire          | CodeInterchange.cpp | 122-214 | -         
 
 F CodeInterchange::EntryTable       | CodeInterchange.cpp | 220-226 | -          | - | ?
     in    ModuleOrdinal  std::uint32_t         [-]  ?
-    out   -              Outcome<const void*>  [-]  ?
+    out   -              Deliver<const void*>  [-]  ?
 
 F CodeInterchange::Report           | CodeInterchange.cpp | 228-237 | -          | - | ?
     in    ModuleOrdinal  std::uint32_t                      [-]  ?
-    out   -              Outcome<const SlateModuleReport*>  [-]  ?
+    out   -              Deliver<const SlateModuleReport*>  [-]  ?
 
 F CodeInterchange::StandingCount    | CodeInterchange.cpp | 239-250 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

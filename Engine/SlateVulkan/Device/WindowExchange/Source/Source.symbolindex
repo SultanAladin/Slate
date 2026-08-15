@@ -25,7 +25,7 @@ S WindowExchange.cpp | 50 lines | 8527fdcc | 2 sym | The surface conversion, tak
 F Convert | WindowExchange.cpp | 20-36 | - | - | ?
     in    Instance      VkInstance             [-]  ?
     in    NativeHandle  void*                  [-]  ?
-    out   -             Outcome<VkSurfaceKHR>  [-]  ?
+    out   -             Deliver<VkSurfaceKHR>  [-]  ?
     by    Api/WindowExchange.h, Source/WorkspaceSequence.cpp
 
 //------------------------------------------------------------------------------------------------------------------------

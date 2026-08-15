@@ -81,5 +81,5 @@ F OffsetOutline      | CurveSolver.cpp | 266-319 | - | - | ?
     in    Traversed  const std::vector<PlanarPosition>&    [-]  ?
     in    HalfWidth  double                                [-]  ?
     in    ClosedRun  bool                                  [-]  ?
-    out   -          Outcome<std::vector<PlanarPosition>>  [-]  ?
+    out   -          Deliver<std::vector<PlanarPosition>>  [-]  ?
     by    Api/CurveSolver.h, Source/ConsoleHost.cpp

@@ -80,13 +80,13 @@ T VectorInterchange                      | VectorInterchange.h | 97-161  | ownin
 F VectorInterchange::DeclareFromFile     | VectorInterchange.h | 107     | api,nonthrowing | 🚩 | Declares a decoded outline arriving from a file.
     in    Arriving    const OutlineSpecification&  [-]  the decoded specification
     in    OriginPath  const std::string&           [-]  where it was read from
-    out   -           Outcome                      [-]  refuses with ContentUnsupported when no path was declared
+    out   -           Deliver                      [-]  refuses with ContentUnsupported when no path was declared
     by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
 
 F VectorInterchange::DeclareFromText     | VectorInterchange.h | 115     | api,nonthrowing | 🚩 | Declares a decoded outline arriving as supplied source text.
     in    Arriving    const OutlineSpecification&  [-]  the decoded specification
     in    SourceText  const std::string&           [-]  retained, because there is no file to re-read
-    out   -           Outcome                      [-]  refuses with ContentUnsupported when no path was declared
+    out   -           Deliver                      [-]  refuses with ContentUnsupported when no path was declared
     by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
 
 F VectorInterchange::Refuse              | VectorInterchange.h | 120     | api,nonthrowing | 🚩 | Records one refused construct, to be reported through `86`.
@@ -94,7 +94,7 @@ F VectorInterchange::Refuse              | VectorInterchange.h | 120     | api,n
     in    SourceOrdinal  std::uint32_t       [-]  ?
     in    Declining      const Refusal&      [-]  ?
     out   -              void                [-]  ?
-    by    Api/SpectralProjection.h, Api/WorkspaceSpace.h, Contract/OutcomeContract.h, Source/AnalyticProjection.cpp, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+102 more)
+    by    Api/SpectralProjection.h, Api/WorkspaceSpace.h, Contract/DeliveryContract.h, Source/AnalyticProjection.cpp, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+102 more)
 
 F VectorInterchange::Flatten             | VectorInterchange.h | 134     | api,nonthrowing | 🔴 | Flattens every path at a tolerance the caller supplies, into one run per path. outline at whatever level a tile was promoted to, so a fixed tolerance is either wasteful at coarse levels or visibly polygonal at fine ones. `CurveSolver` is Bounded, so flattening twice would give two polylines agreeing to a tolerance and differing in their last bit — and an Exact predicate over two different inputs is exact about the wrong thing.
     in    Tolerance  double     [-]  greatest permitted deviation, in the outline's own space
@@ -154,7 +154,7 @@ F TypefaceInterchange::DeclareTypeface   | VectorInterchange.h | 193     | api,n
 
 F TypefaceInterchange::DeclareGlyph      | VectorInterchange.h | 199     | api,nonthrowing | 🚩 | Declares one glyph.
     in    Declaring  const GlyphSpecification&  [-]  ?
-    out   -          Outcome                    [-]  refuses with ContentUnsupported when a glyph of that identity is already declared
+    out   -          Deliver                    [-]  refuses with ContentUnsupported when a glyph of that identity is already declared
     by    Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
 
 F TypefaceInterchange::DeclareAdjustment | VectorInterchange.h | 204     | api,nonthrowing | 🚩 | Declares one pair adjustment between two adjacent glyphs.
@@ -166,7 +166,7 @@ F TypefaceInterchange::DeclareAdjustment | VectorInterchange.h | 204     | api,n
 
 F TypefaceInterchange::ResolveGlyph      | VectorInterchange.h | 210     | api,nonthrowing | 🚩 | Resolves one glyph, by its identity rather than by a character.
     in    GlyphIdentity  std::uint32_t  [-]  ?
-    out   -              Outcome        [-]  refuses with ContentUnsupported when the typeface declares no such glyph
+    out   -              Deliver        [-]  refuses with ContentUnsupported when the typeface declares no such glyph
     by    Source/AnalyticProjection.cpp, Source/ConsoleHost.cpp, Source/VectorInterchange.cpp
 
 F TypefaceInterchange::Adjustment        | VectorInterchange.h | 215     | api,nonthrowing | 🚩 | The pair adjustment between two adjacent glyphs; zero where none is declared.

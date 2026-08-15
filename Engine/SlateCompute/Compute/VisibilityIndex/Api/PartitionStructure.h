@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
@@ -108,7 +108,7 @@ struct DerivedPartitioning
 /// 🧩 Grows one sealed topology into partitions across its own adjacency.
 /// in    Imported     [-]  the sealed topology; immutable for the whole run
 /// in    Conditioned  [-]  its conditioning, at the same revision
-/// out   Outcome      [-]  refuses with HostDenied for an unsealed topology, with ContentUnsupported when the
+/// out   Deliver      [-]  refuses with HostDenied for an unsealed topology, with ContentUnsupported when the
 ///                         conditioning describes another revision, and with ExtentExhausted where the partition
 ///                         count would reach `AbsentPartition` and stop being an ordinal
 /// note  ⚠️ `42`'s own resolution ceiling is refused by `42`, at `PartitionStructure::Declare`. It is not
@@ -125,7 +125,7 @@ struct DerivedPartitioning
 ///        nothing.
 /// cost  🔴
 /// tag   api, nonthrowing
-Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Imported,
+Deliver<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Imported,
                                                 const TopologyConditioning& Conditioned);
 
 // 📐 The extents and the cone are Bounded; the adjacency traversal, the face counting and the material comparison
@@ -147,23 +147,23 @@ public:
 
     /// 🧩 Adopts a derived partitioning on the tick, advancing the revision.
     /// in    Arriving  [-]  as DerivePartitioning produced it
-    /// out   Outcome   [-]  refuses with ContentUnsupported for a partitioning carrying no partition
+    /// out   Deliver   [-]  refuses with ContentUnsupported for a partitioning carrying no partition
     /// post  the revision advanced; every identity issued against the prior one is discoverably stale
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Adopt(const DerivedPartitioning& Arriving);
+    Deliver<bool> Adopt(const DerivedPartitioning& Arriving);
 
     /// 🧩 Declares every standing partition into `42`'s resolution, retaining the identities it issues.
     /// in    Resolutions  [-]  the document's resolution; rebuilt by `42` and written here
     /// in    Occupant     [-]  who the standing partitioning belongs to
-    /// out   Outcome      [-]  refuses with whatever the resolution refused, having declared nothing further
+    /// out   Deliver      [-]  refuses with whatever the resolution refused, having declared nothing further
     /// post  Identities carries one identity per standing partition, in partition ordinal order
     /// note  🔴 `16` §4.1 and `00` §10's conflict 15: the occupant is supplied here and written into the
     ///        resolution, because a partition identity is not an occupant identity and nothing downstream can
     ///        recover one from the other. This declaration is the only place the two are related.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant);
+    Deliver<bool> Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant);
 
     /// 🧩 The standing partitioning.
     /// pre   PartitioningStanding holds
@@ -172,11 +172,11 @@ public:
     const DerivedPartitioning& Standing() const;
 
     /// 🧩 The identity `42` issued for one standing partition.
-    /// out   Outcome  [-]  refuses with ContentUnsupported outside the standing partition count, and with
+    /// out   Deliver  [-]  refuses with ContentUnsupported outside the standing partition count, and with
     ///                     IdentityStale when nothing has been declared since the last adoption
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<PartitionIdentity> IdentityOf(std::uint32_t PartitionOrdinal) const;
+    Deliver<PartitionIdentity> IdentityOf(std::uint32_t PartitionOrdinal) const;
 
     /// 🧩 Discards the standing partitioning and every identity taken against it.
     /// cost  🚩

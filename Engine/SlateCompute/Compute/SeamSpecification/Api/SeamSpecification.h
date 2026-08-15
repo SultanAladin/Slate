@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 #include <vector>
@@ -63,17 +63,17 @@ public:
     /// 🧩 Declares one authored seam.
     /// in    FirstVertex   [-]  one imported vertex ordinal
     /// in    SecondVertex  [-]  the other
-    /// out   Outcome       [-]  refuses with ContentUnsupported when the two ordinals are the same vertex
+    /// out   Deliver       [-]  refuses with ContentUnsupported when the two ordinals are the same vertex
     /// post  the seam survives every re-partition until it is withdrawn
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex);
+    Deliver<bool> DeclareAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex);
 
     /// 🧩 Withdraws one authored seam.
-    /// out   Outcome  [-]  refuses with ContentUnsupported when no authored seam runs between the two
+    /// out   Deliver  [-]  refuses with ContentUnsupported when no authored seam runs between the two
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> WithdrawAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex);
+    Deliver<bool> WithdrawAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex);
 
     /// 🧩 Records one seam the partitioner derived, for reporting and for the standing partition.
     /// note  Held apart from the authored set so that `ReclaimDerived` cannot reach an authored seam. The two

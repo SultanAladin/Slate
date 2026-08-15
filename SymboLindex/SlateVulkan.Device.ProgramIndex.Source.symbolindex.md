@@ -27,7 +27,7 @@ F ProgramIndex::Construct       | ProgramIndex.cpp | 15-29   | -          | - | 
     in    Modules      ShaderCodec&                [-]  ?
     in    Descriptors  const DescriptorIndex&      [-]  ?
     in    Naming       const DiagnosticExtension&  [-]  ?
-    out   -            Outcome<bool>               [-]  ?
+    out   -            Deliver<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE REACH
@@ -37,7 +37,7 @@ F ProgramIndex::ReachLayout     | ProgramIndex.cpp | 35-73   | -          | - | 
     in    LayoutOrdinals  const std::vector<std::uint32_t>&  [-]  ?
     in    ConstantBytes   std::uint32_t                      [-]  ?
     in    ReachingStages  VkShaderStageFlags                 [-]  ?
-    out   -               Outcome<VkPipelineLayout>          [-]  ?
+    out   -               Deliver<VkPipelineLayout>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE GRAPHICS ROUTE
@@ -45,7 +45,7 @@ F ProgramIndex::ReachLayout     | ProgramIndex.cpp | 35-73   | -          | - | 
 
 F ProgramIndex::DeclareGraphics | ProgramIndex.cpp | 79-236  | -          | - | ?
     in    Declaring  const GraphicsDeclaration&  [-]  ?
-    out   -          Outcome<std::uint32_t>      [-]  ?
+    out   -          Deliver<std::uint32_t>      [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE COMPUTE ROUTE
@@ -53,7 +53,7 @@ F ProgramIndex::DeclareGraphics | ProgramIndex.cpp | 79-236  | -          | - | 
 
 F ProgramIndex::DeclareCompute  | ProgramIndex.cpp | 242-299 | -          | - | ?
     in    Declaring  const ComputeDeclaration&  [-]  ?
-    out   -          Outcome<std::uint32_t>     [-]  ?
+    out   -          Deliver<std::uint32_t>     [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RESOLUTION
@@ -61,7 +61,7 @@ F ProgramIndex::DeclareCompute  | ProgramIndex.cpp | 242-299 | -          | - | 
 
 F ProgramIndex::Resolve         | ProgramIndex.cpp | 305-321 | -          | - | ?
     in    ProgramOrdinal  std::uint32_t                [-]  ?
-    out   -               Outcome<ConstructedProgram>  [-]  ?
+    out   -               Deliver<ConstructedProgram>  [-]  ?
 
 F ProgramIndex::DeclaredCount   | ProgramIndex.cpp | 323-326 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

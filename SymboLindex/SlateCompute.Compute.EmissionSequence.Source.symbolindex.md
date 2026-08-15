@@ -33,7 +33,7 @@ F ProjectPlacements                | EmissionSequence.cpp | 22-44   | - | - | ?
 
 F EmissionSequence::Construct      | EmissionSequence.cpp | 50-65   | - | - | ?
     in    Supplied  const EmissionSources&  [-]  ?
-    out   -         Outcome<bool>           [-]  ?
+    out   -         Deliver<bool>           [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   OPENING ONE IMAGE
@@ -43,7 +43,7 @@ F EmissionSequence::Open           | EmissionSequence.cpp | 71-125  | - | - | ?
     in    Declaring     const EmissionSpecification&  [-]  ?
     in    Materials     const MaterialIndex&          [-]  ?
     in    ImageOrdinal  std::uint32_t                 [-]  ?
-    out   -             Outcome<bool>                 [-]  ?
+    out   -             Deliver<bool>                 [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    ONE BAND OF ROWS
@@ -51,7 +51,7 @@ F EmissionSequence::Open           | EmissionSequence.cpp | 71-125  | - | - | ?
 
 F EmissionSequence::ResolveBand    | EmissionSequence.cpp | 131-216 | - | - | ?
     in    Content  const SurfaceLayerSequence&  [-]  ?
-    out   -        Outcome<std::uint32_t>       [-]  ?
+    out   -        Deliver<std::uint32_t>       [-]  ?
 
 F EmissionSequence::ResolutionOwed | EmissionSequence.cpp | 218-221 | - | - | ?
     out   -  bool  [-]  ?
@@ -64,7 +64,7 @@ F EmissionSequence::ResolvedRows   | EmissionSequence.cpp | 223-226 | - | - | ?
 //------------------------------------------------------------------------------------------------------------------------
 
 F EmissionSequence::Seal           | EmissionSequence.cpp | 232-253 | - | - | ?
-    out   -  Outcome<EmittedTexels>  [-]  ?
+    out   -  Deliver<EmittedTexels>  [-]  ?
 
 F EmissionSequence::Reclaim        | EmissionSequence.cpp | 255-269 | - | - | ?
     out   -  void  [-]  ?

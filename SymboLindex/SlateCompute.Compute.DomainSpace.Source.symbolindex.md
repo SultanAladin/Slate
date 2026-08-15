@@ -38,7 +38,7 @@ F DomainSpace::Feasible     | DomainSpace.cpp | 26-75  | - | - | ?
 F DomainSpace::Arrange      | DomainSpace.cpp | 81-172 | - | - | ?
     in    Extents      const std::vector<ChartExtent>&  [-]  ?
     in    CommonScale  bool                             [-]  ?
-    out   -            Outcome<bool>                    [-]  ?
+    out   -            Deliver<bool>                    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ

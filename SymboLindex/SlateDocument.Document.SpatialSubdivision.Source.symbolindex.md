@@ -83,7 +83,7 @@ F RotateSpan                      | SpatialSubdivision.cpp | 139-154   | - | - |
 F BoundingStructure::Construct    | SpatialSubdivision.cpp | 162-229   | - | - | ?
     in    Imported     const TopologyStructure&     [-]  ?
     in    Conditioned  const TopologyConditioning&  [-]  ?
-    out   -            Outcome<bool>                [-]  ?
+    out   -            Deliver<bool>                [-]  ?
 
 F BoundingStructure::Divide       | SpatialSubdivision.cpp | 231-329   | - | - | ?
     in    RecordOrdinal  std::uint32_t  [-]  ?
@@ -148,24 +148,24 @@ F OctantSpace::Located            | SpatialSubdivision.cpp | 613-622   | - | - |
 
 F OctantSpace::Admit              | SpatialSubdivision.cpp | 624-639   | - | - | ?
     in    Arriving  const AdmittedOccupant&  [-]  ?
-    out   -         Outcome<bool>            [-]  ?
+    out   -         Deliver<bool>            [-]  ?
 
 F OctantSpace::Withdraw           | SpatialSubdivision.cpp | 641-652   | - | - | ?
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome<bool>     [-]  ?
+    out   -        Deliver<bool>     [-]  ?
 
 F OctantSpace::Refit              | SpatialSubdivision.cpp | 654-699   | - | - | ?
     in    Subject   OccupantIdentity            [-]  ?
     in    Composed  const DecomposedTransform&  [-]  ?
     in    Extent    ConditionedExtent           [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 F OctantSpace::Standing           | SpatialSubdivision.cpp | 701-709   | - | - | ?
     in    Subject  OccupantIdentity           [-]  ?
-    out   -        Outcome<AdmittedOccupant>  [-]  ?
+    out   -        Deliver<AdmittedOccupant>  [-]  ?
 
 F OctantSpace::Construct          | SpatialSubdivision.cpp | 711-738   | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F OctantSpace::Divide             | SpatialSubdivision.cpp | 740-828   | - | - | ?
     in    RecordOrdinal  std::uint32_t  [-]  ?
@@ -228,12 +228,12 @@ F AxisSpace::Construct            | SpatialSubdivision.cpp | 1094-1097 | - | - |
 F AxisSpace::Refit                | SpatialSubdivision.cpp | 1099-1113 | - | - | ?
     in    PlacementOrdinal  std::uint32_t  [-]  ?
     in    Amending          DomainExtent   [-]  ?
-    out   -                 Outcome<bool>  [-]  ?
+    out   -                 Deliver<bool>  [-]  ?
 
 F AxisSpace::Resolve              | SpatialSubdivision.cpp | 1115-1144 | - | - | ?
     in    PositionAlong   double                  [-]  ?
     in    PositionAcross  double                  [-]  ?
-    out   -               Outcome<std::uint32_t>  [-]  ?
+    out   -               Deliver<std::uint32_t>  [-]  ?
 
 F AxisSpace::Overlapping          | SpatialSubdivision.cpp | 1146-1162 | - | - | ?
     in    Extent  DomainExtent                [-]  ?

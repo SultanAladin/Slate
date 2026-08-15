@@ -109,13 +109,13 @@ T TransmissionSequence                       | TransmissionSequence.h | 154-248 
 
 F TransmissionSequence::ContributeCollection | TransmissionSequence.h | 170     | api,nonthrowing               | ✔️ | Contributes ⑤·i — the collection that writes `TransmissionIndex` and no depth. sorted insertion, so no depth write is performed and the opaque resolution `16` produced stands untouched.
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome          [-]  refuses with whatever the schedule refused
+    out   -         Deliver          [-]  refuses with whatever the schedule refused
     by    Source/TransmissionSequence.cpp
     note  🔴 Produces `TransmissionIndex` and amends nothing. Every fragment is inserted with an atomic
 
 F TransmissionSequence::ContributeResolution | TransmissionSequence.h | 176     | api,nonthrowing               | ✔️ | Contributes ⑤·ii — the resolution that amends `RadianceSurface` back to front.
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome          [-]  refuses with whatever the schedule refused
+    out   -         Deliver          [-]  refuses with whatever the schedule refused
     by    Source/TransmissionSequence.cpp
 
 F TransmissionSequence::Insert               | TransmissionSequence.h | 190     | api,nonallocating,nonthrowing | ✔️ | Inserts one fragment into one pixel's column, in depth order. and resolving it would amend a pixel it does not reach. preview through it and `00` §11 gates the agreement, which is why the comparison itself lives in `Shared/` rather than here.

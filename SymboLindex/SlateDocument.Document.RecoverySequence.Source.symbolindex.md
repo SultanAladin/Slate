@@ -25,7 +25,7 @@ S RecoverySequence.cpp | 192 lines | a2974247 | 11 sym | `48` §4 — the per-do
 F RecoverySequence::DeclareDocument   | RecoverySequence.cpp | 17-29   | - | - | ?
     in    DeclaredDocument  const std::string&  [-]  ?
     in    DeclaredJournal   const std::string&  [-]  ?
-    out   -                 Outcome<bool>       [-]  ?
+    out   -                 Deliver<bool>       [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE APPENDING
@@ -34,7 +34,7 @@ F RecoverySequence::DeclareDocument   | RecoverySequence.cpp | 17-29   | - | - |
 F RecoverySequence::Append            | RecoverySequence.cpp | 35-61   | - | - | ?
     in    Sealing          const CommittedTransaction&  [-]  ?
     in    RevisionOrdinal  std::uint64_t                [-]  ?
-    out   -                Outcome<bool>                [-]  ?
+    out   -                Deliver<bool>                [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RETIREMENT

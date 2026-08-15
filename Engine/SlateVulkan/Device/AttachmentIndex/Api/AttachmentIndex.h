@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateVulkan/Device/ImageSpace/Api/ImageSpace.h"
 #include "SlateVulkan/Device/RenderSchedule/Api/RenderSchedule.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
@@ -90,15 +90,15 @@ public:
     /// 🧩 Takes the device and the claimed target set every construct is declared over.
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
     /// in    Claimed   [-]  where the target views come from; borrowed and outlives this component
-    /// out   Outcome   [-]  refuses with CapabilityAbsent when no device is active
+    /// out   Deliver   [-]  refuses with CapabilityAbsent when no device is active
     /// post  no construct is declared
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const TargetSpace& Claimed);
+    Deliver<bool> Construct(const VulkanExchange& Exchange, const TargetSpace& Claimed);
 
     /// 🧩 Declares one render construct, returning the ordinal every later resolution names it by.
     /// in    Declaring  [-]  the colour targets in output order, and the depth target or its absence
-    /// out   Outcome    [-]  refuses with ContentUnsupported for a declaration spanning nothing at all or
+    /// out   Deliver    [-]  refuses with ContentUnsupported for a declaration spanning nothing at all or
     ///                       naming an unclaimed target, and with HostDenied when the device declines it
     /// post  the construct stands; no span is derived until Derive is called
     /// note  📝 Declared from the claimed targets' formats rather than from `08` §2's table a second time.
@@ -106,12 +106,12 @@ public:
     ///       and a claim come to disagree about one target's format with nothing comparing them.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Declare(const ConstructDeclaration& Declaring);
+    Deliver<std::uint32_t> Declare(const ConstructDeclaration& Declaring);
 
     /// 🧩 Covers every declared construct's targets at one display extent, replacing whatever stood before.
     /// in    DisplayWidth   [px] the extent the targets were last claimed against
     /// in    DisplayHeight  [px]
-    /// out   Outcome        [-]  refuses with ContentUnsupported for a zero extent or an unclaimed target,
+    /// out   Deliver        [-]  refuses with ContentUnsupported for a zero extent or an unclaimed target,
     ///                           and with HostDenied when the device declines a span
     /// pre   🔴 the device is idle and `TargetSpace` has re-claimed at this extent
     /// post  every declared construct carries a span at this extent, or none does — refused in full
@@ -120,24 +120,24 @@ public:
     ///       construct "looked unaffected" is exactly such an extent.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Derive(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
+    Deliver<bool> Derive(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
     /// 🧩 The construct and the span one ordinal names, for the recording that opens it.
     /// in    ConstructOrdinal  [-]  an ordinal this component issued
-    /// out   Outcome           [-]  refuses with ContentUnsupported for an ordinal naming no construct, and
+    /// out   Deliver           [-]  refuses with ContentUnsupported for an ordinal naming no construct, and
     ///                              with ExtentExhausted before Derive has covered it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<ConstructedSpan> Resolve(std::uint32_t ConstructOrdinal) const;
+    Deliver<ConstructedSpan> Resolve(std::uint32_t ConstructOrdinal) const;
 
     /// 🧩 The construct alone, for `ProgramIndex` constructing a program before any span is derived.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an ordinal naming no construct
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an ordinal naming no construct
     /// note  📝 Separate from `Resolve` because a program is constructed at bring-up, before the first extent
     ///       is known, and only the formats enter that construction. Requiring a derived span to construct a
     ///       program would order the two the wrong way round.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<VkRenderPass> ConstructOf(std::uint32_t ConstructOrdinal) const;
+    Deliver<VkRenderPass> ConstructOf(std::uint32_t ConstructOrdinal) const;
 
     /// 🧩 Destroys every span and leaves the constructs standing, ahead of a re-claim at a new extent.
     /// pre   the device is idle

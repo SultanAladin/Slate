@@ -48,16 +48,16 @@ F SelectionSequence::Seal              | SelectionSequence.h | 54    | api,nonth
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, (+19 more)
 
 F SelectionSequence::Retreat           | SelectionSequence.h | 60    | api,nonallocating,nonthrowing | ✔️ | Traverses one selection backwards.
-    out   -  Outcome  [-]  refuses with ExtentExhausted at the beginning of the sequence
+    out   -  Deliver  [-]  refuses with ExtentExhausted at the beginning of the sequence
     by    Api/OutlinerSequence.h, Api/RevisionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp, (+1 more)
 
 F SelectionSequence::Advance           | SelectionSequence.h | 66    | api,nonallocating,nonthrowing | ✔️ | Traverses one selection forwards.
-    out   -  Outcome  [-]  refuses with ExtentExhausted at the end of the sequence
+    out   -  Deliver  [-]  refuses with ExtentExhausted at the end of the sequence
     by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+18 more)
 
 F SelectionSequence::RestoreAt         | SelectionSequence.h | 75    | api,nonthrowing               | 🚩 | Restores the selection that stood at a declared document revision. holds within the session where the scrub happens, which is all `12` §11 requires of it.
     in    RevisionOrdinal  std::uint64_t  [-]  the document revision a scrub has arrived at
-    out   -                Outcome        [-]  refuses with ExtentExhausted when no selection was ever sealed there
+    out   -                Deliver        [-]  refuses with ExtentExhausted when no selection was ever sealed there
     by    Source/OutlinerSequence.cpp, Source/SelectionSequence.cpp
     note  This is what pairs a document scrub with the selection its transaction applied to. The pairing
 

@@ -161,7 +161,7 @@ F AdvanceVisibleOffset     | ControlPanel.h | 197     | api,nonthrowing         
     in    Carried        float&                     [px]  the offset, amended in place; zero is the top of the content
     in    Area           const WorkspaceRectangle&  [px]  the viewport the list is clipped to
     in    ContentExtent  float                      [px]  the whole content's height
-    out   -              Outcome                    [px]  the bounded offset, delivered so a caller need not read the carry back
+    out   -              Deliver                    [px]  the bounded offset, delivered so a caller need not read the carry back
     by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp, Source/RevisionPanel.cpp
     note  ⚠️ Bounded against the content **after** the wheel is applied, so a list that shortens beneath a
 
@@ -178,7 +178,7 @@ F PresentValueSlider       | ControlPanel.h | 220     | api,nonthrowing         
     in    Ceiling   double                     [-]   the high end
     in    Unit      const char*                [-]   the unit cap's text; the reference prints a middot where a quantity is dimensionless
     in    Decimals  std::uint32_t              [-]   digits after the point in the readout; zero rounds the reading to an integer
-    out   -         Outcome                    [-]   refuses with ContentUnsupported when the ceiling does not exceed the floor, and with
+    out   -         Deliver                    [-]   refuses with ContentUnsupported when the ceiling does not exceed the floor, and with
     by    Source/ChannelPanel.cpp, Source/ControlNumeric.cpp, Source/PropertyPanel.cpp
     note  🔴 The refusal on an empty span is the point. A slider over `Floor == Ceiling` divides by zero to place
 
@@ -190,7 +190,7 @@ F PresentScalarEntry       | ControlPanel.h | 237     | api,nonthrowing         
     in    Step      double                     [-]  reading amended per pixel of horizontal travel
     in    Unit      const char*                [-]  ?
     in    Decimals  std::uint32_t              [-]  ?
-    out   -         Outcome                    [-]  refuses with ExtentExhausted when the field cannot carry both parts
+    out   -         Deliver                    [-]  refuses with ExtentExhausted when the field cannot carry both parts
     by    Source/ControlNumeric.cpp, Source/PropertyPanel.cpp
     note  ⚠️ The knob is painted at the track's centre always and never moves. It is a grab surface and not a
 
@@ -201,7 +201,7 @@ F PresentVectorEntry       | ControlPanel.h | 250     | api,nonthrowing         
     in    Carried   double                     [-]  three components, amended in place
     in    Step      double                     [-]  ?
     in    Decimals  std::uint32_t              [-]  ?
-    out   -         Outcome                    [-]  refuses with ExtentExhausted when the field cannot carry three boxes
+    out   -         Deliver                    [-]  refuses with ExtentExhausted when the field cannot carry three boxes
     by    Source/ControlNumeric.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -213,7 +213,7 @@ F PresentBooleanEntry      | ControlPanel.h | 266     | api,nonthrowing         
     in    Area     const WorkspaceRectangle&    [-]  ?
     in    Caption  const char*                  [-]  ?
     in    Carried  bool&                        [-]  ?
-    out   -        Outcome<ControlInteraction>  [-]  ?
+    out   -        Deliver<ControlInteraction>  [-]  ?
     by    Source/ControlChoice.cpp, Source/PropertyPanel.cpp
     note  The nub's travel is not animated here. `14` §4.1 places animation carry beside the caller, and a control
 
@@ -224,7 +224,7 @@ F PresentSelectionEntry    | ControlPanel.h | 278     | api,nonthrowing         
     in    Choices         const char* const*         [-]  the captions, read and never held
     in    ChoiceCount     std::uint32_t              [-]  how many
     in    CarriedOrdinal  std::uint32_t&             [-]  which is chosen, amended in place
-    out   -               Outcome                    [-]  refuses with ContentUnsupported for no choices or an ordinal outside them
+    out   -               Deliver                    [-]  refuses with ContentUnsupported for no choices or an ordinal outside them
     by    Source/ControlChoice.cpp
 
 T DropdownCarry            | ControlPanel.h | 289-295 | owning                             | -  | What a dropdown carries between ticks — its openness and the anchor its list drops from. open together, which is the defect that follows from a control holding openness of its own.
@@ -243,7 +243,7 @@ F PresentDropdown          | ControlPanel.h | 304     | api,nonthrowing         
     in    CarriedOrdinal  std::uint32_t&             [-]  ?
     in    Carry           DropdownCarry&             [-]  ?
     in    PresentedTick   std::uint32_t              [-]  the desk's own presentation count, compared against the carry's opening tick
-    out   -               Outcome                    [-]  refuses with ContentUnsupported for no choices or an ordinal outside them
+    out   -               Deliver                    [-]  refuses with ContentUnsupported for no choices or an ordinal outside them
     by    Source/ControlChoice.cpp, Source/PropertyPanel.cpp
     note  🔴 The list is painted on the foreground recording and is **not** a vendor popup, for the same reason the
 
@@ -253,7 +253,7 @@ F PresentSegmentRow        | ControlPanel.h | 317     | api,nonthrowing         
     in    Captions      const char* const*           [-]  ?
     in    Carried       bool*                        [-]  ?
     in    SegmentCount  std::uint32_t                [-]  ?
-    out   -             Outcome<ControlInteraction>  [-]  ?
+    out   -             Deliver<ControlInteraction>  [-]  ?
     by    Source/ControlChoice.cpp
     note  Distinct from a selection entry: a segment row is a run of independent switches, not one exclusive
 
@@ -278,14 +278,14 @@ F PresentTextEntry         | ControlPanel.h | 347     | api,nonthrowing         
     in    Caption      const char*                [-]  ?
     in    Carry        TextCarry&                 [-]  ?
     in    Placeholder  const char*                [-]  ?
-    out   -            Outcome                    [-]  refuses with ExtentExhausted when the field is narrower than one glyph
+    out   -            Deliver                    [-]  refuses with ExtentExhausted when the field is narrower than one glyph
     by    Source/ControlText.cpp, Source/LayerPanel.cpp, Source/PropertyPanel.cpp
 
 F PresentInlineTextEditor  | ControlPanel.h | 358     | api,nonthrowing                    | 🚩 | A text edit with no field of its own, painted over whatever it is renaming. the trapezoid beneath it stays visible and the artist can see what is being renamed.
     in    Theme  const ThemeSpecification&    [-]  ?
     in    Area   const WorkspaceRectangle&    [-]  ?
     in    Carry  TextCarry&                   [-]  ?
-    out   -      Outcome<ControlInteraction>  [-]  ?
+    out   -      Deliver<ControlInteraction>  [-]  ?
     by    Source/ControlText.cpp
     note  What a tab's double-click rename rides on. It paints a caret and an accent hairline and nothing else, so
 
@@ -295,7 +295,7 @@ F PresentPathEntry         | ControlPanel.h | 368     | api,nonthrowing         
     in    Caption         const char*                [-]  ?
     in    Carry           TextCarry&                 [-]  ?
     in    BrowseDeclared  bool&                      [-]  ?
-    out   -               Outcome                    [-]  the interaction; `EditSealed` on the browse cap means the caller should open a chooser
+    out   -               Deliver                    [-]  the interaction; `EditSealed` on the browse cap means the caller should open a chooser
     by    Source/ControlText.cpp
     note  ⚠️ This control never touches the file system. `04`'s interchange owns that, and a control that opened a
 
@@ -309,7 +309,7 @@ F PresentColourEntry       | ControlPanel.h | 385     | api,nonthrowing         
     in    Caption     const char*                  [-]  ?
     in    Carried     ThemeColour&                 [-]  the colour, amended in place; its space is carried through untouched
     in    PickerOpen  bool&                        [-]  ?
-    out   -           Outcome<ControlInteraction>  [-]  ?
+    out   -           Deliver<ControlInteraction>  [-]  ?
     by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/PropertyPanel.cpp
     note  🔴 `36` §1: the coordinate keeps its declared space across the edit. This control never projects and
 
@@ -318,7 +318,7 @@ F PresentMenuPill          | ControlPanel.h | 394     | api,nonthrowing         
     in    Area         const WorkspaceRectangle&    [-]  ?
     in    Caption      const char*                  [-]  ?
     in    Highlighted  bool                         [-]  ?
-    out   -            Outcome<ControlInteraction>  [-]  ?
+    out   -            Deliver<ControlInteraction>  [-]  ?
     by    Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp, Source/RevisionPanel.cpp
 
 F PresentGlyphButton       | ControlPanel.h | 409     | api,nonthrowing                    | ✔️ | A square glyph that answers a press — the uploaded glyph when a depot slot is named, the stroke otherwise. painting nothing at all — a missing icon that still answers a press is recoverable, an invisible button is not. The stroke is therefore always supplied, even where a slot is expected to resolve. already documents it as an integer whose meaning only its own source knows.
@@ -327,7 +327,7 @@ F PresentGlyphButton       | ControlPanel.h | 409     | api,nonthrowing         
     in    Stroke       ControlStroke                [-]  what is painted when no slot is named, or when the named one has been reclaimed
     in    DepotSlot    std::uint64_t                [-]  an opaque `GlyphHandle::DepotSlot`; zero falls back to the stroke
     in    Highlighted  bool                         [-]  ?
-    out   -            Outcome<ControlInteraction>  [-]  ?
+    out   -            Deliver<ControlInteraction>  [-]  ?
     by    Source/ControlChrome.cpp
     note  🔴 The fallback is not a convenience. A depot that reclaimed a tier mid-session must not leave a panel
     note  ⚠️ The slot crosses as a bare integer so that no vendor spelling enters this header. `GlyphDepot.h`
@@ -338,7 +338,7 @@ F PresentSectionHeader     | ControlPanel.h | 419     | api,nonthrowing         
     in    Caption      const char*                  [-]  ?
     in    SectionOpen  bool&                        [-]  amended in place by a press anywhere on the header
     in    Trailing     const char*                  [-]  ?
-    out   -            Outcome<ControlInteraction>  [-]  ?
+    out   -            Deliver<ControlInteraction>  [-]  ?
     by    Source/ChannelPanel.cpp, Source/ControlChrome.cpp, Source/DiagnosticPanel.cpp
 
 T CarouselCarry            | ControlPanel.h | 427-432 | owning                             | -  | What a carousel carries between ticks — which pane is presented and how far the slide has travelled.
@@ -351,7 +351,7 @@ F AdvanceContentCarousel   | ControlPanel.h | 442     | api,nonthrowing         
     in    Theme            const ThemeSpecification&  [-]   ?
     in    Carry            CarouselCarry&             [-]   ?
     in    ElapsedInterval  float                      [s]   since the previous tick, from the tick's own clock
-    out   -                Outcome                    [px]  the offset to add to the presented pane's origin; the arriving pane sits one
+    out   -                Deliver                    [px]  the offset to add to the presented pane's origin; the arriving pane sits one
     by    Source/ControlChrome.cpp
     note  📝 `84`'s Properties/History pair rides this. The offset is returned rather than applied so that the
 

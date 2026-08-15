@@ -58,7 +58,7 @@ F AlignmentBetween              | UvSurfaceDepot.cpp | 131-136 | - | - | ?
 
 F UvSurfaceDepot::Declare       | UvSurfaceDepot.cpp | 140-185 | - | - | ?
     in    Transferring_  const TransferSpecification&  [-]  ?
-    out   -              Outcome<bool>                 [-]  ?
+    out   -              Deliver<bool>                 [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE CONTENT KEY
@@ -68,7 +68,7 @@ F UvSurfaceDepot::KeyOf         | UvSurfaceDepot.cpp | 191-224 | - | - | ?
     in    Source        const TopologyStructure&  [-]  ?
     in    Working       const TopologyStructure&  [-]  ?
     in    Partitioning  const ChartPartition&     [-]  ?
-    out   -             Outcome<ContentKey>       [-]  ?
+    out   -             Deliver<ContentKey>       [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE CORRESPONDENCE
@@ -78,7 +78,7 @@ F UvSurfaceDepot::Correspond    | UvSurfaceDepot.cpp | 230-309 | - | - | ?
     in    WorkingPosition     DocumentPosition               [-]  ?
     in    WorkingOrientation  SurfaceDirection               [-]  ?
     in    Source              const TopologyStructure&       [-]  ?
-    out   -                   Outcome<SourceCorrespondence>  [-]  ?
+    out   -                   Deliver<SourceCorrespondence>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE TRANSFER
@@ -99,7 +99,7 @@ F UvSurfaceDepot::Admit         | UvSurfaceDepot.cpp | 433-442 | - | - | ?
     in    Keyed            const ContentKey&  [-]  ?
     in    ByteExtent       std::uint64_t      [-]  ?
     in    RotationOrdinal  std::uint64_t      [-]  ?
-    out   -                Outcome<bool>      [-]  ?
+    out   -                Deliver<bool>      [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REPORTING

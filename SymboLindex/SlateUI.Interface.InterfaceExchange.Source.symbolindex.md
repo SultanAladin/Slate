@@ -32,7 +32,7 @@ F InterfaceExchange::~InterfaceExchange | InterfaceExchange.cpp | 31-34   | dest
 
 F InterfaceExchange::Construct          | InterfaceExchange.cpp | 36-128  | -          | - | ?
     in    Arriving  const InterfaceAttachment&  [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 F InterfaceExchange::Reclaim            | InterfaceExchange.cpp | 130-154 | -          | - | ?
     out   -  void  [-]  ?
@@ -42,10 +42,10 @@ F InterfaceExchange::Reclaim            | InterfaceExchange.cpp | 130-154 | -   
 //------------------------------------------------------------------------------------------------------------------------
 
 F InterfaceExchange::Advance            | InterfaceExchange.cpp | 160-178 | -          | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 F InterfaceExchange::Seal               | InterfaceExchange.cpp | 180-192 | -          | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RECORDING
@@ -53,7 +53,7 @@ F InterfaceExchange::Seal               | InterfaceExchange.cpp | 180-192 | -   
 
 F InterfaceExchange::Record             | InterfaceExchange.cpp | 198-222 | -          | - | ?
     in    CommandRecording  VkCommandBuffer  [-]  ?
-    out   -                 Outcome<bool>    [-]  ?
+    out   -                 Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        CAPTURE

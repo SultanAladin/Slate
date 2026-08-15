@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <vulkan/vulkan.h>
 
@@ -19,12 +19,12 @@ namespace Slate
 /// 🧩 Converts a native window handle from `04` into a presentation surface.
 /// in    Instance     [-]  the instance the surface is created against
 /// in    NativeHandle [-]  the opaque handle `WindowInterchange` surrendered; never a GLFW spelling above
-/// out   Outcome      [-]  refuses with HostDenied when the window system declines the surface
+/// out   Deliver      [-]  refuses with HostDenied when the window system declines the surface
 /// note  ⚠️ `WindowInterchange` in `SlateMath` and `WindowExchange` here are distinct and both required.
 ///       The split is what keeps `SlateMath` free of a Vulkan header.
 /// cost  🚩
 /// tag   api, nonthrowing
-Outcome<VkSurfaceKHR> Convert(VkInstance Instance, void* NativeHandle);
+Deliver<VkSurfaceKHR> Convert(VkInstance Instance, void* NativeHandle);
 
 /// 🧩 Destroys a surface previously converted.
 /// cost  ✔️

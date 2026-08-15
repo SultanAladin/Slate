@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/CombineContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateCompute/Compute/SurfaceTileSpace/Api/SurfaceTileSpace.h"
 
@@ -62,20 +62,20 @@ public:
 
     /// 🧩 Claims the coverage tile backing one cell, or resolves the one already claimed.
     /// in    CellOrdinal  [-]  into `20` §1's single ordinal span
-    /// out   Outcome      [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
+    /// out   Deliver      [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
     ///                         the declared tile ceiling
     /// note  📝 Exhaustion is structurally unreachable at the finest level, where the ceiling equals the cell
     ///        count. It is a guard against a coarser level being painted at with a miscomputed ordinal, and it
     ///        refuses rather than growing so that a defect there is a refusal instead of an allocation storm.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Claim(std::uint32_t CellOrdinal);
+    Deliver<std::uint32_t> Claim(std::uint32_t CellOrdinal);
 
     /// 🧩 The tile backing one cell, if one is claimed.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when the cell is untouched
+    /// out   Deliver  [-]  refuses with ExtentExhausted when the cell is untouched
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Located(std::uint32_t CellOrdinal) const;
+    Deliver<std::uint32_t> Located(std::uint32_t CellOrdinal) const;
 
     /// 🧩 Accumulates one impression's coverage at one texel of one claimed tile.
     /// in    TileOrdinal  [-]  as `Claim` delivered it

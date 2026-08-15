@@ -92,7 +92,7 @@ F Derive                            | ChartPartition.cpp | 389-734 | - | - | ?
     in    Declaring     const PartitionSpecification&  [-]  ?
     in    Cancellation  const WorkCancellation&        [-]  ?
     in    Progressed    WorkProgress&                  [-]  ?
-    out   -             Outcome<DerivedPartition>      [-]  ?
+    out   -             Deliver<DerivedPartition>      [-]  ?
     by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+10 more)
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -101,14 +101,14 @@ F Derive                            | ChartPartition.cpp | 389-734 | - | - | ?
 
 F ChartPartition::Adopt             | ChartPartition.cpp | 740-753 | - | - | ?
     in    Arriving  const DerivedPartition&  [-]  ?
-    out   -         Outcome<bool>            [-]  ?
+    out   -         Deliver<bool>            [-]  ?
 
 F ChartPartition::Standing          | ChartPartition.cpp | 755     | - | - | ?
     out   -  const DerivedPartition&  [-]  ?
 
 F ChartPartition::Coordinate        | ChartPartition.cpp | 757-769 | - | - | ?
     in    CornerOrdinal  std::uint32_t              [-]  ?
-    out   -              Outcome<DomainCoordinate>  [-]  ?
+    out   -              Deliver<DomainCoordinate>  [-]  ?
 
 F ChartPartition::PartitionStanding | ChartPartition.cpp | 771     | - | - | ?
     out   -  bool  [-]  ?

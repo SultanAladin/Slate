@@ -145,7 +145,7 @@ F MaterialSpecification::DeclareReflectance     | MaterialSpecification.h | 172 
 F MaterialSpecification::DeclareChannel         | MaterialSpecification.h | 183     | api,nonthrowing               | 🚩 | Declares one channel. carrying no space, and for a default outside the declared interval its bounds is an invalid value presented on every surface that never overrode it.
     in    Channel    ChannelSubject               [-]  which of the twenty
     in    Declaring  const ChannelSpecification&  [-]  its source, measure, default and interval
-    out   -          Outcome                      [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour default
+    out   -          Deliver                      [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour default
     by    Api/BrushSpecification.h, Api/ToolSequence.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, (+1 more)
     note  🔴 The default is validated against its own interval here, for `10` §2.2's reason: a default outside
 
@@ -202,17 +202,17 @@ T MaterialIndex                                 | MaterialSpecification.h | 233-
 
 F MaterialIndex::Declare                        | MaterialSpecification.h | 242     | api,nonthrowing               | 🚩 | Declares one material and issues its identity.
     in    Named  const std::string&  [-]  what the artist calls it; may be empty
-    out   -      Outcome             [-]  refuses with ExtentExhausted at the declared ceiling
+    out   -      Deliver             [-]  refuses with ExtentExhausted at the declared ceiling
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F MaterialIndex::Resolve                        | MaterialSpecification.h | 248     | api,nonthrowing               | ✔️ | One declared material, for reading.
     in    MaterialOrdinal  std::uint32_t  [-]  ?
-    out   -                Outcome        [-]  refuses with ContentUnsupported outside the declared count
+    out   -                Deliver        [-]  refuses with ContentUnsupported outside the declared count
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F MaterialIndex::Amend                          | MaterialSpecification.h | 254     | api,nonthrowing               | ✔️ | One declared material, for amending.
     in    MaterialOrdinal  std::uint32_t  [-]  ?
-    out   -                Outcome        [-]  refuses with ContentUnsupported outside the declared count
+    out   -                Deliver        [-]  refuses with ContentUnsupported outside the declared count
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
 
 F MaterialIndex::DeclaredName                   | MaterialSpecification.h | 256     | -                             | -  | ?
@@ -250,12 +250,12 @@ F PartitionResolutionIndex::Reclaim             | MaterialSpecification.h | 299 
 
 F PartitionResolutionIndex::Declare             | MaterialSpecification.h | 307     | api,nonthrowing               | 🚩 | Declares one partition's resolution, issuing its identity. the declared ceiling
     in    Resolving  const ResolvedPartition&  [-]  the occupant, material and face range
-    out   -          Outcome                   [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
+    out   -          Deliver                   [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 
 F PartitionResolutionIndex::Resolve             | MaterialSpecification.h | 314     | api,nonthrowing               | ✔️ | Resolves one partition identity. re-partition since the identity was taken looks like
     in    Subject  PartitionIdentity  [-]  ?
-    out   -        Outcome            [-]  refuses with IdentityStale when the generation no longer matches — which is what a
+    out   -        Deliver            [-]  refuses with IdentityStale when the generation no longer matches — which is what a
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F PartitionResolutionIndex::Revision            | MaterialSpecification.h | 319     | api,nonallocating,nonthrowing | ✔️ | The revision the last rebuild advanced to; `70` §2 compares counters against it.

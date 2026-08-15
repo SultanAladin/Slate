@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 #include <string>
@@ -49,23 +49,23 @@ class ClipboardExchange
 public:
 
     /// 🧩 Reads the host clipboard's text.
-    /// out   Outcome  [-]  refuses with CapabilityAbsent when the clipboard carries no text at all, and with
+    /// out   Deliver  [-]  refuses with CapabilityAbsent when the clipboard carries no text at all, and with
     ///                     HostDenied when the host declines to open it
     /// note  📝 Carrying no text is CapabilityAbsent rather than HostDenied. An empty clipboard is ordinary
     ///        operation and `86` would otherwise report the artist's own empty clipboard as an OS failure.
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Outcome<std::string> ReadText();
+    static Deliver<std::string> ReadText();
 
     /// 🧩 Hands text to the host clipboard, replacing whatever it carried.
     /// in    Supplied  [-]  UTF-8; an empty supply clears the clipboard rather than refusing
-    /// out   Outcome   [-]  refuses with HostDenied when the host declines
+    /// out   Deliver   [-]  refuses with HostDenied when the host declines
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Outcome<bool> WriteText(const std::string& Supplied);
+    static Deliver<bool> WriteText(const std::string& Supplied);
 
     /// 🧩 Reads the host clipboard's imagery.
-    /// out   Outcome  [-]  refuses with CapabilityAbsent when the clipboard carries no imagery, with
+    /// out   Deliver  [-]  refuses with CapabilityAbsent when the clipboard carries no imagery, with
     ///                     ContentUnsupported for a layout this translation does not read, and with HostDenied
     ///                     when the host declines to open it
     /// note  🔴 The rows are delivered top-down regardless of how the host stored them. The Windows clipboard
@@ -73,15 +73,15 @@ public:
     ///        that ignored the sign delivers half of all clipboard imagery vertically mirrored.
     /// cost  🔴
     /// tag   api, nonthrowing
-    static Outcome<ClipboardImage> ReadImage();
+    static Deliver<ClipboardImage> ReadImage();
 
     /// 🧩 Hands imagery to the host clipboard, replacing whatever it carried.
     /// in    Supplied  [-]  row order, top-down, RGBA, unpremultiplied
-    /// out   Outcome   [-]  refuses with ContentUnsupported when the texel extent is not the stated extent, and
+    /// out   Deliver   [-]  refuses with ContentUnsupported when the texel extent is not the stated extent, and
     ///                      with HostDenied when the host declines
     /// cost  🔴
     /// tag   api, nonthrowing
-    static Outcome<bool> WriteImage(const ClipboardImage& Supplied);
+    static Deliver<bool> WriteImage(const ClipboardImage& Supplied);
 
     /// 🧩 Whether the host clipboard currently carries text this translation can read.
     /// out   TextCarried  [-]  false while the host declines to be asked at all

@@ -33,10 +33,10 @@ InterfaceExchange::~InterfaceExchange()
     Reclaim();
 }
 
-Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
+Deliver<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
 {
     if (ContextSlot != nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the interface context already exists" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the interface context already exists" });
 
     if (Arriving.Instance         == VK_NULL_HANDLE ||
         Arriving.ScoredDevice     == VK_NULL_HANDLE ||
@@ -44,13 +44,13 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
         Arriving.GraphicsQueue    == VK_NULL_HANDLE ||
         Arriving.NativeWindowSlot == nullptr)
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::CapabilityAbsent, "a required device or window handle was absent" });
     }
 
     if (Arriving.ColourTargetFormat == VK_FORMAT_UNDEFINED)
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::CapabilityAbsent, "no colour target format was declared" });
     }
 
@@ -71,7 +71,7 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (vkCreateDescriptorPool(Attached.ActiveDevice, &DescriptorDeclaration, nullptr, &DescriptorSlot) != VK_SUCCESS)
     {
         Attached = {};
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface descriptor extent was refused" });
+        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface descriptor extent was refused" });
     }
 
     IMGUI_CHECKVERSION();
@@ -82,7 +82,7 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
         vkDestroyDescriptorPool(Attached.ActiveDevice, DescriptorSlot, nullptr);
         DescriptorSlot = VK_NULL_HANDLE;
         Attached       = {};
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface context was not constructed" });
+        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface context was not constructed" });
     }
 
     ContextSlot = static_cast<void*>(ConstructedContext);
@@ -95,7 +95,7 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (!ImGui_ImplGlfw_InitForVulkan(static_cast<GLFWwindow*>(Attached.NativeWindowSlot), true))
     {
         Reclaim();
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the window system attachment declined" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the window system attachment declined" });
     }
 
     WindowAttached = true;
@@ -123,12 +123,12 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (!ImGui_ImplVulkan_Init(&VendorAttachment))
     {
         Reclaim();
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the vendor attachment declined" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the vendor attachment declined" });
     }
 
     VendorAttached = true;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 void InterfaceExchange::Reclaim()
@@ -170,13 +170,13 @@ void InterfaceExchange::Reclaim()
 //                                                       THE TICK
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> InterfaceExchange::Advance()
+Deliver<bool> InterfaceExchange::Advance()
 {
     if (ContextSlot == nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no interface context is constructed" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no interface context is constructed" });
 
     if (TickOpen)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "a tick is already open" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "a tick is already open" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
@@ -187,13 +187,13 @@ Outcome<bool> InterfaceExchange::Advance()
     TickOpen         = true;
     ContentAssembled = false;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> InterfaceExchange::Seal()
+Deliver<bool> InterfaceExchange::Seal()
 {
     if (!TickOpen)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no tick is open" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no tick is open" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
     ImGui::Render();
@@ -201,13 +201,13 @@ Outcome<bool> InterfaceExchange::Seal()
     TickOpen         = false;
     ContentAssembled = true;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> InterfaceExchange::Abandon()
+Deliver<bool> InterfaceExchange::Abandon()
 {
     if (!TickOpen)
-        return Outcome<bool>::Deliver(true);
+        return Deliver<bool>::Deliver(true);
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
     ImGui::EndFrame();
@@ -215,53 +215,53 @@ Outcome<bool> InterfaceExchange::Abandon()
     TickOpen         = false;
     ContentAssembled = false;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> InterfaceExchange::Renegotiate(std::uint32_t RotationDepth)
+Deliver<bool> InterfaceExchange::Renegotiate(std::uint32_t RotationDepth)
 {
     if (ContextSlot == nullptr || !VendorAttached)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no vendor attachment stands" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no vendor attachment stands" });
 
     if (RotationDepth < 2u)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a rotation depth below two" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a rotation depth below two" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
     ImGui_ImplVulkan_SetMinImageCount(RotationDepth);
 
     Attached.RotationDepth = RotationDepth;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording)
+Deliver<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording)
 {
     if (!ContentAssembled)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "nothing has been sealed for recording" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "nothing has been sealed for recording" });
 
     if (CommandRecording == VK_NULL_HANDLE)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no command recording was supplied" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no command recording was supplied" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
     ImDrawData* AssembledContent = ImGui::GetDrawData();
 
     if (AssembledContent == nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the sealed content was not assembled" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the sealed content was not assembled" });
 
     // 📝 A display extent of zero — a minimised window — assembles content that covers nothing. Recording it
     //    is legal and costs a recorded nothing; skipping it here keeps the recording out of the rotation's
     //    measured duration entirely.
     if (AssembledContent->DisplaySize.x <= 0.0f || AssembledContent->DisplaySize.y <= 0.0f)
-        return Outcome<bool>::Deliver(true);
+        return Deliver<bool>::Deliver(true);
 
     ImGui_ImplVulkan_RenderDrawData(AssembledContent, CommandRecording);
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

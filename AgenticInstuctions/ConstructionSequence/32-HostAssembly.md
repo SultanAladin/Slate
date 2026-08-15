@@ -86,7 +86,7 @@ that has not diverged **yet**, and `02` §7 says so; discovering it at run time 
 diverged.
 
 ⚠️ Shader compilation failure fails the build. A stale compiled shader stream surviving a failed compile produces
-an engine that runs correct code from the previous edit, which is the worst available outcome for anyone trying to
+an engine that runs correct code from the previous edit, which is the worst available result for anyone trying to
 understand what their change did.
 
 🔴 Nothing here is validated by running it. Ask before building or running any test, probe or executable.

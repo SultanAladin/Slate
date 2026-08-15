@@ -64,7 +64,7 @@ F StorageExchange::~StorageExchange | StorageExchange.h | 76     | destructor   
 
 F StorageExchange::Open             | StorageExchange.h | 84     | api,nonthrowing               | 🚩 | Opens one stream for reading by range. ExtentExhausted when this exchange already holds one
     in    Path  const std::string&  [-]  UTF-8
-    out   -     Outcome             [-]  refuses with HostDenied when the stream cannot be opened, and with
+    out   -     Deliver             [-]  refuses with HostDenied when the stream cannot be opened, and with
     by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+20 more)
 
 F StorageExchange::Reclaim          | StorageExchange.h | 89     | api,nonthrowing               | ✔️ | Closes the held stream and discards every range not yet drained.
@@ -73,7 +73,7 @@ F StorageExchange::Reclaim          | StorageExchange.h | 89     | api,nonthrowi
 
 F StorageExchange::Declare          | StorageExchange.h | 99     | api,nonthrowing               | ✔️ | Declares one range the reader wants. is open, and with ExtentExhausted when the offset lies beyond the stream which is what lets a codec declare the next range while it decodes the one it has.
     in    Wanted  RangeRequest  [-]  the offset and extent
-    out   -       Outcome       [-]  the ordinal this range is drained under; refuses with HostDenied when no stream
+    out   -       Deliver       [-]  the ordinal this range is drained under; refuses with HostDenied when no stream
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  📝 Declaring is not reading. The ordinal is issued here and the bytes arrive at a later Drain,
 

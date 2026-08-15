@@ -34,29 +34,29 @@ std::uint64_t IssueRevision()
 //                                                  DECLARATIONS AND SEAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> TopologyStructure::DeclarePositions(const std::vector<DocumentPosition>& Arriving)
+Deliver<bool> TopologyStructure::DeclarePositions(const std::vector<DocumentPosition>& Arriving)
 {
     if (SealDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
     VertexPositions = Arriving;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> TopologyStructure::DeclareFace(const std::vector<std::uint32_t>& CornerVertices)
+Deliver<bool> TopologyStructure::DeclareFace(const std::vector<std::uint32_t>& CornerVertices)
 {
     if (SealDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
     if (CornerVertices.size() < 3u)
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "fewer than three corners is not a face" });
+        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "fewer than three corners is not a face" });
 
     for (const std::uint32_t VertexOrdinal : CornerVertices)
     {
         if (VertexOrdinal >= VertexPositions.size())
         {
-            return Outcome<bool>::Refuse(
+            return Deliver<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "a corner addresses a vertex that was not declared" });
         }
     }
@@ -74,72 +74,72 @@ Outcome<bool> TopologyStructure::DeclareFace(const std::vector<std::uint32_t>& C
         CornerFaceOrdinals.push_back(FaceOrdinal);
     }
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> TopologyStructure::DeclareCoordinates(const std::vector<DomainCoordinate>& Arriving)
+Deliver<bool> TopologyStructure::DeclareCoordinates(const std::vector<DomainCoordinate>& Arriving)
 {
     if (SealDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
     if (Arriving.size() != CornerVertexOrdinals.size())
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one coordinate per corner is required" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "one coordinate per corner is required" });
 
     CornerCoordinates = Arriving;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> TopologyStructure::DeclarePerpendiculars(const std::vector<SurfaceDirection>& Arriving)
+Deliver<bool> TopologyStructure::DeclarePerpendiculars(const std::vector<SurfaceDirection>& Arriving)
 {
     if (SealDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
     if (Arriving.size() != VertexPositions.size())
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one perpendicular per vertex is required" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "one perpendicular per vertex is required" });
 
     VertexPerpendiculars = Arriving;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> TopologyStructure::DeclareTangentBases(const std::vector<TangentBasis>& Arriving)
+Deliver<bool> TopologyStructure::DeclareTangentBases(const std::vector<TangentBasis>& Arriving)
 {
     if (SealDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
     if (Arriving.size() != VertexPositions.size())
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one basis per vertex is required" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "one basis per vertex is required" });
 
     VertexTangentBases = Arriving;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> TopologyStructure::DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving)
+Deliver<bool> TopologyStructure::DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving)
 {
     if (SealDeclared)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
     if (Arriving.size() != FaceFirstCorners.size())
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one enrollment per face is required" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "one enrollment per face is required" });
 
     FaceMaterialOrdinals = Arriving;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE SEAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> TopologyStructure::Seal()
+Deliver<bool> TopologyStructure::Seal()
 {
     if (SealDeclared)
-        return Outcome<bool>::Deliver(true);
+        return Deliver<bool>::Deliver(true);
 
     if (FaceFirstCorners.empty())
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "a topology with no face is not paintable" });
+        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "a topology with no face is not paintable" });
 
     // 📝 One material for the whole occupant where the source declared none — `50` §3's last-resort row. It is a
     //    default rather than an assumption, so nothing is reported: the artist assigns materials afterwards.
@@ -149,7 +149,7 @@ Outcome<bool> TopologyStructure::Seal()
     SealedRevision = IssueRevision();
     SealDeclared   = true;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

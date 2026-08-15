@@ -48,7 +48,7 @@ T DecodedTypeface          | TypefaceCodec.h | 44-50 | owning                   
 F Translate                | TypefaceCodec.h | 72    | api,nonthrowing           | 🔴 | Translates one typeface stream into glyph outlines, in the typeface's own units. ExtentExhausted for a typeface declaring no glyph at all scaled at decode is a typeface that must be decoded again for every size the artist tries, and the outline they placed at one size would not be the outline resolved at another. conversion between them happens at intake. Converting would put a tolerance into a translation, and `52` §4's tolerance is resolution-relative and belongs to whoever flattens. it would renumber every ordinal after it, and the glyph sequence `52` §3 stores indexes those ordinals.
     in    Stream        const std::vector<std::uint8_t>&  [-]  the whole stream, as `StorageExchange` drained it
     in    GlyphCeiling  std::uint32_t                     [-]  how many glyph ordinals to translate; the typeface's own count where it is lower
-    out   -             Outcome                           [-]  refuses with ContentUnsupported for a stream the reader declined, and with
+    out   -             Deliver                           [-]  refuses with ContentUnsupported for a stream the reader declined, and with
     err   never throws; every shape the reader allocated is released before returning, on refusal included
     by    Api/ImageCodec.h, Api/SpatialManipulator.h, Api/TopologyCodec.h, Api/VectorCodec.h, Source/ImageCodec.cpp, Source/SpatialManipulator.cpp, (+3 more)
     note  🔴 Outlines arrive in the typeface's own units and are not scaled to a pixel size here. A typeface
@@ -63,7 +63,7 @@ F SLATE_DECLARES_PRECISION | TypefaceCodec.h | 74    | -                        
 F ResolveCodepoint         | TypefaceCodec.h | 86    | api,nonthrowing           | 🚩 | Resolves one codepoint to the glyph ordinal the typeface holds it under. glyph sequence once and that sequence is what is stored; resolving at every use would mean replacing a typeface silently reshapes text the artist has already positioned.
     in    Stream     const std::vector<std::uint8_t>&  [-]  the same stream the translation was taken from
     in    Codepoint  std::uint32_t                     [-]  one Unicode scalar value
-    out   -          Outcome                           [-]  refuses with ContentUnsupported when the typeface maps that codepoint to nothing
+    out   -          Deliver                           [-]  refuses with ContentUnsupported when the typeface maps that codepoint to nothing
     by    Source/TypefaceCodec.cpp
     note  🔴 Separate from the translation because substitution belongs at intake — `52` §3. Text is resolved to a
 

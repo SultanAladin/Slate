@@ -24,7 +24,7 @@ S HardwareMetrics.cpp | 329 lines | 9605d816 | 13 sym | The timestamp extent, th
 
 F HardwareMetrics::Construct          | HardwareMetrics.cpp | 17-55   | -          | - | ?
     in    Exchange  const VulkanExchange&  [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION
@@ -37,7 +37,7 @@ F HardwareMetrics::TimestampOrdinalOf | HardwareMetrics.cpp | 61-64   | -       
 
 F HardwareMetrics::Declare            | HardwareMetrics.cpp | 66-96   | -          | - | ?
     in    SpanName  const char*             [-]  ?
-    out   -         Outcome<std::uint32_t>  [-]  ?
+    out   -         Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORDING
@@ -46,19 +46,19 @@ F HardwareMetrics::Declare            | HardwareMetrics.cpp | 66-96   | -       
 F HardwareMetrics::Clear              | HardwareMetrics.cpp | 102-119 | -          | - | ?
     in    Recorded      VkCommandBuffer  [-]  ?
     in    RotationSlot  std::uint32_t    [-]  ?
-    out   -             Outcome<bool>    [-]  ?
+    out   -             Deliver<bool>    [-]  ?
 
 F HardwareMetrics::Open               | HardwareMetrics.cpp | 121-153 | -          | - | ?
     in    Recorded      VkCommandBuffer  [-]  ?
     in    RotationSlot  std::uint32_t    [-]  ?
     in    SpanOrdinal   std::uint32_t    [-]  ?
-    out   -             Outcome<bool>    [-]  ?
+    out   -             Deliver<bool>    [-]  ?
 
 F HardwareMetrics::Close              | HardwareMetrics.cpp | 155-190 | -          | - | ?
     in    Recorded      VkCommandBuffer  [-]  ?
     in    RotationSlot  std::uint32_t    [-]  ?
     in    SpanOrdinal   std::uint32_t    [-]  ?
-    out   -             Outcome<bool>    [-]  ?
+    out   -             Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE READBACK
@@ -67,7 +67,7 @@ F HardwareMetrics::Close              | HardwareMetrics.cpp | 155-190 | -       
 F HardwareMetrics::Resolve            | HardwareMetrics.cpp | 196-267 | -          | - | ?
     in    RotationSlot    std::uint32_t  [-]  ?
     in    CompletedCount  std::uint64_t  [-]  ?
-    out   -               Outcome<bool>  [-]  ?
+    out   -               Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE READINGS
@@ -75,7 +75,7 @@ F HardwareMetrics::Resolve            | HardwareMetrics.cpp | 196-267 | -       
 
 F HardwareMetrics::Standing           | HardwareMetrics.cpp | 273-279 | -          | - | ?
     in    SpanOrdinal  std::uint32_t          [-]  ?
-    out   -            Outcome<MeasuredSpan>  [-]  ?
+    out   -            Deliver<MeasuredSpan>  [-]  ?
 
 F HardwareMetrics::Report             | HardwareMetrics.cpp | 281-293 | -          | - | ?
     in    Sampled  MeasureIndex&  [-]  ?

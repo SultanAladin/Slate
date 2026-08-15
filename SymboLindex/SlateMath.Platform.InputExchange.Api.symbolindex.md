@@ -65,7 +65,7 @@ F InputExchange::~InputExchange | InputExchange.h | 70     | destructor         
 F InputExchange::Attach         | InputExchange.h | 86     | api,nonthrowing               | 🚩 | Takes the native window's pointer stream and records every sample the device reports on it. ExtentExhausted when this exchange is already attached system's, because the window system reports a position and nothing else. `04` §3 requires an unreported axis to stay distinguishable from a zero-valued one, and the operating system is the only surface in the chain that states which axes the device actually supplied. interface reads the same device through the window system's accumulated condition, and a replacement here would take that stream away from it silently.
     in    NativeWindowSlot  void*                [-]  `WindowInterchange::NativeHandle`; borrowed and outlives this attachment
     in    HostTimeline      const TickSequence&  [-]  the process's one timeline, for arrival stamps
-    out   -                 Outcome              [-]  refuses with HostDenied when the window declines the attachment, and with
+    out   -                 Deliver              [-]  refuses with HostDenied when the window declines the attachment, and with
     by    Api/OutlinerSequence.h, Api/SceneStructure.h, Source/InputExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
     note  🔴 The axes are read from the operating system's own pointer surface and not from the window
     note  ⚠️ Chains to whatever the window system already installed rather than replacing it. `14`'s

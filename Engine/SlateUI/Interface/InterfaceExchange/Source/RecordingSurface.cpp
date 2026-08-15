@@ -58,17 +58,17 @@ ImDrawList* Commands(void* Slot)
 //                                                        THE ADOPTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> RecordingSurface::Adopt()
+Deliver<bool> RecordingSurface::Adopt()
 {
     if (ImGui::GetCurrentContext() == nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
+        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
 
     // 📝 The background list rather than a window's. The shell covers the whole drawable extent and owns no
     //    window, so a window's list would clip the drawers to a region the source does not have.
     CommandSlot = static_cast<void*>(ImGui::GetBackgroundDrawList());
 
     if (CommandSlot == nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no command list is open" });
+        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no command list is open" });
 
     const ImGuiIO& Arrived = ImGui::GetIO();
 
@@ -93,7 +93,7 @@ Outcome<bool> RecordingSurface::Adopt()
 
     ConfineDepth = 0u;
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 void RecordingSurface::Reset()

@@ -25,7 +25,7 @@ S DescriptorIndex.cpp | 421 lines | 1e30b967 | 12 sym | The layout declaration t
 F DescriptorIndex::Construct        | DescriptorIndex.cpp | 15-24   | -          | - | ?
     in    Exchange  const VulkanExchange&       [-]  ?
     in    Naming    const DiagnosticExtension&  [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION
@@ -33,7 +33,7 @@ F DescriptorIndex::Construct        | DescriptorIndex.cpp | 15-24   | -         
 
 F DescriptorIndex::Declare          | DescriptorIndex.cpp | 30-103  | -          | - | ?
     in    Declared  const std::vector<DescriptorSlot>&  [-]  ?
-    out   -         Outcome<std::uint32_t>              [-]  ?
+    out   -         Deliver<std::uint32_t>              [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE ONE EXTENT
@@ -41,7 +41,7 @@ F DescriptorIndex::Declare          | DescriptorIndex.cpp | 30-103  | -         
 
 F DescriptorIndex::Fix              | DescriptorIndex.cpp | 109-179 | -          | - | ?
     in    ConcurrentSets  std::uint32_t  [-]  ?
-    out   -               Outcome<bool>  [-]  ?
+    out   -               Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CLAIM
@@ -49,7 +49,7 @@ F DescriptorIndex::Fix              | DescriptorIndex.cpp | 109-179 | -         
 
 F DescriptorIndex::Claim            | DescriptorIndex.cpp | 185-232 | -          | - | ?
     in    LayoutOrdinal  std::uint32_t           [-]  ?
-    out   -              Outcome<std::uint32_t>  [-]  ?
+    out   -              Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE WRITE
@@ -64,7 +64,7 @@ F DescriptorIndex::Amend            | DescriptorIndex.cpp | 249-342 | -         
     in    ClaimOrdinal  std::uint32_t                          [-]  ?
     in    RotationSlot  std::uint32_t                          [-]  ?
     in    Amended       const std::vector<DescriptorContent>&  [-]  ?
-    out   -             Outcome<bool>                          [-]  ?
+    out   -             Deliver<bool>                          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS DECLARED
@@ -73,11 +73,11 @@ F DescriptorIndex::Amend            | DescriptorIndex.cpp | 249-342 | -         
 F DescriptorIndex::Resolve          | DescriptorIndex.cpp | 348-360 | -          | - | ?
     in    ClaimOrdinal  std::uint32_t             [-]  ?
     in    RotationSlot  std::uint32_t             [-]  ?
-    out   -             Outcome<VkDescriptorSet>  [-]  ?
+    out   -             Deliver<VkDescriptorSet>  [-]  ?
 
 F DescriptorIndex::Layout           | DescriptorIndex.cpp | 362-371 | -          | - | ?
     in    LayoutOrdinal  std::uint32_t                   [-]  ?
-    out   -              Outcome<VkDescriptorSetLayout>  [-]  ?
+    out   -              Deliver<VkDescriptorSetLayout>  [-]  ?
 
 F DescriptorIndex::DeclaredCount    | DescriptorIndex.cpp | 373-376 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

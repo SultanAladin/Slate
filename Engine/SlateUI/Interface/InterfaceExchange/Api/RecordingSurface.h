@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
@@ -111,11 +111,11 @@ public:
     ~RecordingSurface()                                  = default;
 
     /// 🧩 Binds this surface to the open interface tick and samples the arrived condition.
-    /// out   Outcome  [-]  refuses with CapabilityAbsent when no interface context is current
+    /// out   Deliver  [-]  refuses with CapabilityAbsent when no interface context is current
     /// post  Pointer and Display report this tick; every recording method is valid until Seal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Adopt();
+    Deliver<bool> Adopt();
 
     /// 🧩 What the pointer did this tick.
     /// cost  ✔️

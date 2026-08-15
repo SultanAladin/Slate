@@ -57,7 +57,7 @@ F SLATE_DECLARES_PRECISION | SpectralProjection.h | 59     | -                  
 
 F LuminanceNormalisation   | SpectralProjection.h | 69     | api,nonthrowing               | 🚩 | The integral of the luminance response over the declared interval — the normalisation a projection divides by. primaries from chromaticities: a stored normalisation is a second representation of the matching functions and drifts from them the moment the fit is amended.
     in    Rule  const QuadratureRule&  [-]  a derived rule; the integral is taken against it
-    out   -     Outcome                [-]  refuses with ContentUnsupported before the rule is derived
+    out   -     Deliver                [-]  refuses with ContentUnsupported before the rule is derived
     by    Source/AtmosphereIntegrator.cpp, Source/SpectralProjection.cpp
     note  📝 Derived on demand rather than declared as a number, for the reason `ColourProjection` derives its
 
@@ -73,7 +73,7 @@ F SLATE_DECLARES_PRECISION | SpectralProjection.h | 70     | -                  
 F ProjectSpectrum          | SpectralProjection.h | 91-139 | api,nonthrowing               | 🔴 | Projects one spectral quantity onto tristimulus, normalised so a flat spectrum of unit magnitude has unit luminance. normalisation vanishes — which is a fit that no longer describes a luminance response integrations would evaluate the caller's spectrum three times, and a spectrum that reads a medium profile is not cheap enough for that to be a matter of taste. not the same as exponentiating per wavelength and projecting the result. `28` does the former, because the latter needs a spectral transmittance surface rather than a tristimulus one; the discrepancy grows with optical depth and is visible only at grazing angles through the whole atmosphere. Declared here so that whoever measures it later finds the reason rather than the symptom.
     in    Rule      const QuadratureRule&  [-]  a derived rule, integrated over the declared wavelength interval
     in    Evaluate  Spectrum               [-]  the spectral quantity; called once per abscissa with a wavelength in nanometres
-    out   -         Outcome                [-]  refuses with ContentUnsupported before the rule is derived, and when the luminance
+    out   -         Deliver                [-]  refuses with ContentUnsupported before the rule is derived, and when the luminance
     by    Source/AtmosphereIntegrator.cpp
     note  🔴 The three responses are accumulated **side by side in one walk**, in ordinal order. Three separate
     note  ⚠️ Projecting a per-wavelength *rate* — an extinction coefficient, say — and then exponentiating it is

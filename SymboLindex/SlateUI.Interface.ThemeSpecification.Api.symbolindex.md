@@ -153,14 +153,14 @@ F DeclaredDefaultExtents | ThemeSpecification.h | 174     | api,nonallocating,no
 
 F ResolveActiveTheme     | ThemeSpecification.h | 185     | api,nonthrowing                    | 🚩 | Assembles the active theme and folds the declared density scale into the extents that carry pixels. multiplied at each read site is a scale one site forgets, and the artist sees one control that ignores it. give a label the whole row and leave the control nowhere to sit.
     in    DeclaredScale  float    [-]  the density multiplier; refused at zero or below rather than silently corrected
-    out   -              Outcome  [-]  refuses with ContentUnsupported for a scale at or below zero
+    out   -              Deliver  [-]  refuses with ContentUnsupported for a scale at or below zero
     by    Source/ThemeSpecification.cpp
     note  🔴 The scale is folded in **here**, once, so every downstream read is already a final pixel extent. A scale
     note  📝 Ratios and font scales are dimensionless and are not folded — scaling `LabelColumnRatio` past one would
 
 F Enforce                | ThemeSpecification.h | 195     | api,nonthrowing                    | 🚩 | Mirrors the theme into the interface library's own style, so a control drawn without the theme still matches. has made the vendor's global state the source of truth, which is the erosion `14` opens by describing.
     in    Theme  const ThemeSpecification&  [-]  the resolved theme
-    out   -      Outcome                    [-]  refuses with HostDenied when no interface context is current
+    out   -      Deliver                    [-]  refuses with HostDenied when no interface context is current
     pre   InterfaceExchange::Construct delivered
     by    Source/ThemeSpecification.cpp
     note  ⚠️ A convenience and never the route. A component that reads the style back instead of reading the theme

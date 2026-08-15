@@ -50,12 +50,12 @@ F VulkanExchange::~VulkanExchange   | VulkanExchange.h | 50    | destructor     
 
 F VulkanExchange::ConstructInstance | VulkanExchange.h | 57    | api,nonthrowing           | 🔴 | Loads the loader and creates the instance, with the diagnostic capability enabled in Debug only.
     in    DiagnosticRequested  bool     [-]  true only under SLATE_DEBUG; the caller does not decide otherwise
-    out   -                    Outcome  [-]  refuses with CapabilityAbsent when no loader or no instance
+    out   -                    Deliver  [-]  refuses with CapabilityAbsent when no loader or no instance
     by    Source/VulkanExchange.cpp
 
 F VulkanExchange::ConstructDevice   | VulkanExchange.h | 65    | api,nonthrowing           | 🔴 | Enumerates devices, scores them, and creates one with its capability set fixed at creation.
     in    PresentationSurface  VkSurfaceKHR  [-]  the surface the device must be able to present to
-    out   -                    Outcome       [-]  refuses with CapabilityAbsent when no device scores above zero
+    out   -                    Deliver       [-]  refuses with CapabilityAbsent when no device scores above zero
     pre   ConstructInstance delivered
     by    Source/VulkanExchange.cpp
 

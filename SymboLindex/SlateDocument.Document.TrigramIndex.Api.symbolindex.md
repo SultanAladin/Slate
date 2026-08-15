@@ -51,7 +51,7 @@ T TrigramIndex               | TrigramIndex.h | 68-118 | owning                 
 F TrigramIndex::Declare      | TrigramIndex.h | 79     | api,nonthrowing               | 🚩 | Declares one occupant's name, replacing whatever it held before.
     in    Subject   OccupantIdentity    [-]  the occupant
     in    Declared  const std::string&  [-]  the name the artist gave it
-    out   -         Outcome             [-]  refuses with IdentityStale for an undeclared identity
+    out   -         Deliver             [-]  refuses with IdentityStale for an undeclared identity
     post  every trigram run mentioning this occupant describes the new name only
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
 

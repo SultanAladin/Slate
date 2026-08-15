@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateVulkan/Device/CycleScheduler/Api/CycleScheduler.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
@@ -60,7 +60,7 @@ public:
     /// 🧩 Constructs the per-slot recording extents and the one primary recording each holds.
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
     /// in    Naming    [-]  names every extent and every recording; borrowed and outlives this component
-    /// out   Outcome   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
+    /// out   Deliver   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     ///                      device declines an extent or a recording; refused in full
     /// post  `RecordingRotationDepth` recordings stand, none of them open
     /// note  🔴 `06` §7's diagnostic-name gate. Each recording is named by its rotation slot, which is what the
@@ -68,28 +68,28 @@ public:
     ///        being written from the one the device is still executing, and that pair is the whole rotation.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Deliver<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Resets one rotation slot's recording extent and opens its recording for writing.
     /// in    RotationSlot  [-]  below `RecordingRotationDepth`
-    /// out   Outcome       [-]  the opened recording; refuses with ContentUnsupported for an excessive slot
+    /// out   Deliver       [-]  the opened recording; refuses with ContentUnsupported for an excessive slot
     ///                          and HostDenied when the device declines the reset or the open
     /// pre   🔴 `CycleScheduler::Await` delivered for this slot — the device no longer reads it
     /// post  the slot is open; Surrender closes it
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<VkCommandBuffer> Open(std::uint32_t RotationSlot);
+    Deliver<VkCommandBuffer> Open(std::uint32_t RotationSlot);
 
     /// 🧩 The recording one rotation slot holds, for a document contributing commands to an open slot.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an excessive slot or a slot that is not open
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an excessive slot or a slot that is not open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<VkCommandBuffer> Recording(std::uint32_t RotationSlot) const;
+    Deliver<VkCommandBuffer> Recording(std::uint32_t RotationSlot) const;
 
     /// 🧩 Closes one rotation slot's recording and surrenders it to the one graphics queue.
     /// in    RotationSlot [-]  below `RecordingRotationDepth`
     /// in    Ordering     [-]  what the surrender waits on and signals; any member may be null
-    /// out   Outcome      [-]  refuses with ContentUnsupported for a slot that is not open, HostDenied when
+    /// out   Deliver      [-]  refuses with ContentUnsupported for a slot that is not open, HostDenied when
     ///                         the device declines the close or the surrender, and DeviceLost when the device
     ///                         was lost; the slot is closed and nothing is destroyed either way
     /// post  the slot is closed and executing; the completion is signalled when it finishes
@@ -98,23 +98,23 @@ public:
     ///        moment for every other reader of it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Surrender(std::uint32_t RotationSlot, const SurrenderOrdering& Ordering);
+    Deliver<bool> Surrender(std::uint32_t RotationSlot, const SurrenderOrdering& Ordering);
 
     /// 🧩 Opens a recording outside the rotation, for the one-off transfers bring-up records.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when the device declines the recording
+    /// out   Deliver  [-]  refuses with ExtentExhausted when the device declines the recording
     /// note  ⚠️ Surrendered and awaited immediately by `SurrenderImmediate`. This is bring-up's path and never
     ///        a rotation's — an immediate wait inside a rotation is the whole device serialised on the host.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<VkCommandBuffer> OpenImmediate();
+    Deliver<VkCommandBuffer> OpenImmediate();
 
     /// 🧩 Closes an immediate recording, surrenders it, waits for it, and returns it.
     /// in    Recorded [-]  a recording OpenImmediate delivered
-    /// out   Outcome  [-]  refuses with HostDenied when the device declines or does not complete, and with
+    /// out   Deliver  [-]  refuses with HostDenied when the device declines or does not complete, and with
     ///                     DeviceLost when the device was lost; the recording is returned either way
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> SurrenderImmediate(VkCommandBuffer Recorded);
+    Deliver<bool> SurrenderImmediate(VkCommandBuffer Recorded);
 
     /// 🧩 Destroys every recording and every extent.
     /// pre   the device is idle

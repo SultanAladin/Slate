@@ -66,7 +66,7 @@ T PersistenceSequence                  | PersistenceSequence.h | 82-123 | owning
 
 F PersistenceSequence::Persist         | PersistenceSequence.h | 97     | api,nonthrowing               | 🔴 | Runs `48` §3's four steps over one sealed state. the file surface's own refusal otherwise `34` §2's immutability rule by construction rather than by discipline. session and this routine runs off it. `Reached` is what tells the caller ③ actually landed.
     in    Sealed  const SealedContent&  [-]  the captured content and where it is to land
-    out   -       Outcome               [-]  refuses with ContentUnsupported for an empty target path or empty content, and carries
+    out   -       Deliver               [-]  refuses with ContentUnsupported for an empty target path or empty content, and carries
     post  🔴 on any refusal the existing file is exactly as it was — `48` §3
     by    Source/PersistenceSequence.cpp
     note  🔴 This is what `34` resolves at Interactive. Nothing in it reads the document, so it satisfies

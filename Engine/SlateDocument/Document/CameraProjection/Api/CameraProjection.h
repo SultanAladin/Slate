@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/IdentityContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateMath/Numeric/TransformProjection/Api/TransformProjection.h"
@@ -99,7 +99,7 @@ struct ViewProjection
 
 /// 🧩 Derives the view projection of one declared camera.
 /// in    Declaring  [-]  the camera
-/// out   Outcome    [-]  refuses with ContentUnsupported for an invalid clipping interval, a non-positive sensor
+/// out   Deliver    [-]  refuses with ContentUnsupported for an invalid clipping interval, a non-positive sensor
 ///                       proportion, or an extent parameter with no interior
 /// note  📐 Depth is reversed — `NearPlaneDepth` at the nearest plane, `FarPlaneDepth` at the furthest. The
 ///        constants live in `Contract/` because `16` compares against them, `30` marches against them and `80`
@@ -107,7 +107,7 @@ struct ViewProjection
 ///        vanishes rather than geometry that sorts wrongly.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Outcome<ViewProjection> Derive(const CameraSpecification& Declaring);
+Deliver<ViewProjection> Derive(const CameraSpecification& Declaring);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -211,30 +211,30 @@ class NavigationSequence
 public:
 
     /// 🧩 Opens a gesture against a standing camera, holding its prior specification.
-    /// out   Outcome  [-]  refuses with HostDenied when a gesture is already open
+    /// out   Deliver  [-]  refuses with HostDenied when a gesture is already open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Open(NavigationSubject Declaring, const CameraSpecification& Standing);
+    Deliver<bool> Open(NavigationSubject Declaring, const CameraSpecification& Standing);
 
     /// 🧩 Amends the open gesture by one pointer displacement.
     /// in    DisplacementAlong   [px]  horizontal displacement since the last amendment
     /// in    DisplacementAcross  [px]  vertical displacement since the last amendment
-    /// out   Outcome             [-]   refuses with HostDenied when no gesture is open
+    /// out   Deliver             [-]   refuses with HostDenied when no gesture is open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Amend(double DisplacementAlong, double DisplacementAcross);
+    Deliver<bool> Amend(double DisplacementAlong, double DisplacementAcross);
 
     /// 🧩 Ends the gesture with no effect, returning the prior specification.
-    /// out   Outcome  [-]  refuses with HostDenied when no gesture is open
+    /// out   Deliver  [-]  refuses with HostDenied when no gesture is open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<CameraSpecification> Abandon();
+    Deliver<CameraSpecification> Abandon();
 
     /// 🧩 Ends the gesture, returning the specification the caller commits as one transaction.
-    /// out   Outcome  [-]  refuses with HostDenied when no gesture is open
+    /// out   Deliver  [-]  refuses with HostDenied when no gesture is open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<CameraSpecification> Seal();
+    Deliver<CameraSpecification> Seal();
 
     /// 🧩 The camera as the gesture has amended it, for presentation while it is open.
     /// cost  ✔️
@@ -262,7 +262,7 @@ private:
 /// in    Standing  [-]   the camera whose projection and rotation are kept
 /// in    Least     [mm]  the extent's lower corner
 /// in    Greatest  [mm]  its upper corner
-/// out   Outcome   [-]   refuses with ContentUnsupported for an inverted extent or an invalid projection
+/// out   Deliver   [-]   refuses with ContentUnsupported for an inverted extent or an invalid projection
 /// note  🔴 The **placement only** is produced. The projection's extent parameter is left as the artist set it,
 ///        because framing that also changed the field would be framing that changed the composition.
 /// note  ⚠️ For a parallel projection the placement is centred and nothing else can be done — the extent
@@ -272,7 +272,7 @@ private:
 ///        the extent is contained on both axes rather than on whichever happens to be wider.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Outcome<DecomposedTransform> Frame(const CameraSpecification& Standing,
+Deliver<DecomposedTransform> Frame(const CameraSpecification& Standing,
                                    DocumentPosition           Least,
                                    DocumentPosition           Greatest);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
@@ -296,31 +296,31 @@ class CameraProjection
 public:
 
     /// 🧩 Declares which occupant this camera is, and its initial specification.
-    /// out   Outcome  [-]  refuses with IdentityStale for an undeclared identity
+    /// out   Deliver  [-]  refuses with IdentityStale for an undeclared identity
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Declare(OccupantIdentity Subject, const CameraSpecification& Declaring);
+    Deliver<bool> Declare(OccupantIdentity Subject, const CameraSpecification& Declaring);
 
     /// 🧩 Amends the specification, leaving the derivations owed.
-    /// out   Outcome  [-]  refuses with IdentityStale before Declare has delivered
+    /// out   Deliver  [-]  refuses with IdentityStale before Declare has delivered
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Amend(const CameraSpecification& Amending);
+    Deliver<bool> Amend(const CameraSpecification& Amending);
 
     /// 🧩 Declares the display's drawable extent, from which the sensor proportion follows.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a zero extent on either axis
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a zero extent on either axis
     /// note  ⚠️ The proportion is derived from the display and is not stored as an authored property. A document
     ///        carrying its author's window proportion opens framed for their monitor and not for the artist's.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> DeclareDisplayExtent(std::uint32_t Width, std::uint32_t Height);
+    Deliver<bool> DeclareDisplayExtent(std::uint32_t Width, std::uint32_t Height);
 
     /// 🧩 Re-derives the view projection and the frustum.
-    /// out   Outcome  [-]  carries `Derive`'s refusal when the specification cannot be projected
+    /// out   Deliver  [-]  carries `Derive`'s refusal when the specification cannot be projected
     /// post  the frustum and the view projection describe the current specification
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Reconcile();
+    Deliver<bool> Reconcile();
 
     const CameraSpecification&  Declared() const;
     const ViewProjection&       Projected() const;

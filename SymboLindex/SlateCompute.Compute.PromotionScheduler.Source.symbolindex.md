@@ -46,7 +46,7 @@ F Estimate                            | PromotionScheduler.cpp | 43-81   | - | -
 
 F PromotionScheduler::DeclareBudget   | PromotionScheduler.cpp | 87-99   | - | - | ?
     in    Declaring  const PromotionBudget&  [-]  ?
-    out   -          Outcome<bool>           [-]  ?
+    out   -          Deliver<bool>           [-]  ?
 
 F PromotionScheduler::DeclareOrdering | PromotionScheduler.cpp | 101-105 | - | - | ?
     in    Declaring  EvictionOrdering  [-]  ?
@@ -54,7 +54,7 @@ F PromotionScheduler::DeclareOrdering | PromotionScheduler.cpp | 101-105 | - | -
 
 F PromotionScheduler::OpenRotation    | PromotionScheduler.cpp | 107-122 | - | - | ?
     in    RotationOrdinal  std::uint64_t  [-]  ?
-    out   -                Outcome<bool>  [-]  ?
+    out   -                Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE BUDGET
@@ -66,7 +66,7 @@ F PromotionScheduler::Admits          | PromotionScheduler.cpp | 128-135 | - | -
 
 F PromotionScheduler::Charge          | PromotionScheduler.cpp | 137-146 | - | - | ?
     in    Costing  const PromotionCost&  [-]  ?
-    out   -        Outcome<bool>         [-]  ?
+    out   -        Deliver<bool>         [-]  ?
 
 F PromotionScheduler::DeferOne        | PromotionScheduler.cpp | 148-152 | - | - | ?
     out   -  void  [-]  ?

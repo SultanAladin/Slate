@@ -50,14 +50,14 @@ T SeamSpecification                   | SeamSpecification.h | 59-121 | owning   
 F SeamSpecification::DeclareAuthored  | SeamSpecification.h | 70     | api,nonthrowing               | 🚩 | Declares one authored seam.
     in    FirstVertex   std::uint32_t  [-]  one imported vertex ordinal
     in    SecondVertex  std::uint32_t  [-]  the other
-    out   -             Outcome        [-]  refuses with ContentUnsupported when the two ordinals are the same vertex
+    out   -             Deliver        [-]  refuses with ContentUnsupported when the two ordinals are the same vertex
     post  the seam survives every re-partition until it is withdrawn
     by    Source/ConsoleHost.cpp, Source/SeamSpecification.cpp
 
 F SeamSpecification::WithdrawAuthored | SeamSpecification.h | 76     | api,nonthrowing               | 🚩 | Withdraws one authored seam.
     in    FirstVertex   std::uint32_t  [-]  ?
     in    SecondVertex  std::uint32_t  [-]  ?
-    out   -             Outcome        [-]  refuses with ContentUnsupported when no authored seam runs between the two
+    out   -             Deliver        [-]  refuses with ContentUnsupported when no authored seam runs between the two
     by    Source/SeamSpecification.cpp
 
 F SeamSpecification::DeclareDerived   | SeamSpecification.h | 83     | api,nonthrowing               | 🚩 | Records one seam the partitioner derived, for reporting and for the standing partition. sets are separately stored for the same reason `12` separately stores its two relations.

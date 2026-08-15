@@ -237,9 +237,9 @@ bool ConstructComputePipeline(const VulkanHost&     Host,
     PipelineInfo.stage.pName  = "main";
     PipelineInfo.layout       = Layout;
 
-    VkResult Outcome = vkCreateComputePipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Pipeline);
+    VkResult Deliver = vkCreateComputePipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Pipeline);
     vkDestroyShaderModule(Host.Device, Module, Host.Allocator);
-    return Outcome == VK_SUCCESS;
+    return Deliver == VK_SUCCESS;
 }
 
 // Build a fullscreen-triangle graphics pipeline (shared FullscreenTriangle.vert + given frag) for one colour format.
@@ -346,10 +346,10 @@ bool ConstructGraphicsPipeline(const VulkanHost&     Host,
     PipelineInfo.pDynamicState       = &Dynamic;
     PipelineInfo.layout              = Layout;
 
-    VkResult Outcome = vkCreateGraphicsPipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Pipeline);
+    VkResult Deliver = vkCreateGraphicsPipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Pipeline);
     vkDestroyShaderModule(Host.Device, VertexModule, Host.Allocator);
     vkDestroyShaderModule(Host.Device, FragmentModule, Host.Allocator);
-    return Outcome == VK_SUCCESS;
+    return Deliver == VK_SUCCESS;
 }
 
 // One descriptor-set-layout builder from an array of (binding, type, stage) triples.

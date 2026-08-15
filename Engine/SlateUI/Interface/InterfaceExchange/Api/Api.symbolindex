@@ -52,7 +52,7 @@ F InterfaceExchange::~InterfaceExchange | InterfaceExchange.h | 57     | destruc
 
 F InterfaceExchange::Construct          | InterfaceExchange.h | 68     | api,nonthrowing               | 🔴 | Constructs the interface context over the supplied device handles. HostDenied when the vendor attachment declines `VK_KHR_dynamic_rendering` or a device at Vulkan 1.3. Construct refuses rather than recording into a target the device never agreed to.
     in    Arriving  const InterfaceAttachment&  [-]  the device handles and the window the interface reads from
-    out   -         Outcome                     [-]  refuses with CapabilityAbsent when any required handle is absent, and with
+    out   -         Deliver                     [-]  refuses with CapabilityAbsent when any required handle is absent, and with
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  🚧 Recording is declared against dynamic rendering, so `06`'s bring-up must negotiate
 
@@ -61,17 +61,17 @@ F InterfaceExchange::Reclaim            | InterfaceExchange.h | 73     | api,non
     by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
 
 F InterfaceExchange::Advance            | InterfaceExchange.h | 79     | api,nonthrowing               | ✔️ | Opens one interface tick and reads the window system's accumulated condition.
-    out   -  Outcome  [-]  refuses when no context is constructed, or when a tick is already open
+    out   -  Deliver  [-]  refuses when no context is constructed, or when a tick is already open
     by    Api/CycleScheduler.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+22 more)
 
 F InterfaceExchange::Seal               | InterfaceExchange.h | 86     | api,nonthrowing               | 🚩 | Closes the open tick and assembles its command content, ready to record.
-    out   -  Outcome  [-]  refuses when no tick is open
+    out   -  Deliver  [-]  refuses when no tick is open
     post  the assembled content stays valid until the next Advance
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/RevisionSequence.h, (+20 more)
 
 F InterfaceExchange::Record             | InterfaceExchange.h | 94     | api,nonthrowing               | 🚩 | Records the assembled content into a command recording of the current rotation slot.
     in    CommandRecording  VkCommandBuffer  [-]  a recording already inside a dynamic rendering scope over DisplaySurface
-    out   -                 Outcome          [-]  refuses when nothing has been sealed since the last Advance
+    out   -                 Deliver          [-]  refuses when nothing has been sealed since the last Advance
     pre   Seal delivered
     by    Api/InputExchange.h, Api/IntakeIndex.h, Api/VisibilityRaster.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, (+8 more)
 

@@ -103,13 +103,13 @@ T SceneStructure                      | SceneStructure.h | 123-295 | owning     
 
 F SceneStructure::Admit               | SceneStructure.h | 133     | api,nonthrowing               | ✔️ | Admits one enrolled occupant into both relations, unenclosed and unattached.
     in    Arriving  OccupantIdentity  [-]  the identity `PopulationIndex` issued
-    out   -         Outcome           [-]  refuses with IdentityStale for an undeclared identity
+    out   -         Deliver           [-]  refuses with IdentityStale for an undeclared identity
     post  the occupant sits last in the root ordering and is its own attachment root
     by    Api/PointerIntersection.h, Api/RequestQueue.h, Api/SpatialSubdivision.h, Api/UvSurfaceDepot.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+7 more)
 
 F SceneStructure::Retire              | SceneStructure.h | 144     | api,nonthrowing               | 🚩 | Withdraws one occupant from both relations, re-enclosing what it enclosed. with it; attached occupants keep their compounded transform and take its attachment inside it. The caller seals the whole cascade as one transaction.
     in    Departing  OccupantIdentity  [-]  the identity being retired
-    out   -          Outcome           [-]  refuses with IdentityStale when the identity does not resolve here
+    out   -          Deliver           [-]  refuses with IdentityStale when the identity does not resolve here
     post  🔴 enclosed occupants are re-enclosed by the departing occupant's enclosure and are not retired
     by    Api/OutlinerSequence.h, Api/RecoverySequence.h, Source/DocumentSession.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RecoverySequence.cpp, (+1 more)
     note  `12` §12 states the policy in one sentence — deleting a group deletes the group, not the work
@@ -118,43 +118,43 @@ F SceneStructure::Enclose             | SceneStructure.h | 156     | api,nonthro
     in    Subject               OccupantIdentity  [-]  the occupant being placed
     in    ProposedEnclosure     OccupantIdentity  [-]  the enclosing occupant; undeclared returns it to the root ordering
     in    OrderWithinEnclosure  std::uint32_t     [-]  position in the enclosure's ordering; clamped to its end
-    out   -                     Outcome           [-]  refuses with RelationCyclic when the change would close a cycle, and
+    out   -                     Deliver           [-]  refuses with RelationCyclic when the change would close a cycle, and
     by    Api/OutlinerSequence.h, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
     note  🔴 The refusal never applies the change. Both operands stay readable through RejectedRelation
 
 F SceneStructure::Attach              | SceneStructure.h | 168     | api,nonthrowing               | ✔️ | Attaches one occupant to another so that it follows its motion. relations exist rather than one.
     in    Subject             OccupantIdentity  [-]  the occupant that will follow
     in    ProposedAttachment  OccupantIdentity  [-]  what it follows; undeclared makes it an attachment root
-    out   -                   Outcome           [-]  refuses with RelationCyclic, or IdentityStale for either operand
+    out   -                   Deliver           [-]  refuses with RelationCyclic, or IdentityStale for either operand
     by    Api/InputExchange.h, Api/OutlinerSequence.h, Source/InputExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp, Source/WorkspaceSequence.cpp
     note  Attachment may cross enclosure boundaries freely — `12` §10 records that as the reason two
 
 F SceneStructure::AuthorTransform     | SceneStructure.h | 176     | api,nonallocating,nonthrowing | ✔️ | Records the transform the artist authored for one occupant.
     in    Subject   OccupantIdentity            [-]  the occupant
     in    Authored  const DecomposedTransform&  [-]  its own transform, before any attachment is compounded into it
-    out   -         Outcome                     [-]  refuses with IdentityStale
+    out   -         Deliver                     [-]  refuses with IdentityStale
     by    Source/SceneStructure.cpp
 
 F SceneStructure::CompoundAttachments | SceneStructure.h | 185     | api,nonthrowing               | 🚩 | Compounds every occupant's transform downward from its attachment root — tick step ③. derived from them, which `12` §4 makes an ordering rather than a preference.
-    out   -  Outcome  [-]  refuses with ExtentExhausted when a chain exceeds the declared depth ceiling
+    out   -  Deliver  [-]  refuses with ExtentExhausted when a chain exceeds the declared depth ceiling
     post  every occupant's compounded transform depends only on its attachment root path
     by    Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
     note  🔴 Runs before enclosure is reconciled. Transforms must be final before anything spatial is
 
 F SceneStructure::RepairLabels        | SceneStructure.h | 194     | api,nonthrowing               | 🔴 | Repairs interval labels across every span whose gap was exhausted — tick step ④. refuses. A whole-population relabel is the last resort, never the first.
-    out   -  Outcome  [-]  refuses with ExtentExhausted when the root span itself cannot hold the ordering
+    out   -  Deliver  [-]  refuses with ExtentExhausted when the root span itself cannot hold the ordering
     post  labels are strictly nested and no linearisation has yet been observed against them
     by    Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
     note  Relabelling covers the exhausted span and escalates outward only while the span above it also
 
 F SceneStructure::Label               | SceneStructure.h | 201     | api,nonallocating,nonthrowing | ✔️ | One occupant's interval label, for the containment predicate above.
     in    Subject  OccupantIdentity  [-]  the occupant
-    out   -        Outcome           [-]  refuses with IdentityStale
+    out   -        Deliver           [-]  refuses with IdentityStale
     by    Api/WorkspaceSpace.h, Source/SceneStructure.cpp, Source/WorkspaceSequence.cpp, Source/WorkspaceStrip.cpp
 
 F SceneStructure::CompoundedTransform | SceneStructure.h | 209     | api,nonthrowing               | ✔️ | One occupant's transform with its whole attachment path compounded into it.
     in    Subject  OccupantIdentity  [-]  the occupant
-    out   -        Outcome           [-]  refuses with IdentityStale
+    out   -        Deliver           [-]  refuses with IdentityStale
     pre   CompoundAttachments delivered within this tick
     by    Source/SceneStructure.cpp
 
@@ -242,7 +242,7 @@ F SceneStructure::AssignLabels        | SceneStructure.h | 281     | -          
     in    EnclosureSlot  std::uint32_t  [-]  ?
     in    Available      IntervalLabel  [-]  ?
     in    Depth          std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
     by    Source/SceneStructure.cpp
 
 F SceneStructure::DeclareExhausted    | SceneStructure.h | 282     | -                             | -  | ?
@@ -253,7 +253,7 @@ F SceneStructure::DeclareExhausted    | SceneStructure.h | 282     | -          
 F SceneStructure::CompoundFrom        | SceneStructure.h | 283     | -                             | -  | ?
     in    SlotOrdinal  std::uint32_t  [-]  ?
     in    Depth        std::uint32_t  [-]  ?
-    out   -            Outcome<bool>  [-]  ?
+    out   -            Deliver<bool>  [-]  ?
     by    Source/SceneStructure.cpp
 
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 300     | -                             | -  | ?

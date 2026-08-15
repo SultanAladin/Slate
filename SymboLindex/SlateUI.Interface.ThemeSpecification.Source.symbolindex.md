@@ -68,7 +68,7 @@ F DeclaredDefaultExtents | ThemeSpecification.cpp | 134-140 | - | - | ?
 
 F ResolveActiveTheme     | ThemeSpecification.cpp | 146-209 | - | - | ?
     in    DeclaredScale  float                        [-]  ?
-    out   -              Outcome<ThemeSpecification>  [-]  ?
+    out   -              Deliver<ThemeSpecification>  [-]  ?
     by    Api/ThemeSpecification.h
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -81,5 +81,5 @@ F StyleCoordinate        | ThemeSpecification.cpp | 220-226 | - | - | ?
 
 F Enforce                | ThemeSpecification.cpp | 230-290 | - | - | ?
     in    Theme  const ThemeSpecification&  [-]  ?
-    out   -      Outcome<bool>              [-]  ?
+    out   -      Deliver<bool>              [-]  ?
     by    Api/ThemeSpecification.h

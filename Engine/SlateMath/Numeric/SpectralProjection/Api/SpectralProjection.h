@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateMath/Numeric/QuadratureIntegrator/Api/QuadratureIntegrator.h"
 
@@ -60,13 +60,13 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 
 /// 🧩 The integral of the luminance response over the declared interval — the normalisation a projection divides by.
 /// in    Rule     [-]  a derived rule; the integral is taken against it
-/// out   Outcome  [-]  refuses with ContentUnsupported before the rule is derived
+/// out   Deliver  [-]  refuses with ContentUnsupported before the rule is derived
 /// note  📝 Derived on demand rather than declared as a number, for the reason `ColourProjection` derives its
 ///        primaries from chromaticities: a stored normalisation is a second representation of the matching
 ///        functions and drifts from them the moment the fit is amended.
 /// cost  🚩
 /// tag   api, nonthrowing
-Outcome<double> LuminanceNormalisation(const QuadratureRule& Rule);
+Deliver<double> LuminanceNormalisation(const QuadratureRule& Rule);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -76,7 +76,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 /// 🧩 Projects one spectral quantity onto tristimulus, normalised so a flat spectrum of unit magnitude has unit luminance.
 /// in    Rule       [-]  a derived rule, integrated over the declared wavelength interval
 /// in    Evaluate   [-]  the spectral quantity; called once per abscissa with a wavelength in nanometres
-/// out   Outcome    [-]  refuses with ContentUnsupported before the rule is derived, and when the luminance
+/// out   Deliver    [-]  refuses with ContentUnsupported before the rule is derived, and when the luminance
 ///                       normalisation vanishes — which is a fit that no longer describes a luminance response
 /// note  🔴 The three responses are accumulated **side by side in one walk**, in ordinal order. Three separate
 ///        integrations would evaluate the caller's spectrum three times, and a spectrum that reads a medium
@@ -89,22 +89,22 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 /// cost  🔴
 /// tag   api, nonthrowing
 template <typename Spectrum>
-Outcome<TristimulusCoordinate> ProjectSpectrum(const QuadratureRule& Rule, Spectrum Evaluate)
+Deliver<TristimulusCoordinate> ProjectSpectrum(const QuadratureRule& Rule, Spectrum Evaluate)
 {
     if (!Rule.Derived())
     {
-        return Outcome<TristimulusCoordinate>::Refuse(
+        return Deliver<TristimulusCoordinate>::Refuse(
             { RefusalReason::ContentUnsupported, "the rule has not been derived" });
     }
 
-    const Outcome<double> Normalisation = LuminanceNormalisation(Rule);
+    const Deliver<double> Normalisation = LuminanceNormalisation(Rule);
 
     if (!Normalisation.ContentPresent)
-        return Outcome<TristimulusCoordinate>::Refuse(Normalisation.Declined);
+        return Deliver<TristimulusCoordinate>::Refuse(Normalisation.Declined);
 
     if (Normalisation.Resolve() <= 0.0)
     {
-        return Outcome<TristimulusCoordinate>::Refuse(
+        return Deliver<TristimulusCoordinate>::Refuse(
             { RefusalReason::ContentUnsupported, "the luminance response integrates to nothing" });
     }
 
@@ -135,7 +135,7 @@ Outcome<TristimulusCoordinate> ProjectSpectrum(const QuadratureRule& Rule, Spect
     Projected.MagnitudeY *= Reciprocal;
     Projected.MagnitudeZ *= Reciprocal;
 
-    return Outcome<TristimulusCoordinate>::Deliver(Projected);
+    return Deliver<TristimulusCoordinate>::Deliver(Projected);
 }
 
 }   // namespace Slate

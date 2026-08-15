@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateCompute/Compute/DomainSpace/Api/DomainSpace.h"
 #include "SlateCompute/Compute/SeamSpecification/Api/SeamSpecification.h"
@@ -107,7 +107,7 @@ struct DerivedPartition
 /// in    Declaring    [-]  the parameters
 /// in    Cancellation [-]  read between charts — `34` §5's cooperative points
 /// in    Progressed   [-]  charts resolved out of charts spanned
-/// out   Outcome      [-]  refuses with HostDenied for an unsealed topology or a withdrawn declaration, and with
+/// out   Deliver      [-]  refuses with HostDenied for an unsealed topology or a withdrawn declaration, and with
 ///                         ExtentExhausted when the conditioning describes another revision or no scale packs
 /// note  🔴 Reads nothing but its arguments and mutates none of them, which is exactly `34` §2's requirement.
 ///        The `SeamSpecification` is taken by const reference and its derived set is returned in the result
@@ -120,7 +120,7 @@ struct DerivedPartition
 ///        `68` §7 puts this on `34`'s `Background` class; called on the tick it would stall a stroke.
 /// cost  🔴
 /// tag   api, nonthrowing
-Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
+Deliver<DerivedPartition> Derive(const TopologyStructure&      Imported,
                                  const TopologyConditioning&   Conditioned,
                                  const SeamSpecification&      Seams,
                                  const PartitionSpecification& Declaring,
@@ -146,11 +146,11 @@ public:
 
     /// 🧩 Adopts a derived partition on the tick, advancing the revision.
     /// in    Arriving  [-]  as `Derive` produced it
-    /// out   Outcome   [-]  refuses with ContentUnsupported for a partition carrying no chart
+    /// out   Deliver   [-]  refuses with ContentUnsupported for a partition carrying no chart
     /// post  the revision advanced; every artefact keyed on the prior one is discoverably stale
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Adopt(const DerivedPartition& Arriving);
+    Deliver<bool> Adopt(const DerivedPartition& Arriving);
 
     /// 🧩 The standing partition.
     /// pre   PartitionStanding holds
@@ -159,11 +159,11 @@ public:
     const DerivedPartition& Standing() const;
 
     /// 🧩 One imported corner's domain coordinate.
-    /// out   Outcome  [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
+    /// out   Deliver  [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
     ///                     while no partition stands
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<DomainCoordinate> Coordinate(std::uint32_t CornerOrdinal) const;
+    Deliver<DomainCoordinate> Coordinate(std::uint32_t CornerOrdinal) const;
 
     /// 🧩 Whether a partition stands at all.
     /// cost  ✔️

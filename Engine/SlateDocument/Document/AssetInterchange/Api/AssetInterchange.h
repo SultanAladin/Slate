@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateDocument/Document/IntakeIndex/Api/IntakeIndex.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
@@ -107,14 +107,14 @@ struct EmissionSpecification
 
     /// 🧩 Whether the specification describes an export that can be produced at all.
     /// in    Materials  [-]  the declared materials, so a channel no material declares is refused
-    /// out   Outcome    [-]  refuses with ContentUnsupported for an extent of zero, an image with no occupied
+    /// out   Deliver    [-]  refuses with ContentUnsupported for an extent of zero, an image with no occupied
     ///                       component, a colour-carrying channel in an image declaring no space, and a channel
     ///                       occupying two components anywhere in the specification
     /// note  🔴 A channel emitted twice is two answers to one question, and the consumer reads whichever image
     ///        it loaded second. Refused here rather than discovered by whoever ships the asset.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Validate(const MaterialIndex& Materials) const;
+    Deliver<bool> Validate(const MaterialIndex& Materials) const;
 };
 
 /// 🧩 Resolves an emission's declared naming pattern.
@@ -157,7 +157,7 @@ public:
     /// in    Decoded  [-]  the decoded specification, faithful to the source
     /// in    Into     [-]  the structure to enrol into; untouched when the intake refuses
     /// in    Recorded [-]  where the assumption, if any, is recorded
-    /// out   Outcome  [-]  refuses with ContentUnsupported for absent positions or absent face indexing — `50`
+    /// out   Deliver  [-]  refuses with ContentUnsupported for absent positions or absent face indexing — `50`
     ///                     §3 gives neither a default — and carries the structure's own refusal otherwise
     /// note  🔴 Unit scale is applied **once, at intake**, and is never carried as a per-occupant multiplier.
     ///        A scene where each occupant carries its own unit convention is a scene where `02` §3.2's rebasing
@@ -167,29 +167,29 @@ public:
     ///        is missed — by which time the artist has already built on it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> IntakeTopology(const DecodedTopology& Decoded, TopologyStructure& Into, IntakeIndex& Recorded);
+    Deliver<bool> IntakeTopology(const DecodedTopology& Decoded, TopologyStructure& Into, IntakeIndex& Recorded);
 
     /// 🧩 Records one decoded image's declared space, or the assumption made in its absence.
     /// in    Decoded   [-]  the decoded image, its original retained
     /// in    Recorded  [-]  where the assumption, if any, is recorded
-    /// out   Outcome   [-]  refuses with ContentUnsupported for an image of no extent or no component
+    /// out   Deliver   [-]  refuses with ContentUnsupported for an image of no extent or no component
     /// note  🔴 `50` §4: this document **declares** and does not convert. `36` §3 converts once, at intake, into
     ///        the working space, and reads the channel measure from `42` at the point of use. There is no
     ///        inference here from file name, channel count or encoding — and this is the document where the
     ///        temptation lives, because a file called `_normal` looks like a helpful signal.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> IntakeImage(const DecodedImage& Decoded, IntakeIndex& Recorded);
+    Deliver<bool> IntakeImage(const DecodedImage& Decoded, IntakeIndex& Recorded);
 
     /// 🧩 Whether an emission may be started against the current document.
     /// in    Declaring  [-]  the emission specification
     /// in    Materials  [-]  the declared materials
-    /// out   Outcome    [-]  carries the specification's own refusal
+    /// out   Deliver    [-]  carries the specification's own refusal
     /// note  🚧 `50` §5's resolution waits on `56`, `70` and `20`. Validation does not, and it is where the
     ///        wrong arrangement and the doubled channel are caught — before the artist has waited for an export.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareEmission(const EmissionSpecification& Declaring, const MaterialIndex& Materials);
+    Deliver<bool> DeclareEmission(const EmissionSpecification& Declaring, const MaterialIndex& Materials);
 
     /// 🧩 The declared emission, for whoever presents it.
     /// cost  ✔️

@@ -24,19 +24,19 @@ S ToolSequence.cpp | 247 lines | bad22a6b | 27 sym | Tool declaration, the arbit
 
 F ToolIndex::Declare               | ToolSequence.cpp | 15-48   | - | - | ?
     in    Declaring  const ToolSpecification&  [-]  ?
-    out   -          Outcome<std::uint32_t>    [-]  ?
+    out   -          Deliver<std::uint32_t>    [-]  ?
 
 F ToolIndex::Resolve               | ToolSequence.cpp | 50-56   | - | - | ?
     in    ToolOrdinal  std::uint32_t                      [-]  ?
-    out   -            Outcome<const ToolSpecification*>  [-]  ?
+    out   -            Deliver<const ToolSpecification*>  [-]  ?
 
 F ToolIndex::Amend                 | ToolSequence.cpp | 58-64   | - | - | ?
     in    ToolOrdinal  std::uint32_t                [-]  ?
-    out   -            Outcome<ToolSpecification*>  [-]  ?
+    out   -            Deliver<ToolSpecification*>  [-]  ?
 
 F ToolIndex::Located               | ToolSequence.cpp | 66-75   | - | - | ?
     in    Identity  const std::string&      [-]  ?
-    out   -         Outcome<std::uint32_t>  [-]  ?
+    out   -         Deliver<std::uint32_t>  [-]  ?
 
 F ToolIndex::DeclaredCount         | ToolSequence.cpp | 77-80   | - | - | ?
     out   -  std::uint32_t  [-]  ?
@@ -59,28 +59,28 @@ F ToolSequence::Brushes            | ToolSequence.cpp | 89      | - | - | ?
 
 F ToolSequence::DeclareTool        | ToolSequence.cpp | 91-99   | - | - | ?
     in    ToolOrdinal_  std::uint32_t  [-]  ?
-    out   -             Outcome<bool>  [-]  ?
+    out   -             Deliver<bool>  [-]  ?
 
 F ToolSequence::DeclareBrush       | ToolSequence.cpp | 101-109 | - | - | ?
     in    BrushOrdinal_  std::uint32_t  [-]  ?
-    out   -              Outcome<bool>  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 F ToolSequence::DeclareColour      | ToolSequence.cpp | 111-121 | - | - | ?
     in    Declaring  const ColourSpecification&  [-]  ?
-    out   -          Outcome<bool>               [-]  ?
+    out   -          Deliver<bool>               [-]  ?
 
 F ToolSequence::DeclareDisplay     | ToolSequence.cpp | 123-131 | - | - | ?
     in    Declaring  DisplaySubject  [-]  ?
-    out   -          Outcome<bool>   [-]  ?
+    out   -          Deliver<bool>   [-]  ?
 
 F ToolSequence::DeclareChannel     | ToolSequence.cpp | 133-141 | - | - | ?
     in    Declaring  ChannelSubject  [-]  ?
-    out   -          Outcome<bool>   [-]  ?
+    out   -          Deliver<bool>   [-]  ?
 
 F ToolSequence::DeclareOverlay     | ToolSequence.cpp | 143-151 | - | - | ?
     in    Declaring        OverlaySubject  [-]  ?
     in    PresenceEnabled  bool            [-]  ?
-    out   -                Outcome<bool>   [-]  ?
+    out   -                Deliver<bool>   [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  POINTER ARBITRATION
@@ -95,10 +95,10 @@ F ToolSequence::Arbitrate          | ToolSequence.cpp | 157-177 | - | - | ?
 F ToolSequence::OpenCapture        | ToolSequence.cpp | 179-195 | - | - | ?
     in    Claiming  PointerPrecedence       [-]  ?
     in    Opened    const ResolvedPointer&  [-]  ?
-    out   -         Outcome<bool>           [-]  ?
+    out   -         Deliver<bool>           [-]  ?
 
 F ToolSequence::ReleaseCapture     | ToolSequence.cpp | 197-205 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
@@ -111,10 +111,10 @@ F ToolSequence::Capture            | ToolSequence.cpp | 212     | - | - | ?
     out   -  const PointerCapture&  [-]  ?
 
 F ToolSequence::ActiveTool         | ToolSequence.cpp | 214-223 | - | - | ?
-    out   -  Outcome<const ToolSpecification*>  [-]  ?
+    out   -  Deliver<const ToolSpecification*>  [-]  ?
 
 F ToolSequence::ActiveBrush        | ToolSequence.cpp | 225-234 | - | - | ?
-    out   -  Outcome<const BrushSpecification*>  [-]  ?
+    out   -  Deliver<const BrushSpecification*>  [-]  ?
 
 F ToolSequence::ActiveToolOrdinal  | ToolSequence.cpp | 236     | - | - | ?
     out   -  std::uint32_t  [-]  ?

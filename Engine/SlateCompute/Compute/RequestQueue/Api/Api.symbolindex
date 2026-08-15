@@ -116,7 +116,7 @@ T ReturnIndex                  | RequestQueue.h | 138-167 | owning              
 F ReturnIndex::Drain           | RequestQueue.h | 153     | api,nonthrowing               | 🚩 | Reads back the demands recorded a rotation depth ago. HostDenied when this rotation has already been drained charge one rotation's budget twice and promote against the second charge, which reads as the budget being half what it was declared to be.
     in    Requesting       RequestQueue&  [-]  the queue those demands were written into
     in    RotationOrdinal  std::uint64_t  [-]  the rotation now being recorded
-    out   -                Outcome        [-]  refuses with ExtentExhausted before the depth has elapsed, and with
+    out   -                Deliver        [-]  refuses with ExtentExhausted before the depth has elapsed, and with
     post  the drained slot is emptied and is the slot the caller may write next
     by    Api/StorageExchange.h, Api/WindowInterchange.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, Source/RequestQueue.cpp, Source/StorageExchange.cpp, (+3 more)
     note  🔴 Refusing a second drain of one rotation is not fussiness. A promotion pass that ran twice would

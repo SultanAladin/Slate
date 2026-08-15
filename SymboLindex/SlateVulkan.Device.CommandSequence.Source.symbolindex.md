@@ -25,7 +25,7 @@ S CommandSequence.cpp | 358 lines | 8a97331f | 8 sym | The per-slot recording ex
 F CommandSequence::Construct          | CommandSequence.cpp | 15-93   | -          | - | ?
     in    Exchange  const VulkanExchange&       [-]  ?
     in    Naming    const DiagnosticExtension&  [-]  ?
-    out   -         Outcome<bool>               [-]  ?
+    out   -         Deliver<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE OPENING
@@ -33,11 +33,11 @@ F CommandSequence::Construct          | CommandSequence.cpp | 15-93   | -       
 
 F CommandSequence::Open               | CommandSequence.cpp | 99-133  | -          | - | ?
     in    RotationSlot  std::uint32_t             [-]  ?
-    out   -             Outcome<VkCommandBuffer>  [-]  ?
+    out   -             Deliver<VkCommandBuffer>  [-]  ?
 
 F CommandSequence::Recording          | CommandSequence.cpp | 135-147 | -          | - | ?
     in    RotationSlot  std::uint32_t             [-]  ?
-    out   -             Outcome<VkCommandBuffer>  [-]  ?
+    out   -             Deliver<VkCommandBuffer>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE SURRENDER
@@ -46,18 +46,18 @@ F CommandSequence::Recording          | CommandSequence.cpp | 135-147 | -       
 F CommandSequence::Surrender          | CommandSequence.cpp | 153-204 | -          | - | ?
     in    RotationSlot  std::uint32_t             [-]  ?
     in    Ordering      const SurrenderOrdering&  [-]  ?
-    out   -             Outcome<bool>             [-]  ?
+    out   -             Deliver<bool>             [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  OUTSIDE THE ROTATION
 //------------------------------------------------------------------------------------------------------------------------
 
 F CommandSequence::OpenImmediate      | CommandSequence.cpp | 210-247 | -          | - | ?
-    out   -  Outcome<VkCommandBuffer>  [-]  ?
+    out   -  Deliver<VkCommandBuffer>  [-]  ?
 
 F CommandSequence::SurrenderImmediate | CommandSequence.cpp | 249-317 | -          | - | ?
     in    Recorded  VkCommandBuffer  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECLAMATION

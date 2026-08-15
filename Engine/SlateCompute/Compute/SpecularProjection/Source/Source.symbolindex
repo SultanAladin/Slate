@@ -26,7 +26,7 @@ V ReflectionRecordingIdentity         | SpecularProjection.cpp | 18      | - | -
 
 F SpecularProjection::Declare         | SpecularProjection.cpp | 22-50   | - | - | ?
     in    Declaring  const ReflectionSpecification&  [-]  ?
-    out   -          Outcome<bool>                   [-]  ?
+    out   -          Deliver<bool>                   [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORDING
@@ -34,7 +34,7 @@ F SpecularProjection::Declare         | SpecularProjection.cpp | 22-50   | - | -
 
 F SpecularProjection::Contribute      | SpecularProjection.cpp | 56-81   | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE EXTENT
@@ -45,7 +45,7 @@ F SpecularProjection::Resolve         | SpecularProjection.cpp | 87-99   | - | -
     in    DisplayAcross   std::uint32_t   [-]  ?
     in    ResolvedAlong   std::uint32_t&  [-]  ?
     in    ResolvedAcross  std::uint32_t&  [-]  ?
-    out   -               Outcome<bool>   [-]  ?
+    out   -               Deliver<bool>   [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE COMPOSITE

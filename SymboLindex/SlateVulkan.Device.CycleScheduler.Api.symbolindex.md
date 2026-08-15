@@ -49,19 +49,19 @@ F CycleScheduler::~CycleScheduler    | CycleScheduler.h | 55     | destructor   
 F CycleScheduler::Construct          | CycleScheduler.h | 68     | api,nonthrowing               | 🚩 | Constructs the ordering points for every slot in the depth. device declines an ordering point; refused in full, with nothing half-constructed orders, because a stall reports one waiter against one signaller and the two are indistinguishable by address — an unnamed rotation makes every deadlock report the same sentence.
     in    Exchange  const VulkanExchange&       [-]  the created device; borrowed and outlives this component
     in    Naming    const DiagnosticExtension&  [-]  names every ordering point; borrowed and outlives this component
-    out   -         Outcome                     [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
+    out   -         Deliver                     [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     post  the standing ordinal is zero and every completion is signalled
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
     note  🔴 `06` §7's diagnostic-name gate. Each of the three points is named by its slot **and** by what it
 
 F CycleScheduler::Await              | CycleScheduler.h | 79     | api,nonthrowing               | 🔴 | Waits until the slot the standing ordinal names is no longer read, and makes it writable again. with DeviceLost when the device was lost; nothing is destroyed either way host that stops with no report, and `06` §7 requires the loss to be reported upward before anything is destroyed — which cannot happen from inside a wait that never returns.
-    out   -  Outcome  [-]  refuses with HostDenied when the device does not complete within the ceiling, and
+    out   -  Deliver  [-]  refuses with HostDenied when the device does not complete within the ceiling, and
     post  every resource the slot holds may be amended
     by    Api/DisplayScheduler.h, Source/CycleScheduler.cpp, Source/DisplayScheduler.cpp
     note  🔴 The ceiling is finite rather than indefinite. An indefinite wait against a lost device is a
 
 F CycleScheduler::Arm                | CycleScheduler.h | 86     | api,nonthrowing               | ✔️ | Clears the completion of the standing slot, immediately before the submission that signals it.
-    out   -  Outcome  [-]  refuses with HostDenied when the device declines
+    out   -  Deliver  [-]  refuses with HostDenied when the device declines
     pre   Await delivered for this slot
     by    Source/CycleScheduler.cpp
 
@@ -71,7 +71,7 @@ F CycleScheduler::Advance            | CycleScheduler.h | 92     | api,nonalloca
     by    Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+18 more)
 
 F CycleScheduler::Standing           | CycleScheduler.h | 98     | api,nonallocating,nonthrowing | ✔️ | The slot the standing ordinal names, for the recording and the display that read it.
-    out   -  Outcome  [-]  refuses with CapabilityAbsent before Construct delivered
+    out   -  Deliver  [-]  refuses with CapabilityAbsent before Construct delivered
     by    Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/DecalProjection.h, Api/DisplayScheduler.h, (+76 more)
 
 F CycleScheduler::StandingOrdinal    | CycleScheduler.h | 103    | api,nonallocating,nonthrowing | ✔️ | Which slot of the depth is standing — what every per-rotation claim is addressed by.

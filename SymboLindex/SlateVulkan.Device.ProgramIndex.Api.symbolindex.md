@@ -89,27 +89,27 @@ F ProgramIndex::Construct       | ProgramIndex.h | 136     | api,nonthrowing    
     in    Modules      ShaderCodec&                [-]  where the stage declarations come from; borrowed and outlives this component
     in    Descriptors  const DescriptorIndex&      [-]  where the set layouts come from; borrowed and outlives this component
     in    Naming       const DiagnosticExtension&  [-]  names every program and every layout; borrowed and outlives this component
-    out   -            Outcome                     [-]  refuses with CapabilityAbsent when no device is active
+    out   -            Deliver                     [-]  refuses with CapabilityAbsent when no device is active
     post  no program is declared
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
     note  🔴 `06` §7's diagnostic-name gate. The program and the layout it reaches through are named
 
 F ProgramIndex::DeclareGraphics | ProgramIndex.h | 150     | api,nonthrowing               | 🔴 | Constructs one graphics program, returning the ordinal every later resolution names it by. an absent render construct, and with HostDenied when the device declines it specialisation the vendor reads at construction is held where its addresses stay put.
     in    Declaring  const GraphicsDeclaration&  [-]  the modules, layouts, render construct and depth behaviour
-    out   -          Outcome                     [-]  refuses with ContentUnsupported for an unresolved module, an undeclared layout or
+    out   -          Deliver                     [-]  refuses with ContentUnsupported for an unresolved module, an undeclared layout or
     post  nothing is retained on a refusal — the layout is destroyed before the refusal returns
     by    Source/ProgramIndex.cpp, Source/VisibilityRaster.cpp
     note  🔴 The two stage declarations are taken from `ShaderCodec` rather than assembled here, so the
 
 F ProgramIndex::DeclareCompute  | ProgramIndex.h | 158     | api,nonthrowing               | 🔴 | Constructs one compute program, returning the ordinal every later resolution names it by.
     in    Declaring  const ComputeDeclaration&  [-]  the module, the layouts and the constant run
-    out   -          Outcome                    [-]  refuses as DeclareGraphics does, less the render construct
+    out   -          Deliver                    [-]  refuses as DeclareGraphics does, less the render construct
     post  nothing is retained on a refusal
     by    Source/OcclusionScheduler.cpp, Source/ProgramIndex.cpp
 
 F ProgramIndex::Resolve         | ProgramIndex.h | 165     | api,nonallocating,nonthrowing | ✔️ | The program one ordinal names, for the recording that records against it.
     in    ProgramOrdinal  std::uint32_t  [-]  an ordinal this component issued
-    out   -               Outcome        [-]  refuses with ContentUnsupported for an ordinal naming no program
+    out   -               Deliver        [-]  refuses with ContentUnsupported for an ordinal naming no program
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
 F ProgramIndex::Reclaim         | ProgramIndex.h | 171     | api,nonthrowing               | 🚩 | Destroys every program and every layout constructed for one.
@@ -131,5 +131,5 @@ F ProgramIndex::ReachLayout     | ProgramIndex.h | 189     | -                  
     in    LayoutOrdinals  const std::vector<std::uint32_t>&  [-]  declared layouts, in set order; an empty run declares no set
     in    ConstantBytes   std::uint32_t                      [B]  the recorded constant run; nought declares none
     in    ReachingStages  VkShaderStageFlags                 [-]  which stages read the constant run, as the vendor spells them
-    out   -               Outcome                            [-]  refuses with ContentUnsupported for an undeclared layout ordinal
+    out   -               Deliver                            [-]  refuses with ContentUnsupported for an undeclared layout ordinal
     by    Source/ProgramIndex.cpp

@@ -33,34 +33,34 @@ F IssueRevision                                | TopologyStructure.cpp | 26-29  
 
 F TopologyStructure::DeclarePositions          | TopologyStructure.cpp | 37-45   | - | - | ?
     in    Arriving  const std::vector<DocumentPosition>&  [-]  ?
-    out   -         Outcome<bool>                         [-]  ?
+    out   -         Deliver<bool>                         [-]  ?
 
 F TopologyStructure::DeclareFace               | TopologyStructure.cpp | 47-78   | - | - | ?
     in    CornerVertices  const std::vector<std::uint32_t>&  [-]  ?
-    out   -               Outcome<bool>                      [-]  ?
+    out   -               Deliver<bool>                      [-]  ?
 
 F TopologyStructure::DeclareCoordinates        | TopologyStructure.cpp | 80-91   | - | - | ?
     in    Arriving  const std::vector<DomainCoordinate>&  [-]  ?
-    out   -         Outcome<bool>                         [-]  ?
+    out   -         Deliver<bool>                         [-]  ?
 
 F TopologyStructure::DeclarePerpendiculars     | TopologyStructure.cpp | 93-104  | - | - | ?
     in    Arriving  const std::vector<SurfaceDirection>&  [-]  ?
-    out   -         Outcome<bool>                         [-]  ?
+    out   -         Deliver<bool>                         [-]  ?
 
 F TopologyStructure::DeclareTangentBases       | TopologyStructure.cpp | 106-117 | - | - | ?
     in    Arriving  const std::vector<TangentBasis>&  [-]  ?
-    out   -         Outcome<bool>                     [-]  ?
+    out   -         Deliver<bool>                     [-]  ?
 
 F TopologyStructure::DeclareMaterialEnrollment | TopologyStructure.cpp | 119-130 | - | - | ?
     in    Arriving  const std::vector<std::uint32_t>&  [-]  ?
-    out   -         Outcome<bool>                      [-]  ?
+    out   -         Deliver<bool>                      [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE SEAL
 //------------------------------------------------------------------------------------------------------------------------
 
 F TopologyStructure::Seal                      | TopologyStructure.cpp | 136-153 | - | - | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ

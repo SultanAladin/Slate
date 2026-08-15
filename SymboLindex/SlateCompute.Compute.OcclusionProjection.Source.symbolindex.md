@@ -72,17 +72,17 @@ F ExtentsOverlap                            | OcclusionProjection.cpp | 206-214 
 F OcclusionIndex::Derive                    | OcclusionProjection.cpp | 222-271 | - | - | ?
     in    Reaching     const IlluminantIndex&       [-]  ?
     in    Illuminants  const IlluminantPopulation&  [-]  ?
-    out   -            Outcome<bool>                [-]  ?
+    out   -            Deliver<bool>                [-]  ?
 
 F OcclusionIndex::SlotOf                    | OcclusionProjection.cpp | 273-297 | - | - | ?
     in    PartitionOrdinal  std::uint32_t           [-]  ?
     in    Illuminant        OccupantIdentity        [-]  ?
-    out   -                 Outcome<std::uint32_t>  [-]  ?
+    out   -                 Deliver<std::uint32_t>  [-]  ?
 
 F OcclusionIndex::IlluminantAt              | OcclusionProjection.cpp | 299-305 | - | - | ?
     in    PartitionOrdinal  std::uint32_t              [-]  ?
     in    Slot              std::uint32_t              [-]  ?
-    out   -                 Outcome<OccupantIdentity>  [-]  ?
+    out   -                 Deliver<OccupantIdentity>  [-]  ?
 
 F OcclusionIndex::TruncatedCount            | OcclusionProjection.cpp | 307-310 | - | - | ?
     in    PartitionOrdinal  std::uint32_t  [-]  ?
@@ -100,14 +100,14 @@ F OcclusionIndex::SpannedCount              | OcclusionProjection.cpp | 314-317 
 
 F AmbientOcclusionSequence::Declare         | OcclusionProjection.cpp | 323-343 | - | - | ?
     in    Declaring  const AmbientOcclusionSpecification&  [-]  ?
-    out   -          Outcome<bool>                         [-]  ?
+    out   -          Deliver<bool>                         [-]  ?
 
 F AmbientOcclusionSequence::Resolve         | OcclusionProjection.cpp | 345-359 | - | - | ?
     in    DisplayAlong    std::uint32_t   [-]  ?
     in    DisplayAcross   std::uint32_t   [-]  ?
     in    ResolvedAlong   std::uint32_t&  [-]  ?
     in    ResolvedAcross  std::uint32_t&  [-]  ?
-    out   -               Outcome<bool>   [-]  ?
+    out   -               Deliver<bool>   [-]  ?
 
 F AmbientOcclusionSequence::Declared        | OcclusionProjection.cpp | 361     | - | - | ?
     out   -  const AmbientOcclusionSpecification&  [-]  ?
@@ -118,7 +118,7 @@ F AmbientOcclusionSequence::Declared        | OcclusionProjection.cpp | 361     
 
 F OcclusionProjectionSpace::Contribute      | OcclusionProjection.cpp | 367-385 | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CAMERA
@@ -126,7 +126,7 @@ F OcclusionProjectionSpace::Contribute      | OcclusionProjection.cpp | 367-385 
 
 F OcclusionProjectionSpace::DeclareCamera   | OcclusionProjection.cpp | 391-443 | - | - | ?
     in    Declaring  const CameraSpecification&  [-]  ?
-    out   -          Outcome<bool>               [-]  ?
+    out   -          Deliver<bool>               [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE INVALIDATION
@@ -140,7 +140,7 @@ F OcclusionProjectionSpace::Invalidate      | OcclusionProjection.cpp | 460-539 
     in    Declared  InvalidationSubject  [-]  ?
     in    Subject   OccupantIdentity     [-]  ?
     in    Extent    PartitionExtent      [-]  ?
-    out   -         Outcome<bool>        [-]  ?
+    out   -         Deliver<bool>        [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE DERIVATION
@@ -150,7 +150,7 @@ F OcclusionProjectionSpace::Derive          | OcclusionProjection.cpp | 545-768 
     in    Declared         const IlluminantSpecification&  [-]  ?
     in    Illuminant       OccupantIdentity                [-]  ?
     in    RotationOrdinal  std::uint64_t                   [-]  ?
-    out   -                Outcome<DerivedProjection>      [-]  ?
+    out   -                Deliver<DerivedProjection>      [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE REBUILD
@@ -159,7 +159,7 @@ F OcclusionProjectionSpace::Derive          | OcclusionProjection.cpp | 545-768 
 F OcclusionProjectionSpace::Rebuild         | OcclusionProjection.cpp | 774-836 | - | - | ?
     in    Illuminants      const IlluminantPopulation&  [-]  ?
     in    RotationOrdinal  std::uint64_t                [-]  ?
-    out   -                Outcome<bool>                [-]  ?
+    out   -                Deliver<bool>                [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE READS
@@ -167,7 +167,7 @@ F OcclusionProjectionSpace::Rebuild         | OcclusionProjection.cpp | 774-836 
 
 F OcclusionProjectionSpace::Standing        | OcclusionProjection.cpp | 842-853 | - | - | ?
     in    Illuminant  OccupantIdentity                   [-]  ?
-    out   -           Outcome<const DerivedProjection*>  [-]  ?
+    out   -           Deliver<const DerivedProjection*>  [-]  ?
 
 F OcclusionProjectionSpace::RebuildOwed     | OcclusionProjection.cpp | 855-867 | - | - | ?
     out   -  bool  [-]  ?

@@ -30,7 +30,7 @@ F DisplayProjection::Declare         | DisplayProjection.cpp | 29-73   | - | - |
     in    Exposing_  const ExposureSpecification&  [-]  ?
     in    Toning_    const ToneSpecification&      [-]  ?
     in    Encoding_  const EncodeSpecification&    [-]  ?
-    out   -          Outcome<bool>                 [-]  ?
+    out   -          Deliver<bool>                 [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORDING
@@ -38,7 +38,7 @@ F DisplayProjection::Declare         | DisplayProjection.cpp | 29-73   | - | - |
 
 F DisplayProjection::Contribute      | DisplayProjection.cpp | 79-99   | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE METERING
@@ -47,7 +47,7 @@ F DisplayProjection::Contribute      | DisplayProjection.cpp | 79-99   | - | - |
 F DisplayProjection::AdvanceMetering | DisplayProjection.cpp | 105-144 | - | - | ?
     in    ReducedLuminance  double         [-]  ?
     in    ElapsedSeconds    double         [-]  ?
-    out   -                 Outcome<bool>  [-]  ?
+    out   -                 Deliver<bool>  [-]  ?
 
 F DisplayProjection::ExposureScale   | DisplayProjection.cpp | 146-153 | - | - | ?
     out   -  double  [-]  ?
@@ -58,7 +58,7 @@ F DisplayProjection::ExposureScale   | DisplayProjection.cpp | 146-153 | - | - |
 
 F DisplayProjection::Project         | DisplayProjection.cpp | 159-211 | - | - | ?
     in    Accumulated  const ColourSpecification&    [-]  ?
-    out   -            Outcome<ColourSpecification>  [-]  ?
+    out   -            Deliver<ColourSpecification>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REPORTING

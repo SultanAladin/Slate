@@ -74,7 +74,7 @@ T DirectionalAlbedoSurface                       | ReflectanceIntegrator.h | 106
 F DirectionalAlbedoSurface::Construct            | ReflectanceIntegrator.h | 116     | api,nonthrowing               | 🚩 | Sizes the lookup and clears it.
     in    ExtentAlong   std::uint32_t  [-]  ?
     in    ExtentAcross  std::uint32_t  [-]  ?
-    out   -             Outcome        [-]  refuses with ContentUnsupported for an extent of nothing on either axis
+    out   -             Deliver        [-]  refuses with ContentUnsupported for an extent of nothing on either axis
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
 
 F DirectionalAlbedoSurface::Declare              | ReflectanceIntegrator.h | 121     | api,nonallocating,nonthrowing | ✔️ | Writes one texel's three components.
@@ -164,12 +164,12 @@ T ReflectanceIntegrator                          | ReflectanceIntegrator.h | 227
 
 F ReflectanceIntegrator::Contribute              | ReflectanceIntegrator.h | 235     | api,nonthrowing               | ✔️ | Contributes `08` §3 ④'s recording.
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome          [-]  refuses with whatever the schedule refused
+    out   -         Deliver          [-]  refuses with whatever the schedule refused
     by    Api/DisplayProjection.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/RenderSchedule.h, Api/SampleIntegrator.h, (+13 more)
 
 F ReflectanceIntegrator::DeriveDirectionalAlbedo | ReflectanceIntegrator.h | 251     | api,nonthrowing               | 🔴 | Derives `18` §4.1's directional-albedo lookup, once. split-sum scale, the single-scatter directional albedo that drives §4's compensation, and the Charlie directional albedo for the cloth selection. Derived once at bring-up rather than per rotation: it depends on nothing a document holds, and re-deriving it per rotation would integrate a hemisphere per texel per rotation for a surface that never changes. and sampled on the device, so the mapping crosses the toolchain seam twice and lives in `Shared/` for the reason `28`'s three surface parameterisations do.
     in    Rule  const QuadratureRule&  [-]  a derived quadrature rule; the hemisphere integrals are taken against it
-    out   -     Outcome                [-]  refuses with ContentUnsupported before the rule is derived
+    out   -     Deliver                [-]  refuses with ContentUnsupported before the rule is derived
     post  the lookup stands and is sampled by every specular and cloth evaluation thereafter
     by    Source/ReflectanceIntegrator.cpp
     note  🔴 One resident lookup, parameterised by view angle and roughness, whose three components are the
@@ -182,7 +182,7 @@ F ReflectanceIntegrator::ResolveChannels         | ReflectanceIntegrator.h | 270
     in    Placements     const std::vector<ChannelPlacement>&  [-]  where each channel sits among the resolved components
     in    Reconstructed  const ReconstructedSurface&           [-]  the pixel's reconstructed attributes
     in    Tolerance      double                                [-]  the flattening tolerance for the level being shaded
-    out   -              Outcome                               [-]  carries whatever the resolution refused
+    out   -              Deliver                               [-]  carries whatever the resolution refused
     by    Source/ReflectanceIntegrator.cpp
     note  🔴 `18` §9's fifth gate: each selection declares its channels and **unread channels are not
     note  🔴 A channel a material declares but does not sample resolves to its **declared default** and never
@@ -216,7 +216,7 @@ F ReflectanceIntegrator::IntegrateAmbient        | ReflectanceIntegrator.h | 321
     in    ViewY                 double                                                [-]  ?
     in    ViewZ                 double                                                [-]  ?
     in    ResolvedOcclusion[-]  `60`'s ambient term at this pixel, already upsampled  [-]  ?
-    out   -                     Outcome                                               [-]  carries `28`'s refusal where the atmosphere stands and no surface does
+    out   -                     Deliver                                               [-]  carries `28`'s refusal where the atmosphere stands and no surface does
     by    Source/ReflectanceIntegrator.cpp
     note  🔴 The diffuse ambient reads `28`'s **cosine-convolved irradiance** rather than integrating the
     note  🔴 Channel 6 and `60`'s resolved term **multiply** — `18` §5 and `60` §2, from both sides.
@@ -231,7 +231,7 @@ F ReflectanceIntegrator::IntegrateUnoccupied     | ReflectanceIntegrator.h | 340
     in    Blue        double&                      [-]  ?
     in    ViewY       -                            [-]  ?
     in    ViewZ       -                            [-]  ?
-    out   -           Outcome                      [-]  carries `28`'s refusal
+    out   -           Deliver                      [-]  carries `28`'s refusal
     by    Source/ReflectanceIntegrator.cpp
     note  🔴 Reconstructs **no attribute** and reads **no material**. It samples one source and writes it,
 

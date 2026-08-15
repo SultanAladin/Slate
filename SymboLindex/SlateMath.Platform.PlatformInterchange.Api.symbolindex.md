@@ -42,7 +42,7 @@ T PlatformInterchange                      | PlatformInterchange.h | 43-91 | own
     note  🔴 Every routine here is a translation and not a policy. `34` decides how many workers to construct;
 
 F PlatformInterchange::Resolve             | PlatformInterchange.h | 52    | api,nonthrowing               | 🚩 | Reads the host report, once, and holds it for the run.
-    out   -  Outcome  [-]  refuses with HostDenied when the host declines to describe itself
+    out   -  Deliver  [-]  refuses with HostDenied when the host declines to describe itself
     post  Report returns the same reading for the rest of the run
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
 
@@ -57,12 +57,12 @@ F PlatformInterchange::DeclareThreadName   | PlatformInterchange.h | 66    | api
     note  ⚠️ Advisory. A host that declines to record the name is not a failure — `34`'s workers run
 
 F PlatformInterchange::ExecutableDirectory | PlatformInterchange.h | 75    | api,nonthrowing               | 🚩 | The directory the running executable sits in, with a trailing separator. working directory instead makes the engine start only when launched from one place, which is the defect every debugger's default working directory reproduces on the first run.
-    out   -  Outcome  [-]  refuses with HostDenied when the host declines to report the path
+    out   -  Deliver  [-]  refuses with HostDenied when the host declines to report the path
     by    Source/PlatformInterchange.cpp
     note  📝 `06`'s `ShaderCodec` finds its lowered streams beside the executable. Deriving that from the
 
 F PlatformInterchange::RetainedDirectory   | PlatformInterchange.h | 85    | api,nonthrowing               | 🚩 | The directory the host sets aside for this application's own retained content. executable's own directory is not writable by the artist running it, and the failure appears first on the machine that installed the application properly.
     in    ApplicationName  const char*  [-]  the leaf directory; created when it does not yet exist
-    out   -                Outcome      [-]  refuses with HostDenied when the host declines
+    out   -                Deliver      [-]  refuses with HostDenied when the host declines
     by    Source/PlatformInterchange.cpp
     note  🔴 Retained content never goes beside the executable. On two of the three operating systems the

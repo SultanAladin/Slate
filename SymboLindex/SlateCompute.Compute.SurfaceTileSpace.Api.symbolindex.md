@@ -60,19 +60,19 @@ T CellAddress                           | SurfaceTileSpace.h | 84-89   | nonallo
 
 F OrdinalOf                             | SurfaceTileSpace.h | 95      | api,nonthrowing               | ✔️ | The single ordinal one address occupies.
     in    Addressed  CellAddress  [-]  ?
-    out   -          Outcome      [-]  refuses with ContentUnsupported outside the level or its cell span
+    out   -          Deliver      [-]  refuses with ContentUnsupported outside the level or its cell span
     by    Api/RenderSchedule.h, Source/ImpressionSequence.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/SurfaceTileSpace.cpp
 
 F AddressOf                             | SurfaceTileSpace.h | 101     | api,nonthrowing               | ✔️ | The address one ordinal names.
     in    CellOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome        [-]  refuses with ContentUnsupported outside the span
+    out   -            Deliver        [-]  refuses with ContentUnsupported outside the span
     by    Source/ImpressionSequence.cpp, Source/SurfaceTileSpace.cpp
 
 F OrdinalAt                             | SurfaceTileSpace.h | 112     | api,nonthrowing               | ✔️ | The cell one domain position falls in, at a declared level. strictly inside the domain with a gap, so a position outside it is an apron read at the domain edge and the edge cell is the right answer for it.
     in    Level           std::uint32_t  [-]  ?
     in    PositionAlong   double         [-]  the domain's first axis, in the unit square
     in    PositionAcross  double         [-]  its second
-    out   -               Outcome        [-]  refuses with ContentUnsupported outside the level count
+    out   -               Deliver        [-]  refuses with ContentUnsupported outside the level count
     by    Source/SurfaceTileSpace.cpp
     note  📝 A position outside the unit square is clamped rather than refused. `68` §5 packs every chart
 
@@ -107,12 +107,12 @@ F CellSpace::Construct                  | SurfaceTileSpace.h | 148     | api,non
 
 F CellSpace::Held                       | SurfaceTileSpace.h | 154     | api,nonthrowing               | ✔️ | One record, for reading.
     in    CellOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome        [-]  refuses with ContentUnsupported outside the span
+    out   -            Deliver        [-]  refuses with ContentUnsupported outside the span
     by    Api/AnalyticProjection.h, Api/SampleIntegrator.h, Api/SurfaceDepot.h, Api/TransmissionSequence.h, Shared/AtmosphereProjection.slang.h, Source/AnalyticProjection.cpp, (+56 more)
 
 F CellSpace::Amend                      | SurfaceTileSpace.h | 160     | api,nonthrowing               | ✔️ | One record, for amending.
     in    CellOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome        [-]  refuses with ContentUnsupported outside the span
+    out   -            Deliver        [-]  refuses with ContentUnsupported outside the span
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
 
 F CellSpace::Records                    | SurfaceTileSpace.h | 165     | api,nonallocating,nonthrowing | ✔️ | Every record, in ordinal order.
@@ -171,7 +171,7 @@ F SurfaceTileSpace::Construct           | SurfaceTileSpace.h | 237     | api,non
     in    SurfaceOrdinal  std::uint32_t  [-]  which surface demands name
     in    BytesPerTexel   std::uint32_t  [B]  the channel set this surface writes, as a width
     in    SlotCeiling     std::uint32_t  [-]  tiles the backing extent holds
-    out   -               Outcome        [-]  refuses with ContentUnsupported for a width of zero, and with ExtentExhausted
+    out   -               Deliver        [-]  refuses with ContentUnsupported for a width of zero, and with ExtentExhausted
     post  the permanent levels are resident and their aprons are owed
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
     note  🔴 The ceiling is checked against the permanent levels before anything is claimed. A surface whose
@@ -182,7 +182,7 @@ F SurfaceTileSpace::Sample              | SurfaceTileSpace.h | 253     | api,non
     in    PositionAcross   double         [-]  its second
     in    RotationOrdinal  std::uint64_t  [-]  the rotation sampling
     in    Requesting       RequestQueue&  [-]  where the demand is recorded
-    out   -                Outcome        [-]  refuses with ContentUnsupported outside the level count, and with
+    out   -                Deliver        [-]  refuses with ContentUnsupported outside the level count, and with
     post  🔴 a resident cell is always resolved; the permanent levels guarantee it
     by    Api/AtmosphereIntegrator.h, Api/InputExchange.h, Api/ReflectanceIntegrator.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, (+4 more)
     note  🔴 `20` §5: this never stalls. It walks from the requested level toward coarser until a resident
@@ -190,14 +190,14 @@ F SurfaceTileSpace::Sample              | SurfaceTileSpace.h | 253     | api,non
 F SurfaceTileSpace::SampleGuaranteed    | SurfaceTileSpace.h | 266     | api,nonthrowing               | ✔️ | Resolves a domain position from the permanently resident levels alone, demanding nothing. stall on residency has made the whole image wait for a leaf, so the cutout coverage test reads only what is guaranteed and demands nothing at all.
     in    PositionAlong   double   [-]  ?
     in    PositionAcross  double   [-]  ?
-    out   -               Outcome  [-]  refuses with HostDenied before Construct has delivered
+    out   -               Deliver  [-]  refuses with HostDenied before Construct has delivered
     by    Source/SurfaceTileSpace.cpp
     note  🔴 `16` §3.1 ③'s read, and the reason it is a separate routine. A visibility recording that could
 
 F SurfaceTileSpace::DeclareUncommitted  | SurfaceTileSpace.h | 279     | api,nonthrowing               | ✔️ | Declares whether one cell holds paint no transaction has sealed. non-resident cell is declared uncommitted stroke's Open and withdraws it at Seal, at which point the paint is in `56` and the tile is a projection again. blocks eviction, and this is the only thing in the engine that blocks one — so the gate holds by there being exactly one door and `82` not walking through it.
     in    CellOrdinal          std::uint32_t  [-]  ?
     in    UncommittedDeclared  bool           [-]  ?
-    out   -                    Outcome        [-]  refuses with ContentUnsupported outside the span, and with HostDenied when a
+    out   -                    Deliver        [-]  refuses with ContentUnsupported outside the span, and with HostDenied when a
     by    Source/ImpressionSequence.cpp, Source/SurfaceTileSpace.cpp
     note  🔴 `20` §5 and `22` §4: no tile holding uncommitted paint is evicted. `22` declares it at the
     note  ⚠️ `82`'s speculative extents never call this. `22` §4.1 declares that a speculative extent never
@@ -208,7 +208,7 @@ F SurfaceTileSpace::Promote             | SurfaceTileSpace.h | 299     | api,non
     in    ContentRevision  std::uint64_t         [-]  the revision the tile would be resolved from
     in    Scheduling       PromotionScheduler&   [-]  the rotation's budget and eviction ordering
     in    RotationOrdinal  std::uint64_t         [-]  the rotation promoting
-    out   -                Outcome               [-]  refuses with ContentUnsupported outside the span, and with HostDenied
+    out   -                Deliver               [-]  refuses with ContentUnsupported outside the span, and with HostDenied
     post  a promoted or re-resolved cell owes its apron; the caller writes it and declares it
     by    Source/SurfaceTileSpace.cpp
     note  🔴 `70` §2's comparison, discharged here: a resident cell whose recorded revision equals the
@@ -216,14 +216,14 @@ F SurfaceTileSpace::Promote             | SurfaceTileSpace.h | 299     | api,non
 
 F SurfaceTileSpace::DeclareApronWritten | SurfaceTileSpace.h | 313     | api,nonthrowing               | ✔️ | Declares one promoted cell's apron written. non-resident cell promotion path that forgot to write one is caught by `ResidencyValid` rather than by an artist finding a seam in a painted result.
     in    CellOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome        [-]  refuses with ContentUnsupported outside the span, and with HostDenied for a
+    out   -            Deliver        [-]  refuses with ContentUnsupported outside the span, and with HostDenied for a
     by    Source/SurfaceTileSpace.cpp
     note  🔴 `20` §5: every resident tile carries a written apron. Declared rather than assumed, so a
 
 F SurfaceTileSpace::Evict               | SurfaceTileSpace.h | 319     | api,nonthrowing               | ✔️ | Evicts one resident cell, releasing its slot into quarantine.
     in    CellOrdinal      std::uint32_t  [-]  ?
     in    RotationOrdinal  std::uint64_t  [-]  ?
-    out   -                Outcome        [-]  refuses with ContentUnsupported for a permanent, uncommitted or absent cell
+    out   -                Deliver        [-]  refuses with ContentUnsupported for a permanent, uncommitted or absent cell
     by    Api/SurfaceDepot.h, Source/SurfaceDepot.cpp, Source/SurfaceTileSpace.cpp
 
 F SurfaceTileSpace::Reconcile           | SurfaceTileSpace.h | 327     | api,nonthrowing               | 🚩 | Reclaims quarantined slots whose release is older than the rotation depth. would make the rotation's first promotions evict against a ledger that is about to free itself.
@@ -273,7 +273,7 @@ F SurfaceTileSpace::ResidencyValid      | SurfaceTileSpace.h | 350     | api,non
 F SurfaceTileSpace::ClaimOrEvict        | SurfaceTileSpace.h | 354     | -                             | -  | ?
     in    Scheduling       PromotionScheduler&     [-]  ?
     in    RotationOrdinal  std::uint64_t           [-]  ?
-    out   -                Outcome<std::uint32_t>  [-]  ?
+    out   -                Deliver<std::uint32_t>  [-]  ?
     by    Source/SurfaceTileSpace.cpp
 
 F SLATE_DECLARES_PRECISION              | SurfaceTileSpace.h | 366     | -                             | -  | ?

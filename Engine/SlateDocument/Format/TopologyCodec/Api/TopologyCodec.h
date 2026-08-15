@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "SlateDocument/Document/AssetInterchange/Api/AssetInterchange.h"
 
@@ -55,7 +55,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
 /// 🧩 Translates one polygon stream into the topology it contained, repaired in no respect.
 /// in    Stream      [-]  the whole stream, as `StorageExchange` drained it
 /// in    OriginPath  [-]  where it was read from; carried into the record and used to classify the layout
-/// out   Outcome     [-]  refuses with ContentUnsupported for an unrecognised layout or a stream the parser
+/// out   Deliver     [-]  refuses with ContentUnsupported for an unrecognised layout or a stream the parser
 ///                        declined, and with ExtentExhausted for a stream carrying no face at all
 /// err   never throws; the vendored parser's allocation is released on every path out
 /// cost  🔴
@@ -71,7 +71,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
 ///        assumption at intake. Materials referenced through an external library are not read — the codec
 ///        translates the stream it was handed — but each face still carries the enrollment its directives set.
 /// tag   api, nonthrowing
-Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath);
+Deliver<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded,
                          PrecisionGuarantee::Bounded,

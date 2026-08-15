@@ -53,20 +53,20 @@ bool PrecedesInIdentity(OccupantIdentity Earlier, OccupantIdentity Later)
 //                                                     THE UNPROJECTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
+Deliver<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
                                         double                  PointerAlong,
                                         double                  PointerAcross,
                                         std::uint32_t           DisplayAlong,
                                         std::uint32_t           DisplayAcross)
 {
     if (DisplayAlong == 0u || DisplayAcross == 0u)
-        return Outcome<ProjectedRay>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero" });
+        return Deliver<ProjectedRay>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero" });
 
     // 🔴 A camera owing a reconciliation refuses. `46` §7 makes `Reconcile` the only writer of the derivation,
     //    and casting through the standing one aims the ray where the artist was looking before they moved.
     if (Camera.DerivationOwed())
     {
-        return Outcome<ProjectedRay>::Refuse(
+        return Deliver<ProjectedRay>::Refuse(
             { RefusalReason::HostDenied, "the camera owes a reconciliation; its projection is stale" });
     }
 
@@ -78,7 +78,7 @@ Outcome<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
 
     if (AlongScale == 0.0 || AcrossScale == 0.0)
     {
-        return Outcome<ProjectedRay>::Refuse(
+        return Deliver<ProjectedRay>::Refuse(
             { RefusalReason::ContentUnsupported, "the projection resolves no interior on one axis" });
     }
 
@@ -128,7 +128,7 @@ Outcome<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
     Ray.DirectionY = DirectionY;
     Ray.DirectionZ = DirectionZ;
 
-    return Outcome<ProjectedRay>::Deliver(Ray);
+    return Deliver<ProjectedRay>::Deliver(Ray);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -153,10 +153,10 @@ std::size_t PointerIntersection::Located(OccupantIdentity Subject) const
     return Lower;
 }
 
-Outcome<bool> PointerIntersection::Admit(const AdmittedSurface& Arriving)
+Deliver<bool> PointerIntersection::Admit(const AdmittedSurface& Arriving)
 {
     if (!Arriving.Occupant.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity admits nothing" });
+        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity admits nothing" });
 
     // 🔴 Confirmed here rather than at the hit. A run one corner short reads past its end at whichever triangle
     //    happens to touch the last corner, which is a pick that is correct almost everywhere — and the artist
@@ -164,7 +164,7 @@ Outcome<bool> PointerIntersection::Admit(const AdmittedSurface& Arriving)
     if (Arriving.Imported != nullptr && Arriving.CornerCoordinates != nullptr
      && static_cast<std::uint32_t>(Arriving.CornerCoordinates->size()) != Arriving.Imported->CornerCount())
     {
-        return Outcome<bool>::Refuse(
+        return Deliver<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the coordinate run carries a corner count the topology does not" });
     }
 
@@ -175,32 +175,32 @@ Outcome<bool> PointerIntersection::Admit(const AdmittedSurface& Arriving)
     else
         Surfaces.insert(Surfaces.begin() + static_cast<std::ptrdiff_t>(Located_), Arriving);
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<bool> PointerIntersection::Withdraw(OccupantIdentity Subject)
+Deliver<bool> PointerIntersection::Withdraw(OccupantIdentity Subject)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ >= Surfaces.size() || !(Surfaces[Located_].Occupant == Subject))
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
+        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
 
     Surfaces.erase(Surfaces.begin() + static_cast<std::ptrdiff_t>(Located_));
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
-Outcome<const AdmittedSurface*> PointerIntersection::Standing(OccupantIdentity Subject) const
+Deliver<const AdmittedSurface*> PointerIntersection::Standing(OccupantIdentity Subject) const
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ >= Surfaces.size() || !(Surfaces[Located_].Occupant == Subject))
     {
-        return Outcome<const AdmittedSurface*>::Refuse(
+        return Deliver<const AdmittedSurface*>::Refuse(
             { RefusalReason::IdentityStale, "the occupant is not admitted here" });
     }
 
-    return Outcome<const AdmittedSurface*>::Deliver(&Surfaces[Located_]);
+    return Deliver<const AdmittedSurface*>::Deliver(&Surfaces[Located_]);
 }
 
 std::uint32_t PointerIntersection::AdmittedCount() const
@@ -240,7 +240,7 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
     Pointed.Position          = Met.Position;
     Pointed.Resolved          = true;
 
-    const Outcome<const AdmittedSurface*> Admitted = Standing(Met.Occupant);
+    const Deliver<const AdmittedSurface*> Admitted = Standing(Met.Occupant);
 
     if (!Admitted.ContentPresent || Admitted.Resolve()->Imported == nullptr)
         return Pointed;
@@ -270,7 +270,7 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
 
     const double PerpLength = std::sqrt(PerpX * PerpX + PerpY * PerpY + PerpZ * PerpZ);
 
-    const Outcome<AdmittedOccupant> Occupying = Subdivision.Standing(Met.Occupant);
+    const Deliver<AdmittedOccupant> Occupying = Subdivision.Standing(Met.Occupant);
 
     if (PerpLength > 0.0 && Occupying.ContentPresent)
     {
@@ -312,13 +312,13 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
     //    extent outward and a rotated placement's extent is larger than the placement — the extent alone would
     //    pick a decal whose corner the cursor is beside, and `26` §5 outlines the placement rather than its
     //    extent, so the two would disagree about what the artist selected.
-    const Outcome<std::uint32_t> Contained =
+    const Deliver<std::uint32_t> Contained =
         Surfaced.Placements->Resolve(Pointed.DomainAlong, Pointed.DomainAcross);
 
     if (!Contained.ContentPresent)
         return Pointed;
 
-    const Outcome<const PlacementSpecification*> Placed = Placements.Resolve(Contained.Resolve());
+    const Deliver<const PlacementSpecification*> Placed = Placements.Resolve(Contained.Resolve());
 
     if (!Placed.ContentPresent)
         return Pointed;
@@ -474,7 +474,7 @@ std::vector<OccupantIdentity> PointerIntersection::ResolveExtent(const CameraPro
 
     for (const OccupantIdentity& Candidate : Candidates)
     {
-        const Outcome<AdmittedOccupant> Occupying = Subdivision.Standing(Candidate);
+        const Deliver<AdmittedOccupant> Occupying = Subdivision.Standing(Candidate);
 
         if (!Occupying.ContentPresent)
             continue;

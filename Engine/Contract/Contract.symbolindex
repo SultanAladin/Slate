@@ -7,13 +7,13 @@
 %scope    layer
 %path     Engine/Contract
 %folders  1
-%symbols  84
+%symbols  85
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
-I Contract | Contract/Contract.symbolindex | 84 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
+I Contract | Contract/Contract.symbolindex | 85 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -32,14 +32,15 @@ A SurfaceIdentity             | Contract/IdentityContract.h  | 70      | ?
 A RecordingIdentity           | Contract/IdentityContract.h  | 71      | ?
 A WorkIdentity                | Contract/IdentityContract.h  | 72      | ?
 A LayerIdentity               | Contract/IdentityContract.h  | 73      | ?
-E RefusalReason               | Contract/OutcomeContract.h   | 19-29   | Why a computation declined to deliver content. Absence without one of these is never reported.
-T Refusal                     | Contract/OutcomeContract.h   | 45-49   | One reported refusal — the reason, plus static text naming the operand it applies to.
-T Outcome                     | Contract/OutcomeContract.h   | 58-97   | Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
-F Outcome::Deliver            | Contract/OutcomeContract.h   | 69-75   | Constructs a delivered outcome around content the computation produced.
-F Outcome::Refuse             | Contract/OutcomeContract.h   | 81-87   | Constructs a refused outcome carrying the reason the content is absent.
-F Outcome::Resolve            | Contract/OutcomeContract.h   | 93-96   | Reads the delivered content.
-E TerminationCause            | Contract/OutcomeContract.h   | 107-111 | Which of the two terminating conditions ended an iteration. that converged, and the ambiguity propagates upward as an unexplained artefact.
-T ConvergentResult            | Contract/OutcomeContract.h   | 115-122 | The result of a Convergent computation. Never returned as a bare approximation.
+E RefusalReason               | Contract/DeliveryContract.h   | 19-29   | Why a computation declined to deliver content. Absence without one of these is never reported.
+T Refusal                     | Contract/DeliveryContract.h   | 45-49   | One reported refusal — the reason, plus static text naming the operand it applies to.
+T ContentDelivery             | Contract/DeliveryContract.h  | 58-97   | Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
+F ContentDelivery::Deliver    | Contract/DeliveryContract.h  | 69-75   | Constructs a delivered result around content the computation produced.
+F ContentDelivery::Refuse     | Contract/DeliveryContract.h  | 81-87   | Constructs a refused result carrying the reason the content is absent.
+F ContentDelivery::Resolve    | Contract/DeliveryContract.h  | 93-96   | Reads the delivered content.
+A Deliver                     | Contract/DeliveryContract.h  | 103-104 | Public spelling for content delivered or refused across one fallible call.
+E TerminationCause            | Contract/DeliveryContract.h  | 114-118 | Which of the two terminating conditions ended an iteration. that converged, and the ambiguity propagates upward as an unexplained artefact.
+T ConvergentResult            | Contract/DeliveryContract.h  | 123-129 | The result of a Convergent computation. Never returned as a bare approximation.
 E PrecisionGuarantee          | Contract/PrecisionContract.h | 21-27   | The guarantee a computation claims about its result. A greater ordinal is a weaker guarantee.
 F Weaken                      | Contract/PrecisionContract.h | 39-44   | Returns the weaker of two guarantees, which is the one carrying the greater ordinal.
 F WeakestOf                   | Contract/PrecisionContract.h | 51-61   | Folds every consumed guarantee down to the weakest one present in the list.

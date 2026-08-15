@@ -78,13 +78,13 @@ F DocumentSession::Journal                | DocumentSession.h | 79      | -     
 F DocumentSession::DeclareStorage         | DocumentSession.h | 87      | api,nonthrowing               | ✔️ | Declares where this session's document lives, and where its journal is written beside it.
     in    DeclaredPath  const std::string&  [-]  UTF-8; the document's location
     in    JournalPath   const std::string&  [-]  UTF-8; the journal's own location
-    out   -             Outcome             [-]  refuses with ContentUnsupported when either path is empty
+    out   -             Deliver             [-]  refuses with ContentUnsupported when either path is empty
     by    Source/DocumentSession.cpp
 
 F DocumentSession::Seal                   | DocumentSession.h | 101     | api,nonthrowing               | 🚩 | Captures everything a save reads, from sealed state only — `48` §3. ExtentExhausted when a transaction is open half-finished drag on their behalf commits an edit they had not decided to keep, and it would land in `RevisionSequence` where they can only undo it after the fact. this knows the session; a session that encoded would be a second place the layout is written.
     in    Encoded   const std::vector<std::uint8_t>&  [-]   the document as `FormatCodec` wrote it; sealed transactions only
     in    SealedAt  std::uint64_t                     [ns]  the tick's reading at capture
-    out   -         Outcome                           [-]   refuses with ContentUnsupported when no storage location is declared, and with
+    out   -         Deliver                           [-]   refuses with ContentUnsupported when no storage location is declared, and with
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, (+19 more)
     note  🔴 An open transaction refuses the capture rather than being sealed by it. Sealing someone's
     note  📝 The encoding is handed in rather than performed here. `10`'s codecs know the stream layout and
@@ -163,39 +163,39 @@ T SessionIndex                            | DocumentSession.h | 192-271 | owning
     note  🔴 Sessions are held behind pointers so that opening or closing one does not move the others. Every
 
 F SessionIndex::Open                      | DocumentSession.h | 207     | api,nonthrowing               | 🚩 | Opens one session and issues the ordinal that addresses it. reference file mid-stroke would otherwise lose the workspace they were painting in.
-    out   -  Outcome  [-]  refuses with ExtentExhausted at the ceiling
+    out   -  Deliver  [-]  refuses with ExtentExhausted at the ceiling
     post  the new session is presented when it is the first one, and is otherwise not
     by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+20 more)
     note  📝 Opening a second document does not steal the display from the first. An artist importing a
 
 F SessionIndex::Close                     | DocumentSession.h | 216     | api,nonthrowing               | 🚩 | Closes one session, discarding everything held only while it was open. the answer is a conversation with the artist and this component cannot have one.
     in    SessionOrdinal  std::uint32_t  [-]  ?
-    out   -               Outcome        [-]  refuses with ExtentExhausted outside the open count
+    out   -               Deliver        [-]  refuses with ExtentExhausted outside the open count
     post  the presented ordinal moves to another open session, or to none when this was the last
     by    Api/HardwareMetrics.h, Source/DocumentSession.cpp, Source/HardwareMetrics.cpp
     note  ⚠️ Nothing here asks whether amendments stand. `48` §4 makes that the caller's question, because
 
 F SessionIndex::Resolve                   | DocumentSession.h | 222     | api,nonthrowing               | ✔️ | One open session.
     in    SessionOrdinal  std::uint32_t  [-]  ?
-    out   -               Outcome        [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
+    out   -               Deliver        [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+94 more)
 
 F SessionIndex::Resolve                   | DocumentSession.h | 223     | -                             | -  | ?
     in    SessionOrdinal  std::uint32_t                    [-]  ?
-    out   -               Outcome<const DocumentSession*>  [-]  ?
+    out   -               Deliver<const DocumentSession*>  [-]  ?
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+94 more)
 
 F SessionIndex::DeclarePresented          | DocumentSession.h | 229     | api,nonthrowing               | ✔️ | Declares which session the interface presents — `14` presents one at a time.
     in    SessionOrdinal  std::uint32_t  [-]  ?
-    out   -               Outcome        [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
+    out   -               Deliver        [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
     by    Source/DocumentSession.cpp
 
 F SessionIndex::Presenting                | DocumentSession.h | 235     | api,nonthrowing               | ✔️ | The session the interface presents.
-    out   -  Outcome  [-]  refuses with ExtentExhausted when no session is open
+    out   -  Deliver  [-]  refuses with ExtentExhausted when no session is open
     by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/OutlinerPanel.cpp, Source/RevisionPanel.cpp
 
 F SessionIndex::Presenting                | DocumentSession.h | 236     | -                             | -  | ?
-    out   -  Outcome<const DocumentSession*>  [-]  ?
+    out   -  Deliver<const DocumentSession*>  [-]  ?
     by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/OutlinerPanel.cpp, Source/RevisionPanel.cpp
 
 F SessionIndex::PresentedOrdinal          | DocumentSession.h | 241     | api,nonallocating,nonthrowing | ✔️ | Which ordinal is presented; the ceiling when nothing is open.
@@ -204,7 +204,7 @@ F SessionIndex::PresentedOrdinal          | DocumentSession.h | 241     | api,no
 
 F SessionIndex::Located                   | DocumentSession.h | 249     | api,nonthrowing               | 🚩 | The most recently opened session naming one storage location. journals against it, and §4.1's pairing then cannot say which one recovers it.
     in    StoragePath  const std::string&  [-]  ?
-    out   -            Outcome             [-]  refuses with ExtentExhausted when no open session holds that path
+    out   -            Deliver             [-]  refuses with ExtentExhausted when no open session holds that path
     by    Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+26 more)
     note  📝 What an open-file action asks before opening a second copy. Two sessions over one file are two
 

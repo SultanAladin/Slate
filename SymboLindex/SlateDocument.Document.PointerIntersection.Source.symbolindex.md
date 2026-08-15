@@ -49,7 +49,7 @@ F ProjectPointerRay                  | PointerIntersection.cpp | 56-132  | - | -
     in    PointerAcross  double                   [-]  ?
     in    DisplayAlong   std::uint32_t            [-]  ?
     in    DisplayAcross  std::uint32_t            [-]  ?
-    out   -              Outcome<ProjectedRay>    [-]  ?
+    out   -              Deliver<ProjectedRay>    [-]  ?
     by    Api/PointerIntersection.h, Source/ConsoleHost.cpp, Source/SpatialManipulator.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -62,15 +62,15 @@ F PointerIntersection::Located       | PointerIntersection.cpp | 138-154 | - | -
 
 F PointerIntersection::Admit         | PointerIntersection.cpp | 156-179 | - | - | ?
     in    Arriving  const AdmittedSurface&  [-]  ?
-    out   -         Outcome<bool>           [-]  ?
+    out   -         Deliver<bool>           [-]  ?
 
 F PointerIntersection::Withdraw      | PointerIntersection.cpp | 181-191 | - | - | ?
     in    Subject  OccupantIdentity  [-]  ?
-    out   -        Outcome<bool>     [-]  ?
+    out   -        Deliver<bool>     [-]  ?
 
 F PointerIntersection::Standing      | PointerIntersection.cpp | 193-204 | - | - | ?
     in    Subject  OccupantIdentity                 [-]  ?
-    out   -        Outcome<const AdmittedSurface*>  [-]  ?
+    out   -        Deliver<const AdmittedSurface*>  [-]  ?
 
 F PointerIntersection::AdmittedCount | PointerIntersection.cpp | 206-209 | - | - | ?
     out   -  std::uint32_t  [-]  ?

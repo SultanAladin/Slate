@@ -52,13 +52,13 @@ F ShaderCodec::~ShaderCodec       | ShaderCodec.h | 62      | destructor        
 F ShaderCodec::Construct          | ShaderCodec.h | 70      | api,nonthrowing           | ✔️ | Takes the device and the directory the build lowered its streams into.
     in    Exchange         const VulkanExchange&  [-]  the created device; borrowed and outlives this component
     in    StreamDirectory  const std::string&     [-]  where `<Unit>/<Stem>.spv` is found; the build's output, never a source directory
-    out   -                Outcome                [-]  refuses with CapabilityAbsent when no device is active
+    out   -                Deliver                [-]  refuses with CapabilityAbsent when no device is active
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+62 more)
 
 F ShaderCodec::Resolve            | ShaderCodec.h | 80      | api,nonthrowing           | 🔴 | Reads one lowered stream, verifies it, and constructs the vendor module from it. ContentUnsupported when it is not SPIR-V or its length is not a whole word count
     in    UnitName    const std::string&  [-]  the unit the stream was lowered under, for example "SlateVulkan"
     in    StreamStem  const std::string&  [-]  the source's stem without its extension, for example "VisibilitySurface"
-    out   -           Outcome             [-]  the module ordinal; refuses with HostDenied when the stream cannot be read,
+    out   -           Deliver             [-]  the module ordinal; refuses with HostDenied when the stream cannot be read,
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  A stream already read is not read twice; the standing ordinal is delivered instead.
 
@@ -66,7 +66,7 @@ F ShaderCodec::Stage              | ShaderCodec.h | 92      | api,nonthrowing   
     in    ModuleOrdinal  std::uint32_t                            [-]  a module this component resolved
     in    Reading        VkShaderStageFlagBits                    [-]  which stage the module is read as
     in    Fixed          const std::vector<SpecialisedConstant>&  [-]  the constants; empty declares no specialisation
-    out   -              Outcome                                  [-]  refuses with ContentUnsupported for an unresolved ordinal
+    out   -              Deliver                                  [-]  refuses with ContentUnsupported for an unresolved ordinal
     by    Api/VisibilityRaster.h, Source/ImageSpace.cpp, Source/ProgramIndex.cpp, Source/ShaderCodec.cpp, Source/VisibilityRaster.cpp
     note  🔴 The specialisation declaration is held **here** and not returned by value. The vendor reads it
 
@@ -93,5 +93,5 @@ T ShaderCodec::HeldModule         | ShaderCodec.h | 113-118 | -                 
 
 F ShaderCodec::ReadStream         | ShaderCodec.h | 122     | -                         | -  | Reads one whole file into a word run, refusing rather than truncating.
     in    StreamPath  const std::string&  [-]  ?
-    out   -           Outcome             [-]  refuses with HostDenied when it cannot be opened or read whole
+    out   -           Deliver             [-]  refuses with HostDenied when it cannot be opened or read whole
     by    Api/FileInterchange.h, Source/FileInterchange.cpp, Source/ShaderCodec.cpp

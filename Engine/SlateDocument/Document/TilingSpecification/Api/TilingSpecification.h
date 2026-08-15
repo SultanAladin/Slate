@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/CombineContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 #include "Shared/LatticeProjection.slang.h"
@@ -40,7 +40,7 @@ struct LatticeSpecification
     std::uint32_t  RotationIncrement       = 0u;      // [-] - quarter turns per step of the cell schedule
 
     /// 🧩 Whether the lattice can be classified at all.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a non-positive extent, for an extent finer than
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a non-positive extent, for an extent finer than
     ///                     one texel of the maximum working extent, and for both offset progressions at once
     /// note  🔴 Both progressions together are refused rather than resolved in a declared order. A row
     ///        displacement depending on the column and a column displacement depending on the row have no
@@ -48,7 +48,7 @@ struct LatticeSpecification
     ///        what `70` does at every promotion.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Validate() const;
+    Deliver<bool> Validate() const;
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -146,27 +146,27 @@ class TilingSpecification
 public:
 
     /// 🧩 Declares the lattice, validated before it is held.
-    /// out   Outcome  [-]  carries the lattice's own refusal
+    /// out   Deliver  [-]  carries the lattice's own refusal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareLattice(const LatticeSpecification& Declaring);
+    Deliver<bool> DeclareLattice(const LatticeSpecification& Declaring);
 
     /// 🧩 Appends one content element to the cell, at the end of the ordering.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a non-positive scale, for a colour declaring no
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a non-positive scale, for a colour declaring no
     ///                     space, and for a nested source in a tiling that is already nested
     /// note  🔴 `54` §3: nesting is bounded at `TilingNestingCeiling`. A weave whose thread is itself a weave is
     ///        where the complexity artists want lives; unbounded nesting makes resolution cost unbounded, and
     ///        `20` §2.2's evaluation-cost budget cannot bound what it cannot predict.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareContent(const CellContent& Declaring);
+    Deliver<bool> DeclareContent(const CellContent& Declaring);
 
     /// 🧩 Declares how cells differ.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a declared span of zero, and for an inverted
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a declared span of zero, and for an inverted
     ///                     variation interval
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareVariation(const VariationSpecification& Declaring);
+    Deliver<bool> DeclareVariation(const VariationSpecification& Declaring);
 
     /// 🧩 Declares this tiling as nested inside another, which bars it from nesting one itself.
     /// note  Recorded here rather than checked by the holder, so that a tiling admitted into a cell can refuse a
@@ -178,13 +178,13 @@ public:
     /// 🧩 Classifies one domain position into its cell.
     /// in    PositionAlong   [-]  the domain's first axis
     /// in    PositionAcross  [-]  its second
-    /// out   Outcome         [-]  refuses with ContentUnsupported while no valid lattice is declared
+    /// out   Deliver         [-]  refuses with ContentUnsupported while no valid lattice is declared
     /// note  🔴 Classification goes through `02` §5's `LatticeProjection` in `Shared/`, at Tier A, and never
     ///        through arithmetic written here. `54` §5's gate is that the host and the device agree about which
     ///        cell a position falls in, and two implementations of one boundary are two that will disagree.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<ClassifiedCell> Classify(double PositionAlong, double PositionAcross) const;
+    Deliver<ClassifiedCell> Classify(double PositionAlong, double PositionAcross) const;
 
     const LatticeSpecification&     Lattice() const;
     const std::vector<CellContent>& Content() const;
@@ -223,32 +223,32 @@ class TilingIndex
 public:
 
     /// 🧩 Declares one tiling and issues its ordinal.
-    /// out   Outcome  [-]  refuses with ExtentExhausted at the declared ceiling
+    /// out   Deliver  [-]  refuses with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Declare();
+    Deliver<std::uint32_t> Declare();
 
     /// 🧩 One declared tiling, for reading.
-    /// out   Outcome  [-]  refuses with ContentUnsupported outside the declared count
+    /// out   Deliver  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const TilingSpecification*> Resolve(std::uint32_t TilingOrdinal) const;
+    Deliver<const TilingSpecification*> Resolve(std::uint32_t TilingOrdinal) const;
 
     /// 🧩 One declared tiling, for amending.
-    /// out   Outcome  [-]  refuses with ContentUnsupported outside the declared count
+    /// out   Deliver  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<TilingSpecification*> Amend(std::uint32_t TilingOrdinal);
+    Deliver<TilingSpecification*> Amend(std::uint32_t TilingOrdinal);
 
     /// 🧩 Nests one tiling inside a cell of another, at the declared bound.
     /// in    EnclosingOrdinal  [-]  the tiling whose cell carries it
     /// in    NestedOrdinal     [-]  the tiling being nested
-    /// out   Outcome           [-]  refuses with ContentUnsupported for an unknown ordinal, for a tiling nested
+    /// out   Deliver           [-]  refuses with ContentUnsupported for an unknown ordinal, for a tiling nested
     ///                              inside itself, and for a nesting that would exceed `TilingNestingCeiling`
     /// post  the nested tiling refuses a nested element of its own from this point
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Nest(std::uint32_t EnclosingOrdinal, std::uint32_t NestedOrdinal);
+    Deliver<bool> Nest(std::uint32_t EnclosingOrdinal, std::uint32_t NestedOrdinal);
 
     std::uint32_t DeclaredCount() const;
 

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateDocument/Document/SurfaceLayerSequence/Api/SurfaceLayerSequence.h"
 
 #include <cstdint>
@@ -137,12 +137,12 @@ class PromotionScheduler
 public:
 
     /// 🧩 Declares what one rotation may spend.
-    /// out   Outcome  [-]  refuses with ContentUnsupported when both measures are zero
+    /// out   Deliver  [-]  refuses with ContentUnsupported when both measures are zero
     /// note  A budget of zero on one measure alone is admitted deliberately: a document with no analytic
     ///        content genuinely has no evaluation to bound, and refusing it would force a fictitious number.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareBudget(const PromotionBudget& Declaring);
+    Deliver<bool> DeclareBudget(const PromotionBudget& Declaring);
 
     /// 🧩 Declares which ordering eviction follows.
     /// cost  ✔️
@@ -150,14 +150,14 @@ public:
     void DeclareOrdering(EvictionOrdering Declaring);
 
     /// 🧩 Opens one rotation, restoring the whole budget.
-    /// out   Outcome  [-]  refuses with HostDenied when the rotation is not later than the one last opened
+    /// out   Deliver  [-]  refuses with HostDenied when the rotation is not later than the one last opened
     /// note  🔴 The budget is per rotation and is restored here rather than accumulated. A budget that carried
     ///        its unspent remainder forward would let a still workspace bank several rotations of promotion and
     ///        spend them all on the rotation the artist finally moved — which is precisely the stall the budget
     ///        exists to prevent.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> OpenRotation(std::uint64_t RotationOrdinal);
+    Deliver<bool> OpenRotation(std::uint64_t RotationOrdinal);
 
     /// 🧩 Whether a cost fits what remains of this rotation.
     /// cost  ✔️
@@ -165,11 +165,11 @@ public:
     bool Admits(const PromotionCost& Costing) const;
 
     /// 🧩 Charges a cost against what remains.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when it does not fit
+    /// out   Deliver  [-]  refuses with ExtentExhausted when it does not fit
     /// post  a refused charge spends nothing
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Charge(const PromotionCost& Costing);
+    Deliver<bool> Charge(const PromotionCost& Costing);
 
     /// 🧩 Records that one promotion was deferred — `86` §5's measure row for `20` §2.2.
     /// note  🔴 A measure and **not** a report. `86` §5: deferral against budget is ordinary operation, and a

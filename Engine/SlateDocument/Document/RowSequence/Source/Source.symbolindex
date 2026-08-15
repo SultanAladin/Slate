@@ -37,11 +37,11 @@ F RankIndex::CountedBefore       | RowSequence.cpp | 64-76   | - | - | ?
 
 F RankIndex::RowAtVisible        | RowSequence.cpp | 78-107  | - | - | ?
     in    VisibleOrdinal  std::uint32_t           [-]  ?
-    out   -               Outcome<std::uint32_t>  [-]  ?
+    out   -               Deliver<std::uint32_t>  [-]  ?
 
 F RankIndex::VisibleOfRow        | RowSequence.cpp | 109-121 | - | - | ?
     in    RowOrdinal  std::uint32_t           [-]  ?
-    out   -           Outcome<std::uint32_t>  [-]  ?
+    out   -           Deliver<std::uint32_t>  [-]  ?
 
 F RankIndex::CountedTotal        | RowSequence.cpp | 123-126 | - | - | ?
     out   -  std::uint32_t  [-]  ?
@@ -58,7 +58,7 @@ F AppendReversed                 | RowSequence.cpp | 137-159 | - | - | ?
 
 F RowSequence::Linearize         | RowSequence.cpp | 163-233 | - | - | ?
     in    Relations  const SceneStructure&  [-]  ?
-    out   -          Outcome<bool>          [-]  ?
+    out   -          Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                EXPANSION AND NARROWING
@@ -72,12 +72,12 @@ F RowSequence::Recount           | RowSequence.cpp | 248-276 | - | - | ?
 F RowSequence::DeclareExpansion  | RowSequence.cpp | 278-293 | - | - | ?
     in    Subject           OccupantIdentity  [-]  ?
     in    ExpansionEnabled  bool              [-]  ?
-    out   -                 Outcome<bool>     [-]  ?
+    out   -                 Deliver<bool>     [-]  ?
 
 F RowSequence::DeclareNarrowing  | RowSequence.cpp | 295-331 | - | - | ?
     in    Retained           const std::vector<OccupantIdentity>&  [-]  ?
     in    NarrowingDeclared  bool                                  [-]  ?
-    out   -                  Outcome<bool>                         [-]  ?
+    out   -                  Deliver<bool>                         [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
@@ -91,7 +91,7 @@ F RowSequence::Counted           | RowSequence.cpp | 342-345 | - | - | ?
 
 F RowSequence::RowOf             | RowSequence.cpp | 347-358 | - | - | ?
     in    Subject  OccupantIdentity        [-]  ?
-    out   -        Outcome<std::uint32_t>  [-]  ?
+    out   -        Deliver<std::uint32_t>  [-]  ?
 
 F RowSequence::NarrowingStanding | RowSequence.cpp | 360-363 | - | - | ?
     out   -  bool  [-]  ?

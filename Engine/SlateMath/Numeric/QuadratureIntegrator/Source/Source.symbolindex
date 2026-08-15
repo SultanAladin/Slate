@@ -24,7 +24,7 @@ S QuadratureIntegrator.cpp | 131 lines | dcb70f82 | 6 sym | Newton on the Legend
 
 F QuadratureRule::Derive        | QuadratureIntegrator.cpp | 17-84   | - | - | ?
     in    Requested  std::uint32_t  [-]  ?
-    out   -          Outcome<bool>  [-]  ?
+    out   -          Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
@@ -44,7 +44,7 @@ F QuadratureRule::Project       | QuadratureIntegrator.cpp | 100-119 | - | - | ?
     in    Upper      double         [-]  ?
     in    Position   double&        [-]  ?
     in    Weighting  double&        [-]  ?
-    out   -          Outcome<bool>  [-]  ?
+    out   -          Deliver<bool>  [-]  ?
 
 F QuadratureRule::DeclaredCount | QuadratureIntegrator.cpp | 121-124 | - | - | ?
     out   -  std::uint32_t  [-]  ?

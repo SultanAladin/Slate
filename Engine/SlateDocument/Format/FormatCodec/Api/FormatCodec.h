@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 
@@ -49,11 +49,11 @@ struct DeclaredMigration
 
 /// 🧩 Reads a document stream's heading and reports whether a migration path reaches the current version.
 /// in    Heading  [-]  the heading as the stream carried it
-/// out   Outcome  [-]  refuses with VersionUnmigratable when no declared chain reaches CurrentStreamVersion
+/// out   Deliver  [-]  refuses with VersionUnmigratable when no declared chain reaches CurrentStreamVersion
 /// note  A codec translates a stream and does nothing else. It does not condition what it decoded and does
 ///       not decide whether the result is fit to use.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Outcome<std::uint32_t> ResolveMigration(const StreamHeading& Heading);
+Deliver<std::uint32_t> ResolveMigration(const StreamHeading& Heading);
 
 }   // namespace Slate

@@ -100,7 +100,7 @@ F TopologyConditioning::DeriveExtents        | TopologyConditioning.cpp | 635-69
 
 F TopologyConditioning::Condition            | TopologyConditioning.cpp | 702-727 | - | - | ?
     in    Imported  const TopologyStructure&  [-]  ?
-    out   -         Outcome<bool>             [-]  ?
+    out   -         Deliver<bool>             [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
@@ -108,11 +108,11 @@ F TopologyConditioning::Condition            | TopologyConditioning.cpp | 702-72
 
 F TopologyConditioning::WeldedPosition       | TopologyConditioning.cpp | 733-742 | - | - | ?
     in    VertexOrdinal  std::uint32_t           [-]  ?
-    out   -              Outcome<std::uint32_t>  [-]  ?
+    out   -              Deliver<std::uint32_t>  [-]  ?
 
 F TopologyConditioning::AdjacentCorner       | TopologyConditioning.cpp | 744-756 | - | - | ?
     in    CornerOrdinal  std::uint32_t           [-]  ?
-    out   -              Outcome<std::uint32_t>  [-]  ?
+    out   -              Deliver<std::uint32_t>  [-]  ?
 
 F TopologyConditioning::FaceEnrolled         | TopologyConditioning.cpp | 758-761 | - | - | ?
     in    FaceOrdinal  std::uint32_t      [-]  ?

@@ -28,7 +28,7 @@ V DistinctColourDeparture                | IntersectionOutline.cpp | 24      | -
 
 F IntersectionOutline::Declare           | IntersectionOutline.cpp | 28-75   | - | - | ?
     in    Outlining_  const OutlineSpecification&  [-]  ?
-    out   -           Outcome<bool>                [-]  ?
+    out   -           Deliver<bool>                [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORDING
@@ -36,7 +36,7 @@ F IntersectionOutline::Declare           | IntersectionOutline.cpp | 28-75   | -
 
 F IntersectionOutline::Contribute        | IntersectionOutline.cpp | 81-109  | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE ENROLMENT
@@ -47,7 +47,7 @@ F IntersectionOutline::ClassifyEnrolment | IntersectionOutline.cpp | 115-134 | -
     in    Visibility   const VisibilityIndex&           [-]  ?
     in    Resolutions  const PartitionResolutionIndex&  [-]  ?
     in    Enrollments  const EnrollmentIndex&           [-]  ?
-    out   -            Outcome<bool>                    [-]  ?
+    out   -            Deliver<bool>                    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE COVERAGE
@@ -73,7 +73,7 @@ F IntersectionOutline::DashStanding      | IntersectionOutline.cpp | 158-169 | -
 
 F IntersectionOutline::OutlineColour     | IntersectionOutline.cpp | 175-186 | - | - | ?
     in    Occluded  bool                          [-]  ?
-    out   -         Outcome<ColourSpecification>  [-]  ?
+    out   -         Deliver<ColourSpecification>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REPORTING

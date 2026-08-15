@@ -21,10 +21,10 @@ namespace Frontier
 namespace
 {
 
-void ReportVulkanResult(const char* Where, VkResult Outcome)
+void ReportVulkanResult(const char* Where, VkResult Deliver)
 {
-    if (Outcome != VK_SUCCESS)
-        ISSUE_FAULT("vulkan", "%s failed (VkResult %d)", Where, (int)Outcome);
+    if (Deliver != VK_SUCCESS)
+        ISSUE_FAULT("vulkan", "%s failed (VkResult %d)", Where, (int)Deliver);
 }
 
 #ifdef FRONTIER_VULKAN_VALIDATION
@@ -179,10 +179,10 @@ bool InitializeVulkanHost(VulkanHost&  Host,
     InstanceInfo.enabledLayerCount       = (uint32_t)Layers.size();
     InstanceInfo.ppEnabledLayerNames     = Layers.empty() ? nullptr : Layers.data();
 
-    VkResult Outcome = vkCreateInstance(&InstanceInfo, Host.Allocator, &Host.Instance);
-    if (Outcome != VK_SUCCESS)
+    VkResult Deliver = vkCreateInstance(&InstanceInfo, Host.Allocator, &Host.Instance);
+    if (Deliver != VK_SUCCESS)
     {
-        ReportVulkanResult("vkCreateInstance", Outcome);
+        ReportVulkanResult("vkCreateInstance", Deliver);
         return false;
     }
 
@@ -196,9 +196,9 @@ bool InitializeVulkanHost(VulkanHost&  Host,
         {
             VkDebugUtilsMessengerCreateInfoEXT MessengerInfo;
             DescribeValidationMessenger(MessengerInfo);
-            Outcome = ConstructMessenger(Host.Instance, &MessengerInfo, Host.Allocator, &Host.ValidationSignalBroadcaster);
-            if (Outcome != VK_SUCCESS)
-                ISSUE_CAUTION("vulkan", "debug messenger creation failed (VkResult %d) — validation output unrouted", (int)Outcome);
+            Deliver = ConstructMessenger(Host.Instance, &MessengerInfo, Host.Allocator, &Host.ValidationSignalBroadcaster);
+            if (Deliver != VK_SUCCESS)
+                ISSUE_CAUTION("vulkan", "debug messenger creation failed (VkResult %d) — validation output unrouted", (int)Deliver);
         }
         else
         {
@@ -331,10 +331,10 @@ bool InitializeVulkanHost(VulkanHost&  Host,
     DeviceInfo.ppEnabledExtensionNames = DeviceExtensions.data();
     DeviceInfo.pEnabledFeatures        = &EnabledFeatures;
 
-    Outcome = vkCreateDevice(Host.PhysicalDevice, &DeviceInfo, Host.Allocator, &Host.Device);
-    if (Outcome != VK_SUCCESS)
+    Deliver = vkCreateDevice(Host.PhysicalDevice, &DeviceInfo, Host.Allocator, &Host.Device);
+    if (Deliver != VK_SUCCESS)
     {
-        ReportVulkanResult("vkCreateDevice", Outcome);
+        ReportVulkanResult("vkCreateDevice", Deliver);
         return false;
     }
     vkGetDeviceQueue(Host.Device, Host.GraphicsQueueFamily, 0, &Host.GraphicsQueue);
@@ -381,10 +381,10 @@ bool InitializeVulkanHost(VulkanHost&  Host,
     PoolInfo.poolSizeCount = (uint32_t)(sizeof(PoolSizes) / sizeof(PoolSizes[0]));
     PoolInfo.pPoolSizes    = PoolSizes;
 
-    Outcome = vkCreateDescriptorPool(Host.Device, &PoolInfo, Host.Allocator, &Host.ImguiDescriptorPool);
-    if (Outcome != VK_SUCCESS)
+    Deliver = vkCreateDescriptorPool(Host.Device, &PoolInfo, Host.Allocator, &Host.ImguiDescriptorPool);
+    if (Deliver != VK_SUCCESS)
     {
-        ReportVulkanResult("vkCreateDescriptorPool", Outcome);
+        ReportVulkanResult("vkCreateDescriptorPool", Deliver);
         return false;
     }
 

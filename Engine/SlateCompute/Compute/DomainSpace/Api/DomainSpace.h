@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 
@@ -75,7 +75,7 @@ public:
     /// 🧩 Arranges every chart into the unit domain, disjoint and gapped.
     /// in    Extents      [-]  one entry per chart, in its own flattened units
     /// in    CommonScale  [-]  true packs at one scale; false is `68` §10's open row and is refused
-    /// out   Outcome      [-]  refuses with ContentUnsupported for a per-chart scale, and with ExtentExhausted
+    /// out   Deliver      [-]  refuses with ContentUnsupported for a per-chart scale, and with ExtentExhausted
     ///                         when no scale admits every chart
     /// note  📐 The common scale is solved by bisection over a deterministic shelf packing: the ordering is by
     ///        unscaled height and then by ordinal, both scale-invariant, so the same charts arrange identically
@@ -83,7 +83,7 @@ public:
     ///        differently at each bisection step and the search would not converge to anything reproducible.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Arrange(const std::vector<ChartExtent>& Extents, bool CommonScale);
+    Deliver<bool> Arrange(const std::vector<ChartExtent>& Extents, bool CommonScale);
 
     /// 🧩 The placements, in the order the extents were supplied.
     /// cost  ✔️

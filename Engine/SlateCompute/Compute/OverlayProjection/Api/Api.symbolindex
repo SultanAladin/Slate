@@ -64,7 +64,7 @@ T OverlayProjection                    | OverlayProjection.h | 93-178 | owning  
 F OverlayProjection::Declare           | OverlayProjection.h | 116    | api,nonthrowing               | ✔️ | Declares how one overlay is drawn. that is not a coordinate in the display space, an extent of nothing, and a depth offset declared on an overlay whose recording tests no depth between here and the display surface compresses, so such a colour would be presented as display code without ever crossing `36` — an overlay in a plausible but wrong hue rather than a visible mistake. as an offset that had no effect, and the caller then raises it until something else breaks.
     in    Presented  OverlaySubject               [-]  which of `80` §3's seven overlays
     in    Declaring  const OverlaySpecification&  [-]  its display-space colour, its display-pixel extent, and its depth offset
-    out   -          Outcome                      [-]  refuses with ContentUnsupported for the closed count, an undeclared colour, a colour
+    out   -          Deliver                      [-]  refuses with ContentUnsupported for the closed count, an undeclared colour, a colour
     post  the overlay is declared and its recording draws it wherever `76` says it is present
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 A working-referred colour is refused rather than admitted. Both recordings run after `66` and nothing
@@ -72,7 +72,7 @@ F OverlayProjection::Declare           | OverlayProjection.h | 116    | api,nont
 
 F OverlayProjection::Contribute        | OverlayProjection.h | 130    | api,nonthrowing               | ✔️ | Contributes both of `08` §3's overlay recordings — ⑩ depth-tested, ⑪ depth-free. overlay has been declared behaviours would have to switch depth state per primitive, which is the merge both documents refuse. one another. ⑪ amends neither depth nor anything else beyond the display. inputs and compressed with the radiance, which is §2's failure exactly.
     in    Schedule  RenderSchedule&  [-]  where the two declarations land
-    out   -         Outcome          [-]  refuses with whatever the schedule refused, and with ContentUnsupported before any
+    out   -         Deliver          [-]  refuses with whatever the schedule refused, and with ContentUnsupported before any
     by    Api/DisplayProjection.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/ReflectanceIntegrator.h, Api/RenderSchedule.h, Api/SampleIntegrator.h, (+13 more)
     note  🔴 **Two** declarations, never one. `08` §3.2 and `80` §5's first gate: a single recording carrying both
     note  🔴 ⑩ amends `DepthSurface` as well as `DisplaySurface` — `08` §2 — because depth-tested overlays occlude
@@ -94,7 +94,7 @@ F OverlayProjection::RecordingOccupied | OverlayProjection.h | 152    | api,nona
 
 F OverlayProjection::Specification     | OverlayProjection.h | 159    | api,nonthrowing               | ✔️ | How one declared overlay is drawn.
     in    Presented  OverlaySubject  [-]  which overlay
-    out   -          Outcome         [-]  refuses with ContentUnsupported for the closed count and for an overlay never declared
+    out   -          Deliver         [-]  refuses with ContentUnsupported for the closed count and for an overlay never declared
     by    Api/CameraProjection.h, Api/OcclusionProjection.h, Api/SampleIntegrator.h, Api/SpecularProjection.h, Api/UvSurfaceDepot.h, Source/CameraProjection.cpp, (+5 more)
 
 F OverlayProjection::Report            | OverlayProjection.h | 169    | api,nonthrowing               | 🚩 | Declares how many overlays each recording drew; appends nothing. a report each rotation would mean the register is never quiet — `86` §2's own rule.

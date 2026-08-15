@@ -14,11 +14,11 @@ namespace Slate
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ViewportSequence::Construct(const InterfaceAttachment& Arriving,
+Deliver<bool> ViewportSequence::Construct(const InterfaceAttachment& Arriving,
                                           const DrawerDeclaration&   North,
                                           const DrawerDeclaration&   South)
 {
-    const Outcome<bool> InterfaceBuilt = Interface.Construct(Arriving);
+    const Deliver<bool> InterfaceBuilt = Interface.Construct(Arriving);
     if (!InterfaceBuilt.ContentPresent)
         return InterfaceBuilt;
 
@@ -26,22 +26,22 @@ Outcome<bool> ViewportSequence::Construct(const InterfaceAttachment& Arriving,
     SouthDeclared = South;
     Resolved      = Resolve(1.0);
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE TICK
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
+Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
 {
     // ① Open the ImGui frame.
-    const Outcome<bool> TickOpened = Interface.Advance();
+    const Deliver<bool> TickOpened = Interface.Advance();
     if (!TickOpened.ContentPresent)
         return TickOpened;
 
     // ② Adopt the surface — reads pointer and display from ImGui IO.
-    const Outcome<bool> SurfaceAdopted = SurfaceOwned.Adopt();
+    const Deliver<bool> SurfaceAdopted = SurfaceOwned.Adopt();
     if (!SurfaceAdopted.ContentPresent)
     {
         Interface.Abandon();
@@ -55,7 +55,7 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     // ④ Construct the drawers on the first tick, when the display extent is known.
     if (!DrawersConstructed)
     {
-        const Outcome<bool> DrawersBuilt =
+        const Deliver<bool> DrawersBuilt =
             DrawersOwned.Construct(Motion, Resolved, NorthDeclared, SouthDeclared, Display);
 
         if (!DrawersBuilt.ContentPresent)
@@ -82,7 +82,7 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     Motion.Advance(ElapsedMilliseconds > 0.0 ? ElapsedMilliseconds : Display.Elapsed);
 
     PanelsOpen = false;
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 void ViewportSequence::RecordDrawers()
@@ -96,24 +96,24 @@ void ViewportSequence::DrawerPanels()
     PanelsOpen = true;
 }
 
-Outcome<bool> ViewportSequence::SealPanels()
+Deliver<bool> ViewportSequence::SealPanels()
 {
     PanelsOpen = false;
     return Interface.Seal();
 }
 
-Outcome<bool> ViewportSequence::Abandon()
+Deliver<bool> ViewportSequence::Abandon()
 {
     PanelsOpen = false;
     return Interface.Abandon();
 }
 
-Outcome<bool> ViewportSequence::Renegotiate(std::uint32_t RotationDepth)
+Deliver<bool> ViewportSequence::Renegotiate(std::uint32_t RotationDepth)
 {
     return Interface.Renegotiate(RotationDepth);
 }
 
-Outcome<bool> ViewportSequence::Record(VkCommandBuffer CommandRecording)
+Deliver<bool> ViewportSequence::Record(VkCommandBuffer CommandRecording)
 {
     return Interface.Record(CommandRecording);
 }

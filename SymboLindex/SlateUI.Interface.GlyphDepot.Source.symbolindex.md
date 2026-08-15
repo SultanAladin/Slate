@@ -82,7 +82,7 @@ F GlyphDepot::~GlyphDepot        | GlyphDepot.cpp | 333-336 | destructor | - | ?
 
 F GlyphDepot::Construct          | GlyphDepot.cpp | 338-358 | -          | - | ?
     in    Arriving  const GlyphAttachment&  [-]  ?
-    out   -         Outcome<bool>           [-]  ?
+    out   -         Deliver<bool>           [-]  ?
 
 F GlyphDepot::Reclaim            | GlyphDepot.cpp | 360-398 | -          | - | ?
     out   -  void  [-]  ?
@@ -104,7 +104,7 @@ F GlyphDepot::ContentHash        | GlyphDepot.cpp | 404-426 | -          | - | ?
 F GlyphDepot::Upload             | GlyphDepot.cpp | 432-573 | -          | - | ?
     in    Declaring   const GlyphDeclaration&  [-]  ?
     in    RasterEdge  std::uint32_t            [-]  ?
-    out   -           Outcome<std::uint64_t>   [-]  ?
+    out   -           Deliver<std::uint64_t>   [-]  ?
 
 F GlyphDepot::Withdraw           | GlyphDepot.cpp | 575-606 | -          | - | ?
     in    ContentIdentity  std::uint64_t  [-]  ?
@@ -116,15 +116,15 @@ F GlyphDepot::Withdraw           | GlyphDepot.cpp | 575-606 | -          | - | ?
 
 F GlyphDepot::Declare            | GlyphDepot.cpp | 612-659 | -          | - | ?
     in    Declaring  const GlyphTier&  [-]  ?
-    out   -          Outcome<bool>     [-]  ?
+    out   -          Deliver<bool>     [-]  ?
 
 F GlyphDepot::Release            | GlyphDepot.cpp | 661-691 | -          | - | ?
     in    Releasing  const GlyphTier&  [-]  ?
-    out   -          Outcome<bool>     [-]  ?
+    out   -          Deliver<bool>     [-]  ?
 
 F GlyphDepot::Resolve            | GlyphDepot.cpp | 693-709 | -          | - | ?
     in    GlyphKey  const std::string&    [-]  ?
-    out   -         Outcome<GlyphHandle>  [-]  ?
+    out   -         Deliver<GlyphHandle>  [-]  ?
 
 F GlyphDepot::GlyphHeld          | GlyphDepot.cpp | 711-714 | -          | - | ?
     in    GlyphKey  const std::string&  [-]  ?
@@ -132,14 +132,14 @@ F GlyphDepot::GlyphHeld          | GlyphDepot.cpp | 711-714 | -          | - | ?
 
 F GlyphDepot::ResolveTextureSlot | GlyphDepot.cpp | 716-732 | -          | - | ?
     in    Presenting  GlyphHandle             [-]  ?
-    out   -           Outcome<std::uint64_t>  [-]  ?
+    out   -           Deliver<std::uint64_t>  [-]  ?
 
 F GlyphDepot::DeclaredEdge       | GlyphDepot.cpp | 734-737 | -          | - | ?
     out   -  std::uint32_t  [-]  ?
 
 F GlyphDepot::DeclareEdge        | GlyphDepot.cpp | 739-750 | -          | - | ?
     in    RasterEdge  std::uint32_t  [-]  ?
-    out   -           Outcome<bool>  [-]  ?
+    out   -           Deliver<bool>  [-]  ?
 
 F GlyphDepot::UploadedCount      | GlyphDepot.cpp | 752-755 | -          | - | ?
     out   -  std::uint32_t  [-]  ?

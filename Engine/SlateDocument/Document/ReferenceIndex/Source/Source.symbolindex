@@ -36,7 +36,7 @@ F SubjectSpelling                          | ReferenceIndex.cpp | 20-31   | - | 
 
 F ReferenceIndex::Declare                  | ReferenceIndex.cpp | 39-55   | - | - | ?
     in    Arriving  const DeclaredReference&  [-]  ?
-    out   -         Outcome<std::uint32_t>    [-]  ?
+    out   -         Deliver<std::uint32_t>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE STANDINGS
@@ -45,16 +45,16 @@ F ReferenceIndex::Declare                  | ReferenceIndex.cpp | 39-55   | - | 
 F ReferenceIndex::DeclareRetention         | ReferenceIndex.cpp | 61-79   | - | - | ?
     in    ReferenceOrdinal  std::uint32_t       [-]  ?
     in    Declaring         ReferenceRetention  [-]  ?
-    out   -                 Outcome<bool>       [-]  ?
+    out   -                 Deliver<bool>       [-]  ?
 
 F ReferenceIndex::DeclareResolved          | ReferenceIndex.cpp | 81-98   | - | - | ?
     in    ReferenceOrdinal  std::uint32_t  [-]  ?
     in    SpannedBytes      std::uint64_t  [-]  ?
-    out   -                 Outcome<bool>  [-]  ?
+    out   -                 Deliver<bool>  [-]  ?
 
 F ReferenceIndex::DeclareAbsent            | ReferenceIndex.cpp | 100-117 | - | - | ?
     in    ReferenceOrdinal  std::uint32_t  [-]  ?
-    out   -                 Outcome<bool>  [-]  ?
+    out   -                 Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REPORTING
@@ -74,7 +74,7 @@ F ReferenceIndex::Declared                 | ReferenceIndex.cpp | 148-151 | - | 
 
 F ReferenceIndex::Resolve                  | ReferenceIndex.cpp | 153-168 | - | - | ?
     in    OriginPath  const std::string&          [-]  ?
-    out   -           Outcome<DeclaredReference>  [-]  ?
+    out   -           Deliver<DeclaredReference>  [-]  ?
 
 F ReferenceIndex::DeclareTypefaceRetention | ReferenceIndex.cpp | 170-173 | - | - | ?
     in    Declaring  ReferenceRetention  [-]  ?

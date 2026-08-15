@@ -27,7 +27,7 @@ F Eliminate | LinearSolver.cpp | 27-152  | - | - | ?
     in    Standing      std::vector<double>&   [-]  ?
     in    Order         std::uint32_t          [-]  ?
     in    OrdinateRuns  std::uint32_t          [-]  ?
-    out   -             Outcome<SolvedSystem>  [-]  ?
+    out   -             Deliver<SolvedSystem>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE DENSE FORM
@@ -35,7 +35,7 @@ F Eliminate | LinearSolver.cpp | 27-152  | - | - | ?
 
 F Solve     | LinearSolver.cpp | 160-187 | - | - | ?
     in    Declaring  const DenseSystem&     [-]  ?
-    out   -          Outcome<SolvedSystem>  [-]  ?
+    out   -          Deliver<SolvedSystem>  [-]  ?
     by    Api/LinearSolver.h, Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/UnwrapSolver.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ F Solve     | LinearSolver.cpp | 160-187 | - | - | ?
 
 F Solve     | LinearSolver.cpp | 193-249 | - | - | ?
     in    Declaring  const SparseSystem&    [-]  ?
-    out   -          Outcome<SolvedSystem>  [-]  ?
+    out   -          Deliver<SolvedSystem>  [-]  ?
     by    Api/LinearSolver.h, Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/UnwrapSolver.cpp
 
 //------------------------------------------------------------------------------------------------------------------------

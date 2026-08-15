@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
 
 #include <cstdint>
@@ -189,12 +189,12 @@ public:
     /// 🧩 One measure's current reading.
     /// in    Origin    [-]  static text naming document and section
     /// in    Measured  [-]  static text naming the quantity
-    /// out   Outcome   [-]  refuses with ExtentExhausted when nothing has declared it
+    /// out   Deliver   [-]  refuses with ExtentExhausted when nothing has declared it
     /// note  An undeclared measure refuses rather than reading zero. `08` §5 rules the same for an unmeasurable
     ///        capability: a metric that reports zero when it could not be measured is confidently wrong.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<SampledMeasure> Resolve(const char* Origin, const char* Measured) const;
+    Deliver<SampledMeasure> Resolve(const char* Origin, const char* Measured) const;
 
     /// 🧩 Discards every held measure.
     /// cost  ✔️

@@ -51,7 +51,7 @@ F StagedPath                        | FileInterchange.cpp | 75-78   | - | - | ?
 
 F FileInterchange::Resolve          | FileInterchange.cpp | 86-161  | - | - | ?
     in    Path  const std::string&   [-]  ?
-    out   -     Outcome<PathReport>  [-]  ?
+    out   -     Deliver<PathReport>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE READ
@@ -59,7 +59,7 @@ F FileInterchange::Resolve          | FileInterchange.cpp | 86-161  | - | - | ?
 
 F FileInterchange::ReadStream       | FileInterchange.cpp | 167-245 | - | - | ?
     in    Path  const std::string&                  [-]  ?
-    out   -     Outcome<std::vector<std::uint8_t>>  [-]  ?
+    out   -     Deliver<std::vector<std::uint8_t>>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                              WRITE, VERIFY, THEN REPLACE
@@ -68,7 +68,7 @@ F FileInterchange::ReadStream       | FileInterchange.cpp | 167-245 | - | - | ?
 F FileInterchange::WriteStream      | FileInterchange.cpp | 251-364 | - | - | ?
     in    Path     const std::string&                [-]  ?
     in    Content  const std::vector<std::uint8_t>&  [-]  ?
-    out   -        Outcome<bool>                     [-]  ?
+    out   -        Deliver<bool>                     [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      DIRECTORIES
@@ -76,11 +76,11 @@ F FileInterchange::WriteStream      | FileInterchange.cpp | 251-364 | - | - | ?
 
 F FileInterchange::DeclareDirectory | FileInterchange.cpp | 370-417 | - | - | ?
     in    Path  const std::string&  [-]  ?
-    out   -     Outcome<bool>       [-]  ?
+    out   -     Deliver<bool>       [-]  ?
 
 F FileInterchange::Reclaim          | FileInterchange.cpp | 419-445 | - | - | ?
     in    Path  const std::string&  [-]  ?
-    out   -     Outcome<bool>       [-]  ?
+    out   -     Deliver<bool>       [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     PATH ASSEMBLY

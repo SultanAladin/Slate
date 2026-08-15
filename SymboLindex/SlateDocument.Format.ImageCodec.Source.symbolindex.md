@@ -77,5 +77,5 @@ F ClassifyContent            | ImageCodec.cpp | 81-104  | - | - | ?
 F Translate                  | ImageCodec.cpp | 110-229 | - | - | ?
     in    Stream      const std::vector<std::uint8_t>&  [-]  ?
     in    OriginPath  const std::string&                [-]  ?
-    out   -           Outcome<DecodedImage>             [-]  ?
+    out   -           Deliver<DecodedImage>             [-]  ?
     by    Api/ImageCodec.h, Api/SpatialManipulator.h, Api/TopologyCodec.h, Api/TypefaceCodec.h, Api/VectorCodec.h, Source/SpatialManipulator.cpp, (+3 more)

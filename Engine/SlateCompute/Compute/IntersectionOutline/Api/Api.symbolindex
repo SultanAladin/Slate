@@ -47,7 +47,7 @@ T IntersectionOutline                    | IntersectionOutline.h | 60-174 | owni
 
 F IntersectionOutline::Declare           | IntersectionOutline.h | 81     | api,nonthrowing               | ✔️ | Declares the width and the two renderings as one admission. undeclared colour, a colour that is not a coordinate in the display space, and two renderings that differ in neither colour nor dash outline to be visually distinct, and a specification that satisfies the gate in neither colour nor dash has silently withdrawn the only thing that says which part of a selection is behind something. a validated colour and what stands behind in one that was rejected.
     in    Outlining_  const OutlineSpecification&  [-]  the display-pixel width, the dash extent, and the two display-space colours
-    out   -           Outcome                      [-]  refuses with ContentUnsupported for a width of nothing, a negative dash extent, an
+    out   -           Deliver                      [-]  refuses with ContentUnsupported for a width of nothing, a negative dash extent, an
     post  the specification stands and every consumer below reads it
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 Two renderings that coincide are refused rather than admitted. `26` §2 requires the occluded
@@ -55,7 +55,7 @@ F IntersectionOutline::Declare           | IntersectionOutline.h | 81     | api,
 
 F IntersectionOutline::Contribute        | IntersectionOutline.h | 94     | api,nonthrowing               | ✔️ | Contributes `08` §3 ⑨'s recording — coverage into `OutlineSurface`, the outline over `DisplaySurface`. tone line, so an outline colour is display code already and the compression must never reach it. Declared scene-referred it would be ordered among `66`'s own inputs and compressed with them, and the artist meets that as a selection outline whose colour changes with the exposure. neither `VisibilityIndex` nor `OccupancySurface` — the outline is not an occupant and nothing downstream may resolve a pixel to it.
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome          [-]  refuses with whatever the schedule refused, and with ContentUnsupported before Declare
+    out   -         Deliver          [-]  refuses with whatever the schedule refused, and with ContentUnsupported before Declare
     by    Api/DisplayProjection.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/ReflectanceIntegrator.h, Api/RenderSchedule.h, Api/SampleIntegrator.h, (+13 more)
     note  🔴 Declared **display-referred**, unlike `66`. The recording amends the display surface after the
     note  🔴 Reads `16`'s visibility and the depth, produces the coverage, amends the display. It writes
@@ -65,7 +65,7 @@ F IntersectionOutline::ClassifyEnrolment | IntersectionOutline.h | 110    | api,
     in    Visibility   const VisibilityIndex&           [-]  where the partition ordinal is resolved to a partition identity
     in    Resolutions  const PartitionResolutionIndex&  [-]  `42`'s resolution; the only place a partition becomes an occupant
     in    Enrollments  const EnrollmentIndex&           [-]  `12`'s compressed enrolment
-    out   -            Outcome                          [-]  refuses with whatever `16` refused for an unoccupied pixel or a stale resolution
+    out   -            Deliver                          [-]  refuses with whatever `16` refused for an unoccupied pixel or a stale resolution
     by    Source/IntersectionOutline.cpp
     note  🔴 Two indexed lookups and one interval comparison — no search anywhere on this line. It runs once
     note  🔴 The comparison is Tier A and integer throughout: the ordinal, the identity and the enrolment
@@ -94,7 +94,7 @@ F IntersectionOutline::DashStanding      | IntersectionOutline.h | 149    | api,
 
 F IntersectionOutline::OutlineColour     | IntersectionOutline.h | 159    | api,nonthrowing               | ✔️ | The colour one outline pixel is recorded in. surface tone-maps, reflects or accumulates it — `26` §6's gate, and the whole reason the recording is ordered after `66`.
     in    Occluded  bool     [-]  as ClassifyOcclusion answered it
-    out   -         Outcome  [-]  refuses with ContentUnsupported before Declare
+    out   -         Deliver  [-]  refuses with ContentUnsupported before Declare
     by    Source/IntersectionOutline.cpp
     note  🔴 Delivered in the display space and recorded as it stands. Nothing between here and the display
 

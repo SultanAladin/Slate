@@ -25,12 +25,12 @@ S VectorInterchange.cpp | 215 lines | ad741152 | 16 sym | Declaration by either 
 F VectorInterchange::DeclareFromFile     | VectorInterchange.cpp | 17-28   | - | - | ?
     in    Arriving    const OutlineSpecification&  [-]  ?
     in    OriginPath  const std::string&           [-]  ?
-    out   -           Outcome<bool>                [-]  ?
+    out   -           Deliver<bool>                [-]  ?
 
 F VectorInterchange::DeclareFromText     | VectorInterchange.cpp | 30-41   | - | - | ?
     in    Arriving    const OutlineSpecification&  [-]  ?
     in    SourceText  const std::string&           [-]  ?
-    out   -           Outcome<bool>                [-]  ?
+    out   -           Deliver<bool>                [-]  ?
 
 F VectorInterchange::Refuse              | VectorInterchange.cpp | 43-51   | - | - | ?
     in    Construct      const std::string&  [-]  ?
@@ -76,7 +76,7 @@ F TypefaceInterchange::DeclareTypeface   | VectorInterchange.cpp | 141-145 | - |
 
 F TypefaceInterchange::DeclareGlyph      | VectorInterchange.cpp | 147-161 | - | - | ?
     in    Declaring  const GlyphSpecification&  [-]  ?
-    out   -          Outcome<bool>              [-]  ?
+    out   -          Deliver<bool>              [-]  ?
 
 F TypefaceInterchange::DeclareAdjustment | VectorInterchange.cpp | 163-182 | - | - | ?
     in    EarlierGlyph  std::uint32_t  [-]  ?
@@ -86,7 +86,7 @@ F TypefaceInterchange::DeclareAdjustment | VectorInterchange.cpp | 163-182 | - |
 
 F TypefaceInterchange::ResolveGlyph      | VectorInterchange.cpp | 184-194 | - | - | ?
     in    GlyphIdentity  std::uint32_t                       [-]  ?
-    out   -              Outcome<const GlyphSpecification*>  [-]  ?
+    out   -              Deliver<const GlyphSpecification*>  [-]  ?
 
 F TypefaceInterchange::Adjustment        | VectorInterchange.cpp | 196-205 | - | - | ?
     in    EarlierGlyph  std::uint32_t  [-]  ?

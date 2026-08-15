@@ -79,14 +79,14 @@ T EnrollmentIndex                     | EnrollmentIndex.h | 96-161 | owning     
 F EnrollmentIndex::Enrol              | EnrollmentIndex.h | 109    | api,nonthrowing               | 🚩 | Enrols one occupant in a subset. ContentUnsupported when a mutually exclusive subset already holds it no partial state behind. `12` §10 rejects at commit and resolves nothing silently.
     in    Subject         OccupantIdentity  [-]  the occupant
     in    EnrolledSubset  SubsetSubject     [-]  which subset
-    out   -               Outcome           [-]  refuses with IdentityStale for an undeclared identity, and with
+    out   -               Deliver           [-]  refuses with IdentityStale for an undeclared identity, and with
     by    Api/OutlinerSequence.h, Api/PopulationIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp, Source/PopulationIndex.cpp
     note  🔴 The exclusion refusal is decided before anything is written, so a rejected enrolment leaves
 
 F EnrollmentIndex::Unenrol            | EnrollmentIndex.h | 117    | api,nonthrowing               | 🚩 | Withdraws one occupant from a subset, dividing the run it sat inside.
     in    Subject         OccupantIdentity  [-]  the occupant
     in    EnrolledSubset  SubsetSubject     [-]  which subset
-    out   -               Outcome           [-]  refuses with IdentityStale when the occupant was not enrolled
+    out   -               Deliver           [-]  refuses with IdentityStale when the occupant was not enrolled
     by    Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp
 
 F EnrollmentIndex::UnenrolEverywhere  | EnrollmentIndex.h | 123    | api,nonthrowing               | 🚩 | Withdraws one occupant from every subset — the subset half of invariant 8.

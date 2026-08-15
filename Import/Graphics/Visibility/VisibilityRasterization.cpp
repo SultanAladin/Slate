@@ -303,10 +303,10 @@ bool ConstructRasterPipeline(VisibilityRasterization& Raster,
     PipelineInfo.pDynamicState       = &Dynamic;
     PipelineInfo.layout              = Raster.PipelineLayout;
 
-    VkResult Outcome = vkCreateGraphicsPipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Raster.Pipeline);
+    VkResult Deliver = vkCreateGraphicsPipelines(Host.Device, VK_NULL_HANDLE, 1, &PipelineInfo, Host.Allocator, &Raster.Pipeline);
     vkDestroyShaderModule(Host.Device, VertexModule, Host.Allocator);
     vkDestroyShaderModule(Host.Device, FragmentModule, Host.Allocator);
-    if (Outcome != VK_SUCCESS)
+    if (Deliver != VK_SUCCESS)
     {
         Raster.Pipeline = VK_NULL_HANDLE;
         ReportVisibilityRaster("graphics pipeline creation failed");

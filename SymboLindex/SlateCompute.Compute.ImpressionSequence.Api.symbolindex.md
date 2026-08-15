@@ -24,7 +24,7 @@ S ImpressionSequence.h | 315 lines | a92c3897 | 26 sym | A stroke as ordered imp
 
 F PaintingLevelOf                         | ImpressionSequence.h | 41      | api,nonallocating,nonthrowing | ✔️ | Which reduction level a declared working extent paints at. working extent. Resolving a stroke against a coarser level is not a lower-quality stroke, it is a stroke recorded at a resolution the artist did not choose, and no later promotion recovers it. `MaximumWorkingEdge >> L`. The level is therefore the base-two logarithm of the ratio, and an extent that is not one of the seven is refused rather than rounded to the nearest.
     in    WorkingExtent  std::uint32_t  [px]  texels per edge of the surface's authored content
-    out   -              Outcome        [-]   refuses with ContentUnsupported when no level has that extent
+    out   -              Deliver        [-]   refuses with ContentUnsupported when no level has that extent
     by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
     note  🔴 `22` §2: paint is authored content and lands at **one** level — the level whose texel grid is the
     note  📐 Level L holds `VirtualCellsPerEdge >> L` cells of `CoverageTileTexels` each, so its extent is
@@ -101,7 +101,7 @@ T SealedStroke                            | ImpressionSequence.h | 134-143 | own
 F Restore                                 | ImpressionSequence.h | 155     | api,nonthrowing               | 🔴 | Replays one sealed stroke's inverse, returning the touched extents to what stood before it. ContentUnsupported when its extent no longer matches the recorded one path with the values negated — a combination like `Multiply` has no negation, and `Erase` has no inverse expressible as an erase.
     in    Sealed   const SealedStroke&    [-]  as `Seal` produced it
     in    Content  SurfaceLayerSequence&  [-]  the sequence the stroke wrote into
-    out   -        Outcome                [-]  refuses with IdentityStale when the entry no longer resolves, and with
+    out   -        Deliver                [-]  refuses with IdentityStale when the entry no longer resolves, and with
     by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp
     note  🔴 This is the operation `RevisionSequence` replays at a backward scrub. It is not a second forward
 
@@ -135,14 +135,14 @@ T ImpressionSequence                      | ImpressionSequence.h | 170-307 | own
 F ImpressionSequence::Open                | ImpressionSequence.h | 191     | api,nonthrowing               | 🚩 | Opens a stroke against a declared brush. a working extent that is no reduction level, for a channel placement outside the entry's components, and for a shape source that is not yet resolvable fallback would be a stroke that does not have the silhouette the artist selected, and `58` §8 promises the preview and the committed impression share one shape.
     in    Declaring  const StrokeDeclaration&   [-]  the surface, the entry, the packing and the seed
     in    Brushed    const BrushSpecification&  [-]  `58`'s declaration; its parameters are recorded, not referenced — `58` §7
-    out   -          Outcome                    [-]  refuses with HostDenied when a stroke is already open, with ContentUnsupported for
+    out   -          Deliver                    [-]  refuses with HostDenied when a stroke is already open, with ContentUnsupported for
     post  nothing is recorded; the accumulation is empty and the path has not begun
     by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+20 more)
     note  🚧 An imagery or outline shape refuses here rather than falling back to an analytic profile. The
 
 F ImpressionSequence::Amend               | ImpressionSequence.h | 208     | api,nonthrowing               | 🚩 | Admits one arrival, resampling the path and emitting whatever impressions it reached. drawn quickly place the same impressions. `58` §5 makes spacing relative to the extent, so a brush resized keeps its character rather than becoming a dotted line. cannot come from the next, because the next impression's dynamics are read at a position the walk has not reached — and a spacing that depended on where it lands has no fixed point. walked distance and the spacing are accumulated, so an exact comparison decides the segment's last impression on the residue of the additions rather than on the path the artist drew.
     in    Arriving  const StrokeArrival&  [-]  the pointer sample, its arrival stamp, and `74`'s domain position
-    out   -         Outcome               [-]  refuses with HostDenied before Open, and with ExtentExhausted at the ceiling
+    out   -         Deliver               [-]  refuses with HostDenied before Open, and with ExtentExhausted at the ceiling
     post  the path advanced; zero or more impressions were appended, each owed resolution
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/MaterialSpecification.h, (+26 more)
     note  🔴 Resampling is in the **domain** at the brush's own spacing, so a stroke drawn slowly and one
@@ -153,7 +153,7 @@ F ImpressionSequence::Resolve             | ImpressionSequence.h | 228     | api
     in    Residency        SurfaceTileSpace&  [-]  the surface's cells and tiles
     in    Requesting       RequestQueue&      [-]  where a demand for a non-resident cell is recorded
     in    RotationOrdinal  std::uint64_t      [-]  the rotation resolving
-    out   -                Outcome            [-]  refuses with HostDenied before Open
+    out   -                Deliver            [-]  refuses with HostDenied before Open
     post  🔴 a deferred impression stays owed; nothing is dropped and nothing resolves coarse
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  🔴 `22` §2: an impression touching a non-resident cell **demands and defers**. It is not resolved
@@ -171,14 +171,14 @@ F ImpressionSequence::Seal                | ImpressionSequence.h | 254     | api
     in    Revised    RevisionSequence&      [-]   where the transaction is recorded
     in    Residency  SurfaceTileSpace&      [-]   the tiles pinned by the stroke, released here
     in    SealedAt   std::uint64_t          [ns]  the arrival stamp the transaction carries
-    out   -          Outcome                [-]   refuses with HostDenied before Open and for a speculative stroke, with
+    out   -          Deliver                [-]   refuses with HostDenied before Open and for a speculative stroke, with
     post  🔴 the accumulated coverage was applied **once**; every touched cell is committed again
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, (+19 more)
     note  🔴 One stroke is one transaction even where the brush wrote several channels — `22` §5. Undo
     note  ⚠️ A speculative stroke refuses. `22` §4.1: a speculative extent never commits, and a Seal that
 
 F ImpressionSequence::ReclaimSpeculative  | ImpressionSequence.h | 265     | api,nonthrowing               | 🚩 | Discards the accumulation without ending the stroke — a speculative extent's per-rotation reclaim. committed stroke, whose accumulation is the only record of what has been painted so far.
-    out   -  Outcome  [-]  refuses with HostDenied for a committed stroke
+    out   -  Deliver  [-]  refuses with HostDenied for a committed stroke
     by    Source/ConsoleHost.cpp, Source/ImpressionSequence.cpp, Source/PreviewProjection.cpp
     note  🔴 `22` §4.1: a speculative extent is discarded and re-resolved each rotation. Refuses for a
 
@@ -238,7 +238,7 @@ F ImpressionSequence::ResolveOne          | ImpressionSequence.h | 285     | -  
     in    Residency        SurfaceTileSpace&  [-]  ?
     in    Requesting       RequestQueue&      [-]  ?
     in    RotationOrdinal  std::uint64_t      [-]  ?
-    out   -                Outcome<bool>      [-]  ?
+    out   -                Deliver<bool>      [-]  ?
     by    Source/ImpressionSequence.cpp
 
 F SLATE_DECLARES_PRECISION                | ImpressionSequence.h | 313     | -                             | -  | ?

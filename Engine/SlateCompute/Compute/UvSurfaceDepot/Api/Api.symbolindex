@@ -56,7 +56,7 @@ T UvSurfaceDepot                | UvSurfaceDepot.h | 107-216 | owning           
 
 F UvSurfaceDepot::Declare       | UvSurfaceDepot.h | 125     | api,nonthrowing           | ✔️ | Declares the transfer parameters as one admission. mask, a domain extent of nothing, a criterion outside the unit interval, an iteration ceiling of nothing, and a rule outside the closed count reports no miss and no resolution and reads as a transfer that succeeded.
     in    Transferring_  const TransferSpecification&  [-]  the extent, the rule, the channels, the domain extent and the two Tier C figures
-    out   -              Outcome                       [-]  refuses with ContentUnsupported for a search extent of nothing, an empty channel
+    out   -              Deliver                       [-]  refuses with ContentUnsupported for a search extent of nothing, an empty channel
     post  the specification stands and the key below carries its ordinal
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  🔴 An empty channel mask is refused rather than admitted as a transfer of nothing. Admitted, it
@@ -65,7 +65,7 @@ F UvSurfaceDepot::KeyOf         | UvSurfaceDepot.h | 138     | api,nonthrowing  
     in    Source        const TopologyStructure&  [-]  the dense origin; its seal revision is the first field
     in    Working       const TopologyStructure&  [-]  the sparse destination carrying the domain
     in    Partitioning  const ChartPartition&     [-]  `68`'s standing partition, whose revision moves every domain position
-    out   -             Outcome                   [-]  refuses with ContentUnsupported before Declare, for an unsealed topology, and
+    out   -             Deliver                   [-]  refuses with ContentUnsupported before Declare, for an unsealed topology, and
     by    Source/UvSurfaceDepot.cpp
     note  🔴 The partition revision is the field most easily left out and leaving it out is the defect that
 
@@ -73,7 +73,7 @@ F UvSurfaceDepot::Correspond    | UvSurfaceDepot.h | 156     | api,nonthrowing  
     in    WorkingPosition     DocumentPosition          [mm]  the reconstructed position on the working topology
     in    WorkingOrientation  SurfaceDirection          [-]   its orientation, along which the angular rule measures
     in    Source              const TopologyStructure&  [-]   the dense topology searched
-    out   -                   Outcome                   [-]   refuses with ExtentExhausted where nothing stands within the extent, and
+    out   -                   Deliver                   [-]   refuses with ExtentExhausted where nothing stands within the extent, and
     by    Source/UvSurfaceDepot.cpp
     note  🔴 The extent test is `IntersectionClassifier`'s volume overlap at Tier A — `24` §2 and §5's second
     note  📝 The classification admits or rejects; the rule below then chooses among what it admitted. The two
@@ -93,7 +93,7 @@ F UvSurfaceDepot::Admit         | UvSurfaceDepot.h | 190     | api,nonthrowing  
     in    Keyed            const ContentKey&  [-]  as KeyOf produced it
     in    ByteExtent       std::uint64_t      [B]  what the result occupies
     in    RotationOrdinal  std::uint64_t      [-]  the rotation it was derived on
-    out   -                Outcome            [-]  refuses with whatever the depot refused
+    out   -                Deliver            [-]  refuses with whatever the depot refused
     by    Api/PointerIntersection.h, Api/RequestQueue.h, Api/SceneStructure.h, Api/SpatialSubdivision.h, Api/WorkSequence.h, Source/ConsoleHost.cpp, (+7 more)
     note  🔴 Declared as an analytic resolution and therefore reconstructible and evictable — `24` §5's last
 

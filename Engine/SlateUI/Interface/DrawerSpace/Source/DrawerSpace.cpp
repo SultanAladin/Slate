@@ -48,30 +48,30 @@ PlaneExtent Reach(const PlaneExtent& Exact)
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DrawerSpace::Construct(MotionIntegrator&              Integrator,
+Deliver<bool> DrawerSpace::Construct(MotionIntegrator&              Integrator,
                                      const AppearanceSpecification& Resolved,
                                      const DrawerDeclaration&       North,
                                      const DrawerDeclaration&       South,
                                      const DisplayCondition&        Arrived)
 {
     if (Arrived.ExtentAlong <= 0.0f || Arrived.ExtentAcross <= 0.0f)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display extent is not positive" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display extent is not positive" });
 
     if (Motion != nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the arrangement already stands" });
+        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the arrangement already stands" });
 
     // 📝 🔴 All four enrolments are attempted before any ordinal is retained. An integrator that declines
     //    the third delivers slot zero for it, and the south tongue would then drive the north drawer's
     //    across ordinate — a defect with no operand and no error.
-    const Outcome<std::uint32_t> NorthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
-    const Outcome<std::uint32_t> NorthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
-    const Outcome<std::uint32_t> SouthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
-    const Outcome<std::uint32_t> SouthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
+    const Deliver<std::uint32_t> NorthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
+    const Deliver<std::uint32_t> NorthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
+    const Deliver<std::uint32_t> SouthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
+    const Deliver<std::uint32_t> SouthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
 
     if (!NorthAcross.ContentPresent || !NorthTongue.ContentPresent ||
         !SouthAcross.ContentPresent || !SouthTongue.ContentPresent)
     {
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the integrator declined a drawer spring" });
+        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the integrator declined a drawer spring" });
     }
 
     Motion       = &Integrator;
@@ -94,7 +94,7 @@ Outcome<bool> DrawerSpace::Construct(MotionIntegrator&              Integrator,
     Seat(DrawerBearing::North, DrawerPose::Closed);
     Seat(DrawerBearing::South, DrawerPose::Closed);
 
-    return Outcome<bool>::Deliver(true);
+    return Deliver<bool>::Deliver(true);
 }
 
 void DrawerSpace::Reset()

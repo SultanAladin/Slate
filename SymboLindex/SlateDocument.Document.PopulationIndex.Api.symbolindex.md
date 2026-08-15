@@ -67,7 +67,7 @@ F PopulationIndex::Enrol         | PopulationIndex.h | 72     | api,nonthrowing 
 
 F PopulationIndex::Withdraw      | PopulationIndex.h | 80     | api,nonallocating,nonthrowing | ✔️ | Withdraws one occupant and advances the slot's generation.
     in    Subject  OccupantIdentity  [-]  the identity to withdraw
-    out   -        Outcome           [-]  refuses with IdentityStale when the identity no longer resolves
+    out   -        Deliver           [-]  refuses with IdentityStale when the identity no longer resolves
     post  every reference carrying the prior generation resolves to absent
     by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)
 

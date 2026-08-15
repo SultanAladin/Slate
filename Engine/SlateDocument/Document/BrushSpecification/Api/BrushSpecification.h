@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Contract/CombineContract.h"
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateDocument/Document/MaterialSpecification/Api/MaterialSpecification.h"
@@ -229,44 +229,44 @@ class BrushSpecification
 public:
 
     /// 🧩 Declares the impression shape.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an undeclared profile at an analytic source
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an undeclared profile at an analytic source
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareShape(const ImpressionShape& Declaring);
+    Deliver<bool> DeclareShape(const ImpressionShape& Declaring);
 
     /// 🧩 Declares the impression extent, in domain units.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a non-positive extent
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a non-positive extent
     /// note  🚧 `58` §11 and `22` §7 both carry whether the extent is declared in the domain or in screen terms.
     ///        It is the domain here, which is the answer that makes a stroke survive a change of working
     ///        resolution; the open row stands and nothing above reads a screen extent.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareExtent(double Extent);
+    Deliver<bool> DeclareExtent(double Extent);
 
     /// 🧩 Declares the spacing, bounded below by the declared floor.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for a non-positive spacing
+    /// out   Deliver  [-]  refuses with ContentUnsupported for a non-positive spacing
     /// post  the floor's having been reached is recorded, and is reported through `86` by `Report`
     /// note  🔴 The floor is applied and **said**, never applied silently — `58` §5. A brush quietly coarsened
     ///        below its declared spacing paints a stroke the artist did not ask for and cannot account for.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareSpacing(double RelativeSpacing);
+    Deliver<bool> DeclareSpacing(double RelativeSpacing);
 
     /// 🧩 Declares one channel and the value written to it.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour value
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour value
     ///                     declaring no space, and for a channel already declared
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareChannel(const BrushChannelValue& Declaring);
+    Deliver<bool> DeclareChannel(const BrushChannelValue& Declaring);
 
     /// 🧩 Declares one dynamic.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an undeclared progression, for an out-of-range
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an undeclared progression, for an out-of-range
     ///                     axis or parameter, and for a second dynamic on the same parameter
     /// note  🔴 One dynamic per parameter. Two dynamics driving one radius is two answers to one question, and
     ///        whichever the resolution applied second would win by accident of declaration order.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareDynamic(const DynamicSpecification& Declaring);
+    Deliver<bool> DeclareDynamic(const DynamicSpecification& Declaring);
 
     /// 🧩 Declares the combination this brush's strokes apply.
     /// cost  ✔️
@@ -341,13 +341,13 @@ public:
     /// 🧩 Declares one brush and issues its ordinal.
     /// in    Named    [-]  what the artist calls it; may be empty
     /// in    Grouping [-]  which grouping it is presented under; may be empty
-    /// out   Outcome  [-]  refuses with ExtentExhausted at the declared ceiling
+    /// out   Deliver  [-]  refuses with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Declare(const std::string& Named, const std::string& Grouping);
+    Deliver<std::uint32_t> Declare(const std::string& Named, const std::string& Grouping);
 
-    Outcome<const BrushSpecification*> Resolve(std::uint32_t BrushOrdinal) const;
-    Outcome<BrushSpecification*>       Amend(std::uint32_t BrushOrdinal);
+    Deliver<const BrushSpecification*> Resolve(std::uint32_t BrushOrdinal) const;
+    Deliver<BrushSpecification*>       Amend(std::uint32_t BrushOrdinal);
 
     const std::string& DeclaredName(std::uint32_t BrushOrdinal) const;
     const std::string& DeclaredGrouping(std::uint32_t BrushOrdinal) const;

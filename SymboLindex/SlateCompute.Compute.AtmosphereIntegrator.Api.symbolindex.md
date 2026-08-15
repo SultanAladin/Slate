@@ -41,7 +41,7 @@ T MediumSpecification                             | AtmosphereIntegrator.h | 33-
     note  🚧 `28` §8 leaves artist-editability open. The values below are Earth's and are declared, not assumed:
 
 F MediumSpecification::Validate                   | AtmosphereIntegrator.h | 56      | api,nonallocating,nonthrowing | ✔️ | Whether the medium describes an atmosphere that can be integrated at all. ozone half width, and for an asymmetry outside the open interval about the origin extent, and the phase magnitude diverges along it.
-    out   -  Outcome  [-]  refuses with ContentUnsupported for a non-positive radius, thickness, scale height or
+    out   -  Deliver  [-]  refuses with ContentUnsupported for a non-positive radius, thickness, scale height or
     by    Api/AssetInterchange.h, Api/IlluminantPopulation.h, Api/PropertySpecification.h, Api/TilingSpecification.h, Source/AssetInterchange.cpp, Source/AtmosphereIntegrator.cpp, (+4 more)
     note  📐 An asymmetry reaching unity collapses the forward-scattering lobe onto a direction of zero solid
 
@@ -58,7 +58,7 @@ F Resolve                                         | AtmosphereIntegrator.h | 87 
     in    Declared  const MediumSpecification&       [-]  the medium
     in    Working   const ColourSpaceSpecification&  [-]  the space the coefficients are expressed in
     in    Rule      const QuadratureRule&            [-]  a derived rule, integrated over the declared wavelength interval
-    out   -         Outcome                          [-]  carries the medium's own refusal, and `02` §5's where the projection declines
+    out   -         Deliver                          [-]  carries the medium's own refusal, and `02` §5's where the projection declines
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+94 more)
     note  📐 The Rayleigh coefficient is **derived** from the medium's refractive index, molecular concentration
     note  📝 The ozone absorption is a **fit to measured absorption** rather than a derivation, unlike Rayleigh.
@@ -85,7 +85,7 @@ F ResidentSurface::Construct                      | AtmosphereIntegrator.h | 116
     in    ExtentAlong        std::uint32_t  [-]  ?
     in    ExtentAcross       std::uint32_t  [-]  ?
     in    WrapAlongDeclared  bool           [-]  the first axis is periodic and its filter wraps rather than clamps
-    out   -                  Outcome        [-]  refuses with ContentUnsupported for a zero extent on either axis
+    out   -                  Deliver        [-]  refuses with ContentUnsupported for a zero extent on either axis
     by    Api/AnalyticProjection.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+62 more)
     note  🔴 Wrapping is declared per surface because only ③'s azimuth is periodic. ①'s and ②'s axes are
 
@@ -192,7 +192,7 @@ T AtmosphereIntegrator                            | AtmosphereIntegrator.h | 208
 
 F AtmosphereIntegrator::DeclareMedium             | AtmosphereIntegrator.h | 223     | api,nonthrowing               | ✔️ | Declares the medium, which owes all three surfaces a rebuild.
     in    Declaring  const MediumSpecification&  [-]  ?
-    out   -          Outcome                     [-]  carries the medium's own refusal
+    out   -          Deliver                     [-]  carries the medium's own refusal
     by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
 
 F AtmosphereIntegrator::DeclareSun                | AtmosphereIntegrator.h | 233     | api,nonthrowing               | ✔️ | Declares the direction toward the atmospheric source, as `44`'s enrolled illuminant reports it.
@@ -200,13 +200,13 @@ F AtmosphereIntegrator::DeclareSun                | AtmosphereIntegrator.h | 233
     in    DirectionY  double   [-]  the local zenith is the second axis, matching `46`'s upward convention
     in    DirectionZ  double   [-]  ?
     in    DirectionZ  -        [-]  ?
-    out   -           Outcome  [-]  refuses with ContentUnsupported for a direction of no length
+    out   -           Deliver  [-]  refuses with ContentUnsupported for a direction of no length
     post  🔴 the sky-view surface is owed a rebuild only when the direction moved **materially** — `28` §4
     by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
 
 F AtmosphereIntegrator::DeclareCameraAltitude     | AtmosphereIntegrator.h | 240     | api,nonthrowing               | ✔️ | Declares the camera's altitude above the planet surface.
     in    Altitude  double   [-]  ?
-    out   -         Outcome  [-]  refuses with ContentUnsupported for an altitude outside the declared atmosphere
+    out   -         Deliver  [-]  refuses with ContentUnsupported for an altitude outside the declared atmosphere
     post  the sky-view surface is owed a rebuild only when the altitude changed materially
     by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
 
@@ -218,14 +218,14 @@ F AtmosphereIntegrator::DeclareAtmospherePresence | AtmosphereIntegrator.h | 248
 
 F AtmosphereIntegrator::DeclareConstantFloor      | AtmosphereIntegrator.h | 256     | api,nonthrowing               | ✔️ | Declares the constant floor the disabled atmosphere resolves to. structural. It is declared by the caller here rather than chosen, which is what keeps the row open.
     in    Declaring  const ColourSpecification&  [-]  ?
-    out   -          Outcome                     [-]  refuses with ContentUnsupported for a colour declaring no space — `36` §1
+    out   -          Deliver                     [-]  refuses with ContentUnsupported for a colour declaring no space — `36` §1
     by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
     note  🚧 `18` §10 carries the floor's magnitude as an open row and records that it blocks nothing
 
 F AtmosphereIntegrator::Rebuild                   | AtmosphereIntegrator.h | 269     | api,nonthrowing               | 🔴 | Rebuilds whatever the declared conditions owe, in construction order, and nothing else. derived, and carries `Resolve`'s refusal where the spectral projection declines both. A rebuild owed on ③ alone runs ③ alone, which is the whole reason the sun may move without the medium being re-integrated.
     in    Working  const ColourSpaceSpecification&  [-]  the space the radiance is expressed in
     in    Rule     const QuadratureRule&            [-]  a derived rule; the optical depths are integrated against it
-    out   -        Outcome                          [-]  refuses with ContentUnsupported before a medium is declared or before the rule is
+    out   -        Deliver                          [-]  refuses with ContentUnsupported before a medium is declared or before the rule is
     post  🔴 with nothing owed, nothing is rebuilt and nothing is recorded — `28` §4
     by    Api/OcclusionProjection.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/OcclusionProjection.cpp
     note  🔴 The construction order is ① transmittance, ② multiple scattering reading ①, ③ sky-view reading
@@ -245,7 +245,7 @@ F AtmosphereIntegrator::SampleSkyView             | AtmosphereIntegrator.h | 290
     in    DirectionY  -               [-]  ?
     in    DirectionZ  -               [-]  ?
     out   -           Red/Green/Blue  [-]  radiance, in the working space
-    out   -           Outcome         [-]  refuses with ContentUnsupported when the atmosphere is enabled and no sky-view
+    out   -           Deliver         [-]  refuses with ContentUnsupported when the atmosphere is enabled and no sky-view
     by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/ReflectanceIntegrator.cpp
     note  🔴 With the atmosphere disabled this delivers the constant floor rather than refusing. `18` §5 and
 
@@ -255,7 +255,7 @@ F AtmosphereIntegrator::SampleTransmittance       | AtmosphereIntegrator.h | 297
     in    Red           double&  [-]  ?
     in    Green         double&  [-]  ?
     in    Blue          double&  [-]  ?
-    out   -             Outcome  [-]  refuses with ContentUnsupported before ① stands
+    out   -             Deliver  [-]  refuses with ContentUnsupported before ① stands
     by    Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp
 
 F AtmosphereIntegrator::AerialTransmittance       | AtmosphereIntegrator.h | 313     | api,nonthrowing               | 🔴 | Transmittance over a bounded distance along a view ray — `28` §6's aerial perspective. and the ratio trick that recovers a bounded segment from it loses its conditioning near the horizon, which is exactly where distant geometry sits. `28` §8 leaves whether aerial perspective earns a resident surface of its own open, and integrating here is what keeps that row open rather than answering it by accident. as unnaturally crisp against a correct sky — `28` §6.
@@ -268,7 +268,7 @@ F AtmosphereIntegrator::AerialTransmittance       | AtmosphereIntegrator.h | 313
     in    Red         double&                [-]  ?
     in    Green       double&                [-]  ?
     in    Blue        double&                [-]  ?
-    out   -           Outcome                [-]  refuses with ContentUnsupported before a medium is declared or before the rule is derived
+    out   -           Deliver                [-]  refuses with ContentUnsupported before a medium is declared or before the rule is derived
     by    Source/AtmosphereIntegrator.cpp
     note  🔴 Integrated directly rather than read from ①. ① holds transmittance **to the atmosphere boundary**
     note  ⚠️ This applies to scene surfaces in `18` and not only to the sky. Without it distant geometry reads
@@ -320,15 +320,15 @@ F AtmosphereIntegrator::ShapeProfile              | AtmosphereIntegrator.h | 347
 
 F AtmosphereIntegrator::BuildTransmittance        | AtmosphereIntegrator.h | 348     | -                             | -  | ?
     in    Rule  const QuadratureRule&  [-]  ?
-    out   -     Outcome<bool>          [-]  ?
+    out   -     Deliver<bool>          [-]  ?
     by    Source/AtmosphereIntegrator.cpp
 
 F AtmosphereIntegrator::BuildMultiScatter         | AtmosphereIntegrator.h | 349     | -                             | -  | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
     by    Source/AtmosphereIntegrator.cpp
 
 F AtmosphereIntegrator::BuildSkyView              | AtmosphereIntegrator.h | 350     | -                             | -  | ?
-    out   -  Outcome<bool>  [-]  ?
+    out   -  Deliver<bool>  [-]  ?
     by    Source/AtmosphereIntegrator.cpp
 
 F AtmosphereIntegrator::DeriveIrradiance          | AtmosphereIntegrator.h | 351     | -                             | -  | ?

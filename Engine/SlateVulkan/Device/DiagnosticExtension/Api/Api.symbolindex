@@ -41,7 +41,7 @@ F DiagnosticExtension::Construct            | DiagnosticExtension.h | 59      | 
     in    Exchange  const VulkanExchange&  [-]  the constructed instance; borrowed and outlives this component
     in    Register  ReportSequence&        [-]  where arriving driver text is appended; borrowed and outlives this component
     in    Timeline  const TickSequence&    [-]  stamps each arrival where it happened; borrowed and outlives this component
-    out   -         Outcome                [-]  refuses with CapabilityAbsent when no instance stands or the loader does not
+    out   -         Deliver                [-]  refuses with CapabilityAbsent when no instance stands or the loader does not
     pre   `VulkanExchange::ConstructInstance` delivered with the diagnostic requested
     post  driver text arrives at `Register` until Reclaim
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
@@ -51,7 +51,7 @@ F DiagnosticExtension::Declare              | DiagnosticExtension.h | 82      | 
     in    Subject       VkObjectType   [-]  which vendor structure the handle names, as the vendor spells it
     in    VendorHandle  std::uint64_t  [-]  the object, widened to the vendor's own naming width
     in    DeclaredName  const char*    [-]  static text; the driver copies it and nothing here retains it
-    out   -             Outcome        [-]  refuses with CapabilityAbsent when no device stands, and with HostDenied when
+    out   -             Deliver        [-]  refuses with CapabilityAbsent when no device stands, and with HostDenied when
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+65 more)
     note  🔴 `06` §7's gate — every device object Slate creates carries a diagnostic name in Debug — is
     note  ⚠️ Delivers as a no-op when nothing negotiated the capability. A name declared in a configuration
@@ -63,7 +63,7 @@ F DiagnosticExtension::Declare              | DiagnosticExtension.h | 99      | 
     in    VendorHandle    std::uint64_t  [-]  the object, widened to the vendor's own naming width
     in    DeclaredPrefix  const char*    [-]  static text naming what the object is; the ordinal is appended to it
     in    Ordinal         std::uint32_t  [-]  the slot the owning component resolves the object by
-    out   -               Outcome        [-]  refuses as the two-operand form does, and with ContentUnsupported when the
+    out   -               Deliver        [-]  refuses as the two-operand form does, and with ContentUnsupported when the
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+65 more)
     note  🔴 The composition is here rather than at each claim site. Eight components name objects by their
     note  ⚠️ Composed into an automatic extent and read by the driver before this returns, which is what

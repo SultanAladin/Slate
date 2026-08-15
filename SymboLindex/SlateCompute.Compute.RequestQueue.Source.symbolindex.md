@@ -69,7 +69,7 @@ F RequestQueue::DiscardedCount | RequestQueue.cpp | 80-88  | - | - | ?
 F ReturnIndex::Drain           | RequestQueue.cpp | 94-120 | - | - | ?
     in    Requesting       RequestQueue&              [-]  ?
     in    RotationOrdinal  std::uint64_t              [-]  ?
-    out   -                Outcome<const PageQueue*>  [-]  ?
+    out   -                Deliver<const PageQueue*>  [-]  ?
 
 F ReturnIndex::DrainedRotation | RequestQueue.cpp | 122    | - | - | ?
     out   -  std::uint64_t  [-]  ?

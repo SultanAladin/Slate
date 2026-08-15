@@ -26,7 +26,7 @@ F DiagnosticExtension::Construct            | DiagnosticExtension.cpp | 17-79   
     in    Exchange  const VulkanExchange&  [-]  ?
     in    Register  ReportSequence&        [-]  ?
     in    Timeline  const TickSequence&    [-]  ?
-    out   -         Outcome<bool>          [-]  ?
+    out   -         Deliver<bool>          [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE ARRIVAL
@@ -47,14 +47,14 @@ F DiagnosticExtension::Declare              | DiagnosticExtension.cpp | 137-161 
     in    Subject       VkObjectType   [-]  ?
     in    VendorHandle  std::uint64_t  [-]  ?
     in    DeclaredName  const char*    [-]  ?
-    out   -             Outcome<bool>  [-]  ?
+    out   -             Deliver<bool>  [-]  ?
 
 F DiagnosticExtension::Declare              | DiagnosticExtension.cpp | 163-189 | -          | - | ?
     in    Subject         VkObjectType   [-]  ?
     in    VendorHandle    std::uint64_t  [-]  ?
     in    DeclaredPrefix  const char*    [-]  ?
     in    Ordinal         std::uint32_t  [-]  ?
-    out   -               Outcome<bool>  [-]  ?
+    out   -               Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE READINGS

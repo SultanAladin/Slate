@@ -32,7 +32,7 @@ F SurfaceLayerSequence::Located             | SurfaceLayerSequence.cpp | 15-27  
 
 F SurfaceLayerSequence::Append              | SurfaceLayerSequence.cpp | 33-73   | - | - | ?
     in    Declaring  const LayerSpecification&  [-]  ?
-    out   -          Outcome<LayerIdentity>     [-]  ?
+    out   -          Deliver<LayerIdentity>     [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       AMENDMENTS
@@ -41,24 +41,24 @@ F SurfaceLayerSequence::Append              | SurfaceLayerSequence.cpp | 33-73  
 F SurfaceLayerSequence::Reorder             | SurfaceLayerSequence.cpp | 79-97   | - | - | ?
     in    Subject   LayerIdentity           [-]  ?
     in    Position  std::uint32_t           [-]  ?
-    out   -         Outcome<std::uint32_t>  [-]  ?
+    out   -         Deliver<std::uint32_t>  [-]  ?
 
 F SurfaceLayerSequence::DeclarePresence     | SurfaceLayerSequence.cpp | 99-111  | - | - | ?
     in    Subject          LayerIdentity  [-]  ?
     in    PresenceEnabled  bool           [-]  ?
-    out   -                Outcome<bool>  [-]  ?
+    out   -                Deliver<bool>  [-]  ?
 
 F SurfaceLayerSequence::DeclareCombination  | SurfaceLayerSequence.cpp | 113-135 | - | - | ?
     in    Subject    LayerIdentity                  [-]  ?
     in    Declaring  CombineSpecification           [-]  ?
-    out   -          Outcome<CombineSpecification>  [-]  ?
+    out   -          Deliver<CombineSpecification>  [-]  ?
 
 F SurfaceLayerSequence::Withdraw            | SurfaceLayerSequence.cpp | 137-164 | - | - | ?
     in    Subject  LayerIdentity                [-]  ?
-    out   -        Outcome<LayerSpecification>  [-]  ?
+    out   -        Deliver<LayerSpecification>  [-]  ?
 
 F SurfaceLayerSequence::Nest                | SurfaceLayerSequence.cpp | 166-180 | - | - | ?
-    out   -  Outcome<std::uint32_t>  [-]  ?
+    out   -  Deliver<std::uint32_t>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RESAMPLING
@@ -81,7 +81,7 @@ F SurfaceLayerSequence::Resample            | SurfaceLayerSequence.cpp | 269-327
     in    Remapping         const std::function<bool(double, double, double&, double&)>&  [-]  ?
     in    Reporting         ReportSequence&                                               [-]  ?
     in    Sampled           TickPoint                                                     [-]  ?
-    out   -                 Outcome<bool>                                                 [-]  ?
+    out   -                 Deliver<bool>                                                 [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
@@ -89,26 +89,26 @@ F SurfaceLayerSequence::Resample            | SurfaceLayerSequence.cpp | 269-327
 
 F SurfaceLayerSequence::Resolve             | SurfaceLayerSequence.cpp | 333-344 | - | - | ?
     in    Subject  LayerIdentity                       [-]  ?
-    out   -        Outcome<const LayerSpecification*>  [-]  ?
+    out   -        Deliver<const LayerSpecification*>  [-]  ?
 
 F SurfaceLayerSequence::AmendPainted        | SurfaceLayerSequence.cpp | 346-366 | - | - | ?
     in    Subject  LayerIdentity             [-]  ?
-    out   -        Outcome<PaintedContent*>  [-]  ?
+    out   -        Deliver<PaintedContent*>  [-]  ?
 
 F SurfaceLayerSequence::Entries             | SurfaceLayerSequence.cpp | 368-371 | - | - | ?
     out   -  const std::vector<LayerSpecification>&  [-]  ?
 
 F SurfaceLayerSequence::Nested              | SurfaceLayerSequence.cpp | 373-382 | - | - | ?
     in    NestedOrdinal  std::uint32_t                         [-]  ?
-    out   -              Outcome<const SurfaceLayerSequence*>  [-]  ?
+    out   -              Deliver<const SurfaceLayerSequence*>  [-]  ?
 
 F SurfaceLayerSequence::AmendNested         | SurfaceLayerSequence.cpp | 384-393 | - | - | ?
     in    NestedOrdinal  std::uint32_t                   [-]  ?
-    out   -              Outcome<SurfaceLayerSequence*>  [-]  ?
+    out   -              Deliver<SurfaceLayerSequence*>  [-]  ?
 
 F SurfaceLayerSequence::PositionOf          | SurfaceLayerSequence.cpp | 395-403 | - | - | ?
     in    Subject  LayerIdentity           [-]  ?
-    out   -        Outcome<std::uint32_t>  [-]  ?
+    out   -        Deliver<std::uint32_t>  [-]  ?
 
 F SurfaceLayerSequence::WrittenChannels     | SurfaceLayerSequence.cpp | 405-422 | - | - | ?
     out   -  std::uint32_t  [-]  ?
@@ -135,7 +135,7 @@ F SurfaceLayerSequence::NestedCount         | SurfaceLayerSequence.cpp | 455-458
 F LayerIndex::Locate                        | SurfaceLayerSequence.cpp | 464-486 | - | - | ?
     in    Sequence  const SurfaceLayerSequence&         [-]  ?
     in    Subject   LayerIdentity                       [-]  ?
-    out   -         Outcome<const LayerSpecification*>  [-]  ?
+    out   -         Deliver<const LayerSpecification*>  [-]  ?
 
 F LayerIndex::SpannedCount                  | SurfaceLayerSequence.cpp | 488-501 | - | - | ?
     in    Sequence  const SurfaceLayerSequence&  [-]  ?

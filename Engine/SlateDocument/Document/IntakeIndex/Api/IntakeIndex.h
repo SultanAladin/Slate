@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "SlateMath/Numeric/ReportSequence/Api/ReportSequence.h"
 
 #include <cstdint>
@@ -84,10 +84,10 @@ public:
     const std::vector<IntakeRecord>& Records() const;
 
     /// 🧩 The most recent intake of one origin.
-    /// out   Outcome  [-]  refuses with ExtentExhausted when nothing arrived from there
+    /// out   Deliver  [-]  refuses with ExtentExhausted when nothing arrived from there
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<IntakeRecord> Resolve(const std::string& OriginPath) const;
+    Deliver<IntakeRecord> Resolve(const std::string& OriginPath) const;
 
     /// 🧩 How many intakes carried an assumption.
     /// cost  ✔️

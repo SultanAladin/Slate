@@ -64,38 +64,38 @@ T TopologyStructure                            | TopologyStructure.h | 65-180 | 
 
 F TopologyStructure::DeclarePositions          | TopologyStructure.h | 74     | api,nonthrowing               | 🚩 | Declares the vertex positions, in the source's own ordering.
     in    Arriving  const std::vector<DocumentPosition>&  [-]  positions in object space at 64-bit
-    out   -         Outcome                               [-]  refuses with HostDenied once the topology is sealed
+    out   -         Deliver                               [-]  refuses with HostDenied once the topology is sealed
     by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/PrimitiveStructure.cpp, Source/TopologyStructure.cpp
 
 F TopologyStructure::DeclareFace               | TopologyStructure.h | 84     | api,nonthrowing               | 🚩 | Declares one face as a run of vertex ordinals, in the source's own winding. than three corners, and with ContentUnsupported for an out-of-range ordinal not a face at all and `38` §3's enrollment is over faces. `50` §3 refuses the intake instead.
     in    CornerVertices  const std::vector<std::uint32_t>&  [-]  vertex ordinals, in traversal order
-    out   -               Outcome                            [-]  refuses with HostDenied once sealed, with ExtentExhausted for a run of fewer
+    out   -               Deliver                            [-]  refuses with HostDenied once sealed, with ExtentExhausted for a run of fewer
     by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/PrimitiveStructure.cpp, Source/TopologyStructure.cpp
     note  📝 A run of fewer than three corners is refused rather than enrolled as degenerate, because it is
 
 F TopologyStructure::DeclareCoordinates        | TopologyStructure.h | 90     | api,nonthrowing               | 🚩 | Declares one domain coordinate per corner, in corner order.
     in    Arriving  const std::vector<DomainCoordinate>&  [-]  ?
-    out   -         Outcome                               [-]  refuses with ContentUnsupported when the count does not equal the corner count
+    out   -         Deliver                               [-]  refuses with ContentUnsupported when the count does not equal the corner count
     by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/PrimitiveStructure.cpp, Source/TopologyStructure.cpp
 
 F TopologyStructure::DeclarePerpendiculars     | TopologyStructure.h | 96     | api,nonthrowing               | 🚩 | Declares one perpendicular per vertex, as the source supplied it.
     in    Arriving  const std::vector<SurfaceDirection>&  [-]  ?
-    out   -         Outcome                               [-]  refuses with ContentUnsupported when the count does not equal the vertex count
+    out   -         Deliver                               [-]  refuses with ContentUnsupported when the count does not equal the vertex count
     by    Source/AssetInterchange.cpp, Source/PrimitiveStructure.cpp, Source/TopologyStructure.cpp
 
 F TopologyStructure::DeclareTangentBases       | TopologyStructure.h | 104    | api,nonthrowing               | 🚩 | Declares one tangent basis per vertex, as the source supplied it. basis that disagrees with the imported perpendicular is the author's decision, and reproducing their appearance requires reproducing it.
     in    Arriving  const std::vector<TangentBasis>&  [-]  ?
-    out   -         Outcome<bool>                     [-]  ?
+    out   -         Deliver<bool>                     [-]  ?
     by    Source/AssetInterchange.cpp, Source/TopologyStructure.cpp
     note  🔴 A supplied basis is retained and `38` §4 does not override it with a derived one. An imported
 
 F TopologyStructure::DeclareMaterialEnrollment | TopologyStructure.h | 110    | api,nonthrowing               | 🚩 | Declares one material enrollment per face.
     in    Arriving  const std::vector<std::uint32_t>&  [-]  ?
-    out   -         Outcome                            [-]  refuses with ContentUnsupported when the count does not equal the face count
+    out   -         Deliver                            [-]  refuses with ContentUnsupported when the count does not equal the face count
     by    Source/AssetInterchange.cpp, Source/TopologyStructure.cpp
 
 F TopologyStructure::Seal                      | TopologyStructure.h | 121    | api,nonthrowing               | ✔️ | Seals the topology, issuing its revision. Nothing may be declared afterwards. point the content stopped moving, and re-announcing it must not invalidate a conditioning that already describes the same content.
-    out   -  Outcome  [-]  refuses with ExtentExhausted when no face was declared
+    out   -  Deliver  [-]  refuses with ExtentExhausted when no face was declared
     post  🔴 the revision is distinct from that of every other topology sealed in this process
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, (+20 more)
     note  📝 Idempotent — a second call delivers and does **not** issue a second revision. The seal is the

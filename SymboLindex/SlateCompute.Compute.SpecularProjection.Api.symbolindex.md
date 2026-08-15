@@ -32,7 +32,7 @@ T ReflectionSpecification             | SpecularProjection.h | 29-37   | nonallo
     by    Source/ConsoleHost.cpp, Source/SpecularProjection.cpp
     note  🚧 Every figure below is one of `30` §7's open rows and each blocks tuning alone. They are declared
 
-T TracedReflection                    | SpecularProjection.h | 44-50   | nonallocating,nonthrowing     | -  | One traced result and the weight it carries into the composite. pointing away from the camera. `30` §3's table is four rows and one outcome, which is what lets the march terminate anywhere it likes.
+T TracedReflection                    | SpecularProjection.h | 44-50   | nonallocating,nonthrowing     | -  | One traced result and the weight it carries into the composite. pointing away from the camera. `30` §3's table is four rows and one result, which is what lets the march terminate anywhere it likes.
     has   Component   double[3]      [-]  ?
     has   Weight      double         [-]  ?
     has   StepsTaken  std::uint32_t  [-]  ?
@@ -63,13 +63,13 @@ T SpecularProjection                  | SpecularProjection.h | 79-179  | owning 
 
 F SpecularProjection::Declare         | SpecularProjection.h | 95      | api,nonthrowing               | ✔️ | Declares what the trace is bounded by. thickness, and a divisor that is not two `60`'s ambient term refuses one: `08` §2 claims `ReflectionSurface` at half extent, and admitting a third would declare the extent in two places that could disagree.
     in    Declaring  const ReflectionSpecification&  [-]  ?
-    out   -          Outcome                         [-]  refuses with ContentUnsupported for a march ceiling of nothing, a non-positive
+    out   -          Deliver                         [-]  refuses with ContentUnsupported for a march ceiling of nothing, a non-positive
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
     note  ⚠️ The divisor is refused above two rather than admitted as a quality setting, for the reason
 
 F SpecularProjection::Contribute      | SpecularProjection.h | 104     | api,nonthrowing               | ✔️ | Contributes `08` §3 ⑥'s recording. pre-added contribution and the resolved weight, which is what makes the composite expressible at all — a target carrying the trace result instead would leave nothing to subtract.
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome          [-]  refuses with whatever the schedule refused
+    out   -         Deliver          [-]  refuses with whatever the schedule refused
     by    Api/DisplayProjection.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/ReflectanceIntegrator.h, Api/RenderSchedule.h, (+13 more)
     note  📝 Produces `ReflectionSurface` and amends `RadianceSurface`. The produced target carries `18`'s
 
@@ -78,7 +78,7 @@ F SpecularProjection::Resolve         | SpecularProjection.h | 112     | api,non
     in    DisplayAcross   std::uint32_t   [-]  ?
     in    ResolvedAlong   std::uint32_t&  [-]  ?
     in    ResolvedAcross  std::uint32_t&  [-]  ?
-    out   -               Outcome         [-]  refuses with ContentUnsupported for a display extent of nothing
+    out   -               Deliver         [-]  refuses with ContentUnsupported for a display extent of nothing
     by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+94 more)
     note  📐 Rounded **up** on both ordinates, matching `RenderSchedule`'s own fraction-of-display claim.
 

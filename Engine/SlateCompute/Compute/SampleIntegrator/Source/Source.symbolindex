@@ -26,11 +26,11 @@ V AccumulationRecordingIdentity     | SampleIntegrator.cpp | 18      | - | - | ?
 
 F SampleIntegrator::Declare         | SampleIntegrator.cpp | 22-39   | - | - | ?
     in    Declaring  const RejectionSpecification&  [-]  ?
-    out   -          Outcome<bool>                  [-]  ?
+    out   -          Deliver<bool>                  [-]  ?
 
 F SampleIntegrator::Contribute      | SampleIntegrator.cpp | 41-65   | - | - | ?
     in    Schedule  RenderSchedule&  [-]  ?
-    out   -         Outcome<bool>    [-]  ?
+    out   -         Deliver<bool>    [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE OFFSET

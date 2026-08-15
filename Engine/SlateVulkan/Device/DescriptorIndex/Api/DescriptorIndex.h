@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 #include "Contract/ToleranceContract.h"
 #include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
 #include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
@@ -77,65 +77,65 @@ public:
     /// 🧩 Takes the device against which every layout and every set is constructed.
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
     /// in    Naming    [-]  names every layout, the extent and every set; borrowed and outlives this component
-    /// out   Outcome   [-]  refuses with CapabilityAbsent when no device is active
+    /// out   Deliver   [-]  refuses with CapabilityAbsent when no device is active
     /// post  no layout is declared and no set is claimed
     /// note  🔴 `06` §7's diagnostic-name gate. A descriptor set is the object the validation layer names most
     ///        often — every content mismatch is reported against the set rather than against the recording that
     ///        bound it — so an unnamed set turns each of those reports into an address the reader must resolve.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Deliver<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Declares one layout from its slots, returning the ordinal every later claim names it by.
     /// in    Declared  [-]  the slots, in any order; slot ordinals need not be contiguous
-    /// out   Outcome   [-]  refuses with ContentUnsupported for an empty declaration or a repeated ordinal,
+    /// out   Deliver   [-]  refuses with ContentUnsupported for an empty declaration or a repeated ordinal,
     ///                      and with RelationCyclic once the declaration set has been fixed
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Declare(const std::vector<DescriptorSlot>& Declared);
+    Deliver<std::uint32_t> Declare(const std::vector<DescriptorSlot>& Declared);
 
     /// 🧩 Closes the declaration and constructs the one descriptor extent every later claim is sliced from.
     /// in    ConcurrentSets [-]  how many sets the extent must admit, across every layout and every rotation
-    /// out   Outcome        [-]  refuses with ExtentExhausted when the device declines the extent
+    /// out   Deliver        [-]  refuses with ExtentExhausted when the device declines the extent
     /// post  Declare refuses thereafter; Claim delivers
     /// note  🔴 One extent sized against the declaration rather than one grown on demand. A descriptor extent
     ///       that reallocates invalidates every set sliced from it, including the ones a rotation still reads.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Fix(std::uint32_t ConcurrentSets);
+    Deliver<bool> Fix(std::uint32_t ConcurrentSets);
 
     /// 🧩 Claims one set per rotation slot against a declared layout, returning the claim's ordinal.
     /// in    LayoutOrdinal [-]  a layout this component declared
-    /// out   Outcome       [-]  refuses with ExtentExhausted when the extent admits no further set
+    /// out   Deliver       [-]  refuses with ExtentExhausted when the extent admits no further set
     /// post  `RecordingRotationDepth` sets stand and are addressed by the returned ordinal and a rotation slot
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Claim(std::uint32_t LayoutOrdinal);
+    Deliver<std::uint32_t> Claim(std::uint32_t LayoutOrdinal);
 
     /// 🧩 Writes the content of one claimed set for one rotation slot.
     /// in    ClaimOrdinal  [-]  a claim this component issued
     /// in    RotationSlot  [-]  below `RecordingRotationDepth`
     /// in    Amended       [-]  one entry per slot being written; a slot omitted is left as it stood
-    /// out   Outcome       [-]  refuses with ContentUnsupported for an unclaimed ordinal, a rotation slot at
+    /// out   Deliver       [-]  refuses with ContentUnsupported for an unclaimed ordinal, a rotation slot at
     ///                          or above the depth, or a slot the layout does not declare
     /// pre   🔴 no recording that reads this set for this rotation slot is still executing
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(std::uint32_t                          ClaimOrdinal,
+    Deliver<bool> Amend(std::uint32_t                          ClaimOrdinal,
                         std::uint32_t                          RotationSlot,
                         const std::vector<DescriptorContent>&  Amended);
 
     /// 🧩 The set one claim names for one rotation slot, for the recording that reads it.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an unclaimed ordinal or an excessive slot
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an unclaimed ordinal or an excessive slot
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<VkDescriptorSet> Resolve(std::uint32_t ClaimOrdinal, std::uint32_t RotationSlot) const;
+    Deliver<VkDescriptorSet> Resolve(std::uint32_t ClaimOrdinal, std::uint32_t RotationSlot) const;
 
     /// 🧩 The layout one ordinal names, for the recording that constructs a program against it.
-    /// out   Outcome  [-]  refuses with ContentUnsupported for an undeclared ordinal
+    /// out   Deliver  [-]  refuses with ContentUnsupported for an undeclared ordinal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<VkDescriptorSetLayout> Layout(std::uint32_t LayoutOrdinal) const;
+    Deliver<VkDescriptorSetLayout> Layout(std::uint32_t LayoutOrdinal) const;
 
     /// 🧩 Destroys every set, every layout and the extent they were sliced from.
     /// pre   the device is idle

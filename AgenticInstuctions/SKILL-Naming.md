@@ -109,6 +109,20 @@ A search for a retired spelling must land here rather than returning nothing.
 | `AuthoringFrame`           | `AuthoringProjection`    | The view and projection matrices frozen at authoring time |
 | `PredicateClassifier`      | `OrientationClassifier`  | Classifies sign of orientation determinants            |
 
+## Fallible Return Vocabulary
+
+These spellings are distinct mechanisms and never interchangeable generic return wrappers.
+
+| Spelling              | Standing | Mechanism |
+|-----------------------|----------|-----------|
+| `Deliver<Content>`    | Approved | One fallible call either delivers `Content` or carries a `Refusal`. This is the public spelling; `ContentDelivery<Content>` is its contract-local declaration and is never named outside `DeliveryContract.h`. |
+| `Response<Content>`   | Reserved | Content answering a previously declared request. It is not a general function return. |
+| `Status<Content>`     | Reserved | A diagnostic reading observed at one declared instant. Its diagnostic subject must be stated before introduction. |
+| `Expected<Content>`   | Reserved | Resource content anticipated from an asynchronous acquisition. Its pending, arrived and refused conditions must be specified before introduction. |
+| `Resolution<Content>` | Reserved | Content produced by a declared resolution procedure. It applies only where `Resolve` is the actual technical operation. |
+
+A reserved spelling records intent only. It must not enter C++ until its full mechanism, ownership and refusal behaviour are declared.
+
 ## Banned Words
 
 Banned OO / AI tropes — Manager, Handler, Processor, Controller, Service, Utility, Helper, Node, Frame,

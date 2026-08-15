@@ -49,13 +49,13 @@ F StrokeSpace::Construct         | StrokeSpace.h | 61     | api,nonthrowing     
 
 F StrokeSpace::Claim             | StrokeSpace.h | 72     | api,nonthrowing               | 🚩 | Claims the coverage tile backing one cell, or resolves the one already claimed. the declared tile ceiling count. It is a guard against a coarser level being painted at with a miscomputed ordinal, and it refuses rather than growing so that a defect there is a refusal instead of an allocation storm.
     in    CellOrdinal  std::uint32_t  [-]  into `20` §1's single ordinal span
-    out   -            Outcome        [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
+    out   -            Deliver        [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
     by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/TileSpace.h, (+14 more)
     note  📝 Exhaustion is structurally unreachable at the finest level, where the ceiling equals the cell
 
 F StrokeSpace::Located           | StrokeSpace.h | 78     | api,nonthrowing               | ✔️ | The tile backing one cell, if one is claimed.
     in    CellOrdinal  std::uint32_t  [-]  ?
-    out   -            Outcome        [-]  refuses with ExtentExhausted when the cell is untouched
+    out   -            Deliver        [-]  refuses with ExtentExhausted when the cell is untouched
     by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+26 more)
 
 F StrokeSpace::Accumulate        | StrokeSpace.h | 89     | api,nonallocating,nonthrowing | ✔️ | Accumulates one impression's coverage at one texel of one claimed tile. impressions overlap, and the excess is invisible in the accumulation and abrupt at the apply.

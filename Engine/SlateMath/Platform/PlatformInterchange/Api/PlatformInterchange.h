@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "Contract/OutcomeContract.h"
+#include "Contract/DeliveryContract.h"
 
 #include <cstdint>
 #include <string>
@@ -45,11 +45,11 @@ class PlatformInterchange
 public:
 
     /// 🧩 Reads the host report, once, and holds it for the run.
-    /// out   Outcome  [-]  refuses with HostDenied when the host declines to describe itself
+    /// out   Deliver  [-]  refuses with HostDenied when the host declines to describe itself
     /// post  Report returns the same reading for the rest of the run
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Resolve();
+    Deliver<bool> Resolve();
 
     /// 🧩 The host report as read at bring-up.
     /// out   HostReport  [-]  every reading is zero until Resolve has delivered
@@ -66,23 +66,23 @@ public:
     static void DeclareThreadName(const char* ThreadName);
 
     /// 🧩 The directory the running executable sits in, with a trailing separator.
-    /// out   Outcome  [-]  refuses with HostDenied when the host declines to report the path
+    /// out   Deliver  [-]  refuses with HostDenied when the host declines to report the path
     /// note  📝 `06`'s `ShaderCodec` finds its lowered streams beside the executable. Deriving that from the
     ///        working directory instead makes the engine start only when launched from one place, which is
     ///        the defect every debugger's default working directory reproduces on the first run.
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Outcome<std::string> ExecutableDirectory();
+    static Deliver<std::string> ExecutableDirectory();
 
     /// 🧩 The directory the host sets aside for this application's own retained content.
     /// in    ApplicationName  [-]  the leaf directory; created when it does not yet exist
-    /// out   Outcome          [-]  refuses with HostDenied when the host declines
+    /// out   Deliver          [-]  refuses with HostDenied when the host declines
     /// note  🔴 Retained content never goes beside the executable. On two of the three operating systems the
     ///        executable's own directory is not writable by the artist running it, and the failure appears
     ///        first on the machine that installed the application properly.
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Outcome<std::string> RetainedDirectory(const char* ApplicationName);
+    static Deliver<std::string> RetainedDirectory(const char* ApplicationName);
 
 private:
 

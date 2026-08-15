@@ -73,7 +73,7 @@ T ViewProjection                         | CameraProjection.h | 92-98   | nonall
 
 F Derive                                 | CameraProjection.h | 110     | api,nonallocating,nonthrowing | ✔️ | Derives the view projection of one declared camera. proportion, or an extent parameter with no interior constants live in `Contract/` because `16` compares against them, `30` marches against them and `80` depth-tests against them; one document reversing its own comparison in isolation produces geometry that vanishes rather than geometry that sorts wrongly.
     in    Declaring  const CameraSpecification&  [-]  the camera
-    out   -          Outcome                     [-]  refuses with ContentUnsupported for an invalid clipping interval, a non-positive sensor
+    out   -          Deliver                     [-]  refuses with ContentUnsupported for an invalid clipping interval, a non-positive sensor
     by    Api/AttachmentIndex.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+10 more)
     note  📐 Depth is reversed — `NearPlaneDepth` at the nearest plane, `FarPlaneDepth` at the furthest. The
 
@@ -162,21 +162,21 @@ T NavigationSequence                     | CameraProjection.h | 209-255 | owning
 F NavigationSequence::Open               | CameraProjection.h | 217     | api,nonallocating,nonthrowing | ✔️ | Opens a gesture against a standing camera, holding its prior specification.
     in    Declaring  NavigationSubject           [-]  ?
     in    Standing   const CameraSpecification&  [-]  ?
-    out   -          Outcome                     [-]  refuses with HostDenied when a gesture is already open
+    out   -          Deliver                     [-]  refuses with HostDenied when a gesture is already open
     by    Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+20 more)
 
 F NavigationSequence::Amend              | CameraProjection.h | 225     | api,nonallocating,nonthrowing | ✔️ | Amends the open gesture by one pointer displacement.
     in    DisplacementAlong   double   [px]  horizontal displacement since the last amendment
     in    DisplacementAcross  double   [px]  vertical displacement since the last amendment
-    out   -                   Outcome  [-]   refuses with HostDenied when no gesture is open
+    out   -                   Deliver  [-]   refuses with HostDenied when no gesture is open
     by    Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
 
 F NavigationSequence::Abandon            | CameraProjection.h | 231     | api,nonallocating,nonthrowing | ✔️ | Ends the gesture with no effect, returning the prior specification.
-    out   -  Outcome  [-]  refuses with HostDenied when no gesture is open
+    out   -  Deliver  [-]  refuses with HostDenied when no gesture is open
     by    Api/DecalProjection.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, Api/SpatialManipulator.h, Api/VisibilityRaster.h, (+10 more)
 
 F NavigationSequence::Seal               | CameraProjection.h | 237     | api,nonallocating,nonthrowing | ✔️ | Ends the gesture, returning the specification the caller commits as one transaction.
-    out   -  Outcome  [-]  refuses with HostDenied when no gesture is open
+    out   -  Deliver  [-]  refuses with HostDenied when no gesture is open
     by    Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/RevisionSequence.h, (+19 more)
 
 F NavigationSequence::Amended            | CameraProjection.h | 242     | api,nonallocating,nonthrowing | ✔️ | The camera as the gesture has amended it, for presentation while it is open.
@@ -195,7 +195,7 @@ F Frame                                  | CameraProjection.h | 275     | api,no
     in    Standing  const CameraSpecification&  [-]   the camera whose projection and rotation are kept
     in    Least     DocumentPosition            [mm]  the extent's lower corner
     in    Greatest  DocumentPosition            [mm]  its upper corner
-    out   -         Outcome                     [-]   refuses with ContentUnsupported for an inverted extent or an invalid projection
+    out   -         Deliver                     [-]   refuses with ContentUnsupported for an inverted extent or an invalid projection
     by    Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/ControlText.cpp
     note  🔴 The **placement only** is produced. The projection's extent parameter is left as the artist set it,
     note  ⚠️ For a parallel projection the placement is centred and nothing else can be done — the extent
@@ -224,23 +224,23 @@ T CameraProjection                       | CameraProjection.h | 294-351 | owning
 F CameraProjection::Declare              | CameraProjection.h | 302     | api,nonallocating,nonthrowing | ✔️ | Declares which occupant this camera is, and its initial specification.
     in    Subject    OccupantIdentity            [-]  ?
     in    Declaring  const CameraSpecification&  [-]  ?
-    out   -          Outcome                     [-]  refuses with IdentityStale for an undeclared identity
+    out   -          Deliver                     [-]  refuses with IdentityStale for an undeclared identity
     by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+65 more)
 
 F CameraProjection::Amend                | CameraProjection.h | 308     | api,nonallocating,nonthrowing | ✔️ | Amends the specification, leaving the derivations owed.
     in    Amending  const CameraSpecification&  [-]  ?
-    out   -         Outcome                     [-]  refuses with IdentityStale before Declare has delivered
+    out   -         Deliver                     [-]  refuses with IdentityStale before Declare has delivered
     by    Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
 
 F CameraProjection::DeclareDisplayExtent | CameraProjection.h | 316     | api,nonallocating,nonthrowing | ✔️ | Declares the display's drawable extent, from which the sensor proportion follows. carrying its author's window proportion opens framed for their monitor and not for the artist's.
     in    Width   std::uint32_t  [-]  ?
     in    Height  std::uint32_t  [-]  ?
-    out   -       Outcome        [-]  refuses with ContentUnsupported for a zero extent on either axis
+    out   -       Deliver        [-]  refuses with ContentUnsupported for a zero extent on either axis
     by    Source/CameraProjection.cpp
     note  ⚠️ The proportion is derived from the display and is not stored as an authored property. A document
 
 F CameraProjection::Reconcile            | CameraProjection.h | 323     | api,nonthrowing               | ✔️ | Re-derives the view projection and the frustum.
-    out   -  Outcome  [-]  carries `Derive`'s refusal when the specification cannot be projected
+    out   -  Deliver  [-]  carries `Derive`'s refusal when the specification cannot be projected
     post  the frustum and the view projection describe the current specification
     by    Api/OutlinerSequence.h, Api/SurfaceTileSpace.h, Source/CameraProjection.cpp, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/SurfaceTileSpace.cpp
 

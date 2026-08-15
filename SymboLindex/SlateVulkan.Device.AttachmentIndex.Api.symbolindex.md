@@ -68,13 +68,13 @@ F AttachmentIndex::~AttachmentIndex | AttachmentIndex.h | 88      | destructor  
 F AttachmentIndex::Construct        | AttachmentIndex.h | 97      | api,nonthrowing               | ✔️ | Takes the device and the claimed target set every construct is declared over.
     in    Exchange  const VulkanExchange&  [-]  the created device; borrowed and outlives this component
     in    Claimed   const TargetSpace&     [-]  where the target views come from; borrowed and outlives this component
-    out   -         Outcome                [-]  refuses with CapabilityAbsent when no device is active
+    out   -         Deliver                [-]  refuses with CapabilityAbsent when no device is active
     post  no construct is declared
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, Api/CycleScheduler.h, (+62 more)
 
 F AttachmentIndex::Declare          | AttachmentIndex.h | 109     | api,nonthrowing               | 🚩 | Declares one render construct, returning the ordinal every later resolution names it by. naming an unclaimed target, and with HostDenied when the device declines it The table is what `TargetSpace` claimed against, and re-reading it here would let a construct and a claim come to disagree about one target's format with nothing comparing them.
     in    Declaring  const ConstructDeclaration&  [-]  the colour targets in output order, and the depth target or its absence
-    out   -          Outcome                      [-]  refuses with ContentUnsupported for a declaration spanning nothing at all or
+    out   -          Deliver                      [-]  refuses with ContentUnsupported for a declaration spanning nothing at all or
     post  the construct stands; no span is derived until Derive is called
     by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+65 more)
     note  📝 Declared from the claimed targets' formats rather than from `08` §2's table a second time.
@@ -82,7 +82,7 @@ F AttachmentIndex::Declare          | AttachmentIndex.h | 109     | api,nonthrow
 F AttachmentIndex::Derive           | AttachmentIndex.h | 123     | api,nonthrowing               | 🔴 | Covers every declared construct's targets at one display extent, replacing whatever stood before. and with HostDenied when the device declines a span `06` §7's gate is that no persistent extent survives a resize, and a span retained because its construct "looked unaffected" is exactly such an extent.
     in    DisplayWidth   std::uint32_t  [px]  the extent the targets were last claimed against
     in    DisplayHeight  std::uint32_t  [px]  ?
-    out   -              Outcome        [-]   refuses with ContentUnsupported for a zero extent or an unclaimed target,
+    out   -              Deliver        [-]   refuses with ContentUnsupported for a zero extent or an unclaimed target,
     pre   🔴 the device is idle and `TargetSpace` has re-claimed at this extent
     post  every declared construct carries a span at this extent, or none does — refused in full
     by    Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+10 more)
@@ -90,12 +90,12 @@ F AttachmentIndex::Derive           | AttachmentIndex.h | 123     | api,nonthrow
 
 F AttachmentIndex::Resolve          | AttachmentIndex.h | 131     | api,nonallocating,nonthrowing | ✔️ | The construct and the span one ordinal names, for the recording that opens it. with ExtentExhausted before Derive has covered it
     in    ConstructOrdinal  std::uint32_t  [-]  an ordinal this component issued
-    out   -                 Outcome        [-]  refuses with ContentUnsupported for an ordinal naming no construct, and
+    out   -                 Deliver        [-]  refuses with ContentUnsupported for an ordinal naming no construct, and
     by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+94 more)
 
 F AttachmentIndex::ConstructOf      | AttachmentIndex.h | 140     | api,nonallocating,nonthrowing | ✔️ | The construct alone, for `ProgramIndex` constructing a program before any span is derived. is known, and only the formats enter that construction. Requiring a derived span to construct a program would order the two the wrong way round.
     in    ConstructOrdinal  std::uint32_t  [-]  ?
-    out   -                 Outcome        [-]  refuses with ContentUnsupported for an ordinal naming no construct
+    out   -                 Deliver        [-]  refuses with ContentUnsupported for an ordinal naming no construct
     by    Source/AttachmentIndex.cpp, Source/VisibilityRaster.cpp
     note  📝 Separate from `Resolve` because a program is constructed at bring-up, before the first extent
 

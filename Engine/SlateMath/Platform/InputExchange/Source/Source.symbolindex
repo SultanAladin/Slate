@@ -83,7 +83,7 @@ F ReceivePointerMessage         | InputExchange.cpp | 159-236 | -          | - |
 F InputExchange::Attach         | InputExchange.cpp | 244-318 | -          | - | ?
     in    NativeWindowSlot  void*                [-]  ?
     in    HostTimeline      const TickSequence&  [-]  ?
-    out   -                 Outcome<bool>        [-]  ?
+    out   -                 Deliver<bool>        [-]  ?
 
 F InputExchange::Detach         | InputExchange.cpp | 320-355 | -          | - | ?
     out   -  void  [-]  ?

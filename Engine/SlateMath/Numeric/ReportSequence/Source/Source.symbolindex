@@ -88,7 +88,7 @@ F MeasureIndex::Measures         | ReportSequence.cpp | 200-203 | - | - | ?
 F MeasureIndex::Resolve          | ReportSequence.cpp | 205-216 | - | - | ?
     in    Origin    const char*              [-]  ?
     in    Measured  const char*              [-]  ?
-    out   -         Outcome<SampledMeasure>  [-]  ?
+    out   -         Deliver<SampledMeasure>  [-]  ?
 
 F MeasureIndex::Reclaim          | ReportSequence.cpp | 218-221 | - | - | ?
     out   -  void  [-]  ?
