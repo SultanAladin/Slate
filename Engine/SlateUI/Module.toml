@@ -29,8 +29,8 @@ source = [
 # 📝 imgui_demo.cpp is deliberately absent. It compiles a window nothing in Slate presents, and its only
 #    effect on a shipped build is bytes.
 
-# 📝 🔴 ThorVG is the vector rasteriser `GlyphDepot` drives, and it is linked rather than compiled here.
-#    ImGui is compiled into this unit because `00` §2.2 forbids a second copy existing at all; ThorVG has
-#    no such constraint and no second copy can arise from a static archive.
+# 📝 🔴 ThorVG is linked rather than compiled here. ImGui is compiled into this unit because `00` §2.2
+#    forbids a second copy existing at all; ThorVG has no such constraint and no second copy can arise
+#    from a static archive. Needed when GlyphDepot is rebuilt.
 [link]
 library = [ "ExternalPackages/thorvg/lib/thorvg.lib" ]
