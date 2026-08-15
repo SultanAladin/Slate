@@ -1,6 +1,6 @@
 # Engine Folder Structure
 
-Source: `Engine/` — files of type `.cpp` / `.h` / `.slang` (277 files) and `.comp` / `.bat` / `.ps1` (none found).
+Source: `Engine/` — 246 source files (`.h` / `.cpp` / `.slang` / `.slang.h`) across 6 modules.
 
 ```
 Engine/
@@ -461,95 +461,36 @@ Engine/
 │               └── WindowInterchange.cpp
 ├── SlateUI/
 │   └── Interface/
-│       ├── AssetPanel/
+│       ├── AppearanceSpecification/
 │       │   ├── Api/
-│       │   │   └── AssetPanel.h
+│       │   │   └── AppearanceSpecification.h
 │       │   └── Source/
-│       │       └── AssetPanel.cpp
-│       ├── CanvasPanel/
+│       │       └── AppearanceSpecification.cpp
+│       ├── DrawerSpace/
 │       │   ├── Api/
-│       │   │   └── CanvasPanel.h
+│       │   │   └── DrawerSpace.h
 │       │   └── Source/
-│       │       └── CanvasPanel.cpp
-│       ├── ChannelPanel/
-│       │   ├── Api/
-│       │   │   └── ChannelPanel.h
-│       │   └── Source/
-│       │       └── ChannelPanel.cpp
-│       ├── ControlPanel/
-│       │   ├── Api/
-│       │   │   └── ControlPanel.h
-│       │   └── Source/
-│       │       ├── ControlChrome.cpp
-│       │       ├── ControlChoice.cpp
-│       │       ├── ControlInterior.h
-│       │       ├── ControlLayout.cpp
-│       │       ├── ControlNumeric.cpp
-│       │       └── ControlText.cpp
-│       ├── DiagnosticPanel/
-│       │   ├── Api/
-│       │   │   └── DiagnosticPanel.h
-│       │   └── Source/
-│       │       └── DiagnosticPanel.cpp
-│       ├── EntryPanel/
-│       │   ├── Api/
-│       │   │   └── EntryPanel.h
-│       │   └── Source/
-│       │       └── EntryPanel.cpp
-│       ├── GlyphDepot/
-│       │   └── Api/
-│       │       └── GlyphDepot.h
+│       │       └── DrawerSpace.cpp
 │       ├── InterfaceExchange/
 │       │   ├── Api/
-│       │   │   └── InterfaceExchange.h
+│       │   │   ├── InterfaceExchange.h
+│       │   │   └── RecordingSurface.h
 │       │   └── Source/
-│       │       └── InterfaceExchange.cpp
-│       ├── LayerPanel/
+│       │       ├── InterfaceExchange.cpp
+│       │       └── RecordingSurface.cpp
+│       ├── MotionIntegrator/
+│       │   └── Api/
+│       │       └── MotionIntegrator.h
+│       ├── RedrawScheduler/
 │       │   ├── Api/
-│       │   │   └── LayerPanel.h
+│       │   │   └── RedrawScheduler.h
 │       │   └── Source/
-│       │       └── LayerPanel.cpp
-│       ├── OutlinerPanel/
-│       │   ├── Api/
-│       │   │   └── OutlinerPanel.h
-│       │   └── Source/
-│       │       └── OutlinerPanel.cpp
-│       ├── PropertyPanel/
-│       │   ├── Api/
-│       │   │   └── PropertyPanel.h
-│       │   └── Source/
-│       │       └── PropertyPanel.cpp
-│       ├── RevisionPanel/
-│       │   ├── Api/
-│       │   │   └── RevisionPanel.h
-│       │   └── Source/
-│       │       └── RevisionPanel.cpp
-│       ├── TexturePaintSpecification/
-│       │   ├── Api/
-│       │   │   └── TexturePaintSpecification.h
-│       │   └── Source/
-│       │       └── TexturePaintSpecification.cpp
-│       ├── ThemeSpecification/
-│       │   ├── Api/
-│       │   │   └── ThemeSpecification.h
-│       │   └── Source/
-│       │       └── ThemeSpecification.cpp
-│       ├── WorkspaceSequence/
-│       │   ├── Api/
-│       │   │   └── WorkspaceSequence.h
-│       │   └── Source/
-│       │       └── WorkspaceSequence.cpp
-│       └── WorkspaceSpace/
+│       │       └── RedrawScheduler.cpp
+│       └── SymbolSpecification/
 │           ├── Api/
-│           │   ├── PanelIndex.h
-│           │   └── WorkspaceSpace.h
+│           │   └── SymbolSpecification.h
 │           └── Source/
-│               ├── WorkspaceBracket.cpp
-│               ├── WorkspaceDrag.cpp
-│               ├── WorkspacePanel.cpp
-│               ├── WorkspaceSpace.cpp
-│               ├── WorkspaceStrip.cpp
-│               └── WorkspaceStripInternal.h
+│               └── SymbolSpecification.cpp
 └── SlateVulkan/
     └── Device/
         ├── AttachmentIndex/
