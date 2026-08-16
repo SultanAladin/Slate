@@ -514,6 +514,62 @@ struct ControlMetric
 };
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                   THE WORKSPACE TABS
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📐 `References/DockWorkspace.html` states its tab strip in raw hexadecimal, like the control sheet and
+//    unlike the neutral ladder. The seven below are its own figures, named once here so no recording site
+//    and no style seat transcribes a literal.
+inline constexpr std::uint32_t WorkspaceStrip        = 0x18181Cu;   // [-] - --strip, and --panel-footer-bg
+inline constexpr std::uint32_t WorkspaceTabQuiet     = 0x26262Cu;   // [-] - --tab-inactive
+inline constexpr std::uint32_t WorkspaceTabRoused    = 0x32323Au;   // [-] - --tab-hover
+inline constexpr std::uint32_t WorkspaceTabTaken     = 0x000000u;   // [-] - --tab-active
+inline constexpr std::uint32_t WorkspaceTabInkQuiet  = 0x9BA1ADu;   // [-] - --tab-inactive-text
+inline constexpr std::uint32_t WorkspaceTabInkTaken  = 0xFFFFFFu;   // [-] - --tab-active-text
+inline constexpr std::uint32_t WorkspaceFooterEdge   = 0x222228u;   // [-] - --panel-footer-border, --border
+
+/// 🧩 Every extent and ink the workspace tab strip is drawn with, stated at the sheet's authored density.
+/// note  🔴 These are read by whatever seats the interface library's style, and by the footer strip Slate
+///       records itself. The tab geometry is the vendor's — `Patches/` states how — but the figures it is
+///       driven by are declared here so the sheet can be compared against them line by line.
+/// note  ⚠️ TabPadAlong and TabOverlap are coupled. The sheet's 38 px horizontal padding exists to clear the
+///       slant plus the overlap; raising the overlap without raising the padding runs adjacent runs together.
+/// tag   contract, nonallocating, nonthrowing
+struct WorkspaceMetric
+{
+    float  TabAcross        =  24.0f;   // [px] - .tab height
+    float  TabSlant         =  14.0f;   // [px] - slant = min(14, w * 0.16)
+    float  TabOverlap       =  24.0f;   // [px] - .tab margin-right: -24px
+    float  TabPadAlong      =  38.0f;   // [px] - .tab padding: 0 38px
+    float  TabAlongFloor    = 170.0f;   // [px] - .tab min-width
+    float  TabAlongCeiling  = 320.0f;   // [px] - .tab max-width
+    float  TabRadius        =   0.0f;   // [px] - roundCorners is off; 5.0f turns it on
+    float  TabEdgeWeight    =   0.0f;   // [px] - no border requested; the sheet's stroke is 1.0f
+    float  StripAcross      =  28.0f;   // [px] - .tabstrip height
+    float  StripPadTop      =   4.0f;   // [px] - 28 px strip carrying a 24 px tab at flex-end
+    float  FooterAcross     =  22.0f;   // [px] - .panelfooter height
+    float  FooterEdgeWeight =   1.0f;   // [px] - .panelfooter border-top
+    float  TabText          =  10.0f;   // [px] - .tab .lbl font-size
+};
+
+/// 🧩 The inks the workspace tab strip and its footer are drawn with.
+/// tag   contract, nonallocating, nonthrowing
+struct WorkspaceInk
+{
+    InkOrdinate  StripGround   = Covering(WorkspaceStrip);         // [-] - behind the tabs
+    InkOrdinate  TabQuiet      = Covering(WorkspaceTabQuiet);      // [-] - an unselected tab
+    InkOrdinate  TabRoused     = Covering(WorkspaceTabRoused);     // [-] - hovered
+    InkOrdinate  TabTaken      = Covering(WorkspaceTabTaken);      // [-] - selected
+    InkOrdinate  TabInkQuiet   = Covering(WorkspaceTabInkQuiet);   // [-] - an unselected run
+    InkOrdinate  TabInkTaken   = Covering(WorkspaceTabInkTaken);   // [-] - the selected run
+    InkOrdinate  TabEdge       = Partial(AbsoluteBlack, 0.45);     // [-] - stroke rgba(0,0,0,.45)
+    InkOrdinate  TabEdgeRoused = Partial(0xFFFFFFu, 0.08);         // [-] - stroke rgba(255,255,255,.08)
+    InkOrdinate  FooterGround  = Covering(WorkspaceStrip);         // [-] - --panel-footer-bg
+    InkOrdinate  FooterEdge    = Covering(WorkspaceFooterEdge);    // [-] - --panel-footer-border
+    InkOrdinate  WorkspaceVoid = Covering(AbsoluteBlack);          // [-] - the OLED ground behind everything
+};
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                     THE MOTION SCALE
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -559,8 +615,10 @@ struct AppearanceSpecification
     SurfaceInk     Ink            = {};
     MetricScale    Measure        = {};
     MotionScale    Motion         = {};
-    ControlInk     Control        = {};
-    ControlMetric  ControlMeasure = {};
+    ControlInk       Control          = {};
+    ControlMetric    ControlMeasure   = {};
+    WorkspaceInk     Workspace        = {};
+    WorkspaceMetric  WorkspaceMeasure = {};
 };
 
 /// 🧩 The bounds the artist's own preference is admitted within.

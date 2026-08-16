@@ -217,6 +217,31 @@ void FloorRuns(ControlMetric& Measure)
     }
 }
 
+/// 🧩 Scales the workspace tab figures. Every member is a length; none is a fraction or a count.
+/// note  The tab strip is authored at the engine's own density and not at the control sheet's 2x, so it
+///       takes the display and artist factors alone and never AuthoredReduction. A 24 px tab halved is
+///       twelve pixels, which no run fits inside.
+/// cost  ✔️
+void ScaleWorkspaceLengths(WorkspaceMetric& Measure, float AppliedScale)
+{
+    Measure.TabAcross        *= AppliedScale;
+    Measure.TabSlant         *= AppliedScale;
+    Measure.TabOverlap       *= AppliedScale;
+    Measure.TabPadAlong      *= AppliedScale;
+    Measure.TabAlongFloor    *= AppliedScale;
+    Measure.TabAlongCeiling  *= AppliedScale;
+    Measure.TabRadius        *= AppliedScale;
+    Measure.TabEdgeWeight    *= AppliedScale;
+    Measure.StripAcross      *= AppliedScale;
+    Measure.StripPadTop      *= AppliedScale;
+    Measure.FooterAcross     *= AppliedScale;
+    Measure.FooterEdgeWeight *= AppliedScale;
+    Measure.TabText          *= AppliedScale;
+
+    if (Measure.TabText < TextLegibilityFloor)
+        Measure.TabText = TextLegibilityFloor;
+}
+
 }   // namespace
 
 ComfortDensity ClassifyDensity(const MetricScale& Measure, float ExtentAlong)
@@ -260,6 +285,12 @@ AppearanceSpecification Resolve(double DisplayScale, double ArtistScale, float E
 
     ScaleControlLengths(Resolved.ControlMeasure, ControlScale);
     FloorRuns(Resolved.ControlMeasure);
+
+    // 📝 The workspace strip is authored at engine density, so it takes the display and artist factors and
+    //    not the control sheet's reduction. Its own density factor still applies: a tab strip on a 4K panel
+    //    wants the same easing outward that every other extent gets.
+    ScaleWorkspaceLengths(Resolved.WorkspaceMeasure,
+                          DensityFactor(Classified) * AppliedScale * ArtistFactor);
 
     Resolved.ControlMeasure.Density       = Classified;
     Resolved.ControlMeasure.AppliedFactor = ControlScale;
