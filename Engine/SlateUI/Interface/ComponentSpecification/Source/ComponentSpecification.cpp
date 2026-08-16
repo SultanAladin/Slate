@@ -139,7 +139,7 @@ Deliver<bool> ComponentSpecification::Construct(InteractionIndex&              L
                                                 const AppearanceSpecification& Appearance)
 {
     if (this->Ledger != nullptr)
-        return Deliver<bool>::Refuse(DeliveryRefusal::ContentUnsupported);
+        return Deliver<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported });
 
     this->Ledger     = &Ledger;
     this->Surface    = &Surface;
@@ -223,10 +223,10 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
 
     const InkOrdinate FieldInk = Blend(Ink.FieldGround, Ink.FieldGround, Take);
 
-    Surface->Ground(Field, FieldInk, M.RadiusFine, CornerAll);
+    Surface->Ground(Field, FieldInk, Appearance->Measure.RadiusFine, CornerAll);
 
     const InkOrdinate CellInk = Roused ? Ink.CellGroundRoused : Ink.CellGround;
-    Surface->Ground(Cell, CellInk, M.RadiusFine, CornerAll);
+    Surface->Ground(Cell, CellInk, Appearance->Measure.RadiusFine, CornerAll);
 
     // The label run, centred in the field.
     const float LabelAcross = CentredAcross(Field, M.RowText);
@@ -235,7 +235,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
                               Ink.FieldInk, Declared.Options[TakenOrdinal], M.RowText);
 
     // The chevron, stroked in the cell.
-    Stroke(ChevronDown, Spanning(Cell.LeastAlong + (M.ChevronCellAlong - M.ChevronSymbol) * 0.5f,
+    Surface->Stroke(SymbolSubject::ChevronDown, Spanning(Cell.LeastAlong + (M.ChevronCellAlong - M.ChevronSymbol) * 0.5f,
                                  CentredAcross(Cell, M.ChevronSymbol),
                                  M.ChevronSymbol, M.ChevronSymbol), Ink.CellInk);
 
@@ -250,12 +250,12 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
         if (Taken)
         {
             Ledger->Withdraw();
-            Verdict.Mark = RedrawMark::Content;
+            Verdict.Mark = RedrawMark::Rerecord;
         }
         else if (Ledger->Seize(Claimed, ControlPart::Chevron))
         {
             Ledger->Disclose(Claimed);
-            Verdict.Mark = RedrawMark::Content;
+            Verdict.Mark = RedrawMark::Rerecord;
         }
     }
 
@@ -264,7 +264,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
         if (Arrived.ContactReleased && Ledger->Released(Claimed))
         {
             Ledger->Withdraw();
-            Verdict.Mark = RedrawMark::Content;
+            Verdict.Mark = RedrawMark::Rerecord;
         }
 
         // The open menu is deferred.
@@ -307,7 +307,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
     const float Rouse = Ledger->RousedFraction(Claimed);
 
     // Readout ground.
-    Surface->Ground(Readout, Ink.FieldGround, M.RadiusFine, CornerAll);
+    Surface->Ground(Readout, Ink.FieldGround, Appearance->Measure.RadiusFine, CornerAll);
 
     // Readout run.
     char Reading[20] = {};
@@ -318,7 +318,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
                      Ink.FieldInk, Reading, M.ReadoutText, M.ReadoutTracking);
 
     // Unit cell.
-    Surface->Ground(UnitCell, Ink.CellGround, M.RadiusFine, CornerAll);
+    Surface->Ground(UnitCell, Ink.CellGround, Appearance->Measure.RadiusFine, CornerAll);
 
     const float UnitAcross = CentredAcross(UnitCell, M.UnitText);
     Surface->TextRun(UnitCell.LeastAlong + (M.UnitCellAlong - M.UnitText) * 0.5f, UnitAcross,
@@ -358,13 +358,13 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
         if (Ledger->Seize(Claimed, Part))
         {
             Ledger->DepartFrom(Claimed, static_cast<float>(Ordinate));
-            Verdict.Mark = RedrawMark::Content;
+            Verdict.Mark = RedrawMark::Rerecord;
         }
     }
 
     if (Held && Ledger->Released(Claimed))
     {
-        Verdict.Mark = RedrawMark::Content;
+        Verdict.Mark = RedrawMark::Rerecord;
     }
 
     if (Held)
@@ -374,14 +374,15 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
         if (Departed.ContentPresent)
         {
             const float Travel = Arrived.PositionAlong - Ledger->OriginAlong();
-            const double NewOrdinate = Held(Departed.Resolve() + Travel / (Track.SpanAlong() / (Declared.MostOrdinal - Declared.LeastOrdinal)),
-                                            Declared.LeastOrdinal, Declared.MostOrdinal);
+            const double PixelsPerOrdinate = static_cast<double>(Track.SpanAlong()) / (Declared.MostOrdinal - Declared.LeastOrdinal);
+            const double OrdinateFromTravel = static_cast<double>(Departed.Resolve()) + static_cast<double>(Travel) / PixelsPerOrdinate;
+            double NewOrdinate = Held(OrdinateFromTravel, Declared.LeastOrdinal, Declared.MostOrdinal);
 
             if (NewOrdinate != Ordinate)
             {
                 Ordinate         = NewOrdinate;
-                Verdict.OrdinalAltered = true;
-                Verdict.Mark     = RedrawMark::Content;
+                Verdict.OrdinateAltered = true;
+                Verdict.Mark     = RedrawMark::Rerecord;
             }
         }
     }
@@ -403,8 +404,8 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
     const bool Held   = Ledger->Holding(Claimed);
 
     // The ground.
-    Surface->Ground(Row, Ink.RulerGround, M.RulerRadius, CornerAll);
-    Surface->Edge(Row, Ink.CardEdge, M.CardEdgeWeight, M.RulerRadius, CornerAll);
+    Surface->Ground(Row, Ink.RulerGround, 0.0f, CornerNone);
+    Surface->Edge(Row, Ink.CardEdge, 1.0f, 0.0f, CornerNone);
 
     // Ticks: major every tenth, medium every fifth, minor every other.
     const float CentreAlong = Row.LeastAlong + Row.SpanAlong() * 0.5f;
@@ -428,7 +429,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
         const PlaneExtent Tick = Spanning(TickAlong - M.TickWeight * 0.5f,
                                           CentreAcross - TickAcross * 0.5f,
                                           M.TickWeight, TickAcross);
-        Surface->Ground(Tick, TickInk);
+        Surface->Ground(Tick, TickInk, 0.0f, CornerNone);
 
         if (IsMajor)
         {
@@ -437,7 +438,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
             IntegralRun(Caption, sizeof(Caption), DegreesShown);
 
             const float CaptionAcross = CentreAcross + M.TickCaptionLift;
-            Surface->TextRun(TickAlong - M.MeasureRun(Caption, M.TickCaptionText) * 0.5f,
+            Surface->TextRun(TickAlong - Surface->MeasureRun(Caption, M.TickCaptionText) * 0.5f,
                              CaptionAcross, Ink.TickCaption, Caption, M.TickCaptionText);
         }
     }
@@ -446,7 +447,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
     const PlaneExtent Pointer = Spanning(CentreAlong - M.PointerWeight * 0.5f,
                                          CentreAcross - M.PointerAcross * 0.5f,
                                          M.PointerWeight, M.PointerAcross);
-    Surface->Ground(Pointer, Ink.RulerPointer);
+    Surface->Ground(Pointer, Ink.RulerPointer, 0.0f, CornerNone);
 
     // Centre dot.
     Surface->Medallion(CentreAlong, CentreAcross + M.PointerDotLift, M.PointerDot * 0.5f, Ink.RulerPointer);
@@ -462,7 +463,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
 
     // The readout is placed over the left side of the ruler.
     Surface->Ground(Spanning(Row.LeastAlong, Row.LeastAcross, M.ReadoutAlong + M.FieldPadAlong * 2.0f, Row.SpanAlong()),
-                    Ink.FieldGround, M.RadiusFine, CornerAll);
+                    Ink.FieldGround, Appearance->Measure.RadiusFine, CornerAll);
 
     // Interaction.
     Ledger->DeclareRoused(Claimed, Roused, RouseDuration);
@@ -475,13 +476,13 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
         if (Ledger->Seize(Claimed, ControlPart::Strip))
         {
             Ledger->DepartFrom(Claimed, static_cast<float>(Degrees));
-            Verdict.Mark = RedrawMark::Content;
+            Verdict.Mark = RedrawMark::Rerecord;
         }
     }
 
     if (Held && Ledger->Released(Claimed))
     {
-        Verdict.Mark = RedrawMark::Content;
+        Verdict.Mark = RedrawMark::Rerecord;
     }
 
     if (Held)
@@ -496,8 +497,8 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
             if (NewDegrees != Degrees)
             {
                 Degrees         = NewDegrees;
-                Verdict.OrdinalAltered = true;
-                Verdict.Mark     = RedrawMark::Content;
+                Verdict.OrdinateAltered = true;
+                Verdict.Mark     = RedrawMark::Rerecord;
             }
         }
     }
@@ -558,8 +559,8 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Claimed, const 
     if (Arrived.ContactArrived && Roused && Ledger->Seize(Claimed, ControlPart::Body))
     {
         Taken               = !Taken;
-        Verdict.OrdinalAltered = true;
-        Verdict.Mark        = RedrawMark::Content;
+        Verdict.OrdinateAltered = true;
+        Verdict.Mark        = RedrawMark::Rerecord;
     }
 
     return Verdict;
@@ -583,13 +584,13 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Claimed, const 
     // Row ground.
     const InkOrdinate GroundInk = Enrolled ? Ink.RowGroundTaken
                                            : Roused ? Ink.RowGroundRoused : Ink.RowGroundQuiet;
-    Surface->Ground(Row, GroundInk);
+    Surface->Ground(Row, GroundInk, 0.0f, CornerNone);
 
     // Leading rail.
-    const PlaneExtent Rail = Spanning(Row.LeastAlong, Across + (M.SubsetRowAcross - M.RailAcross) * 0.5f,
-                                      M.SubsetRailAlong, M.RailAcross);
+    const PlaneExtent Rail = Spanning(Row.LeastAlong, Across + (M.SubsetRowAcross - Appearance->Measure.RailAcross) * 0.5f,
+                                   M.SubsetRailAlong, Appearance->Measure.RailAcross);
     const InkOrdinate RailInk = Enrolled ? Ink.RowRailTaken : Ink.RowRailQuiet;
-    Surface->Ground(Rail, RailInk);
+    Surface->Ground(Rail, RailInk, 0.0f, CornerNone);
 
     // Label.
     const float LabelAlong = Row.LeastAlong + M.SubsetRowPadAlong;
@@ -607,8 +608,8 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Claimed, const 
     if (Arrived.ContactArrived && Roused && Ledger->Seize(Claimed, ControlPart::Body))
     {
         Enrolled            = !Enrolled;
-        Verdict.OrdinalAltered = true;
-        Verdict.Mark        = RedrawMark::Content;
+        Verdict.OrdinateAltered = true;
+        Verdict.Mark        = RedrawMark::Rerecord;
     }
 
     return Verdict;
@@ -646,7 +647,7 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, c
         if (IsTaken && Declared.Stops != nullptr && Ordinal < Declared.StopCount)
         {
             const float LetterAcross = StopAcross + (Extent - M.RowText) * 0.5f;
-            Surface->TextRun(Stop.LeastAlong + (Extent - M.MeasureRun(Declared.Stops[Ordinal], M.RowText)) * 0.5f,
+            Surface->TextRun(Stop.LeastAlong + (Extent - Surface->MeasureRun(Declared.Stops[Ordinal], M.RowText)) * 0.5f,
                              LetterAcross, Ink.StopTakenInk, Declared.Stops[Ordinal], M.RowText);
         }
 
@@ -670,8 +671,8 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, c
             if (Ordinal != TakenOrdinal)
             {
                 TakenOrdinal    = Ordinal;
-                Verdict.OrdinalAltered = true;
-                Verdict.Mark     = RedrawMark::Content;
+                Verdict.OrdinateAltered = true;
+                Verdict.Mark     = RedrawMark::Rerecord;
             }
         }
 
@@ -703,7 +704,7 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, c
         Trigger.LeastAlong + (Trigger.SpanAlong() - SymbolExtent) * 0.5f,
         Trigger.LeastAcross + (Trigger.SpanAcross() - SymbolExtent) * 0.5f,
         SymbolExtent, SymbolExtent);
-    Stroke(Declared.Figure, SymbolSquare, FigureInk);
+    Surface->Stroke(Declared.Figure, SymbolSquare, FigureInk);
 
     // Interaction.
     const bool Roused = Trigger.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
@@ -717,7 +718,7 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, c
         if (Ledger->Seize(Claimed, ControlPart::Body))
         {
             Ledger->Disclose(Claimed);
-            Verdict.Mark = RedrawMark::Content;
+            Verdict.Mark = RedrawMark::Rerecord;
         }
     }
 
@@ -735,7 +736,7 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, c
             ++DeferredCount;
         }
 
-        Verdict.Mark = RedrawMark::Content;
+        Verdict.Mark = RedrawMark::Rerecord;
     }
 
     return Verdict;
@@ -745,20 +746,20 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, c
 //                                                     THE DEFERRED SWEEP
 //------------------------------------------------------------------------------------------------------------------------
 
-void ComponentSpecification::RecordMenu(const DeferredRecording& Deferred)
+void ComponentSpecification::RecordMenu(const DeferredRecording& DeferredEntry)
 {
     const ControlInk&    Ink  = Appearance->Control;
     const ControlMetric& M    = Appearance->ControlMeasure;
 
-    const std::uint32_t Count = (Deferred.OptionCount < StopCeiling) ? Deferred.OptionCount : StopCeiling;
+    const std::uint32_t Count = (DeferredEntry.OptionCount < StopCeiling) ? DeferredEntry.OptionCount : StopCeiling;
 
     // Menu extent: anchored below the field, lifting by MenuLift.
-    const float MenuAlong = Deferred.Anchor.SpanAlong();
+    const float MenuAlong = DeferredEntry.Anchor.SpanAlong();
     const float OptionAcross = M.OptionPadAcross * 2.0f + M.RowText;
     const float MenuAcross = OptionAcross * Count + M.MenuGapAcross * (Count - 1u) + M.MenuPad * 2.0f;
 
-    const PlaneExtent Menu = Spanning(Deferred.Anchor.LeastAlong,
-                                      Deferred.Anchor.MostAcross + M.MenuLift,
+    const PlaneExtent Menu = Spanning(DeferredEntry.Anchor.LeastAlong,
+                                      DeferredEntry.Anchor.MostAcross + M.MenuLift,
                                       MenuAlong, MenuAcross);
 
     Surface->Ground(Menu, Ink.MenuGround, M.MenuRadius, CornerAll);
@@ -774,18 +775,18 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Deferred)
                                             OptionAcross);
 
         const bool OptionRoused = Option.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
-        const bool OptionTaken  = (Ordinal == Deferred.TakenOption);
+        const bool OptionTaken  = (Ordinal == DeferredEntry.TakenOption);
 
         if (OptionRoused || OptionTaken)
         {
-            Surface->Ground(Option, OptionRoused ? Ink.OptionGroundRoused : Ink.GroupGroundTaken);
+            Surface->Ground(Option, OptionRoused ? Ink.OptionGroundRoused : Ink.RowGroundTaken, 0.0f, CornerNone);
         }
 
         const InkOrdinate OptionInk = OptionRoused ? Ink.OptionInkRoused : Ink.OptionInk;
         Surface->TextRun(Option.LeastAlong, CentredAcross(Option, M.RowText), OptionInk,
-                         Deferred.Options[Ordinal], M.RowText);
+                         DeferredEntry.Options[Ordinal], M.RowText);
 
-        if (OptionRoused && Arrived.ContactArrived && Ledger->Seize(Deferred.Claimed, ControlPart::Option))
+        if (OptionRoused && Arrived.ContactArrived && Ledger->Seize(DeferredEntry.Claimed, ControlPart::Option))
         {
             // The taken option is written by the caller through the reference the menu holds.
             // Here we just close the menu.
@@ -796,12 +797,12 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Deferred)
     }
 }
 
-void ComponentSpecification::RecordTooltip(const DeferredRecording& Deferred)
+void ComponentSpecification::RecordTooltip(const DeferredRecording& DeferredEntry)
 {
     const ControlInk&    Ink  = Appearance->Control;
     const ControlMetric& M    = Appearance->ControlMeasure;
 
-    const bool IsLight = (Deferred.Appearance == TooltipAppearance::Light);
+    const bool IsLight = (DeferredEntry.Appearance == TooltipAppearance::Light);
 
     const InkOrdinate GroundInk = IsLight ? Ink.TooltipLightGround : Ink.TooltipDarkGround;
     const InkOrdinate TitleInk  = IsLight ? Ink.TooltipLightTitle  : Ink.TooltipDarkTitle;
@@ -809,12 +810,12 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Deferred)
 
     // The tooltip card, anchored above the trigger.
     const float TooltipAlong = M.TooltipAlong;
-    const float TriggerCentre = Deferred.Anchor.LeastAlong + Deferred.Anchor.SpanAlong() * 0.5f;
+    const float TriggerCentre = DeferredEntry.Anchor.LeastAlong + DeferredEntry.Anchor.SpanAlong() * 0.5f;
     const float TooltipLeastAlong = TriggerCentre - TooltipAlong * 0.5f;
 
     // The body wraps. We estimate line count from the run extent.
     const float BodyExtent = TooltipAlong - M.TooltipPad * 2.0f;
-    const float BodyRun = Surface->MeasureRun(Deferred.Body, M.TooltipBodyText);
+    const float BodyRun = Surface->MeasureRun(DeferredEntry.Body, M.TooltipBodyText);
     const std::uint32_t Lines = (BodyRun > 0.0f) ? static_cast<std::uint32_t>((BodyRun / BodyExtent) + 1.5f) : 1u;
     const std::uint32_t ClampedLines = (Lines < WrapCeiling) ? Lines : WrapCeiling;
 
@@ -823,7 +824,7 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Deferred)
     const float TooltipAcross = BodyAcross + ClampedLines * M.TooltipBodyLeading + M.TooltipPad;
 
     const PlaneExtent Tooltip = Spanning(TooltipLeastAlong,
-                                         Deferred.Anchor.LeastAcross - M.TooltipLift - TooltipAcross,
+                                         DeferredEntry.Anchor.LeastAcross - M.TooltipLift - TooltipAcross,
                                          TooltipAlong, TooltipAcross);
 
     // Ground, edge.
@@ -832,11 +833,11 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Deferred)
 
     // Title.
     Surface->TextRun(Tooltip.LeastAlong + M.TooltipPad, Tooltip.LeastAcross + TitleAcross,
-                     TitleInk, Deferred.Title, M.TooltipTitleText);
+                     TitleInk, DeferredEntry.Title, M.TooltipTitleText);
 
     // Body, wrapped manually.
     {
-        const char* Remaining = Deferred.Body;
+        const char* Remaining = DeferredEntry.Body;
         float LineAcross = BodyAcross;
 
         for (std::uint32_t Line = 0u; Line < ClampedLines && Remaining != nullptr && *Remaining != '\0'; ++Line)
