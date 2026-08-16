@@ -47,14 +47,6 @@ constexpr InkOrdinate Partial(std::uint32_t Packed, double Coverage)
     return Constructed;
 }
 
-/// 🧩 Scales an ink's coverage without disturbing its chromaticity — what a fade interpolant drives.
-/// cost  ✔️
-constexpr InkOrdinate Faded(InkOrdinate Standing, double Coverage)
-{
-    Standing.Opacity = static_cast<std::uint8_t>(static_cast<double>(Standing.Opacity) * Coverage + 0.5);
-    return Standing;
-}
-
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE NEUTRAL LADDER
 //------------------------------------------------------------------------------------------------------------------------
@@ -119,15 +111,10 @@ struct SurfaceInk
     InkOrdinate  InkGhost            = Covering(NeutralSixHundred);       // [-] - the LIBRARY caption
 
     InkOrdinate  RailTaken           = Covering(NeutralOneHundred);       // [-] - the 3 px selection rail
-    InkOrdinate  RailGlow            = Partial(0xFFFFFFu, 0.80);          // [-] - 0 0 8px rgba(255,255,255,.8)
     InkOrdinate  RailQuiet           = Partial(AbsoluteBlack, 0.00);      // [-] - bg-transparent
 
     InkOrdinate  ScrimTop            = Partial(NeutralNineHundred, 0.80); // [-] - from-neutral-900/80
     InkOrdinate  ScrimBottom         = Partial(NeutralNineHundred, 0.00); // [-] - to-transparent
-    InkOrdinate  DrawerShadow        = Partial(AbsoluteBlack, 0.50);      // [-] - 0 ±20px 60px
-    InkOrdinate  TongueShadowNorth   = Partial(AbsoluteBlack, 0.12);      // [-] - drop-shadow-md, 0 3px 3px
-    InkOrdinate  TongueShadowSouth   = Partial(AbsoluteBlack, 0.25);      // [-] - 0 -4px 10px
-    InkOrdinate  RecessShadow        = Partial(AbsoluteBlack, 0.05);      // [-] - inset 0 2px 4px
     InkOrdinate  FocusRing           = Covering(NeutralFiveHundred);      // [-] - focus:ring-1 ring-neutral-500
 };
 
@@ -181,7 +168,6 @@ struct MetricScale
     float  GripLiftNorth        =  24.0f;   // [px] - bottom-6, the north drawer's grip
 
     float  RailAcross           =   3.0f;   // [px] - w-[3px]
-    float  RailGlowSpread       =   8.0f;   // [px] - 0 0 8px
 
     float  SymbolChevron        =  16.0f;   // [px] - w-4 h-4
     float  SymbolTongue         =  16.0f;   // [px] - w-4 h-4, stroked at 2.5

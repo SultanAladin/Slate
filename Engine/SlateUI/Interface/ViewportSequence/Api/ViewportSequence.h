@@ -62,7 +62,7 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Advance(double ElapsedMilliseconds);
 
-    /// 🧩 Records the drawer chrome — shadows, bodies, edges, grips and tongues.
+    /// 🧩 Records the drawer chrome — bodies, edges, grips and tongues.
     /// note  Panels must not record before this call. The drawer bodies define the clipping extents
     ///       the panels record inside.
     /// cost  🚩

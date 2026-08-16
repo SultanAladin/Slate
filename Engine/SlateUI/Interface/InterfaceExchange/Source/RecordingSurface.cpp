@@ -7,7 +7,6 @@
 
 #include "imgui.h"
 
-#include <cmath>
 #include <cfloat>
 
 namespace Slate
@@ -21,7 +20,6 @@ namespace
 {
 
 constexpr std::uint32_t ConfineCeiling  = 16u;   // [-] - nesting depth a scroll extent may reach
-constexpr std::uint32_t ShadowLayers    = 14u;   // [-] - concentric grounds one cast is approximated with
 constexpr float         EmphaticOffset  = 0.34f; // [px] - the second recording's displacement
 
 ImU32 Vendor(InkOrdinate Ink)
@@ -180,39 +178,6 @@ void RecordingSurface::Tongue(const float* Corners, std::uint32_t CornerCount, I
     }
 
     Commands(CommandSlot)->AddConvexPolyFilled(Outline, static_cast<int>(CornerCount), Vendor(Ink));
-}
-
-void RecordingSurface::ShadowCast(const PlaneExtent& Extent, InkOrdinate Ink, float Spread,
-                                  float OffsetAlong, float OffsetAcross, float Radius)
-{
-    if (CommandSlot == nullptr || Ink.Opacity == 0u || Spread <= 0.0f)
-        return;
-
-    // 📐 Each layer carries the coverage a Gaussian of this spread would leave at its own distance, which for
-    //    a layer ordinal 𝑛 of 𝑁 is approximately (1 − 𝑛/𝑁)². A linear ramp reads as a hard band at the
-    //    outermost layer; the square reproduces the falloff closely enough that the two are indistinguishable.
-    for (std::uint32_t LayerOrdinal = ShadowLayers; LayerOrdinal > 0u; --LayerOrdinal)
-    {
-        const float Fraction = static_cast<float>(LayerOrdinal) / static_cast<float>(ShadowLayers);
-        const float Distance = Spread * Fraction;
-        const float Residue  = (1.0f - Fraction) * (1.0f - Fraction);
-
-        const PlaneExtent Layer =
-        {
-            Extent.LeastAlong  + OffsetAlong  - Distance,
-            Extent.LeastAcross + OffsetAcross - Distance,
-            Extent.MostAlong   + OffsetAlong  + Distance,
-            Extent.MostAcross  + OffsetAcross + Distance
-        };
-
-        Ground(Layer, Faded(Ink, static_cast<double>(Residue) / static_cast<double>(ShadowLayers) * 3.0),
-               Radius + Distance, CornerAll);
-    }
-}
-
-void RecordingSurface::Glow(const PlaneExtent& Extent, InkOrdinate Ink, float Spread)
-{
-    ShadowCast(Extent, Ink, Spread, 0.0f, 0.0f, Spread * 0.5f);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
