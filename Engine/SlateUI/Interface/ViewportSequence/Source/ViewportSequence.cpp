@@ -108,9 +108,9 @@ Deliver<bool> ViewportSequence::Abandon()
     return Interface.Abandon();
 }
 
-Deliver<bool> ViewportSequence::Renegotiate(std::uint32_t RotationDepth)
+Deliver<bool> ViewportSequence::Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount)
 {
-    return Interface.Renegotiate(RotationDepth);
+    return Interface.Renegotiate(MinimumImageCount, ImageCount);
 }
 
 Deliver<bool> ViewportSequence::Record(VkCommandBuffer CommandRecording)

@@ -90,10 +90,10 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Abandon();
 
-    /// 🧩 Restates the recording slot count after a presentation chain was re-established.
+    /// 🧩 Restates the minimum and actual image counts after a presentation chain was re-established.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Renegotiate(std::uint32_t RotationDepth);
+    Deliver<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
 
     /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope

@@ -225,13 +225,14 @@ Deliver<bool> DisplayScheduler::Establish()
     std::uint32_t ArrivedCount = 0u;
     vkGetSwapchainImagesKHR(DeviceEdge->ActiveDevice(), DisplayChain, &ArrivedCount, nullptr);
 
-    if (ArrivedCount == 0u)
+    if (ArrivedCount < RequestedCount)
     {
         vkDestroySwapchainKHR(DeviceEdge->ActiveDevice(), DisplayChain, nullptr);
         DisplayChain = VK_NULL_HANDLE;
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the chain was established holding no image" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the chain holds fewer images than requested" });
     }
 
+    MinimumChainImages = RequestedCount;
     ChainImages.assign(ArrivedCount, VK_NULL_HANDLE);
     vkGetSwapchainImagesKHR(DeviceEdge->ActiveDevice(), DisplayChain, &ArrivedCount, ChainImages.data());
 
@@ -420,7 +421,12 @@ std::uint32_t DisplayScheduler::StandingHeight() const { return ChainHeight;    
 double        DisplayScheduler::PacedInterval() const  { return ArrivalInterval;  }
 std::uint64_t DisplayScheduler::Presented() const      { return SurrenderedCount; }
 
-std::uint32_t DisplayScheduler::ChainDepth() const
+std::uint32_t DisplayScheduler::MinimumChainImageCount() const
+{
+    return MinimumChainImages;
+}
+
+std::uint32_t DisplayScheduler::ChainImageCount() const
 {
     return static_cast<std::uint32_t>(ChainImages.size());
 }
@@ -455,7 +461,8 @@ void DisplayScheduler::Surrender()
     //    it; destroying one is a double free the validation layer reports against the presentation instead.
     ChainImages.clear();
     ChainViews.clear();
-    TakenOrdinal = AbsentDisplayImage;
+    MinimumChainImages = 0u;
+    TakenOrdinal       = AbsentDisplayImage;
 }
 
 DisplayScheduler::~DisplayScheduler()

@@ -182,10 +182,15 @@ public:
     std::uint32_t StandingWidth() const;
     std::uint32_t StandingHeight() const;
 
-    /// 🧩 How many images the chain holds — the vendor's count, never the recording slot count.
+    /// 🧩 The minimum image count requested when the standing chain was created.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t ChainDepth() const;
+    std::uint32_t MinimumChainImageCount() const;
+
+    /// 🧩 How many images the chain actually holds — the vendor's count, never `RecordingSlotCount`.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    std::uint32_t ChainImageCount() const;
 
     /// 🧩 The interval between the last two arrivals, for the pacing report `86` presents.
     /// out   Interval  [ms]  zero until two images have arrived
@@ -242,9 +247,10 @@ private:
     VkColorSpaceKHR            SurfaceEncoding  = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
     VkPresentModeKHR           ChainPacing      = VK_PRESENT_MODE_FIFO_KHR;
     LatencyIntent              DeclaredIntent   = LatencyIntent::SteadyPacing;
-    std::uint32_t              ChainWidth       = 0u;                   // [px] - the extent the chain stands at
-    std::uint32_t              ChainHeight      = 0u;                   // [px]
-    std::uint32_t              TakenOrdinal     = AbsentDisplayImage;   // [-]  - the image `Await` delivered
+    std::uint32_t              ChainWidth         = 0u;                   // [px] - the extent the chain stands at
+    std::uint32_t              ChainHeight        = 0u;                   // [px]
+    std::uint32_t              MinimumChainImages = 0u;                   // [-]  - requested through minImageCount
+    std::uint32_t              TakenOrdinal       = AbsentDisplayImage;   // [-]  - the image `Await` delivered
     std::uint32_t              EstablishedCount = 0u;                   // [-]  - chains stood so far; names this one
     TickPoint                  LastArrival      = {};                   // [ns] - when the previous image arrived
     double                     ArrivalInterval  = 0.0;                  // [ms] - between the last two arrivals

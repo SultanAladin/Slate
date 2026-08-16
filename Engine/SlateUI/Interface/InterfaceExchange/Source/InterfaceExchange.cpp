@@ -54,6 +54,13 @@ Deliver<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
             { RefusalReason::CapabilityAbsent, "no colour target format was declared" });
     }
 
+    if (Arriving.MinimumDisplayImageCount < 2u ||
+        Arriving.DisplayImageCount < Arriving.MinimumDisplayImageCount)
+    {
+        return Deliver<bool>::Refuse(
+            { RefusalReason::ContentUnsupported, "the display image counts are inconsistent" });
+    }
+
     Attached = Arriving;
 
     const VkDescriptorPoolSize DescriptorExtent[] =
@@ -115,8 +122,8 @@ Deliver<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     VendorAttachment.QueueFamily                                    = Attached.GraphicsFamilyOrdinal;
     VendorAttachment.Queue                                          = Attached.GraphicsQueue;
     VendorAttachment.DescriptorPool                                 = DescriptorSlot;
-    VendorAttachment.MinImageCount                                  = Attached.RotationDepth;
-    VendorAttachment.ImageCount                                     = Attached.RotationDepth;
+    VendorAttachment.MinImageCount                                  = Attached.MinimumDisplayImageCount;
+    VendorAttachment.ImageCount                                     = Attached.DisplayImageCount;
     VendorAttachment.UseDynamicRendering                            = true;
     VendorAttachment.PipelineInfoMain.PipelineRenderingCreateInfo   = RecordingDeclaration;
 
@@ -218,18 +225,22 @@ Deliver<bool> InterfaceExchange::Abandon()
     return Deliver<bool>::Deliver(true);
 }
 
-Deliver<bool> InterfaceExchange::Renegotiate(std::uint32_t RotationDepth)
+Deliver<bool> InterfaceExchange::Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount)
 {
     if (ContextSlot == nullptr || !VendorAttached)
         return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no vendor attachment stands" });
 
-    if (RotationDepth < 2u)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a recording slot count below two" });
+    if (MinimumImageCount < 2u || ImageCount < MinimumImageCount)
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display image counts are inconsistent" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
-    ImGui_ImplVulkan_SetMinImageCount(RotationDepth);
 
-    Attached.RotationDepth = RotationDepth;
+    // 📝 Dear ImGui 1.92.9 exposes runtime renegotiation of the requested minimum. The actual count is supplied
+    //    at construction and retained here beside the new chain count; it is never replaced by Slate's slot count.
+    ImGui_ImplVulkan_SetMinImageCount(MinimumImageCount);
+
+    Attached.MinimumDisplayImageCount = MinimumImageCount;
+    Attached.DisplayImageCount        = ImageCount;
 
     return Deliver<bool>::Deliver(true);
 }

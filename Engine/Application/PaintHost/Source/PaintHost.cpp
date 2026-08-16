@@ -139,9 +139,10 @@ int main()
     InterfaceArriving.ActiveDevice          = DeviceEdge.ActiveDevice();
     InterfaceArriving.GraphicsQueue         = DeviceEdge.GraphicsQueue();
     InterfaceArriving.GraphicsFamilyOrdinal = DeviceEdge.Capability().GraphicsFamilyOrdinal;
-    InterfaceArriving.ColourTargetFormat    = DisplayChain.Carries();
-    InterfaceArriving.RotationDepth         = RecordingSlotCount;
-    InterfaceArriving.NativeWindowSlot      = Window.NativeHandle();
+    InterfaceArriving.ColourTargetFormat       = DisplayChain.Carries();
+    InterfaceArriving.MinimumDisplayImageCount = DisplayChain.MinimumChainImageCount();
+    InterfaceArriving.DisplayImageCount        = DisplayChain.ChainImageCount();
+    InterfaceArriving.NativeWindowSlot         = Window.NativeHandle();
 
     // ⑪ The viewport sequence — springs, drawers, and the assembled recording.
     ViewportSequence Viewport;
@@ -214,6 +215,7 @@ int main()
                 vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
 
             DisplayChain.Reclaim(Extent.Width, Extent.Height);
+            Viewport.Renegotiate(DisplayChain.MinimumChainImageCount(), DisplayChain.ChainImageCount());
             continue;
         }
 
