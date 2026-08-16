@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                          INTERFACEEXCHANGE.CPP
 //============================================================================================================================================
 // 🧩 The only translation unit in the engine that includes ImGui.
@@ -21,7 +21,14 @@ namespace Slate
 //    lifetimes that are reclaimed at different moments.
 namespace
 {
-    constexpr std::uint32_t InterfaceDescriptorCapacity = 64u;   // [-] - sampled images the interface holds
+    // 📝 ImGui 19281 replaced VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER with two separate
+    //    descriptor types. The pool must carry both:
+    //      - SAMPLED_IMAGE  : one set per texture registered via ImGui_ImplVulkan_AddTexture().
+    //      - SAMPLER        : one set per built-in sampler (linear + nearest = 2 minimum).
+    //    InterfaceSamplerCapacity matches IMGUI_IMPL_VULKAN_MINIMUM_SAMPLER_POOL_SIZE (2)
+    //    without pulling imgui_impl_vulkan.h into this translation unit.
+    constexpr std::uint32_t InterfaceDescriptorCapacity = 64u;   // [-] sampled-image sets
+    constexpr std::uint32_t InterfaceSamplerCapacity    = 2u;    // [-] sampler sets (linear + nearest)
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -63,16 +70,20 @@ Deliver<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
 
     Attached = Arriving;
 
+    // 📝 ImGui 19281 allocates SAMPLED_IMAGE sets for textures and SAMPLER sets for its two
+    //    built-in samplers. A pool that carries only COMBINED_IMAGE_SAMPLER has neither type and
+    //    the first allocation fails with VK_ERROR_OUT_OF_POOL_MEMORY at validation time.
     const VkDescriptorPoolSize DescriptorExtent[] =
     {
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, InterfaceDescriptorCapacity }
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, InterfaceDescriptorCapacity },
+        { VK_DESCRIPTOR_TYPE_SAMPLER,       InterfaceSamplerCapacity    },
     };
 
     VkDescriptorPoolCreateInfo DescriptorDeclaration = {};
     DescriptorDeclaration.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     DescriptorDeclaration.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    DescriptorDeclaration.maxSets       = InterfaceDescriptorCapacity;
-    DescriptorDeclaration.poolSizeCount = 1u;
+    DescriptorDeclaration.maxSets       = InterfaceDescriptorCapacity + InterfaceSamplerCapacity;
+    DescriptorDeclaration.poolSizeCount = 2u;
     DescriptorDeclaration.pPoolSizes    = DescriptorExtent;
 
     if (vkCreateDescriptorPool(Attached.ActiveDevice, &DescriptorDeclaration, nullptr, &DescriptorSlot) != VK_SUCCESS)

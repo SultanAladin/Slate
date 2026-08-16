@@ -22,6 +22,11 @@ $PackageRoot    = Join-Path $RepositoryRoot 'ExternalPackages'
 $ScriptRoot     = Join-Path $RepositoryRoot 'Scripts'
 $OutputRoot     = Join-Path $RepositoryRoot "_AgentScratch\build\$Configuration"
 
+# Each dependency script is invoked at most once per session even when multiple subjects
+#    are linked. The flag is set after the first successful invocation and suppresses repeats.
+$script:GlfwBuilt   = $false
+$script:ThorVGBuilt = $false
+
 #---
 #                                        CONSOLE REPORTING
 #---
@@ -488,6 +493,33 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
     if (-not (Test-Path $BinaryRoot))
     {
         New-Item -ItemType Directory -Force -Path $BinaryRoot | Out-Null
+    }
+
+    # GLFW and ThorVG are built from submodule source the first time they are absent.
+    #    The build scripts are invoked here - after the toolchain environment is imported -
+    #    so cl.exe and the MSVC environment are already on PATH when they run.
+    $GlfwLib = Join-Path $PackageRoot 'glfw\lib-vc2022\glfw3dll.lib'
+    if (-not (Test-Path $GlfwLib) -and -not $script:GlfwBuilt)
+    {
+        Write-Building 'GLFW binaries absent - invoking BuildGLFW.ps1'
+        & powershell -File (Join-Path $ScriptRoot 'BuildGLFW.ps1')
+        if ($LASTEXITCODE -ne 0)
+        {
+            throw 'BuildGLFW.ps1 failed; GLFW binaries were not produced'
+        }
+        $script:GlfwBuilt = $true
+    }
+
+    $ThorVGLib = Join-Path $PackageRoot 'thorvg\lib\thorvg.lib'
+    if (-not (Test-Path $ThorVGLib) -and -not $script:ThorVGBuilt)
+    {
+        Write-Building 'ThorVG library absent - invoking BuildThorVG.ps1'
+        & powershell -File (Join-Path $ScriptRoot 'BuildThorVG.ps1')
+        if ($LASTEXITCODE -ne 0)
+        {
+            throw 'BuildThorVG.ps1 failed; ThorVG static library was not produced'
+        }
+        $script:ThorVGBuilt = $true
     }
 
     # 📝 Requires is already declared most-dependent first, which is the order the linker resolves against.
