@@ -45,6 +45,17 @@ constexpr PlaneExtent Spanning(float Along, float Across, float ExtentAlong, flo
     return PlaneExtent{ Along, Across, Along + ExtentAlong, Across + ExtentAcross };
 }
 
+/// 🧩 Which axis a scrim's ink varies along.
+/// note  The ordinate axis is declared first and carries the ordinal zero, so the enumeration's default and
+///       the scrim's default are the same statement rather than two that must be kept agreeing.
+/// tag   contract
+enum class ScrimAxis : std::uint32_t
+{
+    Across    = 0u,   // [-] - varies from LeastAcross to MostAcross; the card's caption scrim
+    Along     = 1u,   // [-] - varies from LeastAlong to MostAlong; the ruler's leading and trailing fade
+    AxisCount = 2u    // [-] - the closed count, never an axis
+};
+
 /// 🧩 Which corners of a rounded primitive are rounded. Absent bits are square.
 /// note  The source's card is rounded on four; its drawer body on none; its tongue on none but is clipped
 ///       instead. A single mask covers all three rather than three primitives that drift apart.
@@ -142,12 +153,19 @@ public:
     void Edge(const PlaneExtent& Extent, InkOrdinate Ink, float Weight = 1.0f,
               float Radius = 0.0f, std::uint32_t Corners = CornerAll);
 
-    /// 🧩 Fills an extent with an ordinate-varying ink — the card's caption scrim.
-    /// in    UpperInk  [-]  at LeastAcross
-    /// in    LowerInk  [-]  at MostAcross
+    /// 🧩 Fills an extent with a linearly varying ink — the card's caption scrim, and the ruler's fade.
+    /// in    UpperInk  [-]  at LeastAcross, or at LeastAlong when the axis is Along
+    /// in    LowerInk  [-]  at MostAcross, or at MostAlong when the axis is Along
+    /// in    Axis      [-]  which axis the ink varies along; the default is what every existing caller means
+    /// note  📐 A four-stop ramp is two of these. `Controls.html` masks its ruler with
+    ///       `linear-gradient(to right, transparent, black 20%, black 80%, transparent)`, which records as one
+    ///       Along scrim over the leading fifth and a second, reversed, over the trailing fifth. Declaring a
+    ///       four-stop primitive to serve one call site would put the stop fractions inside this component,
+    ///       where the sheet that states them could never be compared against them.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    void Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, InkOrdinate LowerInk);
+    void Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, InkOrdinate LowerInk,
+               ScrimAxis Axis = ScrimAxis::Across);
 
     /// 🧩 Fills a disc — every medallion and the meta separator.
     /// cost  ✔️

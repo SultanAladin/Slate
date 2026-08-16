@@ -54,83 +54,84 @@ enum class SymbolSubject : std::uint32_t
     ColumnArrangement   =  2u,   // 🟢 lucide `list`       — the column toggle
     PanelSplit          =  3u,   // 🚧
     PersistDisc         =  4u,   // 🚧
+    BulbFilament        =  5u,   // 🟢 lucide `lightbulb`  — the tooltip trigger
 
     // Navigation --------------------------------------------------------------------------------------------
-    ChevronDown         =  5u,   // 🟢 lucide `chevron-down`
-    ChevronRight        =  6u,   // 🟢 lucide `chevron-right`
-    MagnifierLens       =  7u,   // 🟢 lucide `search`
-    ArrowReturn         =  8u,   // 🚧
-    CrosshairCentre     =  9u,   // 🚧
+    ChevronDown         =  6u,   // 🟢 lucide `chevron-down`
+    ChevronRight        =  7u,   // 🟢 lucide `chevron-right`
+    MagnifierLens       =  8u,   // 🟢 lucide `search`
+    ArrowReturn         =  9u,   // 🚧
+    CrosshairCentre     = 10u,   // 🚧
 
     // Geometry ----------------------------------------------------------------------------------------------
-    VertexPoint         = 10u,   // 🚧
-    EdgeSegment         = 11u,   // 🚧
-    FacePlanar          = 12u,   // 🚧
-    SubdivisionStep     = 13u,   // 🚧
-    ExtrudeSpan         = 14u,   // 🚧
-    BevelChamfer        = 15u,   // 🚧
-    BooleanUnion        = 16u,   // 🚧
-    MirrorAxis          = 17u,   // 🚧
+    VertexPoint         = 11u,   // 🚧
+    EdgeSegment         = 12u,   // 🚧
+    FacePlanar          = 13u,   // 🚧
+    SubdivisionStep     = 14u,   // 🚧
+    ExtrudeSpan         = 15u,   // 🚧
+    BevelChamfer        = 16u,   // 🚧
+    BooleanUnion        = 17u,   // 🚧
+    MirrorAxis          = 18u,   // 🚧
 
     // Computer-aided design ---------------------------------------------------------------------------------
-    SketchPlane         = 18u,   // 🚧
-    ConstraintDimension = 19u,   // 🚧
-    FilletRadius        = 20u,   // 🚧
-    RevolveAxis         = 21u,   // 🚧
-    LoftProfile         = 22u,   // 🚧
+    SketchPlane         = 19u,   // 🚧
+    ConstraintDimension = 20u,   // 🚧
+    FilletRadius        = 21u,   // 🚧
+    RevolveAxis         = 22u,   // 🚧
+    LoftProfile         = 23u,   // 🚧
 
     // Sculpting ---------------------------------------------------------------------------------------------
-    BristleTip          = 23u,   // 🚧
-    InflatePush         = 24u,   // 🚧
-    SmoothRelax         = 25u,   // 🚧
-    MaskStencil         = 26u,   // 🚧
-    RemeshDensity       = 27u,   // 🚧
+    BristleTip          = 24u,   // 🚧
+    InflatePush         = 25u,   // 🚧
+    SmoothRelax         = 26u,   // 🚧
+    MaskStencil         = 27u,   // 🚧
+    RemeshDensity       = 28u,   // 🚧
 
     // Texturing ---------------------------------------------------------------------------------------------
-    UnwrapSeam          = 28u,   // 🚧
-    PaintBristle        = 29u,   // 🚧
-    MaterialSphere      = 30u,   // 🚧
-    ChannelSelect       = 31u,   // 🚧
-    StencilProjection   = 32u,   // 🚧
+    UnwrapSeam          = 29u,   // 🚧
+    PaintBristle        = 30u,   // 🚧
+    MaterialSphere      = 31u,   // 🚧
+    ChannelSelect       = 32u,   // 🚧
+    StencilProjection   = 33u,   // 🚧
 
     // Illumination ------------------------------------------------------------------------------------------
-    SunDirectional      = 33u,   // 🚧
-    LampPoint           = 34u,   // 🚧
-    AreaEmitter         = 35u,   // 🚧
-    SkyDome             = 36u,   // 🚧
+    SunDirectional      = 34u,   // 🚧
+    LampPoint           = 35u,   // 🚧
+    AreaEmitter         = 36u,   // 🚧
+    SkyDome             = 37u,   // 🚧
 
     // Rendering ---------------------------------------------------------------------------------------------
-    CameraAperture      = 37u,   // 🚧
-    SampleConverge      = 38u,   // 🚧
-    DenoiseSweep        = 39u,   // 🚧
-    ExposureOrdinate    = 40u,   // 🚧
+    CameraAperture      = 38u,   // 🚧
+    SampleConverge      = 39u,   // 🚧
+    DenoiseSweep        = 40u,   // 🚧
+    ExposureOrdinate    = 41u,   // 🚧
 
     // Animation ---------------------------------------------------------------------------------------------
-    KeyOrdinate         = 41u,   // 🚧
-    CurveTangent        = 42u,   // 🚧
-    TimelineScrub       = 43u,   // 🚧
-    SkeletonJoint       = 44u,   // 🚧
+    KeyOrdinate         = 42u,   // 🚧
+    CurveTangent        = 43u,   // 🚧
+    TimelineScrub       = 44u,   // 🚧
+    SkeletonJoint       = 45u,   // 🚧
 
     // Simulation --------------------------------------------------------------------------------------------
-    ClothDrape          = 45u,   // 🚧
-    FluidStream         = 46u,   // 🚧
-    RigidCollide        = 47u,   // 🚧
-    ParticleEmit        = 48u,   // 🚧
+    ClothDrape          = 46u,   // 🚧
+    FluidStream         = 47u,   // 🚧
+    RigidCollide        = 48u,   // 🚧
+    ParticleEmit        = 49u,   // 🚧
 
     // Assembly ----------------------------------------------------------------------------------------------
-    LayerMerge          = 49u,   // 🚧
-    AlphaMask           = 50u,   // 🚧
-    ColourWheel         = 51u,   // 🚧
-    GraphJunction       = 52u,   // 🚧
+    LayerMerge          = 50u,   // 🚧
+    AlphaMask           = 51u,   // 🚧
+    ColourWheel         = 52u,   // 🚧
+    GraphJunction       = 53u,   // 🚧
 
     // Measurement -------------------------------------------------------------------------------------------
-    PulseTrace          = 53u,   // 🟢 lucide `activity`   — the Control Center tongue
-    RulerSpan           = 54u,   // 🚧
-    HistogramProfile    = 55u,   // 🚧
-    StatisticReadout    = 56u,   // 🚧
+    PulseTrace          = 54u,   // 🟢 lucide `activity`   — the Control Center tongue
+    RulerSpan           = 55u,   // 🚧
+    HistogramProfile    = 56u,   // 🚧
+    StatisticReadout    = 57u,   // 🚧
 
-    PlaceholderMark     = 57u,   // 🟢 what every unresolved subject above draws as
-    SubjectCount        = 58u    // [-] - the closed count, never a subject
+    PlaceholderMark     = 58u,   // 🟢 what every unresolved subject above draws as
+    SubjectCount        = 59u    // [-] - the closed count, never a subject
 };
 
 //------------------------------------------------------------------------------------------------------------------------

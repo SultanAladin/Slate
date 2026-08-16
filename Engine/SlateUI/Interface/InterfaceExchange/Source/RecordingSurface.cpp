@@ -144,7 +144,8 @@ void RecordingSurface::Edge(const PlaneExtent& Extent, InkOrdinate Ink, float We
                                    Vendor(Ink), Radius, VendorCorners(Corners), Weight);
 }
 
-void RecordingSurface::Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, InkOrdinate LowerInk)
+void RecordingSurface::Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, InkOrdinate LowerInk,
+                             ScrimAxis Axis)
 {
     if (CommandSlot == nullptr)
         return;
@@ -152,9 +153,17 @@ void RecordingSurface::Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, In
     const ImU32 Upper = Vendor(UpperInk);
     const ImU32 Lower = Vendor(LowerInk);
 
+    // 📝 The vendor takes its four inks in winding order from the leading upper corner. An Across ramp
+    //    therefore repeats each ink across the pair that shares an ordinate, and an Along ramp across the
+    //    pair that shares an abscissa — the same call with two corners exchanged.
+    const ImU32 LeadingUpper  = Upper;
+    const ImU32 TrailingUpper = (Axis == ScrimAxis::Along) ? Lower : Upper;
+    const ImU32 TrailingLower = Lower;
+    const ImU32 LeadingLower  = (Axis == ScrimAxis::Along) ? Upper : Lower;
+
     Commands(CommandSlot)->AddRectFilledMultiColor(ImVec2(Extent.LeastAlong, Extent.LeastAcross),
                                                    ImVec2(Extent.MostAlong,  Extent.MostAcross),
-                                                   Upper, Upper, Lower, Lower);
+                                                   LeadingUpper, TrailingUpper, TrailingLower, LeadingLower);
 }
 
 void RecordingSurface::Medallion(float CentreAlong, float CentreAcross, float Radius, InkOrdinate Ink)

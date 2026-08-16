@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                        SYMBOLSPECIFICATION.CPP
 //============================================================================================================================================
-// 🧩 The seven declared figures, transcribed from the source's own path data, plus the mark everything else draws as.
+// 🧩 The eight declared figures, transcribed from the source's own path data, plus the mark everything else draws as.
 
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
@@ -113,6 +113,31 @@ constexpr StrokeStep PulseSteps[] =
     {  StrokeCommand::Segment,  2.0f, 12.0f }
 };
 
+// 📐 lucide `lightbulb` — the tooltip trigger `Controls.html` states as
+//    `M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5`,
+//    plus the two rules `M9 18h6` and `M10 22h4`. Every relative control offset is resolved to the absolute
+//    ordinate below, so the figure can be read without carrying a pen position in the reader's head.
+// 📐 The `A6 6 0 0 0` is a true semicircle of radius six about (12, 8) and is the one arc here that is not
+//    already a cubic. It is transcribed as **two** quarter cubics at the declared κ rather than one — a single
+//    cubic across 180° is wrong by about a fortieth of the radius at its midpoint, which is a visible flat at
+//    the 28 px this figure is drawn at, where the quarter-arc error is under a thousandth of a pixel.
+// 💡 The glass closes symmetrically: the stream ends at (9, 14), the mirror of its own origin (15, 14) about
+//    the axis x = 12. A transcription error in any one of the four shoulder cubics breaks that symmetry.
+constexpr StrokeStep BulbSteps[] =
+{
+    {  StrokeCommand::Origin,  15.0f,      14.0f      },
+    {  StrokeCommand::Curve,   16.5f,      11.5f,      15.2f,      13.0f,      15.7f,      12.3f      },
+    {  StrokeCommand::Curve,   18.0f,       8.0f,      17.5f,      10.6f,      18.0f,       9.3f      },
+    {  StrokeCommand::Curve,   12.0f,       2.0f,      18.0f,       4.686292f, 15.313708f,  2.0f      },
+    {  StrokeCommand::Curve,    6.0f,       8.0f,       8.686292f,  2.0f,       6.0f,       4.686292f },
+    {  StrokeCommand::Curve,    7.5f,      11.5f,       6.0f,       9.0f,       6.2f,      10.2f      },
+    {  StrokeCommand::Curve,    9.0f,      14.0f,       8.2f,      12.4f,       8.7f,      13.0f      },
+    {  StrokeCommand::Origin,   9.0f,      18.0f },
+    {  StrokeCommand::Segment, 15.0f,      18.0f },
+    {  StrokeCommand::Origin,  10.0f,      22.0f },
+    {  StrokeCommand::Segment, 14.0f,      22.0f }
+};
+
 // 📝 🚧 The mark every undeclared subject draws as — a rounded enclosure crossed by one diagonal. Deliberately
 //    unlike any real figure, so an unfinished roster is visible at a glance rather than mistaken for artwork.
 constexpr StrokeStep PlaceholderSteps[] =
@@ -144,6 +169,7 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* ColumnArrangement   */ { ColumnSteps,     12u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
     /* PanelSplit          */ Unresolved(SymbolDiscipline::Workspace),
     /* PersistDisc         */ Unresolved(SymbolDiscipline::Workspace),
+    /* BulbFilament        */ { BulbSteps,       11u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
 
     /* ChevronDown         */ { ChevronDownSteps, 3u, SymbolDiscipline::Navigation,  DeclaredWeight, true  },
     /* ChevronRight        */ { ChevronRightSteps,3u, SymbolDiscipline::Navigation,  DeclaredWeight, true  },
@@ -218,6 +244,7 @@ constexpr SymbolSubject DisciplineOrder[] =
 {
     SymbolSubject::FolderClosed,        SymbolSubject::LatticeArrangement,  SymbolSubject::ColumnArrangement,
     SymbolSubject::PanelSplit,          SymbolSubject::PersistDisc,
+    SymbolSubject::BulbFilament,
     SymbolSubject::ChevronDown,         SymbolSubject::ChevronRight,        SymbolSubject::MagnifierLens,
     SymbolSubject::ArrowReturn,         SymbolSubject::CrosshairCentre,
     SymbolSubject::VertexPoint,         SymbolSubject::EdgeSegment,         SymbolSubject::FacePlanar,
@@ -245,13 +272,13 @@ constexpr SymbolSubject DisciplineOrder[] =
 
 constexpr std::uint32_t DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount) + 1u] =
 {
-    0u, 5u, 10u, 18u, 23u, 28u, 33u, 37u, 41u, 45u, 49u, 53u, 57u
+    0u, 6u, 11u, 19u, 24u, 29u, 34u, 38u, 42u, 46u, 50u, 54u, 58u
 };
 
-static_assert(sizeof(DisciplineOrder) / sizeof(SymbolSubject) == 57u,
+static_assert(sizeof(DisciplineOrder) / sizeof(SymbolSubject) == 58u,
               "The discipline ordering must enrol every subject except the placeholder mark.");
 
-static_assert(DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount)] == 57u,
+static_assert(DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount)] == 58u,
               "The final enrolment boundary must reach the end of the discipline ordering.");
 
 }   // namespace
