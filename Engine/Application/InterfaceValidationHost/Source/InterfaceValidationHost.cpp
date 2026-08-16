@@ -4,21 +4,13 @@
 // 🧩 Records `References/Controls.html` literally, so every declared control can be compared against the sheet.
 
 #include "Contract/DeliveryContract.h"
-#include "SlateMath/Platform/TickSequence/Api/TickSequence.h"
-#include "SlateMath/Platform/WindowInterchange/Api/WindowInterchange.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
-#include "SlateVulkan/Device/CommandSequence/Api/CommandSequence.h"
-#include "SlateVulkan/Device/CycleScheduler/Api/CycleScheduler.h"
-#include "SlateVulkan/Device/DiagnosticExtension/Api/DiagnosticExtension.h"
-#include "SlateVulkan/Device/DisplayScheduler/Api/DisplayScheduler.h"
-#include "SlateVulkan/Device/VendorClassifier/Api/VendorClassifier.h"
-#include "SlateVulkan/Device/VulkanExchange/Api/VulkanExchange.h"
-#include "SlateVulkan/Device/WindowExchange/Api/WindowExchange.h"
+#include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
 
 #include <cstdio>
 
@@ -41,6 +33,30 @@ constexpr const char* HostName    = "InterfaceValidationHost";
 //    the controls, so it is **not** folded into AuthoredReduction — it arrives here, as the artist scale, which
 //    is exactly the seam a real application would expose to its own preference.
 constexpr double SheetColumnScale = 1.10;   // [-] - scale-110
+
+// 📝 The sheet's own page ground, #050505, as four unit ordinates. HostLifecycle clears the colour target
+//    to this before the host records anything over it.
+constexpr float PageGroundInk[4] = { 0.0196f, 0.0196f, 0.0196f, 1.0f };   // [-]
+
+/// 🧩 Copies the device handles across the layer seam into the attachment the interface declares.
+/// note  🔴 `SlateVulkan` cannot name `InterfaceAttachment` — it lives one layer above — so `HostLifecycle`
+///        offers the same handles as `DeviceOffering` and the host performs the copy.
+InterfaceAttachment Attach(const DeviceOffering& Offered)
+{
+    InterfaceAttachment Arriving = {};
+
+    Arriving.Instance                 = Offered.Instance;
+    Arriving.ScoredDevice             = Offered.ScoredDevice;
+    Arriving.ActiveDevice             = Offered.ActiveDevice;
+    Arriving.GraphicsQueue            = Offered.GraphicsQueue;
+    Arriving.GraphicsFamilyOrdinal    = Offered.GraphicsFamilyOrdinal;
+    Arriving.ColourTargetFormat       = Offered.ColourTargetFormat;
+    Arriving.MinimumDisplayImageCount = Offered.MinimumDisplayImageCount;
+    Arriving.DisplayImageCount        = Offered.DisplayImageCount;
+    Arriving.NativeWindowSlot         = Offered.NativeWindowSlot;
+
+    return Arriving;
+}
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT THE SHEET SEATS
@@ -221,98 +237,29 @@ int main()
 {
     using namespace Slate;
 
-    // ① The timeline — one per process, constructed once.
-    TickSequence Timeline;
-    TickPoint    PreviousTick = Timeline.Advance();
-
-    // ② The window.
-    WindowInterchange Window;
-
-    if (!Window.Open({ InitialWidth, InitialHeight }, WindowTitle).ContentPresent)
-    {
-        std::printf("%s \u2014 the window system declined\n", HostName);
-        return 1;
-    }
-
-    // ③ The Vulkan instance.
-    VulkanExchange DeviceEdge;
+    // ① The five lifetimes — window, instance, surface, diagnostic, device, chain, slots, recordings.
+    HostDeclaration Declared;
+    Declared.Naming        = HostName;
+    Declared.WindowCaption = WindowTitle;
+    Declared.InitialWidth  = InitialWidth;
+    Declared.InitialHeight = InitialHeight;
+    Declared.Pacing        = LatencyIntent::SteadyPacing;
 
 #ifdef SLATE_DEBUG
-    const bool DiagnosticRequested = true;
-#else
-    const bool DiagnosticRequested = false;
+    Declared.DiagnosticRequested = true;
 #endif
 
-    if (!DeviceEdge.ConstructInstance(DiagnosticRequested).ContentPresent)
-    {
-        std::printf("%s \u2014 no Vulkan instance could be constructed\n", HostName);
+    HostLifecycle Lifetime;
+
+    if (!Lifetime.Construct(Declared).ContentPresent)
         return 1;
-    }
 
-    // ④ The presentation surface.
-    const Deliver<VkSurfaceKHR> SurfaceConverted = Convert(DeviceEdge.Instance(), Window.NativeHandle());
-
-    if (!SurfaceConverted.ContentPresent)
-    {
-        std::printf("%s \u2014 the presentation surface was refused\n", HostName);
-        return 1;
-    }
-
-    const VkSurfaceKHR PresentationSurface = SurfaceConverted.Resolve();
-
-    // ⑤ The diagnostic extension — attached after the instance, before the device.
-    ReportSequence      DiagnosticRegister;
-    DiagnosticExtension DiagnosticEdge;
-
-    if (!DiagnosticEdge.Construct(DeviceEdge, DiagnosticRegister, Timeline).ContentPresent)
-        std::printf("%s \u2014 the diagnostic extension was not negotiated\n", HostName);
-
-    // ⑥ The device.
-    if (!DeviceEdge.ConstructDevice(PresentationSurface).ContentPresent)
-    {
-        std::printf("%s \u2014 no Vulkan device could be constructed\n", HostName);
-        return 1;
-    }
-
-    // ⑦ The presentation chain.
-    DisplayScheduler DisplayChain;
-
-    if (!DisplayChain.Construct(DeviceEdge, DiagnosticEdge, PresentationSurface,
-                                InitialWidth, InitialHeight, LatencyIntent::SteadyPacing).ContentPresent)
-    {
-        std::printf("%s \u2014 the presentation chain was refused\n", HostName);
-        return 1;
-    }
-
-    // ⑧ The cyclic recording slots and the command recording sequence.
-    CycleScheduler  Cycle;
-    CommandSequence Commands;
-
-    if (!Cycle.Construct(DeviceEdge, DiagnosticEdge).ContentPresent ||
-        !Commands.Construct(DeviceEdge, DiagnosticEdge).ContentPresent)
-    {
-        std::printf("%s \u2014 the recording rotation was refused\n", HostName);
-        return 1;
-    }
-
-    // ⑨ The interface attachment.
-    InterfaceAttachment InterfaceArriving = {};
-    InterfaceArriving.Instance                 = DeviceEdge.Instance();
-    InterfaceArriving.ScoredDevice             = DeviceEdge.ScoredDevice();
-    InterfaceArriving.ActiveDevice             = DeviceEdge.ActiveDevice();
-    InterfaceArriving.GraphicsQueue            = DeviceEdge.GraphicsQueue();
-    InterfaceArriving.GraphicsFamilyOrdinal    = DeviceEdge.Capability().GraphicsFamilyOrdinal;
-    InterfaceArriving.ColourTargetFormat       = DisplayChain.Carries();
-    InterfaceArriving.MinimumDisplayImageCount = DisplayChain.MinimumChainImageCount();
-    InterfaceArriving.DisplayImageCount        = DisplayChain.ChainImageCount();
-    InterfaceArriving.NativeWindowSlot         = Window.NativeHandle();
-
-    // ⑩ 🔴 The interface, the integrator, the ledger and the panel — **not** `ViewportSequence`. The sheet
+    // ② 🔴 The interface, the integrator, the ledger and the panel — **not** `ViewportSequence`. The sheet
     //    declares no drawers, and constructing two of them to hold both closed forever would be recording
     //    chrome nothing in the reference has, which is the opposite of what a validation host is for.
     InterfaceExchange Interface;
 
-    if (!Interface.Construct(InterfaceArriving).ContentPresent)
+    if (!Interface.Construct(Attach(Lifetime.Offering())).ContentPresent)
     {
         std::printf("%s \u2014 the interface context was refused\n", HostName);
         return 1;
@@ -421,51 +368,38 @@ int main()
     //                                                       THE TICK LOOP
     // ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
-    while (!Window.ClosureRequested())
+    while (Lifetime.Standing())
     {
-        Window.Drain();
+        const TickPass Pass = Lifetime.Await(PageGroundInk);
 
-        DisplayExtent Extent = Window.CurrentExtent();
-
-        if (Extent.Width == 0u || Extent.Height == 0u)
-        {
-            Window.Await();
-            continue;
-        }
-
-        if (Window.ExtentAltered())
-        {
-            vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
-            DisplayChain.Reclaim(Extent.Width, Extent.Height);
-            Interface.Renegotiate(DisplayChain.MinimumChainImageCount(), DisplayChain.ChainImageCount());
-            Window.AdoptExtent();
-        }
-
-        if (!Cycle.Await().ContentPresent)
-        {
-            std::printf("%s \u2014 the cycle slot was lost\n", HostName);
-            break;
-        }
-
-        const std::uint32_t      SlotOrdinal = Cycle.StandingOrdinal();
-        const Deliver<CycleSlot> Standing    = Cycle.Standing();
-
-        if (!Standing.ContentPresent)
+        if (Pass.Standing == TickStanding::Closed)
             break;
 
-        const TickPoint TickNow   = Timeline.Advance();
-        const double    ElapsedMs = TickSequence::Span(PreviousTick, TickNow);
-        PreviousTick = TickNow;
+        // The chain was re-established; the interface is told the counts it now holds, exactly once.
+        if (Lifetime.DisplayRecovered())
+        {
+            const DeviceOffering Offered = Lifetime.Offering();
+            Interface.Renegotiate(Offered.MinimumDisplayImageCount, Offered.DisplayImageCount);
+        }
 
-        // ① Open the interface tick and adopt the surface.
-        if (!Interface.Advance().ContentPresent)
+        if (Pass.Standing != TickStanding::Recording)
             continue;
 
-        if (!Surface.Adopt().ContentPresent)
+        const double ElapsedMs = Pass.ElapsedMilliseconds;
+
+        // ① Open the interface tick and adopt the surface. 🔴 A refusal here must NOT return to the top
+        //    of the loop: Await has already acquired an image and opened a recording, and only Surrender
+        //    closes them. The tick records nothing and the cleared ground is presented instead.
+        bool ContentBuilt = Interface.Advance().ContentPresent;
+
+        if (ContentBuilt && !Surface.Adopt().ContentPresent)
         {
             Interface.Abandon();
-            continue;
+            ContentBuilt = false;
         }
+
+        if (ContentBuilt)
+        {
 
         const DisplayCondition& Display = Surface.Display();
 
@@ -649,107 +583,30 @@ int main()
             Overlay.Record(Surface, Appearance, ArtistScale, Display.ExtentAlong, Overlay.Disagreeing());
 #endif
 
-        // Seal, then acquire. Nothing between the acquire and the present may return to the top.
-        if (!Interface.Seal().ContentPresent)
-        {
-            Interface.Abandon();
-            continue;
+            // ⑫ Seal the tick and record it into the recording Await opened.
+            if (Interface.Seal().ContentPresent)
+                Interface.Record(Pass.Recording);
+            else
+                Interface.Abandon();
         }
 
-        const Deliver<ArrivedImage> Arrived = DisplayChain.Await(Standing.Resolve(), Timeline);
-
-        if (!Arrived.ContentPresent)
-        {
-            if (Arrived.Declined.DeclaredReason == RefusalReason::DeviceLost)
-            {
-                std::printf("%s \u2014 the device was lost\n", HostName);
-                break;
-            }
-
-            continue;
-        }
-
-        if (Arrived.Resolve().Reclaimed)
-        {
-            vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
-            DisplayChain.Reclaim(Extent.Width, Extent.Height);
-            Interface.Renegotiate(DisplayChain.MinimumChainImageCount(), DisplayChain.ChainImageCount());
-            Window.AdoptExtent();
-            continue;
-        }
-
-        const Deliver<VkCommandBuffer> Recording = Commands.Open(SlotOrdinal);
-
-        if (!Recording.ContentPresent)
-        {
-            std::printf("%s \u2014 the command recording was refused\n", HostName);
+        // ⑬ Close the scope, submit, present, advance. A refused present re-establishes the chain rather
+        //    than ending the loop, and a tick whose content declined still presents the cleared ground.
+        if (!Lifetime.Surrender().ContentPresent)
             break;
-        }
-
-        const VkCommandBuffer Assembling = Recording.Resolve();
-
-        const VkRenderingAttachmentInfo ColourAttachment = {
-            .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            .imageView   = Arrived.Resolve().WholeView,
-            .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-            .clearValue  = { .color = { { 0.02f, 0.02f, 0.02f, 1.0f } } }
-        };
-
-        const VkRenderingInfo RenderScope = {
-            .sType                = VK_STRUCTURE_TYPE_RENDERING_INFO,
-            .renderArea           = { { 0, 0 }, { DisplayChain.StandingWidth(), DisplayChain.StandingHeight() } },
-            .layerCount           = 1u,
-            .colorAttachmentCount = 1u,
-            .pColorAttachments    = &ColourAttachment
-        };
-
-        vkCmdBeginRendering(Assembling, &RenderScope);
-        Interface.Record(Assembling);
-        vkCmdEndRendering(Assembling);
-
-        if (!Cycle.Arm().ContentPresent)
-            break;
-
-        const Deliver<bool> Surrendered = Commands.Surrender(SlotOrdinal, SurrenderOrdering{
-            .Awaited      = Standing.Resolve().ImageArrived,
-            .AwaitedStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .Signalled    = Standing.Resolve().RecordingDone,
-            .Completion   = Standing.Resolve().Completion
-        });
-
-        if (!Surrendered.ContentPresent)
-            break;
-
-        if (!DisplayChain.Present(Standing.Resolve(), Arrived.Resolve().ImageOrdinal).ContentPresent)
-        {
-            vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
-            DisplayChain.Reclaim(Extent.Width, Extent.Height);
-            Interface.Renegotiate(DisplayChain.MinimumChainImageCount(), DisplayChain.ChainImageCount());
-            Window.AdoptExtent();
-        }
-
-        Cycle.Advance();
     }
 
     // ─────────────────────────────────────────────────────────────────────────────────────────────────────
     //                                                      RECLAMATION
     // ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
-    if (DeviceEdge.ActiveDevice() != VK_NULL_HANDLE)
-        vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
-
+    // 📝 The interface content is retired before the lifetimes it was constructed over. HostLifecycle idles
+    //    the device inside Reclaim, so nothing here needs to.
     Panel.Reset();
     Ledger.Reset();
     Surface.Reset();
     Interface.Reclaim();
-    Commands.Reclaim();
-    Cycle.Reclaim();
-    DisplayChain.Surrender();
-    DiagnosticEdge.Reclaim();
-    Reclaim(DeviceEdge.Instance(), PresentationSurface);
-    DeviceEdge.ReclaimDevice();
+    Lifetime.Reclaim();
 
     std::printf("%s \u2014 exited cleanly\n", HostName);
     return 0;
