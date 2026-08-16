@@ -103,7 +103,7 @@ accumulation and `28`'s integration to agree.
 | Low-discrepancy planar | Uniform coverage, progressive               | `18`, `30`, `60` |
 | Spherical              | Solid-angle uniform                         | `28`         |
 | Hemispherical, cosine  | Weighted to the cosine lobe                 | `18`, `60`   |
-| Sub-pixel offsets      | Deterministic per rotation slot             | `46`, `64`, `82` |
+| Sub-pixel offsets      | Deterministic per cycle slot             | `46`, `64`, `82` |
 
 ⚠️ The offset row previously named `08` and `18`, neither of which mentions jitter. `46` applies the offset to
 the projection, `64` accumulates across the sequence, and `82` replays it for a preview. Conflict 20 recorded

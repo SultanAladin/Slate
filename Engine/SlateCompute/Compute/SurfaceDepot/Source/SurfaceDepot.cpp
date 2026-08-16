@@ -31,7 +31,7 @@ Deliver<bool> SurfaceDepot::Construct(std::uint64_t ByteCeiling_)
 Deliver<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
                                     LayerContentSource Source,
                                     std::uint64_t      ByteExtent,
-                                    std::uint64_t      RotationOrdinal)
+                                    std::uint64_t      RecordingOrdinal)
 {
     // 🔴 `20` §5's gate, enforced at the one door into the depot. `56` §3's own predicate decides it, so the
     //    classification lives with the document that owns the content rather than with the residency that
@@ -70,7 +70,7 @@ Deliver<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
     Admitting.Keyed      = Keyed;
     Admitting.Source     = Source;
     Admitting.ByteExtent = ByteExtent;
-    Admitting.ResolvedAt = RotationOrdinal;
+    Admitting.ResolvedAt = RecordingOrdinal;
 
     Held.push_back(Admitting);
     Occupied += ByteExtent;
@@ -82,7 +82,7 @@ Deliver<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
 //                                                     RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint64_t RotationOrdinal)
+Deliver<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal)
 {
     for (DepotArtefact& Standing : Held)
     {
@@ -92,7 +92,7 @@ Deliver<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint6
         // 📝 Marked here rather than by a separate call, because an artefact resolved and not marked is one the
         //    eviction ordering believes is unused — and the tile being promoted from it right now is the one
         //    that gets evicted.
-        Standing.ResolvedAt = RotationOrdinal;
+        Standing.ResolvedAt = RecordingOrdinal;
         ++ResolvedTotal;
 
         return Deliver<DepotArtefact>::Deliver(Standing);

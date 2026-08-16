@@ -123,7 +123,7 @@ Enumerated because each has a legitimate-looking call site and each breaks the s
 
 | Never                                          | Instead                                          |
 |------------------------------------------------|---------------------------------------------------|
-| Device idle-wait to settle interface state     | Size against the rotation depth                  |
+| Device idle-wait to settle interface state     | Size against the recording slot count                  |
 | Construct a descriptor layout during recording | Construct at bring-up — `06` §5                  |
 | Allocate a device resource per recording       | Rotational extents — `06` §3                     |
 | Present outside `DisplayScheduler`             | `DisplayScheduler` owns pacing                   |

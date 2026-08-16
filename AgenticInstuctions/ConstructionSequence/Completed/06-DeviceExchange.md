@@ -54,7 +54,7 @@ establishes the chain. §2.1's settled decisions stand unchanged.
 | Decision                | Choice                                    | Why                                          |
 |-------------------------|-------------------------------------------|-----------------------------------------------|
 | Queue families          | One graphics queue                        | Donor spine assumes it; no measured need yet  |
-| Descriptor strategy     | Explicit sets per rotation slot           | Bindless not adopted; see `00` §5             |
+| Descriptor strategy     | Explicit sets per cycle slot           | Bindless not adopted; see `00` §5             |
 | Render target discipline| Classic render construct, not dynamic     | Donor spine assumes it                        |
 | Presentation            | Paced against a latency target            | `DisplayScheduler` owns the choice            |
 | Allocation              | Sub-allocated from large device extents   | One allocation per resource exhausts the count|
@@ -64,7 +64,7 @@ establishes the chain. §2.1's settled decisions stand unchanged.
 ✔️ Allocation and recording rotation are built. §3.1's budget shapes stand in `ByteSpace` as the two residency
 extents, sliced first-fit and released by a coalescing return; `SpanSpace` and `ImageSpace` occupy those slices.
 §4.1's extent-change sequence is `DisplayScheduler::Reclaim`, then `TargetSpace::Reclaim`, then
-`AttachmentIndex::Derive`. The rotation is `CycleScheduler` over `RecordingRotationDepth` with `CommandSequence`
+`AttachmentIndex::Derive`. The rotation is `CycleScheduler` over `RecordingSlotCount` with `CommandSequence`
 writing one recording per slot.
 
 ✔️ Descriptors are built. `DescriptorIndex::Declare` closes at `Fix`, which is what makes §7's no-layout-during-a-
@@ -96,7 +96,7 @@ and depth. Per-object naming is discharged at all eight claim sites: `ByteSpace`
 - ✔️ **Gate:** The capability set is fixed at device creation and never re-queried.
 - ✔️ **Gate:** No descriptor set layout is constructed during a recording — `DescriptorIndex::Declare` refuses
   once `Fix` has resolved.
-- ✔️ **Gate:** Every per-recording resource is sized against the rotation depth.
+- ✔️ **Gate:** Every per-recording resource is sized against the recording slot count.
 - ✔️ **Gate:** Every device object Slate creates carries a diagnostic name in Debug — see §6.
 - ✔️ 🔴 **Gate:** A display extent change recreates **every** display-relative target in `08` §2, and no persistent
   extent. Intermediate extents during a drag are discarded, never queued. `TargetSpace::Reclaim` releases every
@@ -132,6 +132,6 @@ conflict 22.
 | Open question                                                             | Blocks                     |
 |----------------------------------------------------------------------------|-----------------------------|
 | `DOC/VulkanFolder.md` was not in the read set and `00` says it supersedes    | Folder detail inside §1     |
-| Rotation depth N — two or three                                             | Extent sizing, not design   |
+| Recording slot count N — two or three                                             | Extent sizing, not design   |
 | Whether a dedicated transfer queue is needed for `20`'s residency traffic   | `20` throughput only        |
 | Whether recovery re-resolves the domain or reloads the document entirely     | Recovery latency only       |

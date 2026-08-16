@@ -210,7 +210,7 @@ public:
     /// 🧩 Resolves whatever impressions the residency now admits, demanding what it does not.
     /// in    Residency        [-]  the surface's cells and tiles
     /// in    Requesting       [-]  where a demand for a non-resident cell is recorded
-    /// in    RotationOrdinal  [-]  the rotation resolving
+    /// in    RecordingOrdinal  [-]  the rotation resolving
     /// out   Deliver          [-]  refuses with HostDenied before Open
     /// post  🔴 a deferred impression stays owed; nothing is dropped and nothing resolves coarse
     /// note  🔴 `22` §2: an impression touching a non-resident cell **demands and defers**. It is not resolved
@@ -227,7 +227,7 @@ public:
     /// tag   api, nonthrowing
     Deliver<ResolvedRun> Resolve(SurfaceTileSpace& Residency,
                                  RequestQueue&     Requesting,
-                                 std::uint64_t     RotationOrdinal);
+                                 std::uint64_t     RecordingOrdinal);
 
     /// 🧩 Ends the stroke with no effect, releasing every tile it pinned.
     /// post  no transaction was recorded; the accumulation is reclaimed
@@ -256,7 +256,7 @@ public:
                                SurfaceTileSpace&     Residency,
                                std::uint64_t         SealedAt);
 
-    /// 🧩 Discards the accumulation without ending the stroke — a speculative extent's per-rotation reclaim.
+    /// 🧩 Discards the accumulation without ending the stroke — a speculative extent's per-slot reclaim.
     /// note  🔴 `22` §4.1: a speculative extent is discarded and re-resolved each rotation. Refuses for a
     ///        committed stroke, whose accumulation is the only record of what has been painted so far.
     /// out   Deliver  [-]  refuses with HostDenied for a committed stroke
@@ -285,7 +285,7 @@ private:
     Deliver<bool> ResolveOne(ImpressionSample& Impressing,
                              SurfaceTileSpace& Residency,
                              RequestQueue&     Requesting,
-                             std::uint64_t     RotationOrdinal);
+                             std::uint64_t     RecordingOrdinal);
 
     StrokeDeclaration              Declared            = {};      // [-] - as Open validated it
     BrushSpecification             Brush               = {};      // [-] - held by value; `58` §7

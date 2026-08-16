@@ -99,7 +99,7 @@ Deliver<bool> PreviewProjection::AmendImpression(const StrokeArrival& Arriving)
 
 Deliver<ResolvedRun> PreviewProjection::ResolveImpression(SurfaceTileSpace& Residency,
                                                           RequestQueue&     Requesting,
-                                                          std::uint64_t     RotationOrdinal)
+                                                          std::uint64_t     RecordingOrdinal)
 {
     if (!ImpressionOpen)
     {
@@ -111,7 +111,7 @@ Deliver<ResolvedRun> PreviewProjection::ResolveImpression(SurfaceTileSpace& Resi
     //    `DeclareUncommitted` is the only thing in the engine that blocks an eviction, it is not called on this
     //    path, and `22`'s own resolution skips it for a speculative stroke. A preview that pinned would exhaust
     //    residency while the artist hovers across a surface without painting anything.
-    return Previewing.Resolve(Residency, Requesting, RotationOrdinal);
+    return Previewing.Resolve(Residency, Requesting, RecordingOrdinal);
 }
 
 void PreviewProjection::CloseImpression(SurfaceTileSpace& Residency)
@@ -187,7 +187,7 @@ Deliver<ResolvedSample> PreviewProjection::ProjectPlacementAt(const SurfaceLayer
 //                                                  THE PARAMETER PREVIEW
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> PreviewProjection::AmendParameter(std::uint64_t RotationOrdinal)
+Deliver<bool> PreviewProjection::AmendParameter(std::uint64_t RecordingOrdinal)
 {
     if (!StandingExtent.ExtentStanding)
     {
@@ -199,7 +199,7 @@ Deliver<bool> PreviewProjection::AmendParameter(std::uint64_t RotationOrdinal)
     //    the caller; the count exists so `86` can measure what one drag cost in re-resolutions and for no other
     //    reason. Nothing keys on it and no revision advances from it.
     ++AmendedCount;
-    StandingExtent.ResolvedAt = RotationOrdinal;
+    StandingExtent.ResolvedAt = RecordingOrdinal;
 
     return Deliver<bool>::Deliver(true);
 }
@@ -216,7 +216,7 @@ std::uint32_t PreviewProjection::AmendmentCount() const
 Deliver<bool> PreviewProjection::DeclareExtent(SpeculativeSubject Previewed,
                                                std::uint32_t      SurfaceOrdinal,
                                                std::uint32_t      RequestedLevel,
-                                               std::uint64_t      RotationOrdinal)
+                                               std::uint64_t      RecordingOrdinal)
 {
     if (Previewed == SpeculativeSubject::SubjectCount)
     {
@@ -234,7 +234,7 @@ Deliver<bool> PreviewProjection::DeclareExtent(SpeculativeSubject Previewed,
     //    answer coarser, so the two agreeing is the ordinary case and the difference is what `14` reads to know
     //    it is presenting something not yet at the extent that was asked for.
     StandingExtent.Previewed      = Previewed;
-    StandingExtent.ResolvedAt     = RotationOrdinal;
+    StandingExtent.ResolvedAt     = RecordingOrdinal;
     StandingExtent.SurfaceOrdinal = SurfaceOrdinal;
     StandingExtent.ResolvedLevel  = RequestedLevel;
     StandingExtent.RequestedLevel = RequestedLevel;
@@ -250,12 +250,12 @@ const SpeculativeExtent& PreviewProjection::Standing() const
     return StandingExtent;
 }
 
-bool PreviewProjection::ExtentCurrent(std::uint64_t RotationOrdinal) const
+bool PreviewProjection::ExtentCurrent(std::uint64_t RecordingOrdinal) const
 {
     // 🔴 `22` §4.1: a speculative extent is discarded and re-resolved each rotation. An extent carrying any other
     //    rotation is therefore not stale content to refresh — it is content that must not be presented at all,
     //    and answering false is what keeps that a state `14` cannot reach rather than a defect to diagnose.
-    return StandingExtent.ExtentStanding && StandingExtent.ResolvedAt == RotationOrdinal;
+    return StandingExtent.ExtentStanding && StandingExtent.ResolvedAt == RecordingOrdinal;
 }
 
 void PreviewProjection::ReclaimExtent()

@@ -124,7 +124,7 @@ struct ResolvedPointer
 /// 🧩 Picking — the one mechanism every consumer of the pointer reads.
 /// note  🔴 `74` §1: answered on the **host**, against `40`'s subdivision, and never by reading back a device
 ///        target. `16` writes exactly this answer into `VisibilityIndex` one rotation late, and readback is
-///        latent by the rotation depth while a stylus reports at hundreds of samples per second. A pointer
+///        latent by the recording slot count while a stylus reports at hundreds of samples per second. A pointer
 ///        resolved against a target read back is resolved against where the cursor used to be — `22` §1.
 /// note  ⚠️ The duplication of work against `16` is therefore deliberate and is the cheaper of the two options.
 /// tag   owning

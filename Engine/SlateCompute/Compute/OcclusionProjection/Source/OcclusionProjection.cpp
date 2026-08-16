@@ -544,13 +544,13 @@ Deliver<bool> OcclusionProjectionSpace::Invalidate(InvalidationSubject Declared,
 
 Deliver<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpecification& Declared,
                                                             OccupantIdentity               Illuminant,
-                                                            std::uint64_t                  RotationOrdinal) const
+                                                            std::uint64_t                  RecordingOrdinal) const
 {
     DerivedProjection Deriving;
     Deriving.Illuminant   = Illuminant;
     Deriving.Shape        = ShapeOfEmission(Declared.Emission);
     Deriving.ExtentTexels = ProjectionExtentTexels;
-    Deriving.DerivedAt    = RotationOrdinal;
+    Deriving.DerivedAt    = RecordingOrdinal;
     Deriving.RebuildOwed  = false;
 
     if (Deriving.Shape == ProjectionShape::ShapeCount)
@@ -772,12 +772,12 @@ Deliver<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpec
 //------------------------------------------------------------------------------------------------------------------------
 
 Deliver<bool> OcclusionProjectionSpace::Rebuild(const IlluminantPopulation& Illuminants,
-                                                std::uint64_t               RotationOrdinal)
+                                                std::uint64_t               RecordingOrdinal)
 {
     if (!CameraDeclared)
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no camera has been declared" });
 
-    Reported.RebuiltThisRotation = 0u;
+    Reported.RebuiltThisRecording = 0u;
     Reported.UnenrolledCount     = 0u;
 
     std::vector<DerivedProjection> Standing;
@@ -810,14 +810,14 @@ Deliver<bool> OcclusionProjectionSpace::Rebuild(const IlluminantPopulation& Illu
             continue;
         }
 
-        const Deliver<DerivedProjection> Derived = Derive(Declared.Resolve(), Illuminant, RotationOrdinal);
+        const Deliver<DerivedProjection> Derived = Derive(Declared.Resolve(), Illuminant, RecordingOrdinal);
 
         if (!Derived.ContentPresent)
             return Deliver<bool>::Refuse(Derived.Declined);
 
         Standing.push_back(Derived.Resolve());
 
-        ++Reported.RebuiltThisRotation;
+        ++Reported.RebuiltThisRecording;
         ++Reported.RebuiltTotal;
     }
 
@@ -898,7 +898,7 @@ void OcclusionProjectionSpace::Report(ReportSequence& Reporting,
     //    exactly one row to `86` §4's register for exactly that reason.
     Measured.DeclareCount("60 §3 OcclusionProjection", "Projections", Reported.ProjectionCount, Sampled);
     Measured.DeclareCount("60 §3 OcclusionProjection", "Faces", Reported.FaceCount, Sampled);
-    Measured.DeclareCount("60 §4 OcclusionProjection", "RebuiltThisRotation", Reported.RebuiltThisRotation, Sampled);
+    Measured.DeclareCount("60 §4 OcclusionProjection", "RebuiltThisRecording", Reported.RebuiltThisRecording, Sampled);
     Measured.DeclareCount("60 §4 OcclusionProjection", "RebuiltTotal", Reported.RebuiltTotal, Sampled);
     Measured.DeclareCount("60 §3 OcclusionProjection", "Unenrolled", Reported.UnenrolledCount, Sampled);
     Measured.DeclareCount("60 §3.1 OcclusionProjection", "Truncated", PackedIndex.TruncatedTotal(), Sampled);

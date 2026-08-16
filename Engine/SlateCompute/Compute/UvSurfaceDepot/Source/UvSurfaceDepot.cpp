@@ -433,12 +433,12 @@ ConvergentResult<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructu
 Deliver<bool> UvSurfaceDepot::Admit(SurfaceDepot&     Depot,
                                     const ContentKey& Keyed,
                                     std::uint64_t     ByteExtent,
-                                    std::uint64_t     RotationOrdinal) const
+                                    std::uint64_t     RecordingOrdinal) const
 {
     // 🔴 Declared an analytic resolution, which `56` §3 classifies as reconstructible — so the depot admits it as
     //    evictable. Nothing painted is ever declared here: paint is a layer above the transfer in `56`'s sequence
     //    and stays there, rather than the transfer mutating into authored content underneath it.
-    return Depot.Declare(Keyed, LayerContentSource::AnalyticResolution, ByteExtent, RotationOrdinal);
+    return Depot.Declare(Keyed, LayerContentSource::AnalyticResolution, ByteExtent, RecordingOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -124,14 +124,14 @@ TransmissionSpecification DeclaredTransmission(const ResolvedChannelSet& Resolve
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What `62` reports through `86`.
-/// note  🔴 The truncation **appends** and every count **overwrites** — `86` §2. A per-rotation occupant count
+/// note  🔴 The truncation **appends** and every count **overwrites** — `86` §2. A per-slot occupant count
 ///        appended once per rotation would bury the one truncation the artist did not expect.
 /// tag   nonallocating, nonthrowing
 struct TransmissionMetrics
 {
     std::uint32_t  OccupantCount        = 0u;   // [-] - transmissive occupants collected this rotation
     std::uint32_t  GreatestColumnDepth  = 0u;   // [-] - the deepest column any pixel reached
-    std::uint32_t  TruncatedThisRotation = 0u;  // [-] - fragments the ceiling turned away this rotation
+    std::uint32_t  TruncatedThisRecording = 0u;  // [-] - fragments the ceiling turned away this rotation
     std::uint64_t  TruncatedTotal       = 0u;   // [-] - across the session
 };
 
@@ -230,7 +230,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void DeclareRotation(std::uint32_t OccupantCount,
                          std::uint32_t GreatestColumnDepth,
-                         std::uint32_t TruncatedThisRotation);
+                         std::uint32_t TruncatedThisRecording);
 
     /// 🧩 Appends `62` §3.1's truncation and declares every measure beside it.
     /// note  🔴 The truncation appends and the counts overwrite — `86` §2. Coalesced by the ceiling as its

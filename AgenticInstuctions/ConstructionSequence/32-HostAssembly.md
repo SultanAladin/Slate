@@ -47,12 +47,12 @@ part that cannot be rediscovered from code.
 ⑥ `12`'s seven-step tick order runs — population, attachment, enclosure, rows, subsets, search.
 ⑦ `70` re-resolves placed and tiling content whose declared invalidation inputs changed — `00` §10.1 ②.
 ⑧ `20` drains `RequestQueue` and promotes within budget.
-⑨ `08` records the rotation slot in its declared order.
+⑨ `08` records the cycle slot in its declared order.
 ⑩ `DisplayScheduler` paces presentation.
 
 🔴 Steps ⑤ and ⑥ are strictly ordered — `12` invariant 10. Step ④ precedes ⑤ because a transaction addressing a
 surface position needs that position resolved first, and it is resolved on the **host** against `40`'s
-subdivision: readback is latent by the rotation depth, and a stroke resampled against it is resampled against
+subdivision: readback is latent by the recording slot count, and a stroke resampled against it is resampled against
 where the cursor used to be — `22` §1.
 
 ## 3. Two Hosts

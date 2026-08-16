@@ -68,12 +68,12 @@ Deliver<bool> SampleIntegrator::Contribute(RenderSchedule& Schedule) const
 //                                                      THE OFFSET
 //------------------------------------------------------------------------------------------------------------------------
 
-void SampleIntegrator::OffsetOf(std::uint64_t RotationOrdinal, double& OffsetX, double& OffsetY) const
+void SampleIntegrator::OffsetOf(std::uint64_t RecordingOrdinal, double& OffsetX, double& OffsetY) const
 {
     // 🔴 `02` §6's sequence and nothing invented here. `46` applies the same offset when it builds the
     //    projection and `82` replays it when it resolves a preview, so all three read one routine — a preview
     //    that converged to a different image than the workspace would be attributed to the preview.
-    ProjectSubPixelOffset(static_cast<std::uint32_t>(RotationOrdinal % SubPixelSequenceLength), OffsetX, OffsetY);
+    ProjectSubPixelOffset(static_cast<std::uint32_t>(RecordingOrdinal % SubPixelSequenceLength), OffsetX, OffsetY);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

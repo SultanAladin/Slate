@@ -82,7 +82,7 @@ says so — and this document reads its projections rather than building a secon
 | What this document adds                     | Why `60` does not already do it                            |
 |---------------------------------------------|-------------------------------------------------------------|
 | A tiled arrangement over the most significant illuminants | `60` writes `DirectOcclusionSurface`, capped at four |
-| Round-robin refresh, a few tiles per rotation | `60` rebuilds on change; this bounds the per-rotation cost |
+| Round-robin refresh, a few tiles per rotation | `60` rebuilds on change; this bounds the per-slot cost |
 | A sampling routine `94` §2 calls per candidate | `60`'s consumer is `18`, reading a packed per-pixel value  |
 
 🔴 `DirectOcclusionSurface`'s cap of four — `DirectOcclusionCapacity` in `Contract/ToleranceContract.h` — is

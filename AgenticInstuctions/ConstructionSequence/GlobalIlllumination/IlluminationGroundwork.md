@@ -199,7 +199,7 @@ graph over documents, that is a cycle, and `00` §11's gate is mechanical and ru
 
 🔴 It is not a cycle, for exactly the reason `64` §6 already declares its own self-read legal: the count `102`
 reads is the **previous rotation's**, ordered by `06`'s recording rotation and not by the schedule. `64` §6 states
-that this is "the one place in the schedule where a rotation slot depends on the one before it"; this branch makes
+that this is "the one place in the schedule where a cycle slot depends on the one before it"; this branch makes
 it the second. Both are declared as rotation-crossing edges and are excluded from the stratum traversal by
 declaration, never by the traversal failing to notice them.
 

@@ -43,7 +43,7 @@ struct PromotionCost
 };
 
 // 📝 One analytic entry resolved into one tile is one evaluation unit. The unit is declared rather than
-//    measured because `20` §6 leaves the budget open and `70` §7 leaves the per-rotation resolution cost open
+//    measured because `20` §6 leaves the budget open and `70` §7 leaves the per-slot resolution cost open
 //    with it; what matters now is that the measure exists and is charged, not what a unit is worth in
 //    microseconds. Read by this unit alone, so `00` §2 keeps it here.
 inline constexpr std::uint64_t EvaluationUnitsPerEntry = 1u;   // [-] - one analytic entry, one tile
@@ -157,7 +157,7 @@ public:
     ///        exists to prevent.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> OpenRotation(std::uint64_t RotationOrdinal);
+    Deliver<bool> OpenRecording(std::uint64_t RecordingOrdinal);
 
     /// 🧩 Whether a cost fits what remains of this rotation.
     /// cost  ✔️
@@ -186,7 +186,7 @@ public:
     EvictionOrdering       Ordering() const;
     const PromotionBudget& Declared() const;
     const PromotionBudget& Remaining() const;
-    std::uint64_t          OpenedRotation() const;
+    std::uint64_t          OpenedRecording() const;
     std::uint32_t          PromotedCount() const;
     std::uint32_t          DeferredCount() const;
     std::uint64_t          PromotedTotal() const;
@@ -197,12 +197,12 @@ private:
     PromotionBudget   DeclaredBudget  = {};                                 // [-] - restored every rotation
     PromotionBudget   RemainingBudget = {};                                 // [-] - what this rotation has left
     EvictionOrdering  DeclaredOrder   = EvictionOrdering::LeastRecentlyDemanded;
-    std::uint64_t     RotationOpened  = 0u;                                 // [-] - the rotation now spending
+    std::uint64_t     RecordingOpened  = 0u;                                 // [-] - the rotation now spending
     std::uint32_t     PromotedThis    = 0u;                                 // [-] - this rotation
     std::uint32_t     DeferredThis    = 0u;                                 // [-] - this rotation
     std::uint64_t     PromotedSession = 0u;                                 // [-] - the whole session
     std::uint64_t     DeferredSession = 0u;                                 // [-] - the whole session
-    bool              RotationStanding = false;                             // [-] - OpenRotation has delivered
+    bool              RecordingStanding = false;                             // [-] - OpenRecording has delivered
 };
 
 }   // namespace Slate

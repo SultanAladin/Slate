@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                           DESCRIPTORINDEX.CPP
 //============================================================================================================================================
-// 🧩 The layout declaration that closes at bring-up, the extent it is sized against, and the per-rotation write.
+// 🧩 The layout declaration that closes at bring-up, the extent it is sized against, and the per-slot write.
 
 #include "SlateVulkan/Device/DescriptorIndex/Api/DescriptorIndex.h"
 
@@ -151,7 +151,7 @@ Deliver<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
 
     VkDescriptorPoolCreateInfo ExtentDeclaration = {};
     ExtentDeclaration.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    ExtentDeclaration.maxSets                    = ConcurrentSets * RecordingRotationDepth;
+    ExtentDeclaration.maxSets                    = ConcurrentSets * RecordingSlotCount;
     ExtentDeclaration.poolSizeCount              = static_cast<std::uint32_t>(Admitted.size());
     ExtentDeclaration.pPoolSizes                 = Admitted.data();
 
@@ -190,21 +190,21 @@ Deliver<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
     if (static_cast<std::size_t>(LayoutOrdinal) >= Layouts.size())
         return Deliver<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no layout stands at that ordinal" });
 
-    // 📝 🔴 `06` §2.1: one set per rotation slot, claimed together. Claiming them apart admits a claim that
+    // 📝 🔴 `06` §2.1: one set per cycle slot, claimed together. Claiming them apart admits a claim that
     //    half-succeeds, and the recording then writes rotation one against a set that was never sliced.
-    const std::vector<VkDescriptorSetLayout> Repeated(RecordingRotationDepth, Layouts[LayoutOrdinal].Constructed);
+    const std::vector<VkDescriptorSetLayout> Repeated(RecordingSlotCount, Layouts[LayoutOrdinal].Constructed);
 
     VkDescriptorSetAllocateInfo SetDeclaration = {};
     SetDeclaration.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     SetDeclaration.descriptorPool              = DescriptorExtent;
-    SetDeclaration.descriptorSetCount          = RecordingRotationDepth;
+    SetDeclaration.descriptorSetCount          = RecordingSlotCount;
     SetDeclaration.pSetLayouts                 = Repeated.data();
 
     ClaimedSet Arriving;
     Arriving.LayoutOrdinal = LayoutOrdinal;
-    Arriving.PerRotation.assign(RecordingRotationDepth, VK_NULL_HANDLE);
+    Arriving.PerSlot.assign(RecordingSlotCount, VK_NULL_HANDLE);
 
-    if (vkAllocateDescriptorSets(DeviceEdge->ActiveDevice(), &SetDeclaration, Arriving.PerRotation.data())
+    if (vkAllocateDescriptorSets(DeviceEdge->ActiveDevice(), &SetDeclaration, Arriving.PerSlot.data())
         != VK_SUCCESS)
     {
         return Deliver<std::uint32_t>::Refuse(
@@ -215,17 +215,17 @@ Deliver<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
 
     const std::uint32_t ClaimOrdinal = static_cast<std::uint32_t>(Claimed.size() - 1u);
 
-    // 📝 🔴 `06` §7's gate. A set is addressed by a claim and a rotation slot, and the name carries the two
+    // 📝 🔴 `06` §7's gate. A set is addressed by a claim and a cycle slot, and the name carries the two
     //    flattened in the order the depth fixes — so a claim's sets sort adjacently in the driver's text and the
     //    reader recovers the pair the same way `Resolve` reaches the set. Naming by the claim alone would give
-    //    every rotation slot of one claim a single name, and a set amended in the wrong slot is exactly the
+    //    every cycle slot of one claim a single name, and a set amended in the wrong slot is exactly the
     //    defect the depth exists to catch.
-    for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
     {
         NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET,
-                            reinterpret_cast<std::uint64_t>(Arriving.PerRotation[RotationSlot]),
+                            reinterpret_cast<std::uint64_t>(Arriving.PerSlot[SlotOrdinal]),
                             "DescriptorIndex set",
-                            ClaimOrdinal * RecordingRotationDepth + RotationSlot);
+                            ClaimOrdinal * RecordingSlotCount + SlotOrdinal);
     }
 
     return Deliver<std::uint32_t>::Deliver(ClaimOrdinal);
@@ -247,7 +247,7 @@ const DescriptorSlot* DescriptorIndex::SlotOf(const DeclaredLayout& Holding, std
 }
 
 Deliver<bool> DescriptorIndex::Amend(std::uint32_t                          ClaimOrdinal,
-                                     std::uint32_t                          RotationSlot,
+                                     std::uint32_t                          SlotOrdinal,
                                      const std::vector<DescriptorContent>&  Amended)
 {
     if (DeviceEdge == nullptr)
@@ -256,8 +256,8 @@ Deliver<bool> DescriptorIndex::Amend(std::uint32_t                          Clai
     if (static_cast<std::size_t>(ClaimOrdinal) >= Claimed.size())
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no claim stands at that ordinal" });
 
-    if (RotationSlot >= RecordingRotationDepth)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+    if (SlotOrdinal >= RecordingSlotCount)
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
 
     if (Amended.empty())
         return Deliver<bool>::Deliver(true);
@@ -287,7 +287,7 @@ Deliver<bool> DescriptorIndex::Amend(std::uint32_t                          Clai
 
         VkWriteDescriptorSet Written = {};
         Written.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        Written.dstSet               = Standing.PerRotation[RotationSlot];
+        Written.dstSet               = Standing.PerSlot[SlotOrdinal];
         Written.dstBinding           = Content.SlotOrdinal;
         Written.dstArrayElement      = 0u;
         Written.descriptorCount      = 1u;
@@ -345,18 +345,18 @@ Deliver<bool> DescriptorIndex::Amend(std::uint32_t                          Clai
 //                                                   WHAT IS DECLARED
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<VkDescriptorSet> DescriptorIndex::Resolve(std::uint32_t ClaimOrdinal, std::uint32_t RotationSlot) const
+Deliver<VkDescriptorSet> DescriptorIndex::Resolve(std::uint32_t ClaimOrdinal, std::uint32_t SlotOrdinal) const
 {
     if (static_cast<std::size_t>(ClaimOrdinal) >= Claimed.size())
         return Deliver<VkDescriptorSet>::Refuse({ RefusalReason::ContentUnsupported, "no claim stands at that ordinal" });
 
-    if (RotationSlot >= RecordingRotationDepth)
+    if (SlotOrdinal >= RecordingSlotCount)
     {
         return Deliver<VkDescriptorSet>::Refuse(
-            { RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+            { RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
     }
 
-    return Deliver<VkDescriptorSet>::Deliver(Claimed[ClaimOrdinal].PerRotation[RotationSlot]);
+    return Deliver<VkDescriptorSet>::Deliver(Claimed[ClaimOrdinal].PerSlot[SlotOrdinal]);
 }
 
 Deliver<VkDescriptorSetLayout> DescriptorIndex::Layout(std::uint32_t LayoutOrdinal) const

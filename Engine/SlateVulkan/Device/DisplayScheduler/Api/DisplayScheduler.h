@@ -70,9 +70,9 @@ struct ArrivedImage
 ///        by the display and awaited by the recording, `RecordingDone` signalled by the recording and awaited
 ///        by the display. Nothing here constructs an ordering point of its own; a second set would be one the
 ///        rotation does not know it is waiting on.
-/// note  ⚠️ The chain's image count is the vendor's and is **not** `RecordingRotationDepth`. The two are
+/// note  ⚠️ The chain's image count is the vendor's and is **not** `RecordingSlotCount`. The two are
 ///        independent — the rotation is how many recordings the host may write ahead, the chain is how many
-///        images the display holds — and a claim sized against the wrong one is a per-rotation resource that
+///        images the display holds — and a claim sized against the wrong one is a per-slot resource that
 ///        aliases on whichever driver reports a different count.
 /// tag   owning
 class DisplayScheduler
@@ -132,15 +132,15 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
-    /// 🧩 Takes the next display image, ordering its arrival against the standing rotation slot.
-    /// in    Standing  [-]  the rotation slot this image is recorded into; its `ImageArrived` is signalled
+    /// 🧩 Takes the next display image, ordering its arrival against the standing cycle slot.
+    /// in    Standing  [-]  the cycle slot this image is recorded into; its `ImageArrived` is signalled
     /// in    Timeline  [-]  measures the interval between this arrival and the last
     /// out   Deliver   [-]  refuses with CapabilityAbsent when no chain stands, RelationCyclic when an image is
     ///                      already taken, HostDenied when the display neither delivers an image nor reports
     ///                      the chain outgrown within the arrival ceiling, and DeviceLost when the device was
     ///                      lost; the chain is left standing for the recovery to reclaim
     /// post  the delivered ordinal is the caller's until `Present` returns it
-    /// note  🔴 The arrival is ordered on `RotationSlot::ImageArrived`, which the recording waits on before it
+    /// note  🔴 The arrival is ordered on `SlotOrdinal::ImageArrived`, which the recording waits on before it
     ///        writes colour. An arrival ordered on nothing is a recording that writes an image the display is
     ///        still reading, and the artist sees the previous rotation's stroke tear through this one's.
     /// note  🔴 `Reclaimed` is delivered in two cases that differ in whether this rotation may proceed, and
@@ -150,7 +150,7 @@ public:
     ///        caller reading `Reclaimed` alone would record into a null view on the second of the two.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<ArrivedImage> Await(const RotationSlot& Standing, const TickSequence& Timeline);
+    Deliver<ArrivedImage> Await(const CycleSlot& Standing, const TickSequence& Timeline);
 
     /// 🧩 Surrenders one taken image back to the display, ordered behind the recording that wrote it.
     /// in    Standing      [-]  the same slot `Await` was given; its `RecordingDone` is awaited
@@ -161,12 +161,12 @@ public:
     /// post  the ordinal is the display's again; `Presented` is raised
     /// note  🔴 Awaits `RecordingDone` and never the completion. The completion is the host's fence and waiting
     ///        on it here would serialise the host against the device once per rotation — which is the whole
-    ///        purpose of the rotation depth, spent.
+    ///        purpose of the recording slot count, spent.
     /// note  ⚠️ Reports the chain outgrown as a delivered result with `Reclaimed`, not as a refusal. The image
     ///        was presented either way, and refusing would make the caller treat a resize as a lost rotation.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Present(const RotationSlot& Standing, std::uint32_t ImageOrdinal);
+    Deliver<bool> Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal);
 
     /// 🧩 What the surface carries, which is the format every display-relative target is claimed at.
     /// out   Format  [-]  VK_FORMAT_UNDEFINED before Construct delivered
@@ -182,7 +182,7 @@ public:
     std::uint32_t StandingWidth() const;
     std::uint32_t StandingHeight() const;
 
-    /// 🧩 How many images the chain holds — the vendor's count, never the rotation depth.
+    /// 🧩 How many images the chain holds — the vendor's count, never the recording slot count.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     std::uint32_t ChainDepth() const;

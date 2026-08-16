@@ -67,8 +67,24 @@ the later statement and it wins. Substitutions are fixed here rather than decide
 | `Vacancy…`   | `Occupancy…`               | States the occupied set; the free set is its complement |
 | `Binding…`   | `Descriptor…`              | Names the Vulkan object actually held                  |
 | `Submission…`| `Command…`                 | Names what is recorded, not the verb                   |
-| `Cadence…`   | `Rotation…`                | N cyclic recording slots                               |
+| `Cadence…`   | `Cycle…` / `Slot…`          | Completion-ordered reuse, or one reusable position                               |
 | `Footprint…` | `Extent…` / `Slot…`        | Measured extent, or the slot it occupies               |
+
+## Recording Cycle Vocabulary
+
+The recording cycle uses the following closed spellings. `Rotation` remains reserved for actual angular or quaternion mechanisms.
+
+| Spelling | Mechanism |
+|----------|-----------|
+| `CycleScheduler` | Orders completion-gated reuse of recording slots |
+| `CycleSlot` | Fence and semaphores ordering one reusable position |
+| `RecordingSlotCount` | Number of reusable recording positions |
+| `SlotOrdinal` | One position within that count |
+| `RecordingOrdinal` | Monotonic recording number counted from bring-up |
+| `PerSlot` | Content replicated once for every reusable position |
+| `RecordedSlot` | Measurements retained for one reusable position |
+| `TimestampsPerSlot` | Timestamp count claimed by each reusable position |
+| `CompletedRecordings` | Number of recordings advanced since bring-up |
 
 ## Full Substitution Record
 

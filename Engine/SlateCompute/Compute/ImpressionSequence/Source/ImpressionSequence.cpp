@@ -373,7 +373,7 @@ Deliver<bool> ImpressionSequence::Amend(const StrokeArrival& Arriving)
 Deliver<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
                                              SurfaceTileSpace& Residency,
                                              RequestQueue&     Requesting,
-                                             std::uint64_t     RotationOrdinal)
+                                             std::uint64_t     RecordingOrdinal)
 {
     const std::uint32_t CellsPerEdge  = CellsPerEdgeAt(Level);
     const std::uint32_t WorkingExtent = CellsPerEdge * CoverageTileTexels;
@@ -421,7 +421,7 @@ Deliver<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
             const double SampleAcross = (static_cast<double>(Across) + 0.5) / static_cast<double>(CellsPerEdge);
 
             const Deliver<SampledCell> Sampled =
-                Residency.Sample(Level, SampleAlong, SampleAcross, RotationOrdinal, Requesting);
+                Residency.Sample(Level, SampleAlong, SampleAcross, RecordingOrdinal, Requesting);
 
             if (!Sampled.ContentPresent)
                 return Deliver<bool>::Refuse(Sampled.Declined);
@@ -521,7 +521,7 @@ Deliver<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
 
 Deliver<ResolvedRun> ImpressionSequence::Resolve(SurfaceTileSpace& Residency,
                                                  RequestQueue&     Requesting,
-                                                 std::uint64_t     RotationOrdinal)
+                                                 std::uint64_t     RecordingOrdinal)
 {
     if (!OpenDeclared)
         return Deliver<ResolvedRun>::Refuse({ RefusalReason::HostDenied, "no stroke is open" });
@@ -537,7 +537,7 @@ Deliver<ResolvedRun> ImpressionSequence::Resolve(SurfaceTileSpace& Residency,
         if (!Impressing.ResolutionOwed)
             continue;
 
-        const Deliver<bool> Resolved = ResolveOne(Impressing, Residency, Requesting, RotationOrdinal);
+        const Deliver<bool> Resolved = ResolveOne(Impressing, Residency, Requesting, RecordingOrdinal);
 
         if (Resolved.ContentPresent)
         {

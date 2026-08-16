@@ -258,7 +258,7 @@ Deliver<bool> DisplayScheduler::Establish()
         }
 
         // 📝 🔴 `06` §7's gate reaches the view, which Slate constructs. Named by the chain and the image both,
-        //    because the ordinal a display hands back is not the rotation slot — `Await` takes whichever image the
+        //    because the ordinal a display hands back is not the cycle slot — `Await` takes whichever image the
         //    display releases — so a name carrying only one of the two cannot say which chain a stale view came
         //    from after a resize.
         NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
@@ -286,7 +286,7 @@ Deliver<bool> DisplayScheduler::Establish()
 //                                                     THE ARRIVAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<ArrivedImage> DisplayScheduler::Await(const RotationSlot& Standing, const TickSequence& Timeline)
+Deliver<ArrivedImage> DisplayScheduler::Await(const CycleSlot& Standing, const TickSequence& Timeline)
 {
     if (DeviceEdge == nullptr || DisplayChain == VK_NULL_HANDLE)
         return Deliver<ArrivedImage>::Refuse({ RefusalReason::CapabilityAbsent, "no chain is established" });
@@ -370,7 +370,7 @@ Deliver<ArrivedImage> DisplayScheduler::Await(const RotationSlot& Standing, cons
 //                                                    THE SURRENDER
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> DisplayScheduler::Present(const RotationSlot& Standing, std::uint32_t ImageOrdinal)
+Deliver<bool> DisplayScheduler::Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal)
 {
     if (DeviceEdge == nullptr || DisplayChain == VK_NULL_HANDLE)
         return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no chain is established" });
@@ -383,7 +383,7 @@ Deliver<bool> DisplayScheduler::Present(const RotationSlot& Standing, std::uint3
 
     // 🔴 Awaits `RecordingDone` and never the slot's completion. The completion is the host's fence, and waiting
     //    on it here would serialise the host against the device once per rotation — which is the whole purpose
-    //    of the rotation depth, spent to order something a semaphore already orders on the device.
+    //    of the recording slot count, spent to order something a semaphore already orders on the device.
     SurrenderDeclaration.waitSemaphoreCount = 1u;
     SurrenderDeclaration.pWaitSemaphores    = &Standing.RecordingDone;
     SurrenderDeclaration.swapchainCount     = 1u;

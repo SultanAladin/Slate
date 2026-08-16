@@ -287,7 +287,7 @@ struct OcclusionMetrics
 {
     std::uint32_t  ProjectionCount    = 0u;   // [-] - illuminants carrying a projection
     std::uint32_t  FaceCount          = 0u;   // [-] - faces across every projection
-    std::uint32_t  RebuiltThisRotation = 0u;  // [-] - projections rebuilt this rotation
+    std::uint32_t  RebuiltThisRecording = 0u;  // [-] - projections rebuilt this rotation
     std::uint64_t  RebuiltTotal       = 0u;   // [-] - across the session
     std::uint32_t  TruncatedTotal     = 0u;   // [-] - `60` §3.1's excess, integrated unattenuated
     std::uint32_t  UnenrolledCount    = 0u;   // [-] - illuminants deliberately carrying no projection
@@ -347,7 +347,7 @@ public:
 
     /// 🧩 Rebuilds whatever the declared conditions owe, and nothing else.
     /// in    Illuminants      [-]  the population; every occlusion-enrolled member is projected
-    /// in    RotationOrdinal  [-]  the rotation rebuilding
+    /// in    RecordingOrdinal  [-]  the rotation rebuilding
     /// out   Deliver          [-]  refuses with ContentUnsupported before a camera is declared, and carries a
     ///                             face derivation's own refusal
     /// post  🔴 with nothing owed, nothing is rebuilt and nothing is recorded
@@ -356,7 +356,7 @@ public:
     ///        disabled occlusion on their key light six months ago has no other way to find out.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Rebuild(const IlluminantPopulation& Illuminants, std::uint64_t RotationOrdinal);
+    Deliver<bool> Rebuild(const IlluminantPopulation& Illuminants, std::uint64_t RecordingOrdinal);
 
     /// 🧩 One illuminant's standing projection.
     /// out   Deliver  [-]  refuses with ExtentExhausted where the illuminant carries none
@@ -394,7 +394,7 @@ private:
 
     Deliver<DerivedProjection> Derive(const IlluminantSpecification& Declared,
                                       OccupantIdentity               Illuminant,
-                                      std::uint64_t                  RotationOrdinal) const;
+                                      std::uint64_t                  RecordingOrdinal) const;
 
     std::size_t Located(OccupantIdentity Illuminant) const;
 

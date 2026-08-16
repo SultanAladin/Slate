@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                            DESCRIPTORINDEX.H
 //============================================================================================================================================
-// 🧩 Descriptor set layouts constructed once at bring-up, and explicit sets claimed one per rotation slot.
+// 🧩 Descriptor set layouts constructed once at bring-up, and explicit sets claimed one per cycle slot.
 
 #pragma once
 
@@ -61,8 +61,8 @@ struct DescriptorContent
 /// note  🔴 `06` §7's first gate: no descriptor set layout is constructed during a recording. Every layout is
 ///       declared at bring-up, and `Declare` refuses once `Fix` has been resolved — the gate is a refusal at
 ///       the call rather than a remark in a review.
-/// note  🔴 `06` §2.1 settles explicit sets per rotation slot rather than a bindless arrangement. A claim
-///       therefore yields `RecordingRotationDepth` sets, and the recording writes the one its slot names —
+/// note  🔴 `06` §2.1 settles explicit sets per cycle slot rather than a bindless arrangement. A claim
+///       therefore yields `RecordingSlotCount` sets, and the recording writes the one its slot names —
 ///       amending a set the device is still reading is the defect the depth exists to remove.
 /// tag   owning
 class DescriptorIndex
@@ -104,32 +104,32 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Fix(std::uint32_t ConcurrentSets);
 
-    /// 🧩 Claims one set per rotation slot against a declared layout, returning the claim's ordinal.
+    /// 🧩 Claims one set per cycle slot against a declared layout, returning the claim's ordinal.
     /// in    LayoutOrdinal [-]  a layout this component declared
     /// out   Deliver       [-]  refuses with ExtentExhausted when the extent admits no further set
-    /// post  `RecordingRotationDepth` sets stand and are addressed by the returned ordinal and a rotation slot
+    /// post  `RecordingSlotCount` sets stand and are addressed by the returned ordinal and a cycle slot
     /// cost  🚩
     /// tag   api, nonthrowing
     Deliver<std::uint32_t> Claim(std::uint32_t LayoutOrdinal);
 
-    /// 🧩 Writes the content of one claimed set for one rotation slot.
+    /// 🧩 Writes the content of one claimed set for one cycle slot.
     /// in    ClaimOrdinal  [-]  a claim this component issued
-    /// in    RotationSlot  [-]  below `RecordingRotationDepth`
+    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
     /// in    Amended       [-]  one entry per slot being written; a slot omitted is left as it stood
-    /// out   Deliver       [-]  refuses with ContentUnsupported for an unclaimed ordinal, a rotation slot at
+    /// out   Deliver       [-]  refuses with ContentUnsupported for an unclaimed ordinal, a cycle slot at
     ///                          or above the depth, or a slot the layout does not declare
-    /// pre   🔴 no recording that reads this set for this rotation slot is still executing
+    /// pre   🔴 no recording that reads this set for this cycle slot is still executing
     /// cost  🚩
     /// tag   api, nonthrowing
     Deliver<bool> Amend(std::uint32_t                          ClaimOrdinal,
-                        std::uint32_t                          RotationSlot,
+                        std::uint32_t                          SlotOrdinal,
                         const std::vector<DescriptorContent>&  Amended);
 
-    /// 🧩 The set one claim names for one rotation slot, for the recording that reads it.
+    /// 🧩 The set one claim names for one cycle slot, for the recording that reads it.
     /// out   Deliver  [-]  refuses with ContentUnsupported for an unclaimed ordinal or an excessive slot
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<VkDescriptorSet> Resolve(std::uint32_t ClaimOrdinal, std::uint32_t RotationSlot) const;
+    Deliver<VkDescriptorSet> Resolve(std::uint32_t ClaimOrdinal, std::uint32_t SlotOrdinal) const;
 
     /// 🧩 The layout one ordinal names, for the recording that constructs a program against it.
     /// out   Deliver  [-]  refuses with ContentUnsupported for an undeclared ordinal
@@ -157,7 +157,7 @@ private:
     struct ClaimedSet
     {
         std::uint32_t                  LayoutOrdinal = AbsentDescriptor;   // [-] - which layout it was sliced against
-        std::vector<VkDescriptorSet>   PerRotation   = {};                 // [-] - RecordingRotationDepth entries
+        std::vector<VkDescriptorSet>   PerSlot   = {};                 // [-] - RecordingSlotCount entries
     };
 
     /// 🧩 Which declared slot carries an ordinal, or nothing when the layout does not declare it.

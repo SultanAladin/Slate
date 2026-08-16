@@ -38,7 +38,7 @@ inline constexpr std::uint32_t StoredTexelsPerEdge = PhysicalTileTexels + 2u * P
 /// note  🔴 This holds **no texels**. `20` §5's gate is that no tile is the source of truth for any content —
 ///        `56` is, and a tile is a projection of it. What is held here is which slots are claimed and where each
 ///        one would sit inside a device extent `06` claims; the texels live on the device and nowhere else.
-/// note  🔴 A released slot is **quarantined** for the rotation depth before it is reusable — `20` §5. A slot
+/// note  🔴 A released slot is **quarantined** for the recording slot count before it is reusable — `20` §5. A slot
 ///        reused in the same rotation is one the device may still be sampling from, and the artist sees another
 ///        cell's content appear inside theirs for exactly one rotation, which nobody attributes to reclamation.
 /// tag   owning
@@ -69,22 +69,22 @@ public:
 
     /// 🧩 Releases one claimed slot into quarantine.
     /// in    SlotOrdinal      [-]  the slot
-    /// in    RotationOrdinal  [-]  the rotation the release happened on
+    /// in    RecordingOrdinal  [-]  the rotation the release happened on
     /// out   Deliver          [-]  refuses with ContentUnsupported for an unclaimed or out-of-range slot
-    /// post  the slot is unusable until `RecordingRotationDepth` rotations have passed
+    /// post  the slot is unusable until `RecordingSlotCount` rotations have passed
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Release(std::uint32_t SlotOrdinal, std::uint64_t RotationOrdinal);
+    Deliver<bool> Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal);
 
-    /// 🧩 Returns quarantined slots whose release is older than the rotation depth.
-    /// in    RotationOrdinal  [-]  the rotation now being recorded
+    /// 🧩 Returns quarantined slots whose release is older than the recording slot count.
+    /// in    RecordingOrdinal  [-]  the rotation now being recorded
     /// out   Reclaimed        [-]  how many slots became free
     /// note  🔴 This is the whole of `20` §5's deferred reclamation, and it is one comparison. Reclaiming
     ///        immediately is the defect that costs nothing to write and is invisible until a device is fast
     ///        enough to still be reading the slot.
     /// cost  🚩
     /// tag   api, nonthrowing
-    std::uint32_t Reclaim(std::uint64_t RotationOrdinal);
+    std::uint32_t Reclaim(std::uint64_t RecordingOrdinal);
 
     /// 🧩 Where one slot sits inside the surface's backing extent.
     /// out   Deliver  [-]  refuses with ContentUnsupported outside the ceiling

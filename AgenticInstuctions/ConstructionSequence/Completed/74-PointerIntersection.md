@@ -15,7 +15,7 @@ manipulation and by placement, and it is answered **on the host**.
 
 ## 1. Host, Never Readback
 
-🔴 `00` §11 gates this and `22` §1 gives the reason. Readback of a device target is latent by the rotation depth —
+🔴 `00` §11 gates this and `22` §1 gives the reason. Readback of a device target is latent by the recording slot count —
 tens of milliseconds — while a stylus reports at hundreds of samples per second. A pointer resolved against a
 target read back is resolved against where the cursor used to be.
 

@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                             RENDERSCHEDULE.H
 //============================================================================================================================================
-// 🧩 What is recorded in a rotation slot, in what order, and against which shared targets.
+// 🧩 What is recorded in a cycle slot, in what order, and against which shared targets.
 
 #pragma once
 

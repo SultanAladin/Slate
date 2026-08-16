@@ -224,7 +224,7 @@ Deliver<bool> InterfaceExchange::Renegotiate(std::uint32_t RotationDepth)
         return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no vendor attachment stands" });
 
     if (RotationDepth < 2u)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a rotation depth below two" });
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a recording slot count below two" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
     ImGui_ImplVulkan_SetMinImageCount(RotationDepth);

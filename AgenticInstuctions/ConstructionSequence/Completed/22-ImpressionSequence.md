@@ -24,7 +24,7 @@ change of working resolution, and undoing one costs the extents it touched rathe
    Tier A.
 
 🔴 Step ② resolves on the **host**, against `40`'s spatial subdivision. It does not read back `16`'s
-`VisibilityIndex`. Readback is latent by the rotation depth — `20` §2.1 ② — which is tens of milliseconds, while a
+`VisibilityIndex`. Readback is latent by the recording slot count — `20` §2.1 ② — which is tens of milliseconds, while a
 stylus reports at hundreds of samples per second. A path resampled against identities that arrive that late is
 resampled against where the cursor used to be.
 ③ The path is resampled at a spacing set by the brush, in the domain, independent of input sample rate.

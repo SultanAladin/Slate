@@ -7,7 +7,7 @@
 
 #include "SlateCompute/Compute/AtmosphereIntegrator/Shader/AtmosphereUniform.slang"
 
-// 📝 🔴 This is the donor formulation's per-rotation sky dome, and it is **not** a recording of its own. `08` §3
+// 📝 🔴 This is the donor formulation's per-slot sky dome, and it is **not** a recording of its own. `08` §3
 //    schedules ① `28`, ② `16`, then ④ `18`, and `18` §5.1 declares that the unoccupied class is dispatched like
 //    any other and writes `RadianceSurface` at every pixel that resolved to no surface. A fullscreen dome recorded
 //    before `16` would write the whole extent and then have `18` write most of it again, and `08` §2's producer

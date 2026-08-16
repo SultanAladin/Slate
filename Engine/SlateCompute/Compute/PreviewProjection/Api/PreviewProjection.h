@@ -198,14 +198,14 @@ public:
     /// 🧩 Resolves the previewed impression against whatever residency admits, demanding nothing it may pin.
     /// in    Residency        [-]  the surface's cells and tiles
     /// in    Requesting       [-]  where a demand for a non-resident cell is recorded
-    /// in    RotationOrdinal  [-]  the rotation resolving
+    /// in    RecordingOrdinal  [-]  the rotation resolving
     /// out   Deliver          [-]  refuses with HostDenied before Open
     /// post  🔴 nothing was pinned; `DeclareUncommitted` was not called and cannot have been
     /// cost  🔴
     /// tag   api, nonthrowing
     Deliver<ResolvedRun> ResolveImpression(SurfaceTileSpace& Residency,
                                            RequestQueue&     Requesting,
-                                           std::uint64_t     RotationOrdinal);
+                                           std::uint64_t     RecordingOrdinal);
 
     /// 🧩 Closes the brush preview. Nothing was recorded, so there is nothing to abandon beyond the accumulation.
     /// cost  🚩
@@ -284,7 +284,7 @@ public:
     //--------------------------------------------------------------------------------------------------------------------
 
     /// 🧩 Declares that a dragged parameter has moved, so the standing extent is owed a re-resolution.
-    /// in    RotationOrdinal  [-]  the rotation the amendment arrived in
+    /// in    RecordingOrdinal  [-]  the rotation the amendment arrived in
     /// out   Deliver          [-]  refuses with HostDenied when no extent stands
     /// post  🔴 nothing is recorded; `10` §2.4's transaction stays open and its Seal is the caller's
     /// note  🔴 `82` §2's fourth row: every Amend is a re-resolution and **none** of them is recorded. The
@@ -292,7 +292,7 @@ public:
     ///        other reason — it is not a revision and nothing keys on it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> AmendParameter(std::uint64_t RotationOrdinal);
+    Deliver<bool> AmendParameter(std::uint64_t RecordingOrdinal);
 
     /// 🧩 How many re-resolutions the standing parameter drag has asked for.
     /// cost  ✔️
@@ -307,14 +307,14 @@ public:
     /// in    Previewed        [-]  the consumer
     /// in    SurfaceOrdinal   [-]  the surface it addresses
     /// in    RequestedLevel   [-]  the level it asks for
-    /// in    RotationOrdinal  [-]  the rotation declaring it
+    /// in    RecordingOrdinal  [-]  the rotation declaring it
     /// out   Deliver          [-]  refuses with ContentUnsupported for the closed count and outside the level count
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     Deliver<bool> DeclareExtent(SpeculativeSubject Previewed,
                                 std::uint32_t      SurfaceOrdinal,
                                 std::uint32_t      RequestedLevel,
-                                std::uint64_t      RotationOrdinal);
+                                std::uint64_t      RecordingOrdinal);
 
     /// 🧩 The extent as it stands.
     /// cost  ✔️
@@ -326,7 +326,7 @@ public:
     ///        other rotation is not stale content to refresh — it is content that must not be presented at all.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool ExtentCurrent(std::uint64_t RotationOrdinal) const;
+    bool ExtentCurrent(std::uint64_t RecordingOrdinal) const;
 
     /// 🧩 Discards the standing extent. Called each rotation, and at every consumer's end.
     /// cost  ✔️

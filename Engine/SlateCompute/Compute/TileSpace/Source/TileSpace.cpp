@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                              TILESPACE.CPP
 //============================================================================================================================================
-// 🧩 Claim, release into quarantine, and the reclamation deferred by the rotation depth.
+// 🧩 Claim, release into quarantine, and the reclamation deferred by the recording slot count.
 
 #include "SlateCompute/Compute/TileSpace/Api/TileSpace.h"
 
@@ -67,7 +67,7 @@ Deliver<std::uint32_t> TileSpace::Claim()
     return Deliver<std::uint32_t>::Deliver(Claimed);
 }
 
-Deliver<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t RotationOrdinal)
+Deliver<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal)
 {
     if (SlotOrdinal >= Ceiling)
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such slot" });
@@ -76,7 +76,7 @@ Deliver<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t Rotati
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the slot is not claimed" });
 
     Standing[SlotOrdinal]   = SlotStanding::Quarantined;
-    ReleasedAt[SlotOrdinal] = RotationOrdinal;
+    ReleasedAt[SlotOrdinal] = RecordingOrdinal;
 
     --ClaimedSlots;
     ++QuarantinedSlots;
@@ -84,7 +84,7 @@ Deliver<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t Rotati
     return Deliver<bool>::Deliver(true);
 }
 
-std::uint32_t TileSpace::Reclaim(std::uint64_t RotationOrdinal)
+std::uint32_t TileSpace::Reclaim(std::uint64_t RecordingOrdinal)
 {
     if (QuarantinedSlots == 0u)
         return 0u;
@@ -96,11 +96,11 @@ std::uint32_t TileSpace::Reclaim(std::uint64_t RotationOrdinal)
         if (Standing[SlotOrdinal] != SlotStanding::Quarantined)
             continue;
 
-        // 🔴 `20` §5: reclamation is deferred by the rotation depth. The comparison is written as a subtraction
+        // 🔴 `20` §5: reclamation is deferred by the recording slot count. The comparison is written as a subtraction
         //    from the current rotation rather than as an addition to the release, because the release ordinal
         //    plus the depth overflows at the end of the representable range and the current ordinal does not.
-        if (RotationOrdinal < ReleasedAt[SlotOrdinal]
-         || RotationOrdinal - ReleasedAt[SlotOrdinal] < RecordingRotationDepth)
+        if (RecordingOrdinal < ReleasedAt[SlotOrdinal]
+         || RecordingOrdinal - ReleasedAt[SlotOrdinal] < RecordingSlotCount)
         {
             continue;
         }

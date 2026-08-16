@@ -33,7 +33,7 @@ struct InterfaceAttachment
     VkQueue           GraphicsQueue         = VK_NULL_HANDLE;          // [-]  - the one queue taken
     std::uint32_t     GraphicsFamilyOrdinal = 0u;                      // [-]  - the family that queue sits in
     VkFormat          ColourTargetFormat    = VK_FORMAT_UNDEFINED;     // [-]  - format of DisplaySurface
-    std::uint32_t     RotationDepth         = RecordingRotationDepth;  // [-]  - cyclic recording slots
+    std::uint32_t     RotationDepth         = RecordingSlotCount;  // [-]  - cyclic recording slots
     void*             NativeWindowSlot      = nullptr;                 // [-]  - WindowInterchange's handle
 };
 
@@ -95,7 +95,7 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Abandon();
 
-    /// 🧩 Restates the rotation depth to the vendor attachment after a presentation chain was re-established.
+    /// 🧩 Restates the recording slot count to the vendor attachment after a presentation chain was re-established.
     /// in    RotationDepth  [-]  the depth the new chain carries
     /// out   Deliver        [-]  refuses when no context is constructed
     /// note  ⚠️ A vendor attachment holding a stale image count sizes its own per-image storage wrongly and
@@ -104,7 +104,7 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Renegotiate(std::uint32_t RotationDepth);
 
-    /// 🧩 Records the assembled content into a command recording of the current rotation slot.
+    /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface
     /// out   Deliver          [-]  refuses when nothing has been sealed since the last Advance
     /// pre   Seal delivered

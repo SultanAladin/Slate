@@ -135,7 +135,7 @@ struct ResidentPartitioning
 {
     std::uint32_t               PositionSpan   = AbsentSpan;         // [-] - the object-space positions, device-local
     std::uint32_t               TriangleSpan   = AbsentSpan;         // [-] - the fanned triangles and their ordinals
-    std::vector<std::uint32_t>  UniformSpans   = {};                 // [-] - one per rotation slot, host-writable
+    std::vector<std::uint32_t>  UniformSpans   = {};                 // [-] - one per cycle slot, host-writable
     std::vector<std::uint32_t>  ClaimOrdinals  = {};                 // [-] - direct, then one per culling phase
     std::uint32_t               CullingOrdinal = AbsentSpan;         // [-] - `OcclusionScheduler`'s, or absent
     std::uint32_t               VertexCount    = 0u;                 // [-] - positions the span carries
@@ -159,7 +159,7 @@ inline constexpr std::uint32_t RasterClaimCount   = 1u + static_cast<std::uint32
 ///        maximum and is a separate mechanism against the same targets; `RouteOfExtent` already declares which
 ///        partition belongs to which, and this component draws the partitions the hardware route claims.
 /// note  🔴 Constructed at bring-up and never during a recording. The program, the render construct and the
-///        descriptor layout are all `06` §7's "fixed before the first rotation", and the per-rotation work is
+///        descriptor layout are all `06` §7's "fixed before the first rotation", and the per-slot work is
 ///        one uniform write and one draw per resident enrolment.
 /// note  🔴 Two recording routes, and both are required. `Record` draws every triangle of every enrolment and
 ///        lets depth resolve them — correct, and the arrangement `16` §2 supersedes. `RecordIndirect` issues
@@ -207,8 +207,8 @@ public:
     ///        `10` admits faces of any corner count and `16` §1 counts the fan triangles the spanned faces amount
     ///        to; a fan derived differently at the two sites gives the pixel a triangle ordinal `18` resolves to
     ///        another triangle of the same partition.
-    /// note  🔴 The descriptor set is written **here**, once per rotation slot, and never again. Every span it
-    ///        names stands for the life of the residency, so a per-rotation write would rewrite one arrangement
+    /// note  🔴 The descriptor set is written **here**, once per cycle slot, and never again. Every span it
+    ///        names stands for the life of the residency, so a per-slot write would rewrite one arrangement
     ///        with itself — and would do it to a set the previous rotation's recording is still reading.
     /// note  🔴 Slot three is written for **every** claim, the direct one included. The vertex entry point names
     ///        the surviving run statically, so the vendor requires it bound whether or not the uniform routes
@@ -244,9 +244,9 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
 
-    /// 🧩 Records the raster for one rotation slot — the construct, the program, and one draw per residency.
-    /// in    Recorded      [-]  the open recording of this rotation slot
-    /// in    RotationSlot  [-]  below `RecordingRotationDepth`
+    /// 🧩 Records the raster for one cycle slot — the construct, the program, and one draw per residency.
+    /// in    Recorded      [-]  the open recording of this cycle slot
+    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
     /// in    Viewing       [-]  what `46` derived for this rotation
     /// out   Deliver       [-]  refuses with ContentUnsupported before the spans are derived, and with
     ///                          whatever the descriptor write or the program resolution refused
@@ -259,12 +259,12 @@ public:
     /// cost  🔴
     /// tag   api, nonthrowing
     Deliver<bool> Record(VkCommandBuffer        Recorded,
-                         std::uint32_t          RotationSlot,
+                         std::uint32_t          SlotOrdinal,
                          const ViewProjection&  Viewing);
 
-    /// 🧩 Records the raster for one rotation slot from what one culling phase compacted.
-    /// in    Recorded      [-]  the open recording of this rotation slot
-    /// in    RotationSlot  [-]  below `RecordingRotationDepth`
+    /// 🧩 Records the raster for one cycle slot from what one culling phase compacted.
+    /// in    Recorded      [-]  the open recording of this cycle slot
+    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
     /// in    Viewing       [-]  what `46` derived for this rotation
     /// in    Culling       [-]  the scheduler whose records the draws are issued from
     /// in    Phase         [-]  which of `16` §2's two phases this draw follows
@@ -279,7 +279,7 @@ public:
     /// cost  🔴
     /// tag   api, nonthrowing
     Deliver<bool> RecordIndirect(VkCommandBuffer           Recorded,
-                                 std::uint32_t             RotationSlot,
+                                 std::uint32_t             SlotOrdinal,
                                  const ViewProjection&     Viewing,
                                  const OcclusionScheduler& Culling,
                                  CullingPhase              Phase);
@@ -300,10 +300,10 @@ private:
     /// out   Deliver  [-]  refuses with whatever the span or the program resolution refused
     Deliver<ConstructedSpan> Open(VkCommandBuffer Recorded, ConstructedProgram& Constructed);
 
-    /// 🧩 Writes one residency's uniform for one rotation slot.
+    /// 🧩 Writes one residency's uniform for one cycle slot.
     /// in    SurvivingResolved [-]  non-zero routes the corner through the surviving run
     Deliver<bool> Project(const ResidentPartitioning& Standing,
-                          std::uint32_t               RotationSlot,
+                          std::uint32_t               SlotOrdinal,
                           const ViewProjection&       Viewing,
                           const ConstructedSpan&      Covering,
                           bool                        SurvivingResolved);

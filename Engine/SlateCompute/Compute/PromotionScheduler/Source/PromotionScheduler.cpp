@@ -104,17 +104,17 @@ void PromotionScheduler::DeclareOrdering(EvictionOrdering Declaring)
         DeclaredOrder = Declaring;
 }
 
-Deliver<bool> PromotionScheduler::OpenRotation(std::uint64_t RotationOrdinal)
+Deliver<bool> PromotionScheduler::OpenRecording(std::uint64_t RecordingOrdinal)
 {
-    if (RotationStanding && RotationOrdinal <= RotationOpened)
+    if (RecordingStanding && RecordingOrdinal <= RecordingOpened)
     {
         return Deliver<bool>::Refuse(
             { RefusalReason::HostDenied, "the rotation is not later than the one already open" });
     }
 
     RemainingBudget  = DeclaredBudget;
-    RotationOpened   = RotationOrdinal;
-    RotationStanding = true;
+    RecordingOpened   = RecordingOrdinal;
+    RecordingStanding = true;
     PromotedThis     = 0u;
     DeferredThis     = 0u;
 
@@ -164,7 +164,7 @@ void PromotionScheduler::PromoteOne()
 EvictionOrdering       PromotionScheduler::Ordering() const       { return DeclaredOrder;   }
 const PromotionBudget& PromotionScheduler::Declared() const       { return DeclaredBudget;  }
 const PromotionBudget& PromotionScheduler::Remaining() const      { return RemainingBudget; }
-std::uint64_t          PromotionScheduler::OpenedRotation() const { return RotationOpened;  }
+std::uint64_t          PromotionScheduler::OpenedRecording() const { return RecordingOpened;  }
 std::uint32_t          PromotionScheduler::PromotedCount() const  { return PromotedThis;    }
 std::uint32_t          PromotionScheduler::DeferredCount() const  { return DeferredThis;    }
 std::uint64_t          PromotionScheduler::PromotedTotal() const  { return PromotedSession; }

@@ -119,7 +119,7 @@ const std::vector<CellRecord>& CellSpace::Records() const { return CellRecords; 
 std::uint32_t CellSpace::ResidentCount() const     { return ResidentCells;    }
 std::uint32_t CellSpace::UncommittedCount() const  { return UncommittedCells; }
 
-void CellSpace::DeclareResident(std::uint32_t CellOrdinal, std::uint32_t SlotOrdinal, std::uint64_t RotationOrdinal)
+void CellSpace::DeclareResident(std::uint32_t CellOrdinal, std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal)
 {
     CellRecord& Held_ = CellRecords[CellOrdinal];
 
@@ -128,7 +128,7 @@ void CellSpace::DeclareResident(std::uint32_t CellOrdinal, std::uint32_t SlotOrd
 
     Held_.SlotOrdinal  = SlotOrdinal;
     Held_.Resident     = true;
-    Held_.PromotedAt   = RotationOrdinal;
+    Held_.PromotedAt   = RecordingOrdinal;
     Held_.ApronWritten = false;
 }
 
@@ -212,7 +212,7 @@ Deliver<bool> SurfaceTileSpace::Construct(std::uint32_t SurfaceOrdinal_,
 Deliver<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
                                               double        PositionAlong,
                                               double        PositionAcross,
-                                              std::uint64_t RotationOrdinal,
+                                              std::uint64_t RecordingOrdinal,
                                               RequestQueue& Requesting)
 {
     if (!Constructed)
@@ -241,11 +241,11 @@ Deliver<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
             // 📝 The demand names the level that was **wanted**, not the level that answered. Demanding the
             //    level that answered would demand a cell that is already resident, and the surface would never
             //    refine past whatever it happened to have.
-            Held_.DemandedAt = RotationOrdinal;
+            Held_.DemandedAt = RecordingOrdinal;
 
             if (!Held_.Resident)
             {
-                Requesting.Demand(Ordinal, CellOrdinal, RotationOrdinal);
+                Requesting.Demand(Ordinal, CellOrdinal, RecordingOrdinal);
                 Resolved.DemandRecorded = true;
             }
         }
@@ -255,7 +255,7 @@ Deliver<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
 
         // 📝 The coarser cell that answered is marked demanded too, so the eviction ordering does not take away
         //    the tile that is currently doing the work of the one that is missing.
-        Held_.DemandedAt = RotationOrdinal;
+        Held_.DemandedAt = RecordingOrdinal;
 
         Resolved.CellOrdinal   = CellOrdinal;
         Resolved.SlotOrdinal   = Held_.SlotOrdinal;
@@ -339,7 +339,7 @@ Deliver<bool> SurfaceTileSpace::DeclareUncommitted(std::uint32_t CellOrdinal, bo
 //                                                      PROMOTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RotationOrdinal)
+Deliver<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal)
 {
     const Deliver<std::uint32_t> Claimed = Tiles_.Claim();
 
@@ -364,7 +364,7 @@ Deliver<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Schedu
         if (!Held_.Resident || Held_.Permanent || Held_.Uncommitted)
             continue;
 
-        if (Held_.PromotedAt == RotationOrdinal)
+        if (Held_.PromotedAt == RecordingOrdinal)
             continue;
 
         const Deliver<CellAddress> Addressed = AddressOf(CellOrdinal);
@@ -388,13 +388,13 @@ Deliver<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Schedu
             { RefusalReason::ExtentExhausted, "every resident tile is permanent, uncommitted or newly promoted" });
     }
 
-    const Deliver<bool> Evicted = Evict(Preferred.CellOrdinal, RotationOrdinal);
+    const Deliver<bool> Evicted = Evict(Preferred.CellOrdinal, RecordingOrdinal);
 
     if (!Evicted.ContentPresent)
         return Deliver<std::uint32_t>::Refuse(Evicted.Declined);
 
     // 🔴 The evicted slot is quarantined, not freed, so the claim below still refuses. Reclaiming it here would
-    //    be reclaiming inside the rotation depth, which is the one thing `20` §5 forbids — so the promotion
+    //    be reclaiming inside the recording slot count, which is the one thing `20` §5 forbids — so the promotion
     //    defers this rotation and takes the freed slot on the rotation after the depth elapses.
     return Tiles_.Claim();
 }
@@ -403,7 +403,7 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
                                                         const PromotionCost& Costing,
                                                         std::uint64_t        ContentRevision,
                                                         PromotionScheduler&  Scheduling,
-                                                        std::uint64_t        RotationOrdinal)
+                                                        std::uint64_t        RecordingOrdinal)
 {
     if (!Constructed)
     {
@@ -431,7 +431,7 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
     }
 
     // 📝 A resident cell at a stale revision keeps its own slot and is resolved into again. Releasing and
-    //    re-claiming would quarantine the slot for the rotation depth and leave the cell absent meanwhile —
+    //    re-claiming would quarantine the slot for the recording slot count and leave the cell absent meanwhile —
     //    so an edited layer would make its own surface go coarse for two rotations at every stroke.
     if (Held_.Resident)
     {
@@ -444,7 +444,7 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
         }
 
         Held_.ResolvedRevision = ContentRevision;
-        Held_.PromotedAt       = RotationOrdinal;
+        Held_.PromotedAt       = RecordingOrdinal;
         Held_.ApronWritten     = false;
 
         Scheduling.PromoteOne();
@@ -452,7 +452,7 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
         return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::ReResolved);
     }
 
-    const Deliver<std::uint32_t> Claimed = ClaimOrEvict(Scheduling, RotationOrdinal);
+    const Deliver<std::uint32_t> Claimed = ClaimOrEvict(Scheduling, RecordingOrdinal);
 
     if (!Claimed.ContentPresent)
     {
@@ -468,13 +468,13 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
         //    quarantine like any release, which is correct: nothing was written into it, and the depth costs one
         //    slot for two rotations rather than a rule that has to distinguish an unwritten slot from a written
         //    one.
-        Tiles_.Release(Claimed.Resolve(), RotationOrdinal);
+        Tiles_.Release(Claimed.Resolve(), RecordingOrdinal);
 
         Scheduling.DeferOne();
         return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::Deferred);
     }
 
-    Cells_.DeclareResident(CellOrdinal, Claimed.Resolve(), RotationOrdinal);
+    Cells_.DeclareResident(CellOrdinal, Claimed.Resolve(), RecordingOrdinal);
     Held_.ResolvedRevision = ContentRevision;
 
     Scheduling.PromoteOne();
@@ -501,7 +501,7 @@ Deliver<bool> SurfaceTileSpace::DeclareApronWritten(std::uint32_t CellOrdinal)
 //                                                  EVICTION AND RECLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> SurfaceTileSpace::Evict(std::uint32_t CellOrdinal, std::uint64_t RotationOrdinal)
+Deliver<bool> SurfaceTileSpace::Evict(std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal)
 {
     const Deliver<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
 
@@ -529,12 +529,12 @@ Deliver<bool> SurfaceTileSpace::Evict(std::uint32_t CellOrdinal, std::uint64_t R
 
     Cells_.DeclareAbsent(CellOrdinal);
 
-    return Tiles_.Release(SlotOrdinal, RotationOrdinal);
+    return Tiles_.Release(SlotOrdinal, RecordingOrdinal);
 }
 
-std::uint32_t SurfaceTileSpace::Reconcile(std::uint64_t RotationOrdinal)
+std::uint32_t SurfaceTileSpace::Reconcile(std::uint64_t RecordingOrdinal)
 {
-    return Tiles_.Reclaim(RotationOrdinal);
+    return Tiles_.Reclaim(RecordingOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -573,7 +573,7 @@ const SurfaceDepot& SurfaceTileSpace::Depot() const { return Depot_; }
 std::uint32_t SurfaceTileSpace::SurfaceOrdinal() const     { return Ordinal;                    }
 std::uint64_t SurfaceTileSpace::StoredBytesPerTile() const { return Tiles_.StoredBytesPerTile(); }
 
-bool SurfaceTileSpace::ResidencyValid(std::uint64_t RotationOrdinal) const
+bool SurfaceTileSpace::ResidencyValid(std::uint64_t RecordingOrdinal) const
 {
     if (!Constructed)
         return false;
@@ -613,7 +613,7 @@ bool SurfaceTileSpace::ResidencyValid(std::uint64_t RotationOrdinal) const
         // 🔴 `20` §5: every resident tile carries a written apron. Checked only for tiles promoted before this
         //    rotation, because a tile promoted this rotation is one the caller has not yet written — and
         //    demanding it here would make the invariant unsatisfiable at exactly the moment it is most useful.
-        if (Held_.PromotedAt < RotationOrdinal && !Held_.ApronWritten)
+        if (Held_.PromotedAt < RecordingOrdinal && !Held_.ApronWritten)
             return false;
     }
 

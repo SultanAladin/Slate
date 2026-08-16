@@ -170,7 +170,7 @@ public:
     /// 🧩 Declares one cell resident against a claimed slot.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void DeclareResident(std::uint32_t CellOrdinal, std::uint32_t SlotOrdinal, std::uint64_t RotationOrdinal);
+    void DeclareResident(std::uint32_t CellOrdinal, std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal);
 
     /// 🧩 Declares one cell absent, surrendering its slot ordinal to the caller.
     /// cost  ✔️
@@ -240,7 +240,7 @@ public:
     /// in    Level            [-]  the level wanted; zero is finest
     /// in    PositionAlong    [-]  the domain's first axis
     /// in    PositionAcross   [-]  its second
-    /// in    RotationOrdinal  [-]  the rotation sampling
+    /// in    RecordingOrdinal  [-]  the rotation sampling
     /// in    Requesting       [-]  where the demand is recorded
     /// out   Deliver          [-]  refuses with ContentUnsupported outside the level count, and with
     ///                             HostDenied before Construct has delivered
@@ -253,7 +253,7 @@ public:
     Deliver<SampledCell> Sample(std::uint32_t Level,
                                 double        PositionAlong,
                                 double        PositionAcross,
-                                std::uint64_t RotationOrdinal,
+                                std::uint64_t RecordingOrdinal,
                                 RequestQueue& Requesting);
 
     /// 🧩 Resolves a domain position from the permanently resident levels alone, demanding nothing.
@@ -283,7 +283,7 @@ public:
     /// in    Costing          [-]  what promoting it would cost, from `Estimate`
     /// in    ContentRevision  [-]  the revision the tile would be resolved from
     /// in    Scheduling       [-]  the rotation's budget and eviction ordering
-    /// in    RotationOrdinal  [-]  the rotation promoting
+    /// in    RecordingOrdinal  [-]  the rotation promoting
     /// out   Deliver          [-]  refuses with ContentUnsupported outside the span, and with HostDenied
     ///                             before Construct has delivered
     /// post  a promoted or re-resolved cell owes its apron; the caller writes it and declares it
@@ -300,7 +300,7 @@ public:
                                           const PromotionCost& Costing,
                                           std::uint64_t        ContentRevision,
                                           PromotionScheduler&  Scheduling,
-                                          std::uint64_t        RotationOrdinal);
+                                          std::uint64_t        RecordingOrdinal);
 
     /// 🧩 Declares one promoted cell's apron written.
     /// out   Deliver  [-]  refuses with ContentUnsupported outside the span, and with HostDenied for a
@@ -316,15 +316,15 @@ public:
     /// out   Deliver  [-]  refuses with ContentUnsupported for a permanent, uncommitted or absent cell
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Evict(std::uint32_t CellOrdinal, std::uint64_t RotationOrdinal);
+    Deliver<bool> Evict(std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal);
 
-    /// 🧩 Reclaims quarantined slots whose release is older than the rotation depth.
+    /// 🧩 Reclaims quarantined slots whose release is older than the recording slot count.
     /// out   Reclaimed  [-]  how many slots became free
     /// note  Called once per rotation, on the tick, before anything is promoted. Reclaiming after promotion
     ///        would make the rotation's first promotions evict against a ledger that is about to free itself.
     /// cost  🚩
     /// tag   api, nonthrowing
-    std::uint32_t Reconcile(std::uint64_t RotationOrdinal);
+    std::uint32_t Reconcile(std::uint64_t RecordingOrdinal);
 
     /// 🧩 Declares this surface's residency measures — never a report.
     /// note  🔴 `86` §5: promotion deferred against budget is a **Measure** and discretionary exhaustion is not
@@ -347,11 +347,11 @@ public:
     ///        uncommitted cell is absent, and that a tile promoted before this rotation carries its apron.
     /// cost  🔴
     /// tag   api, nonallocating, nonthrowing
-    bool ResidencyValid(std::uint64_t RotationOrdinal) const;
+    bool ResidencyValid(std::uint64_t RecordingOrdinal) const;
 
 private:
 
-    Deliver<std::uint32_t> ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RotationOrdinal);
+    Deliver<std::uint32_t> ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal);
 
     CellSpace      Cells_;                       // [-] - one record per cell of every level
     TileSpace      Tiles_;                       // [-] - the slot ledger behind them

@@ -90,12 +90,12 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Abandon();
 
-    /// 🧩 Restates the rotation depth after a presentation chain was re-established.
+    /// 🧩 Restates the recording slot count after a presentation chain was re-established.
     /// cost  🚩
     /// tag   api, nonthrowing
     Deliver<bool> Renegotiate(std::uint32_t RotationDepth);
 
-    /// 🧩 Records the assembled content into a command recording of the current rotation slot.
+    /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope
     /// out   Deliver          [-]  refuses when nothing has been sealed since the last Advance
     /// pre   SealPanels delivered
