@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S RowSequence.h | 182 lines | 0b1eb09f | 18 sym | Depth-first linearisation of the enclosure relation, and the counted ordering that scrolls it.
+S RowSequence.h | 182 lines | 2bda2e4f | 18 sym | Depth-first linearisation of the enclosure relation, and the counted ordering that scrolls it.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ONE ROW
@@ -28,7 +28,7 @@ T SequencedRow                   | RowSequence.h | 26-33   | nonallocating,nonth
     has   EnclosedCount     std::uint32_t     [-]  ?
     has   ExpansionEnabled  bool              [-]  ?
     has   VisibleInCount    bool              [-]  ?
-    by    Source/OutlinerPanel.cpp, Source/RowSequence.cpp
+    by    Source/RowSequence.cpp
     note  Collapsed and narrowed rows stay in the sequence and leave the count. Removing them would make
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ T RankIndex                      | RowSequence.h | 47-97   | owning             
     has   RowCounted   std::vector<bool>           [-]  ?
     has   SpannedRows  std::uint32_t               [-]  ?
     has   CountedRows  std::uint32_t               [-]  ?
-    by    Source/OutlinerPanel.cpp, Source/RowSequence.cpp
+    by    Source/RowSequence.cpp
     note  📐 A binary-indexed count over the row ordering: each stored word carries the visible count of a
     note  🔴 The two questions are not symmetric conveniences. Scrolling to an arbitrary position needs the
 
@@ -54,7 +54,7 @@ F RankIndex::Declare             | RowSequence.h | 63      | api,nonallocating,n
     in    RowOrdinal      std::uint32_t  [-]  the row
     in    CountedEnabled  bool           [-]  whether it participates in the visible count
     out   -               void           [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
 
 F RankIndex::CountedBefore       | RowSequence.h | 70      | api,nonallocating,nonthrowing | ✔️ | How many rows before this ordinal are counted.
     in    RowOrdinal  std::uint32_t  [-]  exclusive upper bound
@@ -64,16 +64,16 @@ F RankIndex::CountedBefore       | RowSequence.h | 70      | api,nonallocating,n
 F RankIndex::RowAtVisible        | RowSequence.h | 77      | api,nonallocating,nonthrowing | ✔️ | Which row carries the visible row at a declared position — the first scroll question.
     in    VisibleOrdinal  std::uint32_t  [-]  position among counted rows, zero-based
     out   -               Deliver        [-]  refuses with ExtentExhausted past the last counted row
-    by    Source/OutlinerPanel.cpp, Source/RowSequence.cpp
+    by    Source/RowSequence.cpp
 
 F RankIndex::VisibleOfRow        | RowSequence.h | 84      | api,nonallocating,nonthrowing | ✔️ | What visible position a row sits at — the second scroll question.
     in    RowOrdinal  std::uint32_t  [-]  the row
     out   -           Deliver        [-]  refuses with ExtentExhausted for an uncounted or out-of-span row
-    by    Source/OutlinerPanel.cpp, Source/RowSequence.cpp
+    by    Source/RowSequence.cpp
 
 F RankIndex::CountedTotal        | RowSequence.h | 89      | api,nonallocating,nonthrowing | ✔️ | How many rows are counted in total.
     out   -  std::uint32_t  [-]  ?
-    by    Source/OutlinerPanel.cpp, Source/RowSequence.cpp
+    by    Source/RowSequence.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE SEQUENCE
@@ -86,7 +86,7 @@ T RowSequence                    | RowSequence.h | 107-180 | owning             
     has   SlotRetained     std::vector<bool>           [-]  ?
     has   VisibleOrdering  RankIndex                   [-]  ?
     has   NarrowingHeld    bool                        [-]  ?
-    by    Api/OutlinerSequence.h, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RowSequence.cpp
+    by    Api/OutlinerSequence.h, Source/OutlinerSequence.cpp, Source/RowSequence.cpp
     note  🔴 Linearised only after `SceneStructure::RepairLabels` has delivered. `12` §4 puts ④ before ⑤
 
 F RowSequence::Linearize         | RowSequence.h | 117     | api,nonthrowing               | 🔴 | Linearises the enclosure relation depth-first — tick step ⑤.
@@ -113,16 +113,16 @@ F RowSequence::DeclareNarrowing  | RowSequence.h | 141     | api,nonthrowing    
 
 F RowSequence::Rows              | RowSequence.h | 146     | api,nonallocating,nonthrowing | ✔️ | The rows, in linearised order, including the uncounted ones.
     out   -  const std::vector<SequencedRow>&  [-]  ?
-    by    Api/AssetPanel.h, Source/AssetPanel.cpp, Source/CameraProjection.cpp, Source/CanvasPanel.cpp, Source/OutlinerPanel.cpp, Source/RowSequence.cpp, (+1 more)
+    by    Source/CameraProjection.cpp, Source/RowSequence.cpp
 
 F RowSequence::Counted           | RowSequence.h | 151     | api,nonallocating,nonthrowing | ✔️ | The counted ordering over those rows.
     out   -  const RankIndex&  [-]  ?
-    by    Api/ReportSequence.h, Source/AssetPanel.cpp, Source/ChannelPanel.cpp, Source/CodeInterchange.cpp, Source/ConsoleHost.cpp, Source/ControlChrome.cpp, (+11 more)
+    by    Api/ReportSequence.h, Source/CodeInterchange.cpp, Source/ConsoleHost.cpp, Source/DepthReduction.cpp, Source/PlatformInterchange.cpp, Source/ReportSequence.cpp, (+1 more)
 
 F RowSequence::RowOf             | RowSequence.h | 158     | api,nonallocating,nonthrowing | ✔️ | Which row an occupant sits at.
     in    Subject  OccupantIdentity  [-]  the occupant
     out   -        Deliver           [-]  refuses with IdentityStale when the occupant holds no row
-    by    Source/OutlinerPanel.cpp, Source/RowSequence.cpp
+    by    Source/RowSequence.cpp
 
 F RowSequence::NarrowingStanding | RowSequence.h | 163     | api,nonallocating,nonthrowing | ✔️ | Whether a narrowing stands over the rows.
     out   -  bool  [-]  ?

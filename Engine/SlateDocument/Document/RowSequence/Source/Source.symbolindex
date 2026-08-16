@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S RowSequence.cpp | 396 lines | ab09838a | 17 sym | The depth-first walk, and the binary-indexed counts that answer both scroll questions.
+S RowSequence.cpp | 396 lines | aa644128 | 17 sym | The depth-first walk, and the binary-indexed counts that answer both scroll questions.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    COUNTED ORDERING

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TopologyConditioning.cpp | 788 lines | e3c8fbeb | 26 sym | Lattice welding, corner adjacency, orientation consistency, and conservative extents.
+S TopologyConditioning.cpp | 788 lines | d57d5dd1 | 26 sym | Lattice welding, corner adjacency, orientation consistency, and conservative extents.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE LATTICE

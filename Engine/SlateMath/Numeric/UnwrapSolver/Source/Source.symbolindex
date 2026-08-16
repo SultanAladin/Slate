@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S UnwrapSolver.cpp | 397 lines | dce79bbf | 7 sym | Chord-length boundary mapping, mean-value interior weights, and relaxation against a declared criterion.
+S UnwrapSolver.cpp | 397 lines | a856bd4a | 7 sym | Chord-length boundary mapping, mean-value interior weights, and relaxation against a declared criterion.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    SPATIAL HELPERS
@@ -69,4 +69,4 @@ F Measure         | UnwrapSolver.cpp | 317-395 | - | - | ?
     in    TriangleCorners  const std::vector<std::uint32_t>&     [-]  ?
     in    Flattened        const std::vector<PlanarPosition>&    [-]  ?
     out   -                DistortionMeasure                     [-]  ?
-    by    Api/LinearSolver.h, Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/LinearSolver.cpp
+    by    Api/AppearanceSpecification.h, Api/LinearSolver.h, Api/UnwrapSolver.h, Source/AppearanceSpecification.cpp, Source/ChartPartition.cpp, Source/DrawerSpace.cpp, (+1 more)

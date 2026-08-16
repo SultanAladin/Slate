@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ImageSpace.cpp | 499 lines | e5d98cf2 | 14 sym | The image claim, the one place a layout transition is recorded, and the reclamation that returns both.
+S ImageSpace.cpp | 499 lines | 341c72fd | 14 sym | The image claim, the one place a layout transition is recorded, and the reclamation that returns both.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                WHAT THE INTENT REQUIRES

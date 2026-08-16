@@ -1,0 +1,141 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Time-sampled interpolants that retire themselves — and report, once per tick, whether anything still moves.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/MotionIntegrator/Api
+%layer      SlateUI
+%sources    1
+%symbols    18
+%annotated  11/18
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S MotionIntegrator.h | 153 lines | cbfa3b25 | 18 sym | Time-sampled interpolants that retire themselves — and report, once per tick, whether anything still moves.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE INTERPOLANTS
+//------------------------------------------------------------------------------------------------------------------------
+
+T SpringInterpolant             | MotionIntegrator.h | 24-44  | contract,nonallocating,nonthrowing | -  | A damped spring toward a declared target — the drawer snap and the tongue release. a drag is live and the analytic form would have to be re-derived on every tick it moved.
+    has   Standing   double  [-]  ?
+    has   Target     double  [-]  ?
+    has   Rate       double  [-]  ?
+    has   Stiffness  double  [-]  ?
+    has   Damping    double  [-]  ?
+    has   Settled    bool    [-]  ?
+    by    Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp
+    note  📐 Integrated semi-implicitly rather than by the analytic solution, because the target moves while
+
+F SpringInterpolant::Advance    | MotionIntegrator.h | 39     | -                                  | ✔️ | Advances one host interval and reports whether it still moves. the artist sees the drawer stop a few pixels past where it belongs and stay there.
+    in    Elapsed  double  [ms]  measured between this tick and the last
+    out   -        Moving  [-]   false once displacement and rate are both below their criteria
+    by    Api/CycleScheduler.h, Api/DrawerSpace.h, Api/GestureSequence.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, (+28 more)
+    note  📐 Settling is two-sided. Displacement alone retires a spring at the apex of its overshoot, and
+
+F SpringInterpolant::Seat       | MotionIntegrator.h | 43     | -                                  | ✔️ | Places it at an ordinate immediately, discarding any motion.
+    in    Ordinate  double  [-]  ?
+    out   -         void    [-]  ?
+    by    Api/DrawerSpace.h, Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp
+
+E EaseCurve                     | MotionIntegrator.h | 52-57  | contract                           | -  | ?
+    has   Standard    EaseCurve  [-]  ?
+    has   Departing   EaseCurve  [-]  ?
+    has   CurveCount  EaseCurve  [-]  ?
+    by    Source/MotionIntegrator.cpp
+
+T EasedInterpolant              | MotionIntegrator.h | 59-74  | -                                  | -  | ?
+    has   Departed  double     [-]  ?
+    has   Arriving  double     [-]  ?
+    has   Elapsed   double     [-]  ?
+    has   Duration  double     [-]  ?
+    has   Deferral  double     [-]  ?
+    has   Shape     EaseCurve  [-]  ?
+    has   Settled   bool       [-]  ?
+    by    Source/MotionIntegrator.cpp
+
+F EasedInterpolant::Advance     | MotionIntegrator.h | 69     | -                                  | -  | ?
+    in    Interval  double  [-]  ?
+    out   -         bool    [-]  ?
+    by    Api/CycleScheduler.h, Api/DrawerSpace.h, Api/GestureSequence.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, (+28 more)
+
+F EasedInterpolant::Standing    | MotionIntegrator.h | 70     | -                                  | -  | ?
+    out   -  double  [-]  ?
+    by    Api/AppearanceSpecification.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+77 more)
+
+F EasedInterpolant::Depart      | MotionIntegrator.h | 71     | -                                  | -  | ?
+    in    From      double     [-]  ?
+    in    To        double     [-]  ?
+    in    Over      double     [-]  ?
+    in    Held      double     [-]  ?
+    in    Declared  EaseCurve  [-]  ?
+    out   -         void       [-]  ?
+    by    Api/DrawerSpace.h, Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp
+
+F EasedInterpolant::Seat        | MotionIntegrator.h | 73     | -                                  | -  | ?
+    in    Ordinate  double  [-]  ?
+    out   -         void    [-]  ?
+    by    Api/DrawerSpace.h, Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE SWEEP
+//------------------------------------------------------------------------------------------------------------------------
+
+T MotionIntegrator              | MotionIntegrator.h | 85-151 | owning                             | -  | Whether anything in the interface is still moving — the one question the wake rule asks. `DisplayScheduler` will otherwise present sixty identical images a second forever, and a UI that re-presents an unchanged image is not idle no matter how little it recomputed.
+    has   InterpolantCapacity  static constexpr std::uint32_t          [-]  ?
+    has   Springs              SpringInterpolant[InterpolantCapacity]  [-]  ?
+    has   Eases                EasedInterpolant[InterpolantCapacity]   [-]  ?
+    has   SpringCount          std::uint32_t                           [-]  ?
+    has   EaseCount            std::uint32_t                           [-]  ?
+    has   AnythingMoving       bool                                    [-]  ?
+    by    Api/DrawerSpace.h, Api/ViewportSequence.h, Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp, Source/ViewportSequence.cpp
+    note  🔴 ⏱️ The genuine idle mechanism is not skipping layout, it is not waking at all. Under FIFO pacing
+
+F MotionIntegrator::EnrolSpring | MotionIntegrator.h | 100    | api,nonallocating,nonthrowing      | ✔️ | Enrols a spring and delivers the ordinal the caller advances it by.
+    in    Motion  const MotionScale&  [-]  ?
+    in    Seated  double              [-]  ?
+    out   -       Deliver             [-]  refuses with ExtentExhausted when the capacity is full
+    by    Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp
+
+F MotionIntegrator::EnrolEased  | MotionIntegrator.h | 106    | api,nonallocating,nonthrowing      | ✔️ | Enrols an eased traverse and delivers its ordinal.
+    in    Seated  double   [-]  ?
+    out   -       Deliver  [-]  refuses with ExtentExhausted when the capacity is full
+    by    Source/MotionIntegrator.cpp
+
+F MotionIntegrator::Spring      | MotionIntegrator.h | 112    | api,nonallocating,nonthrowing      | ✔️ | The enrolled spring at one ordinal, for the caller to read and re-target.
+    in    Ordinal  std::uint32_t       [-]  ?
+    out   -        SpringInterpolant&  [-]  ?
+    pre   the ordinal was delivered by EnrolSpring
+    by    Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp
+
+F MotionIntegrator::Spring      | MotionIntegrator.h | 120    | api,nonallocating,nonthrowing      | ✔️ | The enrolled spring at one ordinal, for a caller that only reads it. need no const_cast. A cast that removes constness to reach a read is a cast that will one day be copied to reach a write.
+    in    Ordinal  std::uint32_t             [-]  ?
+    out   -        const SpringInterpolant&  [-]  ?
+    by    Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp
+    note  🔴 Exists so that `DrawerSpace::StandingOrdinate` and `Moving` — both const, both read-only —
+
+F MotionIntegrator::Eased       | MotionIntegrator.h | 126    | api,nonallocating,nonthrowing      | ✔️ | The enrolled eased traverse at one ordinal.
+    in    Ordinal  std::uint32_t      [-]  ?
+    out   -        EasedInterpolant&  [-]  ?
+    pre   the ordinal was delivered by EnrolEased
+    by    Source/MotionIntegrator.cpp
+
+F MotionIntegrator::Eased       | MotionIntegrator.h | 127    | -                                  | -  | ?
+    in    Ordinal  std::uint32_t            [-]  ?
+    out   -        const EasedInterpolant&  [-]  ?
+    by    Source/MotionIntegrator.cpp
+
+F MotionIntegrator::Advance     | MotionIntegrator.h | 137    | api,nonallocating,nonthrowing      | ✔️ | Advances every enrolled interpolant by one host interval. animation runs at a different speed on a 144 Hz display, which is the defect `04` §3's arrival stamping exists to prevent, one layer up.
+    in    Elapsed  double  [ms]  what `TickSequence::Span` measured between this tick and the last
+    out   -        Moving  [-]   false when every interpolant has settled — the caller may then block
+    by    Api/CycleScheduler.h, Api/DrawerSpace.h, Api/GestureSequence.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, (+28 more)
+    note  ⏱️ Sampled against elapsed host time and never against a rotation count. A rotation-counted
+
+F MotionIntegrator::Moving      | MotionIntegrator.h | 142    | api,nonallocating,nonthrowing      | ✔️ | Whether anything moved on the last Advance, without advancing again.
+    out   -  bool  [-]  ?
+    by    Api/DrawerSpace.h, Api/ViewportSequence.h, Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp, Source/PaintHost.cpp, Source/ViewportSequence.cpp

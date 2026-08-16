@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S StrokeSpace.h | 122 lines | 8b8fcb76 | 12 sym | The bounded extent one stroke accumulates into — coverage per texel, per touched cell, applied once at Seal.
+S StrokeSpace.h | 122 lines | 4c6877df | 12 sym | The bounded extent one stroke accumulates into — coverage per texel, per touched cell, applied once at Seal.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   ONE COVERAGE TILE
@@ -50,13 +50,13 @@ F StrokeSpace::Construct         | StrokeSpace.h | 61     | api,nonthrowing     
 F StrokeSpace::Claim             | StrokeSpace.h | 72     | api,nonthrowing               | 🚩 | Claims the coverage tile backing one cell, or resolves the one already claimed. the declared tile ceiling count. It is a guard against a coarser level being painted at with a miscomputed ordinal, and it refuses rather than growing so that a defect there is a refusal instead of an allocation storm.
     in    CellOrdinal  std::uint32_t  [-]  into `20` §1's single ordinal span
     out   -            Deliver        [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/TileSpace.h, (+15 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/TileSpace.h, (+13 more)
     note  📝 Exhaustion is structurally unreachable at the finest level, where the ceiling equals the cell
 
 F StrokeSpace::Located           | StrokeSpace.h | 78     | api,nonthrowing               | ✔️ | The tile backing one cell, if one is claimed.
     in    CellOrdinal  std::uint32_t  [-]  ?
     out   -            Deliver        [-]  refuses with ExtentExhausted when the cell is untouched
-    by    Api/DocumentSession.h, Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, (+28 more)
+    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+23 more)
 
 F StrokeSpace::Accumulate        | StrokeSpace.h | 89     | api,nonallocating,nonthrowing | ✔️ | Accumulates one impression's coverage at one texel of one claimed tile. impressions overlap, and the excess is invisible in the accumulation and abrupt at the apply.
     in    TileOrdinal  std::uint32_t  [-]   as `Claim` delivered it
@@ -72,7 +72,7 @@ F StrokeSpace::Coverage          | StrokeSpace.h | 94     | api,nonallocating,no
     in    Along        std::uint32_t  [-]  ?
     in    Across       std::uint32_t  [-]  ?
     out   -            double         [-]  ?
-    by    Api/AnalyticProjection.h, Api/EntryPanel.h, Api/SurfaceLayerSequence.h, Api/ThemeSpecification.h, Api/TransmissionSequence.h, Source/AnalyticProjection.cpp, (+10 more)
+    by    Api/AnalyticProjection.h, Api/AppearanceSpecification.h, Api/SurfaceLayerSequence.h, Api/TransmissionSequence.h, Source/AnalyticProjection.cpp, Source/ImpressionSequence.cpp, (+3 more)
 
 F StrokeSpace::TouchedCells      | StrokeSpace.h | 99     | api,nonallocating,nonthrowing | ✔️ | The cells this stroke has touched, in claim order.
     out   -  const std::vector<std::uint32_t>&  [-]  ?
@@ -80,7 +80,7 @@ F StrokeSpace::TouchedCells      | StrokeSpace.h | 99     | api,nonallocating,no
 
 F StrokeSpace::ClaimedCount      | StrokeSpace.h | 101    | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+6 more)
+    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/TileSpace.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, (+5 more)
 
 F StrokeSpace::TouchedTexelCount | StrokeSpace.h | 102    | -                             | -  | ?
     out   -  std::uint64_t  [-]  ?
@@ -88,5 +88,5 @@ F StrokeSpace::TouchedTexelCount | StrokeSpace.h | 102    | -                   
 
 F StrokeSpace::Reclaim           | StrokeSpace.h | 108    | api,nonthrowing               | 🚩 | Discards every claimed tile, keeping the sparse index sized.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
     note  Called at Seal, at Abandon, and once per rotation by a speculative extent — `22` §4.1.

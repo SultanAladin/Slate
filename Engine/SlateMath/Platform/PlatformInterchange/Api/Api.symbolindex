@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PlatformInterchange.h | 93 lines | 67fec3e4 | 7 sym | Process, thread and locale services translated once, so that nothing above Layer0 carries an OS conditional.
+S PlatformInterchange.h | 93 lines | f96b0a1b | 7 sym | Process, thread and locale services translated once, so that nothing above Layer0 carries an OS conditional.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE HOST REPORT
@@ -44,7 +44,7 @@ T PlatformInterchange                      | PlatformInterchange.h | 43-91 | own
 F PlatformInterchange::Resolve             | PlatformInterchange.h | 52    | api,nonthrowing               | 🚩 | Reads the host report, once, and holds it for the run.
     out   -  Deliver  [-]  refuses with HostDenied when the host declines to describe itself
     post  Report returns the same reading for the rest of the run
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
 
 F PlatformInterchange::Report              | PlatformInterchange.h | 58    | api,nonallocating,nonthrowing | ✔️ | The host report as read at bring-up.
     out   -  HostReport  [-]  every reading is zero until Resolve has delivered

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S AssetInterchange.h | 225 lines | 4b4fc084 | 17 sym | Topology and imagery in, painted channels out — one contract, and intake that never repairs.
+S AssetInterchange.h | 225 lines | cd83aeac | 17 sym | Topology and imagery in, painted channels out — one contract, and intake that never repairs.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                WHAT A CODEC HANDS OVER
@@ -132,7 +132,7 @@ F AssetInterchange::DeclareEmission      | AssetInterchange.h | 192     | api,no
 
 F AssetInterchange::Emission             | AssetInterchange.h | 197     | api,nonallocating,nonthrowing | ✔️ | The declared emission, for whoever presents it.
     out   -  const EmissionSpecification&  [-]  ?
-    by    Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OcclusionProjection.h, Source/AssetInterchange.cpp, Source/ChannelPanel.cpp, Source/ConsoleHost.cpp, (+4 more)
+    by    Api/IlluminantPopulation.h, Api/MaterialSpecification.h, Api/OcclusionProjection.h, Source/AssetInterchange.cpp, Source/ConsoleHost.cpp, Source/IlluminantPopulation.cpp, (+3 more)
 
 F AssetInterchange::Unsupported          | AssetInterchange.h | 202     | api,nonallocating,nonthrowing | ✔️ | Constructs that were named at intake and will not survive an emission — `86`'s `50` §6 row.
     out   -  const std::vector<std::string>&  [-]  ?
@@ -156,4 +156,4 @@ F SLATE_DECLARES_PRECISION               | AssetInterchange.h | 223     | -     
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/CanvasPanel.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)

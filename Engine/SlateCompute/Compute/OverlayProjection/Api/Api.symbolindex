@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S OverlayProjection.h | 188 lines | 91ad9441 | 11 sym | `80` — non-occupant geometry the artist needs to see, as two recordings whose depth behaviour is opposite and never merged.
+S OverlayProjection.h | 188 lines | 2df0b22f | 11 sym | `80` — non-occupant geometry the artist needs to see, as two recordings whose depth behaviour is opposite and never merged.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE DEPTH BEHAVIOUR
@@ -66,7 +66,7 @@ F OverlayProjection::Declare           | OverlayProjection.h | 116    | api,nont
     in    Declaring  const OverlaySpecification&  [-]  its display-space colour, its display-pixel extent, and its depth offset
     out   -          Deliver                      [-]  refuses with ContentUnsupported for the closed count, an undeclared colour, a colour
     post  the overlay is declared and its recording draws it wherever `76` says it is present
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
     note  🔴 A working-referred colour is refused rather than admitted. Both recordings run after `66` and nothing
     note  🔴 An offset declared on a depth-free overlay is refused rather than ignored. Silently ignored it reads
 
@@ -110,4 +110,4 @@ F SLATE_DECLARES_PRECISION             | OverlayProjection.h | 183    | -       
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

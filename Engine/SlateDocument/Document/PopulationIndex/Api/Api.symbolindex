@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PopulationIndex.h | 105 lines | afafcba6 | 10 sym | Generationally versioned slot ledger — the population every occupant of the document sits inside.
+S PopulationIndex.h | 105 lines | 3117ff82 | 10 sym | Generationally versioned slot ledger — the population every occupant of the document sits inside.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       OCCUPANCY
@@ -36,12 +36,12 @@ F OccupancyIndex::Occupy         | PopulationIndex.h | 32     | api,nonthrowing 
 F OccupancyIndex::Release        | PopulationIndex.h | 37     | api,nonallocating,nonthrowing | ✔️ | Declares a slot free.
     in    SlotOrdinal  std::uint32_t  [-]  ?
     out   -            void           [-]  ?
-    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/SpanSpace.h, (+13 more)
+    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/RecordingSurface.h, Api/SpanSpace.h, (+13 more)
 
 F OccupancyIndex::Occupied       | PopulationIndex.h | 42     | api,nonallocating,nonthrowing | ✔️ | Whether a slot is occupied.
     in    SlotOrdinal  std::uint32_t  [-]  ?
     out   -            bool           [-]  ?
-    by    Api/SurfaceDepot.h, Shared/IncircleClassifier.slang.h, Shared/OrientationClassifier.slang.h, Source/ImageCodec.cpp, Source/PopulationIndex.cpp, Source/SpanSpace.cpp, (+5 more)
+    by    Api/SurfaceDepot.h, Shared/IncircleClassifier.slang.h, Shared/OrientationClassifier.slang.h, Source/DrawerSpace.cpp, Source/ImageCodec.cpp, Source/PopulationIndex.cpp, (+6 more)
 
 F OccupancyIndex::SpannedCount   | PopulationIndex.h | 47     | api,nonallocating,nonthrowing | ✔️ | How many slots the ledger spans, occupied or not.
     out   -  std::uint32_t  [-]  ?
@@ -63,20 +63,20 @@ T PopulationIndex                | PopulationIndex.h | 63-103 | owning          
 F PopulationIndex::Enrol         | PopulationIndex.h | 72     | api,nonthrowing               | ✔️ | Enrols one occupant and issues its identity.
     out   -  OccupantIdentity  [-]  slot ordinal paired with the generation now held
     err   refuses with ExtentExhausted when the population reaches its declared ceiling
-    by    Api/EnrollmentIndex.h, Api/OutlinerSequence.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp, Source/PopulationIndex.cpp
+    by    Api/EnrollmentIndex.h, Api/OutlinerSequence.h, Api/RedrawScheduler.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/OutlinerSequence.cpp, (+2 more)
 
 F PopulationIndex::Withdraw      | PopulationIndex.h | 80     | api,nonallocating,nonthrowing | ✔️ | Withdraws one occupant and advances the slot's generation.
     in    Subject  OccupantIdentity  [-]  the identity to withdraw
     out   -        Deliver           [-]  refuses with IdentityStale when the identity no longer resolves
     post  every reference carrying the prior generation resolves to absent
-    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, (+16 more)
+    by    Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PrimitiveStructure.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, (+13 more)
 
 F PopulationIndex::Resolve       | PopulationIndex.h | 88     | api,nonallocating,nonthrowing | ✔️ | Whether an identity still names the occupant it was issued for.
     in    Subject  OccupantIdentity  [-]  the identity to resolve
     out   -        Resolved          [-]  false for a stale generation and for an unoccupied slot alike
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
     note  Comparison is an integer test, at Exact. An identity that collides is not an identity.
 
 F PopulationIndex::EnrolledCount | PopulationIndex.h | 93     | api,nonallocating,nonthrowing | ✔️ | How many occupants are enrolled.
     out   -  std::uint32_t  [-]  ?
-    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, Source/IlluminantPopulation.cpp, (+3 more)
+    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/RedrawScheduler.h, Api/VisibilityIndex.h, Source/ConsoleHost.cpp, Source/EnrollmentIndex.cpp, (+4 more)

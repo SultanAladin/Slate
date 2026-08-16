@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ByteSpace.h | 184 lines | c74559f4 | 19 sym | Raw device byte extents, claimed in a few large pieces and sliced into the spans every resource sits in.
+S ByteSpace.h | 184 lines | 6cb67fd9 | 19 sym | Raw device byte extents, claimed in a few large pieces and sliced into the spans every resource sits in.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    EXTENT RESIDENCY
@@ -29,7 +29,7 @@ E ExtentResidency              | ByteSpace.h | 33-38   | contract               
     has   DeviceLocal     ExtentResidency  [-]  ?
     has   HostWritable    ExtentResidency  [-]  ?
     has   ResidencyCount  ExtentResidency  [-]  ?
-    by    Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/OcclusionScheduler.cpp, Source/SpanSpace.cpp, Source/VisibilityRaster.cpp, (+1 more)
+    by    Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/OcclusionScheduler.cpp, Source/SpanSpace.cpp, Source/VisibilityRaster.cpp
     note  🔴 The vendor's `memoryTypeIndex` is **not** this. It is resolved from this by scoring what the
 
 E ClaimStanding                | ByteSpace.h | 46-51   | contract                      | -  | What the claimant promises about the span, and therefore what exhaustion means for it. exhaustion is residency policy rather than a reported failure. The distinction cannot be derived from the span — a hundred megabytes is the working set for one caller and an optional prefetch for the next — so it is declared at the claim and carried into the refusal.
@@ -68,7 +68,7 @@ T ByteSpace                    | ByteSpace.h | 88-182  | owning                 
     has   VendorDeclared   VkPhysicalDeviceMemoryProperties  [-]  ?
     has   Extents          std::vector<SlicedExtent>         [-]  ?
     has   NonCoherentAtom  VkDeviceSize                      [-]  ?
-    by    Api/ImageSpace.h, Api/SpanSpace.h, Api/WorkspaceSequence.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp
+    by    Api/ImageSpace.h, Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp
     note  🔴 This owns bytes and knows nothing of what occupies them. An image is `ImageSpace`'s and a vertex
     note  ⚠️ Reclamation is whole-extent. A released span returns to its extent's free list and is coalesced
 
@@ -89,25 +89,25 @@ F ByteSpace::Claim             | ByteSpace.h | 120     | api,nonthrowing        
     in    Standing        ClaimStanding    [-]  what exhaustion means for this claimant
     out   -               Deliver          [-]  refuses with ExtentExhausted, in full, with nothing partially claimed
     err   refuses with ContentUnsupported for a zero span or an alignment that is not a power of two
-    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+15 more)
+    by    Api/DescriptorIndex.h, Api/ImageSpace.h, Api/RenderSchedule.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+13 more)
     note  🔴 The refusal is whole. A claim that half-succeeded would leave the caller holding a span it
 
 F ByteSpace::Release           | ByteSpace.h | 133     | api,nonthrowing               | ✔️ | Returns one span to its extent's free list, coalescing it with whatever it now adjoins. quarantined by its **owner** — `20` §5 does exactly that over its own slots — because only the owner knows which rotation last recorded against it.
     in    Claimed  const ByteClaim&  [-]  a claim this component issued; a default-constructed one is a no-op
     out   -        void              [-]  ?
     post  the span is claimable again immediately
-    by    Api/CodeInterchange.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+13 more)
+    by    Api/CodeInterchange.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/RecordingSurface.h, Api/SpanSpace.h, (+13 more)
     note  ⚠️ Immediately, not after the rotation depth. A span the device may still be reading is
 
 F ByteSpace::Reclaim           | ByteSpace.h | 139     | api,nonthrowing               | 🚩 | Destroys every vendor allocation and forgets every slice.
     out   -  void  [-]  ?
     pre   the device is idle and no claim this component issued is still recorded against
-    by    Api/AttachmentIndex.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+77 more)
 
 F ByteSpace::ClaimedBytes      | ByteSpace.h | 144     | api,nonallocating,nonthrowing | ✔️ | What is claimed and what is held, per residency — the two halves `86` reports separately.
     in    Residency  ExtentResidency  [-]  ?
     out   -          VkDeviceSize     [-]  ?
-    by    Api/ImageSpace.h, Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp, Source/WorkspaceSequence.cpp
+    by    Api/ImageSpace.h, Api/SpanSpace.h, Source/ByteSpace.cpp, Source/ImageSpace.cpp, Source/SpanSpace.cpp
 
 F ByteSpace::BackingBytes      | ByteSpace.h | 145     | -                             | -  | ?
     in    Residency  ExtentResidency  [-]  ?

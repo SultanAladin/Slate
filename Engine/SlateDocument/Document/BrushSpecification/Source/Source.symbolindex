@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S BrushSpecification.cpp | 380 lines | cbe2e260 | 26 sym | Declared progressions, the fallback an absent axis takes, and the stroke-seeded sequence both sides share.
+S BrushSpecification.cpp | 380 lines | 449fdee2 | 26 sym | Declared progressions, the fallback an absent axis takes, and the stroke-seeded sequence both sides share.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE PROGRESSIONS

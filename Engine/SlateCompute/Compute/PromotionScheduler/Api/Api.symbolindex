@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PromotionScheduler.h | 208 lines | 62ea16c8 | 24 sym | Two independent budgets, spent per rotation, and the ordering eviction follows when they cannot be met.
+S PromotionScheduler.h | 208 lines | 87165a4a | 24 sym | Two independent budgets, spent per rotation, and the ordering eviction follows when they cannot be met.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE TWO MEASURES
@@ -145,15 +145,15 @@ F PromotionScheduler::PromoteOne      | PromotionScheduler.h | 184     | api,non
 
 F PromotionScheduler::Ordering        | PromotionScheduler.h | 186     | -                             | -  | ?
     out   -  EvictionOrdering  [-]  ?
-    by    Api/AssetPanel.h, Api/CommandSequence.h, Api/DomainSpace.h, Source/AssetPanel.cpp, Source/CommandSequence.cpp, Source/DomainSpace.cpp, (+3 more)
+    by    Api/CommandSequence.h, Api/DomainSpace.h, Source/CommandSequence.cpp, Source/DomainSpace.cpp, Source/PromotionScheduler.cpp, Source/SurfaceTileSpace.cpp
 
 F PromotionScheduler::Declared        | PromotionScheduler.h | 187     | -                             | -  | ?
     out   -  const PromotionBudget&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, (+89 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+84 more)
 
 F PromotionScheduler::Remaining       | PromotionScheduler.h | 188     | -                             | -  | ?
     out   -  const PromotionBudget&  [-]  ?
-    by    Shared/SampleProjection.slang.h, Source/AssetInterchange.cpp, Source/ControlChrome.cpp, Source/CurveSolver.cpp, Source/DocumentSession.cpp, Source/FileInterchange.cpp, (+6 more)
+    by    Shared/SampleProjection.slang.h, Source/AssetInterchange.cpp, Source/CurveSolver.cpp, Source/DocumentSession.cpp, Source/FileInterchange.cpp, Source/PromotionScheduler.cpp, (+5 more)
 
 F PromotionScheduler::OpenedRotation  | PromotionScheduler.h | 189     | -                             | -  | ?
     out   -  std::uint64_t  [-]  ?

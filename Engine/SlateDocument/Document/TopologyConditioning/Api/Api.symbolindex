@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TopologyConditioning.h | 174 lines | e8a5e695 | 24 sym | Derived companions to imported topology — adjacency, welding, orientation, bases and extents. Never a mutation.
+S TopologyConditioning.h | 174 lines | 3241b18e | 24 sym | Derived companions to imported topology — adjacency, welding, orientation, bases and extents. Never a mutation.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       DEGENERACY
@@ -98,7 +98,7 @@ F TopologyConditioning::VertexIsolated       | TopologyConditioning.h | 105    |
 F TopologyConditioning::Enrolled             | TopologyConditioning.h | 110    | api,nonallocating,nonthrowing | ✔️ | The runs of one enrolled condition, for whoever excludes a whole span at once.
     in    Condition  DegeneracySubject                     [-]  ?
     out   -          const std::vector<EnrolledInterval>&  [-]  ?
-    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/ReferenceIndex.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, (+13 more)
+    by    Api/EnrollmentIndex.h, Api/IlluminantPopulation.h, Api/RedrawScheduler.h, Api/ReferenceIndex.h, Api/VisibilityIndex.h, Api/VisibilityRaster.h, (+16 more)
 
 F TopologyConditioning::Perpendiculars       | TopologyConditioning.h | 112    | -                             | -  | ?
     out   -  const std::vector<SurfaceDirection>&  [-]  ?
@@ -167,4 +167,4 @@ F SLATE_DECLARES_PRECISION                   | TopologyConditioning.h | 172    |
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

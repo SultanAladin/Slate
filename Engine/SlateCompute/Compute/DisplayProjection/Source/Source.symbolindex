@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DisplayProjection.cpp | 233 lines | 9cc71399 | 11 sym | Exposure first, compression second, primaries third, transfer once — and the refusal that stops one monitor being every monitor.
+S DisplayProjection.cpp | 233 lines | a629abf6 | 11 sym | Exposure first, compression second, primaries third, transfer once — and the refusal that stops one monitor being every monitor.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION

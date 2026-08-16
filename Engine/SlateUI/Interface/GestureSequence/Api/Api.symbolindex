@@ -1,0 +1,101 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 One pointer contact resolved into a phase, a travel since arrival, a smoothed rate and a tap verdict.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/GestureSequence/Api
+%layer      SlateUI
+%sources    1
+%symbols    9
+%annotated  9/9
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S GestureSequence.h | 128 lines | 62caf259 | 9 sym | One pointer contact resolved into a phase, a travel since arrival, a smoothed rate and a tap verdict.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE CONTACT PHASE
+//------------------------------------------------------------------------------------------------------------------------
+
+E ContactPhase              | GestureSequence.h | 25-32  | contract                           | -  | Where one contact stands in its own lifetime. system delivers both in the same tick. A consumer that seizes on `Arrived` and resolves on `Released` therefore never loses either edge to a stalled or coalesced tick.
+    has   Absent      ContactPhase  [-]  ?
+    has   Arrived     ContactPhase  [-]  ?
+    has   Travelling  ContactPhase  [-]  ?
+    has   Released    ContactPhase  [-]  ?
+    has   PhaseCount  ContactPhase  [-]  ?
+    by    Source/DrawerSpace.cpp, Source/GestureSequence.cpp
+    note  🔴 Exactly one tick reports `Arrived` and exactly one reports `Released`, even when the window
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE TOLERANCES
+//------------------------------------------------------------------------------------------------------------------------
+
+T GestureTolerance          | GestureSequence.h | 40-46  | contract,nonallocating,nonthrowing | -  | What separates a tap from a drag, and a drag from a fling.
+    has   TapTravelCeiling    float   [-]  ?
+    has   TapDurationCeiling  double  [-]  ?
+    has   RateRetention       double  [-]  ?
+    has   FlingRateFloor      double  [-]  ?
+    by    Source/GestureSequence.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE TRAVEL
+//------------------------------------------------------------------------------------------------------------------------
+
+T ContactTravel             | GestureSequence.h | 56-71  | contract,nonallocating,nonthrowing | -  | Everything one contact has done since it arrived. produces an instantaneous rate of several thousand pixels a second from a stationary thumb.
+    has   Phase           ContactPhase  [-]  ?
+    has   OriginAlong     float         [-]  ?
+    has   OriginAcross    float         [-]  ?
+    has   PositionAlong   float         [-]  ?
+    has   PositionAcross  float         [-]  ?
+    has   TravelAlong     double        [-]  ?
+    has   TravelAcross    double        [-]  ?
+    has   RateAlong       double        [-]  ?
+    has   RateAcross      double        [-]  ?
+    has   HeldDuration    double        [-]  ?
+    has   TravelExceeded  bool          [-]  ?
+    has   TapResolved     bool          [-]  ?
+    has   FlingResolved   bool          [-]  ?
+    by    Api/DrawerSpace.h, Source/DrawerSpace.cpp, Source/GestureSequence.cpp
+    note  📐 The rate is smoothed across ticks rather than taken from the last one. A single stalled tick
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE SEQUENCE
+//------------------------------------------------------------------------------------------------------------------------
+
+T GestureSequence           | GestureSequence.h | 81-126 | owning                             | -  | Turns one tick's `PointerCondition` into one tick's `ContactTravel`. measured rate.
+    has   Tolerance        GestureTolerance  [-]  ?
+    has   Reported         ContactTravel     [-]  ?
+    has   ContactLive      bool              [-]  ?
+    has   ReleaseDeferred  bool              [-]  ?
+    has   CancelDeferred   bool              [-]  ?
+    by    Api/DrawerSpace.h, Source/GestureSequence.cpp
+    note  ⚠️ Advance exactly once per tick. Two calls in one tick double every accumulation and halve the
+
+F GestureSequence::Declare  | GestureSequence.h | 93     | api,nonallocating,nonthrowing      | ✔️ | Replaces the tolerances the next contact is resolved against.
+    in    Declared  const GestureTolerance&  [-]  ?
+    out   -         void                     [-]  ?
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
+
+F GestureSequence::Advance  | GestureSequence.h | 101    | api,nonallocating,nonthrowing      | ✔️ | Advances one tick and reports what the contact did.
+    in    Arrived  const PointerCondition&  [-]   what `RecordingSurface::Pointer` sampled this tick
+    in    Elapsed  double                   [ms]  what the same tick's display condition measured
+    out   -        Travel                   [-]   valid until the next Advance
+    by    Api/CycleScheduler.h, Api/DrawerSpace.h, Api/InterfaceExchange.h, Api/MotionIntegrator.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, (+28 more)
+
+F GestureSequence::Standing | GestureSequence.h | 106    | api,nonallocating,nonthrowing      | ✔️ | What the previous Advance reported.
+    out   -  const ContactTravel&  [-]  ?
+    by    Api/AppearanceSpecification.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+77 more)
+
+F GestureSequence::Abandon  | GestureSequence.h | 112    | api,nonallocating,nonthrowing      | ✔️ | Drops the live contact without reporting a release — what a resize does.
+    out   -  void  [-]  ?
+    post  the next Advance reports Absent until a fresh contact arrives
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, (+18 more)
+
+F GestureSequence::Reset    | GestureSequence.h | 117    | api,nonallocating,nonthrowing      | ✔️ | Returns the sequence to its constructed condition, tolerances included.
+    out   -  void  [-]  ?
+    by    Api/DrawerSpace.h, Api/RecordingSurface.h, Source/DrawerSpace.cpp, Source/GestureSequence.cpp, Source/RecordingSurface.cpp, Source/ViewportSequence.cpp

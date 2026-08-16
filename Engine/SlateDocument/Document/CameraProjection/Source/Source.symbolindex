@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S CameraProjection.cpp | 595 lines | 077a1d59 | 27 sym | Reversed-depth projection derivation, plane extraction, the gesture lifecycle, and the framing solve.
+S CameraProjection.cpp | 595 lines | dcbf5e20 | 27 sym | Reversed-depth projection derivation, plane extraction, the gesture lifecycle, and the framing solve.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     MATRIX HELPERS
@@ -66,7 +66,7 @@ F ViewDirection                          | CameraProjection.cpp | 94-97   | - | 
 F Derive                                 | CameraProjection.cpp | 105-183 | - | - | ?
     in    Declaring  const CameraSpecification&  [-]  ?
     out   -          Deliver<ViewProjection>     [-]  ?
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+11 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+10 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    PLANE EXTRACTION
@@ -124,7 +124,7 @@ F Frame                                  | CameraProjection.cpp | 473-533 | - | 
     in    Least     DocumentPosition              [-]  ?
     in    Greatest  DocumentPosition              [-]  ?
     out   -         Deliver<DecomposedTransform>  [-]  ?
-    by    Api/CameraProjection.h, Source/ConsoleHost.cpp, Source/ControlText.cpp
+    by    Api/CameraProjection.h, Source/ConsoleHost.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE CAMERA

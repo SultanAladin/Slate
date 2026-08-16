@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PersistenceSequence.h | 128 lines | d37fe882 | 9 sym | `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
+S PersistenceSequence.h | 128 lines | 7cd33012 | 9 sym | `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE FOUR STEPS
@@ -90,4 +90,4 @@ F PersistenceSequence::ReplacedCount   | PersistenceSequence.h | 117    | api,no
 F SLATE_DECLARES_PRECISION             | PersistenceSequence.h | 125    | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

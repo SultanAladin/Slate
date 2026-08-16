@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SampleIntegrator.cpp | 197 lines | dcb0cb5e | 12 sym | Motion-driven reprojection, the count-derived weight, and the reset that never decays.
+S SampleIntegrator.cpp | 197 lines | 019eeecf | 12 sym | Motion-driven reprojection, the count-derived weight, and the reset that never decays.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S QuadratureIntegrator.cpp | 131 lines | dcb70f82 | 6 sym | Newton on the Legendre recurrence, solved over half the interval and mirrored onto the other.
+S QuadratureIntegrator.cpp | 131 lines | a33a8eb7 | 6 sym | Newton on the Legendre recurrence, solved over half the interval and mirrored onto the other.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE DERIVATION

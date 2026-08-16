@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ShaderCodec.cpp | 229 lines | a457180e | 7 sym | The whole-file read, the stream verification that refuses before the vendor sees it, and the held specialisation.
+S ShaderCodec.cpp | 229 lines | 57c342a3 | 7 sym | The whole-file read, the stream verification that refuses before the vendor sees it, and the held specialisation.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION

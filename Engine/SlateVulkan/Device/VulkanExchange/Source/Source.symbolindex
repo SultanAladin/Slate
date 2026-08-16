@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S VulkanExchange.cpp | 178 lines | 26a6d17d | 9 sym | Instance construction, device scoring and the one graphics queue.
+S VulkanExchange.cpp | 178 lines | 2ea943d7 | 9 sym | Instance construction, device scoring and the one graphics queue.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        INSTANCE

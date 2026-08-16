@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DocumentSession.cpp | 328 lines | 3abfaa13 | 33 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
+S DocumentSession.cpp | 328 lines | 850f37f1 | 33 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     WHAT IT HOLDS

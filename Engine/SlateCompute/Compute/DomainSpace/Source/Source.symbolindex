@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DomainSpace.cpp | 182 lines | 808ffee2 | 6 sym | Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
+S DomainSpace.cpp | 182 lines | affd778e | 6 sym | Scale-invariant shelf ordering, bisection to the common scale, and the occupancy it reports.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE FEASIBILITY

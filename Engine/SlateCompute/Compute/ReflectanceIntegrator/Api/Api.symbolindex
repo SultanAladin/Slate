@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ReflectanceIntegrator.h | 381 lines | d4394859 | 26 sym | `18` — attributes reconstructed rather than read, channels resolved rather than walked, and one target written at every pixel.
+S ReflectanceIntegrator.h | 381 lines | 268875c2 | 26 sym | `18` — attributes reconstructed rather than read, channels resolved rather than walked, and one target written at every pixel.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                ATTRIBUTE RECONSTRUCTION
@@ -84,7 +84,7 @@ F DirectionalAlbedoSurface::Declare              | ReflectanceIntegrator.h | 121
     in    SingleScatter  double         [-]  ?
     in    Charlie        double         [-]  ?
     out   -              void           [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
 
 F DirectionalAlbedoSurface::Sample               | ReflectanceIntegrator.h | 128     | api,nonallocating,nonthrowing | 🚩 | Samples the three components at a declared coordinate, bilinearly, clamped on both axes. and a roughness of one is fully rough, and a wrapped read at either end returns the opposite end.
     in    CoordinateAlong   double   [-]  ?
@@ -98,11 +98,11 @@ F DirectionalAlbedoSurface::Sample               | ReflectanceIntegrator.h | 128
 
 F DirectionalAlbedoSurface::ExtentAlong          | ReflectanceIntegrator.h | 134     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/DepthReduction.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp, (+1 more)
+    by    Api/AtmosphereIntegrator.h, Api/DepthReduction.h, Api/DrawerSpace.h, Api/RecordingSurface.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, (+5 more)
 
 F DirectionalAlbedoSurface::ExtentAcross         | ReflectanceIntegrator.h | 135     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/DepthReduction.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp, (+1 more)
+    by    Api/AtmosphereIntegrator.h, Api/DepthReduction.h, Api/DrawerSpace.h, Api/RecordingSurface.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, (+5 more)
 
 F DirectionalAlbedoSurface::ResidentBytes        | ReflectanceIntegrator.h | 136     | -                             | -  | ?
     out   -  std::uint64_t  [-]  ?
@@ -110,7 +110,7 @@ F DirectionalAlbedoSurface::ResidentBytes        | ReflectanceIntegrator.h | 136
 
 F DirectionalAlbedoSurface::Constructed          | ReflectanceIntegrator.h | 137     | -                             | -  | ?
     out   -  bool  [-]  ?
-    by    Api/DescriptorIndex.h, Api/ProgramIndex.h, Api/ShaderCodec.h, Api/SpatialSubdivision.h, Api/SurfaceTileSpace.h, Api/VisibilityRaster.h, (+13 more)
+    by    Api/AppearanceSpecification.h, Api/DescriptorIndex.h, Api/ProgramIndex.h, Api/ShaderCodec.h, Api/SpatialSubdivision.h, Api/SurfaceTileSpace.h, (+13 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE CHANNEL SET
@@ -257,4 +257,4 @@ F SLATE_DECLARES_PRECISION                       | ReflectanceIntegrator.h | 376
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

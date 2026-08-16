@@ -1,0 +1,59 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 The seven declared figures, transcribed from the source's own path data, plus the mark everything else draws as.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/SymbolSpecification/Source
+%layer      SlateUI
+%sources    1
+%symbols    6
+%annotated  1/6
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S SymbolSpecification.cpp | 313 lines | 638ea5cf | 6 sym | The seven declared figures, transcribed from the source's own path data, plus the mark everything else draws as.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    DECLARED ARTWORK
+//------------------------------------------------------------------------------------------------------------------------
+
+V TwoUnitControl | SymbolSpecification.cpp | 20      | - | - | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE ROSTER
+//------------------------------------------------------------------------------------------------------------------------
+
+F Unresolved     | SymbolSpecification.cpp | 135-138 | - | - | Constructs the enrolment entry for a subject with no artwork yet.
+    in    Enrolled  SymbolDiscipline        [-]  ?
+    out   -         constexpr SymbolFigure  [-]  ?
+    by    Api/ReferenceIndex.h
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE LOOKUPS
+//------------------------------------------------------------------------------------------------------------------------
+
+F Figure         | SymbolSpecification.cpp | 263-271 | - | - | ?
+    in    Subject  SymbolSubject        [-]  ?
+    out   -        const SymbolFigure&  [-]  ?
+    by    Api/SymbolSpecification.h, Source/RecordingSurface.cpp
+
+F Enrolment      | SymbolSpecification.cpp | 273-276 | - | - | ?
+    in    Subject  SymbolSubject     [-]  ?
+    out   -        SymbolDiscipline  [-]  ?
+    by    Api/MaterialSpecification.h, Api/PropertySpecification.h, Api/SymbolSpecification.h, Source/PropertySpecification.cpp
+
+F EnrolledIn     | SymbolSpecification.cpp | 278-291 | - | - | ?
+    in    Discipline  SymbolDiscipline       [-]  ?
+    in    Delivered   const SymbolSubject**  [-]  ?
+    out   -           std::uint32_t          [-]  ?
+    by    Api/SymbolSpecification.h
+
+F DisciplineText | SymbolSpecification.cpp | 293-311 | - | - | ?
+    in    Discipline  SymbolDiscipline  [-]  ?
+    out   -           const char*       [-]  ?
+    by    Api/SymbolSpecification.h

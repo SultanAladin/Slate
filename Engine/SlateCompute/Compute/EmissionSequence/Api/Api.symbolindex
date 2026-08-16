@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S EmissionSequence.h | 209 lines | 98bd0bdb | 17 sym | `50` §5 — an export resolved from the domain at its declared extent, band by band, never read back from residency.
+S EmissionSequence.h | 209 lines | 25785737 | 17 sym | `50` §5 — an export resolved from the domain at its declared extent, band by band, never read back from residency.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                WHAT BOUNDS AN EMISSION
@@ -66,7 +66,7 @@ F ProjectPlacements                | EmissionSequence.h | 90      | api,nonthrow
 F SLATE_DECLARES_PRECISION         | EmissionSequence.h | 91      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F ToleranceAtExtent                | EmissionSequence.h | 102-105 | api,nonallocating,nonthrowing | ✔️ | The flattening tolerance an emission at one extent resolves at. emission's extent is the artist's declaration and need not be a reduction level at all, so the tolerance is derived from the extent rather than looked up — one texel of what is being written, which is the deviation below which a chord cannot move a sample.
     in    ExtentTexels  std::uint32_t  [px]  per edge of the emitted image
@@ -77,7 +77,7 @@ F ToleranceAtExtent                | EmissionSequence.h | 102-105 | api,nonalloc
 F SLATE_DECLARES_PRECISION         | EmissionSequence.h | 106     | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE EMISSION
@@ -105,7 +105,7 @@ F EmissionSequence::Open           | EmissionSequence.h | 148     | api,nonthrow
     in    ImageOrdinal  std::uint32_t                 [-]  which of the specification's images this emission produces
     out   -             Deliver                       [-]  refuses with HostDenied before Construct and while an emission stands, with
     post  🔴 the texel run is allocated once, whole, so no band reallocates mid-emission
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+21 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/DrawerSpace.h, Api/HardwareMetrics.h, (+24 more)
     note  🔴 `Validate` is asked here even though `AssetInterchange::DeclareEmission` asked it already. The
 
 F EmissionSequence::ResolveBand    | EmissionSequence.h | 166     | api,nonthrowing               | 🔴 | Resolves the next band of rows, and no more than that. resolved, and with whatever `70` refused at the first position it refused at `50` §2's rule for a partial intake is the same rule from the other direction: an image that is resolved above a seam and zero below it is an asset the artist ships without noticing, whereas an export that refused is one they cannot miss. sample places the first texel exactly on the domain boundary, where a seam's two sides are equally near and the resolution picks one arbitrarily.
@@ -132,10 +132,10 @@ F EmissionSequence::Seal           | EmissionSequence.h | 185     | api,nonthrow
 
 F EmissionSequence::Reclaim        | EmissionSequence.h | 190     | api,nonthrowing               | 🚩 | Abandons the standing emission and reclaims its texels.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F SLATE_DECLARES_PRECISION         | EmissionSequence.h | 205     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TopologyStructure.h | 182 lines | 5c31a780 | 28 sym | Polygon topology exactly as it arrived — sealed once, never mutated, and never repaired.
+S TopologyStructure.h | 182 lines | 48a4e71b | 28 sym | Polygon topology exactly as it arrived — sealed once, never mutated, and never repaired.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  IMPORTED ATTRIBUTES
@@ -102,7 +102,7 @@ F TopologyStructure::Seal                      | TopologyStructure.h | 121    | 
 
 F TopologyStructure::Sealed                    | TopologyStructure.h | 126    | api,nonallocating,nonthrowing | ✔️ | Whether the topology is sealed and therefore readable.
     out   -  bool  [-]  ?
-    by    Api/ImpressionSequence.h, Api/PersistenceSequence.h, Api/WorkSequence.h, Source/AssetInterchange.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, (+16 more)
+    by    Api/ImpressionSequence.h, Api/PersistenceSequence.h, Api/WorkSequence.h, Source/AssetInterchange.cpp, Source/CameraProjection.cpp, Source/ChartPartition.cpp, (+15 more)
 
 F TopologyStructure::Revision                  | TopologyStructure.h | 135    | api,nonallocating,nonthrowing | ✔️ | The revision the seal issued — what `24` §3 keys a transferred result on. revision, which is what lets `38`, `40`, `68`, `16` and `24` refuse a description derived from a different one. A per-topology count would make all five comparisons read one against one.
     out   -  Revision  [-]  zero until sealed; thereafter distinct across every topology in the process
@@ -119,7 +119,7 @@ F TopologyStructure::FaceCount                 | TopologyStructure.h | 138    | 
 
 F TopologyStructure::CornerCount               | TopologyStructure.h | 139    | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Source/ChartPartition.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp, Source/PrimitiveStructure.cpp, Source/SpatialSubdivision.cpp, Source/TopologyCodec.cpp, (+3 more)
+    by    Api/RecordingSurface.h, Source/ChartPartition.cpp, Source/DecalProjection.cpp, Source/PointerIntersection.cpp, Source/PrimitiveStructure.cpp, Source/RecordingSurface.cpp, (+5 more)
 
 F TopologyStructure::FaceFirstCorner           | TopologyStructure.h | 144    | api,nonallocating,nonthrowing | ✔️ | The first corner ordinal of one face, and how many corners it carries.
     in    FaceOrdinal  std::uint32_t  [-]  ?
@@ -147,7 +147,7 @@ F TopologyStructure::Positions                 | TopologyStructure.h | 157    | 
 
 F TopologyStructure::Coordinates               | TopologyStructure.h | 158    | -                             | -  | ?
     out   -  const std::vector<DomainCoordinate>&  [-]  ?
-    by    Source/ConsoleHost.cpp, Source/ControlChrome.cpp, Source/PointerIntersection.cpp, Source/PrimitiveStructure.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
+    by    Source/ConsoleHost.cpp, Source/PointerIntersection.cpp, Source/PrimitiveStructure.cpp, Source/TopologyConditioning.cpp, Source/TopologyStructure.cpp
 
 F TopologyStructure::Perpendiculars            | TopologyStructure.h | 159    | -                             | -  | ?
     out   -  const std::vector<SurfaceDirection>&  [-]  ?

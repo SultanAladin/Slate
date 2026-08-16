@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S EmissionSequence.cpp | 271 lines | 55a897c0 | 8 sym | `50` §5 — the band walk that resolves an emitted image out of the domain, one texel centre at a time.
+S EmissionSequence.cpp | 271 lines | c78aba6e | 8 sym | `50` §5 — the band walk that resolves an emitted image out of the domain, one texel centre at a time.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE ARRANGEMENT

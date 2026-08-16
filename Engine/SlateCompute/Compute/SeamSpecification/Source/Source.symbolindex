@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SeamSpecification.cpp | 117 lines | 6560cc33 | 11 sym | Two separately stored sets, and the reclamation that reaches only one of them.
+S SeamSpecification.cpp | 117 lines | e7cb635b | 11 sym | Two separately stored sets, and the reclamation that reaches only one of them.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        LOCATION
@@ -26,7 +26,7 @@ F Located                             | SeamSpecification.cpp | 18-30   | - | - 
     in    Held    const std::vector<SeamEdge>&  [-]  ?
     in    Sought  SeamEdge                      [-]  ?
     out   -       std::size_t                   [-]  ?
-    by    Api/DocumentSession.h, Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, (+28 more)
+    by    Api/DocumentSession.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+23 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     AUTHORED SEAMS

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S CommandSequence.cpp | 358 lines | 8a97331f | 8 sym | The per-slot recording extents, the open that resets one whole, and the surrender to the one graphics queue.
+S CommandSequence.cpp | 358 lines | 29eb1ab2 | 8 sym | The per-slot recording extents, the open that resets one whole, and the surrender to the one graphics queue.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S MaterialSpecification.cpp | 279 lines | dd247b6e | 23 sym | The channel inventory per reflectance, declaration validation, and the partition resolution.
+S MaterialSpecification.cpp | 279 lines | 36ebebb8 | 23 sym | The channel inventory per reflectance, declaration validation, and the partition resolution.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE CHANNEL INVENTORY

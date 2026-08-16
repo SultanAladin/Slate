@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S FileInterchange.cpp | 489 lines | a41f2c6f | 11 sym | Paths, whole streams and the write-verify-replace sequence over the host file system.
+S FileInterchange.cpp | 489 lines | 30a9591a | 11 sym | Paths, whole streams and the write-verify-replace sequence over the host file system.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS

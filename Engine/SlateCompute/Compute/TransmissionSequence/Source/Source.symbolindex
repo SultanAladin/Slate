@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TransmissionSequence.cpp | 280 lines | 8dfd356c | 14 sym | The classification that keeps foliage cheap, the sorted insertion that discards the farthest, and the walk that reads the column backwards.
+S TransmissionSequence.cpp | 280 lines | a4700b48 | 14 sym | The classification that keeps foliage cheap, the sorted insertion that discards the farthest, and the walk that reads the column backwards.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE CLASSIFICATION
@@ -31,7 +31,7 @@ F Bounded                                    | TransmissionSequence.cpp | 27-30 
     in    Lower      double  [-]  ?
     in    Upper      double  [-]  ?
     out   -          double  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+81 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, (+57 more)
 
 F BehaviourOf                                | TransmissionSequence.cpp | 34-47   | - | - | ?
     in    Declared  const MaterialSpecification&  [-]  ?

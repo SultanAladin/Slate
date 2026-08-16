@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DisplayScheduler.cpp | 466 lines | 5f8b01bc | 15 sym | The scored format, the established chain, the ordered arrival, and the surrender back to the display.
+S DisplayScheduler.cpp | 466 lines | 9dff8c7c | 15 sym | The scored format, the established chain, the ordered arrival, and the surrender back to the display.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE SCORING

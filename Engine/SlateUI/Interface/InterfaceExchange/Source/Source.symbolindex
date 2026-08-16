@@ -7,16 +7,17 @@
 %scope      folder
 %path       Engine/SlateUI/Interface/InterfaceExchange/Source
 %layer      SlateUI
-%sources    1
-%symbols    9
-%annotated  0/9
+%sources    2
+%symbols    39
+%annotated  0/39
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S InterfaceExchange.cpp | 251 lines | 8d41c521 | 9 sym | The only translation unit in the engine that includes ImGui.
+S InterfaceExchange.cpp | 298 lines | 911c09ff | 11 sym | The only translation unit in the engine that includes ImGui.
+S RecordingSurface.cpp  | 496 lines | ab81e0ab | 28 sym | The second and last translation unit that names ImGui.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   DESCRIPTOR EXTENT
@@ -30,28 +31,35 @@ V InterfaceDescriptorCapacity           | InterfaceExchange.cpp | 24      | -   
 
 F InterfaceExchange::~InterfaceExchange | InterfaceExchange.cpp | 31-34   | destructor | - | ?
 
-F InterfaceExchange::Construct          | InterfaceExchange.cpp | 36-128  | -          | - | ?
+F InterfaceExchange::Construct          | InterfaceExchange.cpp | 36-132  | -          | - | ?
     in    Arriving  const InterfaceAttachment&  [-]  ?
     out   -         Deliver<bool>               [-]  ?
 
-F InterfaceExchange::Reclaim            | InterfaceExchange.cpp | 130-154 | -          | - | ?
+F InterfaceExchange::Reclaim            | InterfaceExchange.cpp | 134-167 | -          | - | ?
     out   -  void  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE TICK
 //------------------------------------------------------------------------------------------------------------------------
 
-F InterfaceExchange::Advance            | InterfaceExchange.cpp | 160-178 | -          | - | ?
+F InterfaceExchange::Advance            | InterfaceExchange.cpp | 173-191 | -          | - | ?
     out   -  Deliver<bool>  [-]  ?
 
-F InterfaceExchange::Seal               | InterfaceExchange.cpp | 180-192 | -          | - | ?
+F InterfaceExchange::Seal               | InterfaceExchange.cpp | 193-205 | -          | - | ?
     out   -  Deliver<bool>  [-]  ?
+
+F InterfaceExchange::Abandon            | InterfaceExchange.cpp | 207-219 | -          | - | ?
+    out   -  Deliver<bool>  [-]  ?
+
+F InterfaceExchange::Renegotiate        | InterfaceExchange.cpp | 221-235 | -          | - | ?
+    in    RotationDepth  std::uint32_t  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-F InterfaceExchange::Record             | InterfaceExchange.cpp | 198-222 | -          | - | ?
+F InterfaceExchange::Record             | InterfaceExchange.cpp | 241-269 | -          | - | ?
     in    CommandRecording  VkCommandBuffer  [-]  ?
     out   -                 Deliver<bool>    [-]  ?
 
@@ -59,8 +67,176 @@ F InterfaceExchange::Record             | InterfaceExchange.cpp | 198-222 | -   
 //                                                        CAPTURE
 //------------------------------------------------------------------------------------------------------------------------
 
-F InterfaceExchange::PointerCaptured    | InterfaceExchange.cpp | 231-239 | -          | - | ?
+F InterfaceExchange::PointerCaptured    | InterfaceExchange.cpp | 278-286 | -          | - | ?
     out   -  bool  [-]  ?
 
-F InterfaceExchange::KeyboardCaptured   | InterfaceExchange.cpp | 241-249 | -          | - | ?
+F InterfaceExchange::KeyboardCaptured   | InterfaceExchange.cpp | 288-296 | -          | - | ?
     out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   VENDOR CONVERSION
+//------------------------------------------------------------------------------------------------------------------------
+
+V ConfineCeiling                        | RecordingSurface.cpp  | 23      | -          | - | ?
+
+V ShadowLayers                          | RecordingSurface.cpp  | 24      | -          | - | ?
+
+V EmphaticOffset                        | RecordingSurface.cpp  | 25      | -          | - | ?
+
+F Vendor                                | RecordingSurface.cpp  | 27-30   | -          | - | ?
+    in    Ink  InkOrdinate  [-]  ?
+    out   -    ImU32        [-]  ?
+
+F VendorCorners                         | RecordingSurface.cpp  | 32-48   | -          | - | ?
+    in    Corners  std::uint32_t  [-]  ?
+    out   -        ImDrawFlags    [-]  ?
+
+F Commands                              | RecordingSurface.cpp  | 50-53   | -          | - | ?
+    in    Slot  void*        [-]  ?
+    out   -     ImDrawList*  [-]  ?
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE ADOPTION
+//------------------------------------------------------------------------------------------------------------------------
+
+F RecordingSurface::Adopt               | RecordingSurface.cpp  | 61-97   | -          | - | ?
+    out   -  Deliver<bool>  [-]  ?
+
+F RecordingSurface::Reset               | RecordingSurface.cpp  | 99-107  | -          | - | ?
+    out   -  void  [-]  ?
+
+F RecordingSurface::Pointer             | RecordingSurface.cpp  | 109-112 | -          | - | ?
+    out   -  const PointerCondition&  [-]  ?
+
+F RecordingSurface::Display             | RecordingSurface.cpp  | 114-117 | -          | - | ?
+    out   -  const DisplayCondition&  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   GROUNDS AND EDGES
+//------------------------------------------------------------------------------------------------------------------------
+
+F RecordingSurface::Ground              | RecordingSurface.cpp  | 123-131 | -          | - | ?
+    in    Extent   const PlaneExtent&  [-]  ?
+    in    Ink      InkOrdinate         [-]  ?
+    in    Radius   float               [-]  ?
+    in    Corners  std::uint32_t       [-]  ?
+    out   -        void                [-]  ?
+
+F RecordingSurface::Edge                | RecordingSurface.cpp  | 133-147 | -          | - | ?
+    in    Extent   const PlaneExtent&  [-]  ?
+    in    Ink      InkOrdinate         [-]  ?
+    in    Weight   float               [-]  ?
+    in    Radius   float               [-]  ?
+    in    Corners  std::uint32_t       [-]  ?
+    out   -        void                [-]  ?
+
+F RecordingSurface::Scrim               | RecordingSurface.cpp  | 149-160 | -          | - | ?
+    in    Extent    const PlaneExtent&  [-]  ?
+    in    UpperInk  InkOrdinate         [-]  ?
+    in    LowerInk  InkOrdinate         [-]  ?
+    out   -         void                [-]  ?
+
+F RecordingSurface::Medallion           | RecordingSurface.cpp  | 162-168 | -          | - | ?
+    in    CentreAlong   float        [-]  ?
+    in    CentreAcross  float        [-]  ?
+    in    Radius        float        [-]  ?
+    in    Ink           InkOrdinate  [-]  ?
+    out   -             void         [-]  ?
+
+F RecordingSurface::Tongue              | RecordingSurface.cpp  | 170-183 | -          | - | ?
+    in    Corners      const float*   [-]  ?
+    in    CornerCount  std::uint32_t  [-]  ?
+    in    Ink          InkOrdinate    [-]  ?
+    out   -            void           [-]  ?
+
+F RecordingSurface::ShadowCast          | RecordingSurface.cpp  | 185-211 | -          | - | ?
+    in    Extent        const PlaneExtent&  [-]  ?
+    in    Ink           InkOrdinate         [-]  ?
+    in    Spread        float               [-]  ?
+    in    OffsetAlong   float               [-]  ?
+    in    OffsetAcross  float               [-]  ?
+    in    Radius        float               [-]  ?
+    out   -             void                [-]  ?
+
+F RecordingSurface::Glow                | RecordingSurface.cpp  | 213-216 | -          | - | ?
+    in    Extent  const PlaneExtent&  [-]  ?
+    in    Ink     InkOrdinate         [-]  ?
+    in    Spread  float               [-]  ?
+    out   -       void                [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+F RecordingSurface::Stroke              | RecordingSurface.cpp  | 222-299 | -          | - | ?
+    in    Subject       SymbolSubject       [-]  ?
+    in    SquareExtent  const PlaneExtent&  [-]  ?
+    in    Ink           InkOrdinate         [-]  ?
+    out   -             void                [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                          TEXT
+//------------------------------------------------------------------------------------------------------------------------
+
+V StagingCapacity                       | RecordingSurface.cpp  | 310     | -          | - | ?
+
+F Capitalise                            | RecordingSurface.cpp  | 312-326 | -          | - | ?
+    in    Text     const char*  [-]  ?
+    in    Staging  char*        [-]  ?
+    out   -        void         [-]  ?
+
+F RecordingSurface::TextRun             | RecordingSurface.cpp  | 330-370 | -          | - | ?
+    in    Along      float        [-]  ?
+    in    Across     float        [-]  ?
+    in    Ink        InkOrdinate  [-]  ?
+    in    Text       const char*  [-]  ?
+    in    PointSize  float        [-]  ?
+    in    Tracking   float        [-]  ?
+    in    Emphatic   bool         [-]  ?
+    out   -          void         [-]  ?
+
+F RecordingSurface::TextRunCapitalised  | RecordingSurface.cpp  | 372-382 | -          | - | ?
+    in    Along      float        [-]  ?
+    in    Across     float        [-]  ?
+    in    Ink        InkOrdinate  [-]  ?
+    in    Text       const char*  [-]  ?
+    in    PointSize  float        [-]  ?
+    in    Tracking   float        [-]  ?
+    in    Emphatic   bool         [-]  ?
+    out   -          void         [-]  ?
+
+F RecordingSurface::TextRunTruncated    | RecordingSurface.cpp  | 384-423 | -          | - | ?
+    in    Along         float        [-]  ?
+    in    Across        float        [-]  ?
+    in    CeilingAlong  float        [-]  ?
+    in    Ink           InkOrdinate  [-]  ?
+    in    Text          const char*  [-]  ?
+    in    PointSize     float        [-]  ?
+    in    Emphatic      bool         [-]  ?
+    out   -             void         [-]  ?
+
+F RecordingSurface::MeasureRun          | RecordingSurface.cpp  | 425-444 | -          | - | ?
+    in    Text       const char*  [-]  ?
+    in    PointSize  float        [-]  ?
+    in    Tracking   float        [-]  ?
+    out   -          float        [-]  ?
+
+F RecordingSurface::RunAcross           | RecordingSurface.cpp  | 446-452 | -          | - | ?
+    in    PointSize  float  [-]  ?
+    out   -          float  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        CLIPPING
+//------------------------------------------------------------------------------------------------------------------------
+
+F RecordingSurface::Confine             | RecordingSurface.cpp  | 458-466 | -          | - | ?
+    in    Extent  const PlaneExtent&  [-]  ?
+    out   -       void                [-]  ?
+
+F RecordingSurface::Release             | RecordingSurface.cpp  | 468-475 | -          | - | ?
+    out   -  void  [-]  ?
+
+F RecordingSurface::Excluded            | RecordingSurface.cpp  | 477-494 | -          | - | ?
+    in    Extent  const PlaneExtent&  [-]  ?
+    out   -       bool                [-]  ?

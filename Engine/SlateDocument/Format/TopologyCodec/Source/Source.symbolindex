@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TopologyCodec.cpp | 315 lines | 375955b9 | 9 sym | `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
+S TopologyCodec.cpp | 315 lines | 07d87e21 | 9 sym | `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS

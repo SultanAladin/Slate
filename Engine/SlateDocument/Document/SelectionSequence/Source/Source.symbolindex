@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SelectionSequence.cpp | 99 lines | a4dac314 | 7 sym | Sealing, traversal, and the restoration that pairs a document scrub with the selection it served.
+S SelectionSequence.cpp | 99 lines | 180dcbc7 | 7 sym | Sealing, traversal, and the restoration that pairs a document scrub with the selection it served.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SEALING

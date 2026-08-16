@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S BrushSpecification.h | 396 lines | 03d7c814 | 41 sym | The brush every stroke in `22` is resolved against — a shape, a spacing, a channel set, and dynamics that read input.
+S BrushSpecification.h | 396 lines | a0024c28 | 41 sym | The brush every stroke in `22` is resolved against — a shape, a spacing, a channel set, and dynamics that read input.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE IMPRESSION SHAPE
@@ -192,7 +192,7 @@ F BrushSpecification::DeclareSpacing     | BrushSpecification.h | 253     | api,
 F BrushSpecification::DeclareChannel     | BrushSpecification.h | 260     | api,nonthrowing               | 🚩 | Declares one channel and the value written to it. declaring no space, and for a channel already declared
     in    Declaring  const BrushChannelValue&  [-]  ?
     out   -          Deliver                   [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour value
-    by    Api/MaterialSpecification.h, Api/ToolSequence.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, (+1 more)
+    by    Api/MaterialSpecification.h, Api/ToolSequence.h, Source/BrushSpecification.cpp, Source/ConsoleHost.cpp, Source/MaterialSpecification.cpp, Source/ToolSequence.cpp
 
 F BrushSpecification::DeclareDynamic     | BrushSpecification.h | 269     | api,nonthrowing               | 🚩 | Declares one dynamic. axis or parameter, and for a second dynamic on the same parameter whichever the resolution applied second would win by accident of declaration order.
     in    Declaring  const DynamicSpecification&  [-]  ?
@@ -215,7 +215,7 @@ F BrushSpecification::Resolve            | BrushSpecification.h | 293     | api,
     in    ImpressionOrdinal  std::uint32_t        [-]  the impression's position within the stroke
     in    StrokeSeed         std::uint32_t        [-]  recorded with the transaction — `58` §6
     out   -                  Resolved             [-]  extent, rotation, strength, spacing and displacement
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+89 more)
     note  🔴 The variation reads `02` §6's shared permutation at Tier A, so the sequence `82` previews with
     note  🔴 An absent axis takes its dynamic's declared fallback. Reading zero would make a pressure brush
 
@@ -227,7 +227,7 @@ F BrushSpecification::Report             | BrushSpecification.h | 300     | api,
 
 F BrushSpecification::Shape              | BrushSpecification.h | 302     | -                             | -  | ?
     out   -  const ImpressionShape&  [-]  ?
-    by    Api/ImageSpace.h, Api/OcclusionProjection.h, Api/SpanSpace.h, Source/AtmosphereIntegrator.cpp, Source/AttachmentIndex.cpp, Source/BrushSpecification.cpp, (+5 more)
+    by    Api/ImageSpace.h, Api/MotionIntegrator.h, Api/OcclusionProjection.h, Api/SpanSpace.h, Source/AtmosphereIntegrator.cpp, Source/AttachmentIndex.cpp, (+7 more)
 
 F BrushSpecification::Spacing            | BrushSpecification.h | 303     | -                             | -  | ?
     out   -  const SpacingSpecification&  [-]  ?
@@ -247,7 +247,7 @@ F BrushSpecification::Dynamics           | BrushSpecification.h | 306     | -   
 
 F BrushSpecification::Extent             | BrushSpecification.h | 308     | -                             | -  | ?
     out   -  double  [-]  ?
-    by    Api/AssetPanel.h, Api/DisplayScheduler.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/OcclusionProjection.h, Api/PartitionStructure.h, (+28 more)
+    by    Api/DisplayScheduler.h, Api/DrawerSpace.h, Api/IlluminantPopulation.h, Api/ImageSpace.h, Api/OcclusionProjection.h, Api/PartitionStructure.h, (+28 more)
 
 F BrushSpecification::Combination        | BrushSpecification.h | 309     | -                             | -  | ?
     out   -  CombineSpecification  [-]  ?
@@ -256,7 +256,7 @@ F BrushSpecification::Combination        | BrushSpecification.h | 309     | -   
 F BrushSpecification::ChannelDeclared    | BrushSpecification.h | 314     | api,nonthrowing               | 🚩 | Whether the brush writes one of `42`'s channels.
     in    Channel  ChannelSubject  [-]  ?
     out   -        bool            [-]  ?
-    by    Api/EntryPanel.h, Api/MaterialSpecification.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, Source/EntryPanel.cpp, Source/MaterialSpecification.cpp
+    by    Api/MaterialSpecification.h, Source/BrushSpecification.cpp, Source/MaterialSpecification.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE BRUSHES
@@ -275,22 +275,22 @@ F BrushIndex::Declare                    | BrushSpecification.h | 347     | api,
     in    Named     const std::string&  [-]  what the artist calls it; may be empty
     in    Grouping  const std::string&  [-]  which grouping it is presented under; may be empty
     out   -         Deliver             [-]  refuses with ExtentExhausted at the declared ceiling
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+65 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+64 more)
 
 F BrushIndex::Resolve                    | BrushSpecification.h | 349     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t                       [-]  ?
     out   -             Deliver<const BrushSpecification*>  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+89 more)
 
 F BrushIndex::Amend                      | BrushSpecification.h | 350     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t                 [-]  ?
     out   -             Deliver<BrushSpecification*>  [-]  ?
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+26 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, Api/MaterialSpecification.h, (+25 more)
 
 F BrushIndex::DeclaredName               | BrushSpecification.h | 352     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t       [-]  ?
     out   -             const std::string&  [-]  ?
-    by    Api/DiagnosticExtension.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/BrushSpecification.cpp, Source/ChannelPanel.cpp, (+5 more)
+    by    Api/DiagnosticExtension.h, Api/MaterialSpecification.h, Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/BrushSpecification.cpp, Source/DiagnosticExtension.cpp, (+3 more)
 
 F BrushIndex::DeclaredGrouping           | BrushSpecification.h | 353     | -                             | -  | ?
     in    BrushOrdinal  std::uint32_t       [-]  ?
@@ -299,7 +299,7 @@ F BrushIndex::DeclaredGrouping           | BrushSpecification.h | 353     | -   
 
 F BrushIndex::DeclaredCount              | BrushSpecification.h | 355     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, Api/MaterialSpecification.h, (+36 more)
+    by    Api/AttachmentIndex.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/HardwareMetrics.h, Api/MaterialSpecification.h, Api/PrimitiveStructure.h, (+29 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 WHAT A STROKE RECORDS
@@ -326,4 +326,4 @@ F SLATE_DECLARES_PRECISION               | BrushSpecification.h | 394     | -   
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/CameraProjection.h, Api/CanvasPanel.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)

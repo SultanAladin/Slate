@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S CodeInterchange.h | 165 lines | e56c9b41 | 13 sym | Foreign compiled code crossing in — opaque tokens, a verified interface hash, no standard type in a signature.
+S CodeInterchange.h | 165 lines | 8f5af69f | 13 sym | Foreign compiled code crossing in — opaque tokens, a verified interface hash, no standard type in a signature.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE FLAT SURFACE
@@ -82,15 +82,15 @@ F CodeInterchange::Release          | CodeInterchange.h | 142     | api,nonthrow
     in    ModuleOrdinal  std::uint32_t  [-]  a module this component acquired
     out   -              void           [-]  ?
     pre   nothing this process holds points into the module's code or its extents
-    by    Api/ByteSpace.h, Api/GlyphDepot.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+13 more)
+    by    Api/ByteSpace.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/RecordingSurface.h, Api/SpanSpace.h, (+13 more)
 
 F CodeInterchange::Reclaim          | CodeInterchange.h | 147     | api,nonthrowing               | 🚩 | Releases every standing module. Called by the destructor as well.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+77 more)
 
 F CodeInterchange::StandingCount    | CodeInterchange.h | 152     | api,nonallocating,nonthrowing | ✔️ | How many modules stand.
     out   -  std::uint32_t  [-]  ?
-    by    Api/DocumentSession.h, Api/PartitionClassifier.h, Api/RecoverySequence.h, Api/ReferenceIndex.h, Source/CodeInterchange.cpp
+    by    Api/DocumentSession.h, Api/DrawerSpace.h, Api/PartitionClassifier.h, Api/RecoverySequence.h, Api/ReferenceIndex.h, Source/CodeInterchange.cpp, (+1 more)
 
 T CodeInterchange::StandingModule   | CodeInterchange.h | 156-160 | -                             | -  | ?
     has   HostToken  void*                     [-]  ?

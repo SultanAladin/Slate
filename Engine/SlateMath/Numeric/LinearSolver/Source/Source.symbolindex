@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S LinearSolver.cpp | 294 lines | af19d670 | 4 sym | Partial-pivoted elimination, the refusal at the pivot floor, and the residual taken against the supply.
+S LinearSolver.cpp | 294 lines | c214e856 | 4 sym | Partial-pivoted elimination, the refusal at the pivot floor, and the residual taken against the supply.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE ELIMINATION
@@ -55,4 +55,4 @@ F Measure   | LinearSolver.cpp | 255-292 | - | - | ?
     in    Declaring  const DenseSystem&   [-]  ?
     in    Solved     const SolvedSystem&  [-]  ?
     out   -          double               [-]  ?
-    by    Api/LinearSolver.h, Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/UnwrapSolver.cpp
+    by    Api/AppearanceSpecification.h, Api/LinearSolver.h, Api/UnwrapSolver.h, Source/AppearanceSpecification.cpp, Source/ChartPartition.cpp, Source/DrawerSpace.cpp, (+1 more)

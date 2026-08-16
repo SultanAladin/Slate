@@ -7,7 +7,7 @@
 %scope    layer
 %path     Engine/SlateMath
 %folders  36
-%symbols  404
+%symbols  410
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
@@ -47,8 +47,8 @@ I Api    | Api/Api.symbolindex       | 11 sym | Byte ranges arriving from the st
 I Source | Source/Source.symbolindex | 10 sym | Declared byte ranges over the host's storage surface, drained in declaration order with the latency each took.
 I Api    | Api/Api.symbolindex       | 6 sym  | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
 I Source | Source/Source.symbolindex | 6 sym  | Host timeline over the operating system's monotonic counter.
-I Api    | Api/Api.symbolindex       | 8 sym  | One window surface over three window systems — surrenders the native handle and nothing else.
-I Source | Source/Source.symbolindex | 9 sym  | Windowing over GLFW, linked dynamically through glfw3dll.lib against glfw3.dll.
+I Api    | Api/Api.symbolindex       | 11 sym | One window surface over three window systems — surrenders the native handle and nothing else.
+I Source | Source/Source.symbolindex | 12 sym | Windowing over GLFW, linked dynamically through glfw3dll.lib against glfw3.dll.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -442,19 +442,25 @@ F TickSequence::Advance                    | Source/TickSequence.cpp         | 5
 F TickSequence::Project                    | Source/TickSequence.cpp         | 89-111  | ?
 F TickSequence::Span                       | Source/TickSequence.cpp         | 117-123 | ?
 T DisplayExtent                            | Api/WindowInterchange.h         | 23-27   | The extent of a window's drawable area. the intermediates; nothing here queues them.
-T WindowInterchange                        | Api/WindowInterchange.h         | 38-81   | A native window over the host window system. is, includes no Vulkan header, and names no presentation chain. `06`'s `WindowExchange` converts the handle; the split is what keeps `SlateMath` device-free.
+T WindowInterchange                        | Api/WindowInterchange.h         | 38-98   | A native window over the host window system. is, includes no Vulkan header, and names no presentation chain. `06`'s `WindowExchange` converts the handle; the split is what keeps `SlateMath` device-free.
 F WindowInterchange::~WindowInterchange    | Api/WindowInterchange.h         | 45      | ?
 F WindowInterchange::Open                  | Api/WindowInterchange.h         | 53      | Opens a window of the requested extent and surrenders nothing until it succeeds.
 F WindowInterchange::Drain                 | Api/WindowInterchange.h         | 58      | Drains the window system's pending messages into this window's recorded condition.
-F WindowInterchange::NativeHandle          | Api/WindowInterchange.h         | 64      | The opaque native handle, for `06`'s `WindowExchange` and for nothing else.
-F WindowInterchange::CurrentExtent         | Api/WindowInterchange.h         | 69      | The current drawable extent.
-F WindowInterchange::ClosureRequested      | Api/WindowInterchange.h         | 74      | Whether the artist has asked the window system to close this window.
+F WindowInterchange::Await                 | Api/WindowInterchange.h         | 64      | Blocks until the window system has something to report — what a minimised window waits on.
+F WindowInterchange::ExtentAltered         | Api/WindowInterchange.h         | 69      | Whether the drawable extent moved since it was last adopted.
+F WindowInterchange::AdoptExtent           | Api/WindowInterchange.h         | 74      | Marks the standing extent as the one the presentation chain was re-established against.
+F WindowInterchange::NativeHandle          | Api/WindowInterchange.h         | 80      | The opaque native handle, for `06`'s `WindowExchange` and for nothing else.
+F WindowInterchange::CurrentExtent         | Api/WindowInterchange.h         | 85      | The current drawable extent.
+F WindowInterchange::ClosureRequested      | Api/WindowInterchange.h         | 90      | Whether the artist has asked the window system to close this window.
 V OpenWindowCount                          | Source/WindowInterchange.cpp    | 23      | ?
 F AcquireWindowSystem                      | Source/WindowInterchange.cpp    | 25-32   | ?
 F ReleaseWindowSystem                      | Source/WindowInterchange.cpp    | 34-43   | ?
-F WindowInterchange::Open                  | Source/WindowInterchange.cpp    | 50-77   | ?
-F WindowInterchange::~WindowInterchange    | Source/WindowInterchange.cpp    | 79-87   | ?
-F WindowInterchange::Drain                 | Source/WindowInterchange.cpp    | 93-109  | ?
-F WindowInterchange::NativeHandle          | Source/WindowInterchange.cpp    | 111-114 | ?
-F WindowInterchange::CurrentExtent         | Source/WindowInterchange.cpp    | 116-119 | ?
-F WindowInterchange::ClosureRequested      | Source/WindowInterchange.cpp    | 121-124 | ?
+F WindowInterchange::Open                  | Source/WindowInterchange.cpp    | 50-78   | ?
+F WindowInterchange::~WindowInterchange    | Source/WindowInterchange.cpp    | 80-88   | ?
+F WindowInterchange::Drain                 | Source/WindowInterchange.cpp    | 94-110  | ?
+F WindowInterchange::NativeHandle          | Source/WindowInterchange.cpp    | 112-115 | ?
+F WindowInterchange::CurrentExtent         | Source/WindowInterchange.cpp    | 117-120 | ?
+F WindowInterchange::ClosureRequested      | Source/WindowInterchange.cpp    | 122-125 | ?
+F WindowInterchange::Await                 | Source/WindowInterchange.cpp    | 127-133 | ?
+F WindowInterchange::ExtentAltered         | Source/WindowInterchange.cpp    | 135-139 | ?
+F WindowInterchange::AdoptExtent           | Source/WindowInterchange.cpp    | 141-144 | ?

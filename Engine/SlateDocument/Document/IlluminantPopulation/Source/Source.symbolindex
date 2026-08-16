@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S IlluminantPopulation.cpp | 490 lines | 36583b50 | 23 sym | Size validation, the single atmospheric source, incidence projection, and the reach index.
+S IlluminantPopulation.cpp | 490 lines | b80ea349 | 23 sym | Size validation, the single atmospheric source, incidence projection, and the reach index.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     IDENTITY ORDER

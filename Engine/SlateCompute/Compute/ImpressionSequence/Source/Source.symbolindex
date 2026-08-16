@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ImpressionSequence.cpp | 846 lines | b4ed9ccf | 25 sym | Domain resampling from arrival stamps, the deferral that never coarsens, and the accumulation applied once.
+S ImpressionSequence.cpp | 846 lines | a86aea16 | 25 sym | Domain resampling from arrival stamps, the deferral that never coarsens, and the accumulation applied once.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE PAINTING LEVEL

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S CommandSequence.h | 144 lines | 5a6d9520 | 11 sym | One recording per rotation slot — where commands are written, and the ordered surrender of them to the queue.
+S CommandSequence.h | 144 lines | 090cd44c | 11 sym | One recording per rotation slot — where commands are written, and the ordered surrender of them to the queue.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE ORDERING POINTS
@@ -27,7 +27,7 @@ T SurrenderOrdering                   | CommandSequence.h | 31-37   | nonallocat
     has   AwaitedStage  VkPipelineStageFlags  [-]  ?
     has   Signalled     VkSemaphore           [-]  ?
     has   Completion    VkFence               [-]  ?
-    by    Source/CommandSequence.cpp, Source/WorkspaceSequence.cpp
+    by    Source/CommandSequence.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp
     note  🔴 The awaited stage is declared alongside the awaited point rather than fixed here. A recording
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ T CommandSequence                     | CommandSequence.h | 51-142  | owning    
     has   NamingEdge                    const DiagnosticExtension*      [-]  ?
     has   Slots                         std::vector<RecordingSlot>      [-]  ?
     has   ImmediateExtent               VkCommandPool                   [-]  ?
-    by    Api/WorkspaceSequence.h, Source/CommandSequence.cpp
+    by    Source/CommandSequence.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp
     note  🔴 `06` §2.1 settles one graphics queue, so ordering between recordings is their order of surrender
     note  ⚠️ One primary recording per rotation slot, reset whole. Resetting an individual recording costs the
 
@@ -59,19 +59,19 @@ F CommandSequence::Open               | CommandSequence.h | 81      | api,nonthr
     out   -             Deliver        [-]  the opened recording; refuses with ContentUnsupported for an excessive slot
     pre   🔴 `CycleScheduler::Await` delivered for this slot — the device no longer reads it
     post  the slot is open; Surrender closes it
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+21 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/DrawerSpace.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+24 more)
 
 F CommandSequence::Recording          | CommandSequence.h | 87      | api,nonallocating,nonthrowing | ✔️ | The recording one rotation slot holds, for a document contributing commands to an open slot.
     in    RotationSlot  std::uint32_t  [-]  ?
     out   -             Deliver        [-]  refuses with ContentUnsupported for an excessive slot or a slot that is not open
-    by    Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, Source/CommandSequence.cpp, Source/ControlChoice.cpp, Source/ControlChrome.cpp, (+11 more)
+    by    Api/DomainSpace.h, Source/AssetInterchange.cpp, Source/CommandSequence.cpp, Source/DomainSpace.cpp, Source/EditorHost.cpp, Source/OcclusionScheduler.cpp, (+3 more)
 
 F CommandSequence::Surrender          | CommandSequence.h | 101     | api,nonthrowing               | 🚩 | Closes one rotation slot's recording and surrenders it to the one graphics queue. the device declines the close or the surrender, and DeviceLost when the device was lost; the slot is closed and nothing is destroyed either way — a component clearing an ordering point it does not own is one that clears it at the wrong moment for every other reader of it.
     in    RotationSlot  std::uint32_t             [-]  below `RecordingRotationDepth`
     in    Ordering      const SurrenderOrdering&  [-]  what the surrender waits on and signals; any member may be null
     out   -             Deliver                   [-]  refuses with ContentUnsupported for a slot that is not open, HostDenied when
     post  the slot is closed and executing; the completion is signalled when it finishes
-    by    Api/AttachmentIndex.h, Api/DisplayScheduler.h, Api/RenderSchedule.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+4 more)
+    by    Api/AttachmentIndex.h, Api/DisplayScheduler.h, Api/RenderSchedule.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+5 more)
     note  🔴 The completion is cleared by `CycleScheduler::Arm` immediately before this call and never here
 
 F CommandSequence::OpenImmediate      | CommandSequence.h | 109     | api,nonthrowing               | 🚩 | Opens a recording outside the rotation, for the one-off transfers bring-up records. a rotation's — an immediate wait inside a rotation is the whole device serialised on the host.
@@ -87,7 +87,7 @@ F CommandSequence::SurrenderImmediate | CommandSequence.h | 117     | api,nonthr
 F CommandSequence::Reclaim            | CommandSequence.h | 123     | api,nonthrowing               | 🚩 | Destroys every recording and every extent.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+77 more)
 
 T CommandSequence::RecordingSlot      | CommandSequence.h | 127-132 | -                             | -  | ?
     has   RecordingExtent  VkCommandPool    [-]  ?

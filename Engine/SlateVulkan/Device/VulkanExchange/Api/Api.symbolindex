@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S VulkanExchange.h | 95 lines | dc393b18 | 11 sym | Loader C-ABI, instance and device handles crossing the vendor edge.
+S VulkanExchange.h | 95 lines | c08dcebc | 11 sym | Loader C-ABI, instance and device handles crossing the vendor edge.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE CAPABILITY SET
@@ -44,7 +44,7 @@ T VulkanExchange                    | VulkanExchange.h | 45-93 | owning         
     has   GraphicsQueueSlot  VkQueue           [-]  ?
     has   ScoredCapability   CapabilitySet     [-]  ?
     has   DiagnosticEnabled  bool              [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+20 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+21 more)
     note  Vendor spellings are verbatim at this surface — `VkDevice`, `VkQueue`, `VkPhysicalDevice`. Slate's
 
 F VulkanExchange::~VulkanExchange   | VulkanExchange.h | 52    | destructor                | -  | ?
@@ -52,35 +52,35 @@ F VulkanExchange::~VulkanExchange   | VulkanExchange.h | 52    | destructor     
 F VulkanExchange::ConstructInstance | VulkanExchange.h | 59    | api,nonthrowing           | 🔴 | Loads the loader and creates the instance, with the diagnostic capability enabled in Debug only.
     in    DiagnosticRequested  bool     [-]  true only under SLATE_DEBUG; the caller does not decide otherwise
     out   -                    Deliver  [-]  refuses with CapabilityAbsent when no loader or no instance
-    by    Source/VulkanExchange.cpp, Source/WorkspaceSequence.cpp
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/VulkanExchange.cpp
 
 F VulkanExchange::ConstructDevice   | VulkanExchange.h | 72    | api,nonthrowing           | 🔴 | Enumerates devices, scores them, and creates one with its capability set fixed at creation. when the winner offers no dynamic recording its recording against a rendering scope with no attachment construct, so a device that does not offer the capability is refused by name rather than surfacing later as a vendor error inside the interface library.
     in    PresentationSurface  VkSurfaceKHR  [-]  the surface the device must be able to present to
     out   -                    Deliver       [-]  refuses with CapabilityAbsent when no device scores above zero, and
     pre   ConstructInstance delivered
-    by    Source/VulkanExchange.cpp, Source/WorkspaceSequence.cpp
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/VulkanExchange.cpp
     note  🔴 Dynamic recording is enabled here, not negotiated at a recording site. `SlateUI` declares
 
 F VulkanExchange::ReclaimDevice     | VulkanExchange.h | 77    | api,nonthrowing           | 🚩 | Destroys every device object and retains the instance, for the recovery in `06` §4.2 ③.
     out   -  void  [-]  ?
-    by    Source/VulkanExchange.cpp, Source/WorkspaceSequence.cpp
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/VulkanExchange.cpp
 
 F VulkanExchange::Instance          | VulkanExchange.h | 79    | -                         | -  | ?
     out   -  VkInstance  [-]  ?
-    by    Api/InterfaceExchange.h, Api/WindowExchange.h, Source/DiagnosticExtension.cpp, Source/InterfaceExchange.cpp, Source/VulkanExchange.cpp, Source/WindowExchange.cpp, (+1 more)
+    by    Api/InterfaceExchange.h, Api/WindowExchange.h, Source/DiagnosticExtension.cpp, Source/EditorHost.cpp, Source/InterfaceExchange.cpp, Source/PaintHost.cpp, (+2 more)
 
 F VulkanExchange::ScoredDevice      | VulkanExchange.h | 80    | -                         | -  | ?
     out   -  VkPhysicalDevice  [-]  ?
-    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/ByteSpace.cpp, Source/DisplayScheduler.cpp, Source/GlyphDepot.cpp, Source/ImageSpace.cpp, (+3 more)
+    by    Api/InterfaceExchange.h, Source/ByteSpace.cpp, Source/DisplayScheduler.cpp, Source/EditorHost.cpp, Source/ImageSpace.cpp, Source/InterfaceExchange.cpp, (+2 more)
 
 F VulkanExchange::ActiveDevice      | VulkanExchange.h | 81    | -                         | -  | ?
     out   -  VkDevice  [-]  ?
-    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/AttachmentIndex.cpp, Source/ByteSpace.cpp, Source/CommandSequence.cpp, Source/CycleScheduler.cpp, (+12 more)
+    by    Api/InterfaceExchange.h, Source/AttachmentIndex.cpp, Source/ByteSpace.cpp, Source/CommandSequence.cpp, Source/CycleScheduler.cpp, Source/DescriptorIndex.cpp, (+11 more)
 
 F VulkanExchange::GraphicsQueue     | VulkanExchange.h | 82    | -                         | -  | ?
     out   -  VkQueue  [-]  ?
-    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/CommandSequence.cpp, Source/DisplayScheduler.cpp, Source/GlyphDepot.cpp, Source/InterfaceExchange.cpp, (+2 more)
+    by    Api/InterfaceExchange.h, Source/CommandSequence.cpp, Source/DisplayScheduler.cpp, Source/EditorHost.cpp, Source/InterfaceExchange.cpp, Source/PaintHost.cpp, (+1 more)
 
 F VulkanExchange::Capability        | VulkanExchange.h | 83    | -                         | -  | ?
     out   -  const CapabilitySet&  [-]  ?
-    by    Source/ByteSpace.cpp, Source/CommandSequence.cpp, Source/HardwareMetrics.cpp, Source/VulkanExchange.cpp, Source/WorkspaceSequence.cpp
+    by    Source/ByteSpace.cpp, Source/CommandSequence.cpp, Source/EditorHost.cpp, Source/HardwareMetrics.cpp, Source/PaintHost.cpp, Source/VulkanExchange.cpp

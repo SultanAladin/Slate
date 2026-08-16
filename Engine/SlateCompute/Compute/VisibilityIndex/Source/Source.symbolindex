@@ -16,12 +16,12 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DepthReduction.cpp      | 145 lines | 2f71b1b9 | 9 sym  | Halving a display extent into a level chain, and the integer logarithm that picks the level one partition is tested at.
-S OcclusionScheduler.cpp  | 997 lines | b9ff8e31 | 20 sym | The claimed chain, the per-level reduction it is filled by, and the two culling dispatches that compact survivors out of it.
+S DepthReduction.cpp      | 145 lines | 569e5cb3 | 9 sym  | Halving a display extent into a level chain, and the integer logarithm that picks the level one partition is tested at.
+S OcclusionScheduler.cpp  | 997 lines | d5ef1a10 | 20 sym | The claimed chain, the per-level reduction it is filled by, and the two culling dispatches that compact survivors out of it.
 S PartitionClassifier.cpp | 257 lines | c62bbfe2 | 3 sym  | Eight corners through a projective transform, one cone against one bounding sphere, and the standing the two amount to.
-S PartitionStructure.cpp  | 470 lines | 3e10c419 | 15 sym | The growth front that walks `38`'s adjacency, the cone it accumulates, and the identities `42` issues against the result.
-S VisibilityIndex.cpp     | 213 lines | 30ba87b3 | 12 sym | The enrolment run, the recording `08` §3 ② is contributed as, and the two indexed hops one written pixel resolves through.
-S VisibilityRaster.cpp    | 849 lines | 09b31257 | 17 sym | The composition, the fan, the residency it becomes, and the one recording that writes `16` §4's targets.
+S PartitionStructure.cpp  | 470 lines | 8edc9f90 | 15 sym | The growth front that walks `38`'s adjacency, the cone it accumulates, and the identities `42` issues against the result.
+S VisibilityIndex.cpp     | 213 lines | 8a116c2d | 12 sym | The enrolment run, the recording `08` §3 ② is contributed as, and the two indexed hops one written pixel resolves through.
+S VisibilityRaster.cpp    | 849 lines | 5d4e5154 | 17 sym | The composition, the fan, the residency it becomes, and the one recording that writes `16` §4's targets.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION

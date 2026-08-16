@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TypefaceCodec.cpp | 245 lines | e0e679d8 | 7 sym | `10` §1 — typeface streams translated into glyph outlines and the metrics that position them.
+S TypefaceCodec.cpp | 245 lines | 052eb6f1 | 7 sym | `10` §1 — typeface streams translated into glyph outlines and the metrics that position them.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS

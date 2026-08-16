@@ -7,15 +7,15 @@
 %scope    layer
 %path     Engine/Application
 %folders  3
-%symbols  27
+%symbols  34
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     FOLDER INDEXES
 //------------------------------------------------------------------------------------------------------------------------
 
 I Source | Source/Source.symbolindex | 25 sym | Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
-I Source | Source/Source.symbolindex | 1 sym  | The combined editor — the same tree, the same tick, and a roster whose length is the only thing that separates it from PaintHost.
-I Source | Source/Source.symbolindex | 1 sym  | The standalone painting executable — one roster entry, the documents it presents against, and no engine logic at all.
+I Source | Source/Source.symbolindex | 5 sym  | The combined editor — Vulkan bring-up, the tick loop, and the two drawers.
+I Source | Source/Source.symbolindex | 4 sym  | The standalone painting executable — Vulkan bring-up, the tick loop, and the two drawers.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -46,5 +46,12 @@ F VerifyPointer       | Source/ConsoleHost.cpp | 2997-3187 | ?
 F VerifyTools         | Source/ConsoleHost.cpp | 3193-3305 | ?
 F VerifyRadianceChain | Source/ConsoleHost.cpp | 3313-3488 | ?
 F main                | Source/ConsoleHost.cpp | 3496-3574 | ?
-F main                | Source/EditorHost.cpp  | 26-84     | ?
-F main                | Source/PaintHost.cpp   | 21-82     | ?
+V InitialWidth        | Source/EditorHost.cpp  | 28        | ?
+V InitialHeight       | Source/EditorHost.cpp  | 29        | ?
+V WindowTitle         | Source/EditorHost.cpp  | 31        | ?
+V HostName            | Source/EditorHost.cpp  | 32        | ?
+F main                | Source/EditorHost.cpp  | 40-314    | ?
+V InitialWidth        | Source/PaintHost.cpp   | 28        | ?
+V InitialHeight       | Source/PaintHost.cpp   | 29        | ?
+V WindowTitle         | Source/PaintHost.cpp   | 31        | ?
+F main                | Source/PaintHost.cpp   | 39-333    | ?

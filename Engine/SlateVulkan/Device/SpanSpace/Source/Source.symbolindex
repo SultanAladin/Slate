@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SpanSpace.cpp | 329 lines | 82b6a6cb | 12 sym | The claim, the host write, the recorded transfer and the release of every linear device extent the engine holds.
+S SpanSpace.cpp | 329 lines | 84ef3474 | 12 sym | The claim, the host write, the recorded transfer and the release of every linear device extent the engine holds.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION

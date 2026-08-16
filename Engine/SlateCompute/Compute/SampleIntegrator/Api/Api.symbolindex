@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SampleIntegrator.h | 208 lines | f9e13d86 | 17 sym | `64` — one sample per rotation accumulated into convergence, reprojected by motion and reset rather than decayed.
+S SampleIntegrator.h | 208 lines | 4b9bb742 | 17 sym | `64` — one sample per rotation accumulated into convergence, reprojected by motion and reset rather than decayed.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REJECTIONS
@@ -72,7 +72,7 @@ T SampleIntegrator                  | SampleIntegrator.h | 92-199 | owning      
 F SampleIntegrator::Declare         | SampleIntegrator.h | 102    | api,nonthrowing               | ✔️ | Declares what a history is refused for.
     in    Declaring  const RejectionSpecification&  [-]  ?
     out   -          Deliver                        [-]  refuses with ContentUnsupported for a non-positive depth bound or a ceiling of nothing
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
 
 F SampleIntegrator::Contribute      | SampleIntegrator.h | 110    | api,nonthrowing               | ✔️ | Contributes `08` §3 ⑦'s recording. the schedule cannot express as a dependency and does not need to: `06`'s rotation orders the two.
     in    Schedule  RenderSchedule&  [-]  ?
@@ -98,7 +98,7 @@ F SampleIntegrator::Classify        | SampleIntegrator.h | 137    | api,nonalloc
     in    ArrivingDepth      double         [-]  reversed, as recorded now
     in    ReprojectedAcross  -              [-]  ?
     out   -                  Subject        [-]  Accepted, or which of the three refusals applied
-    by    Api/CameraProjection.h, Api/TilingSpecification.h, Api/VectorInterchange.h, Api/VendorClassifier.h, Source/AnalyticProjection.cpp, Source/CameraProjection.cpp, (+8 more)
+    by    Api/CameraProjection.h, Api/DrawerSpace.h, Api/TilingSpecification.h, Api/VectorInterchange.h, Api/VendorClassifier.h, Source/AnalyticProjection.cpp, (+10 more)
     note  🔴 The identity test reads `16` §4.1's occupant resolution rather than the partition identity, so a
 
 F SampleIntegrator::Accumulate      | SampleIntegrator.h | 157    | api,nonallocating,nonthrowing | ✔️ | Accumulates one arriving sample into one pixel's history. `64` §4 — because a decaying ghost is more visible than an absent one. bound would clamp a value the accumulation had already committed to and the count would then describe a convergence toward something the pixel no longer holds.
@@ -138,7 +138,7 @@ F SampleIntegrator::Report          | SampleIntegrator.h | 189    | api,nonthrow
 
 F SampleIntegrator::Declared        | SampleIntegrator.h | 191    | -                             | -  | ?
     out   -  const RejectionSpecification&  [-]  ?
-    by    Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, (+89 more)
+    by    Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+84 more)
 
 F SampleIntegrator::Metrics         | SampleIntegrator.h | 192    | -                             | -  | ?
     out   -  const ConvergenceMetrics&  [-]  ?
@@ -149,4 +149,4 @@ F SLATE_DECLARES_PRECISION          | SampleIntegrator.h | 203    | -           
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

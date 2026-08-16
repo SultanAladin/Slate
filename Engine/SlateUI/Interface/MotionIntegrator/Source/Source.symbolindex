@@ -1,0 +1,129 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 A semi-implicit spring, a Newton-solved cubic ease, and the one sweep that retires both.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/MotionIntegrator/Source
+%layer      SlateUI
+%sources    1
+%symbols    22
+%annotated  2/22
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S MotionIntegrator.cpp | 285 lines | 80f720b3 | 22 sym | A semi-implicit spring, a Newton-solved cubic ease, and the one sweep that retires both.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   SETTLING CRITERIA
+//------------------------------------------------------------------------------------------------------------------------
+
+V DisplacementCriterion         | MotionIntegrator.cpp | 23      | - | - | ?
+
+V RateCriterion                 | MotionIntegrator.cpp | 24      | - | - | ?
+
+V IntervalCeiling               | MotionIntegrator.cpp | 30      | - | - | ?
+
+F CurveAlong                    | MotionIntegrator.cpp | 33-40   | - | - | The abscissa of a cubic Bézier whose endpoints are the origin and unity.
+    in    Parameter      double            [-]  ?
+    in    FirstControl   double            [-]  ?
+    in    SecondControl  double            [-]  ?
+    out   -              constexpr double  [-]  ?
+
+F CurveSlope                    | MotionIntegrator.cpp | 43-50   | - | - | The slope of the same cubic, for the Newton step.
+    in    Parameter      double            [-]  ?
+    in    FirstControl   double            [-]  ?
+    in    SecondControl  double            [-]  ?
+    out   -              constexpr double  [-]  ?
+
+T CurveControl                  | MotionIntegrator.cpp | 55-61   | - | - | ?
+    has   FirstAlong    double  [-]  ?
+    has   FirstAcross   double  [-]  ?
+    has   SecondAlong   double  [-]  ?
+    has   SecondAcross  double  [-]  ?
+
+V SolveSteps                    | MotionIntegrator.cpp | 72      | - | - | ?
+
+F CurveOrdinate                 | MotionIntegrator.cpp | 74-99   | - | - | ?
+    in    Fraction  double     [-]  ?
+    in    Declared  EaseCurve  [-]  ?
+    out   -         double     [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE SPRING
+//------------------------------------------------------------------------------------------------------------------------
+
+F SpringInterpolant::Advance    | MotionIntegrator.cpp | 111-142 | - | - | ?
+    in    Elapsed  double  [-]  ?
+    out   -        bool    [-]  ?
+
+F SpringInterpolant::Seat       | MotionIntegrator.cpp | 144-150 | - | - | ?
+    in    Ordinate  double  [-]  ?
+    out   -         void    [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE EASED TRAVERSE
+//------------------------------------------------------------------------------------------------------------------------
+
+F EasedInterpolant::Advance     | MotionIntegrator.cpp | 156-175 | - | - | ?
+    in    Interval  double  [-]  ?
+    out   -         bool    [-]  ?
+
+F EasedInterpolant::Standing    | MotionIntegrator.cpp | 177-188 | - | - | ?
+    out   -  double  [-]  ?
+
+F EasedInterpolant::Depart      | MotionIntegrator.cpp | 190-199 | - | - | ?
+    in    From      double     [-]  ?
+    in    To        double     [-]  ?
+    in    Over      double     [-]  ?
+    in    Held      double     [-]  ?
+    in    Declared  EaseCurve  [-]  ?
+    out   -         void       [-]  ?
+
+F EasedInterpolant::Seat        | MotionIntegrator.cpp | 201-207 | - | - | ?
+    in    Ordinate  double  [-]  ?
+    out   -         void    [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE ENROLMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F MotionIntegrator::EnrolSpring | MotionIntegrator.cpp | 213-226 | - | - | ?
+    in    Motion  const MotionScale&      [-]  ?
+    in    Seated  double                  [-]  ?
+    out   -       Deliver<std::uint32_t>  [-]  ?
+
+F MotionIntegrator::EnrolEased  | MotionIntegrator.cpp | 228-239 | - | - | ?
+    in    Seated  double                  [-]  ?
+    out   -       Deliver<std::uint32_t>  [-]  ?
+
+F MotionIntegrator::Spring      | MotionIntegrator.cpp | 241-244 | - | - | ?
+    in    Ordinal  std::uint32_t       [-]  ?
+    out   -        SpringInterpolant&  [-]  ?
+
+F MotionIntegrator::Spring      | MotionIntegrator.cpp | 246-249 | - | - | ?
+    in    Ordinal  std::uint32_t             [-]  ?
+    out   -        const SpringInterpolant&  [-]  ?
+
+F MotionIntegrator::Eased       | MotionIntegrator.cpp | 251-254 | - | - | ?
+    in    Ordinal  std::uint32_t      [-]  ?
+    out   -        EasedInterpolant&  [-]  ?
+
+F MotionIntegrator::Eased       | MotionIntegrator.cpp | 256-259 | - | - | ?
+    in    Ordinal  std::uint32_t            [-]  ?
+    out   -        const EasedInterpolant&  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE SWEEP
+//------------------------------------------------------------------------------------------------------------------------
+
+F MotionIntegrator::Advance     | MotionIntegrator.cpp | 265-278 | - | - | ?
+    in    Elapsed  double  [-]  ?
+    out   -        bool    [-]  ?
+
+F MotionIntegrator::Moving      | MotionIntegrator.cpp | 280-283 | - | - | ?
+    out   -  bool  [-]  ?

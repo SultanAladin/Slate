@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TilingSpecification.cpp | 246 lines | 7e6d6fda | 16 sym | Lattice validation, the per-cell variation that is a permutation rather than a sample, and the nesting bound.
+S TilingSpecification.cpp | 246 lines | 074959a1 | 16 sym | Lattice validation, the per-cell variation that is a permutation rather than a sample, and the nesting bound.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   LATTICE VALIDATION

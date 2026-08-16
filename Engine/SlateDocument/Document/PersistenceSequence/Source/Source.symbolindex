@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PersistenceSequence.cpp | 97 lines | 5d943563 | 4 sym | `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
+S PersistenceSequence.cpp | 97 lines | eeab1648 | 4 sym | `48` §3 — write, verify, replace: the existing file is never touched until a complete replacement has been read back.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE VERIFICATION

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ImageCodec.h | 82 lines | 7eaef55c | 6 sym | `10` §1 — image streams translated to the texels the file carried, at the depth it carried them, and nothing else.
+S ImageCodec.h | 82 lines | 8cb59534 | 6 sym | `10` §1 — image streams translated to the texels the file carried, at the depth it carried them, and nothing else.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE ACCEPTED SUBSET
@@ -48,7 +48,7 @@ F ClassifyContent          | ImageCodec.h | 52    | api,nonallocating,nonthrowin
 F SLATE_DECLARES_PRECISION | ImageCodec.h | 54    | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE TRANSLATION
@@ -67,4 +67,4 @@ F Translate                | ImageCodec.h | 77    | api,nonthrowing             
 F SLATE_DECLARES_PRECISION | ImageCodec.h | 79    | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

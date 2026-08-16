@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PreviewProjection.cpp | 267 lines | 40f7ed31 | 17 sym | `82` — the four previews resolved on the host, each one discarded and re-resolved every rotation.
+S PreviewProjection.cpp | 267 lines | d91f2ed1 | 17 sym | `82` — the four previews resolved on the host, each one discarded and re-resolved every rotation.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                WHAT A DRAG RESOLVES AT

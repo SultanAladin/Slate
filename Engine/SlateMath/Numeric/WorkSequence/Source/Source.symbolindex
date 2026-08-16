@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S WorkSequence.cpp | 539 lines | 1b65f834 | 23 sym | The reserved interactive worker, cooperative cancellation, and conclusions ordered by declaration.
+S WorkSequence.cpp | 539 lines | 02326c04 | 23 sym | The reserved interactive worker, cooperative cancellation, and conclusions ordered by declaration.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       ONE RECORD

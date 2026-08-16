@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S QuadratureIntegrator.h | 136 lines | b192bb38 | 9 sym | Definite integral approximation over a declared domain — derived abscissae, ordered accumulation, no transcribed set.
+S QuadratureIntegrator.h | 136 lines | 333e61c0 | 9 sym | Definite integral approximation over a declared domain — derived abscissae, ordered accumulation, no transcribed set.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE RULE
@@ -36,7 +36,7 @@ F QuadratureRule::Derive            | QuadratureIntegrator.h | 54     | api,nont
     in    Requested  std::uint32_t  [-]  abscissae; a rule of n integrates a polynomial of degree 2n−1 exactly
     out   -          Deliver        [-]  refuses with ContentUnsupported for zero, and with ExtentExhausted above the ceiling
     post  the abscissae are in ascending order and the weights sum to the reference interval's width
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+11 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+10 more)
     note  📐 Only half the roots are solved for. The Legendre polynomials are even or odd, so the roots are
 
 F QuadratureRule::Abscissa          | QuadratureIntegrator.h | 60     | api,nonallocating,nonthrowing | ✔️ | One abscissa of the reference interval, in ascending order.
@@ -48,7 +48,7 @@ F QuadratureRule::Abscissa          | QuadratureIntegrator.h | 60     | api,nona
 F QuadratureRule::Weight            | QuadratureIntegrator.h | 65     | api,nonallocating,nonthrowing | ✔️ | The weight that abscissa carries.
     in    Ordinal  std::uint32_t  [-]  ?
     out   -        double         [-]  ?
-    by    Api/SpecularProjection.h, Shared/ReflectionProjection.slang.h, Source/ConsoleHost.cpp, Source/QuadratureIntegrator.cpp, Source/ReflectanceIntegrator.cpp, Source/SampleIntegrator.cpp, (+2 more)
+    by    Api/RecordingSurface.h, Api/SpecularProjection.h, Api/SymbolSpecification.h, Shared/ReflectionProjection.slang.h, Source/ConsoleHost.cpp, Source/QuadratureIntegrator.cpp, (+5 more)
 
 F QuadratureRule::Project           | QuadratureIntegrator.h | 80     | api,nonthrowing               | ✔️ | Projects one abscissa onto a declared interval, weight included. before the rule is derived one walk, in ordinal order. `28` integrates three extinction components along one ray, and three separate scalar integrations would evaluate the same density profile three times.
     in    Ordinal    std::uint32_t  [-]  the abscissa
@@ -74,7 +74,7 @@ F QuadratureRule::IntegrateInterval | QuadratureIntegrator.h | 98-113 | api,nont
 
 F QuadratureRule::DeclaredCount     | QuadratureIntegrator.h | 118    | api,nonallocating,nonthrowing | ✔️ | How many abscissae the rule carries.
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+36 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/HardwareMetrics.h, Api/MaterialSpecification.h, (+29 more)
 
 F QuadratureRule::Derived           | QuadratureIntegrator.h | 123    | api,nonallocating,nonthrowing | ✔️ | Whether the rule has been derived at all.
     out   -  bool  [-]  ?
@@ -83,4 +83,4 @@ F QuadratureRule::Derived           | QuadratureIntegrator.h | 123    | api,nona
 F SLATE_DECLARES_PRECISION          | QuadratureIntegrator.h | 134    | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

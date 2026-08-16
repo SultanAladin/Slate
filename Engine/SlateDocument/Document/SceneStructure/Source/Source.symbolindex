@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SceneStructure.cpp | 732 lines | 787fc98e | 28 sym | Enclosure ordering, gapped label assignment and repair, and downward attachment compounding.
+S SceneStructure.cpp | 732 lines | 7dba2a6e | 28 sym | Enclosure ordering, gapped label assignment and repair, and downward attachment compounding.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       RESOLUTION

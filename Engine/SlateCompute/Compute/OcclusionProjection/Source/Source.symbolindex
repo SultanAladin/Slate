@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S OcclusionProjection.cpp | 918 lines | a13dad43 | 32 sym | Six faces about a position, a subdivision snapped against shimmer, the packing that truncates rather than drops, and the rebuild that almost never runs.
+S OcclusionProjection.cpp | 918 lines | 86145621 | 32 sym | Six faces about a position, a subdivision snapped against shimmer, the packing that truncates rather than drops, and the rebuild that almost never runs.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE SIX FACINGS

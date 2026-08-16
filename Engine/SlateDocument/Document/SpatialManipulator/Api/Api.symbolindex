@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SpatialManipulator.h | 411 lines | c13149b0 | 44 sym | `78` — one manipulator that moves, rotates and scales everything movable, and the grips the artist grasps to do it.
+S SpatialManipulator.h | 411 lines | c16ecdee | 44 sym | `78` — one manipulator that moves, rotates and scales everything movable, and the grips the artist grasps to do it.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE THREE AXES
@@ -180,7 +180,7 @@ F ManipulationLayout::Grasp          | SpatialManipulator.h | 210     | api,nont
 F ManipulationLayout::Resolve        | SpatialManipulator.h | 220     | api,nonthrowing               | ✔️ | One laid-out grip.
     in    GripOrdinal  std::uint32_t  [-]  ?
     out   -            Deliver        [-]  refuses with ContentUnsupported outside the laid-out count and for an undeclared grip
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
 
 F ManipulationLayout::Grips          | SpatialManipulator.h | 229     | api,nonallocating,nonthrowing | ✔️ | Every laid-out grip, for whoever records them. `OverlaySubject::Manipulator`. The manipulator contributes no recording of its own: a second one would be a second place `08`'s ordering is declared, and the two would order differently the first time either was amended.
     out   -  const std::vector<ManipulationGrip>&  [-]  ?
@@ -189,7 +189,7 @@ F ManipulationLayout::Grips          | SpatialManipulator.h | 229     | api,nona
 
 F ManipulationLayout::Origin         | SpatialManipulator.h | 234     | api,nonallocating,nonthrowing | ✔️ | Where the manipulator sits and how it is turned, as the last layout placed it.
     out   -  DocumentPosition  [-]  ?
-    by    Api/CurveSolver.h, Api/PointerIntersection.h, Api/ReflectanceIntegrator.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/VectorInterchange.h, (+32 more)
+    by    Api/CurveSolver.h, Api/PointerIntersection.h, Api/ReflectanceIntegrator.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, Api/SymbolSpecification.h, (+28 more)
 
 F ManipulationLayout::Orientation    | SpatialManipulator.h | 235     | -                             | -  | ?
     out   -  RotationQuaternion  [-]  ?
@@ -206,7 +206,7 @@ F ManipulationLayout::LayoutStanding | SpatialManipulator.h | 247     | api,nona
 
 F ManipulationLayout::Reclaim        | SpatialManipulator.h | 252     | api,nonthrowing               | ✔️ | Discards the layout. The manipulator is not presented until one is laid out again.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE DRAG
@@ -258,7 +258,7 @@ F ManipulationSequence::Open         | SpatialManipulator.h | 314     | api,nont
     in    DisplayAcross  std::uint32_t              [px]  ?
     out   -              Deliver                    [-]   refuses with HostDenied when a drag is already open, and with ContentUnsupported
     post  🔴 the drag axis or plane is fixed; nothing is recorded until Seal
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+21 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/DrawerSpace.h, Api/EmissionSequence.h, (+24 more)
     note  🔴 The camera is read **here and once**. `78` §2's rule is about the plane, and a plane fixed from a
 
 F ManipulationSequence::Amend        | SpatialManipulator.h | 336     | api,nonthrowing               | 🚩 | Amends the open drag by one pointer position, against the axis or plane Open fixed. pointer that resolves no position against the fixed plane displacements accumulates their rounding too, and a snapped drag would then drift off its own increment over a long gesture — which reads as the snapping having been switched off.
@@ -269,12 +269,12 @@ F ManipulationSequence::Amend        | SpatialManipulator.h | 336     | api,nont
     in    SnapDeclared   bool           [-]   true snaps the amendment to the declared increment
     out   -              Deliver        [-]   refuses with HostDenied when no drag is open, and with ContentUnsupported for a
     post  nothing is recorded; the amendment is readable and the target is unamended until Seal
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+25 more)
     note  📝 The pointer's position is taken rather than its displacement since the last sample. Accumulating
 
 F ManipulationSequence::Abandon      | SpatialManipulator.h | 346     | api,nonallocating,nonthrowing | ✔️ | Ends the drag with no effect. The caller restores what stood at Open.
     out   -  Deliver  [-]  refuses with HostDenied when no drag is open
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, Api/VisibilityRaster.h, (+10 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/GestureSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/OcclusionScheduler.h, (+18 more)
 
 F ManipulationSequence::Seal         | SpatialManipulator.h | 353     | api,nonallocating,nonthrowing | ✔️ | Ends the drag, returning the amendment the caller commits as **one** transaction.
     out   -  Deliver  [-]  refuses with HostDenied when no drag is open
@@ -283,7 +283,7 @@ F ManipulationSequence::Seal         | SpatialManipulator.h | 353     | api,nona
 
 F ManipulationSequence::Amended      | SpatialManipulator.h | 358     | api,nonallocating,nonthrowing | ✔️ | The amendment as the drag stands, for the workspace to present while it is open.
     out   -  const ManipulationAmendment&  [-]  ?
-    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ReportSequence.h, Api/TransmissionSequence.h, Source/BrushSpecification.cpp, (+16 more)
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/ReportSequence.h, Api/TransmissionSequence.h, Source/BrushSpecification.cpp, (+10 more)
 
 F ManipulationSequence::DragOpen     | SpatialManipulator.h | 363     | api,nonallocating,nonthrowing | ✔️ | Whether a drag is open.
     out   -  bool  [-]  ?
@@ -301,4 +301,4 @@ F SLATE_DECLARES_PRECISION           | SpatialManipulator.h | 407     | -       
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S AssetInterchange.cpp | 349 lines | a7b2500f | 10 sym | Faithful enrolment, unit scale applied once, and the emission validated before anything is resolved.
+S AssetInterchange.cpp | 349 lines | 341e1938 | 10 sym | Faithful enrolment, unit scale applied once, and the emission validated before anything is resolved.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  EMISSION VALIDATION

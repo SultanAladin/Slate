@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PrimitiveStructure.h | 222 lines | fd656710 | 21 sym | Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
+S PrimitiveStructure.h | 222 lines | 23b5d289 | 21 sym | Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   WHAT IS GENERATED
@@ -70,7 +70,7 @@ F PrimitiveGenerable            | PrimitiveStructure.h | 81-91   | api,nonalloca
 F SLATE_DECLARES_PRECISION      | PrimitiveStructure.h | 92      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE GENERATION
@@ -89,7 +89,7 @@ F GeneratePrimitive             | PrimitiveStructure.h | 116     | api,nonthrowi
 F SLATE_DECLARES_PRECISION      | PrimitiveStructure.h | 117     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F ProjectPrimitiveExtent        | PrimitiveStructure.h | 128     | api,nonallocating,nonthrowing | ✔️ | The half-extents the generated solid actually occupies, before any transform places it. a subdivision or frame a camera before generating anything. The torus is the only entry where the answer is not the three half-extents, and it is the reason this exists rather than being assumed.
     in    Declaring  const PrimitiveSpecification&  [-]   the parameters
@@ -103,7 +103,7 @@ F ProjectPrimitiveExtent        | PrimitiveStructure.h | 128     | api,nonalloca
 F SLATE_DECLARES_PRECISION      | PrimitiveStructure.h | 131     | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATIONS
@@ -122,24 +122,24 @@ T PrimitiveIndex                | PrimitiveStructure.h | 146-220 | owning       
 F PrimitiveIndex::Declare       | PrimitiveStructure.h | 158     | api,nonthrowing               | 🚩 | Declares one primitive's parameters and issues the ordinal it is addressed by. and with ExtentExhausted at the declared ceiling
     in    Declaring  const PrimitiveSpecification&  [-]  the parameters
     out   -          Deliver                        [-]  refuses with ContentUnsupported for a specification `PrimitiveGenerable` rejects,
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
 
 F PrimitiveIndex::Amend         | PrimitiveStructure.h | 170     | api,nonthrowing               | ✔️ | Amends one primitive's parameters, advancing its revision where the generated surface would differ. `PrimitiveGenerable` rejects does, which is why the comparison is over the whole specification — but stating it that way is what keeps a later member that does *not* from silently forcing a re-generation of every occupant.
     in    PrimitiveOrdinal  std::uint32_t                  [-]  an ordinal this component issued
     in    Amending          const PrimitiveSpecification&  [-]  the amended parameters
     out   -                 Deliver                        [-]  refuses with ContentUnsupported for an unclaimed ordinal or a specification
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+26 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/IlluminantPopulation.h, Api/ImpressionSequence.h, (+25 more)
     note  🔴 The revision advances only where the amendment changes the generated surface. Every member here
 
 F PrimitiveIndex::Resolve       | PrimitiveStructure.h | 176     | api,nonthrowing               | ✔️ | One declared primitive's parameters.
     in    PrimitiveOrdinal  std::uint32_t  [-]  ?
     out   -                 Deliver        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
 
 F PrimitiveIndex::Withdraw      | PrimitiveStructure.h | 184     | api,nonthrowing               | ✔️ | Withdraws one primitive, returning its slot for reuse. every ordinal above it and every occupant naming one would name a different primitive.
     in    PrimitiveOrdinal  std::uint32_t  [-]  ?
     out   -                 Deliver        [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    by    Api/DecalProjection.h, Api/GlyphDepot.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/SpatialSubdivision.h, (+16 more)
+    by    Api/DecalProjection.h, Api/IlluminantPopulation.h, Api/PointerIntersection.h, Api/PopulationIndex.h, Api/SpatialSubdivision.h, Api/SurfaceLayerSequence.h, (+13 more)
     note  ⚠️ The slot is reused rather than erased, exactly as `72`'s placements are. Erasing would renumber
 
 F PrimitiveIndex::Revision      | PrimitiveStructure.h | 190     | api,nonallocating,nonthrowing | ✔️ | One primitive's revision, so a consumer knows whether its generated surface is still current.
@@ -149,7 +149,7 @@ F PrimitiveIndex::Revision      | PrimitiveStructure.h | 190     | api,nonalloca
 
 F PrimitiveIndex::DeclaredCount | PrimitiveStructure.h | 195     | api,nonallocating,nonthrowing | ✔️ | How many primitives stand declared.
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+36 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/HardwareMetrics.h, Api/MaterialSpecification.h, (+29 more)
 
 F PrimitiveIndex::SpannedCount  | PrimitiveStructure.h | 200     | api,nonallocating,nonthrowing | ✔️ | How many slots the index spans, claimed or not.
     out   -  std::uint32_t  [-]  ?
@@ -157,7 +157,7 @@ F PrimitiveIndex::SpannedCount  | PrimitiveStructure.h | 200     | api,nonalloca
 
 F PrimitiveIndex::Reclaim       | PrimitiveStructure.h | 205     | api,nonthrowing               | ✔️ | Discards every declaration. Called when the document holding them closes.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 T PrimitiveIndex::HeldPrimitive | PrimitiveStructure.h | 209-214 | -                             | -  | ?
     has   Declared          PrimitiveSpecification  [-]  ?

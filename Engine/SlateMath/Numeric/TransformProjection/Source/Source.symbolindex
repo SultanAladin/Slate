@@ -60,7 +60,7 @@ F Relative | TransformProjection.cpp | 140-150 | - | - | ?
 F Narrow   | TransformProjection.cpp | 152-162 | - | - | ?
     in    Subject  ViewPosition    [-]  ?
     out   -        DevicePosition  [-]  ?
-    by    Api/OutlinerSequence.h, Api/TransformProjection.h, Api/TrigramIndex.h, Source/ClipboardExchange.cpp, Source/CodeInterchange.cpp, Source/FileInterchange.cpp, (+5 more)
+    by    Api/OutlinerSequence.h, Api/TransformProjection.h, Api/TrigramIndex.h, Source/ClipboardExchange.cpp, Source/CodeInterchange.cpp, Source/FileInterchange.cpp, (+4 more)
 
 F Rebase   | TransformProjection.cpp | 164-169 | - | - | ?
     in    Subject     DocumentPosition  [-]  ?

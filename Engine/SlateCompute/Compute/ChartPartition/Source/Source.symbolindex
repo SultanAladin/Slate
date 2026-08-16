@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ChartPartition.cpp | 825 lines | 0b1b21d2 | 15 sym | Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
+S ChartPartition.cpp | 825 lines | 89e5f182 | 15 sym | Seam-bounded flood fill, boundary chaining, exact fold classification, and subdivision that terminates.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       EDGE KEYS
@@ -93,7 +93,7 @@ F Derive                            | ChartPartition.cpp | 389-734 | - | - | ?
     in    Cancellation  const WorkCancellation&        [-]  ?
     in    Progressed    WorkProgress&                  [-]  ?
     out   -             Deliver<DerivedPartition>      [-]  ?
-    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+11 more)
+    by    Api/AttachmentIndex.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, (+10 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE STANDING PARTITION

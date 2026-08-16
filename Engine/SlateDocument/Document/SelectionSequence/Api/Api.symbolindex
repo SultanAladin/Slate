@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SelectionSequence.h | 99 lines | d64771a3 | 9 sym | Selection ordering, revised in its own sequence, session-scoped, restored alongside the transaction it served.
+S SelectionSequence.h | 99 lines | a88559f7 | 9 sym | Selection ordering, revised in its own sequence, session-scoped, restored alongside the transaction it served.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ONE SELECTION
@@ -49,11 +49,11 @@ F SelectionSequence::Seal              | SelectionSequence.h | 54    | api,nonth
 
 F SelectionSequence::Retreat           | SelectionSequence.h | 60    | api,nonallocating,nonthrowing | ✔️ | Traverses one selection backwards.
     out   -  Deliver  [-]  refuses with ExtentExhausted at the beginning of the sequence
-    by    Api/OutlinerSequence.h, Api/RevisionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionPanel.cpp, Source/RevisionSequence.cpp, (+1 more)
+    by    Api/OutlinerSequence.h, Api/RevisionSequence.h, Source/ConsoleHost.cpp, Source/OutlinerSequence.cpp, Source/RevisionSequence.cpp, Source/SelectionSequence.cpp
 
 F SelectionSequence::Advance           | SelectionSequence.h | 66    | api,nonallocating,nonthrowing | ✔️ | Traverses one selection forwards.
     out   -  Deliver  [-]  refuses with ExtentExhausted at the end of the sequence
-    by    Api/CycleScheduler.h, Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+22 more)
+    by    Api/CycleScheduler.h, Api/DrawerSpace.h, Api/GestureSequence.h, Api/InterfaceExchange.h, Api/MotionIntegrator.h, Api/OutlinerSequence.h, (+28 more)
 
 F SelectionSequence::RestoreAt         | SelectionSequence.h | 75    | api,nonthrowing               | 🚩 | Restores the selection that stood at a declared document revision. holds within the session where the scrub happens, which is all `12` §11 requires of it.
     in    RevisionOrdinal  std::uint64_t  [-]  the document revision a scrub has arrived at
@@ -63,11 +63,11 @@ F SelectionSequence::RestoreAt         | SelectionSequence.h | 75    | api,nonth
 
 F SelectionSequence::Standing          | SelectionSequence.h | 80    | api,nonallocating,nonthrowing | ✔️ | The selection standing now.
     out   -  const std::vector<OccupantIdentity>&  [-]  ?
-    by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
+    by    Api/AppearanceSpecification.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+77 more)
 
 F SelectionSequence::Committed         | SelectionSequence.h | 85    | api,nonallocating,nonthrowing | ✔️ | The committed selections, in order.
     out   -  const std::vector<CommittedSelection>&  [-]  ?
-    by    Api/ByteSpace.h, Api/RevisionSequence.h, Source/ConsoleHost.cpp, Source/ImageSpace.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, (+4 more)
+    by    Api/ByteSpace.h, Api/RevisionSequence.h, Source/ConsoleHost.cpp, Source/ImageSpace.cpp, Source/ImpressionSequence.cpp, Source/OutlinerSequence.cpp, (+3 more)
 
 F SelectionSequence::TraversalPosition | SelectionSequence.h | 90    | api,nonallocating,nonthrowing | ✔️ | Where the traversal position sits; equal to the committed count when nothing is traversed back.
     out   -  std::uint64_t  [-]  ?

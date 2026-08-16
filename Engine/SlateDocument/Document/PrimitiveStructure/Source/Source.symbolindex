@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PrimitiveStructure.cpp | 732 lines | 9d306a90 | 21 sym | Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
+S PrimitiveStructure.cpp | 732 lines | 11f02e4a | 21 sym | Parametric polygon generation — the closed set of solids every authored surface and every manipulator grip is built from.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE ACCUMULATOR
@@ -38,7 +38,7 @@ F GeneratedSurface::Emit        | PrimitiveStructure.cpp | 31-65   | - | - | ?
     in    DomainAlong      double         [-]  ?
     in    DomainAcross     double         [-]  ?
     out   -                std::uint32_t  [-]  ?
-    by    Api/ImpressionSequence.h, Source/ImpressionSequence.cpp
+    by    Api/ImpressionSequence.h, Source/ImpressionSequence.cpp, Source/RecordingSurface.cpp
 
 F GeneratedSurface::EmitFace    | PrimitiveStructure.cpp | 67-70   | - | - | ?
     in    FirstCorner   std::uint32_t  [-]  ?
@@ -54,7 +54,6 @@ F GeneratedSurface::EmitFace    | PrimitiveStructure.cpp | 72-76   | - | - | ?
     out   -             void           [-]  ?
 
 V Turn                          | PrimitiveStructure.cpp | 79      | - | - | ?
-    by    Api/EntryPanel.h, Source/EntryPanel.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE BOX

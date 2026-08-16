@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ShaderCodec.h | 134 lines | 82337f72 | 13 sym | Lowered shader streams — read once, verified as SPIR-V, held as vendor modules and specialised at construction.
+S ShaderCodec.h | 134 lines | a9c083fc | 13 sym | Lowered shader streams — read once, verified as SPIR-V, held as vendor modules and specialised at construction.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE STREAM
@@ -59,7 +59,7 @@ F ShaderCodec::Resolve            | ShaderCodec.h | 80      | api,nonthrowing   
     in    UnitName    const std::string&  [-]  the unit the stream was lowered under, for example "SlateVulkan"
     in    StreamStem  const std::string&  [-]  the source's stem without its extension, for example "VisibilitySurface"
     out   -           Deliver             [-]  the module ordinal; refuses with HostDenied when the stream cannot be read,
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
     note  A stream already read is not read twice; the standing ordinal is delivered instead.
 
 F ShaderCodec::Stage              | ShaderCodec.h | 92      | api,nonthrowing           | ✔️ | The stage declaration one module supplies to a program, with its specialisation folded in. at the program's construction, and a declaration returned by value is read after the call that produced it has already surrendered its stack.
@@ -73,7 +73,7 @@ F ShaderCodec::Stage              | ShaderCodec.h | 92      | api,nonthrowing   
 F ShaderCodec::Reclaim            | ShaderCodec.h | 100     | api,nonthrowing           | 🚩 | Destroys every module and every specialisation held for it.
     out   -  void  [-]  ?
     pre   the device is idle and every program constructed against them stands or is itself reclaimed
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F ShaderCodec::ResolvedCount      | ShaderCodec.h | 102     | -                         | -  | ?
     out   -  std::uint32_t  [-]  ?

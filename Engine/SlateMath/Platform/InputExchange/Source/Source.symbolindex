@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S InputExchange.cpp | 429 lines | b8225e1c | 22 sym | Bounded cyclic arrival ordering over pointer samples, filled from the host's own pointer surface.
+S InputExchange.cpp | 429 lines | 95dfe235 | 22 sym | Bounded cyclic arrival ordering over pointer samples, filled from the host's own pointer surface.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
@@ -44,7 +44,7 @@ T WindowAttachment              | InputExchange.cpp | 61-66   | -          | - |
     has   PrecedingReceiver  WNDPROC         [-]  ?
 
 V Attached                      | InputExchange.cpp | 68      | -          | - | ?
-    by    Api/GlyphDepot.h, Api/InterfaceExchange.h, Source/GlyphDepot.cpp, Source/InterfaceExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp, (+1 more)
+    by    Api/InterfaceExchange.h, Source/InterfaceExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
 
 F ResolveAttachment             | InputExchange.cpp | 70-79   | -          | - | ?
     in    WindowSlot  HWND               [-]  ?

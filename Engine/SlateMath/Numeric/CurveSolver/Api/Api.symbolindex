@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S CurveSolver.h | 119 lines | 8d43ee24 | 7 sym | Planar path evaluation, flattening to a tolerance, and stroke offsetting — the mechanism `52` resolves with.
+S CurveSolver.h | 119 lines | 9c054b06 | 7 sym | Planar path evaluation, flattening to a tolerance, and stroke offsetting — the mechanism `52` resolves with.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    PLANAR POSITIONS
@@ -91,4 +91,4 @@ F OffsetOutline            | CurveSolver.h | 114   | api,nonthrowing           |
 F SLATE_DECLARES_PRECISION | CurveSolver.h | 117   | -                         | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

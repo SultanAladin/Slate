@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S CurveSolver.cpp | 321 lines | d5b6654e | 8 sym | Adaptive subdivision, endpoint arc parameterisation, and bevelled offsetting.
+S CurveSolver.cpp | 321 lines | 286e58e5 | 8 sym | Adaptive subdivision, endpoint arc parameterisation, and bevelled offsetting.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SUBDIVISION

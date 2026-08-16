@@ -7,8 +7,8 @@
 %scope     root
 %path      Engine
 %layers    8
-%folders   227
-%symbols   4258
+%folders   211
+%symbols   3854
 %protocol  root → layer → folder; never open a source file the folder index already answers
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -16,14 +16,14 @@
 //------------------------------------------------------------------------------------------------------------------------
 
 I Source | Application | Engine/Application/ConsoleHost/Source/Source.symbolindex | 1 src | 25 sym | Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
-I Source | Application | Engine/Application/EditorHost/Source/Source.symbolindex  | 1 src | 1 sym  | The combined editor — the same tree, the same tick, and a roster whose length is the only thing that separates it from PaintHost.
-I Source | Application | Engine/Application/PaintHost/Source/Source.symbolindex   | 1 src | 1 sym  | The standalone painting executable — one roster entry, the documents it presents against, and no engine logic at all.
+I Source | Application | Engine/Application/EditorHost/Source/Source.symbolindex  | 1 src | 5 sym  | The combined editor — Vulkan bring-up, the tick loop, and the two drawers.
+I Source | Application | Engine/Application/PaintHost/Source/Source.symbolindex   | 1 src | 4 sym  | The standalone painting executable — Vulkan bring-up, the tick loop, and the two drawers.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        CONTRACT
 //------------------------------------------------------------------------------------------------------------------------
 
-I Contract | Contract | Engine/Contract/Contract.symbolindex | 6 src | 84 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
+I Contract | Contract | Engine/Contract/Contract.symbolindex | 6 src | 85 sym | The five combination behaviours `22` §3 declares — read by impressions, by layer entries and by cell content alike.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                         SHARED
@@ -201,45 +201,29 @@ I Api    | SlateMath | Engine/SlateMath/Platform/StorageExchange/Api/Api.symboli
 I Source | SlateMath | Engine/SlateMath/Platform/StorageExchange/Source/Source.symbolindex     | 1 src | 10 sym | Declared byte ranges over the host's storage surface, drained in declaration order with the latency each took.
 I Api    | SlateMath | Engine/SlateMath/Platform/TickSequence/Api/Api.symbolindex              | 1 src | 6 sym  | Monotonically increasing ordering points, stamped at arrival and never derived at consumption.
 I Source | SlateMath | Engine/SlateMath/Platform/TickSequence/Source/Source.symbolindex        | 1 src | 6 sym  | Host timeline over the operating system's monotonic counter.
-I Api    | SlateMath | Engine/SlateMath/Platform/WindowInterchange/Api/Api.symbolindex         | 1 src | 8 sym  | One window surface over three window systems — surrenders the native handle and nothing else.
-I Source | SlateMath | Engine/SlateMath/Platform/WindowInterchange/Source/Source.symbolindex   | 1 src | 9 sym  | Windowing over GLFW, linked dynamically through glfw3dll.lib against glfw3.dll.
+I Api    | SlateMath | Engine/SlateMath/Platform/WindowInterchange/Api/Api.symbolindex         | 1 src | 11 sym | One window surface over three window systems — surrenders the native handle and nothing else.
+I Source | SlateMath | Engine/SlateMath/Platform/WindowInterchange/Source/Source.symbolindex   | 1 src | 12 sym | Windowing over GLFW, linked dynamically through glfw3dll.lib against glfw3.dll.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SLATEUI
 //------------------------------------------------------------------------------------------------------------------------
 
-I Api    | SlateUI | Engine/SlateUI/Interface/AssetPanel/Api/Api.symbolindex                      | 1 src | 19 sym  | The offered content made browsable — a folder column, a tile area, and every band's control live before one asset is declared.
-I Source | SlateUI | Engine/SlateUI/Interface/AssetPanel/Source/Source.symbolindex                | 1 src | 39 sym  | Six bands, three narrowings and two empty states — every control live before one asset has been offered.
-I Api    | SlateUI | Engine/SlateUI/Interface/CanvasPanel/Api/Api.symbolindex                     | 1 src | 12 sym  | One viewport's tick — the band arithmetic, the three hand-rolled overlays, and the quads that frame a canvas nothing has drawn into yet.
-I Source | SlateUI | Engine/SlateUI/Interface/CanvasPanel/Source/Source.symbolindex               | 1 src | 26 sym  | One viewport's tick — the band arithmetic, the three hand-rolled overlays, and the quads that frame a canvas nothing has drawn into yet.
-I Api    | SlateUI | Engine/SlateUI/Interface/ChannelPanel/Api/Api.symbolindex                    | 1 src | 10 sym  | One material's twenty channels made visible — every row read from `MaterialIndex`, nothing held here.
-I Source | SlateUI | Engine/SlateUI/Interface/ChannelPanel/Source/Source.symbolindex              | 1 src | 25 sym  | The twenty channels as three sections — consumed, retained and undeclared — over an API that already exists.
-I Api    | SlateUI | Engine/SlateUI/Interface/ControlPanel/Api/Api.symbolindex                    | 1 src | 37 sym  | Every primitive control as one immediate-mode free function over a rectangle — no widget owns anything, and the theme arrives by reference.
-I Source | SlateUI | Engine/SlateUI/Interface/ControlPanel/Source/Source.symbolindex              | 6 src | 94 sym  | The four choosing controls — a crossing nub, a run of exclusive pills, a dropped list, and a row of independent switches.
-I Api    | SlateUI | Engine/SlateUI/Interface/DiagnosticPanel/Api/Api.symbolindex                 | 1 src | 8 sym   | The register made visible — reports grouped by their declared class, measures presented at their producer's tier.
-I Source | SlateUI | Engine/SlateUI/Interface/DiagnosticPanel/Source/Source.symbolindex           | 1 src | 10 sym  | Seven declared classes presented at three weights, and the measures beneath them — nothing inferred, nothing held.
-I Api    | SlateUI | Engine/SlateUI/Interface/EntryPanel/Api/Api.symbolindex                      | 1 src | 16 sym  | The control centre — every primitive in `ControlPanel` presented live under one accordion, each holding a reading the panel does not own.
-I Source | SlateUI | Engine/SlateUI/Interface/EntryPanel/Source/Source.symbolindex                | 1 src | 36 sym  | Six accordion sections over the whole of `ControlPanel` — measured once, laid out once, and every refusal counted rather than raised.
-I Api    | SlateUI | Engine/SlateUI/Interface/GlyphDepot/Api/Api.symbolindex                      | 1 src | 22 sym  | Vector glyphs rasterised once and keyed by content — two names sharing bytes share one texture, and no vendor identity escapes.
-I Source | SlateUI | Engine/SlateUI/Interface/GlyphDepot/Source/Source.symbolindex                | 1 src | 24 sym  | Drives the vector rasteriser and the staging transfer — the one file in which a glyph becomes a vendor texture identity.
-I Api    | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Api/Api.symbolindex               | 1 src | 10 sym  | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
-I Source | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Source/Source.symbolindex         | 1 src | 9 sym   | The only translation unit in the engine that includes ImGui.
-I Api    | SlateUI | Engine/SlateUI/Interface/LayerPanel/Api/Api.symbolindex                      | 1 src | 6 sym   | The ordered content of one surface made visible — every row read from `SurfaceLayerSequence`, nothing held here.
-I Source | SlateUI | Engine/SlateUI/Interface/LayerPanel/Source/Source.symbolindex                | 1 src | 28 sym  | `TexturePaint.tsx`'s layer stack, band for band — the 46 px header, the spine, the 50/50 split row and the 26 px footer.
-I Api    | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Api/Api.symbolindex                   | 1 src | 5 sym   | Presents RowSequence through RankIndex and writes intent back — holding no relation of its own.
-I Source | SlateUI | Engine/SlateUI/Interface/OutlinerPanel/Source/Source.symbolindex             | 1 src | 22 sym  | The counted span presented inside the rectangle the desk resolved, and every gesture over it turned into a declared intent.
-I Api    | SlateUI | Engine/SlateUI/Interface/PropertyPanel/Api/Api.symbolindex                   | 1 src | 8 sym   | Any declared property presented without the panel knowing which — one row per declaration, read from `PropertyIndex`.
-I Source | SlateUI | Engine/SlateUI/Interface/PropertyPanel/Source/Source.symbolindex             | 1 src | 16 sym  | One row per declaration, dispatched on the declared measure — the panel names no property and never will.
-I Api    | SlateUI | Engine/SlateUI/Interface/RevisionPanel/Api/Api.symbolindex                   | 1 src | 7 sym   | The transaction sequence made visible and scrubbable — every row read from `RevisionSequence`, nothing held here.
-I Source | SlateUI | Engine/SlateUI/Interface/RevisionPanel/Source/Source.symbolindex             | 1 src | 19 sym  | `Inspector.tsx`'s revision timeline over the real sequence — bubble column, spine, card, fold.
-I Api    | SlateUI | Engine/SlateUI/Interface/TexturePaintSpecification/Api/Api.symbolindex       | 1 src | 4 sym   | The one concrete workspace — nine panels declared into a ledger, and the storage every one of them presents against.
-I Source | SlateUI | Engine/SlateUI/Interface/TexturePaintSpecification/Source/Source.symbolindex | 1 src | 3 sym   | The nine declarations one painting workspace makes, and nothing else — every panel it names is already routine-shaped.
-I Api    | SlateUI | Engine/SlateUI/Interface/ThemeSpecification/Api/Api.symbolindex              | 1 src | 10 sym  | The one palette and the one set of layout extents every panel reads — resolved once a tick, held by nobody else.
-I Source | SlateUI | Engine/SlateUI/Interface/ThemeSpecification/Source/Source.symbolindex        | 1 src | 10 sym  | The one translation unit in which an interface colour literal and a layout extent literal are permitted.
-I Api    | SlateUI | Engine/SlateUI/Interface/WorkspaceSequence/Api/Api.symbolindex               | 1 src | 29 sym  | Ordered bring-up, the ten-step tick, and teardown as its exact reverse — the whole host, with no concrete workspace named.
-I Source | SlateUI | Engine/SlateUI/Interface/WorkspaceSequence/Source/Source.symbolindex         | 1 src | 22 sym  | Bring-up in `32` §1's order, the ten-step tick, and teardown as its exact reverse with the rotation drained first.
-I Api    | SlateUI | Engine/SlateUI/Interface/WorkspaceSpace/Api/Api.symbolindex                  | 2 src | 79 sym  | The slot ledger a workspace fills at activation and the desk walks each tick — the host names no concrete panel.
-I Source | SlateUI | Engine/SlateUI/Interface/WorkspaceSpace/Source/Source.symbolindex            | 7 src | 119 sym | Declaration, release and resolution over a fixed panel ledger — no allocation, no ImGui, no vendor spelling.
+I Api    | SlateUI | Engine/SlateUI/Interface/AppearanceSpecification/Api/Api.symbolindex       | 1 src | 58 sym | Every ink and every measured extent the interface draws with — resolved once against the display scale, then read.
+I Source | SlateUI | Engine/SlateUI/Interface/AppearanceSpecification/Source/Source.symbolindex | 1 src | 2 sym  | Multiplies every declared extent by the display scale exactly once.
+I Api    | SlateUI | Engine/SlateUI/Interface/DrawerSpace/Api/Api.symbolindex                   | 1 src | 41 sym | Two drawers over one display extent — their grab arbitration, their snap arbitration, their tongues and their interiors.
+I Source | SlateUI | Engine/SlateUI/Interface/DrawerSpace/Source/Source.symbolindex             | 1 src | 40 sym | Grab arbitration, elastic constraint, the two snap arbitrations, and the clipped tongue.
+I Api    | SlateUI | Engine/SlateUI/Interface/GestureSequence/Api/Api.symbolindex               | 1 src | 9 sym  | One pointer contact resolved into a phase, a travel since arrival, a smoothed rate and a tap verdict.
+I Source | SlateUI | Engine/SlateUI/Interface/GestureSequence/Source/Source.symbolindex         | 1 src | 5 sym  | The contact phase machine — one edge per tick, one accumulation, one smoothed rate.
+I Api    | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Api/Api.symbolindex             | 2 src | 46 sym | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
+I Source | SlateUI | Engine/SlateUI/Interface/InterfaceExchange/Source/Source.symbolindex       | 2 src | 39 sym | The only translation unit in the engine that includes ImGui.
+I Api    | SlateUI | Engine/SlateUI/Interface/MotionIntegrator/Api/Api.symbolindex              | 1 src | 18 sym | Time-sampled interpolants that retire themselves — and report, once per tick, whether anything still moves.
+I Source | SlateUI | Engine/SlateUI/Interface/MotionIntegrator/Source/Source.symbolindex        | 1 src | 22 sym | A semi-implicit spring, a Newton-solved cubic ease, and the one sweep that retires both.
+I Api    | SlateUI | Engine/SlateUI/Interface/RedrawScheduler/Api/Api.symbolindex               | 1 src | 16 sym | Three marks of rising cost, and the one question a tick asks before it presents anything at all.
+I Source | SlateUI | Engine/SlateUI/Interface/RedrawScheduler/Source/Source.symbolindex         | 1 src | 12 sym | A flat enrolment of marks, and the three-operand wake rule read from it.
+I Api    | SlateUI | Engine/SlateUI/Interface/SymbolSpecification/Api/Api.symbolindex           | 1 src | 13 sym | Stroke figures declared in a 24-unit square, enrolled by discipline — no raster, no store, no vendor library.
+I Source | SlateUI | Engine/SlateUI/Interface/SymbolSpecification/Source/Source.symbolindex     | 1 src | 6 sym  | The seven declared figures, transcribed from the source's own path data, plus the mark everything else draws as.
+I Api    | SlateUI | Engine/SlateUI/Interface/ViewportSequence/Api/Api.symbolindex              | 1 src | 20 sym | One tick of the interface — springs, drawers, and the assembled recording, shared by every host.
+I Source | SlateUI | Engine/SlateUI/Interface/ViewportSequence/Source/Source.symbolindex        | 1 src | 19 sym | The shared tick driver — springs, drawers, and the assembled recording.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SLATEVULKAN

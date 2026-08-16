@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S VectorCodec.cpp | 629 lines | 8446dcdb | 13 sym | `10` §1 — vector streams translated into `52`'s accepted subset, with every refusal named and positioned.
+S VectorCodec.cpp | 629 lines | 3d9addc5 | 13 sym | `10` §1 — vector streams translated into `52`'s accepted subset, with every refusal named and positioned.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE REFUSED SET

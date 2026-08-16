@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PropertySpecification.cpp | 298 lines | ce1c58e4 | 11 sym | The validation each measure declares, the bounding offered beside it, and the write that refuses.
+S PropertySpecification.cpp | 298 lines | c6f473db | 11 sym | The validation each measure declares, the bounding offered beside it, and the write that refuses.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE VALIDATION
@@ -36,7 +36,7 @@ F Bounded                     | PropertySpecification.cpp | 131-168 | - | - | ?
     in    Declared  const PropertyDeclaration&  [-]  ?
     in    Offered   const PropertyValue&        [-]  ?
     out   -         Deliver<PropertyValue>      [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+81 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ColourProjection.h, (+57 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATIONS

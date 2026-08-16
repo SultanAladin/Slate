@@ -1,0 +1,127 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 One tick of the interface — springs, drawers, and the assembled recording, shared by every host.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/ViewportSequence/Api
+%layer      SlateUI
+%sources    1
+%symbols    20
+%annotated  17/20
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S ViewportSequence.h | 163 lines | b3a22413 | 20 sym | One tick of the interface — springs, drawers, and the assembled recording, shared by every host.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE SEQUENCE
+//------------------------------------------------------------------------------------------------------------------------
+
+T ViewportSequence                   | ViewportSequence.h | 35-161 | owning                        | -  | One tick of the interface — the springs, the two drawers, and the assembled recording that a host submits into its own command buffer. interface context, the spring physics, the drawer arrangement, and the redraw marks. The split is what keeps hosts free of ImGui spelling and keeps this component free of Vulkan submission. `DrawerPanels` to enter that window, then records panel content through `Surface`, then calls `SealPanels` to close it. The sequence records the drawer chrome itself; the panels record inside.
+    has   Interface           InterfaceExchange        [-]  ?
+    has   Motion              MotionIntegrator         [-]  ?
+    has   Resolved            AppearanceSpecification  [-]  ?
+    has   DrawersOwned        DrawerSpace              [-]  ?
+    has   MarksOwned          RedrawScheduler          [-]  ?
+    has   SurfaceOwned        RecordingSurface         [-]  ?
+    has   NorthDeclared       DrawerDeclaration        [-]  ?
+    has   SouthDeclared       DrawerDeclaration        [-]  ?
+    has   DrawersConstructed  bool                     [-]  ?
+    has   PanelsOpen          bool                     [-]  ?
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/ViewportSequence.cpp
+    note  🔴 The host owns the Vulkan bring-up and the command buffer submission. This component owns the
+    note  ⚠️ Panels record their content between the drawer bodies and the seal. The host calls
+
+F ViewportSequence::Construct        | ViewportSequence.h | 53     | api,nonthrowing               | 🔴 | Constructs the interface context and both drawers over the supplied device handles. ExtentExhausted when the integrator declines a drawer spring
+    in    Arriving  const InterfaceAttachment&  [-]  the device handles and the window the interface reads from
+    in    North     const DrawerDeclaration&    [-]  what the upper drawer's tongue carries
+    in    South     const DrawerDeclaration&    [-]  what the lower drawer's tongue carries
+    out   -         Deliver                     [-]  refuses with CapabilityAbsent when no interface context is current, and with
+    post  both drawers stand Closed and settled; nothing moves until a pointer arrives
+    by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
+
+F ViewportSequence::Advance          | ViewportSequence.h | 63     | api,nonthrowing               | ✔️ | Opens one interface tick, resolves the appearance, and drives the spring physics.
+    in    ElapsedMilliseconds  double   [-]  what `TickSequence::Span` measured between this tick and the last
+    out   -                    Deliver  [-]  refuses when no context is constructed, or when a tick is already open
+    post  the drawers have advanced; the surface is ready to record into
+    by    Api/CycleScheduler.h, Api/DrawerSpace.h, Api/GestureSequence.h, Api/InterfaceExchange.h, Api/MotionIntegrator.h, Api/OutlinerSequence.h, (+28 more)
+
+F ViewportSequence::RecordDrawers    | ViewportSequence.h | 70     | api,nonthrowing               | 🚩 | Records the drawer chrome — shadows, bodies, edges, grips and tongues. the panels record inside.
+    out   -  void  [-]  ?
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/ViewportSequence.cpp
+    note  Panels must not record before this call. The drawer bodies define the clipping extents
+
+F ViewportSequence::DrawerPanels     | ViewportSequence.h | 76     | api,nonallocating,nonthrowing | ✔️ | Opens the window for panels to record their content inside the drawer interiors.
+    out   -  void  [-]  ?
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/ViewportSequence.cpp
+    note  🔴 Called after RecordDrawers and before Seal. Panels call Surface() to draw into.
+
+F ViewportSequence::SealPanels       | ViewportSequence.h | 83     | api,nonthrowing               | 🚩 | Closes the panel recording window and seals the interface tick.
+    out   -  Deliver  [-]  refuses when no tick is open
+    post  the assembled content is ready for Record
+    by    Source/EditorHost.cpp, Source/PaintHost.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::Abandon          | ViewportSequence.h | 91     | api,nonthrowing               | ✔️ | Closes an open tick without assembling it — the escape from any refusal after Advance. left open refuses every subsequent Advance for the life of the process.
+    out   -  Deliver  [-]  delivers true when no tick was open
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/GestureSequence.h, Api/ImpressionSequence.h, Api/InterfaceExchange.h, Api/OcclusionScheduler.h, (+18 more)
+    note  🔴 A host that returns to the top of its loop after Advance declined must call this. A tick
+
+F ViewportSequence::Renegotiate      | ViewportSequence.h | 96     | api,nonthrowing               | 🚩 | Restates the rotation depth after a presentation chain was re-established.
+    in    RotationDepth  std::uint32_t  [-]  ?
+    out   -              Deliver<bool>  [-]  ?
+    by    Api/InterfaceExchange.h, Source/EditorHost.cpp, Source/InterfaceExchange.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::Record           | ViewportSequence.h | 104    | api,nonthrowing               | 🚩 | Records the assembled content into a command recording of the current rotation slot.
+    in    CommandRecording  VkCommandBuffer  [-]  a recording already inside a dynamic rendering scope
+    out   -                 Deliver          [-]  refuses when nothing has been sealed since the last Advance
+    pre   SealPanels delivered
+    by    Api/DrawerSpace.h, Api/InputExchange.h, Api/IntakeIndex.h, Api/InterfaceExchange.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, (+11 more)
+
+F ViewportSequence::Drawers          | ViewportSequence.h | 109    | api,nonallocating,nonthrowing | ✔️ | The two drawers, for the host to query pose and extent.
+    out   -  DrawerSpace&  [-]  ?
+    by    Source/PaintHost.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::Drawers          | ViewportSequence.h | 110    | -                             | -  | ?
+    out   -  const DrawerSpace&  [-]  ?
+    by    Source/PaintHost.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::Surface          | ViewportSequence.h | 115    | api,nonallocating,nonthrowing | ✔️ | The recording surface, for panels to draw into between DrawerPanels and SealPanels.
+    out   -  RecordingSurface&  [-]  ?
+    by    Api/DisplayScheduler.h, Api/DrawerSpace.h, Source/DisplayScheduler.cpp, Source/DrawerSpace.cpp, Source/PaintHost.cpp, Source/ViewportSequence.cpp, (+1 more)
+
+F ViewportSequence::Surface          | ViewportSequence.h | 116    | -                             | -  | ?
+    out   -  const RecordingSurface&  [-]  ?
+    by    Api/DisplayScheduler.h, Api/DrawerSpace.h, Source/DisplayScheduler.cpp, Source/DrawerSpace.cpp, Source/PaintHost.cpp, Source/ViewportSequence.cpp, (+1 more)
+
+F ViewportSequence::Appearance       | ViewportSequence.h | 121    | api,nonallocating,nonthrowing | ✔️ | The resolved appearance, for panels to read inks and metrics.
+    out   -  const AppearanceSpecification&  [-]  ?
+    by    Api/DrawerSpace.h, Source/DrawerSpace.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::Marks            | ViewportSequence.h | 126    | api,nonallocating,nonthrowing | ✔️ | The redraw marks, for the host to decide whether to present.
+    out   -  RedrawScheduler&  [-]  ?
+    by    Api/RedrawScheduler.h, Source/RedrawScheduler.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::Marks            | ViewportSequence.h | 127    | -                             | -  | ?
+    out   -  const RedrawScheduler&  [-]  ?
+    by    Api/RedrawScheduler.h, Source/RedrawScheduler.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::PointerCaptured  | ViewportSequence.h | 132    | api,nonallocating,nonthrowing | ✔️ | Whether the interface has taken the pointer, so the host must not treat it as a canvas stroke.
+    out   -  bool  [-]  ?
+    by    Api/InterfaceExchange.h, Source/InterfaceExchange.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::KeyboardCaptured | ViewportSequence.h | 137    | api,nonallocating,nonthrowing | ✔️ | Whether the interface has taken text entry, so no shortcut consumes the same key.
+    out   -  bool  [-]  ?
+    by    Api/InterfaceExchange.h, Source/InterfaceExchange.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::Moving           | ViewportSequence.h | 142    | api,nonallocating,nonthrowing | ✔️ | Whether either drawer is being dragged or is still travelling under its spring.
+    out   -  bool  [-]  ?
+    by    Api/DrawerSpace.h, Api/MotionIntegrator.h, Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp, Source/PaintHost.cpp, Source/ViewportSequence.cpp
+
+F ViewportSequence::Reclaim          | ViewportSequence.h | 147    | api,nonthrowing               | 🚩 | Destroys every owned component and forgets the device handles.
+    out   -  void  [-]  ?
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)

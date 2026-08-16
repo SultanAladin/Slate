@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S RecoverySequence.cpp | 192 lines | a2974247 | 11 sym | `48` §4 — the per-document journal appended as transactions seal, and the replay that is offered and never applied.
+S RecoverySequence.cpp | 192 lines | 05f82038 | 11 sym | `48` §4 — the per-document journal appended as transactions seal, and the replay that is offered and never applied.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION

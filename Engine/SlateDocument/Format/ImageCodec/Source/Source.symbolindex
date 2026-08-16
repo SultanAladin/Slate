@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ImageCodec.cpp | 231 lines | 222027f5 | 15 sym | `10` §1 — image streams translated to the texels the file carried, at the depth it carried them, and nothing else.
+S ImageCodec.cpp | 231 lines | 6ef33833 | 15 sym | `10` §1 — image streams translated to the texels the file carried, at the depth it carried them, and nothing else.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS

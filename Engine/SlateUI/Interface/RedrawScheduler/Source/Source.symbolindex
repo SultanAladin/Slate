@@ -1,0 +1,80 @@
+//============================================================================================================================================
+//                                                             SOURCE.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 A flat enrolment of marks, and the three-operand wake rule read from it.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/RedrawScheduler/Source
+%layer      SlateUI
+%sources    1
+%symbols    12
+%annotated  0/12
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S RedrawScheduler.cpp | 113 lines | 7c44201b | 12 sym | A flat enrolment of marks, and the three-operand wake rule read from it.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE ENROLMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F RedrawScheduler::Enrol         | RedrawScheduler.cpp | 15-24   | - | - | ?
+    in    Naming  const char*             [-]  ?
+    out   -       Deliver<std::uint32_t>  [-]  ?
+
+F RedrawScheduler::Mark          | RedrawScheduler.cpp | 26-32   | - | - | ?
+    in    PanelOrdinal  std::uint32_t  [-]  ?
+    in    Declared      RedrawMark     [-]  ?
+    out   -             void           [-]  ?
+
+F RedrawScheduler::MarkEvery     | RedrawScheduler.cpp | 34-38   | - | - | ?
+    in    Declared  RedrawMark  [-]  ?
+    out   -         void        [-]  ?
+
+F RedrawScheduler::Standing      | RedrawScheduler.cpp | 40-43   | - | - | ?
+    in    PanelOrdinal  std::uint32_t  [-]  ?
+    out   -             RedrawMark     [-]  ?
+
+F RedrawScheduler::Marked        | RedrawScheduler.cpp | 45-54   | - | - | ?
+    out   -  bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE WAKE RULE
+//------------------------------------------------------------------------------------------------------------------------
+
+F RedrawScheduler::Waking        | RedrawScheduler.cpp | 63-66   | - | - | ?
+    in    AnythingMoving  bool  [-]  ?
+    in    ArrivalHeld     bool  [-]  ?
+    out   -               bool  [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       RETIREMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+F RedrawScheduler::Retire        | RedrawScheduler.cpp | 72-81   | - | - | ?
+    out   -  void  [-]  ?
+
+F RedrawScheduler::Retire        | RedrawScheduler.cpp | 83-87   | - | - | ?
+    in    PanelOrdinal  std::uint32_t  [-]  ?
+    out   -             void           [-]  ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE READS
+//------------------------------------------------------------------------------------------------------------------------
+
+F RedrawScheduler::EnrolledCount | RedrawScheduler.cpp | 93-96   | - | - | ?
+    out   -  std::uint32_t  [-]  ?
+
+F RedrawScheduler::Naming        | RedrawScheduler.cpp | 98-101  | - | - | ?
+    in    PanelOrdinal  std::uint32_t  [-]  ?
+    out   -             const char*    [-]  ?
+
+F RedrawScheduler::QuietTicks    | RedrawScheduler.cpp | 103-106 | - | - | ?
+    out   -  std::uint64_t  [-]  ?
+
+F RedrawScheduler::RecordedTicks | RedrawScheduler.cpp | 108-111 | - | - | ?
+    out   -  std::uint64_t  [-]  ?

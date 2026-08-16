@@ -8,15 +8,15 @@
 %path       Engine/SlateMath/Platform/WindowInterchange/Source
 %layer      SlateMath
 %sources    1
-%symbols    9
-%annotated  0/9
+%symbols    12
+%annotated  0/12
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S WindowInterchange.cpp | 126 lines | be931b03 | 9 sym | Windowing over GLFW, linked dynamically through glfw3dll.lib against glfw3.dll.
+S WindowInterchange.cpp | 146 lines | 7d91b45a | 12 sym | Windowing over GLFW, linked dynamically through glfw3dll.lib against glfw3.dll.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 WINDOW SYSTEM LIFETIME
@@ -34,25 +34,34 @@ F ReleaseWindowSystem                   | WindowInterchange.cpp | 34-43   | -   
 //                                                     OPEN AND CLOSE
 //------------------------------------------------------------------------------------------------------------------------
 
-F WindowInterchange::Open               | WindowInterchange.cpp | 50-77   | -          | - | ?
+F WindowInterchange::Open               | WindowInterchange.cpp | 50-78   | -          | - | ?
     in    RequestedExtent  DisplayExtent  [-]  ?
     in    WindowTitle      const char*    [-]  ?
     out   -                Deliver<bool>  [-]  ?
 
-F WindowInterchange::~WindowInterchange | WindowInterchange.cpp | 79-87   | destructor | - | ?
+F WindowInterchange::~WindowInterchange | WindowInterchange.cpp | 80-88   | destructor | - | ?
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    DRAIN AND REPORT
 //------------------------------------------------------------------------------------------------------------------------
 
-F WindowInterchange::Drain              | WindowInterchange.cpp | 93-109  | -          | - | ?
+F WindowInterchange::Drain              | WindowInterchange.cpp | 94-110  | -          | - | ?
     out   -  void  [-]  ?
 
-F WindowInterchange::NativeHandle       | WindowInterchange.cpp | 111-114 | -          | - | ?
+F WindowInterchange::NativeHandle       | WindowInterchange.cpp | 112-115 | -          | - | ?
     out   -  void*  [-]  ?
 
-F WindowInterchange::CurrentExtent      | WindowInterchange.cpp | 116-119 | -          | - | ?
+F WindowInterchange::CurrentExtent      | WindowInterchange.cpp | 117-120 | -          | - | ?
     out   -  DisplayExtent  [-]  ?
 
-F WindowInterchange::ClosureRequested   | WindowInterchange.cpp | 121-124 | -          | - | ?
+F WindowInterchange::ClosureRequested   | WindowInterchange.cpp | 122-125 | -          | - | ?
     out   -  bool  [-]  ?
+
+F WindowInterchange::Await              | WindowInterchange.cpp | 127-133 | -          | - | ?
+    out   -  void  [-]  ?
+
+F WindowInterchange::ExtentAltered      | WindowInterchange.cpp | 135-139 | -          | - | ?
+    out   -  bool  [-]  ?
+
+F WindowInterchange::AdoptExtent        | WindowInterchange.cpp | 141-144 | -          | - | ?
+    out   -  void  [-]  ?

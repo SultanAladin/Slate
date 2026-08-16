@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S AtmosphereIntegrator.h | 389 lines | e9e87277 | 45 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
+S AtmosphereIntegrator.h | 389 lines | 3492606e | 45 sym | Three resident lookup surfaces replacing per-pixel marching — and the only source of environmental light in Slate.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE MEDIUM
@@ -59,14 +59,14 @@ F Resolve                                         | AtmosphereIntegrator.h | 87 
     in    Working   const ColourSpaceSpecification&  [-]  the space the coefficients are expressed in
     in    Rule      const QuadratureRule&            [-]  a derived rule, integrated over the declared wavelength interval
     out   -         Deliver                          [-]  carries the medium's own refusal, and `02` §5's where the projection declines
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+89 more)
     note  📐 The Rayleigh coefficient is **derived** from the medium's refractive index, molecular concentration
     note  📝 The ozone absorption is a **fit to measured absorption** rather than a derivation, unlike Rayleigh.
 
 F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 90      | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/CanvasPanel.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ONE RESIDENT SURFACE
@@ -96,7 +96,7 @@ F ResidentSurface::Write                          | AtmosphereIntegrator.h | 124
     in    Green   double         [-]  ?
     in    Blue    double         [-]  ?
     out   -       void           [-]  ?
-    by    Api/PropertySpecification.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/PropertyPanel.cpp, Source/PropertySpecification.cpp
+    by    Api/PropertySpecification.h, Source/AtmosphereIntegrator.cpp, Source/ConsoleHost.cpp, Source/PropertySpecification.cpp
     note  📝 The fourth component is claimed and unused. `08` §2 declares the format RGBA16F and a
 
 F ResidentSurface::Sample                         | AtmosphereIntegrator.h | 134     | api,nonallocating,nonthrowing | 🚩 | Samples the surface bilinearly at a declared coordinate; the axis declared periodic wraps, the other clamps. periodic. The zenith axis genuinely ends at the zenith, and a wrapped sample there reads the horizon — which appears as a bright ring directly overhead.
@@ -111,7 +111,7 @@ F ResidentSurface::Sample                         | AtmosphereIntegrator.h | 134
 
 F ResidentSurface::Texels                         | AtmosphereIntegrator.h | 139     | api,nonallocating,nonthrowing | ✔️ | The encoded texels, for whoever uploads them.
     out   -  const std::vector<std::uint16_t>&  [-]  ?
-    by    Api/AnalyticProjection.h, Api/ClipboardExchange.h, Api/EmissionSequence.h, Api/SurfaceLayerSequence.h, Source/AnalyticProjection.cpp, Source/AtmosphereIntegrator.cpp, (+6 more)
+    by    Api/AnalyticProjection.h, Api/ClipboardExchange.h, Api/EmissionSequence.h, Api/SurfaceLayerSequence.h, Source/AnalyticProjection.cpp, Source/AtmosphereIntegrator.cpp, (+5 more)
 
 F ResidentSurface::ResidentBytes                  | AtmosphereIntegrator.h | 144     | api,nonallocating,nonthrowing | ✔️ | What the surface occupies once resident.
     out   -  std::uint64_t  [-]  ?
@@ -119,11 +119,11 @@ F ResidentSurface::ResidentBytes                  | AtmosphereIntegrator.h | 144
 
 F ResidentSurface::ExtentAlong                    | AtmosphereIntegrator.h | 146     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/DepthReduction.h, Api/ReflectanceIntegrator.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp, (+1 more)
+    by    Api/DepthReduction.h, Api/DrawerSpace.h, Api/RecordingSurface.h, Api/ReflectanceIntegrator.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, (+5 more)
 
 F ResidentSurface::ExtentAcross                   | AtmosphereIntegrator.h | 147     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/DepthReduction.h, Api/ReflectanceIntegrator.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, Source/DepthReduction.cpp, Source/OcclusionScheduler.cpp, (+1 more)
+    by    Api/DepthReduction.h, Api/DrawerSpace.h, Api/RecordingSurface.h, Api/ReflectanceIntegrator.h, Shader/AtmosphereUniform.slang, Source/AtmosphereIntegrator.cpp, (+5 more)
 
 F ResidentSurface::SurfaceConstructed             | AtmosphereIntegrator.h | 148     | -                             | -  | ?
     out   -  bool  [-]  ?
@@ -357,4 +357,4 @@ F SLATE_DECLARES_PRECISION                        | AtmosphereIntegrator.h | 385
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Perceptual  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/CanvasPanel.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/ColourProjection.h, (+43 more)

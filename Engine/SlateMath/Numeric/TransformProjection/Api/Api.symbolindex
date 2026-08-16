@@ -82,7 +82,7 @@ F Compound                 | TransformProjection.h | 104   | api,nonallocating,n
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 105   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F Compound                 | TransformProjection.h | 113   | api,nonallocating,nonthrowing | ✔️ | Compounds two decomposed transforms without ever forming a matrix.
     in    OuterTransform  const DecomposedTransform&  [-]  applied second — the containing transform
@@ -93,7 +93,7 @@ F Compound                 | TransformProjection.h | 113   | api,nonallocating,n
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 115   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F Project                  | TransformProjection.h | 122   | api,nonallocating,nonthrowing | ✔️ | Derives the matrix form of a decomposed transform at the point of use.
     in    Source  const DecomposedTransform&  [-]  the decomposed transform
@@ -103,7 +103,7 @@ F Project                  | TransformProjection.h | 122   | api,nonallocating,n
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 123   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        REBASING
@@ -119,18 +119,18 @@ F Relative                 | TransformProjection.h | 140   | api,nonallocating,n
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 141   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F Narrow                   | TransformProjection.h | 152   | api,nonallocating,nonthrowing | ✔️ | Narrows a view-relative position for the device. The narrowing, and nothing else. position by mistake. `02` §8's gate — *every position narrowing to 32-bit is rebased in 64-bit first* — is discharged by this signature rather than by a review, because the only way to obtain the argument is to have called `Relative`.
     in    Subject  ViewPosition  [mm]  a position already measured from the view origin
     out   -        Narrowed      [mm]  the same position at 32-bit
-    by    Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/ClipboardExchange.cpp, Source/CodeInterchange.cpp, Source/FileInterchange.cpp, Source/OutlinerPanel.cpp, (+5 more)
+    by    Api/OutlinerSequence.h, Api/TrigramIndex.h, Source/ClipboardExchange.cpp, Source/CodeInterchange.cpp, Source/FileInterchange.cpp, Source/OutlinerSequence.cpp, (+4 more)
     note  🔴 Takes a `ViewPosition` and not a `DocumentPosition`, so a caller cannot narrow an unrebased
 
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 153   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F Rebase                   | TransformProjection.h | 168   | api,nonallocating,nonthrowing | ✔️ | Rebases a document position to the view origin and narrows it for the device — both halves, at once. `SlateCompute` passes through here; `02` §8 gates it and the failure it prevents reads as a driver defect rather than as the arithmetic it is. as a third arithmetic. It is kept because the fused act is what most callers want and because every caller in the engine already spells it this way; the two halves exist for the callers — `46` deriving a projection, `78` measuring a grip — that want the difference before it is narrowed.
     in    Subject     DocumentPosition  [mm]  a position in document space
@@ -143,4 +143,4 @@ F Rebase                   | TransformProjection.h | 168   | api,nonallocating,n
 F SLATE_DECLARES_PRECISION | TransformProjection.h | 169   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

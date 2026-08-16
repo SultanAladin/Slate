@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S HardwareMetrics.cpp | 329 lines | 9605d816 | 13 sym | The timestamp extent, the recorded pair around each declared span, and the readback that reports or refuses.
+S HardwareMetrics.cpp | 329 lines | 19447c03 | 13 sym | The timestamp extent, the recorded pair around each declared span, and the readback that reports or refuses.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION

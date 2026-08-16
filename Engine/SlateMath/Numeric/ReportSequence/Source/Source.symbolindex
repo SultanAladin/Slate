@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ReportSequence.cpp | 223 lines | 9d223dea | 14 sym | Coalescing, the bounded cyclic retention, and the overwriting measure index beside it.
+S ReportSequence.cpp | 223 lines | 042f595b | 14 sym | Coalescing, the bounded cyclic retention, and the overwriting measure index beside it.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       COALESCING

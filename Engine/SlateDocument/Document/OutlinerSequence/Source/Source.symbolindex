@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S OutlinerSequence.cpp | 534 lines | dcda05db | 23 sym | The seven steps in order, every mutation a transaction, and the retirement cascade as one of them.
+S OutlinerSequence.cpp | 534 lines | 0f83724b | 23 sym | The seven steps in order, every mutation a transaction, and the retirement cascade as one of them.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       ENROLMENT

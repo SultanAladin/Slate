@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ColourProjection.cpp | 430 lines | 7039a605 | 10 sym | Primaries derived from chromaticities, the transfers, von Kries adaptation, and the Planckian locus.
+S ColourProjection.cpp | 430 lines | b0ad699c | 10 sym | Primaries derived from chromaticities, the transfers, von Kries adaptation, and the Planckian locus.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    PRIMARIES TO XYZ

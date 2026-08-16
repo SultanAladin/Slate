@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S StrokeSpace.cpp | 129 lines | 16243adc | 9 sym | Sparse tile claiming over the dense cell index, and the commutative coverage accumulation.
+S StrokeSpace.cpp | 129 lines | 0b756810 | 9 sym | Sparse tile claiming over the dense cell index, and the commutative coverage accumulation.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION

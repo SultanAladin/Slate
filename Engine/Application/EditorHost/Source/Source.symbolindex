@@ -1,27 +1,42 @@
 //============================================================================================================================================
 //                                                             SOURCE.SYMBOLINDEX
 //============================================================================================================================================
-// 🧩 The combined editor — the same tree, the same tick, and a roster whose length is the only thing that separates it from PaintHost.
+// 🧩 The combined editor — Vulkan bring-up, the tick loop, and the two drawers.
 
 %format     symbolindex 1.0
 %scope      folder
 %path       Engine/Application/EditorHost/Source
 %layer      Application
 %sources    1
-%symbols    1
-%annotated  0/1
+%symbols    5
+%annotated  0/5
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S EditorHost.cpp | 84 lines | 00a8af44 | 1 sym | The combined editor — the same tree, the same tick, and a roster whose length is the only thing that separates it from PaintHost.
+S EditorHost.cpp | 314 lines | 75b13b50 | 5 sym | The combined editor — Vulkan bring-up, the tick loop, and the two drawers.
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                        SYMBOLS
+//                                                        FIGURES
 //------------------------------------------------------------------------------------------------------------------------
 
-F main | EditorHost.cpp | 26-84 | - | - | ?
+V InitialWidth  | EditorHost.cpp | 28     | - | - | ?
+    by    Source/PaintHost.cpp
+
+V InitialHeight | EditorHost.cpp | 29     | - | - | ?
+    by    Source/PaintHost.cpp
+
+V WindowTitle   | EditorHost.cpp | 31     | - | - | ?
+    by    Api/WindowInterchange.h, Source/PaintHost.cpp, Source/WindowInterchange.cpp
+
+V HostName      | EditorHost.cpp | 32     | - | - | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                          MAIN
+//------------------------------------------------------------------------------------------------------------------------
+
+F main          | EditorHost.cpp | 40-314 | - | - | ?
     out   -  int  [-]  ?
     by    Shader/DepthReduction.slang, Shader/OcclusionCulling.slang, Source/ConsoleHost.cpp, Source/PaintHost.cpp

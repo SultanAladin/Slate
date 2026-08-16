@@ -1,0 +1,183 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Stroke figures declared in a 24-unit square, enrolled by discipline — no raster, no store, no vendor library.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/SymbolSpecification/Api
+%layer      SlateUI
+%sources    1
+%symbols    13
+%annotated  9/13
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S SymbolSpecification.h | 226 lines | d9f830bb | 13 sym | Stroke figures declared in a 24-unit square, enrolled by discipline — no raster, no store, no vendor library.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE DISCIPLINES
+//------------------------------------------------------------------------------------------------------------------------
+
+E SymbolDiscipline  | SymbolSpecification.h | 23-38   | contract                           | -  | The working discipline a figure belongs to. Every figure is enrolled in exactly one. for the participle. `Assembly` and not `Compositing`, for the same reason. navigation figure wherever it is drawn.
+    has   Workspace            SymbolDiscipline  [-]  ?
+    has   Navigation           SymbolDiscipline  [-]  ?
+    has   Geometry             SymbolDiscipline  [-]  ?
+    has   ComputerAidedDesign  SymbolDiscipline  [-]  ?
+    has   Sculpting            SymbolDiscipline  [-]  ?
+    has   Texturing            SymbolDiscipline  [-]  ?
+    has   Illumination         SymbolDiscipline  [-]  ?
+    has   Rendering            SymbolDiscipline  [-]  ?
+    has   Animation            SymbolDiscipline  [-]  ?
+    has   Simulation           SymbolDiscipline  [-]  ?
+    has   Assembly             SymbolDiscipline  [-]  ?
+    has   Measurement          SymbolDiscipline  [-]  ?
+    has   DisciplineCount      SymbolDiscipline  [-]  ?
+    by    Source/SymbolSpecification.cpp
+    note  🔴 `Geometry` and not `Modelling`: `Model` is a banned structural word and the ban has no carve-out
+    note  The enrolment is a property of the **figure**, not of where it is presented. A magnifier is a
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE SUBJECTS
+//------------------------------------------------------------------------------------------------------------------------
+
+E SymbolSubject     | SymbolSpecification.h | 49-134  | contract                           | -  | Every figure the interface may ask for, ordered by discipline. `PlaceholderMark` at the correct extent, so the roster may be filled in later without a single layout moving. That is the whole reason the extents are exact now and the artwork is not.
+    has   FolderClosed         SymbolSubject  [-]  ?
+    has   LatticeArrangement   SymbolSubject  [-]  ?
+    has   ColumnArrangement    SymbolSubject  [-]  ?
+    has   PanelSplit           SymbolSubject  [-]  ?
+    has   PersistDisc          SymbolSubject  [-]  ?
+    has   ChevronDown          SymbolSubject  [-]  ?
+    has   ChevronRight         SymbolSubject  [-]  ?
+    has   MagnifierLens        SymbolSubject  [-]  ?
+    has   ArrowReturn          SymbolSubject  [-]  ?
+    has   CrosshairCentre      SymbolSubject  [-]  ?
+    has   VertexPoint          SymbolSubject  [-]  ?
+    has   EdgeSegment          SymbolSubject  [-]  ?
+    has   FacePlanar           SymbolSubject  [-]  ?
+    has   SubdivisionStep      SymbolSubject  [-]  ?
+    has   ExtrudeSpan          SymbolSubject  [-]  ?
+    has   BevelChamfer         SymbolSubject  [-]  ?
+    has   BooleanUnion         SymbolSubject  [-]  ?
+    has   MirrorAxis           SymbolSubject  [-]  ?
+    has   SketchPlane          SymbolSubject  [-]  ?
+    has   ConstraintDimension  SymbolSubject  [-]  ?
+    has   FilletRadius         SymbolSubject  [-]  ?
+    has   RevolveAxis          SymbolSubject  [-]  ?
+    has   LoftProfile          SymbolSubject  [-]  ?
+    has   BristleTip           SymbolSubject  [-]  ?
+    has   InflatePush          SymbolSubject  [-]  ?
+    has   SmoothRelax          SymbolSubject  [-]  ?
+    has   MaskStencil          SymbolSubject  [-]  ?
+    has   RemeshDensity        SymbolSubject  [-]  ?
+    has   UnwrapSeam           SymbolSubject  [-]  ?
+    has   PaintBristle         SymbolSubject  [-]  ?
+    has   MaterialSphere       SymbolSubject  [-]  ?
+    has   ChannelSelect        SymbolSubject  [-]  ?
+    has   StencilProjection    SymbolSubject  [-]  ?
+    has   SunDirectional       SymbolSubject  [-]  ?
+    has   LampPoint            SymbolSubject  [-]  ?
+    has   AreaEmitter          SymbolSubject  [-]  ?
+    has   SkyDome              SymbolSubject  [-]  ?
+    has   CameraAperture       SymbolSubject  [-]  ?
+    has   SampleConverge       SymbolSubject  [-]  ?
+    has   DenoiseSweep         SymbolSubject  [-]  ?
+    has   ExposureOrdinate     SymbolSubject  [-]  ?
+    has   KeyOrdinate          SymbolSubject  [-]  ?
+    has   CurveTangent         SymbolSubject  [-]  ?
+    has   TimelineScrub        SymbolSubject  [-]  ?
+    has   SkeletonJoint        SymbolSubject  [-]  ?
+    has   ClothDrape           SymbolSubject  [-]  ?
+    has   FluidStream          SymbolSubject  [-]  ?
+    has   RigidCollide         SymbolSubject  [-]  ?
+    has   ParticleEmit         SymbolSubject  [-]  ?
+    has   LayerMerge           SymbolSubject  [-]  ?
+    has   AlphaMask            SymbolSubject  [-]  ?
+    has   ColourWheel          SymbolSubject  [-]  ?
+    has   GraphJunction        SymbolSubject  [-]  ?
+    has   PulseTrace           SymbolSubject  [-]  ?
+    has   RulerSpan            SymbolSubject  [-]  ?
+    has   HistogramProfile     SymbolSubject  [-]  ?
+    has   StatisticReadout     SymbolSubject  [-]  ?
+    has   PlaceholderMark      SymbolSubject  [-]  ?
+    has   SubjectCount         SymbolSubject  [-]  ?
+    by    Api/DrawerSpace.h, Api/RecordingSurface.h, Source/EditorHost.cpp, Source/PaintHost.cpp, Source/RecordingSurface.cpp, Source/SymbolSpecification.cpp
+    note  🚧 Only the seven the source actually draws carry declared artwork. Every other subject resolves to
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE STROKE STREAM
+//------------------------------------------------------------------------------------------------------------------------
+
+E StrokeCommand     | SymbolSpecification.h | 143-151 | contract                           | -  | What one step of a figure's stroke stream does.
+    has   Origin     StrokeCommand  [-]  ?
+    has   Segment    StrokeCommand  [-]  ?
+    has   Curve      StrokeCommand  [-]  ?
+    has   Close      StrokeCommand  [-]  ?
+    has   Disc       StrokeCommand  [-]  ?
+    has   Enclosure  StrokeCommand  [-]  ?
+    by    Source/RecordingSurface.cpp, Source/SymbolSpecification.cpp
+    note  `Enclosure` and not the obvious spelling: `Frame` is a banned word.
+
+T StrokeStep        | SymbolSpecification.h | 155-164 | contract,nonallocating,nonthrowing | -  | One step, in the 24-unit declared square Lucide draws in.
+    has   Command       StrokeCommand  [-]  ?
+    has   Along         float          [-]  ?
+    has   Across        float          [-]  ?
+    has   FirstAlong    float          [-]  ?
+    has   FirstAcross   float          [-]  ?
+    has   SecondAlong   float          [-]  ?
+    has   SecondAcross  float          [-]  ?
+    by    Source/RecordingSurface.cpp, Source/SymbolSpecification.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE FIGURE
+//------------------------------------------------------------------------------------------------------------------------
+
+V DeclaredSquare    | SymbolSpecification.h | 174     | -                                  | -  | ?
+    by    Source/RecordingSurface.cpp
+
+V DeclaredWeight    | SymbolSpecification.h | 175     | -                                  | -  | ?
+    by    Source/SymbolSpecification.cpp
+
+V TongueWeight      | SymbolSpecification.h | 176     | -                                  | -  | ?
+    by    Source/SymbolSpecification.cpp
+
+V QuarterArcControl | SymbolSpecification.h | 181     | -                                  | -  | ?
+    by    Source/SymbolSpecification.cpp
+
+T SymbolFigure      | SymbolSpecification.h | 187-194 | contract,nonallocating,nonthrowing | -  | One declared figure — its stroke stream, its enrolment, and the weight it is drawn at. reference to it by construction.
+    has   Steps        const StrokeStep*  [-]  ?
+    has   StepCount    std::uint32_t      [-]  ?
+    has   Enrolment    SymbolDiscipline   [-]  ?
+    has   Weight       float              [-]  ?
+    has   ArtworkHeld  bool               [-]  ?
+    by    Source/RecordingSurface.cpp, Source/SymbolSpecification.cpp
+    note  Points into static storage. Nothing here ever owns an allocation, and a figure outlives every
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE LOOKUPS
+//------------------------------------------------------------------------------------------------------------------------
+
+F Figure            | SymbolSpecification.h | 205     | api,nonallocating,nonthrowing      | ✔️ | The figure one subject draws as.
+    in    Subject  SymbolSubject  [-]  a subject with no declared artwork resolves to PlaceholderMark's figure
+    out   -        Figure         [-]  never empty; a caller never has to test before stroking
+    by    Source/RecordingSurface.cpp, Source/SymbolSpecification.cpp
+
+F Enrolment         | SymbolSpecification.h | 210     | api,nonallocating,nonthrowing      | ✔️ | Which discipline a subject is enrolled in, without resolving its artwork.
+    in    Subject  SymbolSubject     [-]  ?
+    out   -        SymbolDiscipline  [-]  ?
+    by    Api/MaterialSpecification.h, Api/PropertySpecification.h, Source/PropertySpecification.cpp, Source/SymbolSpecification.cpp
+
+F EnrolledIn        | SymbolSpecification.h | 219     | api,nonallocating,nonthrowing      | ✔️ | The subjects enrolled in one discipline, in declared order.
+    in    Discipline  SymbolDiscipline       [-]  the discipline to read
+    in    Delivered   const SymbolSubject**  [-]  receives a pointer into static storage; untouched when the count is zero
+    out   -           Count                  [-]  how many subjects the discipline holds
+    use   `const SymbolSubject* Held = nullptr; const auto Count = EnrolledIn(Texturing, &Held);`
+    by    Source/SymbolSpecification.cpp
+
+F DisciplineText    | SymbolSpecification.h | 224     | api,nonallocating,nonthrowing      | ✔️ | Static text naming a discipline, for the diagnostic overlay and for nothing the artist reads.
+    in    Discipline  SymbolDiscipline  [-]  ?
+    out   -           const char*       [-]  ?
+    by    Source/SymbolSpecification.cpp

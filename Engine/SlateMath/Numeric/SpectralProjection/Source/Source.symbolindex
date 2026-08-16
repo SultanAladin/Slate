@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SpectralProjection.cpp | 85 lines | 9e32ebe8 | 3 sym | The nine-lobe fit, and the normalisation derived from it rather than beside it.
+S SpectralProjection.cpp | 85 lines | d39185cc | 3 sym | The nine-lobe fit, and the normalisation derived from it rather than beside it.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ONE LOBE

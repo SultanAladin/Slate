@@ -26,4 +26,4 @@ F Classify | VendorClassifier.cpp | 17-115 | - | - | ?
     in    Candidate            VkPhysicalDevice  [-]  ?
     in    PresentationSurface  VkSurfaceKHR      [-]  ?
     out   -                    ScoredCandidate   [-]  ?
-    by    Api/CameraProjection.h, Api/SampleIntegrator.h, Api/TilingSpecification.h, Api/VectorInterchange.h, Api/VendorClassifier.h, Source/AnalyticProjection.cpp, (+8 more)
+    by    Api/CameraProjection.h, Api/DrawerSpace.h, Api/SampleIntegrator.h, Api/TilingSpecification.h, Api/VectorInterchange.h, Api/VendorClassifier.h, (+10 more)

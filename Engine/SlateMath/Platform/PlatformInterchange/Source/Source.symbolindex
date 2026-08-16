@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S PlatformInterchange.cpp | 341 lines | 1dcb5808 | 7 sym | Process, thread and locale services over the host, behind the layer's one set of conditionals.
+S PlatformInterchange.cpp | 341 lines | cf79760f | 7 sym | Process, thread and locale services over the host, behind the layer's one set of conditionals.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S AtmosphereIntegrator.cpp | 1223 lines | 13d52a23 | 42 sym | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
+S AtmosphereIntegrator.cpp | 1223 lines | 28152d0a | 42 sym | The three surfaces in construction order, the spectral coefficients behind them, and the convolution derived on rebuild.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     HALF PRECISION
@@ -46,7 +46,7 @@ F Resolve                                         | AtmosphereIntegrator.cpp | 1
     in    Working   const ColourSpaceSpecification&  [-]  ?
     in    Rule      const QuadratureRule&            [-]  ?
     out   -         Deliver<MediumCoefficient>       [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ONE RESIDENT SURFACE

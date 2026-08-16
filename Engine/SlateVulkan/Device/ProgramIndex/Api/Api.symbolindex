@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ProgramIndex.h | 200 lines | c3a5c8c9 | 15 sym | Graphics and compute programs constructed once at bring-up, against the layouts and modules already declared.
+S ProgramIndex.h | 200 lines | 59334485 | 15 sym | Graphics and compute programs constructed once at bring-up, against the layouts and modules already declared.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS DECLARED
@@ -110,16 +110,16 @@ F ProgramIndex::DeclareCompute  | ProgramIndex.h | 158     | api,nonthrowing    
 F ProgramIndex::Resolve         | ProgramIndex.h | 165     | api,nonallocating,nonthrowing | ✔️ | The program one ordinal names, for the recording that records against it.
     in    ProgramOrdinal  std::uint32_t  [-]  an ordinal this component issued
     out   -               Deliver        [-]  refuses with ContentUnsupported for an ordinal naming no program
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
 
 F ProgramIndex::Reclaim         | ProgramIndex.h | 171     | api,nonthrowing               | 🚩 | Destroys every program and every layout constructed for one.
     out   -  void  [-]  ?
     pre   the device is idle and no recording that reads them is still executing
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F ProgramIndex::DeclaredCount   | ProgramIndex.h | 173     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, (+36 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/HardwareMetrics.h, Api/MaterialSpecification.h, (+29 more)
 
 T ProgramIndex::HeldProgram     | ProgramIndex.h | 177-182 | -                             | -  | ?
     has   Constructed    VkPipeline           [-]  ?

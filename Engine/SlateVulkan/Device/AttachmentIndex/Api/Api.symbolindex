@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S AttachmentIndex.h | 179 lines | 70366fd3 | 17 sym | The classic render constructs `06` §2.1 settled on, declared over the shared targets and re-derived on an extent change.
+S AttachmentIndex.h | 179 lines | 49151604 | 17 sym | The classic render constructs `06` §2.1 settled on, declared over the shared targets and re-derived on an extent change.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS DECLARED
@@ -58,7 +58,7 @@ T AttachmentIndex                   | AttachmentIndex.h | 81-177  | owning      
     has   DerivedWidth   std::uint32_t               [-]  ?
     has   DerivedHeight  std::uint32_t               [-]  ?
     has   SpanStanding   bool                        [-]  ?
-    by    Api/VisibilityRaster.h, Api/WorkspaceSequence.h, Source/AttachmentIndex.cpp, Source/VisibilityRaster.cpp
+    by    Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/VisibilityRaster.cpp
     note  🔴 `06` §2.1 settles **classic render construct, not dynamic**. Every graphics program in Slate is
     note  🔴 Every attachment is declared to stand in the attachment layout on entry **and** on exit, so the
     note  ⚠️ The constructs outlive an extent change and the spans do not. `06` §7 reclaims and re-claims every
@@ -76,7 +76,7 @@ F AttachmentIndex::Declare          | AttachmentIndex.h | 109     | api,nonthrow
     in    Declaring  const ConstructDeclaration&  [-]  the colour targets in output order, and the depth target or its absence
     out   -          Deliver                      [-]  refuses with ContentUnsupported for a declaration spanning nothing at all or
     post  the construct stands; no span is derived until Derive is called
-    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+65 more)
+    by    Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, Api/DisplayProjection.h, (+64 more)
     note  📝 Declared from the claimed targets' formats rather than from `08` §2's table a second time.
 
 F AttachmentIndex::Derive           | AttachmentIndex.h | 123     | api,nonthrowing               | 🔴 | Covers every declared construct's targets at one display extent, replacing whatever stood before. and with HostDenied when the device declines a span `06` §7's gate is that no persistent extent survives a resize, and a span retained because its construct "looked unaffected" is exactly such an extent.
@@ -85,13 +85,13 @@ F AttachmentIndex::Derive           | AttachmentIndex.h | 123     | api,nonthrow
     out   -              Deliver        [-]   refuses with ContentUnsupported for a zero extent or an unclaimed target,
     pre   🔴 the device is idle and `TargetSpace` has re-claimed at this extent
     post  every declared construct carries a span at this extent, or none does — refused in full
-    by    Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+11 more)
+    by    Api/CameraProjection.h, Api/ChartPartition.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/OcclusionScheduler.h, Api/QuadratureIntegrator.h, (+10 more)
     note  🔴 Refused in full and derived for **every** construct, not the ones an extent change touched.
 
 F AttachmentIndex::Resolve          | AttachmentIndex.h | 131     | api,nonallocating,nonthrowing | ✔️ | The construct and the span one ordinal names, for the recording that opens it. with ExtentExhausted before Derive has covered it
     in    ConstructOrdinal  std::uint32_t  [-]  an ordinal this component issued
     out   -                 Deliver        [-]  refuses with ContentUnsupported for an ordinal naming no construct, and
-    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, Api/FileInterchange.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+89 more)
 
 F AttachmentIndex::ConstructOf      | AttachmentIndex.h | 140     | api,nonallocating,nonthrowing | ✔️ | The construct alone, for `ProgramIndex` constructing a program before any span is derived. is known, and only the formats enter that construction. Requiring a derived span to construct a program would order the two the wrong way round.
     in    ConstructOrdinal  std::uint32_t  [-]  ?
@@ -102,16 +102,16 @@ F AttachmentIndex::ConstructOf      | AttachmentIndex.h | 140     | api,nonalloc
 F AttachmentIndex::Surrender        | AttachmentIndex.h | 146     | api,nonthrowing               | 🚩 | Destroys every span and leaves the constructs standing, ahead of a re-claim at a new extent.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/CommandSequence.h, Api/DisplayScheduler.h, Api/RenderSchedule.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+4 more)
+    by    Api/CommandSequence.h, Api/DisplayScheduler.h, Api/RenderSchedule.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+5 more)
 
 F AttachmentIndex::Reclaim          | AttachmentIndex.h | 152     | api,nonthrowing               | 🚩 | Destroys every span and every construct.
     out   -  void  [-]  ?
     pre   the device is idle and no program constructed against one is still recorded
-    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+79 more)
+    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+77 more)
 
 F AttachmentIndex::DeclaredCount    | AttachmentIndex.h | 154     | -                             | -  | ?
     out   -  std::uint32_t  [-]  ?
-    by    Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/GlyphDepot.h, Api/HardwareMetrics.h, Api/MaterialSpecification.h, (+36 more)
+    by    Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/HardwareMetrics.h, Api/MaterialSpecification.h, Api/PrimitiveStructure.h, (+29 more)
 
 F AttachmentIndex::SpansDerived     | AttachmentIndex.h | 155     | -                             | -  | ?
     out   -  bool  [-]  ?

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S RevisionSequence.cpp | 119 lines | 8c6dba74 | 8 sym | The drag lifecycle, declared merging, and scrubbing in both directions.
+S RevisionSequence.cpp | 119 lines | 57821e16 | 8 sym | The drag lifecycle, declared merging, and scrubbing in both directions.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        OPENING

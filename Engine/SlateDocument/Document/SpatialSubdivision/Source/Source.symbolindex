@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SpatialSubdivision.cpp | 1169 lines | bfb7e8be | 38 sym | Octant division, nearest-first descent, exact face classification, and refit without rebuild.
+S SpatialSubdivision.cpp | 1169 lines | ac174666 | 38 sym | Octant division, nearest-first descent, exact face classification, and refit without rebuild.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     EXTENT HELPERS

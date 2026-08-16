@@ -1,0 +1,392 @@
+//============================================================================================================================================
+//                                                              API.SYMBOLINDEX
+//============================================================================================================================================
+// 🧩 Every ink and every measured extent the interface draws with — resolved once against the display scale, then read.
+
+%format     symbolindex 1.0
+%scope      folder
+%path       Engine/SlateUI/Interface/AppearanceSpecification/Api
+%layer      SlateUI
+%sources    1
+%symbols    58
+%annotated  10/58
+%cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SOURCES
+//------------------------------------------------------------------------------------------------------------------------
+
+S AppearanceSpecification.h | 314 lines | 79b456fb | 58 sym | Every ink and every measured extent the interface draws with — resolved once against the display scale, then read.
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                          INK
+//------------------------------------------------------------------------------------------------------------------------
+
+T InkOrdinate             | AppearanceSpecification.h | 21-27   | contract,nonallocating,nonthrowing | -  | One display-referred ink, packed at eight bits per component. here is ever tone-mapped a second time.
+    has   Red      std::uint8_t  [-]  ?
+    has   Green    std::uint8_t  [-]  ?
+    has   Blue     std::uint8_t  [-]  ?
+    has   Opacity  std::uint8_t  [-]  ?
+    by    Api/RecordingSurface.h, Source/RecordingSurface.cpp
+    note  ⚠️ Display-referred. `08` §3.1 places the interface after the tone projection, so nothing declared
+
+F Covering                | AppearanceSpecification.h | 31-37   | -                                  | ✔️ | Constructs a fully covering ink from a packed 0xRRGGBB literal.
+    in    Packed  std::uint32_t          [-]  ?
+    out   -       constexpr InkOrdinate  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F Partial                 | AppearanceSpecification.h | 43-48   | -                                  | ✔️ | Constructs an ink at a declared coverage, matching CSS `color-mix(… n%, transparent)`.
+    in    Packed    std::uint32_t          [-]  0xRRGGBB
+    in    Coverage  double                 [-]  zero is invisible, one is fully covering
+    out   -         constexpr InkOrdinate  [-]  ?
+
+F Faded                   | AppearanceSpecification.h | 52-56   | -                                  | ✔️ | Scales an ink's coverage without disturbing its chromaticity — what a fade interpolant drives.
+    in    Standing  InkOrdinate            [-]  ?
+    in    Coverage  double                 [-]  ?
+    out   -         constexpr InkOrdinate  [-]  ?
+    by    Source/RecordingSurface.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE NEUTRAL LADDER
+//------------------------------------------------------------------------------------------------------------------------
+
+V NeutralOneHundred       | AppearanceSpecification.h | 69      | -                                  | -  | ?
+
+V NeutralTwoHundred       | AppearanceSpecification.h | 70      | -                                  | -  | ?
+
+V NeutralThreeHundred     | AppearanceSpecification.h | 71      | -                                  | -  | ?
+
+V NeutralFourHundred      | AppearanceSpecification.h | 72      | -                                  | -  | ?
+
+V NeutralFiveHundred      | AppearanceSpecification.h | 73      | -                                  | -  | ?
+
+V NeutralSixHundred       | AppearanceSpecification.h | 74      | -                                  | -  | ?
+
+V NeutralSevenHundred     | AppearanceSpecification.h | 75      | -                                  | -  | ?
+
+V NeutralEightHundred     | AppearanceSpecification.h | 76      | -                                  | -  | ?
+
+V NeutralNineHundred      | AppearanceSpecification.h | 77      | -                                  | -  | ?
+
+V NeutralNineFifty        | AppearanceSpecification.h | 78      | -                                  | -  | ?
+
+V AbsoluteBlack           | AppearanceSpecification.h | 79      | -                                  | -  | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE RESOLVED INKS
+//------------------------------------------------------------------------------------------------------------------------
+
+T SurfaceInk              | AppearanceSpecification.h | 89-132  | contract,nonallocating,nonthrowing | -  | Every ink the interface draws with, named by the responsibility it carries rather than by its ladder rung. a ladder rung directly, so no call site has to be revisited to add one.
+    by    Source/DrawerSpace.cpp
+    note  A second appearance is a second filled instance of this record and nothing else — no call site names
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 91      | -                                  | -  | ?
+    in    NeutralNineFifty  -                            [-]  ?
+    out   -                 InkOrdinate SurfaceGround =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 92      | -                                  | -  | ?
+    in    NeutralNineHundred  -                              [-]  ?
+    out   -                   InkOrdinate SurfaceStanding =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 93      | -                                  | -  | ?
+    in    AbsoluteBlack  -                            [-]  ?
+    out   -              InkOrdinate SurfaceSunken =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 94      | -                                  | -  | ?
+    in    NeutralEightHundred  -                            [-]  ?
+    out   -                    InkOrdinate SurfaceRaised =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 95      | -                                  | -  | ?
+    in    NeutralFiveHundred  -                            [-]  ?
+    out   -                   InkOrdinate SurfaceLifted =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 97      | -                                  | -  | ?
+    in    NeutralEightHundred  -                         [-]  ?
+    in    -                    0.40                      [-]  ?
+    out   -                    InkOrdinate CardGround =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 98      | -                                  | -  | ?
+    in    NeutralSevenHundred  -                               [-]  ?
+    in    -                    0.60                            [-]  ?
+    out   -                    InkOrdinate CardGroundRoused =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 99      | -                                  | -  | ?
+    in    NeutralSevenHundred  -                       [-]  ?
+    in    -                    0.50                    [-]  ?
+    out   -                    InkOrdinate CardEdge =  [-]  ?
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 100     | -                                  | -  | ?
+    in    NeutralFiveHundred  -                             [-]  ?
+    out   -                   InkOrdinate CardEdgeRoused =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 101     | -                                  | -  | ?
+    in    NeutralSevenHundred  -                              [-]  ?
+    in    -                    0.50                           [-]  ?
+    out   -                    InkOrdinate MedallionGround =  [-]  ?
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 102     | -                                  | -  | ?
+    in    NeutralFiveHundred  -                              [-]  ?
+    out   -                   InkOrdinate MedallionRoused =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 104     | -                                  | -  | ?
+    in    NeutralNineHundred  -                               [-]  ?
+    in    -                   0.40                            [-]  ?
+    out   -                   InkOrdinate GroupGroundTaken =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 105     | -                                  | -  | ?
+    in    NeutralNineHundred  -                                [-]  ?
+    in    -                   0.20                             [-]  ?
+    out   -                   InkOrdinate GroupGroundRoused =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 106     | -                                  | -  | ?
+    in    NeutralNineHundred  -                                [-]  ?
+    in    -                   0.10                             [-]  ?
+    out   -                   InkOrdinate SubjectGroundTint =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 107     | -                                  | -  | ?
+    in    NeutralNineHundred  -                                 [-]  ?
+    in    -                   0.60                              [-]  ?
+    out   -                   InkOrdinate SubjectGroundTaken =  [-]  ?
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 109     | -                                  | -  | ?
+    in    NeutralEightHundred  -                        [-]  ?
+    out   -                    InkOrdinate EdgeQuiet =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 110     | -                                  | -  | ?
+    in    NeutralEightHundred  -                        [-]  ?
+    in    -                    0.50                     [-]  ?
+    out   -                    InkOrdinate EdgeFaint =  [-]  ?
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 111     | -                                  | -  | ?
+    in    NeutralSixHundred  -                       [-]  ?
+    out   -                  InkOrdinate GripPill =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 112     | -                                  | -  | ?
+    in    NeutralSevenHundred  -                       [-]  ?
+    out   -                    InkOrdinate MeterDot =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 114     | -                                  | -  | ?
+    in    NeutralOneHundred  -                         [-]  ?
+    out   -                  InkOrdinate InkPrimary =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 115     | -                                  | -  | ?
+    in    NeutralTwoHundred  -                        [-]  ?
+    out   -                  InkOrdinate InkRoused =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 116     | -                                  | -  | ?
+    in    NeutralThreeHundred  -                          [-]  ?
+    out   -                    InkOrdinate InkTertiary =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 117     | -                                  | -  | ?
+    in    NeutralFourHundred  -                       [-]  ?
+    out   -                   InkOrdinate InkMuted =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 118     | -                                  | -  | ?
+    in    NeutralFiveHundred  -                       [-]  ?
+    out   -                   InkOrdinate InkFaint =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 119     | -                                  | -  | ?
+    in    NeutralSixHundred  -                       [-]  ?
+    out   -                  InkOrdinate InkGhost =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 121     | -                                  | -  | ?
+    in    NeutralOneHundred  -                        [-]  ?
+    out   -                  InkOrdinate RailTaken =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 122     | -                                  | -  | ?
+    in    xFFFFFFu  0                       [-]  ?
+    in    -         0.80                    [-]  ?
+    out   -         InkOrdinate RailGlow =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 123     | -                                  | -  | ?
+    in    AbsoluteBlack  -                        [-]  ?
+    in    -              0.00                     [-]  ?
+    out   -              InkOrdinate RailQuiet =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 125     | -                                  | -  | ?
+    in    NeutralNineHundred  -                       [-]  ?
+    in    -                   0.80                    [-]  ?
+    out   -                   InkOrdinate ScrimTop =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 126     | -                                  | -  | ?
+    in    NeutralNineHundred  -                          [-]  ?
+    in    -                   0.00                       [-]  ?
+    out   -                   InkOrdinate ScrimBottom =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 127     | -                                  | -  | ?
+    in    AbsoluteBlack  -                           [-]  ?
+    in    -              0.50                        [-]  ?
+    out   -              InkOrdinate DrawerShadow =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 128     | -                                  | -  | ?
+    in    AbsoluteBlack  -                                [-]  ?
+    in    -              0.12                             [-]  ?
+    out   -              InkOrdinate TongueShadowNorth =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 129     | -                                  | -  | ?
+    in    AbsoluteBlack  -                                [-]  ?
+    in    -              0.25                             [-]  ?
+    out   -              InkOrdinate TongueShadowSouth =  [-]  ?
+
+F SurfaceInk::Partial     | AppearanceSpecification.h | 130     | -                                  | -  | ?
+    in    AbsoluteBlack  -                           [-]  ?
+    in    -              0.05                        [-]  ?
+    out   -              InkOrdinate RecessShadow =  [-]  ?
+
+F SurfaceInk::Covering    | AppearanceSpecification.h | 131     | -                                  | -  | ?
+    in    NeutralFiveHundred  -                        [-]  ?
+    out   -                   InkOrdinate FocusRing =  [-]  ?
+    by    Api/VisibilityRaster.h, Source/VisibilityRaster.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE MEASURED SCALE
+//------------------------------------------------------------------------------------------------------------------------
+
+T MetricScale             | AppearanceSpecification.h | 142-244 | contract,nonallocating,nonthrowing | -  | Every extent the source states, already multiplied by the display scale. one display scale, and the defect only appears on a second machine.
+    has   SpacingUnit           float  [-]  ?
+    has   RadiusFine            float  [-]  ?
+    has   RadiusSmall           float  [-]  ?
+    has   RadiusMedium          float  [-]  ?
+    has   RadiusGrand           float  [-]  ?
+    has   TextFine              float  [-]  ?
+    has   TextSmall             float  [-]  ?
+    has   TextBody              float  [-]  ?
+    has   TextTitle             float  [-]  ?
+    has   LeadingFine           float  [-]  ?
+    has   LeadingSmall          float  [-]  ?
+    has   LeadingBody           float  [-]  ?
+    has   LeadingTitle          float  [-]  ?
+    has   WheelTravel           float  [-]  ?
+    has   TrackingTight         float  [-]  ?
+    has   TrackingWide          float  [-]  ?
+    has   TrackingWider         float  [-]  ?
+    has   TrackingWidest        float  [-]  ?
+    has   TongueAlong           float  [-]  ?
+    has   TongueAcross          float  [-]  ?
+    has   TongueClipFraction    float  [-]  ?
+    has   TongueGapAlong        float  [-]  ?
+    has   TonguePadAlong        float  [-]  ?
+    has   GripAlong             float  [-]  ?
+    has   GripAcross            float  [-]  ?
+    has   GripStripAcross       float  [-]  ?
+    has   GripLiftNorth         float  [-]  ?
+    has   RailAcross            float  [-]  ?
+    has   RailGlowSpread        float  [-]  ?
+    has   SymbolChevron         float  [-]  ?
+    has   SymbolTongue          float  [-]  ?
+    has   SymbolToggle          float  [-]  ?
+    has   SymbolVacant          float  [-]  ?
+    has   MedallionLattice      float  [-]  ?
+    has   MedallionColumn       float  [-]  ?
+    has   MedallionPreview      float  [-]  ?
+    has   LibraryAlongMedium    float  [-]  ?
+    has   LibraryAlongLarge     float  [-]  ?
+    has   PreviewAlongMedium    float  [-]  ?
+    has   PreviewAlongLarge     float  [-]  ?
+    has   LibraryPadAlong       float  [-]  ?
+    has   LibraryCaptionAcross  float  [-]  ?
+    has   GroupPadAcross        float  [-]  ?
+    has   GroupGapAcross        float  [-]  ?
+    has   SubjectIndentAlong    float  [-]  ?
+    has   SubjectPadTrailing    float  [-]  ?
+    has   SubjectStripPad       float  [-]  ?
+    has   ContentPad            float  [-]  ?
+    has   ContentPadLeading     float  [-]  ?
+    has   ContentHeadAcross     float  [-]  ?
+    has   ContentHeadPadAlong   float  [-]  ?
+    has   ContentHeadGap        float  [-]  ?
+    has   ContentTrailingPad    float  [-]  ?
+    has   ContentScrollPad      float  [-]  ?
+    has   EntryAlongCeiling     float  [-]  ?
+    has   EntryPadAlong         float  [-]  ?
+    has   EntryPadAcross        float  [-]  ?
+    has   TogglePad             float  [-]  ?
+    has   ToggleGap             float  [-]  ?
+    has   CardGapLattice        float  [-]  ?
+    has   CardGapColumn         float  [-]  ?
+    has   CardPadColumn         float  [-]  ?
+    has   CardGapColumnInner    float  [-]  ?
+    has   CardScrimAcross       float  [-]  ?
+    has   CardMetaGap           float  [-]  ?
+    has   CardMetaLift          float  [-]  ?
+    has   CardMetaDot           float  [-]  ?
+    has   PreviewGap            float  [-]  ?
+    has   PreviewPad            float  [-]  ?
+    has   PreviewBoxFloor       float  [-]  ?
+    has   PreviewBoxCeiling     float  [-]  ?
+    has   SkeletonGapUpper      float  [-]  ?
+    has   SkeletonGapLower      float  [-]  ?
+    has   SkeletonLeading       float  [-]  ?
+    has   BreakpointSmall       float  [-]  ?
+    has   BreakpointMedium      float  [-]  ?
+    has   BreakpointLarge       float  [-]  ?
+    has   DisplayScale          float  [-]  ?
+    by    Source/AppearanceSpecification.cpp, Source/DrawerSpace.cpp
+    note  🔴 Multiplied **once**, at resolve. A call site that scales again produces a panel correct at exactly
+
+V SkeletonBarAcross       | AppearanceSpecification.h | 249     | -                                  | -  | ?
+
+V SkeletonBarFraction     | AppearanceSpecification.h | 250     | -                                  | -  | ?
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE MOTION SCALE
+//------------------------------------------------------------------------------------------------------------------------
+
+T MotionScale             | AppearanceSpecification.h | 261-285 | contract,nonallocating,nonthrowing | -  | Every duration and every spring coefficient the source declares. linear ease at the same duration reads as a different product, which is why the coefficients travel rather than a duration.
+    has   DrawerStiffness      double  [-]  ?
+    has   DrawerDamping        double  [-]  ?
+    has   DragElasticity       double  [-]  ?
+    has   DiscloseDuration     double  [-]  ?
+    has   RouseDuration        double  [-]  ?
+    has   CardArrivalDuration  double  [-]  ?
+    has   CardArrivalStagger   double  [-]  ?
+    has   CardArrivalLift      double  [-]  ?
+    has   CardArrivalScale     double  [-]  ?
+    has   CardRouseScale       double  [-]  ?
+    has   CardRouseTravel      double  [-]  ?
+    has   ArrivalMargin        double  [-]  ?
+    has   SnapRateSoft         double  [-]  ?
+    has   SnapRateFirm         double  [-]  ?
+    has   SnapRateHard         double  [-]  ?
+    has   SnapFractionNear     double  [-]  ?
+    has   SnapFractionFar      double  [-]  ?
+    by    Api/MotionIntegrator.h, Source/DrawerSpace.cpp, Source/MotionIntegrator.cpp
+    note  📐 ζ = 35 / (2√350) ≈ 0.9354, so every drawer transition overshoots slightly before settling. A
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE RESOLVED RECORD
+//------------------------------------------------------------------------------------------------------------------------
+
+T AppearanceSpecification | AppearanceSpecification.h | 293-298 | contract,nonallocating,nonthrowing | -  | The one record every panel reads. Resolved at bring-up and again only when the display scale changes.
+    has   Ink      SurfaceInk   [-]  ?
+    has   Measure  MetricScale  [-]  ?
+    has   Motion   MotionScale  [-]  ?
+    by    Api/DrawerSpace.h, Api/ViewportSequence.h, Source/AppearanceSpecification.cpp, Source/DrawerSpace.cpp, Source/ViewportSequence.cpp
+
+F Resolve                 | AppearanceSpecification.h | 305     | api,nonallocating,nonthrowing      | ✔️ | Resolves the appearance against one display scale.
+    in    DisplayScale  double      [-]  what the window system reports; values at or below zero resolve at one
+    out   -             Appearance  [-]  every extent already multiplied; nothing downstream multiplies again
+    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+89 more)
+
+F LatticeColumns          | AppearanceSpecification.h | 312     | api,nonallocating,nonthrowing      | ✔️ | How many lattice columns the content extent admits, from the source's four breakpoints.
+    in    Measure       const MetricScale&  [-]   ?
+    in    ContentAlong  float               [px]  the extent the lattice is arranged inside
+    out   -             Columns             [-]   two below 640 px, then three, four, and five at and above 1024 px
+    by    Source/AppearanceSpecification.cpp

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SurfaceTileSpace.cpp | 623 lines | c4055d81 | 28 sym | The coarsening walk that never stalls, the revision comparison, and promotion that evicts only what it may.
+S SurfaceTileSpace.cpp | 623 lines | 80af10bb | 28 sym | The coarsening walk that never stalls, the revision comparison, and promotion that evicts only what it may.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    CELL ADDRESSING

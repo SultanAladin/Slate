@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ToolSequence.cpp | 247 lines | bad22a6b | 27 sym | Tool declaration, the arbitration both units ask, and the capture that persists for a whole drag.
+S ToolSequence.cpp | 247 lines | 6c32c02f | 27 sym | Tool declaration, the arbitration both units ask, and the capture that persists for a whole drag.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE TOOLS

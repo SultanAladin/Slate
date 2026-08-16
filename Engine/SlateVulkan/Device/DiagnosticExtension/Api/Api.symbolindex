@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DiagnosticExtension.h | 158 lines | c8264667 | 10 sym | `VK_EXT_debug_utils` — queried, enabled and held, so every device object Slate creates carries a name.
+S DiagnosticExtension.h | 158 lines | 9caff07e | 10 sym | `VK_EXT_debug_utils` — queried, enabled and held, so every device object Slate creates carries a name.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                               THE NEGOTIATED CAPABILITY
@@ -30,7 +30,7 @@ T DiagnosticExtension                       | DiagnosticExtension.h | 37-156  | 
     has   NameDeclaration   PFN_vkSetDebugUtilsObjectNameEXT     [-]  ?
     has   Forwarded         ArrivalForwarding                    [-]  ?
     has   CapabilityHeld    bool                                 [-]  ?
-    by    Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/ImageSpace.h, (+12 more)
+    by    Api/ByteSpace.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/ImageSpace.h, (+13 more)
     note  🔴 This is `SKILL-Naming`'s narrow reading of `Extension`: a queried, enabled and **owned** optional
     note  🔴 Compiled in every configuration rather than behind `SLATE_DEBUG`. A component compiled out of
     note  ⚠️ Attached **after** `ConstructInstance` and **before** `ConstructDevice`. The capability is
@@ -52,7 +52,7 @@ F DiagnosticExtension::Declare              | DiagnosticExtension.h | 82      | 
     in    VendorHandle  std::uint64_t  [-]  the object, widened to the vendor's own naming width
     in    DeclaredName  const char*    [-]  static text; the driver copies it and nothing here retains it
     out   -             Deliver        [-]  refuses with CapabilityAbsent when no device stands, and with HostDenied when
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+65 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+64 more)
     note  🔴 `06` §7's gate — every device object Slate creates carries a diagnostic name in Debug — is
     note  ⚠️ Delivers as a no-op when nothing negotiated the capability. A name declared in a configuration
     note  📝 `VendorHandle` spells the banned structural word deliberately, under `SKILL-Naming`'s
@@ -64,13 +64,13 @@ F DiagnosticExtension::Declare              | DiagnosticExtension.h | 99      | 
     in    DeclaredPrefix  const char*    [-]  static text naming what the object is; the ordinal is appended to it
     in    Ordinal         std::uint32_t  [-]  the slot the owning component resolves the object by
     out   -               Deliver        [-]  refuses as the two-operand form does, and with ContentUnsupported when the
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+65 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DisplayProjection.h, (+64 more)
     note  🔴 The composition is here rather than at each claim site. Eight components name objects by their
     note  ⚠️ Composed into an automatic extent and read by the driver before this returns, which is what
 
 F DiagnosticExtension::Negotiated           | DiagnosticExtension.h | 108     | api,nonallocating,nonthrowing | ✔️ | Whether the capability was negotiated, for a claim site reporting what it could not name.
     out   -  Negotiated  [-]  false in every configuration that did not request the diagnostic
-    by    Source/DiagnosticExtension.cpp, Source/WorkspaceSequence.cpp
+    by    Source/DiagnosticExtension.cpp
 
 F DiagnosticExtension::ArrivalCount         | DiagnosticExtension.h | 115     | api,nonallocating,nonthrowing | ✔️ | How many diagnostic arrivals the driver has reported since the sink attached. arrival count is what says whether a quiet register means a clean run or a detached sink.
     out   -  std::uint64_t  [-]  ?
@@ -80,7 +80,7 @@ F DiagnosticExtension::ArrivalCount         | DiagnosticExtension.h | 115     | 
 F DiagnosticExtension::Reclaim              | DiagnosticExtension.h | 121     | api,nonthrowing               | ✔️ | Detaches the sink and forgets every resolved entry point.
     out   -  void  [-]  ?
     pre   nothing is still recording; the instance stands until after this returns
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
 F DiagnosticExtension::Arrival              | DiagnosticExtension.h | 135     | -                             | -  | The C-ABI arrival the driver calls, which forwards to the register the construction was given. was executing on. Nothing here allocates and nothing here takes a lock the driver does not already hold — the register's own guard is the only one. declares seven dispositions and none of them is "warning": an error and a validation warning are each a defect in Slate's own use of the vendor rather than normal operation, and `86` §5 — not a mapping here — decides what is presented as a problem. Only those two severities are subscribed to; a bounded register filled with information arrivals is one in which the error that mattered has already been discarded.
     in    Severity    VkDebugUtilsMessageSeverityFlagBitsEXT       [-]  ?
@@ -88,7 +88,7 @@ F DiagnosticExtension::Arrival              | DiagnosticExtension.h | 135     | 
     in    Arriving    const VkDebugUtilsMessengerCallbackDataEXT*  [-]  ?
     in    Forwarding  void*                                        [-]  ?
     out   -           static VKAPI_ATTR VkBool32 VKAPI_CALL        [-]  ?
-    by    Api/HardwareMetrics.h, Api/InputExchange.h, Api/ReportSequence.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, (+15 more)
+    by    Api/HardwareMetrics.h, Api/InputExchange.h, Api/ReportSequence.h, Source/AssetInterchange.cpp, Source/BrushSpecification.cpp, Source/ChartPartition.cpp, (+13 more)
     note  🔴 `86` §3.1 admits an append from any thread and this arrives on whichever thread the driver
     note  🔴 Every arrival is appended as `Failed`, so the severity is read by nothing. `ReportSequence`
 

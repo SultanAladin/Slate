@@ -7,22 +7,23 @@
 %scope      folder
 %path       Engine/SlateUI/Interface/InterfaceExchange/Api
 %layer      SlateUI
-%sources    1
-%symbols    10
-%annotated  9/10
+%sources    2
+%symbols    46
+%annotated  37/46
 %cost       ✔️ low · 🚩 medium · 🔴 high (cost rises left to right)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S InterfaceExchange.h | 116 lines | ace19393 | 10 sym | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
+S InterfaceExchange.h | 137 lines | 5f460a86 | 12 sym | The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
+S RecordingSurface.h  | 264 lines | bc6c1c16 | 34 sym | Primitives in, recorded commands out — the drawing half of the interface seam, with no ImGui spelling anywhere.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                             WHAT THE INTERFACE ATTACHES TO
 //------------------------------------------------------------------------------------------------------------------------
 
-T InterfaceAttachment                   | InterfaceExchange.h | 28-38  | nonallocating,nonthrowing     | -  | Every device handle the interface library needs, supplied once at bring-up. is an ImGui spelling: the whole point of the seam is that a host including this header links the interface without acquiring ImGui's declarations. `00` §2.2 makes a host that includes `imgui.h` a defect, and a defect that cannot be spelled cannot be committed.
+T InterfaceAttachment                   | InterfaceExchange.h | 28-38   | nonallocating,nonthrowing          | -  | Every device handle the interface library needs, supplied once at bring-up. is an ImGui spelling: the whole point of the seam is that a host including this header links the interface without acquiring ImGui's declarations. `00` §2.2 makes a host that includes `imgui.h` a defect, and a defect that cannot be spelled cannot be committed.
     has   Instance               VkInstance        [-]  ?
     has   ScoredDevice           VkPhysicalDevice  [-]  ?
     has   ActiveDevice           VkDevice          [-]  ?
@@ -31,54 +32,319 @@ T InterfaceAttachment                   | InterfaceExchange.h | 28-38  | nonallo
     has   ColourTargetFormat     VkFormat          [-]  ?
     has   RotationDepth          std::uint32_t     [-]  ?
     has   NativeWindowSlot       void*             [-]  ?
-    by    Source/InterfaceExchange.cpp, Source/WorkspaceSequence.cpp
+    by    Api/ViewportSequence.h, Source/EditorHost.cpp, Source/InterfaceExchange.cpp, Source/PaintHost.cpp, Source/ViewportSequence.cpp
     note  🔴 Vendor spellings are verbatim here because this is the vendor surface. Nothing in this struct
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE INTERFACE SEAM
 //------------------------------------------------------------------------------------------------------------------------
 
-T InterfaceExchange                     | InterfaceExchange.h | 50-114 | owning                        | -  | Holds the interface context and the two vendor attachments that feed it. source file. `00` §2.2: exactly one copy of ImGui exists, compiled inside `SlateUI`. projection, so nothing recorded by this component is ever tone-mapped a second time.
+T InterfaceExchange                     | InterfaceExchange.h | 50-135  | owning                             | -  | Holds the interface context and the two vendor attachments that feed it. source file. `00` §2.2: exactly one copy of ImGui exists, compiled inside `SlateUI`. projection, so nothing recorded by this component is ever tone-mapped a second time.
     has   Attached          InterfaceAttachment  [-]  ?
     has   DescriptorSlot    VkDescriptorPool     [-]  ?
     has   ContextSlot       void*                [-]  ?
     has   TickOpen          bool                 [-]  ?
     has   ContentAssembled  bool                 [-]  ?
-    by    Api/WorkspaceSequence.h, Source/InterfaceExchange.cpp
+    has   WindowAttached    bool                 [-]  ?
+    has   VendorAttached    bool                 [-]  ?
+    by    Api/ViewportSequence.h, Source/InterfaceExchange.cpp
     note  🔴 This is the only component in the engine that names ImGui, and it names it only inside its
     note  ⚠️ Everything recorded here is display-referred. `08` §3.1 places the interface after the tone
 
-F InterfaceExchange::~InterfaceExchange | InterfaceExchange.h | 57     | destructor                    | -  | ?
+F InterfaceExchange::~InterfaceExchange | InterfaceExchange.h | 57      | destructor                         | -  | ?
 
-F InterfaceExchange::Construct          | InterfaceExchange.h | 68     | api,nonthrowing               | 🔴 | Constructs the interface context over the supplied device handles. HostDenied when the vendor attachment declines `VK_KHR_dynamic_rendering` or a device at Vulkan 1.3. Construct refuses rather than recording into a target the device never agreed to.
+F InterfaceExchange::Construct          | InterfaceExchange.h | 68      | api,nonthrowing                    | 🔴 | Constructs the interface context over the supplied device handles. HostDenied when the vendor attachment declines `VK_KHR_dynamic_rendering` or a device at Vulkan 1.3. Construct refuses rather than recording into a target the device never agreed to.
     in    Arriving  const InterfaceAttachment&  [-]  the device handles and the window the interface reads from
     out   -         Deliver                     [-]  refuses with CapabilityAbsent when any required handle is absent, and with
     by    Api/AnalyticProjection.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/CommandSequence.h, (+66 more)
     note  🚧 Recording is declared against dynamic rendering, so `06`'s bring-up must negotiate
 
-F InterfaceExchange::Reclaim            | InterfaceExchange.h | 73     | api,nonthrowing               | 🚩 | Destroys the interface context and both vendor attachments.
+F InterfaceExchange::Reclaim            | InterfaceExchange.h | 73      | api,nonthrowing                    | 🚩 | Destroys the interface context and both vendor attachments.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
 
-F InterfaceExchange::Advance            | InterfaceExchange.h | 79     | api,nonthrowing               | ✔️ | Opens one interface tick and reads the window system's accumulated condition.
+F InterfaceExchange::Advance            | InterfaceExchange.h | 79      | api,nonthrowing                    | ✔️ | Opens one interface tick and reads the window system's accumulated condition.
     out   -  Deliver  [-]  refuses when no context is constructed, or when a tick is already open
-    by    Api/CycleScheduler.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+22 more)
+    by    Api/CycleScheduler.h, Api/DrawerSpace.h, Api/GestureSequence.h, Api/MotionIntegrator.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, (+28 more)
 
-F InterfaceExchange::Seal               | InterfaceExchange.h | 86     | api,nonthrowing               | 🚩 | Closes the open tick and assembles its command content, ready to record.
+F InterfaceExchange::Seal               | InterfaceExchange.h | 86      | api,nonthrowing                    | 🚩 | Closes the open tick and assembles its command content, ready to record.
     out   -  Deliver  [-]  refuses when no tick is open
     post  the assembled content stays valid until the next Advance
     by    Api/CameraProjection.h, Api/DecalProjection.h, Api/DocumentSession.h, Api/EmissionSequence.h, Api/ImpressionSequence.h, Api/RevisionSequence.h, (+20 more)
 
-F InterfaceExchange::Record             | InterfaceExchange.h | 94     | api,nonthrowing               | 🚩 | Records the assembled content into a command recording of the current rotation slot.
+F InterfaceExchange::Abandon            | InterfaceExchange.h | 96      | api,nonthrowing                    | ✔️ | Closes an open tick without assembling it, so that nothing downstream may record it. makes every subsequent Advance refuse with "a tick is already open" for the life of the process, and the interface stops responding with no error anywhere.
+    out   -  Deliver  [-]  delivers true when no tick was open; abandoning nothing is not a defect
+    post  no tick is open and Record refuses until the next Advance and Seal
+    by    Api/CameraProjection.h, Api/DecalProjection.h, Api/GestureSequence.h, Api/ImpressionSequence.h, Api/OcclusionScheduler.h, Api/RevisionSequence.h, (+18 more)
+    note  🔴 The escape a host takes when anything between Advance and Seal declines. A tick left open
+
+F InterfaceExchange::Renegotiate        | InterfaceExchange.h | 105     | api,nonthrowing                    | 🚩 | Restates the rotation depth to the vendor attachment after a presentation chain was re-established. records past the end of it on the first tick after a resize.
+    in    RotationDepth  std::uint32_t  [-]  the depth the new chain carries
+    out   -              Deliver        [-]  refuses when no context is constructed
+    by    Api/ViewportSequence.h, Source/EditorHost.cpp, Source/InterfaceExchange.cpp, Source/ViewportSequence.cpp
+    note  ⚠️ A vendor attachment holding a stale image count sizes its own per-image storage wrongly and
+
+F InterfaceExchange::Record             | InterfaceExchange.h | 113     | api,nonthrowing                    | 🚩 | Records the assembled content into a command recording of the current rotation slot.
     in    CommandRecording  VkCommandBuffer  [-]  a recording already inside a dynamic rendering scope over DisplaySurface
     out   -                 Deliver          [-]  refuses when nothing has been sealed since the last Advance
     pre   Seal delivered
-    by    Api/InputExchange.h, Api/IntakeIndex.h, Api/VisibilityRaster.h, Api/WorkspaceSequence.h, Source/AssetInterchange.cpp, Source/CanvasPanel.cpp, (+8 more)
+    by    Api/DrawerSpace.h, Api/InputExchange.h, Api/IntakeIndex.h, Api/ViewportSequence.h, Api/VisibilityRaster.h, Source/AssetInterchange.cpp, (+11 more)
 
-F InterfaceExchange::PointerCaptured    | InterfaceExchange.h | 99     | api,nonallocating,nonthrowing | ✔️ | Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
+F InterfaceExchange::PointerCaptured    | InterfaceExchange.h | 118     | api,nonallocating,nonthrowing      | ✔️ | Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
     out   -  bool  [-]  ?
-    by    Source/InterfaceExchange.cpp, Source/WorkspaceSequence.cpp
+    by    Api/ViewportSequence.h, Source/InterfaceExchange.cpp, Source/ViewportSequence.cpp
 
-F InterfaceExchange::KeyboardCaptured   | InterfaceExchange.h | 104    | api,nonallocating,nonthrowing | ✔️ | Whether the interface has taken text entry, so that no shortcut consumes the same key.
+F InterfaceExchange::KeyboardCaptured   | InterfaceExchange.h | 123     | api,nonallocating,nonthrowing      | ✔️ | Whether the interface has taken text entry, so that no shortcut consumes the same key.
     out   -  bool  [-]  ?
-    by    Source/InterfaceExchange.cpp, Source/WorkspaceSequence.cpp
+    by    Api/ViewportSequence.h, Source/InterfaceExchange.cpp, Source/ViewportSequence.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE PLANE EXTENT
+//------------------------------------------------------------------------------------------------------------------------
+
+T PlaneExtent                           | RecordingSurface.h  | 25-39   | contract,nonallocating,nonthrowing | -  | One axis-aligned extent in display pixels, stated as its two corners. upward convention `ToleranceContract.h` declares for clip space; the two never meet.
+    has   LeastAlong   float  [-]  ?
+    has   LeastAcross  float  [-]  ?
+    has   MostAlong    float  [-]  ?
+    has   MostAcross   float  [-]  ?
+    by    Api/DrawerSpace.h, Source/DrawerSpace.cpp, Source/RecordingSurface.cpp
+    note  The ordinate increases **downward**, as the display does. Nothing in the interface uses the
+
+F PlaneExtent::SpanAlong                | RecordingSurface.h  | 32      | -                                  | -  | ?
+    out   -  constexpr float  [-]  ?
+    by    Source/AnalyticProjection.cpp, Source/AtmosphereIntegrator.cpp, Source/DecalProjection.cpp, Source/DrawerSpace.cpp, Source/ImpressionSequence.cpp, Source/PointerIntersection.cpp, (+1 more)
+
+F PlaneExtent::SpanAcross               | RecordingSurface.h  | 33      | -                                  | -  | ?
+    out   -  constexpr float  [-]  ?
+    by    Source/AnalyticProjection.cpp, Source/AtmosphereIntegrator.cpp, Source/DecalProjection.cpp, Source/ImpressionSequence.cpp, Source/PointerIntersection.cpp
+
+F PlaneExtent::Encloses                 | RecordingSurface.h  | 35-38   | -                                  | -  | ?
+    in    Along   float           [-]  ?
+    in    Across  float           [-]  ?
+    out   -       constexpr bool  [-]  ?
+    by    Source/DrawerSpace.cpp
+
+F Spanning                              | RecordingSurface.h  | 43-46   | -                                  | ✔️ | Constructs an extent from an origin and a span.
+    in    Along         float                  [-]  ?
+    in    Across        float                  [-]  ?
+    in    ExtentAlong   float                  [-]  ?
+    in    ExtentAcross  float                  [-]  ?
+    out   -             constexpr PlaneExtent  [-]  ?
+    by    Source/DrawerSpace.cpp
+
+V CornerNone                            | RecordingSurface.h  | 51      | -                                  | -  | Which corners of a rounded primitive are rounded. Absent bits are square. instead. A single mask covers all three rather than three primitives that drift apart.
+    by    Source/DrawerSpace.cpp
+    note  The source's card is rounded on four; its drawer body on none; its tongue on none but is clipped
+
+V CornerLeadingUpper                    | RecordingSurface.h  | 52      | -                                  | -  | ?
+    by    Source/RecordingSurface.cpp
+
+V CornerTrailingUpper                   | RecordingSurface.h  | 53      | -                                  | -  | ?
+    by    Source/RecordingSurface.cpp
+
+V CornerTrailingLower                   | RecordingSurface.h  | 54      | -                                  | -  | ?
+    by    Source/RecordingSurface.cpp
+
+V CornerLeadingLower                    | RecordingSurface.h  | 55      | -                                  | -  | ?
+    by    Source/RecordingSurface.cpp
+
+V CornerAll                             | RecordingSurface.h  | 56      | -                                  | -  | ?
+    by    Source/DrawerSpace.cpp, Source/RecordingSurface.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 THE ARRIVED CONDITION
+//------------------------------------------------------------------------------------------------------------------------
+
+T PointerCondition                      | RecordingSurface.h  | 68-79   | contract,nonallocating,nonthrowing | -  | What the pointer did between the previous tick and this one. `InputExchange`. The two observe the same device through two surfaces that never merge: the stroke path needs arrival stamps at device rate, the interface needs one resolved position per tick, and merging them would give the canvas the interface's rate.
+    has   PositionAlong    float   [-]  ?
+    has   PositionAcross   float   [-]  ?
+    has   TravelAlong      float   [-]  ?
+    has   TravelAcross     float   [-]  ?
+    has   WheelAcross      float   [-]  ?
+    has   ContactHeld      bool    [-]  ?
+    has   ContactArrived   bool    [-]  ?
+    has   ContactReleased  bool    [-]  ?
+    has   HeldDuration     double  [-]  ?
+    by    Api/DrawerSpace.h, Api/GestureSequence.h, Source/DrawerSpace.cpp, Source/GestureSequence.cpp, Source/PaintHost.cpp, Source/RecordingSurface.cpp, (+1 more)
+    note  🔴 Read from the interface library's accumulated window condition and **not** from `04`'s
+
+T DisplayCondition                      | RecordingSurface.h  | 83-89   | contract,nonallocating,nonthrowing | -  | What the display reported for this tick.
+    has   ExtentAlong   float   [-]  ?
+    has   ExtentAcross  float   [-]  ?
+    has   Elapsed       double  [-]  ?
+    has   DisplayScale  double  [-]  ?
+    by    Api/DrawerSpace.h, Source/DrawerSpace.cpp, Source/RecordingSurface.cpp, Source/ViewportSequence.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        THE SEAM
+//------------------------------------------------------------------------------------------------------------------------
+
+T RecordingSurface                      | RecordingSurface.h  | 104-262 | owning                             | -  | Records the interface's own primitives into the open interface tick. source file. `00` §2.2 makes a **host** including `imgui.h` a defect; it does not forbid a second unit inside `SlateUI`, which already owns the one copy. The alternative was recording panels through built-in widgets, and no built-in widget produces a clipped tongue, an eight-pixel glow, a scrim or tracked small capitals — the four things the source is mostly made of. window writes into content nothing will assemble.
+    has   CommandSlot     void*             [-]  ?
+    has   ArrivedPointer  PointerCondition  [-]  ?
+    has   ArrivedDisplay  DisplayCondition  [-]  ?
+    has   ConfineDepth    std::uint32_t     [-]  ?
+    by    Api/DrawerSpace.h, Api/ViewportSequence.h, Source/DrawerSpace.cpp, Source/RecordingSurface.cpp, Source/ViewportSequence.cpp
+    note  🔴 The second and last translation unit in the engine that names ImGui, and it names it only in its
+    note  ⚠️ Every method is valid only between `InterfaceExchange::Advance` and `Seal`. Recording outside that
+
+F RecordingSurface::Adopt               | RecordingSurface.h  | 118     | api,nonallocating,nonthrowing      | ✔️ | Binds this surface to the open interface tick and samples the arrived condition.
+    out   -  Deliver  [-]  refuses with CapabilityAbsent when no interface context is current
+    post  Pointer and Display report this tick; every recording method is valid until Seal
+    by    Api/ChartPartition.h, Api/PartitionStructure.h, Source/ChartPartition.cpp, Source/ConsoleHost.cpp, Source/PartitionStructure.cpp, Source/RecordingSurface.cpp, (+2 more)
+
+F RecordingSurface::Pointer             | RecordingSurface.h  | 123     | api,nonallocating,nonthrowing      | ✔️ | What the pointer did this tick.
+    out   -  const PointerCondition&  [-]  ?
+    by    Source/PaintHost.cpp, Source/RecordingSurface.cpp, Source/ViewportSequence.cpp
+
+F RecordingSurface::Display             | RecordingSurface.h  | 128     | api,nonallocating,nonthrowing      | ✔️ | What the display reported this tick.
+    out   -  const DisplayCondition&  [-]  ?
+    by    Api/DisplayProjection.h, Api/ToolSequence.h, Source/ConsoleHost.cpp, Source/DisplayProjection.cpp, Source/RecordingSurface.cpp, Source/ToolSequence.cpp, (+1 more)
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   GROUNDS AND EDGES
+//------------------------------------------------------------------------------------------------------------------------
+
+F RecordingSurface::Ground              | RecordingSurface.h  | 137     | api,nonthrowing                    | ✔️ | Fills an extent, optionally rounding the named corners.
+    in    Extent   const PlaneExtent&  [-]  ?
+    in    Ink      InkOrdinate         [-]  ?
+    in    Radius   float               [-]  ?
+    in    Corners  std::uint32_t       [-]  ?
+    out   -        void                [-]  ?
+    by    Source/DrawerSpace.cpp, Source/RecordingSurface.cpp
+
+F RecordingSurface::Edge                | RecordingSurface.h  | 142     | api,nonthrowing                    | ✔️ | Strokes an extent's edge inward from its stated corners.
+    in    Extent   const PlaneExtent&  [-]  ?
+    in    Ink      InkOrdinate         [-]  ?
+    in    Weight   float               [-]  ?
+    in    Radius   float               [-]  ?
+    in    Corners  std::uint32_t       [-]  ?
+    out   -        void                [-]  ?
+    by    Source/AnalyticProjection.cpp, Source/ImpressionSequence.cpp, Source/RecordingSurface.cpp, Source/SurfaceTileSpace.cpp
+
+F RecordingSurface::Scrim               | RecordingSurface.h  | 150     | api,nonthrowing                    | ✔️ | Fills an extent with an ordinate-varying ink — the card's caption scrim.
+    in    Extent    const PlaneExtent&  [-]  ?
+    in    UpperInk  InkOrdinate         [-]  at LeastAcross
+    in    LowerInk  InkOrdinate         [-]  at MostAcross
+    out   -         void                [-]  ?
+    by    Source/RecordingSurface.cpp
+
+F RecordingSurface::Medallion           | RecordingSurface.h  | 155     | api,nonthrowing                    | ✔️ | Fills a disc — every medallion and the meta separator.
+    in    CentreAlong   float        [-]  ?
+    in    CentreAcross  float        [-]  ?
+    in    Radius        float        [-]  ?
+    in    Ink           InkOrdinate  [-]  ?
+    out   -             void         [-]  ?
+    by    Source/RecordingSurface.cpp
+
+F RecordingSurface::Tongue              | RecordingSurface.h  | 162     | api,nonthrowing                    | ✔️ | Fills a convex outline of up to eight corners — the drawer tongue's clip polygon.
+    in    Corners      const float*   [px]  alternating along and across ordinates, in winding order
+    in    CornerCount  std::uint32_t  [-]   three to eight; anything else records nothing
+    in    Ink          InkOrdinate    [-]   ?
+    out   -            void           [-]   ?
+    by    Api/DrawerSpace.h, Source/DrawerSpace.cpp, Source/RecordingSurface.cpp
+
+F RecordingSurface::ShadowCast          | RecordingSurface.h  | 171     | api,nonthrowing                    | 🚩 | Casts a blurred, offset shadow behind an extent, as the source's box-shadow declarations do. offscreen target, and the difference is not visible against a 0.5-coverage black at 60 px.
+    in    Extent        const PlaneExtent&  [-]   ?
+    in    Ink           InkOrdinate         [-]   ?
+    in    Spread        float               [px]  the declared blur radius
+    in    OffsetAlong   float               [-]   ?
+    in    OffsetAcross  float               [px]  positive is downward
+    in    Radius        float               [-]   ?
+    out   -             void                [-]   ?
+    by    Source/DrawerSpace.cpp, Source/RecordingSurface.cpp
+    note  ⚠️ Approximated as concentric grounds of falling coverage. A true Gaussian would need an
+
+F RecordingSurface::Glow                | RecordingSurface.h  | 177     | api,nonthrowing                    | 🚩 | Casts an outward glow of even spread — the selection rail's `0 0 8px`.
+    in    Extent  const PlaneExtent&  [-]  ?
+    in    Ink     InkOrdinate         [-]  ?
+    in    Spread  float               [-]  ?
+    out   -       void                [-]  ?
+    by    Source/RecordingSurface.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        SYMBOLS
+//------------------------------------------------------------------------------------------------------------------------
+
+F RecordingSurface::Stroke              | RecordingSurface.h  | 188     | api,nonthrowing                    | 🚩 | Strokes one declared figure inside a square extent.
+    in    Subject       SymbolSubject       [-]   an unresolved subject strokes the placeholder mark at the same extent
+    in    SquareExtent  const PlaneExtent&  [px]  the figure's 24-unit square is scaled onto this
+    in    Ink           InkOrdinate         [-]   ?
+    out   -             void                [-]   ?
+    by    Api/ToolSequence.h, Source/ConsoleHost.cpp, Source/DrawerSpace.cpp, Source/RecordingSurface.cpp, Source/ToolSequence.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                          TEXT
+//------------------------------------------------------------------------------------------------------------------------
+
+F RecordingSurface::TextRun             | RecordingSurface.h  | 201     | api,nonthrowing                    | 🚩 | Records a run of text at a declared size and tracking. `Emphatic` stands in for all three until a typeface with real weights is intaken.
+    in    Along      float        [-]   ?
+    in    Across     float        [-]   ?
+    in    Ink        InkOrdinate  [-]   ?
+    in    Text       const char*  [-]   ?
+    in    PointSize  float        [-]   ?
+    in    Tracking   float        [em]  added to every advance; zero records the run in one command
+    in    Emphatic   bool         [-]   approximates a heavier weight by recording the run twice, offset by a third pixel
+    out   -          void         [-]   ?
+    by    Source/RecordingSurface.cpp
+    note  🚧 The default interface typeface carries one weight. The source declares 500, 600 and 700, so
+
+F RecordingSurface::TextRunCapitalised  | RecordingSurface.h  | 208     | api,nonthrowing                    | 🚩 | Records a run in capitals, for the two small-capital captions the source declares.
+    in    Along      float        [-]  ?
+    in    Across     float        [-]  ?
+    in    Ink        InkOrdinate  [-]  ?
+    in    Text       const char*  [-]  ?
+    in    PointSize  float        [-]  ?
+    in    Tracking   float        [-]  ?
+    in    Emphatic   bool         [-]  ?
+    out   -          void         [-]  ?
+    by    Source/DrawerSpace.cpp, Source/RecordingSurface.cpp
+    note  ⚠️ ASCII only. A capital of a codepoint outside ASCII is a locale question, not a formatting one.
+
+F RecordingSurface::TextRunTruncated    | RecordingSurface.h  | 215     | api,nonthrowing                    | 🚩 | Records a run truncated to a stated extent, with a trailing ellipsis when it did not fit.
+    in    Along         float        [-]  ?
+    in    Across        float        [-]  ?
+    in    CeilingAlong  float        [-]  ?
+    in    Ink           InkOrdinate  [-]  ?
+    in    Text          const char*  [-]  ?
+    in    PointSize     float        [-]  ?
+    in    Emphatic      bool         [-]  ?
+    out   -             void         [-]  ?
+    by    Source/RecordingSurface.cpp
+    note  The ellipsis is three full stops rather than U+2026, which the default typeface does not carry.
+
+F RecordingSurface::MeasureRun          | RecordingSurface.h  | 222     | api,nonallocating,nonthrowing      | ✔️ | The extent a run would occupy, without recording it.
+    in    Text       const char*  [-]   ?
+    in    PointSize  float        [-]   ?
+    in    Tracking   float        [-]   ?
+    out   -          ExtentAlong  [px]  zero for empty text
+    by    Source/DrawerSpace.cpp, Source/RecordingSurface.cpp
+
+F RecordingSurface::RunAcross           | RecordingSurface.h  | 227     | api,nonallocating,nonthrowing      | ✔️ | The baseline-to-baseline extent at one point size.
+    in    PointSize  float  [-]  ?
+    out   -          float  [-]  ?
+    by    Source/RecordingSurface.cpp
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                        CLIPPING
+//------------------------------------------------------------------------------------------------------------------------
+
+F RecordingSurface::Confine             | RecordingSurface.h  | 237     | api,nonthrowing                    | ✔️ | Intersects the recording extent with the supplied one, until the matching Release.
+    in    Extent  const PlaneExtent&  [-]  ?
+    out   -       void                [-]  ?
+    by    Source/RecordingSurface.cpp
+    note  ⚠️ Every Confine must be matched. Sixteen may nest; a seventeenth records nothing and is ignored.
+
+F RecordingSurface::Release             | RecordingSurface.h  | 242     | api,nonthrowing                    | ✔️ | Restores the recording extent the matching Confine replaced.
+    out   -  void  [-]  ?
+    by    Api/ByteSpace.h, Api/CodeInterchange.h, Api/ImageSpace.h, Api/InstructionExchange.h, Api/PopulationIndex.h, Api/SpanSpace.h, (+13 more)
+
+F RecordingSurface::Excluded            | RecordingSurface.h  | 247     | api,nonallocating,nonthrowing      | ✔️ | Whether an extent is wholly outside the standing recording extent — what a scroll extent culls with.
+    in    Extent  const PlaneExtent&  [-]  ?
+    out   -       bool                [-]  ?
+    by    Source/RecordingSurface.cpp
+
+F RecordingSurface::Reset               | RecordingSurface.h  | 254     | api,nonallocating,nonthrowing      | ✔️ | Returns the surface to its constructed condition, releasing every unmatched Confine. first destroying what sits in it is a defect the compiler will never report.
+    out   -  void  [-]  ?
+    by    Api/DrawerSpace.h, Api/GestureSequence.h, Source/DrawerSpace.cpp, Source/GestureSequence.cpp, Source/RecordingSurface.cpp, Source/ViewportSequence.cpp
+    note  🔴 Called instead of placement-new over a live object. Re-constructing over storage without

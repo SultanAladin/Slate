@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DescriptorIndex.cpp | 421 lines | 1e30b967 | 12 sym | The layout declaration that closes at bring-up, the extent it is sized against, and the per-rotation write.
+S DescriptorIndex.cpp | 421 lines | d17ecc99 | 12 sym | The layout declaration that closes at bring-up, the extent it is sized against, and the per-rotation write.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION

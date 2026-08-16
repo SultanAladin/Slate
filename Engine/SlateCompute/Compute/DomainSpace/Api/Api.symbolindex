@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DomainSpace.h | 119 lines | 660706d5 | 10 sym | Charts arranged into the unit domain at a common scale, separated by at least one apron.
+S DomainSpace.h | 119 lines | ba5ab881 | 10 sym | Charts arranged into the unit domain at a common scale, separated by at least one apron.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE GAP
@@ -88,4 +88,4 @@ F DomainSpace::Feasible     | DomainSpace.h | 105    | -                        
 F SLATE_DECLARES_PRECISION  | DomainSpace.h | 117    | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

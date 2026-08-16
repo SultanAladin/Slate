@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TrigramIndex.cpp | 237 lines | 012d0e2d | 8 sym | Trigram folding and entry, the rarest-run narrowing, and the exact confirmation over it.
+S TrigramIndex.cpp | 237 lines | 03723f13 | 8 sym | Trigram folding and entry, the rarest-run narrowing, and the exact confirmation over it.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      FOLDED NAMES

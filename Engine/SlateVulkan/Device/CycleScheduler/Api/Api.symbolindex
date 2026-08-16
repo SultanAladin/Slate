@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S CycleScheduler.h | 130 lines | 5153e5d4 | 11 sym | Orders reuse of N cyclic recording slots — the wait that makes a slot writable and the ordinal that names it.
+S CycleScheduler.h | 130 lines | 967e2d0b | 11 sym | Orders reuse of N cyclic recording slots — the wait that makes a slot writable and the ordinal that names it.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   ONE ROTATION SLOT
@@ -26,7 +26,7 @@ T RotationSlot                       | CycleScheduler.h | 30-35  | nonallocating
     has   Completion     VkFence      [-]  ?
     has   ImageArrived   VkSemaphore  [-]  ?
     has   RecordingDone  VkSemaphore  [-]  ?
-    by    Api/CommandSequence.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/HardwareMetrics.h, Api/OcclusionScheduler.h, Api/VisibilityRaster.h, (+8 more)
+    by    Api/CommandSequence.h, Api/DescriptorIndex.h, Api/DisplayScheduler.h, Api/HardwareMetrics.h, Api/OcclusionScheduler.h, Api/VisibilityRaster.h, (+9 more)
     note  🔴 The completion is constructed **signalled**. The first rotation waits on it before anything has
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ T CycleScheduler                     | CycleScheduler.h | 48-128 | owning       
     has   Slots                         std::vector<RotationSlot>       [-]  ?
     has   SlotStanding                  std::uint32_t                   [-]  ?
     has   Rotations                     std::uint64_t                   [-]  ?
-    by    Api/WorkspaceSequence.h, Source/CycleScheduler.cpp
+    by    Source/CycleScheduler.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp
     note  🔴 `06` §7: every per-recording resource is sized against the rotation depth. `RecordingRotationDepth`
     note  ⚠️ `Advance` is the only writer of the standing ordinal. A caller keeping its own counter and
 
@@ -57,32 +57,32 @@ F CycleScheduler::Construct          | CycleScheduler.h | 68     | api,nonthrowi
 F CycleScheduler::Await              | CycleScheduler.h | 79     | api,nonthrowing               | 🔴 | Waits until the slot the standing ordinal names is no longer read, and makes it writable again. with DeviceLost when the device was lost; nothing is destroyed either way host that stops with no report, and `06` §7 requires the loss to be reported upward before anything is destroyed — which cannot happen from inside a wait that never returns.
     out   -  Deliver  [-]  refuses with HostDenied when the device does not complete within the ceiling, and
     post  every resource the slot holds may be amended
-    by    Api/DisplayScheduler.h, Source/CycleScheduler.cpp, Source/DisplayScheduler.cpp, Source/WorkspaceSequence.cpp
+    by    Api/DisplayScheduler.h, Api/WindowInterchange.h, Source/CycleScheduler.cpp, Source/DisplayScheduler.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp, (+1 more)
     note  🔴 The ceiling is finite rather than indefinite. An indefinite wait against a lost device is a
 
 F CycleScheduler::Arm                | CycleScheduler.h | 86     | api,nonthrowing               | ✔️ | Clears the completion of the standing slot, immediately before the submission that signals it.
     out   -  Deliver  [-]  refuses with HostDenied when the device declines
     pre   Await delivered for this slot
-    by    Source/CycleScheduler.cpp, Source/WorkspaceSequence.cpp
+    by    Source/CycleScheduler.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp
 
 F CycleScheduler::Advance            | CycleScheduler.h | 92     | api,nonallocating,nonthrowing | ✔️ | Carries the standing ordinal to the next slot in the cycle.
     out   -  void  [-]  ?
     post  the ordinal is the previous one raised by one, modulo the depth
-    by    Api/InterfaceExchange.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, Api/SelectionSequence.h, Api/TickSequence.h, Api/VectorInterchange.h, (+22 more)
+    by    Api/DrawerSpace.h, Api/GestureSequence.h, Api/InterfaceExchange.h, Api/MotionIntegrator.h, Api/OutlinerSequence.h, Api/RevisionSequence.h, (+28 more)
 
 F CycleScheduler::Standing           | CycleScheduler.h | 98     | api,nonallocating,nonthrowing | ✔️ | The slot the standing ordinal names, for the recording and the display that read it.
     out   -  Deliver  [-]  refuses with CapabilityAbsent before Construct delivered
-    by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/DecalProjection.h, (+88 more)
+    by    Api/AppearanceSpecification.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/DecalProjection.h, (+77 more)
 
 F CycleScheduler::StandingOrdinal    | CycleScheduler.h | 103    | api,nonallocating,nonthrowing | ✔️ | Which slot of the depth is standing — what every per-rotation claim is addressed by.
     out   -  std::uint32_t  [-]  ?
-    by    Api/WorkspaceSequence.h, Source/CycleScheduler.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp, Source/WorkspaceSequence.cpp
+    by    Source/CycleScheduler.cpp, Source/EditorHost.cpp, Source/PaintHost.cpp
 
 F CycleScheduler::CompletedRotations | CycleScheduler.h | 108    | api,nonallocating,nonthrowing | ✔️ | How many rotations have been advanced through since bring-up, for `86`'s pacing report.
     out   -  std::uint64_t  [-]  ?
-    by    Api/WorkspaceSequence.h, Source/CycleScheduler.cpp, Source/WorkspaceSequence.cpp
+    by    Source/CycleScheduler.cpp
 
 F CycleScheduler::Reclaim            | CycleScheduler.h | 114    | api,nonthrowing               | 🚩 | Destroys every ordering point.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/DepthReduction.h, Api/DescriptorIndex.h, (+77 more)

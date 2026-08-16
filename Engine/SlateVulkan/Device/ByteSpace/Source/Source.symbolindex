@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ByteSpace.cpp | 398 lines | df21d451 | 12 sym | Residency scoring, the first-fit slice, and the coalescing release that keeps an extent from fragmenting away.
+S ByteSpace.cpp | 398 lines | a72d5517 | 12 sym | Residency scoring, the first-fit slice, and the coalescing release that keeps an extent from fragmenting away.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  ALIGNMENT ARITHMETIC

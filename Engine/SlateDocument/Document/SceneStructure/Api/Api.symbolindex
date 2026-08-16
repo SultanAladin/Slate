@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SceneStructure.h | 302 lines | 731f5e31 | 40 sym | The two nesting relations over the population — organisational enclosure and kinematic attachment, apart.
+S SceneStructure.h | 302 lines | f31e8bec | 40 sym | The two nesting relations over the population — organisational enclosure and kinematic attachment, apart.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   INTERVAL LABELLING
@@ -50,7 +50,7 @@ F EnclosureContains                   | SceneStructure.h | 58-62   | api,nonallo
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 63      | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE TWO RELATIONS
@@ -111,7 +111,7 @@ F SceneStructure::Retire              | SceneStructure.h | 144     | api,nonthro
     in    Departing  OccupantIdentity  [-]  the identity being retired
     out   -          Deliver           [-]  refuses with IdentityStale when the identity does not resolve here
     post  🔴 enclosed occupants are re-enclosed by the departing occupant's enclosure and are not retired
-    by    Api/OutlinerSequence.h, Api/RecoverySequence.h, Source/DocumentSession.cpp, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/RecoverySequence.cpp, (+1 more)
+    by    Api/OutlinerSequence.h, Api/RecoverySequence.h, Api/RedrawScheduler.h, Source/DocumentSession.cpp, Source/OutlinerSequence.cpp, Source/RecoverySequence.cpp, (+2 more)
     note  `12` §12 states the policy in one sentence — deleting a group deletes the group, not the work
 
 F SceneStructure::Enclose             | SceneStructure.h | 156     | api,nonthrowing               | 🚩 | Places one occupant in an enclosure at a declared position in its ordering. with IdentityStale when either identity does not resolve on the caller so that `86` can name them without this seam allocating a message.
@@ -119,14 +119,14 @@ F SceneStructure::Enclose             | SceneStructure.h | 156     | api,nonthro
     in    ProposedEnclosure     OccupantIdentity  [-]  the enclosing occupant; undeclared returns it to the root ordering
     in    OrderWithinEnclosure  std::uint32_t     [-]  position in the enclosure's ordering; clamped to its end
     out   -                     Deliver           [-]  refuses with RelationCyclic when the change would close a cycle, and
-    by    Api/OutlinerSequence.h, Source/OutlinerPanel.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
+    by    Api/OutlinerSequence.h, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
     note  🔴 The refusal never applies the change. Both operands stay readable through RejectedRelation
 
 F SceneStructure::Attach              | SceneStructure.h | 168     | api,nonthrowing               | ✔️ | Attaches one occupant to another so that it follows its motion. relations exist rather than one.
     in    Subject             OccupantIdentity  [-]  the occupant that will follow
     in    ProposedAttachment  OccupantIdentity  [-]  what it follows; undeclared makes it an attachment root
     out   -                   Deliver           [-]  refuses with RelationCyclic, or IdentityStale for either operand
-    by    Api/InputExchange.h, Api/OutlinerSequence.h, Source/InputExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp, Source/WorkspaceSequence.cpp
+    by    Api/InputExchange.h, Api/OutlinerSequence.h, Source/InputExchange.cpp, Source/OutlinerSequence.cpp, Source/SceneStructure.cpp
     note  Attachment may cross enclosure boundaries freely — `12` §10 records that as the reason two
 
 F SceneStructure::AuthorTransform     | SceneStructure.h | 176     | api,nonallocating,nonthrowing | ✔️ | Records the transform the artist authored for one occupant.
@@ -150,7 +150,7 @@ F SceneStructure::RepairLabels        | SceneStructure.h | 194     | api,nonthro
 F SceneStructure::Label               | SceneStructure.h | 201     | api,nonallocating,nonthrowing | ✔️ | One occupant's interval label, for the containment predicate above.
     in    Subject  OccupantIdentity  [-]  the occupant
     out   -        Deliver           [-]  refuses with IdentityStale
-    by    Api/WorkspaceSpace.h, Source/SceneStructure.cpp, Source/WorkspaceSequence.cpp, Source/WorkspaceStrip.cpp
+    by    Source/SceneStructure.cpp
 
 F SceneStructure::CompoundedTransform | SceneStructure.h | 209     | api,nonthrowing               | ✔️ | One occupant's transform with its whole attachment path compounded into it.
     in    Subject  OccupantIdentity  [-]  the occupant
@@ -188,7 +188,7 @@ F SceneStructure::FirstEnclosed       | SceneStructure.h | 242     | api,nonallo
 F SceneStructure::EnclosureDepth      | SceneStructure.h | 247     | api,nonallocating,nonthrowing | ✔️ | How many enclosures stand between this occupant and the root ordering.
     in    SlotOrdinal  std::uint32_t  [-]  ?
     out   -            std::uint32_t  [-]  ?
-    by    Api/RowSequence.h, Source/OutlinerPanel.cpp, Source/RowSequence.cpp, Source/SceneStructure.cpp
+    by    Api/RowSequence.h, Source/RowSequence.cpp, Source/SceneStructure.cpp
 
 F SceneStructure::OccupantAt          | SceneStructure.h | 252     | api,nonallocating,nonthrowing | ✔️ | The identity occupying one slot, undeclared when the slot is vacant here.
     in    SlotOrdinal  std::uint32_t     [-]  ?
@@ -214,7 +214,7 @@ F SceneStructure::LabelsNested        | SceneStructure.h | 272     | api,nonallo
 F SceneStructure::Resolved            | SceneStructure.h | 276     | -                             | -  | ?
     in    Subject  OccupantIdentity  [-]  ?
     out   -        std::uint32_t     [-]  ?
-    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SpatialSubdivision.h, Api/SpecularProjection.h, (+43 more)
+    by    Api/ImpressionSequence.h, Api/PointerIntersection.h, Api/ReferenceIndex.h, Api/ReflectanceIntegrator.h, Api/SpatialSubdivision.h, Api/SpecularProjection.h, (+36 more)
 
 F SceneStructure::Unlink              | SceneStructure.h | 277     | -                             | -  | ?
     in    SlotOrdinal  std::uint32_t  [-]  ?
@@ -226,7 +226,7 @@ F SceneStructure::Link                | SceneStructure.h | 278     | -          
     in    EnclosureSlot         std::uint32_t  [-]  ?
     in    OrderWithinEnclosure  std::uint32_t  [-]  ?
     out   -                     void           [-]  ?
-    by    Api/WorkspaceSpace.h, Source/SceneStructure.cpp, Source/WorkspaceDrag.cpp, Source/WorkspaceSpace.cpp, Source/WorkspaceStrip.cpp, Source/WorkspaceStripInternal.h
+    by    Source/SceneStructure.cpp
 
 F SceneStructure::EnclosureInterval   | SceneStructure.h | 279     | -                             | -  | ?
     in    EnclosureSlot  std::uint32_t  [-]  ?
@@ -259,4 +259,4 @@ F SceneStructure::CompoundFrom        | SceneStructure.h | 283     | -          
 F SLATE_DECLARES_PRECISION            | SceneStructure.h | 300     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

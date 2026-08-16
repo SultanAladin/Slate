@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S UnwrapSolver.h | 97 lines | 9e6a4724 | 6 sym | Boundary-first parameterisation — Convergent, and held to reporting which criterion terminated it.
+S UnwrapSolver.h | 97 lines | 2fac9d1d | 6 sym | Boundary-first parameterisation — Convergent, and held to reporting which criterion terminated it.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     WHAT IS SOLVED
@@ -61,17 +61,17 @@ F Solve                    | UnwrapSolver.h | 80    | api,nonthrowing           
 F SLATE_DECLARES_PRECISION | UnwrapSolver.h | 81    | -                         | -  | ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
     in    Convergent  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F Measure                  | UnwrapSolver.h | 92    | api,nonthrowing           | 🚩 | Measures the area and angle distortion of a flattening against the topology it came from. rather than removing them, so they arrive here and would otherwise report an unbounded ratio.
     in    Positions        const std::vector<DocumentPosition>&  [mm]  the chart's spatial positions
     in    TriangleCorners  const std::vector<std::uint32_t>&     [-]   its triangulation
     in    Flattened        const std::vector<PlanarPosition>&    [-]   the planar positions the solve produced
     out   -                Measured                              [-]   both measures, and where each was worst
-    by    Api/LinearSolver.h, Source/ChartPartition.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
+    by    Api/AppearanceSpecification.h, Api/LinearSolver.h, Source/AppearanceSpecification.cpp, Source/ChartPartition.cpp, Source/DrawerSpace.cpp, Source/LinearSolver.cpp, (+1 more)
     note  Degenerate triangles — zero spatial area or zero planar area — contribute nothing. `38` §3 enrols them
 
 F SLATE_DECLARES_PRECISION | UnwrapSolver.h | 95    | -                         | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

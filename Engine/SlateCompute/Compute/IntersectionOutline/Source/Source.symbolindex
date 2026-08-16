@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S IntersectionOutline.cpp | 200 lines | 5ed021be | 11 sym | Two indexed lookups, one interval comparison, a scalar coverage — and the refusal that stops an occluded outline being merely dimmer.
+S IntersectionOutline.cpp | 200 lines | f5639bd6 | 11 sym | Two indexed lookups, one interval comparison, a scalar coverage — and the refusal that stops an occluded outline being merely dimmer.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION

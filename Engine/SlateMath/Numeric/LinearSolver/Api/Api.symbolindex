@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S LinearSolver.h | 150 lines | e226a5b8 | 10 sym | Dense and sparse factorisation — Bounded, and held to refusing a singular system rather than dividing by it.
+S LinearSolver.h | 150 lines | 3721f68f | 10 sym | Dense and sparse factorisation — Bounded, and held to refusing a singular system rather than dividing by it.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     WHAT IS SOLVED
@@ -74,7 +74,7 @@ F Solve                    | LinearSolver.h | 104   | api,nonthrowing           
 F SLATE_DECLARES_PRECISION | LinearSolver.h | 105   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE SPARSE FORM
@@ -90,7 +90,7 @@ F Solve                    | LinearSolver.h | 127   | api,nonthrowing           
 F SLATE_DECLARES_PRECISION | LinearSolver.h | 128   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE RESIDUAL
@@ -100,11 +100,11 @@ F Measure                  | LinearSolver.h | 147   | api,nonallocating,nonthrow
     in    Declaring  const DenseSystem&   [-]  the system as it was supplied
     in    Solved     const SolvedSystem&  [-]  the solution the factorisation produced
     out   -          Residual             [-]  the greatest absolute departure across every row and every ordinate run; zero for a
-    by    Api/UnwrapSolver.h, Source/ChartPartition.cpp, Source/LinearSolver.cpp, Source/UnwrapSolver.cpp
+    by    Api/AppearanceSpecification.h, Api/UnwrapSolver.h, Source/AppearanceSpecification.cpp, Source/ChartPartition.cpp, Source/DrawerSpace.cpp, Source/LinearSolver.cpp, (+1 more)
     note  🔴 Measured against the **supplied** coefficients rather than against the factorised ones. A residual
     note  📝 The infinity norm rather than the Euclidean one. The caller wants the worst row, because one badly
 
 F SLATE_DECLARES_PRECISION | LinearSolver.h | 148   | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

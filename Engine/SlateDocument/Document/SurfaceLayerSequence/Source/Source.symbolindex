@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SurfaceLayerSequence.cpp | 503 lines | c7cb4b01 | 24 sym | Ordering by position alone, amendments bounded by what they touched, and the one resampling that is reported.
+S SurfaceLayerSequence.cpp | 503 lines | 716d97f1 | 24 sym | Ordering by position alone, amendments bounded by what they touched, and the one resampling that is reported.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        LOCATION

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ReferenceIndex.cpp | 200 lines | 25916da4 | 15 sym | `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
+S ReferenceIndex.cpp | 200 lines | c817ecbe | 15 sym | `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS

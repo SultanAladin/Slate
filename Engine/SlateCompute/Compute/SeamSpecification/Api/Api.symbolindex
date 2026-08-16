@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SeamSpecification.h | 123 lines | b11852e3 | 13 sym | Where the topology is cut — authored seams that survive every re-partition, derived seams that do not.
+S SeamSpecification.h | 123 lines | 332d2ca3 | 13 sym | Where the topology is cut — authored seams that survive every re-partition, derived seams that do not.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ONE SEAM
@@ -33,7 +33,7 @@ F DeclareEdge                         | SeamSpecification.h | 37-44  | api,nonal
     in    FirstVertex   std::uint32_t       [-]  ?
     in    SecondVertex  std::uint32_t       [-]  ?
     out   -             constexpr SeamEdge  [-]  ?
-    by    Api/GlyphDepot.h, Source/ChartPartition.cpp, Source/GlyphDepot.cpp, Source/SeamSpecification.cpp
+    by    Source/ChartPartition.cpp, Source/SeamSpecification.cpp
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE SEAMS
@@ -80,7 +80,7 @@ F SeamSpecification::SeamDeclared     | SeamSpecification.h | 94     | api,nonth
 
 F SeamSpecification::Authored         | SeamSpecification.h | 99     | api,nonallocating,nonthrowing | ✔️ | The authored set, in declaration order.
     out   -  const std::vector<SeamEdge>&  [-]  ?
-    by    Api/SceneStructure.h, Source/ChartPartition.cpp, Source/ReflectanceIntegrator.cpp, Source/SceneStructure.cpp, Source/SeamSpecification.cpp, Source/ThemeSpecification.cpp
+    by    Api/SceneStructure.h, Source/ChartPartition.cpp, Source/ReflectanceIntegrator.cpp, Source/SceneStructure.cpp, Source/SeamSpecification.cpp
 
 F SeamSpecification::Derived          | SeamSpecification.h | 104    | api,nonallocating,nonthrowing | ✔️ | The derived set, in derivation order — `86`'s `68` §2 row.
     out   -  const std::vector<SeamEdge>&  [-]  ?

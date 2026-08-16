@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ColourProjection.h | 210 lines | 401282be | 23 sym | A coordinate and the space it is a coordinate in — never a bare triple, and never an assumed encoding.
+S ColourProjection.h | 210 lines | 309490e4 | 23 sym | A coordinate and the space it is a coordinate in — never a bare triple, and never an assumed encoding.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE TRANSFERS
@@ -58,7 +58,7 @@ V WorkingSpaceIdentity                    | ColourProjection.h | 66      | -    
     by    Source/AssetInterchange.cpp, Source/ConsoleHost.cpp
 
 V DisplaySpaceIdentity                    | ColourProjection.h | 67      | -                             | -  | ?
-    by    Source/ConsoleHost.cpp, Source/IntersectionOutline.cpp, Source/OverlayProjection.cpp, Source/SpatialManipulator.cpp, Source/ThemeSpecification.cpp
+    by    Source/ConsoleHost.cpp, Source/IntersectionOutline.cpp, Source/OverlayProjection.cpp, Source/SpatialManipulator.cpp
 
 F DeclaredWorkingSpace                    | ColourProjection.h | 74-89   | api,nonallocating,nonthrowing | ✔️ | The wide linear working space a document is created with. wide-gamut set; `36` §9 leaves which set open and this is a constant, not a shape.
     out   -  constexpr ColourSpaceSpecification  [-]  ?
@@ -79,7 +79,7 @@ T ColourSpecification                     | ColourProjection.h | 115-125 | nonal
     has   GreenCoordinate  double         [-]  ?
     has   BlueCoordinate   double         [-]  ?
     has   SpaceIdentity    std::uint32_t  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DisplayProjection.h, Api/IlluminantPopulation.h, Api/IntersectionOutline.h, Api/MaterialSpecification.h, (+18 more)
+    by    Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/DisplayProjection.h, Api/IlluminantPopulation.h, Api/IntersectionOutline.h, Api/MaterialSpecification.h, (+17 more)
     note  🔴 `36` §1: there is no bare triple anywhere in Slate. A colour without its space is a number that
     note  Coordinates are held at 64-bit and are not clamped. An emission channel is unbounded above — `18` §2 —
 
@@ -96,7 +96,7 @@ F SpacesAgree                             | ColourProjection.h | 131-134 | api,n
 F SLATE_DECLARES_PRECISION                | ColourProjection.h | 135     | -                             | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE PROJECTIONS
@@ -113,7 +113,7 @@ F Project                                 | ColourProjection.h | 150     | api,n
 F SLATE_DECLARES_PRECISION                | ColourProjection.h | 153     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F ProjectTristimulus                      | ColourProjection.h | 170     | api,nonallocating,nonthrowing | ✔️ | Projects one tristimulus coordinate into a declared space, encoding its transfer. own; whether it needs adapting is a fact about the spectrum that produced it, which this routine cannot see. `ProjectTemperature` adapts before calling here, because a locus coordinate **is** a white point — and that is the one case where the adaptation is knowable at this depth. space without re-deriving the primaries. `AdaptWhite` already crosses this seam in tristimulus, so nothing new is exposed by it.
     in    TristimulusX  double                           [-]  as `SpectralProjection` produced it
@@ -130,7 +130,7 @@ F ProjectTristimulus                      | ColourProjection.h | 170     | api,n
 F SLATE_DECLARES_PRECISION                | ColourProjection.h | 174     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F Encode                                  | ColourProjection.h | 180     | api,nonallocating,nonthrowing | ✔️ | Applies one space's encoding transfer to a linear coordinate.
     in    Space            const ColourSpaceSpecification&  [-]  ?
@@ -141,7 +141,7 @@ F Encode                                  | ColourProjection.h | 180     | api,n
 F SLATE_DECLARES_PRECISION                | ColourProjection.h | 181     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F Decode                                  | ColourProjection.h | 186     | api,nonallocating,nonthrowing | ✔️ | Removes one space's encoding transfer, returning linear light.
     in    Space       const ColourSpaceSpecification&  [-]  ?
@@ -152,7 +152,7 @@ F Decode                                  | ColourProjection.h | 186     | api,n
 F SLATE_DECLARES_PRECISION                | ColourProjection.h | 187     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F AdaptWhite                              | ColourProjection.h | 194     | api,nonallocating,nonthrowing | ✔️ | Adapts a tristimulus coordinate from one white point to another. shifts hue on every saturated colour, which is visible exactly where an artist notices it.
     in    ArrivingWhiteX  double   [-]  ?
@@ -169,7 +169,7 @@ F AdaptWhite                              | ColourProjection.h | 194     | api,n
 F SLATE_DECLARES_PRECISION                | ColourProjection.h | 197     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 F ProjectTemperature                      | ColourProjection.h | 206     | api,nonallocating,nonthrowing | ✔️ | Derives a white point coordinate from a declared correlated colour temperature. 5600 expects to see 5600 when they return, and a coordinate cannot be inverted back to it exactly.
     in    Temperature  double                           [K]  1667 to 25000; outside that the locus approximation is refused
@@ -181,4 +181,4 @@ F ProjectTemperature                      | ColourProjection.h | 206     | api,n
 F SLATE_DECLARES_PRECISION                | ColourProjection.h | 208     | -                             | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SpatialManipulator.cpp | 1179 lines | f044ce46 | 46 sym | `78` — the grip layout, the screen-space grasp, and the four drag solves each grip resolves against.
+S SpatialManipulator.cpp | 1179 lines | 66870167 | 46 sym | `78` — the grip layout, the screen-space grasp, and the four drag solves each grip resolves against.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE SPAN ARITHMETIC

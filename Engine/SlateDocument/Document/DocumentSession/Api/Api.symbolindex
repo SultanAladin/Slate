@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DocumentSession.h | 273 lines | 1ed42e4d | 36 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
+S DocumentSession.h | 273 lines | 32cb5fcc | 36 sym | `48` §1 — one open document and everything true of it only while it is open, plus every open session at once.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   WHERE IT CAME FROM
@@ -53,11 +53,11 @@ T DocumentSession                         | DocumentSession.h | 55-178  | owning
 
 F DocumentSession::Document               | DocumentSession.h | 66      | api,nonallocating,nonthrowing | ✔️ | The document itself — population, relations, revisions, rows and subsets.
     out   -  OutlinerSequence&  [-]  ?
-    by    Api/AssetPanel.h, Source/AssetPanel.cpp, Source/DocumentSession.cpp, Source/VisibilityRaster.cpp
+    by    Source/DocumentSession.cpp, Source/VisibilityRaster.cpp
 
 F DocumentSession::Document               | DocumentSession.h | 67      | -                             | -  | ?
     out   -  const OutlinerSequence&  [-]  ?
-    by    Api/AssetPanel.h, Source/AssetPanel.cpp, Source/DocumentSession.cpp, Source/VisibilityRaster.cpp
+    by    Source/DocumentSession.cpp, Source/VisibilityRaster.cpp
 
 F DocumentSession::References             | DocumentSession.h | 72      | api,nonallocating,nonthrowing | ✔️ | What this document depends on outside itself — `48` §5.
     out   -  ReferenceIndex&  [-]  ?
@@ -130,7 +130,7 @@ F DocumentSession::StorageOrigin          | DocumentSession.h | 141     | api,no
 
 F DocumentSession::Standing               | DocumentSession.h | 146     | api,nonallocating,nonthrowing | ✔️ | Whether a file stands behind this session yet.
     out   -  StorageStanding  [-]  ?
-    by    Api/AssetPanel.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+88 more)
+    by    Api/AppearanceSpecification.h, Api/ByteSpace.h, Api/CameraProjection.h, Api/ChartPartition.h, Api/CodeInterchange.h, Api/CycleScheduler.h, (+77 more)
 
 F DocumentSession::SavedThrough           | DocumentSession.h | 151     | api,nonallocating,nonthrowing | ✔️ | The revision ordinal the file on disc carries; zero when nothing has been saved.
     out   -  std::uint64_t  [-]  ?
@@ -165,25 +165,25 @@ T SessionIndex                            | DocumentSession.h | 192-271 | owning
 F SessionIndex::Open                      | DocumentSession.h | 207     | api,nonthrowing               | 🚩 | Opens one session and issues the ordinal that addresses it. reference file mid-stroke would otherwise lose the workspace they were painting in.
     out   -  Deliver  [-]  refuses with ExtentExhausted at the ceiling
     post  the new session is presented when it is the first one, and is otherwise not
-    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, Api/ImpressionSequence.h, (+21 more)
+    by    Api/CameraProjection.h, Api/CommandSequence.h, Api/DecalProjection.h, Api/DrawerSpace.h, Api/EmissionSequence.h, Api/HardwareMetrics.h, (+24 more)
     note  📝 Opening a second document does not steal the display from the first. An artist importing a
 
 F SessionIndex::Close                     | DocumentSession.h | 216     | api,nonthrowing               | 🚩 | Closes one session, discarding everything held only while it was open. the answer is a conversation with the artist and this component cannot have one.
     in    SessionOrdinal  std::uint32_t  [-]  ?
     out   -               Deliver        [-]  refuses with ExtentExhausted outside the open count
     post  the presented ordinal moves to another open session, or to none when this was the last
-    by    Api/HardwareMetrics.h, Source/DocumentSession.cpp, Source/HardwareMetrics.cpp
+    by    Api/HardwareMetrics.h, Api/SymbolSpecification.h, Source/DocumentSession.cpp, Source/HardwareMetrics.cpp, Source/RecordingSurface.cpp, Source/SymbolSpecification.cpp
     note  ⚠️ Nothing here asks whether amendments stand. `48` §4 makes that the caller's question, because
 
 F SessionIndex::Resolve                   | DocumentSession.h | 222     | api,nonthrowing               | ✔️ | One open session.
     in    SessionOrdinal  std::uint32_t  [-]  ?
     out   -               Deliver        [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
 
 F SessionIndex::Resolve                   | DocumentSession.h | 223     | -                             | -  | ?
     in    SessionOrdinal  std::uint32_t                    [-]  ?
     out   -               Deliver<const DocumentSession*>  [-]  ?
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/FileInterchange.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
 
 F SessionIndex::DeclarePresented          | DocumentSession.h | 229     | api,nonthrowing               | ✔️ | Declares which session the interface presents — `14` presents one at a time.
     in    SessionOrdinal  std::uint32_t  [-]  ?
@@ -192,20 +192,20 @@ F SessionIndex::DeclarePresented          | DocumentSession.h | 229     | api,no
 
 F SessionIndex::Presenting                | DocumentSession.h | 235     | api,nonthrowing               | ✔️ | The session the interface presents.
     out   -  Deliver  [-]  refuses with ExtentExhausted when no session is open
-    by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/RevisionPanel.cpp
+    by    Source/DocumentSession.cpp
 
 F SessionIndex::Presenting                | DocumentSession.h | 236     | -                             | -  | ?
     out   -  Deliver<const DocumentSession*>  [-]  ?
-    by    Api/GlyphDepot.h, Source/DiagnosticPanel.cpp, Source/DocumentSession.cpp, Source/GlyphDepot.cpp, Source/RevisionPanel.cpp
+    by    Source/DocumentSession.cpp
 
 F SessionIndex::PresentedOrdinal          | DocumentSession.h | 241     | api,nonallocating,nonthrowing | ✔️ | Which ordinal is presented; the ceiling when nothing is open.
     out   -  std::uint32_t  [-]  ?
-    by    Source/DocumentSession.cpp, Source/LayerPanel.cpp
+    by    Source/DocumentSession.cpp
 
 F SessionIndex::Located                   | DocumentSession.h | 249     | api,nonthrowing               | 🚩 | The most recently opened session naming one storage location. journals against it, and §4.1's pairing then cannot say which one recovers it.
     in    StoragePath  const std::string&  [-]  ?
     out   -            Deliver             [-]  refuses with ExtentExhausted when no open session holds that path
-    by    Api/EntryPanel.h, Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, (+28 more)
+    by    Api/IlluminantPopulation.h, Api/OcclusionProjection.h, Api/PointerIntersection.h, Api/PropertySpecification.h, Api/ReportSequence.h, Api/SpatialSubdivision.h, (+23 more)
     note  📝 What an open-file action asks before opening a second copy. Two sessions over one file are two
 
 F SessionIndex::OpenCount                 | DocumentSession.h | 254     | api,nonallocating,nonthrowing | ✔️ | How many sessions are open.
@@ -218,4 +218,4 @@ F SessionIndex::SpannedCount              | DocumentSession.h | 259     | api,no
 
 F SessionIndex::Reclaim                   | DocumentSession.h | 264     | api,nonthrowing               | ✔️ | Closes every session. Called at process teardown and by nothing else.
     out   -  void  [-]  ?
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)

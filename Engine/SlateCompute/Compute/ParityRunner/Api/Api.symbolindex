@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ParityRunner.h | 87 lines | bece8957 | 6 sym | Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
+S ParityRunner.h | 87 lines | 299b6e91 | 6 sym | Proves the host form and the shader form of a Shared/ entry point agree at the declared guarantee.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      REGISTRATION
@@ -55,7 +55,7 @@ T ParityRunner                | ParityRunner.h | 55-85 | owning                 
 F ParityRunner::Register      | ParityRunner.h | 64    | api,nonthrowing               | ✔️ | Registers one `Shared/` entry point for comparison.
     in    Arriving  const ParityRegistration&  [-]  the entry point and the guarantee it claims
     out   -         Deliver                    [-]  refuses when the entry point is already registered
-    by    Api/DiagnosticExtension.h, Api/WorkspaceSequence.h, Source/ConsoleHost.cpp, Source/DiagnosticExtension.cpp, Source/ParityRunner.cpp, Source/WorkspaceSequence.cpp
+    by    Api/DiagnosticExtension.h, Source/ConsoleHost.cpp, Source/DiagnosticExtension.cpp, Source/ParityRunner.cpp
 
 F ParityRunner::Compare       | ParityRunner.h | 73    | api,nonthrowing               | 🔴 | Compares every registered entry point and reports each one. Until it is, the runner compares the host form against itself and reports the sample counts, which is honest about what was proven rather than reporting an agreement nothing established.
     out   -  Reports  [-]  one report per registration, in registration order

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DecalProjection.cpp | 503 lines | 36b65f9f | 21 sym | The inverse of a decomposed placing transform, the two extent derivations, and the drag that records nothing until release.
+S DecalProjection.cpp | 503 lines | 5022da8c | 21 sym | The inverse of a decomposed placing transform, the two extent derivations, and the drag that records nothing until release.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   TRANSFORM HELPERS

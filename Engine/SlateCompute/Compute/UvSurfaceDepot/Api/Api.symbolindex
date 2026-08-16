@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S UvSurfaceDepot.h | 226 lines | 3a059f94 | 13 sym | `24` — attributes moved from a dense topology onto a sparse one through the domain, converging, and keyed by content.
+S UvSurfaceDepot.h | 226 lines | 0c7ad722 | 13 sym | `24` — attributes moved from a dense topology onto a sparse one through the domain, converging, and keyed by content.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                THE CORRESPONDENCE RULE
@@ -58,7 +58,7 @@ F UvSurfaceDepot::Declare       | UvSurfaceDepot.h | 125     | api,nonthrowing  
     in    Transferring_  const TransferSpecification&  [-]  the extent, the rule, the channels, the domain extent and the two Tier C figures
     out   -              Deliver                       [-]  refuses with ContentUnsupported for a search extent of nothing, an empty channel
     post  the specification stands and the key below carries its ordinal
-    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+65 more)
+    by    Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DiagnosticExtension.h, (+64 more)
     note  🔴 An empty channel mask is refused rather than admitted as a transfer of nothing. Admitted, it
 
 F UvSurfaceDepot::KeyOf         | UvSurfaceDepot.h | 138     | api,nonthrowing           | ✔️ | The content key one transferred result is held under — `24` §3's five fields, closed. while no partition stands matters. A result keyed without it survives a re-unwrap and is then read at positions that mean something else, which presents as attributes subtly wrong everywhere rather than as a failure.
@@ -115,7 +115,7 @@ F SLATE_DECLARES_PRECISION      | UvSurfaceDepot.h | 221     | -                
     in    Convergent  PrecisionGuarantee::  [-]  ?
     in    Bounded     PrecisionGuarantee::  [-]  ?
     in    Exact       PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   ONE CORRESPONDENCE

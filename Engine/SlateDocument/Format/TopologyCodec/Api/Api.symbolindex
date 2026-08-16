@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S TopologyCodec.h | 80 lines | 767f4e36 | 5 sym | `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
+S TopologyCodec.h | 80 lines | 2d5cb8da | 5 sym | `10` §1 — polygon streams translated exactly as the file wrote them, n-gons and degeneracies included.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE ACCEPTED SUBSET
@@ -42,7 +42,7 @@ F ClassifyContent          | TopologyCodec.h | 46    | api,nonthrowing | ✔️ 
 F SLATE_DECLARES_PRECISION | TopologyCodec.h | 48    | -               | -  | ?
     in    Exact  PrecisionGuarantee::  [-]  ?
     in    Exact  PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE TRANSLATION
@@ -62,4 +62,4 @@ F SLATE_DECLARES_PRECISION | TopologyCodec.h | 76    | -               | -  | ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Bounded  PrecisionGuarantee::  [-]  ?
     in    Exact    PrecisionGuarantee::  [-]  ?
-    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AssetPanel.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, (+56 more)
+    by    Api/AnalyticProjection.h, Api/AssetInterchange.h, Api/AtmosphereIntegrator.h, Api/BrushSpecification.h, Api/CameraProjection.h, Api/ChartPartition.h, (+43 more)

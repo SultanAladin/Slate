@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S RenderSchedule.h | 225 lines | d9fd511a | 16 sym | What is recorded in a rotation slot, in what order, and against which shared targets.
+S RenderSchedule.h | 225 lines | 64931623 | 16 sym | What is recorded in a rotation slot, in what order, and against which shared targets.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     SHARED TARGETS
@@ -64,7 +64,7 @@ T TargetSpace                | RenderSchedule.h | 75-142  | owning              
     has   StandingWidth   std::uint32_t  [-]  ?
     has   StandingHeight  std::uint32_t  [-]  ?
     has   DisplayCarries  VkFormat       [-]  ?
-    by    Api/AttachmentIndex.h, Api/OcclusionScheduler.h, Api/WorkspaceSequence.h, Source/AttachmentIndex.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp
+    by    Api/AttachmentIndex.h, Api/OcclusionScheduler.h, Source/AttachmentIndex.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp
     note  🔴 This is `08` §2's "nothing claims a format, an extent or memory", closed. The table above declared
     note  🔴 `06` §7's extent gate: a display extent change reclaims and re-claims **every** display-relative
 
@@ -75,7 +75,7 @@ F TargetSpace::Claim         | RenderSchedule.h | 95      | api,nonthrowing     
     in    DisplayFormat  VkFormat       [-]   what the display surface itself carries; the vendor spelling
     out   -              Deliver        [-]   refuses with ContentUnsupported for a zero or excessive extent, and with
     post  every target carries an image ordinal, or nothing does — refused in full
-    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+15 more)
+    by    Api/ByteSpace.h, Api/DescriptorIndex.h, Api/ImageSpace.h, Api/SpanSpace.h, Api/StrokeSpace.h, Api/TileSpace.h, (+13 more)
     note  🔴 Refused in full. A half-claimed target set is one where `08` §3's ordering reads a target that
 
 F TargetSpace::Reclaim       | RenderSchedule.h | 110     | api,nonthrowing               | 🔴 | Re-claims every display-relative and fraction-of-display target against a new display extent. persistent extent is carried across. Re-claiming a subset is how one target keeps the previous extent and reads as a shifted image nobody attributes to the resize.
@@ -83,13 +83,13 @@ F TargetSpace::Reclaim       | RenderSchedule.h | 110     | api,nonthrowing     
     in    DisplayHeight  std::uint32_t  [px]  ?
     out   -              Deliver        [-]   refuses as Claim does; the absolute targets stand untouched either way
     pre   🔴 the device is idle — every rotation that reads the old targets has completed
-    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+79 more)
+    by    Api/AttachmentIndex.h, Api/ByteSpace.h, Api/CodeInterchange.h, Api/CommandSequence.h, Api/CycleScheduler.h, Api/DepthReduction.h, (+77 more)
     note  🔴 `06` §7's fourth gate, verbatim: **every** display-relative target is recreated and no
 
 F TargetSpace::Resolve       | RenderSchedule.h | 116     | api,nonthrowing               | ✔️ | The image one declared target was claimed as.
     in    Target  SharedTarget  [-]  ?
     out   -       Deliver       [-]  refuses with ContentUnsupported when the target is unclaimed
-    by    Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, Api/DocumentSession.h, (+100 more)
+    by    Api/AppearanceSpecification.h, Api/AtmosphereIntegrator.h, Api/AttachmentIndex.h, Api/BrushSpecification.h, Api/DecalProjection.h, Api/DescriptorIndex.h, (+89 more)
 
 F TargetSpace::OrdinalOf     | RenderSchedule.h | 122     | api,nonallocating,nonthrowing | ✔️ | The image ordinal one target was claimed as, for the transition `ImageSpace` records.
     in    Target  SharedTarget  [-]  ?
@@ -99,7 +99,7 @@ F TargetSpace::OrdinalOf     | RenderSchedule.h | 122     | api,nonallocating,no
 F TargetSpace::Surrender     | RenderSchedule.h | 128     | api,nonthrowing               | 🚩 | Releases every claimed target and forgets the display extent they were claimed against.
     out   -  void  [-]  ?
     pre   the device is idle
-    by    Api/AttachmentIndex.h, Api/CommandSequence.h, Api/DisplayScheduler.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+4 more)
+    by    Api/AttachmentIndex.h, Api/CommandSequence.h, Api/DisplayScheduler.h, Api/VisibilityRaster.h, Source/AttachmentIndex.cpp, Source/CommandSequence.cpp, (+5 more)
 
 F TargetSpace::ShapeOf       | RenderSchedule.h | 134     | -                             | -  | The shape one target is claimed at, derived from its relation and the standing display extent.
     in    Target  SharedTarget  [-]  ?
@@ -136,7 +136,7 @@ T RenderSchedule             | RenderSchedule.h | 191-223 | owning              
     has   ContributedOrder   std::vector<DeclaredRecording>  [-]  ?
     has   OrderedRecordings  std::vector<DeclaredRecording>  [-]  ?
     has   OrderingFixed      bool                            [-]  ?
-    by    Api/DisplayProjection.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/ReflectanceIntegrator.h, Api/SampleIntegrator.h, (+15 more)
+    by    Api/DisplayProjection.h, Api/IntersectionOutline.h, Api/OcclusionProjection.h, Api/OverlayProjection.h, Api/ReflectanceIntegrator.h, Api/SampleIntegrator.h, (+14 more)
     note  🔴 The term is `RenderSchedule`. "Frame graph" is not a synonym: `Frame` is banned and "graph"
 
 F RenderSchedule::Contribute | RenderSchedule.h | 201     | api,nonthrowing               | ✔️ | Contributes one recording to the schedule. contribution produces a target another recording already produces
@@ -147,9 +147,9 @@ F RenderSchedule::Contribute | RenderSchedule.h | 201     | api,nonthrowing     
 F RenderSchedule::Fix        | RenderSchedule.h | 209     | api,nonthrowing               | 🚩 | Fixes the ordering. Derived from the declared reads and writes, never hand-written. when anything scene-referred is ordered after the display-referred line
     out   -  Deliver  [-]  refuses when a target is read by a recording ordered before its producer, or
     post  the ordering is immutable until the next bring-up
-    by    Api/DescriptorIndex.h, Api/InstructionExchange.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/InstructionExchange.cpp, Source/RenderSchedule.cpp, (+1 more)
+    by    Api/DescriptorIndex.h, Api/InstructionExchange.h, Source/ConsoleHost.cpp, Source/DescriptorIndex.cpp, Source/InstructionExchange.cpp, Source/RenderSchedule.cpp
 
 F RenderSchedule::Ordered    | RenderSchedule.h | 215     | api,nonallocating,nonthrowing | ✔️ | The recordings, in the order Fix derived.
     out   -  const std::vector<DeclaredRecording>&  [-]  ?
     pre   Fix delivered
-    by    Source/AssetPanel.cpp, Source/ConsoleHost.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/VisibilityRaster.cpp, Source/WorkspaceSequence.cpp, (+1 more)
+    by    Source/ConsoleHost.cpp, Source/OcclusionScheduler.cpp, Source/RenderSchedule.cpp, Source/VisibilityRaster.cpp

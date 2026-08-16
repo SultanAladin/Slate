@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S AnalyticProjection.cpp | 1042 lines | 830f6e7d | 17 sym | The four sources resolved at a domain position, the sequence composed over them, and the tile walk that flattens once.
+S AnalyticProjection.cpp | 1042 lines | c677a387 | 17 sym | The four sources resolved at a domain position, the sequence composed over them, and the tile walk that flattens once.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  SAMPLE ACCUMULATION

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S DiagnosticExtension.cpp | 234 lines | 240de5bf | 8 sym | The loader resolution, the attached sink, the arrival that appends, and the per-object name.
+S DiagnosticExtension.cpp | 234 lines | b24f6a61 | 8 sym | The loader resolution, the attached sink, the arrival that appends, and the per-object name.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      CONSTRUCTION

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S RequestQueue.cpp | 125 lines | d7408280 | 13 sym | Coalescing by cell, the cyclic rotation slots, and the readback that is exactly one depth behind.
+S RequestQueue.cpp | 125 lines | 447fc44a | 13 sym | Coalescing by cell, the cyclic rotation slots, and the readback that is exactly one depth behind.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE ARRIVAL ORDER

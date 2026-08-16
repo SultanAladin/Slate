@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ParityRunner.cpp | 795 lines | ceb30ff7 | 8 sym | Registration and comparison over the common sample set.
+S ParityRunner.cpp | 795 lines | fbfccf1d | 8 sym | Registration and comparison over the common sample set.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      REGISTRATION

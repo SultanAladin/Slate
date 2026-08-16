@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S VectorInterchange.cpp | 215 lines | ad741152 | 16 sym | Declaration by either route, flattening at a supplied tolerance, and classification per declared rule.
+S VectorInterchange.cpp | 215 lines | e1e7523a | 16 sym | Declaration by either route, flattening at a supplied tolerance, and classification per declared rule.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      DECLARATION

@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ConsoleHost.cpp | 3574 lines | 425d7a4d | 25 sym | Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
+S ConsoleHost.cpp | 3574 lines | 757cd712 | 25 sym | Headless bring-up in link order — every unit constructed, reported, and reclaimed without a window.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       REPORTING

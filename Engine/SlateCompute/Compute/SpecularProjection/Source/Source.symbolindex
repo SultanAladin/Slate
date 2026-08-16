@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S SpecularProjection.cpp | 146 lines | 875a15ca | 9 sym | The half-extent claim, the amending recording ordered after `62`, and the composite that cancels to nothing on every failure.
+S SpecularProjection.cpp | 146 lines | 3b029c93 | 9 sym | The half-extent claim, the amending recording ordered after `62`, and the composite that cancels to nothing on every failure.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION

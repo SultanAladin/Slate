@@ -16,7 +16,7 @@
 //                                                        SOURCES
 //------------------------------------------------------------------------------------------------------------------------
 
-S ClipboardExchange.h | 104 lines | 9dbd391c | 8 sym | Text and imagery crossing to and from the operating system, taken as a copy that outlives what supplied it.
+S ClipboardExchange.h | 104 lines | cd1bbbda | 8 sym | Text and imagery crossing to and from the operating system, taken as a copy that outlives what supplied it.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT IS CARRIED
