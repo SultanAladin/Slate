@@ -173,7 +173,7 @@ whatever it happens to produce, and every defect in `100` §5.1's table looks li
 | Ⅶ     | Ⅵ, same scene, same rotation count                          | Measurably better, or discarded                  |
 
 ⚠️ Phase Ⅱ's milestone is the strictest one in the table and the easiest to skip. Nineteen targets claiming, `Fix`
-deriving a new order, and `ReadsPreviousRotation` migrating `64`'s self-read must all land with the image
+deriving a new order, and `ReadsPreviousSlot` migrating `64`'s self-read must all land with the image
 **bit-identical**. Any difference at Ⅱ is a defect in the schedule amendment that would otherwise be attributed to
 resampling three phases later.
 

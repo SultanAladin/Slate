@@ -21,7 +21,7 @@ Deliver<bool> HardwareMetrics::Construct(const VulkanExchange& Exchange)
 
     DeviceEdge = &Exchange;
 
-    Rotations.assign(RecordingRotationDepth, RecordedRotation{});
+    RecordedSlots.assign(RecordingSlotCount, RecordedSlot{});
     DeclaredSpans.clear();
     DeclaredSpans.reserve(SpanCeiling);
 
@@ -41,7 +41,7 @@ Deliver<bool> HardwareMetrics::Construct(const VulkanExchange& Exchange)
     VkQueryPoolCreateInfo ExtentDeclaration = {};
     ExtentDeclaration.sType      = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
     ExtentDeclaration.queryType  = VK_QUERY_TYPE_TIMESTAMP;
-    ExtentDeclaration.queryCount = TimestampsPerRotation * RecordingRotationDepth;
+    ExtentDeclaration.queryCount = TimestampsPerSlot * RecordingSlotCount;
 
     if (vkCreateQueryPool(Exchange.ActiveDevice(), &ExtentDeclaration, nullptr, &TimestampExtent) != VK_SUCCESS)
     {
@@ -58,9 +58,9 @@ Deliver<bool> HardwareMetrics::Construct(const VulkanExchange& Exchange)
 //                                                   THE DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-std::uint32_t HardwareMetrics::TimestampOrdinalOf(std::uint32_t RotationSlot, std::uint32_t SpanOrdinal)
+std::uint32_t HardwareMetrics::TimestampOrdinalOf(std::uint32_t SlotOrdinal, std::uint32_t SpanOrdinal)
 {
-    return RotationSlot * TimestampsPerRotation + SpanOrdinal * 2u;
+    return SlotOrdinal * TimestampsPerSlot + SpanOrdinal * 2u;
 }
 
 Deliver<std::uint32_t> HardwareMetrics::Declare(const char* SpanName)
@@ -99,38 +99,38 @@ Deliver<std::uint32_t> HardwareMetrics::Declare(const char* SpanName)
 //                                                    THE RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> HardwareMetrics::Clear(VkCommandBuffer Recorded, std::uint32_t RotationSlot)
+Deliver<bool> HardwareMetrics::Clear(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal)
 {
     if (!CapabilityHeld)
         return Deliver<bool>::Deliver(true);
 
-    if (RotationSlot >= static_cast<std::uint32_t>(Rotations.size()) || Recorded == VK_NULL_HANDLE)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such rotation slot, or no recording" });
+    if (SlotOrdinal >= static_cast<std::uint32_t>(RecordedSlots.size()) || Recorded == VK_NULL_HANDLE)
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such cycle slot, or no recording" });
 
     // 🔴 The whole slot is cleared, including the spans this rotation will not record. An uncleared timestamp
     //    reads as whatever the previous rotation left there, and a stale duration attributed to this rotation is
     //    the one metric failure that looks entirely plausible.
-    vkCmdResetQueryPool(Recorded, TimestampExtent, RotationSlot * TimestampsPerRotation, TimestampsPerRotation);
+    vkCmdResetQueryPool(Recorded, TimestampExtent, SlotOrdinal * TimestampsPerSlot, TimestampsPerSlot);
 
-    Rotations[RotationSlot] = RecordedRotation{};
+    RecordedSlots[SlotOrdinal] = RecordedSlot{};
     StandingNesting         = 0u;
 
     return Deliver<bool>::Deliver(true);
 }
 
-Deliver<bool> HardwareMetrics::Open(VkCommandBuffer Recorded, std::uint32_t RotationSlot, std::uint32_t SpanOrdinal)
+Deliver<bool> HardwareMetrics::Open(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, std::uint32_t SpanOrdinal)
 {
     if (!CapabilityHeld)
         return Deliver<bool>::Deliver(true);
 
-    if (RotationSlot >= static_cast<std::uint32_t>(Rotations.size()) ||
+    if (SlotOrdinal >= static_cast<std::uint32_t>(RecordedSlots.size()) ||
         SpanOrdinal  >= static_cast<std::uint32_t>(DeclaredSpans.size()) ||
         Recorded == VK_NULL_HANDLE)
     {
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such span, slot, or recording" });
     }
 
-    if (Rotations[RotationSlot].SpanOpened[SpanOrdinal])
+    if (RecordedSlots[SlotOrdinal].SpanOpened[SpanOrdinal])
         return Deliver<bool>::Refuse({ RefusalReason::RelationCyclic, "that span is already open in this rotation" });
 
     // 📝 The nesting depth is what stood open **around** this span when it opened, so the outermost span reads
@@ -139,7 +139,7 @@ Deliver<bool> HardwareMetrics::Open(VkCommandBuffer Recorded, std::uint32_t Rota
     DeclaredSpans[SpanOrdinal].NestingDepth = StandingNesting;
     ++StandingNesting;
 
-    Rotations[RotationSlot].SpanOpened[SpanOrdinal] = true;
+    RecordedSlots[SlotOrdinal].SpanOpened[SpanOrdinal] = true;
 
     // 🔴 The opening reading is taken at the **top** of the ordering and the closing one at the bottom. A pair
     //    both written at one end measures the interval between two recordings reaching the queue rather than the
@@ -147,27 +147,27 @@ Deliver<bool> HardwareMetrics::Open(VkCommandBuffer Recorded, std::uint32_t Rota
     vkCmdWriteTimestamp(Recorded,
                         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                         TimestampExtent,
-                        TimestampOrdinalOf(RotationSlot, SpanOrdinal));
+                        TimestampOrdinalOf(SlotOrdinal, SpanOrdinal));
 
     return Deliver<bool>::Deliver(true);
 }
 
-Deliver<bool> HardwareMetrics::Close(VkCommandBuffer Recorded, std::uint32_t RotationSlot, std::uint32_t SpanOrdinal)
+Deliver<bool> HardwareMetrics::Close(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, std::uint32_t SpanOrdinal)
 {
     if (!CapabilityHeld)
         return Deliver<bool>::Deliver(true);
 
-    if (RotationSlot >= static_cast<std::uint32_t>(Rotations.size()) ||
+    if (SlotOrdinal >= static_cast<std::uint32_t>(RecordedSlots.size()) ||
         SpanOrdinal  >= static_cast<std::uint32_t>(DeclaredSpans.size()) ||
         Recorded == VK_NULL_HANDLE)
     {
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such span, slot, or recording" });
     }
 
-    if (!Rotations[RotationSlot].SpanOpened[SpanOrdinal])
+    if (!RecordedSlots[SlotOrdinal].SpanOpened[SpanOrdinal])
         return Deliver<bool>::Refuse({ RefusalReason::RelationCyclic, "that span was not opened in this rotation" });
 
-    if (Rotations[RotationSlot].SpanClosed[SpanOrdinal])
+    if (RecordedSlots[SlotOrdinal].SpanClosed[SpanOrdinal])
         return Deliver<bool>::Refuse({ RefusalReason::RelationCyclic, "that span is already closed" });
 
     // 🔴 Closed in the reverse order it was opened. A span closed while one opened inside it still stands has
@@ -179,12 +179,12 @@ Deliver<bool> HardwareMetrics::Close(VkCommandBuffer Recorded, std::uint32_t Rot
     }
 
     --StandingNesting;
-    Rotations[RotationSlot].SpanClosed[SpanOrdinal] = true;
+    RecordedSlots[SlotOrdinal].SpanClosed[SpanOrdinal] = true;
 
     vkCmdWriteTimestamp(Recorded,
                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                         TimestampExtent,
-                        TimestampOrdinalOf(RotationSlot, SpanOrdinal) + 1u);
+                        TimestampOrdinalOf(SlotOrdinal, SpanOrdinal) + 1u);
 
     return Deliver<bool>::Deliver(true);
 }
@@ -193,18 +193,18 @@ Deliver<bool> HardwareMetrics::Close(VkCommandBuffer Recorded, std::uint32_t Rot
 //                                                     THE READBACK
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> HardwareMetrics::Resolve(std::uint32_t RotationSlot, std::uint64_t CompletedCount)
+Deliver<bool> HardwareMetrics::Resolve(std::uint32_t SlotOrdinal, std::uint64_t CompletedCount)
 {
     if (!CapabilityHeld)
         return Deliver<bool>::Deliver(true);
 
-    if (RotationSlot >= static_cast<std::uint32_t>(Rotations.size()))
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such rotation slot" });
+    if (SlotOrdinal >= static_cast<std::uint32_t>(RecordedSlots.size()))
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such cycle slot" });
 
     if (DeclaredSpans.empty())
         return Deliver<bool>::Deliver(true);
 
-    std::uint64_t Readings[TimestampsPerRotation] = {};
+    std::uint64_t Readings[TimestampsPerSlot] = {};
 
     // 📝 Read without `VK_QUERY_RESULT_WAIT_BIT`. The caller has already awaited this slot's completion, and a
     //    wait here would serialise the host against the device a second time for a reading it already has.
@@ -212,8 +212,8 @@ Deliver<bool> HardwareMetrics::Resolve(std::uint32_t RotationSlot, std::uint64_t
     //    refused rather than waited out.
     const VkResult ReadBack = vkGetQueryPoolResults(DeviceEdge->ActiveDevice(),
                                                     TimestampExtent,
-                                                    RotationSlot * TimestampsPerRotation,
-                                                    TimestampsPerRotation,
+                                                    SlotOrdinal * TimestampsPerSlot,
+                                                    TimestampsPerSlot,
                                                     sizeof(Readings),
                                                     Readings,
                                                     sizeof(std::uint64_t),
@@ -227,7 +227,7 @@ Deliver<bool> HardwareMetrics::Resolve(std::uint32_t RotationSlot, std::uint64_t
     if (ReadBack != VK_SUCCESS)
         return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the device declined the timestamp readback" });
 
-    const RecordedRotation& Recorded = Rotations[RotationSlot];
+    const RecordedSlot& Recorded = RecordedSlots[SlotOrdinal];
 
     for (std::uint32_t SpanOrdinal = 0u; SpanOrdinal < static_cast<std::uint32_t>(DeclaredSpans.size()); ++SpanOrdinal)
     {
@@ -240,7 +240,7 @@ Deliver<bool> HardwareMetrics::Resolve(std::uint32_t RotationSlot, std::uint64_t
         {
             Resolved.Available    = false;
             Resolved.Duration     = 0.0;
-            Resolved.RotationRead = CompletedCount;
+            Resolved.RecordingRead = CompletedCount;
             continue;
         }
 
@@ -254,12 +254,12 @@ Deliver<bool> HardwareMetrics::Resolve(std::uint32_t RotationSlot, std::uint64_t
         {
             Resolved.Available    = false;
             Resolved.Duration     = 0.0;
-            Resolved.RotationRead = CompletedCount;
+            Resolved.RecordingRead = CompletedCount;
             continue;
         }
 
         Resolved.Duration     = static_cast<double>(Closed - Opened) * TimestampToDuration;
-        Resolved.RotationRead = CompletedCount;
+        Resolved.RecordingRead = CompletedCount;
         Resolved.Available    = true;
     }
 
@@ -316,7 +316,7 @@ void HardwareMetrics::Reclaim()
 
     TimestampExtent = VK_NULL_HANDLE;
     DeclaredSpans.clear();
-    Rotations.clear();
+    RecordedSlots.clear();
     StandingNesting = 0u;
     CapabilityHeld  = false;
 }

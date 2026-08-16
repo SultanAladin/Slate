@@ -152,8 +152,8 @@ SLATE_SHARED Real64 ProjectVariation(Unsigned32 Ordinal, Unsigned32 Seed)
 //                                                  SUB-PIXEL OFFSETS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The sub-pixel offset one rotation slot carries.
-/// in    RotationOrdinal  [-]  the rotation, counted from bring-up
+/// 🧩 The sub-pixel offset one cycle slot carries.
+/// in    RecordingOrdinal  [-]  the rotation, counted from bring-up
 /// out   OffsetX          [-]  in the half-open interval about zero, in pixels
 /// out   OffsetY          [-]  in the half-open interval about zero, in pixels
 /// note  🔴 `64` §3.1 applies this to `46`'s **projection** and never to a resolved position. An offset applied
@@ -166,11 +166,11 @@ SLATE_SHARED Real64 ProjectVariation(Unsigned32 Ordinal, Unsigned32 Seed)
 /// cost  🚩
 /// note  Exact — the offsets are exact, so a preview converges to the workspace's image and not beside it.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED void ProjectSubPixelOffset(Unsigned32 RotationOrdinal,
+SLATE_SHARED void ProjectSubPixelOffset(Unsigned32 RecordingOrdinal,
                                         SLATE_OUT(Real64) OffsetX,
                                         SLATE_OUT(Real64) OffsetY)
 {
-    const Unsigned32 Ordinal = (RotationOrdinal % Unsigned32(SubPixelSequenceLength)) + 1u;
+    const Unsigned32 Ordinal = (RecordingOrdinal % Unsigned32(SubPixelSequenceLength)) + 1u;
 
     Real64 FirstCoordinate  = 0.0;
     Real64 SecondCoordinate = 0.0;

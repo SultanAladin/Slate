@@ -1226,7 +1226,7 @@ Deliver<bool> ReflectanceIntegrator::IntegrateUnoccupied(const AtmosphereIntegra
     //
     // ⚠️ Without this class nothing in the whole schedule writes the background: every other dispatch is per
     //    material over pixels that resolved to a surface, and an unoccupied pixel resolved to none. The image
-    //    would carry a hole exactly where the sky belongs, filled with whatever the rotation slot held before.
+    //    would carry a hole exactly where the sky belongs, filled with whatever the cycle slot held before.
     Atmosphere.SampleSkyView(View.OrdinateX, View.OrdinateY, View.OrdinateZ, Red, Green, Blue);
 
     return Deliver<bool>::Deliver(true);

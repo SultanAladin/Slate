@@ -14,7 +14,7 @@ illuminants whose declared extents reach that cell.
 |-------------|-------------------------------------------------------------------------------|
 | Unit        | `SlateCompute.lib`                                                            |
 | Layer       | `Layer4_Compute`                                                              |
-| Upstream    | `02` (rebasing), `06` (extents), `44` (the population and the declared extents), `92` (the rotation depth), `104` (the sequence) |
+| Upstream    | `02` (rebasing), `06` (extents), `44` (the population and the declared extents), `92` (the recording slot count), `104` (the sequence) |
 | Downstream  | `94` §6 ② resamples a secondary vertex's direct term against a cell           |
 | Unblocks    | A secondary vertex that is lit by the same population the primary one is      |
 
@@ -78,7 +78,7 @@ everything would make this document's cost scale with the scene's extent rather 
 | Visibility, of any sort           | `94` §2's `ClassifyOcclusion` answers it at the vertex      |
 | Stored radiance                   | That is `96`; a cell holds a choice, not a measurement      |
 | Any occupant reference            | Cells are over illuminants; §2's fourth row depends on it   |
-| A per-cell rotation slot          | The refresh is round-robin, so there is nothing to reproject |
+| A per-cell cycle slot          | The refresh is round-robin, so there is nothing to reproject |
 
 🔴 The first row is the one worth stating twice. A cell that stored visibility would be a coarse shadow map at
 world resolution, invalidated by every occupant move — which is exactly the invalidation `60` §4 works to avoid,

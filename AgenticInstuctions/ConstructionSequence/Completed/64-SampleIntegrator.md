@@ -23,7 +23,7 @@ where both claims are discharged.
 | Component              | What it owns                                                              |
 |------------------------|----------------------------------------------------------------------------|
 | `SampleIntegrator`     | The accumulation itself — §3                                              |
-| `OffsetSequence`       | The per-rotation sub-pixel offset, from `02` §6                           |
+| `OffsetSequence`       | The per-slot sub-pixel offset, from `02` §6                           |
 | `ReprojectionIndex`    | Where this pixel was last rotation, from `MotionSurface` — §2             |
 | `RejectionSpecification` | When a reprojected sample is refused, and what replaces it — §4          |
 | `ConvergenceMetrics`   | Accumulated sample count and rejection rate, reported through `86`         |
@@ -44,7 +44,7 @@ produce motion in the same target, so the accumulation does not need to know whi
 
 `AccumulationSurface` holds the running result. Per pixel, per rotation:
 
-① Read the sub-pixel offset for this rotation slot from `02` §6, and record which offset produced this sample.
+① Read the sub-pixel offset for this cycle slot from `02` §6, and record which offset produced this sample.
 ② Reproject through `MotionSurface` to the previous position.
 ③ Apply §4's rejection.
 ④ Accumulate the current sample into the reprojected history at the resolved weight.
@@ -61,7 +61,7 @@ program has stopped responding.
 
 ### 3.1 The offset sequence
 
-Offsets come from `02` §6's sub-pixel pattern, are deterministic per rotation slot, and are applied to `46`'s
+Offsets come from `02` §6's sub-pixel pattern, are deterministic per cycle slot, and are applied to `46`'s
 projection — not to the resolved position and not to the accumulation.
 
 🔴 The offset is applied to the projection, which is what makes every stage downstream of `16` see a consistently
@@ -111,9 +111,9 @@ scene is.
 ## 6. Ordering
 
 `64` records at `08` §3 ⑦ — after `30` resolved into `RadianceSurface`, before `66` projects. It produces
-`AccumulationSurface`, reads it from the previous rotation slot, and amends nothing.
+`AccumulationSurface`, reads it from the previous cycle slot, and amends nothing.
 
-⚠️ It reads its own previous result, which is the one place in the schedule where a rotation slot depends on the
+⚠️ It reads its own previous result, which is the one place in the schedule where a cycle slot depends on the
 one before it. `06`'s rotation is what makes that legal, and the accumulation is invalid on the first rotation
 after bring-up, after an extent change and after a device loss — in all three the sample count starts at one and
 no history is read.
@@ -123,7 +123,7 @@ no history is read.
 | Computation                       | Tier | Reason                                                        |
 |-----------------------------------|------|----------------------------------------------------------------|
 | Occupant identity comparison      | A    | An integer; a mismatched match accumulates a different surface |
-| Rotation slot and offset index    | A    | An integer; host and device must agree which offset was used  |
+| Cycle slot and offset index    | A    | An integer; host and device must agree which offset was used  |
 | Sample count                      | A    | An integer; the weight is derived from it                     |
 | Reprojected position              | B    | Continuous; sampled with a reconstruction filter              |
 | Accumulated radiance              | D    | `RadianceSurface` is Tier D — `18` §6                         |

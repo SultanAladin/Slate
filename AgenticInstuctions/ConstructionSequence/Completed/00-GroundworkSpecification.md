@@ -467,7 +467,7 @@ would become invisible exactly when the artist is asking why.
   Tier B. A source that cannot be resolved on the host cannot be previewed, and the mismatch would be attributed
   to the preview rather than to the source.
 - **Gate:** No mechanism resolves a pointer position to an occupant by reading back a device target. Readback is
-  latent by the rotation depth; `74` resolves on the host.
+  latent by the recording slot count; `74` resolves on the host.
 
 ## 12. Open
 

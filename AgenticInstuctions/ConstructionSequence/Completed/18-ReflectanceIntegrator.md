@@ -138,7 +138,7 @@ is disabled — the same two sources this section already declares.
 
 ⚠️ Without this class nothing in the entire schedule writes the background: every other dispatch is per material
 over pixels that resolved to a surface, and an unoccupied pixel resolved to none. The image carries a hole exactly
-where the sky belongs, and it carries whatever the rotation slot held previously.
+where the sky belongs, and it carries whatever the cycle slot held previously.
 
 ## 6. Output
 

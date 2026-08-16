@@ -425,10 +425,10 @@ Deliver<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Enro
 
     Arriving.TriangleSpan = Triangles.Resolve();
 
-    // 📝 One host-writable uniform per rotation slot. `06` §2.1 admits explicit sets per slot precisely so that
+    // 📝 One host-writable uniform per cycle slot. `06` §2.1 admits explicit sets per slot precisely so that
     //    the block a recording writes is never the block the previous rotation is still reading, and a single
     //    block shared across the depth would reintroduce that read at the one site the depth exists for.
-    for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
     {
         SpanShape Uniform;
         Uniform.SpanBytes = static_cast<VkDeviceSize>(sizeof(UploadedProjection));
@@ -464,14 +464,14 @@ Deliver<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Enro
         Arriving.ClaimOrdinals.push_back(Claim_.Resolve());
     }
 
-    // 🔴 Written once per rotation slot, here, and never inside a recording. Every span the set names stands for
-    //    the residency's whole life, so a per-rotation write would rewrite one arrangement with itself — and
+    // 🔴 Written once per cycle slot, here, and never inside a recording. Every span the set names stands for
+    //    the residency's whole life, so a per-slot write would rewrite one arrangement with itself — and
     //    would write it into a set the previous rotation's recording still reads.
     for (std::uint32_t ClaimOrdinal = 0u; ClaimOrdinal < Arriving.ClaimOrdinals.size(); ++ClaimOrdinal)
     {
-        for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+        for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
         {
-            const Deliver<SpanClaim> Uniform  = SpanEdge->Standing(Arriving.UniformSpans[RotationSlot]);
+            const Deliver<SpanClaim> Uniform  = SpanEdge->Standing(Arriving.UniformSpans[SlotOrdinal]);
             const Deliver<SpanClaim> Position = SpanEdge->Standing(Arriving.PositionSpan);
             const Deliver<SpanClaim> Triangle = SpanEdge->Standing(Arriving.TriangleSpan);
 
@@ -492,7 +492,7 @@ Deliver<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Enro
                 const CullingPhase Phase = static_cast<CullingPhase>(ClaimOrdinal - 1u);
 
                 const Deliver<VkBuffer> Compacted =
-                    Culling->SurvivingOf(Arriving.CullingOrdinal, RotationSlot, Phase);
+                    Culling->SurvivingOf(Arriving.CullingOrdinal, SlotOrdinal, Phase);
 
                 if (!Compacted.ContentPresent)
                 {
@@ -528,7 +528,7 @@ Deliver<std::uint32_t> VisibilityRaster::Resolve(const PartitionStructure&  Enro
                 { Projecting, Positions_, Triangles_, Surviving_ };
 
             const Deliver<bool> Amended =
-                DescriptorEdge->Amend(Arriving.ClaimOrdinals[ClaimOrdinal], RotationSlot, Amending);
+                DescriptorEdge->Amend(Arriving.ClaimOrdinals[ClaimOrdinal], SlotOrdinal, Amending);
 
             if (!Amended.ContentPresent)
             {
@@ -639,7 +639,7 @@ Deliver<ConstructedSpan> VisibilityRaster::Open(VkCommandBuffer Recorded, Constr
 }
 
 Deliver<bool> VisibilityRaster::Project(const ResidentPartitioning& Standing,
-                                        std::uint32_t               RotationSlot,
+                                        std::uint32_t               SlotOrdinal,
                                         const ViewProjection&       Viewing,
                                         const ConstructedSpan&      Covering,
                                         bool                        SurvivingResolved)
@@ -660,14 +660,14 @@ Deliver<bool> VisibilityRaster::Project(const ResidentPartitioning& Standing,
     Projecting.DrawnPartitionCount = Standing.PartitionCount;
     Projecting.SurvivingResolved   = SurvivingResolved ? 1u : 0u;
 
-    return SpanEdge->Amend(Standing.UniformSpans[RotationSlot],
+    return SpanEdge->Amend(Standing.UniformSpans[SlotOrdinal],
                            &Projecting,
                            static_cast<VkDeviceSize>(sizeof(Projecting)),
                            0u);
 }
 
 Deliver<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
-                                       std::uint32_t          RotationSlot,
+                                       std::uint32_t          SlotOrdinal,
                                        const ViewProjection&  Viewing)
 {
     if (SpanEdge == nullptr || ProgramEdge == nullptr || AttachmentEdge == nullptr)
@@ -676,8 +676,8 @@ Deliver<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
     if (Recorded == VK_NULL_HANDLE)
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no recording was supplied" });
 
-    if (RotationSlot >= RecordingRotationDepth)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+    if (SlotOrdinal >= RecordingSlotCount)
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
 
     ConstructedProgram Constructed;
 
@@ -693,7 +693,7 @@ Deliver<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
         if (Standing.TriangleCount == 0u)
             continue;
 
-        const Deliver<bool> Written = Project(Standing, RotationSlot, Viewing, Covering, false);
+        const Deliver<bool> Written = Project(Standing, SlotOrdinal, Viewing, Covering, false);
 
         if (!Written.ContentPresent)
         {
@@ -702,7 +702,7 @@ Deliver<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
         }
 
         const Deliver<VkDescriptorSet> Reaching =
-            DescriptorEdge->Resolve(Standing.ClaimOrdinals[DirectClaimOrdinal], RotationSlot);
+            DescriptorEdge->Resolve(Standing.ClaimOrdinals[DirectClaimOrdinal], SlotOrdinal);
 
         if (!Reaching.ContentPresent)
         {
@@ -731,7 +731,7 @@ Deliver<bool> VisibilityRaster::Record(VkCommandBuffer        Recorded,
 //------------------------------------------------------------------------------------------------------------------------
 
 Deliver<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorded,
-                                               std::uint32_t             RotationSlot,
+                                               std::uint32_t             SlotOrdinal,
                                                const ViewProjection&     Viewing,
                                                const OcclusionScheduler& Culling,
                                                CullingPhase              Phase)
@@ -742,8 +742,8 @@ Deliver<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorde
     if (Recorded == VK_NULL_HANDLE)
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no recording was supplied" });
 
-    if (RotationSlot >= RecordingRotationDepth || Phase == CullingPhase::PhaseCount)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such rotation slot or phase" });
+    if (SlotOrdinal >= RecordingSlotCount || Phase == CullingPhase::PhaseCount)
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such cycle slot or phase" });
 
     ConstructedProgram Constructed;
 
@@ -770,7 +770,7 @@ Deliver<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorde
                 { RefusalReason::ContentUnsupported, "the residency declared no culling ordinal" });
         }
 
-        const Deliver<bool> Written = Project(Standing, RotationSlot, Viewing, Covering, true);
+        const Deliver<bool> Written = Project(Standing, SlotOrdinal, Viewing, Covering, true);
 
         if (!Written.ContentPresent)
         {
@@ -779,7 +779,7 @@ Deliver<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorde
         }
 
         const Deliver<VkBuffer> Recording =
-            Culling.RecordOf(Standing.CullingOrdinal, RotationSlot, Phase);
+            Culling.RecordOf(Standing.CullingOrdinal, SlotOrdinal, Phase);
 
         if (!Recording.ContentPresent)
         {
@@ -788,7 +788,7 @@ Deliver<bool> VisibilityRaster::RecordIndirect(VkCommandBuffer           Recorde
         }
 
         const Deliver<VkDescriptorSet> Reaching =
-            DescriptorEdge->Resolve(Standing.ClaimOrdinals[ClaimOrdinal], RotationSlot);
+            DescriptorEdge->Resolve(Standing.ClaimOrdinals[ClaimOrdinal], SlotOrdinal);
 
         if (!Reaching.ContentPresent)
         {

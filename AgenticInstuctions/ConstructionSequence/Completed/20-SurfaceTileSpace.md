@@ -50,9 +50,9 @@ visible in the result.
 ### 2.1 The demand cycle
 
 ① Sampling writes a demand for any non-resident cell it touched.
-② `ReturnIndex` reads demands back with a latency of the rotation depth.
+② `ReturnIndex` reads demands back with a latency of the recording slot count.
 ③ `PageQueue` presents them in arrival order.
-④ `PromotionScheduler` promotes within a per-rotation budget and evicts to make room.
+④ `PromotionScheduler` promotes within a per-slot budget and evicts to make room.
 ⑤ Promotion reconstructs the tile from one of three sources, then writes the apron.
 
 | Reconstruction source | Holds                                                   | Cost bounded by     |
@@ -65,7 +65,7 @@ visible in the result.
 resolution-independent is for: an outline or a repeating pattern is not stored as texels at any resolution, so a
 finer level is a re-resolution rather than a magnification. Nothing in `10` holds its texels.
 
-🔴 Demands are latent by the rotation depth. Sampling a non-resident cell must produce something immediately —
+🔴 Demands are latent by the recording slot count. Sampling a non-resident cell must produce something immediately —
 the coarsest resident reduction — rather than stalling. A residency system that stalls on demand has converted a
 memory problem into a frame-time problem.
 
@@ -132,7 +132,7 @@ rather than merely a correction.
 - **Gate:** The coarsest reduction levels are permanently resident.
 - **Gate:** Only reconstructible artefacts enter `SurfaceDepot`.
 - **Gate:** No tile holding uncommitted paint is evicted.
-- **Gate:** Reclamation is deferred by the rotation depth.
+- **Gate:** Reclamation is deferred by the recording slot count.
 - **Gate:** No tile is the source of truth for any content; `56` is, and a tile is a projection of it.
 - **Gate:** A speculative extent never blocks eviction and never enters `RevisionSequence`.
 
@@ -140,7 +140,7 @@ rather than merely a correction.
 
 | Open question                                                    | Blocks                    |
 |--------------------------------------------------------------------|----------------------------|
-| Per-rotation promotion budget in transfer volume                   | Tuning; measure            |
+| Per-slot promotion budget in transfer volume                   | Tuning; measure            |
 | Whether a dedicated transfer queue is warranted for promotion       | `06` §8 carries this too   |
 | Eviction ordering — least-recent, or distance from the camera       | Tuning only                |
 | Whether `MaximumWorkingEdge` is per surface or per document         | `10` format                |

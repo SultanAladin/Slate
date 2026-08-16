@@ -78,7 +78,7 @@ answer came from a traced ray or from a depth march.
 position, orientation and the tangent basis from partition identity and triangle index, and resolves every channel
 through `20` and `70`. Everything `p̂` needs is in registers at that moment.
 
-| ① | Read the retained reservoir for this pixel from `92`'s previous rotation slot                    |
+| ① | Read the retained reservoir for this pixel from `92`'s previous cycle slot                    |
 | ② | Draw `CandidateDrawCount` candidates from `44` §5's reaching set, through `104`'s sequence        |
 | ③ | `Accumulate` each into a fresh reservoir; `p̂` is `ResolveTargetDensity`, unshadowed              |
 | ④ | Combine the reprojected retained reservoir into it — §4                                          |

@@ -62,7 +62,7 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Advance(double ElapsedMilliseconds);
 
-    /// 🧩 Records the drawer chrome — shadows, bodies, edges, grips and tongues.
+    /// 🧩 Records the drawer chrome — bodies, edges, grips and tongues.
     /// note  Panels must not record before this call. The drawer bodies define the clipping extents
     ///       the panels record inside.
     /// cost  🚩
@@ -90,12 +90,12 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Abandon();
 
-    /// 🧩 Restates the rotation depth after a presentation chain was re-established.
+    /// 🧩 Restates the minimum and actual image counts after a presentation chain was re-established.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Renegotiate(std::uint32_t RotationDepth);
+    Deliver<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
 
-    /// 🧩 Records the assembled content into a command recording of the current rotation slot.
+    /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope
     /// out   Deliver          [-]  refuses when nothing has been sealed since the last Advance
     /// pre   SealPanels delivered

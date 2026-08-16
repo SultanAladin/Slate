@@ -16,14 +16,14 @@ wrong, exactly as `100` §4 describes for the screen-traced form.
 | Unit        | `SlateCompute.lib`                                                              |
 | Layer       | `Layer4_Compute`                                                                |
 | Upstream    | `06` (extents, rotation), `08` (targets, substitution), `10` (topology), `12` (composed transforms), `16` (partitions), `34` (off-tick work), `40` (the host subdivision this is **not**), `90` (the capability) |
-| Downstream  | `94` reads both; `102` reads the rotation depth                                |
+| Downstream  | `94` reads both; `102` reads the recording slot count                                |
 | Unblocks    | Somewhere for a reservoir to live and something for a ray to meet              |
 
 ## 1. The Components
 
 | Component                | What it owns                                                             |
 |--------------------------|---------------------------------------------------------------------------|
-| `ReservoirSpace`         | The reservoir extents, both rotation slots, both signals — §2             |
+| `ReservoirSpace`         | The reservoir extents, both cycle slots, both signals — §2             |
 | `IntersectionStructure`  | The device traversal structure and its refit — §3                        |
 | `InvalidationSpecification` | What discards a reservoir and what merely refits — §4                 |
 | `ReservoirMetrics`       | Occupancy, refit count, invalidation cause, reported through `86`         |
@@ -34,7 +34,7 @@ Declared in `Shared/ResamplingProjection.slang.h` so host and device agree, and 
 update — `00` §4.
 
 ```cpp
-// 💾 32 bytes, 16-byte aligned. Two per pixel per rotation slot at the direct signal's extent.
+// 💾 32 bytes, 16-byte aligned. Two per pixel per cycle slot at the direct signal's extent.
 struct DirectReservoir
 {
     IlluminantIdentity  ChosenIlluminant;      // [-]   - the reaching-set member this reservoir selected
@@ -61,12 +61,12 @@ does not exist is `02` §8's gate applied to a struct member.
 
 ### 2.1 Two signals, two extents
 
-| Signal   | Extent          | Rotation slots | Why                                                        |
+| Signal   | Extent          | Cycle slots | Why                                                        |
 |----------|-----------------|----------------|-------------------------------------------------------------|
 | Direct   | display         | 2              | Contact shadows are high-frequency; half extent loses them  |
 | Indirect | half of display | 2              | Indirect is low-frequency by construction; `102` upsamples  |
 
-The slot count is `RecordingRotationDepth` from `Contract/ToleranceContract.h` — declared **2u** there and marked
+The slot count is `RecordingSlotCount` from `Contract/ToleranceContract.h` — declared **2u** there and marked
 open. This document reads that constant and never declares its own. 🔴 A reservoir depth that disagreed with the
 recording rotation would have `94` reading a slot the device is still writing.
 
@@ -159,7 +159,7 @@ which is precisely the workflow this engine exists for.
 
 ## 5. Extent Arithmetic
 
-At a 1920 × 1080 display, `RecordingRotationDepth = 2`:
+At a 1920 × 1080 display, `RecordingSlotCount = 2`:
 
 | Extent                            | Arithmetic                          | Claimed    |
 |-----------------------------------|--------------------------------------|------------|
@@ -189,7 +189,7 @@ set is one where `94` reads an extent that was never claimed and meets it as a n
 ## 7. Gates
 
 - **Gate:** No `VkAccelerationStructureKHR` handle is negotiated here; `90` negotiated the capability.
-- **Gate:** The rotation depth is `RecordingRotationDepth` from `Contract/`, never a local constant.
+- **Gate:** The recording slot count is `RecordingSlotCount` from `Contract/`, never a local constant.
 - **Gate:** The lower level is object-space and invariant under occupant motion.
 - **Gate:** An occupant move updates one upper transform and rebuilds nothing.
 - **Gate:** Lower-level construction runs through `34` at `Background`; a build in flight never replaces the live

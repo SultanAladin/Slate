@@ -31,13 +31,13 @@ Deliver<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const D
     //    keep per-recording bookkeeping no path here ever reads.
     ExtentDeclaration.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
-    Slots.assign(RecordingRotationDepth, RecordingSlot{});
+    Slots.assign(RecordingSlotCount, RecordingSlot{});
 
-    // 📝 Walked by ordinal rather than by reference, because the rotation slot is what each object is named by
+    // 📝 Walked by ordinal rather than by reference, because the cycle slot is what each object is named by
     //    and it is the same ordinal every later call addresses the slot with.
-    for (std::uint32_t RotationSlot = 0u; RotationSlot < RecordingRotationDepth; ++RotationSlot)
+    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
     {
-        RecordingSlot& Slot = Slots[RotationSlot];
+        RecordingSlot& Slot = Slots[SlotOrdinal];
 
         if (vkCreateCommandPool(Active, &ExtentDeclaration, nullptr, &Slot.RecordingExtent) != VK_SUCCESS)
         {
@@ -64,12 +64,12 @@ Deliver<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const D
         NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_POOL,
                             reinterpret_cast<std::uint64_t>(Slot.RecordingExtent),
                             "CommandSequence rotation extent",
-                            RotationSlot);
+                            SlotOrdinal);
 
         NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_BUFFER,
                             reinterpret_cast<std::uint64_t>(Slot.Primary),
                             "CommandSequence rotation recording",
-                            RotationSlot);
+                            SlotOrdinal);
     }
 
     // 📝 The immediate extent is reset per use and therefore declares the resettable arrangement its slots do
@@ -96,15 +96,15 @@ Deliver<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const D
 //                                                     THE OPENING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<VkCommandBuffer> CommandSequence::Open(std::uint32_t RotationSlot)
+Deliver<VkCommandBuffer> CommandSequence::Open(std::uint32_t SlotOrdinal)
 {
-    if (DeviceEdge == nullptr || static_cast<std::size_t>(RotationSlot) >= Slots.size())
+    if (DeviceEdge == nullptr || static_cast<std::size_t>(SlotOrdinal) >= Slots.size())
     {
         return Deliver<VkCommandBuffer>::Refuse(
-            { RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+            { RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
     }
 
-    RecordingSlot& Slot = Slots[RotationSlot];
+    RecordingSlot& Slot = Slots[SlotOrdinal];
 
     if (Slot.SlotOpen)
         return Deliver<VkCommandBuffer>::Refuse({ RefusalReason::RelationCyclic, "the slot is already open" });
@@ -132,30 +132,30 @@ Deliver<VkCommandBuffer> CommandSequence::Open(std::uint32_t RotationSlot)
     return Deliver<VkCommandBuffer>::Deliver(Slot.Primary);
 }
 
-Deliver<VkCommandBuffer> CommandSequence::Recording(std::uint32_t RotationSlot) const
+Deliver<VkCommandBuffer> CommandSequence::Recording(std::uint32_t SlotOrdinal) const
 {
-    if (static_cast<std::size_t>(RotationSlot) >= Slots.size())
+    if (static_cast<std::size_t>(SlotOrdinal) >= Slots.size())
     {
         return Deliver<VkCommandBuffer>::Refuse(
-            { RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+            { RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
     }
 
-    if (!Slots[RotationSlot].SlotOpen)
+    if (!Slots[SlotOrdinal].SlotOpen)
         return Deliver<VkCommandBuffer>::Refuse({ RefusalReason::ContentUnsupported, "the slot is not open" });
 
-    return Deliver<VkCommandBuffer>::Deliver(Slots[RotationSlot].Primary);
+    return Deliver<VkCommandBuffer>::Deliver(Slots[SlotOrdinal].Primary);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE SURRENDER
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> CommandSequence::Surrender(std::uint32_t RotationSlot, const SurrenderOrdering& Ordering)
+Deliver<bool> CommandSequence::Surrender(std::uint32_t SlotOrdinal, const SurrenderOrdering& Ordering)
 {
-    if (DeviceEdge == nullptr || static_cast<std::size_t>(RotationSlot) >= Slots.size())
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rotation slot is outside the depth" });
+    if (DeviceEdge == nullptr || static_cast<std::size_t>(SlotOrdinal) >= Slots.size())
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
 
-    RecordingSlot& Slot = Slots[RotationSlot];
+    RecordingSlot& Slot = Slots[SlotOrdinal];
 
     if (!Slot.SlotOpen)
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the slot is not open" });
@@ -195,7 +195,7 @@ Deliver<bool> CommandSequence::Surrender(std::uint32_t RotationSlot, const Surre
     // 🔴 `06` §7: reported upward, and the slot is closed either way. Nothing is destroyed here — the recording
     //    and its extent stay standing so that `06` §4.2's recovery reclaims them in its own order.
     if (Accepted == VK_ERROR_DEVICE_LOST)
-        return Deliver<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost surrendering a rotation slot" });
+        return Deliver<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost surrendering a cycle slot" });
 
     if (Accepted != VK_SUCCESS)
         return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the queue declined the surrender" });

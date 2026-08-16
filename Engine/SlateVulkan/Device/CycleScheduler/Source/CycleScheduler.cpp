@@ -25,58 +25,58 @@ Deliver<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const Di
     VkFenceCreateInfo CompletionDeclaration = {};
     CompletionDeclaration.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-    // 🔴 Signalled at construction. The first rotation waits before it has ever submitted, and an unsignalled
+    // 🔴 Signalled at construction. The first recording waits before it has ever submitted, and an unsignalled
     //    completion makes that wait one for a submission that was never made.
     CompletionDeclaration.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     VkSemaphoreCreateInfo OrderingDeclaration = {};
     OrderingDeclaration.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    Slots.assign(RecordingRotationDepth, RotationSlot{});
+    Slots.assign(RecordingSlotCount, CycleSlot{});
 
-    // 📝 Walked by ordinal rather than by reference, because the rotation slot is what each of the three points
+    // 📝 Walked by ordinal rather than by reference, because the cycle slot is what each of the three points
     //    is named by, and it is the same ordinal `StandingOrdinal` reports the stall against.
-    for (std::uint32_t RotationOrdinal = 0u; RotationOrdinal < RecordingRotationDepth; ++RotationOrdinal)
+    for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
     {
-        RotationSlot& Slot = Slots[RotationOrdinal];
+        CycleSlot& Slot = Slots[SlotOrdinal];
 
         const bool Constructed =
             vkCreateFence(Active, &CompletionDeclaration, nullptr, &Slot.Completion)        == VK_SUCCESS &&
             vkCreateSemaphore(Active, &OrderingDeclaration, nullptr, &Slot.ImageArrived)    == VK_SUCCESS &&
             vkCreateSemaphore(Active, &OrderingDeclaration, nullptr, &Slot.RecordingDone)   == VK_SUCCESS;
 
-        // 📝 🔴 Refused in full. A rotation half-constructed leaves some slots orderable and some not, and the
-        //    defect surfaces on whichever rotation first reaches the unordered slot rather than at bring-up.
+        // 📝 🔴 Refused in full. A cycle half-constructed leaves some slots orderable and some not, and the
+        //    defect surfaces on whichever recording first reaches the unordered slot rather than at bring-up.
         if (!Constructed)
         {
             Reclaim();
             return Deliver<bool>::Refuse(
-                { RefusalReason::ExtentExhausted, "the device declined an ordering point of the rotation" });
+                { RefusalReason::ExtentExhausted, "the device declined an ordering point of the cycle" });
         }
 
         // 📝 🔴 `06` §7's diagnostic-name gate. The two semaphores are named apart rather than by one prefix and
-        //    an ordinal, because what a stall report needs is the direction — a rotation waiting on an image that
+        //    an ordinal, because what a stall report needs is the direction — a recording waiting on an image that
         //    never arrived and one whose recording never signalled are different defects with different causes,
-        //    and the addresses alone say only that the rotation stopped. The refusals are discarded for
+        //    and the addresses alone say only that the cycle stopped. The refusals are discarded for
         //    `ByteSpace`'s reason.
         NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
                             reinterpret_cast<std::uint64_t>(Slot.Completion),
-                            "CycleScheduler rotation completion",
-                            RotationOrdinal);
+                            "CycleScheduler cycle completion",
+                            SlotOrdinal);
 
         NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
                             reinterpret_cast<std::uint64_t>(Slot.ImageArrived),
-                            "CycleScheduler rotation image arrival",
-                            RotationOrdinal);
+                            "CycleScheduler cycle image arrival",
+                            SlotOrdinal);
 
         NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
                             reinterpret_cast<std::uint64_t>(Slot.RecordingDone),
-                            "CycleScheduler rotation recording completion",
-                            RotationOrdinal);
+                            "CycleScheduler cycle recording completion",
+                            SlotOrdinal);
     }
 
     SlotStanding = 0u;
-    Rotations    = 0u;
+    CompletedCount = 0u;
 
     return Deliver<bool>::Deliver(true);
 }
@@ -88,7 +88,7 @@ Deliver<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const Di
 Deliver<bool> CycleScheduler::Await()
 {
     if (DeviceEdge == nullptr || Slots.empty())
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no rotation is constructed" });
+        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
 
     const VkResult Reached = vkWaitForFences(DeviceEdge->ActiveDevice(),
                                              1u,
@@ -117,11 +117,11 @@ Deliver<bool> CycleScheduler::Await()
 Deliver<bool> CycleScheduler::Arm()
 {
     if (DeviceEdge == nullptr || Slots.empty())
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no rotation is constructed" });
+        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
 
     // 📝 Cleared immediately before the submission that signals it, never immediately after the wait. A slot
     //    cleared early and then refused before submitting is a slot no submission will ever signal, and the
-    //    next rotation to reach it waits the whole ceiling out for nothing.
+    //    next recording to reach it waits the whole ceiling out for nothing.
     if (vkResetFences(DeviceEdge->ActiveDevice(), 1u, &Slots[SlotStanding].Completion) != VK_SUCCESS)
         return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the device declined to clear the completion" });
 
@@ -138,15 +138,15 @@ void CycleScheduler::Advance()
         return;
 
     SlotStanding = (SlotStanding + 1u) % static_cast<std::uint32_t>(Slots.size());
-    ++Rotations;
+    ++CompletedCount;
 }
 
-Deliver<RotationSlot> CycleScheduler::Standing() const
+Deliver<CycleSlot> CycleScheduler::Standing() const
 {
     if (Slots.empty())
-        return Deliver<RotationSlot>::Refuse({ RefusalReason::CapabilityAbsent, "no rotation is constructed" });
+        return Deliver<CycleSlot>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
 
-    return Deliver<RotationSlot>::Deliver(Slots[SlotStanding]);
+    return Deliver<CycleSlot>::Deliver(Slots[SlotStanding]);
 }
 
 std::uint32_t CycleScheduler::StandingOrdinal() const
@@ -154,9 +154,9 @@ std::uint32_t CycleScheduler::StandingOrdinal() const
     return SlotStanding;
 }
 
-std::uint64_t CycleScheduler::CompletedRotations() const
+std::uint64_t CycleScheduler::CompletedRecordings() const
 {
-    return Rotations;
+    return CompletedCount;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -169,7 +169,7 @@ void CycleScheduler::Reclaim()
     {
         const VkDevice Active = DeviceEdge->ActiveDevice();
 
-        for (RotationSlot& Slot : Slots)
+        for (CycleSlot& Slot : Slots)
         {
             if (Slot.Completion != VK_NULL_HANDLE)
             {

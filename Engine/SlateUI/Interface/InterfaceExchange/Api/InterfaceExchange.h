@@ -32,9 +32,10 @@ struct InterfaceAttachment
     VkDevice          ActiveDevice          = VK_NULL_HANDLE;          // [-]  - the created device
     VkQueue           GraphicsQueue         = VK_NULL_HANDLE;          // [-]  - the one queue taken
     std::uint32_t     GraphicsFamilyOrdinal = 0u;                      // [-]  - the family that queue sits in
-    VkFormat          ColourTargetFormat    = VK_FORMAT_UNDEFINED;     // [-]  - format of DisplaySurface
-    std::uint32_t     RotationDepth         = RecordingRotationDepth;  // [-]  - cyclic recording slots
-    void*             NativeWindowSlot      = nullptr;                 // [-]  - WindowInterchange's handle
+    VkFormat          ColourTargetFormat       = VK_FORMAT_UNDEFINED;  // [-] - format of DisplaySurface
+    std::uint32_t     MinimumDisplayImageCount = 0u;                   // [-] - minimum requested of the chain
+    std::uint32_t     DisplayImageCount        = 0u;                   // [-] - actual images the chain holds
+    void*             NativeWindowSlot         = nullptr;              // [-] - WindowInterchange's handle
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -95,16 +96,17 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> Abandon();
 
-    /// 🧩 Restates the rotation depth to the vendor attachment after a presentation chain was re-established.
-    /// in    RotationDepth  [-]  the depth the new chain carries
-    /// out   Deliver        [-]  refuses when no context is constructed
-    /// note  ⚠️ A vendor attachment holding a stale image count sizes its own per-image storage wrongly and
-    ///       records past the end of it on the first tick after a resize.
+    /// 🧩 Restates the display image counts after a presentation chain was re-established.
+    /// in    MinimumImageCount  [-]  minimum image count requested when the chain was created
+    /// in    ImageCount         [-]  actual image count the vendor returned
+    /// out   Deliver            [-]  refuses when no context stands or either count is inconsistent
+    /// note  🔴 These are properties of the presentation chain, never `RecordingSlotCount`. Dear ImGui's
+    ///       Vulkan attachment sizes against display images independently of Slate's reusable command slots.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Renegotiate(std::uint32_t RotationDepth);
+    Deliver<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
 
-    /// 🧩 Records the assembled content into a command recording of the current rotation slot.
+    /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface
     /// out   Deliver          [-]  refuses when nothing has been sealed since the last Advance
     /// pre   Seal delivered

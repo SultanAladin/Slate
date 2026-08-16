@@ -90,6 +90,6 @@ permanently wrong, while analytic content re-resolved at a finer level simply re
 
 | Open question                                                          | Blocks                        |
 |-------------------------------------------------------------------------|--------------------------------|
-| Per-rotation resolution-cost budget                                     | Tuning; measure                |
+| Per-slot resolution-cost budget                                     | Tuning; measure                |
 | Whether resolution runs in the same recording as promotion transfer     | `08` recording count only      |
 | Whether a deep analytic layer sequence is flattened after a threshold   | Cost only; correctness unaffected |

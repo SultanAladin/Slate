@@ -104,10 +104,10 @@ int main()
     }
 
     // ⑧ The cyclic recording slots and the command recording sequence.
-    CycleScheduler  Rotation;
+    CycleScheduler  Cycle;
     CommandSequence Commands;
 
-    if (!Rotation.Construct(DeviceEdge, DiagnosticEdge).ContentPresent ||
+    if (!Cycle.Construct(DeviceEdge, DiagnosticEdge).ContentPresent ||
         !Commands.Construct(DeviceEdge, DiagnosticEdge).ContentPresent)
     {
         std::printf("%s \u2014 the recording rotation was refused\n", HostName);
@@ -121,9 +121,10 @@ int main()
     InterfaceArriving.ActiveDevice          = DeviceEdge.ActiveDevice();
     InterfaceArriving.GraphicsQueue         = DeviceEdge.GraphicsQueue();
     InterfaceArriving.GraphicsFamilyOrdinal = DeviceEdge.Capability().GraphicsFamilyOrdinal;
-    InterfaceArriving.ColourTargetFormat    = DisplayChain.Carries();
-    InterfaceArriving.RotationDepth         = RecordingRotationDepth;
-    InterfaceArriving.NativeWindowSlot      = Window.NativeHandle();
+    InterfaceArriving.ColourTargetFormat       = DisplayChain.Carries();
+    InterfaceArriving.MinimumDisplayImageCount = DisplayChain.MinimumChainImageCount();
+    InterfaceArriving.DisplayImageCount        = DisplayChain.ChainImageCount();
+    InterfaceArriving.NativeWindowSlot         = Window.NativeHandle();
 
     // ⑩ The viewport sequence — springs, drawers, and the assembled recording.
     ViewportSequence Viewport;
@@ -174,19 +175,19 @@ int main()
         {
             vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
             DisplayChain.Reclaim(Extent.Width, Extent.Height);
-            Viewport.Renegotiate(RecordingRotationDepth);
+            Viewport.Renegotiate(DisplayChain.MinimumChainImageCount(), DisplayChain.ChainImageCount());
             Window.AdoptExtent();
         }
 
-        // ④ Await the rotation slot. The fence guards the recording this slot is about to reuse.
-        if (!Rotation.Await().ContentPresent)
+        // ④ Await the cycle slot. The fence guards the recording this slot is about to reuse.
+        if (!Cycle.Await().ContentPresent)
         {
-            std::printf("%s \u2014 the rotation slot was lost\n", HostName);
+            std::printf("%s \u2014 the cycle slot was lost\n", HostName);
             break;
         }
 
-        const std::uint32_t         SlotOrdinal = Rotation.StandingOrdinal();
-        const Deliver<RotationSlot> Standing    = Rotation.Standing();
+        const std::uint32_t         SlotOrdinal = Cycle.StandingOrdinal();
+        const Deliver<CycleSlot> Standing    = Cycle.Standing();
 
         if (!Standing.ContentPresent)
             break;
@@ -230,7 +231,7 @@ int main()
         {
             vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
             DisplayChain.Reclaim(Extent.Width, Extent.Height);
-            Viewport.Renegotiate(RecordingRotationDepth);
+            Viewport.Renegotiate(DisplayChain.MinimumChainImageCount(), DisplayChain.ChainImageCount());
             Window.AdoptExtent();
             continue;
         }
@@ -269,7 +270,7 @@ int main()
 
         // ⑧ Arm the rotation immediately before the surrender. Armed any earlier, a refusal between the two
         //    leaves the fence unsignalled and the next Await never returns.
-        if (!Rotation.Arm().ContentPresent)
+        if (!Cycle.Arm().ContentPresent)
             break;
 
         const Deliver<bool> Surrendered = Commands.Surrender(SlotOrdinal, SurrenderOrdering{
@@ -287,11 +288,11 @@ int main()
         {
             vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
             DisplayChain.Reclaim(Extent.Width, Extent.Height);
-            Viewport.Renegotiate(RecordingRotationDepth);
+            Viewport.Renegotiate(DisplayChain.MinimumChainImageCount(), DisplayChain.ChainImageCount());
             Window.AdoptExtent();
         }
 
-        Rotation.Advance();
+        Cycle.Advance();
     }
 
     // ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -303,7 +304,7 @@ int main()
 
     Viewport.Reclaim();
     Commands.Reclaim();
-    Rotation.Reclaim();
+    Cycle.Reclaim();
     DisplayChain.Surrender();
     DiagnosticEdge.Reclaim();
     Reclaim(DeviceEdge.Instance(), PresentationSurface);

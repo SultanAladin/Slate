@@ -92,5 +92,5 @@ occupant's enclosure rather than retired with it.
 
 🔴 Deleting a group deletes the group, not the work inside it. Deleting the contents is a separate instruction the
 artist gives deliberately. The cascade rows binding unbuilt documents stand: `56` retires its layers, `20`
-reclaims tiles after the rotation depth, `16` and `42` derive their partitions again, and placed content retires
+reclaims tiles after the recording slot count, `16` and `42` derive their partitions again, and placed content retires
 with its enclosure per `00` §10.1.

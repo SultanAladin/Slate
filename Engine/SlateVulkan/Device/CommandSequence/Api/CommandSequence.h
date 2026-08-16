@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                            COMMANDSEQUENCE.H
 //============================================================================================================================================
-// 🧩 One recording per rotation slot — where commands are written, and the ordered surrender of them to the queue.
+// 🧩 One recording per cycle slot — where commands are written, and the ordered surrender of them to the queue.
 
 #pragma once
 
@@ -44,7 +44,7 @@ struct SurrenderOrdering
 /// note  🔴 `06` §2.1 settles one graphics queue, so ordering between recordings is their order of surrender
 ///       rather than a queue arbitration. `08` §3's diagram is therefore the submission order verbatim, and
 ///       nothing here reorders what `RenderSchedule::Ordered` fixed.
-/// note  ⚠️ One primary recording per rotation slot, reset whole. Resetting an individual recording costs the
+/// note  ⚠️ One primary recording per cycle slot, reset whole. Resetting an individual recording costs the
 ///       vendor a per-recording allocator it must then keep, and `06` §7 sizes every per-recording resource
 ///       against the depth precisely so the whole slot can be reset at once.
 /// tag   owning
@@ -62,32 +62,32 @@ public:
     /// in    Naming    [-]  names every extent and every recording; borrowed and outlives this component
     /// out   Deliver   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     ///                      device declines an extent or a recording; refused in full
-    /// post  `RecordingRotationDepth` recordings stand, none of them open
-    /// note  🔴 `06` §7's diagnostic-name gate. Each recording is named by its rotation slot, which is what the
+    /// post  `RecordingSlotCount` recordings stand, none of them open
+    /// note  🔴 `06` §7's diagnostic-name gate. Each recording is named by its cycle slot, which is what the
     ///        driver's text needs to say — a report against an unnamed recording cannot distinguish the slot
     ///        being written from the one the device is still executing, and that pair is the whole rotation.
     /// cost  🚩
     /// tag   api, nonthrowing
     Deliver<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
-    /// 🧩 Resets one rotation slot's recording extent and opens its recording for writing.
-    /// in    RotationSlot  [-]  below `RecordingRotationDepth`
+    /// 🧩 Resets one cycle slot's recording extent and opens its recording for writing.
+    /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
     /// out   Deliver       [-]  the opened recording; refuses with ContentUnsupported for an excessive slot
     ///                          and HostDenied when the device declines the reset or the open
     /// pre   🔴 `CycleScheduler::Await` delivered for this slot — the device no longer reads it
     /// post  the slot is open; Surrender closes it
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<VkCommandBuffer> Open(std::uint32_t RotationSlot);
+    Deliver<VkCommandBuffer> Open(std::uint32_t SlotOrdinal);
 
-    /// 🧩 The recording one rotation slot holds, for a document contributing commands to an open slot.
+    /// 🧩 The recording one cycle slot holds, for a document contributing commands to an open slot.
     /// out   Deliver  [-]  refuses with ContentUnsupported for an excessive slot or a slot that is not open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<VkCommandBuffer> Recording(std::uint32_t RotationSlot) const;
+    Deliver<VkCommandBuffer> Recording(std::uint32_t SlotOrdinal) const;
 
-    /// 🧩 Closes one rotation slot's recording and surrenders it to the one graphics queue.
-    /// in    RotationSlot [-]  below `RecordingRotationDepth`
+    /// 🧩 Closes one cycle slot's recording and surrenders it to the one graphics queue.
+    /// in    SlotOrdinal [-]  below `RecordingSlotCount`
     /// in    Ordering     [-]  what the surrender waits on and signals; any member may be null
     /// out   Deliver      [-]  refuses with ContentUnsupported for a slot that is not open, HostDenied when
     ///                         the device declines the close or the surrender, and DeviceLost when the device
@@ -98,7 +98,7 @@ public:
     ///        moment for every other reader of it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Surrender(std::uint32_t RotationSlot, const SurrenderOrdering& Ordering);
+    Deliver<bool> Surrender(std::uint32_t SlotOrdinal, const SurrenderOrdering& Ordering);
 
     /// 🧩 Opens a recording outside the rotation, for the one-off transfers bring-up records.
     /// out   Deliver  [-]  refuses with ExtentExhausted when the device declines the recording
@@ -137,7 +137,7 @@ private:
 
     const VulkanExchange*       DeviceEdge      = nullptr;         // [-] - borrowed; never owned
     const DiagnosticExtension*  NamingEdge      = nullptr;         // [-] - borrowed; never owned
-    std::vector<RecordingSlot>  Slots           = {};              // [-] - RecordingRotationDepth entries
+    std::vector<RecordingSlot>  Slots           = {};              // [-] - RecordingSlotCount entries
     VkCommandPool               ImmediateExtent = VK_NULL_HANDLE;  // [-] - bring-up transfers, outside the rotation
 };
 

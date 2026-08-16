@@ -103,14 +103,14 @@ public:
 
     /// 🧩 Contributes `08` §3 ⑦'s recording.
     /// out   Deliver  [-]  refuses with whatever the schedule refused
-    /// note  📝 Produces `AccumulationSurface` and amends nothing. It reads its own previous rotation slot, which
+    /// note  📝 Produces `AccumulationSurface` and amends nothing. It reads its own previous cycle slot, which
     ///        the schedule cannot express as a dependency and does not need to: `06`'s rotation orders the two.
     /// cost  ✔️
     /// tag   api, nonthrowing
     Deliver<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 The sub-pixel offset one rotation carries, from `02` §6's sequence.
-    /// in    RotationOrdinal  [-]  the rotation, counted from bring-up
+    /// in    RecordingOrdinal  [-]  the rotation, counted from bring-up
     /// out   OffsetX/Y        [px] within the pixel, never at its corner
     /// note  🔴 `64` §3.1: the offset is applied to `46`'s **projection** and never to a resolved position. An
     ///        offset applied after resolution shifts an already-resolved image, which resamples rather than
@@ -120,7 +120,7 @@ public:
     ///        the workspace does — `64` §7's Tier A row.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void OffsetOf(std::uint64_t RotationOrdinal, double& OffsetX, double& OffsetY) const;
+    void OffsetOf(std::uint64_t RecordingOrdinal, double& OffsetX, double& OffsetY) const;
 
     /// 🧩 Classifies whether one reprojected history may be accumulated into.
     /// in    ReprojectedAlong  [-]  where the pixel was last rotation
@@ -198,7 +198,7 @@ private:
     bool                    HistoryStanding = false;   // [-] - false until one rotation has accumulated
 };
 
-// 📐 Occupant identity, the rotation slot, the offset index and the sample count are Exact; the reprojected
+// 📐 Occupant identity, the cycle slot, the offset index and the sample count are Exact; the reprojected
 //    position and the accumulated radiance are Bounded and Perceptual respectively — `64` §7.
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Perceptual,
                          PrecisionGuarantee::Perceptual,

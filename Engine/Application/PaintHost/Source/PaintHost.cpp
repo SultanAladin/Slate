@@ -113,10 +113,10 @@ int main()
     }
 
     // ⑧ The cyclic recording slots.
-    CycleScheduler Rotation;
+    CycleScheduler Cycle;
 
-    const Deliver<bool> RotationBuilt = Rotation.Construct(DeviceEdge, DiagnosticEdge);
-    if (!RotationBuilt.ContentPresent)
+    const Deliver<bool> CycleBuilt = Cycle.Construct(DeviceEdge, DiagnosticEdge);
+    if (!CycleBuilt.ContentPresent)
     {
         std::printf("PaintHost \u2014 the recording rotation was refused\n");
         return 1;
@@ -139,9 +139,10 @@ int main()
     InterfaceArriving.ActiveDevice          = DeviceEdge.ActiveDevice();
     InterfaceArriving.GraphicsQueue         = DeviceEdge.GraphicsQueue();
     InterfaceArriving.GraphicsFamilyOrdinal = DeviceEdge.Capability().GraphicsFamilyOrdinal;
-    InterfaceArriving.ColourTargetFormat    = DisplayChain.Carries();
-    InterfaceArriving.RotationDepth         = RecordingRotationDepth;
-    InterfaceArriving.NativeWindowSlot      = Window.NativeHandle();
+    InterfaceArriving.ColourTargetFormat       = DisplayChain.Carries();
+    InterfaceArriving.MinimumDisplayImageCount = DisplayChain.MinimumChainImageCount();
+    InterfaceArriving.DisplayImageCount        = DisplayChain.ChainImageCount();
+    InterfaceArriving.NativeWindowSlot         = Window.NativeHandle();
 
     // ⑪ The viewport sequence — springs, drawers, and the assembled recording.
     ViewportSequence Viewport;
@@ -180,18 +181,18 @@ int main()
         if (Extent.Width == 0u || Extent.Height == 0u)
             continue;
 
-        // ② Await the next rotation slot.
-        const Deliver<bool> SlotReady = Rotation.Await();
+        // ② Await the next cycle slot.
+        const Deliver<bool> SlotReady = Cycle.Await();
         if (!SlotReady.ContentPresent)
         {
-            std::printf("PaintHost \u2014 the rotation slot was lost\n");
+            std::printf("PaintHost \u2014 the cycle slot was lost\n");
             break;
         }
 
-        const std::uint32_t SlotOrdinal = Rotation.StandingOrdinal();
+        const std::uint32_t SlotOrdinal = Cycle.StandingOrdinal();
 
         // ③ Await the next display image.
-        const Deliver<RotationSlot> Standing = Rotation.Standing();
+        const Deliver<CycleSlot> Standing = Cycle.Standing();
         if (!Standing.ContentPresent)
             break;
 
@@ -214,15 +215,16 @@ int main()
                 vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
 
             DisplayChain.Reclaim(Extent.Width, Extent.Height);
+            Viewport.Renegotiate(DisplayChain.MinimumChainImageCount(), DisplayChain.ChainImageCount());
             continue;
         }
 
         // ④ Arm the rotation before the submission.
-        const Deliver<bool> Armed = Rotation.Arm();
+        const Deliver<bool> Armed = Cycle.Arm();
         if (!Armed.ContentPresent)
             break;
 
-        // ⑤ Open the command recording for this rotation slot.
+        // ⑤ Open the command recording for this cycle slot.
         const Deliver<VkCommandBuffer> Recording = Commands.Open(SlotOrdinal);
         if (!Recording.ContentPresent)
             break;
@@ -310,7 +312,7 @@ int main()
             break;
 
         // ⑮ Advance the rotation.
-        Rotation.Advance();
+        Cycle.Advance();
     }
 
     // ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -322,7 +324,7 @@ int main()
 
     Viewport.Reclaim();
     Commands.Reclaim();
-    Rotation.Reclaim();
+    Cycle.Reclaim();
     DisplayChain.Surrender();
     DiagnosticEdge.Reclaim();
     Reclaim(DeviceEdge.Instance(), PresentationSurface);

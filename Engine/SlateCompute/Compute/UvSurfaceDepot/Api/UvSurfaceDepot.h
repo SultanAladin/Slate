@@ -180,7 +180,7 @@ public:
     /// in    Depot            [-]  where derived artefacts live and are evicted from
     /// in    Keyed            [-]  as KeyOf produced it
     /// in    ByteExtent       [B]  what the result occupies
-    /// in    RotationOrdinal  [-]  the rotation it was derived on
+    /// in    RecordingOrdinal  [-]  the rotation it was derived on
     /// out   Deliver          [-]  refuses with whatever the depot refused
     /// note  🔴 Declared as an analytic resolution and therefore reconstructible and evictable — `24` §5's last
     ///        gate. Nothing painted is ever stored here: a transferred result that has been painted over is a
@@ -190,7 +190,7 @@ public:
     Deliver<bool> Admit(SurfaceDepot&     Depot,
                         const ContentKey& Keyed,
                         std::uint64_t     ByteExtent,
-                        std::uint64_t     RotationOrdinal) const;
+                        std::uint64_t     RecordingOrdinal) const;
 
     /// 🧩 Appends the transfer's obligations to the register, and its measures beside them.
     /// in    Produced   [-]  as Transfer returned it

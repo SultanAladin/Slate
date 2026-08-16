@@ -1,6 +1,6 @@
 # 08 — RenderSchedule
 
-`RenderSchedule` declares what is recorded in a rotation slot, in what order, and against which shared device
+`RenderSchedule` declares what is recorded in a cycle slot, in what order, and against which shared device
 targets. It is a declaration consumed by an orderer, not a general dependency-solving construct: the recordings
 are known at bring-up, the target set is known at bring-up, and the ordering is therefore fixed at bring-up and
 merely executed per rotation.

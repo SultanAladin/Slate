@@ -237,12 +237,12 @@ three positions later. `Fix` refuses when a target is read by a recording ordere
 declaration must say which rotation it means.
 
 ```cpp
-// 🔴 Read from the **previous** rotation slot, and therefore excluded from the producer-ordering derivation.
+// 🔴 Read from the **previous** cycle slot, and therefore excluded from the producer-ordering derivation.
 //    `102` §5 reads `64`'s stored count and `64` §6 reads its own previous result; both are rotation-crossing
 //    and both are declared, never omitted. An edge left out of `Reads` to dodge the derivation makes `Fix`
 //    sound on a graph that is not the real one.
-// 📝 `Contribute` refuses a target that appears in both `Reads` and `ReadsPreviousRotation`.
-std::vector<SharedTarget>  ReadsPreviousRotation = {};   // [-] - consumed from the prior rotation slot
+// 📝 `Contribute` refuses a target that appears in both `Reads` and `ReadsPreviousSlot`.
+std::vector<SharedTarget>  ReadsPreviousSlot = {};   // [-] - consumed from the prior cycle slot
 ```
 
 ⚠️ `64`'s existing self-read migrates to this field. It changes no behaviour and no ordering — it makes the edge
@@ -329,7 +329,7 @@ four of them are listed precisely to say so.
   `RadianceSurface` whole and remains its only producer.
 - 🔴 **Gate:** All four signal targets are demodulated; `18` re-modulates; the bound is in `Contract/`.
 - **Gate:** `102` amends the four signals and produces none of them.
-- **Gate:** Every rotation-crossing read is declared through `ReadsPreviousRotation`, never omitted from `Reads`.
+- **Gate:** Every rotation-crossing read is declared through `ReadsPreviousSlot`, never omitted from `Reads`.
 - **Gate:** A capability-conditional read set is resolved at contribution time, never branched at a recording site.
 - **Gate:** `08` §5 carries both substitution rows and `102` requires no capability.
 - **Gate:** `30`, `44`, `62` and `28` are not amended by this branch.

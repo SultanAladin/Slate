@@ -109,7 +109,7 @@ An image-wide decay would reintroduce noise across the whole extent whenever any
 
 The count `102` reads is the **previous rotation's**, ordered by `06`'s recording rotation and not by the
 schedule. `64` §6 already declares one such edge — it reads its own previous result — and calls it "the one place
-in the schedule where a rotation slot depends on the one before it". This branch makes it the second.
+in the schedule where a cycle slot depends on the one before it". This branch makes it the second.
 
 🔴 Declared as a rotation-crossing edge in the Position block, and excluded from `00` §9.1's stratum traversal by
 that declaration rather than by omitting it. `IlluminationGroundwork` §10 carries the ruling; `00` §11's second

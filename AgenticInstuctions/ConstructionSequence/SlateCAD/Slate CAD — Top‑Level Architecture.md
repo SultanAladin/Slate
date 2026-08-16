@@ -348,7 +348,7 @@ Under‑constrained is normal and is presented, not refused; a sketch with DOF >
 7. Selection — the failure that started this
 PickClassifier and PickSpecification in SlateFeature/Reference/.
 
-Picking is host‑side, against ProximitySpace, for the reason 74 §1 already gives Slate: a device readback is latent by the rotation depth while a pointer reports at hundreds of samples per second, so a pick resolved from a target is a pick at where the cursor used to be. Slate already made this decision; the CAD workspace inherits it rather than re‑deciding it.
+Picking is host‑side, against ProximitySpace, for the reason 74 §1 already gives Slate: a device readback is latent by the recording slot count while a pointer reports at hundreds of samples per second, so a pick resolved from a target is a pick at where the cursor used to be. Slate already made this decision; the CAD workspace inherits it rather than re‑deciding it.
 
 Resolution, in one traversal, producing one tuple:
 
@@ -385,7 +385,7 @@ MarkerRaster	OutlineSurface	vertex/handle spans	Point sprites for vertices, sket
 SketchRaster	OutlineSurface, RadianceSurface	Earcut'd profile fills, Clipper2 boolean previews	The 2D workspace. Filled regions are display‑only artefacts and are re‑derived per level.
 FacetDepot and CurveDepot sit in SlateCompute and hold the device‑resident spans, keyed by (BodyRevision, Level), evicted under the existing PromotionScheduler budget. A body whose feature is recomputing keeps its previous tessellation resident and displayed until the new one arrives — the same "the previous partition stands until Adopt takes this one" rule ChartPartition already states, and for the same reason: swapping mid‑solve makes the whole object flicker.
 
-Occlusion culling, the two‑phase depth reduction, the reversed‑depth convention, the rotation depth, the descriptor lifetime — all inherited unchanged. The CAD workspace is a new set of contributions to a spine that already works.
+Occlusion culling, the two‑phase depth reduction, the reversed‑depth convention, the recording slot count, the descriptor lifetime — all inherited unchanged. The CAD workspace is a new set of contributions to a spine that already works.
 
 (Naming note: FacetRaster and CurveRaster inherit the VisibilityRaster precedent already present in SlateCompute. Raster is not on the closed suffix list; if that precedent is retired these become FacetScheduler and CurveScheduler. Flagging it rather than silently diverging.)
 

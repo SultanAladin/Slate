@@ -45,7 +45,7 @@ enum class SpanIntent : std::uint32_t
 
 /// 🧩 The shape one span is claimed at — how far it runs, what reads it, and where it lives.
 /// note  ⚠️ The residency is declared rather than derived from the intent, because a `StorageRead` span is
-///       device-local for `16`'s partitioning and host-writable for a per-rotation uniform, and the two claim
+///       device-local for `16`'s partitioning and host-writable for a per-slot uniform, and the two claim
 ///       sites know which they are while a table keyed on the intent could not.
 /// tag   nonallocating, nonthrowing
 struct SpanShape

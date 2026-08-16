@@ -36,7 +36,7 @@ Six new construction documents, one retirement, two amendments. Numbering contin
 
 №	Document	Unit	Layer	Owns
 88	IntersectionExtension	SlateVulkan.lib	Layer2_Device	Negotiates and holds VK_KHR_acceleration_structure, VK_KHR_ray_query, optionally VK_KHR_ray_tracing_pipeline, VK_EXT_ray_tracing_invocation_reorder, VK_KHR_opacity_micromap. Owns TLAS/BLAS extents, refit, and the Refusal when absent.
-90	ReservoirDepot	SlateCompute.lib	Layer4_Compute	Reservoir storage, both rotation slots, both signals. Derived, evictable, reconstructible — the Depot suffix is exact.
+90	ReservoirDepot	SlateCompute.lib	Layer4_Compute	Reservoir storage, both cycle slots, both signals. Derived, evictable, reconstructible — the Depot suffix is exact.
 92	ResamplingSequence	SlateCompute.lib	Layer4_Compute	Candidate generation, temporal resampling, spatial resampling, shade. The weighted-reservoir mathematics and the MIS weights.
 94	RadianceIndex	SlateCompute.lib	Layer4_Compute	World-space spatial-hash radiance store. Index is the exact suffix — "slot ledger, interning, spatial hashing".
 96	EmissionSpace	SlateCompute.lib	Layer4_Compute	World-space subdivision holding per-cell illuminant reservoirs, for secondary hits that are off-screen.

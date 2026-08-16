@@ -94,7 +94,7 @@ public:
     /// in    Keyed       [-]  what it was derived from
     /// in    Source      [-]  which of `56` §3's four sources produced it
     /// in    ByteExtent  [B]  what it occupies
-    /// in    RotationOrdinal [-]  the rotation it was derived on
+    /// in    RecordingOrdinal [-]  the rotation it was derived on
     /// out   Deliver     [-]  refuses with ContentUnsupported for an unreconstructible source, and with
     ///                        ExtentExhausted when the artefact alone exceeds the whole ceiling
     /// note  🔴 A painted source is refused. `20` §4: painted texels are authored content and live in `56`'s
@@ -105,7 +105,7 @@ public:
     Deliver<bool> Declare(const ContentKey&  Keyed,
                           LayerContentSource Source,
                           std::uint64_t      ByteExtent,
-                          std::uint64_t      RotationOrdinal);
+                          std::uint64_t      RecordingOrdinal);
 
     /// 🧩 Resolves one artefact by its content key, marking it recently read.
     /// out   Deliver  [-]  refuses with ExtentExhausted when nothing matching is held
@@ -114,7 +114,7 @@ public:
     ///        through to the third — which is correct, and slower, and visible only as one deferred tile.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<DepotArtefact> Resolve(const ContentKey& Keyed, std::uint64_t RotationOrdinal);
+    Deliver<DepotArtefact> Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal);
 
     /// 🧩 Evicts least-recently-resolved artefacts until the declared extent is free.
     /// out   Evicted  [-]  how many artefacts left

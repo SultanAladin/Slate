@@ -83,11 +83,11 @@ private:
 //                                                     THE DEMANDS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The demands sampling wrote, held per rotation slot until the readback latency has elapsed.
-/// note  🔴 `20` §2.1 ②: demands are read back with a latency of the **rotation depth**. Sampling a non-resident
+/// 🧩 The demands sampling wrote, held per cycle slot until the readback latency has elapsed.
+/// note  🔴 `20` §2.1 ②: demands are read back with a latency of the **recording slot count**. Sampling a non-resident
 ///        cell must produce something immediately — the coarsest resident level — rather than stalling. A
 ///        residency system that stalls on demand has converted a memory problem into a frame-time problem.
-/// note  📝 One slot more than the rotation depth, so the slot being written is never the slot being read.
+/// note  📝 One slot more than the recording slot count, so the slot being written is never the slot being read.
 ///        With the two sharing a slot the drain would read demands recorded moments earlier and the latency
 ///        would be zero on the tick and the full depth on every other, which is worse than either.
 /// tag   owning
@@ -95,32 +95,32 @@ class RequestQueue
 {
 public:
 
-    static constexpr std::uint32_t SlotCount = RecordingRotationDepth + 1u;   // [-] - rotation slots held
+    static constexpr std::uint32_t SlotCount = RecordingSlotCount + 1u;   // [-] - cycle slots held
 
     /// 🧩 Records one demand against the rotation now sampling.
     /// in    SurfaceOrdinal   [-]  which surface
     /// in    CellOrdinal      [-]  the cell that was not resident
-    /// in    RotationOrdinal  [-]  the rotation being recorded
+    /// in    RecordingOrdinal  [-]  the rotation being recorded
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Demand(std::uint32_t SurfaceOrdinal, std::uint32_t CellOrdinal, std::uint64_t RotationOrdinal);
+    void Demand(std::uint32_t SurfaceOrdinal, std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal);
 
     /// 🧩 The slot a rotation writes into.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    PageQueue& SlotAt(std::uint64_t RotationOrdinal);
+    PageQueue& SlotAt(std::uint64_t RecordingOrdinal);
 
     /// 🧩 The slot a rotation writes into, for reading.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const PageQueue& SlotAt(std::uint64_t RotationOrdinal) const;
+    const PageQueue& SlotAt(std::uint64_t RecordingOrdinal) const;
 
     std::uint64_t RecordedCount() const;
     std::uint64_t DiscardedCount() const;
 
 private:
 
-    PageQueue      RotationSlots[SlotCount] = {};   // [-] - cyclic over the rotation ordinal
+    PageQueue      CycleSlots[SlotCount] = {};   // [-] - cyclic over the rotation ordinal
     std::uint64_t  RecordedDemands          = 0u;   // [-] - demands recorded this session
 };
 
@@ -131,7 +131,7 @@ private:
 /// 🧩 The readback half of the request traffic specifically — the one thing that makes the latency real.
 /// note  🔴 Named apart from `RequestQueue` because the write and the read are different mechanisms at different
 ///        latencies: the write is a device store during sampling, and the read is a host readback of a slot
-///        recorded `RecordingRotationDepth` rotations ago. One component doing both would be one whose latency
+///        recorded `RecordingSlotCount` rotations ago. One component doing both would be one whose latency
 ///        nobody can point at.
 /// note  ⚠️ `FeedbackIndex` is the retired spelling — `SKILL-Naming`'s substitution record.
 /// tag   owning
@@ -139,9 +139,9 @@ class ReturnIndex
 {
 public:
 
-    /// 🧩 Reads back the demands recorded a rotation depth ago.
+    /// 🧩 Reads back the demands recorded a recording slot count ago.
     /// in    Requesting       [-]  the queue those demands were written into
-    /// in    RotationOrdinal  [-]  the rotation now being recorded
+    /// in    RecordingOrdinal  [-]  the rotation now being recorded
     /// out   Deliver          [-]  refuses with ExtentExhausted before the depth has elapsed, and with
     ///                             HostDenied when this rotation has already been drained
     /// post  the drained slot is emptied and is the slot the caller may write next
@@ -150,12 +150,12 @@ public:
     ///        budget being half what it was declared to be.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<const PageQueue*> Drain(RequestQueue& Requesting, std::uint64_t RotationOrdinal);
+    Deliver<const PageQueue*> Drain(RequestQueue& Requesting, std::uint64_t RecordingOrdinal);
 
     /// 🧩 The rotation last drained; zero before anything has been.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint64_t DrainedRotation() const;
+    std::uint64_t DrainedRecording() const;
 
     std::uint64_t DrainedCount() const;
 

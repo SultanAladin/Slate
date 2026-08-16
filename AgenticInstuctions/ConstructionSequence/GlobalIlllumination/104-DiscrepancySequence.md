@@ -27,7 +27,7 @@ Read from `Shared/SampleProjection.slang.h` rather than from `02`, because the s
 | Planar low-discrepancy       | `ProjectPlanarSample`          | Uniform coverage, progressive                 |
 | An ordinal permutation       | `ProjectPermutedOrdinal`       | Decorrelates one ordinal against a seed       |
 | A permuted unit interval     | `ProjectVariation`             | The permutation applied to a scalar draw      |
-| Sub-pixel offsets            | `ProjectSubPixelOffset`        | Deterministic per rotation slot               |
+| Sub-pixel offsets            | `ProjectSubPixelOffset`        | Deterministic per cycle slot               |
 | Spherical, solid-angle uniform| `ProjectSphericalSample`      | For `28`'s multiple-scattering integral       |
 | Hemispherical, cosine-weighted| `ProjectHemisphericalSample`  | For `18` and `94` §6's indirect candidates    |
 

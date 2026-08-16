@@ -96,8 +96,8 @@ struct DisplayCondition
 /// note  🔴 The second and last translation unit in the engine that names ImGui, and it names it only in its
 ///        source file. `00` §2.2 makes a **host** including `imgui.h` a defect; it does not forbid a second
 ///        unit inside `SlateUI`, which already owns the one copy. The alternative was recording panels through
-///        built-in widgets, and no built-in widget produces a clipped tongue, an eight-pixel glow, a scrim or
-///        tracked small capitals — the four things the source is mostly made of.
+///        built-in widgets, and no built-in widget produces a clipped tongue, a scrim or tracked small capitals
+///        — the three things the source is mostly made of.
 /// note  ⚠️ Every method is valid only between `InterfaceExchange::Advance` and `Seal`. Recording outside that
 ///        window writes into content nothing will assemble.
 /// tag   owning
@@ -160,21 +160,6 @@ public:
     /// cost  ✔️
     /// tag   api, nonthrowing
     void Tongue(const float* Corners, std::uint32_t CornerCount, InkOrdinate Ink);
-
-    /// 🧩 Casts a blurred, offset shadow behind an extent, as the source's box-shadow declarations do.
-    /// in    Spread        [px] the declared blur radius
-    /// in    OffsetAcross  [px] positive is downward
-    /// note  ⚠️ Approximated as concentric grounds of falling coverage. A true Gaussian would need an
-    ///        offscreen target, and the difference is not visible against a 0.5-coverage black at 60 px.
-    /// cost  🚩
-    /// tag   api, nonthrowing
-    void ShadowCast(const PlaneExtent& Extent, InkOrdinate Ink, float Spread,
-                    float OffsetAlong = 0.0f, float OffsetAcross = 0.0f, float Radius = 0.0f);
-
-    /// 🧩 Casts an outward glow of even spread — the selection rail's `0 0 8px`.
-    /// cost  🚩
-    /// tag   api, nonthrowing
-    void Glow(const PlaneExtent& Extent, InkOrdinate Ink, float Spread);
 
     //--------------------------------------------------------------------------------------------------------
     //                                                 SYMBOLS

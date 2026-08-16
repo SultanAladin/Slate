@@ -125,7 +125,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool Advance(const PointerCondition& Arrived, double Elapsed, bool Available = true);
 
-    /// 🧩 Records both drawers — shadows, bodies, edges, grips, tongues and tongue runs.
+    /// 🧩 Records both drawers — bodies, edges, grips, tongues and tongue runs.
     /// note  🔴 The south drawer is recorded last while it stands Open, and first otherwise.
     /// cost  🚩
     /// tag   api, nonthrowing

@@ -244,12 +244,12 @@ void TransmissionSequence::Resolve(const TransmissionColumn&                    
 
 void TransmissionSequence::DeclareRotation(std::uint32_t OccupantCount,
                                            std::uint32_t GreatestColumnDepth,
-                                           std::uint32_t TruncatedThisRotation)
+                                           std::uint32_t TruncatedThisRecording)
 {
     Reported.OccupantCount         = OccupantCount;
     Reported.GreatestColumnDepth   = GreatestColumnDepth;
-    Reported.TruncatedThisRotation = TruncatedThisRotation;
-    Reported.TruncatedTotal       += TruncatedThisRotation;
+    Reported.TruncatedThisRecording = TruncatedThisRecording;
+    Reported.TruncatedTotal       += TruncatedThisRecording;
 }
 
 void TransmissionSequence::Report(ReportSequence& Reporting, MeasureIndex& Measured, TickPoint Sampled) const
@@ -257,7 +257,7 @@ void TransmissionSequence::Report(ReportSequence& Reporting, MeasureIndex& Measu
     // 🔴 `86` §4's `62` §3.1 row. Coalesced by the ceiling as its subject rather than by the pixel: a per-pixel
     //    subject presents a million entries for one pane of glass, and `86` §6's retention ceiling would then be
     //    doing the discarding rather than reporting it.
-    if (Reported.TruncatedThisRotation != 0u)
+    if (Reported.TruncatedThisRecording != 0u)
     {
         ReportSpecification Truncated;
         Truncated.Origin         = "62 §3.1 TransmissionSequence";

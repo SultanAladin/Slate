@@ -33,7 +33,7 @@ inline constexpr std::uint32_t AbsentExtent = 0xFFFFFFFFu;   // [-] - the claim 
 enum class ExtentResidency : std::uint32_t
 {
     DeviceLocal    = 0u,   // [-] - fastest for the device; unreachable from the host
-    HostWritable   = 1u,   // [-] - host-visible and coherent; staging content and per-rotation uniforms
+    HostWritable   = 1u,   // [-] - host-visible and coherent; staging content and per-slot uniforms
     ResidencyCount = 2u    // [-] - the closed count, never a residency
 };
 
@@ -125,7 +125,7 @@ public:
     /// 🧩 Returns one span to its extent's free list, coalescing it with whatever it now adjoins.
     /// in    Claimed  [-]  a claim this component issued; a default-constructed one is a no-op
     /// post  the span is claimable again immediately
-    /// note  ⚠️ Immediately, not after the rotation depth. A span the device may still be reading is
+    /// note  ⚠️ Immediately, not after the recording slot count. A span the device may still be reading is
     ///       quarantined by its **owner** — `20` §5 does exactly that over its own slots — because only the
     ///       owner knows which rotation last recorded against it.
     /// cost  ✔️

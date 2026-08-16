@@ -710,10 +710,7 @@ void DrawerSpace::RecordOne(RecordingSurface& Surface, DrawerBearing Bearing) co
 
     if (Visible)
     {
-        // ① The body's cast — 0 ±20px 60px at half coverage, travelling away from the anchored edge.
-        Surface.ShadowCast(Occupied, Ink.DrawerShadow, 60.0f * Measure.DisplayScale,
-                           0.0f, (Northern ? 20.0f : -20.0f) * Measure.DisplayScale, 0.0f);
-
+        // ① The drawer body.
         Surface.Ground(Occupied, Ink.SurfaceStanding, 0.0f, CornerNone);
 
         // ② The one edge the source declares — a rule on the travelling side only.
@@ -727,13 +724,7 @@ void DrawerSpace::RecordOne(RecordingSurface& Surface, DrawerBearing Bearing) co
         Surface.Ground(Grip(Bearing), Ink.GripPill, Measure.GripAcross * 0.5f, CornerAll);
     }
 
-    // ④ The tongue's own cast, then its clipped outline — always drawn so the notch is reachable when closed.
-    Surface.ShadowCast(Tab,
-                       Northern ? Ink.TongueShadowNorth : Ink.TongueShadowSouth,
-                       (Northern ? 3.0f : 10.0f) * Measure.DisplayScale,
-                       0.0f,
-                       (Northern ? 3.0f : -4.0f) * Measure.DisplayScale, 0.0f);
-
+    // ④ The tongue's clipped outline — always drawn so the notch is reachable when closed.
     const float Inset = Tab.SpanAlong() * Measure.TongueClipFraction;
     const float Least = Tab.LeastAlong;
     const float Most  = Tab.MostAlong;

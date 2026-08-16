@@ -27,15 +27,15 @@ namespace Slate
 /// note  🔴 `Available` is a member rather than an absent duration. `08` §5: unavailable is not zero. A span on
 ///        a device with no timestamp capability, and a span whose rotation has not completed yet, both have no
 ///        duration — and a zero in either place is a performance report that is confidently wrong.
-/// note  ⚠️ The duration lags by the rotation depth. A timestamp is read back only once the rotation that
-///        recorded it has completed, so the reading a tick presents is `RecordingRotationDepth` rotations old.
+/// note  ⚠️ The duration lags by the recording slot count. A timestamp is read back only once the rotation that
+///        recorded it has completed, so the reading a tick presents is `RecordingSlotCount` rotations old.
 ///        Waiting for the current one would serialise the host against the device to measure it.
 /// tag   nonallocating, nonthrowing
 struct MeasuredSpan
 {
     const char*    Declared      = "";      // [-]  - static text naming the span; the recording's own identity
     double         Duration      = 0.0;     // [ms] - device execution, meaningful only while Available holds
-    std::uint64_t  RotationRead  = 0u;      // [-]  - which completed rotation the reading came from
+    std::uint64_t  RecordingRead  = 0u;      // [-]  - which completed rotation the reading came from
     bool           Available     = false;   // [-]  - a reading came back; never inferred from a zero duration
 };
 
@@ -64,17 +64,17 @@ public:
     //    rather than grown — a query extent that reallocated would invalidate a reading a rotation still writes.
     static constexpr std::uint32_t SpanCeiling = 16u;   // [-] - declared spans per rotation
 
-    // 📝 🔴 Two timestamps per span, one at each end, and the whole set is sized against the rotation depth —
+    // 📝 🔴 Two timestamps per span, one at each end, and the whole set is sized against the recording slot count —
     //    `06` §7's gate, arithmetic rather than a remark. A single rotation's worth would be read back while
     //    the next rotation was already overwriting it.
-    static constexpr std::uint32_t TimestampsPerRotation = SpanCeiling * 2u;   // [-]
+    static constexpr std::uint32_t TimestampsPerSlot = SpanCeiling * 2u;   // [-]
 
     HardwareMetrics()                                  = default;
     HardwareMetrics(const HardwareMetrics&)            = delete;
     HardwareMetrics& operator=(const HardwareMetrics&) = delete;
     ~HardwareMetrics();
 
-    /// 🧩 Constructs the timestamp extent every recorded span writes into, sized against the rotation depth.
+    /// 🧩 Constructs the timestamp extent every recorded span writes into, sized against the recording slot count.
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
     /// out   Deliver   [-]  refuses with CapabilityAbsent when no device is active
     /// post  every span reads unavailable until one rotation has completed
@@ -98,7 +98,7 @@ public:
 
     /// 🧩 Records the timestamp that opens one declared span, and enters it on the nesting depth.
     /// in    Recorded      [-]  the recording being written into
-    /// in    RotationSlot  [-]  which slot of the depth is standing
+    /// in    SlotOrdinal  [-]  which slot of the depth is standing
     /// in    SpanOrdinal   [-]  what `Declare` returned
     /// out   Deliver       [-]  refuses with ContentUnsupported for an undeclared ordinal or an excessive slot,
     ///                          and with RelationCyclic when the span is already open in this rotation
@@ -106,7 +106,7 @@ public:
     /// note  ⚠️ Delivers as a no-op without the capability, so the recording site is unconditional.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Open(VkCommandBuffer Recorded, std::uint32_t RotationSlot, std::uint32_t SpanOrdinal);
+    Deliver<bool> Open(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, std::uint32_t SpanOrdinal);
 
     /// 🧩 Records the timestamp that closes one declared span, and leaves it on the nesting depth.
     /// out   Deliver  [-]  refuses with ContentUnsupported for an undeclared ordinal or an excessive slot, and
@@ -115,9 +115,9 @@ public:
     ///        standing has crossed the nesting, and the depth it reports then belongs to neither of them.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Close(VkCommandBuffer Recorded, std::uint32_t RotationSlot, std::uint32_t SpanOrdinal);
+    Deliver<bool> Close(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, std::uint32_t SpanOrdinal);
 
-    /// 🧩 Clears one rotation slot's timestamps, immediately before the recording that writes them.
+    /// 🧩 Clears one cycle slot's timestamps, immediately before the recording that writes them.
     /// out   Deliver  [-]  refuses with ContentUnsupported for an excessive slot
     /// pre   🔴 `CycleScheduler::Await` delivered for this slot — the device no longer reads its timestamps
     /// note  🔴 Cleared before the recording rather than after the readback. An uncleared timestamp reads as
@@ -125,10 +125,10 @@ public:
     ///        rotation — the one failure a metric cannot be caught in, because nothing about it looks wrong.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Clear(VkCommandBuffer Recorded, std::uint32_t RotationSlot);
+    Deliver<bool> Clear(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal);
 
     /// 🧩 Reads back one completed rotation's timestamps and resolves each declared span's duration.
-    /// in    RotationSlot   [-]  a slot whose completion has been awaited
+    /// in    SlotOrdinal   [-]  a slot whose completion has been awaited
     /// in    CompletedCount [-]  which rotation the readings belong to, for the lag the reading carries
     /// out   Deliver        [-]  refuses with ContentUnsupported for an excessive slot, HostDenied when the
     ///                           device declines the readback, and DeviceLost when the device was lost — a
@@ -139,7 +139,7 @@ public:
     ///        would report the rebuild as free rather than as absent.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Resolve(std::uint32_t RotationSlot, std::uint64_t CompletedCount);
+    Deliver<bool> Resolve(std::uint32_t SlotOrdinal, std::uint64_t CompletedCount);
 
     /// 🧩 One declared span's last resolved reading.
     /// out   Deliver  [-]  refuses with ContentUnsupported for an undeclared ordinal
@@ -185,21 +185,21 @@ private:
         std::uint32_t  NestingDepth = 0u;      // [-] - spans standing open around it when it opened
     };
 
-    /// 🧩 What one rotation slot recorded — which spans were opened and closed in it.
-    struct RecordedRotation
+    /// 🧩 What one cycle slot recorded — which spans were opened and closed in it.
+    struct RecordedSlot
     {
         bool  SpanOpened[SpanCeiling] = {};   // [-] - the opening timestamp was recorded
         bool  SpanClosed[SpanCeiling] = {};   // [-] - the closing timestamp was recorded
     };
 
-    /// 🧩 Where one span's opening timestamp sits in the extent, for one rotation slot.
+    /// 🧩 Where one span's opening timestamp sits in the extent, for one cycle slot.
     /// note  Both timestamps of one span are adjacent, so the readback reads one rotation's whole run at once.
-    static std::uint32_t TimestampOrdinalOf(std::uint32_t RotationSlot, std::uint32_t SpanOrdinal);
+    static std::uint32_t TimestampOrdinalOf(std::uint32_t SlotOrdinal, std::uint32_t SpanOrdinal);
 
     const VulkanExchange*          DeviceEdge          = nullptr;         // [-]  - borrowed; never owned
     VkQueryPool                    TimestampExtent     = VK_NULL_HANDLE;  // [-]  - the vendor spelling, verbatim
     std::vector<DeclaredSpan>      DeclaredSpans       = {};              // [-]  - at most SpanCeiling entries
-    std::vector<RecordedRotation>  Rotations           = {};              // [-]  - RecordingRotationDepth entries
+    std::vector<RecordedSlot>  RecordedSlots           = {};              // [-]  - RecordingSlotCount entries
     std::uint32_t                  StandingNesting     = 0u;              // [-]  - spans open in the recording now
     double                         TimestampToDuration = 0.0;             // [ms] - carried by one increment
     bool                           CapabilityHeld      = false;           // [-]  - the device declared timestamps
