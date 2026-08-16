@@ -16,9 +16,6 @@
 [submodule "ExternalPackages/jolt"]
 	path = ExternalPackages/jolt
 	url = https://github.com/jrouwe/JoltPhysics.git
-[submodule "ExternalPackages/imgui"]
-	path = ExternalPackages/imgui
-	url = https://github.com/ocornut/imgui.git
 [submodule "ExternalPackages/miniaudio"]
 	path = ExternalPackages/miniaudio
 	url = https://github.com/mackron/miniaudio.git
@@ -34,3 +31,7 @@
 [submodule "ExternalPackages/ufbx"]
 	path = ExternalPackages/ufbx
 	url = https://github.com/ufbx/ufbx.git
+[submodule "ExternalPackages/imgui"]
+	path = ExternalPackages/imgui
+	url = https://github.com/ocornut/imgui.git
+	branch = docking

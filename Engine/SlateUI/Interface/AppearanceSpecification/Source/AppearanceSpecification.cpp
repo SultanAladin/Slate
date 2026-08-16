@@ -14,40 +14,100 @@ namespace Slate
 
 namespace
 {
-    // 📝 Every extent in MetricScale is a length except the four that are not — the two tracking figures are
-    //    in em, the clip fraction is dimensionless, and the display scale is what we are multiplying by. Those
-    //    four are restored after the sweep rather than excluded from it, because a sweep with four holes in it
-    //    is a sweep somebody will eventually add a fifth field beside without noticing.
-    constexpr std::uint32_t MetricFieldCount = sizeof(MetricScale) / sizeof(float);
+
+/// 🧩 Scales only members measured in display pixels.
+/// note  Tracking is measured in em, TongueClipFraction is dimensionless, and DisplayScale records the factor.
+///       Every newly declared metric must therefore choose explicitly whether it enters this function.
+/// cost  ✔️
+void ScaleLengths(MetricScale& Measure, float AppliedScale)
+{
+    Measure.SpacingUnit             *= AppliedScale;
+    Measure.RadiusFine              *= AppliedScale;
+    Measure.RadiusSmall             *= AppliedScale;
+    Measure.RadiusMedium            *= AppliedScale;
+    Measure.RadiusGrand             *= AppliedScale;
+    Measure.TextFine                *= AppliedScale;
+    Measure.TextSmall               *= AppliedScale;
+    Measure.TextBody                *= AppliedScale;
+    Measure.TextTitle               *= AppliedScale;
+    Measure.LeadingFine             *= AppliedScale;
+    Measure.LeadingSmall            *= AppliedScale;
+    Measure.LeadingBody             *= AppliedScale;
+    Measure.LeadingTitle            *= AppliedScale;
+    Measure.WheelTravel             *= AppliedScale;
+    Measure.TongueAlong             *= AppliedScale;
+    Measure.TongueAcross            *= AppliedScale;
+    Measure.TongueGapAlong          *= AppliedScale;
+    Measure.TonguePadAlong          *= AppliedScale;
+    Measure.GripAlong               *= AppliedScale;
+    Measure.GripAcross              *= AppliedScale;
+    Measure.GripStripAcross         *= AppliedScale;
+    Measure.GripLiftNorth           *= AppliedScale;
+    Measure.RailAcross              *= AppliedScale;
+    Measure.SymbolChevron           *= AppliedScale;
+    Measure.SymbolTongue            *= AppliedScale;
+    Measure.SymbolToggle            *= AppliedScale;
+    Measure.SymbolVacant            *= AppliedScale;
+    Measure.MedallionLattice        *= AppliedScale;
+    Measure.MedallionColumn         *= AppliedScale;
+    Measure.MedallionPreview        *= AppliedScale;
+    Measure.LibraryAlongMedium      *= AppliedScale;
+    Measure.LibraryAlongLarge       *= AppliedScale;
+    Measure.PreviewAlongMedium      *= AppliedScale;
+    Measure.PreviewAlongLarge       *= AppliedScale;
+    Measure.LibraryPadAlong         *= AppliedScale;
+    Measure.LibraryCaptionAcross    *= AppliedScale;
+    Measure.GroupPadAcross          *= AppliedScale;
+    Measure.GroupGapAcross          *= AppliedScale;
+    Measure.SubjectIndentAlong      *= AppliedScale;
+    Measure.SubjectPadTrailing      *= AppliedScale;
+    Measure.SubjectStripPad         *= AppliedScale;
+    Measure.ContentPad              *= AppliedScale;
+    Measure.ContentPadLeading       *= AppliedScale;
+    Measure.ContentHeadAcross       *= AppliedScale;
+    Measure.ContentHeadPadAlong     *= AppliedScale;
+    Measure.ContentHeadGap          *= AppliedScale;
+    Measure.ContentTrailingPad      *= AppliedScale;
+    Measure.ContentScrollPad        *= AppliedScale;
+    Measure.EntryAlongCeiling       *= AppliedScale;
+    Measure.EntryPadAlong           *= AppliedScale;
+    Measure.EntryPadAcross          *= AppliedScale;
+    Measure.TogglePad               *= AppliedScale;
+    Measure.ToggleGap               *= AppliedScale;
+    Measure.CardGapLattice          *= AppliedScale;
+    Measure.CardGapColumn           *= AppliedScale;
+    Measure.CardPadColumn           *= AppliedScale;
+    Measure.CardGapColumnInner      *= AppliedScale;
+    Measure.CardScrimAcross         *= AppliedScale;
+    Measure.CardMetaGap             *= AppliedScale;
+    Measure.CardMetaLift            *= AppliedScale;
+    Measure.CardMetaDot             *= AppliedScale;
+    Measure.PreviewGap              *= AppliedScale;
+    Measure.PreviewPad              *= AppliedScale;
+    Measure.PreviewBoxFloor         *= AppliedScale;
+    Measure.PreviewBoxCeiling       *= AppliedScale;
+    Measure.SkeletonGapUpper        *= AppliedScale;
+    Measure.SkeletonGapLower        *= AppliedScale;
+    Measure.SkeletonLeading         *= AppliedScale;
+    Measure.BreakpointSmall         *= AppliedScale;
+    Measure.BreakpointMedium        *= AppliedScale;
+    Measure.BreakpointLarge         *= AppliedScale;
 }
+
+}   // namespace
 
 AppearanceSpecification Resolve(double DisplayScale)
 {
     AppearanceSpecification Resolved;
 
-    const float  AppliedScale   = (DisplayScale > 0.0) ? static_cast<float>(DisplayScale) : 1.0f;
-    const float  TrackingTight  = Resolved.Measure.TrackingTight;
-    const float  TrackingWide   = Resolved.Measure.TrackingWide;
-    const float  TrackingWider  = Resolved.Measure.TrackingWider;
-    const float  TrackingWidest = Resolved.Measure.TrackingWidest;
-    const float  ClipFraction   = Resolved.Measure.TongueClipFraction;
+    const float AppliedScale = (DisplayScale > 0.0) ? static_cast<float>(DisplayScale) : 1.0f;
 
-    float* Sweeping = reinterpret_cast<float*>(&Resolved.Measure);
-
-    for (std::uint32_t FieldOrdinal = 0u; FieldOrdinal < MetricFieldCount; ++FieldOrdinal)
-        Sweeping[FieldOrdinal] *= AppliedScale;
-
-    Resolved.Measure.TrackingTight      = TrackingTight;
-    Resolved.Measure.TrackingWide       = TrackingWide;
-    Resolved.Measure.TrackingWider      = TrackingWider;
-    Resolved.Measure.TrackingWidest     = TrackingWidest;
-    Resolved.Measure.TongueClipFraction = ClipFraction;
-    Resolved.Measure.DisplayScale       = AppliedScale;
+    ScaleLengths(Resolved.Measure, AppliedScale);
+    Resolved.Measure.DisplayScale = AppliedScale;
 
     // 📝 🔴 The three snap rates are the only figures outside `MetricScale` carrying a length, and they are
-    //    scaled by hand here rather than moved into the swept record. Moving them would make the sweep
-    //    multiply the two fractions and the elasticity as well, and a drawer whose quarter-extent threshold
-    //    is half the extent on a 2× display opens when the artist meant to nudge it.
+    //    scaled explicitly here rather than enrolled with its pixel measurements. Scaling the whole motion
+    //    declaration would also multiply its fractions and elasticity, changing drawer arbitration.
     Resolved.Motion.SnapRateSoft *= static_cast<double>(AppliedScale);
     Resolved.Motion.SnapRateFirm *= static_cast<double>(AppliedScale);
     Resolved.Motion.SnapRateHard *= static_cast<double>(AppliedScale);

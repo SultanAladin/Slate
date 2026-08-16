@@ -211,10 +211,10 @@ Deliver<bool> AssetInterchange::IntakeTopology(const DecodedTopology& Decoded,
         }
     }
 
-    const Deliver<bool> Declared = Into.DeclarePositions(Scaled);
+    const Deliver<bool> PositionsDeclared = Into.DeclarePositions(Scaled);
 
-    if (!Declared.ContentPresent)
-        return Declared;
+    if (!PositionsDeclared.ContentPresent)
+        return PositionsDeclared;
 
     for (const std::vector<std::uint32_t>& Face : Decoded.Faces)
     {
