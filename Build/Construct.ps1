@@ -56,6 +56,13 @@ function Write-Lowered([string]  $Message) { Write-Report 'SPIR-V'   Magenta  $M
 # 📝 The order below IS the dependency DAG. A unit is compiled only after every unit it requires, and the
 #    Requires list is what the linker is handed — reversed, since a static library only satisfies references
 #    the linker has already seen.
+# 🔴 ⚠️ This array and the `[requires]` in each `Module.toml` are two statements of one graph, and they can
+#    drift. They mean different things and both are needed: this one is the LINK order, which must name
+#    every archive whose symbols the executable resolves against, while the manifest states what a unit is
+#    permitted to INCLUDE. SlateUI is exactly where the two part — it links against four archives and is
+#    permitted to include none of them.
+#    `Scripts/VerifyPartition.ps1` enforces the manifest and runs before anything is translated. Nothing yet
+#    checks that this array agrees with the manifests about ordering; folding the two together is Phase 4.
 $UnitOrder = @(
     @{ Name = 'SlateMath';     Product = 'StaticLibrary'; Requires = @() }
     @{ Name = 'SlateDocument'; Product = 'StaticLibrary'; Requires = @('SlateMath') }
@@ -815,6 +822,16 @@ Write-Building "vulkan $VulkanRoot"
 if ($LASTEXITCODE -ne 0)
 {
     throw 'ApplyImGuiPatches.ps1 failed; the ImGui tab-shape patches were not applied'
+}
+
+# 🔴 The dependency partition is proven before anything is translated, because a forbidden include should
+#    refuse at the start of a build rather than as an unresolved symbol at the end of one. The check is a
+#    scan of the include lines against what each Module.toml declares; it costs a fraction of a second.
+& powershell -File (Join-Path $ScriptRoot 'VerifyPartition.ps1')
+
+if ($LASTEXITCODE -ne 0)
+{
+    throw 'VerifyPartition.ps1 refused; a unit reaches past what it declares'
 }
 
 Write-Host ''
