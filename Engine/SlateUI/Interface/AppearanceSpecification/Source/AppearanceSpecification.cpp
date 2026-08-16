@@ -94,16 +94,176 @@ void ScaleLengths(MetricScale& Measure, float AppliedScale)
     Measure.BreakpointLarge         *= AppliedScale;
 }
 
+/// 🧩 Scales only the control members measured in display pixels.
+/// note  🔴 Four members are deliberately absent — ReadoutTracking is em, MagnitudeCeiling is a domain bound,
+///       RulerDegreesPerPixel is a rate, and TickReach is a count. Multiplying the domain bound would move the
+///       slider's own maximum with the display, and multiplying the rate would make the ruler turn at a
+///       different speed on a second monitor.
+/// note  Point sizes are scaled here and floored afterwards, never floored here — the floor must be applied
+///       once, against the finished product, and not once per member per factor.
+/// cost  ✔️
+void ScaleControlLengths(ControlMetric& Measure, float AppliedScale)
+{
+    Measure.ColumnAlong          *= AppliedScale;
+    Measure.CardGapAcross        *= AppliedScale;
+    Measure.CardPad              *= AppliedScale;
+    Measure.CardRowGap           *= AppliedScale;
+    Measure.CardRadius           *= AppliedScale;
+    Measure.CardEdgeWeight       *= AppliedScale;
+    Measure.PagePad              *= AppliedScale;
+    Measure.PagePadAcross        *= AppliedScale;
+
+    Measure.LabelText            *= AppliedScale;
+    Measure.RowText              *= AppliedScale;
+    Measure.ReadoutText          *= AppliedScale;
+    Measure.UnitText             *= AppliedScale;
+    Measure.TickCaptionText      *= AppliedScale;
+    Measure.TooltipTitleText     *= AppliedScale;
+    Measure.TooltipBodyText      *= AppliedScale;
+    Measure.TooltipBodyLeading   *= AppliedScale;
+
+    Measure.LabelAlong           *= AppliedScale;
+    Measure.RowGapAlong          *= AppliedScale;
+
+    Measure.FieldAcross          *= AppliedScale;
+    Measure.FieldPadAlong        *= AppliedScale;
+    Measure.ChevronCellAlong     *= AppliedScale;
+    Measure.ChevronSymbol        *= AppliedScale;
+    Measure.MenuLift             *= AppliedScale;
+    Measure.MenuRadius           *= AppliedScale;
+    Measure.MenuPad              *= AppliedScale;
+    Measure.MenuGapAcross        *= AppliedScale;
+    Measure.OptionPadAlong       *= AppliedScale;
+    Measure.OptionPadAcross      *= AppliedScale;
+
+    Measure.ReadoutAlong         *= AppliedScale;
+    Measure.UnitCellAlong        *= AppliedScale;
+    Measure.SliderAlong          *= AppliedScale;
+    Measure.SliderAcross         *= AppliedScale;
+    Measure.ThumbExtent          *= AppliedScale;
+
+    Measure.RulerAcross          *= AppliedScale;
+    Measure.RulerRadius          *= AppliedScale;
+    Measure.TickSpacing          *= AppliedScale;
+    Measure.TickWeight           *= AppliedScale;
+    Measure.TickMajorAcross      *= AppliedScale;
+    Measure.TickMediumAcross     *= AppliedScale;
+    Measure.TickMinorAcross      *= AppliedScale;
+    Measure.TickCaptionLift      *= AppliedScale;
+    Measure.PointerWeight        *= AppliedScale;
+    Measure.PointerAcross        *= AppliedScale;
+    Measure.PointerDot           *= AppliedScale;
+    Measure.PointerDotLift       *= AppliedScale;
+
+    Measure.WellPad              *= AppliedScale;
+    Measure.WellRadius           *= AppliedScale;
+    Measure.WellGapAcross        *= AppliedScale;
+    Measure.ToggleRowAcross      *= AppliedScale;
+    Measure.ToggleRowPadAlong    *= AppliedScale;
+    Measure.ToggleGapAlong       *= AppliedScale;
+    Measure.RingExtent           *= AppliedScale;
+    Measure.RingWeight           *= AppliedScale;
+    Measure.RingDotExtent        *= AppliedScale;
+
+    Measure.SubsetRowAcross      *= AppliedScale;
+    Measure.SubsetRowPadAlong    *= AppliedScale;
+    Measure.SubsetRailAlong      *= AppliedScale;
+
+    Measure.StopStripAcross      *= AppliedScale;
+    Measure.StopStripPadLeading  *= AppliedScale;
+    Measure.StopStripPadTrailing *= AppliedScale;
+    Measure.StopQuietExtent      *= AppliedScale;
+    Measure.StopTakenExtent      *= AppliedScale;
+
+    Measure.TooltipAlong         *= AppliedScale;
+    Measure.TooltipPad           *= AppliedScale;
+    Measure.TooltipRadius        *= AppliedScale;
+    Measure.TooltipLift          *= AppliedScale;
+    Measure.TooltipTitleGap      *= AppliedScale;
+    Measure.TooltipArrowExtent   *= AppliedScale;
+    Measure.TooltipArrowRadius   *= AppliedScale;
+    Measure.TooltipArrowAlong    *= AppliedScale;
+    Measure.TooltipArrowSink     *= AppliedScale;
+    Measure.TriggerExtent        *= AppliedScale;
+    Measure.TriggerRadius        *= AppliedScale;
+    Measure.TriggerLeadAlong     *= AppliedScale;
+    Measure.TriggerSymbol        *= AppliedScale;
+    Measure.TooltipWellPad       *= AppliedScale;
+    Measure.TooltipWellRadius    *= AppliedScale;
+    Measure.TooltipWellFloor     *= AppliedScale;
+    Measure.TooltipWellGap       *= AppliedScale;
+}
+
+/// 🧩 Raises every recorded point size to the legibility floor, after the whole product has been applied.
+/// note  📐 The floor is applied to the eight point sizes and to the one leading that follows a point size.
+///       TooltipBodyLeading is raised in the same proportion its run was, so a floored run keeps the line
+///       spacing the sheet declared rather than overlapping the line beneath it.
+/// cost  ✔️
+void FloorRuns(ControlMetric& Measure)
+{
+    const float BodyBeforeFloor = Measure.TooltipBodyText;
+
+    if (Measure.LabelText        < TextLegibilityFloor) Measure.LabelText        = TextLegibilityFloor;
+    if (Measure.RowText          < TextLegibilityFloor) Measure.RowText          = TextLegibilityFloor;
+    if (Measure.ReadoutText      < TextLegibilityFloor) Measure.ReadoutText      = TextLegibilityFloor;
+    if (Measure.UnitText         < TextLegibilityFloor) Measure.UnitText         = TextLegibilityFloor;
+    if (Measure.TickCaptionText  < TextLegibilityFloor) Measure.TickCaptionText  = TextLegibilityFloor;
+    if (Measure.TooltipTitleText < TextLegibilityFloor) Measure.TooltipTitleText = TextLegibilityFloor;
+    if (Measure.TooltipBodyText  < TextLegibilityFloor) Measure.TooltipBodyText  = TextLegibilityFloor;
+
+    if (BodyBeforeFloor > 0.0f && Measure.TooltipBodyText > BodyBeforeFloor)
+    {
+        Measure.TooltipBodyLeading *= Measure.TooltipBodyText / BodyBeforeFloor;
+    }
+}
+
 }   // namespace
 
-AppearanceSpecification Resolve(double DisplayScale)
+ComfortDensity ClassifyDensity(const MetricScale& Measure, float ExtentAlong)
+{
+    if (ExtentAlong <= 0.0f)
+        return ComfortDensity::Regular;
+
+    if (ExtentAlong >= Measure.BreakpointLarge * 2.5f)
+        return ComfortDensity::Expansive;
+
+    if (ExtentAlong >= Measure.BreakpointLarge * 1.875f)
+        return ComfortDensity::Spacious;
+
+    if (ExtentAlong >= Measure.BreakpointLarge)
+        return ComfortDensity::Regular;
+
+    return ComfortDensity::Compact;
+}
+
+AppearanceSpecification Resolve(double DisplayScale, double ArtistScale, float ExtentAlong)
 {
     AppearanceSpecification Resolved;
 
     const float AppliedScale = (DisplayScale > 0.0) ? static_cast<float>(DisplayScale) : 1.0f;
 
+    // 📝 The preference is clamped and never refused — a preference outside the bounds is a settings file to
+    //    survive, not a reason to bring the interface up at an extent nothing can be read at.
+    const double Preferred    = (ArtistScale < ArtistScaleFloor)   ? ArtistScaleFloor
+                              : (ArtistScale > ArtistScaleCeiling) ? ArtistScaleCeiling
+                                                                   : ArtistScale;
+    const float  ArtistFactor = static_cast<float>(Preferred);
+
     ScaleLengths(Resolved.Measure, AppliedScale);
     Resolved.Measure.DisplayScale = AppliedScale;
+
+    // 🔴 The density is classified against breakpoints that have already been scaled, so the extent it reads
+    //    and the thresholds it compares against are in the same units. Classifying first would compare a
+    //    display-pixel extent against declared-pixel thresholds and step a density early on every dense panel.
+    const ComfortDensity Classified   = ClassifyDensity(Resolved.Measure, ExtentAlong);
+    const float          ControlScale = AuthoredReduction * DensityFactor(Classified) * AppliedScale * ArtistFactor;
+
+    ScaleControlLengths(Resolved.ControlMeasure, ControlScale);
+    FloorRuns(Resolved.ControlMeasure);
+
+    Resolved.ControlMeasure.Density       = Classified;
+    Resolved.ControlMeasure.AppliedFactor = ControlScale;
+    Resolved.ControlMeasure.ArtistFactor  = ArtistFactor;
 
     // 📝 🔴 The three snap rates are the only figures outside `MetricScale` carrying a length, and they are
     //    scaled explicitly here rather than enrolled with its pixel measurements. Scaling the whole motion
