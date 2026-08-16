@@ -1,11 +1,11 @@
 Upload/
 DOC/
-ExternalPackages/
 _AgentScratch/
 Download/
 Patch/
 References/
 SymboLindex/
+ExternalPackages/EOS-SDK-*
 *.symbolindex
 Engine/Engine-File-Structure.md
 __pycache__/
