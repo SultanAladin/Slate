@@ -5,7 +5,7 @@
 
 #include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
-#include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
+#include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -268,7 +268,7 @@ int main()
     MotionIntegrator Motion;
     InteractionIndex Ledger;
     RecordingSurface Surface;
-    ControlPanel     Panel;
+    ComponentSpecification     Panel;
 
     if (!Ledger.Construct(Motion).ContentPresent)
     {
