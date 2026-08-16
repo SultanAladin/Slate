@@ -7,3 +7,6 @@ Patch/
 References/
 SymboLindex/
 *.symbolindex
+Engine/Engine-File-Structure.md
+__pycache__/
+*.py[cod]
