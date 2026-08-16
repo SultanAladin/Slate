@@ -883,8 +883,8 @@ ControlVerdict ControlPanel::MagnitudeStops(ControlIdentity Claimed, const Plane
     for (std::uint32_t Ordinal = 0u; Ordinal < Declared.StopCount; ++Ordinal)
     {
         const float  StopAlong = StripLeast + Division * static_cast<float>(Ordinal);
-        const bool   Standing  = Ordinal == TakenOrdinal;
-        const float  Extent    = Standing ? Measure.StopTakenExtent : Measure.StopQuietExtent;
+        const bool   TakenStop = Ordinal == TakenOrdinal;
+        const float  Extent    = TakenStop ? Measure.StopTakenExtent : Measure.StopQuietExtent;
         const float  Reach     = Extent * 0.5f;
 
         const PlaneExtent Stop = Spanning(StopAlong - Reach, CentreAcross - Reach, Extent, Extent);
@@ -916,16 +916,16 @@ ControlVerdict ControlPanel::MagnitudeStops(ControlIdentity Claimed, const Plane
     for (std::uint32_t Ordinal = 0u; Ordinal < Declared.StopCount; ++Ordinal)
     {
         const float StopAlong = StripLeast + Division * static_cast<float>(Ordinal);
-        const bool  Standing  = Ordinal == TakenOrdinal;
-        const float Extent    = Standing ? Measure.StopTakenExtent : Measure.StopQuietExtent;
+        const bool  TakenStop = Ordinal == TakenOrdinal;
+        const float Extent    = TakenStop ? Measure.StopTakenExtent : Measure.StopQuietExtent;
 
         const InkOrdinate Quiet = (Ordinal == RousedOrdinal) ? Blend(Ink.StopQuiet, Ink.StopRoused, Roused)
                                                              : Ink.StopQuiet;
-        const InkOrdinate StopInk = Standing ? Ink.StopTaken : Quiet;
+        const InkOrdinate StopInk = TakenStop ? Ink.StopTaken : Quiet;
 
         Surface->Medallion(StopAlong, CentreAcross, Extent * 0.5f, StopInk);
 
-        if (!Standing)
+        if (!TakenStop)
             continue;
 
         const char* Letter = Declared.Stops[Ordinal];
