@@ -62,7 +62,7 @@ $UnitOrder = @(
     #    Editor" is exactly this array: every folder here links an executable named for it, from one shared set of
     #    unit archives. A StaticLibrary unit ignores the field and archives its whole tree as before.
     @{ Name = 'Application';   Product = 'Executable';    Requires = @('SlateUI', 'SlateCompute', 'SlateVulkan', 'SlateDocument', 'SlateMath');
-       Subject = @('ConsoleHost', 'PaintHost', 'EditorHost') }
+       Subject = @('ConsoleHost', 'PaintHost', 'EditorHost', 'InterfaceValidationHost') }
 )
 
 #---
