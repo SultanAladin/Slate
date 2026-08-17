@@ -7,6 +7,7 @@
 
 #include "SlateVulkan/Device/VendorClassifier/Api/VendorClassifier.h"
 
+#include <cstring>
 #include <iterator>
 #include <vector>
 
@@ -54,10 +55,41 @@ Deliver<bool> VulkanExchange::ConstructInstance(bool DiagnosticRequested)
     SettingsDeclaration.settingCount = static_cast<std::uint32_t>(std::size(DeclaredSettings));
     SettingsDeclaration.pSettings    = DeclaredSettings;
 
+    // 🔴 The layer is PROBED before it is requested. `vkCreateInstance` refuses the WHOLE instance with
+    //    VK_ERROR_LAYER_NOT_PRESENT when a named layer is absent — so an unconditional request on a machine
+    //    without the SDK took `VK_EXT_debug_utils` down with it, and every run then reported the diagnostic
+    //    extension as un-negotiated with nothing naming the actual cause.
+    bool ValidationAvailable = false;
+
     if (DiagnosticRequested)
     {
+        std::uint32_t DeclaredLayerCount = 0u;
+        vkEnumerateInstanceLayerProperties(&DeclaredLayerCount, nullptr);
+
+        std::vector<VkLayerProperties> DeclaredLayers(DeclaredLayerCount);
+
+        if (DeclaredLayerCount != 0u)
+            vkEnumerateInstanceLayerProperties(&DeclaredLayerCount, DeclaredLayers.data());
+
+        for (const VkLayerProperties& Offered : DeclaredLayers)
+        {
+            if (std::strcmp(Offered.layerName, "VK_LAYER_KHRONOS_validation") == 0)
+            {
+                ValidationAvailable = true;
+                break;
+            }
+        }
+    }
+
+    if (DiagnosticRequested)
+    {
+        // 📝 The extension is requested whether or not the layer stands. The loader itself carries
+        //    `VK_EXT_debug_utils` on every machine Slate targets, and it is what the diagnostic sink and
+        //    every object name need; the layer only adds the validation messages arriving through it.
         RequestedExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        RequestedLayers.push_back("VK_LAYER_KHRONOS_validation");
+
+        if (ValidationAvailable)
+            RequestedLayers.push_back("VK_LAYER_KHRONOS_validation");
 
         // 🔴 ⚠️ Synchronisation validation is OFF by default and it is the only check that catches the class
         //    of defect that matters here: a semaphore signalled with no waiter, a chain destroyed with an
@@ -67,7 +99,8 @@ Deliver<bool> VulkanExchange::ConstructInstance(bool DiagnosticRequested)
         // 📝 Requested through `VK_EXT_layer_settings` rather than through vkconfig or an environment
         //    variable, so the configuration travels with the build and a validation run reproduces on a
         //    machine that was never configured for one.
-        RequestedExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+        if (ValidationAvailable)
+            RequestedExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
     }
 
     VkInstanceCreateInfo InstanceDeclaration    = {};
@@ -75,7 +108,7 @@ Deliver<bool> VulkanExchange::ConstructInstance(bool DiagnosticRequested)
 
     // ⚠️ Chained only when the diagnostic was requested. A configuration that negotiated no layer has
     //    nothing to configure, and the vendor rejects settings naming a layer that is not enabled.
-    InstanceDeclaration.pNext                   = DiagnosticRequested ? &SettingsDeclaration : nullptr;
+    InstanceDeclaration.pNext                   = ValidationAvailable ? &SettingsDeclaration : nullptr;
     InstanceDeclaration.pApplicationInfo        = &ApplicationDeclaration;
     InstanceDeclaration.enabledExtensionCount   = static_cast<std::uint32_t>(RequestedExtensions.size());
     InstanceDeclaration.ppEnabledExtensionNames = RequestedExtensions.data();

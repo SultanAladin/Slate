@@ -1,16 +1,16 @@
 diff --git a/imgui.cpp b/imgui.cpp
-index 735deb9..5daa0dd 100644
+index 98db04810..d80d73391 100644
 --- a/imgui.cpp
 +++ b/imgui.cpp
-@@ -1521,6 +1521,7 @@ ImGuiStyle::ImGuiStyle()
-     ImageBorderSize             = 0.0f;             // Thickness of border around tabs.
+@@ -1572,6 +1572,7 @@ ImGuiStyle::ImGuiStyle()
+     ImageBorderSize             = 0.0f;             // Thickness of border around Image() calls.
      TabRounding                 = 5.0f;             // Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs.
      TabBorderSize               = 0.0f;             // Thickness of border around tabs.
 +    TabSlant                    = 0.0f;             // [SLATE PATCH A] Tab corner slant. Zero keeps stock ImGui; Slate seats 14.0f to match DockWorkspace.html.
      TabMinWidthBase             = 1.0f;             // Minimum tab width, to make tabs larger than their contents. TabBar buttons are not affected.
      TabMinWidthShrink           = 80.0f;            // Minimum tab width after shrinking, when using ImGuiTabBarFlags_FittingPolicyMixed policy. FLT_MAX: never shrink, will behave like ImGuiTabBarFlags_FittingPolicyScroll.
      TabCloseButtonMinWidthSelected   = -1.0f;       // -1: always visible. 0.0f: visible when hovered. >0.0f: visible when hovered if minimum width.
-@@ -1603,6 +1604,7 @@ void ImGuiStyle::ScaleAllSizes(float scale_factor)
+@@ -1663,6 +1664,7 @@ void ImGuiStyle::ScaleAllSizes(float scale_factor)
      ImageBorderSize = ImTrunc(ImageBorderSize * scale_factor);
      TabRounding = ImTrunc(TabRounding * scale_factor);
      TabBorderSize = ImTrunc(TabBorderSize * scale_factor);
@@ -19,10 +19,10 @@ index 735deb9..5daa0dd 100644
      TabMinWidthShrink = ImTrunc(TabMinWidthShrink * scale_factor);
      TabCloseButtonMinWidthSelected = (TabCloseButtonMinWidthSelected > 0.0f && TabCloseButtonMinWidthSelected != FLT_MAX) ? ImTrunc(TabCloseButtonMinWidthSelected * scale_factor) : TabCloseButtonMinWidthSelected;
 diff --git a/imgui.h b/imgui.h
-index cc80fc8..f960a2b 100644
+index add91e829..53565e857 100644
 --- a/imgui.h
 +++ b/imgui.h
-@@ -2321,6 +2321,7 @@ struct ImGuiStyle
+@@ -2431,6 +2431,7 @@ struct ImGuiStyle
      float       ImageBorderSize;            // Thickness of border around Image() calls.
      float       TabRounding;                // Radius of upper corners of a tab. Set to 0.0f to have rectangular tabs.
      float       TabBorderSize;              // Thickness of border around tabs.
@@ -31,11 +31,11 @@ index cc80fc8..f960a2b 100644
      float       TabMinWidthShrink;          // Minimum tab width after shrinking, when using ImGuiTabBarFlags_FittingPolicyMixed policy.
      float       TabCloseButtonMinWidthSelected;     // -1: always visible. 0.0f: visible when hovered. >0.0f: visible when hovered if minimum width. FLT_MAX: never shrink, will behave like ImGuiTabBarFlags_FittingPolicyScroll.
 diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
-index a98cb69..34b2f28 100644
+index 17968a54d..f93f37ca6 100644
 --- a/imgui_widgets.cpp
 +++ b/imgui_widgets.cpp
-@@ -10865,6 +10865,54 @@ ImVec2 ImGui::TabItemCalcSize(ImGuiWindow*)
-     return ImVec2(0.0f, 0.0f);
+@@ -11039,6 +11039,54 @@ ImVec2 ImGui::TabItemCalcSize(ImGuiWindow* window)
+     return TabItemCalcSize(window->Name, window->HasCloseButton || (window->Flags & ImGuiWindowFlags_UnsavedDocument));
  }
  
 +// [SLATE PATCH A] Trapezoidal tab silhouette, transcribed from References/DockWorkspace.html.
@@ -89,11 +89,10 @@ index a98cb69..34b2f28 100644
  void ImGui::TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabItemFlags flags, ImU32 col)
  {
      // While rendering tabs, we trim 1 pixel off the top of our bounding box so they can fit within a regular frame height while looking "detached" from it.
-@@ -10875,6 +10923,21 @@ void ImGui::TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabI
+@@ -11049,6 +11097,20 @@ void ImGui::TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabI
      const float rounding = ImMax(0.0f, ImMin((flags & ImGuiTabItemFlags_Button) ? g.Style.FrameRounding : g.Style.TabRounding, width * 0.5f - 1.0f));
-     const float y1 = bb.Min.y + 1.0f;
+     const float y1 = bb.Min.y + 1.0f; // Leave a bit of room in title bars.
      const float y2 = bb.Max.y - g.Style.TabBarBorderSize;
-+
 +    // [SLATE PATCH A] A button is a button and keeps its rectangle; only a genuine tab is slanted.
 +    const float slant = (flags & ImGuiTabItemFlags_Button) ? 0.0f : ImMin(g.Style.TabSlant, width * 0.16f);
 +    if (slant > 0.0f)
@@ -108,6 +107,6 @@ index a98cb69..34b2f28 100644
 +        return;
 +    }
 +
-     draw_list->PathLineTo(ImVec2(bb.Min.x, y2));
-     draw_list->PathArcToFast(ImVec2(bb.Min.x + rounding, y1 + rounding), rounding, 6, 9);
-     draw_list->PathArcToFast(ImVec2(bb.Max.x - rounding, y1 + rounding), rounding, 9, 12);
+     draw_list->AddRectFilled(bb.Min, ImVec2(bb.Max.x, y2), col, rounding, ImDrawFlags_RoundCornersTop);
+     if (g.Style.TabBorderSize > 0.0f)
+     {

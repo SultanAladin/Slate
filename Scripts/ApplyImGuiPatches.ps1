@@ -36,7 +36,7 @@ $Declared = @(
 
 # 🔴 The commit these patches were written against. `git apply` would fail loudly on a different tree,
 #    but it fails with three rejected hunks rather than with the one sentence a reader can act on.
-$ExpectedCommit = '12b797755501ae8eced5f6fb33105d8ddc1d1cbc'
+$ExpectedCommit = '83f668625ad45364de71d385aeb6a5dd04bee02e'
 
 function Write-Report([string] $Tag, [System.ConsoleColor] $Colour, [string] $Message)
 {

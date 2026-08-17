@@ -108,6 +108,10 @@ int main()
     // ③ The workspaces this host opens. 🔴 The LEDGER owns them and the panel presents them — `14` §1
     //    forbids a panel from holding what it displays, and separating the two is the whole reason there
     //    are two components here rather than one.
+    // 📝 The subject this host opens by default, named once so the startup enrolment and the strip's `+`
+    //    cannot disagree about what a new workspace is.
+    constexpr WorkspaceSubject DefaultSubject = WorkspaceSubject::Vacant;
+
     WorkspaceIndex Workspaces;
     WorkspacePanel Workspace;
 
@@ -121,7 +125,7 @@ int main()
     //    thing that distinguishes the two hosts, and it is the reason there are two: the editor carries
     //    every subject and cannot presume which the artist wants, so it presents a blank one and lets them
     //    say. A host that guessed would open a canvas for someone who came to sketch.
-    if (!Workspaces.Enrol(WorkspaceSubject::Vacant).ContentPresent)
+    if (!Workspaces.Enrol(DefaultSubject).ContentPresent)
     {
         std::printf("%s \u2014 the default workspace could not be opened\n", HostName);
         return 1;
@@ -208,29 +212,35 @@ int main()
 
             // 📝 The vendor's patched tab bar, seated on the strip the panel measured. The trapezoid is
             //    PatchA's; nothing in Slate draws a tab.
+            // 🔴 Recorded even at a zero count, so the `+` stands on an empty strip. An artist who closed
+            //    the last workspace must have a way back, which an early return here would deny them.
             const std::uint32_t OpenCount = Workspaces.OpenCount();
 
-            if (OpenCount != 0u)
-            {
-                const char* Titles[WorkspaceIndex::WorkspaceCeiling] = {};
+            const char* Titles[WorkspaceIndex::WorkspaceCeiling] = {};
 
-                for (std::uint32_t Ordinal = 0u; Ordinal < OpenCount; ++Ordinal)
-                    Titles[Ordinal] = Workspaces.Standing(Ordinal).Resolve().Titled;
+            for (std::uint32_t Ordinal = 0u; Ordinal < OpenCount; ++Ordinal)
+                Titles[Ordinal] = Workspaces.Standing(Ordinal).Resolve().Titled;
 
-                std::uint32_t Chosen = OpenCount;
-                std::uint32_t Closed = OpenCount;
+            std::uint32_t Chosen    = OpenCount;
+            std::uint32_t Closed    = OpenCount;
+            bool          Enrolling = false;
 
-                Viewport.Seam().RecordWorkspaceTabs(Workspace.Strip(), Titles, OpenCount,
-                                                         Workspaces.ActiveOrdinal(), Chosen, Closed);
+            Viewport.Seam().RecordWorkspaceTabs(Workspace.Strip(), Titles, OpenCount,
+                                                Workspaces.ActiveOrdinal(), Chosen, Closed, Enrolling);
 
-                // 🔴 Acted on AFTER the strip is recorded, never inside it. Withdrawing mid-sweep edits
-                //    the set the vendor's tab bar is walking, which invalidates the position it holds.
-                if (Chosen < OpenCount)
-                    Disregard(Workspaces.Present(Chosen));
+            // 🔴 Acted on AFTER the strip is recorded, never inside it. Enrolling or withdrawing mid-sweep
+            //    edits the set the vendor's tab bar is walking, which invalidates the position it holds.
+            if (Chosen < OpenCount)
+                Disregard(Workspaces.Present(Chosen));
 
-                if (Closed < OpenCount)
-                    Disregard(Workspaces.Withdraw(Closed));
-            }
+            if (Closed < OpenCount)
+                Disregard(Workspaces.Withdraw(Closed));
+
+            if (Enrolling)
+                Disregard(Workspaces.Enrol(DefaultSubject));
+
+            // 📝 The dock space over the body, so a panel dragged loose has somewhere to dock to.
+            Viewport.Seam().RecordDockSpace(Workspace.Body());
 
             // 📝 The drawers last, so they sit ABOVE the workspace as the sheet lays them.
             Viewport.RecordDrawers();

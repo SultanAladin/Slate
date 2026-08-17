@@ -117,6 +117,10 @@ public:
     ///        overlap, and raising one without the other runs adjacent tabs together.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
+    /// note  🔴 The seat is RETAINED and re-applied by `Construct`. A device rebuild constructs a fresh
+    ///        vendor context, which starts at the vendor's own defaults and is then overwritten by
+    ///        `StyleColorsDark` — so a style seated once at bring-up was silently lost on every rebuild
+    ///        and the trapezoidal tabs reverted to stock rectangles with nothing reporting it.
     Deliver<bool> SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceInk& Tinted);
 
     /// 🧩 Records the workspace tab strip with the vendor's patched tab bar, and reports what the artist did.
@@ -130,8 +134,19 @@ public:
     ///        set the tab bar is walking; the caller withdraws it after the strip is sealed.
     /// cost  🚩
     /// tag   api, nonthrowing
+    /// out   Enrolling [-]  true when the artist asked for a new workspace, by the strip's `+`
+    /// note  🔴 The `+` is recorded even when NO workspace is open. An empty strip with no way to add one
+    ///        is a state the artist cannot leave, which `DockWorkspace.html` never presents.
     void RecordWorkspaceTabs(const PlaneExtent& Extent, const char* const* Titles, std::uint32_t Count,
-                             std::uint32_t Active, std::uint32_t& Chosen, std::uint32_t& Closed);
+                             std::uint32_t Active, std::uint32_t& Chosen, std::uint32_t& Closed,
+                             bool& Enrolling);
+
+    /// 🧩 Opens the dock space the workspace body is docked into, filling the declared extent.
+    /// note  🔴 One dock space per host, over the body alone. `DockingEnable` makes panels dockable; a dock
+    ///        space is what gives them somewhere to dock TO, and without one a dragged panel floats free.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    void RecordDockSpace(const PlaneExtent& Extent);
 
     /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface
@@ -161,6 +176,9 @@ private:
     bool                 ContentAssembled  = false;            // [-] - Seal delivered, Record has not
     bool                 WindowAttached    = false;            // [-] - the window system attachment stands
     bool                 VendorAttached    = false;            // [-] - the vendor attachment stands
+    bool                 StyleSeated       = false;            // [-] - a workspace style was seated once
+    WorkspaceMetric      SeatedMeasure     = {};               // [-] - retained, so Construct re-applies it
+    WorkspaceInk         SeatedInk         = {};               // [-] - retained, so Construct re-applies it
 };
 
 }   // namespace Slate

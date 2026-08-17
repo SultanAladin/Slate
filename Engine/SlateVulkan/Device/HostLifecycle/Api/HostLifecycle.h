@@ -253,6 +253,15 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void AskDeviceRebuild();
 
+    /// 🧩 Retires the device tier and rebuilds it, counting against nothing.
+    /// note  🔴 Distinct from `RecoverDevice` deliberately. `DeviceRecoveryCeiling` bounds LOSSES, because a
+    ///        device the driver keeps losing is one that is not coming back; a rebuild the artist asked for
+    ///        is evidence of nothing and must not spend that budget. Spamming the diagnostic key otherwise
+    ///        closed the host on the third press, which reads as the rebuild having crashed it.
+    /// cost  🔴
+    /// tag   api, nonthrowing
+    Deliver<bool> RebuildDevice();
+
     /// 🧩 Retires the device tier and rebuilds it, leaving the window, instance and surface standing.
     /// out   Deliver  [-]  refuses when the rebuild declines, having left nothing half-constructed
     /// use   Called on a reported device loss, and by the diagnostic key that exercises this path.

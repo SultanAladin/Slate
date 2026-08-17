@@ -213,6 +213,11 @@ Deliver<bool> HostLifecycle::RecoverDevice()
 
     ++DeviceRecoveries;
 
+    return RebuildDevice();
+}
+
+Deliver<bool> HostLifecycle::RebuildDevice()
+{
     // 🔴 An open recording is abandoned rather than surrendered. The device it was recorded into is gone,
     //    so there is nothing to submit it to and nothing that would ever signal its completion.
     TickRecording = false;
@@ -329,7 +334,8 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
 
         Report(Declared.Naming, "F8 — rebuilding the device tier");
 
-        if (!RecoverDevice().ContentPresent)
+        // 📝 The UNCOUNTED path. The key is a scenario and not a loss, so it must not spend the loss budget.
+        if (!RebuildDevice().ContentPresent)
         {
             Pass.Standing = TickStanding::Closed;
             return Pass;

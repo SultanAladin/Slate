@@ -1,6 +1,12 @@
 # Patches — Slate's divergence from vendored ImGui
 
-Two patches, both against `ExternalPackages/imgui` at commit `12b7977` (`1.92.9 WIP`, `docking` branch).
+Two patches, both against `ExternalPackages/imgui` on the **`docking`** branch at `83f6686` (`1.93.0 WIP`).
+
+⚠️ The pin was previously `12b7977`, which this document described as being on the `docking` branch. It was
+not — it is an `ocornut/master` commit, and it is an ancestor of `docking` only because that branch merges
+master periodically. `ImGuiConfigFlags_DockingEnable` does not exist at that commit, so docking could not be
+enabled at all. `.gitmodules` now declares `branch = docking` so the pin cannot drift back to master
+unnoticed.
 They are the **whole** of Slate's divergence from upstream ImGui. `Scripts/ApplyImGuiPatches.ps1` applies
 them and `Build/Construct.ps1` invokes that script before any unit is translated.
 

@@ -107,6 +107,14 @@ Deliver<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
 
     ImGui::StyleColorsDark();
 
+    // 🔴 Docking, enabled here and nowhere else. The submodule stands on ImGui's `docking` branch and the
+    //    whole feature is inert until this flag is raised — the branch carries the code, not the behaviour.
+    // 📝 ⚠️ Multi-viewport is deliberately NOT raised. It hands panels to the window manager as real OS
+    //    windows, each with its own swapchain, and every swapchain in this process belongs to
+    //    `DisplayScheduler` against one surface. Raising it would stand a second, unowned chain outside
+    //    `HostLifecycle`'s five lifetimes and outside its resize and rebuild paths both.
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
     // 📝 The window system attachment installs its own callbacks. `04`'s `InputExchange` keeps its arrival
     //    stamps regardless: the interface reads the accumulated window condition, and the stroke path reads
     //    the stamped arrival ordering. They observe the same device through two surfaces that never merge.
@@ -145,6 +153,12 @@ Deliver<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     }
 
     VendorAttached = true;
+
+    // 🔴 The retained workspace seat, re-applied. `ImGui::CreateContext` above begins at the vendor's
+    //    defaults and `StyleColorsDark` overwrites the lot — so a style seated once at bring-up was lost on
+    //    every device rebuild, and the trapezoidal tabs reverted to stock rectangles.
+    if (StyleSeated)
+        Disregard(SeatWorkspaceStyle(SeatedMeasure, SeatedInk));
 
     return Deliver<bool>::Deliver(true);
 }
@@ -257,6 +271,12 @@ ImVec4 Vendor(InkOrdinate Ink)
 
 Deliver<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceInk& Tinted)
 {
+    // 🔴 Retained BEFORE the context is tested, so a seat asked for while no context stands is applied by
+    //    the next Construct rather than silently dropped.
+    SeatedMeasure = Measure;
+    SeatedInk     = Tinted;
+    StyleSeated   = true;
+
     if (ContextSlot == nullptr)
         return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context stands" });
 
@@ -294,14 +314,18 @@ void InterfaceExchange::RecordWorkspaceTabs(const PlaneExtent&  Extent,
                                             std::uint32_t       Count,
                                             std::uint32_t       Active,
                                             std::uint32_t&      Chosen,
-                                            std::uint32_t&      Closed)
+                                            std::uint32_t&      Closed,
+                                            bool&               Enrolling)
 {
     // 📝 Both outputs are settled before any early return. `Count` means "none", which no valid
     //    ordinal equals.
-    Chosen = Count;
-    Closed = Count;
+    Chosen    = Count;
+    Closed    = Count;
+    Enrolling = false;
 
-    if (ContextSlot == nullptr || !TickOpen || Titles == nullptr || Count == 0u)
+    // 🔴 A zero count is NOT an early return. The `+` must be recorded on an empty strip too, or an artist
+    //    who closed the last workspace is left in a state with no way out.
+    if (ContextSlot == nullptr || !TickOpen)
         return;
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
@@ -356,8 +380,51 @@ void InterfaceExchange::RecordWorkspaceTabs(const PlaneExtent&  Extent,
                     Closed = Ordinal;
             }
 
+            // 📝 The sheet's `addBtn`, recorded as a trailing tab-bar button so the vendor lays it after the
+            //    last tab and it scrolls with the strip. `TabItemButton` is not a tab: it carries no
+            //    selection and `ImGuiTabItemFlags_Button` keeps PatchA's slant off it, which is what makes
+            //    it read as a control rather than as an empty workspace.
+            if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+                Enrolling = true;
+
             ImGui::EndTabBar();
         }
+    }
+
+    ImGui::End();
+
+    ImGui::PopStyleVar(2);
+}
+
+void InterfaceExchange::RecordDockSpace(const PlaneExtent& Extent)
+{
+    if (ContextSlot == nullptr || !TickOpen)
+        return;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    ImGui::SetNextWindowPos(ImVec2(Extent.LeastAlong, Extent.LeastAcross));
+    ImGui::SetNextWindowSize(ImVec2(Extent.SpanAlong(), Extent.SpanAcross()));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+    const ImGuiWindowFlags Bare = ImGuiWindowFlags_NoTitleBar
+                                | ImGuiWindowFlags_NoResize
+                                | ImGuiWindowFlags_NoMove
+                                | ImGuiWindowFlags_NoScrollbar
+                                | ImGuiWindowFlags_NoScrollWithMouse
+                                | ImGuiWindowFlags_NoSavedSettings
+                                | ImGuiWindowFlags_NoBringToFrontOnFocus
+                                | ImGuiWindowFlags_NoNavFocus
+                                | ImGuiWindowFlags_NoBackground;
+
+    if (ImGui::Begin("SlateWorkspaceBody", nullptr, Bare))
+    {
+        // 🔴 `PassthruCentralNode` so the workspace ground shows through where nothing is docked. Without
+        //    it the vendor fills the whole node with its own colour and the sheet's OLED body is lost.
+        ImGui::DockSpace(ImGui::GetID("SlateDockSpace"), ImVec2(0.0f, 0.0f),
+                         ImGuiDockNodeFlags_PassthruCentralNode);
     }
 
     ImGui::End();
