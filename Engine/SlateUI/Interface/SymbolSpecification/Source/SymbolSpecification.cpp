@@ -138,13 +138,17 @@ constexpr StrokeStep BulbSteps[] =
     {  StrokeCommand::Segment, 14.0f,      22.0f }
 };
 
-// 📝 🚧 The mark every undeclared subject draws as — a rounded enclosure crossed by one diagonal. Deliberately
-//    unlike any real figure, so an unfinished roster is visible at a glance rather than mistaken for artwork.
+// 📝 The one approved placeholder icon — the Lucide image SVG reduced to the engine's stroke stream. Every
+//    unresolved application symbol uses it until the discipline-specific icon sets are supplied.
 constexpr StrokeStep PlaceholderSteps[] =
 {
-    {  StrokeCommand::Enclosure,  4.0f,  4.0f, 20.0f, 20.0f, 3.0f },
-    {  StrokeCommand::Origin,     8.0f, 16.0f },
-    {  StrokeCommand::Segment,   16.0f,  8.0f }
+    {  StrokeCommand::Enclosure,  3.0f,  3.0f, 21.0f, 21.0f, 2.0f },
+    {  StrokeCommand::Disc,       8.5f,  8.5f, 1.5f },
+    {  StrokeCommand::Origin,     3.0f, 18.0f },
+    {  StrokeCommand::Segment,    9.0f, 12.0f },
+    {  StrokeCommand::Segment,   13.0f, 16.0f },
+    {  StrokeCommand::Segment,   16.0f, 13.0f },
+    {  StrokeCommand::Segment,   21.0f, 18.0f }
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -153,13 +157,13 @@ constexpr StrokeStep PlaceholderSteps[] =
 
 constexpr SymbolFigure PlaceholderFigure =
 {
-    PlaceholderSteps, 3u, SymbolDiscipline::Workspace, DeclaredWeight, false
+    PlaceholderSteps, 7u, SymbolDiscipline::Workspace, DeclaredWeight, false
 };
 
 /// 🧩 Constructs the enrolment entry for a subject with no artwork yet.
 constexpr SymbolFigure Unresolved(SymbolDiscipline Enrolled)
 {
-    return SymbolFigure{ PlaceholderSteps, 3u, Enrolled, DeclaredWeight, false };
+    return SymbolFigure{ PlaceholderSteps, 7u, Enrolled, DeclaredWeight, false };
 }
 
 constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectCount)] =

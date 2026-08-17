@@ -1,11 +1,12 @@
 //============================================================================================================================================
 //                                                     INTERFACEVALIDATIONHOST.CPP
 //============================================================================================================================================
-// 🧩 Records `References/Controls.html` literally, so every declared control can be compared against the sheet.
+// 🧩 Records the control sheet and reusable global-interface components for direct visual comparison.
 
 #include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
+#include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -79,7 +80,13 @@ struct ValidationOrdinates
     bool           EntryTwo       = false;   // [-]
     bool           EntryThree     = true;    // [-]   - data-checked="true"
     bool           EntryFour      = false;   // [-]
-    std::uint32_t  SizeTaken      = 2u;      // [-]   - the taken stop is L
+    std::uint32_t  SizeTaken       = 2u;      // [-]   - the taken stop is L
+    bool           InspectorDocked = true;    // [-]   - reference switch begins taken
+    std::uint32_t  WorkspaceTaken  = 1u;      // [-]   - Texture Paint
+    std::uint32_t  InspectorTaken  = 0u;      // [-]   - Properties
+    bool           TransformOpen   = true;    // [-]   - folding property card
+    bool           OutlineTaken[5] = { false, true, true, false, false };   // [-] - additive multi-selection
+    bool           OutlinePresent[5] = { true, true, true, false, true };   // [-] - row presence action
 };
 
 /// 🧩 Every identity the sheet's controls are enrolled under, claimed once at bring-up.
@@ -98,12 +105,17 @@ struct ValidationIdentities
     ControlIdentity  EntryThree   = {};
     ControlIdentity  EntryFour    = {};
     ControlIdentity  Size         = {};
-    ControlIdentity  TooltipLight = {};
-    ControlIdentity  TooltipDark  = {};
+    ControlIdentity  TooltipLight  = {};
+    ControlIdentity  TooltipDark   = {};
+    ControlIdentity  InspectorDock = {};
+    ControlIdentity  WorkspaceMode = {};
+    ControlIdentity  InspectorTabs = {};
+    ControlIdentity  TransformFold = {};
+    ControlIdentity  OutlineRows[5] = {};
 };
 
 /// 🧩 Claims every identity the sheet needs, refusing in full rather than in part.
-/// out   Deliver  [-]  refuses with ExtentExhausted when the ledger declines any one of the fifteen
+/// out   Deliver  [-]  refuses with ExtentExhausted when the ledger declines any requested identity
 /// note  🔴 A partial enrolment would leave one control reading another's fade, which draws correctly on the
 ///       first tick and diverges on the second — the hardest possible shape of defect to attribute.
 Deliver<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
@@ -113,7 +125,10 @@ Deliver<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
         &Claimed.Selection, &Claimed.Degree,     &Claimed.Percent,    &Claimed.Pixel,
         &Claimed.Rotation,  &Claimed.Snapping,   &Claimed.GridLines,  &Claimed.AspectLocked,
         &Claimed.EntryOne,  &Claimed.EntryTwo,   &Claimed.EntryThree, &Claimed.EntryFour,
-        &Claimed.Size,      &Claimed.TooltipLight, &Claimed.TooltipDark
+        &Claimed.Size,      &Claimed.TooltipLight, &Claimed.TooltipDark,
+        &Claimed.InspectorDock, &Claimed.WorkspaceMode, &Claimed.InspectorTabs, &Claimed.TransformFold,
+        &Claimed.OutlineRows[0], &Claimed.OutlineRows[1], &Claimed.OutlineRows[2],
+        &Claimed.OutlineRows[3], &Claimed.OutlineRows[4]
     };
 
     for (ControlIdentity* Claiming : Every)
@@ -268,8 +283,9 @@ int main()
 
     MotionIntegrator Motion;
     InteractionIndex Ledger;
-    RecordingSurface Surface;
-    ComponentSpecification     Panel;
+    RecordingSurface       Surface;
+    ComponentSpecification Panel;
+    ControlPanel            ReferenceControls;
 
     if (!Ledger.Construct(Motion).ContentPresent)
     {
@@ -292,6 +308,12 @@ int main()
     if (!Panel.Construct(Ledger, Surface, Appearance).ContentPresent)
     {
         std::printf("%s \u2014 the control panel was refused\n", HostName);
+        return 1;
+    }
+
+    if (!ReferenceControls.Construct(Ledger, Surface, Appearance).ContentPresent)
+    {
+        std::printf("%s \u2014 the reference controls were refused\n", HostName);
         return 1;
     }
 
@@ -348,6 +370,38 @@ int main()
 
     TooltipDeclaration TooltipDark = TooltipLight;
     TooltipDark.Appearance         = TooltipAppearance::Dark;
+
+    const char* WorkspaceCaptions[] = { "Drafting", "Texture Paint", "Game Editor" };
+    const char* InspectorCaptions[] = { "Properties", "History" };
+
+    SwitchDeclaration InspectorDock;
+    InspectorDock.Caption = "Dock Inspector";
+
+    SegmentDeclaration WorkspaceMode;
+    WorkspaceMode.Captions     = WorkspaceCaptions;
+    WorkspaceMode.CaptionCount = 3u;
+
+    TabDeclaration InspectorTabs;
+    InspectorTabs.Captions     = InspectorCaptions;
+    InspectorTabs.CaptionCount = 2u;
+
+    FoldDeclaration TransformFold;
+    TransformFold.Caption = "TRANSFORM";
+    TransformFold.Count   = 3u;
+
+    OutlineDeclaration OutlineRows[5] = {
+        { "Part",         0u, 2u, true,  true  },
+        { "Bodies",       1u, 3u, true,  true  },
+        { "SOL_Boss",     2u, 0u, true,  true  },
+        { "SOL_Rib",      2u, 0u, true,  false },
+        { "SOL_Housing",  1u, 0u, true,  true  }
+    };
+
+    RevisionDeclaration RevisionRows[3] = {
+        { "Set Parameter",  "Radius = 6.25 mm", "10:42" },
+        { "Translate SOL_Boss", "Moved 4.20 mm", "10:37" },
+        { "Created SOL_Boss", "Initial condition", "10:31" }
+    };
 
 #ifdef SLATE_DEBUG
     MeasureOverlay Overlay;
@@ -441,6 +495,7 @@ int main()
 
         Motion.Advance(ElapsedMs);
         Panel.Advance(Surface.Pointer(), ElapsedMs);
+        ReferenceControls.Advance(Surface.Pointer(), ElapsedMs);
 
 #ifdef SLATE_DEBUG
         Overlay.Discard();
@@ -587,6 +642,41 @@ int main()
 
         Panel.MagnitudeStops(Claimed.Size, RowAt(StopCard, StopRows, 0u), Size, Seated.SizeTaken);
 
+        // ⑩ The global-interface primitives — the reference switch, segmented selector, tabs and fold header.
+        const float ReferenceRows[4] = { 32.0f, 38.0f, 31.0f, 31.0f };
+        const CardArrangement ReferenceCard = AdvanceCard(ReferenceRows, 4u);
+
+        ReferenceControls.SwitchToggle(Claimed.InspectorDock, RowAt(ReferenceCard, ReferenceRows, 0u),
+                                       InspectorDock, Seated.InspectorDocked);
+        ReferenceControls.SegmentedChoice(Claimed.WorkspaceMode, RowAt(ReferenceCard, ReferenceRows, 1u),
+                                          WorkspaceMode, Seated.WorkspaceTaken);
+        ReferenceControls.TabStrip(Claimed.InspectorTabs, RowAt(ReferenceCard, ReferenceRows, 2u),
+                                   InspectorTabs, Seated.InspectorTaken);
+        ReferenceControls.CollapsibleCard(Claimed.TransformFold, RowAt(ReferenceCard, ReferenceRows, 3u),
+                                          TransformFold, Seated.TransformOpen);
+
+        // ⑪ One linearised document outline. Every row is independently toggleable, so selections accumulate.
+        const float OutlineRowExtents[5] = { 28.0f, 28.0f, 28.0f, 28.0f, 28.0f };
+        const CardArrangement OutlineCard = AdvanceCard(OutlineRowExtents, 5u);
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
+        {
+            ReferenceControls.OutlineRow(Claimed.OutlineRows[Ordinal],
+                                         RowAt(OutlineCard, OutlineRowExtents, Ordinal),
+                                         OutlineRows[Ordinal], true,
+                                         Seated.OutlineTaken[Ordinal], Seated.OutlinePresent[Ordinal]);
+        }
+
+        // ⑫ The revision timeline, presented from newest to oldest.
+        const float RevisionRowExtents[3] = { 54.0f, 54.0f, 54.0f };
+        const CardArrangement RevisionCard = AdvanceCard(RevisionRowExtents, 3u);
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
+        {
+            ReferenceControls.RevisionRow(RowAt(RevisionCard, RevisionRowExtents, Ordinal),
+                                          RevisionRows[Ordinal], Ordinal == 0u);
+        }
+
         // 🔴 The deferred sweep — every menu and every tooltip card, above every row recorded above.
         Panel.RecordDeferred();
 
@@ -645,6 +735,7 @@ int main()
     // 🔴 Read before Reclaim. The register is Device lifetime, and a reclaimed device has emptied it.
     const std::uint32_t Serious = Lifetime.StateDiagnostics();
 
+    ReferenceControls.Reset();
     Panel.Reset();
     Ledger.Reset();
     Surface.Reset();
