@@ -6,6 +6,7 @@
 #include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
+#include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
@@ -295,8 +296,10 @@ int main()
     MotionIntegrator Motion;
     InteractionIndex Ledger;
     RecordingSurface       Surface;
-    ComponentSpecification Panel;
-    ControlPanel            ReferenceControls;
+    ComponentSpecification  Panel;
+    ControlPanel             ReferenceControls;
+    ControlCentrePanel       ControlCentre;
+    ControlCentreOrdinates   ControlCentreValues;
 
     if (!Ledger.Construct(Motion).ContentPresent)
     {
@@ -325,6 +328,12 @@ int main()
     if (!ReferenceControls.Construct(Ledger, Surface, Appearance).ContentPresent)
     {
         std::printf("%s \u2014 the reference controls were refused\n", HostName);
+        return 1;
+    }
+
+    if (!ControlCentre.Construct(Motion, Surface, Appearance).ContentPresent)
+    {
+        std::printf("%s \u2014 the Control Centre panel was refused\n", HostName);
         return 1;
     }
 
@@ -527,6 +536,7 @@ int main()
         Motion.Advance(ElapsedMs);
         Panel.Advance(Surface.Pointer(), ElapsedMs);
         ReferenceControls.Advance(Surface.Pointer(), ElapsedMs);
+        ControlCentre.Advance(Surface.Pointer(), ElapsedMs);
 
 #ifdef SLATE_DEBUG
         Overlay.Discard();
@@ -864,6 +874,10 @@ int main()
                                           RevisionRows[Ordinal], Ordinal == 0u);
         }
 
+        // ⑬ The complete notch Control Centre validation surface. It intentionally covers the component
+        //     column; navigation inside it reaches every reference route without a second executable.
+        Disregard(ControlCentre.Record(Page, ControlCentreValues));
+
         // 🔴 The deferred sweep — every menu and every tooltip card, above every row recorded above.
         Panel.RecordDeferred();
 
@@ -922,6 +936,7 @@ int main()
     // 🔴 Read before Reclaim. The register is Device lifetime, and a reclaimed device has emptied it.
     const std::uint32_t Serious = Lifetime.StateDiagnostics();
 
+    ControlCentre.Reset();
     ReferenceControls.Reset();
     Panel.Reset();
     Ledger.Reset();

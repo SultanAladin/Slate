@@ -4,6 +4,7 @@
 // 🧩 The painting application — lifetime and tick only, with every device concern held by HostLifecycle.
 
 #include "Contract/DeliveryContract.h"
+#include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
@@ -112,8 +113,10 @@ int main()
     //    cannot disagree about what a new workspace is.
     constexpr WorkspaceSubject DefaultSubject = WorkspaceSubject::Painting;
 
-    WorkspaceIndex Workspaces;
-    WorkspacePanel Workspace;
+    WorkspaceIndex          Workspaces;
+    WorkspacePanel          Workspace;
+    ControlCentrePanel      ControlCentre;
+    ControlCentreOrdinates  ControlCentreValues;
 
     // 📝 Which dock node the next enrolled workspace is seated into; zero means the main dock space.
     std::uint32_t  EnrolIntoNode = 0u;
@@ -121,6 +124,12 @@ int main()
     if (!Workspace.Construct(Viewport.Surface(), Viewport.Appearance()).ContentPresent)
     {
         std::printf("%s \u2014 the workspace panel was refused\n", HostName);
+        return 1;
+    }
+
+    if (!ControlCentre.Construct(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).ContentPresent)
+    {
+        std::printf("%s \u2014 the Control Centre panel was refused\n", HostName);
         return 1;
     }
 
@@ -273,6 +282,13 @@ int main()
             Viewport.RecordDrawers();
             Viewport.DrawerPanels();
 
+            const PlaneExtent ControlInterior = Viewport.Drawers().Interior(DrawerBearing::North);
+            Viewport.Drawers().Exclude(DrawerBearing::North, ControlInterior);
+            ControlCentre.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Above));
+            Disregard(ControlCentre.Record(ControlInterior, ControlCentreValues));
+            Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Beneath));
+
             if (Viewport.SealPanels().ContentPresent)
             {
                 // 🔴 Read. A refused Record presents the cleared ground with nothing on it, which is
@@ -307,6 +323,7 @@ int main()
     // 🔴 Read before Reclaim. The register is Device lifetime, and a reclaimed device has emptied it.
     const std::uint32_t Serious = Lifetime.StateDiagnostics();
 
+    ControlCentre.Reset();
     Workspace.Reset();
     Workspaces.Reset();
     Viewport.Reclaim();
