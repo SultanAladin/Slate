@@ -117,7 +117,7 @@ index f93f37ca6..f73947243 100644
          }
          tab_bar->WidthAllTabs += ImMax(section->Width + section->Spacing, 0.0f);
          tab_offset += section->Spacing;
-@@ -10926,6 +10953,13 @@ bool    ImGui::TabItemEx(ImGuiTabBar* tab_bar, const char* label, bool* p_open,
+@@ -10926,6 +10953,17 @@
  
      // Render tab shape
      const bool is_visible = (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_Visible) && !(flags & ImGuiTabItemFlags_Invisible);
@@ -125,7 +125,11 @@ index f93f37ca6..f73947243 100644
 +    // [SLATE PATCH B] The selected tab, and a hovered one, record into the upper z channel so their slanted
 +    //   edges sit over their neighbours' -- the sheet's z-index 100 for .active and 80 for :hover. Everything
 +    //   else stays in the lower channel and keeps its submission order.
-+    const bool slate_raise = tab_bar->SlateZSplit && (tab_contents_visible || hovered || held);
++    // [SLATE PATCH B] Only the SELECTED tab is raised. A hovered tab is recoloured where it stands and
++    //   keeps its place in the stack -- raising it pulled a background tab's trapezoid in front of its
++    //   neighbours, so merely passing the pointer along the strip made tabs jump forward one by one.
++    //   The sheet gives :hover a colour and no z-index; only .active carries one.
++    const bool slate_raise = tab_bar->SlateZSplit && tab_contents_visible;
 +    if (slate_raise)
 +        tab_bar->SlateZSplitter.SetCurrentChannel(window->DrawList, 1);
      if (is_visible)
