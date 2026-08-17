@@ -1,4 +1,4 @@
-# VerifyPartition.ps1 — proves the dependency partition rather than describing it.
+﻿# VerifyPartition.ps1 — proves the dependency partition rather than describing it.
 #
 # 🔴 `Module.toml` is the authority. This script reads it, derives what each unit is permitted to reach,
 #    and refuses when a translation unit reaches further. Until now the partition was enforced only by the
@@ -133,6 +133,55 @@ function Resolve-Reachable([hashtable] $Declared, [string] $UnitName)
 #                                        THE VERDICT
 #---
 
+#---
+#                                     SHELL FILE ENCODING
+#---
+
+# 🔴 A PowerShell file containing any non-ASCII byte MUST carry a UTF-8 BOM, and a batch file must carry
+#    none at all. Windows PowerShell 5.1 reads a BOM-less file in the system code page, so every multi-byte
+#    sequence arrives as mojibake and the parse fails at a line that looks unrelated to the character. A
+#    batch file has the opposite constraint: cmd.exe reads it in the OEM code page and executes the stray
+#    bytes, which is how a comment produced "'M' is not recognized as an internal or external command".
+#
+# 🔴 Both cost a build each to discover. Checked here so neither can be reintroduced by an editor that
+#    silently re-saves without the mark.
+function Test-ShellEncoding
+{
+    $Broken = @()
+    $Mark   = [byte[]] (0xEF, 0xBB, 0xBF)
+
+    foreach ($Shell in Get-ChildItem $RepositoryRoot -Include '*.ps1', '*.bat' -File -Recurse)
+    {
+        $Bytes = [System.IO.File]::ReadAllBytes($Shell.FullName)
+        $Named = $Shell.FullName.Substring($RepositoryRoot.Length + 1)
+
+        $Marked = ($Bytes.Length -ge 3) -and
+                  ($Bytes[0] -eq $Mark[0]) -and ($Bytes[1] -eq $Mark[1]) -and ($Bytes[2] -eq $Mark[2])
+
+        $Wide = 0
+
+        for ($Ordinal = $(if ($Marked) { 3 } else { 0 }); $Ordinal -lt $Bytes.Length; ++$Ordinal)
+        {
+            if ($Bytes[$Ordinal] -gt 127) { ++$Wide }
+        }
+
+        if ($Shell.Extension -eq '.bat')
+        {
+            if ($Wide -gt 0 -or $Marked)
+            {
+                $Carried = "$Wide non-ASCII byte(s)$(if ($Marked) { ' and a BOM' })"
+                $Broken  += "$Named carries $Carried; cmd.exe requires plain ASCII"
+            }
+        }
+        elseif ($Wide -gt 0 -and -not $Marked)
+        {
+            $Broken += "$Named carries $Wide non-ASCII byte(s) without a UTF-8 BOM; Windows PowerShell will misread them"
+        }
+    }
+
+    return $Broken
+}
+
 $Declared = Read-DeclaredUnits
 
 if ($Declared.Count -eq 0)
@@ -141,6 +190,7 @@ if ($Declared.Count -eq 0)
 }
 
 $Refusals = @()
+$Refusals += Test-ShellEncoding
 $Refusals += Test-Acyclic $Declared
 
 # 🔴 Every include of the form "SlateX/..." is a unit reference. Contract/ and Shared/ are reachable from

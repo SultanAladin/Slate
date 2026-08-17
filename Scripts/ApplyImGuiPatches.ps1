@@ -1,4 +1,4 @@
-# ApplyImGuiPatches.ps1 — applies Slate's tab-shape patches to the vendored ImGui submodule.
+﻿# ApplyImGuiPatches.ps1 — applies Slate's tab-shape patches to the vendored ImGui submodule.
 #
 # 🔴 `ExternalPackages/` is never edited by hand. The two patches below are the whole of Slate's
 #    divergence from upstream ImGui, they are tracked in `Patches/`, and this script is the only thing

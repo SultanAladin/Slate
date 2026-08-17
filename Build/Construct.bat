@@ -1,5 +1,5 @@
 @echo off
-REM Construct.bat — the shell entry point. Forwards to Construct.ps1, which holds the whole build.
+REM Construct.bat  the shell entry point. Forwards to Construct.ps1, which holds the whole build.
 REM
 REM   Build\Construct.bat
 REM   Build\Construct.bat Debug
