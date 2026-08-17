@@ -111,10 +111,12 @@ void InteractionIndex::Advance(const PointerCondition& Arrived, double Elapsed)
     //    arrangement between two ticks never runs again, and a seizure retired only by that control would
     //    stand for the life of the process — every later contact refused because something invisible holds it.
     ReleasedControl = {};
+    ReleasedPart    = ControlPart::Nothing;
 
     if (SeizedPart != ControlPart::Nothing && !Arrived.ContactHeld)
     {
         ReleasedControl    = SeizedControl;
+        ReleasedPart       = SeizedPart;
         SeizedControl      = {};
         SeizedPart         = ControlPart::Nothing;
         SeizedDeparted     = 0.0f;
@@ -157,6 +159,11 @@ bool InteractionIndex::Released(ControlIdentity Claimed) const
     return ReleasedControl.IdentityDeclared() && ReleasedControl == Claimed;
 }
 
+ControlPart InteractionIndex::ReleasedControlPart(ControlIdentity Claimed) const
+{
+    return Released(Claimed) ? ReleasedPart : ControlPart::Nothing;
+}
+
 bool InteractionIndex::DepartFrom(ControlIdentity Claimed, float Ordinate)
 {
     if (!Holding(Claimed))
@@ -194,6 +201,7 @@ void InteractionIndex::Abandon()
     SeizedControl    = {};
     SeizedPart       = ControlPart::Nothing;
     ReleasedControl  = {};
+    ReleasedPart     = ControlPart::Nothing;
     SeizedDeparted   = 0.0f;
     DepartedRecorded = false;
 }

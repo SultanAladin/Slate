@@ -90,6 +90,8 @@ struct ValidationOrdinates
     bool           OutlineExpanded[5] = { true, true, true, true, true };   // [-] - branch disclosure
     bool           OutlineTaken[5]    = { false, true, true, false, false };   // [-] - additive multi-selection
     bool           OutlinePresent[5]  = { true, true, true, false, true };   // [-] - row presence action
+    std::uint32_t  OutlineEnclosure[5] = { 5u, 0u, 1u, 1u, 0u };   // [-] - enclosing record; five is root
+    std::uint32_t  OutlineOrder[5]     = { 0u, 0u, 0u, 1u, 1u };   // [-] - sibling position
 };
 
 /// 🧩 Every identity the sheet's controls are enrolled under, claimed once at bring-up.
@@ -690,43 +692,166 @@ int main()
         ReferenceControls.ColourPicker(Claimed.AlbedoPicker, RowAt(ReferenceCard, ReferenceRows, 6u),
                                        AlbedoPicker, Seated.Albedo);
 
-        // ⑪ One linearised document outline. Branch travel is optional per declaration and enabled here.
-        float OutlineExpansion[5] = {};
-        for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
+        // ⑪ One identity-backed outline. A drop's destination is declared here; document ownership stays outside
+        //     the panel exactly as it does for selection and visibility.
+        for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
         {
-            OutlineExpansion[Ordinal] = ReferenceControls.OutlineExpansion(
-                Claimed.OutlineExpansion[Ordinal], Seated.OutlineExpanded[Ordinal],
-                OutlineRows[Ordinal].AnimationEnabled);
+            OutlineRows[RecordOrdinal].EnclosedCount = 0u;
+            if (Seated.OutlineEnclosure[RecordOrdinal] < 5u)
+                ++OutlineRows[Seated.OutlineEnclosure[RecordOrdinal]].EnclosedCount;
         }
 
-        const float RowPresence[5] = {
-            1.0f,
-            OutlineExpansion[0],
-            OutlineExpansion[0] * OutlineExpansion[1],
-            OutlineExpansion[0] * OutlineExpansion[1],
-            OutlineExpansion[0]
+        std::uint32_t PresentedRecords[5] = {};
+        std::uint32_t PresentedCount = 0u;
+        const auto LinearizeOutline = [&](auto&& Traverse, std::uint32_t Enclosing, std::uint32_t Depth) -> void
+        {
+            for (std::uint32_t Position = 0u; Position < 5u; ++Position)
+            {
+                for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
+                {
+                    if (Seated.OutlineEnclosure[RecordOrdinal] != Enclosing ||
+                        Seated.OutlineOrder[RecordOrdinal] != Position)
+                        continue;
+
+                    OutlineRows[RecordOrdinal].Depth = Depth;
+                    PresentedRecords[PresentedCount++] = RecordOrdinal;
+                    Traverse(Traverse, RecordOrdinal, Depth + 1u);
+                }
+            }
         };
-        const float OutlineAcross = 28.0f * (RowPresence[0] + RowPresence[1] + RowPresence[2] +
-                                             RowPresence[3] + RowPresence[4]);
+        LinearizeOutline(LinearizeOutline, 5u, 0u);
+
+        float OutlineExpansion[5] = {};
+        for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
+        {
+            OutlineExpansion[RecordOrdinal] = ReferenceControls.OutlineExpansion(
+                Claimed.OutlineExpansion[RecordOrdinal], Seated.OutlineExpanded[RecordOrdinal],
+                OutlineRows[RecordOrdinal].AnimationEnabled);
+        }
+
+        float RowPresence[5] = {};
+        float OutlineAcross = 0.0f;
+        for (std::uint32_t PresentedOrdinal = 0u; PresentedOrdinal < PresentedCount; ++PresentedOrdinal)
+        {
+            const std::uint32_t RecordOrdinal = PresentedRecords[PresentedOrdinal];
+            float Presence = 1.0f;
+            std::uint32_t Enclosing = Seated.OutlineEnclosure[RecordOrdinal];
+            std::uint32_t WalkCount = 0u;
+
+            while (Enclosing < 5u && WalkCount++ < 5u)
+            {
+                Presence *= OutlineExpansion[Enclosing];
+                Enclosing = Seated.OutlineEnclosure[Enclosing];
+            }
+
+            RowPresence[PresentedOrdinal] = Presence;
+            OutlineAcross += 28.0f * Presence;
+        }
+
+        std::uint32_t DragSource = 5u;
+        const float DragAlong = Surface.Pointer().PositionAlong - Ledger.OriginAlong();
+        const float DragAcross = Surface.Pointer().PositionAcross - Ledger.OriginAcross();
+        const bool DragTravelled = DragAlong * DragAlong + DragAcross * DragAcross >= 16.0f;
+
+        if (DragTravelled)
+        {
+            for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
+            {
+                const bool BodyHeld = Ledger.Holding(Claimed.OutlineRows[RecordOrdinal]) &&
+                                      Ledger.HeldPart(Claimed.OutlineRows[RecordOrdinal]) == ControlPart::Body;
+                const bool BodyReleased = Ledger.Released(Claimed.OutlineRows[RecordOrdinal]) &&
+                                          Ledger.ReleasedControlPart(Claimed.OutlineRows[RecordOrdinal]) == ControlPart::Body;
+                if (BodyHeld || BodyReleased)
+                    DragSource = RecordOrdinal;
+            }
+        }
+
         const float OutlineRowsAcross[1] = { OutlineAcross };
         const CardArrangement OutlineCard = AdvanceCard(OutlineRowsAcross, 1u);
         float OutlineCursor = OutlineCard.Interior.LeastAcross;
+        std::uint32_t DropTarget = 5u;
+        OutlineDropPlacement DropPlacement = OutlineDropPlacement::Absent;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
+        for (std::uint32_t PresentedOrdinal = 0u; PresentedOrdinal < PresentedCount; ++PresentedOrdinal)
         {
-            if (RowPresence[Ordinal] <= 0.0f)
+            const std::uint32_t RecordOrdinal = PresentedRecords[PresentedOrdinal];
+            const float Presence = RowPresence[PresentedOrdinal];
+            if (Presence <= 0.0f)
                 continue;
 
             const PlaneExtent Row = Spanning(OutlineCard.Interior.LeastAlong, OutlineCursor,
                                              OutlineCard.Interior.SpanAlong(), 28.0f);
+            OutlineDropPlacement RowPlacement = OutlineDropPlacement::Absent;
+
+            if (DragSource < 5u && DragSource != RecordOrdinal &&
+                Row.Encloses(Surface.Pointer().PositionAlong, Surface.Pointer().PositionAcross))
+            {
+                const float RowFraction = (Surface.Pointer().PositionAcross - Row.LeastAcross) / Row.SpanAcross();
+                RowPlacement = (RowFraction < 0.25f) ? OutlineDropPlacement::Before
+                             : (RowFraction > 0.75f) ? OutlineDropPlacement::After
+                                                     : OutlineDropPlacement::Enclosed;
+                DropTarget = RecordOrdinal;
+                DropPlacement = RowPlacement;
+            }
+
             const PlaneExtent Revealed = Spanning(Row.LeastAlong, Row.LeastAcross,
-                                                  Row.SpanAlong(), 28.0f * RowPresence[Ordinal]);
+                                                  Row.SpanAlong(), 28.0f * Presence);
             Surface.Confine(Revealed);
-            ReferenceControls.OutlineRow(Claimed.OutlineRows[Ordinal], Row, OutlineRows[Ordinal], true,
-                                         OutlineExpansion[Ordinal], Seated.OutlineExpanded[Ordinal],
-                                         Seated.OutlineTaken[Ordinal], Seated.OutlinePresent[Ordinal]);
+            ReferenceControls.OutlineRow(Claimed.OutlineRows[RecordOrdinal], Row, OutlineRows[RecordOrdinal], true,
+                                         OutlineExpansion[RecordOrdinal], RowPlacement,
+                                         Seated.OutlineExpanded[RecordOrdinal], Seated.OutlineTaken[RecordOrdinal],
+                                         Seated.OutlinePresent[RecordOrdinal]);
             Surface.Release();
-            OutlineCursor += 28.0f * RowPresence[Ordinal];
+            OutlineCursor += 28.0f * Presence;
+        }
+
+        if (DragSource < 5u && DropTarget < 5u && Ledger.Released(Claimed.OutlineRows[DragSource]))
+        {
+            const std::uint32_t ProposedEnclosure = (DropPlacement == OutlineDropPlacement::Enclosed)
+                                                   ? DropTarget : Seated.OutlineEnclosure[DropTarget];
+            bool CycleDeclared = ProposedEnclosure == DragSource;
+            std::uint32_t Walking = ProposedEnclosure;
+            std::uint32_t WalkCount = 0u;
+
+            while (!CycleDeclared && Walking < 5u && WalkCount++ < 5u)
+            {
+                CycleDeclared = Walking == DragSource;
+                Walking = Seated.OutlineEnclosure[Walking];
+            }
+
+            if (!CycleDeclared)
+            {
+                const std::uint32_t DepartingEnclosure = Seated.OutlineEnclosure[DragSource];
+                const std::uint32_t DepartingOrder = Seated.OutlineOrder[DragSource];
+                for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
+                {
+                    if (RecordOrdinal != DragSource && Seated.OutlineEnclosure[RecordOrdinal] == DepartingEnclosure &&
+                        Seated.OutlineOrder[RecordOrdinal] > DepartingOrder)
+                        --Seated.OutlineOrder[RecordOrdinal];
+                }
+
+                std::uint32_t ArrivingOrder = 0u;
+                if (DropPlacement == OutlineDropPlacement::Enclosed)
+                {
+                    Seated.OutlineExpanded[DropTarget] = true;
+                }
+                else
+                {
+                    ArrivingOrder = Seated.OutlineOrder[DropTarget];
+                    if (DropPlacement == OutlineDropPlacement::After)
+                        ++ArrivingOrder;
+                }
+
+                for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
+                {
+                    if (RecordOrdinal != DragSource && Seated.OutlineEnclosure[RecordOrdinal] == ProposedEnclosure &&
+                        Seated.OutlineOrder[RecordOrdinal] >= ArrivingOrder)
+                        ++Seated.OutlineOrder[RecordOrdinal];
+                }
+
+                Seated.OutlineEnclosure[DragSource] = ProposedEnclosure;
+                Seated.OutlineOrder[DragSource] = ArrivingOrder;
+            }
         }
 
         // ⑫ The revision timeline, presented from newest to oldest.

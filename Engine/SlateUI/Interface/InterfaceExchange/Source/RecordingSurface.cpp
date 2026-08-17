@@ -209,6 +209,48 @@ void RecordingSurface::Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, In
                                                    LeadingUpper, TrailingUpper, TrailingLower, LeadingLower);
 }
 
+void RecordingSurface::MaskCorners(const PlaneExtent& Extent, InkOrdinate OutsideInk, float Radius)
+{
+    if (CommandSlot == nullptr || OutsideInk.Opacity == 0u || Radius <= 0.0f)
+        return;
+
+    const float HeldRadius = std::fmin(Radius, std::fmin(Extent.SpanAlong(), Extent.SpanAcross()) * 0.5f);
+    constexpr std::uint32_t ArcSteps = 8u;
+    constexpr float HalfTurn = 3.1415926536f;
+    constexpr float QuarterTurn = HalfTurn * 0.5f;
+
+    const ImVec2 Outer[4] = {
+        { Extent.LeastAlong, Extent.LeastAcross }, { Extent.MostAlong, Extent.LeastAcross },
+        { Extent.MostAlong, Extent.MostAcross },   { Extent.LeastAlong, Extent.MostAcross }
+    };
+    const ImVec2 Centre[4] = {
+        { Extent.LeastAlong + HeldRadius, Extent.LeastAcross + HeldRadius },
+        { Extent.MostAlong - HeldRadius,  Extent.LeastAcross + HeldRadius },
+        { Extent.MostAlong - HeldRadius,  Extent.MostAcross - HeldRadius },
+        { Extent.LeastAlong + HeldRadius, Extent.MostAcross - HeldRadius }
+    };
+    const float Start[4] = { -QuarterTurn, -QuarterTurn, 0.0f, QuarterTurn };
+    const float Travel[4] = { -QuarterTurn, QuarterTurn, QuarterTurn, QuarterTurn };
+    ImDrawList* Target = Commands(CommandSlot);
+    const ImU32 CoveringInk = Vendor(OutsideInk);
+
+    for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < 4u; ++CornerOrdinal)
+    {
+        for (std::uint32_t StepOrdinal = 0u; StepOrdinal < ArcSteps; ++StepOrdinal)
+        {
+            const float FirstFraction = static_cast<float>(StepOrdinal) / static_cast<float>(ArcSteps);
+            const float SecondFraction = static_cast<float>(StepOrdinal + 1u) / static_cast<float>(ArcSteps);
+            const float FirstAngle = Start[CornerOrdinal] + Travel[CornerOrdinal] * FirstFraction;
+            const float SecondAngle = Start[CornerOrdinal] + Travel[CornerOrdinal] * SecondFraction;
+            const ImVec2 First = { Centre[CornerOrdinal].x + std::cos(FirstAngle) * HeldRadius,
+                                   Centre[CornerOrdinal].y + std::sin(FirstAngle) * HeldRadius };
+            const ImVec2 Second = { Centre[CornerOrdinal].x + std::cos(SecondAngle) * HeldRadius,
+                                    Centre[CornerOrdinal].y + std::sin(SecondAngle) * HeldRadius };
+            Target->AddTriangleFilled(Outer[CornerOrdinal], First, Second, CoveringInk);
+        }
+    }
+}
+
 void RecordingSurface::Medallion(float CentreAlong, float CentreAcross, float Radius, InkOrdinate Ink)
 {
     if (CommandSlot == nullptr || Ink.Opacity == 0u || Radius <= 0.0f)

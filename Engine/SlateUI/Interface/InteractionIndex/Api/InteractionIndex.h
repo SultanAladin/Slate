@@ -163,6 +163,11 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool Released(ControlIdentity Claimed) const;
 
+    /// 🧩 Which part the released seizure addressed during its one reported tick.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    ControlPart ReleasedControlPart(ControlIdentity Claimed) const;
+
     /// 🧩 Where the standing contact arrived, and what the caller's datum read at that moment.
     /// out   Arrived  [-]  refuses with IdentityStale when this control holds no seizure
     /// use   A drag law reads `Departed + (Position − Origin) × Rate`, never an accumulated per-tick delta,
@@ -268,6 +273,7 @@ private:
     ControlIdentity    SeizedControl                 = {};        // 🔴 [-] - at most one, ever
     ControlPart        SeizedPart                    = ControlPart::Nothing;   // [-]
     ControlIdentity    ReleasedControl               = {};        // [-] - the seizure this tick retired
+    ControlPart        ReleasedPart                  = ControlPart::Nothing;   // [-] - its addressed part
     float              SeizedOriginAlong             = 0.0f;      // [px] - where the contact arrived
     float              SeizedOriginAcross            = 0.0f;      // [px]
     float              SeizedDeparted                = 0.0f;      // [-]  - the datum at seizure

@@ -799,6 +799,7 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneEx
         Recording->Ground(Saturation, { HueColour.Red, HueColour.Green, HueColour.Blue, 255u }, 10.0f, CornerAll);
         Recording->Scrim(Saturation, WhiteInk, { 255u, 255u, 255u, 0u }, ScrimAxis::Along);
         Recording->Scrim(Saturation, { 0u, 0u, 0u, 0u }, { 0u, 0u, 0u, 255u }, ScrimAxis::Across);
+        Recording->MaskCorners(Saturation, ValueGround, 10.0f);
 
         const float SaturationAlong = Saturation.LeastAlong + Saturation.SpanAlong() * Hsv.Saturation;
         const float BrightnessAcross = Saturation.LeastAcross + Saturation.SpanAcross() * (1.0f - Hsv.Brightness);
@@ -817,15 +818,21 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneEx
                                       HueRail.LeastAcross, HueSegment + 1.0f, HueRail.SpanAcross()),
                              HueStops[Ordinal], HueStops[Ordinal + 1u], ScrimAxis::Along);
         }
+        Recording->MaskCorners(HueRail, ValueGround, ColourBarAcross * 0.5f);
 
         const float HueAlong = HueRail.LeastAlong + HueRail.SpanAlong() * (Hsv.Hue / 360.0f);
         Recording->Medallion(HueAlong, HueRail.LeastAcross + 8.0f, 10.0f, Covering(0x1B1B1Eu));
         Recording->Medallion(HueAlong, HueRail.LeastAcross + 8.0f, 8.0f, WhiteInk);
 
         constexpr float CheckExtent = 10.0f;
-        for (std::uint32_t AcrossOrdinal = 0u; AcrossOrdinal < 2u; ++AcrossOrdinal)
+        const std::uint32_t AlongCount = static_cast<std::uint32_t>(
+            std::ceil(OpacityRail.SpanAlong() / CheckExtent));
+        const std::uint32_t AcrossCount = static_cast<std::uint32_t>(
+            std::ceil(OpacityRail.SpanAcross() / CheckExtent));
+        Recording->Confine(OpacityRail);
+
+        for (std::uint32_t AcrossOrdinal = 0u; AcrossOrdinal < AcrossCount; ++AcrossOrdinal)
         {
-            const std::uint32_t AlongCount = static_cast<std::uint32_t>(OpacityRail.SpanAlong() / CheckExtent) + 1u;
             for (std::uint32_t AlongOrdinal = 0u; AlongOrdinal < AlongCount; ++AlongOrdinal)
             {
                 const InkOrdinate CheckInk = ((AlongOrdinal + AcrossOrdinal) % 2u == 0u)
@@ -838,6 +845,8 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneEx
 
         Recording->Scrim(OpacityRail, { Colour.Red, Colour.Green, Colour.Blue, 0u },
                           { Colour.Red, Colour.Green, Colour.Blue, 255u }, ScrimAxis::Along);
+        Recording->MaskCorners(OpacityRail, ValueGround, ColourBarAcross * 0.5f);
+        Recording->Release();
         const float OpacityAlong = OpacityRail.LeastAlong + OpacityRail.SpanAlong() *
                                   (static_cast<float>(Colour.Opacity) / 255.0f);
         Recording->Medallion(OpacityAlong, OpacityRail.LeastAcross + 8.0f, 10.0f, Covering(0x1B1B1Eu));
@@ -891,8 +900,8 @@ float ControlPanel::OutlineExpansion(ControlIdentity Claimed, bool ExpansionEnab
 
 ControlVerdict ControlPanel::OutlineRow(ControlIdentity Claimed, const PlaneExtent& Extent,
                                         const OutlineDeclaration& Declared, bool SelectionExtended,
-                                        float ExpansionFraction, bool& ExpansionEnabled,
-                                        bool& Selected, bool& PresenceEnabled)
+                                        float ExpansionFraction, OutlineDropPlacement DropPlacement,
+                                        bool& ExpansionEnabled, bool& Selected, bool& PresenceEnabled)
 {
     ControlVerdict Verdict;
 
@@ -907,14 +916,23 @@ ControlVerdict ControlPanel::OutlineRow(ControlIdentity Claimed, const PlaneExte
                                   DisclosureExtent.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
     const bool PresenceRoused = PresenceExtent.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
     const bool RowRoused      = Extent.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const float DragAlong     = Arrived.PositionAlong - Interaction->OriginAlong();
+    const float DragAcross    = Arrived.PositionAcross - Interaction->OriginAcross();
+    const bool BodyHeld       = Interaction->Holding(Claimed) &&
+                                Interaction->HeldPart(Claimed) == ControlPart::Body;
+    const bool BodyReleased   = Interaction->Released(Claimed) &&
+                                Interaction->ReleasedControlPart(Claimed) == ControlPart::Body;
+    const bool Dragged        = (BodyHeld || BodyReleased) &&
+                                (DragAlong * DragAlong + DragAcross * DragAcross >= 16.0f);
 
     if (RowRoused && Arrived.ContactArrived)
     {
-        Interaction->Seize(Claimed, PresenceRoused ? ControlPart::Chevron : ControlPart::Body);
+        Interaction->Seize(Claimed, (PresenceRoused || DisclosureRoused)
+                                  ? ControlPart::Chevron : ControlPart::Body);
     }
 
-    if ((Interaction->Released(Claimed) && RowRoused) ||
-        (Arrived.ContactArrived && Arrived.ContactReleased && RowRoused))
+    if (((Interaction->Released(Claimed) && RowRoused) ||
+         (Arrived.ContactArrived && Arrived.ContactReleased && RowRoused)) && !Dragged)
     {
         if (DisclosureRoused)
             ExpansionEnabled = !ExpansionEnabled;
@@ -946,6 +964,25 @@ ControlVerdict ControlPanel::OutlineRow(ControlIdentity Claimed, const PlaneExte
         Recording->Ground(Extent, Blend(TileGround, TileRoused, RouseFraction), 5.0f, CornerAll);
     }
 
+    if (DropPlacement == OutlineDropPlacement::Before)
+    {
+        Recording->Ground(Spanning(Extent.LeastAlong, Extent.LeastAcross,
+                                   Extent.SpanAlong(), 2.0f), AccentInk, 1.0f, CornerAll);
+    }
+    else if (DropPlacement == OutlineDropPlacement::After)
+    {
+        Recording->Ground(Spanning(Extent.LeastAlong, Extent.MostAcross - 2.0f,
+                                   Extent.SpanAlong(), 2.0f), AccentInk, 1.0f, CornerAll);
+    }
+    else if (DropPlacement == OutlineDropPlacement::Enclosed)
+    {
+        Recording->Ground(Extent, AccentSoftInk, 5.0f, CornerAll);
+        Recording->Edge(Extent, AccentInk, 1.0f, 5.0f, CornerAll);
+    }
+
+    if (Dragged)
+        Recording->Edge(Extent, StrongHairInk, 1.0f, 5.0f, CornerAll);
+
     if (Declared.EnclosedCount > 0u)
     {
         constexpr float QuarterTurn = 1.5707963268f;   // [rad] - 90 degrees
@@ -957,15 +994,15 @@ ControlVerdict ControlPanel::OutlineRow(ControlIdentity Claimed, const PlaneExte
 
     Recording->Stroke(SymbolSubject::PlaceholderMark,
                       Spanning(Extent.LeastAlong + Indent + 17.0f, Extent.LeastAcross + 5.0f, 16.0f, 16.0f),
-                      Declared.PresenceEnabled ? AccentInk : FaintInk);
+                      PresenceEnabled ? AccentInk : FaintInk);
     Recording->TextRunTruncated(Extent.LeastAlong + Indent + 39.0f, CentredAcross(Extent, ReferenceText),
-                                Extent.MostAlong - 34.0f, Declared.PresenceEnabled ? PrimaryInk : FaintInk,
+                                Extent.MostAlong - 34.0f, PresenceEnabled ? PrimaryInk : FaintInk,
                                 Declared.Caption, ReferenceText, Selected);
 
     Recording->Edge(PresenceExtent, PresenceRoused ? StrongHairInk : HairInk, 1.0f, 5.0f, CornerAll);
     Recording->Medallion(PresenceExtent.LeastAlong + 11.0f, PresenceExtent.LeastAcross + 11.0f,
-                         Declared.PresenceEnabled ? 3.0f : 1.5f,
-                         Declared.PresenceEnabled ? MutedInk : AbsentInk);
+                         PresenceEnabled ? 3.0f : 1.5f,
+                         PresenceEnabled ? MutedInk : AbsentInk);
 
     Verdict.ContactTaken = Interaction->Holding(Claimed);
     Verdict.Mark         = RowRoused ? RedrawMark::Recolour : RedrawMark::Quiet;

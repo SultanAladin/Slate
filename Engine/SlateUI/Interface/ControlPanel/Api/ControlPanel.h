@@ -89,6 +89,17 @@ struct ColourPickerDeclaration
     const char*  Caption = "";   // [-] - borrowed; outlives the tick
 };
 
+/// 🧩 Where a released outline row is placed against the row beneath the pointer.
+/// tag   contract
+enum class OutlineDropPlacement : std::uint32_t
+{
+    Absent         = 0u,   // [-] - no drop target
+    Before         = 1u,   // [-] - preceding sibling position
+    Enclosed       = 2u,   // [-] - first position inside the target
+    After          = 3u,   // [-] - following sibling position
+    PlacementCount = 4u    // [-] - closed count, never a placement
+};
+
 /// 🧩 One linearised outline row, including its depth and visibility condition.
 /// tag   contract, nonallocating, nonthrowing
 struct OutlineDeclaration
@@ -191,7 +202,8 @@ public:
     /// tag   api, nonthrowing
     ControlVerdict OutlineRow(ControlIdentity Claimed, const PlaneExtent& Extent,
                               const OutlineDeclaration& Declared, bool SelectionExtended, float ExpansionFraction,
-                              bool& ExpansionEnabled, bool& Selected, bool& PresenceEnabled);
+                              OutlineDropPlacement DropPlacement, bool& ExpansionEnabled,
+                              bool& Selected, bool& PresenceEnabled);
 
     /// 🧩 Presents one revision marker and its two text runs.
     /// cost  ✔️

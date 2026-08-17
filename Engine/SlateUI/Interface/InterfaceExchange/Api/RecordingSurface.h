@@ -195,6 +195,13 @@ public:
     void Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, InkOrdinate LowerInk,
                ScrimAxis Axis = ScrimAxis::Across);
 
+    /// 🧩 Covers the four areas outside a rounded extent after rectangular gradients were recorded into it.
+    /// in    OutsideInk  [-]  the surrounding ground restored at each corner
+    /// in    Radius      [px] the rounded corner radius
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    void MaskCorners(const PlaneExtent& Extent, InkOrdinate OutsideInk, float Radius);
+
     /// 🧩 Fills a disc — every medallion and the meta separator.
     /// cost  ✔️
     /// tag   api, nonthrowing
