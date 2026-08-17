@@ -241,7 +241,8 @@ namespace
 ///        jumps backward the moment the pointer crosses an edge twice inside one duration, which is exactly
 ///        what a pointer travelling along a column of rows does.
 /// cost  ✔️
-bool DepartToward(MotionIntegrator& Motion, std::uint32_t Ordinal, bool Toward, double Duration)
+bool DepartToward(MotionIntegrator& Motion, std::uint32_t Ordinal, bool Toward, double Duration,
+                  EaseCurve Shape = EaseCurve::Standard)
 {
     EasedInterpolant& Fade    = Motion.Eased(Ordinal);
     const double      Arrival = Toward ? 1.0 : 0.0;
@@ -252,7 +253,7 @@ bool DepartToward(MotionIntegrator& Motion, std::uint32_t Ordinal, bool Toward, 
     if (!Fade.Settled && Fade.Arriving == Arrival)
         return false;
 
-    Fade.Depart(Fade.Standing(), Arrival, Duration, 0.0, EaseCurve::Standard);
+    Fade.Depart(Fade.Standing(), Arrival, Duration, 0.0, Shape);
 
     return true;
 }
@@ -269,14 +270,14 @@ bool InteractionIndex::DeclareRoused(ControlIdentity Claimed, bool Roused, doubl
     return DepartToward(*Motion, Poses[Ordinal].RouseOrdinal, Roused, Duration);
 }
 
-bool InteractionIndex::DeclareTaken(ControlIdentity Claimed, bool Taken, double Duration)
+bool InteractionIndex::DeclareTaken(ControlIdentity Claimed, bool Taken, double Duration, EaseCurve Shape)
 {
     const std::uint32_t Ordinal = Slot(Claimed);
 
     if (Ordinal == ControlCapacity || Motion == nullptr || !Poses[Ordinal].Enrolled)
         return false;
 
-    return DepartToward(*Motion, Poses[Ordinal].TakeOrdinal, Taken, Duration);
+    return DepartToward(*Motion, Poses[Ordinal].TakeOrdinal, Taken, Duration, Shape);
 }
 
 float InteractionIndex::RousedFraction(ControlIdentity Claimed) const

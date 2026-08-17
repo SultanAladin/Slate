@@ -36,6 +36,7 @@ constexpr float ControlRadius         = 8.0f;    // [px] - tile and segment corn
 constexpr double RouseDuration        = 120.0;   // [ms] - reference transition-colors duration
 constexpr double TakeDuration         = 160.0;   // [ms] - switch and selection transition duration
 constexpr double DiscloseDuration     = 200.0;   // [ms] - card and menu disclosure duration
+constexpr double CarouselDuration     = 300.0;   // [ms] - inspector page transition duration
 constexpr float FoldHeaderAcross      = 31.0f;   // [px] - folding card header
 constexpr float FoldRowAcross         = 30.0f;   // [px] - one disclosed property row
 constexpr float DropdownHeadAcross    = 32.0f;   // [px] - selection field
@@ -327,6 +328,92 @@ ControlVerdict ControlPanel::TabStrip(ControlIdentity Claimed, const PlaneExtent
     Verdict.ContactTaken = Interaction->Holding(Claimed);
     Verdict.Mark         = Roused ? RedrawMark::Recolour : RedrawMark::Quiet;
 
+    return Verdict;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     INSPECTOR CAROUSEL
+//------------------------------------------------------------------------------------------------------------------------
+
+ControlVerdict ControlPanel::CarouselPages(ControlIdentity Claimed, const PlaneExtent& Extent,
+                                           const CarouselDeclaration& Declared, std::uint32_t TakenOrdinal)
+{
+    ControlVerdict Verdict;
+
+    if (Interaction == nullptr || Recording == nullptr)
+        return Verdict;
+
+    const bool TrailingTaken = TakenOrdinal == 1u;
+    Interaction->DeclareTaken(Claimed, TrailingTaken, CarouselDuration, EaseCurve::Carousel);
+
+    const float Travel = Interaction->TakenFraction(Claimed);
+    const float PageAlong = Extent.SpanAlong();
+    const float LeadingAlong = Extent.LeastAlong - PageAlong * Travel;
+    const float TrailingAlong = Extent.LeastAlong + PageAlong * (1.0f - Travel);
+
+    Recording->Ground(Extent, FieldGround, ControlRadius, CornerAll);
+    Recording->Edge(Extent, HairInk, 1.0f, ControlRadius, CornerAll);
+    Recording->Confine(Extent);
+
+    const auto RecordLeading = [&](float Along)
+    {
+        const PlaneExtent Page = Spanning(Along, Extent.LeastAcross, PageAlong, Extent.SpanAcross());
+        Recording->TextRunCapitalised(Page.LeastAlong + 10.0f, Page.LeastAcross + 9.0f,
+                                      FaintInk, "Property cards", SmallText, 0.08f, true);
+
+        if (Declared.LeadingRuns == nullptr)
+            return;
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < Declared.LeadingCount; ++Ordinal)
+        {
+            const PlaneExtent Card = Spanning(Page.LeastAlong + 8.0f,
+                                              Page.LeastAcross + 30.0f + 38.0f * static_cast<float>(Ordinal),
+                                              Page.SpanAlong() - 16.0f, 32.0f);
+            Recording->Ground(Card, PanelGround, 7.0f, CornerAll);
+            Recording->Edge(Card, HairInk, 1.0f, 7.0f, CornerAll);
+            Recording->Stroke(SymbolSubject::ChevronRight,
+                              Spanning(Card.LeastAlong + 8.0f, Card.LeastAcross + 9.0f, 13.0f, 13.0f), FaintInk);
+            Recording->TextRunTruncated(Card.LeastAlong + 29.0f, CentredAcross(Card, ReferenceText),
+                                        Card.MostAlong - 10.0f, PrimaryInk,
+                                        Declared.LeadingRuns[Ordinal], ReferenceText, true);
+        }
+    };
+
+    const auto RecordTrailing = [&](float Along)
+    {
+        const PlaneExtent Page = Spanning(Along, Extent.LeastAcross, PageAlong, Extent.SpanAcross());
+        Recording->TextRunCapitalised(Page.LeastAlong + 10.0f, Page.LeastAcross + 9.0f,
+                                      FaintInk, "Revision sequence", SmallText, 0.08f, true);
+
+        if (Declared.TrailingRuns == nullptr)
+            return;
+
+        const float MarkerAlong = Page.LeastAlong + 18.0f;
+        Recording->Ground(Spanning(MarkerAlong - 0.5f, Page.LeastAcross + 30.0f, 1.0f,
+                                   38.0f * static_cast<float>(Declared.TrailingCount)), HairInk,
+                          0.0f, CornerNone);
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < Declared.TrailingCount; ++Ordinal)
+        {
+            const float Across = Page.LeastAcross + 30.0f + 38.0f * static_cast<float>(Ordinal);
+            Recording->Medallion(MarkerAlong, Across + 16.0f, Ordinal == 0u ? 4.0f : 3.0f,
+                                 Ordinal == 0u ? AccentInk : FaintInk);
+
+            const PlaneExtent Card = Spanning(Page.LeastAlong + 31.0f, Across,
+                                              Page.SpanAlong() - 39.0f, 32.0f);
+            Recording->Ground(Card, Ordinal == 0u ? AccentSoftInk : PanelGround, 7.0f, CornerAll);
+            Recording->Edge(Card, Ordinal == 0u ? AccentInk : HairInk, 1.0f, 7.0f, CornerAll);
+            Recording->TextRunTruncated(Card.LeastAlong + 9.0f, CentredAcross(Card, ReferenceText),
+                                        Card.MostAlong - 9.0f, PrimaryInk,
+                                        Declared.TrailingRuns[Ordinal], ReferenceText, Ordinal == 0u);
+        }
+    };
+
+    RecordLeading(LeadingAlong);
+    RecordTrailing(TrailingAlong);
+    Recording->Release();
+
+    Verdict.Mark = (Travel > 0.0f && Travel < 1.0f) ? RedrawMark::Rerecord : RedrawMark::Quiet;
     return Verdict;
 }
 

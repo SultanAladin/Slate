@@ -51,9 +51,10 @@ struct SpringInterpolant
 /// tag   contract
 enum class EaseCurve : std::uint32_t
 {
-    Standard  = 0u,   // [-] - cubic-bezier(0.4, 0, 0.2, 1); every transition-colors and the accordion
-    Departing = 1u,   // [-] - cubic-bezier(0, 0, 0.58, 1); Framer's easeOut, the card arrival
-    CurveCount = 2u
+    Standard   = 0u,   // [-] - cubic-bezier(0.4, 0, 0.2, 1); colour and accordion transitions
+    Departing  = 1u,   // [-] - cubic-bezier(0, 0, 0.58, 1); card arrival
+    Carousel   = 2u,   // [-] - cubic-bezier(0.5, 0.05, 0.2, 1); inspector page travel
+    CurveCount = 3u
 };
 
 struct EasedInterpolant

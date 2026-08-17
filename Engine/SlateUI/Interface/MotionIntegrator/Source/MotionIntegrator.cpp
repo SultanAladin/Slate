@@ -49,9 +49,9 @@ constexpr double CurveSlope(double Parameter, double FirstControl, double Second
          + 3.0 * Parameter  * Parameter  * (1.0 - SecondControl);
 }
 
-// 📐 🔴 The two curves the source declares, and only those two. The browser's `cubic-bezier(a, b, c, d)`
-//    gives the abscissa its controls at a and c and the ordinate its controls at b and d, so each curve
-//    below carries four figures and the solve inverts the abscissa before reading the ordinate.
+// 📐 🔴 The three curves the sources declare, and only those three. The browser's
+//    `cubic-bezier(a, b, c, d)` gives the abscissa its controls at a and c and the ordinate its controls at b
+//    and d, so each curve below carries four figures and the solve inverts the abscissa before reading it.
 struct CurveControl
 {
     double  FirstAlong   = 0.0;
@@ -62,8 +62,9 @@ struct CurveControl
 
 constexpr CurveControl DeclaredCurves[static_cast<std::uint32_t>(EaseCurve::CurveCount)] =
 {
-    /* Standard  */ { 0.4, 0.0,  0.2, 1.0 },
-    /* Departing */ { 0.0, 0.0, 0.58, 1.0 }
+    /* Standard   */ { 0.4, 0.0,  0.2, 1.0 },
+    /* Departing  */ { 0.0, 0.0, 0.58, 1.0 },
+    /* Carousel   */ { 0.5, 0.05, 0.2, 1.0 }
 };
 
 // 📐 Newton from the fraction itself as the initial estimate. The abscissa is monotone and its slope is
@@ -77,7 +78,8 @@ double CurveOrdinate(double Fraction, EaseCurve Declared)
     if (Fraction >= 1.0) return 1.0;
 
     const std::uint32_t Ordinal = static_cast<std::uint32_t>(Declared);
-    const CurveControl& Shape   = DeclaredCurves[(Ordinal < 2u) ? Ordinal : 0u];
+    const CurveControl& Shape   = DeclaredCurves[(Ordinal < static_cast<std::uint32_t>(EaseCurve::CurveCount))
+                                               ? Ordinal : 0u];
 
     double Parameter = Fraction;
 

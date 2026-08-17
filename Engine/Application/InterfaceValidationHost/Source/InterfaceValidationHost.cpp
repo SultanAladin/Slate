@@ -390,6 +390,14 @@ int main()
 
     const char* TransformRuns[] = { "Position", "Rotation", "Scale" };
     const char* ShadingOptions[] = { "Smooth", "Faceted", "Flat" };
+    const char* PropertyCards[]  = { "Record · 2 fields", "Transform · 3 fields", "Appearance · 4 fields" };
+    const char* RevisionCards[]  = { "Set Parameter · 10:42", "Translate SOL_Boss · 10:37", "Created SOL_Boss · 10:31" };
+
+    CarouselDeclaration InspectorCarousel;
+    InspectorCarousel.LeadingRuns   = PropertyCards;
+    InspectorCarousel.LeadingCount  = 3u;
+    InspectorCarousel.TrailingRuns  = RevisionCards;
+    InspectorCarousel.TrailingCount = 3u;
 
     FoldDeclaration TransformFold;
     TransformFold.Caption   = "TRANSFORM";
@@ -654,9 +662,9 @@ int main()
 
         Panel.MagnitudeStops(Claimed.Size, RowAt(StopCard, StopRows, 0u), Size, Seated.SizeTaken);
 
-        // ⑩ The global-interface primitives — the reference switch, segmented selector, tabs and fold header.
-        const float ReferenceRows[5] = { 32.0f, 38.0f, 31.0f, 129.0f, 124.0f };
-        const CardArrangement ReferenceCard = AdvanceCard(ReferenceRows, 5u);
+        // ⑩ The global-interface primitives — switch, segmented selector, inspector carousel, fold and dropdown.
+        const float ReferenceRows[6] = { 32.0f, 38.0f, 31.0f, 154.0f, 129.0f, 124.0f };
+        const CardArrangement ReferenceCard = AdvanceCard(ReferenceRows, 6u);
 
         ReferenceControls.SwitchToggle(Claimed.InspectorDock, RowAt(ReferenceCard, ReferenceRows, 0u),
                                        InspectorDock, Seated.InspectorDocked);
@@ -664,9 +672,11 @@ int main()
                                           WorkspaceMode, Seated.WorkspaceTaken);
         ReferenceControls.TabStrip(Claimed.InspectorTabs, RowAt(ReferenceCard, ReferenceRows, 2u),
                                    InspectorTabs, Seated.InspectorTaken);
-        ReferenceControls.CollapsibleCard(Claimed.TransformFold, RowAt(ReferenceCard, ReferenceRows, 3u),
+        ReferenceControls.CarouselPages(Claimed.InspectorTabs, RowAt(ReferenceCard, ReferenceRows, 3u),
+                                        InspectorCarousel, Seated.InspectorTaken);
+        ReferenceControls.CollapsibleCard(Claimed.TransformFold, RowAt(ReferenceCard, ReferenceRows, 4u),
                                           TransformFold, Seated.TransformOpen);
-        ReferenceControls.DropdownCard(Claimed.ShadingMenu, RowAt(ReferenceCard, ReferenceRows, 4u),
+        ReferenceControls.DropdownCard(Claimed.ShadingMenu, RowAt(ReferenceCard, ReferenceRows, 5u),
                                        ShadingMenu, Seated.ShadingTaken);
 
         // ⑪ One linearised document outline. Every row is independently toggleable, so selections accumulate.

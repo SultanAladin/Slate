@@ -215,9 +215,11 @@ public:
     bool DeclareRoused(ControlIdentity Claimed, bool Roused, double Duration);
 
     /// 🧩 Declares whether one control is taken, and departs its fade when the condition changed.
+    /// in    Shape  [-]  the declared cubic; Standard keeps every existing control's transition
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool DeclareTaken(ControlIdentity Claimed, bool Taken, double Duration);
+    bool DeclareTaken(ControlIdentity Claimed, bool Taken, double Duration,
+                      EaseCurve Shape = EaseCurve::Standard);
 
     /// 🧩 How far through its rouse fade one control stands, zero quiet to one roused.
     /// out   Fraction  [-]  zero for a stale identity; a caller never has to test before interpolating

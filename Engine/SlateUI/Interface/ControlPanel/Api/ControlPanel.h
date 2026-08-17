@@ -44,6 +44,16 @@ struct TabDeclaration
     std::uint32_t       CaptionCount = 0u;        // [-] - captions presented
 };
 
+/// 🧩 The two inspector pages carried horizontally beneath a two-caption tab strip.
+/// tag   contract, nonallocating, nonthrowing
+struct CarouselDeclaration
+{
+    const char* const*  LeadingRuns   = nullptr;   // [-] - borrowed property summaries
+    std::uint32_t       LeadingCount  = 0u;        // [-] - rows on the leading page
+    const char* const*  TrailingRuns  = nullptr;   // [-] - borrowed revision summaries
+    std::uint32_t       TrailingCount = 0u;        // [-] - rows on the trailing page
+};
+
 /// 🧩 One folding card header and the count displayed at its trailing edge.
 /// tag   contract, nonallocating, nonthrowing
 struct FoldDeclaration
@@ -125,6 +135,13 @@ public:
     /// tag   api, nonthrowing
     ControlVerdict TabStrip(ControlIdentity Claimed, const PlaneExtent& Extent,
                             const TabDeclaration& Declared, std::uint32_t& TakenOrdinal);
+
+    /// 🧩 Slides the leading and trailing inspector pages beneath their tab strip.
+    /// note  The same identity is passed to TabStrip, so selection and page travel remain one interaction.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    ControlVerdict CarouselPages(ControlIdentity Claimed, const PlaneExtent& Extent,
+                                 const CarouselDeclaration& Declared, std::uint32_t TakenOrdinal);
 
     /// 🧩 Presents one folding card header and writes its expanded condition.
     /// cost  🚩
