@@ -36,7 +36,7 @@ Deliver<bool> WorkspacePanel::Record(const PlaneExtent& Extent, const char* Titl
     const WorkspaceInk&    Ink     = Appearance->Workspace;
 
     // ① The strip ground. 🔴 Only the GROUND. The tabs are the VENDOR'S, drawn as trapezoids by
-    //    `Patches/`'s PatchA from `Style.TabSlant` and recorded by `InterfaceExchange::RecordWorkspaceTabs`.
+    //    `Patches/`'s PatchA from `Style.TabSlant`, on the dock node each workspace is docked into.
     //    A strip drawn by hand here would not interlock, would not carry PatchB's z-order, and would not
     //    answer the vendor's hover and drag arbitration — it would merely look similar.
     const PlaneExtent Strip = { Extent.LeastAlong,

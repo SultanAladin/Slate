@@ -56,14 +56,19 @@ ImDrawList* Commands(void* Slot)
 //                                                        THE ADOPTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> RecordingSurface::Adopt()
+Deliver<bool> RecordingSurface::Adopt(ShellLayer Layer)
 {
     if (ImGui::GetCurrentContext() == nullptr)
         return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
 
-    // 📝 The background list rather than a window's. The shell covers the whole drawable extent and owns no
+    // 📝 A shell list rather than a window's. The shell covers the whole drawable extent and owns no
     //    window, so a window's list would clip the drawers to a region the source does not have.
-    CommandSlot = static_cast<void*>(ImGui::GetBackgroundDrawList());
+    // 🔴 The FOREGROUND list for `Above`. Every ImGui window — including a docked workspace filling the
+    //    whole body — records between the two, so drawers laid into the background were painted over by
+    //    the first workspace that docked full-width.
+    CommandSlot = (Layer == ShellLayer::Above)
+                ? static_cast<void*>(ImGui::GetForegroundDrawList())
+                : static_cast<void*>(ImGui::GetBackgroundDrawList());
 
     if (CommandSlot == nullptr)
         return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no command list is open" });

@@ -210,37 +210,43 @@ int main()
 
             Disregard(Workspace.Record(Whole, Workspaces.ActiveTitle()));
 
-            // 📝 The vendor's patched tab bar, seated on the strip the panel measured. The trapezoid is
-            //    PatchA's; nothing in Slate draws a tab.
-            // 🔴 Recorded even at a zero count, so the `+` stands on an empty strip. An artist who closed
-            //    the last workspace must have a way back, which an early return here would deny them.
+            // 🔴 The dock space FIRST, over the whole panel. Every workspace below docks into it, and the
+            //    vendor draws their tabs with PatchA's trapezoid — which is what makes a tab draggable out
+            //    into a floating window. A hand-recorded tab bar cannot be undocked: the vendor's docking
+            //    operates on WINDOWS, so a workspace has to be one.
+            Viewport.Seam().RecordDockSpace(Whole);
+
             const std::uint32_t OpenCount = Workspaces.OpenCount();
 
-            const char* Titles[WorkspaceIndex::WorkspaceCeiling] = {};
+            // 🔴 Titles are read through `Titled`, which points into the ledger's own storage. The delivered
+            //    form copies the entry, so a pointer taken from it dangles at the semicolon — every label
+            //    then decayed to the same garbage and ImGui reported four conflicting IDs.
+            std::uint32_t Withdrawing = OpenCount;
 
             for (std::uint32_t Ordinal = 0u; Ordinal < OpenCount; ++Ordinal)
-                Titles[Ordinal] = Workspaces.Standing(Ordinal).Resolve().Titled;
+            {
+                const char* Titled = Workspaces.Titled(Ordinal);
 
-            std::uint32_t Chosen    = OpenCount;
-            std::uint32_t Closed    = OpenCount;
-            bool          Enrolling = false;
+                if (Titled == nullptr)
+                    continue;
 
-            Viewport.Seam().RecordWorkspaceTabs(Workspace.Strip(), Titles, OpenCount,
-                                                Workspaces.ActiveOrdinal(), Chosen, Closed, Enrolling);
+                bool Standing = true;
 
-            // 🔴 Acted on AFTER the strip is recorded, never inside it. Enrolling or withdrawing mid-sweep
-            //    edits the set the vendor's tab bar is walking, which invalidates the position it holds.
-            if (Chosen < OpenCount)
-                Disregard(Workspaces.Present(Chosen));
+                Viewport.Seam().RecordWorkspaceWindow(Titled, !Workspaces.Seated(Ordinal), Standing);
+                Workspaces.Seat(Ordinal);
 
-            if (Closed < OpenCount)
-                Disregard(Workspaces.Withdraw(Closed));
+                // ⚠️ Recorded, never acted on inside the sweep. Withdrawing here edits the set being walked.
+                if (!Standing)
+                    Withdrawing = Ordinal;
+            }
 
-            if (Enrolling)
+            if (Withdrawing < OpenCount)
+                Disregard(Workspaces.Withdraw(Withdrawing));
+
+            // 📝 The `+`, recorded even at a zero count so an artist who closed the last workspace has a way
+            //    back. Seated on the strip beside the dock node's own tab bar.
+            if (Viewport.Seam().RecordWorkspaceAddition(Workspace.Strip(), OpenCount))
                 Disregard(Workspaces.Enrol(DefaultSubject));
-
-            // 📝 The dock space over the body, so a panel dragged loose has somewhere to dock to.
-            Viewport.Seam().RecordDockSpace(Workspace.Body());
 
             // 📝 The drawers last, so they sit ABOVE the workspace as the sheet lays them.
             Viewport.RecordDrawers();

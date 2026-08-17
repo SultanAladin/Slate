@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                            DELIVERYCONTRACT.H
 //============================================================================================================================================
 // 🧩 Absence that carries a reason, and a convergent result that reports which criterion terminated it.
@@ -151,8 +151,9 @@ struct [[nodiscard]] ContentDelivery
 /// cost  ✔️
 /// tag   contract, constexpr, nonallocating, nonthrowing
 template <typename Content>
-constexpr void Disregard(const ContentDelivery<Content>&)
+constexpr void Disregard(const ContentDelivery<Content>& Delivered)
 {
+    (void)Delivered;
 }
 
 /// 🧩 Public spelling for content delivered or refused across one fallible call.

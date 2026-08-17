@@ -126,7 +126,24 @@ public:
     /// post  Pointer and Display report this tick; every recording method is valid until Seal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Adopt();
+    /// 🧩 Which of the two shell layers a tick's recording is laid into.
+    /// note  🔴 `Beneath` is behind every ImGui window; `Above` is in front of all of them. The workspace
+    ///        ground belongs beneath, so a docked panel sits on it; the drawers belong above, because
+    ///        `DockWorkspace.html` overlays them on everything and a window docked full-width would
+    ///        otherwise bury the control centre and the asset browser.
+    /// tag   contract
+    enum class ShellLayer : std::uint32_t
+    {
+        Beneath   = 0u,   // [-] - behind every window; the workspace ground
+        Above     = 1u,   // [-] - in front of every window; the drawers
+        LayerCount = 2u   // [-] - the closed count, never a layer
+    };
+
+    /// 🧩 Opens a tick's recording against one shell layer.
+    /// in    Layer    [-]  which side of the window stack this tick's content is laid on
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    Deliver<bool> Adopt(ShellLayer Layer = ShellLayer::Beneath);
 
     /// 🧩 What the pointer did this tick.
     /// cost  ✔️

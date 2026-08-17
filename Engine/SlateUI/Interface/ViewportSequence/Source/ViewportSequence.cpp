@@ -92,8 +92,19 @@ InterfaceExchange& ViewportSequence::Seam()
 
 void ViewportSequence::RecordDrawers()
 {
-    if (DrawersConstructed)
-        DrawersOwned.Record(SurfaceOwned);
+    if (!DrawersConstructed)
+        return;
+
+    // 🔴 The drawers are laid ABOVE every window. `DockWorkspace.html` overlays the control centre and the
+    //    asset browser on the whole shell, and a workspace docked full-width would otherwise bury both —
+    //    every ImGui window records between the background and foreground lists.
+    Disregard(SurfaceOwned.Adopt(RecordingSurface::ShellLayer::Above));
+
+    DrawersOwned.Record(SurfaceOwned);
+
+    // 📝 Returned to the ground layer, so anything recorded after the drawers this tick lands beneath the
+    //    windows again rather than inheriting the overlay.
+    Disregard(SurfaceOwned.Adopt(RecordingSurface::ShellLayer::Beneath));
 }
 
 void ViewportSequence::DrawerPanels()

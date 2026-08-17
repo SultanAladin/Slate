@@ -99,7 +99,7 @@ index f93f37ca6..f73947243 100644
      // Fallback in case no TabItem have been submitted
      if (tab_bar->WantLayout)
          TabBarLayout(tab_bar);
-@@ -10192,7 +10215,11 @@ static void ImGui::TabBarLayout(ImGuiTabBar* tab_bar)
+@@ -10192,7 +10215,16 @@
              ImGuiTabItem* tab = &tab_bar->Tabs[section_tab_index + tab_n];
              tab->Offset = tab_offset;
              tab->NameOffset = -1;
@@ -108,7 +108,12 @@ index f93f37ca6..f73947243 100644
 +            //   leading edge tucks under its predecessor's trailing edge. Subtracting the overlap from the
 +            //   advance is the whole of it; every width, every hit rectangle and all the scroll arithmetic
 +            //   downstream continue to read tab->Width, which is unchanged.
-+            tab_offset += tab->Width + (tab_n < section->TabCount - 1 ? (g.Style.ItemInnerSpacing.x - g.Style.TabOverlap) : 0.0f);
++            //   ⚠️ The sheet states margin-right:-24px OUTRIGHT, not net of a spacing. Subtracting the
++            //   overlap from ItemInnerSpacing left a 20 px advance reduction against a 28 px slant pair,
++            //   too little for the slants to interlock -- it read as a plain gap between rectangles.
++            tab_offset += tab->Width + (tab_n < section->TabCount - 1
++                                        ? (g.Style.TabOverlap > 0.0f ? -g.Style.TabOverlap : g.Style.ItemInnerSpacing.x)
++                                        : 0.0f);
          }
          tab_bar->WidthAllTabs += ImMax(section->Width + section->Spacing, 0.0f);
          tab_offset += section->Spacing;

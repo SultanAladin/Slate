@@ -6,6 +6,12 @@
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
 
 #include "imgui.h"
+
+// 📝 🔴 The internal header, for `ImGuiWindow::DockNode` alone. `DockNode` and `SelectedTabId` are the only
+//    way to ask whether a DOCKED workspace is the one its node is showing, and the public header exposes
+//    no equivalent. Included here and nowhere else — `00` §2.2's one-copy rule is about the library, and
+//    this translation unit is already the single place ImGui is spelled.
+#include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
 
@@ -306,94 +312,67 @@ Deliver<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measu
     Seated.Colors[ImGuiCol_TabDimmedSelected] = Vendor(Tinted.TabTaken);
     Seated.Colors[ImGuiCol_Text]              = Vendor(Tinted.TabInkTaken);
 
+    // 🔴 The dock node's own chrome, silenced. A docked workspace's tabs are drawn by the node, and the
+    //    vendor frames them with a title bar, an overline above the selected tab and a bar border — none
+    //    of which `DockWorkspace.html` has. Left seated, they read as a blue band across the strip.
+    Seated.Colors[ImGuiCol_TitleBg]                   = Vendor(Tinted.StripGround);
+    Seated.Colors[ImGuiCol_TitleBgActive]             = Vendor(Tinted.StripGround);
+    Seated.Colors[ImGuiCol_WindowBg]                  = Vendor(Tinted.BodyGround);
+    Seated.Colors[ImGuiCol_DockingEmptyBg]            = Vendor(Tinted.BodyGround);
+    Seated.Colors[ImGuiCol_TabSelectedOverline]       = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    Seated.Colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    Seated.TabBarBorderSize = 0.0f;
+    Seated.WindowRounding   = 0.0f;
+
+    // 📝 The sheet's min-width and max-width. `TabMinWidthShrink` is held at the same figure so a crowded
+    //    strip scrolls rather than shrinking its tabs below the width the slant was measured against.
+    Seated.TabMinWidthBase   = Measure.TabAlongFloor;
+    Seated.TabMinWidthShrink = Measure.TabAlongFloor;
+
     return Deliver<bool>::Deliver(true);
 }
 
-void InterfaceExchange::RecordWorkspaceTabs(const PlaneExtent&  Extent,
-                                            const char* const*  Titles,
-                                            std::uint32_t       Count,
-                                            std::uint32_t       Active,
-                                            std::uint32_t&      Chosen,
-                                            std::uint32_t&      Closed,
-                                            bool&               Enrolling)
+bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent& Extent, std::uint32_t OpenCount)
 {
-    // 📝 Both outputs are settled before any early return. `Count` means "none", which no valid
-    //    ordinal equals.
-    Chosen    = Count;
-    Closed    = Count;
-    Enrolling = false;
-
-    // 🔴 A zero count is NOT an early return. The `+` must be recorded on an empty strip too, or an artist
-    //    who closed the last workspace is left in a state with no way out.
     if (ContextSlot == nullptr || !TickOpen)
-        return;
+        return false;
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
-    // 🔴 A bare window seated exactly on the strip the panel measured. The tab bar has to live in a
-    //    window: the vendor owns tab layout, hover and drag arbitration, and a bar recorded into a plain
-    //    draw list gets none of it.
-    ImGui::SetNextWindowPos(ImVec2(Extent.LeastAlong, Extent.LeastAcross));
-    ImGui::SetNextWindowSize(ImVec2(Extent.SpanAlong(), Extent.SpanAcross()));
+    ImGuiStyle& Seated = ImGui::GetStyle();
+
+    // \U0001f4dd Seated past the dock node's own tabs. Each is TabMinWidthBase wide and advances by that
+    //    less the overlap, which is the same arithmetic PatchB performs in TabBarLayout.
+    const float Advance = (Seated.TabMinWidthBase > 0.0f ? Seated.TabMinWidthBase : 170.0f)
+                        - Seated.TabOverlap;
+
+    const float Along = Extent.LeastAlong + static_cast<float>(OpenCount) * Advance + Seated.TabOverlap;
+
+    ImGui::SetNextWindowPos(ImVec2(Along, Extent.LeastAcross + Seated.TabStripPadTop));
+    ImGui::SetNextWindowSize(ImVec2(34.0f, Extent.SpanAcross() - Seated.TabStripPadTop));
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-    const ImGuiWindowFlags Bare = ImGuiWindowFlags_NoTitleBar
-                                | ImGuiWindowFlags_NoResize
-                                | ImGuiWindowFlags_NoMove
-                                | ImGuiWindowFlags_NoScrollbar
-                                | ImGuiWindowFlags_NoScrollWithMouse
-                                | ImGuiWindowFlags_NoSavedSettings
-                                | ImGuiWindowFlags_NoBringToFrontOnFocus
-                                | ImGuiWindowFlags_NoBackground;
+    bool Pressed = false;
 
-    if (ImGui::Begin("SlateWorkspaceStrip", nullptr, Bare))
+    if (ImGui::Begin("SlateWorkspaceAdd", nullptr, ImGuiWindowFlags_NoTitleBar
+                                                 | ImGuiWindowFlags_NoResize
+                                                 | ImGuiWindowFlags_NoMove
+                                                 | ImGuiWindowFlags_NoScrollbar
+                                                 | ImGuiWindowFlags_NoSavedSettings
+                                                 | ImGuiWindowFlags_NoDocking
+                                                 | ImGuiWindowFlags_NoBackground))
     {
-        if (ImGui::BeginTabBar("SlateWorkspaceTabs", ImGuiTabBarFlags_Reorderable
-                                                   | ImGuiTabBarFlags_FittingPolicyScroll))
-        {
-            for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
-            {
-                if (Titles[Ordinal] == nullptr)
-                    continue;
-
-                // 📝 The vendor is TOLD which tab is presented rather than left to remember. The ledger
-                //    owns that decision, and a bar keeping its own would disagree the first time anything
-                //    but a click changed the active workspace.
-                ImGuiTabItemFlags Seated = ImGuiTabItemFlags_None;
-
-                if (Ordinal == Active)
-                    Seated |= ImGuiTabItemFlags_SetSelected;
-
-                bool Standing = true;
-
-                if (ImGui::BeginTabItem(Titles[Ordinal], &Standing, Seated))
-                {
-                    Chosen = Ordinal;
-                    ImGui::EndTabItem();
-                }
-
-                // ⚠️ Reported, never acted on here. Withdrawing inside this sweep would edit the set the
-                //    tab bar is walking; the caller withdraws it once the strip is sealed.
-                if (!Standing)
-                    Closed = Ordinal;
-            }
-
-            // 📝 The sheet's `addBtn`, recorded as a trailing tab-bar button so the vendor lays it after the
-            //    last tab and it scrolls with the strip. `TabItemButton` is not a tab: it carries no
-            //    selection and `ImGuiTabItemFlags_Button` keeps PatchA's slant off it, which is what makes
-            //    it read as a control rather than as an empty workspace.
-            if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
-                Enrolling = true;
-
-            ImGui::EndTabBar();
-        }
+        Pressed = ImGui::Button("+", ImVec2(-1.0f, -1.0f));
     }
 
     ImGui::End();
 
     ImGui::PopStyleVar(2);
+
+    return Pressed;
 }
 
 void InterfaceExchange::RecordDockSpace(const PlaneExtent& Extent)
@@ -423,13 +402,54 @@ void InterfaceExchange::RecordDockSpace(const PlaneExtent& Extent)
     {
         // 🔴 `PassthruCentralNode` so the workspace ground shows through where nothing is docked. Without
         //    it the vendor fills the whole node with its own colour and the sheet's OLED body is lost.
-        ImGui::DockSpace(ImGui::GetID("SlateDockSpace"), ImVec2(0.0f, 0.0f),
-                         ImGuiDockNodeFlags_PassthruCentralNode);
+        // 🔴 `PassthruCentralNode` so the workspace ground shows through where nothing is docked; the two
+        //    button flags remove the node's own close widget and menu triangle, which the sheet has not.
+        // 📝 The two button flags live in `ImGuiDockNodeFlagsPrivate_`, so the set is composed as the
+        //    integral type the parameter takes rather than by mixing two enumerations, which C++20
+        //    deprecates and `-Wdeprecated-enum-enum-conversion` reports.
+        const ImGuiDockNodeFlags NodeFlags =
+              static_cast<ImGuiDockNodeFlags>(ImGuiDockNodeFlags_PassthruCentralNode)
+            | static_cast<ImGuiDockNodeFlags>(ImGuiDockNodeFlags_NoCloseButton)
+            | static_cast<ImGuiDockNodeFlags>(ImGuiDockNodeFlags_NoWindowMenuButton);
+
+        ImGui::DockSpace(ImGui::GetID("SlateDockSpace"), ImVec2(0.0f, 0.0f), NodeFlags);
     }
 
     ImGui::End();
 
     ImGui::PopStyleVar(2);
+}
+
+void InterfaceExchange::RecordWorkspaceWindow(const char* Titled, bool Docked, bool& Standing)
+{
+    if (ContextSlot == nullptr || !TickOpen || Titled == nullptr)
+        return;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    if (Docked)
+        ImGui::SetNextWindowDockID(ImGui::GetID("SlateDockSpace"), ImGuiCond_Always);
+
+    if (ImGui::Begin(Titled, &Standing))
+    {
+    }
+    ImGui::End();
+}
+
+bool InterfaceExchange::WorkspacePresented(const char* Titled) const
+{
+    if (ContextSlot == nullptr || !TickOpen || Titled == nullptr)
+        return false;
+
+    ImGuiContext* Context = static_cast<ImGuiContext*>(ContextSlot);
+    ImGuiWindow*  Window  = ImGui::FindWindowByName(Titled);
+    if (Window == nullptr)
+        return false;
+
+    if (Window->DockNode != nullptr)
+        return Window->DockNode->SelectedTabId == Window->TabId;
+
+    return (Context->NavWindow == Window);
 }
 
 Deliver<bool> InterfaceExchange::Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount)

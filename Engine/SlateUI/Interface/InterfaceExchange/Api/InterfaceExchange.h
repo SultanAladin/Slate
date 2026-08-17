@@ -123,30 +123,38 @@ public:
     ///        and the trapezoidal tabs reverted to stock rectangles with nothing reporting it.
     Deliver<bool> SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceInk& Tinted);
 
-    /// 🧩 Records the workspace tab strip with the vendor's patched tab bar, and reports what the artist did.
-    /// in    Titles   [-]  one static run per open workspace, in presentation order
-    /// out   Chosen   [-]  the ordinal selected this tick, or `Count` when none
-    /// out   Closed   [-]  the ordinal closed this tick, or `Count` when none
-    /// note  🔴 The TRAPEZOID is the vendor's, from PatchA and `Style.TabSlant`. Nothing here draws a tab:
-    ///        a hand-drawn strip would not interlock, would not carry PatchB's z-order, and would not
-    ///        answer the vendor's own hover and drag arbitration.
-    /// note  ⚠️ A closure is REPORTED and never acted on here. Withdrawing inside this sweep would edit the
-    ///        set the tab bar is walking; the caller withdraws it after the strip is sealed.
-    /// cost  🚩
-    /// tag   api, nonthrowing
-    /// out   Enrolling [-]  true when the artist asked for a new workspace, by the strip's `+`
-    /// note  🔴 The `+` is recorded even when NO workspace is open. An empty strip with no way to add one
-    ///        is a state the artist cannot leave, which `DockWorkspace.html` never presents.
-    void RecordWorkspaceTabs(const PlaneExtent& Extent, const char* const* Titles, std::uint32_t Count,
-                             std::uint32_t Active, std::uint32_t& Chosen, std::uint32_t& Closed,
-                             bool& Enrolling);
-
     /// 🧩 Opens the dock space the workspace body is docked into, filling the declared extent.
     /// note  🔴 One dock space per host, over the body alone. `DockingEnable` makes panels dockable; a dock
     ///        space is what gives them somewhere to dock TO, and without one a dragged panel floats free.
     /// cost  🚩
     /// tag   api, nonthrowing
     void RecordDockSpace(const PlaneExtent& Extent);
+
+    /// 🧩 Records one workspace as a dockable window inside the dock space.
+    /// in    Titled    [-]  static text; the window identity AND the tab label
+    /// in    Docked    [-]  true on the first tick, to seat it into the dock space
+    /// out   Standing  [-]  false when the artist closed it
+    /// note  🔴 THIS is what makes a tab draggable out into a floating window. A tab bar recorded by hand
+    ///        cannot be undocked: the vendor's docking works on WINDOWS, and a workspace has to BE one for
+    ///        `DockNode` to tear it off, float it, and let it be dropped back.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    void RecordWorkspaceWindow(const char* Titled, bool Docked, bool& Standing);
+
+    /// 🧩 Whether a dockable workspace window is the one the artist is looking at.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool WorkspacePresented(const char* Titled) const;
+
+    /// 🧩 Records the strip's `+`, and reports whether the artist pressed it.
+    /// in    Extent    [px]  the strip; the button is seated at its trailing end
+    /// in    OpenCount [-]   how many workspaces stand, so the button clears the dock node's own tabs
+    /// out   Pressed   [-]   true on the tick the artist pressed it
+    /// note  🔴 Recorded even at a zero count. An empty shell with no way to add a workspace is a state the
+    ///        artist cannot leave, and `DockWorkspace.html` never presents one.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    bool RecordWorkspaceAddition(const PlaneExtent& Extent, std::uint32_t OpenCount);
 
     /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface

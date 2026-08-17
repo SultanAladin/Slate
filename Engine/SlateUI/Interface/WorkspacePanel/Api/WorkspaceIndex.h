@@ -27,6 +27,7 @@ struct WorkspaceEntry
     WorkspaceSubject  Subject      = WorkspaceSubject::Vacant;   // [-] - what it is for
     std::uint32_t     SubjectOrdinal = 1u;                       // [-] - the nth of its subject; 1-based, as titled
     char              Titled[48]   = {};                         // [-] - composed at enrolment; never per tick
+    bool              DockSeated   = false;                      // [-] - seated into the dock space once
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -77,6 +78,28 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     std::uint32_t OpenCount() const;
+
+    /// 🧩 The title of the workspace at one ordinal, as storage the ledger owns.
+    /// out   Titled  [-]  nullptr when the ordinal names no workspace
+    /// note  🔴 This exists because `Standing` delivers BY VALUE. Writing
+    ///        `Standing(n).Resolve().Titled` binds a pointer into a temporary that is destroyed at the
+    ///        semicolon, so every title handed to the tab bar was a dangling read — which ImGui reported
+    ///        as four visible items with conflicting IDs, the labels having decayed to the same garbage.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    const char* Titled(std::uint32_t Ordinal) const;
+
+    /// 🧩 Whether the workspace at one ordinal has been seated into the dock space already.
+    /// note  🔴 A workspace is docked on its FIRST tick only. Forcing the dock every tick would drag a
+    ///        workspace the artist tore off straight back in, one frame after they moved it.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool Seated(std::uint32_t Ordinal) const;
+
+    /// 🧩 Records that the workspace at one ordinal has been seated.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Seat(std::uint32_t Ordinal);
 
     /// 🧩 The workspace at one ordinal.
     /// out   Deliver  [-]  refuses with IdentityStale when the ordinal names no workspace

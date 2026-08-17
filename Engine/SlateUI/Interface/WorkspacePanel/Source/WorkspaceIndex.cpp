@@ -126,6 +126,27 @@ Deliver<WorkspaceEntry> WorkspaceIndex::Standing(std::uint32_t Ordinal) const
     return Deliver<WorkspaceEntry>::Deliver(Open[Ordinal]);
 }
 
+bool WorkspaceIndex::Seated(std::uint32_t Ordinal) const
+{
+    return (Ordinal < OpenOccupancy) && Open[Ordinal].DockSeated;
+}
+
+void WorkspaceIndex::Seat(std::uint32_t Ordinal)
+{
+    if (Ordinal < OpenOccupancy)
+        Open[Ordinal].DockSeated = true;
+}
+
+const char* WorkspaceIndex::Titled(std::uint32_t Ordinal) const
+{
+    if (Ordinal >= OpenOccupancy)
+        return nullptr;
+
+    // 📝 Points into the ledger's own storage, which outlives the tick. The delivered form cannot: it
+    //    copies the entry, and a pointer taken from that copy dies with the temporary.
+    return Open[Ordinal].Titled;
+}
+
 std::uint32_t WorkspaceIndex::ActiveOrdinal() const
 {
     return Active;
