@@ -542,7 +542,7 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
     #    the same stem, including the six vendored ImGui translations SlateUI compiles.
     # 📝 /Fd is one database for the whole object folder. /MP forbids a per-translation database, and two
     #    invocations sharing one corrupt it — which is why the batch is single-invocation.
-    # 📝 /sourceDependencies:directory writes one record per translation, named after the source stem, so
+    # 📝 /sourceDependencies writes one record per translation, named after the source stem, so
     #    the per-translation-unit precision the freshness predicate depends on survives batching.
     $DependencyRoot = Join-Path $ObjectRoot 'Dependency'
 
@@ -551,19 +551,12 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
         New-Item -ItemType Directory -Force -Path $DependencyRoot | Out-Null
     }
 
-    # 🔴 The directory is JOINED to the flag, not passed after it. cl.exe takes `/sourceDependencies` and
-    #    its operand as one argument; separated, the path arrives as a positional operand and the compiler
-    #    reports D9024 "unrecognized source file type" and D9027 "source file ignored", the flag never takes
-    #    effect, and no record is written. The predicate then finds no record for any object, calls every
-    #    one of them stale, and every build retranslates the whole engine — the build log says
-    #    "translating 18 of 18" on a tree where nothing changed.
-    # 📝 A trailing separator is required: cl.exe distinguishes a directory operand from a file operand by
-    #    the terminating backslash, and without it the first translation writes a FILE of that name and
-    #    every later one in the batch overwrites it.
+    # 📝 /sourceDependencies receives the destination directory for per-translation JSON dependency records.
+    #    A trailing backslash distinguishes a directory operand from a file operand.
     $Arguments = $Flags + $IncludePath + @(
-        "/Fo$ObjectRoot\\"
+        ('/Fo' + $ObjectRoot + '\')
         "/Fd$(Join-Path $ObjectRoot "$UnitName.pdb")"
-        "/sourceDependencies:directory$DependencyRoot\\"
+        ('/sourceDependencies' + $DependencyRoot + '\')
     ) + $Stale
 
     # 🔴 The argument list is handed over in a response file. Thirty-five absolute paths plus the include
@@ -577,7 +570,7 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
     $Diagnostics = & cl.exe '/nologo' "@$ResponsePath"
     $Refused     = $LASTEXITCODE -ne 0
 
-    $Notable = $Diagnostics | Where-Object { $_ -match ': (warning|error) ' }
+    $Notable = $Diagnostics | Where-Object { $_ -match ': (warning|error) ' -or $_ -match 'Command line (warning|error)' -or $_ -match 'fatal error' }
 
     if ($Notable)
     {
@@ -586,12 +579,16 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
 
     if ($Refused)
     {
+        if (-not $Notable -and $Diagnostics)
+        {
+            $Diagnostics | ForEach-Object { Write-Host "    $_" }
+        }
         Write-Refused "$UnitName — cl.exe refused the translation batch"
         throw "$UnitName — cl.exe refused the translation batch"
     }
 
     # 📝 The records land beside the objects under the name the predicate looks for. Moved rather than
-    #    written in place because /sourceDependencies:directory names each record for its source stem and
+    #    written in place because /sourceDependencies names each record for its source stem (or filename) and
     #    the predicate reads "<stem>.deps.json" next to the object.
     # 🔴 A record that never arrived is REPORTED. This loop previously skipped a missing record in silence,
     #    which is exactly how a malformed flag went unnoticed: no record meant every object was judged stale,
@@ -601,13 +598,20 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
 
     foreach ($Source in $Stale)
     {
-        $Stem    = [System.IO.Path]::GetFileNameWithoutExtension($Source)
-        $Written = Join-Path $DependencyRoot "$Stem.json"
-        $Wanted  = Join-Path $ObjectRoot     "$Stem.deps.json"
+        $Stem              = [System.IO.Path]::GetFileNameWithoutExtension($Source)
+        $FileName          = [System.IO.Path]::GetFileName($Source)
+        $WrittenCandidateA = Join-Path $DependencyRoot "$FileName.json"
+        $WrittenCandidateB = Join-Path $DependencyRoot "$Stem.json"
+        $Wanted            = Join-Path $ObjectRoot     "$Stem.deps.json"
 
-        if (Test-Path $Written)
+        if (Test-Path $WrittenCandidateA)
         {
-            Move-Item $Written $Wanted -Force
+            Move-Item $WrittenCandidateA $Wanted -Force
+            ++$Recorded
+        }
+        elseif (Test-Path $WrittenCandidateB)
+        {
+            Move-Item $WrittenCandidateB $Wanted -Force
             ++$Recorded
         }
     }
