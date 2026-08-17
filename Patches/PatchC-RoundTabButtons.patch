@@ -44,7 +44,7 @@ index 0a6b6aa86..28cd8e637 100644
      IMGUI_API void          TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabItemFlags flags, ImU32 col);
      IMGUI_API void          TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb, ImGuiTabItemFlags flags, ImVec2 frame_padding, const char* label, ImGuiID tab_id, ImGuiID close_button_id, bool is_contents_visible, bool* out_just_closed, bool* out_text_clipped);
 diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
-index f5b3e4b5d..0bf51d6c6 100644
+index f5b3e4b5d..d7de51334 100644
 --- a/imgui_widgets.cpp
 +++ b/imgui_widgets.cpp
 @@ -926,8 +926,17 @@ bool ImGui::CloseButton(ImGuiID id, const ImVec2& pos)
@@ -122,7 +122,7 @@ index f5b3e4b5d..0bf51d6c6 100644
      tab->RequestedWidth = -1.0f;
      if (g.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasWidth)
          size.x = tab->RequestedWidth = g.NextItemData.Width;
-@@ -11071,10 +11104,65 @@ void    ImGui::SetTabItemClosed(const char* label)
+@@ -11071,10 +11104,66 @@ void    ImGui::SetTabItemClosed(const char* label)
      }
  }
  
@@ -157,11 +157,12 @@ index f5b3e4b5d..0bf51d6c6 100644
 +               : (g.Style.TabHeight > 0.0f) ? g.Style.TabHeight
 +               : (g.FontSize + g.Style.FramePadding.y * 2.0f);
 +
-+    // \U0001f4dd Two thirds of the strip, so a quarter of the height remains as inset above and below and the
-+    //   disc is contained by the header whatever the bar's height turns out to be.
-+    m.Diameter = ImMax(1.0f, m.Across * 0.66f);
++    // \U0001f4dd Four fifths of the strip. The disc is centred between the header's own upper and lower edges
++    //   and a tenth of the height remains as inset on each side, so it reads as seated IN the header
++    //   rather than as a mark floating in it.
++    m.Diameter = ImMax(1.0f, m.Across * 0.80f);
 +
-+    const float pad = m.Across * 0.20f;
++    const float pad = m.Across * 0.55f;
 +
 +    // \U0001f534 The lead clears the PRECEDING tab's slanted trailing edge and nothing more. PatchB pulls every
 +    //   advance back by TabOverlap, so the button's own origin sits inside the tab before it; at the
@@ -189,7 +190,7 @@ index f5b3e4b5d..0bf51d6c6 100644
      ImVec2 size = ImVec2(label_size.x + g.Style.FramePadding.x, label_size.y + g.Style.FramePadding.y * 2.0f);
      if (has_close_button_or_unsaved_marker)
          size.x += g.Style.FramePadding.x + (g.Style.ItemInnerSpacing.x + g.FontSize); // We use Y intentionally to fit the close button circle.
-@@ -11149,6 +11237,23 @@ void ImGui::TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabI
+@@ -11149,6 +11238,23 @@ void ImGui::TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabI
  
      // [SLATE PATCH A] A button is a button and keeps its rectangle; only a genuine tab is slanted.
      const float slant = (flags & ImGuiTabItemFlags_Button) ? 0.0f : ImMin(g.Style.TabSlant, width * 0.16f);
@@ -213,7 +214,7 @@ index f5b3e4b5d..0bf51d6c6 100644
      if (slant > 0.0f)
      {
          SlateTabOutline(draw_list, bb, slant, rounding, y1, y2, 0.0f);
-@@ -11196,8 +11301,14 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb,
+@@ -11196,8 +11302,14 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb,
          g.Style.Alpha *= 0.7f;
  #endif
  
@@ -229,7 +230,7 @@ index f5b3e4b5d..0bf51d6c6 100644
  
      // Return clipped state ignoring the close button
      if (out_text_clipped)
-@@ -11207,7 +11318,9 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb,
+@@ -11207,7 +11319,9 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb,
      }
  
      const float button_sz = g.FontSize;
@@ -240,7 +241,7 @@ index f5b3e4b5d..0bf51d6c6 100644
  
      // Close Button & Unsaved Marker
      // We are relying on a subtle and confusing distinction between 'hovered' and 'g.HoveredId' which happens because we are using ImGuiButtonFlags_AllowOverlapMode + SetItemAllowOverlap()
-@@ -11263,7 +11376,32 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb,
+@@ -11263,7 +11377,32 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb,
          }
      }
      LogSetNextTextDecoration("/", "\\");

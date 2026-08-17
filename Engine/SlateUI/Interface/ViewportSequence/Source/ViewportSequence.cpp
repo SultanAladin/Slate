@@ -98,13 +98,16 @@ void ViewportSequence::RecordDrawers()
     // 🔴 The drawers are laid ABOVE every window. `DockWorkspace.html` overlays the control centre and the
     //    asset browser on the whole shell, and a workspace docked full-width would otherwise bury both —
     //    every ImGui window records between the background and foreground lists.
-    Disregard(SurfaceOwned.Adopt(RecordingSurface::ShellLayer::Above));
+    // 🔴 RELAYERED, never re-adopted. `Adopt` re-samples the pointer, clears the confine depth and stamps
+    //    a fresh tick ordinal — doing that twice a tick merely to raise the drawers sampled the pointer
+    //    mid-tick, so a drag reported one travel to the panels and another to the drawers.
+    Disregard(SurfaceOwned.Relayer(RecordingSurface::ShellLayer::Above));
 
     DrawersOwned.Record(SurfaceOwned);
 
     // 📝 Returned to the ground layer, so anything recorded after the drawers this tick lands beneath the
     //    windows again rather than inheriting the overlay.
-    Disregard(SurfaceOwned.Adopt(RecordingSurface::ShellLayer::Beneath));
+    Disregard(SurfaceOwned.Relayer(RecordingSurface::ShellLayer::Beneath));
 }
 
 void ViewportSequence::DrawerPanels()

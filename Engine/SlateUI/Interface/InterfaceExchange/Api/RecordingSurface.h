@@ -145,6 +145,17 @@ public:
     /// tag   api, nonallocating, nonthrowing
     Deliver<bool> Adopt(ShellLayer Layer = ShellLayer::Beneath);
 
+    /// 🧩 Moves the standing tick's recordings to the other shell layer, without re-adopting it.
+    /// in    Layer    [-]  which side of the window stack subsequent recordings land on
+    /// note  🔴 A layer change is NOT an adoption. `Adopt` re-samples the pointer, resets the confine
+    ///        depth and stamps a new tick ordinal — performing all three merely to move the drawers above
+    ///        the windows sampled the pointer twice within one tick and discarded any confine the caller
+    ///        was holding. This changes the destination list and nothing else.
+    /// note  ⚠️ Refuses when no tick stands adopted, so a layer change cannot open one by accident.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    Deliver<bool> Relayer(ShellLayer Layer);
+
     /// 🧩 What the pointer did this tick.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing

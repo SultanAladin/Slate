@@ -106,6 +106,28 @@ Deliver<bool> RecordingSurface::Adopt(ShellLayer Layer)
     return Deliver<bool>::Deliver(true);
 }
 
+Deliver<bool> RecordingSurface::Relayer(ShellLayer Layer)
+{
+    // 🔴 Refuses rather than adopting. A layer change on an unadopted surface would otherwise open a tick
+    //    nothing had asked for, and the caller would record into a list no seal is going to assemble.
+    if (CommandSlot == nullptr)
+        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no tick stands adopted" });
+
+    if (ImGui::GetCurrentContext() == nullptr)
+        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
+
+    // 📝 The destination list and nothing else. The pointer, the display condition, the confine depth and
+    //    the tick ordinal all belong to the adoption and are left exactly as the tick found them.
+    CommandSlot = (Layer == ShellLayer::Above)
+                ? static_cast<void*>(ImGui::GetForegroundDrawList())
+                : static_cast<void*>(ImGui::GetBackgroundDrawList());
+
+    if (CommandSlot == nullptr)
+        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no command list is open" });
+
+    return Deliver<bool>::Deliver(true);
+}
+
 void RecordingSurface::Retire()
 {
     // 📝 The command list belongs to the vendor and is assembled by the seal; only this surface's claim on
