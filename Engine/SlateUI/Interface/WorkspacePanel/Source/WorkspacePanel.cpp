@@ -58,48 +58,29 @@ Deliver<bool> WorkspacePanel::Record(const PlaneExtent& Extent, const char* Titl
         return Deliver<bool>::Deliver(true);
     }
 
-    // ① The strip ground. 🔴 Only the GROUND. The tabs are the VENDOR'S, drawn as trapezoids by
-    //    `Patches/`'s PatchA from `Style.TabSlant`, on the dock node each workspace is docked into.
-    //    A strip drawn by hand here would not interlock, would not carry PatchB's z-order, and would not
-    //    answer the vendor's hover and drag arbitration — it would merely look similar.
-    const PlaneExtent Strip = { Extent.LeastAlong,
-                                Extent.LeastAcross,
-                                Extent.MostAlong,
-                                Extent.LeastAcross + Measure.StripAcross };
+    // 🔴 The whole panel is the sheet's OLED ground and NOTHING else. The strip band and the footer
+    //    were both retired: the dock node draws its own strip behind the tabs it lays out, so a band
+    //    recorded here stood proud of it wherever the node did not reach — across the full window width
+    //    while the node spanned only its own tabs — and read as a grey bar with tabs floating on it.
+    // 📝 `WorkspaceMetric::FooterAcross`, `FooterEdgeWeight` and the two footer inks stay declared.
+    //    They transcribe `.panelfooter` from the sheet and nothing here is authorised to delete a
+    //    transcription; they are simply not recorded, because the artist asked for the band gone.
+    Surface->Ground(Extent, Ink.BodyGround);
 
-    StripExtent = Strip;
-
-    Surface->Ground(Strip, Ink.StripGround);
-
-    // ② The body. 🔴 `.panelbody` and `.content` are both `--panel`, which is absolute black — the
-    //    sheet's OLED ground. Recorded before the footer so the footer's edge lands on top of it.
-    const float FooterAcross = Extent.MostAcross - Measure.FooterAcross;
+    // ⚠️ The strip extent is still reported, because the `+` and the dock space are seated against it.
+    //    It measures where the node's own tab bar stands; it is no longer painted.
+    StripExtent = { Extent.LeastAlong,
+                    Extent.LeastAcross,
+                    Extent.MostAlong,
+                    Extent.LeastAcross + Measure.StripAcross };
 
     BodyExtent = { Extent.LeastAlong,
                    Extent.LeastAcross + Measure.StripAcross,
                    Extent.MostAlong,
-                   FooterAcross };
+                   Extent.MostAcross };
 
-    // ⚠️ An extent too short to carry the strip and the footer together yields an inverted body. It is
-    //    collapsed rather than recorded inverted, which the vendor fills across the whole panel.
     if (BodyExtent.MostAcross < BodyExtent.LeastAcross)
         BodyExtent.MostAcross = BodyExtent.LeastAcross;
-
-    Surface->Ground(BodyExtent, Ink.BodyGround);
-
-    // ④ The footer. 🔴 The edge is recorded after the ground and after the body, because the sheet
-    //    gives `.panelfooter` a `border-top` and `z-index: 2` — a body painted over it loses the one line
-    //    separating the workspace from whatever sits below.
-    const PlaneExtent Footer = { Extent.LeastAlong, FooterAcross, Extent.MostAlong, Extent.MostAcross };
-
-    Surface->Ground(Footer, Ink.FooterGround);
-
-    const PlaneExtent FooterEdge = { Footer.LeastAlong,
-                                     Footer.LeastAcross,
-                                     Footer.MostAlong,
-                                     Footer.LeastAcross + Measure.FooterEdgeWeight };
-
-    Surface->Ground(FooterEdge, Ink.FooterEdge);
 
     return Deliver<bool>::Deliver(true);
 }

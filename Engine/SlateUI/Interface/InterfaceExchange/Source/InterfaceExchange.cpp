@@ -330,46 +330,67 @@ Deliver<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measu
     Seated.TabMinWidthBase   = Measure.TabAlongFloor;
     Seated.TabMinWidthShrink = Measure.TabAlongFloor;
 
+    // 🔴 The close mark stands on EVERY tab, selected or not. The vendor hides it on unselected tabs until
+    //    hovered; the sheet draws it on all of them, and a mark that appears only under the pointer is one
+    //    the artist cannot see to aim at.
+    Seated.TabCloseButtonMinWidthSelected   = -1.0f;
+    Seated.TabCloseButtonMinWidthUnselected = -1.0f;
+
+    // 🔴 A disc rather than a slab, for the close mark and the strip's `+` both — `Patches/`'s PatchC.
+    //    Stated as a fraction of the control's own extent, so `ScaleAllSizes` must not scale it and does
+    //    not. Left unseated the member defaults to 0.0f, at which PatchC's branch never runs and both
+    //    controls render as the vendor's rectangles — which is exactly how they shipped.
+    Seated.TabButtonRounding = 1.0f;
+
+    // 🔴 A workspace dragged out ALONE keeps a tab bar, so it carries the sheet's trapezoid on its grey
+    //    strip instead of degrading to a plain caption. Seated on the context rather than per window
+    //    because it governs the docking system as a whole.
+    ImGui::GetIO().ConfigDockingAlwaysTabBar = true;
+
     return Deliver<bool>::Deliver(true);
 }
 
 bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent& Extent, std::uint32_t OpenCount)
 {
     (void)Extent;
+    (void)OpenCount;
 
     if (ContextSlot == nullptr || !TickOpen)
         return false;
 
-    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+    ImGuiContext& Standing = *static_cast<ImGuiContext*>(ContextSlot);
 
-    // 🔴 Recorded INSIDE the dock node's own tab bar, not as a window of its own. A separate window had to
-    //    be positioned by arithmetic, floated over the workspace as a stray slab, and could never scroll
-    //    with the strip. `DockNodeBeginAmendTabBar` re-opens the bar the node already laid out, so the
-    //    button is seated after the last tab by the vendor's own layout — always at the end, by
-    //    construction rather than by calculation.
-    if (OpenCount == 0u)
-        return false;
+    ImGui::SetCurrentContext(&Standing);
 
-    ImGuiDockNode* Standing = ImGui::DockBuilderGetNode(ImGui::GetID("SlateDockSpace"));
-
-    if (Standing == nullptr)
-        return false;
-
-    // 📝 The tab bar belongs to a leaf. A split node holds no tabs of its own, so the leading child is
-    //    walked to until one is reached.
-    while (Standing != nullptr && Standing->IsSplitNode())
-        Standing = Standing->ChildNodes[0];
-
-    if (Standing == nullptr)
-        return false;
-
+    // 🔴 EVERY node carries a `+`, not just the main dock space's. A workspace torn out becomes a
+    //    floating node of its own, and a `+` seated only on the main space left that float with no way
+    //    to add a workspace beside it — the artist could tear one out and then not build on it.
+    // 📝 `DockContext.Nodes` is the ledger of every ACTIVE node, floating ones included, so it is walked
+    //    rather than the main space being descended: a torn-out node is not a child of anything.
     bool Pressed = false;
 
-    if (ImGui::DockNodeBeginAmendTabBar(Standing))
+    for (int Ordinal = 0; Ordinal < Standing.DockContext.Nodes.Data.Size; ++Ordinal)
     {
-        // 📝 `Trailing` seats it after every tab; PatchC draws it as a disc because it carries the
-        //    Button flag, and PatchA leaves it unslanted for the same reason.
-        Pressed = ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip);
+        ImGuiDockNode* Node = static_cast<ImGuiDockNode*>(Standing.DockContext.Nodes.Data[Ordinal].val_p);
+
+        // ⚠️ Only a leaf that actually laid out a tab bar this tick. A split node holds no tabs, and a
+        //    node whose bar was never built has nothing to amend — `DockNodeBeginAmendTabBar` would
+        //    refuse, but asking it once per empty node every tick is work for nothing.
+        if (Node == nullptr || Node->IsSplitNode() || Node->TabBar == nullptr)
+            continue;
+
+        if (!ImGui::DockNodeBeginAmendTabBar(Node))
+            continue;
+
+        // 📝 `Trailing` seats it after every tab, so it is always at the end by the vendor's own layout.
+        //    PatchA leaves it unslanted and PatchC draws it as a disc, both because it carries the
+        //    Button flag. The identity is scoped per node so two strips do not collide.
+        ImGui::PushID(static_cast<int>(Node->ID));
+
+        if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+            Pressed = true;
+
+        ImGui::PopID();
 
         ImGui::DockNodeEndAmendTabBar();
     }
