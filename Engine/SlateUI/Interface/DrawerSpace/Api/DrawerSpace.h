@@ -200,6 +200,22 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool Moving() const;
 
+    /// 🧩 Whether the drawers claim a contact at one point, and which bearing claims it.
+    /// in    Along    [px]  the pointer, in display pixels
+    /// in    Across   [px]
+    /// out   Claimed  [-]   true when either drawer would take a contact there
+    /// out   Bearing  [-]   which one claims it; untouched when nothing does
+    /// note  🔴 Answered WITHOUT the interface's capture flag, because it is what decides that flag rather
+    ///        than what obeys it. A drawer drawn over a workspace was previously refused every contact:
+    ///        the workspace window sets `WantCaptureMouse`, the drawers were gated on its negation, so
+    ///        the handle the artist could see was the one thing they could not press.
+    /// note  ⚠️ An OPEN drawer outranks a withdrawn one. Both tongues sit at opposite display edges and
+    ///        cannot overlap, but a raised body can reach across the other's gutter — and the drawer the
+    ///        artist raised is the one they mean.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool Claims(float Along, float Across, DrawerBearing& Bearing) const;
+
     /// 🧩 Returns the arrangement to its constructed condition and forgets both borrowed references.
     /// note  🔴 Springs already enrolled in the integrator are **not** withdrawn. A re-Construct against the
     ///       same integrator enrols four more; reclaim the integrator alongside this.
@@ -250,6 +266,7 @@ private:
 
     /// 🧩 What a contact at this position would seize on this drawer.
     GrabSubject Contacted(DrawerBearing Bearing, float Along, float Across) const;
+
 
     /// 🧩 The three carriage paths and the two resolutions.
     bool Seize(const ContactTravel& Contact);

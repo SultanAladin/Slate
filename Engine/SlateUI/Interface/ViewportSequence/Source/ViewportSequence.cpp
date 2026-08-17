@@ -76,7 +76,24 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
 
     // ⑤ Drive the drawer springs from the pointer.
     const PointerCondition& Pointer = SurfaceOwned.Pointer();
-    DrawersOwned.Advance(Pointer, Display.Elapsed, !Interface.PointerCaptured());
+
+    // 🔴 The drawers are asked FIRST, and their answer outranks the interface's capture flag. Gating them
+    //    on `!PointerCaptured()` disabled them wherever a window sat beneath — and a docked workspace
+    //    fills the body, so a drawer raised over one was refused every contact. The artist could see the
+    //    handle and could not press it; the click selected the workspace behind it instead.
+    // 📝 `Claims` is the same arbitration `Contacted` already performed, asked before the gate rather than
+    //    after it. `14` §4.2's rule is unchanged — exactly one consumer holds the pointer — but the
+    //    ordering that decides which one now puts the drawers above the windows they are drawn above.
+    DrawerBearing Claiming   = DrawerBearing::North;
+    const bool    DrawerHeld = DrawersOwned.Claims(Pointer.PositionAlong, Pointer.PositionAcross, Claiming);
+
+    DrawersOwned.Advance(Pointer, Display.Elapsed, DrawerHeld || !Interface.PointerCaptured());
+
+    // 🔴 The interface is told the drawers took it, so the window beneath does not act on the same
+    //    contact. Without this both consumers answer one click: the drawer drags and the workspace
+    //    selects, which is the defect wearing its other face.
+    if (DrawerHeld || DrawersOwned.Moving())
+        Interface.WithholdPointer();
 
     // ⑥ Advance the motion integrator.
     Motion.Advance(ElapsedMilliseconds > 0.0 ? ElapsedMilliseconds : Display.Elapsed);

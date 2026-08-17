@@ -367,6 +367,43 @@ GrabSubject DrawerSpace::Contacted(DrawerBearing Bearing, float Along, float Acr
     return GrabSubject::Nothing;
 }
 
+bool DrawerSpace::Claims(float Along, float Across, DrawerBearing& Bearing) const
+{
+    // 🔴 The OPEN drawer is asked first, both of them, before either withdrawn one. A raised body reaches
+    //    across the display and can cover the other drawer's gutter; the drawer the artist raised is the
+    //    one they mean, so it takes the contact rather than the strip hiding beneath it.
+    for (std::uint32_t Ordinal = 0u; Ordinal < static_cast<std::uint32_t>(DrawerBearing::BearingCount); ++Ordinal)
+    {
+        const DrawerBearing Asked = static_cast<DrawerBearing>(Ordinal);
+
+        if (Withdrawn(Asked))
+            continue;
+
+        if (Contacted(Asked, Along, Across) != GrabSubject::Nothing)
+        {
+            Bearing = Asked;
+            return true;
+        }
+    }
+
+    // 📝 Then the withdrawn ones, for their tongue and their gutter — the only chrome a closed drawer has.
+    for (std::uint32_t Ordinal = 0u; Ordinal < static_cast<std::uint32_t>(DrawerBearing::BearingCount); ++Ordinal)
+    {
+        const DrawerBearing Asked = static_cast<DrawerBearing>(Ordinal);
+
+        if (!Withdrawn(Asked))
+            continue;
+
+        if (Contacted(Asked, Along, Across) != GrabSubject::Nothing)
+        {
+            Bearing = Asked;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE TICK
 //------------------------------------------------------------------------------------------------------------------------

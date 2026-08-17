@@ -615,6 +615,22 @@ bool InterfaceExchange::PointerCaptured() const
     return ImGui::GetIO().WantCaptureMouse;
 }
 
+void InterfaceExchange::WithholdPointer()
+{
+    if (ContextSlot == nullptr)
+        return;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    // 📝 Both flags. `WantCaptureMouse` is what a host reads to decide whether the interface owns the
+    //    contact; `WantCaptureMouseUnlessPopupClose` is the variant the vendor's own widgets consult, and
+    //    leaving it raised let a window under the drawer still act on the click.
+    ImGuiIO& Arrived = ImGui::GetIO();
+
+    Arrived.WantCaptureMouse                  = false;
+    Arrived.WantCaptureMouseUnlessPopupClose  = false;
+}
+
 bool InterfaceExchange::KeyboardCaptured() const
 {
     if (ContextSlot == nullptr)

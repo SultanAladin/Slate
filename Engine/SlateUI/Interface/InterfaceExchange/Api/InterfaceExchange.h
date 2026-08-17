@@ -184,6 +184,16 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool PointerCaptured() const;
 
+    /// 🧩 Takes the pointer away from the interface for the standing tick.
+    /// note  🔴 Called by whoever outranks the interface for this contact — the drawers, which are drawn
+    ///        over every window and must therefore be pressable over every window. `14` §4.2 admits
+    ///        exactly one consumer of the pointer; this is how a consumer above ImGui declares itself.
+    /// note  ⚠️ Lasts one tick. The vendor recomputes its capture every frame from what the pointer is
+    ///        over, so nothing here has to be undone.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void WithholdPointer();
+
     /// 🧩 Whether the interface has taken text entry, so that no shortcut consumes the same key.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
