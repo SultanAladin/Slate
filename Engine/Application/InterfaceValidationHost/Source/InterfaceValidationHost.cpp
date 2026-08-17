@@ -621,6 +621,9 @@ int main()
 
     // 📝 The interface content is retired before the lifetimes it was constructed over. HostLifecycle idles
     //    the device inside Reclaim, so nothing here needs to.
+    // 🔴 Read before Reclaim. The register is Device lifetime, and a reclaimed device has emptied it.
+    const std::uint32_t Serious = Lifetime.StateDiagnostics();
+
     Panel.Reset();
     Ledger.Reset();
     Surface.Reset();
@@ -628,5 +631,8 @@ int main()
     Lifetime.Reclaim();
 
     std::printf("%s \u2014 exited cleanly\n", HostName);
-    return 0;
+
+    // 🔴 Returned rather than only stated. This is the host a validation run is driven through, so a
+    //    serious arrival has to fail the run and not merely appear in it.
+    return (Serious == 0u) ? 0 : 1;
 }

@@ -7,6 +7,7 @@
 #include "SlateVulkan/Device/WindowExchange/Api/WindowExchange.h"
 
 #include <cstdio>
+#include <vector>
 
 namespace Slate
 {
@@ -397,6 +398,108 @@ DeviceOffering HostLifecycle::Offering() const
 WindowInterchange&       HostLifecycle::Window()             { return Surface; }
 const WindowInterchange& HostLifecycle::Window() const       { return Surface; }
 const TickSequence&      HostLifecycle::Timeline() const     { return Clock; }
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE DIAGNOSTIC VERDICT
+//------------------------------------------------------------------------------------------------------------------------
+
+namespace
+{
+
+/// 🧩 Whether one retained report is a problem, per `86` §5's table.
+/// note  🔴 `Refused` and `Failed` alone. `Terminated` is the ambiguous row §5 requires to be presented as
+///        ambiguous, and the remaining four describe normal operation — counting any of them here would
+///        make a clean run report as dirty, which teaches a reader to ignore the figure.
+/// cost  ✔️
+constexpr bool Serious(ReportDisposition Disposition)
+{
+    return Disposition == ReportDisposition::Refused
+        || Disposition == ReportDisposition::Failed;
+}
+
+/// 🧩 The disposition's own spelling, so a stated entry names its class rather than an ordinal.
+/// cost  ✔️
+constexpr const char* Spelling(ReportDisposition Disposition)
+{
+    switch (Disposition)
+    {
+        case ReportDisposition::Measured:   return "measured";
+        case ReportDisposition::Assumed:    return "assumed";
+        case ReportDisposition::Amended:    return "amended";
+        case ReportDisposition::Truncated:  return "truncated";
+        case ReportDisposition::Refused:    return "refused";
+        case ReportDisposition::Terminated: return "terminated";
+        case ReportDisposition::Failed:     return "failed";
+        default:                            return "undeclared";
+    }
+}
+
+}   // namespace
+
+DiagnosticVerdict HostLifecycle::Diagnostics() const
+{
+    DiagnosticVerdict Reported;
+
+    Reported.Negotiated = DiagnosticEdge.Negotiated();
+    Reported.Arrived    = DiagnosticEdge.ArrivalCount();
+    Reported.Retained   = DiagnosticRegister.RetainedCount();
+    Reported.Appended   = DiagnosticRegister.AppendedCount();
+    Reported.Discarded  = DiagnosticRegister.DiscardedCount();
+
+    // 📝 🚩 A copy under the register's own guard, because an append arrives from any thread — `86` §3.1.
+    const std::vector<ReportSpecification> Standing = DiagnosticRegister.Retained();
+
+    for (const ReportSpecification& Entry : Standing)
+    {
+        if (Serious(Entry.Disposition))
+            ++Reported.Serious;
+    }
+
+    return Reported;
+}
+
+std::uint32_t HostLifecycle::StateDiagnostics() const
+{
+    const DiagnosticVerdict Reported = Diagnostics();
+
+    // 🔴 A run that negotiated nothing is not a clean run and is not stated as one. Every figure below
+    //    would be zero, and a reader who could not tell the two apart would read an unwatched run as clean.
+    if (!Reported.Negotiated)
+    {
+        Report(Declared.Naming, "no diagnostic layer was negotiated \u2014 this run was not watched");
+        return 0u;
+    }
+
+    // 🔴 Named individually before the summary. A count alone states that a run was dirty without stating
+    //    what it tripped, and the identifier below is what the vendor's own documentation is indexed by.
+    const std::vector<ReportSpecification> Standing = DiagnosticRegister.Retained();
+
+    for (const ReportSpecification& Entry : Standing)
+    {
+        if (!Serious(Entry.Disposition))
+            continue;
+
+        std::printf("%s \u2014 %s %s [%llu] \u00d7%u \u2014 %s\n",
+                    (Declared.Naming != nullptr) ? Declared.Naming : "Host",
+                    Spelling(Entry.Disposition),
+                    Entry.Subject,
+                    static_cast<unsigned long long>(Entry.SubjectOrdinal),
+                    Entry.OccurrenceCount,
+                    Entry.Detail);
+    }
+
+    // ⚠️ The discard count is stated even at zero. A register that dropped its first error four thousand
+    //    arrivals ago otherwise presents as one that never received it.
+    std::printf("%s \u2014 diagnostics: %u serious, %u retained, %llu appended, %llu arrived, %llu discarded\n",
+                (Declared.Naming != nullptr) ? Declared.Naming : "Host",
+                Reported.Serious,
+                Reported.Retained,
+                static_cast<unsigned long long>(Reported.Appended),
+                static_cast<unsigned long long>(Reported.Arrived),
+                static_cast<unsigned long long>(Reported.Discarded));
+
+    return Reported.Serious;
+}
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE RECLAMATION

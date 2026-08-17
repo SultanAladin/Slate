@@ -91,6 +91,30 @@ struct DeviceOffering
 //                                                    WHAT ONE TICK CARRIES
 //------------------------------------------------------------------------------------------------------------------------
 
+/// 🧩 What the vendor's diagnostic layers reported across the whole run, counted by disposition.
+/// note  🔴 `86` §5 is the authority on which of the seven dispositions is a problem, and this states the
+///        counts rather than a judgement. `Serious` is the one figure that carries a judgement, and it
+///        counts `Refused` and `Failed` alone — the two rows §5's table marks as problems outright.
+/// note  ⚠️ `Terminated` is excluded from `Serious` deliberately. §5 marks it **sometimes** a problem and
+///        requires it to be presented as ambiguous rather than resolved; folding it into a pass-or-fail
+///        figure would resolve it here, one layer below where §5 declares that decision.
+/// note  ⚠️ `Arrived` and `Retained` differ by two mechanisms, and the difference is load-bearing.
+///        `ReportSequence` coalesces a recurrence into one entry with a count, and it discards the oldest
+///        at `RetainedCeiling`. A reader that sees `Retained` alone cannot tell a clean run from one whose
+///        first error was discarded four thousand arrivals ago, which is why `Discarded` is stated.
+/// note  📝 A run in a configuration that negotiated no diagnostic reports `Negotiated == false` and zeroes
+///        throughout. That is not a clean run and a reader must be able to tell the two apart.
+/// tag   contract, nonallocating, nonthrowing
+struct DiagnosticVerdict
+{
+    bool           Negotiated = false;   // [-] - the sink attached; without it every figure below is meaningless
+    std::uint64_t  Arrived    = 0u;      // [-] - raw arrivals at the sink, coalescing and discards included
+    std::uint32_t  Retained   = 0u;      // [-] - entries standing in the register now
+    std::uint64_t  Appended   = 0u;      // [-] - occurrences appended across the session
+    std::uint64_t  Discarded  = 0u;      // [-] - retained entries the ceiling dropped
+    std::uint32_t  Serious    = 0u;      // [-] - retained entries `86` §5 marks as a problem
+};
+
 /// 🧩 What `Await` decided about this tick before any content was built.
 /// note  🔴 A host reads `Standing` and nothing else to decide whether to record. `Withdrawn` is not an
 ///        error — it is the ordinary answer on a minimised window, a resized chain, or a tick the vendor
@@ -128,8 +152,12 @@ struct TickPass
 ///        resizing did nothing until the vendor refused; it left the tick loop on a refused present rather
 ///        than re-establishing the chain; and it opened its command recording **before** building the
 ///        interface tick, so five of its escape paths returned to the top of the loop with a command buffer
-///        still recording and a display image still acquired. `EditorHost` had none of those, and the only
-///        thing separating them was which copy a reader happened to edit.
+///        still recording and a display image still acquired. A second windowed host had none of those, and
+///        the only thing separating the two was which copy a reader happened to edit.
+/// note  📝 That second host was `EditorHost`, and once this component held the bring-up it was byte-identical
+///        to `PaintHost` but for its name and window caption. `32` §3 ships two hosts — `PaintHost` and the
+///        headless `ConsoleHost` — and named it in neither, so it was retired rather than left as a second
+///        copy of one program waiting to drift again.
 /// note  🔴 ⏱️ The ordering that prevents the whole class of defect is stated once, here: **every refusal
 ///        that can occur is resolved before the display image is acquired**. After `Await` reports
 ///        `Recording`, there is no path in this component that returns without submitting — so a host
@@ -209,6 +237,25 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     bool DisplayRecovered();
+
+    /// 🧩 What the vendor's diagnostic layers reported across the run so far, counted by disposition.
+    /// out   Verdict  [-]  zeroed with `Negotiated == false` where no sink attached
+    /// use   A host states this once at teardown, so a run under the validation layers ends in a figure
+    ///       rather than in a console a reader has to scroll back through.
+    /// note  ⚠️ Read before `Reclaim`. The register is Device lifetime, and a reclaimed device has emptied it.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    DiagnosticVerdict Diagnostics() const;
+
+    /// 🧩 States the diagnostic verdict on the console, in the one format every host reports with.
+    /// out   Serious  [-]  how many retained entries `86` §5 marks as a problem; zero is a clean run
+    /// use   A host returns this from `main` so a validation run has an exit code and not only text.
+    /// note  🔴 Every serious entry is named individually before the summary. A count alone says a run was
+    ///        dirty without saying what it tripped, which is one rebuild short of useless.
+    /// note  ⚠️ Read before `Reclaim`, for the reason `Diagnostics` states.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    std::uint32_t StateDiagnostics() const;
 
     /// 🧩 Reclaims every lifetime at or beyond the declared one, in reverse construction order.
     /// in    From     [-]  the earliest lifetime to retire; everything after it is retired first

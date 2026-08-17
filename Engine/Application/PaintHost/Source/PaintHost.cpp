@@ -166,9 +166,15 @@ int main()
 
     // 📝 The viewport is retired before the lifetimes it was constructed over. HostLifecycle idles the
     //    device inside Reclaim, so nothing here needs to.
+    // 🔴 Read before Reclaim. The register is Device lifetime, and a reclaimed device has emptied it.
+    const std::uint32_t Serious = Lifetime.StateDiagnostics();
+
     Viewport.Reclaim();
     Lifetime.Reclaim();
 
     std::printf("%s \u2014 exited cleanly\n", HostName);
-    return 0;
+
+    // 🔴 Returned rather than only stated. A validation run needs an exit code, so that a serious arrival
+    //    fails whatever invoked the host instead of scrolling past in a console nobody reads.
+    return (Serious == 0u) ? 0 : 1;
 }
