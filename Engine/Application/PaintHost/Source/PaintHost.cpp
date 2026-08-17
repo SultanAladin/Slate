@@ -111,8 +111,29 @@ int main()
         if (Pass.Standing == TickStanding::Closed)
             break;
 
+        // ③·i 🔴 The DEVICE was rebuilt, so every device handle the interface holds names an object the
+        //      vendor has returned — its font atlas, its descriptor sets, its pipelines. Renegotiating the
+        //      image counts would restate figures against a device that no longer exists, so the interface
+        //      is reclaimed and reconstructed against the handles the rebuilt device offers.
+        //      Tested before DisplayRecovered because a device rebuild raises both.
+        if (Lifetime.DeviceRecovered())
+        {
+            Viewport.Reclaim();
+
+            if (!Viewport.Construct(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).ContentPresent)
+            {
+                std::printf("%s \u2014 the interface could not be rebuilt on the recovered device\n", HostName);
+                break;
+            }
+
+            // 📝 The display recovery this rebuild also raised is consumed here. The reconstruction above
+            //    already took the counts the new chain holds, and renegotiating them again would restate
+            //    what was just constructed.
+            static_cast<void>(Lifetime.DisplayRecovered());
+        }
+
         // ③ The chain was re-established. The interface is told the counts it now holds, exactly once.
-        if (Lifetime.DisplayRecovered())
+        else if (Lifetime.DisplayRecovered())
         {
             const DeviceOffering Offered = Lifetime.Offering();
             // 🔴 Read, not discarded. An interface still holding the previous image counts records

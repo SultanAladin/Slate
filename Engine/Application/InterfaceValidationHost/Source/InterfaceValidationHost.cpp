@@ -375,8 +375,28 @@ int main()
         if (Pass.Standing == TickStanding::Closed)
             break;
 
+        // 🔴 The DEVICE was rebuilt, so every device handle the interface holds names an object the vendor
+        //    has returned. The interface alone is reconstructed: the ledger, the panel and the recording
+        //    surface hold no device handle, so retiring them would discard interaction state — the seizure
+        //    an artist is mid-drag on — over a rebuild that did not invalidate any of it.
+        //    Tested before DisplayRecovered because a device rebuild raises both.
+        if (Lifetime.DeviceRecovered())
+        {
+            Interface.Reclaim();
+
+            if (!Interface.Construct(Attach(Lifetime.Offering())).ContentPresent)
+            {
+                std::printf("%s \u2014 the interface could not be rebuilt on the recovered device\n", HostName);
+                break;
+            }
+
+            // 📝 The display recovery this rebuild also raised is consumed here; the reconstruction above
+            //    already took the counts the new chain holds.
+            static_cast<void>(Lifetime.DisplayRecovered());
+        }
+
         // The chain was re-established; the interface is told the counts it now holds, exactly once.
-        if (Lifetime.DisplayRecovered())
+        else if (Lifetime.DisplayRecovered())
         {
             const DeviceOffering Offered = Lifetime.Offering();
             // 🔴 Read, not discarded. An interface still holding the previous image counts records

@@ -162,11 +162,17 @@ public:
     /// note  🔴 Awaits `RecordingDone` and never the completion. The completion is the host's fence and waiting
     ///        on it here would serialise the host against the device once per rotation — which is the whole
     ///        purpose of the recording slot count, spent.
-    /// note  ⚠️ Reports the chain outgrown as a delivered result with `Reclaimed`, not as a refusal. The image
-    ///        was presented either way, and refusing would make the caller treat a resize as a lost rotation.
+    /// out   Deliver  [-]  delivers `true` when the chain still matches the display, `false` when the image
+    ///                     was presented against a chain the display has outgrown; refuses only when nothing
+    ///                     was presented at all
+    /// note  🔴 ⚠️ The delivered VALUE is the re-establishment signal and a caller that reads only
+    ///        `ContentPresent` will never rebuild. `VK_ERROR_OUT_OF_DATE_KHR` is a successful presentation
+    ///        against a stale chain: refusing it would make a resize look like a lost rotation, and
+    ///        delivering `true` for it — which this did — made the caller's re-establishment branch
+    ///        unreachable, so a resize was rebuilt one tick late by the extent test or not at all.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal);
+    [[nodiscard]] Deliver<bool> Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal);
 
     /// 🧩 What the surface carries, which is the format every display-relative target is claimed at.
     /// out   Format  [-]  VK_FORMAT_UNDEFINED before Construct delivered

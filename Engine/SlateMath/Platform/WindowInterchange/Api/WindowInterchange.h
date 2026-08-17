@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                           WINDOWINTERCHANGE.H
 //============================================================================================================================================
 // 🧩 One window surface over three window systems — surrenders the native handle and nothing else.
@@ -89,12 +89,43 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool ClosureRequested() const;
 
+#ifdef SLATE_DEBUG
+
+    /// 🧩 How many diagnostic keys the debug build reads, and which scenario each drives.
+    /// note  🔴 `SLATE_DEBUG` only, and deliberately not a general input mechanism. `14` §4 owns input
+    ///        intent and routes it through the interface; this reads four physical function keys the
+    ///        validation scenarios are driven by, beneath any interface that could capture them.
+    /// tag   contract
+    enum class DiagnosticKey : std::uint32_t
+    {
+        RecoverDisplay = 0u,   // [-] - F9  — re-establish the presentation chain once
+        ResizeStorm    = 1u,   // [-] - F10 — re-establish it every tick until pressed again
+        RecoverDevice  = 2u,   // [-] - F11 — retire and rebuild the device tier
+        StateReports   = 3u,   // [-] - F12 — state the diagnostic verdict without exiting
+        KeyCount       = 4u    // [-] - the closed count, never a key
+    };
+
+    /// 🧩 Whether one diagnostic key went down since the previous Drain — the edge, never the level.
+    /// note  ⚠️ Edge-triggered by declaration. A level read fires its scenario once per tick for as long as
+    ///        the key is held, which for a device rebuild is a host that never draws again.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool KeyDescended(DiagnosticKey Declared) const;
+
+#endif
+
 private:
 
     void*          WindowSlot   = nullptr;   // [-]  - opaque; the GLFW spelling stays in the source file
     DisplayExtent  DrawExtent   = {};        // [px] - refreshed by Drain
     DisplayExtent  AdoptedExtent = {};       // [px] - what the presentation chain was built against
     bool           ClosurePosed = false;     // [-]  - the artist asked; nothing has acted on it yet
+
+#ifdef SLATE_DEBUG
+    // 📝 Two levels per key so Drain can report the edge. Sized by the enumeration's closed count.
+    bool           KeyDown[4]   = {};        // [-]  - down at this Drain
+    bool           KeyWas[4]    = {};        // [-]  - down at the previous Drain
+#endif
 };
 
 }   // namespace Slate

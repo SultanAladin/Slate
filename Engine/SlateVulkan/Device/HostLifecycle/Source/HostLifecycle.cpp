@@ -125,6 +125,9 @@ bool HostLifecycle::RecoverDisplay()
 {
     const DisplayExtent Extent = Surface.CurrentExtent();
 
+    // 🔴 A zero extent is a minimised window and NOT a failure. The extent is deliberately left unadopted so
+    //    that `ExtentAltered` stays raised and the restore re-establishes — but the loop must keep standing,
+    //    which is why nothing here clears `LoopStanding`.
     if (Extent.Width == 0u || Extent.Height == 0u)
         return false;
 
@@ -154,10 +157,118 @@ bool HostLifecycle::RecoverDisplay()
     return true;
 }
 
+void HostLifecycle::SettleAcquisition()
+{
+    // 🔴 The one way to retire a signalled `ImageArrived` that no submission will consume. A binary
+    //    semaphore has no host-side reset: it is unsignalled by a wait, and the only wait that was ever
+    //    going to happen was the submission that is not now going to be made. Re-establishing the chain
+    //    destroys the semaphore's pending acquire along with the chain it was taken against.
+    // ⚠️ Ordered idle-first. Destroying a chain with an acquire outstanding against it is
+    //    VUID-vkDestroySwapchainKHR-swapchain-01282, which drivers report as VK_ERROR_DEVICE_LOST on the
+    //    NEXT submission — several ticks after the resize that caused it, naming nothing that led there.
+    if (DeviceEdge.ActiveDevice() == VK_NULL_HANDLE)
+        return;
+
+    vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
+
+    const DisplayExtent Extent = Surface.CurrentExtent();
+
+    if (Extent.Width == 0u || Extent.Height == 0u)
+        return;
+
+    // 📝 The delivery is read for `RecoverDisplay`'s reason: a refused re-establishment leaves no chain to
+    //    acquire from, and carrying on against one that is gone refuses every subsequent tick silently.
+    if (!DisplayChain.Reclaim(Extent.Width, Extent.Height).ContentPresent)
+    {
+        Report(Declared.Naming, "the chain could not be re-established settling an acquisition");
+        LoopStanding = false;
+        return;
+    }
+
+    Surface.AdoptExtent();
+    DisplayAltered = true;
+}
+
 bool HostLifecycle::DisplayRecovered()
 {
     const bool Recovered = DisplayAltered;
     DisplayAltered = false;
+    return Recovered;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE DEVICE RECOVERY
+//------------------------------------------------------------------------------------------------------------------------
+
+Deliver<bool> HostLifecycle::RecoverDevice()
+{
+    // 🔴 Bounded. A device that is lost twice is a driver that is not coming back, and rebuilding forever
+    //    presents the artist with a window that never draws instead of one that reports and exits.
+    if (DeviceRecoveries >= DeviceRecoveryCeiling)
+    {
+        Report(Declared.Naming, "the device was lost more times than the ceiling admits");
+        LoopStanding = false;
+        return Deliver<bool>::Refuse(Refusal{ RefusalReason::DeviceLost, "the device is not recoverable" });
+    }
+
+    ++DeviceRecoveries;
+
+    // 🔴 An open recording is abandoned rather than surrendered. The device it was recorded into is gone,
+    //    so there is nothing to submit it to and nothing that would ever signal its completion.
+    TickRecording = false;
+    OpenRecording = VK_NULL_HANDLE;
+
+    // ⚠️ Not idled first. `vkDeviceWaitIdle` against a lost device refuses, and `Reclaim` performs the idle
+    //    itself for the case where the device is merely being retired rather than already gone.
+    Reclaim(ResourceLifetime::Device);
+
+    // 📝 The instance and the surface stand. `Reclaim(Device)` retires Device and everything after it and
+    //    leaves the Host tier alone, which is what makes a rebuild possible without a second window.
+    if (!DeviceEdge.ConstructDevice(PresentationSurface).ContentPresent)
+    {
+        Report(Declared.Naming, "no Vulkan device could be reconstructed");
+        LoopStanding = false;
+        return Deliver<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no Vulkan device" });
+    }
+
+    Constructed = ResourceLifetime::Device;
+
+    const DisplayExtent Extent = Surface.CurrentExtent();
+
+    if (!EstablishDisplay(Extent.Width, Extent.Height).ContentPresent)
+    {
+        Report(Declared.Naming, "the presentation chain could not be re-established on a rebuilt device");
+        LoopStanding = false;
+        return Deliver<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no presentation chain" });
+    }
+
+    Constructed = ResourceLifetime::Display;
+    Surface.AdoptExtent();
+
+    if (!Cycle.Construct(DeviceEdge, DiagnosticEdge).ContentPresent ||
+        !Commands.Construct(DeviceEdge, DiagnosticEdge).ContentPresent)
+    {
+        Report(Declared.Naming, "the recording rotation was refused on a rebuilt device");
+        LoopStanding = false;
+        return Deliver<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "the recording rotation" });
+    }
+
+    Constructed = ResourceLifetime::Recording;
+
+    // 🔴 Both are raised. A device rebuild invalidates everything a display rebuild does and more, and a
+    //    host that reads only `DisplayRecovered` must still be told its display-sized content is gone.
+    DeviceAltered  = true;
+    DisplayAltered = true;
+
+    Report(Declared.Naming, "the device was rebuilt");
+
+    return Deliver<bool>::Deliver(true);
+}
+
+bool HostLifecycle::DeviceRecovered()
+{
+    const bool Recovered = DeviceAltered;
+    DeviceAltered = false;
     return Recovered;
 }
 
@@ -208,9 +319,62 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
         Pass.DisplayAltered = true;
     }
 
-    // ④ Await the cycle slot. The fence guards the recording this slot is about to reuse.
-    if (!Cycle.Await().ContentPresent)
+#ifdef SLATE_DEBUG
+    // ③·i The scenarios `32` §9 is validated against, driven from the keyboard so that each is exercised
+    //     deliberately rather than waited for. Every one of them runs the ordinary path and none has a
+    //     route of its own — a scenario that tested its own private path would test nothing.
+    if (Surface.KeyDescended(WindowInterchange::DiagnosticKey::ResizeStorm))
     {
+        ResizeStorming = !ResizeStorming;
+        Report(Declared.Naming, ResizeStorming ? "resize storm engaged" : "resize storm released");
+    }
+
+    if (ResizeStorming || Surface.KeyDescended(WindowInterchange::DiagnosticKey::RecoverDisplay))
+    {
+        RecoverDisplay();
+        Pass.DisplayAltered = true;
+    }
+
+    if (Surface.KeyDescended(WindowInterchange::DiagnosticKey::RecoverDevice))
+    {
+        Report(Declared.Naming, "a device rebuild was asked for");
+
+        if (!RecoverDevice().ContentPresent)
+        {
+            Pass.Standing = TickStanding::Closed;
+            return Pass;
+        }
+
+        Pass.DisplayAltered = true;
+        Pass.Standing       = TickStanding::Withdrawn;
+        return Pass;
+    }
+
+    // 📝 The count is stated by the call itself and discarded here deliberately: this key exists to print
+    //    the verdict mid-run, and nothing at this point acts on how many serious entries there were.
+    if (Surface.KeyDescended(WindowInterchange::DiagnosticKey::StateReports))
+        static_cast<void>(StateDiagnostics());
+#endif
+
+    // ④ Await the cycle slot. The fence guards the recording this slot is about to reuse.
+    const Deliver<bool> SlotAwaited = Cycle.Await();
+
+    if (!SlotAwaited.ContentPresent)
+    {
+        // 🔴 A lost device is rebuilt rather than reported and abandoned. Every other refusal here is a
+        //    device that did not answer within the ceiling, which a rebuild would not mend.
+        if (SlotAwaited.Declined.DeclaredReason == RefusalReason::DeviceLost)
+        {
+            Report(Declared.Naming, "the device was lost awaiting the cycle slot");
+
+            if (RecoverDevice().ContentPresent)
+            {
+                Pass.DisplayAltered = true;
+                Pass.Standing       = TickStanding::Withdrawn;
+                return Pass;
+            }
+        }
+
         Report(Declared.Naming, "the cycle slot was lost");
         LoopStanding  = false;
         Pass.Standing = TickStanding::Closed;
@@ -242,7 +406,18 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     {
         if (Arrived.Declined.DeclaredReason == RefusalReason::DeviceLost)
         {
-            Report(Declared.Naming, "the device was lost");
+            Report(Declared.Naming, "the device was lost awaiting a display image");
+
+            // 🔴 Rebuilt rather than closed. Device loss was terminal here, so a driver reset — which is
+            //    an ordinary event on a machine whose display driver updates while Slate is running —
+            //    closed the application under the artist.
+            if (RecoverDevice().ContentPresent)
+            {
+                Pass.DisplayAltered = true;
+                Pass.Standing       = TickStanding::Withdrawn;
+                return Pass;
+            }
+
             LoopStanding  = false;
             Pass.Standing = TickStanding::Closed;
             return Pass;
@@ -254,6 +429,13 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
 
     if (Arrived.Resolve().Reclaimed)
     {
+        // 🔴 `VK_ERROR_OUT_OF_DATE_KHR` took no image and signalled nothing, so there is no acquisition to
+        //    settle — but the ROTATION must still turn. `Cycle.Advance` lives in `Surrender` alone, and a
+        //    withdrawn tick that skipped it left the rotation on one slot forever: every subsequent tick
+        //    withdrew against the same slot, nothing was ever presented, and the artist saw the last good
+        //    image frozen on screen for as long as the chain kept reporting itself outgrown.
+        Cycle.Advance();
+
         RecoverDisplay();
         Pass.DisplayAltered = true;
         Pass.Standing       = TickStanding::Withdrawn;
@@ -324,6 +506,12 @@ Deliver<bool> HostLifecycle::Surrender()
 
     if (!Standing.ContentPresent)
     {
+        // 🔴 An image stands acquired and its `ImageArrived` stands signalled. Nothing below will submit, so
+        //    nothing will ever wait it down — and a binary semaphore left signalled is one the next acquire
+        //    on this slot signals a second time. `SettleAcquisition` idles the device and re-establishes the
+        //    chain, which is the only way to retire a signalled semaphore no submission will consume.
+        SettleAcquisition();
+
         TickRecording = false;
         OpenRecording = VK_NULL_HANDLE;
         LoopStanding  = false;
@@ -334,6 +522,9 @@ Deliver<bool> HostLifecycle::Surrender()
     //    two leaves the fence unsignalled and the next Await never returns.
     if (!Cycle.Arm().ContentPresent)
     {
+        // 🔴 As above — acquired, signalled, and about to return without submitting.
+        SettleAcquisition();
+
         TickRecording = false;
         OpenRecording = VK_NULL_HANDLE;
         LoopStanding  = false;
@@ -352,6 +543,23 @@ Deliver<bool> HostLifecycle::Surrender()
 
     if (!Surrendered.ContentPresent)
     {
+        // 🔴 The submission did not reach the device, so `ImageArrived` stands signalled AND `Arm` has already
+        //    cleared the completion fence that nothing will now signal. Both are settled together: the next
+        //    `Cycle.Await` on this slot would otherwise wait the whole two-second ceiling for a fence no
+        //    submission is going to raise, once per rotation, which the artist reads as the program hanging.
+        // ⚠️ A lost device is rebuilt instead, which settles both by reconstructing the rotation outright.
+        if (Surrendered.Declined.DeclaredReason == RefusalReason::DeviceLost)
+        {
+            Report(Declared.Naming, "the device was lost surrendering a recording");
+
+            if (RecoverDevice().ContentPresent)
+                return Deliver<bool>::Deliver(true);
+
+            return Surrendered;
+        }
+
+        SettleAcquisition();
+
         LoopStanding = false;
         return Surrendered;
     }
@@ -359,7 +567,13 @@ Deliver<bool> HostLifecycle::Surrender()
     // 🔴 A refused present re-establishes the chain rather than ending the loop. `PaintHost` broke out of
     //    its tick loop here, so a resize arriving between the acquire and the present closed the
     //    application — reported to the artist as the program vanishing.
-    if (!DisplayChain.Present(Standing.Resolve(), AcquiredImage.ImageOrdinal).ContentPresent)
+    // 🔴 The delivered VALUE is read as well as the delivery. `Present` reports a presentation against a
+    //    chain the display has outgrown as a delivered `false`, and reading only `ContentPresent` — which
+    //    this did — made this branch unreachable on a resize: the chain was then rebuilt a tick later by
+    //    the extent test, or never, when the display outgrew a chain the window extent had not moved.
+    const Deliver<bool> Presented = DisplayChain.Present(Standing.Resolve(), AcquiredImage.ImageOrdinal);
+
+    if (!Presented.ContentPresent || !Presented.Resolve())
     {
         RecoverDisplay();
     }

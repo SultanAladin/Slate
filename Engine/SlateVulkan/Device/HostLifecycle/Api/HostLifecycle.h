@@ -170,6 +170,11 @@ class HostLifecycle
 {
 public:
 
+    // 🔴 A device lost more than twice in one session is a driver that is not coming back. Rebuilding
+    //    without a ceiling presents the artist with a window that never draws, which is strictly worse
+    //    than one that reports the loss and exits.
+    static constexpr std::uint32_t DeviceRecoveryCeiling = 2u;   // [-] - rebuilds admitted per session
+
     HostLifecycle()                                = default;
     HostLifecycle(const HostLifecycle&)            = delete;
     HostLifecycle& operator=(const HostLifecycle&) = delete;
@@ -238,6 +243,26 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool DisplayRecovered();
 
+    /// 🧩 Retires the device tier and rebuilds it, leaving the window, instance and surface standing.
+    /// out   Deliver  [-]  refuses when the rebuild declines, having left nothing half-constructed
+    /// use   Called on a reported device loss, and by the diagnostic key that exercises this path.
+    /// note  🔴 🚧 Every device resource a HOST owns is invalid once this returns — its pipelines, its
+    ///        descriptor sets, the interface's font atlas. `DeviceRecovered` reports that, and a host that
+    ///        does not read it records into handles the vendor has returned.
+    /// note  ⚠️ The Host tier is deliberately untouched. `Construct` opens a window at step ②, so calling it
+    ///        again to recover would stand a second window in front of the artist.
+    /// cost  🔴
+    /// tag   api, nonthrowing
+    Deliver<bool> RecoverDevice();
+
+    /// 🧩 Whether the device tier was rebuilt since the host last asked, and clears the record of it.
+    /// use   A host calls this to rebuild every device resource it owns, exactly once per recovery.
+    /// note  🔴 Distinct from `DisplayRecovered`. A display recovery invalidates what was sized to the
+    ///        extent; a device recovery invalidates everything, the display included.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool DeviceRecovered();
+
     /// 🧩 What the vendor's diagnostic layers reported across the run so far, counted by disposition.
     /// out   Verdict  [-]  zeroed with `Negotiated == false` where no sink attached
     /// use   A host states this once at teardown, so a run under the validation layers ends in a figure
@@ -271,6 +296,13 @@ private:
     Deliver<bool> EstablishDisplay(std::uint32_t Width, std::uint32_t Height);
     bool          RecoverDisplay();
 
+    /// 🧩 Retires an acquired image whose `ImageArrived` no submission is going to wait down.
+    /// note  🔴 Every path that returns between the acquire and the submission calls this. A binary
+    ///        semaphore is unsignalled only by a wait, so one left signalled is signalled a second time by
+    ///        the next acquire on that slot — and the chain it is pending against cannot be destroyed
+    ///        until the acquire is retired.
+    void          SettleAcquisition();
+
     HostDeclaration      Declared          = {};               // [-] - as stated, never re-read
     TickSequence         Clock             = {};               // [-] - Host lifetime
     WindowInterchange    Surface           = {};               // [-] - Host lifetime
@@ -288,6 +320,11 @@ private:
     VkCommandBuffer      OpenRecording     = VK_NULL_HANDLE;   // [-] - non-null only between Await and Surrender
     bool                 TickRecording     = false;            // [-] - a tick stands at TickStanding::Recording
     bool                 DisplayAltered    = false;            // [-] - a recovery the host has not adopted
+    bool                 DeviceAltered     = false;            // [-] - a device rebuild the host has not adopted
+#ifdef SLATE_DEBUG
+    bool                 ResizeStorming    = false;            // [-] - re-establish every tick until released
+#endif
+    std::uint32_t        DeviceRecoveries  = 0u;               // [-] - rebuilds attempted; the retry is bounded
     bool                 LoopStanding      = false;            // [-] - false once the window closed
     ResourceLifetime     Constructed       = ResourceLifetime::Host;   // [-] - how far bring-up reached
 };

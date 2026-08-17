@@ -7,6 +7,7 @@
 
 #include "SlateVulkan/Device/VendorClassifier/Api/VendorClassifier.h"
 
+#include <iterator>
 #include <vector>
 
 namespace Slate
@@ -35,14 +36,46 @@ Deliver<bool> VulkanExchange::ConstructInstance(bool DiagnosticRequested)
 
     std::vector<const char*> RequestedLayers;
 
+    // 📝 🔴 Declared here rather than inside the branch below. The settings are pointed at by the instance
+    //    declaration's `pNext` chain, which the vendor reads inside `vkCreateInstance` — so the storage has
+    //    to outlive the branch and reach that call. Declared in a narrower scope, this is a dangling read
+    //    the vendor performs and no compiler diagnoses.
+    const VkBool32 LayerSettingEnabled = VK_TRUE;
+
+    const VkLayerSettingEXT DeclaredSettings[] = {
+        { "VK_LAYER_KHRONOS_validation", "validate_sync",
+          VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1u, &LayerSettingEnabled },
+        { "VK_LAYER_KHRONOS_validation", "thread_safety",
+          VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1u, &LayerSettingEnabled }
+    };
+
+    VkLayerSettingsCreateInfoEXT SettingsDeclaration = {};
+    SettingsDeclaration.sType        = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT;
+    SettingsDeclaration.settingCount = static_cast<std::uint32_t>(std::size(DeclaredSettings));
+    SettingsDeclaration.pSettings    = DeclaredSettings;
+
     if (DiagnosticRequested)
     {
         RequestedExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         RequestedLayers.push_back("VK_LAYER_KHRONOS_validation");
+
+        // 🔴 ⚠️ Synchronisation validation is OFF by default and it is the only check that catches the class
+        //    of defect that matters here: a semaphore signalled with no waiter, a chain destroyed with an
+        //    acquire outstanding against it, an image written while the display still reads it. None of
+        //    those is reported by the core checks, and each is observed instead as a freeze, a black
+        //    surface, or a device loss reported several ticks after the call that caused it.
+        // 📝 Requested through `VK_EXT_layer_settings` rather than through vkconfig or an environment
+        //    variable, so the configuration travels with the build and a validation run reproduces on a
+        //    machine that was never configured for one.
+        RequestedExtensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
     }
 
     VkInstanceCreateInfo InstanceDeclaration    = {};
     InstanceDeclaration.sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+
+    // ⚠️ Chained only when the diagnostic was requested. A configuration that negotiated no layer has
+    //    nothing to configure, and the vendor rejects settings naming a layer that is not enabled.
+    InstanceDeclaration.pNext                   = DiagnosticRequested ? &SettingsDeclaration : nullptr;
     InstanceDeclaration.pApplicationInfo        = &ApplicationDeclaration;
     InstanceDeclaration.enabledExtensionCount   = static_cast<std::uint32_t>(RequestedExtensions.size());
     InstanceDeclaration.ppEnabledExtensionNames = RequestedExtensions.data();

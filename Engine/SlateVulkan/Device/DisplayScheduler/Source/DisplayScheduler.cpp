@@ -400,10 +400,18 @@ Deliver<bool> DisplayScheduler::Present(const CycleSlot& Standing, std::uint32_t
     ++SurrenderedCount;
 
     // ⚠️ An outgrown chain delivers rather than refuses. The image was presented, and refusing would make the
-    //    caller treat a resize as a lost rotation; the caller learns the chain must be re-established from the
-    //    next `Await`, which reports it on the result it does deliver.
-    if (Surrendered == VK_SUCCESS || Surrendered == VK_SUBOPTIMAL_KHR || Surrendered == VK_ERROR_OUT_OF_DATE_KHR)
+    //    caller treat a resize as a lost rotation.
+    // 🔴 The delivered value says whether the chain still MATCHES the display, and the three accepted results
+    //    do not agree on that. Reporting all three as `true` made the caller's re-establishment unreachable:
+    //    a resize was then rebuilt only by the next tick's extent test, one tick late, and a chain that
+    //    reported outgrown without the window extent moving was never rebuilt at all.
+    if (Surrendered == VK_SUCCESS || Surrendered == VK_SUBOPTIMAL_KHR)
         return Deliver<bool>::Deliver(true);
+
+    // 🔴 Presented, but the chain no longer matches. Delivered `false` so the caller re-establishes rather
+    //    than treating the rotation as lost.
+    if (Surrendered == VK_ERROR_OUT_OF_DATE_KHR)
+        return Deliver<bool>::Deliver(false);
 
     if (Surrendered == VK_ERROR_DEVICE_LOST)
         return Deliver<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost presenting an image" });
