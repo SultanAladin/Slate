@@ -85,8 +85,10 @@ struct ValidationOrdinates
     std::uint32_t  WorkspaceTaken  = 1u;      // [-]   - Texture Paint
     std::uint32_t  InspectorTaken  = 0u;      // [-]   - Properties
     bool           TransformOpen   = true;    // [-]   - folding property card
-    bool           OutlineTaken[5] = { false, true, true, false, false };   // [-] - additive multi-selection
-    bool           OutlinePresent[5] = { true, true, true, false, true };   // [-] - row presence action
+    std::uint32_t  ShadingTaken    = 0u;      // [-]   - dropdown selection
+    bool           OutlineExpanded[5] = { true, true, true, true, true };   // [-] - branch disclosure
+    bool           OutlineTaken[5]    = { false, true, true, false, false };   // [-] - additive multi-selection
+    bool           OutlinePresent[5]  = { true, true, true, false, true };   // [-] - row presence action
 };
 
 /// 🧩 Every identity the sheet's controls are enrolled under, claimed once at bring-up.
@@ -111,6 +113,7 @@ struct ValidationIdentities
     ControlIdentity  WorkspaceMode = {};
     ControlIdentity  InspectorTabs = {};
     ControlIdentity  TransformFold = {};
+    ControlIdentity  ShadingMenu   = {};
     ControlIdentity  OutlineRows[5] = {};
 };
 
@@ -127,7 +130,7 @@ Deliver<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
         &Claimed.EntryOne,  &Claimed.EntryTwo,   &Claimed.EntryThree, &Claimed.EntryFour,
         &Claimed.Size,      &Claimed.TooltipLight, &Claimed.TooltipDark,
         &Claimed.InspectorDock, &Claimed.WorkspaceMode, &Claimed.InspectorTabs, &Claimed.TransformFold,
-        &Claimed.OutlineRows[0], &Claimed.OutlineRows[1], &Claimed.OutlineRows[2],
+        &Claimed.ShadingMenu, &Claimed.OutlineRows[0], &Claimed.OutlineRows[1], &Claimed.OutlineRows[2],
         &Claimed.OutlineRows[3], &Claimed.OutlineRows[4]
     };
 
@@ -385,9 +388,18 @@ int main()
     InspectorTabs.Captions     = InspectorCaptions;
     InspectorTabs.CaptionCount = 2u;
 
+    const char* TransformRuns[] = { "Position", "Rotation", "Scale" };
+    const char* ShadingOptions[] = { "Smooth", "Faceted", "Flat" };
+
     FoldDeclaration TransformFold;
-    TransformFold.Caption = "TRANSFORM";
-    TransformFold.Count   = 3u;
+    TransformFold.Caption   = "TRANSFORM";
+    TransformFold.BodyRuns  = TransformRuns;
+    TransformFold.BodyCount = 3u;
+
+    DropdownDeclaration ShadingMenu;
+    ShadingMenu.Caption     = "Shading";
+    ShadingMenu.Options     = ShadingOptions;
+    ShadingMenu.OptionCount = 3u;
 
     OutlineDeclaration OutlineRows[5] = {
         { "Part",         0u, 2u, true,  true  },
@@ -643,8 +655,8 @@ int main()
         Panel.MagnitudeStops(Claimed.Size, RowAt(StopCard, StopRows, 0u), Size, Seated.SizeTaken);
 
         // ⑩ The global-interface primitives — the reference switch, segmented selector, tabs and fold header.
-        const float ReferenceRows[4] = { 32.0f, 38.0f, 31.0f, 31.0f };
-        const CardArrangement ReferenceCard = AdvanceCard(ReferenceRows, 4u);
+        const float ReferenceRows[5] = { 32.0f, 38.0f, 31.0f, 129.0f, 124.0f };
+        const CardArrangement ReferenceCard = AdvanceCard(ReferenceRows, 5u);
 
         ReferenceControls.SwitchToggle(Claimed.InspectorDock, RowAt(ReferenceCard, ReferenceRows, 0u),
                                        InspectorDock, Seated.InspectorDocked);
@@ -654,6 +666,8 @@ int main()
                                    InspectorTabs, Seated.InspectorTaken);
         ReferenceControls.CollapsibleCard(Claimed.TransformFold, RowAt(ReferenceCard, ReferenceRows, 3u),
                                           TransformFold, Seated.TransformOpen);
+        ReferenceControls.DropdownCard(Claimed.ShadingMenu, RowAt(ReferenceCard, ReferenceRows, 4u),
+                                       ShadingMenu, Seated.ShadingTaken);
 
         // ⑪ One linearised document outline. Every row is independently toggleable, so selections accumulate.
         const float OutlineRowExtents[5] = { 28.0f, 28.0f, 28.0f, 28.0f, 28.0f };
@@ -661,9 +675,15 @@ int main()
 
         for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
         {
+            const bool RootVisible = Ordinal == 0u || Seated.OutlineExpanded[0];
+            const bool BodyVisible = Ordinal < 2u || Ordinal == 4u || Seated.OutlineExpanded[1];
+
+            if (!RootVisible || !BodyVisible)
+                continue;
+
             ReferenceControls.OutlineRow(Claimed.OutlineRows[Ordinal],
                                          RowAt(OutlineCard, OutlineRowExtents, Ordinal),
-                                         OutlineRows[Ordinal], true,
+                                         OutlineRows[Ordinal], true, Seated.OutlineExpanded[Ordinal],
                                          Seated.OutlineTaken[Ordinal], Seated.OutlinePresent[Ordinal]);
         }
 

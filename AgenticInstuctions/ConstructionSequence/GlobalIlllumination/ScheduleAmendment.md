@@ -1,3 +1,4 @@
+++ b/AgenticInstuctions/ConstructionSequence/GlobalIlllumination/ScheduleAmendment.md
 # ScheduleAmendment — What `08` Becomes
 
 `08` declares fifteen shared targets, one ordering, and one substitution table. This branch adds four targets, six

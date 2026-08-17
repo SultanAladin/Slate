@@ -48,8 +48,18 @@ struct TabDeclaration
 /// tag   contract, nonallocating, nonthrowing
 struct FoldDeclaration
 {
-    const char*    Caption = "";   // [-] - borrowed; outlives the tick
-    std::uint32_t  Count   = 0u;   // [-] - fields or rows held by the card
+    const char*         Caption     = "";        // [-] - borrowed; outlives the tick
+    const char* const*  BodyRuns    = nullptr;   // [-] - borrowed rows revealed by the fold
+    std::uint32_t       BodyCount   = 0u;        // [-] - rows held by the card
+};
+
+/// 🧩 One caption field and the menu rows it discloses beneath itself.
+/// tag   contract, nonallocating, nonthrowing
+struct DropdownDeclaration
+{
+    const char*         Caption     = "";        // [-] - leading field label
+    const char* const*  Options     = nullptr;   // [-] - borrowed; outlives the tick
+    std::uint32_t       OptionCount = 0u;        // [-] - menu rows presented
 };
 
 /// 🧩 One linearised outline row, including its depth and visibility condition.
@@ -122,13 +132,19 @@ public:
     ControlVerdict CollapsibleCard(ControlIdentity Claimed, const PlaneExtent& Extent,
                                    const FoldDeclaration& Declared, bool& ExpansionEnabled);
 
+    /// 🧩 Presents one selection field and an animated menu card beneath it.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    ControlVerdict DropdownCard(ControlIdentity Claimed, const PlaneExtent& Extent,
+                                const DropdownDeclaration& Declared, std::uint32_t& TakenOrdinal);
+
     /// 🧩 Presents one outline row with additive selection and a visibility action.
     /// note  SelectionExtended controls whether a row press toggles this row without clearing other rows.
     /// cost  🚩
     /// tag   api, nonthrowing
     ControlVerdict OutlineRow(ControlIdentity Claimed, const PlaneExtent& Extent,
                               const OutlineDeclaration& Declared, bool SelectionExtended,
-                              bool& Selected, bool& PresenceEnabled);
+                              bool& ExpansionEnabled, bool& Selected, bool& PresenceEnabled);
 
     /// 🧩 Presents one revision marker and its two text runs.
     /// cost  ✔️
