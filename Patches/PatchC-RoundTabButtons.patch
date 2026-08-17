@@ -30,8 +30,21 @@ index 1d89dfe03..bd50ee167 100644
      float       TabMinWidthBase;            // Minimum tab width, to make tabs larger than their contents. TabBar buttons are not affected.
      float       TabMinWidthShrink;          // Minimum tab width after shrinking, when using ImGuiTabBarFlags_FittingPolicyMixed policy.
      float       TabCloseButtonMinWidthSelected;     // -1: always visible. 0.0f: visible when hovered. >0.0f: visible when hovered if minimum width. FLT_MAX: never shrink, will behave like ImGuiTabBarFlags_FittingPolicyScroll.
+diff --git a/imgui_internal.h b/imgui_internal.h
+index 0a6b6aa86..28cd8e637 100644
+--- a/imgui_internal.h
++++ b/imgui_internal.h
+@@ -4004,7 +4004,7 @@ namespace ImGui
+     IMGUI_API bool          TabBarProcessReorder(ImGuiTabBar* tab_bar);
+     IMGUI_API bool          TabItemEx(ImGuiTabBar* tab_bar, const char* label, bool* p_open, ImGuiTabItemFlags flags, ImGuiWindow* docked_window);
+     IMGUI_API void          TabItemSpacing(const char* str_id, ImGuiTabItemFlags flags, float width);
+-    IMGUI_API ImVec2        TabItemCalcSize(const char* label, bool has_close_button_or_unsaved_marker);
++    IMGUI_API ImVec2        TabItemCalcSize(const char* label, bool has_close_button_or_unsaved_marker, bool is_button = false);   // [SLATE PATCH C] is_button sizes a tab-bar button to a disc
+     IMGUI_API ImVec2        TabItemCalcSize(ImGuiWindow* window);
+     IMGUI_API void          TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabItemFlags flags, ImU32 col);
+     IMGUI_API void          TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb, ImGuiTabItemFlags flags, ImVec2 frame_padding, const char* label, ImGuiID tab_id, ImGuiID close_button_id, bool is_contents_visible, bool* out_just_closed, bool* out_text_clipped);
 diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
-index a906ed7b3..862c9f902 100644
+index a906ed7b3..075d853ef 100644
 --- a/imgui_widgets.cpp
 +++ b/imgui_widgets.cpp
 @@ -926,8 +926,17 @@ bool ImGui::CloseButton(ImGuiID id, const ImVec2& pos)
@@ -53,7 +66,55 @@ index a906ed7b3..862c9f902 100644
      RenderNavCursor(bb, id, ImGuiNavRenderCursorFlags_Compact);
      const ImU32 cross_col = GetColorU32(ImGuiCol_Text);
      const ImVec2 cross_center = bb.GetCenter() - ImVec2(0.5f, 0.5f);
-@@ -11145,6 +11154,16 @@ void ImGui::TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabI
+@@ -10124,7 +10133,12 @@ static void ImGui::TabBarLayout(ImGuiTabBar* tab_bar)
+         // and we cannot wait for the next BeginTabItem() call. We cannot compute this width within TabBarAddTab() because font size depends on the active window.
+         const char* tab_name = TabBarGetTabName(tab_bar, tab);
+         const bool has_close_button_or_unsaved_marker = (tab->Flags & ImGuiTabItemFlags_NoCloseButton) == 0 || (tab->Flags & ImGuiTabItemFlags_UnsavedDocument);
+-        tab->ContentWidth = (tab->RequestedWidth >= 0.0f) ? tab->RequestedWidth : TabItemCalcSize(tab_name, has_close_button_or_unsaved_marker).x;
++        // [SLATE PATCH C] The button flag reaches the layout's own measurement too. Without it a tab-bar
++        //   button was charged the tab's slant padding twice here, so a one-glyph "+" laid out 84 px wide
++        //   even though TabItemEx had measured it as a disc.
++        tab->ContentWidth = (tab->RequestedWidth >= 0.0f) ? tab->RequestedWidth
++                          : TabItemCalcSize(tab_name, has_close_button_or_unsaved_marker,
++                                            (tab->Flags & ImGuiTabItemFlags_Button) != 0).x;
+         if ((tab->Flags & ImGuiTabItemFlags_Button) == 0)
+             tab->ContentWidth = ImMax(tab->ContentWidth, g.Style.TabMinWidthBase);
+ 
+@@ -10769,7 +10783,9 @@ bool    ImGui::TabItemEx(ImGuiTabBar* tab_bar, const char* label, bool* p_open,
+     tab_bar->LastTabItemIdx = (ImS16)tab_bar->Tabs.index_from_ptr(tab);
+ 
+     // Calculate tab contents size
+-    ImVec2 size = TabItemCalcSize(label, (p_open != NULL) || (flags & ImGuiTabItemFlags_UnsavedDocument));
++    // [SLATE PATCH C] The button flag reaches the measurement, so a tab-bar button is sized as a disc.
++    ImVec2 size = TabItemCalcSize(label, (p_open != NULL) || (flags & ImGuiTabItemFlags_UnsavedDocument),
++                                  (flags & ImGuiTabItemFlags_Button) != 0);
+     tab->RequestedWidth = -1.0f;
+     if (g.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasWidth)
+         size.x = tab->RequestedWidth = g.NextItemData.Width;
+@@ -11067,10 +11083,21 @@ void    ImGui::SetTabItemClosed(const char* label)
+     }
+ }
+ 
+-ImVec2 ImGui::TabItemCalcSize(const char* label, bool has_close_button_or_unsaved_marker)
++ImVec2 ImGui::TabItemCalcSize(const char* label, bool has_close_button_or_unsaved_marker, bool is_button)
+ {
+     ImGuiContext& g = *GImGui;
+     ImVec2 label_size = CalcTextSize(label, NULL, true);
++
++    // [SLATE PATCH C] A tab-bar BUTTON is square, not a tab. Tab padding exists to clear the slant, and a
++    //   button carries none -- charged it twice, a one-glyph "+" measured 84 px and sat as a slab. The
++    //   button is sized to its glyph plus the tab height, so it reads as a disc seated in the strip.
++    if (is_button && g.Style.TabButtonRounding > 0.0f)
++    {
++        const float across = (g.Style.TabHeight > 0.0f) ? g.Style.TabHeight
++                                                        : (label_size.y + g.Style.FramePadding.y * 2.0f);
++        return ImVec2(across, across);
++    }
++
+     ImVec2 size = ImVec2(label_size.x + g.Style.FramePadding.x, label_size.y + g.Style.FramePadding.y * 2.0f);
+     if (has_close_button_or_unsaved_marker)
+         size.x += g.Style.FramePadding.x + (g.Style.ItemInnerSpacing.x + g.FontSize); // We use Y intentionally to fit the close button circle.
+@@ -11145,6 +11172,16 @@ void ImGui::TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabI
  
      // [SLATE PATCH A] A button is a button and keeps its rectangle; only a genuine tab is slanted.
      const float slant = (flags & ImGuiTabItemFlags_Button) ? 0.0f : ImMin(g.Style.TabSlant, width * 0.16f);
@@ -70,3 +131,30 @@ index a906ed7b3..862c9f902 100644
      if (slant > 0.0f)
      {
          SlateTabOutline(draw_list, bb, slant, rounding, y1, y2, 0.0f);
+@@ -11192,8 +11229,14 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb,
+         g.Style.Alpha *= 0.7f;
+ #endif
+ 
++    // [SLATE PATCH C] The horizontal padding is clamped to what the tab can actually give. With the
++    //   sheet's 38 px padding a tab shrunk below 76 px inverts this box -- Min.x lands beyond Max.x -- and
++    //   the run is then laid against an inside-out rectangle, which is why a shrinking strip threw the
++    //   glyph clear of its own tab. A disc-sized tab-bar button is the same case at 24 px.
++    const float slate_pad_x = ImMin(frame_padding.x, ImMax(0.0f, bb.GetWidth() * 0.5f - 1.0f));
++
+     // Render text label (with clipping + alpha gradient) + unsaved marker
+-    ImRect text_ellipsis_clip_bb(bb.Min.x + frame_padding.x, bb.Min.y + frame_padding.y, bb.Max.x - frame_padding.x, bb.Max.y);
++    ImRect text_ellipsis_clip_bb(bb.Min.x + slate_pad_x, bb.Min.y + frame_padding.y, bb.Max.x - slate_pad_x, bb.Max.y);
+ 
+     // Return clipped state ignoring the close button
+     if (out_text_clipped)
+@@ -11203,7 +11246,9 @@ void ImGui::TabItemLabelAndCloseButton(ImDrawList* draw_list, const ImRect& bb,
+     }
+ 
+     const float button_sz = g.FontSize;
+-    const ImVec2 button_pos(ImMax(bb.Min.x, bb.Max.x - frame_padding.x - button_sz), bb.Min.y + frame_padding.y);
++    // [SLATE PATCH C] Seated against the clamped padding for the same reason: a close mark placed by the
++    //   unclamped figure sits outside the tab it belongs to once the strip shrinks.
++    const ImVec2 button_pos(ImMax(bb.Min.x, bb.Max.x - slate_pad_x - button_sz), bb.Min.y + frame_padding.y);
+ 
+     // Close Button & Unsaved Marker
+     // We are relying on a subtle and confusing distinction between 'hovered' and 'g.HoveredId' which happens because we are using ImGuiButtonFlags_AllowOverlapMode + SetItemAllowOverlap()

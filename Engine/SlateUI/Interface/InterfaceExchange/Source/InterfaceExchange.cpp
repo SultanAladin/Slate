@@ -350,10 +350,14 @@ Deliver<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measu
     return Deliver<bool>::Deliver(true);
 }
 
-bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent& Extent, std::uint32_t OpenCount)
+bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent&  Extent,
+                                                std::uint32_t       OpenCount,
+                                                std::uint32_t&      AskingNode)
 {
     (void)Extent;
     (void)OpenCount;
+
+    AskingNode = 0u;
 
     if (ContextSlot == nullptr || !TickOpen)
         return false;
@@ -362,11 +366,10 @@ bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent& Extent, std::
 
     ImGui::SetCurrentContext(&Standing);
 
-    // 🔴 EVERY node carries a `+`, not just the main dock space's. A workspace torn out becomes a
-    //    floating node of its own, and a `+` seated only on the main space left that float with no way
-    //    to add a workspace beside it — the artist could tear one out and then not build on it.
-    // 📝 `DockContext.Nodes` is the ledger of every ACTIVE node, floating ones included, so it is walked
-    //    rather than the main space being descended: a torn-out node is not a child of anything.
+    // 🔴 EVERY node carries a `+`, floating ones included, and each reports ITSELF when pressed. A torn-out
+    //    float otherwise had no way to add a workspace beside it, and a `+` that reported only "pressed"
+    //    had the caller seat the new workspace into the main dock space — so pressing it on one strip
+    //    added the workspace to another window.
     bool Pressed = false;
 
     for (int Ordinal = 0; Ordinal < Standing.DockContext.Nodes.Data.Size; ++Ordinal)
@@ -374,23 +377,24 @@ bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent& Extent, std::
         ImGuiDockNode* Node = static_cast<ImGuiDockNode*>(Standing.DockContext.Nodes.Data[Ordinal].val_p);
 
         // ⚠️ Only a leaf that actually laid out a tab bar this tick. A split node holds no tabs, and a
-        //    node whose bar was never built has nothing to amend — `DockNodeBeginAmendTabBar` would
-        //    refuse, but asking it once per empty node every tick is work for nothing.
+        //    node whose bar was never built has nothing to amend.
         if (Node == nullptr || Node->IsSplitNode() || Node->TabBar == nullptr)
             continue;
 
         if (!ImGui::DockNodeBeginAmendTabBar(Node))
             continue;
 
-        // 📝 `Trailing` seats it after every tab, so it is always at the end by the vendor's own layout.
-        //    PatchA leaves it unslanted and PatchC draws it as a disc, both because it carries the
-        //    Button flag. The identity is scoped per node so two strips do not collide.
-        ImGui::PushID(static_cast<int>(Node->ID));
-
-        if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
-            Pressed = true;
-
-        ImGui::PopID();
+        // 🔴 NO section flag. `Trailing` right-aligns a button against the bar's far edge — yards from the
+        //    last tab, with the scroll arrows between — and the sheet seats its `addBtn` immediately after
+        //    the tabs. An unflagged button lands in the central section, which flows straight on from the
+        //    last tab, and it scrolls with them.
+        // 📝 The identity is scoped by `DockNodeBeginAmendTabBar`'s own `PushOverrideID(node->ID)`, so two
+        //    strips cannot collide; an extra PushID here would only add a second seed to no purpose.
+        if (ImGui::TabItemButton("+", ImGuiTabItemFlags_NoTooltip))
+        {
+            Pressed    = true;
+            AskingNode = static_cast<std::uint32_t>(Node->ID);
+        }
 
         ImGui::DockNodeEndAmendTabBar();
     }
@@ -482,15 +486,27 @@ void InterfaceExchange::RecordDockSpace(const PlaneExtent& Extent)
     ImGui::PopStyleVar(2);
 }
 
-void InterfaceExchange::RecordWorkspaceWindow(const char* Titled, bool Docked, bool& Standing)
+void InterfaceExchange::RecordWorkspaceWindow(const char*    Titled,
+                                             bool           Docked,
+                                             std::uint32_t  IntoNode,
+                                             bool&          Standing)
 {
     if (ContextSlot == nullptr || !TickOpen || Titled == nullptr)
         return;
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
+    // 🔴 Seated into the node that ASKED for it, not always the main dock space. A workspace enrolled by
+    //    a torn-out float's `+` otherwise appeared in the other window, which is not where the artist
+    //    pressed. Zero means no node was named and the main space is correct.
     if (Docked)
-        ImGui::SetNextWindowDockID(ImGui::GetID("SlateDockSpace"), ImGuiCond_Always);
+    {
+        const ImGuiID Destination = (IntoNode != 0u)
+                                  ? static_cast<ImGuiID>(IntoNode)
+                                  : ImGui::GetID("SlateDockSpace");
+
+        ImGui::SetNextWindowDockID(Destination, ImGuiCond_Always);
+    }
 
     // 🔴 ⚠️ `NoTitleBar` is deliberately NOT set. `GetWindowAlwaysWantOwnTabBar` refuses a tab bar to any
     //    window carrying it, so hiding the caption that way also denied a lone floating workspace the

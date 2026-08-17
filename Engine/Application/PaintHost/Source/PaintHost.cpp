@@ -115,6 +115,9 @@ int main()
     WorkspaceIndex Workspaces;
     WorkspacePanel Workspace;
 
+    // 📝 Which dock node the next enrolled workspace is seated into; zero means the main dock space.
+    std::uint32_t  EnrolIntoNode = 0u;
+
     if (!Workspace.Construct(Viewport.Surface(), Viewport.Appearance()).ContentPresent)
     {
         std::printf("%s \u2014 the workspace panel was refused\n", HostName);
@@ -221,6 +224,12 @@ int main()
             //    then decayed to the same garbage and ImGui reported four conflicting IDs.
             std::uint32_t Withdrawing = OpenCount;
 
+            // 📝 The node the previous tick's `+` named, so the workspace it enrolled is seated into the
+            //    strip the artist actually pressed rather than always into the main dock space.
+            const std::uint32_t SeatInto = EnrolIntoNode;
+
+            EnrolIntoNode = 0u;
+
             for (std::uint32_t Ordinal = 0u; Ordinal < OpenCount; ++Ordinal)
             {
                 const char* Titled = Workspaces.Titled(Ordinal);
@@ -230,7 +239,7 @@ int main()
 
                 bool Standing = true;
 
-                Viewport.Seam().RecordWorkspaceWindow(Titled, !Workspaces.Seated(Ordinal), Standing);
+                Viewport.Seam().RecordWorkspaceWindow(Titled, !Workspaces.Seated(Ordinal), SeatInto, Standing);
                 Workspaces.Seat(Ordinal);
 
                 // ⚠️ Recorded, never acted on inside the sweep. Withdrawing here edits the set being walked.
@@ -243,8 +252,16 @@ int main()
 
             // 📝 The `+`, seated inside the dock node's own tab bar so the vendor lays it after the last
             //    tab — always at the end, by construction rather than by arithmetic.
-            if (Viewport.Seam().RecordWorkspaceAddition(Workspace.Strip(), OpenCount))
+            std::uint32_t AskingNode = 0u;
+
+            if (Viewport.Seam().RecordWorkspaceAddition(Workspace.Strip(), OpenCount, AskingNode))
+            {
+                // 🔴 The asking node is carried to the NEXT tick, because the workspace it enrols is not
+                //    recorded until then. Seating it against the main space instead is what put a new
+                //    workspace in the wrong window.
+                EnrolIntoNode = AskingNode;
                 Disregard(Workspaces.Enrol(DefaultSubject));
+            }
 
             // 🔴 With nothing open there is no tab bar to seat a `+` in, so the empty shell carries the
             //    invitation itself. `WorkspacePanel` draws "CREATE PANEL" on plain black; a press anywhere

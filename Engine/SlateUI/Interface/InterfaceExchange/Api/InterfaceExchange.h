@@ -139,7 +139,8 @@ public:
     ///        `DockNode` to tear it off, float it, and let it be dropped back.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void RecordWorkspaceWindow(const char* Titled, bool Docked, bool& Standing);
+    /// in    IntoNode  [-]  the dock node to seat it into on its first tick; zero means the main space
+    void RecordWorkspaceWindow(const char* Titled, bool Docked, std::uint32_t IntoNode, bool& Standing);
 
     /// 🧩 Whether a dockable workspace window is the one the artist is looking at.
     /// cost  ✔️
@@ -154,7 +155,12 @@ public:
     ///        artist cannot leave, and `DockWorkspace.html` never presents one.
     /// cost  🚩
     /// tag   api, nonthrowing
-    bool RecordWorkspaceAddition(const PlaneExtent& Extent, std::uint32_t OpenCount);
+    /// out   AskingNode [-]  the dock node whose `+` was pressed, or zero when none was
+    /// note  🔴 The node is REPORTED because a workspace must be enrolled into the strip the artist
+    ///        pressed. Returning only "pressed" left the caller seating every new workspace into the main
+    ///        dock space, so a `+` on a torn-out float added its workspace to the other window.
+    bool RecordWorkspaceAddition(const PlaneExtent& Extent, std::uint32_t OpenCount,
+                                 std::uint32_t& AskingNode);
 
     /// 🧩 Whether the artist pressed the empty shell's invitation to create the first workspace.
     /// in    Extent   [px]  the whole shell, which is the invitation's own hit area
