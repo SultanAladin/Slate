@@ -115,7 +115,13 @@ int main()
         if (Lifetime.DisplayRecovered())
         {
             const DeviceOffering Offered = Lifetime.Offering();
-            Viewport.Renegotiate(Offered.MinimumDisplayImageCount, Offered.DisplayImageCount);
+            // 🔴 Read, not discarded. An interface still holding the previous image counts records
+            //    against a chain depth that no longer exists, and the vendor reports that as a
+            //    descriptor mismatch several ticks later rather than as the resize that caused it.
+            if (!Viewport.Renegotiate(Offered.MinimumDisplayImageCount, Offered.DisplayImageCount))
+            {
+                std::printf("%s \u2014 the interface declined the restated image counts\n", HostName);
+            }
         }
 
         if (Pass.Standing != TickStanding::Recording)
@@ -130,13 +136,22 @@ int main()
             Viewport.DrawerPanels();
 
             if (Viewport.SealPanels().ContentPresent)
-                Viewport.Record(Pass.Recording);
+            {
+                // 🔴 Read. A refused Record presents the cleared ground with nothing on it, which is
+                //    indistinguishable from a panel that drew nothing, so the refusal is named here.
+                if (!Viewport.Record(Pass.Recording))
+                {
+                    std::printf("%s \u2014 the interface content was not recorded\n", HostName);
+                }
+            }
             else
-                Viewport.Abandon();
+            {
+                Disregard(Viewport.Abandon());
+            }
         }
         else
         {
-            Viewport.Abandon();
+            Disregard(Viewport.Abandon());
         }
 
         // ⑤ Close the scope, submit, present, advance. A refused present re-establishes the chain rather

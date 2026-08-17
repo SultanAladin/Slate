@@ -468,7 +468,7 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
         //    quarantine like any release, which is correct: nothing was written into it, and the depth costs one
         //    slot for two rotations rather than a rule that has to distinguish an unwritten slot from a written
         //    one.
-        Tiles_.Release(Claimed.Resolve(), RecordingOrdinal);
+        Disregard(Tiles_.Release(Claimed.Resolve(), RecordingOrdinal));
 
         Scheduling.DeferOne();
         return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::Deferred);

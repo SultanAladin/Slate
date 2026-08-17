@@ -1148,8 +1148,8 @@ Deliver<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
     double SkyGreen = 0.0;
     double SkyBlue  = 0.0;
 
-    Atmosphere.SampleSkyView(Reflected.OrdinateX, Reflected.OrdinateY, Reflected.OrdinateZ,
-                             SkyRed, SkyGreen, SkyBlue);
+    Disregard(Atmosphere.SampleSkyView(Reflected.OrdinateX, Reflected.OrdinateY, Reflected.OrdinateZ,
+                             SkyRed, SkyGreen, SkyBlue));
 
     const SpatialSpan Incident0 = NormalIncidence(Resolved);
 
@@ -1227,7 +1227,7 @@ Deliver<bool> ReflectanceIntegrator::IntegrateUnoccupied(const AtmosphereIntegra
     // ⚠️ Without this class nothing in the whole schedule writes the background: every other dispatch is per
     //    material over pixels that resolved to a surface, and an unoccupied pixel resolved to none. The image
     //    would carry a hole exactly where the sky belongs, filled with whatever the cycle slot held before.
-    Atmosphere.SampleSkyView(View.OrdinateX, View.OrdinateY, View.OrdinateZ, Red, Green, Blue);
+    Disregard(Atmosphere.SampleSkyView(View.OrdinateX, View.OrdinateY, View.OrdinateZ, Red, Green, Blue));
 
     return Deliver<bool>::Deliver(true);
 }

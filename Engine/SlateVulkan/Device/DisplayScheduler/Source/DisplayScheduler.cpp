@@ -217,10 +217,10 @@ Deliver<bool> DisplayScheduler::Establish()
     //    declared so that the first chain is the nought-th. The refusal is discarded for `ByteSpace`'s reason.
     const std::uint32_t ChainOrdinal = EstablishedCount++;
 
-    NamingEdge->Declare(VK_OBJECT_TYPE_SWAPCHAIN_KHR,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_SWAPCHAIN_KHR,
                         reinterpret_cast<std::uint64_t>(DisplayChain),
                         "DisplayScheduler presentation chain",
-                        ChainOrdinal);
+                        ChainOrdinal));
 
     std::uint32_t ArrivedCount = 0u;
     vkGetSwapchainImagesKHR(DeviceEdge->ActiveDevice(), DisplayChain, &ArrivedCount, nullptr);
@@ -262,18 +262,18 @@ Deliver<bool> DisplayScheduler::Establish()
         //    because the ordinal a display hands back is not the cycle slot — `Await` takes whichever image the
         //    display releases — so a name carrying only one of the two cannot say which chain a stale view came
         //    from after a resize.
-        NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
+        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
                             reinterpret_cast<std::uint64_t>(ChainViews[ImageOrdinal]),
                             "DisplayScheduler chain view",
-                            ChainOrdinal * ArrivedCount + ImageOrdinal);
+                            ChainOrdinal * ArrivedCount + ImageOrdinal));
 
         // 📝 The image is named although Slate did not create it, which is past what the gate asks. Every layout
         //    transition `08` §3 ⑬ records is reported against the image and never against the view, so an unnamed
         //    one leaves the single most frequent presentation error the one report that carries no name.
-        NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
+        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
                             reinterpret_cast<std::uint64_t>(ChainImages[ImageOrdinal]),
                             "DisplayScheduler chain image",
-                            ChainOrdinal * ArrivedCount + ImageOrdinal);
+                            ChainOrdinal * ArrivedCount + ImageOrdinal));
     }
 
     TakenOrdinal     = AbsentDisplayImage;

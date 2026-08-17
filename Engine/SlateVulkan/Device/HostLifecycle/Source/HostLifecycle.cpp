@@ -133,8 +133,20 @@ bool HostLifecycle::RecoverDisplay()
     //    one copy of it should exist.
     vkDeviceWaitIdle(DeviceEdge.ActiveDevice());
 
-    DisplayChain.Reclaim(Extent.Width, Extent.Height);
+    // 🔴 The re-establishment is READ. A refused Reclaim leaves no chain to acquire from, and reporting a
+    //    recovery that did not happen has the tick loop carry on against a chain that is gone — every
+    //    subsequent acquire refuses and the host presents nothing, with no diagnostic naming the cause.
+    //    Found by [[nodiscard]]: this delivery was discarded.
+    const Deliver<bool> Reestablished = DisplayChain.Reclaim(Extent.Width, Extent.Height);
+
     Surface.AdoptExtent();
+
+    if (!Reestablished.ContentPresent)
+    {
+        Report(Declared.Naming, "the presentation chain could not be re-established");
+        LoopStanding = false;
+        return false;
+    }
 
     DisplayAltered = true;
 

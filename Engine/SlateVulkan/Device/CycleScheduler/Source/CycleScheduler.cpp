@@ -59,20 +59,20 @@ Deliver<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const Di
         //    never arrived and one whose recording never signalled are different defects with different causes,
         //    and the addresses alone say only that the cycle stopped. The refusals are discarded for
         //    `ByteSpace`'s reason.
-        NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
+        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
                             reinterpret_cast<std::uint64_t>(Slot.Completion),
                             "CycleScheduler cycle completion",
-                            SlotOrdinal);
+                            SlotOrdinal));
 
-        NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
+        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
                             reinterpret_cast<std::uint64_t>(Slot.ImageArrived),
                             "CycleScheduler cycle image arrival",
-                            SlotOrdinal);
+                            SlotOrdinal));
 
-        NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
+        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
                             reinterpret_cast<std::uint64_t>(Slot.RecordingDone),
                             "CycleScheduler cycle recording completion",
-                            SlotOrdinal);
+                            SlotOrdinal));
     }
 
     SlotStanding = 0u;

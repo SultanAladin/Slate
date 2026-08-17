@@ -225,16 +225,16 @@ Deliver<bool> AssetInterchange::IntakeTopology(const DecodedTopology& Decoded,
     }
 
     if (!Decoded.CornerCoordinates.empty())
-        Into.DeclareCoordinates(Decoded.CornerCoordinates);
+        Disregard(Into.DeclareCoordinates(Decoded.CornerCoordinates));
 
     if (!Decoded.Perpendiculars.empty())
-        Into.DeclarePerpendiculars(Decoded.Perpendiculars);
+        Disregard(Into.DeclarePerpendiculars(Decoded.Perpendiculars));
 
     if (!Decoded.TangentBases.empty())
-        Into.DeclareTangentBases(Decoded.TangentBases);
+        Disregard(Into.DeclareTangentBases(Decoded.TangentBases));
 
     if (!Decoded.MaterialEnrollment.empty())
-        Into.DeclareMaterialEnrollment(Decoded.MaterialEnrollment);
+        Disregard(Into.DeclareMaterialEnrollment(Decoded.MaterialEnrollment));
 
     const Deliver<bool> Sealed = Into.Seal();
 

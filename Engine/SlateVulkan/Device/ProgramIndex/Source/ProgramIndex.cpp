@@ -222,15 +222,15 @@ Deliver<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& 
     // 📝 🔴 `06` §7's diagnostic-name gate, and named here rather than inside `ReachLayout` because the ordinal
     //    a layout is named by is the program's — the layout is constructed before the program stands and has no
     //    ordinal of its own until this point. The refusals are discarded for `ByteSpace`'s reason.
-    NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
                         reinterpret_cast<std::uint64_t>(Constructed),
                         "ProgramIndex graphics program",
-                        ProgramOrdinal);
+                        ProgramOrdinal));
 
-    NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
                         reinterpret_cast<std::uint64_t>(ReachedLayout),
                         "ProgramIndex graphics reach",
-                        ProgramOrdinal);
+                        ProgramOrdinal));
 
     return Deliver<std::uint32_t>::Deliver(ProgramOrdinal);
 }
@@ -285,15 +285,15 @@ Deliver<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& De
 
     // 📝 🔴 `06` §7's gate, as the graphics route names its two. The ordinal runs across both routes because
     //    `Resolve` addresses one run, so a compute program and a graphics one never share one.
-    NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
                         reinterpret_cast<std::uint64_t>(Constructed),
                         "ProgramIndex compute program",
-                        ProgramOrdinal);
+                        ProgramOrdinal));
 
-    NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
                         reinterpret_cast<std::uint64_t>(ReachedLayout),
                         "ProgramIndex compute reach",
-                        ProgramOrdinal);
+                        ProgramOrdinal));
 
     return Deliver<std::uint32_t>::Deliver(ProgramOrdinal);
 }

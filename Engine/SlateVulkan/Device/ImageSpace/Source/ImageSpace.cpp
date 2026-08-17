@@ -214,15 +214,15 @@ Deliver<ImageClaim> ImageSpace::Claim(const ImageShape& Declared)
     // 📝 🔴 `06` §7's diagnostic-name gate. The image and its whole-image view are separate vendor objects and
     //    are named separately, both by the ordinal the claimant resolves them by. The refusals are discarded
     //    for `ByteSpace`'s reason — an unnamed image is still the image the claimant asked for.
-    NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
                         reinterpret_cast<std::uint64_t>(Arriving),
                         NameOf(Declared.Intent),
-                        Ordinal);
+                        Ordinal));
 
-    NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
                         reinterpret_cast<std::uint64_t>(Whole),
                         "ImageSpace whole-image view",
-                        Ordinal);
+                        Ordinal));
 
     ImageClaim Handed;
     Handed.Extent         = Arriving;
@@ -407,10 +407,10 @@ Deliver<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint
     //    because the chain `16` §2 walks constructs one per level over a single image — an ordinal naming the
     //    image would give every view in the chain one name, and the driver's text could not say which level
     //    the error was raised against.
-    NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
                         reinterpret_cast<std::uint64_t>(Constructed),
                         "ImageSpace level view",
-                        LevelOrdinal);
+                        LevelOrdinal));
 
     return Deliver<VkImageView>::Deliver(Constructed);
 }

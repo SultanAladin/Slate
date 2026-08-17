@@ -828,7 +828,7 @@ void VerifyProperties()
     Albedo.Defaulted.ColourHeld.BlueCoordinate  = 0.5;
     Albedo.Defaulted.ColourHeld.SpaceIdentity   = Slate::WorkingSpaceIdentity;
 
-    Properties.Declare(Albedo);
+    Disregard(Properties.Declare(Albedo));
 
     Slate::PropertyValue Spaceless;
     Spaceless.Measured                  = Slate::PropertyMeasure::Colour;
@@ -850,7 +850,7 @@ void VerifyProperties()
         && !Properties.Resolve("Absent").ContentPresent,
            "[-] nothing declares it");
 
-    Properties.Reclaim("Roughness");
+    Disregard(Properties.Reclaim("Roughness"));
 
     Report("Reclamation restores the default",
            Properties.Resolve("Roughness").Resolve().MagnitudeHeld == 0.5
@@ -885,7 +885,7 @@ void VerifyDocument()
            Population.Resolve(Enrolled),
            "[-] the generation still occupies the slot");
 
-    Population.Withdraw(Enrolled);
+    Disregard(Population.Withdraw(Enrolled));
 
     Report("Withdrawal advances the generation",
            !Population.Resolve(Enrolled),
@@ -913,7 +913,7 @@ void VerifyDocument()
            !Revisions.Open("", "PaintStroke").ContentPresent,
            "[-] one transaction is open at a time");
 
-    Revisions.Seal(1000000000ull, false);
+    Disregard(Revisions.Seal(1000000000ull, false));
 
     Report("A sealed transaction enters", Revisions.Committed().size() == 1u, "[-] exactly one");
 
@@ -1217,7 +1217,7 @@ void VerifyParity()
     UncomparedEntry.EntryName = "ProjectOutlineCoverage";
     UncomparedEntry.Claimed   = Slate::PrecisionGuarantee::Bounded;
 
-    VacantRunner.Register(UncomparedEntry);
+    Disregard(VacantRunner.Register(UncomparedEntry));
     VacantRunner.Compare();
 
     Report("An uncompared entry point does not hold",
@@ -1259,8 +1259,8 @@ void VerifyAtmosphere()
            !Atmosphere.DeclareMedium(Sizeless).ContentPresent,
            "[-] the tent must stand somewhere");
 
-    Atmosphere.DeclareSun(0.0, 0.3, -0.95);
-    Atmosphere.DeclareCameraAltitude(1000.0);
+    Disregard(Atmosphere.DeclareSun(0.0, 0.3, -0.95));
+    Disregard(Atmosphere.DeclareCameraAltitude(1000.0));
 
     Report("A rebuild is owed",
            Atmosphere.RebuildOwed(),
@@ -1279,13 +1279,13 @@ void VerifyAtmosphere()
         && Atmosphere.MediumRebuildCount() == 1u,
            "[-] the count is the proof, not the words");
 
-    Atmosphere.DeclareSun(0.0, 0.3000001, -0.95);
+    Disregard(Atmosphere.DeclareSun(0.0, 0.3000001, -0.95));
 
     Report("An immaterial sun move rebuilds nothing",
            !Atmosphere.RebuildOwed(),
            "[-] below `SunDirectionMateriality`");
 
-    Atmosphere.DeclareSun(0.0, 1.0, 0.0);
+    Disregard(Atmosphere.DeclareSun(0.0, 1.0, 0.0));
 
     Report("A material sun move owes ③ alone",
            Atmosphere.RebuildOwed()
@@ -1303,8 +1303,8 @@ void VerifyAtmosphere()
     double AfterGreen  = 0.0;
     double AfterBlue   = 0.0;
 
-    Atmosphere.SampleSkyView(std::cos(Seam), 0.1, std::sin(Seam), BeforeRed, BeforeGreen, BeforeBlue);
-    Atmosphere.SampleSkyView(std::cos(-Seam), 0.1, std::sin(-Seam), AfterRed, AfterGreen, AfterBlue);
+    Disregard(Atmosphere.SampleSkyView(std::cos(Seam), 0.1, std::sin(Seam), BeforeRed, BeforeGreen, BeforeBlue));
+    Disregard(Atmosphere.SampleSkyView(std::cos(-Seam), 0.1, std::sin(-Seam), AfterRed, AfterGreen, AfterBlue));
 
     Report("The azimuth wrap carries no seam",
            std::fabs(BeforeRed - AfterRed) < 1.0e-3,
@@ -1314,7 +1314,7 @@ void VerifyAtmosphere()
     double OccludedGreen = 0.0;
     double OccludedBlue  = 0.0;
 
-    Atmosphere.SampleTransmittance(0.0, -1.0, OccludedRed, OccludedGreen, OccludedBlue);
+    Disregard(Atmosphere.SampleTransmittance(0.0, -1.0, OccludedRed, OccludedGreen, OccludedBlue));
 
     Report("The sun below the horizon is occluded",
            OccludedRed == 0.0,
@@ -1324,7 +1324,7 @@ void VerifyAtmosphere()
     double ZenithGreen = 0.0;
     double ZenithBlue  = 0.0;
 
-    Atmosphere.SampleTransmittance(0.0, 1.0, ZenithRed, ZenithGreen, ZenithBlue);
+    Disregard(Atmosphere.SampleTransmittance(0.0, 1.0, ZenithRed, ZenithGreen, ZenithBlue));
 
     std::printf("  🔍 zenith %.9f %.9f %.9f | rayleigh %.6e %.6e %.6e | ozone %.6e %.6e %.6e | mie %.6e\n",
                 ZenithRed, ZenithGreen, ZenithBlue,
@@ -1356,13 +1356,13 @@ void VerifyAtmosphere()
     Floor.RedCoordinate = 0.02;
     Floor.SpaceIdentity = Slate::WorkingSpaceIdentity;
 
-    Atmosphere.DeclareConstantFloor(Floor);
+    Disregard(Atmosphere.DeclareConstantFloor(Floor));
 
     double FloorRed   = 0.0;
     double FloorGreen = 0.0;
     double FloorBlue  = 0.0;
 
-    Atmosphere.SampleSkyView(0.0, 1.0, 0.0, FloorRed, FloorGreen, FloorBlue);
+    Disregard(Atmosphere.SampleSkyView(0.0, 1.0, 0.0, FloorRed, FloorGreen, FloorBlue));
 
     Report("A disabled atmosphere resolves to the floor",
            FloorRed == 0.02,
@@ -1390,14 +1390,14 @@ void VerifyTopology()
     Positions[4].PositionX = 1.0;  Positions[4].PositionY = 0.0;   // duplicate of vertex 1
     Positions[5].PositionX = 2.0;  Positions[5].PositionY = 0.0;
 
-    Imported.DeclarePositions(Positions);
+    Disregard(Imported.DeclarePositions(Positions));
 
     Report("A run of two corners is refused",
            !Imported.DeclareFace({ 0u, 1u }).ContentPresent,
            "[-] fewer than three corners is not a face");
 
-    Imported.DeclareFace({ 0u, 1u, 2u, 3u });
-    Imported.DeclareFace({ 4u, 5u, 2u });
+    Disregard(Imported.DeclareFace({ 0u, 1u, 2u, 3u }));
+    Disregard(Imported.DeclareFace({ 4u, 5u, 2u }));
 
     Report("An unsealed topology refuses conditioning",
            !Slate::TopologyConditioning{}.Condition(Imported).ContentPresent,
@@ -1519,7 +1519,7 @@ void VerifyMaterials()
     Slate::ChannelSpecification Sheen = Occlusion;
     Sheen.Source = Slate::ChannelSource::Layered;
 
-    Amending->DeclareChannel(Slate::ChannelSubject::SheenRoughness, Sheen);
+    Disregard(Amending->DeclareChannel(Slate::ChannelSubject::SheenRoughness, Sheen));
     Amending->DeclareReflectance(Slate::ReflectanceSelection::Standard);
 
     Report("An unconsumed channel is not sampled",
@@ -1798,8 +1798,8 @@ void VerifyCamera()
     Distant.Placement.Translation.PositionZ = 10.0;
 
     Slate::CameraProjection DistantCamera;
-    DistantCamera.Declare(CameraOccupant, Distant);
-    DistantCamera.Reconcile();
+    Disregard(DistantCamera.Declare(CameraOccupant, Distant));
+    Disregard(DistantCamera.Reconcile());
 
     Slate::DocumentPosition DistantLeast;
     DistantLeast.PositionX = 1.0e9 - 1.0;  DistantLeast.PositionY = -1.0;  DistantLeast.PositionZ = -1.0;
@@ -1822,7 +1822,7 @@ void VerifyCamera()
            "[-] one gesture at a time");
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 50u; ++Ordinal)
-        Navigating.Amend(4.0, 0.0);
+        Disregard(Navigating.Amend(4.0, 0.0));
 
     const Slate::Deliver<Slate::CameraSpecification> Sealed = Navigating.Seal();
 
@@ -1837,8 +1837,8 @@ void VerifyCamera()
     Report("A gesture Seals once", !Navigating.GestureOpen(), "[-] and nothing between Open and Seal recorded");
 
     Slate::NavigationSequence Abandoning;
-    Abandoning.Open(Slate::NavigationSubject::Pan, Declaring);
-    Abandoning.Amend(100.0, 100.0);
+    Disregard(Abandoning.Open(Slate::NavigationSubject::Pan, Declaring));
+    Disregard(Abandoning.Amend(100.0, 100.0));
 
     const Slate::Deliver<Slate::CameraSpecification> Restored = Abandoning.Abandon();
 
@@ -1945,7 +1945,7 @@ void VerifyIlluminants()
     Warm.TemperatureDeclared             = true;
     Warm.Temperature                     = 5600.0;
 
-    Illuminants.Declare(ThirdOccupant, Warm);
+    Disregard(Illuminants.Declare(ThirdOccupant, Warm));
 
     Report("A temperature is retained as authored",
            Illuminants.Resolve(ThirdOccupant).Resolve().Temperature == 5600.0,
@@ -1985,7 +1985,7 @@ void VerifyIlluminants()
 
     Slate::IlluminantSpecification Brighter = Declaring;
     Brighter.RadiantIntensity               = 40.0;
-    Illuminants.Amend(FirstOccupant, Brighter);
+    Disregard(Illuminants.Amend(FirstOccupant, Brighter));
 
     Slate::IlluminantIndex Reach;
 
@@ -2045,12 +2045,12 @@ void VerifySubdivision()
     Positions[2].PositionX =  1.0;  Positions[2].PositionY =  1.0;
     Positions[3].PositionX = -1.0;  Positions[3].PositionY =  1.0;
 
-    Imported.DeclarePositions(Positions);
-    Imported.DeclareFace({ 0u, 1u, 2u, 3u });
-    Imported.Seal();
+    Disregard(Imported.DeclarePositions(Positions));
+    Disregard(Imported.DeclareFace({ 0u, 1u, 2u, 3u }));
+    Disregard(Imported.Seal());
 
     Slate::TopologyConditioning Conditioned;
-    Conditioned.Condition(Imported);
+    Disregard(Conditioned.Condition(Imported));
 
     Slate::BoundingStructure Inner;
 
@@ -2061,9 +2061,9 @@ void VerifySubdivision()
     // 🔴 The revision gate: a conditioning describing a different seal indexes faces that have moved. A second
     //    topology, sealed separately — not the same one resealed, which is idempotent and issues nothing.
     Slate::TopologyStructure Reimported;
-    Reimported.DeclarePositions(Positions);
-    Reimported.DeclareFace({ 0u, 1u, 2u });
-    Reimported.Seal();
+    Disregard(Reimported.DeclarePositions(Positions));
+    Disregard(Reimported.DeclareFace({ 0u, 1u, 2u }));
+    Disregard(Reimported.Seal());
 
     Slate::BoundingStructure Mismatched;
 
@@ -2118,7 +2118,7 @@ void VerifySubdivision()
            !Outer.Admit(Slate::AdmittedOccupant{}).ContentPresent,
            "[-] an undeclared identity occupies nothing");
 
-    Outer.Construct();
+    Disregard(Outer.Construct());
 
     Report("Construction discharges the debt", !Outer.ConstructionOwed(), "[-] the shape is current");
 
@@ -2134,20 +2134,20 @@ void VerifySubdivision()
            "[mm] `78`'s manipulator plane reads this");
 
     // 🔴 `40` §3: exclusion is tested before descent, so a locked occupant is never traversed at all.
-    Subsets.Enrol(Admitting.Occupant, Slate::SubsetSubject::Lock);
+    Disregard(Subsets.Enrol(Admitting.Occupant, Slate::SubsetSubject::Lock));
 
     Report("A locked occupant is not traversed",
            !Outer.IntersectRay(RayOrigin, 0.0, 0.0, -1.0, Subsets).Resolved,
            "[-] excluded before descent, never after");
 
-    Subsets.Unenrol(Admitting.Occupant, Slate::SubsetSubject::Lock);
-    Subsets.Enrol(Admitting.Occupant, Slate::SubsetSubject::VisibilityExclusion);
+    Disregard(Subsets.Unenrol(Admitting.Occupant, Slate::SubsetSubject::Lock));
+    Disregard(Subsets.Enrol(Admitting.Occupant, Slate::SubsetSubject::VisibilityExclusion));
 
     Report("A hidden occupant is not traversed",
            !Outer.IntersectRay(RayOrigin, 0.0, 0.0, -1.0, Subsets).Resolved,
            "[-] the same test, the same cost");
 
-    Subsets.Unenrol(Admitting.Occupant, Slate::SubsetSubject::VisibilityExclusion);
+    Disregard(Subsets.Unenrol(Admitting.Occupant, Slate::SubsetSubject::VisibilityExclusion));
 
     // 🔴 The property the two levels exist for: an occupant move is a refit, and the inner structure is untouched.
     Slate::DecomposedTransform Moved;
@@ -2201,9 +2201,9 @@ void VerifySubdivision()
     Report("A locked occupant is absent from a marquee",
            [&]
            {
-               Subsets.Enrol(Admitting.Occupant, Slate::SubsetSubject::Lock);
+               Disregard(Subsets.Enrol(Admitting.Occupant, Slate::SubsetSubject::Lock));
                const bool Empty = Outer.IntersectExtent(Marquee, false, Subsets).empty();
-               Subsets.Unenrol(Admitting.Occupant, Slate::SubsetSubject::Lock);
+               Disregard(Subsets.Unenrol(Admitting.Occupant, Slate::SubsetSubject::Lock));
                return Empty;
            }(),
            "[-] the same exclusion, the same place");
@@ -2272,7 +2272,7 @@ void VerifyPartition()
         }
     }
 
-    Imported.DeclarePositions(Positions);
+    Disregard(Imported.DeclarePositions(Positions));
 
     for (std::uint32_t Across = 0u; Across < 3u; ++Across)
     {
@@ -2280,14 +2280,14 @@ void VerifyPartition()
         {
             const std::uint32_t Corner = Across * 4u + Along;
 
-            Imported.DeclareFace({ Corner, Corner + 1u, Corner + 5u, Corner + 4u });
+            Disregard(Imported.DeclareFace({ Corner, Corner + 1u, Corner + 5u, Corner + 4u }));
         }
     }
 
-    Imported.Seal();
+    Disregard(Imported.Seal());
 
     Slate::TopologyConditioning Conditioned;
-    Conditioned.Condition(Imported);
+    Disregard(Conditioned.Condition(Imported));
 
     Slate::SeamSpecification Seams;
 
@@ -2344,9 +2344,9 @@ void VerifyPartition()
            "[-] area and angle, never one number for both");
 
     // 🔴 The seam is what cuts, and it is over welded positions rather than imported vertices.
-    Seams.DeclareAuthored(1u, 5u);
-    Seams.DeclareAuthored(5u, 9u);
-    Seams.DeclareAuthored(9u, 13u);
+    Disregard(Seams.DeclareAuthored(1u, 5u));
+    Disregard(Seams.DeclareAuthored(5u, 9u));
+    Disregard(Seams.DeclareAuthored(9u, 13u));
 
     const Slate::Deliver<Slate::DerivedPartition> Cut =
         Slate::Derive(Imported, Conditioned, Seams, Declaring, Posed, Progressed);
@@ -2371,7 +2371,7 @@ void VerifyPartition()
            "[-] what `24` §3 keys on and `20` promotes against");
 
     const std::uint64_t BeforeSecond = Standing.Revision();
-    Standing.Adopt(Derived.Resolve());
+    Disregard(Standing.Adopt(Derived.Resolve()));
 
     Report("A re-partition advances it again",
            Standing.Revision() > BeforeSecond,
@@ -2458,7 +2458,7 @@ void VerifyPartition()
            [&]
            {
                Slate::DomainSpace Repeated;
-               Repeated.Arrange(Extents, true);
+               Disregard(Repeated.Arrange(Extents, true));
                return Repeated.SettledScale() == Arranged.SettledScale();
            }(),
            "[-] bit for bit; the shelf order is scale-invariant");
@@ -2561,7 +2561,7 @@ void VerifyIntake()
     Scaled.UnitScaleDeclared      = true;
 
     Slate::TopologyStructure ScaledInto;
-    Interchange.IntakeTopology(Scaled, ScaledInto, Recorded);
+    Disregard(Interchange.IntakeTopology(Scaled, ScaledInto, Recorded));
 
     Report("Unit scale is applied once, at intake",
            ScaledInto.Positions()[1].PositionX == 10.0,
@@ -2622,7 +2622,7 @@ void VerifyIntake()
     Albedo.ConstantColour.SpaceIdentity = Slate::WorkingSpaceIdentity;
     Albedo.DefaultColour.SpaceIdentity  = Slate::WorkingSpaceIdentity;
 
-    Materials.Amend(MaterialOrdinal).Resolve()->DeclareChannel(Slate::ChannelSubject::AlbedoColour, Albedo);
+    Disregard(Materials.Amend(MaterialOrdinal).Resolve()->DeclareChannel(Slate::ChannelSubject::AlbedoColour, Albedo));
 
     Slate::EmissionSpecification Emitting;
 
@@ -2689,7 +2689,7 @@ void VerifyIntake()
     Refusing.UnsupportedNamed.push_back("animation track");
 
     Slate::TopologyStructure RefusingInto;
-    Interchange.IntakeTopology(Refusing, RefusingInto, Recorded);
+    Disregard(Interchange.IntakeTopology(Refusing, RefusingInto, Recorded));
 
     Report("An unsupported construct is named at intake",
            Interchange.Unsupported().size() == 1u,
@@ -2768,9 +2768,9 @@ void VerifyStroke()
     Shape.Source  = Slate::ShapeSource::Analytic;
     Shape.Profile = Slate::ProfileSubject::Linear;
 
-    Brush.DeclareShape(Shape);
-    Brush.DeclareExtent(0.1);
-    Brush.DeclareSpacing(0.25);
+    Disregard(Brush.DeclareShape(Shape));
+    Disregard(Brush.DeclareExtent(0.1));
+    Disregard(Brush.DeclareSpacing(0.25));
 
     Slate::BrushChannelValue Albedo;
     Albedo.Channel                     = Slate::ChannelSubject::AlbedoColour;
@@ -2827,7 +2827,7 @@ void VerifyStroke()
     Beginning.PositionAcross        = 0.5;
     Beginning.Arriving.Arrival      = StrokeTimeline.Advance();
 
-    Stroke.Amend(Beginning);
+    Disregard(Stroke.Amend(Beginning));
 
     Report("The first arrival places an impression",
            Stroke.ImpressionCount() == 1u,
@@ -2837,7 +2837,7 @@ void VerifyStroke()
     Ending.PositionAlong        = 0.7;
     Ending.Arriving.Arrival     = StrokeTimeline.Advance();
 
-    Stroke.Amend(Ending);
+    Disregard(Stroke.Amend(Ending));
 
     Report("The path resamples at the brush's spacing",
            Stroke.ImpressionCount() == 17u,
@@ -2855,14 +2855,14 @@ void VerifyStroke()
     Left.SurfaceResolved   = false;
     Left.Arriving.Arrival  = StrokeTimeline.Advance();
 
-    Stroke.Amend(Left);
+    Disregard(Stroke.Amend(Left));
 
     Slate::StrokeArrival Returned = Beginning;
     Returned.PositionAlong        = 0.1;
     Returned.PositionAcross       = 0.1;
     Returned.Arriving.Arrival     = StrokeTimeline.Advance();
 
-    Stroke.Amend(Returned);
+    Disregard(Stroke.Amend(Returned));
 
     Report("A broken path interpolates nothing",
            Stroke.ImpressionCount() == BeforeBreak,
@@ -2937,8 +2937,8 @@ void VerifyStroke()
 
     Slate::ImpressionSequence Deferred;
 
-    Deferred.Open(Deferring, Brush);
-    Deferred.Amend(Beginning);
+    Disregard(Deferred.Open(Deferring, Brush));
+    Disregard(Deferred.Amend(Beginning));
 
     const std::uint64_t DemandedBefore = Requesting.RecordedCount();
 
@@ -2969,9 +2969,9 @@ void VerifyStroke()
 
     Slate::ImpressionSequence Preview;
 
-    Preview.Open(Previewing, Brush);
-    Preview.Amend(Beginning);
-    Preview.Resolve(Residency, Requesting, 3u);
+    Disregard(Preview.Open(Previewing, Brush));
+    Disregard(Preview.Amend(Beginning));
+    Disregard(Preview.Resolve(Residency, Requesting, 3u));
 
     Report("A speculative extent pins nothing",
            Preview.Accumulation().ClaimedCount() != 0u && Residency.Cells().UncommittedCount() == 0u,
@@ -3006,8 +3006,8 @@ void VerifyPointer()
     Positions[2].PositionX =  1.0;  Positions[2].PositionY =  1.0;
     Positions[3].PositionX = -1.0;  Positions[3].PositionY =  1.0;
 
-    Imported.DeclarePositions(Positions);
-    Imported.DeclareFace({ 0u, 1u, 2u, 3u });
+    Disregard(Imported.DeclarePositions(Positions));
+    Disregard(Imported.DeclareFace({ 0u, 1u, 2u, 3u }));
 
     std::vector<Slate::DomainCoordinate> Coordinates(4);
     Coordinates[0].CoordinateAlong = 0.0f;  Coordinates[0].CoordinateAcross = 0.0f;
@@ -3015,14 +3015,14 @@ void VerifyPointer()
     Coordinates[2].CoordinateAlong = 1.0f;  Coordinates[2].CoordinateAcross = 1.0f;
     Coordinates[3].CoordinateAlong = 0.0f;  Coordinates[3].CoordinateAcross = 1.0f;
 
-    Imported.DeclareCoordinates(Coordinates);
-    Imported.Seal();
+    Disregard(Imported.DeclareCoordinates(Coordinates));
+    Disregard(Imported.Seal());
 
     Slate::TopologyConditioning Conditioned;
-    Conditioned.Condition(Imported);
+    Disregard(Conditioned.Condition(Imported));
 
     Slate::BoundingStructure Inner;
-    Inner.Construct(Imported, Conditioned);
+    Disregard(Inner.Construct(Imported, Conditioned));
 
     Slate::OccupantIdentity Subject;
     Subject.SlotOrdinal    = 5u;
@@ -3034,8 +3034,8 @@ void VerifyPointer()
     Admitting.Extent   = Inner.Extent();
 
     Slate::OctantSpace Outer;
-    Outer.Admit(Admitting);
-    Outer.Construct();
+    Disregard(Outer.Admit(Admitting));
+    Disregard(Outer.Construct());
 
     Report("The subdivision surrenders its record",
            Outer.Standing(Subject).ContentPresent
@@ -3052,13 +3052,13 @@ void VerifyPointer()
     CameraOccupant.SlotOrdinal    = 3u;
     CameraOccupant.SlotGeneration = 1u;
 
-    Camera.Declare(CameraOccupant, Declaring);
+    Disregard(Camera.Declare(CameraOccupant, Declaring));
 
     Report("An unreconciled camera refuses a ray",
            !Slate::ProjectPointerRay(Camera, 256.0, 256.0, 512u, 512u).ContentPresent,
            "[-] the standing projection is stale");
 
-    Camera.Reconcile();
+    Disregard(Camera.Reconcile());
 
     const Slate::Deliver<Slate::ProjectedRay> Centred =
         Slate::ProjectPointerRay(Camera, 256.0, 256.0, 512u, 512u);
@@ -3117,7 +3117,7 @@ void VerifyPointer()
     Placing.PlacingTransform.ScaleX                = 0.4;
     Placing.PlacingTransform.ScaleY                = 0.4;
 
-    Declared.Declare(Placing);
+    Disregard(Declared.Declare(Placing));
 
     const Slate::ResolvedPointer Met =
         Picking.Resolve(Centred.Resolve(), Outer, Subsets, Declared);
@@ -3172,14 +3172,14 @@ void VerifyPointer()
            Cornered.empty(),
            "[-] classified exactly against the six planes, not against the bound");
 
-    Subsets.Enrol(Subject, Slate::SubsetSubject::Lock);
+    Disregard(Subsets.Enrol(Subject, Slate::SubsetSubject::Lock));
 
     Report("A locked occupant is neither picked nor enrolled",
            !Picking.Resolve(Centred.Resolve(), Outer, Subsets, Declared).Resolved
         && Picking.ResolveExtent(Camera, 0.0, 0.0, 512.0, 512.0, 512u, 512u, false, Outer, Subsets).empty(),
            "[-] excluded before descent — `40` §3");
 
-    Subsets.Unenrol(Subject, Slate::SubsetSubject::Lock);
+    Disregard(Subsets.Unenrol(Subject, Slate::SubsetSubject::Lock));
 
     Report("Withdrawal removes the sources",
            Picking.Withdraw(Subject).ContentPresent && Picking.AdmittedCount() == 0u,
@@ -3213,7 +3213,7 @@ void VerifyTools()
     Strength.Defaulted.Measured       = Slate::PropertyMeasure::Magnitude;
     Strength.Defaulted.MagnitudeHeld  = 1.0;
 
-    Painting.Parameters.Declare(Strength);
+    Disregard(Painting.Parameters.Declare(Strength));
 
     const Slate::Deliver<std::uint32_t> Declared = Held.Tools().Declare(Painting);
 

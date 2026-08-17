@@ -94,10 +94,10 @@ Deliver<std::uint32_t> DescriptorIndex::Declare(const std::vector<DescriptorSlot
 
     // 📝 🔴 `06` §7's diagnostic-name gate. The refusal is discarded for `ByteSpace`'s reason — a layout that
     //    stands and could not be named is still the layout every program is constructed against.
-    NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
                         reinterpret_cast<std::uint64_t>(Arriving.Constructed),
                         "DescriptorIndex layout",
-                        LayoutOrdinal);
+                        LayoutOrdinal));
 
     return Deliver<std::uint32_t>::Deliver(LayoutOrdinal);
 }
@@ -171,9 +171,9 @@ Deliver<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
 
     // 📝 🔴 `06` §7's gate. Named by the two-operand form and carrying no ordinal, because there is exactly one
     //    descriptor extent for the engine's whole life and an ordinal on a single object reads as one of many.
-    NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_POOL,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_POOL,
                         reinterpret_cast<std::uint64_t>(DescriptorExtent),
-                        "DescriptorIndex descriptor extent");
+                        "DescriptorIndex descriptor extent"));
 
     return Deliver<bool>::Deliver(true);
 }
@@ -222,10 +222,10 @@ Deliver<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
     //    defect the depth exists to catch.
     for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
     {
-        NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET,
+        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET,
                             reinterpret_cast<std::uint64_t>(Arriving.PerSlot[SlotOrdinal]),
                             "DescriptorIndex set",
-                            ClaimOrdinal * RecordingSlotCount + SlotOrdinal);
+                            ClaimOrdinal * RecordingSlotCount + SlotOrdinal));
     }
 
     return Deliver<std::uint32_t>::Deliver(ClaimOrdinal);

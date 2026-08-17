@@ -27,12 +27,12 @@ Deliver<OccupantIdentity> OutlinerSequence::Enrol(const std::string& DeclaredNam
     {
         // 📝 The slot is withdrawn again rather than left enrolled in a population the relations do not hold.
         //    A slot present in one and absent from the other is invariant 6 broken at the moment of arrival.
-        Population.Withdraw(Arriving);
+        Disregard(Population.Withdraw(Arriving));
         return Deliver<OccupantIdentity>::Refuse(Admitted.Declined);
     }
 
     if (!DeclaredName.empty())
-        NameSearch.Declare(Arriving, DeclaredName);
+        Disregard(NameSearch.Declare(Arriving, DeclaredName));
 
     const std::size_t Required = static_cast<std::size_t>(Arriving.SlotOrdinal) + 1u;
 
@@ -400,7 +400,7 @@ Deliver<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     // ② Reconcile the population — retire the slots whose generation this tick advanced.
     for (const OccupantIdentity& Departing : WithdrawnOccupants)
     {
-        Population.Withdraw(Departing);
+        Disregard(Population.Withdraw(Departing));
 
         if (Departing.SlotOrdinal < LiveGenerations.size())
             LiveGenerations[Departing.SlotOrdinal] = 0u;
@@ -450,7 +450,7 @@ Deliver<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     //    carries its own name, so nothing here consults a run ① has already cleared.
     for (const DeclaredIntent& Naming : RenamedDeclarations)
     {
-        NameSearch.Declare(Naming.Subject, Naming.DeclaredName);
+        Disregard(NameSearch.Declare(Naming.Subject, Naming.DeclaredName));
         NarrowingOwed = true;
     }
 

@@ -163,7 +163,7 @@ Deliver<bool> EnrollmentIndex::Unenrol(OccupantIdentity Subject, SubsetSubject E
 void EnrollmentIndex::UnenrolEverywhere(OccupantIdentity Subject)
 {
     for (std::uint32_t Ordinal = 0u; Ordinal < static_cast<std::uint32_t>(SubsetSubject::SubsetCount); ++Ordinal)
-        Unenrol(Subject, static_cast<SubsetSubject>(Ordinal));
+        Disregard(Unenrol(Subject, static_cast<SubsetSubject>(Ordinal)));
 }
 
 //------------------------------------------------------------------------------------------------------------------------

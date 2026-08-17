@@ -61,15 +61,15 @@ Deliver<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const D
 
         // 📝 🔴 `06` §7's diagnostic-name gate. The refusals are discarded for `ByteSpace`'s reason — a slot
         //    that stands and could not be named is still the slot the rotation records into.
-        NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_POOL,
+        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_POOL,
                             reinterpret_cast<std::uint64_t>(Slot.RecordingExtent),
                             "CommandSequence rotation extent",
-                            SlotOrdinal);
+                            SlotOrdinal));
 
-        NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_BUFFER,
+        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_BUFFER,
                             reinterpret_cast<std::uint64_t>(Slot.Primary),
                             "CommandSequence rotation recording",
-                            SlotOrdinal);
+                            SlotOrdinal));
     }
 
     // 📝 The immediate extent is reset per use and therefore declares the resettable arrangement its slots do
@@ -85,9 +85,9 @@ Deliver<bool> CommandSequence::Construct(const VulkanExchange& Exchange, const D
 
     // 📝 🔴 `06` §7's gate, by the two-operand form: there is one immediate extent and an ordinal on a single
     //    object reads as one of a set.
-    NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_POOL,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_POOL,
                         reinterpret_cast<std::uint64_t>(ImmediateExtent),
-                        "CommandSequence immediate extent");
+                        "CommandSequence immediate extent"));
 
     return Deliver<bool>::Deliver(true);
 }
@@ -239,9 +239,9 @@ Deliver<VkCommandBuffer> CommandSequence::OpenImmediate()
 
     // 📝 🔴 `06` §7's gate reaches the immediate recording too, and carries no ordinal because this path holds
     //    one at a time — `SurrenderImmediate` waits for it and returns it before bring-up asks for the next.
-    NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_BUFFER,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_COMMAND_BUFFER,
                         reinterpret_cast<std::uint64_t>(Arriving),
-                        "CommandSequence immediate recording");
+                        "CommandSequence immediate recording"));
 
     return Deliver<VkCommandBuffer>::Deliver(Arriving);
 }
@@ -279,9 +279,9 @@ Deliver<bool> CommandSequence::SurrenderImmediate(VkCommandBuffer Recorded)
     // 📝 🔴 `06` §7's gate. Named although it is destroyed a few lines below, because the report that matters
     //    here is the one raised **while** it stands — a device lost inside the wait names this point, and an
     //    unnamed one makes that report the only place in the ordering the reader cannot attribute.
-    NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
                         reinterpret_cast<std::uint64_t>(Completion),
-                        "CommandSequence immediate completion");
+                        "CommandSequence immediate completion"));
 
     VkSubmitInfo SurrenderDeclaration       = {};
     SurrenderDeclaration.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;

@@ -316,7 +316,7 @@ Deliver<bool> FileInterchange::WriteStream(const std::string& Path, const std::v
 
     if (Landed != Content.size())
     {
-        Reclaim(Staged);
+        Disregard(Reclaim(Staged));
         return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream declined the write" });
     }
 
@@ -327,13 +327,13 @@ Deliver<bool> FileInterchange::WriteStream(const std::string& Path, const std::v
 
     if (!Verified.ContentPresent)
     {
-        Reclaim(Staged);
+        Disregard(Reclaim(Staged));
         return Deliver<bool>::Refuse(Verified.Declined);
     }
 
     if (Verified.Resolve() != Content)
     {
-        Reclaim(Staged);
+        Disregard(Reclaim(Staged));
         return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted,
                                        "what landed differs from what was written; the original stands" });
     }
@@ -354,7 +354,7 @@ Deliver<bool> FileInterchange::WriteStream(const std::string& Path, const std::v
 
     if (std::rename(Staged.c_str(), Path.c_str()) != 0)
     {
-        Reclaim(Staged);
+        Disregard(Reclaim(Staged));
         return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the verified stream could not replace the target" });
     }
 

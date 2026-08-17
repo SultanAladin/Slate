@@ -168,10 +168,10 @@ Deliver<SpanClaim> SpanSpace::Claim(const SpanShape& Declared)
     // 📝 🔴 `06` §7's diagnostic-name gate, named by the ordinal the claimant resolves the span by. The
     //    refusal is discarded for `ByteSpace`'s reason — a span that stands and could not be named is still
     //    the span the claimant asked for.
-    NamingEdge->Declare(VK_OBJECT_TYPE_BUFFER,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_BUFFER,
                         reinterpret_cast<std::uint64_t>(Arriving),
                         NameOf(Declared.Intent),
-                        SpanOrdinal);
+                        SpanOrdinal));
 
     SpanClaim Claimed;
     Claimed.Extent      = Arriving;

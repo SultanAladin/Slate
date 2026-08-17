@@ -161,11 +161,11 @@ Deliver<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkD
     // 📝 🔴 `06` §7's diagnostic-name gate. The refusal is discarded deliberately: an extent that stands and
     //    could not be named is still an extent every later claim is sliced from, and refusing the allocation
     //    over a name would make the diagnostic capability a requirement for drawing anything.
-    NamingEdge->Declare(VK_OBJECT_TYPE_DEVICE_MEMORY,
+    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_DEVICE_MEMORY,
                         reinterpret_cast<std::uint64_t>(Arriving.DeviceExtent),
                         Residency == ExtentResidency::DeviceLocal ? "ByteSpace device-local extent"
                                                                   : "ByteSpace host-writable extent",
-                        ExtentOrdinal);
+                        ExtentOrdinal));
 
     return Deliver<std::uint32_t>::Deliver(ExtentOrdinal);
 }

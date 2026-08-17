@@ -505,7 +505,7 @@ Deliver<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
             // ⚠️ A speculative extent never declares it — `22` §4.1. A brush preview that pinned every tile the
             //    cursor passed over would exhaust residency while the artist painted nothing.
             if (!Declared.Speculative)
-                Residency.DeclareUncommitted(CellOrdinal.Resolve(), true);
+                Disregard(Residency.DeclareUncommitted(CellOrdinal.Resolve(), true));
 
             Accumulated.Accumulate(TileOrdinal.Resolve(),
                                    static_cast<std::uint32_t>(Along)  % CoverageTileTexels,
@@ -568,7 +568,7 @@ void ImpressionSequence::Abandon(SurfaceTileSpace& Residency)
     if (!Declared.Speculative)
     {
         for (const std::uint32_t CellOrdinal : Accumulated.TouchedCells())
-            Residency.DeclareUncommitted(CellOrdinal, false);
+            Disregard(Residency.DeclareUncommitted(CellOrdinal, false));
     }
 
     Accumulated.Reclaim();
@@ -736,7 +736,7 @@ Deliver<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
         // 🔴 Withdrawn here rather than after the transaction seals. `20` §5: at this point the paint is in `56`
         //    and the tile is a projection of it again, so the tile is evictable and re-resolvable — holding the
         //    gate open past the write would pin tiles for a stroke that has already committed.
-        Residency.DeclareUncommitted(CellOrdinal, false);
+        Disregard(Residency.DeclareUncommitted(CellOrdinal, false));
     }
 
     const Deliver<bool> Committed = Revised.Seal(SealedAt, false);
