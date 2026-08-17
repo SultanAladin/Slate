@@ -35,6 +35,29 @@ Deliver<bool> WorkspacePanel::Record(const PlaneExtent& Extent, const char* Titl
     const WorkspaceMetric& Measure = Appearance->WorkspaceMeasure;
     const WorkspaceInk&    Ink     = Appearance->Workspace;
 
+    // 🔴 With NO workspace open the shell is plain black: no strip, no footer, one invitation in the
+    //    middle. A grey strip and footer framing an empty panel present chrome for content that is not
+    //    there, which reads as a broken workspace rather than as a fresh one.
+    if (Titled == nullptr)
+    {
+        Surface->Ground(Extent, Ink.BodyGround);
+
+        BodyExtent  = Extent;
+        StripExtent = {};
+
+        const float VacantTracking = Measure.VacantText * Measure.VacantTracking;
+
+        Surface->TextRunCapitalised(Extent.LeastAlong  + Extent.SpanAlong()  * 0.5f,
+                                    Extent.LeastAcross + Extent.SpanAcross() * 0.5f,
+                                    Ink.VacantInk,
+                                    "CREATE PANEL",
+                                    Measure.VacantText,
+                                    VacantTracking,
+                                    true);
+
+        return Deliver<bool>::Deliver(true);
+    }
+
     // ① The strip ground. 🔴 Only the GROUND. The tabs are the VENDOR'S, drawn as trapezoids by
     //    `Patches/`'s PatchA from `Style.TabSlant`, on the dock node each workspace is docked into.
     //    A strip drawn by hand here would not interlock, would not carry PatchB's z-order, and would not
@@ -63,23 +86,6 @@ Deliver<bool> WorkspacePanel::Record(const PlaneExtent& Extent, const char* Titl
         BodyExtent.MostAcross = BodyExtent.LeastAcross;
 
     Surface->Ground(BodyExtent, Ink.BodyGround);
-
-    // ③ The vacant run, when the panel carries no workspace. `.empty` is centred both ways, uppercase and
-    //    tracked at 0.22em; `pointer-events: none`, so nothing here seizes the pointer.
-    if (Titled == nullptr && BodyExtent.SpanAcross() > 0.0f)
-    {
-        // 📝 The tracking is stated in em and resolved against the SCALED text size, which is what the
-        //    sheet's `letter-spacing: 0.22em` means. Scaling the figure itself would apply the scale twice.
-        const float Tracking = Measure.VacantText * Measure.VacantTracking;
-
-        Surface->TextRunCapitalised(BodyExtent.LeastAlong  + BodyExtent.SpanAlong()  * 0.5f,
-                                    BodyExtent.LeastAcross + BodyExtent.SpanAcross() * 0.5f,
-                                    Ink.VacantInk,
-                                    "EMPTY PANEL",
-                                    Measure.VacantText,
-                                    Tracking,
-                                    true);
-    }
 
     // ④ The footer. 🔴 The edge is recorded after the ground and after the body, because the sheet
     //    gives `.panelfooter` a `border-top` and `z-index: 2` — a body painted over it loses the one line

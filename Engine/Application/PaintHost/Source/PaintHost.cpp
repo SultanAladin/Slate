@@ -241,9 +241,15 @@ int main()
             if (Withdrawing < OpenCount)
                 Disregard(Workspaces.Withdraw(Withdrawing));
 
-            // 📝 The `+`, recorded even at a zero count so an artist who closed the last workspace has a way
-            //    back. Seated on the strip beside the dock node's own tab bar.
+            // 📝 The `+`, seated inside the dock node's own tab bar so the vendor lays it after the last
+            //    tab — always at the end, by construction rather than by arithmetic.
             if (Viewport.Seam().RecordWorkspaceAddition(Workspace.Strip(), OpenCount))
+                Disregard(Workspaces.Enrol(DefaultSubject));
+
+            // 🔴 With nothing open there is no tab bar to seat a `+` in, so the empty shell carries the
+            //    invitation itself. `WorkspacePanel` draws "CREATE PANEL" on plain black; a press anywhere
+            //    on that ground enrols one, which is the way out of a state that otherwise has none.
+            if (OpenCount == 0u && Viewport.Seam().VacantPressed(Whole))
                 Disregard(Workspaces.Enrol(DefaultSubject));
 
             // 📝 The drawers last, so they sit ABOVE the workspace as the sheet lays them.

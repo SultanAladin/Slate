@@ -335,42 +335,83 @@ Deliver<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measu
 
 bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent& Extent, std::uint32_t OpenCount)
 {
+    (void)Extent;
+
     if (ContextSlot == nullptr || !TickOpen)
         return false;
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
-    ImGuiStyle& Seated = ImGui::GetStyle();
+    // 🔴 Recorded INSIDE the dock node's own tab bar, not as a window of its own. A separate window had to
+    //    be positioned by arithmetic, floated over the workspace as a stray slab, and could never scroll
+    //    with the strip. `DockNodeBeginAmendTabBar` re-opens the bar the node already laid out, so the
+    //    button is seated after the last tab by the vendor's own layout — always at the end, by
+    //    construction rather than by calculation.
+    if (OpenCount == 0u)
+        return false;
 
-    // \U0001f4dd Seated past the dock node's own tabs. Each is TabMinWidthBase wide and advances by that
-    //    less the overlap, which is the same arithmetic PatchB performs in TabBarLayout.
-    const float Advance = (Seated.TabMinWidthBase > 0.0f ? Seated.TabMinWidthBase : 170.0f)
-                        - Seated.TabOverlap;
+    ImGuiDockNode* Standing = ImGui::DockBuilderGetNode(ImGui::GetID("SlateDockSpace"));
 
-    const float Along = Extent.LeastAlong + static_cast<float>(OpenCount) * Advance + Seated.TabOverlap;
+    if (Standing == nullptr)
+        return false;
 
-    ImGui::SetNextWindowPos(ImVec2(Along, Extent.LeastAcross + Seated.TabStripPadTop));
-    ImGui::SetNextWindowSize(ImVec2(34.0f, Extent.SpanAcross() - Seated.TabStripPadTop));
+    // 📝 The tab bar belongs to a leaf. A split node holds no tabs of its own, so the leading child is
+    //    walked to until one is reached.
+    while (Standing != nullptr && Standing->IsSplitNode())
+        Standing = Standing->ChildNodes[0];
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    if (Standing == nullptr)
+        return false;
 
     bool Pressed = false;
 
-    if (ImGui::Begin("SlateWorkspaceAdd", nullptr, ImGuiWindowFlags_NoTitleBar
-                                                 | ImGuiWindowFlags_NoResize
-                                                 | ImGuiWindowFlags_NoMove
-                                                 | ImGuiWindowFlags_NoScrollbar
-                                                 | ImGuiWindowFlags_NoSavedSettings
-                                                 | ImGuiWindowFlags_NoDocking
-                                                 | ImGuiWindowFlags_NoBackground))
+    if (ImGui::DockNodeBeginAmendTabBar(Standing))
     {
-        Pressed = ImGui::Button("+", ImVec2(-1.0f, -1.0f));
+        // 📝 `Trailing` seats it after every tab; PatchC draws it as a disc because it carries the
+        //    Button flag, and PatchA leaves it unslanted for the same reason.
+        Pressed = ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip);
+
+        ImGui::DockNodeEndAmendTabBar();
+    }
+
+    return Pressed;
+}
+
+bool InterfaceExchange::VacantPressed(const PlaneExtent& Extent)
+{
+    if (ContextSlot == nullptr || !TickOpen)
+        return false;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    ImGui::SetNextWindowPos(ImVec2(Extent.LeastAlong, Extent.LeastAcross));
+    ImGui::SetNextWindowSize(ImVec2(Extent.SpanAlong(), Extent.SpanAcross()));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.03f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.0f, 1.0f, 1.0f, 0.06f));
+
+    bool Pressed = false;
+
+    if (ImGui::Begin("SlateVacantShell", nullptr, ImGuiWindowFlags_NoTitleBar
+                                                | ImGuiWindowFlags_NoResize
+                                                | ImGuiWindowFlags_NoMove
+                                                | ImGuiWindowFlags_NoScrollbar
+                                                | ImGuiWindowFlags_NoSavedSettings
+                                                | ImGuiWindowFlags_NoDocking
+                                                | ImGuiWindowFlags_NoBringToFrontOnFocus
+                                                | ImGuiWindowFlags_NoBackground))
+    {
+        // 📝 An invisible full-extent control. The run itself is recorded by `WorkspacePanel` on the shell
+        //    ground, so this contributes the hit area and nothing visible but the hover wash.
+        Pressed = ImGui::Button("##SlateCreatePanel", ImVec2(-1.0f, -1.0f));
     }
 
     ImGui::End();
 
-    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar();
 
     return Pressed;
 }
@@ -430,9 +471,23 @@ void InterfaceExchange::RecordWorkspaceWindow(const char* Titled, bool Docked, b
     if (Docked)
         ImGui::SetNextWindowDockID(ImGui::GetID("SlateDockSpace"), ImGuiCond_Always);
 
-    if (ImGui::Begin(Titled, &Standing))
-    {
-    }
+    // 🔴 ⚠️ `NoTitleBar` is deliberately NOT set. `GetWindowAlwaysWantOwnTabBar` refuses a tab bar to any
+    //    window carrying it, so hiding the caption that way also denied a lone floating workspace the
+    //    strip that gives it the sheet's trapezoid. Docked, the node's tab bar replaces the caption;
+    //    floating, the window gets a tab bar of its own and no caption is drawn either.
+    ImGuiWindowClass Declared;
+    Declared.DockingAlwaysTabBar = true;
+
+    // 📝 A lone float's own node gets the same two silences as the main dock space, so a torn-off
+    //    workspace does not sprout the caret and close widget the docked one has none of.
+    Declared.DockNodeFlagsOverrideSet = static_cast<ImGuiDockNodeFlags>(ImGuiDockNodeFlags_NoWindowMenuButton)
+                                      | static_cast<ImGuiDockNodeFlags>(ImGuiDockNodeFlags_NoCloseButton);
+
+    ImGui::SetNextWindowClass(&Declared);
+
+    ImGui::Begin(Titled, &Standing, ImGuiWindowFlags_NoScrollbar
+                                  | ImGuiWindowFlags_NoScrollWithMouse
+                                  | ImGuiWindowFlags_NoCollapse);
     ImGui::End();
 }
 

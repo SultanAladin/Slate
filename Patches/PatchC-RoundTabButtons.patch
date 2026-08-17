@@ -1,0 +1,72 @@
+diff --git a/imgui.cpp b/imgui.cpp
+index e68259fa2..0ac59f0a8 100644
+--- a/imgui.cpp
++++ b/imgui.cpp
+@@ -1576,6 +1576,7 @@ ImGuiStyle::ImGuiStyle()
+     TabOverlap                  = 0.0f;             // [SLATE PATCH B] Overlap between adjacent tabs. Zero keeps stock ImGui; the sheet states 24.0f.
+     TabHeight                   = 0.0f;             // [SLATE PATCH B] Tab-bar height override. Zero derives it as ImGui does; the sheet states 24.0f.
+     TabStripPadTop              = 0.0f;             // [SLATE PATCH B] Strip visible above the tabs. The sheet's 28 px strip over a 24 px tab states 4.0f.
++    TabButtonRounding           = 0.0f;             // [SLATE PATCH C] Roundness of a tab's close mark and of a tab-bar button. Zero keeps ImGui's rectangle; Slate seats 1.0f.
+     TabMinWidthBase             = 1.0f;             // Minimum tab width, to make tabs larger than their contents. TabBar buttons are not affected.
+     TabMinWidthShrink           = 80.0f;            // Minimum tab width after shrinking, when using ImGuiTabBarFlags_FittingPolicyMixed policy. FLT_MAX: never shrink, will behave like ImGuiTabBarFlags_FittingPolicyScroll.
+     TabCloseButtonMinWidthSelected   = -1.0f;       // -1: always visible. 0.0f: visible when hovered. >0.0f: visible when hovered if minimum width.
+@@ -1671,6 +1672,7 @@ void ImGuiStyle::ScaleAllSizes(float scale_factor)
+     TabOverlap = ImTrunc(TabOverlap * scale_factor);
+     TabHeight = ImTrunc(TabHeight * scale_factor);
+     TabStripPadTop = ImTrunc(TabStripPadTop * scale_factor);
++    // [SLATE PATCH C] A fraction, not a length: it is NOT scaled.
+     TabMinWidthBase = ImTrunc(TabMinWidthBase * scale_factor);
+     TabMinWidthShrink = ImTrunc(TabMinWidthShrink * scale_factor);
+     TabCloseButtonMinWidthSelected = (TabCloseButtonMinWidthSelected > 0.0f && TabCloseButtonMinWidthSelected != FLT_MAX) ? ImTrunc(TabCloseButtonMinWidthSelected * scale_factor) : TabCloseButtonMinWidthSelected;
+diff --git a/imgui.h b/imgui.h
+index 1d89dfe03..bd50ee167 100644
+--- a/imgui.h
++++ b/imgui.h
+@@ -2435,6 +2435,7 @@ struct ImGuiStyle
+     float       TabOverlap;                 // [SLATE PATCH B] Horizontal overlap between adjacent tabs, in display pixels, so slanted edges interlock. 0.0f keeps ImGui's edge-to-edge layout.
+     float       TabHeight;                  // [SLATE PATCH B] Tab-bar height override, in display pixels. 0.0f derives it from FontSize and FramePadding as ImGui does.
+     float       TabStripPadTop;             // [SLATE PATCH B] Strip showing above the tabs, in display pixels. The tab is seated against the strip's lower edge.
++    float       TabButtonRounding;          // [SLATE PATCH C] Roundness of a tab's close mark and of a tab-bar button, as a fraction of its extent. 0.0f keeps ImGui's rectangle; 1.0f is a full disc.
+     float       TabMinWidthBase;            // Minimum tab width, to make tabs larger than their contents. TabBar buttons are not affected.
+     float       TabMinWidthShrink;          // Minimum tab width after shrinking, when using ImGuiTabBarFlags_FittingPolicyMixed policy.
+     float       TabCloseButtonMinWidthSelected;     // -1: always visible. 0.0f: visible when hovered. >0.0f: visible when hovered if minimum width. FLT_MAX: never shrink, will behave like ImGuiTabBarFlags_FittingPolicyScroll.
+diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
+index a906ed7b3..862c9f902 100644
+--- a/imgui_widgets.cpp
++++ b/imgui_widgets.cpp
+@@ -926,8 +926,17 @@ bool ImGui::CloseButton(ImGuiID id, const ImVec2& pos)
+ 
+     // Render
+     ImU32 bg_col = GetColorU32(held ? ImGuiCol_ButtonActive : ImGuiCol_ButtonHovered);
++    // [SLATE PATCH C] A round hit-mark rather than a square one. `DockWorkspace.html` draws its close
++    //   affordance as a disc, and a square highlight inside a slanted tab reads as a misaligned rectangle.
++    //   Falls back to the vendor's rectangle when the radius is zero, so an unpatched configuration is
++    //   byte-identical.
+     if (hovered)
+-        window->DrawList->AddRectFilled(bb.Min, bb.Max, bg_col);
++    {
++        if (g.Style.TabButtonRounding > 0.0f)
++            window->DrawList->AddCircleFilled(bb.GetCenter(), bb.GetWidth() * 0.5f * g.Style.TabButtonRounding, bg_col);
++        else
++            window->DrawList->AddRectFilled(bb.Min, bb.Max, bg_col);
++    }
+     RenderNavCursor(bb, id, ImGuiNavRenderCursorFlags_Compact);
+     const ImU32 cross_col = GetColorU32(ImGuiCol_Text);
+     const ImVec2 cross_center = bb.GetCenter() - ImVec2(0.5f, 0.5f);
+@@ -11145,6 +11154,16 @@ void ImGui::TabItemBackground(ImDrawList* draw_list, const ImRect& bb, ImGuiTabI
+ 
+     // [SLATE PATCH A] A button is a button and keeps its rectangle; only a genuine tab is slanted.
+     const float slant = (flags & ImGuiTabItemFlags_Button) ? 0.0f : ImMin(g.Style.TabSlant, width * 0.16f);
++
++    // [SLATE PATCH C] A tab-bar button is drawn as a disc rather than a slab. The sheet's `addBtn` is a
++    //   round control seated at the end of the strip, and a full-height rectangle beside a slanted tab
++    //   reads as a broken tab rather than as a button.
++    if ((flags & ImGuiTabItemFlags_Button) && g.Style.TabButtonRounding > 0.0f)
++    {
++        const float disc = ImMin(bb.GetWidth(), y2 - y1) * 0.5f * g.Style.TabButtonRounding;
++        draw_list->AddCircleFilled(ImVec2(bb.GetCenter().x, (y1 + y2) * 0.5f), disc, col);
++        return;
++    }
+     if (slant > 0.0f)
+     {
+         SlateTabOutline(draw_list, bb, slant, rounding, y1, y2, 0.0f);

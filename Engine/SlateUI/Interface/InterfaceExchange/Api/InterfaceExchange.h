@@ -156,6 +156,15 @@ public:
     /// tag   api, nonthrowing
     bool RecordWorkspaceAddition(const PlaneExtent& Extent, std::uint32_t OpenCount);
 
+    /// 🧩 Whether the artist pressed the empty shell's invitation to create the first workspace.
+    /// in    Extent   [px]  the whole shell, which is the invitation's own hit area
+    /// out   Pressed  [-]   true on the tick it was pressed
+    /// note  🔴 With nothing open there is no tab bar, so there is nowhere to seat a `+`. The whole black
+    ///        ground is the control instead, which is the only way out of an empty shell.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    bool VacantPressed(const PlaneExtent& Extent);
+
     /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface
     /// out   Deliver          [-]  refuses when nothing has been sealed since the last Advance

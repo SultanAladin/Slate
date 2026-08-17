@@ -32,6 +32,7 @@ $PatchRoot      = Join-Path $RepositoryRoot 'Patches'
 $Declared = @(
     @{ Name = 'PatchA-TrapezoidalTabs.patch';  Sentinel = 'SLATE PATCH A'; Witness = 'imgui_widgets.cpp' }
     @{ Name = 'PatchB-TabOverlapZOrder.patch'; Sentinel = 'SLATE PATCH B'; Witness = 'imgui_widgets.cpp' }
+    @{ Name = 'PatchC-RoundTabButtons.patch';  Sentinel = 'SLATE PATCH C'; Witness = 'imgui_widgets.cpp' }
 )
 
 # 🔴 The commit these patches were written against. `git apply` would fail loudly on a different tree,

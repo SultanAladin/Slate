@@ -1,6 +1,6 @@
 # Patches — Slate's divergence from vendored ImGui
 
-Two patches, both against `ExternalPackages/imgui` on the **`docking`** branch at `83f6686` (`1.93.0 WIP`).
+Three patches, all against `ExternalPackages/imgui` on the **`docking`** branch at `83f6686` (`1.93.0 WIP`).
 
 ⚠️ The pin was previously `12b7977`, which this document described as being on the `docking` branch. It was
 not — it is an `ocornut/master` commit, and it is an ancestor of `docking` only because that branch merges
@@ -94,3 +94,13 @@ powershell -File Scripts\ApplyImGuiPatches.ps1 -Revert    # restore pristine, in
 `git apply --reverse --check`. B edits lines inside A's context, so once B is applied A no longer
 reverse-checks — a reverse-check would report A absent on a fully patched tree and re-apply it, aborting
 a build whose tree was perfectly healthy.
+
+
+## PatchC — round tab buttons
+
+`DockWorkspace.html` draws its close affordance and its `addBtn` as **discs**. ImGui draws both as
+rectangles: `CloseButton` fills a square hover mark, and a tab-bar button is a full-height slab.
+
+`Style.TabButtonRounding` is a **fraction** of the control's own extent, not a length — so it is the one
+Slate style member `ScaleAllSizes` must NOT scale. `0.0f` restores the vendor's rectangles exactly, which
+is what keeps a patched build with defaults byte-identical to an unpatched one.
