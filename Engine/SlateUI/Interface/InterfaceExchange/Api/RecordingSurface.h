@@ -249,6 +249,20 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool Excluded(const PlaneExtent& Extent) const;
 
+    /// 🧩 Closes the adopted tick, so nothing may record through this surface until the next Adopt.
+    /// note  🔴 Called by whoever sealed the interface tick, immediately after sealing. A surface left
+    ///        adopted past its seal accepts recordings into content that has already been assembled — the
+    ///        commands are built, cost time, and are discarded without anything reporting it.
+    /// post  every recording method refuses until Adopt delivers again
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Retire();
+
+    /// 🧩 Whether a tick stands adopted and this surface may be recorded through.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool Recording() const;
+
     /// 🧩 Returns the surface to its constructed condition, releasing every unmatched Confine.
     /// note  🔴 Called instead of placement-new over a live object. Re-constructing over storage without
     ///       first destroying what sits in it is a defect the compiler will never report.
@@ -258,6 +272,14 @@ public:
 
 private:
 
+    // 🔴 The tick this surface was adopted for. `Adopt` stamps it, `Retire` clears it, and every recording
+    //    method refuses when it is absent. Before this existed, a surface stayed usable after `Seal` and a
+    //    late recording wrote into content nothing would ever assemble — no refusal, no diagnostic, and the
+    //    only symptom a panel that silently failed to appear.
+    // 📝 A generation and not a flag. A surface adopted, retired and adopted again within one process must
+    //    not be satisfied by a stale reference that happens to test "open"; the ordinal moves every tick.
+    std::uint64_t     TickOrdinal   = 0u;       // [-] - zero while no tick stands adopted
+    std::uint64_t     AdoptedCount  = 0u;       // [-] - ticks this surface has adopted; only ever rises
     void*             CommandSlot   = nullptr;   // [-] - opaque; the ImGui spelling stays in the source file
     PointerCondition  ArrivedPointer = {};       // [-] - sampled once, at Adopt
     DisplayCondition  ArrivedDisplay = {};       // [-] - sampled once, at Adopt

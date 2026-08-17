@@ -287,7 +287,7 @@ Deliver<bool> FileInterchange::WriteStream(const std::string& Path, const std::v
         if (WriteFile(Stream, Content.data() + Written, Asked, &Landed, nullptr) == FALSE || Landed == 0u)
         {
             CloseHandle(Stream);
-            Reclaim(Staged);
+            Disregard(Reclaim(Staged));
             return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream declined the write" });
         }
 
@@ -346,7 +346,7 @@ Deliver<bool> FileInterchange::WriteStream(const std::string& Path, const std::v
     if (MoveFileExW(WidenedStaged.c_str(), WidenedTarget.c_str(),
                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == FALSE)
     {
-        Reclaim(Staged);
+        Disregard(Reclaim(Staged));
         return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the verified stream could not replace the target" });
     }
 

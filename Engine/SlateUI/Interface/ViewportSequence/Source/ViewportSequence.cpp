@@ -44,7 +44,7 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     const Deliver<bool> SurfaceAdopted = SurfaceOwned.Adopt();
     if (!SurfaceAdopted.ContentPresent)
     {
-        Interface.Abandon();
+        Disregard(Interface.Abandon());
         return SurfaceAdopted;
     }
 
@@ -60,7 +60,7 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
 
         if (!DrawersBuilt.ContentPresent)
         {
-            Interface.Abandon();
+            Disregard(Interface.Abandon());
             return DrawersBuilt;
         }
 
@@ -99,12 +99,23 @@ void ViewportSequence::DrawerPanels()
 Deliver<bool> ViewportSequence::SealPanels()
 {
     PanelsOpen = false;
+
+    // 🔴 The surface is retired at the seal, not at the next Advance. Between the two, the assembled
+    //    content is finished and immutable; a panel that kept a reference and recorded into it would build
+    //    commands that cost time and are then discarded, with nothing reporting that they were lost.
+    SurfaceOwned.Retire();
+
     return Interface.Seal();
 }
 
 Deliver<bool> ViewportSequence::Abandon()
 {
     PanelsOpen = false;
+
+    // 📝 An abandoned tick retires its surface for the same reason a sealed one does: nothing may record
+    //    into content that will never be assembled.
+    SurfaceOwned.Retire();
+
     return Interface.Abandon();
 }
 
@@ -178,7 +189,7 @@ bool ViewportSequence::Moving() const
 
 void ViewportSequence::Reclaim()
 {
-    Interface.Abandon();
+    Disregard(Interface.Abandon());
     Interface.Reclaim();
 
     // 📝 🔴 The drawers are reset before the integrator, because their spring ordinals index into it. The

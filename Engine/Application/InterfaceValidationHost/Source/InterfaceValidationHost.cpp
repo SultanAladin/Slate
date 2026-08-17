@@ -590,6 +590,10 @@ int main()
 #endif
 
             // ⑫ Seal the tick and record it into the recording Await opened.
+            // 🔴 The surface is retired at the seal. This host records through it directly rather than
+            //    through ViewportSequence, so it performs the retirement ViewportSequence would.
+            Surface.Retire();
+
             if (Interface.Seal().ContentPresent)
             {
                 // 🔴 Read. A refused Record presents the cleared ground with nothing on it, which is

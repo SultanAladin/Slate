@@ -91,7 +91,28 @@ Deliver<bool> RecordingSurface::Adopt()
 
     ConfineDepth = 0u;
 
+    // 🔴 The tick is stamped last, so a refusal above leaves the surface unadopted rather than half-open.
+    //    The ordinal only ever rises; a reference held across a seal can never match the next tick's.
+    // 📝 Counted per surface rather than in a function-local static. A static would be shared by every
+    //    surface in the process and would need a guard the interface has no reason to pay for.
+    TickOrdinal = AdoptedCount + 1u;
+    AdoptedCount = TickOrdinal;
+
     return Deliver<bool>::Deliver(true);
+}
+
+void RecordingSurface::Retire()
+{
+    // 📝 The command list belongs to the vendor and is assembled by the seal; only this surface's claim on
+    //    it is dropped. Clearing the slot is what makes every later recording refuse.
+    TickOrdinal  = 0u;
+    CommandSlot  = nullptr;
+    ConfineDepth = 0u;
+}
+
+bool RecordingSurface::Recording() const
+{
+    return TickOrdinal != 0u && CommandSlot != nullptr;
 }
 
 void RecordingSurface::Reset()
