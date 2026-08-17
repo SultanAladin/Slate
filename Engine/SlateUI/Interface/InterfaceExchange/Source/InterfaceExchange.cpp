@@ -629,6 +629,36 @@ void InterfaceExchange::WithholdPointer()
 
     Arrived.WantCaptureMouse                  = false;
     Arrived.WantCaptureMouseUnlessPopupClose  = false;
+
+    // 🔴 The flags alone are not enough. They say who SHOULD receive the next contact; they do nothing
+    //    about a widget that has already seized this one. A tab dragged out, or a window being moved, is
+    //    held by the active identity and by `MovingWindow` — so a drag begun on a drawer's tongue while a
+    //    tab sat beneath it moved BOTH, the drawer by its own arbitration and the tab by the vendor's.
+    // ⚠️ Released rather than suppressed. The vendor re-acquires whatever the pointer is genuinely over
+    //    on the next tick, so nothing here has to be restored.
+    // 🔴 The active identity is released whatever holds it, not only a window move. A RESIZE grip sets
+    //    `ActiveId` and leaves `MovingWindow` null, so a drawer dragged from a display corner also
+    //    stretched the window beneath it — the drawer travelled by Slate's arbitration and the window
+    //    resized by the vendor's, from one contact.
+    ImGuiContext& Standing = *static_cast<ImGuiContext*>(ContextSlot);
+
+    if (Standing.ActiveId != 0)
+        ImGui::ClearActiveID();
+
+    Standing.MovingWindow = nullptr;
+
+    // 📝 The hovered identity too. Left standing, the resize grip the pointer crossed keeps its cursor and
+    //    re-seizes the contact the moment the drawer lets go of it.
+    Standing.HoveredId             = 0;
+    Standing.HoveredIdAllowOverlap = false;
+
+    // 📝 The tab bar's own reorder request, which lives beside the active identity rather than in it. A
+    //    tab already being shuffled along its strip keeps travelling on this alone.
+    if (Standing.CurrentTabBar != nullptr)
+    {
+        Standing.CurrentTabBar->ReorderRequestTabId = 0;
+        Standing.CurrentTabBar->ReorderRequestOffset = 0;
+    }
 }
 
 bool InterfaceExchange::KeyboardCaptured() const

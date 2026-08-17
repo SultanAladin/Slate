@@ -44,6 +44,10 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     const Deliver<bool> SurfaceAdopted = SurfaceOwned.Adopt();
     if (!SurfaceAdopted.ContentPresent)
     {
+        // 📝 Retired although the adopt refused and there is nothing to retire. `Retire` is idempotent, and
+        //    a reader following this path should not have to prove it safe before moving on.
+        SurfaceOwned.Retire();
+
         Disregard(Interface.Abandon());
         return SurfaceAdopted;
     }
@@ -60,6 +64,13 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
 
         if (!DrawersBuilt.ContentPresent)
         {
+            // 🔴 The surface is retired before the internal abandon, for the same reason `SealPanels`
+            //    retires it: an adopt that SUCCEEDED against a tick this component is now abandoning must
+            //    not leave the surface recordable into content nothing will assemble. The host's own
+            //    `Abandon` also retires, but the invariant is this component's to hold rather than the
+            //    host's to remember — `00` prevents by declaration, not by discipline.
+            SurfaceOwned.Retire();
+
             Disregard(Interface.Abandon());
             return DrawersBuilt;
         }
@@ -87,11 +98,22 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     DrawerBearing Claiming   = DrawerBearing::North;
     const bool    DrawerHeld = DrawersOwned.Claims(Pointer.PositionAlong, Pointer.PositionAcross, Claiming);
 
+    // 🔴 Withheld BEFORE the advance as well as after. A resize grip seizes the contact on the very frame
+    //    the press lands, and `Claims` answers for where the pointer is NOW — so once a drag carries the
+    //    pointer off the drawer, `DrawerHeld` goes false and the withholding stopped while the vendor's
+    //    grip kept the identity it had already taken. Withholding on the seizing frame is what prevents
+    //    the grip from ever taking it.
+    if (DrawerHeld)
+        Interface.WithholdPointer();
+
     DrawersOwned.Advance(Pointer, Display.Elapsed, DrawerHeld || !Interface.PointerCaptured());
 
     // 🔴 The interface is told the drawers took it, so the window beneath does not act on the same
     //    contact. Without this both consumers answer one click: the drawer drags and the workspace
     //    selects, which is the defect wearing its other face.
+    // 🔴 And again after, because `Moving` only reports a live grab once `Advance` has seized it. A drag
+    //    that has carried the pointer clear of the drawer is held by `GrabbedBy` alone, and it is that
+    //    state — not where the pointer happens to be — that must keep the vendor out for the whole drag.
     if (DrawerHeld || DrawersOwned.Moving())
         Interface.WithholdPointer();
 

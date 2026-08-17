@@ -94,14 +94,8 @@ Deliver<bool> RecordingSurface::Adopt(ShellLayer Layer)
                                                     ? Arrived.DisplayFramebufferScale.x
                                                     : 1.0f);
 
+    // 🔴 Cleared last, so a refusal above leaves the surface unadopted rather than half-open.
     ConfineDepth = 0u;
-
-    // 🔴 The tick is stamped last, so a refusal above leaves the surface unadopted rather than half-open.
-    //    The ordinal only ever rises; a reference held across a seal can never match the next tick's.
-    // 📝 Counted per surface rather than in a function-local static. A static would be shared by every
-    //    surface in the process and would need a guard the interface has no reason to pay for.
-    TickOrdinal = AdoptedCount + 1u;
-    AdoptedCount = TickOrdinal;
 
     return Deliver<bool>::Deliver(true);
 }
@@ -131,15 +125,15 @@ Deliver<bool> RecordingSurface::Relayer(ShellLayer Layer)
 void RecordingSurface::Retire()
 {
     // 📝 The command list belongs to the vendor and is assembled by the seal; only this surface's claim on
-    //    it is dropped. Clearing the slot is what makes every later recording refuse.
-    TickOrdinal  = 0u;
+    //    it is dropped. Clearing the slot is what makes every later recording refuse — each of them tests
+    //    the slot and nothing else, which is the whole of the mechanism.
     CommandSlot  = nullptr;
     ConfineDepth = 0u;
 }
 
 bool RecordingSurface::Recording() const
 {
-    return TickOrdinal != 0u && CommandSlot != nullptr;
+    return CommandSlot != nullptr;
 }
 
 void RecordingSurface::Reset()

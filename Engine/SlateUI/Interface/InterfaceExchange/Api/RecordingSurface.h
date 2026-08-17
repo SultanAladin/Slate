@@ -287,6 +287,11 @@ public:
     void Retire();
 
     /// 🧩 Whether a tick stands adopted and this surface may be recorded through.
+    /// note  📝 The standing command list IS the condition, and the only one. An earlier reading of this
+    ///        claimed a generation ordinal guarded it as well; nothing consumed the ordinal and no
+    ///        reference carried one to compare against, so the claim described a guarantee the code did
+    ///        not make. Retired rather than left standing — `00` §4 holds a comment to the same account
+    ///        as the code it sits over.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     bool Recording() const;
@@ -304,10 +309,6 @@ private:
     //    method refuses when it is absent. Before this existed, a surface stayed usable after `Seal` and a
     //    late recording wrote into content nothing would ever assemble — no refusal, no diagnostic, and the
     //    only symptom a panel that silently failed to appear.
-    // 📝 A generation and not a flag. A surface adopted, retired and adopted again within one process must
-    //    not be satisfied by a stale reference that happens to test "open"; the ordinal moves every tick.
-    std::uint64_t     TickOrdinal   = 0u;       // [-] - zero while no tick stands adopted
-    std::uint64_t     AdoptedCount  = 0u;       // [-] - ticks this surface has adopted; only ever rises
     void*             CommandSlot   = nullptr;   // [-] - opaque; the ImGui spelling stays in the source file
     PointerCondition  ArrivedPointer = {};       // [-] - sampled once, at Adopt
     DisplayCondition  ArrivedDisplay = {};       // [-] - sampled once, at Adopt

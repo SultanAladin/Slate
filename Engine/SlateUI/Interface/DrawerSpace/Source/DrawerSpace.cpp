@@ -342,11 +342,22 @@ GrabSubject DrawerSpace::Contacted(DrawerBearing Bearing, float Along, float Acr
     const bool        Visible  = !Withdrawn(Bearing);
 
     // ① The grip outranks the body it sits inside, so that a contact on the pill withdraws rather than drags.
+    // 📝 The grip keeps its margin on all four sides: it sits INSIDE the drawer's own body, so an inflated
+    //    reach can only take pixels from the body beside it and never from the workspace beyond.
     if (Visible && Reach(Grip(Bearing)).Encloses(Along, Across))
         return GrabSubject::Grip;
 
     // ② The tongue outranks everything, visible or not — it is the only chrome a closed drawer offers.
-    if (Reach(Tongue(Bearing)).Encloses(Along, Across))
+    // 🔴 Reached ALONG only, never across. `Reach` inflates all four sides by the click margin, which on
+    //    the leading edge pushes the claim twelve pixels past the notch and INTO the workspace: a 36 px
+    //    tongue claimed 48 px of depth, and the artist met an invisible band below a notch they could see
+    //    the bottom of. Across the drawer's own axis the notch's drawn edge is the edge that may be
+    //    pressed; along it the margin is what makes a narrow pill comfortable to hit.
+    const PlaneExtent Notch   = Tongue(Bearing);
+    const PlaneExtent Reached = { Notch.LeastAlong - ClickMargin, Notch.LeastAcross,
+                                  Notch.MostAlong  + ClickMargin, Notch.MostAcross };
+
+    if (Reached.Encloses(Along, Across))
         return GrabSubject::Tongue;
 
     if (Visible && Body(Bearing).Encloses(Along, Across))
@@ -647,13 +658,26 @@ PlaneExtent DrawerSpace::Grip(DrawerBearing Bearing) const
 
 PlaneExtent DrawerSpace::Gutter(DrawerBearing Bearing) const
 {
-    if (!Withdrawn(Bearing))
+    if (!Withdrawn(Bearing) || Appearance == nullptr)
         return {};
 
-    if (Bearing == DrawerBearing::North)
-        return PlaneExtent{ 0.0f, 0.0f, ExtentAlong, GutterAcross };
+    // 🔴 The gutter spans the TONGUE and nothing more. Spanning the whole display edge put an invisible
+    //    28 px band across the full width, top and bottom, that swallowed every contact near either edge —
+    //    an artist reaching for a tab, a window's resize corner, or the workspace itself got a drawer
+    //    swipe from a strip they could not see. The only chrome a withdrawn drawer offers is its tongue,
+    //    so the only place it may claim a contact is the tongue's own run.
+    // 📝 A shade wider than the tongue, by half the gutter's own depth, so a swipe that begins a pixel
+    //    outside the notch still opens the drawer rather than reporting nothing.
+    const PlaneExtent Notch   = Tongue(Bearing);
+    const float       Reached = GutterAcross * 0.5f;
 
-    return PlaneExtent{ 0.0f, ExtentAcross - GutterAcross, ExtentAlong, ExtentAcross };
+    const float Leading  = Notch.LeastAlong - Reached;
+    const float Trailing = Notch.MostAlong  + Reached;
+
+    if (Bearing == DrawerBearing::North)
+        return PlaneExtent{ Leading, 0.0f, Trailing, GutterAcross };
+
+    return PlaneExtent{ Leading, ExtentAcross - GutterAcross, Trailing, ExtentAcross };
 }
 
 bool DrawerSpace::Withdrawn(DrawerBearing Bearing) const
