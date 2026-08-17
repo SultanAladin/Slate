@@ -265,6 +265,11 @@ Deliver<bool> HostLifecycle::RecoverDevice()
     return Deliver<bool>::Deliver(true);
 }
 
+void HostLifecycle::AskDeviceRebuild()
+{
+    DeviceRebuildAsked = true;
+}
+
 bool HostLifecycle::DeviceRecovered()
 {
     const bool Recovered = DeviceAltered;
@@ -301,6 +306,40 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     Pass.ExtentAlong  = Extent.Width;
     Pass.ExtentAcross = Extent.Height;
 
+    // ①·ii 🔴 A rebuild that was asked for, serviced in TWO phases. Phase one hands the host a
+    //      withdrawn tick with `DeviceRetiring` raised, so it retires its own device resources while the
+    //      device STILL STANDS. Phase two, next tick, rebuilds. Doing both at once destroyed the device
+    //      before the host had been told, and the host's reclamation then idled a dead handle —
+    //      reported by the loader as VUID-vkDeviceWaitIdle-device-parameter.
+    if (DeviceRebuildAsked)
+    {
+        DeviceRebuildAsked = false;
+        DeviceRetiring     = true;
+
+        Report(Declared.Naming, "F8 — retiring device resources before the rebuild");
+
+        Pass.DeviceRetiring = true;
+        Pass.Standing       = TickStanding::Withdrawn;
+        return Pass;
+    }
+
+    if (DeviceRetiring)
+    {
+        DeviceRetiring = false;
+
+        Report(Declared.Naming, "F8 — rebuilding the device tier");
+
+        if (!RecoverDevice().ContentPresent)
+        {
+            Pass.Standing = TickStanding::Closed;
+            return Pass;
+        }
+
+        Pass.DisplayAltered = true;
+        Pass.Standing       = TickStanding::Withdrawn;
+        return Pass;
+    }
+
     // ② A minimised window has no drawable extent. Block on the window system rather than spinning through
     //    a loop that can acquire nothing.
     if (Extent.Width == 0u || Extent.Height == 0u)
@@ -319,42 +358,37 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
         Pass.DisplayAltered = true;
     }
 
-#ifdef SLATE_DEBUG
     // ③·i The scenarios `32` §9 is validated against, driven from the keyboard so that each is exercised
     //     deliberately rather than waited for. Every one of them runs the ordinary path and none has a
     //     route of its own — a scenario that tested its own private path would test nothing.
     if (Surface.KeyDescended(WindowInterchange::DiagnosticKey::ResizeStorm))
     {
         ResizeStorming = !ResizeStorming;
-        Report(Declared.Naming, ResizeStorming ? "resize storm engaged" : "resize storm released");
+        Report(Declared.Naming, ResizeStorming ? "F7 — resize storm engaged, re-establishing every tick"
+                                               : "F7 — resize storm released");
     }
 
-    if (ResizeStorming || Surface.KeyDescended(WindowInterchange::DiagnosticKey::RecoverDisplay))
+    if (Surface.KeyDescended(WindowInterchange::DiagnosticKey::RecoverDisplay))
+    {
+        // 🔴 Stated before it acts. A scenario that runs silently is one the reader cannot tell from a key
+        //    the process never received — which is exactly how the first cut of these keys failed.
+        Report(Declared.Naming, "F6 — re-establishing the presentation chain");
+        RecoverDisplay();
+        Pass.DisplayAltered = true;
+    }
+    else if (ResizeStorming)
     {
         RecoverDisplay();
         Pass.DisplayAltered = true;
     }
 
     if (Surface.KeyDescended(WindowInterchange::DiagnosticKey::RecoverDevice))
-    {
-        Report(Declared.Naming, "a device rebuild was asked for");
-
-        if (!RecoverDevice().ContentPresent)
-        {
-            Pass.Standing = TickStanding::Closed;
-            return Pass;
-        }
-
-        Pass.DisplayAltered = true;
-        Pass.Standing       = TickStanding::Withdrawn;
-        return Pass;
-    }
+        AskDeviceRebuild();
 
     // 📝 The count is stated by the call itself and discarded here deliberately: this key exists to print
     //    the verdict mid-run, and nothing at this point acts on how many serious entries there were.
     if (Surface.KeyDescended(WindowInterchange::DiagnosticKey::StateReports))
         static_cast<void>(StateDiagnostics());
-#endif
 
     // ④ Await the cycle slot. The fence guards the recording this slot is about to reuse.
     const Deliver<bool> SlotAwaited = Cycle.Await();

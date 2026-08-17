@@ -89,19 +89,21 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool ClosureRequested() const;
 
-#ifdef SLATE_DEBUG
-
-    /// 🧩 How many diagnostic keys the debug build reads, and which scenario each drives.
-    /// note  🔴 `SLATE_DEBUG` only, and deliberately not a general input mechanism. `14` §4 owns input
-    ///        intent and routes it through the interface; this reads four physical function keys the
-    ///        validation scenarios are driven by, beneath any interface that could capture them.
+    /// 🧩 The diagnostic keys the validation scenarios are driven by.
+    /// note  🔴 Read in EVERY configuration, not only under `SLATE_DEBUG`. Gated to the debug build, these
+    ///        compiled out of the Release binary that `Build\Construct.bat` produces by default — so the
+    ///        keys silently did nothing, which is indistinguishable from a scenario that ran and passed.
+    /// note  🔴 Not a general input mechanism. `14` §4 owns input intent and routes it through the
+    ///        interface; this reads four physical keys beneath any interface that could capture them.
+    /// note  ⚠️ F11 is deliberately absent. The window manager takes it for fullscreen before the process
+    ///        sees it, so a scenario bound there reports nothing and looks like a defect in the scenario.
     /// tag   contract
     enum class DiagnosticKey : std::uint32_t
     {
-        RecoverDisplay = 0u,   // [-] - F9  — re-establish the presentation chain once
-        ResizeStorm    = 1u,   // [-] - F10 — re-establish it every tick until pressed again
-        RecoverDevice  = 2u,   // [-] - F11 — retire and rebuild the device tier
-        StateReports   = 3u,   // [-] - F12 — state the diagnostic verdict without exiting
+        RecoverDisplay = 0u,   // [-] - F6 — re-establish the presentation chain once
+        ResizeStorm    = 1u,   // [-] - F7 — re-establish it every tick until pressed again
+        RecoverDevice  = 2u,   // [-] - F8 — retire and rebuild the device tier
+        StateReports   = 3u,   // [-] - F9 — state the diagnostic verdict without exiting
         KeyCount       = 4u    // [-] - the closed count, never a key
     };
 
@@ -112,8 +114,6 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool KeyDescended(DiagnosticKey Declared) const;
 
-#endif
-
 private:
 
     void*          WindowSlot   = nullptr;   // [-]  - opaque; the GLFW spelling stays in the source file
@@ -121,11 +121,9 @@ private:
     DisplayExtent  AdoptedExtent = {};       // [px] - what the presentation chain was built against
     bool           ClosurePosed = false;     // [-]  - the artist asked; nothing has acted on it yet
 
-#ifdef SLATE_DEBUG
     // 📝 Two levels per key so Drain can report the edge. Sized by the enumeration's closed count.
     bool           KeyDown[4]   = {};        // [-]  - down at this Drain
     bool           KeyWas[4]    = {};        // [-]  - down at the previous Drain
-#endif
 };
 
 }   // namespace Slate

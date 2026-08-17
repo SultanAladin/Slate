@@ -85,6 +85,11 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     return Deliver<bool>::Deliver(true);
 }
 
+InterfaceExchange& ViewportSequence::Seam()
+{
+    return Interface;
+}
+
 void ViewportSequence::RecordDrawers()
 {
     if (DrawersConstructed)

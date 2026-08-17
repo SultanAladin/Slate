@@ -236,6 +236,135 @@ Deliver<bool> InterfaceExchange::Abandon()
     return Deliver<bool>::Deliver(true);
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE WORKSPACE STYLE
+//------------------------------------------------------------------------------------------------------------------------
+
+namespace
+{
+
+/// 🧩 One Slate ink as the vendor's four unit ordinates.
+/// cost  ✔️
+ImVec4 Vendor(InkOrdinate Ink)
+{
+    return ImVec4(static_cast<float>(Ink.Red)     / 255.0f,
+                  static_cast<float>(Ink.Green)   / 255.0f,
+                  static_cast<float>(Ink.Blue)    / 255.0f,
+                  static_cast<float>(Ink.Opacity) / 255.0f);
+}
+
+}   // namespace
+
+Deliver<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceInk& Tinted)
+{
+    if (ContextSlot == nullptr)
+        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context stands" });
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    ImGuiStyle& Seated = ImGui::GetStyle();
+
+    // 🔴 The four members `Patches/` adds. Each defaults to 0.0f, at which a patched build rasterises
+    //    byte-identically to an unpatched one — so seating them here is what turns the sheet's trapezoid on.
+    Seated.TabSlant       = Measure.TabSlant;
+    Seated.TabOverlap     = Measure.TabOverlap;
+    Seated.TabHeight      = Measure.TabAcross;
+    Seated.TabStripPadTop = Measure.StripPadTop;
+
+    // ⚠️ Coupled with TabOverlap: the sheet's 38 px padding exists to clear the slant plus the overlap.
+    Seated.FramePadding.x = Measure.TabPadAlong;
+
+    // 📝 The sheet rounds nothing and strokes nothing. Both configurable, both zero here, which is what
+    //    `DockWorkspace.html` states — `roundCorners` is off and no tab carries a border.
+    Seated.TabRounding   = Measure.TabRadius;
+    Seated.TabBorderSize = Measure.TabEdgeWeight;
+
+    Seated.Colors[ImGuiCol_Tab]               = Vendor(Tinted.TabQuiet);
+    Seated.Colors[ImGuiCol_TabHovered]        = Vendor(Tinted.TabRoused);
+    Seated.Colors[ImGuiCol_TabSelected]       = Vendor(Tinted.TabTaken);
+    Seated.Colors[ImGuiCol_TabDimmed]         = Vendor(Tinted.TabQuiet);
+    Seated.Colors[ImGuiCol_TabDimmedSelected] = Vendor(Tinted.TabTaken);
+    Seated.Colors[ImGuiCol_Text]              = Vendor(Tinted.TabInkTaken);
+
+    return Deliver<bool>::Deliver(true);
+}
+
+void InterfaceExchange::RecordWorkspaceTabs(const PlaneExtent&  Extent,
+                                            const char* const*  Titles,
+                                            std::uint32_t       Count,
+                                            std::uint32_t       Active,
+                                            std::uint32_t&      Chosen,
+                                            std::uint32_t&      Closed)
+{
+    // 📝 Both outputs are settled before any early return. `Count` means "none", which no valid
+    //    ordinal equals.
+    Chosen = Count;
+    Closed = Count;
+
+    if (ContextSlot == nullptr || !TickOpen || Titles == nullptr || Count == 0u)
+        return;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    // 🔴 A bare window seated exactly on the strip the panel measured. The tab bar has to live in a
+    //    window: the vendor owns tab layout, hover and drag arbitration, and a bar recorded into a plain
+    //    draw list gets none of it.
+    ImGui::SetNextWindowPos(ImVec2(Extent.LeastAlong, Extent.LeastAcross));
+    ImGui::SetNextWindowSize(ImVec2(Extent.SpanAlong(), Extent.SpanAcross()));
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+    const ImGuiWindowFlags Bare = ImGuiWindowFlags_NoTitleBar
+                                | ImGuiWindowFlags_NoResize
+                                | ImGuiWindowFlags_NoMove
+                                | ImGuiWindowFlags_NoScrollbar
+                                | ImGuiWindowFlags_NoScrollWithMouse
+                                | ImGuiWindowFlags_NoSavedSettings
+                                | ImGuiWindowFlags_NoBringToFrontOnFocus
+                                | ImGuiWindowFlags_NoBackground;
+
+    if (ImGui::Begin("SlateWorkspaceStrip", nullptr, Bare))
+    {
+        if (ImGui::BeginTabBar("SlateWorkspaceTabs", ImGuiTabBarFlags_Reorderable
+                                                   | ImGuiTabBarFlags_FittingPolicyScroll))
+        {
+            for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+            {
+                if (Titles[Ordinal] == nullptr)
+                    continue;
+
+                // 📝 The vendor is TOLD which tab is presented rather than left to remember. The ledger
+                //    owns that decision, and a bar keeping its own would disagree the first time anything
+                //    but a click changed the active workspace.
+                ImGuiTabItemFlags Seated = ImGuiTabItemFlags_None;
+
+                if (Ordinal == Active)
+                    Seated |= ImGuiTabItemFlags_SetSelected;
+
+                bool Standing = true;
+
+                if (ImGui::BeginTabItem(Titles[Ordinal], &Standing, Seated))
+                {
+                    Chosen = Ordinal;
+                    ImGui::EndTabItem();
+                }
+
+                // ⚠️ Reported, never acted on here. Withdrawing inside this sweep would edit the set the
+                //    tab bar is walking; the caller withdraws it once the strip is sealed.
+                if (!Standing)
+                    Closed = Ordinal;
+            }
+
+            ImGui::EndTabBar();
+        }
+    }
+
+    ImGui::End();
+
+    ImGui::PopStyleVar(2);
+}
+
 Deliver<bool> InterfaceExchange::Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount)
 {
     if (ContextSlot == nullptr || !VendorAttached)

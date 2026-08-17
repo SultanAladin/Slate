@@ -120,6 +120,15 @@ public:
     /// tag   api, nonallocating, nonthrowing
     const AppearanceSpecification& Appearance() const;
 
+    /// 🧩 The interface seam, for a host seating vendor style or recording a vendor tab bar.
+    /// note  🔴 Handed out as the SEAM and never as ImGui. `00` §2.2 keeps every ImGui spelling inside
+    ///        `SlateUI`, and this returns the component that owns them — a host still names none.
+    /// note  📝 Named `Seam` and not for the member it returns: `Interface` is already the member's own
+    ///        spelling, and an accessor sharing it cannot be declared.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    InterfaceExchange& Seam();
+
     /// 🧩 The redraw marks, for the host to decide whether to present.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing

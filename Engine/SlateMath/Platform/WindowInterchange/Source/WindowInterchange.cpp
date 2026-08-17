@@ -108,20 +108,17 @@ void WindowInterchange::Drain()
     DrawExtent.Height = static_cast<std::uint32_t>(DrawHeight < 0 ? 0 : DrawHeight);
     ClosurePosed      = glfwWindowShouldClose(OpenedWindow) == GLFW_TRUE;
 
-#ifdef SLATE_DEBUG
     // 📝 The previous level is carried before the current one is read, so `KeyDescended` reports the edge
     //    between two Drains rather than the level at one of them.
-    static constexpr int DiagnosticKeyCodes[4] = { GLFW_KEY_F9, GLFW_KEY_F10, GLFW_KEY_F11, GLFW_KEY_F12 };
+    // ⚠️ F11 is not among them: the window manager takes it for fullscreen before the process is asked.
+    static constexpr int DiagnosticKeyCodes[4] = { GLFW_KEY_F6, GLFW_KEY_F7, GLFW_KEY_F8, GLFW_KEY_F9 };
 
     for (std::uint32_t KeyOrdinal = 0u; KeyOrdinal < 4u; ++KeyOrdinal)
     {
         KeyWas[KeyOrdinal]  = KeyDown[KeyOrdinal];
         KeyDown[KeyOrdinal] = glfwGetKey(OpenedWindow, DiagnosticKeyCodes[KeyOrdinal]) == GLFW_PRESS;
     }
-#endif
 }
-
-#ifdef SLATE_DEBUG
 
 bool WindowInterchange::KeyDescended(DiagnosticKey Declared) const
 {
@@ -132,8 +129,6 @@ bool WindowInterchange::KeyDescended(DiagnosticKey Declared) const
 
     return KeyDown[KeyOrdinal] && !KeyWas[KeyOrdinal];
 }
-
-#endif
 
 void* WindowInterchange::NativeHandle() const
 {

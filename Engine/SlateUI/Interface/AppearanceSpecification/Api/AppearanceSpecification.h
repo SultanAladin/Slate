@@ -527,6 +527,7 @@ inline constexpr std::uint32_t WorkspaceTabTaken     = 0x000000u;   // [-] - --t
 inline constexpr std::uint32_t WorkspaceTabInkQuiet  = 0x9BA1ADu;   // [-] - --tab-inactive-text
 inline constexpr std::uint32_t WorkspaceTabInkTaken  = 0xFFFFFFu;   // [-] - --tab-active-text
 inline constexpr std::uint32_t WorkspaceFooterEdge   = 0x222228u;   // [-] - --panel-footer-border, --border
+inline constexpr std::uint32_t WorkspaceVacantInk    = 0x33333Du;   // [-] - .empty colour
 
 /// 🧩 Every extent and ink the workspace tab strip is drawn with, stated at the sheet's authored density.
 /// note  🔴 These are read by whatever seats the interface library's style, and by the footer strip Slate
@@ -550,6 +551,8 @@ struct WorkspaceMetric
     float  FooterAcross     =  22.0f;   // [px] - .panelfooter height
     float  FooterEdgeWeight =   1.0f;   // [px] - .panelfooter border-top
     float  TabText          =  10.0f;   // [px] - .tab .lbl font-size
+    float  VacantText       =  10.5f;   // [px] - .empty font-size
+    float  VacantTracking   =   0.22f;  // [em] - .empty letter-spacing, against the text size
 };
 
 /// 🧩 The inks the workspace tab strip and its footer are drawn with.
@@ -567,6 +570,8 @@ struct WorkspaceInk
     InkOrdinate  FooterGround  = Covering(WorkspaceStrip);         // [-] - --panel-footer-bg
     InkOrdinate  FooterEdge    = Covering(WorkspaceFooterEdge);    // [-] - --panel-footer-border
     InkOrdinate  WorkspaceVoid = Covering(AbsoluteBlack);          // [-] - the OLED ground behind everything
+    InkOrdinate  BodyGround    = Covering(AbsoluteBlack);          // [-] - --panel, .panelbody and .content
+    InkOrdinate  VacantInk     = Covering(WorkspaceVacantInk);     // [-] - .empty, the placeholder run
 };
 
 //------------------------------------------------------------------------------------------------------------------------

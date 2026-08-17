@@ -245,9 +245,10 @@ int main()
     Declared.InitialHeight = InitialHeight;
     Declared.Pacing        = LatencyIntent::SteadyPacing;
 
-#ifdef SLATE_DEBUG
+    // 🔴 Requested in EVERY configuration. `Build\Construct.bat` produces Release by default, so gating
+    //    this compiled the validation layer out of the binary that is actually run — and every run then
+    //    reported itself unwatched, which is the one answer indistinguishable from a clean one.
     Declared.DiagnosticRequested = true;
-#endif
 
     HostLifecycle Lifetime;
 

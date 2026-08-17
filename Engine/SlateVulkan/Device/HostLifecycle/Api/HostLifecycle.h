@@ -140,6 +140,7 @@ struct TickPass
     std::uint32_t    ExtentAlong     = 0u;                        // [px] - the drawable extent this tick
     std::uint32_t    ExtentAcross    = 0u;                        // [px]
     bool             DisplayAltered  = false;                     // [-]  - the chain was re-established
+    bool             DeviceRetiring  = false;                     // [-]  - retire device resources THIS tick
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -243,6 +244,15 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool DisplayRecovered();
 
+    /// 🧩 Asks for the device tier to be rebuilt at the start of the next tick.
+    /// note  🔴 Two-phase by necessity. The tick this is asked on returns `Withdrawn` with `DeviceRetiring`
+    ///        raised, so the host retires its device resources WHILE THE DEVICE STILL STANDS; the rebuild
+    ///        happens next tick. Rebuilding at once destroyed the device before the host had been told,
+    ///        and the host's own reclamation then idled a dead handle.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void AskDeviceRebuild();
+
     /// 🧩 Retires the device tier and rebuilds it, leaving the window, instance and surface standing.
     /// out   Deliver  [-]  refuses when the rebuild declines, having left nothing half-constructed
     /// use   Called on a reported device loss, and by the diagnostic key that exercises this path.
@@ -321,9 +331,9 @@ private:
     bool                 TickRecording     = false;            // [-] - a tick stands at TickStanding::Recording
     bool                 DisplayAltered    = false;            // [-] - a recovery the host has not adopted
     bool                 DeviceAltered     = false;            // [-] - a device rebuild the host has not adopted
-#ifdef SLATE_DEBUG
+    bool                 DeviceRebuildAsked= false;            // [-] - asked for; serviced next tick
+    bool                 DeviceRetiring    = false;            // [-] - phase one done; the rebuild is next
     bool                 ResizeStorming    = false;            // [-] - re-establish every tick until released
-#endif
     std::uint32_t        DeviceRecoveries  = 0u;               // [-] - rebuilds attempted; the retry is bounded
     bool                 LoopStanding      = false;            // [-] - false once the window closed
     ResourceLifetime     Constructed       = ResourceLifetime::Host;   // [-] - how far bring-up reached

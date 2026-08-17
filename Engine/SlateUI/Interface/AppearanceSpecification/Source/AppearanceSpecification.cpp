@@ -237,9 +237,18 @@ void ScaleWorkspaceLengths(WorkspaceMetric& Measure, float AppliedScale)
     Measure.FooterAcross     *= AppliedScale;
     Measure.FooterEdgeWeight *= AppliedScale;
     Measure.TabText          *= AppliedScale;
+    Measure.VacantText       *= AppliedScale;
 
     if (Measure.TabText < TextLegibilityFloor)
         Measure.TabText = TextLegibilityFloor;
+
+    // 📝 The placeholder run is held to the same floor. It is the only text on an empty workspace, so a
+    //    scale that shrank it below legibility would leave the artist an unreadable panel and no other cue.
+    if (Measure.VacantText < TextLegibilityFloor)
+        Measure.VacantText = TextLegibilityFloor;
+
+    // 📝 🔴 `VacantTracking` is NOT scaled. It is stated in em against the text size, so it follows the
+    //    scaled size on its own; multiplying it here would apply the scale to it a second time.
 }
 
 }   // namespace

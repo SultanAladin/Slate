@@ -6,6 +6,8 @@
 #pragma once
 
 #include "Contract/DeliveryContract.h"
+#include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
+#include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "Contract/ToleranceContract.h"
 
 #include <vulkan/vulkan.h>
@@ -105,6 +107,31 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     Deliver<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
+
+    /// 🧩 Seats the sheet's tab figures into the vendor's style, including the four `Patches/` adds.
+    /// out   Deliver  [-]  refuses with CapabilityAbsent before Construct
+    /// note  🔴 The four patched members default to 0.0f, at which a patched build rasterises exactly as an
+    ///        unpatched one. Seating them is what turns the trapezoid on — a build that never called this
+    ///        drew stock rectangular tabs and read as though the patches had failed to apply.
+    /// note  ⚠️ `TabPadAlong` and `TabOverlap` are coupled: the 38 px padding clears the slant plus the
+    ///        overlap, and raising one without the other runs adjacent tabs together.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    Deliver<bool> SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceInk& Tinted);
+
+    /// 🧩 Records the workspace tab strip with the vendor's patched tab bar, and reports what the artist did.
+    /// in    Titles   [-]  one static run per open workspace, in presentation order
+    /// out   Chosen   [-]  the ordinal selected this tick, or `Count` when none
+    /// out   Closed   [-]  the ordinal closed this tick, or `Count` when none
+    /// note  🔴 The TRAPEZOID is the vendor's, from PatchA and `Style.TabSlant`. Nothing here draws a tab:
+    ///        a hand-drawn strip would not interlock, would not carry PatchB's z-order, and would not
+    ///        answer the vendor's own hover and drag arbitration.
+    /// note  ⚠️ A closure is REPORTED and never acted on here. Withdrawing inside this sweep would edit the
+    ///        set the tab bar is walking; the caller withdraws it after the strip is sealed.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    void RecordWorkspaceTabs(const PlaneExtent& Extent, const char* const* Titles, std::uint32_t Count,
+                             std::uint32_t Active, std::uint32_t& Chosen, std::uint32_t& Closed);
 
     /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface

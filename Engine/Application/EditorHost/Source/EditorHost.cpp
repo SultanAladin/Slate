@@ -1,7 +1,7 @@
 //============================================================================================================================================
-//                                                             PAINTHOST.CPP
+//                                                             EDITORHOST.CPP
 //============================================================================================================================================
-// 🧩 The painting application — lifetime and tick only, with every device concern held by HostLifecycle.
+// 🧩 The combined editor — every workspace subject in one host, with every device concern held by HostLifecycle.
 
 #include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
@@ -22,8 +22,8 @@ using namespace Slate;
 constexpr std::uint32_t InitialWidth  = 1280u;   // [px]
 constexpr std::uint32_t InitialHeight = 720u;    // [px]
 
-constexpr const char* WindowTitle = "Slate \u2014 Paint";
-constexpr const char* HostName    = "PaintHost";
+constexpr const char* WindowTitle = "Slate \u2014 Editor";
+constexpr const char* HostName    = "EditorHost";
 
 // 📝 The workspace ground the interface is recorded over. Stated here because it is the one visual decision
 //    this host makes; everything else it presents belongs to a panel.
@@ -117,9 +117,11 @@ int main()
         return 1;
     }
 
-    // 📝 One workspace open by default, of the subject this host is for. A host that opened none would show
-    //    the vacant run on first launch, which reads as a failure rather than as a fresh start.
-    if (!Workspaces.Enrol(WorkspaceSubject::Painting).ContentPresent)
+    // 📝 🔴 The editor opens a VACANT workspace, where the painting host opens a canvas. This is the one
+    //    thing that distinguishes the two hosts, and it is the reason there are two: the editor carries
+    //    every subject and cannot presume which the artist wants, so it presents a blank one and lets them
+    //    say. A host that guessed would open a canvas for someone who came to sketch.
+    if (!Workspaces.Enrol(WorkspaceSubject::Vacant).ContentPresent)
     {
         std::printf("%s \u2014 the default workspace could not be opened\n", HostName);
         return 1;
