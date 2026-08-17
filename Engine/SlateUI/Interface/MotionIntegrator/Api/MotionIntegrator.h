@@ -54,7 +54,8 @@ enum class EaseCurve : std::uint32_t
     Standard   = 0u,   // [-] - cubic-bezier(0.4, 0, 0.2, 1); colour and accordion transitions
     Departing  = 1u,   // [-] - cubic-bezier(0, 0, 0.58, 1); card arrival
     Carousel   = 2u,   // [-] - cubic-bezier(0.5, 0.05, 0.2, 1); inspector page travel
-    CurveCount = 3u
+    CssEase    = 3u,   // [-] - cubic-bezier(0.25, 0.1, 0.25, 1); an unspecified CSS transition
+    CurveCount = 4u
 };
 
 struct EasedInterpolant

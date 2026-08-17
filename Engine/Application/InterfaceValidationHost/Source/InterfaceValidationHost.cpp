@@ -86,6 +86,7 @@ struct ValidationOrdinates
     std::uint32_t  InspectorTaken  = 0u;      // [-]   - Properties
     bool           TransformOpen   = true;    // [-]   - folding property card
     std::uint32_t  ShadingTaken    = 0u;      // [-]   - dropdown selection
+    PickerColour   Albedo          = { 214u, 216u, 222u, 255u };   // [-] - HSV colour picker
     bool           OutlineExpanded[5] = { true, true, true, true, true };   // [-] - branch disclosure
     bool           OutlineTaken[5]    = { false, true, true, false, false };   // [-] - additive multi-selection
     bool           OutlinePresent[5]  = { true, true, true, false, true };   // [-] - row presence action
@@ -114,7 +115,9 @@ struct ValidationIdentities
     ControlIdentity  InspectorTabs = {};
     ControlIdentity  TransformFold = {};
     ControlIdentity  ShadingMenu   = {};
-    ControlIdentity  OutlineRows[5] = {};
+    ControlIdentity  AlbedoPicker       = {};
+    ControlIdentity  OutlineRows[5]     = {};
+    ControlIdentity  OutlineExpansion[5] = {};
 };
 
 /// 🧩 Claims every identity the sheet needs, refusing in full rather than in part.
@@ -130,8 +133,11 @@ Deliver<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
         &Claimed.EntryOne,  &Claimed.EntryTwo,   &Claimed.EntryThree, &Claimed.EntryFour,
         &Claimed.Size,      &Claimed.TooltipLight, &Claimed.TooltipDark,
         &Claimed.InspectorDock, &Claimed.WorkspaceMode, &Claimed.InspectorTabs, &Claimed.TransformFold,
-        &Claimed.ShadingMenu, &Claimed.OutlineRows[0], &Claimed.OutlineRows[1], &Claimed.OutlineRows[2],
-        &Claimed.OutlineRows[3], &Claimed.OutlineRows[4]
+        &Claimed.ShadingMenu, &Claimed.AlbedoPicker,
+        &Claimed.OutlineRows[0], &Claimed.OutlineRows[1], &Claimed.OutlineRows[2],
+        &Claimed.OutlineRows[3], &Claimed.OutlineRows[4],
+        &Claimed.OutlineExpansion[0], &Claimed.OutlineExpansion[1], &Claimed.OutlineExpansion[2],
+        &Claimed.OutlineExpansion[3], &Claimed.OutlineExpansion[4]
     };
 
     for (ControlIdentity* Claiming : Every)
@@ -409,6 +415,9 @@ int main()
     ShadingMenu.Options     = ShadingOptions;
     ShadingMenu.OptionCount = 3u;
 
+    ColourPickerDeclaration AlbedoPicker;
+    AlbedoPicker.Caption = "Albedo";
+
     OutlineDeclaration OutlineRows[5] = {
         { "Part",         0u, 2u, true,  true  },
         { "Bodies",       1u, 3u, true,  true  },
@@ -663,8 +672,8 @@ int main()
         Panel.MagnitudeStops(Claimed.Size, RowAt(StopCard, StopRows, 0u), Size, Seated.SizeTaken);
 
         // ⑩ The global-interface primitives — switch, segmented selector, inspector carousel, fold and dropdown.
-        const float ReferenceRows[6] = { 32.0f, 38.0f, 31.0f, 154.0f, 129.0f, 124.0f };
-        const CardArrangement ReferenceCard = AdvanceCard(ReferenceRows, 6u);
+        const float ReferenceRows[7] = { 32.0f, 38.0f, 31.0f, 154.0f, 129.0f, 124.0f, 341.0f };
+        const CardArrangement ReferenceCard = AdvanceCard(ReferenceRows, 7u);
 
         ReferenceControls.SwitchToggle(Claimed.InspectorDock, RowAt(ReferenceCard, ReferenceRows, 0u),
                                        InspectorDock, Seated.InspectorDocked);
@@ -678,23 +687,46 @@ int main()
                                           TransformFold, Seated.TransformOpen);
         ReferenceControls.DropdownCard(Claimed.ShadingMenu, RowAt(ReferenceCard, ReferenceRows, 5u),
                                        ShadingMenu, Seated.ShadingTaken);
+        ReferenceControls.ColourPicker(Claimed.AlbedoPicker, RowAt(ReferenceCard, ReferenceRows, 6u),
+                                       AlbedoPicker, Seated.Albedo);
 
-        // ⑪ One linearised document outline. Every row is independently toggleable, so selections accumulate.
-        const float OutlineRowExtents[5] = { 28.0f, 28.0f, 28.0f, 28.0f, 28.0f };
-        const CardArrangement OutlineCard = AdvanceCard(OutlineRowExtents, 5u);
+        // ⑪ One linearised document outline. Branch travel is optional per declaration and enabled here.
+        float OutlineExpansion[5] = {};
+        for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
+        {
+            OutlineExpansion[Ordinal] = ReferenceControls.OutlineExpansion(
+                Claimed.OutlineExpansion[Ordinal], Seated.OutlineExpanded[Ordinal],
+                OutlineRows[Ordinal].AnimationEnabled);
+        }
+
+        const float RowPresence[5] = {
+            1.0f,
+            OutlineExpansion[0],
+            OutlineExpansion[0] * OutlineExpansion[1],
+            OutlineExpansion[0] * OutlineExpansion[1],
+            OutlineExpansion[0]
+        };
+        const float OutlineAcross = 28.0f * (RowPresence[0] + RowPresence[1] + RowPresence[2] +
+                                             RowPresence[3] + RowPresence[4]);
+        const float OutlineRowsAcross[1] = { OutlineAcross };
+        const CardArrangement OutlineCard = AdvanceCard(OutlineRowsAcross, 1u);
+        float OutlineCursor = OutlineCard.Interior.LeastAcross;
 
         for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
         {
-            const bool RootVisible = Ordinal == 0u || Seated.OutlineExpanded[0];
-            const bool BodyVisible = Ordinal < 2u || Ordinal == 4u || Seated.OutlineExpanded[1];
-
-            if (!RootVisible || !BodyVisible)
+            if (RowPresence[Ordinal] <= 0.0f)
                 continue;
 
-            ReferenceControls.OutlineRow(Claimed.OutlineRows[Ordinal],
-                                         RowAt(OutlineCard, OutlineRowExtents, Ordinal),
-                                         OutlineRows[Ordinal], true, Seated.OutlineExpanded[Ordinal],
+            const PlaneExtent Row = Spanning(OutlineCard.Interior.LeastAlong, OutlineCursor,
+                                             OutlineCard.Interior.SpanAlong(), 28.0f);
+            const PlaneExtent Revealed = Spanning(Row.LeastAlong, Row.LeastAcross,
+                                                  Row.SpanAlong(), 28.0f * RowPresence[Ordinal]);
+            Surface.Confine(Revealed);
+            ReferenceControls.OutlineRow(Claimed.OutlineRows[Ordinal], Row, OutlineRows[Ordinal], true,
+                                         OutlineExpansion[Ordinal], Seated.OutlineExpanded[Ordinal],
                                          Seated.OutlineTaken[Ordinal], Seated.OutlinePresent[Ordinal]);
+            Surface.Release();
+            OutlineCursor += 28.0f * RowPresence[Ordinal];
         }
 
         // ⑫ The revision timeline, presented from newest to oldest.

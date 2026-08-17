@@ -72,6 +72,23 @@ struct DropdownDeclaration
     std::uint32_t       OptionCount = 0u;        // [-] - menu rows presented
 };
 
+/// 🧩 Four display-referred colour ordinates edited by the HSV picker.
+/// tag   contract, nonallocating, nonthrowing
+struct PickerColour
+{
+    std::uint8_t  Red     = 255u;   // [-] - display-referred red
+    std::uint8_t  Green   = 255u;   // [-] - display-referred green
+    std::uint8_t  Blue    = 255u;   // [-] - display-referred blue
+    std::uint8_t  Opacity = 255u;   // [-] - covering fraction
+};
+
+/// 🧩 The caption carried by one colour field and HSV disclosure.
+/// tag   contract, nonallocating, nonthrowing
+struct ColourPickerDeclaration
+{
+    const char*  Caption = "";   // [-] - borrowed; outlives the tick
+};
+
 /// 🧩 One linearised outline row, including its depth and visibility condition.
 /// tag   contract, nonallocating, nonthrowing
 struct OutlineDeclaration
@@ -81,6 +98,7 @@ struct OutlineDeclaration
     std::uint32_t  EnclosedCount    = 0u;    // [-] - zero presents no disclosure mark
     bool           ExpansionEnabled = true;  // [-] - whether enclosed rows are presented
     bool           PresenceEnabled  = true;  // [-] - whether the eye action presents presence
+    bool           AnimationEnabled = true;  // [-] - optional branch travel, enabled by default
 };
 
 /// 🧩 One revision marker with its description and secondary run.
@@ -155,12 +173,24 @@ public:
     ControlVerdict DropdownCard(ControlIdentity Claimed, const PlaneExtent& Extent,
                                 const DropdownDeclaration& Declared, std::uint32_t& TakenOrdinal);
 
+    /// 🧩 Presents the CAD reference's HSV colour field, disclosure and three draggable areas.
+    /// cost  🔴
+    /// tag   api, nonthrowing
+    ControlVerdict ColourPicker(ControlIdentity Claimed, const PlaneExtent& Extent,
+                                const ColourPickerDeclaration& Declared, PickerColour& Colour);
+
+    /// 🧩 Advances one branch between collapsed and expanded presentation.
+    /// out   Fraction  [-]  zero collapsed to one expanded; binary when animation is disabled
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    float OutlineExpansion(ControlIdentity Claimed, bool ExpansionEnabled, bool AnimationEnabled);
+
     /// 🧩 Presents one outline row with additive selection and a visibility action.
     /// note  SelectionExtended controls whether a row press toggles this row without clearing other rows.
     /// cost  🚩
     /// tag   api, nonthrowing
     ControlVerdict OutlineRow(ControlIdentity Claimed, const PlaneExtent& Extent,
-                              const OutlineDeclaration& Declared, bool SelectionExtended,
+                              const OutlineDeclaration& Declared, bool SelectionExtended, float ExpansionFraction,
                               bool& ExpansionEnabled, bool& Selected, bool& PresenceEnabled);
 
     /// 🧩 Presents one revision marker and its two text runs.

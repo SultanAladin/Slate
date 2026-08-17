@@ -8,6 +8,7 @@
 #include "imgui.h"
 
 #include <cfloat>
+#include <cmath>
 
 namespace Slate
 {
@@ -235,7 +236,8 @@ void RecordingSurface::Tongue(const float* Corners, std::uint32_t CornerCount, I
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-void RecordingSurface::Stroke(SymbolSubject Subject, const PlaneExtent& SquareExtent, InkOrdinate Ink)
+void RecordingSurface::Stroke(SymbolSubject Subject, const PlaneExtent& SquareExtent, InkOrdinate Ink,
+                              float TurnRadians)
 {
     if (CommandSlot == nullptr || Ink.Opacity == 0u)
         return;
@@ -245,18 +247,25 @@ void RecordingSurface::Stroke(SymbolSubject Subject, const PlaneExtent& SquareEx
     if (Declared.Steps == nullptr || Declared.StepCount == 0u)
         return;
 
-    const float Scale       = SquareExtent.SpanAlong() / DeclaredSquare;
-    const float OriginAlong = SquareExtent.LeastAlong;
-    const float OriginAcross= SquareExtent.LeastAcross;
-    const float Weight      = Declared.Weight * Scale;
-    const ImU32 Vendored    = Vendor(Ink);
+    const float Scale        = SquareExtent.SpanAlong() / DeclaredSquare;
+    const float OriginAlong  = SquareExtent.LeastAlong;
+    const float OriginAcross = SquareExtent.LeastAcross;
+    const float Weight       = Declared.Weight * Scale;
+    const float TurnCosine   = std::cos(TurnRadians);
+    const float TurnSine     = std::sin(TurnRadians);
+    const ImU32 Vendored     = Vendor(Ink);
 
     ImDrawList* Target      = Commands(CommandSlot);
     bool        OutlineOpen = false;
 
     const auto Place = [&](float Along, float Across) -> ImVec2
     {
-        return ImVec2(OriginAlong + Along * Scale, OriginAcross + Across * Scale);
+        const float CentredAlong  = Along  - DeclaredSquare * 0.5f;
+        const float CentredAcross = Across - DeclaredSquare * 0.5f;
+        const float TurnedAlong   = CentredAlong * TurnCosine - CentredAcross * TurnSine;
+        const float TurnedAcross  = CentredAlong * TurnSine   + CentredAcross * TurnCosine;
+        return ImVec2(OriginAlong + (TurnedAlong + DeclaredSquare * 0.5f) * Scale,
+                      OriginAcross + (TurnedAcross + DeclaredSquare * 0.5f) * Scale);
     };
 
     const auto Finish = [&](bool Closing)

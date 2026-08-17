@@ -5,6 +5,9 @@
 
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 
+#include <cmath>
+#include <cstdio>
+
 namespace Slate
 {
 
@@ -17,6 +20,9 @@ namespace
 
 constexpr InkOrdinate PanelGround     = Covering(0x101012u);
 constexpr InkOrdinate FieldGround     = Covering(0x0A0A0Bu);
+constexpr InkOrdinate ValueGround     = Covering(0x232326u);
+constexpr InkOrdinate NumberGround    = Covering(0x131315u);
+constexpr InkOrdinate UnitGround      = Covering(0x33333Au);
 constexpr InkOrdinate TileGround      = Covering(0x1D1D21u);
 constexpr InkOrdinate TileRoused      = Covering(0x26262Bu);
 constexpr InkOrdinate HairInk         = Partial(0xFFFFFFu, 0.06);
@@ -42,10 +48,20 @@ constexpr float FoldRowAcross         = 30.0f;   // [px] - one disclosed propert
 constexpr float DropdownHeadAcross    = 32.0f;   // [px] - selection field
 constexpr float DropdownOptionAcross  = 26.0f;   // [px] - one menu option
 constexpr float DropdownGapAcross     = 6.0f;    // [px] - field to menu separation
+constexpr float ColourHeadAcross      = 40.0f;   // [px] - colour field
+constexpr float ColourGapAcross       = 9.0f;    // [px] - field to picker separation
+constexpr float ColourPickerAcross    = 269.0f;  // [px] - picker card including its padding
+constexpr float SaturationAcross      = 140.0f;  // [px] - saturation and brightness square
+constexpr float ColourBarAcross       = 16.0f;   // [px] - hue and opacity rails
 
 constexpr float Between(float Departed, float Arriving, float Fraction)
 {
     return Departed + (Arriving - Departed) * Fraction;
+}
+
+constexpr double Held(double Ordinate, double Least, double Most)
+{
+    return (Ordinate < Least) ? Least : (Ordinate > Most) ? Most : Ordinate;
 }
 
 constexpr std::uint8_t BlendOrdinate(std::uint8_t Departed, std::uint8_t Arriving, float Fraction)
@@ -56,12 +72,76 @@ constexpr std::uint8_t BlendOrdinate(std::uint8_t Departed, std::uint8_t Arrivin
 
 constexpr InkOrdinate Blend(InkOrdinate Departed, InkOrdinate Arriving, float Fraction)
 {
-    const float Held = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
+    const float HeldFraction = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
 
-    return InkOrdinate{ BlendOrdinate(Departed.Red,     Arriving.Red,     Held),
-                        BlendOrdinate(Departed.Green,   Arriving.Green,   Held),
-                        BlendOrdinate(Departed.Blue,    Arriving.Blue,    Held),
-                        BlendOrdinate(Departed.Opacity, Arriving.Opacity, Held) };
+    return InkOrdinate{ BlendOrdinate(Departed.Red,     Arriving.Red,     HeldFraction),
+                        BlendOrdinate(Departed.Green,   Arriving.Green,   HeldFraction),
+                        BlendOrdinate(Departed.Blue,    Arriving.Blue,    HeldFraction),
+                        BlendOrdinate(Departed.Opacity, Arriving.Opacity, HeldFraction) };
+}
+
+constexpr InkOrdinate Faded(InkOrdinate Declared, float Fraction)
+{
+    const float HeldFraction = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
+    Declared.Opacity = static_cast<std::uint8_t>(static_cast<float>(Declared.Opacity) * HeldFraction + 0.5f);
+    return Declared;
+}
+
+struct HsvOrdinate
+{
+    float  Hue        = 0.0f;   // [deg] - zero through 360
+    float  Saturation = 0.0f;   // [-]   - unit interval
+    float  Brightness = 0.0f;   // [-]   - unit interval
+};
+
+HsvOrdinate ToHsv(const PickerColour& Colour)
+{
+    const float Red     = static_cast<float>(Colour.Red)   / 255.0f;
+    const float Green   = static_cast<float>(Colour.Green) / 255.0f;
+    const float Blue    = static_cast<float>(Colour.Blue)  / 255.0f;
+    const float Greatest = std::fmax(Red, std::fmax(Green, Blue));
+    const float Least    = std::fmin(Red, std::fmin(Green, Blue));
+    const float Distance = Greatest - Least;
+
+    HsvOrdinate Converted;
+    Converted.Brightness = Greatest;
+    Converted.Saturation = (Greatest > 0.0f) ? Distance / Greatest : 0.0f;
+
+    if (Distance > 0.0f)
+    {
+        if (Greatest == Red)        Converted.Hue = 60.0f * std::fmod((Green - Blue) / Distance, 6.0f);
+        else if (Greatest == Green) Converted.Hue = 60.0f * ((Blue - Red) / Distance + 2.0f);
+        else                        Converted.Hue = 60.0f * ((Red - Green) / Distance + 4.0f);
+
+        if (Converted.Hue < 0.0f)
+            Converted.Hue += 360.0f;
+    }
+
+    return Converted;
+}
+
+PickerColour FromHsv(const HsvOrdinate& Hsv, std::uint8_t Opacity)
+{
+    const float Chroma = Hsv.Brightness * Hsv.Saturation;
+    const float Intermediate = Chroma * (1.0f - std::fabs(std::fmod(Hsv.Hue / 60.0f, 2.0f) - 1.0f));
+    const float Added = Hsv.Brightness - Chroma;
+    float Red = 0.0f;
+    float Green = 0.0f;
+    float Blue = 0.0f;
+
+    if (Hsv.Hue < 60.0f)       { Red = Chroma; Green = Intermediate; }
+    else if (Hsv.Hue < 120.0f) { Red = Intermediate; Green = Chroma; }
+    else if (Hsv.Hue < 180.0f) { Green = Chroma; Blue = Intermediate; }
+    else if (Hsv.Hue < 240.0f) { Green = Intermediate; Blue = Chroma; }
+    else if (Hsv.Hue < 300.0f) { Red = Intermediate; Blue = Chroma; }
+    else                       { Red = Chroma; Blue = Intermediate; }
+
+    PickerColour Converted;
+    Converted.Red     = static_cast<std::uint8_t>(std::round((Red + Added) * 255.0f));
+    Converted.Green   = static_cast<std::uint8_t>(std::round((Green + Added) * 255.0f));
+    Converted.Blue    = static_cast<std::uint8_t>(std::round((Blue + Added) * 255.0f));
+    Converted.Opacity = Opacity;
+    return Converted;
 }
 
 constexpr float CentredAcross(const PlaneExtent& Extent, float PointSize)
@@ -602,12 +682,217 @@ ControlVerdict ControlPanel::DropdownCard(ControlIdentity Claimed, const PlaneEx
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                        COLOUR PICKER
+//------------------------------------------------------------------------------------------------------------------------
+
+ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneExtent& Extent,
+                                          const ColourPickerDeclaration& Declared, PickerColour& Colour)
+{
+    ControlVerdict Verdict;
+
+    if (Interaction == nullptr || Recording == nullptr)
+        return Verdict;
+
+    const PlaneExtent Head = Spanning(Extent.LeastAlong, Extent.LeastAcross + 23.0f,
+                                      Extent.SpanAlong(), ColourHeadAcross);
+    const PlaneExtent Caret = { Head.MostAlong - 40.0f, Head.LeastAcross, Head.MostAlong, Head.MostAcross };
+    const float PickerLeast = Head.MostAcross + ColourGapAcross;
+    const PlaneExtent Picker = Spanning(Extent.LeastAlong, PickerLeast, Extent.SpanAlong(), ColourPickerAcross);
+    const PlaneExtent Saturation = Spanning(Picker.LeastAlong + 13.0f, Picker.LeastAcross + 13.0f,
+                                            Picker.SpanAlong() - 26.0f, SaturationAcross);
+    const PlaneExtent HueRail = Spanning(Saturation.LeastAlong, Saturation.MostAcross + 12.0f,
+                                         Saturation.SpanAlong(), ColourBarAcross);
+    const PlaneExtent OpacityRail = Spanning(Saturation.LeastAlong, HueRail.MostAcross + 11.0f,
+                                             Saturation.SpanAlong(), ColourBarAcross);
+
+    const bool Open = Interaction->Disclosed(Claimed);
+    const bool HeadRoused = Head.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool SaturationRoused = Open && Saturation.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool HueRoused = Open && HueRail.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool OpacityRoused = Open && OpacityRail.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+
+    if (Arrived.ContactArrived)
+    {
+        if (HeadRoused)             Interaction->Seize(Claimed, ControlPart::Body);
+        else if (SaturationRoused)  Interaction->Seize(Claimed, ControlPart::Track);
+        else if (HueRoused)         Interaction->Seize(Claimed, ControlPart::Strip);
+        else if (OpacityRoused)     Interaction->Seize(Claimed, ControlPart::Thumb);
+        else if (Open && !Picker.Encloses(Arrived.PositionAlong, Arrived.PositionAcross))
+            Interaction->Withdraw();
+    }
+
+    HsvOrdinate Hsv = ToHsv(Colour);
+
+    if (Interaction->Holding(Claimed))
+    {
+        const ControlPart Part = Interaction->HeldPart(Claimed);
+
+        if (Part == ControlPart::Track)
+        {
+            Hsv.Saturation = static_cast<float>(Held((Arrived.PositionAlong - Saturation.LeastAlong) /
+                                                     Saturation.SpanAlong(), 0.0, 1.0));
+            Hsv.Brightness = static_cast<float>(Held(1.0 - (Arrived.PositionAcross - Saturation.LeastAcross) /
+                                                     Saturation.SpanAcross(), 0.0, 1.0));
+            Colour = FromHsv(Hsv, Colour.Opacity);
+            Verdict.OrdinateAltered = true;
+        }
+        else if (Part == ControlPart::Strip)
+        {
+            Hsv.Hue = static_cast<float>(Held((Arrived.PositionAlong - HueRail.LeastAlong) /
+                                              HueRail.SpanAlong(), 0.0, 1.0) * 360.0);
+            Colour = FromHsv(Hsv, Colour.Opacity);
+            Verdict.OrdinateAltered = true;
+        }
+        else if (Part == ControlPart::Thumb)
+        {
+            Colour.Opacity = static_cast<std::uint8_t>(std::round(Held(
+                (Arrived.PositionAlong - OpacityRail.LeastAlong) / OpacityRail.SpanAlong(), 0.0, 1.0) * 255.0));
+            Verdict.OrdinateAltered = true;
+        }
+    }
+
+    const bool QuickTap = Arrived.ContactArrived && Arrived.ContactReleased && HeadRoused;
+
+    if ((Interaction->Released(Claimed) && HeadRoused) || QuickTap)
+    {
+        if (Open) Interaction->Withdraw();
+        else      Interaction->Disclose(Claimed);
+    }
+
+    const bool DisclosureOpen = Interaction->Disclosed(Claimed);
+    Interaction->DeclareRoused(Claimed, HeadRoused, RouseDuration);
+    Interaction->DeclareTaken(Claimed, DisclosureOpen, DiscloseDuration);
+
+    const float Disclosure = Interaction->TakenFraction(Claimed);
+    const float RouseFraction = Interaction->RousedFraction(Claimed);
+    Hsv = ToHsv(Colour);
+
+    Recording->TextRun(Extent.LeastAlong, Extent.LeastAcross,
+                       Blend(MutedInk, PrimaryInk, RouseFraction), Declared.Caption, ReferenceText);
+    Recording->Ground(Head, FieldGround, 20.0f, CornerAll);
+    Recording->Ground(Caret, Blend(UnitGround, TileRoused, RouseFraction), 20.0f,
+                      CornerTrailingUpper | CornerTrailingLower);
+
+    InkOrdinate CurrentInk{ Colour.Red, Colour.Green, Colour.Blue, Colour.Opacity };
+    Recording->Medallion(Head.LeastAlong + 24.0f, Head.LeastAcross + 20.0f, 12.0f, CurrentInk);
+    Recording->Edge(Spanning(Head.LeastAlong + 12.0f, Head.LeastAcross + 8.0f, 24.0f, 24.0f),
+                    StrongHairInk, 1.0f, 12.0f, CornerAll);
+
+    char RgbaRun[64] = {};
+    std::snprintf(RgbaRun, sizeof(RgbaRun), "rgba(%u, %u, %u, %.2f)",
+                  static_cast<unsigned>(Colour.Red), static_cast<unsigned>(Colour.Green),
+                  static_cast<unsigned>(Colour.Blue), static_cast<double>(Colour.Opacity) / 255.0);
+    Recording->TextRunTruncated(Head.LeastAlong + 47.0f, CentredAcross(Head, ReferenceText),
+                                Caret.LeastAlong - 8.0f, PrimaryInk, RgbaRun, ReferenceText);
+    Recording->Stroke(Disclosure > 0.5f ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
+                      Spanning(Caret.LeastAlong + 13.0f, Caret.LeastAcross + 13.0f, 14.0f, 14.0f), MutedInk);
+
+    if (Disclosure > 0.0f)
+    {
+        const PlaneExtent Revealed = { Picker.LeastAlong, Picker.LeastAcross, Picker.MostAlong,
+                                       Picker.LeastAcross + Picker.SpanAcross() * Disclosure };
+        Recording->Ground(Revealed, ValueGround, 13.0f, CornerAll);
+        Recording->Confine(Revealed);
+
+        HsvOrdinate HueOnly{ Hsv.Hue, 1.0f, 1.0f };
+        const PickerColour HueColour = FromHsv(HueOnly, 255u);
+        Recording->Ground(Saturation, { HueColour.Red, HueColour.Green, HueColour.Blue, 255u }, 10.0f, CornerAll);
+        Recording->Scrim(Saturation, WhiteInk, { 255u, 255u, 255u, 0u }, ScrimAxis::Along);
+        Recording->Scrim(Saturation, { 0u, 0u, 0u, 0u }, { 0u, 0u, 0u, 255u }, ScrimAxis::Across);
+
+        const float SaturationAlong = Saturation.LeastAlong + Saturation.SpanAlong() * Hsv.Saturation;
+        const float BrightnessAcross = Saturation.LeastAcross + Saturation.SpanAcross() * (1.0f - Hsv.Brightness);
+        Recording->Medallion(SaturationAlong, BrightnessAcross, 9.0f, WhiteInk);
+        Recording->Medallion(SaturationAlong, BrightnessAcross, 6.0f, CurrentInk);
+
+        constexpr InkOrdinate HueStops[7] = {
+            Covering(0xFF0000u), Covering(0xFFFF00u), Covering(0x00FF00u), Covering(0x00FFFFu),
+            Covering(0x0000FFu), Covering(0xFF00FFu), Covering(0xFF0000u)
+        };
+        const float HueSegment = HueRail.SpanAlong() / 6.0f;
+
+        for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
+        {
+            Recording->Scrim(Spanning(HueRail.LeastAlong + HueSegment * static_cast<float>(Ordinal),
+                                      HueRail.LeastAcross, HueSegment + 1.0f, HueRail.SpanAcross()),
+                             HueStops[Ordinal], HueStops[Ordinal + 1u], ScrimAxis::Along);
+        }
+
+        const float HueAlong = HueRail.LeastAlong + HueRail.SpanAlong() * (Hsv.Hue / 360.0f);
+        Recording->Medallion(HueAlong, HueRail.LeastAcross + 8.0f, 10.0f, Covering(0x1B1B1Eu));
+        Recording->Medallion(HueAlong, HueRail.LeastAcross + 8.0f, 8.0f, WhiteInk);
+
+        constexpr float CheckExtent = 10.0f;
+        for (std::uint32_t AcrossOrdinal = 0u; AcrossOrdinal < 2u; ++AcrossOrdinal)
+        {
+            const std::uint32_t AlongCount = static_cast<std::uint32_t>(OpacityRail.SpanAlong() / CheckExtent) + 1u;
+            for (std::uint32_t AlongOrdinal = 0u; AlongOrdinal < AlongCount; ++AlongOrdinal)
+            {
+                const InkOrdinate CheckInk = ((AlongOrdinal + AcrossOrdinal) % 2u == 0u)
+                                            ? Covering(0x808080u) : Covering(0xC0C0C0u);
+                Recording->Ground(Spanning(OpacityRail.LeastAlong + CheckExtent * static_cast<float>(AlongOrdinal),
+                                           OpacityRail.LeastAcross + CheckExtent * static_cast<float>(AcrossOrdinal),
+                                           CheckExtent, CheckExtent), CheckInk, 0.0f, CornerNone);
+            }
+        }
+
+        Recording->Scrim(OpacityRail, { Colour.Red, Colour.Green, Colour.Blue, 0u },
+                          { Colour.Red, Colour.Green, Colour.Blue, 255u }, ScrimAxis::Along);
+        const float OpacityAlong = OpacityRail.LeastAlong + OpacityRail.SpanAlong() *
+                                  (static_cast<float>(Colour.Opacity) / 255.0f);
+        Recording->Medallion(OpacityAlong, OpacityRail.LeastAcross + 8.0f, 10.0f, Covering(0x1B1B1Eu));
+        Recording->Medallion(OpacityAlong, OpacityRail.LeastAcross + 8.0f, 8.0f, WhiteInk);
+
+        const PlaneExtent HexField = Spanning(Picker.LeastAlong + 13.0f, OpacityRail.MostAcross + 12.0f,
+                                              108.0f, 36.0f);
+        Recording->Ground(HexField, NumberGround, 9.0f, CornerAll);
+        char HexRun[8] = {};
+        std::snprintf(HexRun, sizeof(HexRun), "#%02X%02X%02X",
+                      static_cast<unsigned>(Colour.Red), static_cast<unsigned>(Colour.Green),
+                      static_cast<unsigned>(Colour.Blue));
+        Recording->TextRun(HexField.LeastAlong + 10.0f, CentredAcross(HexField, 14.0f),
+                           PrimaryInk, HexRun, 14.0f);
+
+        char AlphaRun[16] = {};
+        std::snprintf(AlphaRun, sizeof(AlphaRun), "A %u%%",
+                      static_cast<unsigned>(std::round(static_cast<double>(Colour.Opacity) / 255.0 * 100.0)));
+        const float AlphaAlong = Recording->MeasureRun(AlphaRun, ReferenceText);
+        Recording->TextRun(Picker.MostAlong - AlphaAlong - 13.0f, CentredAcross(HexField, ReferenceText),
+                           MutedInk, AlphaRun, ReferenceText);
+        Recording->Release();
+    }
+
+    Verdict.ContactTaken = Interaction->Holding(Claimed);
+    Verdict.Mark = (Disclosure > 0.0f && Disclosure < 1.0f) ? RedrawMark::Rearrange
+                                                            : Verdict.OrdinateAltered ? RedrawMark::Recolour
+                                                                                      : RedrawMark::Quiet;
+    return Verdict;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    OUTLINE DISCLOSURE
+//------------------------------------------------------------------------------------------------------------------------
+
+float ControlPanel::OutlineExpansion(ControlIdentity Claimed, bool ExpansionEnabled, bool AnimationEnabled)
+{
+    if (Interaction == nullptr || !Interaction->Resolves(Claimed))
+        return ExpansionEnabled ? 1.0f : 0.0f;
+
+    if (!AnimationEnabled)
+        return ExpansionEnabled ? 1.0f : 0.0f;
+
+    Interaction->DeclareTaken(Claimed, ExpansionEnabled, RouseDuration, EaseCurve::CssEase);
+    return Interaction->TakenFraction(Claimed);
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                        OUTLINE ROW
 //------------------------------------------------------------------------------------------------------------------------
 
 ControlVerdict ControlPanel::OutlineRow(ControlIdentity Claimed, const PlaneExtent& Extent,
                                         const OutlineDeclaration& Declared, bool SelectionExtended,
-                                        bool& ExpansionEnabled, bool& Selected, bool& PresenceEnabled)
+                                        float ExpansionFraction, bool& ExpansionEnabled,
+                                        bool& Selected, bool& PresenceEnabled)
 {
     ControlVerdict Verdict;
 
@@ -663,8 +948,11 @@ ControlVerdict ControlPanel::OutlineRow(ControlIdentity Claimed, const PlaneExte
 
     if (Declared.EnclosedCount > 0u)
     {
-        Recording->Stroke(ExpansionEnabled ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
-                          Spanning(Extent.LeastAlong + Indent, Extent.LeastAcross + 7.0f, 12.0f, 12.0f), FaintInk);
+        constexpr float QuarterTurn = 1.5707963268f;   // [rad] - 90 degrees
+        const float Turn = -(1.0f - ExpansionFraction) * QuarterTurn;
+        Recording->Stroke(SymbolSubject::ChevronDown,
+                          Spanning(Extent.LeastAlong + Indent, Extent.LeastAcross + 7.0f, 12.0f, 12.0f),
+                          FaintInk, Turn);
     }
 
     Recording->Stroke(SymbolSubject::PlaceholderMark,

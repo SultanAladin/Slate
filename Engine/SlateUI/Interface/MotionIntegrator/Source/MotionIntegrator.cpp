@@ -49,7 +49,7 @@ constexpr double CurveSlope(double Parameter, double FirstControl, double Second
          + 3.0 * Parameter  * Parameter  * (1.0 - SecondControl);
 }
 
-// 📐 🔴 The three curves the sources declare, and only those three. The browser's
+// 📐 🔴 The four curves the sources declare, and only those four. The browser's
 //    `cubic-bezier(a, b, c, d)` gives the abscissa its controls at a and c and the ordinate its controls at b
 //    and d, so each curve below carries four figures and the solve inverts the abscissa before reading it.
 struct CurveControl
@@ -62,9 +62,10 @@ struct CurveControl
 
 constexpr CurveControl DeclaredCurves[static_cast<std::uint32_t>(EaseCurve::CurveCount)] =
 {
-    /* Standard   */ { 0.4, 0.0,  0.2, 1.0 },
-    /* Departing  */ { 0.0, 0.0, 0.58, 1.0 },
-    /* Carousel   */ { 0.5, 0.05, 0.2, 1.0 }
+    /* Standard   */ { 0.4,  0.0,  0.2,  1.0 },
+    /* Departing  */ { 0.0,  0.0,  0.58, 1.0 },
+    /* Carousel   */ { 0.5,  0.05, 0.2,  1.0 },
+    /* CssEase    */ { 0.25, 0.1,  0.25, 1.0 }
 };
 
 // 📐 Newton from the fraction itself as the initial estimate. The abscissa is monotone and its slope is

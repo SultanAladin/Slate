@@ -214,9 +214,11 @@ public:
     /// 🧩 Strokes one declared figure inside a square extent.
     /// in    Subject       [-]  an unresolved subject strokes the placeholder mark at the same extent
     /// in    SquareExtent  [px] the figure's 24-unit square is scaled onto this
+    /// in    TurnRadians   [rad] rotation about the declared square's centre; zero preserves the figure
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Stroke(SymbolSubject Subject, const PlaneExtent& SquareExtent, InkOrdinate Ink);
+    void Stroke(SymbolSubject Subject, const PlaneExtent& SquareExtent, InkOrdinate Ink,
+                float TurnRadians = 0.0f);
 
     //--------------------------------------------------------------------------------------------------------
     //                                                  TEXT
