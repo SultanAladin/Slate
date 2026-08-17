@@ -216,6 +216,11 @@ const AppearanceSpecification& ViewportSequence::Appearance() const
     return Resolved;
 }
 
+MotionIntegrator& ViewportSequence::MotionSource()
+{
+    return Motion;
+}
+
 RedrawScheduler& ViewportSequence::Marks()
 {
     return MarksOwned;

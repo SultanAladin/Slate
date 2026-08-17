@@ -120,6 +120,11 @@ public:
     /// tag   api, nonallocating, nonthrowing
     const AppearanceSpecification& Appearance() const;
 
+    /// 🧩 The shared motion integrator, for panels whose interaction contributes to viewport wakefulness.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    MotionIntegrator& MotionSource();
+
     /// 🧩 The interface seam, for a host seating vendor style or recording a vendor tab bar.
     /// note  🔴 Handed out as the SEAM and never as ImGui. `00` §2.2 keeps every ImGui spelling inside
     ///        `SlateUI`, and this returns the component that owns them — a host still names none.
