@@ -652,7 +652,13 @@ void ControlCentrePanel::ThemePage(const PlaneExtent &Extent, ControlCentreOrdin
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
     {
-        const ThemeDeclaration &Preview = ThemeSpecification::Theme(static_cast<ThemeSubject>(Ordinal));
+        const ThemeSubject PreviewSubject = static_cast<ThemeSubject>(Ordinal);
+        const ThemeDeclaration &Preview = ThemeSpecification::Theme(PreviewSubject);
+        const bool WhitePreview = PreviewSubject == ThemeSubject::CleanWhite;
+        const InkOrdinate SidebarQuiet = WhitePreview ? Covering(0xDADAE0u) : Preview.PreviewSidebarQuiet;
+        const InkOrdinate SidebarStrong = WhitePreview ? Covering(0xC8C8CEu) : Preview.PreviewSidebarStrong;
+        const InkOrdinate MainQuiet = WhitePreview ? Covering(0xF0F0F0u) : Preview.PreviewQuiet;
+        const InkOrdinate MainStrong = WhitePreview ? Covering(0xE0E0E0u) : Preview.PreviewStrong;
         const float Column = static_cast<float>(Ordinal % 3u);
         const float Row = static_cast<float>(Ordinal / 3u);
         const PlaneExtent Tile = Spanning(GridLeast + Column * (TileWidth + 20.0f),
@@ -688,42 +694,42 @@ void ControlCentrePanel::ThemePage(const PlaneExtent &Extent, ControlCentreOrdin
         for (std::uint32_t Dot = 0u; Dot < 3u; ++Dot)
             Surface->Medallion(Tile.LeastAlong + (60.0f + 9.0f * static_cast<float>(Dot)) * AlongScale,
                                Tile.LeastAcross + 55.0f * AcrossScale, 2.5f * AlongScale,
-                               Preview.PreviewSidebarStrong);
+                               SidebarStrong);
 
         const float SidebarWidths[3] = {40.0f, 28.0f, 18.0f};
         for (std::uint32_t Line = 0u; Line < 3u; ++Line)
             Surface->Ground(Spanning(Tile.LeastAlong + 58.0f * AlongScale,
                                      Tile.LeastAcross + (72.0f + 14.0f * static_cast<float>(Line)) * AcrossScale,
                                      SidebarWidths[Line] * AlongScale, 6.0f * AcrossScale),
-                            Preview.PreviewSidebarQuiet, 3.0f * AlongScale, CornerAll);
+                            SidebarQuiet, 3.0f * AlongScale, CornerAll);
 
         Surface->Medallion(Tile.LeastAlong + 63.0f * AlongScale,
                            Tile.LeastAcross + 175.0f * AcrossScale, 5.0f * AlongScale,
-                           Preview.PreviewSidebarStrong);
+                           SidebarStrong);
         Surface->Ground(Spanning(Tile.LeastAlong + 74.0f * AlongScale,
                                  Tile.LeastAcross + 172.0f * AcrossScale,
                                  16.0f * AlongScale, 6.0f * AcrossScale),
-                        Preview.PreviewSidebarQuiet, 3.0f * AlongScale, CornerAll);
+                        SidebarQuiet, 3.0f * AlongScale, CornerAll);
 
         Surface->Ground(Spanning(Tile.LeastAlong + 123.0f * AlongScale,
                                  Tile.LeastAcross + 60.0f * AcrossScale,
                                  45.0f * AlongScale, 6.0f * AcrossScale),
-                        Preview.PreviewStrong, 3.0f * AlongScale, CornerAll);
+                        MainStrong, 3.0f * AlongScale, CornerAll);
         Surface->Ground(Spanning(Tile.LeastAlong + 123.0f * AlongScale,
                                  Tile.LeastAcross + 75.0f * AcrossScale,
                                  42.0f * AlongScale, 6.0f * AcrossScale),
-                        Preview.PreviewStrong, 3.0f * AlongScale, CornerAll);
+                        MainStrong, 3.0f * AlongScale, CornerAll);
 
         for (std::uint32_t Cell = 0u; Cell < 3u; ++Cell)
             Surface->Ground(Spanning(Tile.LeastAlong + (123.0f + 44.0f * static_cast<float>(Cell)) * AlongScale,
                                      Tile.LeastAcross + 95.0f * AcrossScale,
                                      32.0f * AlongScale, 32.0f * AcrossScale),
-                            Preview.PreviewQuiet, 8.0f * AlongScale, CornerAll);
+                            MainQuiet, 8.0f * AlongScale, CornerAll);
 
         Surface->Ground(Spanning(Tile.LeastAlong + 123.0f * AlongScale,
                                  Tile.LeastAcross + 172.0f * AcrossScale,
                                  26.0f * AlongScale, 6.0f * AcrossScale),
-                        Preview.PreviewStrong, 3.0f * AlongScale, CornerAll);
+                        MainStrong, 3.0f * AlongScale, CornerAll);
 
         Surface->TextRun(CentreText(*Surface, Tile, Preview.Caption, 13.0f * AlongScale),
                          Tile.LeastAcross + 222.0f * AcrossScale,
