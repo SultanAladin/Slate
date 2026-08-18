@@ -147,7 +147,10 @@ private:
     DisplayPreferencePage PresentedTab = DisplayPreferencePage::Fonts;
     DisplayPreferencePage DepartedTab = DisplayPreferencePage::Fonts;
     bool TabForward = true;
+    std::uint32_t ScrollMotion[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float Scroll[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
+    float ScrollDeparted[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
+    float ScrollTarget[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float FontScroll = 0.0f;
     float FontDeparted = 0.0f;
     float FontTarget = 0.0f;

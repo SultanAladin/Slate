@@ -111,6 +111,17 @@ Deliver<bool> ControlCentrePanel::Construct(MotionIntegrator &ArrivingMotion, Re
     TabMotion = TabIssued.Resolve();
     ThemeMotion = ThemeIssued.Resolve();
     FontMotion = FontIssued.Resolve();
+
+    for (std::uint32_t Ordinal = 0u;
+         Ordinal < static_cast<std::uint32_t>(ControlCentrePage::PageCount); ++Ordinal)
+    {
+        const Deliver<std::uint32_t> ScrollIssued = ArrivingMotion.EnrolEased(1.0);
+        if (!ScrollIssued.ContentPresent)
+            return Deliver<bool>::Refuse({RefusalReason::ExtentExhausted,
+                                          "the Control Centre scroll motion was refused"});
+        ScrollMotion[Ordinal] = ScrollIssued.Resolve();
+    }
+
     return Deliver<bool>::Deliver(true);
 }
 
@@ -239,11 +250,18 @@ Deliver<bool> ControlCentrePanel::Record(const PlaneExtent &Interior, ControlCen
                                     Interior.MostAlong - PagePad, Interior.MostAcross - 24.0f};
     const std::uint32_t PageOrdinal = static_cast<std::uint32_t>(PresentedPage);
     const float ScrollCeiling[5] = {120.0f, 80.0f, 260.0f, 1200.0f, 520.0f};
+    const float ScrollFraction = static_cast<float>(Motion->Eased(ScrollMotion[PageOrdinal]).Standing());
+    Scroll[PageOrdinal] = ScrollDeparted[PageOrdinal] +
+                          (ScrollTarget[PageOrdinal] - ScrollDeparted[PageOrdinal]) * ScrollFraction;
+
     if (PageExtent.Encloses(Pointer.PositionAlong, Pointer.PositionAcross) && Pointer.WheelAcross != 0.0f)
     {
-        Scroll[PageOrdinal] -= Pointer.WheelAcross * 48.0f;
-        if (Scroll[PageOrdinal] < 0.0f) Scroll[PageOrdinal] = 0.0f;
-        if (Scroll[PageOrdinal] > ScrollCeiling[PageOrdinal]) Scroll[PageOrdinal] = ScrollCeiling[PageOrdinal];
+        ScrollDeparted[PageOrdinal] = Scroll[PageOrdinal];
+        ScrollTarget[PageOrdinal] -= Pointer.WheelAcross * 72.0f;
+        if (ScrollTarget[PageOrdinal] < 0.0f) ScrollTarget[PageOrdinal] = 0.0f;
+        if (ScrollTarget[PageOrdinal] > ScrollCeiling[PageOrdinal])
+            ScrollTarget[PageOrdinal] = ScrollCeiling[PageOrdinal];
+        Motion->Eased(ScrollMotion[PageOrdinal]).Depart(0.0, 1.0, 180.0, 0.0, EaseCurve::CssEase);
     }
     const double Travel = Motion->Eased(PageMotion).Standing();
 
@@ -760,36 +778,48 @@ void ControlCentrePanel::ThemePage(const PlaneExtent &Extent, ControlCentreOrdin
     float Cursor = ColoursTop + 70.0f;
     for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
     {
-        const bool Open = OpenPalette == Ordinal;
-        const float Height = Open ? 126.0f : 58.0f;
+        bool Open = OpenPalette == Ordinal;
+        const PlaneExtent Header = Spanning(ContentLeast, Cursor, ContentMost - ContentLeast, 58.0f);
+        if (Pressed(84u + Ordinal, Header))
+        {
+            OpenPalette = Open ? 5u : Ordinal;
+            Open = OpenPalette == Ordinal;
+        }
+
+        Interaction.DeclareTaken(Controls[84u + Ordinal], Open, 220.0, EaseCurve::CssEase);
+        const float Disclosure = Interaction.TakenFraction(Controls[84u + Ordinal]);
+        const float Height = 58.0f + 68.0f * Disclosure;
         const PlaneExtent Row = Spanning(ContentLeast, Cursor, ContentMost - ContentLeast, Height);
         Surface->Ground(Row, Theme.Card, Ordinal == 0u || Ordinal == 4u ? 16.0f : 0.0f, CornerAll);
-        Surface->TextRun(Row.LeastAlong + 20.0f, Row.LeastAcross + 20.0f, Theme.Primary, Names[Ordinal], 14.0f, 0.0f,
-                         true);
-        Surface->Medallion(Row.MostAlong - 48.0f, Row.LeastAcross + 28.0f, 10.0f,
+        Surface->TextRun(Header.LeastAlong + 20.0f, Header.LeastAcross + 20.0f, Theme.Primary, Names[Ordinal],
+                         14.0f, 0.0f, true);
+        Surface->Medallion(Header.MostAlong - 48.0f, Header.LeastAcross + 28.0f, 10.0f,
                            ThemeSpecification::Accent(Ordinates.SemanticColours[Ordinal]).Ink);
-        Symbol(Spanning(Row.MostAlong - 26.0f, Row.LeastAcross + 20.0f, 16.0f, 16.0f), Theme.Secondary);
-        if (Pressed(84u + Ordinal, Spanning(Row.LeastAlong, Row.LeastAcross, Row.SpanAlong(), 58.0f)))
-            OpenPalette = Open ? 5u : Ordinal;
-        if (Open)
+        Symbol(Spanning(Header.MostAlong - 26.0f, Header.LeastAcross + 20.0f, 16.0f, 16.0f), Theme.Secondary);
+
+        if (Disclosure > 0.0f)
         {
-            Surface->TextRun(Row.LeastAlong + 20.0f, Row.LeastAcross + 54.0f, Theme.Secondary, Descriptions[Ordinal],
-                             12.0f);
+            const PlaneExtent Revealed = {Row.LeastAlong, Header.MostAcross,
+                                          Row.MostAlong, Header.MostAcross + 68.0f * Disclosure};
+            Surface->Confine(Revealed);
+            Surface->TextRun(Row.LeastAlong + 20.0f, Header.MostAcross + 6.0f, Theme.Secondary,
+                             Descriptions[Ordinal], 12.0f);
             for (std::uint32_t Colour = 0u; Colour < 8u; ++Colour)
             {
                 const PlaneExtent Swatch = Spanning(Row.LeastAlong + 22.0f + 44.0f * static_cast<float>(Colour),
-                                                    Row.LeastAcross + 82.0f, 32.0f, 32.0f);
-                Surface->Ground(Swatch, ThemeSpecification::Accent(static_cast<AccentSubject>(Colour)).Ink, 16.0f,
-                                CornerAll);
+                                                    Header.MostAcross + 26.0f, 32.0f, 32.0f);
+                Surface->Ground(Swatch, ThemeSpecification::Accent(static_cast<AccentSubject>(Colour)).Ink,
+                                16.0f, CornerAll);
                 if (Ordinates.SemanticColours[Ordinal] == static_cast<AccentSubject>(Colour))
                     Surface->Edge(Spanning(Swatch.LeastAlong - 3.0f, Swatch.LeastAcross - 3.0f, 38.0f, 38.0f),
                                   WithOpacity(White, .55f), 2.0f, 19.0f, CornerAll);
-                if (Pressed(90u + Ordinal * 8u + Colour, Swatch))
+                if (Disclosure > .95f && Pressed(90u + Ordinal * 8u + Colour, Swatch))
                 {
                     Ordinates.SemanticColours[Ordinal] = static_cast<AccentSubject>(Colour);
                     if (Ordinal == 0u) Ordinates.Primary = static_cast<AccentSubject>(Colour);
                 }
             }
+            Surface->Release();
         }
         Cursor += Height;
     }
@@ -1082,6 +1112,14 @@ void ControlCentrePanel::Reset()
     FontMotion = 0u;
     PresentedTheme = ThemeSubject::Oled;
     DepartedTheme = ThemeSubject::Oled;
+    for (std::uint32_t Ordinal = 0u;
+         Ordinal < static_cast<std::uint32_t>(ControlCentrePage::PageCount); ++Ordinal)
+    {
+        ScrollMotion[Ordinal] = 0u;
+        Scroll[Ordinal] = 0.0f;
+        ScrollDeparted[Ordinal] = 0.0f;
+        ScrollTarget[Ordinal] = 0.0f;
+    }
     FontScroll = 0.0f;
     FontDeparted = 0.0f;
     FontTarget = 0.0f;
