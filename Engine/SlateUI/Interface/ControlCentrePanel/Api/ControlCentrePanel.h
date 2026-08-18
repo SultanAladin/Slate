@@ -140,6 +140,7 @@ private:
     std::uint32_t PageMotion = 0u;
     std::uint32_t TabMotion = 0u;
     std::uint32_t ThemeMotion = 0u;
+    std::uint32_t FontMotion = 0u;
     ThemeSubject PresentedTheme = ThemeSubject::Oled;
     ThemeSubject DepartedTheme = ThemeSubject::Oled;
     bool PageForward = true;
@@ -148,6 +149,8 @@ private:
     bool TabForward = true;
     float Scroll[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float FontScroll = 0.0f;
+    float FontDeparted = 0.0f;
+    float FontTarget = 0.0f;
     std::uint32_t OpenPalette = 5u;
     bool InputPresetOpen = false;
 };

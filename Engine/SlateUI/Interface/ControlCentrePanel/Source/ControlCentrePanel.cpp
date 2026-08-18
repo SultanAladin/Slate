@@ -102,12 +102,15 @@ Deliver<bool> ControlCentrePanel::Construct(MotionIntegrator &ArrivingMotion, Re
     const Deliver<std::uint32_t> PageIssued = ArrivingMotion.EnrolEased(1.0);
     const Deliver<std::uint32_t> TabIssued = ArrivingMotion.EnrolEased(1.0);
     const Deliver<std::uint32_t> ThemeIssued = ArrivingMotion.EnrolEased(1.0);
-    if (!PageIssued.ContentPresent || !TabIssued.ContentPresent || !ThemeIssued.ContentPresent)
+    const Deliver<std::uint32_t> FontIssued = ArrivingMotion.EnrolEased(1.0);
+    if (!PageIssued.ContentPresent || !TabIssued.ContentPresent || !ThemeIssued.ContentPresent ||
+        !FontIssued.ContentPresent)
         return Deliver<bool>::Refuse({RefusalReason::ExtentExhausted, "the Control Centre carousel was refused"});
 
     PageMotion = PageIssued.Resolve();
     TabMotion = TabIssued.Resolve();
     ThemeMotion = ThemeIssued.Resolve();
+    FontMotion = FontIssued.Resolve();
     return Deliver<bool>::Deliver(true);
 }
 
@@ -666,7 +669,7 @@ void ControlCentrePanel::ThemePage(const PlaneExtent &Extent, ControlCentreOrdin
                                           TileWidth, TileHeight);
         const float AlongScale = TileWidth / 300.0f;
         const float AcrossScale = TileHeight / 250.0f;
-        const float OuterRadius = 18.0f * AlongScale;
+        const float OuterRadius = static_cast<float>(Ordinates.Radius) * (18.0f / 24.0f) * AlongScale;
         const bool Selected = Ordinates.Theme == static_cast<ThemeSubject>(Ordinal);
         const PlaneExtent Outer = Spanning(Tile.LeastAlong + 15.0f * AlongScale,
                                            Tile.LeastAcross + 15.0f * AcrossScale,
@@ -676,20 +679,20 @@ void ControlCentrePanel::ThemePage(const PlaneExtent &Extent, ControlCentreOrdin
             Surface->Edge(Outer, WithOpacity(SelectionInk, .25f), 4.0f * AlongScale,
                           OuterRadius, CornerAll);
         Surface->Ground(Outer, Preview.PreviewGround, OuterRadius, CornerAll);
-        Surface->Edge(Outer, Selected ? SelectionInk : Theme.Edge,
+        Surface->Edge(Outer, Selected ? SelectionInk : Preview.Edge,
                       (Selected ? 1.5f : 1.0f) * AlongScale, OuterRadius, CornerAll);
 
         const PlaneExtent Window = Spanning(Tile.LeastAlong + 45.0f * AlongScale,
                                             Tile.LeastAcross + 40.0f * AcrossScale,
                                             210.0f * AlongScale, 150.0f * AcrossScale);
-        const float WindowRadius = 14.0f * AlongScale;
+        const float WindowRadius = static_cast<float>(Ordinates.Radius) * (14.0f / 24.0f) * AlongScale;
         Surface->Ground(Window, Preview.PreviewSidebar, WindowRadius, CornerAll);
 
         const PlaneExtent RightPanel = Spanning(Tile.LeastAlong + 110.0f * AlongScale,
                                                 Tile.LeastAcross + 40.0f * AcrossScale,
                                                 145.0f * AlongScale, 150.0f * AcrossScale);
         Surface->Ground(RightPanel, Preview.PreviewWindow, WindowRadius, CornerAll);
-        Surface->Edge(Window, Theme.Edge, 1.0f, WindowRadius, CornerAll);
+        Surface->Edge(Window, Preview.Edge, 1.0f, WindowRadius, CornerAll);
 
         for (std::uint32_t Dot = 0u; Dot < 3u; ++Dot)
             Surface->Medallion(Tile.LeastAlong + (60.0f + 9.0f * static_cast<float>(Dot)) * AlongScale,
@@ -808,31 +811,63 @@ void ControlCentrePanel::FontsPage(const PlaneExtent &Extent, ControlCentreOrdin
                   static_cast<float>(Ordinates.Radius < 24u ? 24u : Ordinates.Radius), CornerAll);
     Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset, Theme.Primary, "Typography", 24.0f, 0.0f, true);
     Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset + 32.0f, Theme.Secondary, "Typeface & scale", 14.0f);
-    Surface->Confine(Spanning(ContentLeast, Extent.LeastAcross + Inset + 64.0f,
-                              ContentMost - ContentLeast, 150.0f));
+    const float RailAcross = Extent.LeastAcross + Inset + 64.0f;
+    const PlaneExtent Left = Spanning(ContentLeast, RailAcross + 46.0f, 44.0f, 44.0f);
+    const PlaneExtent Right = Spanning(ContentMost - 44.0f, RailAcross + 46.0f, 44.0f, 44.0f);
+    const PlaneExtent FontRail = {Left.MostAlong + 12.0f, RailAcross,
+                                  Right.LeastAlong - 12.0f, RailAcross + 136.0f};
+
+    const float FontFraction = static_cast<float>(Motion->Eased(FontMotion).Standing());
+    FontScroll = FontDeparted + (FontTarget - FontDeparted) * FontFraction;
+    Surface->Confine(FontRail);
     for (std::uint32_t Ordinal = 0u; Ordinal < 12u; ++Ordinal)
     {
-        const PlaneExtent Tile = Spanning(ContentLeast + 4.0f + 208.0f * static_cast<float>(Ordinal) - FontScroll,
-                                          Extent.LeastAcross + Inset + 64.0f, 192.0f, 132.0f);
+        const PlaneExtent Tile = Spanning(FontRail.LeastAlong + 4.0f +
+                                              208.0f * static_cast<float>(Ordinal) - FontScroll,
+                                          RailAcross, 192.0f, 132.0f);
         Surface->Ground(Tile, Ordinates.Font == Ordinal ? Theme.Card : Theme.Panel, 16.0f, CornerAll);
-        Surface->Edge(Tile, Ordinates.Font == Ordinal ? Theme.Edge : WithOpacity(Theme.Edge, 0.0f), 1.0f, 16.0f,
-                      CornerAll);
+        Surface->Edge(Tile, Ordinates.Font == Ordinal ? Theme.Edge : WithOpacity(Theme.Edge, 0.0f), 1.0f,
+                      16.0f, CornerAll);
         Surface->TextRun(Tile.LeastAlong + 18.0f, Tile.LeastAcross + 18.0f, Theme.Primary, "Aa", 30.0f);
-        Surface->TextRun(Tile.LeastAlong + 18.0f, Tile.LeastAcross + 66.0f, Theme.Primary, Fonts[Ordinal], 14.0f, 0.0f,
-                         true);
-        Surface->TextRun(Tile.LeastAlong + 18.0f, Tile.LeastAcross + 92.0f, Theme.Secondary, "The quick brown fox",
-                         12.0f);
-        if (Pressed(130u + Ordinal, Tile)) Ordinates.Font = Ordinal;
+        Surface->TextRun(Tile.LeastAlong + 18.0f, Tile.LeastAcross + 66.0f, Theme.Primary, Fonts[Ordinal],
+                         14.0f, 0.0f, true);
+        Surface->TextRun(Tile.LeastAlong + 18.0f, Tile.LeastAcross + 92.0f, Theme.Secondary,
+                         "The quick brown fox", 12.0f);
+        const PlaneExtent TileContact = {
+            Tile.LeastAlong > FontRail.LeastAlong ? Tile.LeastAlong : FontRail.LeastAlong,
+            Tile.LeastAcross,
+            Tile.MostAlong < FontRail.MostAlong ? Tile.MostAlong : FontRail.MostAlong,
+            Tile.MostAcross
+        };
+        if (TileContact.MostAlong > TileContact.LeastAlong && Pressed(130u + Ordinal, TileContact))
+            Ordinates.Font = Ordinal;
     }
     Surface->Release();
-    const PlaneExtent Left = Spanning(ContentLeast + 8.0f, Extent.LeastAcross + Inset + 112.0f, 40.0f, 40.0f);
-    const PlaneExtent Right = Spanning(ContentMost - 48.0f, Extent.LeastAcross + Inset + 112.0f, 40.0f, 40.0f);
-    Surface->Ground(Left, Theme.Card, 20.0f, CornerAll);
-    Surface->Ground(Right, Theme.Card, 20.0f, CornerAll);
-    Symbol(Spanning(Left.LeastAlong + 10.0f, Left.LeastAcross + 10.0f, 20.0f, 20.0f), Theme.Primary);
-    Symbol(Spanning(Right.LeastAlong + 10.0f, Right.LeastAcross + 10.0f, 20.0f, 20.0f), Theme.Primary);
-    if (Pressed(142u, Left)) FontScroll = (FontScroll > 250.0f) ? FontScroll - 250.0f : 0.0f;
-    if (Pressed(143u, Right)) FontScroll += 250.0f;
+
+    Surface->Ground(Left, Theme.Card, 22.0f, CornerAll);
+    Surface->Ground(Right, Theme.Card, 22.0f, CornerAll);
+    Surface->Edge(Left, Theme.Edge, 1.0f, 22.0f, CornerAll);
+    Surface->Edge(Right, Theme.Edge, 1.0f, 22.0f, CornerAll);
+    Surface->TextRun(CentreText(*Surface, Left, "<", 20.0f), CentredAcross(Left, 20.0f),
+                     Theme.Primary, "<", 20.0f, 0.0f, true);
+    Surface->TextRun(CentreText(*Surface, Right, ">", 20.0f), CentredAcross(Right, 20.0f),
+                     Theme.Primary, ">", 20.0f, 0.0f, true);
+
+    const float FontMaximum = 12.0f * 208.0f - FontRail.SpanAlong();
+    if (Pressed(142u, Left))
+    {
+        FontDeparted = FontScroll;
+        FontTarget = FontScroll - 250.0f;
+        if (FontTarget < 0.0f) FontTarget = 0.0f;
+        Motion->Eased(FontMotion).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+    }
+    if (Pressed(143u, Right))
+    {
+        FontDeparted = FontScroll;
+        FontTarget = FontScroll + 250.0f;
+        if (FontTarget > FontMaximum) FontTarget = FontMaximum;
+        Motion->Eased(FontMotion).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+    }
 
     const float SpecimenTop = Extent.LeastAcross + Inset + 230.0f;
     const PlaneExtent Specimen = Spanning(ContentLeast, SpecimenTop, ContentMost - ContentLeast, 176.0f);
@@ -1044,9 +1079,12 @@ void ControlCentrePanel::Reset()
     PageMotion = 0u;
     TabMotion = 0u;
     ThemeMotion = 0u;
+    FontMotion = 0u;
     PresentedTheme = ThemeSubject::Oled;
     DepartedTheme = ThemeSubject::Oled;
     FontScroll = 0.0f;
+    FontDeparted = 0.0f;
+    FontTarget = 0.0f;
     OpenPalette = 5u;
     InputPresetOpen = false;
 }
