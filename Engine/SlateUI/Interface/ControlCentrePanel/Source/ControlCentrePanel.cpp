@@ -644,63 +644,95 @@ void ControlCentrePanel::ThemePage(const PlaneExtent &Extent, ControlCentreOrdin
     Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset, Theme.Primary, "Theme", 24.0f, 0.0f, true);
     Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset + 32.0f, Theme.Secondary, "Customize UI colors", 14.0f);
     const float AvailableTileWidth = (ContentMost - ContentLeast - 40.0f) / 3.0f;
-    const float TileWidth = AvailableTileWidth < 260.0f ? AvailableTileWidth : 260.0f;
+    const float TileWidth = AvailableTileWidth < 300.0f ? AvailableTileWidth : 300.0f;
+    const float TileHeight = TileWidth * (250.0f / 300.0f);
     const float GridWidth = TileWidth * 3.0f + 40.0f;
     const float GridLeast = ContentLeast + (ContentMost - ContentLeast - GridWidth) * 0.5f;
+    const InkOrdinate SelectionInk = Covering(0x7B42F6u);
+
     for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
     {
         const ThemeDeclaration &Preview = ThemeSpecification::Theme(static_cast<ThemeSubject>(Ordinal));
         const float Column = static_cast<float>(Ordinal % 3u);
         const float Row = static_cast<float>(Ordinal / 3u);
         const PlaneExtent Tile = Spanning(GridLeast + Column * (TileWidth + 20.0f),
-                                          Extent.LeastAcross + Inset + 64.0f + Row * (TileWidth + 42.0f),
-                                          TileWidth, TileWidth);
-        Surface->Ground(Tile, Preview.PreviewGround, 18.0f, CornerAll);
-        Surface->Edge(Tile, Ordinates.Theme == static_cast<ThemeSubject>(Ordinal) ? Accent : Theme.Edge,
-                      Ordinates.Theme == static_cast<ThemeSubject>(Ordinal) ? 2.0f : 1.0f, 18.0f, CornerAll);
-        const PlaneExtent PreviewClip = Tile;
-        Surface->Confine(PreviewClip);
-        const float InnerRadius = static_cast<float>(Ordinates.Radius) * .5f < 8.0f
-                                ? 8.0f : static_cast<float>(Ordinates.Radius) * .5f;
-        const PlaneExtent Window = {Tile.LeastAlong + 18.0f, Tile.LeastAcross + 18.0f,
-                                    Tile.MostAlong - 14.0f, Tile.MostAcross - 16.0f};
-        Surface->Ground(Window, Preview.PreviewWindow, InnerRadius, CornerAll);
-        const float Sidebar = Window.SpanAlong() * .35f;
-        Surface->Ground(Spanning(Window.LeastAlong, Window.LeastAcross, Sidebar, Window.SpanAcross()),
-                        Preview.PreviewSidebar, InnerRadius,
-                        CornerLeadingUpper | CornerLeadingLower);
-        Surface->Ground(Spanning(Window.LeastAlong + Sidebar, Window.LeastAcross, 1.0f, Window.SpanAcross()),
-                        Theme.Edge, 0.0f, CornerNone);
+                                          Extent.LeastAcross + Inset + 64.0f + Row * (TileHeight + 20.0f),
+                                          TileWidth, TileHeight);
+        const float AlongScale = TileWidth / 300.0f;
+        const float AcrossScale = TileHeight / 250.0f;
+        const float OuterRadius = 18.0f * AlongScale;
+        const bool Selected = Ordinates.Theme == static_cast<ThemeSubject>(Ordinal);
+        const PlaneExtent Outer = Spanning(Tile.LeastAlong + 15.0f * AlongScale,
+                                           Tile.LeastAcross + 15.0f * AcrossScale,
+                                           270.0f * AlongScale, 195.0f * AcrossScale);
+
+        if (Selected)
+            Surface->Edge(Outer, WithOpacity(SelectionInk, .25f), 4.0f * AlongScale,
+                          OuterRadius, CornerAll);
+        Surface->Ground(Outer, Preview.PreviewGround, OuterRadius, CornerAll);
+        Surface->Edge(Outer, Selected ? SelectionInk : Theme.Edge,
+                      (Selected ? 1.5f : 1.0f) * AlongScale, OuterRadius, CornerAll);
+
+        const PlaneExtent Window = Spanning(Tile.LeastAlong + 45.0f * AlongScale,
+                                            Tile.LeastAcross + 40.0f * AcrossScale,
+                                            210.0f * AlongScale, 150.0f * AcrossScale);
+        const float WindowRadius = 14.0f * AlongScale;
+        Surface->Ground(Window, Preview.PreviewSidebar, WindowRadius, CornerAll);
+
+        const PlaneExtent RightPanel = Spanning(Tile.LeastAlong + 110.0f * AlongScale,
+                                                Tile.LeastAcross + 40.0f * AcrossScale,
+                                                145.0f * AlongScale, 150.0f * AcrossScale);
+        Surface->Ground(RightPanel, Preview.PreviewWindow, WindowRadius, CornerAll);
+        Surface->Edge(Window, Theme.Edge, 1.0f, WindowRadius, CornerAll);
+
         for (std::uint32_t Dot = 0u; Dot < 3u; ++Dot)
-            Surface->Medallion(Window.LeastAlong + 17.0f + 13.0f * static_cast<float>(Dot), Window.LeastAcross + 18.0f,
-                               4.0f, Preview.PreviewStrong);
+            Surface->Medallion(Tile.LeastAlong + (60.0f + 9.0f * static_cast<float>(Dot)) * AlongScale,
+                               Tile.LeastAcross + 55.0f * AcrossScale, 2.5f * AlongScale,
+                               Preview.PreviewStrong);
+
+        const float SidebarWidths[3] = {40.0f, 28.0f, 18.0f};
         for (std::uint32_t Line = 0u; Line < 3u; ++Line)
-            Surface->Ground(Spanning(Window.LeastAlong + 12.0f,
-                                     Window.LeastAcross + 38.0f + 15.0f * static_cast<float>(Line),
-                                     Sidebar - 24.0f - 5.0f * static_cast<float>(Line), 6.0f),
-                            Preview.PreviewQuiet, 3.0f, CornerAll);
-        for (std::uint32_t Cell = 0u; Cell < 3u; ++Cell)
-            Surface->Ground(Spanning(Window.LeastAlong + Sidebar + 15.0f + 42.0f * static_cast<float>(Cell),
-                                     Window.LeastAcross + 58.0f, 32.0f, 32.0f),
-                            Preview.PreviewQuiet, static_cast<float>(Ordinates.Radius) * .25f, CornerAll);
-        Surface->Medallion(Window.LeastAlong + 16.0f, Window.MostAcross - 18.0f, 4.0f,
+            Surface->Ground(Spanning(Tile.LeastAlong + 58.0f * AlongScale,
+                                     Tile.LeastAcross + (72.0f + 14.0f * static_cast<float>(Line)) * AcrossScale,
+                                     SidebarWidths[Line] * AlongScale, 6.0f * AcrossScale),
+                            Preview.PreviewQuiet, 3.0f * AlongScale, CornerAll);
+
+        Surface->Medallion(Tile.LeastAlong + 63.0f * AlongScale,
+                           Tile.LeastAcross + 175.0f * AcrossScale, 5.0f * AlongScale,
                            Preview.PreviewStrong);
-        Surface->Ground(Spanning(Window.LeastAlong + 28.0f, Window.MostAcross - 21.0f, 26.0f, 6.0f),
-                        Preview.PreviewQuiet, 3.0f, CornerAll);
-        Surface->Ground(Spanning(Window.LeastAlong + Sidebar + 16.0f, Window.MostAcross - 21.0f,
-                                 52.0f, 6.0f), Preview.PreviewQuiet, 3.0f, CornerAll);
-        Surface->Release();
-        Surface->Edge(Tile, Ordinates.Theme == static_cast<ThemeSubject>(Ordinal) ? Accent : Theme.Edge,
-                      Ordinates.Theme == static_cast<ThemeSubject>(Ordinal) ? 2.0f : 1.0f, 18.0f, CornerAll);
-        const PlaneExtent TileButton = Spanning(Tile.LeastAlong, Tile.LeastAcross, Tile.SpanAlong(),
-                                                Tile.SpanAcross() + 28.0f);
-        Surface->TextRun(CentreText(*Surface, TileButton, Preview.Caption, 13.0f), Tile.MostAcross + 8.0f,
-                         Ordinates.Theme == static_cast<ThemeSubject>(Ordinal) ? Theme.Primary : Theme.Secondary,
-                         Preview.Caption, 13.0f, 0.0f, true);
-        if (Pressed(75u + Ordinal, TileButton)) Ordinates.Theme = static_cast<ThemeSubject>(Ordinal);
+        Surface->Ground(Spanning(Tile.LeastAlong + 74.0f * AlongScale,
+                                 Tile.LeastAcross + 172.0f * AcrossScale,
+                                 16.0f * AlongScale, 6.0f * AcrossScale),
+                        Preview.PreviewQuiet, 3.0f * AlongScale, CornerAll);
+
+        Surface->Ground(Spanning(Tile.LeastAlong + 123.0f * AlongScale,
+                                 Tile.LeastAcross + 60.0f * AcrossScale,
+                                 45.0f * AlongScale, 6.0f * AcrossScale),
+                        Preview.PreviewStrong, 3.0f * AlongScale, CornerAll);
+        Surface->Ground(Spanning(Tile.LeastAlong + 123.0f * AlongScale,
+                                 Tile.LeastAcross + 75.0f * AcrossScale,
+                                 42.0f * AlongScale, 6.0f * AcrossScale),
+                        Preview.PreviewStrong, 3.0f * AlongScale, CornerAll);
+
+        for (std::uint32_t Cell = 0u; Cell < 3u; ++Cell)
+            Surface->Ground(Spanning(Tile.LeastAlong + (123.0f + 44.0f * static_cast<float>(Cell)) * AlongScale,
+                                     Tile.LeastAcross + 95.0f * AcrossScale,
+                                     32.0f * AlongScale, 32.0f * AcrossScale),
+                            Preview.PreviewQuiet, 8.0f * AlongScale, CornerAll);
+
+        Surface->Ground(Spanning(Tile.LeastAlong + 123.0f * AlongScale,
+                                 Tile.LeastAcross + 172.0f * AcrossScale,
+                                 26.0f * AlongScale, 6.0f * AcrossScale),
+                        Preview.PreviewStrong, 3.0f * AlongScale, CornerAll);
+
+        Surface->TextRun(CentreText(*Surface, Tile, Preview.Caption, 13.0f * AlongScale),
+                         Tile.LeastAcross + 222.0f * AcrossScale,
+                         Selected ? Theme.Primary : Theme.Secondary,
+                         Preview.Caption, 13.0f * AlongScale, .04f, true);
+        if (Pressed(75u + Ordinal, Tile)) Ordinates.Theme = static_cast<ThemeSubject>(Ordinal);
     }
 
-    const float Below = Extent.LeastAcross + Inset + 64.0f + 2.0f * (TileWidth + 42.0f) + 16.0f;
+    const float Below = Extent.LeastAcross + Inset + 64.0f + 2.0f * (TileHeight + 20.0f) + 16.0f;
     Surface->TextRun(ContentLeast, Below, Theme.Primary, "Corner Radius", 22.0f, 0.0f, true);
     Slider(82u, Spanning(ContentLeast, Below + 48.0f, ContentMost - ContentLeast, 40.0f), 0u, 48u,
            Ordinates.Radius, "px", Theme.Edge, Accent);
