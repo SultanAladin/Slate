@@ -831,7 +831,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent &Extent, ControlCentreOrdin
     static const char *Fonts[12] = {"Inter",        "General Sans", "JetBrains Mono", "Playfair",
                                     "Merriweather", "Fira Code",    "Roboto",         "Lato",
                                     "Montserrat",   "Nunito",       "Oswald",         "Source Code"};
-    const PlaneExtent Section = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 1540.0f);
+    const PlaneExtent Section = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 1700.0f);
     const float Inset = 28.0f;
     const float ContentLeast = Extent.LeastAlong + Inset;
     const float ContentMost = Extent.MostAlong - Inset;
@@ -920,22 +920,34 @@ void ControlCentrePanel::FontsPage(const PlaneExtent &Extent, ControlCentreOrdin
     float Cursor = Specimen.MostAcross + 30.0f;
     for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
     {
-        const PlaneExtent Entry = Spanning(ContentLeast, Cursor - 12.0f,
-                                           ContentMost - ContentLeast, 76.0f);
+        const float PreviewText = static_cast<float>(Ordinates.TypographySize[Ordinal]);
+        const float RequiredHeight = PreviewText + 28.0f;
+        const float EntryHeight = RequiredHeight > 80.0f ? RequiredHeight : 80.0f;
+        const PlaneExtent Entry = Spanning(ContentLeast, Cursor, ContentMost - ContentLeast, EntryHeight);
         Surface->Ground(Entry, Theme.Card, 16.0f, CornerAll);
         Surface->Edge(Entry, Theme.Edge, 1.0f, 16.0f, CornerAll);
-        Surface->TextRun(Entry.LeastAlong + 18.0f, Cursor, Theme.Primary, Roles[Ordinal], 16.0f, 0.0f, true);
-        Slider(144u + Ordinal, Spanning(Entry.LeastAlong + 18.0f, Cursor + 22.0f, 420.0f, 40.0f), Least[Ordinal],
-               Most[Ordinal], Ordinates.TypographySize[Ordinal], "px", Theme.Edge, Accent);
-        Surface->TextRunTruncated(Entry.LeastAlong + 470.0f, Cursor + 9.0f, Entry.MostAlong - 18.0f,
+        Surface->TextRun(Entry.LeastAlong + 18.0f, Entry.LeastAcross + 12.0f, Theme.Primary,
+                         Roles[Ordinal], 16.0f, 0.0f, true);
+        Slider(144u + Ordinal,
+               Spanning(Entry.LeastAlong + 18.0f, Entry.LeastAcross + Entry.SpanAcross() - 46.0f,
+                        420.0f, 40.0f),
+               Least[Ordinal], Most[Ordinal], Ordinates.TypographySize[Ordinal], "px", Theme.Edge, Accent);
+
+        const PlaneExtent PreviewClip = {Entry.LeastAlong + 470.0f, Entry.LeastAcross + 10.0f,
+                                         Entry.MostAlong - 18.0f, Entry.MostAcross - 10.0f};
+        const float PreviewAcross = PreviewClip.LeastAcross +
+                                    (PreviewClip.SpanAcross() - PreviewText) * 0.5f;
+        Surface->Confine(PreviewClip);
+        Surface->TextRunTruncated(PreviewClip.LeastAlong, PreviewAcross, PreviewClip.MostAlong,
                                   Ordinal == 6u   ? ThemeSpecification::Accent(Ordinates.Warning).Ink
                                   : Ordinal == 7u ? ThemeSpecification::Accent(Ordinates.Alert).Ink
                                                   : Theme.Primary,
                                   Ordinal == 4u   ? "METADATA · 10:42 AM · SYSTEM"
                                   : Ordinal == 5u ? "* This is a small caption text"
                                                   : "The quick brown fox jumps over the lazy dog",
-                                  static_cast<float>(Ordinates.TypographySize[Ordinal]));
-        Cursor += 88.0f;
+                                  PreviewText);
+        Surface->Release();
+        Cursor = Entry.MostAcross + 12.0f;
     }
 
     const PlaneExtent IconSection = Spanning(ContentLeast, Cursor - 4.0f,
