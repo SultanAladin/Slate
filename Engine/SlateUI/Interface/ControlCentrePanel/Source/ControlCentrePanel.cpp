@@ -899,7 +899,7 @@ void ControlCentrePanel::InputPage(const PlaneExtent &Extent, ControlCentreOrdin
                        Ordinates.ListeningShortcut == Ordinal ? "Listening..." : Shortcuts[Ordinal].Chord.Key, 11.0f),
             CentredAcross(Key, 11.0f), Theme.Primary,
             Ordinates.ListeningShortcut == Ordinal ? "Listening..." : Shortcuts[Ordinal].Chord.Key, 11.0f);
-        if (Pressed(174u + Ordinal, Key))
+        if (!InputPresetOpen && Pressed(174u + Ordinal, Key))
             Ordinates.ListeningShortcut = Ordinates.ListeningShortcut == Ordinal ? 0xFFFFFFFFu : Ordinal;
     }
     const float MouseTop = Hotkeys.MostAcross + 24.0f;
