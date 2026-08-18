@@ -8,6 +8,8 @@
 
 #include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
+#include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
+#include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
@@ -96,9 +98,11 @@ public:
                             const AppearanceSpecification &Appearance);
     void Advance(const PointerCondition &Arrived, double Elapsed);
     Deliver<bool> Record(const PlaneExtent &Interior, ControlCentreOrdinates &Ordinates);
+    void Exclude(DrawerSpace &Drawers) const;
     void Reset();
 
 private:
+    void RetainExclusion(const PlaneExtent &Extent);
     bool Pressed(std::uint32_t Ordinal, const PlaneExtent &Extent);
     bool Slider(std::uint32_t Ordinal, const PlaneExtent &Extent, std::uint32_t Least, std::uint32_t Most,
                 std::uint32_t &Reading, InkOrdinate Rail, InkOrdinate Accent);
@@ -126,7 +130,10 @@ private:
     RecordingSurface *Surface = nullptr;
     const AppearanceSpecification *Appearance = nullptr;
     InteractionIndex Interaction = {};
+    ComponentSpecification SharedControls = {};
     ControlIdentity Controls[ControlCapacity] = {};
+    PlaneExtent Exclusions[ControlCapacity] = {};
+    std::uint32_t ExclusionCount = 0u;
     PointerCondition Pointer = {};
     ControlCentrePage PresentedPage = ControlCentrePage::Dashboard;
     ControlCentrePage DepartedPage = ControlCentrePage::Dashboard;

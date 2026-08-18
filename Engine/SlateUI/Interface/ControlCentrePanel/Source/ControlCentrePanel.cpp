@@ -88,6 +88,10 @@ Deliver<bool> ControlCentrePanel::Construct(MotionIntegrator &ArrivingMotion, Re
         return Deliver<bool>::Refuse(
             {RefusalReason::ExtentExhausted, "the Control Centre interaction index was refused"});
 
+    if (!SharedControls.Construct(Interaction, ArrivingSurface, ArrivingAppearance).ContentPresent)
+        return Deliver<bool>::Refuse(
+            {RefusalReason::ContentUnsupported, "the shared Control Centre controls were refused"});
+
     for (std::uint32_t Ordinal = 0u; Ordinal < ControlCapacity; ++Ordinal)
     {
         const Deliver<ControlIdentity> Issued = Interaction.Enrol();
@@ -111,12 +115,26 @@ void ControlCentrePanel::Advance(const PointerCondition &Arrived, double Elapsed
 {
     Pointer = Arrived;
     Interaction.Advance(Arrived, Elapsed);
+    SharedControls.Advance(Arrived, Elapsed);
+}
+
+void ControlCentrePanel::RetainExclusion(const PlaneExtent &Extent)
+{
+    if (ExclusionCount < ControlCapacity)
+        Exclusions[ExclusionCount++] = Extent;
+}
+
+void ControlCentrePanel::Exclude(DrawerSpace &Drawers) const
+{
+    for (std::uint32_t Ordinal = 0u; Ordinal < ExclusionCount; ++Ordinal)
+        Drawers.Exclude(DrawerBearing::North, Exclusions[Ordinal]);
 }
 
 bool ControlCentrePanel::Pressed(std::uint32_t Ordinal, const PlaneExtent &Extent)
 {
     if (Ordinal >= ControlCapacity) return false;
 
+    RetainExclusion(Extent);
     const ControlIdentity Claimed = Controls[Ordinal];
     const bool Roused = Extent.Encloses(Pointer.PositionAlong, Pointer.PositionAcross);
     if (Roused && Pointer.ContactArrived && !Interaction.AnyDisclosed()) Interaction.Seize(Claimed, ControlPart::Body);
@@ -131,30 +149,19 @@ bool ControlCentrePanel::Slider(std::uint32_t Ordinal, const PlaneExtent &Extent
 {
     if (Ordinal >= ControlCapacity || Most <= Least) return false;
 
-    const ControlIdentity Claimed = Controls[Ordinal];
-    const bool Roused = Extent.Encloses(Pointer.PositionAlong, Pointer.PositionAcross);
-    if (Roused && Pointer.ContactArrived) Interaction.Seize(Claimed, ControlPart::Track);
+    RetainExclusion(Extent);
+    MagnitudeDeclaration Declared;
+    Declared.Caption = "";
+    Declared.UnitGlyph = "";
+    Declared.LeastOrdinal = static_cast<double>(Least);
+    Declared.MostOrdinal = static_cast<double>(Most);
 
-    bool Altered = false;
-    if (Interaction.Holding(Claimed))
-    {
-        float Fraction = (Pointer.PositionAlong - Extent.LeastAlong) / Extent.SpanAlong();
-        Fraction = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
-        Reading = Least + static_cast<std::uint32_t>(std::round(Fraction * static_cast<float>(Most - Least)));
-        Altered = true;
-    }
-
-    const float Fraction = static_cast<float>(Reading - Least) / static_cast<float>(Most - Least);
-    const PlaneExtent Track =
-        Spanning(Extent.LeastAlong, Extent.LeastAcross + Extent.SpanAcross() * .5f - 3.0f, Extent.SpanAlong(), 6.0f);
-    Surface->Ground(Track, Rail, 3.0f, CornerAll);
-    Surface->Ground(Spanning(Track.LeastAlong, Track.LeastAcross, Track.SpanAlong() * Fraction, 6.0f), Accent, 3.0f,
-                    CornerAll);
-    Surface->Medallion(Track.LeastAlong + Track.SpanAlong() * Fraction, Track.LeastAcross + 3.0f, 10.0f, White);
-    Surface->Edge(
-        Spanning(Track.LeastAlong + Track.SpanAlong() * Fraction - 10.0f, Track.LeastAcross - 7.0f, 20.0f, 20.0f),
-        Partial(0x000000u, .25), 1.0f, 10.0f, CornerAll);
-    return Altered;
+    double Ordinate = static_cast<double>(Reading);
+    const ControlVerdict Verdict = SharedControls.MagnitudeRow(Controls[Ordinal], Extent, Declared, Ordinate);
+    Reading = static_cast<std::uint32_t>(std::round(Ordinate));
+    static_cast<void>(Rail);
+    static_cast<void>(Accent);
+    return Verdict.OrdinateAltered;
 }
 
 void ControlCentrePanel::Toggle(std::uint32_t Ordinal, const PlaneExtent &Extent, bool &Enabled, InkOrdinate Quiet,
@@ -190,6 +197,7 @@ Deliver<bool> ControlCentrePanel::Record(const PlaneExtent &Interior, ControlCen
 
     if (Interior.SpanAlong() <= 0.0f || Interior.SpanAcross() <= 0.0f) return Deliver<bool>::Deliver(true);
 
+    ExclusionCount = 0u;
     if (Ordinates.Page != PresentedPage) Navigate(Ordinates.Page);
 
     if (Ordinates.Theme != PresentedTheme)
@@ -226,7 +234,7 @@ Deliver<bool> ControlCentrePanel::Record(const PlaneExtent &Interior, ControlCen
     const PlaneExtent PageExtent = {Interior.LeastAlong + PagePad, Interior.LeastAcross + 88.0f,
                                     Interior.MostAlong - PagePad, Interior.MostAcross - 24.0f};
     const std::uint32_t PageOrdinal = static_cast<std::uint32_t>(PresentedPage);
-    const float ScrollCeiling[5] = {120.0f, 80.0f, 260.0f, 980.0f, 520.0f};
+    const float ScrollCeiling[5] = {120.0f, 80.0f, 260.0f, 1200.0f, 520.0f};
     if (PageExtent.Encloses(Pointer.PositionAlong, Pointer.PositionAcross) && Pointer.WheelAcross != 0.0f)
     {
         Scroll[PageOrdinal] -= Pointer.WheelAcross * 48.0f;
@@ -296,8 +304,16 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent &Extent, ControlCentreO
         Spanning(Start + LeftAlong + 48.0f, Extent.LeastAcross, ContentAlong - LeftAlong - 48.0f, Extent.SpanAcross());
     Surface->TextRun(Left.LeastAlong + 8.0f, Left.LeastAcross, Theme.Primary, "Control Center", 20.0f, 0.0f, true);
 
-    const char *Labels[5] = {"Quality: High", "VSync: ON", "Global Illumination: OFF", "Notifications: ON",
-                             "AA: Basic"};
+    const char *QualityNames[5] = {"Low", "Medium", "High", "Epic", "Cinematic"};
+    const char *AntialiasNames[3] = {"TSAA", "Basic", "None"};
+    char LabelRuns[5][64] = {};
+    std::snprintf(LabelRuns[0], sizeof(LabelRuns[0]), "Quality: %s", QualityNames[Ordinates.Quality % 5u]);
+    std::snprintf(LabelRuns[1], sizeof(LabelRuns[1]), "VSync: %s", Ordinates.VsyncEnabled ? "ON" : "OFF");
+    std::snprintf(LabelRuns[2], sizeof(LabelRuns[2]), "Global Illumination: %s",
+                  Ordinates.IlluminationEnabled ? "ON" : "OFF");
+    std::snprintf(LabelRuns[3], sizeof(LabelRuns[3]), "Notifications: %s",
+                  Ordinates.NotificationsEnabled ? "ON" : "OFF");
+    std::snprintf(LabelRuns[4], sizeof(LabelRuns[4]), "AA: %s", AntialiasNames[Ordinates.Antialiasing % 3u]);
     for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
     {
         const float Column = static_cast<float>(Ordinal % 2u);
@@ -305,13 +321,17 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent &Extent, ControlCentreO
         const PlaneExtent Tile =
             Spanning(Left.LeastAlong + Column * (Left.SpanAlong() * .5f + 4.0f),
                      Left.LeastAcross + 42.0f + Row * (TileAcross + 16.0f), Left.SpanAlong() * .5f - 8.0f, TileAcross);
-        const bool Active = Ordinal != 2u || Ordinates.IlluminationEnabled;
+        const bool Active = Ordinal == 0u ||
+                            (Ordinal == 1u && Ordinates.VsyncEnabled) ||
+                            (Ordinal == 2u && Ordinates.IlluminationEnabled) ||
+                            (Ordinal == 3u && Ordinates.NotificationsEnabled) ||
+                            (Ordinal == 4u && Ordinates.Antialiasing != 2u);
         Surface->Ground(Tile, Active ? Accent : Theme.Card, static_cast<float>(Ordinates.Radius), CornerAll);
         Surface->Edge(Tile, Theme.Edge, 1.0f, static_cast<float>(Ordinates.Radius), CornerAll);
         Symbol(Spanning(Tile.LeastAlong + Tile.SpanAlong() * .5f - 18.0f, Tile.LeastAcross + 24.0f, 36.0f, 36.0f),
                Active ? White : Theme.Secondary);
         Surface->TextRunTruncated(Tile.LeastAlong + 10.0f, Tile.MostAcross - 32.0f, Tile.MostAlong - 10.0f,
-                                  Active ? White : Theme.Secondary, Labels[Ordinal], 12.0f, true);
+                                  Active ? White : Theme.Secondary, LabelRuns[Ordinal], 12.0f, true);
         if (Pressed(10u + Ordinal, Tile))
         {
             if (Ordinal == 0u) Ordinates.Quality = (Ordinates.Quality + 1u) % 5u;
@@ -614,15 +634,24 @@ void ControlCentrePanel::DisplayHardwarePage(const PlaneExtent &Extent, ControlC
 void ControlCentrePanel::ThemePage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates,
                                    const ThemeDeclaration &Theme, InkOrdinate Accent)
 {
-    Surface->TextRun(Extent.LeastAlong, Extent.LeastAcross, Theme.Primary, "Theme", 24.0f, 0.0f, true);
-    Surface->TextRun(Extent.LeastAlong, Extent.LeastAcross + 32.0f, Theme.Secondary, "Customize UI colors", 14.0f);
-    const float TileWidth = (Extent.SpanAlong() - 40.0f) / 3.0f;
+    const PlaneExtent Section = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 1340.0f);
+    Surface->Ground(Section, WithOpacity(Theme.Card, .72f), static_cast<float>(Ordinates.Radius < 24u ? 24u : Ordinates.Radius), CornerAll);
+    Surface->Edge(Section, Theme.Edge, 1.0f, static_cast<float>(Ordinates.Radius < 24u ? 24u : Ordinates.Radius), CornerAll);
+    const float Inset = 28.0f;
+    const float ContentLeast = Extent.LeastAlong + Inset;
+    const float ContentMost = Extent.MostAlong - Inset;
+    Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset, Theme.Primary, "Theme", 24.0f, 0.0f, true);
+    Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset + 32.0f, Theme.Secondary, "Customize UI colors", 14.0f);
+    const float AvailableTileWidth = (ContentMost - ContentLeast - 40.0f) / 3.0f;
+    const float TileWidth = AvailableTileWidth < 260.0f ? AvailableTileWidth : 260.0f;
+    const float GridWidth = TileWidth * 3.0f + 40.0f;
+    const float GridLeast = ContentLeast + (ContentMost - ContentLeast - GridWidth) * 0.5f;
     for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
     {
         const ThemeDeclaration &Preview = ThemeSpecification::Theme(static_cast<ThemeSubject>(Ordinal));
         const float Column = static_cast<float>(Ordinal % 3u);
         const float Row = static_cast<float>(Ordinal / 3u);
-        const PlaneExtent Tile = Spanning(Extent.LeastAlong + Column * (TileWidth + 20.0f),
+        const PlaneExtent Tile = Spanning(GridLeast + Column * (TileWidth + 20.0f),
                                           Extent.LeastAcross + 64.0f + Row * 178.0f, TileWidth, 158.0f);
         Surface->Ground(Tile, Preview.PreviewGround, 18.0f, CornerAll);
         Surface->Edge(Tile, Ordinates.Theme == static_cast<ThemeSubject>(Ordinal) ? Accent : Theme.Edge,
