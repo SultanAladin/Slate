@@ -115,7 +115,7 @@ void ControlCentrePanel::Advance(const PointerCondition &Arrived, double Elapsed
 {
     Pointer = Arrived;
     Interaction.Advance(Arrived, Elapsed);
-    SharedControls.Advance(Arrived, Elapsed);
+    SharedControls.Sample(Arrived);
 }
 
 void ControlCentrePanel::RetainExclusion(const PlaneExtent &Extent)

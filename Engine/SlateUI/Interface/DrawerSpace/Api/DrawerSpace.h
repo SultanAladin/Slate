@@ -81,7 +81,7 @@ class DrawerSpace
 {
 public:
 
-    static constexpr std::uint32_t ExclusionCapacity = 8u;   // [-] - extents one drawer may withhold per tick
+    static constexpr std::uint32_t ExclusionCapacity = 256u;   // [-] - controls one drawer may withhold per tick
 
     DrawerSpace()                              = default;
     DrawerSpace(const DrawerSpace&)            = delete;

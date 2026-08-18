@@ -164,12 +164,18 @@ void ComponentSpecification::Advance(const PointerCondition& Arriving, double El
     if (Ledger == nullptr)
         return;
 
+    Ledger->Advance(Arriving, Elapsed);
+    Sample(Arriving);
+}
+
+void ComponentSpecification::Sample(const PointerCondition& Arriving)
+{
+    if (Ledger == nullptr)
+        return;
+
     Arrived       = Arriving;
     DeferredCount = 0u;
     Standing      = RedrawMark::Quiet;
-
-    Ledger->Advance(Arriving, Elapsed);
-
     ContactHeldByPanel = Arriving.ContactHeld && ContactHeldByPanel;
 }
 

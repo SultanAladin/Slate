@@ -283,10 +283,10 @@ int main()
             Viewport.DrawerPanels();
 
             const PlaneExtent ControlInterior = Viewport.Drawers().Interior(DrawerBearing::North);
-            Viewport.Drawers().Exclude(DrawerBearing::North, ControlInterior);
             ControlCentre.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Above));
             Disregard(ControlCentre.Record(ControlInterior, ControlCentreValues));
+            ControlCentre.Exclude(Viewport.Drawers());
             Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Beneath));
 
             if (Viewport.SealPanels().ContentPresent)

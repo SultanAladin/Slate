@@ -166,6 +166,12 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Advance(const PointerCondition& Arrived, double Elapsed);
 
+    /// 🧩 Samples a pointer after the shared interaction index was advanced by the owning panel.
+    /// note  🔴 This does not advance the index; two advances erase the release before controls observe it.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Sample(const PointerCondition& Arrived);
+
     /// 🧩 Arranges one card around a stated number of rows of stated extents.
     /// in    Along        [px] the card's leading edge
     /// in    Across       [px] the card's upper edge
