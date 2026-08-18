@@ -688,22 +688,22 @@ void ControlCentrePanel::ThemePage(const PlaneExtent &Extent, ControlCentreOrdin
         for (std::uint32_t Dot = 0u; Dot < 3u; ++Dot)
             Surface->Medallion(Tile.LeastAlong + (60.0f + 9.0f * static_cast<float>(Dot)) * AlongScale,
                                Tile.LeastAcross + 55.0f * AcrossScale, 2.5f * AlongScale,
-                               Preview.PreviewStrong);
+                               Preview.PreviewSidebarStrong);
 
         const float SidebarWidths[3] = {40.0f, 28.0f, 18.0f};
         for (std::uint32_t Line = 0u; Line < 3u; ++Line)
             Surface->Ground(Spanning(Tile.LeastAlong + 58.0f * AlongScale,
                                      Tile.LeastAcross + (72.0f + 14.0f * static_cast<float>(Line)) * AcrossScale,
                                      SidebarWidths[Line] * AlongScale, 6.0f * AcrossScale),
-                            Preview.PreviewQuiet, 3.0f * AlongScale, CornerAll);
+                            Preview.PreviewSidebarQuiet, 3.0f * AlongScale, CornerAll);
 
         Surface->Medallion(Tile.LeastAlong + 63.0f * AlongScale,
                            Tile.LeastAcross + 175.0f * AcrossScale, 5.0f * AlongScale,
-                           Preview.PreviewStrong);
+                           Preview.PreviewSidebarStrong);
         Surface->Ground(Spanning(Tile.LeastAlong + 74.0f * AlongScale,
                                  Tile.LeastAcross + 172.0f * AcrossScale,
                                  16.0f * AlongScale, 6.0f * AcrossScale),
-                        Preview.PreviewQuiet, 3.0f * AlongScale, CornerAll);
+                        Preview.PreviewSidebarQuiet, 3.0f * AlongScale, CornerAll);
 
         Surface->Ground(Spanning(Tile.LeastAlong + 123.0f * AlongScale,
                                  Tile.LeastAcross + 60.0f * AcrossScale,
