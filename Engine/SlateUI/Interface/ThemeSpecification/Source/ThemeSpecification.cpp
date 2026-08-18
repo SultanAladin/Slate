@@ -14,10 +14,10 @@ namespace
 
 constexpr ThemeDeclaration Themes[] = {
     {"OLED", Covering(0x000000u), Partial(0x09090Bu, .95), Covering(0xF4F4F5u), Covering(0x71717Au),
-     Partial(0x27272Au, .80), Covering(0x121214u), Covering(0x000000u), Covering(0x121214u), Partial(0xFFFFFFu, .05),
+     Partial(0x27272Au, .80), Covering(0x121214u), Covering(0x000000u), Covering(0x121214u), Covering(0x09090Bu), Partial(0xFFFFFFu, .05),
      Partial(0xFFFFFFu, .10)},
     {"Dark", Covering(0x0A0A0Au), Partial(0x18181Bu, .95), Covering(0xF4F4F5u), Covering(0xA1A1AAu),
-     Covering(0x27272Au), Covering(0x1F1F22u), Covering(0x18181Bu), Covering(0x27272Au), Partial(0xFFFFFFu, .10),
+     Covering(0x27272Au), Covering(0x1F1F22u), Covering(0x18181Bu), Covering(0x27272Au), Covering(0x18181Bu), Partial(0xFFFFFFu, .10),
      Partial(0xFFFFFFu, .20)},
     {"Clean White", Covering(0xF4F4F5u), Partial(0xFFFFFFu, .95), Covering(0x18181Bu), Covering(0x71717Au),
      Covering(0xE4E4E7u), Covering(0xFAFAFAu), Covering(0xE5E5EAu), Covering(0xFFFFFFu), Partial(0x000000u, .10),
@@ -26,10 +26,10 @@ constexpr ThemeDeclaration Themes[] = {
      Covering(0xCFAE7Eu), Covering(0xFAEED9u), Covering(0xDCB679u), Covering(0xF4E4C4u), Partial(0xDCB679u, .40),
      Partial(0xDCB679u, .60)},
     {"Purplish", Covering(0x0F0A1Cu), Partial(0x17102Bu, .95), Covering(0xF3E8FFu), Covering(0xC084FCu),
-     Partial(0x581C87u, .50), Covering(0x1D1438u), Covering(0x1F163Du), Covering(0x2D2054u), Partial(0xD8B4FEu, .20),
+     Partial(0x581C87u, .50), Covering(0x1D1438u), Covering(0x1F163Du), Covering(0x2D2054u), Covering(0x23174Au), Partial(0xD8B4FEu, .20),
      Partial(0xD8B4FEu, .40)},
     {"Bluish", Covering(0x09111Cu), Partial(0x0F1B2Du, .95), Covering(0xDBEAFEu), Covering(0x60A5FAu),
-     Partial(0x1E3A8Au, .50), Covering(0x15253Du), Covering(0x1A2D4Au), Covering(0x264066u), Partial(0x93C5FDu, .20),
+     Partial(0x1E3A8Au, .50), Covering(0x15253Du), Covering(0x1A2D4Au), Covering(0x264066u), Covering(0x1C3152u), Partial(0x93C5FDu, .20),
      Partial(0x93C5FDu, .40)}};
 
 constexpr AccentDeclaration Accents[] = {{"Blue", Covering(0x3B82F6u)},  {"Cyan", Covering(0x06B6D4u)},

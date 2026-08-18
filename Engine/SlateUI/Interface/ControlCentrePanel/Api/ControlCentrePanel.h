@@ -105,7 +105,7 @@ private:
     void RetainExclusion(const PlaneExtent &Extent);
     bool Pressed(std::uint32_t Ordinal, const PlaneExtent &Extent);
     bool Slider(std::uint32_t Ordinal, const PlaneExtent &Extent, std::uint32_t Least, std::uint32_t Most,
-                std::uint32_t &Reading, InkOrdinate Rail, InkOrdinate Accent);
+                std::uint32_t &Reading, const char *UnitGlyph, InkOrdinate Rail, InkOrdinate Accent);
     void Toggle(std::uint32_t Ordinal, const PlaneExtent &Extent, bool &Enabled, InkOrdinate Quiet, InkOrdinate Accent);
     void Symbol(const PlaneExtent &Extent, InkOrdinate Ink);
     void DashboardPage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates, const ThemeDeclaration &Theme,

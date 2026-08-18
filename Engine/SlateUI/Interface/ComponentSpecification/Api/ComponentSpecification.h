@@ -206,14 +206,16 @@ public:
                                   const SelectionDeclaration& Declared, std::uint32_t& TakenOrdinal);
 
     /// 🧩 One magnitude row — a numeric readout, a unit cell, and a slider spanning the declared domain.
-    /// in    Ordinate  [-]  the presented magnitude; written while the thumb or track is held
-    /// out   Verdict   [-]  OrdinateAltered on every tick the drag moved it
+    /// in    Ordinate         [-]  the presented magnitude; written while the thumb or track is held
+    /// in    ReadoutTrailing  [-]  places the slider first and the number/unit pill at the trailing edge
+    /// out   Verdict          [-]  OrdinateAltered on every tick the drag moved it
     /// note  📐 The drag reads the pointer's absolute position against the track, not an accumulated delta.
     ///        An accumulated delta drifts by a pixel for every tick the pointer left the track's extent.
     /// cost  🚩
     /// tag   api, nonthrowing
     ControlVerdict MagnitudeRow(ControlIdentity Claimed, const PlaneExtent& Row,
-                                const MagnitudeDeclaration& Declared, double& Ordinate);
+                                const MagnitudeDeclaration& Declared, double& Ordinate,
+                                bool ReadoutTrailing = false);
 
     /// 🧩 The rotation ruler — a readout and a draggable tick strip that fades at both ends.
     /// in    Degrees  [deg] the presented rotation; written while the strip is dragged

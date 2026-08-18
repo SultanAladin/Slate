@@ -429,7 +429,8 @@ std::uint32_t ComponentSpecification::OptionUnder(const PlaneExtent& Field, std:
 //------------------------------------------------------------------------------------------------------------------------
 
 ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, const PlaneExtent& Row,
-                                          const MagnitudeDeclaration& Declared, double& Ordinate)
+                                          const MagnitudeDeclaration& Declared, double& Ordinate,
+                                          bool ReadoutTrailing)
 {
     ControlVerdict Reported;
 
@@ -440,14 +441,31 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     // ① The row is a label, a readout pill, and a slider — the sheet spaces them with one gap each.
-    const PlaneExtent Label   = Spanning(Row.LeastAlong, Row.LeastAcross, Measure.LabelAlong, Row.SpanAcross());
-    const PlaneExtent Readout = Spanning(Label.MostAlong + Measure.RowGapAlong, Row.LeastAcross,
-                                         Measure.ReadoutAlong, Measure.FieldAcross);
+    PlaneExtent Label;
+    PlaneExtent Readout;
+    PlaneExtent Track;
+
+    if (ReadoutTrailing)
+    {
+        Readout = Spanning(Row.MostAlong - Measure.ReadoutAlong, Row.LeastAcross,
+                           Measure.ReadoutAlong, Measure.FieldAcross);
+        Track = Spanning(Row.LeastAlong,
+                         Row.LeastAcross + (Row.SpanAcross() - Measure.SliderAcross) * 0.5f,
+                         Readout.LeastAlong - Row.LeastAlong - Measure.RowGapAlong,
+                         Measure.SliderAcross);
+    }
+    else
+    {
+        Label = Spanning(Row.LeastAlong, Row.LeastAcross, Measure.LabelAlong, Row.SpanAcross());
+        Readout = Spanning(Label.MostAlong + Measure.RowGapAlong, Row.LeastAcross,
+                           Measure.ReadoutAlong, Measure.FieldAcross);
+        Track = Spanning(Row.MostAlong - Measure.SliderAlong,
+                         Row.LeastAcross + (Row.SpanAcross() - Measure.SliderAcross) * 0.5f,
+                         Measure.SliderAlong, Measure.SliderAcross);
+    }
+
     const PlaneExtent UnitCell = PlaneExtent{ Readout.MostAlong - Measure.UnitCellAlong, Readout.LeastAcross,
                                               Readout.MostAlong, Readout.MostAcross };
-    const PlaneExtent Track    = Spanning(Row.MostAlong - Measure.SliderAlong,
-                                          Row.LeastAcross + (Row.SpanAcross() - Measure.SliderAcross) * 0.5f,
-                                          Measure.SliderAlong, Measure.SliderAcross);
 
     // ② Arbitration. The thumb's centre may travel only between the two ends of the track's inner run, so
     //    the fraction is projected onto that inner run and never onto the track's whole extent.
@@ -491,9 +509,10 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
 
     const double Fraction = MagnitudeFraction(Ordinate, Declared.LeastOrdinal, Declared.MostOrdinal);
 
-    // ③ The label.
-    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Ink.LabelQuiet,
-                     Declared.Caption, Measure.LabelText, 0.0f, false);
+    // ③ The label, absent when the readout trails a full-width slider.
+    if (!ReadoutTrailing)
+        Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Ink.LabelQuiet,
+                         Declared.Caption, Measure.LabelText, 0.0f, false);
 
     // ④ The readout pill — a black value cell and a raised unit cell, rounded at the ends only.
     const float PillRadius = Readout.SpanAcross() * 0.5f;

@@ -48,6 +48,7 @@ struct ThemeDeclaration
     InkOrdinate Card = {};
     InkOrdinate PreviewGround = {};
     InkOrdinate PreviewWindow = {};
+    InkOrdinate PreviewSidebar = {};
     InkOrdinate PreviewQuiet = {};
     InkOrdinate PreviewStrong = {};
 };
