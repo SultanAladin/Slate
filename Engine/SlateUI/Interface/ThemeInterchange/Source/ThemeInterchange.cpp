@@ -12,6 +12,34 @@
 namespace Slate
 {
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE STREAM OPENING
+//------------------------------------------------------------------------------------------------------------------------
+
+// 🔴 MSVC raises C4996 on `std::fopen`, and Slate builds warnings-as-defects on Windows. `fopen_s` is the
+//    sanctioned replacement there and does not exist anywhere else, so the choice is made ONCE, here, rather
+//    than at each call site with a pragma that suppresses the diagnostic instead of answering it.
+// 📝 The two signatures differ — `fopen_s` returns an error ordinate and writes the stream through a pointer
+//    — so the fold returns the stream and nothing else, which is all either call site reads.
+static std::FILE* OpenStream(const char* Path, const char* Manner)
+{
+#if defined(_MSC_VER)
+    std::FILE* Opened = nullptr;
+
+    if (::fopen_s(&Opened, Path, Manner) != 0)
+        return nullptr;
+
+    return Opened;
+#else
+    return std::fopen(Path, Manner);
+#endif
+}
+
+}   // namespace Slate
+
+namespace Slate
+{
+
 namespace
 {
 
@@ -209,7 +237,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
         return Deliver<ThemeArchive>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
     }
 
-    std::FILE* Stream = std::fopen(Path, "rb");
+    std::FILE* Stream = OpenStream(Path, "rb");
 
     if (Stream == nullptr)
     {
@@ -469,7 +497,7 @@ Deliver<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
     std::memcpy(Staged, Path, Spanned);
     std::memcpy(Staged + Spanned, ".part", 6u);
 
-    std::FILE* Stream = std::fopen(Staged, "wb");
+    std::FILE* Stream = OpenStream(Staged, "wb");
 
     if (Stream == nullptr)
     {

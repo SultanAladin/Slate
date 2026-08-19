@@ -723,17 +723,65 @@ bool InterfaceExchange::KeyArrived(KeySubject Subject) const
         case KeySubject::Summon:   Arbitrated = ImGuiKey_Tab;       break;
         case KeySubject::Withdraw: Arbitrated = ImGuiKey_Escape;    break;
         case KeySubject::Retract:  Arbitrated = ImGuiKey_Backspace; break;
+
+        case KeySubject::DeclarePaint:      Arbitrated = ImGuiKey_P;          break;
+        case KeySubject::DeclareFill:       Arbitrated = ImGuiKey_F;          break;
+        case KeySubject::DeclareAdjustment: Arbitrated = ImGuiKey_A;          break;
+        case KeySubject::DeclareRetention:  Arbitrated = ImGuiKey_R;          break;
+        case KeySubject::DeclareDecal:      Arbitrated = ImGuiKey_D;          break;
+        case KeySubject::DeclarePattern:    Arbitrated = ImGuiKey_T;          break;
+        case KeySubject::DeclareFolder:     Arbitrated = ImGuiKey_G;          break;
+        case KeySubject::AttachMask:        Arbitrated = ImGuiKey_M;          break;
+        case KeySubject::Secure:            Arbitrated = ImGuiKey_L;          break;
+        case KeySubject::Solo:              Arbitrated = ImGuiKey_S;          break;
+        case KeySubject::Conceal:           Arbitrated = ImGuiKey_H;          break;
+        case KeySubject::Seek:              Arbitrated = ImGuiKey_Slash;      break;
+        case KeySubject::Rename:            Arbitrated = ImGuiKey_F2;         break;
+        case KeySubject::Unfold:            Arbitrated = ImGuiKey_Space;      break;
+        case KeySubject::Retire:            Arbitrated = ImGuiKey_Delete;     break;
+        case KeySubject::StepPrior:         Arbitrated = ImGuiKey_UpArrow;    break;
+        case KeySubject::StepNext:          Arbitrated = ImGuiKey_DownArrow;  break;
+        case KeySubject::Disclose:          Arbitrated = ImGuiKey_RightArrow; break;
+        case KeySubject::Withhold:          Arbitrated = ImGuiKey_LeftArrow;  break;
+        case KeySubject::Revert:            Arbitrated = ImGuiKey_Z;          break;
+
         default:                   return false;
     }
 
     // 📝 Backspace alone repeats. Holding it to clear a filter is what an artist expects; holding Tab to
     //    flap the inspector is not, so the two are asked for on different terms.
-    if (Subject == KeySubject::Retract)
+    // 📐 The four arrows repeat on the same grounds: holding one walks the arrangement, which is what the
+    //    reference's own `ArrowUp`/`ArrowDown` branch does under the window system's own repeat.
+    if (Subject == KeySubject::Retract   || Subject == KeySubject::StepPrior ||
+        Subject == KeySubject::StepNext  || Subject == KeySubject::Disclose  ||
+        Subject == KeySubject::Withhold)
+    {
         return ImGui::IsKeyPressed(Arbitrated, true);
+    }
 
     // 📝 Unrepeated. The vendor's default repeat would carry the inspector back and forth for as long as
     //    the artist rested a finger on Tab.
     return ImGui::IsKeyPressed(Arbitrated, false);
+}
+
+ModifierCondition InterfaceExchange::Modifiers() const
+{
+    ModifierCondition Standing;
+
+    if (ContextSlot == nullptr || !TickOpen)
+        return Standing;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    const ImGuiIO& Arrived = ImGui::GetIO();
+
+    // 📐 `e.metaKey||e.ctrlKey`, exactly as the reference folds the two. The vendor already resolves
+    //    Command on macOS and Control elsewhere into `KeyCtrl`, so the fold is one reading here.
+    Standing.Commanded = Arrived.KeyCtrl || Arrived.KeySuper;
+    Standing.Shifted   = Arrived.KeyShift;
+    Standing.Alternate = Arrived.KeyAlt;
+
+    return Standing;
 }
 
 bool InterfaceExchange::AdmitTyped(char* Intake, std::uint32_t Ceiling) const

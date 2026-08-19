@@ -41,25 +41,6 @@ struct InterfaceAttachment
 };
 
 //------------------------------------------------------------------------------------------------------------------------
-//                                                    THE KEY SUBJECTS
-//------------------------------------------------------------------------------------------------------------------------
-
-/// 🧩 The keys the shell arbitrates for itself, named by what they do rather than by their scan position.
-/// note  🔴 A closed roster and not a scan ordinate. The seam exists so that a panel may ask "did the artist
-///        summon" without naming a vendor key enumeration, which `00` §2.2 keeps inside this unit. Adding a
-///        key is adding a line here and a line in the source's translation, and nothing else moves.
-/// note  ⚠️ Every arrival is edge-triggered and unrepeated — the shell's summon must not fire sixty times
-///        while the key is held down.
-/// tag   contract
-enum class KeySubject : std::uint32_t
-{
-    Summon       = 0u,   // [-] - Tab; carries the inspector between its two presentations
-    Withdraw     = 1u,   // [-] - Escape; closes the inspector, then the summoned menu
-    Retract      = 2u,   // [-] - Backspace; removes the last character of the roused filter field
-    SubjectCount = 3u    // [-] - the closed count, never a subject
-};
-
-//------------------------------------------------------------------------------------------------------------------------
 //                                                  THE INTERFACE SEAM
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -247,6 +228,13 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     bool KeyArrived(KeySubject Subject) const;
+
+    /// 🧩 Which modifiers stood down during this tick.
+    /// note  ⚠️ Valid only between `Advance` and `Seal`, on the same terms as `KeyArrived`. Read at the same
+    ///       moment as the arrival it qualifies — a modifier sampled a tick later is a different press.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    ModifierCondition Modifiers() const;
 
     /// 🧩 Appends this tick's typed characters to a caller-owned run, and reports whether any arrived.
     /// in    Intake     [-]  the run written into; always left terminated

@@ -31,14 +31,159 @@ static PlaneExtent Inset(const PlaneExtent& Extent, float Along, float Across)
                         Extent.MostAlong  - Along, Extent.MostAcross  - Across };
 }
 
+// 📐 What the reference's own transitions run at. `.row` states `transition:background .12s`, and the
+//    popup and the card both state `.16s`.
+static constexpr double RouseOver = 120.0;   // [ms]
+static constexpr double TakeOver  = 160.0;   // [ms]
+
+// 📐 `.stack` scrolls three lines a notch, which at a 45 px row is what the reference's own wheel gives.
+static constexpr float NotchAcross = 48.0f;   // [px]
+
+// 📐 A contact that has travelled beyond this is a carry and never a take — `GestureTolerance` states the
+//    same six pixels for the same reason, and the reference's HTML drag has the window system's own.
+static constexpr float CarryFloor = 6.0f;   // [px]
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> LayerStackPanel::Construct(RecordingSurface& Recording)
+Deliver<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording)
 {
+    if (Ledger != nullptr)
+    {
+        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported,
+                                       "the layer stack panel is already constructed" });
+    }
+
+    Ledger  = &Interaction;
     Surface = &Recording;
+
+    // 🔴 Every identity claimed here and none inside a tick. The three runs are claimed in one pass so a
+    //    refusal partway through retires the whole construction rather than leaving half a panel enrolled.
+    const auto Claim = [&](ControlIdentity* Written, std::uint32_t Count) -> Deliver<bool>
+    {
+        for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+        {
+            const Deliver<ControlIdentity> Issued = Interaction.Enrol();
+
+            if (!Issued.ContentPresent)
+            {
+                Reset();
+                return Deliver<bool>::Refuse(Issued.Declined);
+            }
+
+            Written[Ordinal] = Issued.Resolve();
+        }
+
+        return Deliver<bool>::Deliver(true);
+    };
+
+    if (const auto Verdict = Claim(RowCells, RowCeiling * CellsPerRow); !Verdict.ContentPresent)
+        return Verdict;
+
+    if (const auto Verdict = Claim(ChromeCells, ChromeCeiling); !Verdict.ContentPresent)
+        return Verdict;
+
+    if (const auto Verdict = Claim(PopupEntries, PopupEntryCeiling); !Verdict.ContentPresent)
+        return Verdict;
+
     return Deliver<bool>::Deliver(true);
+}
+
+void LayerStackPanel::Advance(const PointerCondition& Contact, double)
+{
+    Sampled = Contact;
+}
+
+void LayerStackPanel::Reset()
+{
+    Ledger  = nullptr;
+    Surface = nullptr;
+    Sampled = {};
+
+    for (ControlIdentity& Claimed : RowCells)
+        Claimed = {};
+
+    for (ControlIdentity& Claimed : ChromeCells)
+        Claimed = {};
+
+    for (ControlIdentity& Claimed : PopupEntries)
+        Claimed = {};
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      ONE ARBITRATION
+//------------------------------------------------------------------------------------------------------------------------
+
+bool LayerStackPanel::Roused(const PlaneExtent& Extent) const
+{
+    if (Surface == nullptr)
+        return false;
+
+    // 📐 A confined extent is what actually decides: a row scrolled past the stack's edge still encloses
+    //    the pointer arithmetically, and rousing it would light a row nobody can see.
+    if (Surface->Excluded(Extent))
+        return false;
+
+    return Extent.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+}
+
+bool LayerStackPanel::Pressed(ControlIdentity Claimed, const PlaneExtent& Extent,
+                              LayerStackOrdinates& Seated, const char* Tooltip)
+{
+    if (Ledger == nullptr)
+        return false;
+
+    const bool Over = Roused(Extent);
+
+    // 📐 `[data-tip]` — the tooltip follows the rouse and is recorded in the deferred sweep, seated at the
+    //    roused control's own upper edge exactly as the reference's `getBoundingClientRect` places it.
+    if (Over && Tooltip != nullptr)
+    {
+        Seated.Tooltip       = Tooltip;
+        Seated.TooltipAlong  = (Extent.LeastAlong + Extent.MostAlong) * 0.5f;
+        Seated.TooltipAcross = Extent.LeastAcross;
+    }
+
+    // 🔴 A standing popup outranks every row beneath it. Without this the same contact that dismisses a
+    //    menu also presses whatever the menu was covering.
+    if (Over && Sampled.ContactArrived && !Ledger->AnyDisclosed())
+        Ledger->Seize(Claimed, ControlPart::Body);
+
+    Ledger->DeclareRoused(Claimed, Over, RouseOver);
+
+    return Over && Ledger->Released(Claimed);
+}
+
+bool LayerStackPanel::Dragged(ControlIdentity Claimed, const PlaneExtent& Extent, std::uint32_t& Reading)
+{
+    if (Ledger == nullptr || Extent.SpanAlong() <= 0.0f)
+        return false;
+
+    const bool Over = Roused(Extent);
+
+    if (Over && Sampled.ContactArrived && !Ledger->AnyDisclosed())
+    {
+        Ledger->Seize(Claimed, ControlPart::Track);
+        Ledger->DepartFrom(Claimed, static_cast<float>(Reading));
+    }
+
+    Ledger->DeclareRoused(Claimed, Over, RouseOver);
+
+    if (!Ledger->Holding(Claimed))
+        return false;
+
+    // 📐 The reading follows the pointer's ABSOLUTE position along the track rather than an accumulated
+    //    per-tick delta, which drifts by a pixel for every tick the pointer spent outside the extent.
+    const float Fraction = (Sampled.PositionAlong - Extent.LeastAlong) / Extent.SpanAlong();
+    const float Clamped  = (Fraction < 0.0f) ? 0.0f : ((Fraction > 1.0f) ? 1.0f : Fraction);
+    const auto  Resolved = static_cast<std::uint32_t>(Clamped * 100.0f + 0.5f);
+
+    if (Resolved == Reading)
+        return false;
+
+    Reading = Resolved;
+    return true;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -387,14 +532,359 @@ void LayerStackPanel::RecordMaskRow(const PlaneExtent& Extent, const LayerEntry&
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                    THE DROP MARK
+//------------------------------------------------------------------------------------------------------------------------
+
+void LayerStackPanel::RecordDropMark(const PlaneExtent& Extent, DropIntent Intent)
+{
+    // 📐 `.drop-before` and `.drop-after` state a 2px accent rule; `.drop-into` states a ring around the
+    //    whole folder row, which is what makes the two readings unmistakable at a glance.
+    switch (Intent)
+    {
+        case DropIntent::Prior:
+            Surface->Ground(PlaneExtent{ Extent.LeastAlong, Extent.LeastAcross - 1.0f,
+                                         Extent.MostAlong,  Extent.LeastAcross + 1.0f }, Tinted.Accent);
+            break;
+
+        case DropIntent::Trailing:
+            Surface->Ground(PlaneExtent{ Extent.LeastAlong, Extent.MostAcross - 1.0f,
+                                         Extent.MostAlong,  Extent.MostAcross + 1.0f }, Tinted.Accent);
+            break;
+
+        case DropIntent::Enclosed:
+            Surface->Edge(Extent, Tinted.Accent, 2.0f, Scaled.RadiusSmall);
+            break;
+
+        default:
+            break;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                     THE POPUP SHELL
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📐 `.pop` — a 200px raised card on --r, strokes at .18, and 6px of padding.
+static constexpr float PopupAlongLeast  = 208.0f;   // [px]
+static constexpr float PopupEntryAcross =  26.0f;   // [px] - one entry
+static constexpr float PopupPad         =   6.0f;   // [px]
+static constexpr float PopupCaption     =  22.0f;   // [px] - one `<h6>`
+
+PlaneExtent LayerStackPanel::RecordPopupGround(LayerStackOrdinates& Seated, float Along, float Across,
+                                               float Span)
+{
+    const DisplayCondition& Display = Surface->Display();
+
+    // 📐 `show()` seats the card against its anchor and then clamps it inside the display on both axes,
+    //    flipping it above the anchor when it would otherwise run past the lower edge.
+    const float Extent  = Display.ExtentAlong  > 0.0f ? Display.ExtentAlong  : 1920.0f;
+    const float Across0 = Display.ExtentAcross > 0.0f ? Display.ExtentAcross : 1080.0f;
+
+    float Seat = Along - PopupAlongLeast;
+
+    if (Seat < 8.0f)                            Seat = 8.0f;
+    if (Seat > Extent - PopupAlongLeast - 8.0f) Seat = Extent - PopupAlongLeast - 8.0f;
+
+    // 📐 `if(y+p.height>innerHeight-8)y=Math.max(8,at.top-p.height-6)` — flipped against the card's OWN
+    //    measured height and not against a fixed probe, which left a long run hanging off the lower edge.
+    float Upper = Across;
+
+    if (Upper + Span > Across0 - 8.0f)
+        Upper = (Across0 - 8.0f - Span > 8.0f) ? (Across0 - 8.0f - Span) : 8.0f;
+
+    Seated.PopupSeatAlong  = Seat;
+    Seated.PopupSeatAcross = Upper;
+
+    return PlaneExtent{ Seat, Upper, Seat + PopupAlongLeast, Upper };
+}
+
+bool LayerStackPanel::RecordPopupEntry(const PlaneExtent& Extent, const char* Caption, const char* Chord,
+                                       bool Marked, bool Dangerous, LayerStackOrdinates& Seated)
+{
+    if (Surface->Excluded(Extent))
+        return false;
+
+    // 📝 A popup entry is arbitrated against the standing disclosure rather than through `Pressed`, which
+    //    refuses everything while a popup is open — that refusal is exactly what keeps rows underneath a
+    //    menu from answering, and the menu's own entries have to sit on the other side of it.
+    const bool Over = Extent.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+
+    if (Over)
+        Surface->Ground(Extent, Partial(0xFFFFFFu, 0.07), Scaled.RadiusSmall);
+
+    const float Middle = (Extent.LeastAcross + Extent.MostAcross) * 0.5f;
+
+    // 📐 The check occupies its 14px cell whether or not it is drawn, so the captions align down the run.
+    if (Marked)
+        Surface->Stroke(SymbolSubject::ChevronRight, Squared(Extent.LeastAlong + 15.0f, Middle, 10.0f),
+                        Tinted.Accent);
+
+    Surface->TextRunTruncated(Extent.LeastAlong + 26.0f, Middle - Surface->RunAcross(Scaled.RunSub) * 0.5f,
+                              Extent.SpanAlong() - 34.0f - (Chord != nullptr ? 30.0f : 0.0f),
+                              Dangerous ? Tinted.Danger : Tinted.Primary, Caption, Scaled.RunSub);
+
+    if (Chord != nullptr && Chord[0] != '\0')
+    {
+        Surface->TextRun(Extent.MostAlong - 8.0f - Surface->MeasureRun(Chord, Scaled.RunFine),
+                         Middle - Surface->RunAcross(Scaled.RunFine) * 0.5f, Tinted.Faint,
+                         Chord, Scaled.RunFine);
+    }
+
+    // 📐 A popup resolves on the RELEASE, and only once it has stood for a whole tick — the contact that
+    //    opened it is itself a release, and would otherwise pick whatever entry landed under the pointer.
+    const bool Taken = Over && Sampled.ContactReleased && Seated.PopupSettled;
+
+    if (Taken)
+    {
+        Seated.Popup = StackPopup::Absent;
+
+        if (Ledger != nullptr)
+            Ledger->Withdraw();
+    }
+
+    return Taken;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       THE CHORDS
+//------------------------------------------------------------------------------------------------------------------------
+
+bool LayerStackPanel::AdmitChord(KeySubject Subject, const ModifierCondition& Modifiers,
+                                 LayerArrangement& Arrangement, LayerStackOrdinates& Seated,
+                                 RevisionSequence& Revisions)
+{
+    // 🔴 The reference's own first line — `if(e.target.tagName==='INPUT'||…)return`. A chord that reached
+    //    the arrangement while the artist was typing would declare a paint layer out of the letter `p`.
+    if (Seated.RetentionRoused || Seated.Renaming != LayerStackCeiling::AbsentOrdinal)
+        return false;
+
+    const bool Taken = Arrangement.Taken < Arrangement.EntryCount;
+
+    // 📐 Every amendment records its own revision FIRST, exactly as `snap()` is called ahead of the
+    //    mutation and never after it.
+    const auto Amend = [&](const char* Naming) { Revisions.Record(Arrangement, Naming); };
+
+    if (Modifiers.Commanded)
+    {
+        switch (Subject)
+        {
+            // ① The two revision chords, the only ones that READ the ring rather than record into it.
+            case KeySubject::Revert:
+                if (Modifiers.Shifted)
+                    Revisions.Reinstate(Arrangement);
+                else
+                    Revisions.Revert(Arrangement);
+
+                return true;
+
+            case KeySubject::DeclareDecal:                      // 📐 ⌘D — duplicate, not "declare a decal"
+                if (!Taken) return true;
+                Amend("Entry copied");
+                if (!DuplicateTaken(Arrangement)) Revisions.Revert(Arrangement);
+                return true;
+
+            case KeySubject::DeclareFolder:                     // 📐 ⌘G — group
+                if (!Taken) return true;
+                Amend("Entries grouped");
+                if (!EncloseTaken(Arrangement)) Revisions.Revert(Arrangement);
+                return true;
+
+            case KeySubject::StepPrior:                         // 📐 ⌘↑ — carry, not step
+                if (!Taken) return true;
+                Amend("Entry carried");
+                if (!CarryTaken(Arrangement, false)) Revisions.Revert(Arrangement);
+                return true;
+
+            case KeySubject::StepNext:                          // 📐 ⌘↓
+                if (!Taken) return true;
+                Amend("Entry carried");
+                if (!CarryTaken(Arrangement, true)) Revisions.Revert(Arrangement);
+                return true;
+
+            default:
+                // 📐 `else if(m)return` — a commanded chord this panel does not answer is swallowed rather
+                //    than falling through to its unmodified reading, which would declare a layer from ⌘P.
+                return false;
+        }
+    }
+
+    switch (Subject)
+    {
+        // ② The seven declarations.
+        case KeySubject::DeclarePaint:
+            Amend("Paint layer declared");
+            DeclareEntry(Arrangement, LayerContent::Paint, "Paint Layer");
+            return true;
+
+        case KeySubject::DeclareFill:
+            Amend("Fill layer declared");
+            DeclareEntry(Arrangement, LayerContent::Fill, "Fill Layer");
+            return true;
+
+        case KeySubject::DeclareAdjustment:
+            Amend("Adjustment declared");
+            DeclareEntry(Arrangement, LayerContent::Adjustment, "Adjustment");
+            return true;
+
+        case KeySubject::DeclareRetention:
+            Amend("Retention declared");
+            DeclareEntry(Arrangement, LayerContent::Retention, "Filter");
+            return true;
+
+        case KeySubject::DeclareDecal:
+            Amend("Decal layer declared");
+            DeclareEntry(Arrangement, LayerContent::Decal, "Decal Layer");
+            return true;
+
+        case KeySubject::DeclarePattern:
+            Amend("Pattern layer declared");
+            DeclareEntry(Arrangement, LayerContent::Pattern, "Pattern Layer");
+            return true;
+
+        case KeySubject::DeclareFolder:
+            Amend("Folder declared");
+            DeclareEntry(Arrangement, LayerContent::Folder, "New Folder");
+            return true;
+
+        // ③ What one taken entry answers.
+        case KeySubject::Retire:
+            if (!Taken) return true;
+            Amend("Entry retired");
+            if (!RetireTaken(Arrangement)) Revisions.Revert(Arrangement);
+            return true;
+
+        case KeySubject::AttachMask:
+            if (!Taken) return true;
+            Amend("Mask amended");
+            if (!ToggleMask(Arrangement)) Revisions.Revert(Arrangement);
+            return true;
+
+        case KeySubject::Secure:
+            if (!Taken) return true;
+            Amend("Entry secured");
+            Arrangement.Entries[Arrangement.Taken].Secured =
+                !Arrangement.Entries[Arrangement.Taken].Secured;
+            return true;
+
+        case KeySubject::Conceal:
+            if (!Taken) return true;
+            Amend("Presence amended");
+            Arrangement.Entries[Arrangement.Taken].Shown =
+                !Arrangement.Entries[Arrangement.Taken].Shown;
+            return true;
+
+        // 📐 Soloing and unfolding are interaction, not content, so neither records a revision — the
+        //    reference does not `snap()` on either.
+        case KeySubject::Solo:
+            if (!Taken) return true;
+            Arrangement.Soloed = (Arrangement.Soloed == Arrangement.Taken)
+                               ? LayerStackCeiling::AbsentOrdinal : Arrangement.Taken;
+            return true;
+
+        case KeySubject::Unfold:
+        {
+            if (!Taken) return true;
+
+            LayerEntry& Entry = Arrangement.Entries[Arrangement.Taken];
+
+            if (Arrangement.TakenHalf == LayerTaken::Mask && Entry.Mask.Declared)
+                Entry.Mask.Unfolded = !Entry.Mask.Unfolded;
+            else
+                Entry.Unfolded = !Entry.Unfolded;
+
+            return true;
+        }
+
+        case KeySubject::Rename:
+            if (!Taken || Arrangement.TakenHalf == LayerTaken::Mask) return true;
+            Seated.Renaming = Arrangement.Taken;
+            std::snprintf(Seated.RenamingRun, sizeof Seated.RenamingRun, "%s",
+                          Arrangement.Entries[Arrangement.Taken].Naming);
+            return true;
+
+        case KeySubject::Seek:
+            Seated.RetentionRoused = true;
+            return true;
+
+        // ④ Folder disclosure, which the two horizontal arrows drive.
+        case KeySubject::Disclose:
+        case KeySubject::Withhold:
+        {
+            if (!Taken) return true;
+
+            LayerEntry& Entry = Arrangement.Entries[Arrangement.Taken];
+
+            if (Entry.Content != LayerContent::Folder)
+                return true;
+
+            Entry.Opened = (Subject == KeySubject::Disclose);
+            return true;
+        }
+
+        // ⑤ Stepping through the presented run, which is what makes the arrows read as a walk.
+        case KeySubject::StepPrior:
+        case KeySubject::StepNext:
+        {
+            PresentedHalf Halves[LayerStackCeiling::Entries * 2u];
+            const std::uint32_t Count = PresentedHalves(Arrangement, Seated.Retention, Halves,
+                                                        LayerStackCeiling::Entries * 2u);
+
+            if (Count == 0u)
+                return true;
+
+            std::uint32_t Standing = 0u;
+
+            for (std::uint32_t Walk = 0u; Walk < Count; ++Walk)
+                if (Halves[Walk].Ordinal == Arrangement.Taken && Halves[Walk].Half == Arrangement.TakenHalf)
+                {
+                    Standing = Walk;
+                    break;
+                }
+
+            // 📐 The walk stops at both ends rather than wrapping, exactly as `flat[i+d]` yields nothing.
+            if (Subject == KeySubject::StepPrior && Standing == 0u)
+                return true;
+
+            if (Subject == KeySubject::StepNext && Standing + 1u >= Count)
+                return true;
+
+            const std::uint32_t Stepped = (Subject == KeySubject::StepNext) ? Standing + 1u : Standing - 1u;
+
+            Arrangement.Taken     = Halves[Stepped].Ordinal;
+            Arrangement.TakenHalf = Halves[Stepped].Half;
+            return true;
+        }
+
+        case KeySubject::Withdraw:
+            // 📐 Escape closes the popup first and clears the search run second.
+            if (Seated.Popup != StackPopup::Absent)
+            {
+                Seated.Popup = StackPopup::Absent;
+                if (Ledger != nullptr) Ledger->Withdraw();
+                return true;
+            }
+
+            Seated.Retention[0] = '\0';
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                        THE STACK
 //------------------------------------------------------------------------------------------------------------------------
 
 void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                  LayerStackOrdinates& Seated)
+                                  LayerStackOrdinates& Seated, RevisionSequence& Revisions)
 {
-    if (Surface == nullptr || !Surface->Recording())
+    if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
         return;
+
+    // 📝 The tooltip is resolved fresh every tick. A retained one outlives the control it named and hangs
+    //    over the panel after the pointer has left it.
+    Seated.Tooltip = nullptr;
 
     Surface->Ground(Extent, Tinted.Panel);
     Surface->Confine(Extent);
@@ -409,8 +899,15 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                                 Head.LeastAcross + (Scaled.HeadAcross - Surface->RunAcross(Scaled.RunHead)) * 0.5f,
                                 Tinted.Secondary, "Layers", Scaled.RunHead, TrackingHead, true);
 
+    // 📐 `$('#count').textContent=count()+' · '+maskCount()+'m'` — entries and masks, in one chip.
+    std::uint32_t MaskCount = 0u;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < Arrangement.EntryCount; ++Ordinal)
+        if (Arrangement.Entries[Ordinal].Mask.Declared)
+            ++MaskCount;
+
     char Counted[24] = {};
-    std::snprintf(Counted, sizeof Counted, "%u", Arrangement.EntryCount);
+    std::snprintf(Counted, sizeof Counted, "%u \xC2\xB7 %um", Arrangement.EntryCount, MaskCount);
 
     const float CountAlong = Surface->MeasureRun(Counted, Scaled.RunFine) + 18.0f;
     RecordChip(Spanning(Head.MostAlong - Scaled.HeadPadAlong - CountAlong,
@@ -428,28 +925,90 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                                               Tools.SpanAlong() - Scaled.ToolsPadAlong * 2.0f - ActionsAlong,
                                               Scaled.SearchAcross);
 
+    // 📐 `#q` — the field is a PRIMITIVE and not a vendor widget, so it carries its own rouse and its own
+    //    caret. A contact inside it takes the keyboard; a contact anywhere else gives it back.
+    if (Pressed(ChromeCells[static_cast<std::uint32_t>(ChromeCell::SearchField)], Search, Seated,
+                "Search layers"))
+    {
+        Seated.RetentionRoused = true;
+    }
+    else if (Sampled.ContactArrived && !Roused(Search))
+    {
+        Seated.RetentionRoused = false;
+    }
+
     Surface->Ground(Search, Covering(0x000000u), Scaled.SearchAcross * 0.5f);
-    Surface->Edge(Search, Tinted.Stroke, 1.0f, Scaled.SearchAcross * 0.5f);
+    Surface->Edge(Search, Seated.RetentionRoused ? Tinted.StrokeStrong : Tinted.Stroke, 1.0f,
+                  Scaled.SearchAcross * 0.5f);
     Surface->Stroke(SymbolSubject::MagnifierLens,
                     Squared(Search.LeastAlong + 17.0f, (Search.LeastAcross + Search.MostAcross) * 0.5f, 13.0f),
                     Tinted.Faint);
-    Surface->TextRun(Search.LeastAlong + 28.0f,
-                     (Search.LeastAcross + Search.MostAcross) * 0.5f - Surface->RunAcross(12.0f) * 0.5f,
-                     Tinted.Faint, "Search layers", 12.0f);
 
+    {
+        const bool  Written  = Seated.Retention[0] != '\0';
+        const float Baseline = (Search.LeastAcross + Search.MostAcross) * 0.5f - Surface->RunAcross(12.0f) * 0.5f;
+
+        Surface->TextRunTruncated(Search.LeastAlong + 28.0f, Baseline, Search.SpanAlong() - 38.0f,
+                                  Written ? Tinted.Primary : Tinted.Faint,
+                                  Written ? Seated.Retention : "Search layers", 12.0f);
+
+        // 📐 The caret, drawn only while the field holds the keyboard, at the run's trailing edge.
+        if (Seated.RetentionRoused)
+        {
+            const float Caret = Search.LeastAlong + 28.0f +
+                                (Written ? Surface->MeasureRun(Seated.Retention, 12.0f) : 0.0f);
+
+            Surface->Ground(Spanning(Caret + 1.0f, Search.LeastAcross + 7.0f, 1.0f,
+                                     Scaled.SearchAcross - 14.0f), Tinted.Primary);
+        }
+    }
+
+    // ③ The three tool actions — add, group, retire.
     const float ActionMiddle = (Tools.LeastAcross + Tools.MostAcross) * 0.5f;
 
-    Surface->Stroke(SymbolSubject::PlusCross,
-                    Squared(Tools.MostAlong - Scaled.ToolsPadAlong - Scaled.ButtonExtent * 2.5f,
-                            ActionMiddle, 15.0f), Tinted.Secondary);
-    Surface->Stroke(SymbolSubject::LayerMerge,
-                    Squared(Tools.MostAlong - Scaled.ToolsPadAlong - Scaled.ButtonExtent * 1.5f,
-                            ActionMiddle, 15.0f), Tinted.Secondary);
-    Surface->Stroke(SymbolSubject::TrashBin,
-                    Squared(Tools.MostAlong - Scaled.ToolsPadAlong - Scaled.ButtonExtent * 0.5f,
-                            ActionMiddle, 15.0f), Tinted.Secondary);
+    const PlaneExtent AddButton    = Squared(Tools.MostAlong - Scaled.ToolsPadAlong -
+                                             Scaled.ButtonExtent * 2.5f, ActionMiddle, Scaled.ButtonExtent);
+    const PlaneExtent FolderButton = Squared(Tools.MostAlong - Scaled.ToolsPadAlong -
+                                             Scaled.ButtonExtent * 1.5f, ActionMiddle, Scaled.ButtonExtent);
+    const PlaneExtent RetireButton = Squared(Tools.MostAlong - Scaled.ToolsPadAlong -
+                                             Scaled.ButtonExtent * 0.5f, ActionMiddle, Scaled.ButtonExtent);
 
-    // ③ `.stack` — the scrolling run of rows, confined so an overflowing row is clipped and not drawn over
+    const auto Action = [&](ChromeCell Cell, const PlaneExtent& Seat, SymbolSubject Figure,
+                            const char* Tooltip, InkOrdinate Ink) -> bool
+    {
+        const bool Taken = Pressed(ChromeCells[static_cast<std::uint32_t>(Cell)], Seat, Seated, Tooltip);
+
+        if (Roused(Seat))
+            Surface->Ground(Seat, Partial(0xFFFFFFu, 0.07), Scaled.RadiusSmall);
+
+        Surface->Stroke(Figure, Inset(Seat, 6.5f, 6.5f), Ink);
+        return Taken;
+    };
+
+    if (Action(ChromeCell::AddButton, AddButton, SymbolSubject::PlusCross, "Add layer", Tinted.Secondary))
+    {
+        Seated.Popup       = StackPopup::Addition;
+        Seated.PopupAlong  = AddButton.MostAlong;
+        Seated.PopupAcross = AddButton.MostAcross + 6.0f;
+        Seated.PopupOffset = 0.0f;
+        Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+    }
+
+    if (Action(ChromeCell::FolderButton, FolderButton, SymbolSubject::LayerMerge, "Group", Tinted.Secondary))
+    {
+        Revisions.Record(Arrangement, "Folder declared");
+        DeclareEntry(Arrangement, LayerContent::Folder, "New Folder");
+    }
+
+    if (Action(ChromeCell::RetireButton, RetireButton, SymbolSubject::TrashBin, "Delete", Tinted.Secondary))
+    {
+        Revisions.Record(Arrangement, "Entry retired");
+
+        if (!RetireTaken(Arrangement))
+            Revisions.Revert(Arrangement);
+    }
+
+    // ④ `.stack` — the scrolling run of rows, confined so an overflowing row is clipped and not drawn over
     //    the footer.
     const PlaneExtent Foot  = Spanning(Extent.LeastAlong, Extent.MostAcross - Scaled.FootAcross,
                                        Extent.SpanAlong(), Scaled.FootAcross);
@@ -460,19 +1019,53 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 
     const float RowAlong  = Stack.SpanAlong() - Scaled.StackPadAlong * 2.0f - Scaled.ScrollAlong;
     float       Across    = Stack.LeastAcross + Scaled.StackPadAcross - Seated.StackOffset;
-    const float Pointer   = Surface->Pointer().PositionAcross;
-    const float PointerAt = Surface->Pointer().PositionAlong;
+    const float Pointer   = Sampled.PositionAcross;
+    const float PointerAt = Sampled.PositionAlong;
 
-    std::uint32_t Hovered     = 0xFFFFFFFFu;
+    std::uint32_t Hovered     = LayerStackCeiling::AbsentOrdinal;
     bool          HoveredMask = false;
+
+    // 📐 What one drop would do, resolved fresh each tick against whatever the carried entry stands over.
+    std::uint32_t Destination = LayerStackCeiling::AbsentOrdinal;
+    DropIntent    Intent      = DropIntent::Absent;
+
+    const bool Carrying = Seated.Carried < Arrangement.EntryCount;
+
+    // 🔴 A contact that has not travelled the carry floor is still a candidate TAKE, not yet a carry. Only
+    //    once it passes the floor does the row dim and a drop resolve — otherwise every ordinary press
+    //    scrimmed the row it selected for the one tick the contact was held, which read as the row going
+    //    hidden the instant it was clicked.
+    const float CarryTravel = (Sampled.PositionAcross > Seated.CarryOrigin)
+                            ? (Sampled.PositionAcross - Seated.CarryOrigin)
+                            : (Seated.CarryOrigin - Sampled.PositionAcross);
+    const bool  Travelled   = Carrying && Sampled.ContactHeld && CarryTravel >= CarryFloor;
+
+    // 🔴 What the PREVIOUS tick resolved, kept before this tick overwrites it. The release tick carries no
+    //    held contact, so it resolves no destination of its own — a drop that read only this tick's
+    //    reading therefore always found nothing and silently discarded every reorder.
+    const std::uint32_t PriorDestination = Seated.Destination;
+    const DropIntent    PriorIntent      = Seated.Intent;
+
+    // 📐 One presented row per enrolled run of cells. Beyond `RowCeiling` the rows still record and still
+    //    take, on the row body's shared identity — a reduction, not a defect.
+    std::uint32_t Presented = 0u;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Arrangement.EntryCount; ++Ordinal)
     {
-        if (!EntryPresented(Arrangement, Ordinal))
+        // 📐 A retention run opens every folder it reaches into, so it is asked instead of the disclosure.
+        const bool Retaining = Seated.Retention[0] != '\0';
+        const bool Standing  = Retaining ? EntryRetained(Arrangement, Ordinal, Seated.Retention)
+                                         : EntryPresented(Arrangement, Ordinal);
+
+        if (!Standing)
             continue;
 
         const LayerEntry& Entry  = Arrangement.Entries[Ordinal];
         const float       Indent = static_cast<float>(Entry.Depth) * Scaled.RowStepAlong;
+        const std::uint32_t Cells = (Presented < RowCeiling) ? (Presented * CellsPerRow) : 0u;
+        const bool          Enrolled = Presented < RowCeiling;
+
+        ++Presented;
 
         const PlaneExtent Row = Spanning(Stack.LeastAlong + Scaled.StackPadAlong + Indent, Across,
                                          RowAlong - Indent, Scaled.RowAcross);
@@ -487,8 +1080,83 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                 HoveredMask = false;
             }
 
-            RecordEntryRow(Row, Arrangement,  Ordinal,
-                           Arrangement.Taken == Ordinal && Arrangement.TakenHalf == LayerTaken::Layer, Over);
+            // 📐 A carried entry resolves its drop against whichever row it stands over. A folder crossed
+            //    through its middle third is entered rather than passed — `y>.32&&y<.68`, verbatim.
+            if (Travelled && Over && Seated.Carried != Ordinal &&
+                !EntryWithin(Arrangement, Seated.Carried, Ordinal))
+            {
+                const float Fraction = (Pointer - Row.LeastAcross) / Row.SpanAcross();
+
+                Destination = Ordinal;
+                Intent      = (Entry.Content == LayerContent::Folder && Fraction > 0.32f && Fraction < 0.68f)
+                            ? DropIntent::Enclosed
+                            : ((Fraction < 0.5f) ? DropIntent::Prior : DropIntent::Trailing);
+            }
+
+            const bool TakenRow = Arrangement.Taken == Ordinal && Arrangement.TakenHalf == LayerTaken::Layer;
+
+            RecordEntryRow(Row, Arrangement, Ordinal, TakenRow, Over);
+
+            // 📐 A carried entry is drawn at half coverage in place, which is what `.dragging{opacity:.4}`
+            //    states, rather than being lifted to the pointer.
+            if (Travelled && Seated.Carried == Ordinal)
+                Surface->Ground(Row, Partial(0x000000u, 0.55), 0.0f);
+
+            if (Enrolled)
+            {
+                const float Middle = (Row.LeastAcross + Row.MostAcross) * 0.5f;
+
+                // ⓐ The twisty, on a folder alone.
+                if (Entry.Content == LayerContent::Folder)
+                {
+                    const PlaneExtent Twisty = Squared(Row.LeastAlong + Scaled.RowPadAlong +
+                                                       Scaled.DiscloseAlong * 0.5f, Middle, 18.0f);
+
+                    if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::Disclosure)],
+                                Twisty, Seated, Entry.Opened ? "Collapse" : "Expand"))
+                    {
+                        Arrangement.Entries[Ordinal].Opened = !Entry.Opened;
+                    }
+                }
+
+                // ⓑ The eye. Alternate-clicking it solos, exactly as `if(e.altKey)` branches.
+                const PlaneExtent Eye = Squared(Row.LeastAlong + Scaled.RowPadAlong + Scaled.DiscloseAlong +
+                                                Scaled.RowGapAlong * 0.5f + Scaled.ActionExtent * 0.5f,
+                                                Middle, Scaled.ActionExtent);
+
+                if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::Presence)], Eye, Seated,
+                            Entry.Shown ? "Hide \xC2\xB7 Alt = solo" : "Show \xC2\xB7 Alt = solo"))
+                {
+                    Revisions.Record(Arrangement, "Presence amended");
+                    Arrangement.Entries[Ordinal].Shown = !Entry.Shown;
+                }
+
+                // ⓒ The card chevron and the ellipsis, on the trailing edge.
+                const PlaneExtent Unfolding = Squared(Row.MostAlong - Scaled.ActionExtent * 1.5f, Middle,
+                                                      Scaled.ActionExtent);
+                const PlaneExtent Menu      = Squared(Row.MostAlong - Scaled.ActionExtent * 0.5f, Middle,
+                                                      Scaled.ActionExtent);
+
+                if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::Unfolding)], Unfolding,
+                            Seated, Entry.Unfolded ? "Hide details" : "Show details"))
+                {
+                    Arrangement.Entries[Ordinal].Unfolded = !Entry.Unfolded;
+                }
+
+                if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::Menu)], Menu, Seated,
+                            "Layer menu"))
+                {
+                    Arrangement.Taken     = Ordinal;
+                    Arrangement.TakenHalf = LayerTaken::Layer;
+                    Seated.Popup          = StackPopup::LayerMenu;
+                    Seated.PopupSubject   = Ordinal;
+                    Seated.PopupOnMask    = false;
+                    Seated.PopupAlong     = Menu.MostAlong;
+                    Seated.PopupAcross    = Menu.MostAcross + 6.0f;
+                    Seated.PopupOffset    = 0.0f;
+                    Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+                }
+            }
         }
 
         Across += Scaled.RowAcross + 4.0f;
@@ -512,64 +1180,164 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 
                 RecordMaskRow(MaskRow, Entry,
                               Arrangement.Taken == Ordinal && Arrangement.TakenHalf == LayerTaken::Mask, Over);
+
+                if (Enrolled)
+                {
+                    const float Middle = (MaskRow.LeastAcross + MaskRow.MostAcross) * 0.5f;
+
+                    const PlaneExtent MaskEye = Squared(MaskRow.LeastAlong + Scaled.RowPadAlong +
+                                                        Scaled.ActionExtent * 0.5f, Middle, Scaled.ActionExtent);
+
+                    if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::MaskPresence)],
+                                MaskEye, Seated, Entry.Mask.Shown ? "Disable mask" : "Enable mask"))
+                    {
+                        Revisions.Record(Arrangement, "Mask presence amended");
+                        Arrangement.Entries[Ordinal].Mask.Shown = !Entry.Mask.Shown;
+                    }
+
+                    const PlaneExtent MaskUnfold = Squared(MaskRow.MostAlong - Scaled.ActionExtent * 1.5f,
+                                                           Middle, Scaled.ActionExtent);
+                    const PlaneExtent MaskMenu   = Squared(MaskRow.MostAlong - Scaled.ActionExtent * 0.5f,
+                                                           Middle, Scaled.ActionExtent);
+
+                    if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::MaskUnfold)],
+                                MaskUnfold, Seated, "Mask details"))
+                    {
+                        Arrangement.Entries[Ordinal].Mask.Unfolded = !Entry.Mask.Unfolded;
+                    }
+
+                    if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::MaskMenu)],
+                                MaskMenu, Seated, "Mask menu"))
+                    {
+                        Arrangement.Taken     = Ordinal;
+                        Arrangement.TakenHalf = LayerTaken::Mask;
+                        Seated.Popup          = StackPopup::MaskMenu;
+                        Seated.PopupSubject   = Ordinal;
+                        Seated.PopupOnMask    = true;
+                        Seated.PopupAlong     = MaskMenu.MostAlong;
+                        Seated.PopupAcross    = MaskMenu.MostAcross + 6.0f;
+                        Seated.PopupOffset    = 0.0f;
+                        Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+                    }
+                }
             }
 
             Across += Scaled.MaskRowAcross + 4.0f;
         }
+
+        // 📐 The drop rule is recorded AFTER its row so it lies over the row's own ground.
+        if (Destination == Ordinal && Intent != DropIntent::Absent)
+            RecordDropMark(Row, Intent);
     }
 
     Seated.StackSpan   = (Across + Seated.StackOffset) - (Stack.LeastAcross + Scaled.StackPadAcross);
     Seated.Hovered     = Hovered;
     Seated.HoveredMask = HoveredMask;
+    Seated.Destination = Destination;
+    Seated.Intent      = Intent;
 
     Surface->Release();
 
-    // ④ The scroll bar, recorded only when the run overflows its extent.
+    // ⑤ The scroll bar, recorded only when the run overflows its extent, and draggable in place.
     const float Visible = Stack.SpanAcross();
+    const float Ceiling = (Seated.StackSpan > Visible) ? (Seated.StackSpan - Visible) : 0.0f;
 
-    if (Seated.StackSpan > Visible && Visible > 0.0f)
+    if (Ceiling > 0.0f && Visible > 0.0f)
     {
-        const float Fraction = Visible / Seated.StackSpan;
+        const float Fraction    = Visible / Seated.StackSpan;
         const float ThumbAcross = (Visible * Fraction < 28.0f) ? 28.0f : Visible * Fraction;
         const float Travel      = Visible - ThumbAcross;
-        const float Ceiling     = Seated.StackSpan - Visible;
-        const float Advanced    = (Ceiling > 0.0f) ? (Seated.StackOffset / Ceiling) : 0.0f;
+        const float Advanced    = Seated.StackOffset / Ceiling;
 
-        Surface->Ground(Spanning(Stack.MostAlong - Scaled.ScrollAlong + 3.0f,
-                                 Stack.LeastAcross + Travel * Advanced, 4.0f, ThumbAcross),
-                        Partial(0xFFFFFFu, 0.15), 2.0f);
+        const PlaneExtent Bar   = Spanning(Stack.MostAlong - Scaled.ScrollAlong, Stack.LeastAcross,
+                                           Scaled.ScrollAlong, Visible);
+        const PlaneExtent Thumb = Spanning(Stack.MostAlong - Scaled.ScrollAlong + 3.0f,
+                                           Stack.LeastAcross + Travel * Advanced, 4.0f, ThumbAcross);
+
+        ControlIdentity& Claimed = ChromeCells[static_cast<std::uint32_t>(ChromeCell::ScrollThumb)];
+
+        if (Roused(Bar) && Sampled.ContactArrived && !Ledger->AnyDisclosed())
+        {
+            Ledger->Seize(Claimed, ControlPart::Thumb);
+            Ledger->DepartFrom(Claimed, Seated.StackOffset);
+        }
+
+        Ledger->DeclareRoused(Claimed, Roused(Bar), RouseOver);
+
+        // 📐 The bar travels `Travel` pixels while the run travels `Ceiling`, so the pointer's own travel
+        //    is scaled by their ratio rather than applied to the offset directly.
+        if (Ledger->Holding(Claimed) && Travel > 0.0f)
+        {
+            const Deliver<float> Departed = Ledger->DepartedOrdinate(Claimed);
+
+            if (Departed.ContentPresent)
+            {
+                const float Moved = Sampled.PositionAcross - Ledger->OriginAcross();
+                Seated.StackOffset = Departed.Resolve() + Moved * (Ceiling / Travel);
+            }
+        }
+
+        Surface->Ground(Thumb, Partial(0xFFFFFFu, Ledger->Holding(Claimed) ? 0.30 : 0.15), 2.0f);
     }
 
-    // ⑤ The wheel, which the stack answers itself because the seam carries no scrolling primitive.
-    if (Stack.Encloses(PointerAt, Pointer))
-    {
-        Seated.StackOffset -= Surface->Pointer().WheelAcross * 48.0f;
+    // ⑥ The wheel, which the stack answers itself because the seam carries no scrolling primitive.
+    if (Stack.Encloses(PointerAt, Pointer) && Seated.Popup == StackPopup::Absent)
+        Seated.StackOffset -= Sampled.WheelAcross * NotchAcross;
 
-        const float Ceiling = (Seated.StackSpan > Visible) ? (Seated.StackSpan - Visible) : 0.0f;
+    if (Seated.StackOffset < 0.0f)      Seated.StackOffset = 0.0f;
+    if (Seated.StackOffset > Ceiling)   Seated.StackOffset = Ceiling;
 
-        if (Seated.StackOffset < 0.0f)      Seated.StackOffset = 0.0f;
-        if (Seated.StackOffset > Ceiling)   Seated.StackOffset = Ceiling;
-    }
-
-    // ⑥ What the artist takes, resolved on the contact's arriving edge.
-    if (Surface->Pointer().ContactArrived && Hovered < Arrangement.EntryCount)
+    // ⑦ What the artist takes, and what the artist carries. Both resolve off the SAME contact: a contact
+    //    that arrived over a row and travelled beyond the carry floor is a drag, and one that did not is a
+    //    take — which is exactly the separation `GestureTolerance` states and the reference gets from the
+    //    window system's own drag threshold.
+    if (Sampled.ContactArrived && Hovered < Arrangement.EntryCount && !Ledger->AnyDisclosed())
     {
         Arrangement.Taken     = Hovered;
         Arrangement.TakenHalf = HoveredMask ? LayerTaken::Mask : LayerTaken::Layer;
+
+        // 📐 A secured entry refuses to be carried — `draggable="${n.lock?'false':'true'}"`.
+        if (!HoveredMask && !Arrangement.Entries[Hovered].Secured)
+        {
+            Seated.Carried     = Hovered;
+            Seated.CarryOrigin = Pointer;
+        }
     }
 
-    // ⑦ `.foot` — the breadcrumb over the taken entry's blend and opacity.
+    if (Carrying && !Sampled.ContactHeld)
+    {
+        // 📐 The drop, resolved against what the last held tick marked. A carry released over nothing
+        //    droppable simply ends, which is what `cleanup()` does.
+        if (PriorDestination < Arrangement.EntryCount && PriorIntent != DropIntent::Absent)
+        {
+            Revisions.Record(Arrangement, "Entry carried");
+
+            const bool Moved = CarryEntry(Arrangement, Seated.Carried, PriorDestination,
+                                          PriorIntent == DropIntent::Enclosed,
+                                          PriorIntent == DropIntent::Trailing);
+
+            if (!Moved)
+                Revisions.Revert(Arrangement);
+        }
+
+        Seated.Carried     = LayerStackCeiling::AbsentOrdinal;
+        Seated.Destination = LayerStackCeiling::AbsentOrdinal;
+        Seated.Intent      = DropIntent::Absent;
+    }
+
+    // ⑧ `.foot` — the breadcrumb over the taken entry's blend and opacity.
     Surface->Ground(Foot, Tinted.PanelRaised);
     Surface->Edge(PlaneExtent{ Foot.LeastAlong, Foot.LeastAcross, Foot.MostAlong, Foot.LeastAcross + 1.0f },
                   Tinted.Stroke);
 
     if (Arrangement.Taken < Arrangement.EntryCount)
     {
-        const LayerEntry& Taken = Arrangement.Entries[Arrangement.Taken];
+        LayerEntry& Taken = Arrangement.Entries[Arrangement.Taken];
+        const bool  OnMask = Arrangement.TakenHalf == LayerTaken::Mask && Taken.Mask.Declared;
 
         char Crumb[128] = {};
         std::snprintf(Crumb, sizeof Crumb, "%s  /  %s%s", ContentNaming(Taken.Content), Taken.Naming,
-                      Arrangement.TakenHalf == LayerTaken::Mask ? "  /  Mask" : "");
+                      OnMask ? "  /  Mask" : "");
 
         Surface->TextRunTruncated(Foot.LeastAlong + Scaled.FootPadAlong, Foot.LeastAcross + 9.0f,
                                   Foot.SpanAlong() - Scaled.FootPadAlong * 2.0f, Tinted.Faint,
@@ -580,24 +1348,67 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
         const PlaneExtent Blend      = Spanning(Foot.LeastAlong + Scaled.FootPadAlong,
                                                 Foot.LeastAcross + 26.0f, BlendAlong, 27.0f);
 
-        Surface->Ground(Blend, Partial(0xFFFFFFu, 0.06), 13.5f);
-        Surface->Edge(Blend, Tinted.Stroke, 1.0f, 13.5f);
+        if (Pressed(ChromeCells[static_cast<std::uint32_t>(ChromeCell::BlendPill)], Blend, Seated,
+                    "Blend mode"))
+        {
+            Seated.Popup        = StackPopup::BlendMode;
+            Seated.PopupSubject = Arrangement.Taken;
+            Seated.PopupOnMask  = OnMask;
+            Seated.PopupAlong   = Blend.LeastAlong;
+            Seated.PopupAcross  = Blend.LeastAcross - 6.0f;
+            Seated.PopupOffset  = 0.0f;
+            Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+        }
+
+        const bool BlendRoused = Roused(Blend);
+
+        Surface->Ground(Blend, Partial(0xFFFFFFu, BlendRoused ? 0.11 : 0.06), 13.5f);
+        Surface->Edge(Blend, BlendRoused ? Tinted.StrokeStrong : Tinted.Stroke, 1.0f, 13.5f);
         Surface->TextRunTruncated(Blend.LeastAlong + 13.0f,
                                   Blend.LeastAcross + (27.0f - Surface->RunAcross(11.0f)) * 0.5f,
-                                  BlendAlong - 32.0f, Tinted.Primary, Taken.Blend, 11.0f, true);
+                                  BlendAlong - 32.0f, Tinted.Primary,
+                                  OnMask ? Taken.Mask.Blend : Taken.Blend, 11.0f, true);
         Surface->Stroke(SymbolSubject::ChevronDown,
                         Squared(Blend.MostAlong - 12.0f, Blend.LeastAcross + 13.5f, 11.0f), Tinted.Faint);
 
-        // 📐 `.op` — the opacity meter that fills the footer's trailing half.
+        // 📐 `#opac` — the opacity run that fills the footer's trailing half, dragged in place. The mask
+        //    half moves the mask's density instead, exactly as `if(selMask&&n.mask)n.mask.den=v`.
         const float MeterLeast = Blend.MostAlong + 10.0f;
         const float MeterMost  = Foot.MostAlong - Scaled.FootPadAlong - 34.0f;
 
         if (MeterMost > MeterLeast)
+        {
+            const PlaneExtent Track = PlaneExtent{ MeterLeast, Blend.LeastAcross + 4.0f,
+                                                   MeterMost,  Blend.LeastAcross + 23.0f };
+
+            std::uint32_t& Reading = OnMask ? Taken.Mask.Density : Taken.Opacity;
+            const auto     Prior   = Reading;
+
+            ControlIdentity& Claimed = ChromeCells[static_cast<std::uint32_t>(ChromeCell::OpacityRun)];
+
+            // 📐 One revision per drag and not one per tick — recorded on the arriving edge alone, which
+            //    is what `pointerdown → snap()` states and what keeps the ring from filling in a second.
+            if (Roused(Track) && Sampled.ContactArrived && !Ledger->AnyDisclosed())
+                Revisions.Record(Arrangement, OnMask ? "Mask density moved" : "Opacity amended");
+
+            if (Dragged(Claimed, Track, Reading) && Reading == Prior)
+                Reading = Prior;
+
             RecordMeter(PlaneExtent{ MeterLeast, Blend.LeastAcross + 12.0f, MeterMost,
-                                     Blend.LeastAcross + 15.0f }, Taken.Opacity, Tinted.Accent);
+                                     Blend.LeastAcross + 15.0f }, Reading, Tinted.Accent);
+
+            // 📐 The thumb, drawn only while the run is roused or held, as `.rng::-webkit-slider-thumb`
+            //    is scaled from zero on hover.
+            if (Roused(Track) || Ledger->Holding(Claimed))
+            {
+                const float Seat = MeterLeast + (MeterMost - MeterLeast) *
+                                   static_cast<float>(Reading) * 0.01f;
+                Surface->Medallion(Seat, Blend.LeastAcross + 13.5f, 5.0f, Tinted.Accent);
+            }
+        }
 
         char Percent[8] = {};
-        std::snprintf(Percent, sizeof Percent, "%u%%", Taken.Opacity);
+        std::snprintf(Percent, sizeof Percent, "%u%%", OnMask ? Taken.Mask.Density : Taken.Opacity);
         Surface->TextRun(Foot.MostAlong - Scaled.FootPadAlong -
                          Surface->MeasureRun(Percent, Scaled.RunSub),
                          Blend.LeastAcross + 13.5f - Surface->RunAcross(Scaled.RunSub) * 0.5f,
@@ -605,23 +1416,24 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
     }
 
     Surface->Release();
-    Seated.ContactPrior = Surface->Pointer().ContactHeld;
+    Seated.ContactPrior = Sampled.ContactHeld;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE CHANNEL PROPERTIES
 //------------------------------------------------------------------------------------------------------------------------
 
-void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, const LayerArrangement& Arrangement)
+void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerArrangement& Arrangement,
+                                              LayerStackOrdinates& Seated, RevisionSequence& Revisions)
 {
-    if (Surface == nullptr || !Surface->Recording())
+    if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
         return;
 
     Surface->Ground(Extent, Tinted.Panel);
     Surface->Confine(Extent);
 
-    const LayerEntry& Entry = Arrangement.Entries[
-        (Arrangement.Taken < Arrangement.EntryCount) ? Arrangement.Taken : 0u];
+    const std::uint32_t Subject = (Arrangement.Taken < Arrangement.EntryCount) ? Arrangement.Taken : 0u;
+    LayerEntry&         Entry   = Arrangement.Entries[Subject];
 
     // ① The head — the naming, its reading and the classification medallion.
     const PlaneExtent Head = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 52.0f);
@@ -685,9 +1497,9 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, const L
 
     for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
     {
-        const ChannelOrdinate& Reading8 = Entry.Channels[Channel];
-        const PlaneExtent      Row      = Spanning(Extent.LeastAlong + Scaled.CardPadAlong, Across,
-                                                   Extent.SpanAlong() - Scaled.CardPadAlong * 2.0f, 28.0f);
+        ChannelOrdinate&  Reading8 = Entry.Channels[Channel];
+        const PlaneExtent Row      = Spanning(Extent.LeastAlong + Scaled.CardPadAlong, Across,
+                                              Extent.SpanAlong() - Scaled.CardPadAlong * 2.0f, 28.0f);
 
         if (Surface->Excluded(Row))
         {
@@ -695,19 +1507,71 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, const L
             continue;
         }
 
-        Surface->Ground(Row, Reading8.Enabled ? Tinted.Row : Tinted.Detail, Scaled.RadiusSmall);
+        const bool RowRoused = Roused(Row);
+
+        Surface->Ground(Row, RowRoused ? Tinted.RowHovered
+                                       : (Reading8.Enabled ? Tinted.Row : Tinted.Detail),
+                        Scaled.RadiusSmall);
 
         const float Middle = Row.LeastAcross + 14.0f;
+
+        // 📐 `[data-cha="on"]` — the dot toggles the channel. Its own 20px cell, not the whole row, so a
+        //    contact on the blend run beside it does not silently disable the channel.
+        const PlaneExtent Dot = Squared(Row.LeastAlong + 12.0f, Middle, 20.0f);
+
+        if (Pressed(RowCells[Channel * CellsPerRow + static_cast<std::uint32_t>(RowCell::Body)], Dot,
+                    Seated, Reading8.Enabled ? "Disable channel" : "Enable channel"))
+        {
+            Revisions.Record(Arrangement, "Channel amended");
+            Reading8.Enabled = !Reading8.Enabled;
+        }
+
         Surface->Medallion(Row.LeastAlong + 12.0f, Middle, 4.0f,
                            Reading8.Enabled ? ChannelTint(Channel) : Tinted.Faint);
+
+        if (Roused(Dot))
+            Surface->Medallion(Row.LeastAlong + 12.0f, Middle, 7.5f, Partial(0xFFFFFFu, 0.14));
 
         Surface->TextRunTruncated(Row.LeastAlong + 22.0f, Middle - Surface->RunAcross(Scaled.RunSub) * 0.5f,
                                   108.0f, Reading8.Enabled ? Tinted.Primary : Tinted.Faint,
                                   ChannelNaming()[Channel], Scaled.RunSub, true);
 
+        // 📐 The blend run opens the same twenty-nine-entry menu the footer pill does, anchored here.
+        const PlaneExtent BlendRun = PlaneExtent{ Row.LeastAlong + 128.0f, Row.LeastAcross + 4.0f,
+                                                  Row.MostAlong - 74.0f,   Row.MostAcross - 4.0f };
+
+        if (Pressed(RowCells[Channel * CellsPerRow + static_cast<std::uint32_t>(RowCell::Menu)],
+                    BlendRun, Seated, "Channel blend"))
+        {
+            Seated.Popup        = StackPopup::BlendMode;
+            Seated.PopupSubject = Subject;
+            Seated.PopupOnMask  = false;
+            Seated.PopupAlong   = BlendRun.MostAlong;
+            Seated.PopupAcross  = BlendRun.MostAcross + 6.0f;
+            Seated.PopupOffset  = 0.0f;
+            Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+        }
+
+        if (Roused(BlendRun))
+            Surface->Ground(BlendRun, Partial(0xFFFFFFu, 0.05), Scaled.RadiusSmall);
+
         Surface->TextRunTruncated(Row.LeastAlong + 132.0f, Middle - Surface->RunAcross(Scaled.RunFine) * 0.5f,
                                   Row.SpanAlong() - 132.0f - 74.0f, Tinted.Secondary,
                                   Reading8.Blend, Scaled.RunFine);
+
+        // 📐 The channel's own opacity, dragged in place — `[data-cha="op"]`.
+        {
+            const PlaneExtent Track = PlaneExtent{ Row.MostAlong - 66.0f, Row.LeastAcross + 4.0f,
+                                                   Row.MostAlong - 30.0f, Row.MostAcross - 4.0f };
+
+            ControlIdentity& Claimed =
+                RowCells[Channel * CellsPerRow + static_cast<std::uint32_t>(RowCell::Opacity)];
+
+            if (Roused(Track) && Sampled.ContactArrived && !Ledger->AnyDisclosed())
+                Revisions.Record(Arrangement, "Channel opacity amended");
+
+            Dragged(Claimed, Track, Reading8.Opacity);
+        }
 
         RecordMeter(PlaneExtent{ Row.MostAlong - 66.0f, Middle - 1.5f, Row.MostAlong - 30.0f, Middle + 1.5f },
                     Reading8.Opacity, Reading8.Enabled ? ChannelTint(Channel) : Tinted.Faint);
@@ -740,17 +1604,18 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, const L
 //                                                   THE MASK PROPERTIES
 //------------------------------------------------------------------------------------------------------------------------
 
-void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, const LayerArrangement& Arrangement)
+void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArrangement& Arrangement,
+                                           LayerStackOrdinates& Seated, RevisionSequence& Revisions)
 {
-    if (Surface == nullptr || !Surface->Recording())
+    if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
         return;
 
     Surface->Ground(Extent, Tinted.Panel);
     Surface->Confine(Extent);
 
-    const LayerEntry& Entry = Arrangement.Entries[
-        (Arrangement.Taken < Arrangement.EntryCount) ? Arrangement.Taken : 0u];
-    const MaskOrdinate&  Mask  = Entry.Mask;
+    const std::uint32_t  Subject = (Arrangement.Taken < Arrangement.EntryCount) ? Arrangement.Taken : 0u;
+    LayerEntry&          Entry   = Arrangement.Entries[Subject];
+    MaskOrdinate&        Mask    = Entry.Mask;
 
     // ① The head.
     const PlaneExtent Head = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 52.0f);
@@ -807,6 +1672,14 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, const Laye
 
         Surface->TextRun(Body.LeastAlong, Middle - Surface->RunAcross(Scaled.RunSub) * 0.5f,
                          Tinted.Faint, "Invert", Scaled.RunSub);
+
+        if (Pressed(RowCells[static_cast<std::uint32_t>(RowCell::Body)], Switch, Seated,
+                    Mask.Inverted ? "Stop inverting" : "Invert"))
+        {
+            Revisions.Record(Arrangement, "Mask inverted");
+            Mask.Inverted = !Mask.Inverted;
+        }
+
         Surface->Ground(Switch, Mask.Inverted ? Tinted.Accent : Partial(0xFFFFFFu, 0.09), 7.0f);
         Surface->Medallion(Mask.Inverted ? Switch.MostAlong - 6.0f : Switch.LeastAlong + 6.0f,
                            Middle, 5.0f, Mask.Inverted ? Covering(0x000000u) : Tinted.Secondary);
@@ -827,8 +1700,13 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, const Laye
 
         for (std::uint32_t Ordinal = 0u; Ordinal < Mask.ParameterCount; ++Ordinal)
         {
-            const ParameterOrdinate& Parameter = Mask.Parameters[Ordinal];
-            const float              Middle    = Across + Scaled.FieldAcross * 0.5f;
+            ParameterOrdinate& Parameter = Mask.Parameters[Ordinal];
+            const float        Middle    = Across + Scaled.FieldAcross * 0.5f;
+
+            // 📐 One enrolled run of cells per parameter, beyond the eight the channel rows take.
+            const std::uint32_t Cells = (LayerStackCeiling::Channels + Ordinal < RowCeiling)
+                                      ? (LayerStackCeiling::Channels + Ordinal) * CellsPerRow
+                                      : 0u;
 
             Surface->TextRunTruncated(Body.LeastAlong, Middle - Surface->RunAcross(Scaled.RunSub) * 0.5f,
                                       96.0f, Tinted.Faint, Parameter.Naming, Scaled.RunSub);
@@ -845,6 +1723,13 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, const Laye
                 const PlaneExtent Switch = Spanning(Body.MostAlong - 26.0f, Middle - 7.0f, 26.0f, 14.0f);
                 const bool        Standing = Parameter.Standing > 0.5;
 
+                // 📐 `[data-pt]` — a parameter switch toggles in place and does not re-record the panel.
+                if (Pressed(RowCells[Cells + static_cast<std::uint32_t>(RowCell::Presence)], Switch, Seated))
+                {
+                    Revisions.Record(Arrangement, "Parameter amended");
+                    Parameter.Standing = Standing ? 0.0 : 1.0;
+                }
+
                 Surface->Ground(Switch, Standing ? Tinted.Accent : Partial(0xFFFFFFu, 0.09), 7.0f);
                 Surface->Medallion(Standing ? Switch.MostAlong - 6.0f : Switch.LeastAlong + 6.0f,
                                    Middle, 5.0f, Standing ? Covering(0x000000u) : Tinted.Secondary);
@@ -852,6 +1737,27 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, const Laye
             else
             {
                 const double Span     = Parameter.Most - Parameter.Least;
+
+                // 📐 `[data-pk]` — the range is dragged in its own declared span and not in 0…100, so a
+                //    size in pixels or a rotation in degrees reads its own units back.
+                {
+                    const PlaneExtent Track = PlaneExtent{ Body.LeastAlong + 104.0f, Across + 3.0f,
+                                                           Body.MostAlong - 44.0f, Across + Scaled.FieldAcross - 3.0f };
+
+                    auto Reading = (Span > 0.0)
+                                 ? static_cast<std::uint32_t>((Parameter.Standing - Parameter.Least) / Span * 100.0)
+                                 : 0u;
+
+                    ControlIdentity& Claimed =
+                        RowCells[Cells + static_cast<std::uint32_t>(RowCell::Opacity)];
+
+                    if (Roused(Track) && Sampled.ContactArrived && !Ledger->AnyDisclosed())
+                        Revisions.Record(Arrangement, "Parameter amended");
+
+                    if (Dragged(Claimed, Track, Reading))
+                        Parameter.Standing = Parameter.Least + Span * static_cast<double>(Reading) * 0.01;
+                }
+
                 const double Fraction = (Span > 0.0) ? ((Parameter.Standing - Parameter.Least) / Span) : 0.0;
 
                 RecordMeter(PlaneExtent{ Body.LeastAlong + 104.0f, Middle - 1.5f,
@@ -896,7 +1802,19 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, const Laye
             }
 
             const PlaneExtent Chip = Spanning(ChipAlong, Across, Along, 18.0f);
-            Surface->Ground(Chip, Partial(0xFFFFFFu, 0.05), 9.0f);
+
+            // 📐 `data-dact="bake"` — a contact on an untransferred chip transfers that one map. The
+            //    reference offers only "transfer all missing"; per-chip is the same command at the
+            //    granularity the chip already presents, and the row's own chip is where an artist aims.
+            if (Pressed(RowCells[(LayerStackCeiling::Channels + Ordinal) % RowCeiling * CellsPerRow +
+                                 static_cast<std::uint32_t>(RowCell::MaskBody)], Chip, Seated,
+                        Transferred ? "Transferred" : "Transfer this mesh map"))
+            {
+                Revisions.Record(Arrangement, "Mesh map transferred");
+                Mask.MeshMapTransferred[Ordinal] = !Transferred;
+            }
+
+            Surface->Ground(Chip, Partial(0xFFFFFFu, Roused(Chip) ? 0.11 : 0.05), 9.0f);
             Surface->Edge(Chip, Transferred ? Tinted.Stroke : Partial(0xFF6B63u, 0.35), 1.0f, 9.0f);
             Surface->TextRun(Chip.LeastAlong + 8.0f, Across + 9.0f - Surface->RunAcross(Scaled.RunFine) * 0.5f,
                              Transferred ? Tinted.Secondary : Tinted.Danger, Caption, Scaled.RunFine);
@@ -938,8 +1856,17 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, const Laye
         }
 
         const PlaneExtent Chip = Spanning(AppliesAlong, Across, Along, 18.0f);
+
+        // 📐 `data-dact="mchan"` — the chip toggles whether the mask reaches that channel.
+        if (Pressed(RowCells[Channel * CellsPerRow + static_cast<std::uint32_t>(RowCell::MaskDensity)],
+                    Chip, Seated, Reached ? "Stop applying" : "Apply to this channel"))
+        {
+            Revisions.Record(Arrangement, "Mask channels amended");
+            Mask.ChannelApplied[Channel] = !Reached;
+        }
+
         Surface->Ground(Chip, Reached ? Partial(0xFFFFFFu, 0.90) : Tinted.Detail, 9.0f);
-        Surface->Edge(Chip, Tinted.Stroke, 1.0f, 9.0f);
+        Surface->Edge(Chip, Roused(Chip) ? Tinted.StrokeStrong : Tinted.Stroke, 1.0f, 9.0f);
         // 📐 `.chip.tog.on{background:rgba(255,255,255,.9);color:#000}` — a seated chip inverts its run.
         Surface->TextRun(Chip.LeastAlong + 8.0f, Across + 9.0f - Surface->RunAcross(Scaled.RunFine) * 0.5f,
                          Reached ? Covering(0x000000u) : Tinted.Faint, Caption, Scaled.RunFine);
@@ -954,7 +1881,7 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, const Laye
 //                                                       THE REVISIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent)
+void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, const RevisionSequence& Revisions)
 {
     if (Surface == nullptr || !Surface->Recording())
         return;
@@ -973,13 +1900,41 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent)
                                 Head.LeastAcross + (Scaled.HeadAcross - Surface->RunAcross(Scaled.RunHead)) * 0.5f,
                                 Tinted.Secondary, "History", Scaled.RunHead, TrackingHead, true);
 
-    const RevisionOrdinate* Revisions = nullptr;
-    std::uint32_t           Count     = 0u;
-    SeatReferenceRevisions(Revisions, Count);
-
+    // 📐 What the artist has actually amended this session stands above the seated reference run, newest
+    //    first, so the pane reads as one continuous record rather than as two.
     float Across = Head.MostAcross + Scaled.StackPadAcross;
 
-    if (Count == 0u || Revisions == nullptr)
+    for (std::uint32_t Ordinal = 0u; Ordinal < Revisions.RecordedCount(); ++Ordinal)
+    {
+        const PlaneExtent Row = Spanning(Extent.LeastAlong + Scaled.StackPadAlong, Across,
+                                         Extent.SpanAlong() - Scaled.StackPadAlong * 2.0f, 40.0f);
+
+        if (Surface->Excluded(Row))
+        {
+            Across += 44.0f;
+            continue;
+        }
+
+        Surface->Ground(Row, Tinted.Row, Scaled.RadiusSmall);
+
+        PlaneExtent Spine = Row;
+        Spine.MostAlong   = Row.LeastAlong + 3.0f;
+        Surface->Ground(Spine, (Ordinal == 0u) ? Tinted.Accent : Tinted.Affirm, 1.5f);
+
+        Surface->TextRunTruncated(Row.LeastAlong + 12.0f, Row.LeastAcross + 7.0f, Row.SpanAlong() - 24.0f,
+                                  Tinted.Primary, Revisions.RevisionNaming(Ordinal), Scaled.RunSub, true);
+
+        Surface->TextRun(Row.LeastAlong + 12.0f, Row.LeastAcross + 22.0f, Tinted.Faint,
+                         "this session", Scaled.RunFine);
+
+        Across += 44.0f;
+    }
+
+    const RevisionOrdinate* Seated  = nullptr;
+    std::uint32_t           Count   = 0u;
+    SeatReferenceRevisions(Seated, Count);
+
+    if (Count == 0u || Seated == nullptr)
     {
         Surface->TextRun(Extent.LeastAlong + Scaled.CardPadAlong, Across + 14.0f, Tinted.Faint,
                          "No revisions recorded.", Scaled.RunSub);
@@ -989,7 +1944,7 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent)
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
     {
-        const RevisionOrdinate& Revision = Revisions[Ordinal];
+        const RevisionOrdinate& Revision = Seated[Ordinal];
         const PlaneExtent       Row      = Spanning(Extent.LeastAlong + Scaled.StackPadAlong, Across,
                                                     Extent.SpanAlong() - Scaled.StackPadAlong * 2.0f, 40.0f);
 
@@ -1001,8 +1956,9 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent)
 
         Surface->Ground(Row, Tinted.Row, Scaled.RadiusSmall);
 
-        // 📐 The standing revision is the newest, which the reference marks with an accent spine.
-        if (Ordinal == 0u)
+        // 📐 The standing revision is the newest, which the reference marks with an accent spine — and
+        //    only when nothing this session already stands above it.
+        if (Ordinal == 0u && Revisions.RecordedCount() == 0u)
         {
             PlaneExtent Spine = Row;
             Spine.MostAlong   = Row.LeastAlong + 3.0f;
@@ -1026,6 +1982,731 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent)
     }
 
     Surface->Release();
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE DEFERRED SWEEP
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📐 `hex2hsl` / `hsl2hex`, transcribed. The wheel is authored in hue-saturation-luminance because that is
+//    what a ring and a radius actually are; the arrangement retains packed sRGB, so the pair converts.
+static void SeparateTint(std::uint32_t Packed, float& Hue, float& Saturation, float& Luminance)
+{
+    const float Red   = static_cast<float>((Packed >> 16) & 0xFFu) / 255.0f;
+    const float Green = static_cast<float>((Packed >>  8) & 0xFFu) / 255.0f;
+    const float Blue  = static_cast<float>( Packed        & 0xFFu) / 255.0f;
+
+    const float Most  = (Red > Green ? (Red > Blue ? Red : Blue) : (Green > Blue ? Green : Blue));
+    const float Least = (Red < Green ? (Red < Blue ? Red : Blue) : (Green < Blue ? Green : Blue));
+
+    Luminance = (Most + Least) * 0.5f;
+    Hue       = 0.0f;
+    Saturation = 0.0f;
+
+    if (Most != Least)
+    {
+        const float Span = Most - Least;
+
+        Saturation = (Luminance > 0.5f) ? (Span / (2.0f - Most - Least)) : (Span / (Most + Least));
+
+        if (Most == Red)        Hue = (Green - Blue) / Span + (Green < Blue ? 6.0f : 0.0f);
+        else if (Most == Green) Hue = (Blue - Red) / Span + 2.0f;
+        else                    Hue = (Red - Green) / Span + 4.0f;
+
+        Hue *= 60.0f;
+    }
+
+    Saturation *= 100.0f;
+    Luminance  *= 100.0f;
+}
+
+static std::uint32_t CombineTint(float Hue, float Saturation, float Luminance)
+{
+    const float Sat = Saturation * 0.01f;
+    const float Lum = Luminance  * 0.01f;
+    const float Amplitude = Sat * ((Lum < 1.0f - Lum) ? Lum : (1.0f - Lum));
+
+    const auto Channel = [&](float Offset) -> std::uint32_t
+    {
+        float Turned = Offset + Hue / 30.0f;
+
+        while (Turned >= 12.0f) Turned -= 12.0f;
+        while (Turned <    0.0f) Turned += 12.0f;
+
+        const float Lower   = (Turned - 3.0f < 9.0f - Turned) ? (Turned - 3.0f) : (9.0f - Turned);
+        const float Bounded = (Lower < 1.0f) ? Lower : 1.0f;
+        const float Written = Lum - Amplitude * ((Bounded > -1.0f) ? Bounded : -1.0f);
+        const float Scaled8 = Written * 255.0f + 0.5f;
+
+        return static_cast<std::uint32_t>((Scaled8 < 0.0f) ? 0.0f : ((Scaled8 > 255.0f) ? 255.0f : Scaled8));
+    };
+
+    return (Channel(0.0f) << 16) | (Channel(8.0f) << 8) | Channel(4.0f);
+}
+
+void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackOrdinates& Seated,
+                                     RevisionSequence& Revisions)
+{
+    if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
+        return;
+
+    // ① The veil. A contact anywhere outside the standing popup dismisses it, exactly as the reference's
+    //    document-level `pointerdown` does — and it dismisses it WITHOUT the contact reaching a row.
+    if (Seated.Popup != StackPopup::Absent && Sampled.ContactArrived)
+    {
+        // 📐 Tested against where the card was actually RECORDED last tick, not against its anchor.
+        const PlaneExtent Card = Spanning(Seated.PopupSeatAlong, Seated.PopupSeatAcross,
+                                          PopupAlongLeast, Seated.PopupSeatSpan);
+
+        if (!Card.Encloses(Sampled.PositionAlong, Sampled.PositionAcross))
+        {
+            Seated.Popup = StackPopup::Absent;
+            Ledger->Withdraw();
+        }
+    }
+
+    if (Seated.Popup == StackPopup::Absent)
+    {
+        Seated.PopupSettled = false;
+    }
+    else
+    {
+        // 📝 The card's extent is counted from its declared run BEFORE the ground is recorded, because the
+        //    ground has to be laid first — a vendor command list is ordered, so a ground recorded after its
+        //    entries would paint over them.
+
+        const std::uint32_t Subject = (Seated.PopupSubject < Arrangement.EntryCount)
+                                    ? Seated.PopupSubject : Arrangement.Taken;
+        const bool          Present = Subject < Arrangement.EntryCount;
+
+        std::uint32_t Entries  = 0u;
+        std::uint32_t Captions = 0u;
+        std::uint32_t Rules    = 0u;
+
+        switch (Seated.Popup)
+        {
+            case StackPopup::Addition:    Entries = 7u;  Captions = 1u; Rules = 2u; break;
+            case StackPopup::BlendMode:   Entries = 29u; Captions = 1u; Rules = 0u; break;
+            case StackPopup::LayerMenu:   Entries = 9u;  Captions = 2u; Rules = 3u; break;
+            case StackPopup::MaskMenu:    Entries = 20u; Captions = 4u; Rules = 3u; break;
+            case StackPopup::EffectMenu:  Entries = 14u; Captions = 1u; Rules = 0u; break;
+            case StackPopup::ColourWheel: Entries = 0u;  Captions = 1u; Rules = 0u; break;
+            default:                                                                break;
+        }
+
+        float Measured = PopupPad * 2.0f + static_cast<float>(Entries) * PopupEntryAcross
+                       + static_cast<float>(Captions) * PopupCaption + static_cast<float>(Rules) * 8.0f;
+
+        if (Seated.Popup == StackPopup::LayerMenu)
+            Measured += 30.0f;   // 📐 the swatch strip
+
+        if (Seated.Popup == StackPopup::ColourWheel)
+            Measured += 244.0f;  // 📐 the ring, its luminance run and its hexadecimal row
+
+        // 📐 A run taller than the display scrolls inside its own card rather than running off it, which is
+        //    what the twenty-nine blend modes need on a short display.
+        const float DisplayAcross = (Surface->Display().ExtentAcross > 0.0f)
+                                  ? Surface->Display().ExtentAcross : 1080.0f;
+        const float Ceiling       = DisplayAcross - 16.0f;
+        const float Standing      = (Measured < Ceiling) ? Measured : ((Ceiling > 80.0f) ? Ceiling : 80.0f);
+
+        const PlaneExtent Anchored = RecordPopupGround(Seated, Seated.PopupAlong, Seated.PopupAcross,
+                                                       Standing);
+        const PlaneExtent Card     = Spanning(Anchored.LeastAlong, Anchored.LeastAcross,
+                                              PopupAlongLeast, Standing);
+
+        Seated.PopupSeatSpan = Standing;
+
+        Surface->Ground(Card, Tinted.PanelRaised, Scaled.RadiusStandard);
+        Surface->Edge(Card, Tinted.StrokeStrong, 1.0f, Scaled.RadiusStandard);
+        Surface->Confine(Card);
+
+        float Across = Anchored.LeastAcross + PopupPad;
+
+        const auto Caption = [&](const char* Written)
+        {
+            Surface->TextRunCapitalised(Anchored.LeastAlong + 14.0f,
+                                        Across + (PopupCaption - Surface->RunAcross(Scaled.RunSection)) * 0.5f,
+                                        Tinted.Faint, Written, Scaled.RunSection, TrackingSection, true);
+            Across += PopupCaption;
+        };
+
+        const auto Rule = [&]()
+        {
+            Surface->Ground(PlaneExtent{ Anchored.LeastAlong + 6.0f, Across + 3.0f,
+                                         Anchored.MostAlong - 6.0f, Across + 4.0f }, Tinted.Stroke);
+            Across += 8.0f;
+        };
+
+        const auto Entry = [&](const char* Written, const char* Chord, bool Marked, bool Dangerous) -> bool
+        {
+            const PlaneExtent Seated0 = Spanning(Anchored.LeastAlong + PopupPad, Across,
+                                                 PopupAlongLeast - PopupPad * 2.0f, PopupEntryAcross);
+            Across += PopupEntryAcross;
+            return RecordPopupEntry(Seated0, Written, Chord, Marked, Dangerous, Seated);
+        };
+
+        if (Measured > Standing && Card.Encloses(Sampled.PositionAlong, Sampled.PositionAcross))
+        {
+            Seated.PopupOffset -= Sampled.WheelAcross * NotchAcross;
+
+            const float Travel = Measured - Standing;
+
+            if (Seated.PopupOffset < 0.0f)    Seated.PopupOffset = 0.0f;
+            if (Seated.PopupOffset > Travel)  Seated.PopupOffset = Travel;
+        }
+        else if (Measured <= Standing)
+        {
+            Seated.PopupOffset = 0.0f;
+        }
+
+        Across -= Seated.PopupOffset;
+
+        switch (Seated.Popup)
+        {
+            // ⓐ `#btnAdd` — the seven declarations, with their chords.
+            case StackPopup::Addition:
+            {
+                struct Declaration { const char* Naming; const char* Chord; LayerContent Content; };
+
+                static const Declaration Offered[7] =
+                {
+                    { "Paint layer",       "P",  LayerContent::Paint      },
+                    { "Fill layer",        "F",  LayerContent::Fill       },
+                    { "Adjustment",        "A",  LayerContent::Adjustment },
+                    { "Filter",            "R",  LayerContent::Retention  },
+                    { "Decal layer \xC2\xB7 3D", "D", LayerContent::Decal  },
+                    { "Pattern layer",     "T",  LayerContent::Pattern    },
+                    { "Group",             "G",  LayerContent::Folder     }
+                };
+
+                static const char* const Declared[7] =
+                {
+                    "Paint Layer", "Fill Layer", "Adjustment", "Filter",
+                    "Decal Layer", "Pattern Layer", "New Folder"
+                };
+
+                Caption("Add");
+
+                for (std::uint32_t Ordinal = 0u; Ordinal < 7u; ++Ordinal)
+                {
+                    if (Ordinal == 4u || Ordinal == 6u)
+                        Rule();
+
+                    if (Entry(Offered[Ordinal].Naming, Offered[Ordinal].Chord, false, false))
+                    {
+                        Revisions.Record(Arrangement, "Entry declared");
+                        DeclareEntry(Arrangement, Offered[Ordinal].Content, Declared[Ordinal]);
+                    }
+                }
+
+                break;
+            }
+
+            // ⓑ `#btnBlend` — the blend run the taken half accepts.
+            case StackPopup::BlendMode:
+            {
+                if (!Present)
+                    break;
+
+                LayerEntry& Taken   = Arrangement.Entries[Subject];
+                const bool  OnMask  = Seated.PopupOnMask && Taken.Mask.Declared;
+                const char* Standing0 = OnMask ? Taken.Mask.Blend : Taken.Blend;
+
+                std::uint32_t       Count   = 0u;
+                const char* const*  Offered = BlendNaming(0xFFFFFFFFu, Count);
+
+                Caption("Blend mode");
+
+                for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+                {
+                    const bool Marked = std::strcmp(Offered[Ordinal], Standing0) == 0;
+
+                    if (Entry(Offered[Ordinal], nullptr, Marked, false))
+                    {
+                        Revisions.Record(Arrangement, "Blend restated");
+
+                        if (OnMask) Arrangement.Entries[Subject].Mask.Blend = Offered[Ordinal];
+                        else        Arrangement.Entries[Subject].Blend      = Offered[Ordinal];
+                    }
+                }
+
+                break;
+            }
+
+            // ⓒ One entry's own menu.
+            case StackPopup::LayerMenu:
+            {
+                if (!Present)
+                    break;
+
+                const LayerEntry& Taken = Arrangement.Entries[Subject];
+
+                Caption(Taken.Naming);
+
+                if (Entry("Rename", "F2", false, false))
+                {
+                    Seated.Renaming = Subject;
+                    std::snprintf(Seated.RenamingRun, sizeof Seated.RenamingRun, "%s", Taken.Naming);
+                }
+
+                if (Entry(Taken.Unfolded ? "Hide details" : "Show details", "Space", false, false))
+                    Arrangement.Entries[Subject].Unfolded = !Taken.Unfolded;
+
+                if (Entry(Taken.Mask.Declared ? "Remove mask" : "Add mask", "M", false, false))
+                {
+                    Revisions.Record(Arrangement, "Mask amended");
+                    Arrangement.Taken = Subject;
+
+                    if (!ToggleMask(Arrangement))
+                        Revisions.Revert(Arrangement);
+                }
+
+                if (Entry(Taken.Secured ? "Unlock" : "Lock", "L", false, false))
+                {
+                    Revisions.Record(Arrangement, "Entry secured");
+                    Arrangement.Entries[Subject].Secured = !Taken.Secured;
+                }
+
+                if (Entry(Arrangement.Soloed == Subject ? "Clear solo" : "Solo", "S", false, false))
+                {
+                    Arrangement.Soloed = (Arrangement.Soloed == Subject)
+                                       ? LayerStackCeiling::AbsentOrdinal : Subject;
+                }
+
+                if (Entry("Duplicate", "Cmd D", false, false))
+                {
+                    Revisions.Record(Arrangement, "Entry copied");
+                    Arrangement.Taken = Subject;
+
+                    if (!DuplicateTaken(Arrangement))
+                        Revisions.Revert(Arrangement);
+                }
+
+                if (Entry("Group", "Cmd G", false, false))
+                {
+                    Revisions.Record(Arrangement, "Entries grouped");
+                    Arrangement.Taken = Subject;
+
+                    if (!EncloseTaken(Arrangement))
+                        Revisions.Revert(Arrangement);
+                }
+
+                Rule();
+                Caption("Colour tag");
+
+                // 📐 `<div class="swatches">` — ten 18px swatches, the standing one ringed.
+                {
+                    const std::uint32_t* const Offered = SeatedColourTags();
+                    const float Step = (PopupAlongLeast - PopupPad * 2.0f - 12.0f) /
+                                       static_cast<float>(LayerStackCeiling::ColourTags);
+
+                    for (std::uint32_t Ordinal = 0u; Ordinal < LayerStackCeiling::ColourTags; ++Ordinal)
+                    {
+                        const PlaneExtent Swatch = Spanning(Anchored.LeastAlong + PopupPad + 6.0f +
+                                                            Step * static_cast<float>(Ordinal),
+                                                            Across + 4.0f, Step - 2.0f, 18.0f);
+
+                        Surface->Ground(Swatch, Covering(Offered[Ordinal]), 4.0f);
+
+                        if (Taken.ColourTag == Offered[Ordinal])
+                            Surface->Edge(Swatch, Tinted.Accent, 1.5f, 4.0f);
+
+                        if (Swatch.Encloses(Sampled.PositionAlong, Sampled.PositionAcross) &&
+                            Sampled.ContactReleased)
+                        {
+                            Revisions.Record(Arrangement, "Colour tag amended");
+                            Arrangement.Entries[Subject].ColourTag = Offered[Ordinal];
+                            Seated.Popup = StackPopup::Absent;
+                            Ledger->Withdraw();
+                        }
+                    }
+
+                    Across += 30.0f;
+                }
+
+                if (Entry("Custom colour...", nullptr, false, false))
+                {
+                    SeparateTint(Taken.ColourTag, Seated.WheelHue, Seated.WheelSaturation,
+                                 Seated.WheelLuminance);
+
+                    Seated.Popup        = StackPopup::ColourWheel;
+                    Seated.PopupSubject = Subject;
+                    Seated.PopupOffset  = 0.0f;
+                    Ledger->Disclose(ChromeCells[static_cast<std::uint32_t>(ChromeCell::PopupBody)]);
+                }
+
+                Rule();
+
+                if (Entry("Delete", "Del", false, true))
+                {
+                    Revisions.Record(Arrangement, "Entry retired");
+                    Arrangement.Taken     = Subject;
+                    Arrangement.TakenHalf = LayerTaken::Layer;
+
+                    if (!RetireTaken(Arrangement))
+                        Revisions.Revert(Arrangement);
+                }
+
+                break;
+            }
+
+            // ⓓ One mask's own menu — source, generator, invert, clear.
+            case StackPopup::MaskMenu:
+            {
+                if (!Present || !Arrangement.Entries[Subject].Mask.Declared)
+                    break;
+
+                const MaskOrdinate& Mask = Arrangement.Entries[Subject].Mask;
+
+                Caption("Mask");
+
+                if (Entry(Mask.Unfolded ? "Hide details" : "Show details", nullptr, false, false))
+                    Arrangement.Entries[Subject].Mask.Unfolded = !Mask.Unfolded;
+
+                if (Entry("Invert", nullptr, Mask.Inverted, false))
+                {
+                    Revisions.Record(Arrangement, "Mask inverted");
+                    Arrangement.Entries[Subject].Mask.Inverted = !Mask.Inverted;
+                }
+
+                Rule();
+                Caption("Source");
+
+                // 📐 `SRCLIST.filter(s=>s!=='Generator')` — the generator reaches the run below instead.
+                for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
+                {
+                    const auto Offered = static_cast<MaskSource>(Ordinal);
+
+                    if (Entry(SourceNaming(Offered), nullptr, Mask.Source == Offered, false))
+                    {
+                        Revisions.Record(Arrangement, "Mask source restated");
+                        Arrangement.Entries[Subject].Mask.Source = Offered;
+                    }
+                }
+
+                Rule();
+                Caption("Generator");
+
+                // 📐 `GENLIST` — the eight the reference declares, in its own order.
+                static const char* const Generators[8] =
+                {
+                    "Curvature", "Ambient Occlusion", "Dirt", "Metal Edge Wear",
+                    "Position", "Mask Editor", "Light", "Panel Lines"
+                };
+
+                for (const char* const Offered : Generators)
+                {
+                    const bool Marked = Mask.Source == MaskSource::Generator &&
+                                        Mask.Generator != nullptr &&
+                                        std::strcmp(Mask.Generator, Offered) == 0;
+
+                    if (Entry(Offered, nullptr, Marked, false))
+                    {
+                        Revisions.Record(Arrangement, "Mask generator restated");
+                        Arrangement.Entries[Subject].Mask.Source    = MaskSource::Generator;
+                        Arrangement.Entries[Subject].Mask.Generator = Offered;
+                    }
+                }
+
+                Rule();
+
+                if (Entry("Clear mask effects", nullptr, false, false))
+                {
+                    Revisions.Record(Arrangement, "Mask effects cleared");
+                    Arrangement.Entries[Subject].Mask.EffectCount = 0u;
+                }
+
+                if (Entry("Delete mask", nullptr, false, true))
+                {
+                    Revisions.Record(Arrangement, "Mask retired");
+                    Arrangement.Entries[Subject].Mask = MaskOrdinate{};
+                    Arrangement.TakenHalf             = LayerTaken::Layer;
+                }
+
+                break;
+            }
+
+            // ⓔ The effect run a card's `+` offers.
+            case StackPopup::EffectMenu:
+            {
+                if (!Present)
+                    break;
+
+                std::uint32_t      Count   = 0u;
+                const char* const* Offered = EffectNaming(Count);
+
+                Caption("Add effect");
+
+                for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+                {
+                    if (!Entry(Offered[Ordinal], nullptr, false, false))
+                        continue;
+
+                    Revisions.Record(Arrangement, "Effect declared");
+
+                    if (Seated.PopupOnMask && Arrangement.Entries[Subject].Mask.Declared)
+                    {
+                        MaskOrdinate& Mask = Arrangement.Entries[Subject].Mask;
+
+                        if (Mask.EffectCount < LayerStackCeiling::Effects)
+                            Mask.Effects[Mask.EffectCount++] = Offered[Ordinal];
+                        else
+                            Revisions.Revert(Arrangement);
+                    }
+                    else
+                    {
+                        LayerEntry& Taken = Arrangement.Entries[Subject];
+
+                        if (Taken.EffectCount < LayerStackCeiling::Effects)
+                            Taken.Effects[Taken.EffectCount++] = Offered[Ordinal];
+                        else
+                            Revisions.Revert(Arrangement);
+                    }
+                }
+
+                break;
+            }
+
+            // ⓕ The colour wheel — a hue ring, a luminance run and an Apply.
+            case StackPopup::ColourWheel:
+            {
+                Caption("Custom colour");
+
+                // 📐 `.wheel` — a 158px disc whose angle is hue and whose radius, out to `r-9`, is
+                //    saturation. It is recorded as concentric arcs of medallions rather than as a texture,
+                //    because the recording seam carries no per-pixel primitive and the ring is the only
+                //    thing in the panel that needs one.
+                const float Ring   = 158.0f;
+                const float Radius = Ring * 0.5f;
+                const float Centre = Anchored.LeastAlong + PopupAlongLeast * 0.5f;
+                const float Middle = Across + Radius + 4.0f;
+
+                Surface->Ground(Squared(Centre, Middle, Ring), Covering(0x0A0A0Au), Radius);
+
+                // 📐 Sixty spokes of ten stops each. Six hundred medallions is what a 158px ring needs to
+                //    read as continuous; fewer bands and the saturation axis visibly steps.
+                for (std::uint32_t Spoke = 0u; Spoke < 60u; ++Spoke)
+                {
+                    const float Turn = static_cast<float>(Spoke) * 6.0f;
+                    const float Sine = Turn;
+
+                    for (std::uint32_t Band = 0u; Band < 10u; ++Band)
+                    {
+                        const float Away = (static_cast<float>(Band) + 0.5f) * 0.1f;
+                        const float Sat  = Away * 100.0f;
+                        const auto  Tint = CombineTint(Sine, Sat, Seated.WheelLuminance);
+
+                        // 📐 sin and cos from the turn, without <cmath>: the ring is sixty fixed spokes, so
+                        //    the two are read from a stated quarter-turn run rather than computed.
+                        static const float Quarter[16] =
+                        {
+                            0.0000f, 0.1045f, 0.2079f, 0.3090f, 0.4067f, 0.5000f, 0.5878f, 0.6691f,
+                            0.7431f, 0.8090f, 0.8660f, 0.9135f, 0.9511f, 0.9781f, 0.9945f, 1.0000f
+                        };
+
+                        const std::uint32_t Step  = Spoke;                       // 6 degrees each
+                        const std::uint32_t Ordinal = Step % 60u;
+                        const auto Sines = [&](std::uint32_t Which) -> float
+                        {
+                            const std::uint32_t Folded = Which % 60u;
+
+                            if (Folded <= 15u) return  Quarter[Folded];
+                            if (Folded <= 30u) return  Quarter[30u - Folded];
+                            if (Folded <= 45u) return -Quarter[Folded - 30u];
+                            return                    -Quarter[60u - Folded];
+                        };
+
+                        const float Along  = Centre + Sines((Ordinal + 15u) % 60u) * (Radius - 9.0f) * Away;
+                        const float Across0 = Middle + Sines(Ordinal) * (Radius - 9.0f) * Away;
+
+                        Surface->Medallion(Along, Across0, 5.0f, Covering(Tint));
+                    }
+                }
+
+                // 📐 The dot, at the standing hue and saturation.
+                {
+                    static const float Quarter[16] =
+                    {
+                        0.0000f, 0.1045f, 0.2079f, 0.3090f, 0.4067f, 0.5000f, 0.5878f, 0.6691f,
+                        0.7431f, 0.8090f, 0.8660f, 0.9135f, 0.9511f, 0.9781f, 0.9945f, 1.0000f
+                    };
+
+                    const auto Sines = [&](float Degrees) -> float
+                    {
+                        float Turned = Degrees;
+                        while (Turned >= 360.0f) Turned -= 360.0f;
+                        while (Turned <    0.0f) Turned += 360.0f;
+
+                        const auto Step = static_cast<std::uint32_t>(Turned / 6.0f) % 60u;
+
+                        if (Step <= 15u) return  Quarter[Step];
+                        if (Step <= 30u) return  Quarter[30u - Step];
+                        if (Step <= 45u) return -Quarter[Step - 30u];
+                        return                  -Quarter[60u - Step];
+                    };
+
+                    const float Away  = Seated.WheelSaturation * 0.01f * (Radius - 9.0f);
+                    const float Along = Centre + Sines(Seated.WheelHue + 90.0f) * Away;
+                    const float Down  = Middle + Sines(Seated.WheelHue) * Away;
+                    const auto  Tint  = CombineTint(Seated.WheelHue, Seated.WheelSaturation,
+                                                    Seated.WheelLuminance);
+
+                    Surface->Medallion(Along, Down, 7.0f, Covering(0xFFFFFFu));
+                    Surface->Medallion(Along, Down, 5.5f, Covering(Tint));
+
+                    // 📐 A contact inside the ring resolves hue from its angle and saturation from its
+                    //    radius, and keeps resolving while it is held — which is what makes it a wheel.
+                    const PlaneExtent Disc = Squared(Centre, Middle, Ring);
+
+                    if (Disc.Encloses(Sampled.PositionAlong, Sampled.PositionAcross) &&
+                        (Sampled.ContactArrived || Sampled.ContactHeld))
+                    {
+                        const float OffAlong  = Sampled.PositionAlong  - Centre;
+                        const float OffAcross = Sampled.PositionAcross - Middle;
+
+                        // 📐 The angle, resolved by walking the same sixty spokes rather than by an
+                        //    arc-tangent — the ring has sixty stops, so sixty comparisons resolve it
+                        //    exactly and pull in no further dependency.
+                        float Nearest = 0.0f;
+                        float Closest = 1.0e30f;
+
+                        for (std::uint32_t Step = 0u; Step < 60u; ++Step)
+                        {
+                            const float Turn      = static_cast<float>(Step) * 6.0f;
+                            const float SpokeDown = Sines(Turn);
+                            const float SpokeAcross = Sines(Turn + 90.0f);
+                            const float Away2     = OffAlong * SpokeAcross + OffAcross * SpokeDown;
+
+                            if (Away2 <= 0.0f)
+                                continue;
+
+                            const float Off = (OffAlong - SpokeAcross * Away2) * (OffAlong - SpokeAcross * Away2)
+                                            + (OffAcross - SpokeDown * Away2) * (OffAcross - SpokeDown * Away2);
+
+                            if (Off < Closest)
+                            {
+                                Closest = Off;
+                                Nearest = Turn;
+                            }
+                        }
+
+                        const float Extent2 = OffAlong * OffAlong + OffAcross * OffAcross;
+                        float       Reach   = 0.0f;
+
+                        // 📐 The radius, by bisection over the squared extent — the same reason as above.
+                        for (float Probe = 0.0f; Probe <= 1.0f; Probe += 0.01f)
+                        {
+                            const float Span = Probe * (Radius - 9.0f);
+
+                            if (Span * Span <= Extent2)
+                                Reach = Probe;
+                        }
+
+                        Seated.WheelHue        = Nearest;
+                        Seated.WheelSaturation = Reach * 100.0f;
+                    }
+                }
+
+                Across = Middle + Radius + 10.0f;
+
+                // 📐 `#cwL` — the luminance run, 4…96.
+                {
+                    const PlaneExtent Track = Spanning(Anchored.LeastAlong + 44.0f, Across,
+                                                       PopupAlongLeast - 56.0f, 16.0f);
+
+                    Surface->TextRunCapitalised(Anchored.LeastAlong + 12.0f,
+                                                Across + 8.0f - Surface->RunAcross(Scaled.RunSection) * 0.5f,
+                                                Tinted.Faint, "Lum", Scaled.RunSection, TrackingSection, true);
+
+                    auto Reading = static_cast<std::uint32_t>(Seated.WheelLuminance);
+
+                    if (Dragged(ChromeCells[static_cast<std::uint32_t>(ChromeCell::WheelLuma)],
+                                Track, Reading))
+                    {
+                        const auto Bounded = (Reading < 4u) ? 4u : ((Reading > 96u) ? 96u : Reading);
+                        Seated.WheelLuminance = static_cast<float>(Bounded);
+                    }
+
+                    RecordMeter(PlaneExtent{ Track.LeastAlong, Across + 6.5f, Track.MostAlong, Across + 9.5f },
+                                static_cast<std::uint32_t>(Seated.WheelLuminance), Tinted.Accent);
+
+                    Across += 26.0f;
+                }
+
+                // 📐 `#cwPrev` and `#cwOk` — the resolved tint beside the Apply.
+                {
+                    const auto Tint = CombineTint(Seated.WheelHue, Seated.WheelSaturation,
+                                                  Seated.WheelLuminance);
+
+                    Surface->Ground(Spanning(Anchored.LeastAlong + 12.0f, Across, 28.0f, 24.0f),
+                                    Covering(Tint), Scaled.RadiusSmall);
+
+                    char Written[16] = {};
+                    std::snprintf(Written, sizeof Written, "#%06X", Tint);
+                    Surface->TextRun(Anchored.LeastAlong + 48.0f,
+                                     Across + 12.0f - Surface->RunAcross(Scaled.RunSub) * 0.5f,
+                                     Tinted.Secondary, Written, Scaled.RunSub);
+
+                    const PlaneExtent Apply = Spanning(Anchored.MostAlong - 74.0f, Across, 62.0f, 24.0f);
+                    const bool        Over  = Apply.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+
+                    Surface->Ground(Apply, Over ? Tinted.Accent : Partial(0xFFFFFFu, 0.09),
+                                    Scaled.RadiusSmall);
+                    Surface->TextRun(Apply.LeastAlong + 16.0f,
+                                     Across + 12.0f - Surface->RunAcross(Scaled.RunSub) * 0.5f,
+                                     Over ? Covering(0x000000u) : Tinted.Primary, "Apply", Scaled.RunSub,
+                                     0.0f, true);
+
+                    if (Over && Sampled.ContactReleased && Present)
+                    {
+                        Revisions.Record(Arrangement, "Colour tag amended");
+                        Arrangement.Entries[Subject].ColourTag = Tint;
+                        Seated.Popup = StackPopup::Absent;
+                        Ledger->Withdraw();
+                    }
+
+                    Across += 32.0f;
+                }
+
+                break;
+            }
+
+            default:
+                break;
+        }
+
+        Surface->Release();
+
+        // 🔴 Set LAST. A popup opened during this very sweep must not resolve one of its own entries under
+        //    the same contact — it becomes pickable on the next tick and not before.
+        if (Seated.Popup != StackPopup::Absent)
+            Seated.PopupSettled = true;
+    }
+
+    // ② The tooltip, above even the popup, because it may name one of the popup's own entries.
+    if (Seated.Tooltip != nullptr && Seated.Tooltip[0] != '\0' && Seated.Popup == StackPopup::Absent)
+    {
+        const float Along  = Surface->MeasureRun(Seated.Tooltip, Scaled.RunFine) + 16.0f;
+        const float Across = 22.0f;
+
+        float Seat = Seated.TooltipAlong - Along * 0.5f;
+        float Over = Seated.TooltipAcross - Across - 6.0f;
+
+        const float ExtentAlong = (Surface->Display().ExtentAlong > 0.0f)
+                                ? Surface->Display().ExtentAlong : 1920.0f;
+
+        if (Seat < 8.0f)                     Seat = 8.0f;
+        if (Seat > ExtentAlong - Along - 8.0f) Seat = ExtentAlong - Along - 8.0f;
+        if (Over < 8.0f)                     Over = Seated.TooltipAcross + 24.0f;
+
+        const PlaneExtent Card = Spanning(Seat, Over, Along, Across);
+
+        Surface->Ground(Card, Covering(0x1A1A1Au), Scaled.RadiusSmall);
+        Surface->Edge(Card, Tinted.StrokeStrong, 1.0f, Scaled.RadiusSmall);
+        Surface->TextRun(Seat + 8.0f, Over + (Across - Surface->RunAcross(Scaled.RunFine)) * 0.5f,
+                         Tinted.Primary, Seated.Tooltip, Scaled.RunFine);
+    }
 }
 
 }   // namespace Slate

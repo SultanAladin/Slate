@@ -33,6 +33,11 @@ struct LayerStackCeiling
     static constexpr std::uint32_t NamingCeiling  =  48u;   // [-] - characters retained for one naming
     static constexpr std::uint32_t Revisions      =  64u;   // [-] - the revision run the inspector presents
     static constexpr std::uint32_t AtlasTotal     =   5u;   // [-] - ATLAS_TOTAL, what the channel panel foots
+    static constexpr std::uint32_t ColourTags     =  10u;   // [-] - COLORS, the tag swatches a menu offers
+
+    // 🔴 The ordinal that names no entry. Stated once so every caller compares against the same reading
+    //    rather than writing `0xFFFFFFFFu` at thirty call sites, one of which will eventually be `-1`.
+    static constexpr std::uint32_t AbsentOrdinal  = 0xFFFFFFFFu;   // [-] - names no entry, ever
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -272,5 +277,184 @@ Deliver<bool> SeatReferenceArrangement(LayerArrangement& Arrangement);
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 void SeatReferenceRevisions(const RevisionOrdinate*& Revisions, std::uint32_t& Count);
+
+/// 🧩 The colour tags a tag menu offers — the reference's `COLORS`, in its own order.
+/// out   const std::uint32_t*  [-]  borrowed; exactly LayerStackCeiling::ColourTags readings
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+const std::uint32_t* SeatedColourTags();
+
+/// 🧩 The effect run an effect menu offers — the reference's `EFFECTS`.
+/// out   Count  [-]  how many stand
+/// cost  ✔️
+/// tag   api, nonallocating, nonthrowing
+const char* const* EffectNaming(std::uint32_t& Count);
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  WALKING THE PRESENTED RUN
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 One takeable half in presented order — what an arrow key steps through.
+/// note  📐 The reference's own `flat`, which it rebuilds inside `render` and then indexes for its arrow
+///        keys. It is rebuilt here rather than retained, because a retained copy goes stale the instant a
+///        folder closes and the arrow key then selects a row nobody can see.
+/// tag   contract, nonallocating, nonthrowing
+struct PresentedHalf
+{
+    std::uint32_t  Ordinal = 0u;                    // [-] - which entry
+    LayerTaken     Half    = LayerTaken::Layer;     // [-] - which half of it
+};
+
+/// 🧩 Walks the arrangement in presented order, writing one record per takeable half.
+/// in    Retention   [-]  borrowed; when non-empty only entries whose naming carries it are written
+/// out   Written     [-]  how many halves were written; never beyond the stated ceiling
+/// note  📝 A folder matches when it or anything it encloses matches, exactly as `match` recurses.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+std::uint32_t PresentedHalves(const LayerArrangement& Arrangement, const char* Retention,
+                              PresentedHalf* Written, std::uint32_t Ceiling);
+
+/// 🧩 Whether one entry stands presented under a retention run as well as its enclosing folders.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+bool EntryRetained(const LayerArrangement& Arrangement, std::uint32_t Ordinal, const char* Retention);
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                 AMENDING THE ARRANGEMENT
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Declares one fresh entry immediately above whatever stands taken, and takes it.
+/// in    Content   [-]  what the entry holds; a folder opens declared-open and blends Passthrough
+/// in    Naming    [-]  borrowed for the copy; retained into the entry's own run
+/// out   Declared  [-]  false when the arrangement is already at its ceiling
+/// note  🔴 The whole run above the seat shifts down by one, which is what keeps `Enclosing` correct
+///        without a second pass — every enclosing ordinal at or beyond the seat rises with it.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+bool DeclareEntry(LayerArrangement& Arrangement, LayerContent Content, const char* Naming);
+
+/// 🧩 Retires whatever stands taken — the mask alone when the mask half is taken, the entry and
+///    everything it encloses otherwise.
+/// out   Retired  [-]  false when nothing stands taken
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+bool RetireTaken(LayerArrangement& Arrangement);
+
+/// 🧩 Copies whatever stands taken, with everything it encloses, and takes the copy.
+/// out   Copied  [-]  false when the copy would exceed the ceiling
+/// cost  🔴
+/// tag   api, nonallocating, nonthrowing
+bool DuplicateTaken(LayerArrangement& Arrangement);
+
+/// 🧩 Encloses whatever stands taken in a fresh folder, and takes the folder.
+/// out   Enclosed  [-]  false when the arrangement is at its ceiling or the nesting would exceed its depth
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+bool EncloseTaken(LayerArrangement& Arrangement);
+
+/// 🧩 Carries whatever stands taken one presented position toward the outermost end or away from it.
+/// in    Downward  [-]  true steps toward the end of the run, false toward its beginning
+/// out   Carried   [-]  false when the taken entry already sits at that end
+/// note  📐 The reference's `shift`. Stepping onto an open folder puts the entry INSIDE it rather than
+///        past it, which is what makes a repeated press walk into a folder instead of over it.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+bool CarryTaken(LayerArrangement& Arrangement, bool Downward);
+
+/// 🧩 Attaches a mask to whatever stands taken, or removes the one already attached.
+/// out   Altered  [-]  false when nothing stands taken
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+bool ToggleMask(LayerArrangement& Arrangement);
+
+/// 🧩 Opens or closes every folder at once — the reference's collapse-all, which inverts on each press.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+void ToggleEveryFolder(LayerArrangement& Arrangement);
+
+/// 🧩 Moves one entry, with everything it encloses, to sit before another, after it, or inside it.
+/// in    Carried    [-]  which entry moves
+/// in    Destined   [-]  which entry it moves against
+/// in    Enclosed   [-]  true seats it as the destination folder's first enclosed entry
+/// in    Trailing   [-]  true seats it after the destination rather than before it; ignored when Enclosed
+/// out   Moved      [-]  false when the destination lies inside what is carried, which would orphan the run
+/// cost  🔴
+/// tag   api, nonallocating, nonthrowing
+bool CarryEntry(LayerArrangement& Arrangement, std::uint32_t Carried, std::uint32_t Destined,
+                bool Enclosed, bool Trailing);
+
+/// 🧩 Whether one entry lies inside another, at any depth — what a drop test refuses on.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+bool EntryWithin(const LayerArrangement& Arrangement, std::uint32_t Enclosing, std::uint32_t Asked);
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE REVISION RING
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 The undo and redo rings, each retaining whole arrangements rather than differences.
+/// note  💾 `LayerArrangement` is pointer-free and fixed in extent, so a revision is one assignment.
+///        The reference does exactly this — `JSON.stringify({tree,sel,selMask})` — and its own ceiling is
+///        ninety. Eight are retained here: the arrangement is 160 KiB, so ninety would be 14 MiB of
+///        interaction retention for a panel, which `14` never asks for.
+/// note  🔴 A revision is recorded BEFORE an amendment, never after, exactly as `snap()` is called ahead
+///        of every mutation. Recording afterwards makes the first undo a no-op and every later one late
+///        by one amendment.
+/// tag   owning
+class RevisionSequence
+{
+public:
+
+    static constexpr std::uint32_t RevisionCeiling = 8u;   // [-] - retained arrangements; never allocated
+
+    RevisionSequence()                                   = default;
+    RevisionSequence(const RevisionSequence&)            = delete;
+    RevisionSequence& operator=(const RevisionSequence&) = delete;
+    ~RevisionSequence()                                  = default;
+
+    /// 🧩 Records what stands, ahead of an amendment, and abandons whatever could have been reinstated.
+    /// in    Standing  [-]  copied whole; the caller amends its own copy afterwards
+    /// in    Naming    [-]  borrowed; what the amendment is called in the pane
+    /// cost  🔴
+    /// tag   api, nonallocating, nonthrowing
+    void Record(const LayerArrangement& Standing, const char* Naming);
+
+    /// 🧩 Restores the most recently recorded arrangement, retaining what it replaced.
+    /// out   Restored  [-]  false when nothing has been recorded
+    /// cost  🔴
+    /// tag   api, nonallocating, nonthrowing
+    bool Revert(LayerArrangement& Standing);
+
+    /// 🧩 Restores whatever the last Revert replaced.
+    /// out   Restored  [-]  false when nothing was reverted since the last Record
+    /// cost  🔴
+    /// tag   api, nonallocating, nonthrowing
+    bool Reinstate(LayerArrangement& Standing);
+
+    /// 🧩 How many revisions stand recorded, and how many stand reinstatable.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    std::uint32_t RecordedCount() const   { return Recorded;    }
+    std::uint32_t ReinstatableCount() const { return Reinstatable; }
+
+    /// 🧩 The naming of one recorded revision, newest first; empty beyond the recorded count.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    const char* RevisionNaming(std::uint32_t Ordinal) const;
+
+    /// 🧩 Returns the rings to their constructed condition.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Reset();
+
+private:
+
+    LayerArrangement  Reverting[RevisionCeiling]    = {};        // [-] - newest at Recorded - 1
+    const char*       Namings[RevisionCeiling]      = {};        // [-] - borrowed, one per recorded
+    LayerArrangement  Reinstating[RevisionCeiling]  = {};        // [-] - newest at Reinstatable - 1
+    const char*       ReinstateNamings[RevisionCeiling] = {};    // [-] - borrowed
+    std::uint32_t     Recorded                      = 0u;        // [-] - how many stand revertable
+    std::uint32_t     Reinstatable                  = 0u;        // [-] - how many stand reinstatable
+};
 
 }   // namespace Slate

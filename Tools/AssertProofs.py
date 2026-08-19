@@ -60,6 +60,63 @@ GATES = [
         (1394, 217, 0x4A90E2, 16, "carousel history underline"),
         (889, 270, 0x4FD18B, 16, "cylinder revision bubble"),
     ]),
+
+    # ─────────────────────────────────────────────────────────────────────
+    # InterfaceValidationHost — the ported LayerstackV1 page. Every ink below
+    # is a `LayerStackInk` token, so a drift in the token record fails here
+    # rather than being noticed by eye three panels later.
+    # ─────────────────────────────────────────────────────────────────────
+
+    # ⑨ The page at rest.
+    ("VisualProof/InterfaceValidationHost/layerstackpage.png", [
+        (200, 20, 0x0A0A0A, 4, "stack head (--panel-2)"),
+        (200, 110, 0x0D0D0D, 4, "quiet row (--row)"),
+        (200, 480, 0x202020, 6, "taken row (--row-a)"),
+        (600, 20, 0x0A0A0A, 4, "channel panel head"),
+        (600, 300, 0x0D0D0D, 4, "channel blending row"),
+        (600, 700, 0x0D0D0D, 4, "revisions row"),
+    ]),
+    # ⑩ A row roused — the hover ink must differ from both quiet and taken.
+    ("VisualProof/InterfaceValidationHost/layerstackhovered.png", [
+        (200, 255, 0x161616, 4, "roused mask row (--row-h)"),
+        (200, 110, 0x0D0D0D, 4, "unroused row stays quiet"),
+    ]),
+    # ⑪ A press-and-release takes the row it landed on, and releases the previous one.
+    ("VisualProof/InterfaceValidationHost/layerstacktaken.png", [
+        (200, 300, 0x303030, 8, "newly taken row, roused and taken together"),
+        (200, 480, 0x0D0D0D, 4, "the previously taken row released"),
+    ]),
+    # ⑫ Taking a mask row swaps the inspector's second slide to the mask panel.
+    ("VisualProof/InterfaceValidationHost/layerstackmasktaken.png", [
+        (600, 100, 0x050505, 4, "mask panel body (--panel)"),
+    ]),
+    # ⑬ The add menu stands above every row.
+    ("VisualProof/InterfaceValidationHost/layerstackaddmenu.png", [
+        (430, 150, 0x050505, 5, "popup ground over the rows beneath it"),
+    ]),
+    # ⑭ The blend run, flipped above its anchor because it does not fit below.
+    ("VisualProof/InterfaceValidationHost/layerstackblendmenu.png", [
+        (110, 700, 0x0A0A0A, 4, "blend popup ground, seated above the footer pill"),
+    ]),
+    # ⑮ The wheel: a live hue ring, and the entry's own tag in the preview.
+    ("VisualProof/InterfaceValidationHost/layerstackcolourwheel.png", [
+        (270, 290, 0x9748E5, 20, "hue ring, violet quadrant"),
+        (190, 465, 0xE5484D, 8, "preview carries the entry's seated colour tag"),
+    ]),
+    # ⑯ A carry in flight — the carried row dims and the drop rule stands.
+    ("VisualProof/InterfaceValidationHost/layerstackcarried.png", [
+        (200, 160, 0x0E0E0E, 4, "carried row scrimmed in place"),
+        (200, 412, 0xFFFFFF, 6, "drop rule at the destination's lower edge"),
+    ]),
+    # ⑰ The carry released — the arrangement moved, and the ring recorded it.
+    ("VisualProof/InterfaceValidationHost/layerstackdropped.png", [
+        (200, 430, 0x202020, 6, "the carried row, taken at its new seat"),
+        (417, 680, 0xFFFFFF, 6, "this session's revision spine in the History pane"),
+    ]),
+    # ⑱ The stack scrolled by the wheel, with its bar advanced to match.
+    ("VisualProof/InterfaceValidationHost/layerstackscrolled.png", [
+        (386, 300, 0x2A2A2A, 8, "scroll thumb, advanced off the top of its travel"),
+    ]),
 ]
 
 

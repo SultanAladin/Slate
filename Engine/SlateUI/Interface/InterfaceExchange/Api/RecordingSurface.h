@@ -100,6 +100,61 @@ struct DisplayCondition
 };
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                    THE KEY SUBJECTS
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 The keys the shell arbitrates for itself, named by what they do rather than by their scan position.
+/// note  🔴 A closed roster and not a scan ordinate. The seam exists so that a panel may ask "did the artist
+///        summon" without naming a vendor key enumeration, which `00` §2.2 keeps inside this unit. Adding a
+///        key is adding a line here and a line in the source's translation, and nothing else moves.
+/// note  ⚠️ Every arrival is edge-triggered and unrepeated — the shell's summon must not fire sixty times
+///        while the key is held down.
+/// tag   contract
+enum class KeySubject : std::uint32_t
+{
+    Summon       = 0u,   // [-] - Tab; carries the inspector between its two presentations
+    Withdraw     = 1u,   // [-] - Escape; closes the inspector, then the summoned menu
+    Retract      = 2u,   // [-] - Backspace; removes the last character of the roused filter field
+
+    // 📐 The layer stack's own roster, from `LayerstackV1`'s KEYBOARD section. Every one is edge-triggered
+    //    and unrepeated on the same terms as the three above.
+    DeclarePaint      =  3u,   // [-] - P
+    DeclareFill       =  4u,   // [-] - F
+    DeclareAdjustment =  5u,   // [-] - A
+    DeclareRetention  =  6u,   // [-] - R; the reference's `filter`
+    DeclareDecal      =  7u,   // [-] - D
+    DeclarePattern    =  8u,   // [-] - T
+    DeclareFolder     =  9u,   // [-] - G
+    AttachMask        = 10u,   // [-] - M
+    Secure            = 11u,   // [-] - L
+    Solo              = 12u,   // [-] - S
+    Conceal           = 13u,   // [-] - H
+    Seek              = 14u,   // [-] - forward slash; rouses the search run
+    Rename            = 15u,   // [-] - F2
+    Unfold            = 16u,   // [-] - Space; unfolds the taken card
+    Retire            = 17u,   // [-] - Delete
+    StepPrior         = 18u,   // [-] - Up arrow
+    StepNext          = 19u,   // [-] - Down arrow
+    Disclose          = 20u,   // [-] - Right arrow; opens the taken folder
+    Withhold          = 21u,   // [-] - Left arrow; closes it
+    Revert            = 22u,   // [-] - Z; commanded it reverts, commanded and shifted it reinstates
+
+    SubjectCount = 23u   // [-] - the closed count, never a subject
+};
+
+/// 🧩 Which modifiers stood down when a key arrived, so a caller may separate `D` from `⌘D`.
+/// note  🔴 Read alongside `KeyArrived` rather than folded into it. The reference branches on the SAME key
+///        by modifier — `d` declares a decal, `⌘d` copies the taken entry — so a seam that reported only
+///        "D arrived" would make both branches fire from one press.
+/// tag   contract, nonallocating, nonthrowing
+struct ModifierCondition
+{
+    bool  Commanded = false;   // [-] - Control on Windows and Linux, Command on macOS
+    bool  Shifted   = false;   // [-]
+    bool  Alternate = false;   // [-]
+};
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                          THE SEAM
 //------------------------------------------------------------------------------------------------------------------------
 

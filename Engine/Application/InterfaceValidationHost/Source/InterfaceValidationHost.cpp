@@ -143,12 +143,15 @@ constexpr std::uint32_t EditorControls  = 11u * 22u;           // [-] - RecordCe
 constexpr std::uint32_t CentreControls  = 192u;                // [-] - ControlCentrePanel::ControlCapacity
 constexpr std::uint32_t ShellControls   = 8u + (16u * 3u)      // [-] - chrome + one trio per outline row
                                         + (12u * 6u);          // [-] - six per layer row: two halves, four actions
+constexpr std::uint32_t StackControls   = (16u * 12u) + 16u    // [-] - LayerStackPanel: RowCeiling × CellsPerRow
+                                        + 32u;                 // [-] - its chrome and its popup entries
 
 constexpr std::uint32_t EasesPerControl = 2u;                  // [-] - InteractionIndex::Enrol draws both fades
 constexpr std::uint32_t BareEases       = 9u + 1u;             // [-] - Control Centre motions, shell carousel
 
 constexpr std::uint32_t DemandedEases =
-    ((SheetControls + FacetControls + EditorControls + CentreControls + ShellControls) * EasesPerControl)
+    ((SheetControls + FacetControls + EditorControls + CentreControls + ShellControls
+      + StackControls) * EasesPerControl)
     + BareEases;
 
 static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
@@ -421,6 +424,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     LayerStackPanel          LayerStack;
     LayerStackOrdinates      LayerStackSeated;
     LayerArrangement         LayerArranged;
+    RevisionSequence         LayerRevisions;
 
     if (const auto Verdict = Ledger.Construct(Motion); !Verdict.ContentPresent)
     {
@@ -478,9 +482,10 @@ int main(int ArgumentCount, char** ArgumentValues)
     if (const auto Verdict = ReferenceShell.Construct(Ledger, Motion, Surface, Appearance); !Verdict.ContentPresent)
         return Refused("the reference shell", Verdict.Declined);
 
-    // 📝 The layer stack binds to the surface alone. It carries its own inks and lengths from `LayerstackV1`
-    //    rather than from AppearanceSpecification, because the reference states them absolutely.
-    if (const auto Verdict = LayerStack.Construct(Surface); !Verdict.ContentPresent)
+    // 📝 The layer stack carries its own inks and lengths from `LayerstackV1` rather than from
+    //    AppearanceSpecification, because the reference states them absolutely — but it shares the one
+    //    interaction ledger, so its enrolments are counted in the interpolant budget above.
+    if (const auto Verdict = LayerStack.Construct(Ledger, Surface); !Verdict.ContentPresent)
         return Refused("the layer stack", Verdict.Declined);
 
     // 🔴 The seat is read rather than dropped. A refused seat leaves the arrangement empty, and an empty
@@ -722,6 +727,84 @@ int main(int ArgumentCount, char** ArgumentValues)
         Facets.Advance(Surface.Pointer(), ElapsedMs);
         EditorPanels.Advance(Surface.Pointer(), ElapsedMs);
         ControlCentre.Advance(Surface.Pointer(), ElapsedMs);
+        LayerStack.Advance(Surface.Pointer(), ElapsedMs);
+
+        // 🔴 The layer stack's chords are applied BEFORE anything is arranged, on the same grounds as the
+        //    shell's Tab above: applied afterwards, every press shows one frame of the previous
+        //    arrangement. The whole roster is swept in one pass so that a chord the stack answers is not
+        //    also answered by whatever else is listening for the same key.
+        {
+            const ModifierCondition Modifiers = Interface.Modifiers();
+
+            // 📝 The search run takes what was typed only while it holds the keyboard, and the panel's own
+            //    guard refuses every chord in that condition — so the two can never both consume a key.
+            if (LayerStackSeated.RetentionRoused)
+            {
+                static_cast<void>(Interface.AdmitTyped(LayerStackSeated.Retention,
+                                                       LayerStackOrdinates::RetentionCeiling));
+
+                if (Interface.KeyArrived(KeySubject::Retract))
+                {
+                    std::uint32_t Occupied = 0u;
+
+                    while (Occupied + 1u < LayerStackOrdinates::RetentionCeiling &&
+                           LayerStackSeated.Retention[Occupied] != '\0')
+                    {
+                        ++Occupied;
+                    }
+
+                    if (Occupied > 0u)
+                        LayerStackSeated.Retention[Occupied - 1u] = '\0';
+                }
+
+                if (Interface.KeyArrived(KeySubject::Withdraw))
+                {
+                    LayerStackSeated.Retention[0]    = '\0';
+                    LayerStackSeated.RetentionRoused = false;
+                }
+            }
+            else if (LayerStackSeated.Renaming != LayerStackCeiling::AbsentOrdinal)
+            {
+                static_cast<void>(Interface.AdmitTyped(LayerStackSeated.RenamingRun,
+                                                       LayerStackOrdinates::NamingCeiling));
+
+                if (Interface.KeyArrived(KeySubject::Retract))
+                {
+                    std::uint32_t Occupied = 0u;
+
+                    while (Occupied + 1u < LayerStackOrdinates::NamingCeiling &&
+                           LayerStackSeated.RenamingRun[Occupied] != '\0')
+                    {
+                        ++Occupied;
+                    }
+
+                    if (Occupied > 0u)
+                        LayerStackSeated.RenamingRun[Occupied - 1u] = '\0';
+                }
+
+                // 📐 `commit(false)` on Escape — the naming is abandoned rather than written.
+                if (Interface.KeyArrived(KeySubject::Withdraw))
+                    LayerStackSeated.Renaming = LayerStackCeiling::AbsentOrdinal;
+            }
+            else
+            {
+                for (std::uint32_t Ordinal = 0u;
+                     Ordinal < static_cast<std::uint32_t>(KeySubject::SubjectCount); ++Ordinal)
+                {
+                    const auto Subject = static_cast<KeySubject>(Ordinal);
+
+                    // 📝 Tab belongs to the shell, which has already consumed it above.
+                    if (Subject == KeySubject::Summon || Subject == KeySubject::Retract)
+                        continue;
+
+                    if (Interface.KeyArrived(Subject))
+                    {
+                        static_cast<void>(LayerStack.AdmitChord(Subject, Modifiers, LayerArranged,
+                                                                LayerStackSeated, LayerRevisions));
+                    }
+                }
+            }
+        }
 
 #ifdef SLATE_DEBUG
         Overlay.Discard();
@@ -1151,7 +1234,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             constexpr float LayerPageAcross = (SlideAcross > 760.0f) ? SlideAcross : 760.0f;
 
             const PlaneExtent StackExtent = Spanning(0.0f, Cursor, LayerPaneAlong, LayerPageAcross);
-            LayerStack.RecordStack(StackExtent, LayerArranged, LayerStackSeated);
+            LayerStack.RecordStack(StackExtent, LayerArranged, LayerStackSeated, LayerRevisions);
 
             const float SlideAlong = LayerPaneAlong;
             const float SlideLeast = StackExtent.MostAlong + LayerPageGap;
@@ -1161,14 +1244,16 @@ int main(int ArgumentCount, char** ArgumentValues)
             // 🔴 A mask taken presents the mask panel and a layer taken the channel panel. The reference
             //    switches on the taken half and never on the content, so a folder taken still reaches here.
             if (LayerArranged.TakenHalf == LayerTaken::Mask)
-                LayerStack.RecordMaskProperties(PropertyExtent, LayerArranged);
+                LayerStack.RecordMaskProperties(PropertyExtent, LayerArranged, LayerStackSeated,
+                                                LayerRevisions);
             else
-                LayerStack.RecordChannelProperties(PropertyExtent, LayerArranged);
+                LayerStack.RecordChannelProperties(PropertyExtent, LayerArranged, LayerStackSeated,
+                                                   LayerRevisions);
 
             const PlaneExtent RevisionExtent = Spanning(SlideLeast,
                                                         PropertyExtent.MostAcross + LayerPageGap,
                                                         SlideAlong, RevisionAcross);
-            LayerStack.RecordRevisions(RevisionExtent);
+            LayerStack.RecordRevisions(RevisionExtent, LayerRevisions);
 
             Cursor = Cursor + LayerPageAcross + Measure.CardGapAcross;
         }
@@ -1176,6 +1261,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         // 🔴 The deferred sweep — every menu and every tooltip card, above every row recorded above.
         Panel.RecordDeferred();
         Facets.RecordDeferred();
+        LayerStack.RecordDeferred(LayerArranged, LayerStackSeated, LayerRevisions);
 
         // 📝 What the page sequence actually occupied, for the next tick's scroll to be held against. The
         //    trailing `py-32` is added so the Control Centre page can be carried clear of the lower edge.
