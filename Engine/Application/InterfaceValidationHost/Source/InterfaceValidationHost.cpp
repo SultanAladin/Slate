@@ -15,6 +15,8 @@
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
+#include "SlateUI/Interface/LayerStackPanel/Api/LayerStackPanel.h"
+#include "SlateUI/Interface/LayerStackSpecification/Api/LayerStackSpecification.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
 
@@ -414,6 +416,12 @@ int main(int ArgumentCount, char** ArgumentValues)
     GlobalShellPanel         ReferenceShell;
     ShellOrdinates           ShellSeated;
 
+    // 📝 The ported `LayerstackV1` pane and the two property panels its inspector pairs with. The
+    //    arrangement is seated from the reference once, then the artist amends it through the panel.
+    LayerStackPanel          LayerStack;
+    LayerStackOrdinates      LayerStackSeated;
+    LayerArrangement         LayerArranged;
+
     if (const auto Verdict = Ledger.Construct(Motion); !Verdict.ContentPresent)
     {
         std::printf("%s \u2014 the interaction ledger was refused: %s\n", HostName, Verdict.Declined.Detail);
@@ -469,6 +477,16 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    enrolled control from the ONE integrator, so a ceiling that fits the others exactly refuses here.
     if (const auto Verdict = ReferenceShell.Construct(Ledger, Motion, Surface, Appearance); !Verdict.ContentPresent)
         return Refused("the reference shell", Verdict.Declined);
+
+    // 📝 The layer stack binds to the surface alone. It carries its own inks and lengths from `LayerstackV1`
+    //    rather than from AppearanceSpecification, because the reference states them absolutely.
+    if (const auto Verdict = LayerStack.Construct(Surface); !Verdict.ContentPresent)
+        return Refused("the layer stack", Verdict.Declined);
+
+    // 🔴 The seat is read rather than dropped. A refused seat leaves the arrangement empty, and an empty
+    //    stack draws as a bare pane — indistinguishable from a panel that recorded nothing.
+    if (const auto Verdict = SeatReferenceArrangement(LayerArranged); !Verdict.ContentPresent)
+        return Refused("the layer arrangement", Verdict.Declined);
 
     // What the sheet seats, and the runs it presents — the sole owner of every datum below.
     ValidationOrdinates Seated;
@@ -1116,6 +1134,44 @@ int main(int ArgumentCount, char** ArgumentValues)
 
         Disregard(ReferenceShell.Record(ShellExtent, ShellSeated, LevelEntities, 14u, StackLayers, 4u));
         Cursor = ShellExtent.MostAcross + Measure.CardGapAcross;
+
+        // ⑰ The ported `LayerstackV1` page: the stack on the leading edge, and beside it the inspector's
+        //     second slide — a property panel over the revisions. Which property panel stands is not a
+        //     choice the host makes; it follows the taken half, exactly as the reference switches it.
+        {
+            constexpr float LayerPaneAlong  = 392.0f;   // [px] - --w, the reference's own panel extent
+            constexpr float LayerPageGap    =  16.0f;   // [px]
+
+            // 📐 The property panel is sized to the taller of the two it may present. The mask panel runs
+            //    to its mesh-map and channel sections, so a ratio of the stack's extent clips it; the
+            //    lengths are stated instead, and the page is as tall as the sum.
+            constexpr float PropertyAcross  = 600.0f;   // [px] - the mask panel, its tallest arrangement
+            constexpr float RevisionAcross  = 420.0f;   // [px] - the five seated revisions and their head
+            constexpr float SlideAcross     = PropertyAcross + LayerPageGap + RevisionAcross;
+            constexpr float LayerPageAcross = (SlideAcross > 760.0f) ? SlideAcross : 760.0f;
+
+            const PlaneExtent StackExtent = Spanning(0.0f, Cursor, LayerPaneAlong, LayerPageAcross);
+            LayerStack.RecordStack(StackExtent, LayerArranged, LayerStackSeated);
+
+            const float SlideAlong = LayerPaneAlong;
+            const float SlideLeast = StackExtent.MostAlong + LayerPageGap;
+
+            const PlaneExtent PropertyExtent = Spanning(SlideLeast, Cursor, SlideAlong, PropertyAcross);
+
+            // 🔴 A mask taken presents the mask panel and a layer taken the channel panel. The reference
+            //    switches on the taken half and never on the content, so a folder taken still reaches here.
+            if (LayerArranged.TakenHalf == LayerTaken::Mask)
+                LayerStack.RecordMaskProperties(PropertyExtent, LayerArranged);
+            else
+                LayerStack.RecordChannelProperties(PropertyExtent, LayerArranged);
+
+            const PlaneExtent RevisionExtent = Spanning(SlideLeast,
+                                                        PropertyExtent.MostAcross + LayerPageGap,
+                                                        SlideAlong, RevisionAcross);
+            LayerStack.RecordRevisions(RevisionExtent);
+
+            Cursor = Cursor + LayerPageAcross + Measure.CardGapAcross;
+        }
 
         // 🔴 The deferred sweep — every menu and every tooltip card, above every row recorded above.
         Panel.RecordDeferred();
