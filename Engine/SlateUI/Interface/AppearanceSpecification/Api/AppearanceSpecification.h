@@ -683,6 +683,126 @@ struct MotionScale
 };
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                THE PORTED REFERENCE INKS
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 🔴 The three ported references each declare their own token run, and each ran here from the panel header
+//    that used to hold it. A panel holding its own inks cannot be themed — the appearance file reaches this
+//    one record and nothing else, so an ink declared outside it is an ink no artist can change. Every
+//    spelling is unchanged, so each existing call site reads exactly as it did.
+
+// 📐 The custom properties `app/globals.css` declares, transcribed as packed literals. Each is named for the
+//    responsibility the reference gives it, with the CSS spelling stated beside it so the two can be compared
+//    without opening the sheet. Nothing here is derived — every one is a literal from the source.
+inline constexpr std::uint32_t ShellDesk         = 0x0A0A0Bu;   // [-] - --desk
+inline constexpr std::uint32_t ShellMenu         = 0x17171Au;   // [-] - --menu
+inline constexpr std::uint32_t ShellMenuLower    = 0x101012u;   // [-] - --menu-2
+inline constexpr std::uint32_t ShellRailTaken    = 0x232327u;   // [-] - --rail-sel, and --row-sel
+inline constexpr std::uint32_t ShellTile         = 0x1D1D21u;   // [-] - --tile
+inline constexpr std::uint32_t ShellTileRoused   = 0x26262Bu;   // [-] - --tile-hi
+inline constexpr std::uint32_t ShellAccent       = 0x4A90E2u;   // [-] - --accent
+inline constexpr std::uint32_t ShellInkPrimary   = 0xECECF0u;   // [-] - --ink
+inline constexpr std::uint32_t ShellInkMuted     = 0x7B7B82u;   // [-] - --muted
+inline constexpr std::uint32_t ShellInkFaint     = 0x55555Du;   // [-] - --faint
+inline constexpr std::uint32_t ShellValueUnit    = 0x33333Au;   // [-] - --value-unit
+inline constexpr std::uint32_t ShellHairline     = 0xFFFFFFu;   // [-] - --hair and --hair-strong, by coverage
+inline constexpr std::uint32_t ShellEntityAccent = 0x3B82F6u;   // [-] - the outliner's own rail, bg-[#3b82f6]
+inline constexpr std::uint32_t ShellEntityTaken  = 0x1E40AFu;   // [-] - bg-[#1e40af33]
+
+/// 🧩 Every ink the shell records with, seated once beside the rest of the appearance.
+/// note  🔴 A record and not forty call-site literals. The reference states each colour once as a custom
+///        property and every rule reads it; a port spelling `Covering(0x17171Au)` at each of the sites it
+///        appears could not be compared against the sheet, and one of them would drift unnoticed.
+/// tag   contract, nonallocating, nonthrowing
+struct ShellInk
+{
+    InkOrdinate  Desk         = Covering(ShellDesk);            // [-] - the viewport ground
+    InkOrdinate  Menu         = Covering(ShellMenu);            // [-] - the outliner and the summoned card
+    InkOrdinate  MenuLower    = Covering(ShellMenuLower);       // [-] - the top bar, the rail, the inspector
+    InkOrdinate  Tile         = Covering(ShellTile);            // [-] - a quiet mode button
+    InkOrdinate  TileRoused   = Covering(ShellTileRoused);      // [-] - hover:bg-[var(--tile-hi)]
+    InkOrdinate  RowTaken     = Covering(ShellRailTaken);       // [-] - bg-[var(--row-sel)]
+    InkOrdinate  RowRoused    = Partial(ShellHairline, 0.045);  // [-] - --row-hover
+    InkOrdinate  Hairline     = Partial(ShellHairline, 0.06);   // [-] - --hair
+    InkOrdinate  HairlineFirm = Partial(ShellHairline, 0.10);   // [-] - --hair-strong
+    InkOrdinate  Accent       = Covering(ShellAccent);          // [-] - --accent
+    InkOrdinate  AccentSoft   = Partial(ShellAccent, 0.13);     // [-] - --accent-soft
+    InkOrdinate  EntityAccent = Covering(ShellEntityAccent);    // [-] - the outliner's selection rail
+    InkOrdinate  EntityTaken  = Partial(ShellEntityTaken, 0.20);// [-] - bg-[#1e40af33]
+    InkOrdinate  Primary      = Covering(ShellInkPrimary);      // [-] - --ink
+    InkOrdinate  Muted        = Covering(ShellInkMuted);        // [-] - --muted
+    InkOrdinate  Faint        = Covering(ShellInkFaint);        // [-] - --faint
+    InkOrdinate  Unit         = Covering(ShellValueUnit);       // [-] - --value-unit, the status separators
+    InkOrdinate  Veil         = Partial(0x000000u, 0.30);       // [-] - the summon veil, bg-black/30
+    InkOrdinate  WeaveFine    = Partial(ShellHairline, 0.028);  // [-] - the 28 px weave
+    InkOrdinate  WeaveCoarse  = Partial(ShellHairline, 0.055);  // [-] - the 140 px weave
+    InkOrdinate  Vignette     = Partial(0x000000u, 0.55);       // [-] - the viewport's radial fall-off
+    InkOrdinate  Absent       = Partial(0x000000u, 0.00);       // [-] - a quiet ground records nothing
+};
+
+/// 🧩 Every ink `AsstbrowsrBasic` states, named rather than repeated.
+/// note  📐 The reference reaches for Tailwind's neutral run and a handful of literal hexes. Each field
+///        carries the class or the hex it transcribes, so the sheet can be checked line by line.
+/// tag   contract, nonallocating, nonthrowing
+struct ContentBrowserInk
+{
+    InkOrdinate  Ground        = Covering(0x000000u);         // [-] - bg-black, the lattice ground
+    InkOrdinate  Aside         = Covering(0x0A0A0Au);         // [-] - bg-[#0a0a0a], sources and inspector
+    InkOrdinate  Rail          = Covering(0x0C0C0Eu);         // [-] - bg-[#0c0c0e], the breadcrumb and tongues
+    InkOrdinate  Stroke        = Covering(0x1F1F1Fu);         // [-] - border-[#1f1f1f]
+    InkOrdinate  CardUpper     = Covering(0x131316u);         // [-] - from-[#131316]
+    InkOrdinate  CardLower     = Covering(0x0F0F12u);         // [-] - to-[#0f0f12]
+    InkOrdinate  Plate         = Covering(0x1A1A1Eu);         // [-] - bg-[#1a1a1e], the record's own plate
+    InkOrdinate  Medallion     = Covering(0x17171Bu);         // [-] - bg-[#17171b], the inspector's crest
+    InkOrdinate  Field         = Covering(0x111111u);         // [-] - bg-[#111], the seek field
+    InkOrdinate  Primary       = Covering(0xFFFFFFu);         // [-] - text-white
+    InkOrdinate  Secondary     = Covering(0xA3A3A3u);         // [-] - text-neutral-400
+    InkOrdinate  Faint         = Covering(0x737373u);         // [-] - text-neutral-500
+    InkOrdinate  Faintest      = Covering(0x525252u);         // [-] - text-neutral-600
+    InkOrdinate  Roused        = Partial(0xFFFFFFu, 0.05);    // [-] - hover:bg-white/5
+    InkOrdinate  Taken         = Partial(0xFFFFFFu, 0.10);    // [-] - bg-white/10
+    InkOrdinate  EdgeRoused    = Partial(0xFFFFFFu, 0.30);    // [-] - hover:border-white/30
+    InkOrdinate  EdgeTaken     = Partial(0xFFFFFFu, 0.60);    // [-] - border-white/60
+    InkOrdinate  Hatch         = Partial(0xFFFFFFu, 0.02);    // [-] - the 45° repeating-linear-gradient
+
+    // 📝 Below are the reference's remaining tokens, which were written as literals at their draw sites and so
+    //    stood outside every theme. They are stated here for one reason: an ink named in this record is swept
+    //    onto the chosen theme's ladder, and an ink written at its draw site is not. Each keeps the exact
+    //    literal the reference states, so `Oled` still renders the transcription byte for byte.
+    InkOrdinate  Emphatic      = Covering(0xFFFFFFu);         // [-] - bg-white, the Import pill
+    InkOrdinate  EmphaticRoused= Covering(0xE5E5E5u);         // [-] - hover:bg-neutral-200
+    InkOrdinate  EmphaticRun   = Covering(0x000000u);         // [-] - text-black, the run ON that pill
+    InkOrdinate  ChipGround    = Partial(0x000000u, 0.70);    // [-] - bg-black/70, the extension chip
+    InkOrdinate  EdgeHolding   = Partial(0xFFFFFFu, 0.40);    // [-] - focus:border-white/40
+    InkOrdinate  MeterQuiet    = Partial(0xFFFFFFu, 0.20);    // [-] - the meter's second stop
+    InkOrdinate  GripQuiet     = Partial(0xFFFFFFu, 0.15);    // [-] - the scrollbar thumb at rest
+};
+
+/// 🧩 Every ink `LayerstackV1` declares in its `:root`, named rather than repeated.
+/// note  📐 The reference's own OLED-neutral token run. Each field carries the custom property it
+///        transcribes, so the sheet can be checked line by line.
+/// tag   contract, nonallocating, nonthrowing
+struct LayerStackInk
+{
+    InkOrdinate  Ground        = Covering(0x000000u);        // [-] - --bg
+    InkOrdinate  Panel         = Covering(0x050505u);        // [-] - --panel
+    InkOrdinate  PanelRaised   = Covering(0x0A0A0Au);        // [-] - --panel-2
+    InkOrdinate  Row           = Covering(0x0D0D0Du);        // [-] - --row
+    InkOrdinate  RowHovered    = Covering(0x161616u);        // [-] - --row-h
+    InkOrdinate  RowTaken      = Covering(0x202020u);        // [-] - --row-a
+    InkOrdinate  Detail        = Covering(0x080808u);        // [-] - --detail
+    InkOrdinate  Stroke        = Partial(0xFFFFFFu, 0.075);   // [-] - --stroke, .075 coverage
+    InkOrdinate  StrokeStrong  = Partial(0xFFFFFFu, 0.18) ;   // [-] - --stroke-2, .18 coverage
+    InkOrdinate  Primary       = Covering(0xEFEFEFu);        // [-] - --tx
+    InkOrdinate  Secondary     = Covering(0x9A9A9Au);        // [-] - --tx-2
+    InkOrdinate  Faint         = Covering(0x5E5E5Eu);        // [-] - --tx-3
+    InkOrdinate  Accent        = Covering(0xFFFFFFu);        // [-] - --acc
+    InkOrdinate  Danger        = Covering(0xFF6B63u);        // [-] - --danger
+    InkOrdinate  Affirm        = Covering(0x59D499u);        // [-] - --ok
+    InkOrdinate  Caution       = Covering(0xFFD24Au);        // [-] - --warn
+};
+
+//------------------------------------------------------------------------------------------------------------------------
 //                                                  THE RESOLVED RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -699,6 +819,11 @@ struct AppearanceSpecification
     WorkspaceMetric   WorkspaceMeasure  = {};
     EditorPanelInk     EditorPanel        = {};
     EditorPanelMetric  EditorPanelMeasure = {};
+
+    // 📝 The three ported references, themed through the same record as everything above them.
+    ShellInk           Shell              = {};
+    ContentBrowserInk  ContentBrowser     = {};
+    LayerStackInk      LayerStack         = {};
 };
 
 /// 🧩 The bounds the artist's own preference is admitted within.

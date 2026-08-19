@@ -56,6 +56,11 @@ static constexpr float RevisionSpineAlong = 39.0f;   // [px] - 32 + 15/2, the sp
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
+void LayerStackPanel::Reseat(const AppearanceSpecification& Resolved)
+{
+    Tinted = Resolved.LayerStack;
+}
+
 Deliver<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording)
 {
     if (Ledger != nullptr)

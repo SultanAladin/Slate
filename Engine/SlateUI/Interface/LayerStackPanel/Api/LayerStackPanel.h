@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Contract/DeliveryContract.h"
+#include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 #include "SlateUI/Interface/LayerStackSpecification/Api/LayerStackSpecification.h"
@@ -19,29 +20,9 @@ namespace Slate
 //                                                       THE SEATED INKS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Every ink `LayerstackV1` declares in its `:root`, named rather than repeated.
-/// note  📐 The reference's own OLED-neutral token run. Each field carries the custom property it
-///        transcribes, so the sheet can be checked line by line.
-/// tag   contract, nonallocating, nonthrowing
-struct LayerStackInk
-{
-    InkOrdinate  Ground        = Covering(0x000000u);        // [-] - --bg
-    InkOrdinate  Panel         = Covering(0x050505u);        // [-] - --panel
-    InkOrdinate  PanelRaised   = Covering(0x0A0A0Au);        // [-] - --panel-2
-    InkOrdinate  Row           = Covering(0x0D0D0Du);        // [-] - --row
-    InkOrdinate  RowHovered    = Covering(0x161616u);        // [-] - --row-h
-    InkOrdinate  RowTaken      = Covering(0x202020u);        // [-] - --row-a
-    InkOrdinate  Detail        = Covering(0x080808u);        // [-] - --detail
-    InkOrdinate  Stroke        = Partial(0xFFFFFFu, 0.075);   // [-] - --stroke, .075 coverage
-    InkOrdinate  StrokeStrong  = Partial(0xFFFFFFu, 0.18) ;   // [-] - --stroke-2, .18 coverage
-    InkOrdinate  Primary       = Covering(0xEFEFEFu);        // [-] - --tx
-    InkOrdinate  Secondary     = Covering(0x9A9A9Au);        // [-] - --tx-2
-    InkOrdinate  Faint         = Covering(0x5E5E5Eu);        // [-] - --tx-3
-    InkOrdinate  Accent        = Covering(0xFFFFFFu);        // [-] - --acc
-    InkOrdinate  Danger        = Covering(0xFF6B63u);        // [-] - --danger
-    InkOrdinate  Affirm        = Covering(0x59D499u);        // [-] - --ok
-    InkOrdinate  Caution       = Covering(0xFFD24Au);        // [-] - --warn
-};
+// 📝 `LayerStackInk` now lives in `AppearanceSpecification.h`, beside every other ink the interface draws
+//    with. It moved so the appearance file can reach it: a token run declared in a panel header is one the
+//    Control Centre cannot theme. The spellings are unchanged.
 
 /// 🧩 Every length `LayerstackV1` states, at the artist's own scale.
 /// tag   contract, nonallocating, nonthrowing
@@ -333,6 +314,14 @@ public:
     /// 🧩 The seated inks, so a host may state them in a proof.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
+    /// 🧩 Restates the panel's inks from a resolved appearance, so a theme change reaches it.
+    /// in    Resolved  [-]  the appearance the host resolved for the chosen theme
+    /// note  📐 Colours only. The lengths are the reference's own and a theme must not move one.
+    ///        Nothing is borrowed — the inks are copied out, so the caller may let `Resolved` expire.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Reseat(const AppearanceSpecification& Resolved);
+
     const LayerStackInk& Inked() const { return Tinted; }
 
     /// 🧩 The seated lengths.

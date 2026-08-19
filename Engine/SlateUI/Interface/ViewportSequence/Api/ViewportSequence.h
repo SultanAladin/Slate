@@ -10,6 +10,7 @@
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
+#include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
 #include "SlateUI/Interface/RedrawScheduler/Api/RedrawScheduler.h"
 
@@ -120,6 +121,16 @@ public:
     /// tag   api, nonallocating, nonthrowing
     const AppearanceSpecification& Appearance() const;
 
+    /// 🧩 Declares the theme and accents every later tick resolves the appearance against.
+    /// in    Selected  [-]  the artist's choice, as the Control Centre reports it
+    /// note  📐 Held rather than applied at once. The appearance is resolved fresh each tick against the
+    ///        arrived display scale, so the selection has to outlive the call that declares it; the very
+    ///        next tick draws in the new theme.
+    /// post  Appearance() reports inks re-anchored onto the chosen theme's ladder
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Retint(const ThemeSelection& Selected);
+
     /// 🧩 The shared motion integrator, for panels whose interaction contributes to viewport wakefulness.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -165,6 +176,7 @@ private:
     InterfaceExchange        Interface         = {};   // [-] - the interface context and ImGui
     MotionIntegrator         Motion            = {};   // [-] - spring physics
     AppearanceSpecification  Resolved          = {};   // [-] - inks and metrics at the display scale
+    ThemeSelection           Chosen            = {};   // [-] - the theme every resolve is anchored onto
     DrawerSpace              DrawersOwned      = {};   // [-] - the two drawers
     RedrawScheduler          MarksOwned        = {};   // [-] - per-panel redraw marks
     RecordingSurface         SurfaceOwned      = {};   // [-] - the drawing surface

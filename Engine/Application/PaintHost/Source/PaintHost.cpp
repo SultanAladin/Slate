@@ -208,6 +208,11 @@ int main(int ArgumentCount, char** ArgumentValues)
     InscribedSelection.Warning     = ControlCentreValues.Warning;
     InscribedSelection.Alert       = ControlCentreValues.Alert;
 
+    // 🔴 Declared BEFORE any panel is constructed. Panels that copy their inks do so out of the appearance the
+    //    viewport hands them at Construct, so a selection declared afterwards would leave the first frames
+    //    drawn in the transcription's own theme and only correct itself on the artist's first colour change.
+    Viewport.Retint(InscribedSelection);
+
     // 📝 Which dock node the next enrolled workspace is seated into; zero means the main dock space.
     std::uint32_t  EnrolIntoNode = 0u;
 
@@ -243,6 +248,9 @@ int main(int ArgumentCount, char** ArgumentValues)
         std::printf("%s \u2014 the content browser was refused\n", HostName);
         return 1;
     }
+
+    // 🔴 The browser takes no appearance at Construct — it is seated here, once the viewport has resolved one.
+    ContentBrowser.Reseat(Viewport.Appearance());
 
     SeatReferenceContent(ContentSeated);
 
@@ -480,6 +488,12 @@ int main(int ArgumentCount, char** ArgumentValues)
                 {
                     Disregard(ThemeInterchange::RecordBeside(InvokedAs, Chosen));
                     InscribedSelection = Chosen;
+
+                    // 🔴 Declared to the viewport, which re-anchors the whole appearance on the next tick, and
+                    //    then pushed into the two panels that keep their own copy of the inks. The shell reads
+                    //    the appearance through its own Reseat, which the viewport already calls.
+                    Viewport.Retint(Chosen);
+                    ContentBrowser.Reseat(Viewport.Appearance());
                 }
             }
             ControlCentre.Exclude(Viewport.Drawers());

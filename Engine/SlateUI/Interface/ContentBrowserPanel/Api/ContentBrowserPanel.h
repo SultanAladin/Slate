@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Contract/DeliveryContract.h"
+#include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -19,31 +20,9 @@ namespace Slate
 //                                                       THE SEATED INKS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Every ink `AsstbrowsrBasic` states, named rather than repeated.
-/// note  📐 The reference reaches for Tailwind's neutral run and a handful of literal hexes. Each field
-///        carries the class or the hex it transcribes, so the sheet can be checked line by line.
-/// tag   contract, nonallocating, nonthrowing
-struct ContentBrowserInk
-{
-    InkOrdinate  Ground        = Covering(0x000000u);         // [-] - bg-black, the lattice ground
-    InkOrdinate  Aside         = Covering(0x0A0A0Au);         // [-] - bg-[#0a0a0a], sources and inspector
-    InkOrdinate  Rail          = Covering(0x0C0C0Eu);         // [-] - bg-[#0c0c0e], the breadcrumb and tongues
-    InkOrdinate  Stroke        = Covering(0x1F1F1Fu);         // [-] - border-[#1f1f1f]
-    InkOrdinate  CardUpper     = Covering(0x131316u);         // [-] - from-[#131316]
-    InkOrdinate  CardLower     = Covering(0x0F0F12u);         // [-] - to-[#0f0f12]
-    InkOrdinate  Plate         = Covering(0x1A1A1Eu);         // [-] - bg-[#1a1a1e], the record's own plate
-    InkOrdinate  Medallion     = Covering(0x17171Bu);         // [-] - bg-[#17171b], the inspector's crest
-    InkOrdinate  Field         = Covering(0x111111u);         // [-] - bg-[#111], the seek field
-    InkOrdinate  Primary       = Covering(0xFFFFFFu);         // [-] - text-white
-    InkOrdinate  Secondary     = Covering(0xA3A3A3u);         // [-] - text-neutral-400
-    InkOrdinate  Faint         = Covering(0x737373u);         // [-] - text-neutral-500
-    InkOrdinate  Faintest      = Covering(0x525252u);         // [-] - text-neutral-600
-    InkOrdinate  Roused        = Partial(0xFFFFFFu, 0.05);    // [-] - hover:bg-white/5
-    InkOrdinate  Taken         = Partial(0xFFFFFFu, 0.10);    // [-] - bg-white/10
-    InkOrdinate  EdgeRoused    = Partial(0xFFFFFFu, 0.30);    // [-] - hover:border-white/30
-    InkOrdinate  EdgeTaken     = Partial(0xFFFFFFu, 0.60);    // [-] - border-white/60
-    InkOrdinate  Hatch         = Partial(0xFFFFFFu, 0.02);    // [-] - the 45° repeating-linear-gradient
-};
+// 📝 `ContentBrowserInk` now lives in `AppearanceSpecification.h`, beside every other ink the interface draws
+//    with. It moved so the appearance file can reach it: a token run declared in a panel header is one the
+//    Control Centre cannot theme. The spellings are unchanged.
 
 /// 🧩 Every length `AsstbrowsrBasic` states, at the artist's own scale.
 /// tag   contract, nonallocating, nonthrowing
@@ -240,6 +219,14 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Reset();
+
+    /// 🧩 Restates the panel's inks and lengths from a resolved appearance, so a theme change reaches it.
+    /// in    Resolved  [-]  the appearance the host resolved for the chosen theme
+    /// note  📐 Cheap enough to call every tick, though a host need only call it when the selection moves.
+    ///        Nothing is borrowed — the record is copied out, so the caller may let `Resolved` expire.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Reseat(const AppearanceSpecification& Resolved);
 
     ContentBrowserInk     Ink;        // [-] - the reference's own token run
     ContentBrowserMetric  Measure;    // [-] - the reference's own lengths

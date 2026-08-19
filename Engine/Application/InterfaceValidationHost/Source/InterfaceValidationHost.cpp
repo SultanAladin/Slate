@@ -493,7 +493,10 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     const ValidationIdentities Claimed = Enrolled.Resolve();
 
-    AppearanceSpecification Appearance = Resolve(1.0, SheetColumnScale, 0.0f);
+    // 🔴 Seeded from what was transcribed beside the executable, so gate ⑱ and every sheet above it come up in
+//    the recorded theme rather than in the transcription's own and correcting themselves a tick later.
+ThemeSelection          Selected   = InscribedSelection;
+AppearanceSpecification Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
 
     // 🔴 Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
     //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
@@ -759,7 +762,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         //    while a drag is live.
         if (Display.ExtentAlong != ResolvedAgainst)
         {
-            Appearance      = Resolve(Display.DisplayScale, ArtistScale, Display.ExtentAlong);
+            Appearance      = ResolveTinted(Display.DisplayScale, ArtistScale, Display.ExtentAlong, Selected);
             ResolvedAgainst = Display.ExtentAlong;
 
             // 🔴 The shell holds its own scaled extents, so a resolve it is not told about leaves it
@@ -1282,6 +1285,13 @@ int main(int ArgumentCount, char** ArgumentValues)
             {
                 Disregard(ThemeInterchange::RecordBeside(InvokedAs, Chosen));
                 InscribedSelection = Chosen;
+
+                // 🔴 The next tick's resolve reads this, and the two panels that keep their own copy of the
+                //    inks are reseated from the appearance this tick already holds.
+                Selected = Chosen;
+                Appearance = ResolveTinted(Display.DisplayScale, ArtistScale, Display.ExtentAlong, Selected);
+                ContentBrowser.Reseat(Appearance);
+                LayerStack.Reseat(Appearance);
             }
         }
         Cursor = ControlCentreExtent.MostAcross + Measure.CardGapAcross;

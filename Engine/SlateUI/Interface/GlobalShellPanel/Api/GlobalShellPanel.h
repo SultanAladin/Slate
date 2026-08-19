@@ -23,54 +23,9 @@ namespace Slate
 //                                                     THE REFERENCE INKS
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📐 The custom properties `app/globals.css` declares, transcribed as packed literals. Each is named for the
-//    responsibility the reference gives it, with the CSS spelling stated beside it so the two can be compared
-//    without opening the sheet. Nothing here is derived — every one is a literal from the source.
-inline constexpr std::uint32_t ShellDesk         = 0x0A0A0Bu;   // [-] - --desk
-inline constexpr std::uint32_t ShellMenu         = 0x17171Au;   // [-] - --menu
-inline constexpr std::uint32_t ShellMenuLower    = 0x101012u;   // [-] - --menu-2
-inline constexpr std::uint32_t ShellRailTaken    = 0x232327u;   // [-] - --rail-sel, and --row-sel
-inline constexpr std::uint32_t ShellTile         = 0x1D1D21u;   // [-] - --tile
-inline constexpr std::uint32_t ShellTileRoused   = 0x26262Bu;   // [-] - --tile-hi
-inline constexpr std::uint32_t ShellAccent       = 0x4A90E2u;   // [-] - --accent
-inline constexpr std::uint32_t ShellInkPrimary   = 0xECECF0u;   // [-] - --ink
-inline constexpr std::uint32_t ShellInkMuted     = 0x7B7B82u;   // [-] - --muted
-inline constexpr std::uint32_t ShellInkFaint     = 0x55555Du;   // [-] - --faint
-inline constexpr std::uint32_t ShellValueUnit    = 0x33333Au;   // [-] - --value-unit
-inline constexpr std::uint32_t ShellHairline     = 0xFFFFFFu;   // [-] - --hair and --hair-strong, by coverage
-inline constexpr std::uint32_t ShellEntityAccent = 0x3B82F6u;   // [-] - the outliner's own rail, bg-[#3b82f6]
-inline constexpr std::uint32_t ShellEntityTaken  = 0x1E40AFu;   // [-] - bg-[#1e40af33]
-
-/// 🧩 Every ink the shell records with, seated once beside the rest of the appearance.
-/// note  🔴 A record and not forty call-site literals. The reference states each colour once as a custom
-///        property and every rule reads it; a port spelling `Covering(0x17171Au)` at each of the sites it
-///        appears could not be compared against the sheet, and one of them would drift unnoticed.
-/// tag   contract, nonallocating, nonthrowing
-struct ShellInk
-{
-    InkOrdinate  Desk         = Covering(ShellDesk);            // [-] - the viewport ground
-    InkOrdinate  Menu         = Covering(ShellMenu);            // [-] - the outliner and the summoned card
-    InkOrdinate  MenuLower    = Covering(ShellMenuLower);       // [-] - the top bar, the rail, the inspector
-    InkOrdinate  Tile         = Covering(ShellTile);            // [-] - a quiet mode button
-    InkOrdinate  TileRoused   = Covering(ShellTileRoused);      // [-] - hover:bg-[var(--tile-hi)]
-    InkOrdinate  RowTaken     = Covering(ShellRailTaken);       // [-] - bg-[var(--row-sel)]
-    InkOrdinate  RowRoused    = Partial(ShellHairline, 0.045);  // [-] - --row-hover
-    InkOrdinate  Hairline     = Partial(ShellHairline, 0.06);   // [-] - --hair
-    InkOrdinate  HairlineFirm = Partial(ShellHairline, 0.10);   // [-] - --hair-strong
-    InkOrdinate  Accent       = Covering(ShellAccent);          // [-] - --accent
-    InkOrdinate  AccentSoft   = Partial(ShellAccent, 0.13);     // [-] - --accent-soft
-    InkOrdinate  EntityAccent = Covering(ShellEntityAccent);    // [-] - the outliner's selection rail
-    InkOrdinate  EntityTaken  = Partial(ShellEntityTaken, 0.20);// [-] - bg-[#1e40af33]
-    InkOrdinate  Primary      = Covering(ShellInkPrimary);      // [-] - --ink
-    InkOrdinate  Muted        = Covering(ShellInkMuted);        // [-] - --muted
-    InkOrdinate  Faint        = Covering(ShellInkFaint);        // [-] - --faint
-    InkOrdinate  Unit         = Covering(ShellValueUnit);       // [-] - --value-unit, the status separators
-    InkOrdinate  Veil         = Partial(0x000000u, 0.30);       // [-] - the summon veil, bg-black/30
-    InkOrdinate  WeaveFine    = Partial(ShellHairline, 0.028);  // [-] - the 28 px weave
-    InkOrdinate  WeaveCoarse  = Partial(ShellHairline, 0.055);  // [-] - the 140 px weave
-    InkOrdinate  Vignette     = Partial(0x000000u, 0.55);       // [-] - the viewport's radial fall-off
-    InkOrdinate  Absent       = Partial(0x000000u, 0.00);       // [-] - a quiet ground records nothing
-};
+// 📝 `ShellInk` now lives in `AppearanceSpecification.h`, beside every other ink the interface draws
+//    with. It moved so the appearance file can reach it: a token run declared in a panel header is one the
+//    Control Centre cannot theme. The spellings are unchanged.
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE REFERENCE EXTENTS

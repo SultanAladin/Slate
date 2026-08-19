@@ -288,6 +288,11 @@ void GlobalShellPanel::Reseat(const AppearanceSpecification& Resolved)
 {
     Appearance = &Resolved;
 
+    // 🔴 The inks are taken from the appearance rather than left at their compiled-in declarations, which is
+    //    what carries a theme into the shell. `Reseat` is already called at construction and again on every
+    //    display change, so the one line below is also the whole of the shell's theme response.
+    Tinted = Resolved.Shell;
+
     // 📝 The shell is authored at engine density, exactly as the workspace strip is, so it takes the display
     //    and artist factors rather than the control sheet's authored reduction.
     const float Applied = static_cast<float>(Resolved.Measure.DisplayScale)

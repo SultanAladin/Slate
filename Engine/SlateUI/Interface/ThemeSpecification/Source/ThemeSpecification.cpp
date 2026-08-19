@@ -152,4 +152,188 @@ void ThemeSpecification::Restore()
     SeedOnce();
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE TINTED APPEARANCE
+//------------------------------------------------------------------------------------------------------------------------
+
+namespace
+{
+
+// 📐 🔴 Rec. 709 luminance, on the sRGB-encoded ordinates rather than on linearised ones, and deliberately.
+//    The ladder this weight feeds is a *perceptual* ordering — which ink reads as darker than which — and
+//    the encoded ordinates are already close to perceptually uniform. Linearising first would crush the
+//    nine dark rungs every one of these appearances is built from into the bottom eighth of the range,
+//    and the six panel grounds an OLED theme separates would land on top of one another.
+constexpr float LuminanceOf(const InkOrdinate& Ink)
+{
+    return 0.2126f * static_cast<float>(Ink.Red)
+         + 0.7152f * static_cast<float>(Ink.Green)
+         + 0.0722f * static_cast<float>(Ink.Blue);
+}
+
+// 📝 The rungs a theme is read as. Six is what `ThemeDeclaration` states without deriving anything: the two
+//    grounds it draws behind everything, the card it raises, the edge between them, and its two text inks.
+inline constexpr std::uint32_t RungCeiling = 6u;
+
+struct ThemeLadder
+{
+    float        Luminance[RungCeiling] = {};   // [-] - ascending; equal rungs are separated on assembly
+    InkOrdinate  Ink[RungCeiling]       = {};   // [-] - the ink each rung was read from
+};
+
+// 🔴 Read in role order and never sorted, which is the whole correctness of the mapping. The rungs are a
+//    *depth* ordering — ground, the panel over it, the card over that, its edge, then the two text inks — and
+//    that ordering is what a theme shares with every other theme. Luminance is not: a light appearance states
+//    its ground bright and its text dark, so sorting by luminance makes rung zero the text on `Clean White`
+//    and the ground on `Oled`. Black would then map to the darkest thing the light theme owns and the asset
+//    browser would come up near-black on the one appearance an artist picked *because* it is light.
+ThemeLadder LadderOf(const ThemeDeclaration& Declared)
+{
+    ThemeLadder Assembled;
+
+    const InkOrdinate Read[RungCeiling] = { Declared.Ground, Declared.Panel,     Declared.Card,
+                                            Declared.Edge,   Declared.Secondary, Declared.Primary };
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < RungCeiling; ++Ordinal)
+    {
+        Assembled.Ink[Ordinal]       = Read[Ordinal];
+        Assembled.Luminance[Ordinal] = LuminanceOf(Read[Ordinal]);
+    }
+
+    return Assembled;
+}
+
+// 🔴 Only the reference ladder is walked to locate an ink, and locating needs it strictly ascending — both to
+//    find a span and to divide by one. `Oled` is already ascending as transcribed; an appearance file may
+//    state otherwise, and a rewritten `[theme.oled]` must not be able to divide by zero here.
+ThemeLadder Ascending(const ThemeLadder& Read)
+{
+    ThemeLadder Produced = Read;
+
+    for (std::uint32_t Ordinal = 1u; Ordinal < RungCeiling; ++Ordinal)
+    {
+        if (Produced.Luminance[Ordinal] <= Produced.Luminance[Ordinal - 1u])
+        {
+            Produced.Luminance[Ordinal] = Produced.Luminance[Ordinal - 1u] + 1.0f;
+        }
+    }
+
+    return Produced;
+}
+
+constexpr std::uint8_t Bounded(float Ordinate)
+{
+    return (Ordinate <= 0.0f)   ? static_cast<std::uint8_t>(0u)
+         : (Ordinate >= 255.0f) ? static_cast<std::uint8_t>(255u)
+                                : static_cast<std::uint8_t>(Ordinate + 0.5f);
+}
+
+// 🔴 The re-anchoring itself, and the one place the identity has to hold. An ink is located between two rungs
+//    of the reference ladder, the same fraction is read off the chosen ladder, and the difference between the
+//    two ladders' inks at that position is applied to the ink as a displacement. The displacement — rather
+//    than the ladder ink outright — is what preserves the ink's own hue: an amber caution stays amber, and
+//    only the ground it is read against moves.
+InkOrdinate Reanchored(const InkOrdinate& Ink, const ThemeLadder& Reference, const ThemeLadder& Chosen)
+{
+    // 📝 A fully transparent ink draws nothing; re-anchoring it would only spend the arithmetic.
+    if (Ink.Opacity == 0u) return Ink;
+
+    const float Standing = LuminanceOf(Ink);
+
+    std::uint32_t Lower = 0u;
+    while (Lower + 2u < RungCeiling && Reference.Luminance[Lower + 1u] < Standing) ++Lower;
+
+    const std::uint32_t Upper = Lower + 1u;
+
+    const float Span     = Reference.Luminance[Upper] - Reference.Luminance[Lower];
+    const float Fraction = (Standing - Reference.Luminance[Lower]) / Span;
+
+    // 📝 Read on each component rather than on luminance alone, so a ladder that carries a hue carries it
+    //    into the displacement. Extrapolates freely outside the ladder, which is what lets pure white and
+    //    pure black — neither of which is a rung — travel with the theme instead of pinning.
+    const float ReferenceRed   = static_cast<float>(Reference.Ink[Lower].Red)
+                               + Fraction * (static_cast<float>(Reference.Ink[Upper].Red)
+                                           - static_cast<float>(Reference.Ink[Lower].Red));
+    const float ReferenceGreen = static_cast<float>(Reference.Ink[Lower].Green)
+                               + Fraction * (static_cast<float>(Reference.Ink[Upper].Green)
+                                           - static_cast<float>(Reference.Ink[Lower].Green));
+    const float ReferenceBlue  = static_cast<float>(Reference.Ink[Lower].Blue)
+                               + Fraction * (static_cast<float>(Reference.Ink[Upper].Blue)
+                                           - static_cast<float>(Reference.Ink[Lower].Blue));
+
+    const float ChosenRed   = static_cast<float>(Chosen.Ink[Lower].Red)
+                            + Fraction * (static_cast<float>(Chosen.Ink[Upper].Red)
+                                        - static_cast<float>(Chosen.Ink[Lower].Red));
+    const float ChosenGreen = static_cast<float>(Chosen.Ink[Lower].Green)
+                            + Fraction * (static_cast<float>(Chosen.Ink[Upper].Green)
+                                        - static_cast<float>(Chosen.Ink[Lower].Green));
+    const float ChosenBlue  = static_cast<float>(Chosen.Ink[Lower].Blue)
+                            + Fraction * (static_cast<float>(Chosen.Ink[Upper].Blue)
+                                        - static_cast<float>(Chosen.Ink[Lower].Blue));
+
+    InkOrdinate Produced;
+    Produced.Red     = Bounded(static_cast<float>(Ink.Red)   + (ChosenRed   - ReferenceRed));
+    Produced.Green   = Bounded(static_cast<float>(Ink.Green) + (ChosenGreen - ReferenceGreen));
+    Produced.Blue    = Bounded(static_cast<float>(Ink.Blue)  + (ChosenBlue  - ReferenceBlue));
+    Produced.Opacity = Ink.Opacity;   // 🔴 carried, never re-anchored
+
+    return Produced;
+}
+
+// 🔴 Every ink record in the appearance is a run of `InkOrdinate` and nothing else, which is what lets one
+//    pass re-anchor all of them without naming a single field. `Sweep` asserts that shape at compile time,
+//    so an ink record that later gains a length is a refused build rather than a silently skipped group.
+template <typename Recorded>
+void Sweep(Recorded& Group, const ThemeLadder& Reference, const ThemeLadder& Chosen)
+{
+    static_assert(sizeof(Recorded) % sizeof(InkOrdinate) == 0,
+                  "an ink record must be a whole run of InkOrdinate");
+    static_assert(alignof(Recorded) == alignof(InkOrdinate),
+                  "an ink record must carry no padding");
+
+    InkOrdinate* const  Reading = reinterpret_cast<InkOrdinate*>(&Group);
+    const std::uint32_t Tallied = static_cast<std::uint32_t>(sizeof(Recorded) / sizeof(InkOrdinate));
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < Tallied; ++Ordinal)
+    {
+        Reading[Ordinal] = Reanchored(Reading[Ordinal], Reference, Chosen);
+    }
+}
+
+}   // namespace
+
+AppearanceSpecification Tinted(const AppearanceSpecification& Resolved, const ThemeSelection& Selected)
+{
+    AppearanceSpecification Produced = Resolved;
+
+    // 📝 `Oled` is the reference rung run because it is what every one of the three ports was transcribed
+    //    against. Mapping it through itself is the identity, so the default selection changes nothing.
+    const ThemeLadder Reference = Ascending(LadderOf(ThemeSpecification::Theme(ThemeSubject::Oled)));
+    const ThemeLadder Chosen    = LadderOf(ThemeSpecification::Theme(Selected.Presented));
+
+    Sweep(Produced.Ink,            Reference, Chosen);
+    Sweep(Produced.Control,        Reference, Chosen);
+    Sweep(Produced.Workspace,      Reference, Chosen);
+    Sweep(Produced.EditorPanel,    Reference, Chosen);
+    Sweep(Produced.Shell,          Reference, Chosen);
+    Sweep(Produced.ContentBrowser, Reference, Chosen);
+    Sweep(Produced.LayerStack,     Reference, Chosen);
+
+    // 🔴 The accents are deliberately NOT seated over the swept inks. An accent the artist chose is offered
+    //    by the Control Centre, and displacing a ported reference's own emphasis with it would edit the port:
+    //    `LayerstackV1` states `--acc` as white, and seating a chosen blue there would silently redraw a
+    //    reference this repository is required to carry exactly. The ladder tints those inks with everything
+    //    else; which accent is chosen stays a question the Control Centre answers.
+
+    return Produced;
+}
+
+AppearanceSpecification ResolveTinted(double                DisplayScale,
+                                      double                ArtistScale,
+                                      float                 ExtentAlong,
+                                      const ThemeSelection& Selected)
+{
+    return Tinted(Resolve(DisplayScale, ArtistScale, ExtentAlong), Selected);
+}
+
 }   // namespace Slate

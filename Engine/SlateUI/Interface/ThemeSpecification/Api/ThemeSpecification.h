@@ -168,4 +168,45 @@ public:
     static void Restore();
 };
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE TINTED APPEARANCE
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 Restates a resolved appearance in the chosen theme, so every panel draws the artist's colours.
+/// in    Resolved  [-]  the appearance as `Resolve` produced it — every extent already multiplied
+/// in    Selected  [-]  the theme and the accents the artist chose
+/// out   Appearance  [-]  the same record with every ink re-anchored; not one length is touched
+/// note  🔴 The mapping is a re-anchoring, not a replacement. Each ink is read for its luminance, that
+///        luminance is located on the reference theme's own ladder, and the same position is read back off
+///        the chosen theme's ladder. Two properties follow, and both are load-bearing. An ink keeps its
+///        standing among its neighbours, so a row that was one step above its ground stays one step above
+///        it in every theme. And mapping a ladder through itself is the identity — under `Oled`, which is
+///        what the references were transcribed against, every ink resolves to the literal it was ported as.
+///        `ThemeSpecificationHeldIdentity` asserts exactly that, so a drift in this arithmetic is a refused
+///        build rather than six themes that each look slightly wrong.
+/// note  ⚠️ Coverage is carried through untouched. A hairline at four per cent of white is a hairline at four
+///        per cent in every theme; re-anchoring its opacity would erase the hairline on a light appearance.
+/// note  📐 A theme's own hue rides along in its ladder, so `Purplish` and `Bluish` tint every panel without
+///        naming a single panel ink — which is the whole reason the ladder is read from the theme rather
+///        than from a fixed grey run.
+/// use   Called by a host at bring-up and again whenever the Control Centre reports a different selection.
+/// note  📐 Roughly two hundred inks re-anchored; once a theme change, never per tick.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+AppearanceSpecification Tinted(const AppearanceSpecification& Resolved, const ThemeSelection& Selected);
+
+/// 🧩 Resolves the appearance against the display and then restates it in the standing theme, in one call.
+/// in    DisplayScale  [-]  what the window system reports; values at or below zero resolve at one
+/// in    ArtistScale   [-]  the artist's own preference; clamped as `Resolve` clamps it
+/// in    ExtentAlong   [px] the drawable extent the density is classified from
+/// in    Selected      [-]  the theme and accents the artist chose
+/// out   Appearance    [-]  ready to hand to every panel
+/// use   The one call a host makes; it replaces a bare `Resolve` at every host that has a theme to honour.
+/// cost  🚩
+/// tag   api, nonallocating, nonthrowing
+AppearanceSpecification ResolveTinted(double                DisplayScale,
+                                      double                ArtistScale,
+                                      float                 ExtentAlong,
+                                      const ThemeSelection& Selected);
+
 }   // namespace Slate
