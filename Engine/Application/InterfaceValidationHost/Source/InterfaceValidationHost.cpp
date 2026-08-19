@@ -124,6 +124,34 @@ constexpr EntityRow LevelEntities[14] =
     /* g_14 */ { "Dust_Motes_VFX",          EntitySubject::Particle,   2u, 10u,         0u }
 };
 
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE INTERPOLANT BUDGET
+//------------------------------------------------------------------------------------------------------------------------
+
+// 🔴 Stated here so the ceiling can never silently fall behind the demand again. Every panel below owns a
+//    private `InteractionIndex` but they ALL draw from this host's single `MotionIntegrator`, and each
+//    enrolled control costs TWO eased interpolants — a rouse fade and a take fade. That doubling is what
+//    made the arithmetic surprising: the ledgers were nowhere near their own 256 ceilings while the shared
+//    ease pool was already empty. A panel that grows its control count now fails the build here, at the
+//    line that states the budget, rather than at run time in whichever panel happens to be constructed last.
+constexpr std::uint32_t SheetControls   = 31u;                 // [-] - EnrolEvery
+constexpr std::uint32_t FacetControls   = 24u + 2u;            // [-] - FacetPanel::FacetCapacity + 2
+constexpr std::uint32_t EditorControls  = 11u * 22u;           // [-] - RecordCeiling * ControlsPerRecord
+constexpr std::uint32_t CentreControls  = 192u;                // [-] - ControlCentrePanel::ControlCapacity
+constexpr std::uint32_t ShellControls   = 6u + (16u * 3u);     // [-] - GlobalShellPanel chrome + per-row trio
+
+constexpr std::uint32_t EasesPerControl = 2u;                  // [-] - InteractionIndex::Enrol draws both fades
+constexpr std::uint32_t BareEases       = 9u + 1u;             // [-] - Control Centre motions, shell carousel
+
+constexpr std::uint32_t DemandedEases =
+    ((SheetControls + FacetControls + EditorControls + CentreControls + ShellControls) * EasesPerControl)
+    + BareEases;
+
+static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
+              "the host's construct chain demands more eased interpolants than the integrator holds — the "
+              "panel constructed last will be refused mid-enrolment and the window will retire before its "
+              "first frame; raise MotionIntegrator::EaseCapacity or reduce a panel's control count");
+
 /// 🧩 Every identity the sheet's controls are enrolled under, claimed once at bring-up.
 struct ValidationIdentities
 {
@@ -336,9 +364,10 @@ int main()
     GlobalShellPanel         ReferenceShell;
     ShellOrdinates           ShellSeated;
 
-    if (!Ledger.Construct(Motion).ContentPresent)
+    if (const auto Verdict = Ledger.Construct(Motion); !Verdict.ContentPresent)
     {
-        std::printf("%s \u2014 the interaction ledger was refused\n", HostName);
+        std::printf("%s \u2014 the interaction ledger was refused: %s\n", HostName, Verdict.Declined.Detail);
+        std::fflush(stdout);
         return 1;
     }
 
@@ -347,6 +376,7 @@ int main()
     if (!Enrolled.ContentPresent)
     {
         std::printf("%s \u2014 the ledger declined an enrolment: %s\n", HostName, Enrolled.Declined.Detail);
+        std::fflush(stdout);
         return 1;
     }
 
@@ -354,46 +384,41 @@ int main()
 
     AppearanceSpecification Appearance = Resolve(1.0, SheetColumnScale, 0.0f);
 
-    if (!Panel.Construct(Ledger, Surface, Appearance).ContentPresent)
+    // 🔴 Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
+    //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
+    //    already open by this point, so the host appeared to "open white and crash" when it had in fact
+    //    stated its reason and exited 1. Naming the stage and flushing it is what makes the next one legible.
+    const auto Refused = [](const char* Stage, const Refusal& Declined) -> int
     {
-        std::printf("%s \u2014 the control panel was refused\n", HostName);
+        std::printf("%s \u2014 %s was refused: %s\n", HostName, Stage, Declined.Detail);
+        std::fflush(stdout);
         return 1;
-    }
+    };
 
-    if (!ReferenceControls.Construct(Ledger, Surface, Appearance).ContentPresent)
-    {
-        std::printf("%s \u2014 the reference controls were refused\n", HostName);
-        return 1;
-    }
+    if (const auto Verdict = Panel.Construct(Ledger, Surface, Appearance); !Verdict.ContentPresent)
+        return Refused("the control panel", Verdict.Declined);
 
-    if (!Facets.Construct(Motion, Surface, Appearance).ContentPresent)
-    {
-        std::printf("%s \u2014 the facet panel was refused\n", HostName);
-        return 1;
-    }
+    if (const auto Verdict = ReferenceControls.Construct(Ledger, Surface, Appearance); !Verdict.ContentPresent)
+        return Refused("the reference controls", Verdict.Declined);
 
-    if (!EditorPanels.Construct(Motion, Surface, Appearance).ContentPresent)
-    {
-        std::printf("%s \u2014 the editor panels were refused\n", HostName);
-        return 1;
-    }
+    if (const auto Verdict = Facets.Construct(Motion, Surface, Appearance); !Verdict.ContentPresent)
+        return Refused("the facet panel", Verdict.Declined);
+
+    if (const auto Verdict = EditorPanels.Construct(Motion, Surface, Appearance); !Verdict.ContentPresent)
+        return Refused("the editor panels", Verdict.Declined);
 
     EditorPartition.Construct(PanelSubject::Viewport);
 
-    if (!ControlCentre.Construct(Motion, Surface, Appearance).ContentPresent)
-    {
-        std::printf("%s \u2014 the Control Centre panel was refused\n", HostName);
-        return 1;
-    }
+    if (const auto Verdict = ControlCentre.Construct(Motion, Surface, Appearance); !Verdict.ContentPresent)
+        return Refused("the Control Centre panel", Verdict.Declined);
 
     // 🔴 The reference shell is constructed LAST and recorded FIRST. It occupies the whole display, and the
     //    validation sheet is the page that scrolls beneath it — so its enrolments are claimed after every
     //    other panel's, and nothing below it can take a contact the shell's own chrome stands over.
-    if (!ReferenceShell.Construct(Ledger, Motion, Surface, Appearance).ContentPresent)
-    {
-        std::printf("%s \u2014 the reference shell was refused\n", HostName);
-        return 1;
-    }
+    // 🔴 Being last also makes it the first to starve: every earlier panel draws two eased interpolants per
+    //    enrolled control from the ONE integrator, so a ceiling that fits the others exactly refuses here.
+    if (const auto Verdict = ReferenceShell.Construct(Ledger, Motion, Surface, Appearance); !Verdict.ContentPresent)
+        return Refused("the reference shell", Verdict.Declined);
 
     // What the sheet seats, and the runs it presents — the sole owner of every datum below.
     ValidationOrdinates Seated;

@@ -88,7 +88,13 @@ class MotionIntegrator
 {
 public:
 
-    static constexpr std::uint32_t InterpolantCapacity = 1024u;   // [-] - live interpolants, never allocated
+    // 🔴 Springs and eases are counted apart because they are drawn at wildly different rates. Every
+    //    `InteractionIndex::Enrol` burns TWO eases (a rouse fade and a take fade) and no spring at all, so
+    //    one shared ceiling sized for springs starves the eases long before the springs are touched. At
+    //    `523aa61` the host's construct chain demanded 1100 eases against a shared 1024 and the shell — the
+    //    last panel constructed — was refused mid-enrolment, which retired the window before its first frame.
+    static constexpr std::uint32_t SpringCapacity = 64u;     // [-] - four are drawn today; never allocated
+    static constexpr std::uint32_t EaseCapacity   = 2048u;   // [-] - 1100 are drawn today; never allocated
 
     MotionIntegrator()                                   = default;
     MotionIntegrator(const MotionIntegrator&)            = delete;
@@ -145,8 +151,8 @@ public:
 
 private:
 
-    SpringInterpolant  Springs[InterpolantCapacity] = {};   // [-]
-    EasedInterpolant   Eases[InterpolantCapacity]   = {};   // [-]
+    SpringInterpolant  Springs[SpringCapacity] = {};   // [-]
+    EasedInterpolant   Eases[EaseCapacity]     = {};   // [-]
     std::uint32_t      SpringCount                  = 0u;   // [-]
     std::uint32_t      EaseCount                    = 0u;   // [-]
     bool               AnythingMoving               = false;// [-]
