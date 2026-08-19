@@ -314,6 +314,18 @@ def SeatCarried(Selected):
             Origin = os.path.join(RepositoryRoot, Carried.replace('/', os.sep))
             Leaf   = os.path.basename(Origin)
 
+            # 📝 🔴 A carried FOLDER is placed whole. EngineContent is named this way: naming several hundred
+            #    files one at a time in the manifest would make the manifest a second copy of the folder
+            #    listing, and it would drift the first time content is added. The leaf name is preserved so
+            #    the run-time path below the binary seat is the same on both platforms.
+            if os.path.isdir(Origin):
+                SeatedRoot = os.path.join(BinaryRoot, Leaf)
+
+                os.makedirs(BinaryRoot, exist_ok = True)
+                shutil.copytree(Origin, SeatedRoot, dirs_exist_ok = True)
+                WriteProduced("carried {0}{1}".format(Leaf, os.sep))
+                continue
+
             if not os.path.isfile(Origin):
                 WriteSkipped("carry \u2014 {0} is absent at {1}".format(Leaf, Carried))
                 continue

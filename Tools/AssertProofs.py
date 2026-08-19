@@ -132,6 +132,31 @@ GATES = [
         (200, 196, 0x121212, 5, "the unfolded card's own head, lifted off the row ground"),
         (200, 340, 0x0D0D0D, 5, "the card beneath the fold, pushed down by it"),
     ]),
+    # ㉓ The content browser at rest — every column of the port stands, and nothing is taken.
+    ("VisualProof/InterfaceValidationHost/contentbrowser.png", [
+        ( 120, 500, 0x0A0A0A, 3, "the sources aside, bg-[#0a0a0a]"),
+        ( 700, 600, 0x000000, 3, "the lattice ground behind the records, bg-black"),
+        (1400, 600, 0x0A0A0A, 3, "the inspector column, bg-[#0a0a0a]"),
+        ( 480,  25, 0x111111, 4, "the seek field, bg-[#111]"),
+        (1200,  25, 0xFFFFFF, 4, "the import action, filled white as the reference has it"),
+    ]),
+    # ㉔ A record taken — the inspector fills, and the card carries border-white/60 down both its sides.
+    ("VisualProof/InterfaceValidationHost/contentbrowsertaken.png", [
+        ( 869, 200, 0xA3A3A5, 8, "the taken card's leading edge, white/60 over its own plate"),
+        (1058, 200, 0xA3A3A5, 8, "the taken card's trailing edge, the same white/60"),
+        ( 669, 200, 0x1A1A1E, 4, "an untaken card at the same depth, bare plate and no white edge"),
+        (1300, 870, 0xFFFFFF, 4, "the inspector's import action, which only stands once a record is taken"),
+    ]),
+    # ㉕ A seek run entered — the lattice retains only what answers it, and the rest of the run is bare.
+    ("VisualProof/InterfaceValidationHost/contentbrowserseek.png", [
+        (1000, 200, 0x000000, 3, "bare lattice ground where a record stood before the seek retained"),
+        ( 344, 200, 0x1A1A1E, 4, "the first retained record still standing on its plate"),
+    ]),
+    # ㉖ An archive traversed from the aside — the traversed row is taken, and the breadcrumb follows it.
+    ("VisualProof/InterfaceValidationHost/contentbrowsertraversed.png", [
+        ( 130, 215, 0x222222, 5, "the traversed source row, bg-white/10 over the aside"),
+        ( 130, 120, 0x0A0A0A, 3, "an untraversed row beside it, bare aside ground"),
+    ]),
     # ㉒ The whole run folded shut at the head, which must record nothing beneath the head at all.
     ("VisualProof/InterfaceValidationHost/revisionsfolded.png", [
         (200, 201, 0x050505, 3, "bare panel ground where the folded run records nothing"),

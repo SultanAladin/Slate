@@ -924,6 +924,24 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
             continue
         }
 
+        # 📝 🔴 A carried FOLDER is placed whole. EngineContent is named this way: the host resolves
+        #    fonts, graphics and materials from its own binary seat, and naming several hundred files one at a
+        #    time in the manifest would make the manifest a second copy of the folder listing that drifts the
+        #    first time content is added. The leaf name is preserved, so EngineContent/GraphicArchives arrives
+        #    at Binary/EngineContent/GraphicArchives and the run-time path is the same on both platforms.
+        if (Test-Path $CarriedPath -PathType Container)
+        {
+            $SeatedRoot = Join-Path $BinaryRoot $CarriedLeaf
+
+            if (-not (Test-Path $SeatedRoot))
+            {
+                New-Item -ItemType Directory -Path $SeatedRoot -Force | Out-Null
+            }
+
+            Copy-Item (Join-Path $CarriedPath '*') $SeatedRoot -Recurse -Force
+            continue
+        }
+
         $Seated = Join-Path $BinaryRoot $CarriedLeaf
 
         # 📝 🔴 An appearance the artist has since edited is left alone. Overwriting on every construct

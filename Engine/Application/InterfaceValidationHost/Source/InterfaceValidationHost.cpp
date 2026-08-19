@@ -15,6 +15,7 @@
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
+#include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
 #include "SlateUI/Interface/LayerStackPanel/Api/LayerStackPanel.h"
 #include "SlateUI/Interface/LayerStackSpecification/Api/LayerStackSpecification.h"
 #include "SlateUI/Interface/MotionIntegrator/Api/MotionIntegrator.h"
@@ -145,13 +146,14 @@ constexpr std::uint32_t ShellControls   = 8u + (16u * 3u)      // [-] - chrome +
                                         + (12u * 6u);          // [-] - six per layer row: two halves, four actions
 constexpr std::uint32_t StackControls   = (16u * 12u) + 20u    // [-] - LayerStackPanel: RowCeiling × CellsPerRow
                                         + 32u + 16u;           // [-] - chrome, popup entries, revision entries
+constexpr std::uint32_t BrowserControls = ContentBrowserPanel::EnrolmentDemand;   // [-] - sources, lattice, chrome
 
 constexpr std::uint32_t EasesPerControl = 2u;                  // [-] - InteractionIndex::Enrol draws both fades
 constexpr std::uint32_t BareEases       = 9u + 1u;             // [-] - Control Centre motions, shell carousel
 
 constexpr std::uint32_t DemandedEases =
     ((SheetControls + FacetControls + EditorControls + CentreControls + ShellControls
-      + StackControls) * EasesPerControl)
+      + StackControls + BrowserControls) * EasesPerControl)
     + BareEases;
 
 static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
@@ -166,12 +168,28 @@ static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
 //    ceiling of 256 — so `LayerStack.Construct` was refused with "no further control slot" and the host
 //    printed its refusal and exited 1 before recording a single frame. Only the panels sharing the ledger
 //    are counted here; a panel with its own ledger is weighed against its own capacity, not this one.
-constexpr std::uint32_t SharedSlots = SheetControls + ShellControls + StackControls;
+constexpr std::uint32_t SharedSlots = SheetControls + ShellControls + StackControls + BrowserControls;
 
 static_assert(SharedSlots <= InteractionIndex::ControlCapacity,
               "the panels sharing this host's one InteractionIndex enrol more controls than it holds — the "
               "panel constructed last is refused at bring-up and the host exits before its first frame; "
               "raise InteractionIndex::ControlCapacity or reduce a sharing panel's control count");
+
+// 🔴 A THIRD ceiling, and the one that actually killed this host: automatic storage. A Windows thread is
+//    given one megabyte, and a refusal here is not a refusal at all — the guard page is touched in the
+//    prologue, so the process dies before any statement can report anything. The gates could never catch
+//    it because Linux hands out eight megabytes. Anything above the stated fraction of a Windows stack
+//    must live in static storage; this assert makes that a build error rather than a silent exit.
+constexpr std::size_t WindowsThreadStack = 1048576u;   // [B] - the linker default the host is shipped with
+constexpr std::size_t AutomaticCeiling   = WindowsThreadStack / 4u;   // [B] - a quarter, leaving room to call
+
+static_assert(sizeof(MotionIntegrator) + sizeof(InteractionIndex) + sizeof(RecordingSurface) +
+              sizeof(LayerStackPanel)  + sizeof(LayerStackOrdinates) +
+              sizeof(ContentBrowserPanel) + sizeof(ContentBrowserOrdinates) <= AutomaticCeiling,
+              "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
+              "prologue's stack probe will fault before main runs a statement and the host will exit with "
+              "no window and no log line; move the largest member to static storage as LayerArrangement "
+              "and RevisionSequence already are");
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE REFERENCE SHELL'S STACK
@@ -437,8 +455,25 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    arrangement is seated from the reference once, then the artist amends it through the panel.
     LayerStackPanel          LayerStack;
     LayerStackOrdinates      LayerStackSeated;
-    LayerArrangement         LayerArranged;
-    RevisionSequence         LayerRevisions;
+
+    // 📝 The ported `AsstbrowsrBasic` page — the sources aside, the record lattice and the inspector. The
+    //    library is seated from the reference's own `ASSETS` run once, before the first tick.
+    ContentBrowserPanel      ContentBrowser;
+    ContentBrowserOrdinates  ContentBrowserSeated;
+    ContentLibrary           ContentSeated;
+
+    // 🔴 `static`, and that is not a style choice. `LayerArrangement` is 157 KB and `RevisionSequence`
+    //    retains sixteen whole arrangements against its undo ring, which is 2.5 MB — together they are
+    //    2.7 MB of automatic storage. A Windows thread is given ONE megabyte by default, so declaring
+    //    these on the stack overflows the guard page in the function prologue: MSVC's `__chkstk` probe
+    //    runs before the first statement, so the host dies with no window, no log line and no message —
+    //    exactly the silent black console this host presented. Linux's 8 MB default hid the fault
+    //    entirely, which is why it survived every gate. Static storage costs the same bytes in .bss,
+    //    where their size is a link-time fact rather than a per-thread reservation.
+    // 📝 The house rule forbids `new`/`delete` outside an extent slicer, so heap is not the answer here;
+    //    the host is a single-instance executable and these three have exactly one lifetime.
+    static LayerArrangement  LayerArranged;
+    static RevisionSequence  LayerRevisions;
 
     if (const auto Verdict = Ledger.Construct(Motion); !Verdict.ContentPresent)
     {
@@ -501,6 +536,13 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    interaction ledger, so its enrolments are counted in the interpolant budget above.
     if (const auto Verdict = LayerStack.Construct(Ledger, Surface); !Verdict.ContentPresent)
         return Refused("the layer stack", Verdict.Declined);
+
+    if (const auto Verdict = ContentBrowser.Construct(Ledger, Surface); !Verdict.ContentPresent)
+        return Refused("the content browser", Verdict.Declined);
+
+    // 📝 The reference's own `ASSETS` run, seated once. The panel amends what the artist takes; it never
+    //    amends the run itself, so this is the only write the library ever receives.
+    SeatReferenceContent(ContentSeated);
 
     // 🔴 The seat is read rather than dropped. A refused seat leaves the arrangement empty, and an empty
     //    stack draws as a bare pane — indistinguishable from a panel that recorded nothing.
@@ -742,6 +784,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         EditorPanels.Advance(Surface.Pointer(), ElapsedMs);
         ControlCentre.Advance(Surface.Pointer(), ElapsedMs);
         LayerStack.Advance(Surface.Pointer(), ElapsedMs);
+        ContentBrowser.Advance(Surface.Pointer(), ElapsedMs);
 
         // 🔴 The layer stack's chords are applied BEFORE anything is arranged, on the same grounds as the
         //    shell's Tab above: applied afterwards, every press shows one frame of the previous
@@ -1268,6 +1311,28 @@ int main(int ArgumentCount, char** ArgumentValues)
         Disregard(ReferenceShell.Record(ShellExtent, ShellSeated, LevelEntities, 14u, StackLayers, 4u));
         Cursor = ShellExtent.MostAcross + Measure.CardGapAcross;
 
+        // 📝 The browser's seek run takes what was typed only while its field holds the keyboard, on the
+        //    same terms as the shell's filter above — the two guards are exclusive, so no key reaches both.
+        if (ContentBrowserSeated.SeekHolding)
+        {
+            static_cast<void>(Interface.AdmitTyped(ContentBrowserSeated.Seek,
+                                                   ContentBrowserOrdinates::SeekCeiling));
+
+            if (Interface.KeyArrived(KeySubject::Retract))
+                static_cast<void>(ContentBrowser.RetractTyped(ContentBrowserSeated));
+
+            if (Interface.KeyArrived(KeySubject::Withdraw))
+            {
+                ContentBrowserSeated.Seek[0]     = '\0';
+                ContentBrowserSeated.SeekHolding = false;
+            }
+        }
+        else if (Interface.KeyArrived(KeySubject::Seek))
+        {
+            // 📐 The `/` chip in the field is not decoration — the reference binds the key to the focus.
+            ContentBrowserSeated.SeekHolding = true;
+        }
+
         // ⑰ The ported `LayerstackV1` page: the stack on the leading edge, and beside it the inspector's
         //     second slide — a property panel over the revisions. Which property panel stands is not a
         //     choice the host makes; it follows the taken half, exactly as the reference switches it.
@@ -1308,10 +1373,29 @@ int main(int ArgumentCount, char** ArgumentValues)
             Cursor = Cursor + LayerPageAcross + Measure.CardGapAcross;
         }
 
+        // ⑱ The ported `AsstbrowsrBasic` page: the sources aside, the record lattice between them, and the
+        //     inspector on the trailing edge. `h-screen` in the reference, so it is recorded at the whole
+        //     display extent exactly as the shell and the Control Centre pages above it are.
+        // 🔴 The Three.js preview is deliberately not built. The inspector's preview region states what it
+        //     would present instead of standing empty, so the absence reads as withheld and not as failed.
+        {
+            constexpr float BrowserPageAcross = 720.0f;   // [px] - what the whole browser wants across
+
+            const float BrowserAcross = (Display.ExtentAcross > BrowserPageAcross)
+                                      ? Display.ExtentAcross : BrowserPageAcross;
+
+            const PlaneExtent BrowserExtent = Spanning(0.0f, Cursor, Display.ExtentAlong, BrowserAcross);
+
+            ContentBrowser.RecordBrowser(BrowserExtent, ContentSeated, ContentBrowserSeated);
+
+            Cursor = BrowserExtent.MostAcross + Measure.CardGapAcross;
+        }
+
         // 🔴 The deferred sweep — every menu and every tooltip card, above every row recorded above.
         Panel.RecordDeferred();
         Facets.RecordDeferred();
         LayerStack.RecordDeferred(LayerArranged, LayerStackSeated, LayerRevisions);
+        ContentBrowser.RecordDeferred(ContentBrowserSeated);
 
         // 📝 What the page sequence actually occupied, for the next tick's scroll to be held against. The
         //    trailing `py-32` is added so the Control Centre page can be carried clear of the lower edge.

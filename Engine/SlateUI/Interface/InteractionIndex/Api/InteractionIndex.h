@@ -100,9 +100,11 @@ public:
     //    and then refused the layer stack's 240 outright — `Construct` returned "no further control slot",
     //    the host reported it and exited 1 before its first frame. The layer stack's own static_assert
     //    could not catch that: it weighed 240 against 256 in isolation, knowing nothing of the 159 already
-    //    claimed. 512 seats every panel the four hosts build with room to spare, and each slot costs two
-    //    eased interpolants against MotionIntegrator::EaseCapacity, which is 2048.
-    static constexpr std::uint32_t ControlCapacity = 512u;   // [-] - enrolled controls; never allocated, never grown
+    //    claimed. 512 seated every panel the hosts built until the content browser was added, whose lattice
+    //    and sources take a further 100 and carried the shared total to 519 — one refusal past the ceiling.
+    //    640 seats every panel the four hosts build with room to spare, and each slot costs two eased
+    //    interpolants against MotionIntegrator::EaseCapacity, which is 2048.
+    static constexpr std::uint32_t ControlCapacity = 640u;   // [-] - enrolled controls; never allocated, never grown
 
     InteractionIndex()                                   = default;
     InteractionIndex(const InteractionIndex&)            = delete;
