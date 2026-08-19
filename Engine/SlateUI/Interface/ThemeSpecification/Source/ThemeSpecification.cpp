@@ -45,13 +45,13 @@ constexpr AccentDeclaration Accents[] = {{"Blue", Covering(0x3B82F6u)},  {"Cyan"
 
 } // namespace
 
-const ThemeDeclaration &ThemeSpecification::Theme(ThemeSubject Subject)
+const ThemeDeclaration& ThemeSpecification::Theme(ThemeSubject Subject)
 {
     const std::uint32_t Ordinal = static_cast<std::uint32_t>(Subject);
     return Themes[(Ordinal < static_cast<std::uint32_t>(ThemeSubject::SubjectCount)) ? Ordinal : 0u];
 }
 
-const AccentDeclaration &ThemeSpecification::Accent(AccentSubject Subject)
+const AccentDeclaration& ThemeSpecification::Accent(AccentSubject Subject)
 {
     const std::uint32_t Ordinal = static_cast<std::uint32_t>(Subject);
     return Accents[(Ordinal < static_cast<std::uint32_t>(AccentSubject::SubjectCount)) ? Ordinal : 0u];

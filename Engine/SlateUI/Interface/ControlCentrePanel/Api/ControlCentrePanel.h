@@ -95,41 +95,41 @@ class ControlCentrePanel
 public:
     static constexpr std::uint32_t ControlCapacity = 192u;
 
-    Deliver<bool> Construct(MotionIntegrator &Motion, RecordingSurface &Surface,
-                            const AppearanceSpecification &Appearance);
-    void Advance(const PointerCondition &Arrived, double Elapsed);
-    Deliver<bool> Record(const PlaneExtent &Interior, ControlCentreOrdinates &Ordinates);
-    void Exclude(DrawerSpace &Drawers) const;
+    Deliver<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
+                            const AppearanceSpecification& Appearance);
+    void Advance(const PointerCondition& Arrived, double Elapsed);
+    Deliver<bool> Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates);
+    void Exclude(DrawerSpace& Drawers) const;
     void Reset();
 
 private:
-    void RetainExclusion(const PlaneExtent &Extent);
-    bool Pressed(std::uint32_t Ordinal, const PlaneExtent &Extent);
-    bool Slider(std::uint32_t Ordinal, const PlaneExtent &Extent, std::uint32_t Least, std::uint32_t Most,
-                std::uint32_t &Reading, const char *UnitGlyph, InkOrdinate Rail, InkOrdinate Accent);
-    void Toggle(std::uint32_t Ordinal, const PlaneExtent &Extent, bool &Enabled, InkOrdinate Quiet, InkOrdinate Accent);
-    void Symbol(const PlaneExtent &Extent, InkOrdinate Ink);
-    void DashboardPage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates, const ThemeDeclaration &Theme,
+    void RetainExclusion(const PlaneExtent& Extent);
+    bool Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent);
+    bool Slider(std::uint32_t Ordinal, const PlaneExtent& Extent, std::uint32_t Least, std::uint32_t Most,
+                std::uint32_t& Reading, const char* UnitGlyph, InkOrdinate Rail, InkOrdinate Accent);
+    void Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, InkOrdinate Quiet, InkOrdinate Accent);
+    void Symbol(const PlaneExtent& Extent, InkOrdinate Ink);
+    void DashboardPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
                        InkOrdinate Accent);
-    void SettingsPage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates, const ThemeDeclaration &Theme,
+    void SettingsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
                       InkOrdinate Accent);
-    void NotificationsPage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates, const ThemeDeclaration &Theme,
+    void NotificationsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
                            InkOrdinate Accent);
-    void DisplayPage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates, const ThemeDeclaration &Theme,
+    void DisplayPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
                      InkOrdinate Accent);
-    void InputPage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates, const ThemeDeclaration &Theme,
+    void InputPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
                    InkOrdinate Accent);
-    void ThemePage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates, const ThemeDeclaration &Theme,
+    void ThemePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
                    InkOrdinate Accent);
-    void FontsPage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates, const ThemeDeclaration &Theme,
+    void FontsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
                    InkOrdinate Accent);
-    void DisplayHardwarePage(const PlaneExtent &Extent, ControlCentreOrdinates &Ordinates,
-                             const ThemeDeclaration &Theme, InkOrdinate Accent);
+    void DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+                             const ThemeDeclaration& Theme, InkOrdinate Accent);
     void Navigate(ControlCentrePage Arriving);
 
-    MotionIntegrator *Motion = nullptr;
-    RecordingSurface *Surface = nullptr;
-    const AppearanceSpecification *Appearance = nullptr;
+    MotionIntegrator* Motion = nullptr;
+    RecordingSurface* Surface = nullptr;
+    const AppearanceSpecification* Appearance = nullptr;
     InteractionIndex Interaction = {};
     ComponentSpecification SharedControls = {};
     ControlIdentity Controls[ControlCapacity] = {};

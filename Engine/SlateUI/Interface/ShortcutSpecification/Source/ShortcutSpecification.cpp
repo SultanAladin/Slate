@@ -35,7 +35,7 @@ constexpr ShortcutDeclaration Unity[] = {{"Orbit Camera", "Viewport", {"LMB Drag
 
 } // namespace
 
-const char *ShortcutSpecification::Caption(ShortcutPreset Preset)
+const char* ShortcutSpecification::Caption(ShortcutPreset Preset)
 {
     switch (Preset)
     {
@@ -48,7 +48,7 @@ const char *ShortcutSpecification::Caption(ShortcutPreset Preset)
     }
 }
 
-const ShortcutDeclaration *ShortcutSpecification::Shortcuts(ShortcutPreset Preset, std::uint32_t &Count)
+const ShortcutDeclaration* ShortcutSpecification::Shortcuts(ShortcutPreset Preset, std::uint32_t& Count)
 {
     switch (Preset)
     {

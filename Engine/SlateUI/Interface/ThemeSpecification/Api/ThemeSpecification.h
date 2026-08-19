@@ -39,7 +39,7 @@ enum class AccentSubject : std::uint32_t
 
 struct ThemeDeclaration
 {
-    const char *Caption = ""; // [-]
+    const char* Caption = ""; // [-]
     InkOrdinate Ground = {};
     InkOrdinate Panel = {};
     InkOrdinate Primary = {};
@@ -57,15 +57,15 @@ struct ThemeDeclaration
 
 struct AccentDeclaration
 {
-    const char *Caption = ""; // [-]
+    const char* Caption = ""; // [-]
     InkOrdinate Ink = {};
 };
 
 class ThemeSpecification
 {
 public:
-    static const ThemeDeclaration &Theme(ThemeSubject Subject);
-    static const AccentDeclaration &Accent(AccentSubject Subject);
+    static const ThemeDeclaration& Theme(ThemeSubject Subject);
+    static const AccentDeclaration& Accent(AccentSubject Subject);
 };
 
 } // namespace Slate
