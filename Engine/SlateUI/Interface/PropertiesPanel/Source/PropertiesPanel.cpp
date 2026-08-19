@@ -3,8 +3,8 @@
 //============================================================================================================================================
 // 🧩 Record cards through ControlPanel widgets, the carousel, and the revision stack — Inspector.tsx on the recording seam.
 
-#include "Engine/SlateUI/Interface/PropertiesPanel/Api/PropertiesPanel.h"
-#include "Engine/SlateUI/Interface/FieldPanel/Api/FieldPanel.h"
+#include "SlateUI/Interface/PropertiesPanel/Api/PropertiesPanel.h"
+#include "SlateUI/Interface/FieldPanel/Api/FieldPanel.h"
 
 #include "imgui.h"
 
@@ -13,6 +13,8 @@
 #include <cstring>
 
 namespace Slate
+{
+namespace Reference
 {
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -137,7 +139,7 @@ std::uint32_t CountFields(DirectoryClassification Classification)
 
 }   // namespace
 
-void PropertiesPanel::Advance(RecordingSurface& Surface, const PlaneExtent& Seat, const OutlinerRowDeclaration* Declared,
+void PropertiesPanel::Advance(PanelExchange& Surface, const PlaneExtent& Seat, const OutlinerRowDeclaration* Declared,
                               ProfileOrdinates& Profile, const IconDepot& Depot,
                               const RevisionDeclaration* Revisions, std::uint32_t RevisionCount,
                               const OutlinerRowDeclaration* Forest, std::uint32_t ForestCount)
@@ -495,7 +497,7 @@ void PropertiesPanel::Advance(RecordingSurface& Surface, const PlaneExtent& Seat
 //                                                       THE HISTORY
 //------------------------------------------------------------------------------------------------------------------------
 
-void PropertiesPanel::PresentHistory(RecordingSurface& Surface, const PlaneExtent& Seat, const OutlinerRowDeclaration* Declared,
+void PropertiesPanel::PresentHistory(PanelExchange& Surface, const PlaneExtent& Seat, const OutlinerRowDeclaration* Declared,
                                      const RevisionDeclaration* Revisions, std::uint32_t RevisionCount,
                                      const OutlinerRowDeclaration* Forest, std::uint32_t ForestCount, const IconDepot& Depot)
 {
@@ -680,4 +682,5 @@ void PropertiesPanel::PresentHistory(RecordingSurface& Surface, const PlaneExten
     }
 }
 
+}   // namespace Reference
 }   // namespace Slate

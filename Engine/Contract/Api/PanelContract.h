@@ -10,6 +10,8 @@
 
 namespace Slate
 {
+namespace Reference
+{
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                         REFUSAL
@@ -68,4 +70,5 @@ private:
     bool      Standing;   // [-] - whether content stands delivered
 };
 
+}   // namespace Reference
 }   // namespace Slate

@@ -5,14 +5,16 @@
 
 #pragma once
 
-#include "Engine/Contract/Api/DeliveryContract.h"
-#include "Engine/SlateUI/Interface/IconDepot/Api/IconDepot.h"
-#include "Engine/SlateUI/Interface/RecordingSurface/Api/RecordingSurface.h"
-#include "Engine/SlateUI/Interface/ReferenceSpecification/Api/ReferenceSpecification.h"
+#include "Contract/Api/PanelContract.h"
+#include "SlateUI/Interface/IconDepot/Api/IconDepot.h"
+#include "SlateUI/Interface/PanelExchange/Api/PanelExchange.h"
+#include "SlateUI/Interface/ReferenceSpecification/Api/ReferenceSpecification.h"
 
 #include <cstdint>
 
 namespace Slate
+{
+namespace Reference
 {
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -98,7 +100,7 @@ public:
 
     /// 🧩 Presents the directory inside the seat extent, one tick.
     /// tag   api, nonallocating, nonthrowing
-    void Advance(RecordingSurface& Surface, const PlaneExtent& Seat,
+    void Advance(PanelExchange& Surface, const PlaneExtent& Seat,
                  const OutlinerRowDeclaration* Rows, std::uint32_t RowCount,
                  const OutlinerComposition& Composition, const IconDepot& Depot);
 
@@ -132,7 +134,7 @@ private:
 
     /// 🧩 Presents one row and its enclosed forest.
     /// tag   internal, nonallocating, nonthrowing
-    void PresentRow(RecordingSurface& Surface, const PlaneExtent& Body, const OutlinerRowDeclaration& Row,
+    void PresentRow(PanelExchange& Surface, const PlaneExtent& Body, const OutlinerRowDeclaration& Row,
                     std::uint32_t Depth, bool RetentionStanding, const IconDepot& Depot);
 
     /// 🧩 Whether the row, or any row it encloses, carries the retention run.
@@ -145,4 +147,5 @@ private:
     std::uint32_t    PresentedCount = 0u;        // [-]  - rows presented this tick
 };
 
+}   // namespace Reference
 }   // namespace Slate

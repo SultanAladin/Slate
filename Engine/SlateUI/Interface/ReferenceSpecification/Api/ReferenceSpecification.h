@@ -9,6 +9,8 @@
 
 namespace Slate
 {
+namespace Reference
+{
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                          INK
@@ -200,4 +202,5 @@ struct CadInk
     static constexpr std::uint32_t RightSwatch  = 0x3B82F6u;   // [-] - Right Plane
 };
 
+}   // namespace Reference
 }   // namespace Slate

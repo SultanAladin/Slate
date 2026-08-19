@@ -868,6 +868,22 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
         "/PDB:$(Join-Path $BinaryRoot "$Subject.pdb")"
     ) + $ObjectPath + $Linked
 
+    # 📝 🔴 A host still running holds its executable open, and link.exe refuses the write as LNK1168 — a
+    #    defect report no reader can act on. The standing process is stopped and the seat cleared first.
+    if (Test-Path $ExecutablePath)
+    {
+        try { Remove-Item $ExecutablePath -Force -ErrorAction Stop } catch
+        {
+            Get-Process -Name $Subject -ErrorAction SilentlyContinue | Stop-Process -Force
+            Start-Sleep -Milliseconds 200
+            try { Remove-Item $ExecutablePath -Force -ErrorAction Stop } catch
+            {
+                Write-Refused "$Subject is still running and holds its executable open"
+                throw "$Subject held its executable open"
+            }
+        }
+    }
+
     $Diagnostics = & link.exe @Arguments
 
     if ($LASTEXITCODE -ne 0)

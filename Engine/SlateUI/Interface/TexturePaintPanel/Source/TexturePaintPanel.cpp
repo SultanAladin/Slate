@@ -3,8 +3,8 @@
 //============================================================================================================================================
 // 🧩 Layer stack, channel cards and mask section — the texture-paint reference transcribed onto the recording seam.
 
-#include "Engine/SlateUI/Interface/TexturePaintPanel/Api/TexturePaintPanel.h"
-#include "Engine/SlateUI/Interface/FieldPanel/Api/FieldPanel.h"
+#include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintPanel.h"
+#include "SlateUI/Interface/FieldPanel/Api/FieldPanel.h"
 
 #include "imgui.h"
 
@@ -14,6 +14,8 @@
 #include <cstring>
 
 namespace Slate
+{
+namespace Reference
 {
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -93,7 +95,7 @@ bool PresentSeat(const PlaneExtent& Seat, const char* PushIdentity, bool& Roused
 
 /// 🧩 The channel sheet's slider — capsule of 92 px, centred numeral, 30 px unit segment, 19 px track.
 /// tag   internal
-void PresentChannelSlider(RecordingSurface& Surface, const PlaneExtent& Row, double& Amount, double Minimum, double Maximum,
+void PresentChannelSlider(PanelExchange& Surface, const PlaneExtent& Row, double& Amount, double Minimum, double Maximum,
                           std::uint32_t Figures, const char* Unit, const char* PushIdentity)
 {
     ChannelInk Sheet;
@@ -156,7 +158,7 @@ void PresentChannelSlider(RecordingSurface& Surface, const PlaneExtent& Row, dou
 
 /// 🧩 The channel sheet's segment row — a 999-radius pill, the taken segment inverted.
 /// tag   internal
-void PresentChannelSegments(RecordingSurface& Surface, const PlaneExtent& Seat, const char* const* Captions, std::uint32_t Count,
+void PresentChannelSegments(PanelExchange& Surface, const PlaneExtent& Seat, const char* const* Captions, std::uint32_t Count,
                             std::uint32_t& Taken, const char* PushIdentity)
 {
     ChannelInk Sheet;
@@ -203,7 +205,7 @@ void PresentChannelSegments(RecordingSurface& Surface, const PlaneExtent& Seat, 
 
 /// 🧩 The pickbar — a pill head opening a styled option list, for generators and transfer captions.
 /// tag   internal
-void PresentPickbar(RecordingSurface& Surface, const PlaneExtent& Seat, const char* CurrentRun, const char* PushIdentity)
+void PresentPickbar(PanelExchange& Surface, const PlaneExtent& Seat, const char* CurrentRun, const char* PushIdentity)
 {
     ChannelInk Sheet;
     bool Roused = false;
@@ -223,7 +225,7 @@ void PresentPickbar(RecordingSurface& Surface, const PlaneExtent& Seat, const ch
 
 /// 🧩 The 8 px checkerboard a texture thumb seats.
 /// tag   internal
-void PresentCheckerTile(RecordingSurface& Surface, const PlaneExtent& Seat)
+void PresentCheckerTile(PanelExchange& Surface, const PlaneExtent& Seat)
 {
     ChannelInk Sheet;
     const InkOrdinate Dark = Covering(0x0A0A0Au);
@@ -310,7 +312,7 @@ void SeatChannelOrdinates(ChannelOrdinates& Ordinates)
 //                                                      THE LAYER STACK
 //------------------------------------------------------------------------------------------------------------------------
 
-void LayerStackPanel::Advance(RecordingSurface& Surface, const PlaneExtent& Seat, LayerOrdinates* Layers, std::uint32_t LayerCount,
+void LayerStackPanel::Advance(PanelExchange& Surface, const PlaneExtent& Seat, LayerOrdinates* Layers, std::uint32_t LayerCount,
                               const IconDepot& Depot)
 {
     ChannelInk Sheet;
@@ -416,7 +418,6 @@ void LayerStackPanel::Advance(RecordingSurface& Surface, const PlaneExtent& Seat
         std::snprintf(CardIdentity, sizeof CardIdentity, "layer%u", Ordinal);
         char SeatMould[48];
 
-        const double CardDimming = Layer.Shown ? 1.0 : 0.4;
         const bool TakenLayer = ActiveLayer == Ordinal && !ActiveTargetMask;
         const bool TakenMask  = ActiveLayer == Ordinal && ActiveTargetMask;
         const bool Expanded   = Layer.Expanded;
@@ -773,7 +774,7 @@ void LayerStackPanel::Advance(RecordingSurface& Surface, const PlaneExtent& Seat
 //                                                  THE CHANNEL PROPERTY SEAT
 //------------------------------------------------------------------------------------------------------------------------
 
-void ChannelPropertyPanel::Advance(RecordingSurface& Surface, const PlaneExtent& Seat, ChannelOrdinates& Ordinates, const IconDepot& Depot)
+void ChannelPropertyPanel::Advance(PanelExchange& Surface, const PlaneExtent& Seat, ChannelOrdinates& Ordinates, const IconDepot& Depot)
 {
     ChannelInk Sheet;
     Surface.Ground(Seat, Sheet.DeskGround, 0.0f);
@@ -808,10 +809,8 @@ void ChannelPropertyPanel::Advance(RecordingSurface& Surface, const PlaneExtent&
     for (std::uint32_t Ordinal = 0u; Ordinal < 14u; ++Ordinal)
         if (Ordinates.Enabled[Ordinal]) ++EnabledCount;
 
-    float ChipsHeight = 10.0f + 12.0f + 8.0f + 27.0f + 9.0f;
-    const float ChipsPerRow = 3.0f;
     const float ChipRows = 1.0f + (EnabledCount > 3 ? (EnabledCount - 1) / 3 : 0);
-    ChipsHeight = 18.0f + ChipRows * 33.0f + 9.0f;
+    const float ChipsHeight = 18.0f + ChipRows * 33.0f + 9.0f;
     const PlaneExtent ChipsRegion = Spanning(Seat.LeastAlong + 8.0f, CursorAcross, Seat.SpanAlong() - 16.0f, ChipsHeight);
     Surface.Ground(ChipsRegion, Sheet.SunkenGround, 12.0f);
     Surface.Edge(ChipsRegion, Sheet.HairEdge, 1.0f, 12.0f);
@@ -1074,7 +1073,7 @@ void ChannelPropertyPanel::Advance(RecordingSurface& Surface, const PlaneExtent&
 //                                                   THE MASK PROPERTY SEAT
 //------------------------------------------------------------------------------------------------------------------------
 
-void MaskPropertyPanel::Advance(RecordingSurface& Surface, const PlaneExtent& Seat, MaskOrdinates& Ordinates, const IconDepot& Depot)
+void MaskPropertyPanel::Advance(PanelExchange& Surface, const PlaneExtent& Seat, MaskOrdinates& Ordinates, const IconDepot& Depot)
 {
     ChannelInk Sheet;
     Surface.Ground(Seat, Sheet.StandingGround, 0.0f);
@@ -1197,4 +1196,5 @@ void MaskPropertyPanel::Advance(RecordingSurface& Surface, const PlaneExtent& Se
     Surface.TextRun(DeleteSeat.LeastAlong + 26.0f, CentredAcross(DeleteSeat, Surface.RunExtent(10.0f)), "Delete", Sheet.Danger, 10.0f);
 }
 
+}   // namespace Reference
 }   // namespace Slate

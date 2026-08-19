@@ -5,13 +5,15 @@
 
 #pragma once
 
-#include "Engine/SlateUI/Interface/IconDepot/Api/IconDepot.h"
-#include "Engine/SlateUI/Interface/RecordingSurface/Api/RecordingSurface.h"
-#include "Engine/SlateUI/Interface/ReferenceSpecification/Api/ReferenceSpecification.h"
+#include "SlateUI/Interface/IconDepot/Api/IconDepot.h"
+#include "SlateUI/Interface/PanelExchange/Api/PanelExchange.h"
+#include "SlateUI/Interface/ReferenceSpecification/Api/ReferenceSpecification.h"
 
 #include <cstdint>
 
 namespace Slate
+{
+namespace Reference
 {
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -84,55 +86,55 @@ struct SliderDeclaration
 
 /// 🧩 The retention field — the reference's search pill: quiet ground, hair edge, search affordance, entry.
 /// in    Placeholder  [-]  borrowed; the vacated run
-/// in    ExtentAlong  [px]  the field's along span
 /// out   true while the entry stands focused
 /// tag   api, nonallocating, nonthrowing
-bool PresentRetentionField(RecordingSurface& Surface, const PlaneExtent& Seat, char* Run, std::uint32_t RunCapacity,
+bool PresentRetentionField(PanelExchange& Surface, const PlaneExtent& Seat, char* Run, std::uint32_t RunCapacity,
                            const char* Placeholder, const InkOrdinate& FieldGround, const InkOrdinate& FieldEdge,
                            const InkOrdinate& RunInk, const InkOrdinate& VacantInk);
 
 /// 🧩 One labelled switch row — track and nub reproduce `.switch` and `.nub` from the reference.
 /// tag   api, nonallocating, nonthrowing
-void PresentSwitchRow(RecordingSurface& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
+void PresentSwitchRow(PanelExchange& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
                       bool& Taken, const ControlSheet& Sheet, const char* PushIdentity);
 
 /// 🧩 One labelled segment row — mutually exclusive caption pills, the taken one inverted.
 /// tag   api, nonallocating, nonthrowing
-void PresentSegmentRow(RecordingSurface& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
+void PresentSegmentRow(PanelExchange& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
                        const char* const* Captions, std::uint32_t CaptionCount, std::uint32_t& Taken,
                        const ControlSheet& Sheet, const char* PushIdentity);
 
 /// 🧩 One labelled dropdown row — pill head with caret, opening a styled option list.
 /// tag   api, nonallocating, nonthrowing
-void PresentDropdownRow(RecordingSurface& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
+void PresentDropdownRow(PanelExchange& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
                         const char* const* Captions, std::uint32_t CaptionCount, std::uint32_t& Taken,
                         const ControlSheet& Sheet, const char* PushIdentity);
 
 /// 🧩 One labelled value slider row — numeral capsule, unit segment, track, fill, knob.
 /// tag   api, nonallocating, nonthrowing
-void PresentSliderRow(RecordingSurface& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
+void PresentSliderRow(PanelExchange& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
                       const SliderDeclaration& Range, double& Amount, const ControlSheet& Sheet, const char* PushIdentity);
 
 /// 🧩 One labelled scalar row — the reference's ScalarEntry: numeral capsule beside a centred-knob track,
 ///       the capsule drag stepping the amount.
 /// tag   api, nonallocating, nonthrowing
-void PresentScalarRow(RecordingSurface& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
+void PresentScalarRow(PanelExchange& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
                       const SliderDeclaration& Range, double Step, double& Amount, const ControlSheet& Sheet,
                       const char* PushIdentity);
 
 /// 🧩 One labelled vector row — three axis capsules, each numeral editable.
 /// tag   api, nonallocating, nonthrowing
-void PresentVectorRow(RecordingSurface& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
+void PresentVectorRow(PanelExchange& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
                       double Ordinates[3], double Step, const ControlSheet& Sheet, const char* PushIdentity);
 
 /// 🧩 One labelled colour row — the reference's colour pill with circle swatch and run of ordinates.
 /// tag   api, nonallocating, nonthrowing
-void PresentColourRow(RecordingSurface& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
+void PresentColourRow(PanelExchange& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
                       std::uint8_t Ordinates[4], bool& SeatedOpen, const ControlSheet& Sheet, const char* PushIdentity);
 
 /// 🧩 One labelled text row — the reference's pathfield pill with the round browse action.
 /// tag   api, nonallocating, nonthrowing
-void PresentTextRow(RecordingSurface& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
+void PresentTextRow(PanelExchange& Surface, const PlaneExtent& Row, const ControlRowDeclaration& Declared,
                     char* Run, std::uint32_t RunCapacity, const ControlSheet& Sheet, const char* PushIdentity);
 
+}   // namespace Reference
 }   // namespace Slate

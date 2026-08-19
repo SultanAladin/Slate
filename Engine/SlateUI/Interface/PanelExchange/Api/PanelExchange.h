@@ -5,12 +5,14 @@
 
 #pragma once
 
-#include "Engine/Contract/Api/DeliveryContract.h"
-#include "Engine/SlateUI/Interface/ReferenceSpecification/Api/ReferenceSpecification.h"
+#include "Contract/Api/PanelContract.h"
+#include "SlateUI/Interface/ReferenceSpecification/Api/ReferenceSpecification.h"
 
 #include <cstdint>
 
 namespace Slate
+{
+namespace Reference
 {
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -78,7 +80,7 @@ enum class CornerSelection : std::uint32_t
 /// note  The Api names no ImGui spelling; the Source is the one place the vendored library is addressed,
 ///       exactly as the engine's SlateUI unit is the only unit permitted to reference it.
 /// tag   contract, nonallocating, nonthrowing
-class RecordingSurface
+class PanelExchange
 {
 public:
 
@@ -102,10 +104,10 @@ public:
         bool   SecondaryDown  = false;     // [-]  - secondary button stands down
     };
 
-    RecordingSurface()                                = default;
-    RecordingSurface(const RecordingSurface&)         = delete;
-    RecordingSurface& operator=(const RecordingSurface&) = delete;
-    ~RecordingSurface()                               = default;
+    PanelExchange()                                = default;
+    PanelExchange(const PanelExchange&)         = delete;
+    PanelExchange& operator=(const PanelExchange&) = delete;
+    ~PanelExchange()                               = default;
 
     /// 🧩 Opens a tick's recording against one shell layer and samples the arrived pointer.
     /// out   Deliver  [-]  refuses with CapabilityAbsent when no interface context is current
@@ -231,4 +233,5 @@ private:
     bool              Standing    = false;     // [-] - whether a tick stands adopted
 };
 
+}   // namespace Reference
 }   // namespace Slate

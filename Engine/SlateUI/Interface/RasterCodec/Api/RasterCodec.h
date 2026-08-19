@@ -5,12 +5,14 @@
 
 #pragma once
 
-#include "Engine/Contract/Api/DeliveryContract.h"
+#include "Contract/Api/PanelContract.h"
 
 #include <cstdint>
 #include <vector>
 
 namespace Slate
+{
+namespace Reference
 {
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -71,6 +73,13 @@ public:
     /// tag   api, nonthrowing
     Deliver<bool> WriteRawDump(const PixelSpace& Extent, const char* Path);
 
+    /// 🧩 Writes the pixel extent as one portable network graphic — stored-deflate, no dependency.
+    /// note  The directories along the path are created when absent, so a host may write beside itself
+    ///       from any working directory.
+    /// cost  🚩
+    /// tag   api, nonthrowing
+    Deliver<bool> WritePortableNetworkGraphic(const PixelSpace& Extent, const char* Path);
+
 private:
 
     std::vector<PictureDeclaration>  Seated;          // [-] - identity → picture
@@ -80,4 +89,5 @@ private:
     std::uint32_t                    AtlasAcrossExtent = 0u;   // [px]
 };
 
+}   // namespace Reference
 }   // namespace Slate
