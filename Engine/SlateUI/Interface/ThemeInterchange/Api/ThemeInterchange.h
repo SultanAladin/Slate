@@ -47,7 +47,7 @@ public:
     /// err   ContentUnsupported  the stream exceeded ArchiveCeiling, or a line was not understood
     /// note  A file that names only `[selection]` is valid and common: it records which appearance the artist
     ///       chose while leaving what that appearance contains to the build.
-    /// cost  one read of the whole stream; no allocation beyond the produced archive
+    /// cost  🔴
     static Deliver<ThemeArchive> Transcribe(const char* Path);
 
     /// 🧩 Writes one archive as the appearance file, replacing whatever was there.
@@ -57,7 +57,7 @@ public:
     /// note  🔴 Staged beside the destination and moved over it once complete, never written in place. A host
     ///        that stops mid-write would otherwise leave a half-file that the next run refuses, and the
     ///        artist's appearance would be lost to a crash that had nothing to do with it.
-    /// cost  one write of the whole stream
+    /// cost  🔴
     static Deliver<bool> Inscribe(const char* Path, const ThemeArchive& Recorded);
 
     /// 🧩 Resolves a leaf name against the folder the running executable sits in.
@@ -87,7 +87,7 @@ public:
     ///        cannot read its appearance file should present the appearance it was built with, which is a
     ///        window an artist recognises — not a window drawn from a partially adopted archive.
     /// use   Called once at startup, before the first panel is recorded.
-    /// cost  one read of the whole stream
+    /// cost  🔴
     static Deliver<bool> AdoptBeside(const char* ExecutablePath, ThemeSelection& Produced);
 
     /// 🧩 Writes the standing appearance and the given selection to the file beside the executable.
@@ -96,7 +96,7 @@ public:
     /// err   HostDenied       the file could not be written or moved into place
     /// err   ExtentExhausted  the resolved path exceeds PathCeiling
     /// use   Called when the artist changes a colour, not every tick.
-    /// cost  one write of the whole stream
+    /// cost  🔴
     static Deliver<bool> RecordBeside(const char* ExecutablePath, const ThemeSelection& Selected);
 };
 
