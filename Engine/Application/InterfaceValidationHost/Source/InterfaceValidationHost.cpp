@@ -10,6 +10,7 @@
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/FacetPanel/Api/FacetPanel.h"
+#include "SlateUI/Interface/GlobalShellPanel/Api/GlobalShellPanel.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/InterfaceExchange.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
@@ -97,6 +98,30 @@ struct ValidationOrdinates
     std::uint32_t  OutlineOrder[5]     = { 0u, 0u, 0u, 1u, 1u };   // [-] - sibling position
     bool           FacetEnabled[14]    = { true, true, true, true, true, false, false,
                                            true, true, true, true, false, false, false };   // [-] - active filters
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                  THE REFERENCE SHELL'S LEVEL
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📐 `initialGameGraph` from `components/GameOutliner.tsx`, linearised in presentation order. The reference's
+//    `g_NN` tokens are the ordinals here, so the two can be read against each other row for row.
+constexpr EntityRow LevelEntities[14] =
+{
+    /* g_01 */ { "Level_01_City",           EntitySubject::Level,      0u, 0xFFFFFFFFu, 4u },
+    /* g_02 */ { "Lighting",                EntitySubject::Grouping,   1u,  0u,         2u },
+    /* g_03 */ { "Directional Light (Sun)", EntitySubject::Illuminant, 2u,  1u,         0u },
+    /* g_04 */ { "Sky Atmosphere",          EntitySubject::Illuminant, 2u,  1u,         0u },
+    /* g_05 */ { "Player_Start",            EntitySubject::Trigger,    1u,  0u,         0u },
+    /* g_06 */ { "Main Camera",             EntitySubject::Camera,     1u,  0u,         0u },
+    /* g_07 */ { "Environment",             EntitySubject::Grouping,   1u,  0u,         3u },
+    /* g_08 */ { "Building_A_Prefab",       EntitySubject::Actor,      2u,  6u,         0u },
+    /* g_09 */ { "Building_B_Prefab",       EntitySubject::Actor,      2u,  6u,         0u },
+    /* g_10 */ { "Street_Prop_FireHydrant", EntitySubject::Actor,      2u,  6u,         0u },
+    /* g_11 */ { "Systems",                 EntitySubject::Grouping,   1u,  0u,         3u },
+    /* g_12 */ { "GameManager",             EntitySubject::Script,     2u, 10u,         0u },
+    /* g_13 */ { "Ambient_City_Noise",      EntitySubject::Audio,      2u, 10u,         0u },
+    /* g_14 */ { "Dust_Motes_VFX",          EntitySubject::Particle,   2u, 10u,         0u }
 };
 
 /// 🧩 Every identity the sheet's controls are enrolled under, claimed once at bring-up.
@@ -308,6 +333,8 @@ int main()
     EditorPanelOrdinates     EditorOrdinates;
     ControlCentrePanel       ControlCentre;
     ControlCentreOrdinates   ControlCentreValues;
+    GlobalShellPanel         ReferenceShell;
+    ShellOrdinates           ShellSeated;
 
     if (!Ledger.Construct(Motion).ContentPresent)
     {
@@ -356,6 +383,15 @@ int main()
     if (!ControlCentre.Construct(Motion, Surface, Appearance).ContentPresent)
     {
         std::printf("%s \u2014 the Control Centre panel was refused\n", HostName);
+        return 1;
+    }
+
+    // 🔴 The reference shell is constructed LAST and recorded FIRST. It occupies the whole display, and the
+    //    validation sheet is the page that scrolls beneath it — so its enrolments are claimed after every
+    //    other panel's, and nothing below it can take a contact the shell's own chrome stands over.
+    if (!ReferenceShell.Construct(Ledger, Motion, Surface, Appearance).ContentPresent)
+    {
+        std::printf("%s \u2014 the reference shell was refused\n", HostName);
         return 1;
     }
 
@@ -571,9 +607,23 @@ int main()
         {
             Appearance      = Resolve(Display.DisplayScale, ArtistScale, Display.ExtentAlong);
             ResolvedAgainst = Display.ExtentAlong;
+
+            // 🔴 The shell holds its own scaled extents, so a resolve it is not told about leaves it
+            //    arranging at the previous display's figures — every other panel reads the appearance
+            //    through the borrowed reference and needs no such call.
+            ReferenceShell.Reseat(Appearance);
         }
 
         Motion.Advance(ElapsedMs);
+
+        // 🔴 The shell's keymap is applied BEFORE anything is arranged, so a Tab and the arrangement it
+        //    causes land in the same tick. Applied after, the artist sees one frame of the old
+        //    presentation on every press.
+        static_cast<void>(ReferenceShell.AdvanceSummoning(ShellSeated,
+                                                          Interface.KeyArrived(KeySubject::Summon),
+                                                          Interface.KeyArrived(KeySubject::Withdraw)));
+
+        ReferenceShell.Advance(Surface.Pointer(), ElapsedMs);
         Panel.Advance(Surface.Pointer(), ElapsedMs);
         ReferenceControls.Advance(Surface.Pointer(), ElapsedMs);
         Facets.Advance(Surface.Pointer(), ElapsedMs);
@@ -940,6 +990,31 @@ int main()
         Disregard(ControlCentre.Record(ControlCentreExtent, ControlCentreValues));
         Cursor = ControlCentreExtent.MostAcross + Measure.CardGapAcross;
 
+        // ⑯ The ported reference shell, the final full display-sized page. Its filter takes whatever was
+        //    typed this tick before it is recorded, so the run the field strokes is the run the artist has
+        //    just entered rather than the previous tick's.
+        const PlaneExtent ShellExtent = Spanning(0.0f, Cursor, Display.ExtentAlong, Display.ExtentAcross);
+
+        static_cast<void>(Interface.AdmitTyped(ShellSeated.EntityRetention,
+                                               ShellOrdinates::RetentionCeiling));
+
+        if (Interface.KeyArrived(KeySubject::Retract))
+        {
+            std::uint32_t Occupied = 0u;
+
+            while (Occupied + 1u < ShellOrdinates::RetentionCeiling &&
+                   ShellSeated.EntityRetention[Occupied] != '\0')
+            {
+                ++Occupied;
+            }
+
+            if (Occupied > 0u)
+                ShellSeated.EntityRetention[Occupied - 1u] = '\0';
+        }
+
+        Disregard(ReferenceShell.Record(ShellExtent, ShellSeated, LevelEntities, 14u));
+        Cursor = ShellExtent.MostAcross + Measure.CardGapAcross;
+
         // 🔴 The deferred sweep — every menu and every tooltip card, above every row recorded above.
         Panel.RecordDeferred();
         Facets.RecordDeferred();
@@ -999,6 +1074,7 @@ int main()
     // 🔴 Read before Reclaim. The register is Device lifetime, and a reclaimed device has emptied it.
     const std::uint32_t Serious = Lifetime.StateDiagnostics();
 
+    ReferenceShell.Reset();
     ControlCentre.Reset();
     EditorPanels.Reset();
     EditorPartition.Reset();

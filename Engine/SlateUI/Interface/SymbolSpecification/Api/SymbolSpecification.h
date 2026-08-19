@@ -49,89 +49,97 @@ enum class SymbolDiscipline : std::uint32_t
 enum class SymbolSubject : std::uint32_t
 {
     // Workspace ---------------------------------------------------------------------------------------------
-    FolderClosed        =  0u,   // 🟢 lucide `folder`     — the Asset Browser tongue
-    LatticeArrangement  =  1u,   // 🟢 lucide `grid-3x3`   — the lattice toggle
-    ColumnArrangement   =  2u,   // 🟢 lucide `list`       — the column toggle
+    FolderClosed        =  0u,   // 🟢 lucide `folder`      — the Asset Browser tongue
+    LatticeArrangement  =  1u,   // 🟢 lucide `grid-3x3`    — the lattice toggle
+    ColumnArrangement   =  2u,   // 🟢 lucide `list`        — the column toggle
     PanelSplit          =  3u,   // 🚧
     PersistDisc         =  4u,   // 🚧
-    BulbFilament        =  5u,   // 🟢 lucide `lightbulb`  — the tooltip trigger
+    BulbFilament        =  5u,   // 🟢 lucide `lightbulb`   — the tooltip trigger, and the light entity
+    EyeOpen             =  6u,   // 🟢 lucide `eye`         — an outline row that is present
+    EyeClosed           =  7u,   // 🟢 lucide `eye-off`     — an outline row that is withheld
+    PlusCross           =  8u,   // 🟢 lucide `plus`        — the new-record action
+    TrashBin            =  9u,   // 🟢 lucide `trash-2`     — the delete action
+    GearCog             = 10u,   // 🟢 lucide `settings`    — the World Outliner medallion
+    SpeakerCone         = 11u,   // 🟢 lucide `volume-2`    — the audio entity
+    CodeBrackets        = 12u,   // 🟢 lucide `code`        — the script entity
 
     // Navigation --------------------------------------------------------------------------------------------
-    ChevronDown         =  6u,   // 🟢 lucide `chevron-down`
-    ChevronRight        =  7u,   // 🟢 lucide `chevron-right`
-    MagnifierLens       =  8u,   // 🟢 lucide `search`
-    ArrowReturn         =  9u,   // 🚧
-    CrosshairCentre     = 10u,   // 🚧
+    ChevronDown         = 13u,   // 🟢 lucide `chevron-down`
+    ChevronRight        = 14u,   // 🟢 lucide `chevron-right`
+    MagnifierLens       = 15u,   // 🟢 lucide `search`
+    ArrowReturn         = 16u,   // 🚧
+    CrosshairCentre     = 17u,   // 🟢 lucide `crosshair`   — the trigger entity
 
     // Geometry ----------------------------------------------------------------------------------------------
-    VertexPoint         = 11u,   // 🚧
-    EdgeSegment         = 12u,   // 🚧
-    FacePlanar          = 13u,   // 🚧
-    SubdivisionStep     = 14u,   // 🚧
-    ExtrudeSpan         = 15u,   // 🚧
-    BevelChamfer        = 16u,   // 🚧
-    BooleanUnion        = 17u,   // 🚧
-    MirrorAxis          = 18u,   // 🚧
+    VertexPoint         = 18u,   // 🚧
+    EdgeSegment         = 19u,   // 🚧
+    FacePlanar          = 20u,   // 🚧
+    SubdivisionStep     = 21u,   // 🚧
+    ExtrudeSpan         = 22u,   // 🚧
+    BevelChamfer        = 23u,   // 🚧
+    BooleanUnion        = 24u,   // 🚧
+    MirrorAxis          = 25u,   // 🚧
+    CubeSolid           = 26u,   // 🟢 lucide `box`         — the level and actor entities
 
     // Computer-aided design ---------------------------------------------------------------------------------
-    SketchPlane         = 19u,   // 🚧
-    ConstraintDimension = 20u,   // 🚧
-    FilletRadius        = 21u,   // 🚧
-    RevolveAxis         = 22u,   // 🚧
-    LoftProfile         = 23u,   // 🚧
+    SketchPlane         = 27u,   // 🚧
+    ConstraintDimension = 28u,   // 🚧
+    FilletRadius        = 29u,   // 🚧
+    RevolveAxis         = 30u,   // 🚧
+    LoftProfile         = 31u,   // 🚧
 
     // Sculpting ---------------------------------------------------------------------------------------------
-    BristleTip          = 24u,   // 🚧
-    InflatePush         = 25u,   // 🚧
-    SmoothRelax         = 26u,   // 🚧
-    MaskStencil         = 27u,   // 🚧
-    RemeshDensity       = 28u,   // 🚧
+    BristleTip          = 32u,   // 🚧
+    InflatePush         = 33u,   // 🚧
+    SmoothRelax         = 34u,   // 🚧
+    MaskStencil         = 35u,   // 🚧
+    RemeshDensity       = 36u,   // 🚧
 
     // Texturing ---------------------------------------------------------------------------------------------
-    UnwrapSeam          = 29u,   // 🚧
-    PaintBristle        = 30u,   // 🚧
-    MaterialSphere      = 31u,   // 🚧
-    ChannelSelect       = 32u,   // 🚧
-    StencilProjection   = 33u,   // 🚧
+    UnwrapSeam          = 37u,   // 🚧
+    PaintBristle        = 38u,   // 🚧
+    MaterialSphere      = 39u,   // 🚧
+    ChannelSelect       = 40u,   // 🚧
+    StencilProjection   = 41u,   // 🚧
 
     // Illumination ------------------------------------------------------------------------------------------
-    SunDirectional      = 34u,   // 🚧
-    LampPoint           = 35u,   // 🚧
-    AreaEmitter         = 36u,   // 🚧
-    SkyDome             = 37u,   // 🚧
+    SunDirectional      = 42u,   // 🚧
+    LampPoint           = 43u,   // 🚧
+    AreaEmitter         = 44u,   // 🚧
+    SkyDome             = 45u,   // 🚧
 
     // Rendering ---------------------------------------------------------------------------------------------
-    CameraAperture      = 38u,   // 🚧
-    SampleConverge      = 39u,   // 🚧
-    DenoiseSweep        = 40u,   // 🚧
-    ExposureOrdinate    = 41u,   // 🚧
+    CameraAperture      = 46u,   // 🟢 lucide `camera`      — the camera entity
+    SampleConverge      = 47u,   // 🚧
+    DenoiseSweep        = 48u,   // 🚧
+    ExposureOrdinate    = 49u,   // 🚧
 
     // Animation ---------------------------------------------------------------------------------------------
-    KeyOrdinate         = 42u,   // 🚧
-    CurveTangent        = 43u,   // 🚧
-    TimelineScrub       = 44u,   // 🚧
-    SkeletonJoint       = 45u,   // 🚧
+    KeyOrdinate         = 50u,   // 🚧
+    CurveTangent        = 51u,   // 🚧
+    TimelineScrub       = 52u,   // 🚧
+    SkeletonJoint       = 53u,   // 🚧
 
     // Simulation --------------------------------------------------------------------------------------------
-    ClothDrape          = 46u,   // 🚧
-    FluidStream         = 47u,   // 🚧
-    RigidCollide        = 48u,   // 🚧
-    ParticleEmit        = 49u,   // 🚧
+    ClothDrape          = 54u,   // 🚧
+    FluidStream         = 55u,   // 🚧
+    RigidCollide        = 56u,   // 🚧
+    ParticleEmit        = 57u,   // 🟢 lucide `sparkles`    — the particle entity
 
     // Assembly ----------------------------------------------------------------------------------------------
-    LayerMerge          = 50u,   // 🚧
-    AlphaMask           = 51u,   // 🚧
-    ColourWheel         = 52u,   // 🚧
-    GraphJunction       = 53u,   // 🚧
+    LayerMerge          = 58u,   // 🟢 lucide `layers`      — the Layer Stack medallion
+    AlphaMask           = 59u,   // 🚧
+    ColourWheel         = 60u,   // 🚧
+    GraphJunction       = 61u,   // 🚧
 
     // Measurement -------------------------------------------------------------------------------------------
-    PulseTrace          = 54u,   // 🟢 lucide `activity`   — the Control Center tongue
-    RulerSpan           = 55u,   // 🚧
-    HistogramProfile    = 56u,   // 🚧
-    StatisticReadout    = 57u,   // 🚧
+    PulseTrace          = 62u,   // 🟢 lucide `activity`    — the Control Center tongue
+    RulerSpan           = 63u,   // 🚧
+    HistogramProfile    = 64u,   // 🚧
+    StatisticReadout    = 65u,   // 🚧
 
-    PlaceholderMark     = 58u,   // 🟢 what every unresolved subject above draws as
-    SubjectCount        = 59u    // [-] - the closed count, never a subject
+    PlaceholderMark     = 66u,   // 🟢 what every unresolved subject above draws as
+    SubjectCount        = 67u    // [-] - the closed count, never a subject
 };
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                           INTERFACEEXCHANGE.H
 //============================================================================================================================================
 // 🧩 The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
@@ -38,6 +38,25 @@ struct InterfaceAttachment
     std::uint32_t     MinimumDisplayImageCount = 0u;                   // [-] - minimum requested of the chain
     std::uint32_t     DisplayImageCount        = 0u;                   // [-] - actual images the chain holds
     void*             NativeWindowSlot         = nullptr;              // [-] - WindowInterchange's handle
+};
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                    THE KEY SUBJECTS
+//------------------------------------------------------------------------------------------------------------------------
+
+/// 🧩 The keys the shell arbitrates for itself, named by what they do rather than by their scan position.
+/// note  🔴 A closed roster and not a scan ordinate. The seam exists so that a panel may ask "did the artist
+///        summon" without naming a vendor key enumeration, which `00` §2.2 keeps inside this unit. Adding a
+///        key is adding a line here and a line in the source's translation, and nothing else moves.
+/// note  ⚠️ Every arrival is edge-triggered and unrepeated — the shell's summon must not fire sixty times
+///        while the key is held down.
+/// tag   contract
+enum class KeySubject : std::uint32_t
+{
+    Summon       = 0u,   // [-] - Tab; carries the inspector between its two presentations
+    Withdraw     = 1u,   // [-] - Escape; closes the inspector, then the summoned menu
+    Retract      = 2u,   // [-] - Backspace; removes the last character of the roused filter field
+    SubjectCount = 3u    // [-] - the closed count, never a subject
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -215,6 +234,35 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     bool KeyboardCaptured() const;
+
+    /// 🧩 Whether one arbitrated key went down during this tick and no text entry stands over it.
+    /// in    Subject  [-]  which of the closed roster to ask about
+    /// out   Arrived  [-]  true exactly once per press; false while the key is held and while a field has focus
+    /// note  🔴 The text-entry test is inside this call and not at the call site. The reference states it once
+    ///        — `if (document.activeElement?.tagName === 'INPUT') return;` — ahead of its whole key map, so a
+    ///        seam that returned the raw press would make every caller re-derive the same guard and one of
+    ///        them would forget, which is a Tab that summons while the artist is renaming a record.
+    /// note  ⚠️ Valid only between `Advance` and `Seal`. Outside that window the vendor's key condition
+    ///        belongs to no tick and the call reports false.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool KeyArrived(KeySubject Subject) const;
+
+    /// 🧩 Appends this tick's typed characters to a caller-owned run, and reports whether any arrived.
+    /// in    Intake     [-]  the run written into; always left terminated
+    /// in    Ceiling    [-]  the run's full extent in bytes, terminator included
+    /// out   Admitted   [-]  true when at least one character was appended
+    /// note  🔴 The filter fields are recorded as PRIMITIVES and not as vendor widgets. A vendor `InputText`
+    ///        opens its own window draw list, which composites above every shell layer — that is precisely
+    ///        the defect that left the reference's panels legible and pressable through a ground painted
+    ///        over the whole display. Taking the characters here and stroking the run through
+    ///        `RecordingSurface` keeps the whole panel inside one list, in one order.
+    /// note  ⚠️ ASCII printable only. A codepoint above 0x7E is dropped rather than truncated mid-sequence,
+    ///        because the interface typeface carries no glyph for it and a half-written sequence would be
+    ///        stroked as replacement marks.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool AdmitTyped(char* Intake, std::uint32_t Ceiling) const;
 
 private:
 

@@ -33,7 +33,7 @@ enum class LeafSubject : std::uint32_t
 /// tag   owning, nonallocating, nonthrowing
 /// note  This replaced `ScenePanel`, `UvPanel`, `OutlinerPanel` and `PropertyPanel`, which shared a body and
 ///       differed only in the ground ink, the caption and the text size. `Slate::OutlinerPanel` also collided
-///       by name with `Slate::Reference::OutlinerPanel`, a real panel; that collision is gone with the class.
+///       by name with a second panel class of the same spelling; that collision is gone with the class.
 class LeafPanel
 {
 public:
