@@ -28,4 +28,9 @@ declare = []
 #    only satisfies references the linker has already seen, so the order is load-bearing.
 unit    = [ "SlateUI", "SlateCompute", "SlateVulkan", "SlateDocument", "SlateMath" ]
 library = [ "$VULKAN_SDK/Lib/vulkan-1.lib", "ExternalPackages/glfw/lib-vc2022/glfw3dll.lib", "gdi32.lib" ]
-carry   = [ "ExternalPackages/glfw/lib-vc2022/glfw3.dll" ]
+# 📝 `carry` names files that must sit beside the executable for it to run. glfw3dll.lib above is an import
+#    library, so the DLL itself is a run-time dependency the linker never copies; the appearance file is
+#    read by every host at startup and written back when the artist changes a colour.
+# 🔴 A carried file that is absent is reported and skipped, not fatal. glfw3.dll arrives with the vendored
+#    package rather than the repository, so a checkout without it must still construct and link.
+carry   = [ "ExternalPackages/glfw/lib-vc2022/glfw3.dll", "Configuration/SlateAppearance.toml" ]

@@ -1,8 +1,7 @@
 //============================================================================================================================================
-//                                                       THEMESPECIFICATION.CPP
+//                                                     THEMESPECIFICATION.CPP
 //============================================================================================================================================
-// 🧩 Exact theme and semantic-colour constants from
-// References/remix-notch-ui/src/App.tsx.
+// 🧩 The compiled-in appearances, and the standing copy of them every panel draws from.
 
 #include "SlateUI/Interface/ThemeSpecification/Api/ThemeSpecification.h"
 
@@ -12,7 +11,16 @@ namespace Slate
 namespace
 {
 
-constexpr ThemeDeclaration Themes[] = {
+//------------------------------------------------------------------------------------------------------------------------
+//                                           WHAT THIS BUILD WAS COMPILED WITH
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📝 Transcribed exactly from References/remix-notch-ui/src/App.tsx, and left exactly as transcribed. This
+//    run is the answer to "what did the reference say", which is a different question from "what is the
+//    interface drawing now" — an appearance file answers the second and must never be able to edit the first.
+// 🔴 constexpr, so a caption too long for CaptionCeiling refuses at compile time rather than truncating
+//    silently into the standing copy.
+constexpr ThemeDeclaration TranscribedThemes[ThemeCeiling] = {
     {"OLED", Covering(0x000000u), Partial(0x09090Bu, .95), Covering(0xF4F4F5u), Covering(0x71717Au),
      Partial(0x27272Au, .80), Covering(0x121214u), Covering(0x000000u), Covering(0x121214u),
      Covering(0x09090Bu), Covering(0x151517u), Covering(0x222223u),
@@ -38,23 +46,110 @@ constexpr ThemeDeclaration Themes[] = {
      Covering(0x1C3152u), Covering(0x344F74u), Covering(0x4C6C96u),
      Covering(0x3C5B84u), Covering(0x5275A2u)}};
 
-constexpr AccentDeclaration Accents[] = {{"Blue", Covering(0x3B82F6u)},  {"Cyan", Covering(0x06B6D4u)},
-                                         {"Teal", Covering(0x14B8A6u)},  {"Emerald", Covering(0x10B981u)},
-                                         {"Amber", Covering(0xF59E0Bu)}, {"Orange", Covering(0xF97316u)},
-                                         {"Rose", Covering(0xF43F5Eu)},  {"Violet", Covering(0x8B5CF6u)}};
+constexpr AccentDeclaration TranscribedAccents[AccentCeiling] = {
+    {"Blue", Covering(0x3B82F6u)},  {"Cyan", Covering(0x06B6D4u)},
+    {"Teal", Covering(0x14B8A6u)},  {"Emerald", Covering(0x10B981u)},
+    {"Amber", Covering(0xF59E0Bu)}, {"Orange", Covering(0xF97316u)},
+    {"Rose", Covering(0xF43F5Eu)},  {"Violet", Covering(0x8B5CF6u)}};
 
-} // namespace
+//------------------------------------------------------------------------------------------------------------------------
+//                                           WHAT THE INTERFACE IS DRAWING NOW
+//------------------------------------------------------------------------------------------------------------------------
+
+// 🔴 One standing copy, seeded from the transcription and replaced whole by Adopt. Panels read through the
+//    accessors rather than reaching the run directly, so an adopted appearance reaches all of them at once
+//    and none of them can hold an ink the archive no longer contains.
+ThemeDeclaration  StandingThemes[ThemeCeiling]   = {};
+AccentDeclaration StandingAccents[AccentCeiling] = {};
+bool              Seeded                         = false;
+
+// 📝 Seeding is deferred to first read rather than done in a constructor. Static initialisation order across
+//    translation units is not ordered, and a panel constructed during static initialisation would otherwise
+//    read a run of zeroes — every ink fully transparent, which presents as an interface that did not draw.
+void SeedOnce()
+{
+    if (Seeded) return;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < ThemeCeiling; ++Ordinal)
+    {
+        StandingThemes[Ordinal] = TranscribedThemes[Ordinal];
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < AccentCeiling; ++Ordinal)
+    {
+        StandingAccents[Ordinal] = TranscribedAccents[Ordinal];
+    }
+
+    Seeded = true;
+}
+
+}   // namespace
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                            READING THE STANDING APPEARANCE
+//------------------------------------------------------------------------------------------------------------------------
 
 const ThemeDeclaration& ThemeSpecification::Theme(ThemeSubject Subject)
 {
+    SeedOnce();
+
     const std::uint32_t Ordinal = static_cast<std::uint32_t>(Subject);
-    return Themes[(Ordinal < static_cast<std::uint32_t>(ThemeSubject::SubjectCount)) ? Ordinal : 0u];
+    return StandingThemes[(Ordinal < ThemeCeiling) ? Ordinal : 0u];
 }
 
 const AccentDeclaration& ThemeSpecification::Accent(AccentSubject Subject)
 {
+    SeedOnce();
+
     const std::uint32_t Ordinal = static_cast<std::uint32_t>(Subject);
-    return Accents[(Ordinal < static_cast<std::uint32_t>(AccentSubject::SubjectCount)) ? Ordinal : 0u];
+    return StandingAccents[(Ordinal < AccentCeiling) ? Ordinal : 0u];
 }
 
-} // namespace Slate
+//------------------------------------------------------------------------------------------------------------------------
+//                                           REPLACING THE STANDING APPEARANCE
+//------------------------------------------------------------------------------------------------------------------------
+
+void ThemeSpecification::Adopt(const ThemeArchive& Arriving)
+{
+    // 📝 Seeded is raised before the copy rather than after. The copy writes every element of both runs, so
+    //    the seed it would otherwise perform first is work whose result is immediately overwritten.
+    Seeded = true;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < ThemeCeiling; ++Ordinal)
+    {
+        StandingThemes[Ordinal] = Arriving.Themes[Ordinal];
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < AccentCeiling; ++Ordinal)
+    {
+        StandingAccents[Ordinal] = Arriving.Accents[Ordinal];
+    }
+}
+
+ThemeArchive ThemeSpecification::Standing(const ThemeSelection& Selected)
+{
+    SeedOnce();
+
+    ThemeArchive Produced;
+    Produced.Selected = Selected;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < ThemeCeiling; ++Ordinal)
+    {
+        Produced.Themes[Ordinal] = StandingThemes[Ordinal];
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < AccentCeiling; ++Ordinal)
+    {
+        Produced.Accents[Ordinal] = StandingAccents[Ordinal];
+    }
+
+    return Produced;
+}
+
+void ThemeSpecification::Restore()
+{
+    Seeded = false;
+    SeedOnce();
+}
+
+}   // namespace Slate

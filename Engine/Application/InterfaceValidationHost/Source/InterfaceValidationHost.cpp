@@ -7,6 +7,7 @@
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
+#include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/ControlPanel/Api/ControlPanel.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/FacetPanel/Api/FacetPanel.h"
@@ -336,7 +337,7 @@ private:
 //                                                            MAIN
 //------------------------------------------------------------------------------------------------------------------------
 
-int main()
+int main(int ArgumentCount, char** ArgumentValues)
 {
     using namespace Slate;
 
@@ -380,6 +381,36 @@ int main()
     EditorPanelOrdinates     EditorOrdinates;
     ControlCentrePanel       ControlCentre;
     ControlCentreOrdinates   ControlCentreValues;
+
+    // 📝 The appearance file sits beside the executable and is read once, before any panel is recorded. A
+    //    first run has no file yet, which is the ordinary case and not a fault — the build's own appearance
+    //    stands and the first colour the artist changes writes the file.
+    const char* const InvokedAs = (ArgumentCount > 0) ? ArgumentValues[0] : "";
+
+    {
+        ThemeSelection Recorded;
+
+        if (ThemeInterchange::AdoptBeside(InvokedAs, Recorded))
+        {
+            ControlCentreValues.Theme       = Recorded.Presented;
+            ControlCentreValues.Primary     = Recorded.Primary;
+            ControlCentreValues.Secondary   = Recorded.Secondary;
+            ControlCentreValues.Information = Recorded.Information;
+            ControlCentreValues.Warning     = Recorded.Warning;
+            ControlCentreValues.Alert       = Recorded.Alert;
+        }
+    }
+
+    // 🔴 What was last written, so the file is inscribed when a colour actually changes and not every tick.
+    //    A write per frame would rewrite the whole appearance sixty times a second for as long as the
+    //    Control Centre is open, which is a disk cost no artist asked for.
+    ThemeSelection InscribedSelection;
+    InscribedSelection.Presented   = ControlCentreValues.Theme;
+    InscribedSelection.Primary     = ControlCentreValues.Primary;
+    InscribedSelection.Secondary   = ControlCentreValues.Secondary;
+    InscribedSelection.Information = ControlCentreValues.Information;
+    InscribedSelection.Warning     = ControlCentreValues.Warning;
+    InscribedSelection.Alert       = ControlCentreValues.Alert;
     GlobalShellPanel         ReferenceShell;
     ShellOrdinates           ShellSeated;
 
@@ -1032,6 +1063,33 @@ int main()
         // ⑮ The complete notch Control Centre remains the final full display-sized page.
         const PlaneExtent ControlCentreExtent = Spanning(0.0f, Cursor, Display.ExtentAlong, Display.ExtentAcross);
         Disregard(ControlCentre.Record(ControlCentreExtent, ControlCentreValues));
+
+        // 📝 Compared rather than watched. The Control Centre writes the artist's choice straight into the
+        //    ordinates, so the change is visible here as a difference and needs no callback to report it.
+        {
+            ThemeSelection Chosen;
+            Chosen.Presented   = ControlCentreValues.Theme;
+            Chosen.Primary     = ControlCentreValues.Primary;
+            Chosen.Secondary   = ControlCentreValues.Secondary;
+            Chosen.Information = ControlCentreValues.Information;
+            Chosen.Warning     = ControlCentreValues.Warning;
+            Chosen.Alert       = ControlCentreValues.Alert;
+
+            const bool Altered = Chosen.Presented   != InscribedSelection.Presented
+                              || Chosen.Primary     != InscribedSelection.Primary
+                              || Chosen.Secondary   != InscribedSelection.Secondary
+                              || Chosen.Information != InscribedSelection.Information
+                              || Chosen.Warning     != InscribedSelection.Warning
+                              || Chosen.Alert       != InscribedSelection.Alert;
+
+            // 🔴 The record is advanced whether the write was delivered or refused. A read-only folder would
+            //    otherwise have every later tick retry the same refused write for the life of the process.
+            if (Altered)
+            {
+                Disregard(ThemeInterchange::RecordBeside(InvokedAs, Chosen));
+                InscribedSelection = Chosen;
+            }
+        }
         Cursor = ControlCentreExtent.MostAcross + Measure.CardGapAcross;
 
         // ⑯ The ported reference shell, the final full display-sized page. Its filter takes whatever was

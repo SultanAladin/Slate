@@ -27,6 +27,7 @@
 import os
 import re
 import subprocess
+import shutil
 import sys
 
 RepositoryRoot = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -100,9 +101,18 @@ def ReadUnitGraph():
         if Linking:
             Linked = re.findall(r'"([^"]+)"', Linking.group(1))
 
+        # 📝 `[link].carry` names files that must sit beside the executable for it to run — the GLFW DLL the
+        #    import library resolves against, and the appearance file every host reads at startup. Paths are
+        #    repository-relative so a manifest can name one without knowing where the build writes binaries.
+        Carried  = []
+        Carrying = re.search(r'(?ms)^\[link\].*?^carry\s*=\s*\[(.*?)\]', Content)
+
+        if Carrying:
+            Carried = re.findall(r'"([^"]+)"', Carrying.group(1))
+
         Declared[UnitName] = {
             'Name': UnitName, 'Product': Product, 'Subject': Subject,
-            'Requires': Linked, 'Root': Walked,
+            'Requires': Linked, 'Carry': Carried, 'Root': Walked,
         }
 
     return Declared
@@ -287,6 +297,39 @@ def InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn, Subje
 #                                                        THE SEQUENCE
 #------------------------------------------------------------------------------------------------------------------------
 
+#---
+#                                            CARRIED FILES
+#---
+
+# 📝 The mirror of Construct.ps1's carry step. This script does not link, so nothing here is required for a
+#    translation to succeed — it is run so the same manifest field is exercised on Linux and a carry that
+#    names a path no longer present is reported here rather than discovered on Windows at run time.
+# 🔴 An absent carried file is reported and skipped, never fatal. glfw3.dll arrives with the vendored
+#    package rather than the repository, so a checkout without it must still construct.
+def SeatCarried(Selected):
+    BinaryRoot = os.path.join(ScratchRoot, 'build', 'Binary')
+
+    for UnitEntry in Selected:
+        for Carried in UnitEntry.get('Carry', []):
+            Origin = os.path.join(RepositoryRoot, Carried.replace('/', os.sep))
+            Leaf   = os.path.basename(Origin)
+
+            if not os.path.isfile(Origin):
+                WriteSkipped("carry \u2014 {0} is absent at {1}".format(Leaf, Carried))
+                continue
+
+            os.makedirs(BinaryRoot, exist_ok = True)
+            Seated = os.path.join(BinaryRoot, Leaf)
+
+            # 📝 🔴 An appearance the artist has since edited is left alone. Overwriting on every construct
+            #    would discard their theme each time they rebuilt, which reads as the editor forgetting.
+            if os.path.isfile(Seated) and os.path.getmtime(Seated) >= os.path.getmtime(Origin):
+                continue
+
+            shutil.copyfile(Origin, Seated)
+            WriteProduced("carried {0}".format(Leaf))
+
+
 def Main(Arguments):
     Selection = 'Debug' if '--debug' in Arguments else 'Release'
     Warn      = '--warn' in Arguments
@@ -362,6 +405,8 @@ def Main(Arguments):
     if Refused:
         WriteRefused("{0} of {1} translation unit(s) refused".format(Refused, Translated))
         return 1
+
+    SeatCarried(Selected)
 
     WriteProduced("{0} translation unit(s) accepted across {1} unit(s)".format(Translated, len(Selected)))
     return 0

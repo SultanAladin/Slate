@@ -105,11 +105,23 @@ function Read-UnitGraph
             $Linked = [regex]::Matches($Matches[1], '"([^"]+)"') | ForEach-Object { $_.Groups[1].Value }
         }
 
+        # 📝 `[link].carry` names files that must sit beside the executable for it to run at all — the GLFW
+        #    DLL the import library resolves against, and the appearance file every host reads at startup.
+        #    Paths are repository-relative, which is what lets a manifest name one without knowing where
+        #    the build writes its binaries.
+        $Carried = @()
+
+        if ($Content -match '(?ms)^\[link\].*?^carry\s*=\s*\[(.*?)\]')
+        {
+            $Carried = [regex]::Matches($Matches[1], '"([^"]+)"') | ForEach-Object { $_.Groups[1].Value }
+        }
+
         $Declared[$UnitName] = @{
             Name     = $UnitName
             Product  = $Product
             Subject  = @($Subject)
             Requires = @($Linked)
+            Carry    = @($Carried)
             Root     = $UnitRoot
         }
     }
@@ -893,10 +905,37 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
         throw "link.exe refused $Subject"
     }
 
-    # 📝 🔴 glfw3dll.lib is an import library. Without glfw3.dll beside the executable the process fails to
-    #    start, and the operating system reports a missing dependency rather than anything a reader can act
-    #    on. Copying it here is what keeps that failure out of the run.
-    Copy-Item (Join-Path $PackageRoot 'glfw\lib-vc2022\glfw3.dll') $BinaryRoot -Force
+    # 📝 🔴 Every file `[link].carry` names is placed beside the executable. glfw3dll.lib is an import
+    #    library, so without glfw3.dll here the process fails to start and the operating system reports a
+    #    missing dependency rather than anything a reader can act on. SlateAppearance.toml is read by each
+    #    host at startup and written back when the artist changes a colour, so it must be writable — which
+    #    is why it is copied to the binary seat rather than read from the repository in place.
+    foreach ($Carried in $UnitEntry.Carry)
+    {
+        $CarriedPath = Join-Path $RepositoryRoot $Carried
+        $CarriedLeaf = [System.IO.Path]::GetFileName($CarriedPath)
+
+        # 📝 🔴 An absent carried file is reported and skipped, never fatal. glfw3.dll arrives with the
+        #    vendored package rather than the repository, so a fresh checkout that has not fetched it must
+        #    still construct — the failure belongs at the run, where the message names the missing DLL.
+        if (-not (Test-Path $CarriedPath))
+        {
+            Write-Skipped "carry — $CarriedLeaf is absent at $Carried"
+            continue
+        }
+
+        $Seated = Join-Path $BinaryRoot $CarriedLeaf
+
+        # 📝 🔴 An appearance the artist has since edited is left alone. Overwriting on every construct
+        #    would discard their theme each time they rebuilt, which reads as the editor forgetting.
+        if ((Test-Path $Seated) -and
+            ((Get-Item $Seated).LastWriteTimeUtc -ge (Get-Item $CarriedPath).LastWriteTimeUtc))
+        {
+            continue
+        }
+
+        Copy-Item $CarriedPath $Seated -Force
+    }
 
     Write-Produced $ExecutablePath
 }
