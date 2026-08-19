@@ -23,10 +23,21 @@ function Invoke-SymbolIndex {
         [switch]$All
     )
 
-    $ToolsPath = "C:\Users\OS\Documents\Slate\Tools\SymbolIndex.py"
+    # 🔴 The repository root is derived from this script's own location, never from a machine-specific
+    #    absolute path. The earlier hardcoded C:\Users\OS\... resolved on exactly one machine; every other
+    #    checkout reported "SymbolIndex.py not found" and generated nothing.
+    $RepositoryRoot = Split-Path -Parent $PSScriptRoot
+    $ToolsPath      = Join-Path $RepositoryRoot 'Tools\SymbolIndex.py'
+
     if (-not (Test-Path -Path $ToolsPath)) {
         Write-Error "🔴 SymbolIndex.py not found at $ToolsPath"
         return
+    }
+
+    # 📝 `--root Engine` is resolved by the tool against the working folder, so a run from anywhere but the
+    #    repository root indexed nothing and still exited 0. Made absolute here instead.
+    if (-not [System.IO.Path]::IsPathRooted($Root)) {
+        $Root = Join-Path $RepositoryRoot $Root
     }
 
     $ArgumentList = @($ToolsPath, "--root", $Root)

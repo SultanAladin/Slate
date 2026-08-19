@@ -1,0 +1,375 @@
+#============================================================================================================================================
+#                                                          CONSTRUCTSANDBOX.PY
+#============================================================================================================================================
+# 🧩 Runs Build/Construct.ps1's sequence on a POSIX/g++ box — same steps, same order, syntax-only translation.
+
+# 🔴 This exists so an agent working on Linux reaches the SAME refusals a Windows build reaches, in the SAME
+#    order. The divergence this removes was concrete: work done here skipped ApplyImGuiPatches and compiled a
+#    hand-listed subset of SlateUI, so `ImGuiStyle::TabSlant` was never missing here and the partition was
+#    never checked at all — both then failed on the Windows build. The ordering below is Construct.ps1's:
+#
+#       1. read the unit graph from Module.toml       (Read-UnitGraph)
+#       2. refuse a duplicate subject                 (Test-SubjectUniqueness)
+#       3. topologically order the units              (Resolve-TranslationOrder, Kahn)
+#       4. apply the ImGui divergence                 (ApplyImGuiPatches.ps1)   ← the step that was missed
+#       5. prove the dependency partition             (VerifyPartition.ps1)
+#       6. translate every unit in dependency order   (Invoke-Translation)
+#
+# ⚠️ This is NOT a replacement for Construct.ps1 and it does not link, archive or lower shaders. MSVC is the
+#    only toolchain that builds Slate for real; g++ -fsyntax-only is a front-end proxy that catches the class
+#    of defect an agent actually introduces — a missing include, a renamed member, a broken declaration.
+#    A clean run here means "nothing obviously refuses", not "the Windows build is green".
+#
+#     python3 Scripts/ConstructSandbox.py
+#     python3 Scripts/ConstructSandbox.py --unit SlateUI
+#     python3 Scripts/ConstructSandbox.py --skip-patches
+
+import os
+import re
+import subprocess
+import sys
+
+RepositoryRoot = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+EngineRoot     = os.path.join(RepositoryRoot, 'Engine')
+PackageRoot    = os.path.join(RepositoryRoot, 'ExternalPackages')
+ScratchRoot    = os.path.join(RepositoryRoot, '_AgentScratch')
+
+sys.path.insert(0, os.path.join(RepositoryRoot, 'Scripts'))
+
+#------------------------------------------------------------------------------------------------------------------------
+#                                                       CONSOLE REPORTING
+#------------------------------------------------------------------------------------------------------------------------
+
+ColourNeutral  = "\x1b[90m"
+ColourSkipped  = "\x1b[36m"
+ColourFailed   = "\x1b[31m"
+ColourCompiled = "\x1b[32m"
+ColourReset    = "\x1b[0m"
+
+if os.name == "nt":
+    os.system("")
+
+
+def Report(Tag, Colour, Message):
+    print("{0}{1}{2} {3}".format(Colour, ("[" + Tag + "]").ljust(10), ColourReset, Message))
+
+
+def WriteBuilding(Message): Report('Build',    ColourNeutral,  Message)
+def WriteSkipped(Message):  Report('SKIP',     ColourSkipped,  Message)
+def WriteRefused(Message):  Report('FAILED',   ColourFailed,   Message)
+def WriteProduced(Message): Report('Compiled', ColourCompiled, Message)
+
+#------------------------------------------------------------------------------------------------------------------------
+#                                                       THE UNIT GRAPH
+#------------------------------------------------------------------------------------------------------------------------
+
+# 📝 Read from Module.toml, exactly as Read-UnitGraph does. `Requires` is the [link].unit order, because that
+#    is what the translation order is derived from — [requires].unit is the include permission and is what
+#    VerifyPartition proves.
+def ReadUnitGraph():
+    Declared = {}
+
+    for Walked, Folders, Files in os.walk(EngineRoot):
+        if 'Module.toml' not in Files:
+            continue
+
+        Manifest = os.path.join(Walked, 'Module.toml')
+
+        with open(Manifest, 'r', encoding='utf-8-sig') as Reader:
+            Content = Reader.read()
+
+        UnitName = os.path.basename(Walked)
+        Named    = re.search(r'(?ms)^\[unit\].*?^name\s*=\s*"([^"]+)"', Content)
+
+        if Named:
+            UnitName = Named.group(1)
+
+        Producing = re.search(r'(?ms)^\[unit\].*?^product\s*=\s*"([^"]+)"', Content)
+        Product   = Producing.group(1) if Producing else 'StaticLibrary'
+
+        # 📝 A subject names one source folder that becomes its own link target.
+        Subject  = []
+        Subjects = re.search(r'(?ms)^\[unit\].*?^subject\s*=\s*\[(.*?)\]', Content)
+
+        if Subjects:
+            Subject = re.findall(r'"([^"]+)"', Subjects.group(1))
+
+        Linked  = []
+        Linking = re.search(r'(?ms)^\[link\].*?^unit\s*=\s*\[(.*?)\]', Content)
+
+        if Linking:
+            Linked = re.findall(r'"([^"]+)"', Linking.group(1))
+
+        Declared[UnitName] = {
+            'Name': UnitName, 'Product': Product, 'Subject': Subject,
+            'Requires': Linked, 'Root': Walked,
+        }
+
+    return Declared
+
+
+# 🔴 A subject declared twice would have one host's objects overwrite the other's in a shared folder, and both
+#    would compile. Refused here rather than discovered as a host that runs the wrong main().
+def TestSubjectUniqueness(Declared):
+    Seen = {}
+
+    for UnitName in sorted(Declared):
+        for Subject in Declared[UnitName]['Subject']:
+            if Subject in Seen:
+                raise RuntimeError("subject {0} is declared by both {1} and {2}".format(
+                    Subject, Seen[Subject], UnitName))
+
+            Seen[Subject] = UnitName
+
+
+# 🔴 Kahn's algorithm, so a cycle is reported as a cycle rather than as a stack overflow or an arbitrary order.
+def ResolveTranslationOrder(Declared):
+    Remaining = {}
+    Ordered   = []
+
+    for UnitName in Declared:
+        for Required in Declared[UnitName]['Requires']:
+            if Required not in Declared:
+                raise RuntimeError("{0} links {1}, which declares no Module.toml".format(UnitName, Required))
+
+        Remaining[UnitName] = set(Declared[UnitName]['Requires'])
+
+    while Remaining:
+        # 📝 Sorted so the order is reproducible.
+        Ready = sorted([Name for Name in Remaining if not Remaining[Name]])
+
+        if not Ready:
+            raise RuntimeError("the unit graph holds a cycle among: {0}".format(', '.join(sorted(Remaining))))
+
+        for UnitName in Ready:
+            Ordered.append(Declared[UnitName])
+            del Remaining[UnitName]
+
+        for UnitName in list(Remaining):
+            Remaining[UnitName] -= set(Ready)
+
+    return Ordered
+
+#------------------------------------------------------------------------------------------------------------------------
+#                                                       PATH ASSEMBLY
+#------------------------------------------------------------------------------------------------------------------------
+
+# 📝 The mirror of Get-IncludePath. Contract/ and Shared/ are reachable from every unit through the engine
+#    root; the partition is enforced by the link and by VerifyPartition, not by hiding headers.
+def GetIncludePath(UnitEntry, VulkanInclude):
+    Paths = [EngineRoot, RepositoryRoot,
+             os.path.join(PackageRoot, 'glfw', 'include')]
+
+    if VulkanInclude:
+        Paths.append(VulkanInclude)
+
+    if UnitEntry['Name'] == 'SlateUI':
+        Paths.append(os.path.join(PackageRoot, 'imgui'))
+        Paths.append(os.path.join(PackageRoot, 'thorvg', 'inc'))
+
+    # 🔴 `10` §1's codecs compile the vendored readers — stb and fast_obj — into their own translation units,
+    #    so SlateDocument reaches the package root and no other unit does.
+    if UnitEntry['Name'] == 'SlateDocument':
+        Paths.append(PackageRoot)
+
+    # 📝 A host includes the interface unit's Api and, through it, ImGui's own header.
+    if UnitEntry['Name'] == 'Application':
+        Paths.append(os.path.join(PackageRoot, 'imgui'))
+
+    Assembled = []
+
+    for Path in Paths:
+        if os.path.isdir(Path):
+            Assembled += ['-I', Path]
+
+    return Assembled
+
+
+def GetUnitSource(UnitEntry, Subject=''):
+    UnitRoot = UnitEntry['Root']
+
+    # 📝 A subject scopes the gather to its own folder, which is what keeps one host's main() out of another's.
+    if Subject:
+        UnitRoot = os.path.join(UnitRoot, Subject)
+
+        if not os.path.isdir(UnitRoot):
+            raise RuntimeError("{0} declares subject {1} but {2} does not exist".format(
+                UnitEntry['Name'], Subject, UnitRoot))
+
+    Sources = []
+
+    for Walked, Folders, Files in os.walk(UnitRoot):
+        Folders.sort()
+
+        for Leaf in sorted(Files):
+            if Leaf.endswith('.cpp'):
+                Sources.append(os.path.join(Walked, Leaf))
+
+    return Sources
+
+#------------------------------------------------------------------------------------------------------------------------
+#                                                    TOOLCHAIN ACQUISITION
+#------------------------------------------------------------------------------------------------------------------------
+
+# 📝 The mirror of Resolve-VulkanRoot. $VULKAN_SDK is honoured first exactly as on Windows; the vendored
+#    Khronos headers under _AgentScratch are the sandbox fallback, and their absence is reported rather than
+#    guessed at — a Vulkan-facing unit that cannot find vulkan.h should say so once, not 40 times.
+def ResolveVulkanInclude():
+    Declared = os.environ.get('VULKAN_SDK', '')
+
+    if Declared:
+        for Candidate in (os.path.join(Declared, 'Include'), os.path.join(Declared, 'include')):
+            if os.path.isdir(Candidate):
+                return Candidate
+
+    Vendored = os.path.join(ScratchRoot, 'Vulkan-Headers', 'include')
+
+    if os.path.isdir(os.path.join(Vendored, 'vulkan')):
+        return Vendored
+
+    return ''
+
+
+# 🔴 The Windows build defines these through Get-CompilationFlags. GLFW_INCLUDE_NONE is the one addition the
+#    sandbox needs and it is not a divergence: it tells glfw3.h not to pull a GL header in, and Slate reaches
+#    Vulkan through its own loader, never GL. Windows ships GL/gl.h with the platform SDK so the omission is
+#    invisible there; a Linux box without mesa headers fails on it, which is noise rather than a defect.
+def GetCompilationFlags(Selection):
+    Common = ['-std=c++20', '-fsyntax-only', '-DWIN32_LEAN_AND_MEAN', '-DNOMINMAX',
+              '-DGLFW_DLL', '-DGLFW_INCLUDE_NONE']
+
+    # 📝 🔴 SLATE_DEBUG selects every debug path in the engine. _DEBUG is never defined.
+    if Selection == 'Debug':
+        return Common + ['-DSLATE_DEBUG=1']
+
+    return Common + ['-DNDEBUG']
+
+#------------------------------------------------------------------------------------------------------------------------
+#                                                        TRANSLATION
+#------------------------------------------------------------------------------------------------------------------------
+
+def InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn, Subject=''):
+    Sources = GetUnitSource(UnitEntry, Subject)
+    Named   = "{0}{1}".format(UnitEntry['Name'], "/" + Subject if Subject else "")
+
+    if not Sources:
+        WriteSkipped("{0} declares no translation unit".format(Named))
+        return 0, 0
+
+    Include  = GetIncludePath(UnitEntry, VulkanInclude)
+    Flags    = GetCompilationFlags(Selection) + (['-Wall', '-Wextra', '-Wno-unused-parameter'] if Warn else ['-w'])
+    Refused  = 0
+    LogRoot  = os.path.join(ScratchRoot, 'logs', 'construct')
+
+    os.makedirs(LogRoot, exist_ok=True)
+
+    for Source in Sources:
+        Relative = os.path.relpath(Source, RepositoryRoot).replace(os.sep, '/')
+        Finished = subprocess.run([Compiler] + Flags + Include + [Source],
+                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+        if Finished.returncode != 0:
+            Refused += 1
+            WriteRefused(Relative)
+
+            with open(os.path.join(LogRoot, Relative.replace('/', '_') + '.log'), 'w') as Writer:
+                Writer.write(Finished.stdout)
+
+            for Line in [L for L in Finished.stdout.split('\n') if 'error:' in L][:4]:
+                print("    " + Line.strip())
+
+    if Refused == 0:
+        WriteProduced("{0} — {1} translation unit(s)".format(Named, len(Sources)))
+
+    return len(Sources), Refused
+
+#------------------------------------------------------------------------------------------------------------------------
+#                                                        THE SEQUENCE
+#------------------------------------------------------------------------------------------------------------------------
+
+def Main(Arguments):
+    Selection = 'Debug' if '--debug' in Arguments else 'Release'
+    Warn      = '--warn' in Arguments
+    Compiler  = os.environ.get('CXX', 'g++')
+    Unit      = ''
+
+    if '--unit' in Arguments:
+        Unit = Arguments[Arguments.index('--unit') + 1]
+
+    print("Slate \u2014 {0} (sandbox, syntax-only)".format(Selection))
+
+    Declared = ReadUnitGraph()
+
+    if not Declared:
+        WriteRefused("no Module.toml was found under {0}".format(EngineRoot))
+        return 1
+
+    TestSubjectUniqueness(Declared)
+    UnitOrder = ResolveTranslationOrder(Declared)
+
+    VulkanInclude = ResolveVulkanInclude()
+
+    if VulkanInclude:
+        WriteBuilding("vulkan {0}".format(VulkanInclude))
+    else:
+        WriteSkipped("no Vulkan headers; VULKAN_SDK is unset and no vendored copy is present")
+
+    # 🔴 Slate's ImGui divergence is applied before any unit is translated, because SlateUI compiles the
+    #    vendored ImGui sources directly. Skipping this is what made a Linux run disagree with a Windows one:
+    #    InterfaceExchange names ImGuiStyle::TabSlant, which only exists once PatchA has been applied.
+    if '--skip-patches' in Arguments:
+        WriteSkipped('ImGui patches — asked to skip')
+    else:
+        import ApplyImGuiPatches
+
+        if ApplyImGuiPatches.Main([]) != 0:
+            WriteRefused('ApplyImGuiPatches refused; the ImGui tab-shape patches were not applied')
+            return 1
+
+    # 🔴 The dependency partition is proven before anything is translated, because a forbidden include should
+    #    refuse at the start of a build rather than as an unresolved symbol at the end of one.
+    import VerifyPartition
+
+    if VerifyPartition.Main([]) != 0:
+        WriteRefused('VerifyPartition refused; a unit reaches past what it declares')
+        return 1
+
+    print('')
+
+    Selected = [Entry for Entry in UnitOrder if Entry['Name'] == Unit] if Unit else UnitOrder
+
+    if not Selected:
+        WriteRefused("no unit is named {0}".format(Unit))
+        return 1
+
+    Translated = 0
+    Refused    = 0
+
+    for UnitEntry in Selected:
+        if UnitEntry['Product'] == 'StaticLibrary':
+            Count, Broken = InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn)
+            Translated += Count
+            Refused    += Broken
+        else:
+            # 📝 One host per subject, so one host's main() never enters another's link.
+            for Subject in UnitEntry['Subject']:
+                Count, Broken = InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn, Subject)
+                Translated += Count
+                Refused    += Broken
+
+    print('')
+
+    if Refused:
+        WriteRefused("{0} of {1} translation unit(s) refused".format(Refused, Translated))
+        return 1
+
+    WriteProduced("{0} translation unit(s) accepted across {1} unit(s)".format(Translated, len(Selected)))
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(Main(sys.argv[1:]))
+    except RuntimeError as Fault:
+        WriteRefused(str(Fault))
+        sys.exit(1)

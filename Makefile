@@ -1,72 +1,55 @@
-# Slate — standalone transcribed panels. Sandbox build; Module.toml carries the declarative unit map.
+# Slate — sandbox build. Module.toml carries the declarative unit map; Build/Construct.ps1 is the real build.
 #
-#   make            build both hosts
-#   make proof      run the hosts headlessly and encode VisualProof PNGs
-#   make clean      remove build output
+#   make sequence   run Construct.ps1's sequence (patches, partition, syntax-check every unit)  ← start here
+#   make partition  prove the dependency partition alone
+#   make patches    apply Slate's ImGui divergence
+#   make codeindex  regenerate the .symbolindex digests
+#   make check      gate the committed VisualProof PNGs against their seated inks
+#   make clean      remove sandbox build output
+#
+# 🔴 `all` deliberately does NOT link a host. Every host in Engine/Application rides HostLifecycle, which
+#    needs the Vulkan SDK, GLFW and a window server — none of which a sandbox has. The previous Makefile
+#    named Engine/Application/OutlinerHost and PanelValidationHost, two headless hosts that no longer
+#    exist; `make` therefore died on a missing source before reaching anything real. What a POSIX box CAN
+#    prove is that every translation unit is accepted, in dependency order, with the ImGui patches applied
+#    — that is `make sequence`, and it is the closest honest analogue of a Windows build.
 
-CXX      ?= g++
-CXXFLAGS ?= -std=c++20 -O1 -g0 -Wall -Wno-unused-parameter -Wno-unused-variable
-INCLUDES := -I ExternalPackages/imgui -I Engine -I .
+PYTHON ?= python3
 
-IMGUI_SOURCES := \
-    ExternalPackages/imgui/imgui.cpp \
-    ExternalPackages/imgui/imgui_draw.cpp \
-    ExternalPackages/imgui/imgui_tables.cpp \
-    ExternalPackages/imgui/imgui_widgets.cpp
+.PHONY: all sequence partition patches patches-verify codeindex proof check clean window-note
 
-ENGINE_SOURCES := \
-    Engine/SlateUI/Interface/PanelExchange/Source/PanelExchange.cpp \
-    Engine/SlateUI/Interface/InterfaceSequence/Source/InterfaceSequence.cpp \
-    Engine/SlateUI/Interface/IconDepot/Source/IconDepot.cpp \
-    Engine/SlateUI/Interface/FieldPanel/Source/FieldPanel.cpp \
-    Engine/SlateUI/Interface/OutlinerPanel/Source/OutlinerPanel.cpp \
-    Engine/SlateUI/Interface/PropertiesPanel/Source/PropertiesPanel.cpp \
-    Engine/SlateUI/Interface/DraftingPanel/Source/DraftingPanel.cpp \
-    Engine/SlateUI/Interface/TexturePaintPanel/Source/TexturePaintPanel.cpp \
-    Engine/SlateUI/Interface/RasterCodec/Source/RasterCodec.cpp
+all: sequence
 
-BUILD := Build
+# 📝 The whole Construct.ps1 order in one step: unit graph, subject uniqueness, topological order, ImGui
+#    patches, partition proof, then translation. Running the pieces out of this order is what made a
+#    sandbox result disagree with a Windows one.
+sequence:
+	$(PYTHON) Scripts/ConstructSandbox.py
 
-.PHONY: all proof outliner validation clean
+partition:
+	$(PYTHON) Scripts/VerifyPartition.py
 
-all: $(BUILD)/OutlinerHost $(BUILD)/PanelValidationHost
+patches:
+	$(PYTHON) Scripts/ApplyImGuiPatches.py
 
-outliner: $(BUILD)/OutlinerHost
+patches-verify:
+	$(PYTHON) Scripts/ApplyImGuiPatches.py --verify
 
-validation: $(BUILD)/PanelValidationHost
+codeindex:
+	$(PYTHON) Scripts/RunSymbolIndex.py build
 
-$(BUILD):
-	mkdir -p $(BUILD) $(BUILD)/Shots
+# 🔴 The proof shots are committed under VisualProof/ and the gate reads those PNGs; it does not re-render
+#    them. Re-rendering needs the headless hosts that this commit replaced with window hosts, so `proof`
+#    reports that rather than pretending to produce shots.
+proof:
+	@echo "proof shots are rendered by the window hosts through Build/Construct.ps1;"
+	@echo "the committed PNGs under VisualProof/ are gated by: make check"
 
-$(BUILD)/OutlinerHost: $(IMGUI_SOURCES) $(ENGINE_SOURCES) \
-                       Engine/Application/OutlinerHost/Source/OutlinerHost.cpp | $(BUILD)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $^ -o $@
-
-$(BUILD)/PanelValidationHost: $(IMGUI_SOURCES) $(ENGINE_SOURCES) Engine/Application/PanelValidationHost/Source/PanelValidationHost.cpp | $(BUILD)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $^ -o $@
-
-proof: all
-	mkdir -p VisualProof/OutlinerHost VisualProof/PanelValidationHost $(BUILD)/Shots
-	rm -f $(BUILD)/Shots/*.rgba
-	$(BUILD)/OutlinerHost --prefix VisualProof/OutlinerHost
-	$(BUILD)/PanelValidationHost --prefix VisualProof/PanelValidationHost
-	for Dump in $(BUILD)/Shots/directory.rgba $(BUILD)/Shots/multiselect.rgba $(BUILD)/Shots/filter.rgba; do \
-		python3 Tools/EncodeProof.py "$$Dump" "VisualProof/OutlinerHost/$$(basename "$$Dump" .rgba).png"; \
-	done
-	for Dump in $(BUILD)/Shots/texturepaint-*.rgba $(BUILD)/Shots/cad-*.rgba; do \
-		python3 Tools/EncodeProof.py "$$Dump" "VisualProof/PanelValidationHost/$$(basename "$$Dump" .rgba).png"; \
-	done
-
-check: proof
-	python3 Tools/AssertProofs.py
+check:
+	$(PYTHON) Tools/AssertProofs.py
 
 clean:
-	rm -rf $(BUILD)
+	rm -rf _AgentScratch/build _AgentScratch/logs
 
-# ① OutlinerWindowHost rides Slate's own HostLifecycle (Vulkan + window); it builds through
-#    Slate's Construct.ps1, which has the Vulkan SDK and the engine units this host requires.
 window-note:
-	@echo OutlinerWindowHost builds through Slate Construct.ps1
-
-check: proof
-	python3 Tools/AssertProofs.py
+	@echo "OutlinerWindowHost and PanelValidationWindowHost build through Build/Construct.ps1"
