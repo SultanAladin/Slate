@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                       EDITORLEAFPANELS.CPP
 //============================================================================================================================================
-// 🧩 Skeletal scene, UV, outliner and property bodies, isolated from the shared editor chrome and partition.
+// 🧩 One skeletal leaf body, seated four ways, isolated from the shared editor chrome and partition.
 
 #include "SlateUI/Interface/EditorPanel/Api/EditorLeafPanels.h"
 
@@ -11,136 +11,83 @@ namespace Slate
 namespace
 {
 
-void RecordTarget(RecordingSurface& Surface,
-                  const AppearanceSpecification& Appearance,
-                  const PlaneExtent& Extent,
-                  InkOrdinate Ground,
-                  const char* Caption,
-                  float TextSize)
+/// 🧩 The three ordinates a leaf differs by. Everything else about a leaf is shared.
+struct LeafAppearance
 {
-    Surface.Ground(Extent, Ground);
-    Surface.TextRun(Extent.LeastAlong + Extent.SpanAlong() * 0.5f,
-                    Extent.LeastAcross + Extent.SpanAcross() * 0.5f,
-                    Appearance.EditorPanel.InkGhost,
-                    Caption,
-                    TextSize,
-                    0.0f,
-                    true);
+    InkOrdinate  Ground   = {};        // [-]  - the ground ink the body is filled with
+    const char*  Caption  = nullptr;   // [-]  - the centred caption, never owned
+    float        TextSize = 0.0f;      // [px] - the caption's text size
+};
+
+/// 🧩 Reads the arriving leaf's three distinguishing ordinates out of the appearance declarations.
+/// in    Appearance  [-]  the appearance declarations
+/// in    Subject     [-]  which leaf is being presented
+/// out   LeafAppearance  [-]  the ground ink, caption and text size for that leaf
+/// cost  ✔️
+LeafAppearance AppearanceFor(const AppearanceSpecification& Appearance, LeafSubject Subject)
+{
+    switch (Subject)
+    {
+        case LeafSubject::Scene:
+            return { Appearance.EditorPanel.ViewGround,
+                     "3D VIEWPORT RENDER TARGET",
+                     Appearance.EditorPanelMeasure.TextSmall };
+
+        case LeafSubject::Uv:
+            return { Appearance.EditorPanel.ViewGround,
+                     "UV EDITOR RENDER TARGET",
+                     Appearance.EditorPanelMeasure.TextSmall };
+
+        case LeafSubject::Outliner:
+        case LeafSubject::Property:
+        default:
+            return { Appearance.EditorPanel.BodyGround,
+                     "Empty",
+                     Appearance.EditorPanelMeasure.TextBody };
+    }
 }
 
-Deliver<bool> Seat(RecordingSurface*& Surface,
-                   const AppearanceSpecification*& Appearance,
-                   RecordingSurface& ArrivingSurface,
-                   const AppearanceSpecification& ArrivingAppearance)
+}   // namespace
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                       LEAF TARGET
+//------------------------------------------------------------------------------------------------------------------------
+
+Deliver<bool> LeafPanel::Construct(RecordingSurface& ArrivingSurface,
+                                   const AppearanceSpecification& ArrivingAppearance,
+                                   LeafSubject ArrivingSubject)
 {
     if (Surface != nullptr)
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a leaf panel construction stands" });
 
     Surface    = &ArrivingSurface;
     Appearance = &ArrivingAppearance;
+    Subject    = ArrivingSubject;
     return Deliver<bool>::Deliver(true);
 }
 
-}   // namespace
-
-//------------------------------------------------------------------------------------------------------------------------
-//                                                      SCENE TARGET
-//------------------------------------------------------------------------------------------------------------------------
-
-Deliver<bool> ScenePanel::Construct(RecordingSurface& ArrivingSurface,
-                                    const AppearanceSpecification& ArrivingAppearance)
-{
-    return Seat(Surface, Appearance, ArrivingSurface, ArrivingAppearance);
-}
-
-void ScenePanel::Record(const PlaneExtent& Extent)
+void LeafPanel::Record(const PlaneExtent& Extent)
 {
     if (Surface == nullptr || Appearance == nullptr)
         return;
 
-    RecordTarget(*Surface, *Appearance, Extent, Appearance->EditorPanel.ViewGround,
-                 "3D VIEWPORT RENDER TARGET", Appearance->EditorPanelMeasure.TextSmall);
+    const LeafAppearance Seated = AppearanceFor(*Appearance, Subject);
+
+    Surface->Ground(Extent, Seated.Ground);
+    Surface->TextRun(Extent.LeastAlong + Extent.SpanAlong() * 0.5f,
+                     Extent.LeastAcross + Extent.SpanAcross() * 0.5f,
+                     Appearance->EditorPanel.InkGhost,
+                     Seated.Caption,
+                     Seated.TextSize,
+                     0.0f,
+                     true);
 }
 
-void ScenePanel::Reset()
+void LeafPanel::Reset()
 {
     Surface    = nullptr;
     Appearance = nullptr;
-}
-
-//------------------------------------------------------------------------------------------------------------------------
-//                                                        UV TARGET
-//------------------------------------------------------------------------------------------------------------------------
-
-Deliver<bool> UvPanel::Construct(RecordingSurface& ArrivingSurface,
-                                 const AppearanceSpecification& ArrivingAppearance)
-{
-    return Seat(Surface, Appearance, ArrivingSurface, ArrivingAppearance);
-}
-
-void UvPanel::Record(const PlaneExtent& Extent)
-{
-    if (Surface == nullptr || Appearance == nullptr)
-        return;
-
-    RecordTarget(*Surface, *Appearance, Extent, Appearance->EditorPanel.ViewGround,
-                 "UV EDITOR RENDER TARGET", Appearance->EditorPanelMeasure.TextSmall);
-}
-
-void UvPanel::Reset()
-{
-    Surface    = nullptr;
-    Appearance = nullptr;
-}
-
-//------------------------------------------------------------------------------------------------------------------------
-//                                                     OUTLINER TARGET
-//------------------------------------------------------------------------------------------------------------------------
-
-Deliver<bool> OutlinerPanel::Construct(RecordingSurface& ArrivingSurface,
-                                       const AppearanceSpecification& ArrivingAppearance)
-{
-    return Seat(Surface, Appearance, ArrivingSurface, ArrivingAppearance);
-}
-
-void OutlinerPanel::Record(const PlaneExtent& Extent)
-{
-    if (Surface == nullptr || Appearance == nullptr)
-        return;
-
-    RecordTarget(*Surface, *Appearance, Extent, Appearance->EditorPanel.BodyGround,
-                 "Empty", Appearance->EditorPanelMeasure.TextBody);
-}
-
-void OutlinerPanel::Reset()
-{
-    Surface    = nullptr;
-    Appearance = nullptr;
-}
-
-//------------------------------------------------------------------------------------------------------------------------
-//                                                     PROPERTY TARGET
-//------------------------------------------------------------------------------------------------------------------------
-
-Deliver<bool> PropertyPanel::Construct(RecordingSurface& ArrivingSurface,
-                                       const AppearanceSpecification& ArrivingAppearance)
-{
-    return Seat(Surface, Appearance, ArrivingSurface, ArrivingAppearance);
-}
-
-void PropertyPanel::Record(const PlaneExtent& Extent)
-{
-    if (Surface == nullptr || Appearance == nullptr)
-        return;
-
-    RecordTarget(*Surface, *Appearance, Extent, Appearance->EditorPanel.BodyGround,
-                 "Empty", Appearance->EditorPanelMeasure.TextBody);
-}
-
-void PropertyPanel::Reset()
-{
-    Surface    = nullptr;
-    Appearance = nullptr;
+    Subject    = LeafSubject::Scene;
 }
 
 }   // namespace Slate

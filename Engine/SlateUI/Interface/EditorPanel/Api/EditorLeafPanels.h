@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                        EDITORLEAFPANELS.H
 //============================================================================================================================================
-// 🧩 Focused skeletal render targets for scene, UV, outliner and property leaves inside reusable editor chrome.
+// 🧩 One skeletal render target, seated four ways, for the scene, UV, outliner and property leaves inside editor chrome.
 
 #pragma once
 
@@ -16,60 +16,50 @@ namespace Slate
 //                                                    CONTENT PRESENTATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Presents the three-dimensional scene render target beneath shared editor chrome.
-/// tag   owning, nonallocating, nonthrowing
-class ScenePanel
+/// 🧩 Names which leaf a `LeafPanel` presents. The ordinal selects the leaf's ground ink, caption and text
+///     size out of `AppearanceSpecification`; it carries no other meaning.
+/// note  🔴 Adding a leaf is adding an enumerator and a row in `LeafAppearance`, never a new class. The four
+///       leaves differed only in those three ordinates, so four classes were four copies of one body.
+enum class LeafSubject : std::uint32_t
 {
-public:
-    Deliver<bool> Construct(RecordingSurface& Surface, const AppearanceSpecification& Appearance);
-    void Record(const PlaneExtent& Extent);
-    void Reset();
-
-private:
-    RecordingSurface* Surface = nullptr;
-    const AppearanceSpecification* Appearance = nullptr;
+    Scene      = 0u,   // [-] - the three-dimensional scene render target
+    Uv         = 1u,   // [-] - the selected geometry's parametric render target
+    Outliner   = 2u,   // [-] - the scene outline
+    Property   = 3u,   // [-] - the selected record's properties
+    SubjectCount
 };
 
-/// 🧩 Presents the selected geometry's UV render target beneath shared editor chrome.
+/// 🧩 Presents one skeletal render target beneath shared editor chrome, chosen by `LeafSubject`.
 /// tag   owning, nonallocating, nonthrowing
-class UvPanel
+/// note  This replaced `ScenePanel`, `UvPanel`, `OutlinerPanel` and `PropertyPanel`, which shared a body and
+///       differed only in the ground ink, the caption and the text size. `Slate::OutlinerPanel` also collided
+///       by name with `Slate::Reference::OutlinerPanel`, a real panel; that collision is gone with the class.
+class LeafPanel
 {
 public:
-    Deliver<bool> Construct(RecordingSurface& Surface, const AppearanceSpecification& Appearance);
+    /// 🧩 Seats the recording surface, the appearance declarations and the leaf this instance presents.
+    /// in    ArrivingSurface     [-]  the surface every recording is made against
+    /// in    ArrivingAppearance  [-]  the appearance declarations the ground ink is read from
+    /// in    ArrivingSubject     [-]  which leaf this instance presents
+    /// out   Deliver<bool>       [-]  refuses when a construction already stands
+    /// cost  ✔️
+    Deliver<bool> Construct(RecordingSurface& ArrivingSurface,
+                            const AppearanceSpecification& ArrivingAppearance,
+                            LeafSubject ArrivingSubject);
+
+    /// 🧩 Records the leaf's ground and its centred caption across the arriving extent.
+    /// in    Extent  [px]  the body the leaf occupies
+    /// cost  ✔️
     void Record(const PlaneExtent& Extent);
+
+    /// 🧩 Returns the instance to its unconstructed condition.
+    /// cost  ✔️
     void Reset();
 
 private:
     RecordingSurface* Surface = nullptr;
     const AppearanceSpecification* Appearance = nullptr;
-};
-
-/// 🧩 Presents the scene outline beneath shared editor chrome.
-/// tag   owning, nonallocating, nonthrowing
-class OutlinerPanel
-{
-public:
-    Deliver<bool> Construct(RecordingSurface& Surface, const AppearanceSpecification& Appearance);
-    void Record(const PlaneExtent& Extent);
-    void Reset();
-
-private:
-    RecordingSurface* Surface = nullptr;
-    const AppearanceSpecification* Appearance = nullptr;
-};
-
-/// 🧩 Presents the selected record's properties beneath shared editor chrome.
-/// tag   owning, nonallocating, nonthrowing
-class PropertyPanel
-{
-public:
-    Deliver<bool> Construct(RecordingSurface& Surface, const AppearanceSpecification& Appearance);
-    void Record(const PlaneExtent& Extent);
-    void Reset();
-
-private:
-    RecordingSurface* Surface = nullptr;
-    const AppearanceSpecification* Appearance = nullptr;
+    LeafSubject Subject = LeafSubject::Scene;
 };
 
 }   // namespace Slate
