@@ -9,3 +9,5 @@ ExternalPackages/EOS-SDK-*
 Engine/Engine-File-Structure.md
 __pycache__/
 *.py[cod]
+# ImGui writes this beside whatever ran last; it is not part of the port.
+imgui.ini
