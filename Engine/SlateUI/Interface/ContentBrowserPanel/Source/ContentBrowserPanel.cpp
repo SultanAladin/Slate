@@ -208,6 +208,8 @@ void ContentBrowserPanel::Reset()
     for (auto& Written : SourceRows)   Written = ControlIdentity{};
     for (auto& Written : LatticeCards) Written = ControlIdentity{};
     for (auto& Written : ChromeCells)  Written = ControlIdentity{};
+
+    ExclusionCount = 0u;
 }
 
 bool ContentBrowserPanel::Roused(const PlaneExtent& Extent) const
@@ -218,11 +220,25 @@ bool ContentBrowserPanel::Roused(const PlaneExtent& Extent) const
     return Extent.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
 }
 
+void ContentBrowserPanel::RetainExclusion(const PlaneExtent& Extent)
+{
+    if (ExclusionCount < EnrolmentDemand)
+        Exclusions[ExclusionCount++] = Extent;
+}
+
+void ContentBrowserPanel::Exclude(DrawerSpace& Drawers, DrawerBearing Bearing) const
+{
+    for (std::uint32_t Ordinal = 0u; Ordinal < ExclusionCount; ++Ordinal)
+        Drawers.Exclude(Bearing, Exclusions[Ordinal]);
+}
+
 bool ContentBrowserPanel::Pressed(ControlIdentity Claimed, const PlaneExtent& Extent,
                                   ContentBrowserOrdinates& Seated, const char* Tooltip)
 {
     if (Ledger == nullptr)
         return false;
+
+    RetainExclusion(Extent);
 
     const bool Over = Roused(Extent);
 
@@ -366,6 +382,10 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
     const float Ceiling     = Span - Visible;
     const float ThumbAcross = (Visible * Visible / Span < 28.0f) ? 28.0f : (Visible * Visible / Span);
     const float Travel      = Visible - ThumbAcross;
+
+    // 🔴 The whole scrolling extent is withheld, not just the trough. The wheel reaches the run from
+    //    anywhere over it, so a drag begun over a card in a drawer must not slide the drawer instead.
+    RetainExclusion(Extent);
 
     const bool Holding = Ledger->Holding(Claimed);
 
@@ -1134,6 +1154,10 @@ void ContentBrowserPanel::RecordBrowser(const PlaneExtent& Extent, ContentLibrar
 {
     if (Ledger == nullptr || Surface == nullptr)
         return;
+
+    // ⚠️ Cleared here and nowhere else. The set is per tick, and a host that reads it after RecordBrowser
+    //    reads exactly what this tick arbitrated.
+    ExclusionCount = 0u;
 
     Surface->Ground(Extent, Ink.Ground);
 

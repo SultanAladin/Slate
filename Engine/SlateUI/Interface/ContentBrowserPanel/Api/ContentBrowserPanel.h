@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Contract/DeliveryContract.h"
+#include "SlateUI/Interface/DrawerSpace/Api/DrawerSpace.h"
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 #include "SlateUI/Interface/InterfaceExchange/Api/RecordingSurface.h"
 
@@ -221,6 +222,20 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool RetractTyped(ContentBrowserOrdinates& Seated);
 
+    /// 🧩 Withholds everything the browser arbitrated this tick from initiating a drawer drag.
+    /// in    Drawers  [-]  amended in place; the exclusions are declared against Bearing
+    /// in    Bearing  [-]  which drawer the browser was recorded inside
+    /// note  ⚠️ Declared per tick, immediately after RecordBrowser and before the drawer advances. The
+    ///       standing set is cleared at the head of every RecordBrowser, so a tick that records the
+    ///       browser and does not call this leaves the drawer free to be dragged by its own cards.
+    /// note  🔴 Without this the drawer owns every contact inside its body, so pressing a record, dragging
+    ///       the lattice thumb or typing in the seek field slides the whole drawer instead. That is what
+    ///       `ControlCentrePanel::Exclude` exists for on the north drawer, and the south one needs it just
+    ///       as much — more, since the browser is the denser of the two in controls.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void Exclude(DrawerSpace& Drawers, DrawerBearing Bearing) const;
+
     /// 🧩 Returns the panel to its unconstructed condition, enrolling nothing.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -230,6 +245,8 @@ public:
     ContentBrowserMetric  Measure;    // [-] - the reference's own lengths
 
 private:
+
+    void  RetainExclusion(const PlaneExtent& Extent);
 
     bool  Roused(const PlaneExtent& Extent) const;
     bool  Pressed(ControlIdentity Claimed, const PlaneExtent& Extent,
@@ -254,6 +271,11 @@ private:
     ControlIdentity  ChromeCells[ChromeCeiling]   = {};   // [-] - the rail, the tongues, both thumbs
 
     PointerCondition  Sampled;                            // [-] - this tick's pointer
+
+    /// 🔴 One extent per control the tick arbitrated, so a drawer can be told what not to drag by. The
+    ///    ceiling is the enrolment demand because that is the most controls one tick can record.
+    PlaneExtent    Exclusions[EnrolmentDemand] = {};      // [px] - display ordinates, this tick's
+    std::uint32_t  ExclusionCount              = 0u;      // [-]  - cleared at the head of RecordBrowser
 };
 
 }   // namespace Slate
