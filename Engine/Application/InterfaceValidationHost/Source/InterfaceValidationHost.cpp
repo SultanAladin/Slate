@@ -138,7 +138,8 @@ constexpr std::uint32_t SheetControls   = 31u;                 // [-] - EnrolEve
 constexpr std::uint32_t FacetControls   = 24u + 2u;            // [-] - FacetPanel::FacetCapacity + 2
 constexpr std::uint32_t EditorControls  = 11u * 22u;           // [-] - RecordCeiling * ControlsPerRecord
 constexpr std::uint32_t CentreControls  = 192u;                // [-] - ControlCentrePanel::ControlCapacity
-constexpr std::uint32_t ShellControls   = 6u + (16u * 3u);     // [-] - GlobalShellPanel chrome + per-row trio
+constexpr std::uint32_t ShellControls   = 8u + (16u * 3u)      // [-] - chrome + one trio per outline row
+                                        + (12u * 6u);          // [-] - six per layer row: two halves, four actions
 
 constexpr std::uint32_t EasesPerControl = 2u;                  // [-] - InteractionIndex::Enrol draws both fades
 constexpr std::uint32_t BareEases       = 9u + 1u;             // [-] - Control Centre motions, shell carousel
@@ -151,6 +152,24 @@ static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
               "the host's construct chain demands more eased interpolants than the integrator holds — the "
               "panel constructed last will be refused mid-enrolment and the window will retire before its "
               "first frame; raise MotionIntegrator::EaseCapacity or reduce a panel's control count");
+
+//------------------------------------------------------------------------------------------------------------------------
+//                                                   THE REFERENCE SHELL'S STACK
+//------------------------------------------------------------------------------------------------------------------------
+
+// 📐 `mockLayers` from `components/TexturePaint.tsx`, transcribed verbatim and in its own order. The reference
+//    mints an `id` per layer; the ordinal is that identity here, on the same terms as the outliner's `g_NN`.
+constexpr LayerRow StackLayers[4] =
+{
+    /* 1 */ { "Edge Wear",  LayerClassification::Paint,     "Multiply",  78u, 0xF97316u, 0xEAB308u,
+              true,  92u, false, { "Base Color", "Roughness", "Metallic" },           3u },
+    /* 2 */ { "Dirt Pass",  LayerClassification::Material,  "Overlay",   45u, 0x8B5CF6u, 0xEC4899u,
+              true, 100u, true,  { "Base Color", "Roughness" },                       2u },
+    /* 3 */ { "Scratches",  LayerClassification::Paint,     "Screen",    60u, 0xF97316u, 0x06B6D4u,
+              false, 100u, false, { "Base Color", "Bump" },                           2u },
+    /* 4 */ { "Base Metal", LayerClassification::Material,  "Normal",   100u, 0x8B5CF6u, 0x3B82F6u,
+              false, 100u, false, { "Base Color", "Roughness", "Metallic", "Bump" },  4u }
+};
 
 /// 🧩 Every identity the sheet's controls are enrolled under, claimed once at bring-up.
 struct ValidationIdentities
@@ -1037,7 +1056,7 @@ int main()
                 ShellSeated.EntityRetention[Occupied - 1u] = '\0';
         }
 
-        Disregard(ReferenceShell.Record(ShellExtent, ShellSeated, LevelEntities, 14u));
+        Disregard(ReferenceShell.Record(ShellExtent, ShellSeated, LevelEntities, 14u, StackLayers, 4u));
         Cursor = ShellExtent.MostAcross + Measure.CardGapAcross;
 
         // 🔴 The deferred sweep — every menu and every tooltip card, above every row recorded above.
