@@ -143,8 +143,8 @@ constexpr std::uint32_t EditorControls  = 11u * 22u;           // [-] - RecordCe
 constexpr std::uint32_t CentreControls  = 192u;                // [-] - ControlCentrePanel::ControlCapacity
 constexpr std::uint32_t ShellControls   = 8u + (16u * 3u)      // [-] - chrome + one trio per outline row
                                         + (12u * 6u);          // [-] - six per layer row: two halves, four actions
-constexpr std::uint32_t StackControls   = (16u * 12u) + 16u    // [-] - LayerStackPanel: RowCeiling × CellsPerRow
-                                        + 32u;                 // [-] - its chrome and its popup entries
+constexpr std::uint32_t StackControls   = (16u * 12u) + 20u    // [-] - LayerStackPanel: RowCeiling × CellsPerRow
+                                        + 32u + 16u;           // [-] - chrome, popup entries, revision entries
 
 constexpr std::uint32_t EasesPerControl = 2u;                  // [-] - InteractionIndex::Enrol draws both fades
 constexpr std::uint32_t BareEases       = 9u + 1u;             // [-] - Control Centre motions, shell carousel
@@ -158,6 +158,20 @@ static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
               "the host's construct chain demands more eased interpolants than the integrator holds — the "
               "panel constructed last will be refused mid-enrolment and the window will retire before its "
               "first frame; raise MotionIntegrator::EaseCapacity or reduce a panel's control count");
+
+// 🔴 The eased budget above was necessary but NOT sufficient, and the gap cost a whole bring-up. Ledger
+//    SLOTS are a second, separate ceiling: `FacetPanel`, `EditorPanel` and `ControlCentrePanel` each own a
+//    PRIVATE `InteractionIndex`, but the sheet, the reference shell and the layer stack all enrol into the
+//    ONE `Ledger` declared below. That shared total is what overflowed — 31 + 128 + 240 = 399 against a
+//    ceiling of 256 — so `LayerStack.Construct` was refused with "no further control slot" and the host
+//    printed its refusal and exited 1 before recording a single frame. Only the panels sharing the ledger
+//    are counted here; a panel with its own ledger is weighed against its own capacity, not this one.
+constexpr std::uint32_t SharedSlots = SheetControls + ShellControls + StackControls;
+
+static_assert(SharedSlots <= InteractionIndex::ControlCapacity,
+              "the panels sharing this host's one InteractionIndex enrol more controls than it holds — the "
+              "panel constructed last is refused at bring-up and the host exits before its first frame; "
+              "raise InteractionIndex::ControlCapacity or reduce a sharing panel's control count");
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE REFERENCE SHELL'S STACK
@@ -786,6 +800,42 @@ int main(int ArgumentCount, char** ArgumentValues)
                 if (Interface.KeyArrived(KeySubject::Withdraw))
                     LayerStackSeated.Renaming = LayerStackCeiling::AbsentOrdinal;
             }
+            else if (LayerStackSeated.RevisionField != 0u)
+            {
+                // 📐 The unfolded revision card's comment and value fields, on the same terms as the two
+                //    above: the field holding the keyboard consumes what was typed, and no chord reaches
+                //    the arrangement while it does. `RevisionField` is `Ordinal * 2 + 1` for the comment
+                //    and `+ 2` for the value, so the ordinal and the field both fall out of one reading.
+                const std::uint32_t Field   = LayerStackSeated.RevisionField - 1u;
+                const std::uint32_t Ordinal = Field / 2u;
+                const bool          Reading = (Field % 2u) == 1u;
+
+                if (Ordinal < LayerStackOrdinates::RevisionCeiling)
+                {
+                    char* Written = Reading ? LayerStackSeated.RevisionReading[Ordinal]
+                                            : LayerStackSeated.RevisionRemark[Ordinal];
+
+                    static_cast<void>(Interface.AdmitTyped(Written,
+                                                           LayerStackOrdinates::RemarkCeiling));
+
+                    if (Interface.KeyArrived(KeySubject::Retract))
+                    {
+                        std::uint32_t Occupied = 0u;
+
+                        while (Occupied + 1u < LayerStackOrdinates::RemarkCeiling &&
+                               Written[Occupied] != '\0')
+                        {
+                            ++Occupied;
+                        }
+
+                        if (Occupied > 0u)
+                            Written[Occupied - 1u] = '\0';
+                    }
+                }
+
+                if (Interface.KeyArrived(KeySubject::Withdraw))
+                    LayerStackSeated.RevisionField = 0u;
+            }
             else
             {
                 for (std::uint32_t Ordinal = 0u;
@@ -1253,7 +1303,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             const PlaneExtent RevisionExtent = Spanning(SlideLeast,
                                                         PropertyExtent.MostAcross + LayerPageGap,
                                                         SlideAlong, RevisionAcross);
-            LayerStack.RecordRevisions(RevisionExtent, LayerRevisions);
+            LayerStack.RecordRevisions(RevisionExtent, LayerArranged, LayerStackSeated, LayerRevisions);
 
             Cursor = Cursor + LayerPageAcross + Measure.CardGapAcross;
         }

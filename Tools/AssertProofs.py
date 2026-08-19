@@ -111,11 +111,31 @@ GATES = [
     # ⑰ The carry released — the arrangement moved, and the ring recorded it.
     ("VisualProof/InterfaceValidationHost/layerstackdropped.png", [
         (200, 430, 0x202020, 6, "the carried row, taken at its new seat"),
-        (417, 680, 0xFFFFFF, 6, "this session's revision spine in the History pane"),
+        # 📐 The pane grew a 34px action bar above its run, so the first medallion moved with it.
+        (417, 714, 0xFFFFFF, 6, "this session's revision medallion in the History pane"),
     ]),
     # ⑱ The stack scrolled by the wheel, with its bar advanced to match.
     ("VisualProof/InterfaceValidationHost/layerstackscrolled.png", [
         (386, 300, 0x2A2A2A, 8, "scroll thumb, advanced off the top of its travel"),
+    ]),
+    # ⑳ The revision pane at rest: the ordinal medallion, the node on the spine, and the spine itself
+    #     standing unbroken through the gap between two cards.
+    ("VisualProof/InterfaceValidationHost/revisions.png", [
+        ( 16, 100, 0xFFFFFF, 6, "ordinal-zero medallion, carried in the accent"),
+        ( 39,  99, 0xFFFFFF, 6, "the node seated on the spine, 19px into the first card"),
+        ( 39, 130, 0x1E1E1E, 6, "the spine, unbroken across the gap between two cards"),
+        (200, 110, 0x0D0D0D, 5, "a card at rest, on the row ground"),
+    ]),
+    # ㉑ The third card unfolded by a press: its fold stands, carrying a Comment field.
+    ("VisualProof/InterfaceValidationHost/revisionsunfolded.png", [
+        (200, 228, 0x101010, 5, "the unfolded card's fold ground"),
+        (200, 196, 0x121212, 5, "the unfolded card's own head, lifted off the row ground"),
+        (200, 340, 0x0D0D0D, 5, "the card beneath the fold, pushed down by it"),
+    ]),
+    # ㉒ The whole run folded shut at the head, which must record nothing beneath the head at all.
+    ("VisualProof/InterfaceValidationHost/revisionsfolded.png", [
+        (200, 201, 0x050505, 3, "bare panel ground where the folded run records nothing"),
+        (200,  16, 0x161616, 6, "the head, roused under the pointer that folded it"),
     ]),
 ]
 

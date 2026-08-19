@@ -184,6 +184,24 @@ struct LayerStackOrdinates
     const char*    Tooltip        = nullptr;   // [-] - borrowed; absent when nothing is roused
     float          TooltipAlong   = 0.0f;      // [px] - the roused control's own centre
     float          TooltipAcross  = 0.0f;      // [px] - its upper edge
+
+    // 📐 `Inspector.tsx` `renderHistory()` — the revision pane's own interaction. The reference retains
+    //    `collapsedHistory` per token and `expandedRevisions` per revision; the pane here presents one
+    //    token, so the run is folded by a single reading and each entry unfolds on its own.
+    static constexpr std::uint32_t RevisionCeiling = 16u;   // [-] - entries carrying enrolled cells
+    static constexpr std::uint32_t RemarkCeiling   = 64u;   // [-] - characters one comment retains
+
+    bool           RevisionsFolded = false;   // [-] - `collapsedHistory[token]`, the head's own chevron
+    std::uint32_t  RevisionShown   = LayerStackCeiling::AbsentOrdinal;   // [-] - `expandedRevisions[rev.id]`
+    float          RevisionOffset  = 0.0f;    // [px] - how far the pane is scrolled
+    float          RevisionSpan    = 0.0f;    // [px] - the recorded extent, resolved each tick
+
+    // 📐 The unfolded card's two editors. The reference writes each back on BLUR — `updateRevision(rev.id,
+    //    {comment})` — so what is typed lives here until the keyboard leaves the field, and only then is
+    //    it the revision's own reading.
+    std::uint32_t  RevisionField   = 0u;      // [-] - 0 none, 1 the comment, 2 the value
+    char           RevisionRemark[RevisionCeiling][RemarkCeiling] = {};   // [-] - `rev.comment`
+    char           RevisionReading[RevisionCeiling][RemarkCeiling] = {};  // [-] - `rev.editValue`
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -202,16 +220,25 @@ public:
     // 🔴 How many rows carry their own enrolled controls. Beyond this the rows still record and still
     //    respond to the take, but their per-cell actions fall back to the row's own contact — which is a
     //    graceful reduction and not a defect.
-    // 🔴 The three runs must together fit `InteractionIndex::ControlCapacity`, which is 256:
+    // 🔴 The three runs together claim
     //        16 × 12  +  16  +  32  =  240
-    //    The reference's own arrangement presents thirteen entries, so sixteen rows covers it with slack.
-    //    A run sized past the ceiling refuses at `Construct` and the panel never records at all.
+    //    slots from the ledger. The reference's own arrangement presents thirteen entries, so sixteen rows
+    //    covers it with slack. A run sized past the ceiling refuses at `Construct` and the panel never
+    //    records at all.
+    // 🔴 The ledger is SHARED with every other panel the host constructs, so the assertion below is
+    //    necessary and NOT sufficient — it weighs this panel alone. It once passed at 240 ≤ 256 while the
+    //    host had already spent 159 slots on the sheet and the shell, and the layer stack was refused at
+    //    bring-up. The host states the whole-host total in its own budget; keep both in step.
     static constexpr std::uint32_t RowCeiling      = 16u;   // [-] - rows carrying enrolled cells
     static constexpr std::uint32_t CellsPerRow     = 12u;   // [-] - see RowCell
-    static constexpr std::uint32_t ChromeCeiling   = 16u;   // [-] - the head, the tools and the footer
+    static constexpr std::uint32_t ChromeCeiling   = 20u;   // [-] - the head, the tools, the footer, the revision pane
     static constexpr std::uint32_t PopupEntryCeiling = 32u; // [-] - the longest popup is BLENDS, at 29
 
-    static_assert(RowCeiling * CellsPerRow + ChromeCeiling + PopupEntryCeiling <=
+    // 📐 One cell per revision entry, so an entry unfolds under its own contact rather than under the
+    //    pane's. `LayerStackOrdinates::RevisionCeiling` states how many the pane presents.
+    static constexpr std::uint32_t RevisionCellCeiling = LayerStackOrdinates::RevisionCeiling;
+
+    static_assert(RowCeiling * CellsPerRow + ChromeCeiling + PopupEntryCeiling + RevisionCellCeiling <=
                   InteractionIndex::ControlCapacity,
                   "the layer stack's enrolments exceed the interaction ledger's capacity — Construct would "
                   "refuse and the panel would record nothing; reduce RowCeiling or raise ControlCapacity");
@@ -282,11 +309,18 @@ public:
     void RecordMaskProperties(const PlaneExtent& Extent, LayerArrangement& Arrangement,
                               LayerStackOrdinates& Seated, RevisionSequence& Revisions);
 
-    /// 🧩 Records the revision pane the inspector's second slide pairs with a property panel.
-    /// in    Revisions  [-]  borrowed; what stands recorded is presented above the seated reference run
-    /// cost  🚩
+    /// 🧩 Records the revision pane the inspector's second slide pairs with a property panel, and
+    ///    arbitrates every contact that lands inside it.
+    /// in    Extent       [-]  the pane's own extent
+    /// in    Arrangement  [-]  borrowed; a revert or a reinstate restores straight into it
+    /// in    Seated       [-]  retained between ticks; the fold, the unfolded entry and the scroll
+    /// in    Revisions    [-]  borrowed; what stands recorded is presented above the seated reference run
+    /// note  📐 `Inspector.tsx` `renderHistory()`: the head folds the whole run, each entry unfolds its own
+    ///        card, and the two actions revert and reinstate through the ring.
+    /// cost  🔴
     /// tag   api, nonallocating, nonthrowing
-    void RecordRevisions(const PlaneExtent& Extent, const RevisionSequence& Revisions);
+    void RecordRevisions(const PlaneExtent& Extent, LayerArrangement& Arrangement,
+                         LayerStackOrdinates& Seated, RevisionSequence& Revisions);
 
     /// 🧩 Records the standing popup and the roused tooltip, above everything recorded before them.
     /// note  🔴 A popup recorded in place is painted over by the next row the stack records. The reference
@@ -351,8 +385,12 @@ private:
         WheelRing    = 12u,   // [-] - the colour wheel's hue ring
         WheelLuma    = 13u,   // [-] - its luminance run
         WheelApply   = 14u,   // [-] - its Apply action
-        Reserved     = 15u,
-        CellCount    = 16u
+        RevisionHead = 15u,   // [-] - the revision pane's own head, which folds the whole run
+        RevisionBar  = 16u,   // [-] - the revision pane's scroll bar, dragged in place
+        RevertAction = 17u,   // [-] - the pane's revert action
+        ReinstateAction = 18u,   // [-] - the pane's reinstate action
+        Reserved     = 19u,
+        CellCount    = 20u
     };
 
     /// 🧩 Whether one extent is roused, seizes on arrival and resolves on release — the whole arbitration
@@ -401,6 +439,7 @@ private:
     ControlIdentity    RowCells[RowCeiling * CellsPerRow] = {};   // [-] - one per row, one per cell
     ControlIdentity    ChromeCells[ChromeCeiling]         = {};   // [-] - the panel's own chrome
     ControlIdentity    PopupEntries[PopupEntryCeiling]    = {};   // [-] - one per open popup entry
+    ControlIdentity    RevisionCells[RevisionCellCeiling] = {};   // [-] - one per revision entry
 };
 
 }   // namespace Slate

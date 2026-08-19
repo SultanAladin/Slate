@@ -43,6 +43,15 @@ static constexpr float NotchAcross = 48.0f;   // [px]
 //    same six pixels for the same reason, and the reference's HTML drag has the window system's own.
 static constexpr float CarryFloor = 6.0f;   // [px]
 
+// 📐 `renderHistory()`'s own columns and heights. The card is `min-height: 44px`; the two fixed columns to
+//    its left are 32 px of medallion and 15 px of spine, which puts the spine's centre at 39 and the card's
+//    leading edge at 47. The fold is the comment field and the value field over the author line.
+static constexpr float RevisionCardAcross = 44.0f;   // [px] - one folded card
+static constexpr float RevisionFoldAcross = 96.0f;   // [px] - author line, comment field, value field
+static constexpr float RevisionGapAcross  =  4.0f;   // [px] - `pb-[4px]`
+static constexpr float RevisionLeadAlong  = 55.0f;   // [px] - 32 + 15 + `pl-[8px]`
+static constexpr float RevisionSpineAlong = 39.0f;   // [px] - 32 + 15/2, the spine's own centre
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
@@ -87,6 +96,9 @@ Deliver<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, Recordin
     if (const auto Verdict = Claim(PopupEntries, PopupEntryCeiling); !Verdict.ContentPresent)
         return Verdict;
 
+    if (const auto Verdict = Claim(RevisionCells, RevisionCellCeiling); !Verdict.ContentPresent)
+        return Verdict;
+
     return Deliver<bool>::Deliver(true);
 }
 
@@ -108,6 +120,9 @@ void LayerStackPanel::Reset()
         Claimed = {};
 
     for (ControlIdentity& Claimed : PopupEntries)
+        Claimed = {};
+
+    for (ControlIdentity& Claimed : RevisionCells)
         Claimed = {};
 }
 
@@ -655,8 +670,12 @@ bool LayerStackPanel::AdmitChord(KeySubject Subject, const ModifierCondition& Mo
 {
     // 🔴 The reference's own first line — `if(e.target.tagName==='INPUT'||…)return`. A chord that reached
     //    the arrangement while the artist was typing would declare a paint layer out of the letter `p`.
-    if (Seated.RetentionRoused || Seated.Renaming != LayerStackCeiling::AbsentOrdinal)
+    //    The revision card's comment and value fields are `INPUT` and `TEXTAREA` on exactly those grounds.
+    if (Seated.RetentionRoused || Seated.Renaming != LayerStackCeiling::AbsentOrdinal ||
+        Seated.RevisionField != 0u)
+    {
         return false;
+    }
 
     const bool Taken = Arrangement.Taken < Arrangement.EntryCount;
 
@@ -1881,105 +1900,408 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
 //                                                       THE REVISIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, const RevisionSequence& Revisions)
+void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangement& Arrangement,
+                                     LayerStackOrdinates& Seated, RevisionSequence& Revisions)
 {
-    if (Surface == nullptr || !Surface->Recording())
+    if (Surface == nullptr || !Surface->Recording() || Ledger == nullptr)
         return;
 
     Surface->Ground(Extent, Tinted.Panel);
     Surface->Confine(Extent);
 
+    // ① The head, which folds the whole run. `renderHistory` gives its group header `cursor-pointer` and
+    //    `onClick={() => toggleHistoryCard(token)}`, and rotates the chevron −90° while it stands folded.
     const PlaneExtent Head = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(),
                                       Scaled.HeadAcross);
-    Surface->Ground(Head, Tinted.PanelRaised);
+
+    const bool HeadRoused = Roused(Head);
+
+    if (Pressed(ChromeCells[static_cast<std::uint32_t>(ChromeCell::RevisionHead)], Head, Seated,
+                Seated.RevisionsFolded ? "Show history" : "Hide history"))
+    {
+        Seated.RevisionsFolded = !Seated.RevisionsFolded;
+        Seated.RevisionField   = 0u;
+    }
+
+    Surface->Ground(Head, HeadRoused ? Tinted.RowHovered : Tinted.PanelRaised);
     Surface->Edge(PlaneExtent{ Head.LeastAlong, Head.MostAcross - 1.0f, Head.MostAlong, Head.MostAcross },
                   Tinted.Stroke);
 
     // 📝 The caption the reference draws, which is not the spelling the identifiers carry.
     Surface->TextRunCapitalised(Head.LeastAlong + Scaled.HeadPadAlong,
                                 Head.LeastAcross + (Scaled.HeadAcross - Surface->RunAcross(Scaled.RunHead)) * 0.5f,
-                                Tinted.Secondary, "History", Scaled.RunHead, TrackingHead, true);
+                                HeadRoused ? Tinted.Primary : Tinted.Secondary, "History", Scaled.RunHead,
+                                TrackingHead, true);
 
-    // 📐 What the artist has actually amended this session stands above the seated reference run, newest
-    //    first, so the pane reads as one continuous record rather than as two.
-    float Across = Head.MostAcross + Scaled.StackPadAcross;
+    const RevisionOrdinate* Reference = nullptr;
+    std::uint32_t           Count     = 0u;
+    SeatReferenceRevisions(Reference, Count);
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Revisions.RecordedCount(); ++Ordinal)
+    const std::uint32_t Standing = Revisions.RecordedCount() + Count;
+
+    // 📐 `{tokenRevisions.length} ops` — the count the header carries at its trailing edge, ahead of the
+    //    chevron.
     {
-        const PlaneExtent Row = Spanning(Extent.LeastAlong + Scaled.StackPadAlong, Across,
-                                         Extent.SpanAlong() - Scaled.StackPadAlong * 2.0f, 40.0f);
+        char Reading[24] = {};
+        std::snprintf(Reading, sizeof Reading, "%u ops", Standing);
 
-        if (Surface->Excluded(Row))
-        {
-            Across += 44.0f;
-            continue;
-        }
-
-        Surface->Ground(Row, Tinted.Row, Scaled.RadiusSmall);
-
-        PlaneExtent Spine = Row;
-        Spine.MostAlong   = Row.LeastAlong + 3.0f;
-        Surface->Ground(Spine, (Ordinal == 0u) ? Tinted.Accent : Tinted.Affirm, 1.5f);
-
-        Surface->TextRunTruncated(Row.LeastAlong + 12.0f, Row.LeastAcross + 7.0f, Row.SpanAlong() - 24.0f,
-                                  Tinted.Primary, Revisions.RevisionNaming(Ordinal), Scaled.RunSub, true);
-
-        Surface->TextRun(Row.LeastAlong + 12.0f, Row.LeastAcross + 22.0f, Tinted.Faint,
-                         "this session", Scaled.RunFine);
-
-        Across += 44.0f;
+        const float Along = Head.MostAlong - 34.0f - Surface->MeasureRun(Reading, Scaled.RunFine);
+        Surface->TextRun(Along, Head.LeastAcross + (Scaled.HeadAcross - Surface->RunAcross(Scaled.RunFine)) * 0.5f,
+                         Tinted.Secondary, Reading, Scaled.RunFine);
     }
 
-    const RevisionOrdinate* Seated  = nullptr;
-    std::uint32_t           Count   = 0u;
-    SeatReferenceRevisions(Seated, Count);
+    Surface->Stroke(Seated.RevisionsFolded ? SymbolSubject::ChevronRight : SymbolSubject::ChevronDown,
+                    Squared(Head.MostAlong - 18.0f, (Head.LeastAcross + Head.MostAcross) * 0.5f, 13.0f),
+                    Tinted.Faint);
 
-    if (Count == 0u || Seated == nullptr)
+    // ② The two ring actions, which the reference's own inspector does not carry but the arrangement
+    //    demands: a recorded run that cannot be walked back is a log, not a history.
+    const PlaneExtent Bar = Spanning(Extent.LeastAlong, Head.MostAcross, Extent.SpanAlong(), 34.0f);
+
+    if (!Seated.RevisionsFolded)
     {
-        Surface->TextRun(Extent.LeastAlong + Scaled.CardPadAlong, Across + 14.0f, Tinted.Faint,
-                         "No revisions recorded.", Scaled.RunSub);
+        Surface->Ground(Bar, Tinted.Detail);
+        Surface->Edge(PlaneExtent{ Bar.LeastAlong, Bar.MostAcross - 1.0f, Bar.MostAlong, Bar.MostAcross },
+                      Tinted.Stroke);
+
+        const float Middle = (Bar.LeastAcross + Bar.MostAcross) * 0.5f;
+
+        const PlaneExtent RevertSeat    = Spanning(Bar.LeastAlong + 10.0f, Middle - 11.0f, 78.0f, 22.0f);
+        const PlaneExtent ReinstateSeat = Spanning(RevertSeat.MostAlong + 6.0f, Middle - 11.0f, 88.0f, 22.0f);
+
+        const auto RingAction = [&](ChromeCell Cell, const PlaneExtent& Seat, const char* Caption,
+                                    bool Offered, const char* Tooltip) -> bool
+        {
+            const bool Taken = Offered && Pressed(ChromeCells[static_cast<std::uint32_t>(Cell)], Seat,
+                                                  Seated, Tooltip);
+
+            const bool Lit = Offered && Roused(Seat);
+
+            Surface->Ground(Seat, Partial(0xFFFFFFu, Lit ? 0.10 : 0.045), Scaled.RadiusSmall);
+            Surface->Edge(Seat, Lit ? Tinted.StrokeStrong : Tinted.Stroke, 1.0f, Scaled.RadiusSmall);
+
+            const float Along = Seat.LeastAlong +
+                                (Seat.SpanAlong() - Surface->MeasureRun(Caption, Scaled.RunFine)) * 0.5f;
+
+            Surface->TextRun(Along, Seat.LeastAcross + (22.0f - Surface->RunAcross(Scaled.RunFine)) * 0.5f,
+                             Offered ? (Lit ? Tinted.Primary : Tinted.Secondary) : Tinted.Faint,
+                             Caption, Scaled.RunFine);
+
+            return Taken;
+        };
+
+        // 📐 Both read the ring rather than record into it, exactly as ⌘Z and ⇧⌘Z do in `AdmitChord`.
+        if (RingAction(ChromeCell::RevertAction, RevertSeat, "Revert",
+                       Revisions.RecordedCount() > 0u, "Revert the last amendment"))
+        {
+            Revisions.Revert(Arrangement);
+            Seated.RevisionShown = LayerStackCeiling::AbsentOrdinal;
+            Seated.RevisionField = 0u;
+        }
+
+        if (RingAction(ChromeCell::ReinstateAction, ReinstateSeat, "Reinstate",
+                       Revisions.ReinstatableCount() > 0u, "Reinstate what was reverted"))
+        {
+            Revisions.Reinstate(Arrangement);
+            Seated.RevisionShown = LayerStackCeiling::AbsentOrdinal;
+            Seated.RevisionField = 0u;
+        }
+    }
+
+    // 📐 `gridTemplateRows: isCollapsed ? '0fr' : '1fr'` — a folded run records nothing at all, which is
+    //    what an unfolded extent of zero actually amounts to once the transition has settled.
+    if (Seated.RevisionsFolded)
+    {
+        Seated.RevisionSpan = 0.0f;
         Surface->Release();
         return;
     }
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
+    const PlaneExtent Run = Spanning(Extent.LeastAlong, Bar.MostAcross, Extent.SpanAlong(),
+                                     Extent.MostAcross - Bar.MostAcross);
+
+    Surface->Confine(Run);
+
+    if (Standing == 0u)
     {
-        const RevisionOrdinate& Revision = Seated[Ordinal];
-        const PlaneExtent       Row      = Spanning(Extent.LeastAlong + Scaled.StackPadAlong, Across,
-                                                    Extent.SpanAlong() - Scaled.StackPadAlong * 2.0f, 40.0f);
-
-        if (Surface->Excluded(Row))
-        {
-            Across += 44.0f;
-            continue;
-        }
-
-        Surface->Ground(Row, Tinted.Row, Scaled.RadiusSmall);
-
-        // 📐 The standing revision is the newest, which the reference marks with an accent spine — and
-        //    only when nothing this session already stands above it.
-        if (Ordinal == 0u && Revisions.RecordedCount() == 0u)
-        {
-            PlaneExtent Spine = Row;
-            Spine.MostAlong   = Row.LeastAlong + 3.0f;
-            Surface->Ground(Spine, Tinted.Accent, 1.5f);
-        }
-
-        Surface->TextRunTruncated(Row.LeastAlong + 12.0f, Row.LeastAcross + 7.0f,
-                                  Row.SpanAlong() - 24.0f, Tinted.Primary,
-                                  Revision.Naming, Scaled.RunSub, true);
-
-        Surface->TextRun(Row.LeastAlong + 12.0f, Row.LeastAcross + 22.0f, Tinted.Faint,
-                         Revision.Moment, Scaled.RunFine);
-
-        if (Revision.Detail != nullptr && Revision.Detail[0] != '\0')
-        {
-            const float Along = Row.MostAlong - 12.0f - Surface->MeasureRun(Revision.Detail, Scaled.RunFine);
-            Surface->TextRun(Along, Row.LeastAcross + 22.0f, Tinted.Secondary, Revision.Detail, Scaled.RunFine);
-        }
-
-        Across += 44.0f;
+        // 📝 The reference's own empty state, verbatim.
+        Surface->TextRunTruncated(Run.LeastAlong + Scaled.CardPadAlong, Run.LeastAcross + 16.0f,
+                                  Run.SpanAlong() - Scaled.CardPadAlong * 2.0f, Tinted.Faint,
+                                  "No history events found for this selection or its children.", 11.5f);
+        Surface->Release();
+        Surface->Release();
+        Seated.RevisionSpan = 0.0f;
+        return;
     }
+
+    float Across = Run.LeastAcross + Scaled.StackPadAcross - Seated.RevisionOffset;
+
+    std::uint32_t Enrolled = 0u;
+
+    // 📐 One card, recorded the same way whether its reading came from the ring or from the seated
+    //    reference run. The reference draws both out of one `tokenRevisions.map`, so they share a body.
+    const auto RecordCard = [&](std::uint32_t Ordinal, const char* Naming, const char* Moment,
+                                const char* Detail, bool Standing2) -> void
+    {
+        const bool  Shown = Seated.RevisionShown == Ordinal;
+        const float Folded = Shown ? RevisionFoldAcross : 0.0f;
+        const float Whole  = RevisionCardAcross + Folded;
+
+        const PlaneExtent Card = Spanning(Run.LeastAlong + RevisionLeadAlong, Across,
+                                          Run.SpanAlong() - RevisionLeadAlong - Scaled.StackPadAlong,
+                                          RevisionCardAcross);
+
+        const PlaneExtent Whole2 = Spanning(Card.LeastAlong, Across, Card.SpanAlong(), Whole);
+
+        // 📐 The bubble and the spine, which the reference seats in two fixed columns of 32 and 15 to the
+        //    left of every card and runs continuously between the first card and the last.
+        const float Spine = Run.LeastAlong + RevisionSpineAlong;
+
+        if (!Surface->Excluded(Whole2))
+        {
+            const bool First = Ordinal == 0u;
+            const bool Last  = Ordinal + 1u == Standing;
+
+            // 📐 The spine is its own flex column and runs the WHOLE row, the card's trailing padding
+            //    included — so the gap between two cards carries spine and not ground. It starts at the
+            //    first node and stops at the last, rounded at whichever end it terminates.
+            const float SpineLeast = First ? (Across + 19.0f) : Across;
+            const float SpineMost  = Last  ? (Across + 19.0f) : (Across + Whole + RevisionGapAcross);
+
+            if (SpineMost > SpineLeast)
+            {
+                Surface->Ground(Spanning(Spine - 3.0f, SpineLeast, 6.0f, SpineMost - SpineLeast),
+                                Partial(0xFFFFFFu, 0.10), (First || Last) ? 3.0f : 0.0f);
+            }
+
+            // 📐 `w-[7px] h-[7px] rounded-full bg-white shadow-[0_0_0_3px_var(--menu-2)]` — the node, which
+            //    sits on the spine 19px into the card and is ringed by the panel's own ground.
+            Surface->Ground(Squared(Spine, Across + 19.0f, 13.0f), Tinted.PanelRaised, 6.5f);
+            Surface->Ground(Squared(Spine, Across + 19.0f, 7.0f), Tinted.Accent, 3.5f);
+
+            // 📐 The medallion — `{i.toString().padStart(2,'0')}` in a 25px disc.
+            const PlaneExtent Medallion = Squared(Run.LeastAlong + 16.0f, Across + 19.0f, 25.0f);
+            Surface->Ground(Medallion, Standing2 ? Tinted.Accent : Partial(0xFFFFFFu, 0.16), 12.5f);
+
+            char Numbered[4] = { static_cast<char>('0' + static_cast<char>((Ordinal / 10u) % 10u)),
+                                 static_cast<char>('0' + static_cast<char>(Ordinal % 10u)), '\0', '\0' };
+
+            Surface->TextRun(Medallion.LeastAlong +
+                             (25.0f - Surface->MeasureRun(Numbered, Scaled.RunFine)) * 0.5f,
+                             Medallion.LeastAcross + (25.0f - Surface->RunAcross(Scaled.RunFine)) * 0.5f,
+                             Standing2 ? Tinted.Ground : Tinted.Primary, Numbered, Scaled.RunFine,
+                             0.0f, true);
+        }
+
+        // 📐 The card itself, pressed to unfold. Only the first `RevisionCeiling` entries carry a cell;
+        //    beyond that the pane still draws but no longer arbitrates, which is what a ceiling is for.
+        bool Taken = false;
+
+        if (Enrolled < RevisionCellCeiling)
+        {
+            Taken = Pressed(RevisionCells[Enrolled], Card, Seated,
+                            Shown ? "Fold this revision" : "Unfold this revision");
+            ++Enrolled;
+        }
+
+        if (Taken)
+        {
+            Seated.RevisionShown = Shown ? LayerStackCeiling::AbsentOrdinal : Ordinal;
+            Seated.RevisionField = 0u;
+        }
+
+        if (Surface->Excluded(Whole2))
+        {
+            Across += Whole + RevisionGapAcross;
+            return;
+        }
+
+        const bool Lit = Roused(Card);
+
+        // 📐 `rounded-t-[8px] border-[var(--accent)] bg-[var(--accent-soft)] border-b-transparent` while
+        //    unfolded, and a plain rounded tile otherwise.
+        Surface->Ground(Card, Shown ? Partial(0xFFFFFFu, 0.07)
+                                    : (Lit ? Tinted.RowHovered : Tinted.Row),
+                        8.0f, Shown ? (CornerLeadingUpper | CornerTrailingUpper) : CornerAll);
+        Surface->Edge(Card, Shown ? Tinted.StrokeStrong : Tinted.Stroke, 1.0f, 8.0f);
+
+        Surface->TextRunTruncated(Card.LeastAlong + 8.0f, Card.LeastAcross + 8.0f,
+                                  Card.SpanAlong() - 76.0f, Tinted.Primary, Naming, 12.5f, true);
+
+        if (Detail != nullptr && Detail[0] != '\0')
+        {
+            Surface->TextRunTruncated(Card.LeastAlong + 8.0f, Card.LeastAcross + 25.0f,
+                                      Card.SpanAlong() - 76.0f, Tinted.Secondary, Detail, 10.0f);
+        }
+
+        // 📐 `rev.date.toLocaleTimeString(…)` — the trailing moment, in the reference's own monospaced run.
+        if (Moment != nullptr && Moment[0] != '\0')
+        {
+            const float Along = Card.MostAlong - 26.0f - Surface->MeasureRun(Moment, 10.0f);
+            Surface->TextRun(Along, Card.LeastAcross + (RevisionCardAcross - Surface->RunAcross(10.0f)) * 0.5f,
+                             Tinted.Faint, Moment, 10.0f);
+        }
+
+        // 📐 `${isRevExpanded ? 'rotate-180' : ''}` — the card's own chevron points DOWN at rest and turns
+        //    a half circle when it unfolds. It is the run's head that swaps to a right chevron, not a card.
+        Surface->Stroke(SymbolSubject::ChevronDown,
+                        Squared(Card.MostAlong - 14.0f, (Card.LeastAcross + Card.MostAcross) * 0.5f, 12.0f),
+                        Lit ? Tinted.Secondary : Tinted.Faint, Shown ? 3.14159265f : 0.0f);
+
+        if (!Shown)
+        {
+            Across += Whole + RevisionGapAcross;
+            return;
+        }
+
+        // ③ The fold — author and date over a Comment field over an optional Value field, exactly as the
+        //    reference lays it out inside its `grid-template-rows: 1fr` panel.
+        const PlaneExtent Fold = Spanning(Card.LeastAlong, Card.MostAcross - 1.0f, Card.SpanAlong(),
+                                          RevisionFoldAcross + 1.0f);
+
+        Surface->Ground(Fold, Partial(0xFFFFFFu, 0.045), 8.0f,
+                        CornerTrailingLower | CornerLeadingLower);
+        Surface->Edge(Fold, Tinted.StrokeStrong, 1.0f, 8.0f);
+
+        Surface->TextRun(Fold.LeastAlong + 8.0f, Fold.LeastAcross + 8.0f, Tinted.Secondary,
+                         "By System", 10.0f);
+
+        if (Moment != nullptr && Moment[0] != '\0')
+        {
+            const float Along = Fold.MostAlong - 8.0f - Surface->MeasureRun(Moment, 10.0f);
+            Surface->TextRun(Along, Fold.LeastAcross + 8.0f, Tinted.Secondary, Moment, 10.0f);
+        }
+
+        // 📐 One field, which takes the keyboard on a press and gives it back on a contact anywhere else —
+        //    the same arbitration `#q` carries, because a primitive field has no vendor focus to borrow.
+        const auto RecordField = [&](std::uint32_t Which, const PlaneExtent& Seat, const char* Caption,
+                                     char* Written, const char* Absent) -> void
+        {
+            const bool Holding = Seated.RevisionField == Which;
+
+            if (Enrolled < RevisionCellCeiling &&
+                Pressed(RevisionCells[Enrolled], Seat, Seated, nullptr))
+            {
+                Seated.RevisionField = Holding ? 0u : Which;
+            }
+            else if (Sampled.ContactArrived && Holding && !Roused(Seat))
+            {
+                // 📝 `onBlur` — the reference writes the reading back exactly here and nowhere else.
+                Seated.RevisionField = 0u;
+            }
+
+            if (Enrolled < RevisionCellCeiling)
+                ++Enrolled;
+
+            Surface->Ground(Seat, Tinted.PanelRaised, Scaled.RadiusSmall);
+            Surface->Edge(Seat, Holding ? Tinted.StrokeStrong : Tinted.Stroke, 1.0f, Scaled.RadiusSmall);
+
+            Surface->TextRunCapitalised(Seat.LeastAlong + 8.0f, Seat.LeastAcross + 6.0f, Tinted.Faint,
+                                        Caption, 9.0f, TrackingSection, true);
+
+            const bool Present = Written[0] != '\0';
+
+            Surface->TextRunTruncated(Seat.LeastAlong + 8.0f, Seat.LeastAcross + 19.0f,
+                                      Seat.SpanAlong() - 16.0f, Present ? Tinted.Primary : Tinted.Faint,
+                                      Present ? Written : Absent, 11.5f);
+
+            if (Holding)
+            {
+                const float Caret = Seat.LeastAlong + 8.0f +
+                                    (Present ? Surface->MeasureRun(Written, 11.5f) : 0.0f);
+
+                Surface->Ground(Spanning(Caret + 1.0f, Seat.LeastAcross + 18.0f, 1.0f, 13.0f),
+                                Tinted.Primary);
+            }
+        };
+
+        // 📐 The retained run is the field's key as well as its seat, so a card beyond the ceiling folds
+        //    into the last retained pair rather than writing past the end of either run.
+        const std::uint32_t Held = (Ordinal < LayerStackOrdinates::RevisionCeiling)
+                                 ? Ordinal : (LayerStackOrdinates::RevisionCeiling - 1u);
+
+        const PlaneExtent Remark = Spanning(Fold.LeastAlong + 7.0f, Fold.LeastAcross + 24.0f,
+                                            Fold.SpanAlong() - 14.0f, 36.0f);
+
+        RecordField(Held * 2u + 1u, Remark, "Comment", Seated.RevisionRemark[Held],
+                    "Add a comment...");
+
+        // 📐 `{rev.editValue !== undefined && …}` — the Value field stands only where the revision
+        //    actually moved a reading, which is exactly where the card carries a detail.
+        if (Detail != nullptr && Detail[0] != '\0')
+        {
+            const PlaneExtent Reading = Spanning(Fold.LeastAlong + 7.0f, Remark.MostAcross + 6.0f,
+                                                 Fold.SpanAlong() - 14.0f, 36.0f);
+
+            RecordField(Held * 2u + 2u, Reading, "Value", Seated.RevisionReading[Held], Detail);
+        }
+
+        Across += Whole + RevisionGapAcross;
+    };
+
+    std::uint32_t Ordinal = 0u;
+
+    // 📐 What the artist has actually amended this session stands above the seated reference run, newest
+    //    first, so the pane reads as one continuous record rather than as two.
+    for (std::uint32_t Recorded = 0u; Recorded < Revisions.RecordedCount(); ++Recorded, ++Ordinal)
+        RecordCard(Ordinal, Revisions.RevisionNaming(Recorded), "this session", nullptr, Ordinal == 0u);
+
+    for (std::uint32_t Seat = 0u; Seat < Count; ++Seat, ++Ordinal)
+    {
+        RecordCard(Ordinal, Reference[Seat].Naming, Reference[Seat].Moment, Reference[Seat].Detail,
+                   Ordinal == 0u);
+    }
+
+    Seated.RevisionSpan = (Across + Seated.RevisionOffset) - (Run.LeastAcross + Scaled.StackPadAcross);
+
+    Surface->Release();
+
+    // ④ The pane's own bar and wheel, on the same terms the stack's are — the seam carries no scrolling
+    //    primitive, so a pane that overflows answers for itself.
+    const float Visible = Run.SpanAcross();
+    const float Ceiling = (Seated.RevisionSpan > Visible) ? (Seated.RevisionSpan - Visible) : 0.0f;
+
+    if (Ceiling > 0.0f && Visible > 0.0f)
+    {
+        const float Fraction    = Visible / Seated.RevisionSpan;
+        const float ThumbAcross = (Visible * Fraction < 28.0f) ? 28.0f : Visible * Fraction;
+        const float Travel      = Visible - ThumbAcross;
+        const float Advanced    = Seated.RevisionOffset / Ceiling;
+
+        const PlaneExtent Track = Spanning(Run.MostAlong - Scaled.ScrollAlong, Run.LeastAcross,
+                                           Scaled.ScrollAlong, Visible);
+        const PlaneExtent Thumb = Spanning(Run.MostAlong - Scaled.ScrollAlong + 3.0f,
+                                           Run.LeastAcross + Travel * Advanced, 4.0f, ThumbAcross);
+
+        ControlIdentity& Claimed = ChromeCells[static_cast<std::uint32_t>(ChromeCell::RevisionBar)];
+
+        if (Roused(Track) && Sampled.ContactArrived && !Ledger->AnyDisclosed())
+        {
+            Ledger->Seize(Claimed, ControlPart::Thumb);
+            Ledger->DepartFrom(Claimed, Seated.RevisionOffset);
+        }
+
+        Ledger->DeclareRoused(Claimed, Roused(Track), RouseOver);
+
+        if (Ledger->Holding(Claimed) && Travel > 0.0f)
+        {
+            const Deliver<float> Departed = Ledger->DepartedOrdinate(Claimed);
+
+            if (Departed.ContentPresent)
+            {
+                const float Moved  = Sampled.PositionAcross - Ledger->OriginAcross();
+                Seated.RevisionOffset = Departed.Resolve() + Moved * (Ceiling / Travel);
+            }
+        }
+
+        Surface->Ground(Thumb, Partial(0xFFFFFFu, Ledger->Holding(Claimed) ? 0.30 : 0.15), 2.0f);
+    }
+
+    if (Run.Encloses(Sampled.PositionAlong, Sampled.PositionAcross) && Seated.Popup == StackPopup::Absent)
+        Seated.RevisionOffset -= Sampled.WheelAcross * NotchAcross;
+
+    if (Seated.RevisionOffset < 0.0f)      Seated.RevisionOffset = 0.0f;
+    if (Seated.RevisionOffset > Ceiling)   Seated.RevisionOffset = Ceiling;
 
     Surface->Release();
 }
