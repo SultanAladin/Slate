@@ -329,10 +329,10 @@ Outcome<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measu
     Seated.TabBarBorderSize = 0.0f;
     Seated.WindowRounding   = 0.0f;
 
-    // 📝 The sheet's min-width and max-width. `TabMinWidthShrcolour` is held at the same figure so a crowded
+    // 📝 The sheet's min-width and max-width. `TabMinWidthShrink` is held at the same figure so a crowded
     //    strip scrolls rather than shrcolouring its tabs below the width the slant was measured against.
     Seated.TabMinWidthBase   = Measure.TabAlongFloor;
-    Seated.TabMinWidthShrcolour = Measure.TabAlongFloor;
+    Seated.TabMinWidthShrink = Measure.TabAlongFloor;
 
     // 🔴 The close mark stands on EVERY tab, selected or not. The vendor hides it on unselected tabs until
     //    hovered; the sheet draws it on all of them, and a mark that appears only under the pointer is one

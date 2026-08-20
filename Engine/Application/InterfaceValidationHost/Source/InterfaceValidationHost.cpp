@@ -332,7 +332,7 @@ public:
     void Record(RecordingSurface& Surface, const ThemeProfile& Appearance,
                 double ArtistScale, float ExtentAlong, std::uint32_t Disagreeing) const
     {
-        const ControlInk&    Ink     = Appearance.Control;
+        const ControlColour&    Ink     = Appearance.Control;
         const ControlMetric& Measure = Appearance.ControlMeasure;
 
         for (std::uint32_t Ordinal = 0u; Ordinal < MeasuredCount; ++Ordinal)
@@ -665,7 +665,7 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
         "Ambient Occlusion", "Anisotropy", "Anisotropy Angle", "Clearcoat", "Refraction Index",
         "Sheen", "Subsurface"
     };
-    const ThemeToken FacetInks[14] = {
+    const ThemeToken FacetColours[14] = {
         Covering(0xB87333u), Covering(0x8B5CF6u), Covering(0x3B82F6u), Covering(0x8A8A8Au),
         Covering(0x10B981u), Covering(0x94A3B8u), Covering(0xF59E0Bu), Covering(0x6B7280u),
         Covering(0x22D3EEu), Covering(0x0EA5E9u), Covering(0xE2E8F0u), Covering(0xA78BFAu),
@@ -674,7 +674,7 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
     FacetDeclaration FacetCard;
     FacetCard.Caption       = "Filters";
     FacetCard.Options       = FacetOptions;
-    FacetCard.Inks          = FacetInks;
+    FacetCard.Colours          = FacetColours;
     FacetCard.OptionCount   = 14u;
     FacetCard.LockedOrdinal = 0u;
 
@@ -926,7 +926,7 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
         Overlay.Discard();
 #endif
 
-        const ControlInk&    Ink     = Appearance.Control;
+        const ControlColour&    Ink     = Appearance.Control;
         const ControlMetric& Measure = Appearance.ControlMeasure;
 
         // ③ The page ground, then the sheet's own column, centred.
