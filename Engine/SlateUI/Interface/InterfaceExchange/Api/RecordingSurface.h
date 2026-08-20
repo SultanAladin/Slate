@@ -7,6 +7,7 @@
 
 #include "Contract/DeliveryContract.h"
 #include "SlateUI/Interface/AppearanceSpecification/Api/AppearanceSpecification.h"
+#include "SlateUI/Interface/TextComponent/Api/FontLoader.h"
 #include "SlateUI/Interface/SymbolSpecification/Api/SymbolSpecification.h"
 
 #include <cstdint>
@@ -327,6 +328,7 @@ public:
     /// Sets the shared typography scale for all text measurement and drawing on this surface.
     void ApplyTypographyScale(float Scale);
     void ApplyCornerScale(float Scale);
+    void ApplyFontLoader(FontLoader& Loader);
 
     /// 🧩 The baseline-to-baseline extent at one point size.
     /// cost  ✔️
@@ -390,6 +392,7 @@ private:
     DisplayCondition  ArrivedDisplay = {};       // [-] - sampled once, at Adopt
     float             TypographyScale = 1.0f;    // [-] - shared text scale
     float             CornerScale = 1.0f;        // [-] - shared corner scale
+    FontLoader*       Fonts = nullptr;           // [-] - borrowed active font loader
     std::uint32_t     ConfineDepth   = 0u;       // [-] - how many Confines stand unmatched
 };
 

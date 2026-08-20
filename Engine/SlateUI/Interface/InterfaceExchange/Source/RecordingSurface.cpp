@@ -416,6 +416,11 @@ void RecordingSurface::ApplyCornerScale(float Scale)
     CornerScale = (Scale < 0.5f) ? 0.5f : ((Scale > 1.5f) ? 1.5f : Scale);
 }
 
+void RecordingSurface::ApplyFontLoader(FontLoader& Loader)
+{
+    Fonts = &Loader;
+}
+
 void RecordingSurface::TextRun(float Along, float Across, ThemeToken Colour, const char* Text,
                                float PointSize, float Tracking, bool Emphatic)
 {
@@ -423,7 +428,7 @@ void RecordingSurface::TextRun(float Along, float Across, ThemeToken Colour, con
         return;
 
     ImDrawList*   Target   = Commands(CommandSlot);
-    ImFont*       Typeface = const_cast<ImFont*>(ImGui::GetFont());
+    ImFont*       Typeface = (Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont());
     const ImU32   Vendored = Vendor(Colour);
     PointSize *= TypographyScale;
     const float   Added    = Tracking * PointSize;
@@ -503,7 +508,7 @@ void RecordingSurface::TextRunTruncated(float Along, float Across, float Ceiling
         return;
     }
 
-    ImFont*       Typeface     = const_cast<ImFont*>(ImGui::GetFont());
+    ImFont*       Typeface     = (Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont());
     const float   EllipsisSpan = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, "...").x;
     const float   Admissible   = CeilingAlong - EllipsisSpan;
 
@@ -537,7 +542,7 @@ float RecordingSurface::MeasureRun(const char* Text, float PointSize, float Trac
     if (Text == nullptr || Text[0] == '\0' || ImGui::GetCurrentContext() == nullptr)
         return 0.0f;
 
-    ImFont*       Typeface = const_cast<ImFont*>(ImGui::GetFont());
+    ImFont*       Typeface = (Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont());
     PointSize *= TypographyScale;
     const float   Measured = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Text).x;
 

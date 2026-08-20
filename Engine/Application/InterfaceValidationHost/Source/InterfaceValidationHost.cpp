@@ -426,6 +426,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     MotionIntegrator Motion;
     InteractionIndex Ledger;
     RecordingSurface       Surface;
+    FontLoader             Fonts;
     ComponentSpecification  Panel;
     ControlPanel             ReferenceControls;
     FacetPanel               Facets;
@@ -519,6 +520,8 @@ ApplyUserScale(Appearance,
     Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
+    Surface.ApplyFontLoader(Fonts);
+    Disregard(Fonts.Load("EngineContent/FontArchives", Appearance.Fonts, 1.0f));
 
     // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
     //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
@@ -791,6 +794,7 @@ ApplyUserScale(Appearance,
             Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
+    Disregard(Fonts.Load("EngineContent/FontArchives", Appearance.Fonts, 1.0f));
             ResolvedAgainst = Display.ExtentAlong;
 
             // 🔴 The shell holds its own scaled extents, so a resolve it is not told about leaves it
@@ -1328,6 +1332,7 @@ ApplyUserScale(Appearance,
                 Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
+    Disregard(Fonts.Load("EngineContent/FontArchives", Appearance.Fonts, 1.0f));
                 ContentBrowser.Reseat(Appearance);
                 LayerStack.Reseat(Appearance);
             }
