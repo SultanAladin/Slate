@@ -66,6 +66,20 @@ const char* FontLoader::FamilyName(std::uint32_t Ordinal) const
     return Ordinal < Families.size() ? Families[Ordinal].c_str() : nullptr;
 }
 
+Outcome<bool> FontLoader::PreparePreviews(float DisplayScale)
+{
+    if (Root.empty() || ImGui::GetCurrentContext() == nullptr || ImGui::GetIO().Fonts == nullptr)
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "font context is unavailable" });
+
+    for (const std::string& Family : Families)
+        static_cast<void>(Preview(Family.c_str(), DisplayScale));
+
+    ImGui::GetIO().Fonts->Build();
+    std::fprintf(stderr, "[Fonts] prepared %u preview faces before recording\n",
+                 static_cast<unsigned>(PreviewFaces.size()));
+    return Outcome<bool>::Result(true);
+}
+
 bool FontLoader::HasFace(FontWeight Weight, FontSlant Slant) const
 {
     return Faces[Slot(Weight, Slant)] != nullptr;
