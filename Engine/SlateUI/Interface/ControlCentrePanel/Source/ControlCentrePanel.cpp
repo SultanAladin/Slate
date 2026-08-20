@@ -1007,26 +1007,34 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
         const float FaceTop = Entry.LeastAcross + 38.0f;
         const std::uint32_t FamilyCount = (FontArchive != nullptr && FontArchive->FamilyCount() > 0u)
                                         ? FontArchive->FamilyCount() : 1u;
-        const std::uint32_t FirstFamily = (Ordinates.Font > 1u && Ordinates.Font + 5u < FamilyCount)
-                                        ? Ordinates.Font - 2u : 0u;
-        const std::uint32_t LastFamily = (FirstFamily + 5u < FamilyCount) ? FirstFamily + 5u : FamilyCount;
-        std::uint32_t FamilyOrdinal = 0u;
-        for (std::uint32_t Family = FirstFamily; Family < LastFamily; ++Family)
+        if (Pressed(1180u + Ordinal * 2u, Spanning(Entry.LeastAlong + 18.0f, FaceTop, 28.0f, 34.0f)) && Ordinates.Font > 0u)
+            --Ordinates.Font;
+        if (Pressed(1181u + Ordinal * 2u, Spanning(Entry.MostAlong - 46.0f, FaceTop, 28.0f, 34.0f)) && Ordinates.Font + 1u < FamilyCount)
+            ++Ordinates.Font;
+        const char* FamilyName = (FontArchive != nullptr) ? FontArchive->FamilyName(Ordinates.Font) : "Inter";
+        Surface->TextRun(Entry.LeastAlong + 52.0f, FaceTop + 8.0f, Theme.Secondary, FamilyName, 10.0f);
+
+        static constexpr FontWeight CandidateFaces[] = { FontWeight::Thin, FontWeight::ExtraLight,
+            FontWeight::Light, FontWeight::Regular, FontWeight::Medium, FontWeight::Semibold,
+            FontWeight::Bold, FontWeight::ExtraBold, FontWeight::Black };
+        static constexpr const char* FaceNames[] = { "Thin", "ExtraLight", "Light", "Regular", "Medium",
+            "Semibold", "Bold", "ExtraBold", "Black" };
+        std::uint32_t FaceOrdinal = 0u;
+        for (std::uint32_t Candidate = 0u; Candidate < 9u; ++Candidate)
         {
-            const char* Name = (FontArchive != nullptr) ? FontArchive->FamilyName(Family) : "Inter";
-            const float FaceAlong = Entry.LeastAlong + 18.0f + static_cast<float>(FamilyOrdinal) * 112.0f;
+            if (FontArchive != nullptr && !FontArchive->HasFace(CandidateFaces[Candidate], FontSlant::Upright))
+                continue;
+            const float FaceAlong = Entry.LeastAlong + 58.0f + static_cast<float>(FaceOrdinal) * 112.0f;
             const PlaneExtent FaceBox = Spanning(FaceAlong, FaceTop, 104.0f, 34.0f);
-            Surface->Ground(FaceBox, Ordinates.Font == Family ? Theme.Card : Theme.Panel, 8.0f, CornerAll);
-            Surface->Edge(FaceBox, Ordinates.Font == Family ? Accent : Theme.Edge, 1.0f, 8.0f, CornerAll);
             if (FontArchive != nullptr)
-                Surface->ApplyFontPreview(FontArchive->Preview(Name, 1.0f));
-            Surface->TextRun(FaceBox.LeastAlong + 8.0f, FaceBox.LeastAcross + 5.0f,
-                             Theme.Primary, "Aa", 15.0f, 0.0f, true);
-            Surface->TextRun(FaceBox.LeastAlong + 34.0f, FaceBox.LeastAcross + 10.0f,
-                             Theme.Secondary, Name, 8.0f);
-            if (Pressed(1200u + Ordinal * 8u + FamilyOrdinal, FaceBox))
-                Ordinates.Font = Family;
-            ++FamilyOrdinal;
+                Surface->ApplyFontPreview(FontArchive->Face(CandidateFaces[Candidate], FontSlant::Upright));
+            Surface->Ground(FaceBox, Theme.Panel, 8.0f, CornerAll);
+            Surface->Edge(FaceBox, Theme.Edge, 1.0f, 8.0f, CornerAll);
+            Surface->TextRun(FaceBox.LeastAlong + 8.0f, FaceBox.LeastAcross + 5.0f, Theme.Primary, "Aa", 15.0f, 0.0f, true);
+            Surface->TextRun(FaceBox.LeastAlong + 34.0f, FaceBox.LeastAcross + 10.0f, Theme.Secondary, FaceNames[Candidate], 8.0f);
+            if (Pressed(1200u + Ordinal * 9u + FaceOrdinal, FaceBox))
+                Ordinates.TypographyWeight[Ordinal] = static_cast<std::uint32_t>(CandidateFaces[Candidate]);
+            ++FaceOrdinal;
         }
         Surface->ApplyFontPreview(nullptr);
 
