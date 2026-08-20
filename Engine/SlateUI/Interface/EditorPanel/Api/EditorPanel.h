@@ -57,7 +57,7 @@ enum class PanelGizmo : std::uint32_t
 
 /// 🧩 Visible stub preferences retained by the host, never by `EditorPanel`.
 /// tag   contract, nonallocating, nonthrowing
-struct EditorPanelOrdinates
+struct EditorPanelConfiguration
 {
     PanelLatticePresentation  Lattice         = PanelLatticePresentation::Lines;   // [-] - lattice presentation
     PanelShading              Shading         = PanelShading::Solid;                // [-] - viewport shading
@@ -94,7 +94,7 @@ public:
     void Advance(const PointerCondition& Arrived, double Elapsed);
     Outcome<bool> Record(const PlaneExtent& Extent,
                          PanelStructure& Partition,
-                         EditorPanelOrdinates& Ordinates,
+                         EditorPanelConfiguration& Ordinates,
                          std::uint32_t PresentationOrdinal = 0u);
     bool PointerCaptured(std::uint32_t PresentationOrdinal) const;
     void WithdrawPresentation(std::uint32_t PresentationOrdinal);
@@ -139,12 +139,12 @@ private:
     void RecordBranch(std::uint32_t RecordOrdinal,
                       const PlaneExtent& Extent,
                       PanelStructure& Partition,
-                      EditorPanelOrdinates& Ordinates);
+                      EditorPanelConfiguration& Ordinates);
     void RecordLeaf(std::uint32_t RecordOrdinal,
                     const PanelRecord& Declared,
                     const PlaneExtent& Extent,
                     PanelStructure& Partition,
-                    EditorPanelOrdinates& Ordinates);
+                    EditorPanelConfiguration& Ordinates);
     void RecordHeader(std::uint32_t RecordOrdinal,
                       PanelSubject Subject,
                       const PlaneExtent& Extent,
@@ -152,11 +152,11 @@ private:
     void RecordFooter(std::uint32_t RecordOrdinal,
                       PanelSubject Subject,
                       const PlaneExtent& Extent,
-                      EditorPanelOrdinates& Ordinates);
+                      EditorPanelConfiguration& Ordinates);
     void RecordVacant(std::uint32_t RecordOrdinal,
                       const PlaneExtent& Extent,
                       PanelStructure& Partition);
-    void RecordDeferred(PanelStructure& Partition, EditorPanelOrdinates& Ordinates);
+    void RecordDeferred(PanelStructure& Partition, EditorPanelConfiguration& Ordinates);
     void RecordSubjectMenu(std::uint32_t RecordOrdinal,
                            const PlaneExtent& Anchor,
                            PanelStructure& Partition);
@@ -165,11 +165,11 @@ private:
                             PanelStructure& Partition);
     void RecordLatticeMenu(std::uint32_t RecordOrdinal,
                            const PlaneExtent& Anchor,
-                           EditorPanelOrdinates& Ordinates);
+                           EditorPanelConfiguration& Ordinates);
     void RecordFooterMenu(std::uint32_t RecordOrdinal,
                           const PlaneExtent& Anchor,
                           ControlRole Role,
-                          EditorPanelOrdinates& Ordinates);
+                          EditorPanelConfiguration& Ordinates);
     void Symbol(const PlaneExtent& Extent, ThemeToken Colour);
 
     MotionIntegrator* Motion = nullptr;

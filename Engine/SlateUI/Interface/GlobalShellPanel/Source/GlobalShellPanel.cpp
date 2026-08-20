@@ -404,7 +404,7 @@ void GlobalShellPanel::Reset()
 //                                                      THE KEY RULES
 //------------------------------------------------------------------------------------------------------------------------
 
-bool GlobalShellPanel::AdvanceSummoning(ShellOrdinates& Seated, bool Summoned, bool Withdrawn,
+bool GlobalShellPanel::AdvanceSummoning(ShellContext& Seated, bool Summoned, bool Withdrawn,
                                         bool Reversed)
 {
     bool Altered = false;
@@ -549,7 +549,7 @@ void GlobalShellPanel::RecordPaneHeader(const PlaneExtent& Extent, SymbolSubject
     }
 }
 
-void GlobalShellPanel::RecordTopBar(const PlaneExtent& Extent, const ShellOrdinates& Seated)
+void GlobalShellPanel::RecordTopBar(const PlaneExtent& Extent, const ShellContext& Seated)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
@@ -606,7 +606,7 @@ void GlobalShellPanel::RecordTopBar(const PlaneExtent& Extent, const ShellOrdina
                      Tinted.Muted, Trailing, PillRun);
 }
 
-void GlobalShellPanel::RecordOptionsRail(const PlaneExtent& Extent, ShellOrdinates& Seated)
+void GlobalShellPanel::RecordOptionsRail(const PlaneExtent& Extent, ShellContext& Seated)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
@@ -753,7 +753,7 @@ void GlobalShellPanel::RecordOptionsRail(const PlaneExtent& Extent, ShellOrdinat
 //                                                      THE VIEWPORT
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellOrdinates& Seated)
+void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellContext& Seated)
 {
     Surface->Ground(Extent, Tinted.Desk, 0.0f, CornerNone);
 
@@ -909,7 +909,7 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellOrdi
 //                                                      THE OUTLINER
 //------------------------------------------------------------------------------------------------------------------------
 
-bool GlobalShellPanel::RowPresented(const ShellOrdinates& Seated, const EntityRow* Rows,
+bool GlobalShellPanel::RowPresented(const ShellContext& Seated, const EntityRow* Rows,
                                     std::uint32_t RowCount, std::uint32_t Ordinal) const
 {
     if (Ordinal >= RowCount)
@@ -950,7 +950,7 @@ bool GlobalShellPanel::RowPresented(const ShellOrdinates& Seated, const EntityRo
     return true;
 }
 
-void GlobalShellPanel::RecordRetentionField(const PlaneExtent& Extent, ShellOrdinates& Seated)
+void GlobalShellPanel::RecordRetentionField(const PlaneExtent& Extent, ShellContext& Seated)
 {
     const bool Roused = Extent.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
 
@@ -981,7 +981,7 @@ void GlobalShellPanel::RecordRetentionField(const PlaneExtent& Extent, ShellOrdi
                               Empty ? "Filter Entities\u2026" : Seated.EntityRetention, FieldRun);
 }
 
-void GlobalShellPanel::RecordOutlineColumn(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordOutlineColumn(const PlaneExtent& Extent, ShellContext& Seated,
                                              const EntityRow* Rows, std::uint32_t RowCount)
 {
     // 📐 The strip sits over the whole column, beneath nothing — the pane header belongs to the page it
@@ -1008,7 +1008,7 @@ void GlobalShellPanel::RecordOutlineColumn(const PlaneExtent& Extent, ShellOrdin
                     Tinted.Hairline, 0.0f, CornerNone);
 }
 
-void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& Seated,
                                       const EntityRow* Rows, std::uint32_t RowCount)
 {
     Surface->Ground(Extent, Tinted.Menu, 0.0f, CornerNone);
@@ -1279,7 +1279,7 @@ bool GlobalShellPanel::RecordKebab(const PlaneExtent& Extent, ControlIdentity Cl
     return Taken;
 }
 
-void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellContext& Seated,
                                          const EntityRow* Rows, std::uint32_t RowCount)
 {
     Surface->Ground(Extent, Tinted.Menu, 0.0f, CornerNone);
@@ -1392,7 +1392,7 @@ void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellOrdinat
     }
 }
 
-void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellContext& Seated,
                                             const EntityRow* Rows, std::uint32_t RowCount)
 {
     if (Seated.ContextRaised >= RowCeiling)
@@ -1400,7 +1400,7 @@ void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellOrdi
 
     if (Rows == nullptr || Seated.ContextRaised >= RowCount)
     {
-        Seated.ContextRaised = ShellOrdinates::EntityCeiling;
+        Seated.ContextRaised = ShellContext::EntityCeiling;
         return;
     }
 
@@ -1455,7 +1455,7 @@ void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellOrdi
 
     // 📝 Dismissed last, so the card the artist tapped is the one they saw this tick.
     if (Dismissed && !Card.Encloses(Sampled.PositionAlong, Sampled.PositionAcross))
-        Seated.ContextRaised = ShellOrdinates::EntityCeiling;
+        Seated.ContextRaised = ShellContext::EntityCeiling;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1528,7 +1528,7 @@ bool GlobalShellPanel::RecordActionRow(const PlaneExtent& Extent, ControlIdentit
     return Taken;
 }
 
-void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& Seated,
                                       const EntityRow* Rows, std::uint32_t RowCount)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
@@ -1866,7 +1866,7 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellOrdinates&
 //                                                     THE COMPONENTS
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellContext& Seated,
                                            const EntityRow* Rows, std::uint32_t RowCount)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
@@ -2089,7 +2089,7 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellOrdin
 //                                                    THE REVISION SPINE
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellContext& Seated,
                                            const EntityRow* Rows, std::uint32_t RowCount,
                                            const EntityRevision* Revisions, std::uint32_t RevisionCount)
 {
@@ -2306,7 +2306,7 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellOrdin
 //                                                  SLIDE TWO, WHOLE
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext& Seated,
                                         const EntityRow* Rows, std::uint32_t RowCount,
                                         const EntityRevision* Revisions, std::uint32_t RevisionCount)
 {
@@ -2454,7 +2454,7 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellOrdinate
 //                                                     THE LAYER STACK
 //------------------------------------------------------------------------------------------------------------------------
 
-float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellOrdinates& Seated,
+float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& Seated,
                                        const LayerRow& Presented, std::uint32_t Ordinal,
                                        std::uint32_t LayerCount, bool Trailing)
 {
@@ -2899,7 +2899,7 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellOrdinates
     return Extent.SpanAcross();
 }
 
-void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext& Seated,
                                         const LayerRow* Layers, std::uint32_t LayerCount)
 {
     // 📝 The pane's own ground is `bg-[#0b0b0b]`, which is darker than `--menu`; the reference states it as
@@ -3080,7 +3080,7 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellOrdinate
                      Covering(0x8A8A8Au), "drag to reorder", FootRun);
 }
 
-void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const ShellOrdinates& Seated,
+void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const ShellContext& Seated,
                                             const LayerRow* Layers, std::uint32_t LayerCount)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
@@ -3185,7 +3185,7 @@ void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const She
 //                                                    THE TWO-SLIDE STRIP
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellOrdinates& Seated,
+void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellContext& Seated,
                                        const EntityRow* Rows, std::uint32_t RowCount,
                                        const LayerRow* Layers, std::uint32_t LayerCount,
                                        const EntityRevision* Revisions, std::uint32_t RevisionCount)
@@ -3305,7 +3305,7 @@ void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellOrdinates
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
-                                       ShellOrdinates&        Seated,
+                                       ShellContext&        Seated,
                                        const EntityRow*       Rows,
                                        std::uint32_t          RowCount,
                                        const LayerRow*        Layers,

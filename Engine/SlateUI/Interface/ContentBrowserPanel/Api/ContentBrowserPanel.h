@@ -121,7 +121,7 @@ SymbolSubject ArchiveCrest(ContentArchive Archive);
 
 /// 🧩 Everything the panel carries between ticks that is not the library itself.
 /// tag   contract, nonallocating, nonthrowing
-struct ContentBrowserOrdinates
+struct ContentBrowserConfiguration
 {
     static constexpr std::uint32_t SeekCeiling = 64u;   // [-] - the seek run, in octets
 
@@ -180,13 +180,13 @@ public:
     /// in    Seated   [-]  amended in place; carries the seek run and both offsets
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    void RecordBrowser(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserOrdinates& Seated);
+    void RecordBrowser(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Seated);
 
     /// 🧩 Records the tooltip above everything the tick has already recorded.
     /// in    Seated  [-]  read for the tooltip the rouse seated, then cleared
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void RecordDeferred(ContentBrowserOrdinates& Seated);
+    void RecordDeferred(ContentBrowserConfiguration& Seated);
 
     /// 🧩 Admits a typed octet into the seek run when the seek field holds the keyboard.
     /// in    Arrived  [-]  the octet, as the interface reported it
@@ -194,12 +194,12 @@ public:
     /// out   Admitted [-]  false when the field does not hold the keyboard
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool AdmitTyped(char Arrived, ContentBrowserOrdinates& Seated);
+    bool AdmitTyped(char Arrived, ContentBrowserConfiguration& Seated);
 
     /// 🧩 Retires the last octet of the seek run when the seek field holds the keyboard.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool RetractTyped(ContentBrowserOrdinates& Seated);
+    bool RetractTyped(ContentBrowserConfiguration& Seated);
 
     /// 🧩 Withholds everything the browser arbitrated this tick from initiating a drawer drag.
     /// in    Drawers  [-]  amended in place; the exclusions are declared against Bearing
@@ -237,18 +237,18 @@ private:
 
     bool  Roused(const PlaneExtent& Extent) const;
     bool  Pressed(ControlIdentity Claimed, const PlaneExtent& Extent,
-                  ContentBrowserOrdinates& Seated, const char* Tooltip = nullptr);
+                  ContentBrowserConfiguration& Seated, const char* Tooltip = nullptr);
 
-    void  RecordSources(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserOrdinates& Seated);
-    void  RecordSeekRail(const PlaneExtent& Extent, ContentBrowserOrdinates& Seated);
-    void  RecordLattice(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserOrdinates& Seated);
-    void  RecordInspector(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserOrdinates& Seated);
+    void  RecordSources(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Seated);
+    void  RecordSeekRail(const PlaneExtent& Extent, ContentBrowserConfiguration& Seated);
+    void  RecordLattice(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Seated);
+    void  RecordInspector(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Seated);
     void  RecordHatch(const PlaneExtent& Extent);
     void  RecordScrollbar(const PlaneExtent& Extent, ControlIdentity Claimed, float Span, float& Offset);
 
     /// 🔴 Whether a record survives the traversal and the seek run, exactly as `renderGrid` filters it.
     bool  Retained(const ContentRecord& Record, const ContentLibrary& Library,
-                   const ContentBrowserOrdinates& Seated) const;
+                   const ContentBrowserConfiguration& Seated) const;
 
     InteractionIndex*  Ledger  = nullptr;   // [-] - borrowed, never owned
     RecordingSurface*  Surface = nullptr;   // [-] - borrowed, never owned

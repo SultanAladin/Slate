@@ -149,7 +149,7 @@ void EditorPanel::Symbol(const PlaneExtent& Extent, ThemeToken Colour)
 
 Outcome<bool> EditorPanel::Record(const PlaneExtent& Extent,
                                   PanelStructure& Partition,
-                                  EditorPanelOrdinates& Ordinates,
+                                  EditorPanelConfiguration& Ordinates,
                                   std::uint32_t PresentationOrdinal)
 {
     if (Surface == nullptr || Appearance == nullptr || Motion == nullptr)
@@ -202,7 +202,7 @@ void EditorPanel::WithdrawPresentation(std::uint32_t PresentationOrdinal)
 void EditorPanel::RecordBranch(std::uint32_t RecordOrdinal,
                                const PlaneExtent& Extent,
                                PanelStructure& Partition,
-                               EditorPanelOrdinates& Ordinates)
+                               EditorPanelConfiguration& Ordinates)
 {
     const Outcome<PanelRecord> Delivered = Partition.Standing(RecordOrdinal);
     if (!Delivered.Resolved)
@@ -301,7 +301,7 @@ void EditorPanel::RecordLeaf(std::uint32_t RecordOrdinal,
                              const PanelRecord& Declared,
                              const PlaneExtent& Extent,
                              PanelStructure& Partition,
-                             EditorPanelOrdinates& Ordinates)
+                             EditorPanelConfiguration& Ordinates)
 {
     CurrentLeafExtent = Extent;
 
@@ -450,7 +450,7 @@ void EditorPanel::RecordHeader(std::uint32_t RecordOrdinal,
 void EditorPanel::RecordFooter(std::uint32_t RecordOrdinal,
                                PanelSubject Subject,
                                const PlaneExtent& Extent,
-                               EditorPanelOrdinates& Ordinates)
+                               EditorPanelConfiguration& Ordinates)
 {
     const EditorPanelMetric& Measure = Appearance->EditorPanelMeasure;
     const EditorPanelColour&    Colour     = Appearance->EditorPanel;
@@ -700,7 +700,7 @@ void EditorPanel::RecordVacant(std::uint32_t RecordOrdinal,
 //                                                     DEFERRED MENUS
 //------------------------------------------------------------------------------------------------------------------------
 
-void EditorPanel::RecordDeferred(PanelStructure& Partition, EditorPanelOrdinates& Ordinates)
+void EditorPanel::RecordDeferred(PanelStructure& Partition, EditorPanelConfiguration& Ordinates)
 {
     if (DeferredRecord >= PanelStructure::RecordCeiling)
         return;
@@ -833,7 +833,7 @@ void EditorPanel::RecordDivisionMenu(std::uint32_t RecordOrdinal,
 
 void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
                                  const PlaneExtent& Anchor,
-                                 EditorPanelOrdinates& Ordinates)
+                                 EditorPanelConfiguration& Ordinates)
 {
     const EditorPanelMetric& Measure = Appearance->EditorPanelMeasure;
     const EditorPanelColour&    Colour     = Appearance->EditorPanel;
@@ -916,7 +916,7 @@ void EditorPanel::RecordLatticeMenu(std::uint32_t RecordOrdinal,
 void EditorPanel::RecordFooterMenu(std::uint32_t RecordOrdinal,
                                    const PlaneExtent& Anchor,
                                    ControlRole Role,
-                                   EditorPanelOrdinates& Ordinates)
+                                   EditorPanelConfiguration& Ordinates)
 {
     const EditorPanelMetric& Measure = Appearance->EditorPanelMeasure;
     const EditorPanelColour&    Colour     = Appearance->EditorPanel;

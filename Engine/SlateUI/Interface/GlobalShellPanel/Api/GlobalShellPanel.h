@@ -227,7 +227,7 @@ struct LayerRow
 /// note  📐 `RecordProfile` from `lib/store.tsx`, transcribed field for field. The reference declares each
 ///        member optionally and tests for its presence before stating a row; an optional member is a
 ///        refused spelling here, so each conditional member is paired with the flag that declares it.
-/// note  🔴 Lives beside the artist's other conditions in `ShellOrdinates` and NOT in `EntityRow`, because
+/// note  🔴 Lives beside the artist's other conditions in `ShellContext` and NOT in `EntityRow`, because
 ///        the inspector writes to it. `EntityRow` is the borrowed description of what a row IS; this is the
 ///        mutable record of what the artist has made it.
 /// tag   contract, nonallocating, nonthrowing
@@ -319,7 +319,7 @@ struct EntityRow
 /// note  🔴 `14` §1: the panel presents what it is handed and retains none of it. Every condition the artist
 ///        can alter lives here, so the host — and only the host — is the home of the shell's content.
 /// tag   contract, nonallocating, nonthrowing
-struct ShellOrdinates
+struct ShellContext
 {
     static constexpr std::uint32_t EntityCeiling    = 16u;   // [-] - the reference declares fourteen
     static constexpr std::uint32_t RetentionCeiling = 48u;   // [-] - the retention run, terminator included
@@ -401,10 +401,10 @@ public:
                                                     //       veil, the stack's two, the call and five actions
         + 13u                                       // [-] - both strips, six tints, the clear, Rename,
                                                     //       Delete, the context veil and the Back call
-        + ShellOrdinates::CardCeiling               // [-] - one fold per property card
-        + ShellOrdinates::EntityCeiling             // [-] - one fold per grouped revision header
-        + ShellOrdinates::EntityCeiling * 4u        // [-] - contact, disclosure, presence and kebab per row
-        + ShellOrdinates::LayerCeiling  * 6u;       // [-] - two halves and four actions per layer row
+        + ShellContext::CardCeiling               // [-] - one fold per property card
+        + ShellContext::EntityCeiling             // [-] - one fold per grouped revision header
+        + ShellContext::EntityCeiling * 4u        // [-] - contact, disclosure, presence and kebab per row
+        + ShellContext::LayerCeiling  * 6u;       // [-] - two halves and four actions per layer row
 
     GlobalShellPanel()                                   = default;
     GlobalShellPanel(const GlobalShellPanel&)            = delete;
@@ -444,7 +444,7 @@ public:
     /// note  📐 Escape is unchanged: the slide closes first and the menu second, and only while undocked.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool AdvanceSummoning(ShellOrdinates& Seated, bool Summoned, bool Withdrawn, bool Reversed = false);
+    bool AdvanceSummoning(ShellContext& Seated, bool Summoned, bool Withdrawn, bool Reversed = false);
 
     /// 🧩 Records the whole shell — bar, rail, viewport, docked inspector, veil and summoned card.
     /// in    Extent      [px] the display's full drawable extent
@@ -458,7 +458,7 @@ public:
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> Record(const PlaneExtent&     Extent,
-                         ShellOrdinates&        Seated,
+                         ShellContext&        Seated,
                          const EntityRow*       Rows,
                          std::uint32_t          RowCount,
                          const LayerRow*        Layers        = nullptr,
@@ -479,36 +479,36 @@ public:
 
 private:
 
-    static constexpr std::uint32_t RowCeiling   = ShellOrdinates::EntityCeiling;
-    static constexpr std::uint32_t LayerCeiling = ShellOrdinates::LayerCeiling;
-    static constexpr std::uint32_t CardCeiling  = ShellOrdinates::CardCeiling;
+    static constexpr std::uint32_t RowCeiling   = ShellContext::EntityCeiling;
+    static constexpr std::uint32_t LayerCeiling = ShellContext::LayerCeiling;
+    static constexpr std::uint32_t CardCeiling  = ShellContext::CardCeiling;
 
-    void RecordTopBar(const PlaneExtent& Extent, const ShellOrdinates& Seated);
-    void RecordOptionsRail(const PlaneExtent& Extent, ShellOrdinates& Seated);
-    void RecordViewport(const PlaneExtent& Extent, const ShellOrdinates& Seated);
-    void RecordInspector(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordTopBar(const PlaneExtent& Extent, const ShellContext& Seated);
+    void RecordOptionsRail(const PlaneExtent& Extent, ShellContext& Seated);
+    void RecordViewport(const PlaneExtent& Extent, const ShellContext& Seated);
+    void RecordInspector(const PlaneExtent& Extent, ShellContext& Seated,
                          const EntityRow* Rows, std::uint32_t RowCount,
                          const LayerRow* Layers, std::uint32_t LayerCount,
                          const EntityRevision* Revisions, std::uint32_t RevisionCount);
-    void RecordOutliner(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordOutliner(const PlaneExtent& Extent, ShellContext& Seated,
                         const EntityRow* Rows, std::uint32_t RowCount);
-    void RecordComponents(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordComponents(const PlaneExtent& Extent, ShellContext& Seated,
                           const EntityRow* Rows, std::uint32_t RowCount,
                           const EntityRevision* Revisions, std::uint32_t RevisionCount);
 
     /// 🧩 The property cards for whatever the directory has taken — slide two's leading page.
-    void RecordPropertyCards(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordPropertyCards(const PlaneExtent& Extent, ShellContext& Seated,
                              const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 The revision spine — slide two's trailing page, grouped by the row each revision stands against.
-    void RecordRevisionSpine(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordRevisionSpine(const PlaneExtent& Extent, ShellContext& Seated,
                              const EntityRow* Rows, std::uint32_t RowCount,
                              const EntityRevision* Revisions, std::uint32_t RevisionCount);
 
     /// 🧩 Slide one's trailing pane — the reference's `MetadataPane`, hero, stats, call and actions.
     /// note  📐 `components/MetadataPane.tsx`. It presents what the directory has taken and offers the five
     ///        inline actions; the call beneath the stats is the pointer-driven twin of Tab.
-    void RecordMetadata(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordMetadata(const PlaneExtent& Extent, ShellContext& Seated,
                         const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 One hairline stat row — a muted key at the leading edge and a value at the trailing one.
@@ -516,16 +516,16 @@ private:
     float RecordStatRow(const PlaneExtent& Extent, const char* Caption, const char* Reading);
 
     /// 🧩 Slide one's leading column — the tab strip and whichever of its two pages stands taken.
-    void RecordOutlineColumn(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordOutlineColumn(const PlaneExtent& Extent, ShellContext& Seated,
                                const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 The Context Menu page — the taken row's options presented as a whole pane.
-    void RecordContextPage(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordContextPage(const PlaneExtent& Extent, ShellContext& Seated,
                            const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 The same options as a card floating over everything, raised by a row's kebab.
     /// note  📐 Recorded last of all, after the veil and the summoned card, because it stands over both.
-    void RecordContextOverlay(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordContextOverlay(const PlaneExtent& Extent, ShellContext& Seated,
                               const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 The three dots one row carries at its trailing edge, and whether they were tapped.
@@ -541,23 +541,23 @@ private:
                          const char* Caption, const char* Chord, ThemeToken Colour, ThemeToken GlyphColour);
 
     /// 🧩 Slide one in Texture Paint — the reference's `LayersPane`, header, toolbar, stack and footer.
-    void RecordLayerStack(const PlaneExtent& Extent, ShellOrdinates& Seated,
+    void RecordLayerStack(const PlaneExtent& Extent, ShellContext& Seated,
                           const LayerRow* Layers, std::uint32_t LayerCount);
 
     /// 🧩 One layer row — its spine, its two halves and, when unfolded, its two property columns.
     /// out   Consumed  [px]  what the row actually spanned across, folded or unfolded
-    float RecordLayerRow(const PlaneExtent& Extent, ShellOrdinates& Seated, const LayerRow& Presented,
+    float RecordLayerRow(const PlaneExtent& Extent, ShellContext& Seated, const LayerRow& Presented,
                          std::uint32_t Ordinal, std::uint32_t LayerCount, bool Trailing);
 
     /// 🧩 Slide two in Texture Paint — the reference's `LayerInspectorPane` and the panel it delegates to.
-    void RecordLayerInspector(const PlaneExtent& Extent, const ShellOrdinates& Seated,
+    void RecordLayerInspector(const PlaneExtent& Extent, const ShellContext& Seated,
                               const LayerRow* Layers, std::uint32_t LayerCount);
-    void RecordRetentionField(const PlaneExtent& Extent, ShellOrdinates& Seated);
+    void RecordRetentionField(const PlaneExtent& Extent, ShellContext& Seated);
     void RecordPaneHeader(const PlaneExtent& Extent, SymbolSubject Glyph, ThemeToken GlyphColour,
                           ThemeToken MedallionColour, const char* Title, const char* Secondary);
 
     /// 🧩 Whether a row is presented, given the filter and every enclosure's disclosure.
-    bool RowPresented(const ShellOrdinates& Seated, const EntityRow* Rows,
+    bool RowPresented(const ShellContext& Seated, const EntityRow* Rows,
                       std::uint32_t RowCount, std::uint32_t Ordinal) const;
 
     InteractionIndex*              Ledger     = nullptr;   // [-] - borrowed; never owned

@@ -821,10 +821,18 @@ struct TypographyProfile
 
 struct CornerProfile
 {
-    float Small = 4.0f;
+    float Small  = 4.0f;
     float Medium = 8.0f;
-    float Large = 12.0f;
-    float Pill = 999.0f;
+    float Large  = 12.0f;
+    float Pill   = 999.0f;
+};
+
+/// Shared layout inputs for controls whose bounds depend on typography.
+struct LayoutProfile
+{
+    float PaddingAlong = 8.0f;
+    float PaddingAcross = 6.0f;
+    float Gap = 8.0f;
 };
 
 //                                                  THE RESOLVED RECORD
@@ -836,6 +844,7 @@ struct ThemeProfile
 {
     TypographyProfile Typography = {};
     CornerProfile Corners = {};
+    LayoutProfile Layout = {};
     float TextScale = 1.0f;
     float CornerScale = 1.0f;
 

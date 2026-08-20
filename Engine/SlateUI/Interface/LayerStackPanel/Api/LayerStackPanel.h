@@ -143,7 +143,7 @@ inline constexpr std::uint32_t SeatedSections =
     | (1u << static_cast<std::uint32_t>(CardSection::MaskSource))
     | (1u << static_cast<std::uint32_t>(CardSection::MaskParams));
 
-struct LayerStackOrdinates
+struct LayerStackContext
 {
     static constexpr std::uint32_t RetentionCeiling = 48u;   // [-] - characters the search run retains
     static constexpr std::uint32_t NamingCeiling    = LayerStackCeiling::NamingCeiling;
@@ -272,8 +272,8 @@ public:
     static constexpr std::uint32_t PopupEntryCeiling = 32u; // [-] - the longest popup is BLENDS, at 29
 
     // 📐 One cell per revision entry, so an entry unfolds under its own contact rather than under the
-    //    pane's. `LayerStackOrdinates::RevisionCeiling` states how many the pane presents.
-    static constexpr std::uint32_t RevisionCellCeiling = LayerStackOrdinates::RevisionCeiling;
+    //    pane's. `LayerStackContext::RevisionCeiling` states how many the pane presents.
+    static constexpr std::uint32_t RevisionCellCeiling = LayerStackContext::RevisionCeiling;
 
     // 🔴 The unfolded card's own controls, enrolled ONCE and lent to whichever card is being recorded.
     //    The reference lets every row unfold at the same time, so a run per row would be 16 × 40 = 640
@@ -336,7 +336,7 @@ public:
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
     bool AdmitChord(KeySubject Subject, const ModifierCondition& Modifiers,
-                    LayerArrangement& Arrangement, LayerStackOrdinates& Seated,
+                    LayerArrangement& Arrangement, LayerStackContext& Seated,
                     RevisionSequence& Revisions);
 
     /// 🧩 Records the layer stack — header, tools, the nested rows and the footer — and arbitrates every
@@ -350,21 +350,21 @@ public:
     /// cost  🔴
     /// tag   api, nonallocating, nonthrowing
     void RecordStack(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                     LayerStackOrdinates& Seated, RevisionSequence& Revisions);
+                     LayerStackContext& Seated, RevisionSequence& Revisions);
 
     /// 🧩 Records the channel property panel for whichever entry stands taken.
     /// note  📐 Reached when the taken half is the entry itself — a material, paint, fill or decal.
     /// cost  🔴
     /// tag   api, nonallocating, nonthrowing
     void RecordChannelProperties(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                 LayerStackOrdinates& Seated, RevisionSequence& Revisions);
+                                 LayerStackContext& Seated, RevisionSequence& Revisions);
 
     /// 🧩 Records the mask property panel for whichever entry stands taken.
     /// note  📐 Reached when the taken half is the attached mask.
     /// cost  🔴
     /// tag   api, nonallocating, nonthrowing
     void RecordMaskProperties(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                              LayerStackOrdinates& Seated, RevisionSequence& Revisions);
+                              LayerStackContext& Seated, RevisionSequence& Revisions);
 
     /// 🧩 Records the revision pane the inspector's second slide pairs with a property panel, and
     ///    arbitrates every contact that lands inside it.
@@ -377,14 +377,14 @@ public:
     /// cost  🔴
     /// tag   api, nonallocating, nonthrowing
     void RecordRevisions(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                         LayerStackOrdinates& Seated, RevisionSequence& Revisions);
+                         LayerStackContext& Seated, RevisionSequence& Revisions);
 
     /// 🧩 Records the standing popup and the roused tooltip, above everything recorded before them.
     /// note  🔴 A popup recorded in place is painted over by the next row the stack records. The reference
     ///        seats its `#pop` as a sibling of the whole panel for exactly this reason.
     /// cost  🔴
     /// tag   api, nonallocating, nonthrowing
-    void RecordDeferred(LayerArrangement& Arrangement, LayerStackOrdinates& Seated,
+    void RecordDeferred(LayerArrangement& Arrangement, LayerStackContext& Seated,
                         RevisionSequence& Revisions);
 
     /// 🧩 The seated colours, so a host may state them in a proof.
@@ -461,7 +461,7 @@ private:
     /// 🧩 Whether one extent is roused, seizes on arrival and resolves on release — the whole arbitration
     ///    of a press, stated once so no call site re-derives three quarters of it and forgets the fourth.
     /// out   Resolved  [-]  true on the single tick the contact was released inside the extent
-    bool Pressed(ControlIdentity Claimed, const PlaneExtent& Extent, LayerStackOrdinates& Seated,
+    bool Pressed(ControlIdentity Claimed, const PlaneExtent& Extent, LayerStackContext& Seated,
                  const char* Tooltip = nullptr);
 
     /// 🧩 Whether one extent is roused this tick, without arbitrating a press.
@@ -497,17 +497,17 @@ private:
     ///        where a card animates to an extent its own content does not occupy.
     /// cost  🔴
     float RecordEntryCard(const PlaneExtent& Extent, LayerArrangement& Arrangement, std::uint32_t Ordinal,
-                          LayerStackOrdinates& Seated, RevisionSequence& Revisions, bool Recording);
+                          LayerStackContext& Seated, RevisionSequence& Revisions, bool Recording);
 
     /// 🧩 Records one mask's unfolded card — `maskCard(n)`, section for section.
     /// cost  🔴
     float RecordMaskCard(const PlaneExtent& Extent, LayerArrangement& Arrangement, std::uint32_t Ordinal,
-                         LayerStackOrdinates& Seated, RevisionSequence& Revisions, bool Recording);
+                         LayerStackContext& Seated, RevisionSequence& Revisions, bool Recording);
 
     /// 🧩 Records one section head and reports whether its body should be walked, folding it on a press.
     /// out   Opened  [-]  whether the section stands open
     bool RecordCardSection(const PlaneExtent& Extent, const char* Caption, const char* Reading,
-                           CardSection Section, std::uint32_t Ordinal, LayerStackOrdinates& Seated,
+                           CardSection Section, std::uint32_t Ordinal, LayerStackContext& Seated,
                            bool Recording, float& Across);
 
     /// 🧩 Records one `paramsHTML` run — a range, a selection or a switch per parameter.
@@ -527,7 +527,7 @@ private:
 
     /// 🧩 Records one `.dbtn` action inside a card and reports whether it was pressed.
     bool RecordCardAction(const PlaneExtent& Extent, const char* Caption, bool Marked, bool Dangerous,
-                          LayerStackOrdinates& Seated);
+                          LayerStackContext& Seated);
 
     float RecordReadingRow(const PlaneExtent& Extent, const char* Caption, const char* Reading);
 
@@ -539,11 +539,11 @@ private:
     void RecordDropMark(const PlaneExtent& Extent, DropIntent Intent);
 
     /// 🧩 Records the popup ground and returns the extent its entries are laid into.
-    PlaneExtent RecordPopupGround(LayerStackOrdinates& Seated, float Along, float Across, float Span);
+    PlaneExtent RecordPopupGround(LayerStackContext& Seated, float Along, float Across, float Span);
 
     /// 🧩 Records one popup entry and reports whether it was pressed.
     bool RecordPopupEntry(const PlaneExtent& Extent, const char* Caption, const char* Chord,
-                          bool Marked, bool Dangerous, LayerStackOrdinates& Seated);
+                          bool Marked, bool Dangerous, LayerStackContext& Seated);
 
     RecordingSurface*  Surface = nullptr;   // [-] - borrowed
     InteractionIndex*  Ledger  = nullptr;   // [-] - borrowed; never owned

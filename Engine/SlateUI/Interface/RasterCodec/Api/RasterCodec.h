@@ -81,7 +81,7 @@ private:
 
     std::vector<PictureDeclaration>  Seated;          // [-] - identity → picture
     void*                            AtlasSeat = nullptr;   // [-] - the typeface atlas identity
-    std::vector<std::uint8_t>        AtlasOrdinates;        // [-] - the atlas RGBA, resolved once
+    std::vector<std::uint8_t>        AtlasData;        // [-] - the atlas RGBA, resolved once
     std::uint32_t                    AtlasAlongExtent = 0u; // [px]
     std::uint32_t                    AtlasAcrossExtent = 0u;   // [px]
 };

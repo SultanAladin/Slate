@@ -180,7 +180,7 @@ bool LayerStackPanel::Roused(const PlaneExtent& Extent) const
 }
 
 bool LayerStackPanel::Pressed(ControlIdentity Claimed, const PlaneExtent& Extent,
-                              LayerStackOrdinates& Seated, const char* Tooltip)
+                              LayerStackContext& Seated, const char* Tooltip)
 {
     if (Ledger == nullptr)
         return false;
@@ -348,7 +348,7 @@ float LayerStackPanel::CardOpening(EasedInterpolant& Fold, bool Unfolded, bool S
 
 bool LayerStackPanel::RecordCardSection(const PlaneExtent& Extent, const char* Caption, const char* Reading,
                                         CardSection Section, std::uint32_t Ordinal,
-                                        LayerStackOrdinates& Seated, bool Recording, float& Across)
+                                        LayerStackContext& Seated, bool Recording, float& Across)
 {
     const std::uint32_t Bit    = 1u << static_cast<std::uint32_t>(Section);
     const bool          Opened = (Seated.Sections[Ordinal] & Bit) != 0u;
@@ -561,7 +561,7 @@ float LayerStackPanel::RecordParameterRun(const PlaneExtent& Extent, float Acros
 
 // 📐 `.dbtn` — the small action button a card's `.frow` carries. Reports a press.
 bool LayerStackPanel::RecordCardAction(const PlaneExtent& Extent, const char* Caption, bool Marked,
-                                       bool Dangerous, LayerStackOrdinates& Seated)
+                                       bool Dangerous, LayerStackContext& Seated)
 {
     const ThemeToken Ground = Marked ? Partial(0xFFFFFFu, 0.14) : Partial(0xFFFFFFu, 0.05);
 
@@ -579,7 +579,7 @@ bool LayerStackPanel::RecordCardAction(const PlaneExtent& Extent, const char* Ca
 }
 
 float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                       std::uint32_t Ordinal, LayerStackOrdinates& Seated,
+                                       std::uint32_t Ordinal, LayerStackContext& Seated,
                                        RevisionSequence& Revisions, bool Recording)
 {
     LayerEntry& Entry  = Arrangement.Entries[Ordinal];
@@ -1089,7 +1089,7 @@ float LayerStackPanel::RecordEntryCard(const PlaneExtent& Extent, LayerArrangeme
 }
 
 float LayerStackPanel::RecordMaskCard(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                      std::uint32_t Ordinal, LayerStackOrdinates& Seated,
+                                      std::uint32_t Ordinal, LayerStackContext& Seated,
                                       RevisionSequence& Revisions, bool Recording)
 {
     LayerEntry&   Entry = Arrangement.Entries[Ordinal];
@@ -1659,7 +1659,7 @@ static constexpr float PopupEntryAcross =  26.0f;   // [px] - one entry
 static constexpr float PopupPad         =   6.0f;   // [px]
 static constexpr float PopupCaption     =  22.0f;   // [px] - one `<h6>`
 
-PlaneExtent LayerStackPanel::RecordPopupGround(LayerStackOrdinates& Seated, float Along, float Across,
+PlaneExtent LayerStackPanel::RecordPopupGround(LayerStackContext& Seated, float Along, float Across,
                                                float Span)
 {
     const DisplayCondition& Display = Surface->Display();
@@ -1688,7 +1688,7 @@ PlaneExtent LayerStackPanel::RecordPopupGround(LayerStackOrdinates& Seated, floa
 }
 
 bool LayerStackPanel::RecordPopupEntry(const PlaneExtent& Extent, const char* Caption, const char* Chord,
-                                       bool Marked, bool Dangerous, LayerStackOrdinates& Seated)
+                                       bool Marked, bool Dangerous, LayerStackContext& Seated)
 {
     if (Surface->Excluded(Extent))
         return false;
@@ -1739,7 +1739,7 @@ bool LayerStackPanel::RecordPopupEntry(const PlaneExtent& Extent, const char* Ca
 //------------------------------------------------------------------------------------------------------------------------
 
 bool LayerStackPanel::AdmitChord(KeySubject Subject, const ModifierCondition& Modifiers,
-                                 LayerArrangement& Arrangement, LayerStackOrdinates& Seated,
+                                 LayerArrangement& Arrangement, LayerStackContext& Seated,
                                  RevisionSequence& Revisions)
 {
     // 🔴 The reference's own first line — `if(e.target.tagName==='INPUT'||…)return`. A chord that reached
@@ -1970,7 +1970,7 @@ bool LayerStackPanel::AdmitChord(KeySubject Subject, const ModifierCondition& Mo
 //------------------------------------------------------------------------------------------------------------------------
 
 void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                  LayerStackOrdinates& Seated, RevisionSequence& Revisions)
+                                  LayerStackContext& Seated, RevisionSequence& Revisions)
 {
     if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
         return;
@@ -2623,7 +2623,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
 //------------------------------------------------------------------------------------------------------------------------
 
 void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                              LayerStackOrdinates& Seated, RevisionSequence& Revisions)
+                                              LayerStackContext& Seated, RevisionSequence& Revisions)
 {
     if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
         return;
@@ -2804,7 +2804,7 @@ void LayerStackPanel::RecordChannelProperties(const PlaneExtent& Extent, LayerAr
 //------------------------------------------------------------------------------------------------------------------------
 
 void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                           LayerStackOrdinates& Seated, RevisionSequence& Revisions)
+                                           LayerStackContext& Seated, RevisionSequence& Revisions)
 {
     if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())
         return;
@@ -3081,7 +3081,7 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
 //------------------------------------------------------------------------------------------------------------------------
 
 void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangement& Arrangement,
-                                     LayerStackOrdinates& Seated, RevisionSequence& Revisions)
+                                     LayerStackContext& Seated, RevisionSequence& Revisions)
 {
     if (Surface == nullptr || !Surface->Recording() || Ledger == nullptr)
         return;
@@ -3397,8 +3397,8 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
 
         // 📐 The retained run is the field's key as well as its seat, so a card beyond the ceiling folds
         //    into the last retained pair rather than writing past the end of either run.
-        const std::uint32_t Held = (Ordinal < LayerStackOrdinates::RevisionCeiling)
-                                 ? Ordinal : (LayerStackOrdinates::RevisionCeiling - 1u);
+        const std::uint32_t Held = (Ordinal < LayerStackContext::RevisionCeiling)
+                                 ? Ordinal : (LayerStackContext::RevisionCeiling - 1u);
 
         const PlaneExtent Remark = Spanning(Fold.LeastAlong + 7.0f, Fold.LeastAcross + 24.0f,
                                             Fold.SpanAlong() - 14.0f, 36.0f);
@@ -3546,7 +3546,7 @@ static std::uint32_t CombineTint(float Hue, float Saturation, float Luminance)
     return (Channel(0.0f) << 16) | (Channel(8.0f) << 8) | Channel(4.0f);
 }
 
-void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackOrdinates& Seated,
+void LayerStackPanel::RecordDeferred(LayerArrangement& Arrangement, LayerStackContext& Seated,
                                      RevisionSequence& Revisions)
 {
     if (Surface == nullptr || Ledger == nullptr || !Surface->Recording())

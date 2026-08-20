@@ -240,7 +240,7 @@ void ContentBrowserPanel::Exclude(DrawerSpace& Drawers, DrawerBearing Bearing) c
 }
 
 bool ContentBrowserPanel::Pressed(ControlIdentity Claimed, const PlaneExtent& Extent,
-                                  ContentBrowserOrdinates& Seated, const char* Tooltip)
+                                  ContentBrowserConfiguration& Seated, const char* Tooltip)
 {
     if (Ledger == nullptr)
         return false;
@@ -264,17 +264,17 @@ bool ContentBrowserPanel::Pressed(ControlIdentity Claimed, const PlaneExtent& Ex
     return Over && Ledger->Released(Claimed);
 }
 
-bool ContentBrowserPanel::AdmitTyped(char Arrived, ContentBrowserOrdinates& Seated)
+bool ContentBrowserPanel::AdmitTyped(char Arrived, ContentBrowserConfiguration& Seated)
 {
     if (!Seated.SeekHolding || Arrived < 0x20)
         return false;
 
     std::uint32_t Occupied = 0u;
 
-    while (Occupied + 1u < ContentBrowserOrdinates::SeekCeiling && Seated.Seek[Occupied] != '\0')
+    while (Occupied + 1u < ContentBrowserConfiguration::SeekCeiling && Seated.Seek[Occupied] != '\0')
         ++Occupied;
 
-    if (Occupied + 1u >= ContentBrowserOrdinates::SeekCeiling)
+    if (Occupied + 1u >= ContentBrowserConfiguration::SeekCeiling)
         return false;
 
     Seated.Seek[Occupied]      = Arrived;
@@ -283,14 +283,14 @@ bool ContentBrowserPanel::AdmitTyped(char Arrived, ContentBrowserOrdinates& Seat
     return true;
 }
 
-bool ContentBrowserPanel::RetractTyped(ContentBrowserOrdinates& Seated)
+bool ContentBrowserPanel::RetractTyped(ContentBrowserConfiguration& Seated)
 {
     if (!Seated.SeekHolding)
         return false;
 
     std::uint32_t Occupied = 0u;
 
-    while (Occupied + 1u < ContentBrowserOrdinates::SeekCeiling && Seated.Seek[Occupied] != '\0')
+    while (Occupied + 1u < ContentBrowserConfiguration::SeekCeiling && Seated.Seek[Occupied] != '\0')
         ++Occupied;
 
     if (Occupied == 0u)
@@ -301,7 +301,7 @@ bool ContentBrowserPanel::RetractTyped(ContentBrowserOrdinates& Seated)
 }
 
 bool ContentBrowserPanel::Retained(const ContentRecord& Record, const ContentLibrary& Library,
-                                   const ContentBrowserOrdinates& Seated) const
+                                   const ContentBrowserConfiguration& Seated) const
 {
     // 📐 `renderGrid` narrows by archive, then by subheading, then by the seek run — in that order, and
     //    each against the run the previous one left rather than against the whole library.
@@ -436,7 +436,7 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
 //------------------------------------------------------------------------------------------------------------------------
 
 void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrary& Library,
-                                        ContentBrowserOrdinates& Seated)
+                                        ContentBrowserConfiguration& Seated)
 {
     Surface->Ground(Extent, Colour.Aside);
     Surface->Ground(Spanning(Extent.MostAlong - 1.0f, Extent.LeastAcross, 1.0f, Extent.SpanAcross()),
@@ -663,7 +663,7 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
 //                                                        THE SEEK RAIL
 //------------------------------------------------------------------------------------------------------------------------
 
-void ContentBrowserPanel::RecordSeekRail(const PlaneExtent& Extent, ContentBrowserOrdinates& Seated)
+void ContentBrowserPanel::RecordSeekRail(const PlaneExtent& Extent, ContentBrowserConfiguration& Seated)
 {
     Surface->Ground(Extent, Colour.Aside);
     Surface->Ground(Spanning(Extent.LeastAlong, Extent.MostAcross - 1.0f, Extent.SpanAlong(), 1.0f),
@@ -759,7 +759,7 @@ void ContentBrowserPanel::RecordSeekRail(const PlaneExtent& Extent, ContentBrows
 //------------------------------------------------------------------------------------------------------------------------
 
 void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrary& Library,
-                                        ContentBrowserOrdinates& Seated)
+                                        ContentBrowserConfiguration& Seated)
 {
     Surface->Ground(Extent, Colour.Ground);
 
@@ -945,7 +945,7 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
 //------------------------------------------------------------------------------------------------------------------------
 
 void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibrary& Library,
-                                          ContentBrowserOrdinates& Seated)
+                                          ContentBrowserConfiguration& Seated)
 {
     Surface->Ground(Extent, Colour.Aside);
     Surface->Ground(Spanning(Extent.LeastAlong, Extent.LeastAcross, 1.0f, Extent.SpanAcross()), Colour.Stroke);
@@ -1157,7 +1157,7 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
 //------------------------------------------------------------------------------------------------------------------------
 
 void ContentBrowserPanel::RecordBrowser(const PlaneExtent& Extent, ContentLibrary& Library,
-                                        ContentBrowserOrdinates& Seated)
+                                        ContentBrowserConfiguration& Seated)
 {
     if (Ledger == nullptr || Surface == nullptr)
         return;
@@ -1190,7 +1190,7 @@ void ContentBrowserPanel::RecordBrowser(const PlaneExtent& Extent, ContentLibrar
     RecordInspector(Inspector, Library, Seated);
 }
 
-void ContentBrowserPanel::RecordDeferred(ContentBrowserOrdinates& Seated)
+void ContentBrowserPanel::RecordDeferred(ContentBrowserConfiguration& Seated)
 {
     if (Surface == nullptr || Seated.Tooltip == nullptr)
         return;

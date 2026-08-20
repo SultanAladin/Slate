@@ -47,7 +47,7 @@ enum class IconAppearance : std::uint32_t
     AppearanceCount = 3u
 };
 
-struct ControlCentreOrdinates
+struct ControlCentreConfiguration
 {
     ControlCentrePage Page = ControlCentrePage::Dashboard;
     DisplayPreferencePage DisplayPage = DisplayPreferencePage::Fonts;
@@ -98,7 +98,7 @@ public:
     Outcome<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Arrived, double Elapsed);
-    Outcome<bool> Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates);
+    Outcome<bool> Record(const PlaneExtent& Interior, ControlCentreConfiguration& Ordinates);
     void Exclude(DrawerSpace& Drawers) const;
     void Reset();
 
@@ -109,21 +109,21 @@ private:
                 std::uint32_t& Reading, const char* UnitGlyph, ThemeToken Rail, ThemeToken Accent);
     void Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet, ThemeToken Accent);
     void Symbol(const PlaneExtent& Extent, ThemeToken Colour);
-    void DashboardPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
+    void DashboardPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
                        ThemeToken Accent);
-    void SettingsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
+    void SettingsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
                       ThemeToken Accent);
-    void NotificationsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
+    void NotificationsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
                            ThemeToken Accent);
-    void DisplayPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
+    void DisplayPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
                      ThemeToken Accent);
-    void InputPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
+    void InputPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
                    ThemeToken Accent);
-    void ThemePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
+    void ThemePage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
                    ThemeToken Accent);
-    void FontsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
+    void FontsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
                    ThemeToken Accent);
-    void DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+    void DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                              const ThemeDeclaration& Theme, ThemeToken Accent);
     void Navigate(ControlCentrePage Arriving);
 

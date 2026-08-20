@@ -161,9 +161,10 @@ Messenger, Probe, Blend, History, Bake, Stamp.
 
 Banned addendum words — Cadence, Binding, Submission, Footprint, Region, Tree, Vacancy, Ordinates.
 
-`Ordinates` is banned because it means a mathematical coordinate, not a general UI state or value set. Use the
-mechanism-specific name instead: `TypographyValues`, `CornerValues`, `ThemeValues`, `ControlValues`,
-`InteractionState`, `PanelState`, `TextMetrics`, `LayoutValues`, or `SelectionValues`.
+`Ordinates` is banned because it means a mathematical coordinate, not a general UI state or UI configuration. Use
+`Configuration` for user and panel configuration, `Context` for live interaction data, `LayoutProfile` for shared
+layout inputs, and `TypographyMetrics` for measured text. Examples: `ControlCentreConfiguration`,
+`LayerStackContext`, `ThemeProfile`, `LayoutProfile`, `TypographyProfile`, and `TypographyMetrics`.
 
 ## Mathematical Vocabulary Exemption
 

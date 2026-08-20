@@ -32,7 +32,7 @@ Outcome<bool> RasterCodec::SeatAtlas(void* Identity)
     AtlasSeat         = Identity;
     AtlasAlongExtent  = static_cast<std::uint32_t>(Along);
     AtlasAcrossExtent = static_cast<std::uint32_t>(Across);
-    AtlasOrdinates.assign(Ordinates, Ordinates + static_cast<std::size_t>(Along) * Across * 4u);
+    AtlasData.assign(Ordinates, Ordinates + static_cast<std::size_t>(Along) * Across * 4u);
     VendorIO.Fonts->SetTexID(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Identity)));
     return Outcome<bool>::Result(true);
 }
@@ -105,7 +105,7 @@ void RasterCodec::Rasterize(const void* RecordedDrawData, PixelSpace& Extent)
         {
             AtlasAlongExtent  = static_cast<std::uint32_t>(Along);
             AtlasAcrossExtent = static_cast<std::uint32_t>(Across);
-            AtlasOrdinates.assign(Ordinates, Ordinates + static_cast<std::size_t>(Along) * Across * 4u);
+            AtlasData.assign(Ordinates, Ordinates + static_cast<std::size_t>(Along) * Across * 4u);
         }
     }
     Extent.Ordinates.assign(static_cast<std::size_t>(Extent.AcrossExtent) * Extent.AlongExtent * 4u, 0u);
@@ -113,7 +113,7 @@ void RasterCodec::Rasterize(const void* RecordedDrawData, PixelSpace& Extent)
     const auto ResolveTexture = [&](ImTextureID Identity) -> ResolvedTexture
     {
         if (reinterpret_cast<void*>(static_cast<std::uintptr_t>(Identity)) == AtlasSeat && AtlasSeat != nullptr)
-            return { AtlasOrdinates.data(), AtlasAlongExtent, AtlasAcrossExtent, true };
+            return { AtlasData.data(), AtlasAlongExtent, AtlasAcrossExtent, true };
         for (const PictureDeclaration& Picture : Seated)
             if (Picture.Identity == reinterpret_cast<void*>(static_cast<std::uintptr_t>(Identity)))
                 return { Picture.Ordinates, Picture.AlongExtent, Picture.AcrossExtent, true };

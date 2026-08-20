@@ -69,10 +69,10 @@ constexpr std::size_t AutomaticCeiling   = WindowsThreadStack / 4u;   // [B] - a
 
 static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPanel)
               + (sizeof(PanelStructure)       * WorkspaceIndex::WorkspaceCeiling)
-              + (sizeof(EditorPanelOrdinates) * WorkspaceIndex::WorkspaceCeiling)
-              + sizeof(ControlCentrePanel)  + sizeof(ControlCentreOrdinates)
+              + (sizeof(EditorPanelConfiguration) * WorkspaceIndex::WorkspaceCeiling)
+              + sizeof(ControlCentrePanel)  + sizeof(ControlCentreConfiguration)
               + sizeof(InteractionIndex)    + sizeof(ContentBrowserPanel)
-              + sizeof(ContentBrowserOrdinates) + sizeof(ContentLibrary) <= AutomaticCeiling,
+              + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary) <= AutomaticCeiling,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
               "no window and no log line; move the largest member to static storage");
@@ -166,16 +166,16 @@ int main(int ArgumentCount, char** ArgumentValues)
     WorkspacePanel          Workspace;
     EditorPanel             WorkspacePanels;
     PanelStructure          PanelPartitions[WorkspaceIndex::WorkspaceCeiling];
-    EditorPanelOrdinates    PanelOrdinates[WorkspaceIndex::WorkspaceCeiling];
+    EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceCeiling];
     ControlCentrePanel      ControlCentre;
-    ControlCentreOrdinates  ControlCentreValues;
+    ControlCentreConfiguration  ControlCentreValues;
 
     InteractionIndex         BrowserLedger;
 
     // 📝 The south drawer's occupant. The library is the HOST's, not the panel's — `14` §1 forbids a panel
     //    from holding what it displays, which is the same separation WorkspaceIndex and WorkspacePanel keep.
     ContentBrowserPanel      ContentBrowser;
-    ContentBrowserOrdinates  ContentBrowserSeated;
+    ContentBrowserConfiguration  ContentBrowserSeated;
     ContentLibrary           ContentSeated;
 
     // 📝 The appearance file sits beside the executable and is read once, before any panel is recorded. A
@@ -384,7 +384,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                     Disregard(Viewport.Surface().RelayerWindow());
                     Disregard(WorkspacePanels.Record(PanelExtent,
                                                       PanelPartitions[Ordinal],
-                                                      PanelOrdinates[Ordinal],
+                                                      PanelConfiguration[Ordinal],
                                                       Ordinal));
                     if (WorkspacePanels.PointerCaptured(Ordinal))
                         Viewport.Seam().WithholdPointer();
@@ -405,10 +405,10 @@ int main(int ArgumentCount, char** ArgumentValues)
                 for (std::uint32_t Moving = Withdrawing; Moving + 1u < OpenCount; ++Moving)
                 {
                     PanelPartitions[Moving] = PanelPartitions[Moving + 1u];
-                    PanelOrdinates[Moving]   = PanelOrdinates[Moving + 1u];
+                    PanelConfiguration[Moving]   = PanelConfiguration[Moving + 1u];
                 }
                 PanelPartitions[OpenCount - 1u].Reset();
-                PanelOrdinates[OpenCount - 1u] = EditorPanelOrdinates{};
+                PanelConfiguration[OpenCount - 1u] = EditorPanelConfiguration{};
             }
 
             // 📝 The `+`, seated inside the dock node's own tab bar so the vendor lays it after the last

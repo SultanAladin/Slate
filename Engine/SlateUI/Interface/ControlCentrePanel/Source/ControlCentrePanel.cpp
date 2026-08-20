@@ -257,7 +257,7 @@ void ControlCentrePanel::Navigate(ControlCentrePage Arriving)
     Motion->Eased(PageMotion).Depart(0.0, 1.0, DragDuration, 0.0, EaseCurve::Carousel);
 }
 
-Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates)
+Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCentreConfiguration& Ordinates)
 {
     if (Surface == nullptr || Motion == nullptr)
         return Outcome<bool>::Refuse({RefusalReason::CapabilityAbsent, "no Control Centre construction stands"});
@@ -368,7 +368,7 @@ Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCen
     return Outcome<bool>::Result(true);
 }
 
-void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                        const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const float ContentAlong = (Extent.SpanAlong() < 1024.0f) ? Extent.SpanAlong() : 1024.0f;
@@ -480,7 +480,7 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreO
     }
 }
 
-void ControlCentrePanel::SettingsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+void ControlCentrePanel::SettingsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                       const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const float Width = (Extent.SpanAlong() < 672.0f) ? Extent.SpanAlong() : 672.0f;
@@ -534,7 +534,7 @@ void ControlCentrePanel::SettingsPage(const PlaneExtent& Extent, ControlCentreOr
     }
 }
 
-void ControlCentrePanel::NotificationsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+void ControlCentrePanel::NotificationsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                            const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const float Width = (Extent.SpanAlong() < 768.0f) ? Extent.SpanAlong() : 768.0f;
@@ -593,7 +593,7 @@ void ControlCentrePanel::NotificationsPage(const PlaneExtent& Extent, ControlCen
     }
 }
 
-void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                      const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const PlaneExtent Back = Spanning(Extent.LeastAlong, Extent.LeastAcross, 42.0f, 42.0f);
@@ -670,7 +670,7 @@ void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreOrd
     Surface->Release();
 }
 
-void ControlCentrePanel::DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+void ControlCentrePanel::DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                              const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const PlaneExtent Card = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 440.0f);
@@ -715,7 +715,7 @@ void ControlCentrePanel::DisplayHardwarePage(const PlaneExtent& Extent, ControlC
     }
 }
 
-void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                    const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const PlaneExtent Section = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 1340.0f);
@@ -887,7 +887,7 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreOrdin
     }
 }
 
-void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                    const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     static const char* Fonts[12] = {"Inter",        "General Sans", "JetBrains Mono", "Playfair",
@@ -1058,7 +1058,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreOrdin
     }
 }
 
-void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
+void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                    const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const float Width = (Extent.SpanAlong() < 768.0f) ? Extent.SpanAlong() : 768.0f;

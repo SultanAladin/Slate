@@ -74,7 +74,7 @@ InterfaceAttachment Attach(const DeviceOffering& Offered)
 /// 🧩 Every datum the sheet presents, seated at the value the sheet itself states.
 /// note  🔴 The host owns these and the panel does not. `14` §1's gate is visible here as an ordinary struct:
 ///       every control below is handed a reference into this record and writes through it.
-struct ValidationOrdinates
+struct ValidationConfiguration
 {
     std::uint32_t  SelectionTaken = 0u;      // [-]   - "Entry name"
     double         Degree         = 123.0;   // [deg] - value="123"
@@ -200,8 +200,8 @@ constexpr std::size_t WindowsThreadStack = 1048576u;   // [B] - the linker defau
 constexpr std::size_t AutomaticCeiling   = WindowsThreadStack / 4u;   // [B] - a quarter, leaving room to call
 
 static_assert(sizeof(MotionIntegrator) + sizeof(InteractionIndex) + sizeof(RecordingSurface) +
-              sizeof(LayerStackPanel)  + sizeof(LayerStackOrdinates) +
-              sizeof(ContentBrowserPanel) + sizeof(ContentBrowserOrdinates) <= AutomaticCeiling,
+              sizeof(LayerStackPanel)  + sizeof(LayerStackContext) +
+              sizeof(ContentBrowserPanel) + sizeof(ContentBrowserConfiguration) <= AutomaticCeiling,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
               "no window and no log line; move the largest member to static storage as LayerArrangement "
@@ -431,9 +431,9 @@ int main(int ArgumentCount, char** ArgumentValues)
     FacetPanel               Facets;
     EditorPanel              EditorPanels;
     PanelStructure           EditorPartition;
-    EditorPanelOrdinates     EditorOrdinates;
+    EditorPanelConfiguration     EditorConfiguration;
     ControlCentrePanel       ControlCentre;
-    ControlCentreOrdinates   ControlCentreValues;
+    ControlCentreConfiguration   ControlCentreValues;
 
     // 📝 The appearance file sits beside the executable and is read once, before any panel is recorded. A
     //    first run has no file yet, which is the ordinary case and not a fault — the build's own appearance
@@ -465,17 +465,17 @@ int main(int ArgumentCount, char** ArgumentValues)
     InscribedSelection.Warning     = ControlCentreValues.Warning;
     InscribedSelection.Alert       = ControlCentreValues.Alert;
     GlobalShellPanel         ReferenceShell;
-    ShellOrdinates           ShellSeated;
+    ShellContext           ShellSeated;
 
     // 📝 The ported `LayerstackV1` pane and the two property panels its inspector pairs with. The
     //    arrangement is seated from the reference once, then the artist amends it through the panel.
     LayerStackPanel          LayerStack;
-    LayerStackOrdinates      LayerStackSeated;
+    LayerStackContext      LayerStackSeated;
 
     // 📝 The ported `AsstbrowsrBasic` page — the sources aside, the record lattice and the inspector. The
     //    library is seated from the reference's own `ASSETS` run once, before the first tick.
     ContentBrowserPanel      ContentBrowser;
-    ContentBrowserOrdinates  ContentBrowserSeated;
+    ContentBrowserConfiguration  ContentBrowserSeated;
     ContentLibrary           ContentSeated;
 
     // 🔴 `static`, and that is not a style choice. `LayerArrangement` is 157 KB and `RevisionSequence`
@@ -573,7 +573,7 @@ ApplyUserScale(Appearance,
         return Refused("the layer arrangement", Verdict.Error);
 
     // What the sheet seats, and the runs it presents — the sole owner of every datum below.
-    ValidationOrdinates Seated;
+    ValidationConfiguration Seated;
 
     const char* SelectionOptions[] = { "Entry name", "Second Entry", "Third Entry" };
     const char* SizeStops[]        = { "S", "M", "L", "XL" };
@@ -829,13 +829,13 @@ ApplyUserScale(Appearance,
             if (LayerStackSeated.RetentionRoused)
             {
                 static_cast<void>(Interface.AdmitTyped(LayerStackSeated.Retention,
-                                                       LayerStackOrdinates::RetentionCeiling));
+                                                       LayerStackContext::RetentionCeiling));
 
                 if (Interface.KeyArrived(KeySubject::Retract))
                 {
                     std::uint32_t Occupied = 0u;
 
-                    while (Occupied + 1u < LayerStackOrdinates::RetentionCeiling &&
+                    while (Occupied + 1u < LayerStackContext::RetentionCeiling &&
                            LayerStackSeated.Retention[Occupied] != '\0')
                     {
                         ++Occupied;
@@ -854,13 +854,13 @@ ApplyUserScale(Appearance,
             else if (LayerStackSeated.Renaming != LayerStackCeiling::AbsentOrdinal)
             {
                 static_cast<void>(Interface.AdmitTyped(LayerStackSeated.RenamingRun,
-                                                       LayerStackOrdinates::NamingCeiling));
+                                                       LayerStackContext::NamingCeiling));
 
                 if (Interface.KeyArrived(KeySubject::Retract))
                 {
                     std::uint32_t Occupied = 0u;
 
-                    while (Occupied + 1u < LayerStackOrdinates::NamingCeiling &&
+                    while (Occupied + 1u < LayerStackContext::NamingCeiling &&
                            LayerStackSeated.RenamingRun[Occupied] != '\0')
                     {
                         ++Occupied;
@@ -884,19 +884,19 @@ ApplyUserScale(Appearance,
                 const std::uint32_t Ordinal = Field / 2u;
                 const bool          Reading = (Field % 2u) == 1u;
 
-                if (Ordinal < LayerStackOrdinates::RevisionCeiling)
+                if (Ordinal < LayerStackContext::RevisionCeiling)
                 {
                     char* Written = Reading ? LayerStackSeated.RevisionReading[Ordinal]
                                             : LayerStackSeated.RevisionRemark[Ordinal];
 
                     static_cast<void>(Interface.AdmitTyped(Written,
-                                                           LayerStackOrdinates::RemarkCeiling));
+                                                           LayerStackContext::RemarkCeiling));
 
                     if (Interface.KeyArrived(KeySubject::Retract))
                     {
                         std::uint32_t Occupied = 0u;
 
-                        while (Occupied + 1u < LayerStackOrdinates::RemarkCeiling &&
+                        while (Occupied + 1u < LayerStackContext::RemarkCeiling &&
                                Written[Occupied] != '\0')
                         {
                             ++Occupied;
@@ -1282,7 +1282,7 @@ ApplyUserScale(Appearance,
                                                   Cursor,
                                                   EditorAlong,
                                                   EditorAcross);
-        Disregard(EditorPanels.Record(EditorExtent, EditorPartition, EditorOrdinates));
+        Disregard(EditorPanels.Record(EditorExtent, EditorPartition, EditorConfiguration));
         Cursor = EditorExtent.MostAcross + Measure.CardGapAcross;
 
         // ⑮ The complete notch Control Centre remains the final full display-sized page.
@@ -1334,13 +1334,13 @@ ApplyUserScale(Appearance,
         const PlaneExtent ShellExtent = Spanning(0.0f, Cursor, Display.ExtentAlong, Display.ExtentAcross);
 
         static_cast<void>(Interface.AdmitTyped(ShellSeated.EntityRetention,
-                                               ShellOrdinates::RetentionCeiling));
+                                               ShellContext::RetentionCeiling));
 
         if (Interface.KeyArrived(KeySubject::Retract))
         {
             std::uint32_t Occupied = 0u;
 
-            while (Occupied + 1u < ShellOrdinates::RetentionCeiling &&
+            while (Occupied + 1u < ShellContext::RetentionCeiling &&
                    ShellSeated.EntityRetention[Occupied] != '\0')
             {
                 ++Occupied;
@@ -1359,7 +1359,7 @@ ApplyUserScale(Appearance,
         if (ContentBrowserSeated.SeekHolding)
         {
             static_cast<void>(Interface.AdmitTyped(ContentBrowserSeated.Seek,
-                                                   ContentBrowserOrdinates::SeekCeiling));
+                                                   ContentBrowserConfiguration::SeekCeiling));
 
             if (Interface.KeyArrived(KeySubject::Retract))
                 static_cast<void>(ContentBrowser.RetractTyped(ContentBrowserSeated));

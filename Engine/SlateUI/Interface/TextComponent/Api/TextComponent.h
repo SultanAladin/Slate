@@ -22,7 +22,7 @@ struct TextStyle
     TextWeight Weight = TextWeight::Regular;
 };
 
-struct TextMetrics
+struct TypographyMetrics
 {
     float Width = 0.0f;
     float Height = 0.0f;
@@ -33,12 +33,12 @@ struct TextMetrics
 class TextComponent
 {
 public:
-    static TextMetrics Measure(const RecordingSurface& Surface,
+    static TypographyMetrics Measure(const RecordingSurface& Surface,
                                const char* Text,
                                const TextStyle& Style);
 
     static PlaneExtent Fit(const PlaneExtent& Origin,
-                           const TextMetrics& Metrics,
+                           const TypographyMetrics& Metrics,
                            float PaddingAlong,
                            float PaddingAcross);
 

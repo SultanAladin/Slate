@@ -3,7 +3,7 @@
 namespace Slate
 {
 
-TextMetrics TextComponent::Measure(const RecordingSurface& Surface,
+TypographyMetrics TextComponent::Measure(const RecordingSurface& Surface,
                                    const char* Text,
                                    const TextStyle& Style)
 {
@@ -12,7 +12,7 @@ TextMetrics TextComponent::Measure(const RecordingSurface& Surface,
 }
 
 PlaneExtent TextComponent::Fit(const PlaneExtent& Origin,
-                               const TextMetrics& Metrics,
+                               const TypographyMetrics& Metrics,
                                float PaddingAlong,
                                float PaddingAcross)
 {
@@ -28,7 +28,7 @@ void TextComponent::Draw(RecordingSurface& Surface,
                          const char* Text,
                          const TextStyle& Style)
 {
-    const TextMetrics Metrics = Measure(Surface, Text, Style);
+    const TypographyMetrics Metrics = Measure(Surface, Text, Style);
     Surface.TextRun(Bounds.LeastAlong + (Bounds.SpanAlong() - Metrics.Width) * 0.5f,
                     Bounds.LeastAcross + (Bounds.SpanAcross() - Metrics.Height) * 0.5f,
                     Colour, Text != nullptr ? Text : "", Style.Size, Style.Tracking, true);
