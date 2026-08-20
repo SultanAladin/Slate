@@ -513,8 +513,9 @@ int main(int ArgumentCount, char** ArgumentValues)
 //    the recorded theme rather than in the transcription's own and correcting themselves a tick later.
 ThemeSelection          Selected   = InscribedSelection;
 ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
+    Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
 
-    // 🔴 Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
+    // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
     //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
     //    already open by this point, so the host appeared to "open white and crash" when it had in fact
     //    stated its reason and exited 1. Naming the stage and flushing it is what makes the next one legible.
@@ -779,6 +780,7 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
         if (Display.ExtentAlong != ResolvedAgainst)
         {
             Appearance      = ResolveTinted(Display.DisplayScale, ArtistScale, Display.ExtentAlong, Selected);
+            Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
             ResolvedAgainst = Display.ExtentAlong;
 
             // 🔴 The shell holds its own scaled extents, so a resolve it is not told about leaves it
@@ -1310,6 +1312,7 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
                 //    inks are reseated from the appearance this tick already holds.
                 Selected = Chosen;
                 Appearance = ResolveTinted(Display.DisplayScale, ArtistScale, Display.ExtentAlong, Selected);
+                Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
                 ContentBrowser.Reseat(Appearance);
                 LayerStack.Reseat(Appearance);
             }

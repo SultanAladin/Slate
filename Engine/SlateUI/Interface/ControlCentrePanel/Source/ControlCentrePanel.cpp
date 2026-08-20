@@ -262,7 +262,8 @@ Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCen
     if (Surface == nullptr || Motion == nullptr)
         return Outcome<bool>::Refuse({RefusalReason::CapabilityAbsent, "no Control Centre construction stands"});
 
-    if (Interior.SpanAlong() <= 0.0f || Interior.SpanAcross() <= 0.0f) return Outcome<bool>::Result(true);
+    if (Interior.SpanAlong() <= 0.0f || Interior.SpanAcross() <= 0.0f || Surface->Excluded(Interior))
+        return Outcome<bool>::Result(true);
 
     ExclusionCount = 0u;
     if (Ordinates.Page != PresentedPage) Navigate(Ordinates.Page);
