@@ -57,25 +57,25 @@ struct ColourBinding
     std::size_t  Displacement;   // [B] - byte offset of the colour within ThemeDeclaration
 };
 
-#define SLATE_INK_BINDING(Member) { #Member, offsetof(ThemeDeclaration, Member) }
+#define SLATE_COLOUR_BINDING(Member) { #Member, offsetof(ThemeDeclaration, Member) }
 
 constexpr ColourBinding ColourBindings[] = {
-    SLATE_INK_BINDING(Ground),               SLATE_INK_BINDING(Panel),
-    SLATE_INK_BINDING(Primary),              SLATE_INK_BINDING(Secondary),
-    SLATE_INK_BINDING(Edge),                 SLATE_INK_BINDING(Card),
-    SLATE_INK_BINDING(PreviewGround),        SLATE_INK_BINDING(PreviewWindow),
-    SLATE_INK_BINDING(PreviewSidebar),       SLATE_INK_BINDING(PreviewSidebarQuiet),
-    SLATE_INK_BINDING(PreviewSidebarStrong), SLATE_INK_BINDING(PreviewQuiet),
-    SLATE_INK_BINDING(PreviewStrong)};
+    SLATE_COLOUR_BINDING(Ground),               SLATE_COLOUR_BINDING(Panel),
+    SLATE_COLOUR_BINDING(Primary),              SLATE_COLOUR_BINDING(Secondary),
+    SLATE_COLOUR_BINDING(Edge),                 SLATE_COLOUR_BINDING(Card),
+    SLATE_COLOUR_BINDING(PreviewGround),        SLATE_COLOUR_BINDING(PreviewWindow),
+    SLATE_COLOUR_BINDING(PreviewSidebar),       SLATE_COLOUR_BINDING(PreviewSidebarQuiet),
+    SLATE_COLOUR_BINDING(PreviewSidebarStrong), SLATE_COLOUR_BINDING(PreviewQuiet),
+    SLATE_COLOUR_BINDING(PreviewStrong)};
 
-#undef SLATE_INK_BINDING
+#undef SLATE_COLOUR_BINDING
 
 constexpr std::uint32_t ColourBindingCount = static_cast<std::uint32_t>(sizeof(ColourBindings) / sizeof(ColourBindings[0]));
 
 // 📝 The section stem each appearance and accent is written under. Stable spellings — renaming one would
 //    orphan every file already on disk — so they are declared here rather than derived from the caption.
 constexpr const char* ThemeStems[ThemeCeiling] = {"oled", "dark", "clean-white", "desert-sand",
-                                                  "purplish", "bluish"};
+                                                  "purple", "blue"};
 
 constexpr const char* AccentStems[AccentCeiling] = {"blue", "cyan", "teal", "emerald",
                                                     "amber", "orange", "rose", "violet"};
@@ -114,7 +114,7 @@ std::uint32_t HexPlace(char Letter)
 
 /// 📝 Reads `"#RRGGBB"` and `"#RRGGBBAA"`, quoted or bare. The eight-place form carries opacity, which is how
 ///    a Partial colour survives the round trip — writing only six would silently make every translucent
-///    appearance opaque, and the OLED and Purplish panels are translucent by declaration.
+///    appearance opaque, and the OLED and Purple panels are translucent by declaration.
 bool ReadColour(const char* Text, ThemeToken& Produced)
 {
     if (*Text == '"' || *Text == '\'') ++Text;

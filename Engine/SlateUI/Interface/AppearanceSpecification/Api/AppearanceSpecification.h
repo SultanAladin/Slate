@@ -523,7 +523,7 @@ struct ControlMetric
 inline constexpr std::uint32_t WorkspaceStrip        = 0x18181Cu;   // [-] - --strip, and --panel-footer-bg
 inline constexpr std::uint32_t WorkspaceTabQuiet     = 0x26262Cu;   // [-] - --tab-inactive
 inline constexpr std::uint32_t WorkspaceTabRoused    = 0x32323Au;   // [-] - --tab-hover
-inline constexpr std::uint32_t WorkspaceTabTaken     = 0x000000u;   // [-] - --tab-active
+inline constexpr std::uint32_t WorkspaceTabTaken     = WorkspaceTabRoused;   // [-] - --tab-active
 inline constexpr std::uint32_t WorkspaceTabColourQuiet  = 0x9BA1ADu;   // [-] - --tab-inactive-text
 inline constexpr std::uint32_t WorkspaceTabColourTaken  = 0xFFFFFFu;   // [-] - --tab-active-text
 inline constexpr std::uint32_t WorkspaceFooterEdge   = 0x222228u;   // [-] - --panel-footer-border, --border

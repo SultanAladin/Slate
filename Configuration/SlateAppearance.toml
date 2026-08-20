@@ -74,8 +74,8 @@ previewsidebarstrong  = "#E1C291"
 previewquiet          = "#EAD2A6"
 previewstrong         = "#E6C897"
 
-[theme.purplish]
-caption               = "Purplish"
+[theme.purple]
+caption               = "Purple"
 ground                = "#0F0A1C"
 panel                 = "#17102BF2"
 primary               = "#F3E8FF"
@@ -90,8 +90,8 @@ previewsidebarstrong  = "#6B5692"
 previewquiet          = "#4F3E76"
 previewstrong         = "#715B98"
 
-[theme.bluish]
-caption               = "Bluish"
+[theme.blue]
+caption               = "Blue"
 ground                = "#09111C"
 panel                 = "#0F1B2DF2"
 primary               = "#DBEAFE"

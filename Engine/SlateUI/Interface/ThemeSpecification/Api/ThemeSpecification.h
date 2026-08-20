@@ -24,8 +24,8 @@ enum class ThemeSubject : std::uint32_t
     Dark         = 1u,   // [-]
     CleanWhite   = 2u,   // [-] - the one light appearance; several panels invert against it
     DesertSand   = 3u,   // [-]
-    Purplish     = 4u,   // [-]
-    Bluish       = 5u,   // [-]
+    Purple     = 4u,   // [-]
+    Blue       = 5u,   // [-]
     SubjectCount = 6u    // [-] - never selected; bounds every table keyed by this enumeration
 };
 
@@ -186,7 +186,7 @@ public:
 ///        build rather than six themes that each look slightly wrong.
 /// note  ⚠️ Coverage is carried through untouched. A hairline at four per cent of white is a hairline at four
 ///        per cent in every theme; re-anchoring its opacity would erase the hairline on a light appearance.
-/// note  📐 A theme's own hue rides along in its ladder, so `Purplish` and `Bluish` tint every panel without
+/// note  📐 A theme's own hue rides along in its ladder, so `Purple` and `Blue` tint every panel without
 ///        naming a single panel colour — which is the whole reason the ladder is read from the theme rather
 ///        than from a fixed grey run.
 /// use   Called by a host at bring-up and again whenever the Control Centre reports a different selection.
