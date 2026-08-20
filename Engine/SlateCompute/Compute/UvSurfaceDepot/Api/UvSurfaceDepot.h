@@ -172,7 +172,7 @@ public:
     ///        nearest value found beyond the extent, and nothing is filled with zero.
     /// cost  🔴
     /// tag   api, nonthrowing
-    ConvergentOutcome<TransferMetrics> Transfer(const TopologyStructure&          Source,
+    ConvergentResult<TransferMetrics> Transfer(const TopologyStructure&          Source,
                                                const TopologyStructure&          Working,
                                                const std::vector<std::uint32_t>& SourceChannelMasks) const;
 
@@ -202,7 +202,7 @@ public:
     ///        `86` §2, and `68`'s reporting draws the same line.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Report(const ConvergentOutcome<TransferMetrics>& Produced,
+    void Report(const ConvergentResult<TransferMetrics>& Produced,
                 ReportSequence&                          Reporting,
                 MeasureIndex&                            Measured,
                 TickPoint                                Sampled) const;

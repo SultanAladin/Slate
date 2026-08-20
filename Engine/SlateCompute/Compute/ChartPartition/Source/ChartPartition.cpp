@@ -553,7 +553,7 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
         Solving.ConvergenceCriterion = Declaring.ConvergenceCriterion;
         Solving.IterationCeiling     = Declaring.IterationCeiling;
 
-        const Outcome<ConvergentOutcome<std::vector<PlanarPosition>>> Solved = Solve(Solving);
+        const Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solved = Solve(Solving);
 
         if (!Solved.Resolved)
         {

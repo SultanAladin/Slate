@@ -312,11 +312,11 @@ Outcome<SourceCorrespondence> UvSurfaceDepot::Correspond(DocumentPosition       
 //                                                      THE TRANSFER
 //------------------------------------------------------------------------------------------------------------------------
 
-ConvergentOutcome<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructure&          Source,
+ConvergentResult<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructure&          Source,
                                                            const TopologyStructure&          Working,
                                                            const std::vector<std::uint32_t>& SourceChannelMasks) const
 {
-    ConvergentOutcome<TransferMetrics> Produced;
+    ConvergentResult<TransferMetrics> Produced;
 
     if (!TransferStanding)
     {
@@ -445,7 +445,7 @@ Outcome<bool> UvSurfaceDepot::Admit(SurfaceDepot&     Depot,
 //                                                      THE REPORTING
 //------------------------------------------------------------------------------------------------------------------------
 
-void UvSurfaceDepot::Report(const ConvergentOutcome<TransferMetrics>& Produced,
+void UvSurfaceDepot::Report(const ConvergentResult<TransferMetrics>& Produced,
                             ReportSequence&                          Reporting,
                             MeasureIndex&                            Measured,
                             TickPoint                                Sampled) const

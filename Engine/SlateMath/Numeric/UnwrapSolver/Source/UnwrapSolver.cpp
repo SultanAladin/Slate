@@ -105,9 +105,9 @@ double PlanarArea(PlanarPosition Alpha, PlanarPosition Beta, PlanarPosition Gamm
 //                                                      THE SOLVE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ConvergentOutcome<std::vector<PlanarPosition>>> Solve(const UnwrapSpecification& Declaring)
+Outcome<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecification& Declaring)
 {
-    using Result = ConvergentOutcome<std::vector<PlanarPosition>>;
+    using Result = ConvergentResult<std::vector<PlanarPosition>>;
 
     const std::size_t VertexSpan = Declaring.Positions.size();
 
