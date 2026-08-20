@@ -821,7 +821,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
     Surface.ApplyCornerScale(Appearance.CornerScale);
     Disregard(Fonts.Discover(FontArchivesPath));
     ControlCentre.SetFontFamilies(Fonts);
-    Disregard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
+    Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
             ResolvedAgainst = Display.ExtentAlong;
 
             // 🔴 The shell holds its own scaled extents, so a resolve it is not told about leaves it
@@ -1366,7 +1366,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
     Surface.ApplyCornerScale(Appearance.CornerScale);
     Disregard(Fonts.Discover(FontArchivesPath));
     ControlCentre.SetFontFamilies(Fonts);
-    Disregard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
+    Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
                 ContentBrowser.Reseat(Appearance);
                 LayerStack.Reseat(Appearance);
             }

@@ -290,6 +290,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     while (Lifetime.Standing())
     {
         const TickPass Pass = Lifetime.Await(WorkspaceGround);
+        Disregard(Fonts.FlushPending());
 
         if (Pass.Standing == TickStanding::Closed)
             break;

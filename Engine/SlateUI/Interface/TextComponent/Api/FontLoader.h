@@ -19,6 +19,8 @@ public:
     Outcome<bool> Discover(const char* FontRoot);
     Outcome<bool> PreparePreviews(float DisplayScale);
     Outcome<bool> Load(const char* FontRoot, const FontProfile& Profile, float DisplayScale);
+    void RequestLoad(const char* FontRoot, const FontProfile& Profile, float DisplayScale);
+    Outcome<bool> FlushPending();
     std::uint32_t FamilyCount() const { return static_cast<std::uint32_t>(Families.size()); }
     const char* FamilyName(std::uint32_t Ordinal) const;
     ImFont* Active() const { return Face(FontWeight::Regular, FontSlant::Upright); }
@@ -36,6 +38,10 @@ private:
     std::vector<std::string> Families;
     std::vector<PreviewFace> PreviewFaces;
     std::string Root;
+    std::string PendingRoot;
+    FontProfile PendingProfile = {};
+    float PendingScale = 1.0f;
+    bool Pending = false;
 };
 
 } // namespace Slate

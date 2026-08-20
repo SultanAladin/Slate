@@ -194,4 +194,20 @@ Outcome<bool> FontLoader::Load(const char* FontRoot, const FontProfile& Profile,
     return Outcome<bool>::Result(true);
 }
 
+void FontLoader::RequestLoad(const char* FontRoot, const FontProfile& Profile, float DisplayScale)
+{
+    PendingRoot = FontRoot != nullptr ? FontRoot : "";
+    PendingProfile = Profile;
+    PendingScale = DisplayScale;
+    Pending = true;
+}
+
+Outcome<bool> FontLoader::FlushPending()
+{
+    if (!Pending)
+        return Outcome<bool>::Result(true);
+    Pending = false;
+    return Load(PendingRoot.c_str(), PendingProfile, PendingScale);
+}
+
 } // namespace Slate
