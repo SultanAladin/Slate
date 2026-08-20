@@ -13,6 +13,8 @@
 #include "SlateVulkan/Device/HostLifecycle/Api/HostLifecycle.h"
 
 #include <cstdio>
+#include <filesystem>
+#include <cstring>
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                          FIGURES
@@ -169,6 +171,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     EditorPanelConfiguration    PanelConfiguration[WorkspaceIndex::WorkspaceCeiling];
     ControlCentrePanel      ControlCentre;
     ControlCentreConfiguration  ControlCentreValues;
+    FontLoader                  Fonts;
 
     InteractionIndex         BrowserLedger;
 
@@ -182,6 +185,10 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    first run has no file yet, which is the ordinary case and not a fault — the build's own appearance
     //    stands and the first colour the artist changes writes the file.
     const char* const InvokedAs = (ArgumentCount > 0) ? ArgumentValues[0] : "";
+    const std::filesystem::path ExecutablePath = InvokedAs[0] != '\0'
+                                               ? std::filesystem::absolute(InvokedAs)
+                                               : std::filesystem::current_path();
+    const std::string FontRoot = (ExecutablePath.parent_path() / "EngineContent" / "FontArchives").string();
 
     {
         ThemeSelection Recorded;
@@ -215,6 +222,11 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     // 📝 Which dock node the next enrolled workspace is seated into; zero means the main dock space.
     std::uint32_t  EnrolIntoNode = 0u;
+
+    Viewport.Surface().ApplyFontLoader(Fonts);
+    Disregard(Fonts.Discover(FontRoot.c_str()));
+    Disregard(Fonts.Load(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f));
+    ControlCentre.SetFontFamilies(Fonts);
 
     if (!Workspace.Construct(Viewport.Surface(), Viewport.Appearance()).Resolved)
     {

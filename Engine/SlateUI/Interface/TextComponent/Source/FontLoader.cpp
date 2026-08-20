@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <string>
 #include <cstring>
+#include <cstdio>
 
 namespace Slate
 {
@@ -53,6 +54,8 @@ Outcome<bool> FontLoader::Discover(const char* FontRoot)
             Families.push_back(Entry.path().filename().string());
     }
     std::sort(Families.begin(), Families.end());
+    std::fprintf(stderr, "[Fonts] discovered %u families in %s\n",
+                 static_cast<unsigned>(Families.size()), FontRoot);
     return Outcome<bool>::Result(true);
 }
 
@@ -81,6 +84,7 @@ Outcome<bool> FontLoader::Load(const char* FontRoot, const FontProfile& Profile,
 
     const float Size = 16.0f * ((DisplayScale > 0.0f) ? DisplayScale : 1.0f);
     Faces.fill(nullptr);
+    std::uint32_t LoadedCount = 0u;
     for (std::uint32_t Weight = 100u; Weight <= 900u; Weight += 100u)
     {
         for (std::uint32_t Slant = 0u; Slant < 2u; ++Slant)
@@ -95,6 +99,7 @@ Outcome<bool> FontLoader::Load(const char* FontRoot, const FontProfile& Profile,
                 if (Loaded != nullptr)
                 {
                     Faces[Slot(FaceWeight, FaceSlant)] = Loaded;
+                    ++LoadedCount;
                     break;
                 }
             }
@@ -105,6 +110,8 @@ Outcome<bool> FontLoader::Load(const char* FontRoot, const FontProfile& Profile,
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "selected font family has no regular face" });
 
     ImGui::GetIO().Fonts->Build();
+    std::fprintf(stderr, "[Fonts] loaded %u faces for %s\n",
+                 static_cast<unsigned>(LoadedCount), Family);
     return Outcome<bool>::Result(true);
 }
 
