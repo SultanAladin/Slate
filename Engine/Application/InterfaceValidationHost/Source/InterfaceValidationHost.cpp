@@ -1332,13 +1332,16 @@ ApplyUserScale(Appearance,
             Chosen.Information = ControlCentreValues.Information;
             Chosen.Warning     = ControlCentreValues.Warning;
             Chosen.Alert       = ControlCentreValues.Alert;
+                if (ControlCentreValues.Font < Fonts.FamilyCount() && Fonts.FamilyName(ControlCentreValues.Font) != nullptr)
+                    std::strncpy(Chosen.FontFamily, Fonts.FamilyName(ControlCentreValues.Font), sizeof(Chosen.FontFamily) - 1u);
 
             const bool Altered = Chosen.Presented   != InscribedSelection.Presented
                               || Chosen.Primary     != InscribedSelection.Primary
                               || Chosen.Secondary   != InscribedSelection.Secondary
                               || Chosen.Information != InscribedSelection.Information
                               || Chosen.Warning     != InscribedSelection.Warning
-                              || Chosen.Alert       != InscribedSelection.Alert;
+                              || Chosen.Alert       != InscribedSelection.Alert
+                                  || std::strcmp(Chosen.FontFamily, InscribedSelection.FontFamily) != 0;
 
             // 🔴 The record is advanced whether the write was delivered or refused. A read-only folder would
             //    otherwise have every later tick retry the same refused write for the life of the process.
