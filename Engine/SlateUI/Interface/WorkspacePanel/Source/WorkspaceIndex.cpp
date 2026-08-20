@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                           WORKSPACEINDEX.CPP
 //============================================================================================================================================
-// 🧩 Enrolment, withdrawal, the active ordinal, and the title composed exactly once per workspace.
+// 🧩 Registration, withdrawal, the active ordinal, and the title composed exactly once per workspace.
 
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
 
@@ -31,7 +31,7 @@ const char* WorkspaceStem(WorkspaceSubject Subject)
 //                                                      THE ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> WorkspaceIndex::Enrol(WorkspaceSubject Subject)
+Outcome<std::uint32_t> WorkspaceIndex::Register(WorkspaceSubject Subject)
 {
     if (OpenOccupancy >= WorkspaceCeiling)
     {
@@ -44,20 +44,20 @@ Outcome<std::uint32_t> WorkspaceIndex::Enrol(WorkspaceSubject Subject)
     if (SubjectOrdinal >= static_cast<std::uint32_t>(WorkspaceSubject::SubjectCount))
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such workspace subject" });
 
-    WorkspaceEntry& Enrolled = Open[OpenOccupancy];
+    WorkspaceEntry& Registered = Open[OpenOccupancy];
 
-    Enrolled.Subject = Subject;
+    Registered.Subject = Subject;
 
     // 🔴 Never reused. Closing the second canvas and opening another yields a third, because two tabs that
     //    had carried one title within a session make an artist's account of what they were doing ambiguous.
-    Enrolled.SubjectOrdinal = ++EnrolledPerSubject[SubjectOrdinal];
+    Registered.SubjectOrdinal = ++RegisteredPerSubject[SubjectOrdinal];
 
     // 🔴 Composed HERE and never again. The sheet titles a tab by stem and ordinal, and composing that per
     //    tick would write into storage the recording is still reading, sixty times a second.
     // 📝 The truncation is not checked: the stems are three known literals and the ordinal is bounded by
     //    the ceiling, so the longest run this can compose is well inside the extent.
-    std::snprintf(Enrolled.Titled, sizeof(Enrolled.Titled), "%s %u",
-                  WorkspaceStem(Subject), Enrolled.SubjectOrdinal);
+    std::snprintf(Registered.Titled, sizeof(Registered.Titled), "%s %u",
+                  WorkspaceStem(Subject), Registered.SubjectOrdinal);
 
     Active = OpenOccupancy;
     ++OpenOccupancy;
@@ -115,7 +115,7 @@ std::uint32_t WorkspaceIndex::OpenCount() const
     return OpenOccupancy;
 }
 
-Outcome<WorkspaceEntry> WorkspaceIndex::Standing(std::uint32_t Ordinal) const
+Outcome<WorkspaceEntry> WorkspaceIndex::Current(std::uint32_t Ordinal) const
 {
     if (Ordinal >= OpenOccupancy)
     {
@@ -126,15 +126,15 @@ Outcome<WorkspaceEntry> WorkspaceIndex::Standing(std::uint32_t Ordinal) const
     return Outcome<WorkspaceEntry>::Result(Open[Ordinal]);
 }
 
-bool WorkspaceIndex::Seated(std::uint32_t Ordinal) const
+bool WorkspaceIndex::Applied(std::uint32_t Ordinal) const
 {
-    return (Ordinal < OpenOccupancy) && Open[Ordinal].DockSeated;
+    return (Ordinal < OpenOccupancy) && Open[Ordinal].DockApplied;
 }
 
-void WorkspaceIndex::Seat(std::uint32_t Ordinal)
+void WorkspaceIndex::Apply(std::uint32_t Ordinal)
 {
     if (Ordinal < OpenOccupancy)
-        Open[Ordinal].DockSeated = true;
+        Open[Ordinal].DockApplied = true;
 }
 
 const char* WorkspaceIndex::Titled(std::uint32_t Ordinal) const
@@ -172,7 +172,7 @@ void WorkspaceIndex::Reset()
          Subject < static_cast<std::uint32_t>(WorkspaceSubject::SubjectCount);
          ++Subject)
     {
-        EnrolledPerSubject[Subject] = 0u;
+        RegisteredPerSubject[Subject] = 0u;
     }
 }
 

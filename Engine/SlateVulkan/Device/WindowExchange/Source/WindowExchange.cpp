@@ -30,7 +30,7 @@ Outcome<VkSurfaceKHR> Convert(VkInstance Instance, void* NativeHandle)
                                                         &PresentationSurface);
 
     if (Conversion != VK_SUCCESS)
-        return Outcome<VkSurfaceKHR>::Refuse({ RefusalReason::HostDenied, "the window system declined a surface" });
+        return Outcome<VkSurfaceKHR>::Refuse({ RefusalReason::HostDenied, "the window system rejected a surface" });
 
     return Outcome<VkSurfaceKHR>::Result(PresentationSurface);
 }

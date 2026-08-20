@@ -61,11 +61,11 @@ struct UploadedReduction
 {
     std::uint32_t  WrittenLevel     = 0u;   // [-]     - which level the dispatch writes
     std::uint32_t  WrittenOffset    = 0u;   // [texel] - where that level begins in the chain span
-    std::uint32_t  WrittenAlong     = 0u;   // [texel] - its extent
-    std::uint32_t  WrittenAcross    = 0u;   // [texel]
+    std::uint32_t  WrittenX     = 0u;   // [texel] - its extent
+    std::uint32_t  WrittenY    = 0u;   // [texel]
     std::uint32_t  SourceOffset     = 0u;   // [texel] - where the level above begins; unread when the target is read
-    std::uint32_t  SourceAlong      = 0u;   // [texel] - the source's extent
-    std::uint32_t  SourceAcross     = 0u;   // [texel]
+    std::uint32_t  SourceX      = 0u;   // [texel] - the source's extent
+    std::uint32_t  SourceY     = 0u;   // [texel]
     std::uint32_t  SourceFromTarget = 0u;   // [-]     - non-zero for the finest level
 };
 
@@ -75,8 +75,8 @@ struct UploadedOcclusion
 {
     std::uint32_t  ClassifiedCount = 0u;   // [-]  - partitions the dispatch tests
     std::uint32_t  LevelCount      = 0u;   // [-]  - levels the chain carries
-    std::uint32_t  DisplayAlong    = 0u;   // [px] - the extent the finest level covers
-    std::uint32_t  DisplayAcross   = 0u;   // [px]
+    std::uint32_t  DisplayX    = 0u;   // [px] - the extent the finest level covers
+    std::uint32_t  DisplayY   = 0u;   // [px]
     std::uint32_t  TriangleCeiling = 0u;   // [-]  - entries the surviving run can hold
     std::uint32_t  PhaseOrdinal    = 0u;   // [-]  - which of `16` §2's two phases is dispatching
     std::uint32_t  Unoccupied1     = 0u;   // [-]
@@ -118,7 +118,7 @@ struct CulledResidency
     std::vector<std::uint32_t>  VerdictSpans    = {};           // [-] - ①'s per-partition verdict, per slot
     std::vector<std::uint32_t>  RecordSpans     = {};           // [-] - PhaseSlot-indexed indirect records
     std::vector<std::uint32_t>  SurvivingSpans  = {};           // [-] - PhaseSlot-indexed compacted ordinals
-    std::vector<std::uint32_t>  ClaimOrdinals   = {};           // [-] - PhaseSlot-indexed culling claims
+    std::vector<std::uint32_t>  ReservationOrdinals   = {};           // [-] - PhaseSlot-indexed culling claims
     std::vector<bool>           AmendedFor      = {};           // [-] - one per cycle slot
     std::uint32_t               TriangleCeiling = 0u;           // [-] - triangles the residency's fan carries
     std::uint32_t               PartitionCount  = 0u;           // [-] - partitions it declared
@@ -143,12 +143,12 @@ constexpr std::uint32_t PhaseSlot(CullingPhase Phase, std::uint32_t SlotOrdinal)
 ///     each one leaves for the indirect draw that follows.
 /// note  🔴 The chain is a **span** and not the depth image's own reduction levels, for three reasons that agree.
 ///        `DepthReduction` halves by rounding up and the vendor's level extents halve by rounding down, so the
-///        two disagree from the first odd ordinate; `08` §2 claims every target with one level; and the depth
-///        format admits no storage usage, so no dispatch could write into it. What is claimed here is therefore
+///        two disagree from the first odd coordinate; `08` §2 claims every target with one level; and the depth
+///        format accepts no storage usage, so no dispatch could write into it. What is claimed here is therefore
 ///        `DepthReduction::ChainTexels()` reals, with the level offsets carried beside them.
 /// note  🔴 The depth target is **read** by the reduction and never written. `16` §2 ② reduces what the raster
 ///        recorded, so the recording order within one rotation is raster, then reduction, then phase ③ — and the
-///        transition into a sampled layout is `ImageSpace`'s, recorded here and issued nowhere else.
+///        transition into a sampled layout is `ImageSpace`'s, recorded here and registered nowhere else.
 /// note  ⚠️ 🚧 The compute raster of `16` §3 is a separate route against the same targets. A partition that
 ///        projects to nothing survives this cull deliberately — it is sub-pixel and belongs to that route, and
 ///        rejecting it here would drop geometry no other route then draws.
@@ -164,26 +164,26 @@ public:
     /// 🧩 Declares both layouts, resolves both modules, and constructs the two compute programs.
     /// in    Spans        [-]  where every span is claimed; borrowed and outlives this component
     /// in    Images       [-]  where the depth target's view is resolved; borrowed and outlives this component
-    /// in    Claimed      [-]  the shared target set, for the depth target's ordinal; borrowed
+    /// in    Reserved      [-]  the shared target set, for the depth target's ordinal; borrowed
     /// in    Modules      [-]  where both lowered streams are resolved; borrowed, non-const for the declaration
     /// in    Descriptors  [-]  where both layouts are declared; borrowed and outlives this component
     /// in    Programs     [-]  where both programs are constructed; borrowed and outlives this component
-    /// out   Result      [-]  refuses with whatever the layouts, the modules or the programs refused
+    /// out   Result      [-]  refuses with whatever the layouts, the modules or the programs rejected
     /// pre   🔴 the descriptor declaration is not yet fixed — `Declare` refuses once it is
     /// post  both programs stand; no chain is derived and no residency is claimable
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> Construct(SpanSpace&        Spans,
                             ImageSpace&       Images,
-                            const TargetSpace& Claimed,
+                            const TargetSpace& Reserved,
                             ShaderCodec&      Modules,
                             DescriptorIndex&  Descriptors,
                             ProgramIndex&     Programs);
 
     /// 🧩 Derives the level chain against one display extent and claims the span that holds it.
-    /// in    DisplayAlong   [px]  the extent this rotation is recorded against
-    /// in    DisplayAcross  [px]
-    /// out   Result        [-]   refuses with whatever `DepthReduction` or the claim refused
+    /// in    DisplayX   [px]  the extent this rotation is recorded against
+    /// in    DisplayY  [px]
+    /// out   Result        [-]   refuses with whatever `DepthReduction` or the claim rejected
     /// pre   🔴 the device is idle — every rotation reading the previous chain has completed
     /// post  the chain span stands and the level offsets are held beside it
     /// note  🔴 The chain is **not** cleared on derivation and does not need to be. Phase ① of the first rotation
@@ -192,12 +192,12 @@ public:
     ///        against arbitrary depth. `ChainReduced` below is what distinguishes them.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Outcome<bool> Derive(std::uint32_t DisplayX, std::uint32_t DisplayY);
 
-    /// 🧩 Claims the culling spans for one resident partitioning.
+    /// 🧩 Reservations the culling spans for one resident partitioning.
     /// in    TriangleCeiling  [-]  triangles the residency's fan carries; the surviving run is sized to it
-    /// in    PartitionCount   [-]  partitions the enrolment declared
-    /// out   Result          [-]  the culling ordinal; refuses with whatever the claim refused and with
+    /// in    PartitionCount   [-]  partitions the registration declared
+    /// out   Result          [-]  the culling ordinal; refuses with whatever the claim rejected and with
     ///                             ContentUnsupported for a residency carrying no triangle
     /// pre   🔴 `DescriptorIndex::Fix` delivered, and `Derive` has claimed the chain
     /// post  the spans stand and are written every rotation until the topology changes
@@ -209,11 +209,11 @@ public:
     Outcome<std::uint32_t> Resolve(std::uint32_t TriangleCeiling, std::uint32_t PartitionCount);
 
     /// 🧩 Writes one rotation's classification into a residency's span and clears its indirect record.
-    /// in    CullingOrdinal  [-]  an ordinal this component issued
+    /// in    CullingOrdinal  [-]  an ordinal this component registered
     /// in    SlotOrdinal    [-]  below `RecordingSlotCount`
     /// in    Classified      [-]  one entry per partition, as `ClassifyPartition` produced them in order
     /// out   Result         [-]  refuses with ContentUnsupported for an unclaimed ordinal or a run disagreeing
-    ///                            with the declared partition count, and with whatever the write refused
+    ///                            with the declared partition count, and with whatever the write rejected
     /// pre   🔴 no recording that reads this cycle slot's spans is still executing
     /// note  🔴 **Both** phases' records are cleared to a corner count of nought here and never on the device.
     ///        The atomic only ever advances a count, so a record carrying the previous rotation's would have
@@ -231,15 +231,15 @@ public:
     /// in    Recorded      [-]  the open recording of this cycle slot
     /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
     /// out   Result       [-]  refuses with ContentUnsupported before the chain is derived, and with whatever
-    ///                          the descriptor write, the transition or the program resolution refused
+    ///                          the descriptor write, the transition or the program resolution rejected
     /// post  ChainReduced holds; phase ③ may be recorded against it
     /// note  🔴 One barrier **between** every pair of levels and not one before the run. Each level reads the
     ///        level above it, so a run recorded without them has every dispatch reading whatever its predecessor
     ///        had written when the scheduling reached it — which is a reduction that is correct on one driver and
     ///        differs by a level of depth on the next.
     /// note  🔴 The depth target is transitioned into a shader-read layout here, through `ImageSpace` and nowhere
-    ///        else. `08` §4 keeps every layout transition in that one place; a barrier issued at this site would
-    ///        leave its record naming a layout the image is not in, and the next transition would then be issued
+    ///        else. `08` §4 keeps every layout transition in that one place; a barrier registered at this site would
+    ///        leave its record naming a layout the image is not in, and the next transition would then be registered
     ///        from the wrong one.
     /// cost  🔴
     /// tag   api, nonthrowing
@@ -260,8 +260,8 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Cull(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, CullingPhase Phase);
 
-    /// 🧩 The record and the surviving run one residency's draw is issued from.
-    /// in    CullingOrdinal  [-]  an ordinal this component issued
+    /// 🧩 The record and the surviving run one residency's draw is registered from.
+    /// in    CullingOrdinal  [-]  an ordinal this component registered
     /// in    SlotOrdinal    [-]  below `RecordingSlotCount`
     /// in    Phase           [-]  which of the two phases the draw follows
     /// out   Result         [-]  the indirect record's vendor span; refuses with ContentUnsupported for an
@@ -290,7 +290,7 @@ public:
     std::uint32_t  LevelCount() const;
     bool           ChainDerived() const;
     bool           ChainReduced() const;
-    bool           ProgramsStanding() const;
+    bool           ProgramsCurrent() const;
 
 private:
 
@@ -308,7 +308,7 @@ private:
     /// in    Recorded      [-]  the recording being written into
     /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
     /// in    LevelOrdinal  [-]  the level being written; nought reads the depth target
-    /// out   Result       [-]  refuses with whatever the write or the resolution refused
+    /// out   Result       [-]  refuses with whatever the write or the resolution rejected
     Outcome<bool> ReduceLevel(VkCommandBuffer  Recorded,
                               std::uint32_t    SlotOrdinal,
                               std::uint32_t    LevelOrdinal);
@@ -331,7 +331,7 @@ private:
     std::uint32_t                   LevelExtentSpan    = AbsentSpan;         // [-] - the offsets, as the device reads them
     std::uint32_t                   ReductionLayout    = AbsentDescriptor;   // [-] - the reduction's three slots
     std::uint32_t                   OcclusionLayout    = AbsentDescriptor;   // [-] - the occlusion's seven
-    std::vector<std::uint32_t>      ReductionClaims    = {};                 // [-] - one claim per level
+    std::vector<std::uint32_t>      ReductionReservations    = {};                 // [-] - one claim per level
     std::uint32_t                   ReductionProgram   = AbsentProgram;      // [-] - the level reduction
     std::uint32_t                   OcclusionProgram   = AbsentProgram;      // [-] - the partition test
     std::uint32_t                   ReductionModule    = AbsentModule;       // [-] - its lowered stream

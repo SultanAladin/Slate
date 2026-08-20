@@ -7,7 +7,7 @@
 
 #include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
-#include "SlateDocument/Document/EnrollmentIndex/Api/EnrollmentIndex.h"
+#include "SlateDocument/Document/RegistrationIndex/Api/RegistrationIndex.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
 
 #include <cstdint>
@@ -20,7 +20,7 @@ namespace Slate
 //                                                     DEGENERACY
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The conditions a face or a vertex is enrolled under rather than removed for.
+/// 🧩 The conditions a face or a vertex is registered under rather than removed for.
 /// note  🔴 `38` §3: removal is what an editor does. Removing a face renumbers everything after it, and every
 ///        index the artist's file carried — their selections, their coordinates, their material assignment —
 ///        would then address the wrong face. Slate does not own that file and must not do this to it.
@@ -45,8 +45,8 @@ enum class DegeneracySubject : std::uint32_t
 /// tag   nonallocating, nonthrowing
 struct ConditionedExtent
 {
-    DocumentPosition  Least    = {};   // [mm] - the lower corner
-    DocumentPosition  Greatest = {};   // [mm] - the upper corner
+    DocumentPosition  Minimum    = {};   // [mm] - the lower corner
+    DocumentPosition  Maximum = {};   // [mm] - the upper corner
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -93,21 +93,21 @@ public:
     /// tag   api, nonthrowing
     Outcome<std::uint32_t> AdjacentCorner(std::uint32_t CornerOrdinal) const;
 
-    /// 🧩 Whether one face is enrolled under a degeneracy condition.
+    /// 🧩 Whether one face is registered under a degeneracy condition.
     /// note  Answered by interval comparison, per `38` §3, so an excluded population costs nothing to skip.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool FaceEnrolled(std::uint32_t FaceOrdinal, DegeneracySubject Condition) const;
+    bool FaceRegistered(std::uint32_t FaceOrdinal, DegeneracySubject Condition) const;
 
-    /// 🧩 Whether one vertex is enrolled as isolated.
+    /// 🧩 Whether one vertex is registered as isolated.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     bool VertexIsolated(std::uint32_t VertexOrdinal) const;
 
-    /// 🧩 The runs of one enrolled condition, for whoever excludes a whole span at once.
+    /// 🧩 The runs of one registered condition, for whoever excludes a whole span at once.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const std::vector<EnrolledInterval>& Enrolled(DegeneracySubject Condition) const;
+    const std::vector<RegisteredInterval>& Registered(DegeneracySubject Condition) const;
 
     const std::vector<SurfaceDirection>&   Perpendiculars() const;
     const std::vector<TangentBasis>&       TangentBases() const;
@@ -158,7 +158,7 @@ private:
     std::vector<SurfaceDirection>  DerivedPerpendiculars;                     // [-]  - per imported vertex
     std::vector<TangentBasis>      DerivedTangentBases;                       // [-]  - per imported vertex
     std::vector<ConditionedExtent> DerivedFaceExtents;                        // [mm] - per face, outward
-    std::vector<EnrolledInterval>  EnrolledConditions[DegeneracySpan] = {};   // [-]  - by ordinal, interval-compressed
+    std::vector<RegisteredInterval>  RegisteredConditions[DegeneracySpan] = {};   // [-]  - by ordinal, interval-compressed
     ConditionedExtent              WholeExtent            = {};               // [mm] - outward
     std::uint64_t                  DescribedRevision      = 0u;               // [-]  - the topology's sealed revision
     std::uint32_t                  DistinctPositionCount  = 0u;               // [-]  - welded positions found

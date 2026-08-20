@@ -67,7 +67,7 @@ Outcome<VkPipelineLayout> ProgramIndex::ReachLayout(const std::vector<std::uint3
     VkPipelineLayout Constructed = VK_NULL_HANDLE;
 
     if (vkCreatePipelineLayout(DeviceEdge->ActiveDevice(), &Declaration, nullptr, &Constructed) != VK_SUCCESS)
-        return Outcome<VkPipelineLayout>::Refuse({ RefusalReason::HostDenied, "the device declined the program layout" });
+        return Outcome<VkPipelineLayout>::Refuse({ RefusalReason::HostDenied, "the device rejected the program layout" });
 
     return Outcome<VkPipelineLayout>::Result(Constructed);
 }
@@ -141,7 +141,7 @@ Outcome<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& 
 
     // ⚠️ The winding is counter-clockwise because `38`'s conditioning orients every face that way and `16`'s
     //    orientation cone is derived from those same orientations. A program declaring the opposite winding
-    //    culls exactly the faces the cone admitted, and the partition disappears while the cull reports it
+    //    culls exactly the faces the cone accepted, and the partition disappears while the cull reports it
     //    visible — two mechanisms disagreeing with no operand between them to compare.
     VkPipelineRasterizationStateCreateInfo Resolved = {};
     Resolved.sType                                  = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -203,11 +203,11 @@ Outcome<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& 
     {
         // 🔴 The layout is destroyed before the refusal returns. It was constructed inside this call and
         //    nothing outside it holds a reference, so a refusal that left it standing would leak one vendor
-        //    layout per declined program — and a declined program is exactly the case a caller retries.
+        //    layout per rejected program — and a rejected program is exactly the case a caller retries.
         vkDestroyPipelineLayout(DeviceEdge->ActiveDevice(), ReachedLayout, nullptr);
 
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::HostDenied, "the device declined the graphics program" });
+            { RefusalReason::HostDenied, "the device rejected the graphics program" });
     }
 
     HeldProgram Held;
@@ -222,12 +222,12 @@ Outcome<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& 
     // 📝 🔴 `06` §7's diagnostic-name gate, and named here rather than inside `ReachLayout` because the ordinal
     //    a layout is named by is the program's — the layout is constructed before the program stands and has no
     //    ordinal of its own until this point. The refusals are discarded for `ByteSpace`'s reason.
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
                         reinterpret_cast<std::uint64_t>(Constructed),
                         "ProgramIndex graphics program",
                         ProgramOrdinal));
 
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
                         reinterpret_cast<std::uint64_t>(ReachedLayout),
                         "ProgramIndex graphics reach",
                         ProgramOrdinal));
@@ -271,7 +271,7 @@ Outcome<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& De
         vkDestroyPipelineLayout(DeviceEdge->ActiveDevice(), ReachedLayout, nullptr);
 
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::HostDenied, "the device declined the compute program" });
+            { RefusalReason::HostDenied, "the device rejected the compute program" });
     }
 
     HeldProgram Held;
@@ -285,12 +285,12 @@ Outcome<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& De
 
     // 📝 🔴 `06` §7's gate, as the graphics route names its two. The ordinal runs across both routes because
     //    `Resolve` addresses one run, so a compute program and a graphics one never share one.
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE,
                         reinterpret_cast<std::uint64_t>(Constructed),
                         "ProgramIndex compute program",
                         ProgramOrdinal));
 
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_PIPELINE_LAYOUT,
                         reinterpret_cast<std::uint64_t>(ReachedLayout),
                         "ProgramIndex compute reach",
                         ProgramOrdinal));

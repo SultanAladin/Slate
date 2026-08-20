@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                           VISIBILITYINDEX.CPP
 //============================================================================================================================================
-// 🧩 The enrolment run, the recording `08` §3 ② is contributed as, and the two indexed hops one written pixel resolves through.
+// 🧩 The registration run, the recording `08` §3 ② is contributed as, and the two indexed hops one written pixel resolves through.
 
 #include "SlateCompute/Compute/VisibilityIndex/Api/VisibilityIndex.h"
 
@@ -30,16 +30,16 @@ const char* const RecordingSubstitution = "hardware rasterisation for every part
 
 }   // namespace
 
-Outcome<bool> VisibilityIndex::Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross)
+Outcome<bool> VisibilityIndex::Construct(std::uint32_t DisplayX, std::uint32_t DisplayY)
 {
-    // 📝 Forwarded whole. The chain's refusals already name the extent that was refused and restating them here
+    // 📝 Forwarded whole. The chain's refusals already name the extent that was rejected and restating them here
     //    would give one condition two spellings, which is the case `00` §2 makes against a number read twice.
-    return Reduced.Construct(DisplayAlong, DisplayAcross);
+    return Reduced.Construct(DisplayX, DisplayY);
 }
 
 void VisibilityIndex::Reclaim()
 {
-    Enrolments.clear();
+    Registrations.clear();
     DeclaredIdentity.clear();
 
     Reduced.Reclaim();
@@ -58,7 +58,7 @@ Outcome<bool> VisibilityIndex::Contribute(RenderSchedule& Schedule) const
 
     // 🔴 Four targets from one recording. `16` §4.2 writes motion here because the previous rotation's projection
     //    of this same triangle is in hand at exactly this point and is recoverable nowhere downstream — a second
-    //    recording deriving motion from depth alone recovers the camera's movement and never the occupant's.
+    //    recording deriving motion from depth alone recovers the camera's movement and never the owner's.
     Declared.Produces = { SharedTarget::DepthSurface,
                           SharedTarget::VisibilityIndex,
                           SharedTarget::OccupancySurface,
@@ -66,7 +66,7 @@ Outcome<bool> VisibilityIndex::Contribute(RenderSchedule& Schedule) const
 
     // 📝 Nothing is read. The reduction phase ① tests against is the **previous** rotation's, which is last
     //    rotation's residue of a target this recording itself produces; declaring it as a read would close a
-    //    cycle in an ordering that has no notion of the rotation the ordinate came from.
+    //    cycle in an ordering that has no notion of the rotation the coordinate came from.
     Declared.Reads  = {};
     Declared.Amends = {};
 
@@ -82,13 +82,13 @@ Outcome<bool> VisibilityIndex::Contribute(RenderSchedule& Schedule) const
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> VisibilityIndex::Enroll(OccupantIdentity            Occupant,
+Outcome<std::uint32_t> VisibilityIndex::Register(OwnerIdentity            Owner,
                                                const TopologyStructure&    Imported,
                                                const TopologyConditioning& Conditioned,
                                                PartitionResolutionIndex&   Resolutions)
 {
-    if (!Occupant.IdentityDeclared())
-        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the occupant identity names no slot" });
+    if (!Owner.IdentityDeclared())
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the owner identity names no slot" });
 
     const Outcome<DerivedPartitioning> Derived = DerivePartitioning(Imported, Conditioned);
 
@@ -104,48 +104,48 @@ Outcome<std::uint32_t> VisibilityIndex::Enroll(OccupantIdentity            Occup
             { RefusalReason::ExtentExhausted, "the document-wide ordinal would reach the one reserved for absence" });
     }
 
-    // 📝 Derived into a standing partitioning of its own before anything document-wide moves. The enrolment is
+    // 📝 Derived into a standing partitioning of its own before anything document-wide moves. The registration is
     //    appended only once the derivation, the adoption and the declaration have all delivered, so a refusal
     //    part of the way through leaves the run exactly as long as it was rather than one entry short of itself.
-    std::unique_ptr<PartitionStructure> Standing = std::make_unique<PartitionStructure>();
+    std::unique_ptr<PartitionStructure> Current = std::make_unique<PartitionStructure>();
 
-    const Outcome<bool> Adopted = Standing->Adopt(Partitioning);
+    const Outcome<bool> Adopted = Current->Adopt(Partitioning);
 
     if (!Adopted.Resolved)
         return Outcome<std::uint32_t>::Refuse(Adopted.Error);
 
-    const Outcome<bool> Issued = Standing->Declare(Resolutions, Occupant);
+    const Outcome<bool> Registered = Current->Declare(Resolutions, Owner);
 
-    if (!Issued.Resolved)
-        return Outcome<std::uint32_t>::Refuse(Issued.Error);
+    if (!Registered.Resolved)
+        return Outcome<std::uint32_t>::Refuse(Registered.Error);
 
-    std::vector<PartitionIdentity> Arriving;
-    Arriving.reserve(Standing->PartitionCount());
+    std::vector<PartitionIdentity> Incoming;
+    Incoming.reserve(Current->PartitionCount());
 
-    for (std::uint32_t PartitionOrdinal = 0u; PartitionOrdinal < Standing->PartitionCount(); ++PartitionOrdinal)
+    for (std::uint32_t PartitionOrdinal = 0u; PartitionOrdinal < Current->PartitionCount(); ++PartitionOrdinal)
     {
-        const Outcome<PartitionIdentity> Named = Standing->IdentityOf(PartitionOrdinal);
+        const Outcome<PartitionIdentity> Named = Current->IdentityOf(PartitionOrdinal);
 
         if (!Named.Resolved)
             return Outcome<std::uint32_t>::Refuse(Named.Error);
 
-        Arriving.push_back(Named.Resolve());
+        Incoming.push_back(Named.Resolve());
     }
 
     // 🔴 The document-wide ordinal a pixel carries is the position in this run and not the position within the
-    //    enrolment. `16` §4 gives the word one component for it, so the runs are laid end to end and the second
-    //    occupant's first partition follows the first occupant's last rather than restarting at nought.
-    DeclaredIdentity.insert(DeclaredIdentity.end(), Arriving.begin(), Arriving.end());
+    //    registration. `16` §4 gives the word one component for it, so the runs are laid end to end and the second
+    //    owner's first partition follows the first owner's last rather than restarting at nought.
+    DeclaredIdentity.insert(DeclaredIdentity.end(), Incoming.begin(), Incoming.end());
 
-    const std::uint32_t EnrolmentOrdinal = static_cast<std::uint32_t>(Enrolments.size());
+    const std::uint32_t RegistrationOrdinal = static_cast<std::uint32_t>(Registrations.size());
 
-    Enrolments.push_back(std::move(Standing));
+    Registrations.push_back(std::move(Current));
 
     // 📝 Taken after the declaration and not before. `42` advances its revision as it issues, and a revision read
-    //    ahead of the issuing is one `Resolve` compares against and refuses every identity this enrolment holds.
+    //    ahead of the issuing is one `Resolve` compares against and refuses every identity this registration holds.
     ResolvedRevision = Resolutions.Revision();
 
-    return Outcome<std::uint32_t>::Result(EnrolmentOrdinal);
+    return Outcome<std::uint32_t>::Result(RegistrationOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -155,7 +155,7 @@ Outcome<std::uint32_t> VisibilityIndex::Enroll(OccupantIdentity            Occup
 Outcome<ResolvedPartition> VisibilityIndex::Resolve(VisibilityWord                  Written,
                                                     const PartitionResolutionIndex& Resolutions) const
 {
-    // 📝 An unoccupied pixel is refused rather than delivered empty. `16` §5 dispatches it as a class of its own
+    // 📝 An unoccupied pixel is rejected rather than delivered empty. `16` §5 dispatches it as a class of its own
     //    and every consumer that reaches here instead has read a pixel it already classified as carrying nothing.
     if (Written.PartitionOrdinal == AbsentPartition)
     {
@@ -168,7 +168,7 @@ Outcome<ResolvedPartition> VisibilityIndex::Resolve(VisibilityWord              
 
     // 🔴 The revision comparison is what makes a pixel written before a rebuild discoverably stale. `42` reuses
     //    its slots, so an identity taken against the previous resolution still indexes something — it indexes
-    //    another occupant's surface, and the artist meets that as one object shading as a different one.
+    //    another owner's surface, and the artist meets that as one object shading as a different one.
     if (Resolutions.Revision() != ResolvedRevision)
     {
         return Outcome<ResolvedPartition>::Refuse(
@@ -182,12 +182,12 @@ Outcome<ResolvedPartition> VisibilityIndex::Resolve(VisibilityWord              
 //                                                      THE READS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<const PartitionStructure*> VisibilityIndex::Enrolled(std::uint32_t EnrolmentOrdinal) const
+Outcome<const PartitionStructure*> VisibilityIndex::Registered(std::uint32_t RegistrationOrdinal) const
 {
-    if (EnrolmentOrdinal >= static_cast<std::uint32_t>(Enrolments.size()))
-        return Outcome<const PartitionStructure*>::Refuse({ RefusalReason::ContentUnsupported, "no such enrolment" });
+    if (RegistrationOrdinal >= static_cast<std::uint32_t>(Registrations.size()))
+        return Outcome<const PartitionStructure*>::Refuse({ RefusalReason::ContentUnsupported, "no such registration" });
 
-    return Outcome<const PartitionStructure*>::Result(Enrolments[EnrolmentOrdinal].get());
+    return Outcome<const PartitionStructure*>::Result(Registrations[RegistrationOrdinal].get());
 }
 
 const DepthReduction& VisibilityIndex::Reduction() const
@@ -195,9 +195,9 @@ const DepthReduction& VisibilityIndex::Reduction() const
     return Reduced;
 }
 
-std::uint32_t VisibilityIndex::EnrolledCount() const
+std::uint32_t VisibilityIndex::RegisteredCount() const
 {
-    return static_cast<std::uint32_t>(Enrolments.size());
+    return static_cast<std::uint32_t>(Registrations.size());
 }
 
 std::uint32_t VisibilityIndex::DeclaredPartitionCount() const

@@ -32,8 +32,8 @@ enum class PanelSubject : std::uint32_t
 /// tag   contract
 enum class PanelDivisionAxis : std::uint32_t
 {
-    Along     = 0u,   // [-] - left and right leaves
-    Across    = 1u,   // [-] - upper and lower leaves
+    X     = 0u,   // [-] - left and right leaves
+    Y    = 1u,   // [-] - upper and lower leaves
     AxisCount = 2u    // [-] - closed count, never an axis
 };
 
@@ -41,8 +41,8 @@ enum class PanelDivisionAxis : std::uint32_t
 /// tag   contract
 enum class PanelDivisionSide : std::uint32_t
 {
-    Least     = 0u,   // [-] - left or upper side
-    Most      = 1u,   // [-] - right or lower side
+    Minimum     = 0u,   // [-] - left or upper side
+    Maximum      = 1u,   // [-] - right or lower side
     SideCount = 2u    // [-] - closed count, never a side
 };
 
@@ -53,10 +53,10 @@ struct PanelRecord
     bool               Occupied       = false;                      // [-] - this slot participates in the partition
     bool               Divided        = false;                      // [-] - false is a leaf carrying Subject
     PanelSubject       Subject        = PanelSubject::Vacant;       // [-] - what a leaf presents
-    PanelDivisionAxis  Axis           = PanelDivisionAxis::Along;   // [-] - how a divided slot separates descendants
-    float              LeastFraction  = 0.5f;                       // [-] - fraction assigned to LeastOrdinal
-    std::uint32_t      LeastOrdinal   = 0u;                         // [-] - first side of a divided slot
-    std::uint32_t      MostOrdinal    = 0u;                         // [-] - second side of a divided slot
+    PanelDivisionAxis  Axis           = PanelDivisionAxis::X;   // [-] - how a divided slot separates descendants
+    float              MinimumFraction  = 0.5f;                       // [-] - fraction assigned to Minimum
+    std::uint32_t      Minimum   = 0u;                         // [-] - first side of a divided slot
+    std::uint32_t      Maximum    = 0u;                         // [-] - second side of a divided slot
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -77,7 +77,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Construct(PanelSubject InitialSubject = PanelSubject::Viewport);
 
-    /// 🧩 Replaces one leaf by an equal binary division and seats a vacant leaf on the requested side.
+    /// 🧩 Replaces one leaf by an equal binary division and applies a vacant leaf on the requested side.
     /// out   Result  [-]  refuses for a stale or divided ordinal, or when two slots are unavailable
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -101,17 +101,17 @@ public:
     /// out   Result  [-]  refuses for a stale leaf ordinal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Proportion(std::uint32_t DivisionOrdinal, float LeastFraction);
+    Outcome<bool> Proportion(std::uint32_t DivisionOrdinal, float MinimumFraction);
 
     /// 🧩 Reads one occupied record; an unoccupied ordinal refuses as stale.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<PanelRecord> Standing(std::uint32_t Ordinal) const;
+    Outcome<PanelRecord> Current(std::uint32_t Ordinal) const;
 
     /// 🧩 Whether the partition contains more than its sole root leaf.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool WithdrawalAdmitted() const;
+    bool RemovalAccepted() const;
 
     /// 🧩 Returns every slot to its default condition.
     /// cost  ✔️
@@ -123,8 +123,8 @@ private:
     bool Encloses(std::uint32_t BranchOrdinal,
                   std::uint32_t SeekingOrdinal,
                   std::uint32_t& EnclosingOrdinal,
-                  bool& LeastSide) const;
-    std::uint32_t ClaimVacant();
+                  bool& MinimumSide) const;
+    std::uint32_t TakeVacant();
 
     PanelRecord Records[RecordCeiling] = {};   // [-] - bounded partition storage
 };

@@ -94,7 +94,7 @@ Outcome<std::uint32_t> ByteSpace::ClassifyResidency(ExtentResidency Residency) c
 //                                                  EXTENT ACQUISITION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkDeviceSize LeastBytes)
+Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkDeviceSize MinimumBytes)
 {
     const Outcome<std::uint32_t> VendorOrdinal = ClassifyResidency(Residency);
 
@@ -105,21 +105,21 @@ Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkD
                                  ? DeviceLocalExtentBytes
                                  : HostWritableExtentBytes;
 
-    // 📝 A claim larger than the standard piece takes a piece of its own rather than being refused. `20`'s
+    // 📝 A claim larger than the standard piece takes a piece of its own rather than being rejected. `20`'s
     //    residency extent and `16`'s partition spans are both sized by the document rather than by this
     //    file, and refusing them here would put a limit on the document in the allocator.
-    if (LeastBytes > ExtentBytes)
-        ExtentBytes = LeastBytes;
+    if (MinimumBytes > ExtentBytes)
+        ExtentBytes = MinimumBytes;
 
-    // 🔴 `06` §7: the largest single allocation the device admits is scored at creation. Exceeding it is a
+    // 🔴 `06` §7: the largest single allocation the device accepts is scored at creation. Exceeding it is a
     //    refusal here rather than a vendor error at the allocation, which reports as a driver failure with
     //    no operand named.
-    const std::uint64_t LargestClaim = DeviceEdge->Capability().LargestExtentClaim;
+    const std::uint64_t LargestReservation = DeviceEdge->Capability().LargestExtentReservation;
 
-    if (LargestClaim != 0u && static_cast<std::uint64_t>(ExtentBytes) > LargestClaim)
+    if (LargestReservation != 0u && static_cast<std::uint64_t>(ExtentBytes) > LargestReservation)
     {
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::ExtentExhausted, "the span exceeds the largest allocation the device admits" });
+            { RefusalReason::ExtentExhausted, "the span exceeds the largest allocation the device accepts" });
     }
 
     VkMemoryAllocateInfo ExtentDeclaration = {};
@@ -127,15 +127,15 @@ Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkD
     ExtentDeclaration.allocationSize       = ExtentBytes;
     ExtentDeclaration.memoryTypeIndex      = VendorOrdinal.Resolve();
 
-    SlicedExtent Arriving;
-    Arriving.TotalBytes    = ExtentBytes;
-    Arriving.Residency     = Residency;
-    Arriving.VendorOrdinal = VendorOrdinal.Resolve();
+    SlicedExtent Incoming;
+    Incoming.TotalBytes    = ExtentBytes;
+    Incoming.Residency     = Residency;
+    Incoming.VendorOrdinal = VendorOrdinal.Resolve();
 
-    if (vkAllocateMemory(DeviceEdge->ActiveDevice(), &ExtentDeclaration, nullptr, &Arriving.DeviceExtent) != VK_SUCCESS)
+    if (vkAllocateMemory(DeviceEdge->ActiveDevice(), &ExtentDeclaration, nullptr, &Incoming.DeviceExtent) != VK_SUCCESS)
     {
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::ExtentExhausted, "the device declined a further byte extent" });
+            { RefusalReason::ExtentExhausted, "the device rejected a further byte extent" });
     }
 
     // 📝 🔴 Mapped once for the extent's whole life, never per claim. Mapping is not reference-counted by
@@ -143,26 +143,26 @@ Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkD
     //    holding an address that is no longer valid.
     if (Residency == ExtentResidency::HostWritable)
     {
-        if (vkMapMemory(DeviceEdge->ActiveDevice(), Arriving.DeviceExtent, 0u, VK_WHOLE_SIZE, 0u,
-                        &Arriving.HostAddress) != VK_SUCCESS)
+        if (vkMapMemory(DeviceEdge->ActiveDevice(), Incoming.DeviceExtent, 0u, VK_WHOLE_SIZE, 0u,
+                        &Incoming.HostAddress) != VK_SUCCESS)
         {
-            vkFreeMemory(DeviceEdge->ActiveDevice(), Arriving.DeviceExtent, nullptr);
+            vkFreeMemory(DeviceEdge->ActiveDevice(), Incoming.DeviceExtent, nullptr);
             return Outcome<std::uint32_t>::Refuse(
-                { RefusalReason::ExtentExhausted, "the device declined to map a host-writable extent" });
+                { RefusalReason::ExtentExhausted, "the device failed to map a host-writable extent" });
         }
     }
 
-    Arriving.Unclaimed.push_back({ 0u, ExtentBytes });
+    Incoming.Unclaimed.push_back({ 0u, ExtentBytes });
 
-    Extents.push_back(Arriving);
+    Extents.push_back(Incoming);
 
     const std::uint32_t ExtentOrdinal = static_cast<std::uint32_t>(Extents.size() - 1u);
 
     // 📝 🔴 `06` §7's diagnostic-name gate. The refusal is discarded deliberately: an extent that stands and
     //    could not be named is still an extent every later claim is sliced from, and refusing the allocation
     //    over a name would make the diagnostic capability a requirement for drawing anything.
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_DEVICE_MEMORY,
-                        reinterpret_cast<std::uint64_t>(Arriving.DeviceExtent),
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_DEVICE_MEMORY,
+                        reinterpret_cast<std::uint64_t>(Incoming.DeviceExtent),
                         Residency == ExtentResidency::DeviceLocal ? "ByteSpace device-local extent"
                                                                   : "ByteSpace host-writable extent",
                         ExtentOrdinal));
@@ -174,24 +174,24 @@ Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkD
 //                                                      THE SLICE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
+Outcome<ByteReservation> ByteSpace::Reserve(VkDeviceSize    RequestedBytes,
                                     VkDeviceSize    ByteAlignment,
                                     ExtentResidency Residency,
-                                    ClaimStanding   Standing)
+                                    ReservationCondition   Condition)
 {
     if (DeviceEdge == nullptr)
-        return Outcome<ByteClaim>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<ByteReservation>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     if (RequestedBytes == 0u)
-        return Outcome<ByteClaim>::Refuse({ RefusalReason::ContentUnsupported, "a claim of zero bytes" });
+        return Outcome<ByteReservation>::Refuse({ RefusalReason::ContentUnsupported, "a claim of zero bytes" });
 
     if (Residency == ExtentResidency::ResidencyCount)
-        return Outcome<ByteClaim>::Refuse({ RefusalReason::ContentUnsupported, "no such residency" });
+        return Outcome<ByteReservation>::Refuse({ RefusalReason::ContentUnsupported, "no such residency" });
 
     VkDeviceSize Alignment = ByteAlignment == 0u ? 1u : ByteAlignment;
 
     if (!PowerOfTwo(Alignment))
-        return Outcome<ByteClaim>::Refuse({ RefusalReason::ContentUnsupported, "the alignment is not a power of two" });
+        return Outcome<ByteReservation>::Refuse({ RefusalReason::ContentUnsupported, "the alignment is not a power of two" });
 
     if (Residency == ExtentResidency::HostWritable && Alignment < NonCoherentAtom)
         Alignment = NonCoherentAtom;
@@ -218,7 +218,7 @@ Outcome<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
                     continue;
 
                 // 📝 The alignment padding stays in the free list as its own span rather than being folded
-                //    into the claim. Folding it makes ClaimedBytes report padding as claimed content, and
+                //    into the claim. Folding it makes ReservedBytes report padding as claimed content, and
                 //    `86`'s residency figure then drifts upward for a reason no reader can attribute.
                 const VkDeviceSize Trailing = Available.ByteSpan - Introduced - RequestedBytes;
 
@@ -242,7 +242,7 @@ Outcome<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
 
                 Candidate.TakenBytes += RequestedBytes;
 
-                ByteClaim Sliced;
+                ByteReservation Sliced;
                 Sliced.BackingExtent = Candidate.DeviceExtent;
                 Sliced.ByteOffset    = Raised;
                 Sliced.ByteSpan      = RequestedBytes;
@@ -251,7 +251,7 @@ Outcome<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
                                          ? nullptr
                                          : static_cast<void*>(static_cast<unsigned char*>(Candidate.HostAddress) + Raised);
 
-                return Outcome<ByteClaim>::Result(Sliced);
+                return Outcome<ByteReservation>::Result(Sliced);
             }
         }
 
@@ -267,13 +267,13 @@ Outcome<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
     // 🔴 `06` §7: discretionary exhaustion is residency policy and not a reported failure, so the reason is
     //    the same and the operand names which it was. `20` refuses a promotion on it and evicts; a committed
     //    claimant reports it through `86`. Neither branch is decided here.
-    if (Standing == ClaimStanding::Discretionary)
+    if (Condition == ReservationCondition::Discretionary)
     {
-        return Outcome<ByteClaim>::Refuse(
+        return Outcome<ByteReservation>::Refuse(
             { RefusalReason::ExtentExhausted, "a discretionary claim found no span; eviction is the caller's" });
     }
 
-    return Outcome<ByteClaim>::Refuse(
+    return Outcome<ByteReservation>::Refuse(
         { RefusalReason::ExtentExhausted, "no byte extent satisfies the claim, and no further one was granted" });
 }
 
@@ -281,28 +281,28 @@ Outcome<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
 //                                                     RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-void ByteSpace::Release(const ByteClaim& Claimed)
+void ByteSpace::Release(const ByteReservation& Reserved)
 {
-    if (Claimed.ExtentOrdinal == AbsentExtent || Claimed.ByteSpan == 0u)
+    if (Reserved.ExtentOrdinal == AbsentExtent || Reserved.ByteSpan == 0u)
         return;
 
-    if (static_cast<std::size_t>(Claimed.ExtentOrdinal) >= Extents.size())
+    if (static_cast<std::size_t>(Reserved.ExtentOrdinal) >= Extents.size())
         return;
 
-    SlicedExtent& Holding = Extents[Claimed.ExtentOrdinal];
+    SlicedExtent& Holding = Extents[Reserved.ExtentOrdinal];
 
     // 📝 Inserted in offset order and then coalesced with both neighbours. Without the coalescing an extent
     //    that has cycled through a few thousand claims holds its whole span in the free list and satisfies
     //    none of them — the bytes are free and the allocator cannot see that they adjoin.
     std::size_t Insertion = 0u;
 
-    while (Insertion < Holding.Unclaimed.size() && Holding.Unclaimed[Insertion].ByteOffset < Claimed.ByteOffset)
+    while (Insertion < Holding.Unclaimed.size() && Holding.Unclaimed[Insertion].ByteOffset < Reserved.ByteOffset)
         ++Insertion;
 
     Holding.Unclaimed.insert(Holding.Unclaimed.begin() + static_cast<std::ptrdiff_t>(Insertion),
-                             { Claimed.ByteOffset, Claimed.ByteSpan });
+                             { Reserved.ByteOffset, Reserved.ByteSpan });
 
-    Holding.TakenBytes -= Claimed.ByteSpan;
+    Holding.TakenBytes -= Reserved.ByteSpan;
 
     if (Insertion + 1u < Holding.Unclaimed.size())
     {
@@ -364,7 +364,7 @@ ByteSpace::~ByteSpace()
 //                                                     WHAT IS HELD
 //------------------------------------------------------------------------------------------------------------------------
 
-VkDeviceSize ByteSpace::ClaimedBytes(ExtentResidency Residency) const
+VkDeviceSize ByteSpace::ReservedBytes(ExtentResidency Residency) const
 {
     VkDeviceSize Taken = 0u;
 

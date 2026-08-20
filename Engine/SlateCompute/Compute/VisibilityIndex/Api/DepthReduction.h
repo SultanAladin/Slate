@@ -20,8 +20,8 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📐 🔴 Depth is reversed — `NearPlaneDepth` is one and `FarPlaneDepth` is zero. The conservative reduction over a
-//    reversed target is therefore the **minimum**: the least ordinate across a region is its furthest point, and a
-//    partition whose nearest ordinate is below it cannot reach past anything already recorded there.
+//    reversed target is therefore the **minimum**: the least coordinate across a region is its furthest point, and a
+//    partition whose nearest coordinate is below it cannot reach past anything already recorded there.
 // ⚠️ Reducing by maximum instead is the one defect this arrangement invites. It produces a reduction that is
 //    correct wherever the surface is flat and rejects visible geometry at every silhouette, which the artist meets
 //    as an object flickering along its own edge rather than as a comparison written the wrong way round.
@@ -41,8 +41,8 @@ inline constexpr std::uint32_t ReductionLevelCeiling = 16u;   // [-] - levels in
 /// tag   nonallocating, nonthrowing
 struct ReductionLevel
 {
-    std::uint32_t  ExtentAlong  = 0u;   // [texel] - across the display's first ordinate
-    std::uint32_t  ExtentAcross = 0u;   // [texel] - across its second
+    std::uint32_t  Width  = 0u;   // [texel] - across the display's first coordinate
+    std::uint32_t  Height = 0u;   // [texel] - across its second
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -63,14 +63,14 @@ class DepthReduction
 public:
 
     /// 🧩 Derives the level chain for one display extent.
-    /// in    DisplayAlong   [px]  the display extent this reduction covers
-    /// in    DisplayAcross  [px]
+    /// in    DisplayX   [px]  the display extent this reduction covers
+    /// in    DisplayY  [px]
     /// out   Result        [-]   refuses with ContentUnsupported for an extent of zero and with ExtentExhausted
     ///                            above `DisplayExtentCeiling` or beyond `ReductionLevelCeiling` levels
     /// post  the chain runs from the display extent down to a single texel
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Outcome<bool> Construct(std::uint32_t DisplayX, std::uint32_t DisplayY);
 
     /// 🧩 One level's extent.
     /// out   Result  [-]  refuses with ContentUnsupported outside the derived level count
@@ -79,8 +79,8 @@ public:
     Outcome<ReductionLevel> Level(std::uint32_t LevelOrdinal) const;
 
     /// 🧩 The coarsest level at which one projected extent is covered by a two-by-two reading.
-    /// in    ProjectedAlong   [px]  the extent the partition projects to, conservative outward
-    /// in    ProjectedAcross  [px]
+    /// in    ProjectedX   [px]  the extent the partition projects to, conservative outward
+    /// in    ProjectedY  [px]
     /// out   Result          [-]   refuses with ContentUnsupported while no chain is derived
     /// note  📐 The occlusion test reads four texels and no more, whatever the partition's projected extent. The
     ///        level is chosen so that a two-by-two reading spans the whole extent, which is what makes the test
@@ -89,7 +89,7 @@ public:
     ///        projects to nothing is sub-pixel and `16` §3 routes it to the compute path; it is not an error.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> LevelOfExtent(std::uint32_t ProjectedAlong, std::uint32_t ProjectedAcross) const;
+    Outcome<std::uint32_t> LevelOfExtent(std::uint32_t ProjectedX, std::uint32_t ProjectedY) const;
 
     /// 🧩 Texels the whole chain spans — what `06` claims for it.
     /// cost  ✔️
@@ -102,16 +102,16 @@ public:
     void Reclaim();
 
     std::uint32_t LevelCount() const;
-    std::uint32_t DisplayAlong() const;
-    std::uint32_t DisplayAcross() const;
+    std::uint32_t DisplayX() const;
+    std::uint32_t DisplayY() const;
     bool          ChainDerived() const;
 
 private:
 
     std::vector<ReductionLevel>  Levels        = {};      // [-]  - finest first; the last is one texel
-    std::uint32_t                DerivedAlong  = 0u;      // [px] - the display extent derived against
-    std::uint32_t                DerivedAcross = 0u;      // [px]
-    bool                         ChainStanding = false;   // [-]  - Construct has delivered
+    std::uint32_t                DerivedX  = 0u;      // [px] - the display extent derived against
+    std::uint32_t                DerivedY = 0u;      // [px]
+    bool                         ChainCurrent = false;   // [-]  - Construct has delivered
 };
 
 // 📐 The chain arithmetic is integer halving throughout and the level selection is an integer logarithm, so both

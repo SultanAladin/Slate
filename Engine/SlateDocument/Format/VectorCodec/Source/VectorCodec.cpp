@@ -19,17 +19,17 @@ namespace
 //                                                     THE REFUSED SET
 //------------------------------------------------------------------------------------------------------------------------
 
-// 🔴 `00` §5.2's refused set, named element by element. Each is refused rather than approximated: a vector
+// 🔴 `00` §5.2's rejected set, named element by element. Each is rejected rather than approximated: a vector
 //    source that silently loses content is worse than one that refuses it, because the artist attributes the
 //    loss to their own file and goes looking for a mistake they did not make.
-struct RefusedElement
+struct RejectedElement
 {
     const char*    Spelling = "";                              // [-] - the element as the source spells it
     RefusalReason  Reason   = RefusalReason::ContentUnsupported; // [-] - what the refusal reports
     const char*    Detail   = "";                              // [-] - static text, never allocated
 };
 
-const RefusedElement RefusedElements[] =
+const RejectedElement RejectedElements[] =
 {
     { "filter",        RefusalReason::ContentUnsupported, "effect operations are outside the accepted subset — `00` §5.2" },
     { "clipPath",      RefusalReason::ContentUnsupported, "clipping is outside the accepted subset — `00` §5.2"           },
@@ -68,7 +68,7 @@ std::size_t SkipSeparators(const std::string& Reading, std::size_t Ordinal)
 /// note  📝 Read here rather than through the standard conversions because a path's numbers run together
 ///        without separators — "1.5.5" is two numbers — and a conversion that consumed as much as it could
 ///        would take both. The scan below stops at the second decimal point, which is what the grammar means.
-bool ReadOrdinate(const std::string& Reading, std::size_t& Ordinal, double& Produced)
+bool ReadCoordinate(const std::string& Reading, std::size_t& Ordinal, double& Produced)
 {
     Ordinal = SkipSeparators(Reading, Ordinal);
 
@@ -220,18 +220,18 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
 
         if (Absolute == 'M')
         {
-            double AlongOrdinate  = 0.0;
-            double AcrossOrdinate = 0.0;
+            double XCoordinate  = 0.0;
+            double YCoordinate = 0.0;
 
-            if (!ReadOrdinate(PathData, Ordinal, AlongOrdinate) || !ReadOrdinate(PathData, Ordinal, AcrossOrdinate))
+            if (!ReadCoordinate(PathData, Ordinal, XCoordinate) || !ReadCoordinate(PathData, Ordinal, YCoordinate))
             {
                 break;
             }
 
             SealPath();
 
-            Reading.Position.PositionX = Relative ? Reading.Position.PositionX + AlongOrdinate  : AlongOrdinate;
-            Reading.Position.PositionY = Relative ? Reading.Position.PositionY + AcrossOrdinate : AcrossOrdinate;
+            Reading.Position.PositionX = Relative ? Reading.Position.PositionX + XCoordinate  : XCoordinate;
+            Reading.Position.PositionY = Relative ? Reading.Position.PositionY + YCoordinate : YCoordinate;
             Reading.Beginning          = Reading.Position;
 
             Constructing        = OutlinePath{};
@@ -259,38 +259,38 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
 
         if (Absolute == 'L' || Absolute == 'H' || Absolute == 'V')
         {
-            double AlongOrdinate  = Reading.Position.PositionX;
-            double AcrossOrdinate = Reading.Position.PositionY;
+            double XCoordinate  = Reading.Position.PositionX;
+            double YCoordinate = Reading.Position.PositionY;
 
             if (Absolute == 'L')
             {
-                double ReadAlong  = 0.0;
-                double ReadAcross = 0.0;
+                double ReadX  = 0.0;
+                double ReadY = 0.0;
 
-                if (ReadOrdinate(PathData, Ordinal, ReadAlong) && ReadOrdinate(PathData, Ordinal, ReadAcross))
+                if (ReadCoordinate(PathData, Ordinal, ReadX) && ReadCoordinate(PathData, Ordinal, ReadY))
                 {
-                    AlongOrdinate  = Relative ? Reading.Position.PositionX + ReadAlong  : ReadAlong;
-                    AcrossOrdinate = Relative ? Reading.Position.PositionY + ReadAcross : ReadAcross;
+                    XCoordinate  = Relative ? Reading.Position.PositionX + ReadX  : ReadX;
+                    YCoordinate = Relative ? Reading.Position.PositionY + ReadY : ReadY;
                     SegmentRead    = true;
                 }
             }
             else if (Absolute == 'H')
             {
-                double ReadAlong = 0.0;
+                double ReadX = 0.0;
 
-                if (ReadOrdinate(PathData, Ordinal, ReadAlong))
+                if (ReadCoordinate(PathData, Ordinal, ReadX))
                 {
-                    AlongOrdinate = Relative ? Reading.Position.PositionX + ReadAlong : ReadAlong;
+                    XCoordinate = Relative ? Reading.Position.PositionX + ReadX : ReadX;
                     SegmentRead   = true;
                 }
             }
             else
             {
-                double ReadAcross = 0.0;
+                double ReadY = 0.0;
 
-                if (ReadOrdinate(PathData, Ordinal, ReadAcross))
+                if (ReadCoordinate(PathData, Ordinal, ReadY))
                 {
-                    AcrossOrdinate = Relative ? Reading.Position.PositionY + ReadAcross : ReadAcross;
+                    YCoordinate = Relative ? Reading.Position.PositionY + ReadY : ReadY;
                     SegmentRead    = true;
                 }
             }
@@ -298,7 +298,7 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
             if (SegmentRead)
             {
                 Placed.Subject  = SegmentSubject::Line;
-                Placed.Terminus = { AlongOrdinate, AcrossOrdinate };
+                Placed.Terminus = { XCoordinate, YCoordinate };
 
                 Reading.CubicPreceding     = false;
                 Reading.QuadraticPreceding = false;
@@ -314,12 +314,12 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
 
             if (Absolute == 'C')
             {
-                double FirstAlong = 0.0, FirstAcross = 0.0;
+                double FirstX = 0.0, FirstY = 0.0;
 
-                Occupied = ReadOrdinate(PathData, Ordinal, FirstAlong) && ReadOrdinate(PathData, Ordinal, FirstAcross);
+                Occupied = ReadCoordinate(PathData, Ordinal, FirstX) && ReadCoordinate(PathData, Ordinal, FirstY);
 
-                FirstControl = { Relative ? Reading.Position.PositionX + FirstAlong  : FirstAlong,
-                                 Relative ? Reading.Position.PositionY + FirstAcross : FirstAcross };
+                FirstControl = { Relative ? Reading.Position.PositionX + FirstX  : FirstX,
+                                 Relative ? Reading.Position.PositionY + FirstY : FirstY };
             }
             else
             {
@@ -332,18 +332,18 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
                              : Reading.Position;
             }
 
-            double SecondAlong = 0.0, SecondAcross = 0.0, TerminusAlong = 0.0, TerminusAcross = 0.0;
+            double SecondX = 0.0, SecondY = 0.0, TerminusX = 0.0, TerminusY = 0.0;
 
             Occupied = Occupied
-                    && ReadOrdinate(PathData, Ordinal, SecondAlong)   && ReadOrdinate(PathData, Ordinal, SecondAcross)
-                    && ReadOrdinate(PathData, Ordinal, TerminusAlong) && ReadOrdinate(PathData, Ordinal, TerminusAcross);
+                    && ReadCoordinate(PathData, Ordinal, SecondX)   && ReadCoordinate(PathData, Ordinal, SecondY)
+                    && ReadCoordinate(PathData, Ordinal, TerminusX) && ReadCoordinate(PathData, Ordinal, TerminusY);
 
             if (Occupied)
             {
-                SecondControl = { Relative ? Reading.Position.PositionX + SecondAlong  : SecondAlong,
-                                  Relative ? Reading.Position.PositionY + SecondAcross : SecondAcross };
-                Terminus      = { Relative ? Reading.Position.PositionX + TerminusAlong  : TerminusAlong,
-                                  Relative ? Reading.Position.PositionY + TerminusAcross : TerminusAcross };
+                SecondControl = { Relative ? Reading.Position.PositionX + SecondX  : SecondX,
+                                  Relative ? Reading.Position.PositionY + SecondY : SecondY };
+                Terminus      = { Relative ? Reading.Position.PositionX + TerminusX  : TerminusX,
+                                  Relative ? Reading.Position.PositionY + TerminusY : TerminusY };
 
                 Placed.Subject       = SegmentSubject::Cubic;
                 Placed.FirstControl  = FirstControl;
@@ -366,12 +366,12 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
 
             if (Absolute == 'Q')
             {
-                double ControlAlong = 0.0, ControlAcross = 0.0;
+                double ControlX = 0.0, ControlY = 0.0;
 
-                Occupied = ReadOrdinate(PathData, Ordinal, ControlAlong) && ReadOrdinate(PathData, Ordinal, ControlAcross);
+                Occupied = ReadCoordinate(PathData, Ordinal, ControlX) && ReadCoordinate(PathData, Ordinal, ControlY);
 
-                Control = { Relative ? Reading.Position.PositionX + ControlAlong  : ControlAlong,
-                            Relative ? Reading.Position.PositionY + ControlAcross : ControlAcross };
+                Control = { Relative ? Reading.Position.PositionX + ControlX  : ControlX,
+                            Relative ? Reading.Position.PositionY + ControlY : ControlY };
             }
             else
             {
@@ -381,15 +381,15 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
                         : Reading.Position;
             }
 
-            double TerminusAlong = 0.0, TerminusAcross = 0.0;
+            double TerminusX = 0.0, TerminusY = 0.0;
 
-            Occupied = Occupied && ReadOrdinate(PathData, Ordinal, TerminusAlong)
-                                && ReadOrdinate(PathData, Ordinal, TerminusAcross);
+            Occupied = Occupied && ReadCoordinate(PathData, Ordinal, TerminusX)
+                                && ReadCoordinate(PathData, Ordinal, TerminusY);
 
             if (Occupied)
             {
-                Terminus = { Relative ? Reading.Position.PositionX + TerminusAlong  : TerminusAlong,
-                             Relative ? Reading.Position.PositionY + TerminusAcross : TerminusAcross };
+                Terminus = { Relative ? Reading.Position.PositionX + TerminusX  : TerminusX,
+                             Relative ? Reading.Position.PositionY + TerminusY : TerminusY };
 
                 Placed.Subject      = SegmentSubject::Quadratic;
                 Placed.FirstControl = Control;
@@ -404,28 +404,28 @@ void TranslatePathData(const std::string& PathData, FillRule Rule, std::vector<O
         }
         else if (Absolute == 'A')
         {
-            double RadiusAlong = 0.0, RadiusAcross = 0.0, Rotation = 0.0;
-            double TerminusAlong = 0.0, TerminusAcross = 0.0;
+            double RadiusX = 0.0, RadiusY = 0.0, Rotation = 0.0;
+            double TerminusX = 0.0, TerminusY = 0.0;
             bool   LargeArc = false, Sweep = false;
 
-            const bool Occupied = ReadOrdinate(PathData, Ordinal, RadiusAlong)
-                               && ReadOrdinate(PathData, Ordinal, RadiusAcross)
-                               && ReadOrdinate(PathData, Ordinal, Rotation)
+            const bool Occupied = ReadCoordinate(PathData, Ordinal, RadiusX)
+                               && ReadCoordinate(PathData, Ordinal, RadiusY)
+                               && ReadCoordinate(PathData, Ordinal, Rotation)
                                && ReadFlag(PathData, Ordinal, LargeArc)
                                && ReadFlag(PathData, Ordinal, Sweep)
-                               && ReadOrdinate(PathData, Ordinal, TerminusAlong)
-                               && ReadOrdinate(PathData, Ordinal, TerminusAcross);
+                               && ReadCoordinate(PathData, Ordinal, TerminusX)
+                               && ReadCoordinate(PathData, Ordinal, TerminusY);
 
             if (Occupied)
             {
                 Placed.Subject         = SegmentSubject::Arc;
-                Placed.RadiusAlong     = RadiusAlong;
-                Placed.RadiusAcross    = RadiusAcross;
+                Placed.RadiusX     = RadiusX;
+                Placed.RadiusY    = RadiusY;
                 Placed.Rotation        = Rotation;
                 Placed.LargeArcEnabled = LargeArc;
                 Placed.SweepEnabled    = Sweep;
-                Placed.Terminus        = { Relative ? Reading.Position.PositionX + TerminusAlong  : TerminusAlong,
-                                           Relative ? Reading.Position.PositionY + TerminusAcross : TerminusAcross };
+                Placed.Terminus        = { Relative ? Reading.Position.PositionX + TerminusX  : TerminusX,
+                                           Relative ? Reading.Position.PositionY + TerminusY : TerminusY };
 
                 Reading.CubicPreceding     = false;
                 Reading.QuadraticPreceding = false;
@@ -524,25 +524,25 @@ Outcome<DecodedOutline> TranslateSource(const std::string& Source)
 
         // 🔴 `52` §2: a refusal names the construct **and the position in the source**. "Unsupported" with no
         //    position sends the artist to search a file they did not write.
-        bool Declined = false;
+        bool Rejected = false;
 
-        for (const RefusedElement& Refusing : RefusedElements)
+        for (const RejectedElement& Refusing : RejectedElements)
         {
             if (ElementNamed(Element, Refusing.Spelling))
             {
-                RefusedConstruct Recording;
+                RejectedConstruct Recording;
                 Recording.Construct     = Refusing.Spelling;
                 Recording.SourceOrdinal = static_cast<std::uint32_t>(Opening);
                 Recording.Declining     = { Refusing.Reason, Refusing.Detail };
 
-                Produced.Refused.push_back(Recording);
+                Produced.Rejected.push_back(Recording);
 
-                Declined = true;
+                Rejected = true;
                 break;
             }
         }
 
-        if (Declined || !ElementNamed(Element, "path")) { continue; }
+        if (Rejected || !ElementNamed(Element, "path")) { continue; }
 
         const std::string PathData = AttributeValue(Element, "d");
 
@@ -555,12 +555,12 @@ Outcome<DecodedOutline> TranslateSource(const std::string& Source)
 
         if (!Stroked.empty() && Stroked != "none")
         {
-            RefusedConstruct Recording;
+            RejectedConstruct Recording;
             Recording.Construct     = "stroke";
             Recording.SourceOrdinal = static_cast<std::uint32_t>(Opening);
             Recording.Declining     = { RefusalReason::ContentUnsupported, StrokedDetail };
 
-            Produced.Refused.push_back(Recording);
+            Produced.Rejected.push_back(Recording);
         }
 
         TranslatePathData(PathData, Rule, Produced.Declared.Paths);

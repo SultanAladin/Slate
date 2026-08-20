@@ -46,35 +46,35 @@ InterfaceExchange::~InterfaceExchange()
     Reclaim();
 }
 
-Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
+Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Incoming)
 {
     if (ContextSlot != nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the interface context already exists" });
 
-    if (Arriving.Instance         == VK_NULL_HANDLE ||
-        Arriving.ScoredDevice     == VK_NULL_HANDLE ||
-        Arriving.ActiveDevice     == VK_NULL_HANDLE ||
-        Arriving.GraphicsQueue    == VK_NULL_HANDLE ||
-        Arriving.NativeWindowSlot == nullptr)
+    if (Incoming.Instance         == VK_NULL_HANDLE ||
+        Incoming.ScoredDevice     == VK_NULL_HANDLE ||
+        Incoming.ActiveDevice     == VK_NULL_HANDLE ||
+        Incoming.GraphicsQueue    == VK_NULL_HANDLE ||
+        Incoming.NativeWindowSlot == nullptr)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::CapabilityAbsent, "a required device or window handle was absent" });
     }
 
-    if (Arriving.ColourTargetFormat == VK_FORMAT_UNDEFINED)
+    if (Incoming.ColourTargetFormat == VK_FORMAT_UNDEFINED)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::CapabilityAbsent, "no colour target format was declared" });
     }
 
-    if (Arriving.MinimumDisplayImageCount < 2u ||
-        Arriving.DisplayImageCount < Arriving.MinimumDisplayImageCount)
+    if (Incoming.MinimumDisplayImageCount < 2u ||
+        Incoming.DisplayImageCount < Incoming.MinimumDisplayImageCount)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the display image counts are inconsistent" });
     }
 
-    Attached = Arriving;
+    Attached = Incoming;
 
     // 📝 ImGui 19281 allocates SAMPLED_IMAGE sets for textures and SAMPLER sets for its two
     //    built-in samplers. A pool that carries only COMBINED_IMAGE_SAMPLER has neither type and
@@ -95,7 +95,7 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (vkCreateDescriptorPool(Attached.ActiveDevice, &DescriptorDeclaration, nullptr, &DescriptorSlot) != VK_SUCCESS)
     {
         Attached = {};
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface descriptor extent was refused" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface descriptor extent was rejected" });
     }
 
     IMGUI_CHECKVERSION();
@@ -127,7 +127,7 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (!ImGui_ImplGlfw_InitForVulkan(static_cast<GLFWwindow*>(Attached.NativeWindowSlot), true))
     {
         Reclaim();
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the window system attachment declined" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the window system attachment rejected" });
     }
 
     WindowAttached = true;
@@ -155,16 +155,16 @@ Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (!ImGui_ImplVulkan_Init(&VendorAttachment))
     {
         Reclaim();
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the vendor attachment declined" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the vendor attachment rejected" });
     }
 
     VendorAttached = true;
 
     // 🔴 The retained workspace seat, re-applied. `ImGui::CreateContext` above begins at the vendor's
-    //    defaults and `StyleColorsDark` overwrites the lot — so a style seated once at bring-up was lost on
+    //    defaults and `StyleColorsDark` overwrites the lot — so a style applied once at bring-up was lost on
     //    every device rebuild, and the trapezoidal tabs reverted to stock rectangles.
-    if (StyleSeated)
-        Disregard(SeatWorkspaceStyle(SeatedMeasure, SeatedColour));
+    if (StyleApplied)
+        Discard(ApplyWorkspaceStyle(AppliedMeasure, AppliedColour));
 
     return Outcome<bool>::Result(true);
 }
@@ -279,66 +279,66 @@ ImVec4 Vendor(ThemeToken Colour)
 
 }   // namespace
 
-Outcome<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted)
+Outcome<bool> InterfaceExchange::ApplyWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted)
 {
     // 🔴 Retained BEFORE the context is tested, so a seat asked for while no context stands is applied by
     //    the next Construct rather than silently dropped.
-    SeatedMeasure = Measure;
-    SeatedColour     = Tinted;
-    StyleSeated   = true;
+    AppliedMeasure = Measure;
+    AppliedColour     = Tinted;
+    StyleApplied   = true;
 
     if (ContextSlot == nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context stands" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
-    ImGuiStyle& Seated = ImGui::GetStyle();
+    ImGuiStyle& Applied = ImGui::GetStyle();
 
     // 🔴 The four members `Patches/` adds. Each defaults to 0.0f, at which a patched build rasterises
-    //    byte-identically to an unpatched one — so seating them here is what turns the sheet's trapezoid on.
-    Seated.TabSlant       = Measure.TabSlant;
-    Seated.TabOverlap     = Measure.TabOverlap;
-    Seated.TabHeight      = Measure.TabAcross;
-    Seated.TabStripPadTop = Measure.StripPadTop;
+    //    byte-identically to an unpatched one — so applying them here is what turns the sheet's trapezoid on.
+    Applied.TabSlant       = Measure.TabSlant;
+    Applied.TabOverlap     = Measure.TabOverlap;
+    Applied.TabHeight      = Measure.TabY;
+    Applied.TabStripPadTop = Measure.StripPadTop;
 
     // ⚠️ Coupled with TabOverlap: the sheet's 38 px padding exists to clear the slant plus the overlap.
-    Seated.FramePadding.x = Measure.TabPadAlong;
+    Applied.FramePadding.x = Measure.TabPadX;
 
     // 📝 The sheet rounds nothing and strokes nothing. Both configurable, both zero here, which is what
     //    `DockWorkspace.html` states — `roundCorners` is off and no tab carries a border.
-    Seated.TabRounding   = Measure.TabRadius;
-    Seated.TabBorderSize = Measure.TabEdgeWeight;
+    Applied.TabRounding   = Measure.TabRadius;
+    Applied.TabBorderSize = Measure.TabEdgeWeight;
 
-    Seated.Colors[ImGuiCol_Tab]               = Vendor(Tinted.TabQuiet);
-    Seated.Colors[ImGuiCol_TabHovered]        = Vendor(Tinted.TabRoused);
-    Seated.Colors[ImGuiCol_TabSelected]       = Vendor(Tinted.TabTaken);
-    Seated.Colors[ImGuiCol_TabDimmed]         = Vendor(Tinted.TabQuiet);
-    Seated.Colors[ImGuiCol_TabDimmedSelected] = Vendor(Tinted.TabTaken);
-    Seated.Colors[ImGuiCol_Text]              = Vendor(Tinted.TabColourTaken);
+    Applied.Colors[ImGuiCol_Tab]               = Vendor(Tinted.TabQuiet);
+    Applied.Colors[ImGuiCol_TabHovered]        = Vendor(Tinted.TabHovered);
+    Applied.Colors[ImGuiCol_TabSelected]       = Vendor(Tinted.TabTaken);
+    Applied.Colors[ImGuiCol_TabDimmed]         = Vendor(Tinted.TabQuiet);
+    Applied.Colors[ImGuiCol_TabDimmedSelected] = Vendor(Tinted.TabTaken);
+    Applied.Colors[ImGuiCol_Text]              = Vendor(Tinted.TabColourTaken);
 
     // 🔴 The dock node's own chrome, silenced. A docked workspace's tabs are drawn by the node, and the
     //    vendor frames them with a title bar, an overline above the selected tab and a bar border — none
-    //    of which `DockWorkspace.html` has. Left seated, they read as a blue band across the strip.
-    Seated.Colors[ImGuiCol_TitleBg]                   = Vendor(Tinted.StripGround);
-    Seated.Colors[ImGuiCol_TitleBgActive]             = Vendor(Tinted.StripGround);
-    Seated.Colors[ImGuiCol_WindowBg]                  = Vendor(Tinted.BodyGround);
-    Seated.Colors[ImGuiCol_DockingEmptyBg]            = Vendor(Tinted.BodyGround);
-    Seated.Colors[ImGuiCol_TabSelectedOverline]       = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-    Seated.Colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    //    of which `DockWorkspace.html` has. Left applied, they read as a blue band across the strip.
+    Applied.Colors[ImGuiCol_TitleBg]                   = Vendor(Tinted.StripGround);
+    Applied.Colors[ImGuiCol_TitleBgActive]             = Vendor(Tinted.StripGround);
+    Applied.Colors[ImGuiCol_WindowBg]                  = Vendor(Tinted.BodyGround);
+    Applied.Colors[ImGuiCol_DockingEmptyBg]            = Vendor(Tinted.BodyGround);
+    Applied.Colors[ImGuiCol_TabSelectedOverline]       = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+    Applied.Colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 
-    Seated.TabBarBorderSize = 0.0f;
-    Seated.WindowRounding   = 0.0f;
+    Applied.TabBarBorderSize = 0.0f;
+    Applied.WindowRounding   = 0.0f;
 
     // 📝 The sheet's min-width and max-width. `TabMinWidthShrink` is held at the same figure so a crowded
     //    strip scrolls rather than shrcolouring its tabs below the width the slant was measured against.
-    Seated.TabMinWidthBase   = Measure.TabAlongFloor;
-    Seated.TabMinWidthShrink = Measure.TabAlongFloor;
+    Applied.TabMinWidthBase   = Measure.TabXFloor;
+    Applied.TabMinWidthShrink = Measure.TabXFloor;
 
     // 🔴 The close mark stands on EVERY tab, selected or not. The vendor hides it on unselected tabs until
     //    hovered; the sheet draws it on all of them, and a mark that appears only under the pointer is one
     //    the artist cannot see to aim at.
-    Seated.TabCloseButtonMinWidthSelected   = -1.0f;
-    Seated.TabCloseButtonMinWidthUnselected = -1.0f;
+    Applied.TabCloseButtonMinWidthSelected   = -1.0f;
+    Applied.TabCloseButtonMinWidthUnselected = -1.0f;
 
     // Docked windows retain a copy of these colours. Refresh that copy so existing tabs follow
     // every theme change, not only tabs created after the change.
@@ -347,25 +347,25 @@ Outcome<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measu
         if (Window == nullptr)
             continue;
 
-        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_Text]                     = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_Text]);
-        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabHovered]               = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabHovered]);
-        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabFocused]               = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_Tab]);
-        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabSelected]              = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabSelected]);
-        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabSelectedOverline]      = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabSelectedOverline]);
-        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabDimmed]                = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabDimmed]);
-        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabDimmedSelected]       = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabDimmedSelected]);
-        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabDimmedSelectedOverline] = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabDimmedSelectedOverline]);
-        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_UnsavedMarker]            = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_UnsavedMarker]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_Text]                     = ImGui::ColorConvertFloat4ToU32(Applied.Colors[ImGuiCol_Text]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabHovered]               = ImGui::ColorConvertFloat4ToU32(Applied.Colors[ImGuiCol_TabHovered]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabFocused]               = ImGui::ColorConvertFloat4ToU32(Applied.Colors[ImGuiCol_Tab]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabSelected]              = ImGui::ColorConvertFloat4ToU32(Applied.Colors[ImGuiCol_TabSelected]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabSelectedOverline]      = ImGui::ColorConvertFloat4ToU32(Applied.Colors[ImGuiCol_TabSelectedOverline]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabDimmed]                = ImGui::ColorConvertFloat4ToU32(Applied.Colors[ImGuiCol_TabDimmed]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabDimmedSelected]       = ImGui::ColorConvertFloat4ToU32(Applied.Colors[ImGuiCol_TabDimmedSelected]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabDimmedSelectedOverline] = ImGui::ColorConvertFloat4ToU32(Applied.Colors[ImGuiCol_TabDimmedSelectedOverline]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_UnsavedMarker]            = ImGui::ColorConvertFloat4ToU32(Applied.Colors[ImGuiCol_UnsavedMarker]);
     }
 
     // 🔴 A disc rather than a slab, for the close mark and the strip's `+` both — `Patches/`'s PatchC.
     //    Stated as a fraction of the control's own extent, so `ScaleAllSizes` must not scale it and does
     //    not. Left unseated the member defaults to 0.0f, at which PatchC's branch never runs and both
     //    controls render as the vendor's rectangles — which is exactly how they shipped.
-    Seated.TabButtonRounding = 1.0f;
+    Applied.TabButtonRounding = 1.0f;
 
     // 🔴 A workspace dragged out ALONE keeps a tab bar, so it carries the sheet's trapezoid on its grey
-    //    strip instead of degrading to a plain caption. Seated on the context rather than per window
+    //    strip instead of degrading to a plain caption. Applied on the context rather than per window
     //    because it governs the docking system as a whole.
     ImGui::GetIO().ConfigDockingAlwaysTabBar = true;
 
@@ -384,9 +384,9 @@ bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent&  Extent,
     if (ContextSlot == nullptr || !TickOpen)
         return false;
 
-    ImGuiContext& Standing = *static_cast<ImGuiContext*>(ContextSlot);
+    ImGuiContext& Current = *static_cast<ImGuiContext*>(ContextSlot);
 
-    ImGui::SetCurrentContext(&Standing);
+    ImGui::SetCurrentContext(&Current);
 
     // 🔴 EVERY node carries a `+`, floating ones included, and each reports ITSELF when pressed. A torn-out
     //    float otherwise had no way to add a workspace beside it, and a `+` that reported only "pressed"
@@ -394,9 +394,9 @@ bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent&  Extent,
     //    added the workspace to another window.
     bool Pressed = false;
 
-    for (int Ordinal = 0; Ordinal < Standing.DockContext.Nodes.Data.Size; ++Ordinal)
+    for (int Ordinal = 0; Ordinal < Current.DockContext.Nodes.Data.Size; ++Ordinal)
     {
-        ImGuiDockNode* Node = static_cast<ImGuiDockNode*>(Standing.DockContext.Nodes.Data[Ordinal].val_p);
+        ImGuiDockNode* Node = static_cast<ImGuiDockNode*>(Current.DockContext.Nodes.Data[Ordinal].val_p);
 
         // ⚠️ Only a leaf that actually laid out a tab bar this tick. A split node holds no tabs, and a
         //    node whose bar was never built has nothing to amend.
@@ -407,7 +407,7 @@ bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent&  Extent,
             continue;
 
         // 🔴 NO section flag. `Trailing` right-aligns a button against the bar's far edge — yards from the
-        //    last tab, with the scroll arrows between — and the sheet seats its `addBtn` immediately after
+        //    last tab, with the scroll arrows between — and the sheet applies its `addBtn` immediately after
         //    the tabs. An unflagged button lands in the central section, which flows straight on from the
         //    last tab, and it scrolls with them.
         // 📝 The identity is scoped by `DockNodeBeginAmendTabBar`'s own `PushOverrideID(node->ID)`, so two
@@ -431,8 +431,8 @@ bool InterfaceExchange::VacantPressed(const PlaneExtent& Extent)
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
-    ImGui::SetNextWindowPos(ImVec2(Extent.LeastAlong, Extent.LeastAcross));
-    ImGui::SetNextWindowSize(ImVec2(Extent.SpanAlong(), Extent.SpanAcross()));
+    ImGui::SetNextWindowPos(ImVec2(Extent.MinimumX, Extent.MinimumY));
+    ImGui::SetNextWindowSize(ImVec2(Extent.Width(), Extent.Height()));
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
@@ -470,8 +470,8 @@ void InterfaceExchange::RecordDockSpace(const PlaneExtent& Extent)
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
-    ImGui::SetNextWindowPos(ImVec2(Extent.LeastAlong, Extent.LeastAcross));
-    ImGui::SetNextWindowSize(ImVec2(Extent.SpanAlong(), Extent.SpanAcross()));
+    ImGui::SetNextWindowPos(ImVec2(Extent.MinimumX, Extent.MinimumY));
+    ImGui::SetNextWindowSize(ImVec2(Extent.Width(), Extent.Height()));
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -511,23 +511,23 @@ void InterfaceExchange::RecordDockSpace(const PlaneExtent& Extent)
 void InterfaceExchange::RecordWorkspaceWindow(const char* Titled,
                                                 bool Docked,
                                                 std::uint32_t IntoNode,
-                                                bool& Standing)
+                                                bool& Opened)
 {
-    static_cast<void>(EnterWorkspaceWindow(Titled, Docked, IntoNode, Standing));
+    static_cast<void>(EnterWorkspaceWindow(Titled, Docked, IntoNode, Opened));
     LeaveWorkspaceWindow();
 }
 
 PlaneExtent InterfaceExchange::EnterWorkspaceWindow(const char* Titled,
                                                      bool Docked,
                                                      std::uint32_t IntoNode,
-                                                     bool& Standing)
+                                                     bool& Opened)
 {
     if (ContextSlot == nullptr || !TickOpen || Titled == nullptr || WorkspaceEntered)
         return {};
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
-    // 🔴 Seated into the node that ASKED for it, not always the main dock space. A workspace enrolled by
+    // 🔴 Applied into the node that ASKED for it, not always the main dock space. A workspace registered by
     //    a torn-out float's `+` otherwise appeared in the other window, which is not where the artist
     //    pressed. Zero means no node was named and the main space is correct.
     if (Docked)
@@ -554,12 +554,12 @@ PlaneExtent InterfaceExchange::EnterWorkspaceWindow(const char* Titled,
     ImGui::SetNextWindowClass(&Declared);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
-    const bool Presented = ImGui::Begin(Titled, &Standing, ImGuiWindowFlags_NoScrollbar
+    const bool Visible = ImGui::Begin(Titled, &Opened, ImGuiWindowFlags_NoScrollbar
                                                            | ImGuiWindowFlags_NoScrollWithMouse
                                                            | ImGuiWindowFlags_NoCollapse);
     WorkspaceEntered = true;
 
-    if (!Presented)
+    if (!Visible)
         return {};
 
     const ImVec2 Origin    = ImGui::GetCursorScreenPos();
@@ -578,7 +578,7 @@ void InterfaceExchange::LeaveWorkspaceWindow()
     WorkspaceEntered = false;
 }
 
-bool InterfaceExchange::WorkspacePresented(const char* Titled) const
+bool InterfaceExchange::WorkspaceCurrent(const char* Titled) const
 {
     if (ContextSlot == nullptr || !TickOpen || Titled == nullptr)
         return false;
@@ -675,13 +675,13 @@ void InterfaceExchange::WithholdPointer()
     // 📝 Both flags. `WantCaptureMouse` is what a host reads to decide whether the interface owns the
     //    contact; `WantCaptureMouseUnlessPopupClose` is the variant the vendor's own widgets consult, and
     //    leaving it raised let a window under the drawer still act on the click.
-    ImGuiIO& Arrived = ImGui::GetIO();
+    ImGuiIO& Sampled = ImGui::GetIO();
 
-    Arrived.WantCaptureMouse                  = false;
-    Arrived.WantCaptureMouseUnlessPopupClose  = false;
+    Sampled.WantCaptureMouse                  = false;
+    Sampled.WantCaptureMouseUnlessPopupClose  = false;
 
     // 🔴 The flags alone are not enough. They say who SHOULD receive the next contact; they do nothing
-    //    about a widget that has already seized this one. A tab dragged out, or a window being moved, is
+    //    about a widget that has already grabbed this one. A tab dragged out, or a window being moved, is
     //    held by the active identity and by `MovingWindow` — so a drag begun on a drawer's tongue while a
     //    tab sat beneath it moved BOTH, the drawer by its own arbitration and the tab by the vendor's.
     // ⚠️ Released rather than suppressed. The vendor re-acquires whatever the pointer is genuinely over
@@ -690,24 +690,24 @@ void InterfaceExchange::WithholdPointer()
     //    `ActiveId` and leaves `MovingWindow` null, so a drawer dragged from a display corner also
     //    stretched the window beneath it — the drawer travelled by Slate's arbitration and the window
     //    resized by the vendor's, from one contact.
-    ImGuiContext& Standing = *static_cast<ImGuiContext*>(ContextSlot);
+    ImGuiContext& Current = *static_cast<ImGuiContext*>(ContextSlot);
 
-    if (Standing.ActiveId != 0)
+    if (Current.ActiveId != 0)
         ImGui::ClearActiveID();
 
-    Standing.MovingWindow = nullptr;
+    Current.MovingWindow = nullptr;
 
     // 📝 The hovered identity too. Left standing, the resize grip the pointer crossed keeps its cursor and
     //    re-seizes the contact the moment the drawer lets go of it.
-    Standing.HoveredId             = 0;
-    Standing.HoveredIdAllowOverlap = false;
+    Current.HoveredId             = 0;
+    Current.HoveredIdAllowOverlap = false;
 
     // 📝 The tab bar's own reorder request, which lives beside the active identity rather than in it. A
     //    tab already being shuffled along its strip keeps travelling on this alone.
-    if (Standing.CurrentTabBar != nullptr)
+    if (Current.CurrentTabBar != nullptr)
     {
-        Standing.CurrentTabBar->ReorderRequestTabId = 0;
-        Standing.CurrentTabBar->ReorderRequestOffset = 0;
+        Current.CurrentTabBar->ReorderRequestTabId = 0;
+        Current.CurrentTabBar->ReorderRequestOffset = 0;
     }
 }
 
@@ -721,7 +721,7 @@ bool InterfaceExchange::KeyboardCaptured() const
     return ImGui::GetIO().WantCaptureKeyboard;
 }
 
-bool InterfaceExchange::KeyArrived(KeySubject Subject) const
+bool InterfaceExchange::KeyPressed(KeySubject Subject) const
 {
     if (ContextSlot == nullptr || !TickOpen)
         return false;
@@ -784,32 +784,32 @@ bool InterfaceExchange::KeyArrived(KeySubject Subject) const
 
 ModifierCondition InterfaceExchange::Modifiers() const
 {
-    ModifierCondition Standing;
+    ModifierCondition Current;
 
     if (ContextSlot == nullptr || !TickOpen)
-        return Standing;
+        return Current;
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
-    const ImGuiIO& Arrived = ImGui::GetIO();
+    const ImGuiIO& Sampled = ImGui::GetIO();
 
     // 📐 `e.metaKey||e.ctrlKey`, exactly as the reference folds the two. The vendor already resolves
     //    Command on macOS and Control elsewhere into `KeyCtrl`, so the fold is one reading here.
-    Standing.Commanded = Arrived.KeyCtrl || Arrived.KeySuper;
-    Standing.Shifted   = Arrived.KeyShift;
-    Standing.Alternate = Arrived.KeyAlt;
+    Current.Commanded = Sampled.KeyCtrl || Sampled.KeySuper;
+    Current.Shifted   = Sampled.KeyShift;
+    Current.Alternate = Sampled.KeyAlt;
 
-    return Standing;
+    return Current;
 }
 
-bool InterfaceExchange::AdmitTyped(char* Intake, std::uint32_t Ceiling) const
+bool InterfaceExchange::AcceptTyped(char* Intake, std::uint32_t Ceiling) const
 {
     if (ContextSlot == nullptr || !TickOpen || Intake == nullptr || Ceiling == 0u)
         return false;
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
-    const ImGuiIO& Arrived = ImGui::GetIO();
+    const ImGuiIO& Sampled = ImGui::GetIO();
 
     // 📝 The run's standing extent, found rather than carried, so a caller may seed the field with a
     //    literal and never has to keep a length beside it.
@@ -818,11 +818,11 @@ bool InterfaceExchange::AdmitTyped(char* Intake, std::uint32_t Ceiling) const
     while (Occupied + 1u < Ceiling && Intake[Occupied] != '\0')
         ++Occupied;
 
-    bool Admitted = false;
+    bool Accepted = false;
 
-    for (int Ordinal = 0; Ordinal < Arrived.InputQueueCharacters.Size; ++Ordinal)
+    for (int Ordinal = 0; Ordinal < Sampled.InputQueueCharacters.Size; ++Ordinal)
     {
-        const ImWchar Typed = Arrived.InputQueueCharacters[Ordinal];
+        const ImWchar Typed = Sampled.InputQueueCharacters[Ordinal];
 
         // 🔴 Printable ASCII only, and the terminator's byte is reserved before the test — a run written
         //    to its very last byte with no room for the terminator is the classic off-by-one this avoids.
@@ -833,12 +833,12 @@ bool InterfaceExchange::AdmitTyped(char* Intake, std::uint32_t Ceiling) const
             break;
 
         Intake[Occupied++] = static_cast<char>(Typed);
-        Admitted           = true;
+        Accepted           = true;
     }
 
     Intake[Occupied] = '\0';
 
-    return Admitted;
+    return Accepted;
 }
 
 }   // namespace Slate

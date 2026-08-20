@@ -12,12 +12,12 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DepthReduction::Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross)
+Outcome<bool> DepthReduction::Construct(std::uint32_t DisplayX, std::uint32_t DisplayY)
 {
-    if (DisplayAlong == 0u || DisplayAcross == 0u)
+    if (DisplayX == 0u || DisplayY == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero reduces nothing" });
 
-    if (DisplayAlong > DisplayExtentCeiling || DisplayAcross > DisplayExtentCeiling)
+    if (DisplayX > DisplayExtentCeiling || DisplayY > DisplayExtentCeiling)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the display extent is above the declared ceiling" });
 
     // 📝 Reclaimed first rather than appended to, so a second Construct against a different extent cannot leave the
@@ -25,8 +25,8 @@ Outcome<bool> DepthReduction::Construct(std::uint32_t DisplayAlong, std::uint32_
     //    count the display extent never implied, and the selection below then returns a level nothing reduced into.
     Reclaim();
 
-    std::uint32_t LevelAlong  = DisplayAlong;
-    std::uint32_t LevelAcross = DisplayAcross;
+    std::uint32_t LevelX  = DisplayX;
+    std::uint32_t LevelY = DisplayY;
 
     for (;;)
     {
@@ -39,23 +39,23 @@ Outcome<bool> DepthReduction::Construct(std::uint32_t DisplayAlong, std::uint32_
         }
 
         ReductionLevel Derived;
-        Derived.ExtentAlong  = LevelAlong;
-        Derived.ExtentAcross = LevelAcross;
+        Derived.Width  = LevelX;
+        Derived.Height = LevelY;
         Levels.push_back(Derived);
 
-        if (LevelAlong == 1u && LevelAcross == 1u)
+        if (LevelX == 1u && LevelY == 1u)
             break;
 
         // 📐 Rounding up on both ordinates. Nine texels halve to five and not to four: the odd column has depth
         //    recorded in it, and a level that dropped it is one a partition projecting onto the display's last
         //    column is tested against without its own depth ever having reached it.
-        LevelAlong  = LevelAlong  > 1u ? (LevelAlong  + 1u) / 2u : 1u;
-        LevelAcross = LevelAcross > 1u ? (LevelAcross + 1u) / 2u : 1u;
+        LevelX  = LevelX  > 1u ? (LevelX  + 1u) / 2u : 1u;
+        LevelY = LevelY > 1u ? (LevelY + 1u) / 2u : 1u;
     }
 
-    DerivedAlong  = DisplayAlong;
-    DerivedAcross = DisplayAcross;
-    ChainStanding = true;
+    DerivedX  = DisplayX;
+    DerivedY = DisplayY;
+    ChainCurrent = true;
 
     return Outcome<bool>::Result(true);
 }
@@ -64,9 +64,9 @@ void DepthReduction::Reclaim()
 {
     Levels.clear();
 
-    DerivedAlong  = 0u;
-    DerivedAcross = 0u;
-    ChainStanding = false;
+    DerivedX  = 0u;
+    DerivedY = 0u;
+    ChainCurrent = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -81,24 +81,24 @@ Outcome<ReductionLevel> DepthReduction::Level(std::uint32_t LevelOrdinal) const
     return Outcome<ReductionLevel>::Result(Levels[LevelOrdinal]);
 }
 
-Outcome<std::uint32_t> DepthReduction::LevelOfExtent(std::uint32_t ProjectedAlong, std::uint32_t ProjectedAcross) const
+Outcome<std::uint32_t> DepthReduction::LevelOfExtent(std::uint32_t ProjectedX, std::uint32_t ProjectedY) const
 {
-    if (!ChainStanding)
+    if (!ChainCurrent)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no chain is derived" });
 
     // 📐 The same halving Construct performed, run over the projected extent instead of the display extent. Both
     //    round up, so the count arrived at here is exactly how many texels of that level the extent spans — which
     //    is what makes two by two the right terminator rather than an approximation of one.
-    std::uint32_t RemainingAlong  = ProjectedAlong;
-    std::uint32_t RemainingAcross = ProjectedAcross;
+    std::uint32_t RemainingX  = ProjectedX;
+    std::uint32_t RemainingY = ProjectedY;
     std::uint32_t Selected        = 0u;
 
     const std::uint32_t Coarsest = static_cast<std::uint32_t>(Levels.size()) - 1u;
 
-    while ((RemainingAlong > 2u || RemainingAcross > 2u) && Selected < Coarsest)
+    while ((RemainingX > 2u || RemainingY > 2u) && Selected < Coarsest)
     {
-        RemainingAlong  = (RemainingAlong  + 1u) / 2u;
-        RemainingAcross = (RemainingAcross + 1u) / 2u;
+        RemainingX  = (RemainingX  + 1u) / 2u;
+        RemainingY = (RemainingY + 1u) / 2u;
         ++Selected;
     }
 
@@ -115,8 +115,8 @@ std::uint64_t DepthReduction::ChainTexels() const
 
     for (const ReductionLevel& Counted : Levels)
     {
-        Spanned += static_cast<std::uint64_t>(Counted.ExtentAlong)
-                 * static_cast<std::uint64_t>(Counted.ExtentAcross);
+        Spanned += static_cast<std::uint64_t>(Counted.Width)
+                 * static_cast<std::uint64_t>(Counted.Height);
     }
 
     return Spanned;
@@ -127,19 +127,19 @@ std::uint32_t DepthReduction::LevelCount() const
     return static_cast<std::uint32_t>(Levels.size());
 }
 
-std::uint32_t DepthReduction::DisplayAlong() const
+std::uint32_t DepthReduction::DisplayX() const
 {
-    return DerivedAlong;
+    return DerivedX;
 }
 
-std::uint32_t DepthReduction::DisplayAcross() const
+std::uint32_t DepthReduction::DisplayY() const
 {
-    return DerivedAcross;
+    return DerivedY;
 }
 
 bool DepthReduction::ChainDerived() const
 {
-    return ChainStanding;
+    return ChainCurrent;
 }
 
 }   // namespace Slate

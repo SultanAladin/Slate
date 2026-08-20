@@ -131,7 +131,7 @@ Outcome<bool> BrushSpecification::DeclareChannel(const BrushChannelValue& Declar
     if (Declaring.Channel == ChannelSubject::ChannelCount)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such channel" });
 
-    // 🔴 `36` §1: a colour without its space is refused rather than assumed to be in the working space.
+    // 🔴 `36` §1: a colour without its space is rejected rather than assumed to be in the working space.
     if (Declaring.ColourDeclared && !Declaring.ColourValue.ColourDeclared())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a brush colour declares no space" });
 
@@ -155,7 +155,7 @@ Outcome<bool> BrushSpecification::DeclareDynamic(const DynamicSpecification& Dec
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such axis or parameter" });
 
     // 🔴 `58` §4 and §10: every dynamic declares its progression, and none is linear by assumption. The
-    //    undeclared value is refused rather than defaulted, so the rule is enforced by the type rather than by a
+    //    undeclared value is rejected rather than defaulted, so the rule is enforced by the type rather than by a
     //    reviewer noticing.
     if (Declaring.Progression == ProgressionSubject::ProgressionCount)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the dynamic declares no progression" });
@@ -250,8 +250,8 @@ ResolvedBrush BrushSpecification::Resolve(const ResolvedAxes& Axes,
         const double Radius = ProjectVariation(Seeded + 3u, StrokeSeed + 1u)
                             * DeclaredVariation.PositionVariation * Resolved.Extent;
 
-        Resolved.DisplacementAlong  = Radius * std::cos(Angle);
-        Resolved.DisplacementAcross = Radius * std::sin(Angle);
+        Resolved.DisplacementX  = Radius * std::cos(Angle);
+        Resolved.DisplacementY = Radius * std::sin(Angle);
     }
 
     // 📝 Bounded after the dynamics and the variation rather than before, because either may drive a factor past
@@ -278,7 +278,7 @@ void BrushSpecification::Report(ReportSequence& Reporting, TickPoint Sampled)
     Amended.Origin      = "58 §5 BrushSpecification";
     Amended.Subject     = "SpacingFloor";
     Amended.Detail      = "the declared spacing floor bounded the brush; the stroke is coarser than asked";
-    Amended.Disposition = ReportDisposition::Amended;
+    Amended.Verdict = ReportVerdict::Amended;
     Amended.Arrival     = Sampled;
 
     Reporting.Append(Amended);

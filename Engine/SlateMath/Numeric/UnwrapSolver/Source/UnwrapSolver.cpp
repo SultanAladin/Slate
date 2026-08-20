@@ -364,9 +364,9 @@ DistortionMeasure Measure(const std::vector<DocumentPosition>&  Positions,
         const double Ratio    = (Planar / Spatial) / MeanRatio;
         const double Departure = Ratio >= 1.0 ? Ratio : 1.0 / Ratio;
 
-        if (!Measured.MeasureDeclared || Departure > Measured.GreatestAreaRatio)
+        if (!Measured.MeasureDeclared || Departure > Measured.MaximumAreaRatio)
         {
-            Measured.GreatestAreaRatio = Departure;
+            Measured.MaximumAreaRatio = Departure;
             Measured.WorstAreaTriangle = static_cast<std::uint32_t>(TriangleOrdinal);
         }
 
@@ -381,9 +381,9 @@ DistortionMeasure Measure(const std::vector<DocumentPosition>&  Positions,
 
             const double Deviation = std::fabs(PlanarRadians - SpatialRadians) * 180.0 / Pi;
 
-            if (!Measured.MeasureDeclared || Deviation > Measured.GreatestAngleDeviation)
+            if (!Measured.MeasureDeclared || Deviation > Measured.MaximumAngleDeviation)
             {
-                Measured.GreatestAngleDeviation = Deviation;
+                Measured.MaximumAngleDeviation = Deviation;
                 Measured.WorstAngleTriangle     = static_cast<std::uint32_t>(TriangleOrdinal);
             }
         }

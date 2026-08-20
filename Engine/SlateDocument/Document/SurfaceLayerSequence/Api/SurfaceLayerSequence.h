@@ -116,7 +116,7 @@ struct CoverageSpecification
 ///        between impressions within a stroke; this applies it between entries. Two documents declaring two sets
 ///        of behaviours produce a surface whose result changes depending on whether content arrived as a stroke
 ///        or as a layer, which the artist cannot see and cannot correct.
-/// note  ⚠️ An entry declaring no channel subset writes **nothing**. It is admitted rather than refused, because
+/// note  ⚠️ An entry declaring no channel subset writes **nothing**. It is accepted rather than rejected, because
 ///        an artist may legitimately hold a layer that writes nothing while they decide; what is forbidden is
 ///        defaulting to all twenty, which silently overwrites roughness with a colour layer and is discovered at
 ///        export.
@@ -209,7 +209,7 @@ public:
     Outcome<LayerSpecification> Withdraw(LayerIdentity Subject);
 
     /// 🧩 Nests one sequence inside this one as a single entry.
-    /// out   Result  [-]  the issued ordinal, into this surface's own nested sequences; refuses with
+    /// out   Result  [-]  the registered ordinal, into this surface's own nested sequences; refuses with
     ///                     ExtentExhausted beyond `LayerNestingCeiling`
     /// note  🔴 §4.1: the nested content combines **internally first**, and the enclosing entry's combination and
     ///        coverage are each applied **once**, to the nested result. Applying the enclosing coverage per entry
@@ -221,7 +221,7 @@ public:
     Outcome<std::uint32_t> Nest();
 
     /// 🧩 Resamples every painted entry into a re-partitioned domain, on the tick.
-    /// in    ArrivingRevision  [-]  the partition revision `68` advanced to
+    /// in    IncomingRevision  [-]  the partition revision `68` advanced to
     /// in    Remapping         [-]  supplied by the caller: a position in the new domain, answered with the
     ///                              position it occupied in the old one
     /// in    Reporting         [-]  where `86` §4's `56` §3.1 row lands
@@ -237,7 +237,7 @@ public:
     ///        not a defect in it; what would be a defect is performing it without saying so.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Resample(std::uint64_t                                                       ArrivingRevision,
+    Outcome<bool> Resample(std::uint64_t                                                       IncomingRevision,
                            const std::function<bool(double, double, double&, double&)>&        Remapping,
                            ReportSequence&                                                     Reporting,
                            TickPoint                                                           Sampled);
@@ -323,7 +323,7 @@ private:
 
     std::vector<LayerSpecification>    Sequenced;                   // [-] - bottom first; position is the order
     std::vector<SurfaceLayerSequence>  NestedSequences;             // [-] - by nested ordinal
-    std::uint32_t                      IssuedGeneration  = 1u;      // [-] - advanced at every withdrawal
+    std::uint32_t                      RegisteredGeneration  = 1u;      // [-] - advanced at every withdrawal
     std::uint32_t                      Depth             = 0u;      // [-] - zero for a surface's own sequence
     std::uint64_t                      DescribedRevision = 0u;      // [-] - the partition the texels address
 };

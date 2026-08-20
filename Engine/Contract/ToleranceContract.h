@@ -50,12 +50,12 @@ SLATE_STATIC_ASSERT(PartitionTriangleFloor <= PartitionTriangleCeiling,
 //    `28` in `SlateCompute`. Two units, one set of numbers, so `00` §2 places them here without exception —
 //    `08` §2 previously carried them as comments beside the table and `28` §1 as prose, which is the same
 //    number written twice in two units and is exactly the disguised edge conflict 30 was recorded to remove.
-SLATE_CONSTANT Unsigned32 TransmittanceExtentAlong  = 256u;   // [px] - altitude
-SLATE_CONSTANT Unsigned32 TransmittanceExtentAcross = 64u;    // [px] - sun zenith angle
-SLATE_CONSTANT Unsigned32 MultiScatterExtentAlong   = 32u;    // [px] - altitude
-SLATE_CONSTANT Unsigned32 MultiScatterExtentAcross  = 32u;    // [px] - sun zenith angle
-SLATE_CONSTANT Unsigned32 SkyViewExtentAlong        = 192u;   // [px] - view azimuth
-SLATE_CONSTANT Unsigned32 SkyViewExtentAcross       = 108u;   // [px] - view zenith
+SLATE_CONSTANT Unsigned32 TransmittanceExtentX  = 256u;   // [px] - altitude
+SLATE_CONSTANT Unsigned32 TransmittanceExtentY = 64u;    // [px] - sun zenith angle
+SLATE_CONSTANT Unsigned32 MultiScatterExtentX   = 32u;    // [px] - altitude
+SLATE_CONSTANT Unsigned32 MultiScatterExtentY  = 32u;    // [px] - sun zenith angle
+SLATE_CONSTANT Unsigned32 SkyViewExtentX        = 192u;   // [px] - view azimuth
+SLATE_CONSTANT Unsigned32 SkyViewExtentY       = 108u;   // [px] - view zenith
 SLATE_CONSTANT Unsigned32 AtmosphereComponentCount  = 4u;     // [-]  - RGBA
 SLATE_CONSTANT Unsigned32 AtmosphereComponentBytes  = 2u;     // [B]  - half precision; Tier D by definition
 
@@ -63,11 +63,11 @@ SLATE_CONSTANT Unsigned32 AtmosphereComponentBytes  = 2u;     // [B]  - half pre
 //    applied to the first operand of each product alone: the widened operand carries the rest of its own product
 //    up with it, and each of the three products is well inside the narrow width regardless.
 SLATE_CONSTANT Unsigned64 AtmosphereResidentBytes =
-    Unsigned64(TransmittanceExtentAlong) * TransmittanceExtentAcross
+    Unsigned64(TransmittanceExtentX) * TransmittanceExtentY
         * AtmosphereComponentCount * AtmosphereComponentBytes
-  + Unsigned64(MultiScatterExtentAlong)  * MultiScatterExtentAcross
+  + Unsigned64(MultiScatterExtentX)  * MultiScatterExtentY
         * AtmosphereComponentCount * AtmosphereComponentBytes
-  + Unsigned64(SkyViewExtentAlong)       * SkyViewExtentAcross
+  + Unsigned64(SkyViewExtentX)       * SkyViewExtentY
         * AtmosphereComponentCount * AtmosphereComponentBytes;   // [B]
 
 // 🔴 `28` §7's first gate, as a build failure rather than as a review remark. The figure was arithmetically
@@ -79,7 +79,7 @@ SLATE_CONSTANT Unsigned64 AtmosphereResidentBytes =
 SLATE_STATIC_ASSERT(AtmosphereResidentBytes == Unsigned64(298) * Unsigned64(1024),
                     "The three resident atmosphere surfaces must total the declared 298 KiB.");
 
-// 📝 🔴 `54` §3 bounds nesting at one level and `70` resolves what that bound admits, so two units read the
+// 📝 🔴 `54` §3 bounds nesting at one level and `70` resolves what that bound accepts, so two units read the
 //    number and `00` §2 places it here. A weave whose thread is itself a weave is where the complexity artists
 //    want lives; a second level makes resolution cost unbounded, and `20` §2.2's evaluation-cost budget cannot
 //    bound what it cannot predict.
@@ -111,10 +111,10 @@ SLATE_STATIC_ASSERT(AtmosphereResidentBytes == Unsigned64(298) * Unsigned64(1024
 SLATE_CONSTANT Real64 NearPlaneDepth = 1.0;   // [-] - clip depth at the nearest plane
 SLATE_CONSTANT Real64 FarPlaneDepth  = 0.0;   // [-] - clip depth at the furthest plane
 
-// 📝 The clip ordinate is inverted for the device's downward-increasing display ordinate. Declared here because
+// 📝 The clip coordinate is inverted for the device's downward-increasing display coordinate. Declared here because
 //    `46` derives the projection and `16` reconstructs a position from a pixel; a sign the two spell separately
 //    is a sign they will eventually spell differently.
-SLATE_CONSTANT Real64 ClipOrdinateSignum = -1.0;   // [-] - applied to the projection's second row
+SLATE_CONSTANT Real64 ClipCoordinateSignum = -1.0;   // [-] - applied to the projection's second row
 
 // 📐 Frustum planes are pushed outward by this fraction of their own distance, matching `38` §6's extents and
 //    `40` §6's subdivision. An inward-rounded plane culls geometry the camera can see, and the artist meets it as
@@ -168,7 +168,7 @@ SLATE_CONSTANT Real64 CameraAltitudeMateriality = 10.0;     // [m]
 
 // 📐 🔴 `60` §7 places this here by name, and it is the single most-tuned tolerance in any renderer — one
 //    written at the comparison site is one that is tuned in six places and agrees in none. It is a **depth**
-//    offset under the reversed convention, so it is subtracted from the occluder's recorded ordinate rather
+//    offset under the reversed convention, so it is subtracted from the occluder's recorded coordinate rather
 //    than added: near is one, so pushing an occluder further means lowering it.
 // ⚠️ Slope-scaled rather than constant. A constant offset large enough to clear a surface at a grazing angle
 //    detaches every contact shadow on a surface facing the illuminant, and the artist reads the gap as the
@@ -178,7 +178,7 @@ SLATE_CONSTANT Real64 ShadowComparisonSlopeFactor = 3.0e-3;   // [-] - scaled by
 
 // 📐 `60` §5's depth-aware upsample. The ambient term is resolved at half extent and read at display extent, so
 //    a bilinear read crosses depth discontinuities and pulls a background surface's occlusion onto a foreground
-//    silhouette — visible as a dark fringe around every object. The bound is relative to the centre ordinate so
+//    silhouette — visible as a dark fringe around every object. The bound is relative to the centre coordinate so
 //    that it means the same thing at every distance; an absolute one rejects every tap in the distance.
 SLATE_CONSTANT Real64 AmbientUpsampleDepthBound = 0.02;   // [-] - relative departure a tap may carry
 

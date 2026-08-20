@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                           UVSURFACEDEPOT.CPP
 //============================================================================================================================================
-// 🧩 A Tier A extent test, a rule that chooses among what it admitted, sweeps that converge — and a miss recorded as a miss.
+// 🧩 A Tier A extent test, a rule that chooses among what it accepted, sweeps that converge — and a miss recorded as a miss.
 
 #include "SlateCompute/Compute/UvSurfaceDepot/Api/UvSurfaceDepot.h"
 
@@ -24,12 +24,12 @@ const char* const TransferOrigin = "24 §4 UvSurfaceDepot";
 /// 🧩 One source face's axis-aligned extent and its centre, as the search reads them.
 struct FaceExtent
 {
-    double  LeastX    = 0.0;   // [mm] - the face's own bound, in object space
-    double  LeastY    = 0.0;   // [mm]
-    double  LeastZ    = 0.0;   // [mm]
-    double  GreatestX = 0.0;   // [mm]
-    double  GreatestY = 0.0;   // [mm]
-    double  GreatestZ = 0.0;   // [mm]
+    double  MinimumX    = 0.0;   // [mm] - the face's own bound, in object space
+    double  MinimumY    = 0.0;   // [mm]
+    double  MinimumZ    = 0.0;   // [mm]
+    double  MaximumX = 0.0;   // [mm]
+    double  MaximumY = 0.0;   // [mm]
+    double  MaximumZ = 0.0;   // [mm]
     double  CentreX   = 0.0;   // [mm] - the mean of its corners; what the departure is measured to
     double  CentreY   = 0.0;   // [mm]
     double  CentreZ   = 0.0;   // [mm]
@@ -62,18 +62,18 @@ FaceExtent ExtentOfFace(const TopologyStructure& Source, std::uint32_t FaceOrdin
 
         if (Walked == 0u)
         {
-            Bounded.LeastX = Bounded.GreatestX = Held.PositionX;
-            Bounded.LeastY = Bounded.GreatestY = Held.PositionY;
-            Bounded.LeastZ = Bounded.GreatestZ = Held.PositionZ;
+            Bounded.MinimumX = Bounded.MaximumX = Held.PositionX;
+            Bounded.MinimumY = Bounded.MaximumY = Held.PositionY;
+            Bounded.MinimumZ = Bounded.MaximumZ = Held.PositionZ;
         }
         else
         {
-            Bounded.LeastX    = Held.PositionX < Bounded.LeastX    ? Held.PositionX : Bounded.LeastX;
-            Bounded.LeastY    = Held.PositionY < Bounded.LeastY    ? Held.PositionY : Bounded.LeastY;
-            Bounded.LeastZ    = Held.PositionZ < Bounded.LeastZ    ? Held.PositionZ : Bounded.LeastZ;
-            Bounded.GreatestX = Held.PositionX > Bounded.GreatestX ? Held.PositionX : Bounded.GreatestX;
-            Bounded.GreatestY = Held.PositionY > Bounded.GreatestY ? Held.PositionY : Bounded.GreatestY;
-            Bounded.GreatestZ = Held.PositionZ > Bounded.GreatestZ ? Held.PositionZ : Bounded.GreatestZ;
+            Bounded.MinimumX    = Held.PositionX < Bounded.MinimumX    ? Held.PositionX : Bounded.MinimumX;
+            Bounded.MinimumY    = Held.PositionY < Bounded.MinimumY    ? Held.PositionY : Bounded.MinimumY;
+            Bounded.MinimumZ    = Held.PositionZ < Bounded.MinimumZ    ? Held.PositionZ : Bounded.MinimumZ;
+            Bounded.MaximumX = Held.PositionX > Bounded.MaximumX ? Held.PositionX : Bounded.MaximumX;
+            Bounded.MaximumY = Held.PositionY > Bounded.MaximumY ? Held.PositionY : Bounded.MaximumY;
+            Bounded.MaximumZ = Held.PositionZ > Bounded.MaximumZ ? Held.PositionZ : Bounded.MaximumZ;
         }
 
         AccumulatedX += Held.PositionX;
@@ -116,13 +116,13 @@ SurfaceDirection OrientationOfFace(const TopologyStructure& Source, std::uint32_
     return Averaged;
 }
 
-double DepartureBetween(DocumentPosition Standing, const FaceExtent& Bounded)
+double DepartureBetween(DocumentPosition Current, const FaceExtent& Bounded)
 {
-    const double AlongX = Standing.PositionX - Bounded.CentreX;
-    const double AlongY = Standing.PositionY - Bounded.CentreY;
-    const double AlongZ = Standing.PositionZ - Bounded.CentreZ;
+    const double OffsetX = Current.PositionX - Bounded.CentreX;
+    const double OffsetY = Current.PositionY - Bounded.CentreY;
+    const double OffsetZ = Current.PositionZ - Bounded.CentreZ;
 
-    return std::sqrt(AlongX * AlongX + AlongY * AlongY + AlongZ * AlongZ);
+    return std::sqrt(OffsetX * OffsetX + OffsetY * OffsetY + OffsetZ * OffsetZ);
 }
 
 // 📐 How nearly the face lies along the working orientation. Greater is more nearly aligned, and a source with
@@ -169,7 +169,7 @@ Outcome<bool> UvSurfaceDepot::Declare(const TransferSpecification& Transferring_
     if (Transferring_.IterationCeiling == 0u)
     {
         return Outcome<bool>::Refuse(
-            { RefusalReason::ContentUnsupported, "an iteration ceiling of nothing admits no sweep at all" });
+            { RefusalReason::ContentUnsupported, "an iteration ceiling of nothing accepts no sweep at all" });
     }
 
     if (Transferring_.Correspondence == CorrespondenceSubject::CorrespondenceCount)
@@ -179,7 +179,7 @@ Outcome<bool> UvSurfaceDepot::Declare(const TransferSpecification& Transferring_
     }
 
     Transferring     = Transferring_;
-    TransferStanding = true;
+    TransferCurrent = true;
 
     return Outcome<bool>::Result(true);
 }
@@ -192,7 +192,7 @@ Outcome<ContentKey> UvSurfaceDepot::KeyOf(const TopologyStructure& Source,
                                           const TopologyStructure& Working,
                                           const ChartPartition&    Partitioning) const
 {
-    if (!TransferStanding)
+    if (!TransferCurrent)
     {
         return Outcome<ContentKey>::Refuse(
             { RefusalReason::ContentUnsupported, "no transfer was declared to key" });
@@ -206,7 +206,7 @@ Outcome<ContentKey> UvSurfaceDepot::KeyOf(const TopologyStructure& Source,
 
     // 🔴 `68` §6 and `24` §3: the partition revision moves every domain position with it. A result keyed without
     //    it survives a re-unwrap and is then read at positions that mean something else.
-    if (!Partitioning.PartitionStanding())
+    if (!Partitioning.PartitionCurrent())
     {
         return Outcome<ContentKey>::Refuse(
             { RefusalReason::ContentUnsupported, "no partition stands, so no domain position means anything yet" });
@@ -231,7 +231,7 @@ Outcome<SourceCorrespondence> UvSurfaceDepot::Correspond(DocumentPosition       
                                                          SurfaceDirection         WorkingOrientation,
                                                          const TopologyStructure& Source) const
 {
-    if (!TransferStanding)
+    if (!TransferCurrent)
     {
         return Outcome<SourceCorrespondence>::Refuse(
             { RefusalReason::ContentUnsupported, "no transfer was declared to correspond against" });
@@ -242,8 +242,8 @@ Outcome<SourceCorrespondence> UvSurfaceDepot::Correspond(DocumentPosition       
     SourceCorrespondence Chosen;
     Chosen.FaceOrdinal = AbsentCorrespondence;
 
-    double LeastDeparture   = 0.0;
-    double GreatestAligning = 0.0;
+    double MinimumDeparture   = 0.0;
+    double MaximumAligning = 0.0;
 
     const std::uint32_t FaceSpan = Source.FaceCount();
 
@@ -258,8 +258,8 @@ Outcome<SourceCorrespondence> UvSurfaceDepot::Correspond(DocumentPosition       
         const Signed32 Overlap = ClassifyVolumeOverlap(
             WorkingPosition.PositionX - Extent, WorkingPosition.PositionY - Extent, WorkingPosition.PositionZ - Extent,
             WorkingPosition.PositionX + Extent, WorkingPosition.PositionY + Extent, WorkingPosition.PositionZ + Extent,
-            Bounded.LeastX,    Bounded.LeastY,    Bounded.LeastZ,
-            Bounded.GreatestX, Bounded.GreatestY, Bounded.GreatestZ);
+            Bounded.MinimumX,    Bounded.MinimumY,    Bounded.MinimumZ,
+            Bounded.MaximumX, Bounded.MaximumY, Bounded.MaximumZ);
 
         if (Overlap < 0)
         {
@@ -280,22 +280,22 @@ Outcome<SourceCorrespondence> UvSurfaceDepot::Correspond(DocumentPosition       
 
         bool Preferred = Chosen.FaceOrdinal == AbsentCorrespondence;
 
-        if (!Preferred && Transferring.Correspondence == CorrespondenceSubject::LeastAngularDeparture)
+        if (!Preferred && Transferring.Correspondence == CorrespondenceSubject::MinimumAngularDeparture)
         {
-            Preferred = Aligning > GreatestAligning
-                    || (Aligning == GreatestAligning && Departure < LeastDeparture);
+            Preferred = Aligning > MaximumAligning
+                    || (Aligning == MaximumAligning && Departure < MinimumDeparture);
         }
         else if (!Preferred)
         {
-            Preferred = Departure < LeastDeparture;
+            Preferred = Departure < MinimumDeparture;
         }
 
         if (Preferred)
         {
             Chosen.FaceOrdinal = FaceOrdinal;
             Chosen.Departure   = Departure;
-            LeastDeparture     = Departure;
-            GreatestAligning   = Aligning;
+            MinimumDeparture     = Departure;
+            MaximumAligning   = Aligning;
         }
     }
 
@@ -318,7 +318,7 @@ ConvergentResult<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructu
 {
     ConvergentResult<TransferMetrics> Produced;
 
-    if (!TransferStanding)
+    if (!TransferCurrent)
     {
         return Produced;
     }
@@ -430,12 +430,12 @@ ConvergentResult<TransferMetrics> UvSurfaceDepot::Transfer(const TopologyStructu
 //                                                      THE ADMISSION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> UvSurfaceDepot::Admit(SurfaceDepot&     Depot,
+Outcome<bool> UvSurfaceDepot::Accept(SurfaceDepot&     Depot,
                                     const ContentKey& Keyed,
                                     std::uint64_t     ByteExtent,
                                     std::uint64_t     RecordingOrdinal) const
 {
-    // 🔴 Declared an analytic resolution, which `56` §3 classifies as reconstructible — so the depot admits it as
+    // 🔴 Declared an analytic resolution, which `56` §3 classifies as reconstructible — so the depot accepts it as
     //    evictable. Nothing painted is ever declared here: paint is a layer above the transfer in `56`'s sequence
     //    and stays there, rather than the transfer mutating into authored content underneath it.
     return Depot.Declare(Keyed, LayerContentSource::AnalyticResolution, ByteExtent, RecordingOrdinal);
@@ -457,7 +457,7 @@ void UvSurfaceDepot::Report(const ConvergentResult<TransferMetrics>& Produced,
         Terminated.Subject        = "Transfer";
         Terminated.Detail         = "the iteration ceiling terminated the transfer; positions remain unresolved";
         Terminated.SubjectOrdinal = Produced.Approximation.SweepCount;
-        Terminated.Disposition    = ReportDisposition::Terminated;
+        Terminated.Verdict    = ReportVerdict::Terminated;
         Terminated.Arrival        = Sampled;
 
         Reporting.Append(Terminated);
@@ -481,7 +481,7 @@ void UvSurfaceDepot::Report(const ConvergentResult<TransferMetrics>& Produced,
         Missed.Detail         = "no source surface within the extent carried this channel; the domain position is a miss";
         Missed.SubjectOrdinal = (static_cast<std::uint64_t>(ChannelOrdinal) << 32)
                               | Produced.Approximation.ChannelMisses[ChannelOrdinal];
-        Missed.Disposition    = ReportDisposition::Truncated;
+        Missed.Verdict    = ReportVerdict::Truncated;
         Missed.Arrival        = Sampled;
 
         Reporting.Append(Missed);

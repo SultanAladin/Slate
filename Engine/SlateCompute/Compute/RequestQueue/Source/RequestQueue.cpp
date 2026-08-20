@@ -12,7 +12,7 @@ namespace Slate
 //                                                    THE ARRIVAL ORDER
 //------------------------------------------------------------------------------------------------------------------------
 
-void PageQueue::Admit(const CellDemand& Arriving)
+void PageQueue::Accept(const CellDemand& Incoming)
 {
     // 📝 Searched newest first. A sample walking a surface demands the same cell for a run of adjacent pixels,
     //    so the coalescing terminates on its first comparison for the case that dominates.
@@ -20,9 +20,9 @@ void PageQueue::Admit(const CellDemand& Arriving)
     {
         CellDemand& Held = ArrivalOrder[Ordinal];
 
-        if (Held.SurfaceOrdinal == Arriving.SurfaceOrdinal && Held.CellOrdinal == Arriving.CellOrdinal)
+        if (Held.SurfaceOrdinal == Incoming.SurfaceOrdinal && Held.CellOrdinal == Incoming.CellOrdinal)
         {
-            Held.OccurrenceCount += Arriving.OccurrenceCount;
+            Held.OccurrenceCount += Incoming.OccurrenceCount;
             return;
         }
     }
@@ -33,7 +33,7 @@ void PageQueue::Admit(const CellDemand& Arriving)
         return;
     }
 
-    ArrivalOrder.push_back(Arriving);
+    ArrivalOrder.push_back(Incoming);
 }
 
 const std::vector<CellDemand>& PageQueue::Arrivals() const { return ArrivalOrder; }
@@ -57,11 +57,11 @@ std::uint32_t PageQueue::DiscardedCount() const { return DiscardedDemands; }
 
 void RequestQueue::Demand(std::uint32_t SurfaceOrdinal, std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal)
 {
-    CellDemand Arriving;
-    Arriving.SurfaceOrdinal = SurfaceOrdinal;
-    Arriving.CellOrdinal    = CellOrdinal;
+    CellDemand Incoming;
+    Incoming.SurfaceOrdinal = SurfaceOrdinal;
+    Incoming.CellOrdinal    = CellOrdinal;
 
-    CycleSlots[RecordingOrdinal % SlotCount].Admit(Arriving);
+    CycleSlots[RecordingOrdinal % SlotCount].Accept(Incoming);
     ++RecordedDemands;
 }
 
@@ -101,7 +101,7 @@ Outcome<const PageQueue*> ReturnIndex::Drain(RequestQueue& Requesting, std::uint
             { RefusalReason::ExtentExhausted, "the readback latency has not yet elapsed" });
     }
 
-    if (DrainStanding && RecordingOrdinal <= LastDrained)
+    if (DrainCurrent && RecordingOrdinal <= LastDrained)
     {
         return Outcome<const PageQueue*>::Refuse(
             { RefusalReason::HostDenied, "this rotation has already been drained" });
@@ -113,7 +113,7 @@ Outcome<const PageQueue*> ReturnIndex::Drain(RequestQueue& Requesting, std::uint
     PageQueue& Drained = Requesting.SlotAt(RecordingOrdinal - RecordingSlotCount);
 
     LastDrained   = RecordingOrdinal;
-    DrainStanding = true;
+    DrainCurrent = true;
     ++DrainCount;
 
     return Outcome<const PageQueue*>::Result(&Drained);

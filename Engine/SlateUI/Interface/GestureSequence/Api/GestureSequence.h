@@ -18,14 +18,14 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Where one contact stands in its own lifetime.
-/// note  🔴 Exactly one tick reports `Arrived` and exactly one reports `Released`, even when the window
-///       system delivers both in the same tick. A consumer that seizes on `Arrived` and resolves on
+/// note  🔴 Exactly one tick reports `Sampled` and exactly one reports `Released`, even when the window
+///       system delivers both in the same tick. A consumer that seizes on `Sampled` and resolves on
 ///       `Released` therefore never loses either edge to a stalled or coalesced tick.
 /// tag   contract
 enum class ContactPhase : std::uint32_t
 {
     Absent     = 0u,   // [-] - nothing is held
-    Arrived    = 1u,   // [-] - contact went down during this tick
+    Sampled    = 1u,   // [-] - contact went down during this tick
     Travelling = 2u,   // [-] - contact is held and has been held since a previous tick
     Released   = 3u,   // [-] - contact came up during this tick
     PhaseCount = 4u    // [-] - the closed count, never a phase
@@ -56,14 +56,14 @@ struct GestureTolerance
 struct ContactTravel
 {
     ContactPhase  Phase           = ContactPhase::Absent;   // [-]    - this tick's phase
-    float         OriginAlong     = 0.0f;                   // [px]   - where the contact arrived
-    float         OriginAcross    = 0.0f;                   // [px]
-    float         PositionAlong   = 0.0f;                   // [px]   - where it stands now
-    float         PositionAcross  = 0.0f;                   // [px]
-    double        TravelAlong     = 0.0;                    // [px]   - accumulated since arrival
-    double        TravelAcross    = 0.0;                    // [px]
-    double        RateAlong       = 0.0;                    // [px/s] - smoothed, signed
-    double        RateAcross      = 0.0;                    // [px/s]
+    float         OriginX     = 0.0f;                   // [px]   - where the contact arrived
+    float         OriginY    = 0.0f;                   // [px]
+    float         PositionX   = 0.0f;                   // [px]   - where it stands now
+    float         PositionY  = 0.0f;                   // [px]
+    double        TravelX     = 0.0;                    // [px]   - accumulated since arrival
+    double        TravelY    = 0.0;                    // [px]
+    double        RateX       = 0.0;                    // [px/s] - smoothed, signed
+    double        RateY      = 0.0;                    // [px/s]
     double        HeldDuration    = 0.0;                    // [ms]   - since arrival
     bool          TravelExceeded  = false;                  // [-]    - passed TapTravelCeiling at least once
     bool          TapResolved     = false;                  // [-]    - Released, within both tap ceilings
@@ -93,17 +93,17 @@ public:
     void Declare(const GestureTolerance& Declared);
 
     /// 🧩 Advances one tick and reports what the contact did.
-    /// in    Arrived  [-]   what `RecordingSurface::Pointer` sampled this tick
+    /// in    Sampled  [-]   what `RecordingSurface::Pointer` sampled this tick
     /// in    Elapsed  [ms]  what the same tick's display condition measured
     /// out   Travel   [-]   valid until the next Advance
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const ContactTravel& Advance(const PointerCondition& Arrived, double Elapsed);
+    const ContactTravel& Advance(const PointerCondition& Sampled, double Elapsed);
 
     /// 🧩 What the previous Advance reported.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const ContactTravel& Standing() const;
+    const ContactTravel& Current() const;
 
     /// 🧩 Drops the live contact without reporting a release — what a resize does.
     /// post  the next Advance reports Absent until a fresh contact arrives
@@ -120,7 +120,7 @@ private:
 
     GestureTolerance  Tolerance        = {};      // [-] - as declared
     ContactTravel     Reported         = {};      // [-] - this tick's report
-    bool              ContactLive      = false;   // [-] - a contact stands between Arrived and Released
+    bool              ContactLive      = false;   // [-] - a contact stands between Sampled and Released
     bool              ReleaseDeferred  = false;   // [-] - press and release landed in one tick
     bool              CancelDeferred   = false;   // [-] - Abandon was called while a contact stood
 };

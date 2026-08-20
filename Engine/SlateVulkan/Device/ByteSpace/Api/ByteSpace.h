@@ -38,12 +38,12 @@ enum class ExtentResidency : std::uint32_t
 };
 
 /// 🧩 What the claimant promises about the span, and therefore what exhaustion means for it.
-/// note  🔴 `06` §7: a reserved or committed claim is refused **before** partial success, and discretionary
+/// note  🔴 `06` §7: a reserved or committed claim is rejected **before** partial success, and discretionary
 ///       exhaustion is residency policy rather than a reported failure. The distinction cannot be derived
 ///       from the span — a hundred megabytes is the working set for one caller and an optional prefetch for
 ///       the next — so it is declared at the claim and carried into the refusal.
 /// tag   contract
-enum class ClaimStanding : std::uint32_t
+enum class ReservationCondition : std::uint32_t
 {
     Reserved      = 0u,   // [-] - taken at bring-up and held for the run; exhaustion ends bring-up
     Committed     = 1u,   // [-] - the working set; exhaustion is a reported failure
@@ -58,7 +58,7 @@ enum class ClaimStanding : std::uint32_t
 /// note  A default-constructed claim names `AbsentExtent` and is what a refusal leaves behind. Releasing one
 ///       is a no-op, which is what makes the caller's reclamation path unconditional.
 /// tag   nonallocating, nonthrowing
-struct ByteClaim
+struct ByteReservation
 {
     VkDeviceMemory  BackingExtent = VK_NULL_HANDLE;   // [-] - the vendor allocation the span was sliced from
     VkDeviceSize    ByteOffset    = 0u;               // [B] - where the span begins inside that allocation
@@ -73,7 +73,7 @@ struct ByteClaim
 
 // 📝 🔴 `06` §2.1 settles allocation as sub-allocation from large device extents. One vendor allocation per
 //    resource exhausts `maxMemoryAllocationCount`, which is 4096 on much of the installed hardware and is
-//    reached by a document with a few thousand occupants — long before any memory budget is.
+//    reached by a document with a few thousand owners — long before any memory budget is.
 inline constexpr VkDeviceSize DeviceLocalExtentBytes  = 256ull * 1024ull * 1024ull;   // [B] - one device-local piece
 inline constexpr VkDeviceSize HostWritableExtentBytes = 64ull  * 1024ull * 1024ull;   // [B] - one host-writable piece
 
@@ -98,7 +98,7 @@ public:
     /// in    Exchange  [-]  the created device; borrowed, never owned, and outlives this component
     /// in    Naming    [-]  names every vendor allocation taken; borrowed and outlives this component
     /// out   Result   [-]  refuses with CapabilityAbsent when no device is active
-    /// post  no extent is claimed; the first Claim takes the first one
+    /// post  no extent is claimed; the first Reserve takes the first one
     /// note  🔴 `06` §7's diagnostic-name gate is discharged here rather than by the caller. A name declared
     ///        by whoever happened to call `ConstructExtent` would be absent for the extents this component
     ///        takes on its own, which is every extent after the first of each residency.
@@ -110,30 +110,30 @@ public:
     /// in    RequestedBytes  [B]  how far the span must run
     /// in    ByteAlignment   [B]  the alignment the vendor declared for what occupies it; zero reads as one
     /// in    Residency       [-]  device-local or host-writable
-    /// in    Standing        [-]  what exhaustion means for this claimant
+    /// in    Condition        [-]  what exhaustion means for this claimant
     /// out   Result         [-]  refuses with ExtentExhausted, in full, with nothing partially claimed
     /// err   refuses with ContentUnsupported for a zero span or an alignment that is not a power of two
     /// note  🔴 The refusal is whole. A claim that half-succeeded would leave the caller holding a span it
     ///       cannot use and cannot release, and the release path is the one nobody exercises.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<ByteClaim> Claim(VkDeviceSize    RequestedBytes,
+    Outcome<ByteReservation> Reserve(VkDeviceSize    RequestedBytes,
                              VkDeviceSize    ByteAlignment,
                              ExtentResidency Residency,
-                             ClaimStanding   Standing);
+                             ReservationCondition   Condition);
 
     /// 🧩 Returns one span to its extent's free list, coalescing it with whatever it now adjoins.
-    /// in    Claimed  [-]  a claim this component issued; a default-constructed one is a no-op
+    /// in    Reserved  [-]  a claim this component registered; a default-constructed one is a no-op
     /// post  the span is claimable again immediately
     /// note  ⚠️ Immediately, not after the recording slot count. A span the device may still be reading is
     ///       quarantined by its **owner** — `20` §5 does exactly that over its own slots — because only the
     ///       owner knows which rotation last recorded against it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    void Release(const ByteClaim& Claimed);
+    void Release(const ByteReservation& Reserved);
 
     /// 🧩 Destroys every vendor allocation and forgets every slice.
-    /// pre   the device is idle and no claim this component issued is still recorded against
+    /// pre   the device is idle and no claim this component registered is still recorded against
     /// cost  🚩
     /// tag   api, nonthrowing
     void Reclaim();
@@ -141,7 +141,7 @@ public:
     /// 🧩 What is claimed and what is held, per residency — the two halves `86` reports separately.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    VkDeviceSize  ClaimedBytes(ExtentResidency Residency) const;
+    VkDeviceSize  ReservedBytes(ExtentResidency Residency) const;
     VkDeviceSize  BackingBytes(ExtentResidency Residency) const;
     std::uint32_t ExtentCount() const;
 
@@ -172,7 +172,7 @@ private:
 
     /// 🧩 Takes one further vendor allocation, at least as large as the span that could not be satisfied.
     /// out   Result  [-]  refuses with ExtentExhausted when the vendor declines the allocation
-    Outcome<std::uint32_t> ConstructExtent(ExtentResidency Residency, VkDeviceSize LeastBytes);
+    Outcome<std::uint32_t> ConstructExtent(ExtentResidency Residency, VkDeviceSize MinimumBytes);
 
     const VulkanExchange*             DeviceEdge      = nullptr;   // [-] - borrowed; never owned
     const DiagnosticExtension*        NamingEdge      = nullptr;   // [-] - borrowed; never owned

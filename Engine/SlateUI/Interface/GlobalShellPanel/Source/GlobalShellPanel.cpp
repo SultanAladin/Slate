@@ -18,21 +18,21 @@ namespace Slate
 namespace
 {
 
-constexpr double RouseOver         = 120.0;   // [ms] - the reference's transition-colors duration
+constexpr double HoverOver         = 120.0;   // [ms] - the reference's transition-colors duration
 constexpr double ContextArriveOver = 100.0;   // [ms] - the context card's `transition={{ duration: 0.1 }}`
 constexpr float  RunLeading    =   1.30f; // [-]  - leading-tight, for a two-run header
 constexpr float  MedallionEdge =   6.0f;  // [px] - rounded-md on the header medallion
 
-/// 🧩 Holds an ordinate between two bounds.
-constexpr float Held(float Ordinate, float Least, float Most)
+/// 🧩 Holds an coordinate between two bounds.
+constexpr float Held(float Coordinate, float Minimum, float Maximum)
 {
-    return (Ordinate < Least) ? Least : (Ordinate > Most) ? Most : Ordinate;
+    return (Coordinate < Minimum) ? Minimum : (Coordinate > Maximum) ? Maximum : Coordinate;
 }
 
-/// 🧩 One ordinate of the way from a departed figure to an arriving one.
-constexpr float Between(float Departed, float Arriving, float Fraction)
+/// 🧩 One coordinate of the way from a departed figure to an incoming one.
+constexpr float Between(float Previous, float Incoming, float Fraction)
 {
-    return Departed + (Arriving - Departed) * Fraction;
+    return Previous + (Incoming - Previous) * Fraction;
 }
 
 /// 🧩 The same colour at a declared fraction of its own coverage.
@@ -196,7 +196,7 @@ ShellMetric ScaleShellLengths(float Factor)
 
     // 📝 Every member is a length, so the whole record is scaled uniformly. The two run figures that are
     //    durations live outside it precisely so that this stays true and no member has to be excepted.
-    float* const Lengths = &Scaled.TopBarAcross;
+    float* const Lengths = &Scaled.TopBarHeight;
     const std::uint32_t Count = static_cast<std::uint32_t>(sizeof(ShellMetric) / sizeof(float));
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
@@ -229,10 +229,10 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
     {
         Reset();
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
-                                       "the shared inspector controls were refused" });
+                                       "the shared inspector controls were rejected" });
     }
 
-    // 🔴 Every identity is claimed here and none inside a tick. A control enrolled mid-tick receives a fresh
+    // 🔴 Every identity is claimed here and none inside a tick. A control registered mid-tick receives a fresh
     //    fade and reads as though the pointer had just arrived over it, once per tick, forever.
     ControlIdentity* const Every[] =
     {
@@ -246,17 +246,17 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
         &ContextTints[4],    &ContextTints[5],    &ContextTints[6]
     };
 
-    for (ControlIdentity* Claiming : Every)
+    for (ControlIdentity* Target : Every)
     {
-        const Outcome<ControlIdentity> Issued = Interaction.Enrol();
+        const Outcome<ControlIdentity> Registered = Interaction.Register();
 
-        if (!Issued.Resolved)
+        if (!Registered.Resolved)
         {
             Reset();
-            return Outcome<bool>::Refuse(Issued.Error);
+            return Outcome<bool>::Refuse(Registered.Error);
         }
 
-        *Claiming = Issued.Resolve();
+        *Target = Registered.Resolve();
     }
 
     for (std::uint32_t Ordinal = 0u; Ordinal < RowCeiling; ++Ordinal)
@@ -267,21 +267,21 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
             &RowKebabs[Ordinal]
         };
 
-        for (ControlIdentity* Claiming : PerRow)
+        for (ControlIdentity* Target : PerRow)
         {
-            const Outcome<ControlIdentity> Issued = Interaction.Enrol();
+            const Outcome<ControlIdentity> Registered = Interaction.Register();
 
-            if (!Issued.Resolved)
+            if (!Registered.Resolved)
             {
                 Reset();
-                return Outcome<bool>::Refuse(Issued.Error);
+                return Outcome<bool>::Refuse(Registered.Error);
             }
 
-            *Claiming = Issued.Resolve();
+            *Target = Registered.Resolve();
         }
     }
 
-    // 📝 The Layer Stack's rows. Each carries two takeable halves and four actions, all enrolled here so
+    // 📝 The Layer Stack's rows. Each carries two takeable halves and four actions, all registered here so
     //    that nothing is claimed inside a tick.
     for (std::uint32_t Ordinal = 0u; Ordinal < LayerCeiling; ++Ordinal)
     {
@@ -291,33 +291,33 @@ Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
             &LayerPresences[Ordinal],   &LayerMaskEyes[Ordinal],         &LayerRetires[Ordinal]
         };
 
-        for (ControlIdentity* Claiming : PerLayer)
+        for (ControlIdentity* Target : PerLayer)
         {
-            const Outcome<ControlIdentity> Issued = Interaction.Enrol();
+            const Outcome<ControlIdentity> Registered = Interaction.Register();
 
-            if (!Issued.Resolved)
+            if (!Registered.Resolved)
             {
                 Reset();
-                return Outcome<bool>::Refuse(Issued.Error);
+                return Outcome<bool>::Refuse(Registered.Error);
             }
 
-            *Claiming = Issued.Resolve();
+            *Target = Registered.Resolve();
         }
     }
 
     // 📐 The two-slide strip. The reference translates it by `-translate-x-1/2` over 300 ms on
     //    cubic-bezier(.5,.05,.2,1), which `EaseCurve::Carousel` already names exactly.
-    const Outcome<std::uint32_t> Enrolled = Integrator.EnrolEased(0.0);
+    const Outcome<std::uint32_t> Registered = Integrator.RegisterEased(0.0);
 
-    if (!Enrolled.Resolved)
+    if (!Registered.Resolved)
     {
         Reset();
-        return Outcome<bool>::Refuse(Enrolled.Error);
+        return Outcome<bool>::Refuse(Registered.Error);
     }
 
-    CarouselSlide = Enrolled.Resolve();
+    CarouselSlide = Registered.Resolve();
 
-    Reseat(Resolved);
+    Reapply(Resolved);
 
     return Outcome<bool>::Result(true);
 }
@@ -328,12 +328,12 @@ void GlobalShellPanel::Advance(const PointerCondition& Contact, double Elapsed)
     Controls.Advance(Contact, Elapsed);
 }
 
-void GlobalShellPanel::Reseat(const ThemeProfile& Resolved)
+void GlobalShellPanel::Reapply(const ThemeProfile& Resolved)
 {
     Appearance = &Resolved;
 
     // 🔴 The colours are taken from the appearance rather than left at their compiled-in declarations, which is
-    //    what carries a theme into the shell. `Reseat` is already called at construction and again on every
+    //    what carries a theme into the shell. `Reapply` is already called at construction and again on every
     //    display change, so the one line below is also the whole of the shell's theme response.
     Tinted = Resolved.Shell;
 
@@ -364,22 +364,22 @@ void GlobalShellPanel::Reset()
     LayerAdd      = {};
     LayerRetention = {};
 
-    for (ControlIdentity& Claimed : ModeButtons)
-        Claimed = {};
+    for (ControlIdentity& Target : ModeButtons)
+        Target = {};
 
-    for (ControlIdentity& Claimed : MetadataActions)
-        Claimed = {};
+    for (ControlIdentity& Target : MetadataActions)
+        Target = {};
 
     OutlineStrip = {};
     ContextVeil    = {};
 
-    for (ControlIdentity& Claimed : ContextTints)
-        Claimed = {};
+    for (ControlIdentity& Target : ContextTints)
+        Target = {};
 
-    for (ControlIdentity& Claimed : ContextActions)
-        Claimed = {};
+    for (ControlIdentity& Target : ContextActions)
+        Target = {};
 
-    // 🔴 The layer runs were left seated by an earlier reset, so a reconstructed panel drew its stack with
+    // 🔴 The layer runs were left applied by an earlier reset, so a reconstructed panel drew its stack with
     //    identities the ledger had already reissued to the outliner. Every run the panel claims is cleared.
     for (std::uint32_t Ordinal = 0u; Ordinal < LayerCeiling; ++Ordinal)
     {
@@ -404,7 +404,7 @@ void GlobalShellPanel::Reset()
 //                                                      THE KEY RULES
 //------------------------------------------------------------------------------------------------------------------------
 
-bool GlobalShellPanel::AdvanceSummoning(ShellContext& Seated, bool Summoned, bool Withdrawn,
+bool GlobalShellPanel::AdvanceSummoning(ShellContext& Applied, bool Summoned, bool Dismissed,
                                         bool Reversed)
 {
     bool Altered = false;
@@ -427,56 +427,56 @@ bool GlobalShellPanel::AdvanceSummoning(ShellContext& Seated, bool Summoned, boo
     {
         constexpr std::uint32_t StationCount = 5u;   // [-] - the withdrawn station and the four presented
 
-        std::uint32_t Standing = 0u;
+        std::uint32_t StationOrdinal = 0u;
 
-        if (Seated.InspectorDocked || Seated.MenuOpened)
+        if (Applied.InspectorDocked || Applied.MenuOpened)
         {
-            Standing = Seated.InspectorShown ? (3u + Seated.InspectorTab)
-                                             : (1u + Seated.OutlineTab);
+            StationOrdinal = Applied.InspectorShown ? (3u + Applied.InspectorTab)
+                                             : (1u + Applied.OutlineTab);
         }
 
-        std::uint32_t Arriving = Standing;
+        std::uint32_t IncomingStation = StationOrdinal;
 
         if (!Reversed)
         {
             // 📐 Four onward, then wrap to one. Zero is left behind on the first press and never re-entered.
-            Arriving = (Standing >= 4u) ? 1u : (Standing + 1u);
+            IncomingStation = (StationOrdinal >= 4u) ? 1u : (StationOrdinal + 1u);
         }
-        else if (Standing <= 1u)
+        else if (StationOrdinal <= 1u)
         {
             // 📐 The strict reverse of the opening step withdraws the card, and only while undocked; a
             //    docked card has no withdrawn station, so it wraps to the far end of its own four instead.
-            Arriving = (Standing == 1u && !Seated.InspectorDocked) ? 0u : 4u;
+            IncomingStation = (StationOrdinal == 1u && !Applied.InspectorDocked) ? 0u : 4u;
         }
         else
         {
-            Arriving = Standing - 1u;
+            IncomingStation = StationOrdinal - 1u;
         }
 
-        if (Seated.InspectorDocked && Arriving == 0u)
-            Arriving = 4u;
+        if (Applied.InspectorDocked && IncomingStation == 0u)
+            IncomingStation = 4u;
 
-        Arriving = Arriving % StationCount;
+        IncomingStation = IncomingStation % StationCount;
 
-        Seated.MenuOpened     = Seated.InspectorDocked ? Seated.MenuOpened : (Arriving != 0u);
-        Seated.InspectorShown = Arriving >= 3u;
+        Applied.MenuOpened     = Applied.InspectorDocked ? Applied.MenuOpened : (IncomingStation != 0u);
+        Applied.InspectorShown = IncomingStation >= 3u;
 
-        if (Arriving == 1u || Arriving == 2u)
-            Seated.OutlineTab = Arriving - 1u;
-        else if (Arriving >= 3u)
-            Seated.InspectorTab = Arriving - 3u;
+        if (IncomingStation == 1u || IncomingStation == 2u)
+            Applied.OutlineTab = IncomingStation - 1u;
+        else if (IncomingStation >= 3u)
+            Applied.InspectorTab = IncomingStation - 3u;
 
         Altered = true;
     }
 
     // 📐 Escape is guarded by `menuOpen && !isDocked` in the reference, so a docked inspector is NOT closed
     //    by it. The inspector goes first and the menu second, so one press never dismisses both.
-    if (Withdrawn && Seated.MenuOpened && !Seated.InspectorDocked)
+    if (Dismissed && Applied.MenuOpened && !Applied.InspectorDocked)
     {
-        if (Seated.InspectorShown)
-            Seated.InspectorShown = false;
+        if (Applied.InspectorShown)
+            Applied.InspectorShown = false;
         else
-            Seated.MenuOpened = false;
+            Applied.MenuOpened = false;
 
         Altered = true;
     }
@@ -485,7 +485,7 @@ bool GlobalShellPanel::AdvanceSummoning(ShellContext& Seated, bool Summoned, boo
     {
         EasedInterpolant& Travelling = Motion->Eased(CarouselSlide);
 
-        Travelling.Depart(Travelling.Standing(), Seated.InspectorShown ? 1.0 : 0.0,
+        Travelling.Depart(Travelling.Current(), Applied.InspectorShown ? 1.0 : 0.0,
                           CarouselTravelOver, 0.0, EaseCurve::Carousel);
     }
 
@@ -503,249 +503,249 @@ void GlobalShellPanel::RecordPaneHeader(const PlaneExtent& Extent, SymbolSubject
 
     // 📝 The hairline is recorded as a one-pixel ground at the lower edge rather than as an Edge, because
     //    `border-b` is one side and `Edge` strokes four.
-    const PlaneExtent Hairline = Spanning(Extent.LeastAlong, Extent.MostAcross - 1.0f,
-                                          Extent.SpanAlong(), 1.0f);
+    const PlaneExtent Hairline = Spanning(Extent.MinimumX, Extent.MaximumY - 1.0f,
+                                          Extent.Width(), 1.0f);
     Surface->Ground(Hairline, Tinted.Hairline, 0.0f, CornerNone);
 
     const float Medallion = Scaled.MedallionExtent;
-    const float Centred   = Extent.LeastAcross + (Extent.SpanAcross() - Medallion) * 0.5f;
+    const float Centred   = Extent.MinimumY + (Extent.Height() - Medallion) * 0.5f;
 
-    const PlaneExtent Seat = Spanning(Extent.LeastAlong + Scaled.HeaderPadAlong, Centred,
+    const PlaneExtent Disc = Spanning(Extent.MinimumX + Scaled.HeaderPadX, Centred,
                                       Medallion, Medallion);
 
-    Surface->Ground(Seat, MedallionColour, MedallionEdge, CornerAll);
+    Surface->Ground(Disc, MedallionColour, MedallionEdge, CornerAll);
 
     // 📐 The figure sits in a 14 px square inside a 24 px medallion, centred on both axes.
     const float FigureExtent = Medallion * (14.0f / 24.0f);
-    const float FigureLead   = Seat.LeastAlong  + (Medallion - FigureExtent) * 0.5f;
-    const float FigureAcross = Seat.LeastAcross + (Medallion - FigureExtent) * 0.5f;
+    const float FigureLead   = Disc.MinimumX  + (Medallion - FigureExtent) * 0.5f;
+    const float FigureY = Disc.MinimumY + (Medallion - FigureExtent) * 0.5f;
 
-    Surface->Stroke(Glyph, Spanning(FigureLead, FigureAcross, FigureExtent, FigureExtent), GlyphColour);
+    Surface->Stroke(Glyph, Spanning(FigureLead, FigureY, FigureExtent, FigureExtent), GlyphColour);
 
-    const float RunLead = Seat.MostAlong + Scaled.HeaderPadAlong * 0.8f;
+    const float RunLead = Disc.MaximumX + Scaled.HeaderPadX * 0.8f;
 
     if (Secondary != nullptr && Secondary[0] != '\0')
     {
-        // 📝 Two runs, `leading-tight`, seated as a pair about the header's centre rather than each about
+        // 📝 Two runs, `leading-tight`, applied as a pair about the header's centre rather than each about
         //    its own — which is what `flex-col` inside a centred row actually produces.
         const float PrimaryRun   = Scaled.RunPrimary;
         const float SecondaryRun = Scaled.RunFine;
-        const float PairAcross   = PrimaryRun * RunLeading + SecondaryRun * RunLeading;
-        const float PairLead     = Extent.LeastAcross + (Extent.SpanAcross() - PairAcross) * 0.5f;
+        const float PairHeight   = PrimaryRun * RunLeading + SecondaryRun * RunLeading;
+        const float PairLead     = Extent.MinimumY + (Extent.Height() - PairHeight) * 0.5f;
 
-        Surface->TextRunTruncated(RunLead, PairLead, Extent.MostAlong - RunLead - Scaled.HeaderPadAlong,
+        Surface->TextRunTruncated(RunLead, PairLead, Extent.MaximumX - RunLead - Scaled.HeaderPadX,
                                   Tinted.Primary, Title, PrimaryRun, true);
         Surface->TextRunTruncated(RunLead, PairLead + PrimaryRun * RunLeading,
-                                  Extent.MostAlong - RunLead - Scaled.HeaderPadAlong,
+                                  Extent.MaximumX - RunLead - Scaled.HeaderPadX,
                                   Tinted.Faint, Secondary, SecondaryRun, false);
     }
     else
     {
         const float SoleRun  = Scaled.RunPrimary;
-        const float SoleLead = Extent.LeastAcross + (Extent.SpanAcross() - SoleRun) * 0.5f;
+        const float SoleLead = Extent.MinimumY + (Extent.Height() - SoleRun) * 0.5f;
 
-        Surface->TextRunTruncated(RunLead, SoleLead, Extent.MostAlong - RunLead - Scaled.HeaderPadAlong,
+        Surface->TextRunTruncated(RunLead, SoleLead, Extent.MaximumX - RunLead - Scaled.HeaderPadX,
                                   Tinted.Primary, Title, SoleRun, true);
     }
 }
 
-void GlobalShellPanel::RecordTopBar(const PlaneExtent& Extent, const ShellContext& Seated)
+void GlobalShellPanel::RecordTopBar(const PlaneExtent& Extent, const ShellContext& Applied)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
-    const PlaneExtent Hairline = Spanning(Extent.LeastAlong, Extent.MostAcross - 1.0f,
-                                          Extent.SpanAlong(), 1.0f);
+    const PlaneExtent Hairline = Spanning(Extent.MinimumX, Extent.MaximumY - 1.0f,
+                                          Extent.Width(), 1.0f);
     Surface->Ground(Hairline, Tinted.Hairline, 0.0f, CornerNone);
 
-    const float Glyph  = 18.0f * (Scaled.TopBarAcross / 36.0f);
-    const float Middle = Extent.LeastAcross + (Extent.SpanAcross() - Glyph) * 0.5f;
-    float       Cursor = Extent.LeastAlong + Scaled.TopBarPadAlong;
+    const float Glyph  = 18.0f * (Scaled.TopBarHeight / 36.0f);
+    const float Middle = Extent.MinimumY + (Extent.Height() - Glyph) * 0.5f;
+    float       Sweep = Extent.MinimumX + Scaled.TopBarPadX;
 
     // 📝 The accent cube, `w-[18px] h-[18px] text-[var(--accent)]`.
-    Surface->Stroke(SymbolSubject::CubeSolid, Spanning(Cursor, Middle, Glyph, Glyph), Tinted.Accent);
-    Cursor += Glyph + Scaled.TopBarPadAlong * 0.85f;
+    Surface->Stroke(SymbolSubject::CubeSolid, Spanning(Sweep, Middle, Glyph, Glyph), Tinted.Accent);
+    Sweep += Glyph + Scaled.TopBarPadX * 0.85f;
 
-    const char* Naming = (Seated.Mode == WorkspaceMode::Drafting)     ? "DraftingWorkspace"
-                       : (Seated.Mode == WorkspaceMode::TexturePaint) ? "Texture Paint"
+    const char* Naming = (Applied.Mode == WorkspaceMode::Drafting)     ? "DraftingWorkspace"
+                       : (Applied.Mode == WorkspaceMode::TexturePaint) ? "Texture Paint"
                                                                       : "World Editor";
-    const char* Record = (Seated.Mode == WorkspaceMode::WorldEditor)  ? "Level_01_City.map"
+    const char* Record = (Applied.Mode == WorkspaceMode::WorldEditor)  ? "Level_01_City.map"
                                                                       : "Bracket_Rev4.wsdoc";
 
     const float TitleRun = Scaled.RunPrimary;
-    const float TitleTop = Extent.LeastAcross + (Extent.SpanAcross() - TitleRun) * 0.5f;
+    const float TitleTop = Extent.MinimumY + (Extent.Height() - TitleRun) * 0.5f;
 
     // 📐 `tracking-wide` is 0.025em, which this seam takes in em directly.
-    Surface->TextRun(Cursor, TitleTop, Tinted.Primary, Naming, TitleRun, 0.025f, true);
-    Cursor += Surface->MeasureRun(Naming, TitleRun, 0.025f) + Scaled.TopBarPadAlong * 0.85f;
+    Surface->TextRun(Sweep, TitleTop, Tinted.Primary, Naming, TitleRun, 0.025f, true);
+    Sweep += Surface->MeasureRun(Naming, TitleRun, 0.025f) + Scaled.TopBarPadX * 0.85f;
 
     const float RecordRun = Scaled.RunSecondary * (11.0f / 11.5f);
-    const float RecordTop = Extent.LeastAcross + (Extent.SpanAcross() - RecordRun) * 0.5f;
+    const float RecordTop = Extent.MinimumY + (Extent.Height() - RecordRun) * 0.5f;
 
-    Surface->TextRun(Cursor, RecordTop, Tinted.Faint, Record, RecordRun);
+    Surface->TextRun(Sweep, RecordTop, Tinted.Faint, Record, RecordRun);
 
     // 📐 The trailing pill: `Tab  summon inspector`, rounded-full at px-2.5 py-1.
     const char* Chord   = "Tab";
     const char* Trailing = "  summon inspector";
     const float PillRun = Scaled.RunSmall;
-    const float PadAlong = 10.0f * (Scaled.TopBarAcross / 36.0f);
-    const float PillAlong = Surface->MeasureRun(Chord, PillRun, 0.0f)
-                          + Surface->MeasureRun(Trailing, PillRun, 0.0f) + PadAlong * 2.0f;
-    const float PillAcross = PillRun * 2.0f;
-    const float PillLead   = Extent.MostAlong - Scaled.TopBarPadAlong - PillAlong;
-    const float PillTop    = Extent.LeastAcross + (Extent.SpanAcross() - PillAcross) * 0.5f;
+    const float PadX = 10.0f * (Scaled.TopBarHeight / 36.0f);
+    const float PillX = Surface->MeasureRun(Chord, PillRun, 0.0f)
+                          + Surface->MeasureRun(Trailing, PillRun, 0.0f) + PadX * 2.0f;
+    const float PillY = PillRun * 2.0f;
+    const float PillLead   = Extent.MaximumX - Scaled.TopBarPadX - PillX;
+    const float PillTop    = Extent.MinimumY + (Extent.Height() - PillY) * 0.5f;
 
-    const PlaneExtent Pill = Spanning(PillLead, PillTop, PillAlong, PillAcross);
+    const PlaneExtent Pill = Spanning(PillLead, PillTop, PillX, PillY);
 
-    Surface->Ground(Pill, Tinted.Menu, PillAcross * 0.5f, CornerAll);
-    Surface->Edge(Pill, Tinted.Hairline, 1.0f, PillAcross * 0.5f, CornerAll);
+    Surface->Ground(Pill, Tinted.Menu, PillY * 0.5f, CornerAll);
+    Surface->Edge(Pill, Tinted.Hairline, 1.0f, PillY * 0.5f, CornerAll);
 
-    const float ChordTop = PillTop + (PillAcross - PillRun) * 0.5f;
+    const float ChordTop = PillTop + (PillY - PillRun) * 0.5f;
 
-    Surface->TextRun(PillLead + PadAlong, ChordTop, Tinted.Primary, Chord, PillRun, 0.0f, true);
-    Surface->TextRun(PillLead + PadAlong + Surface->MeasureRun(Chord, PillRun, 0.0f), ChordTop,
+    Surface->TextRun(PillLead + PadX, ChordTop, Tinted.Primary, Chord, PillRun, 0.0f, true);
+    Surface->TextRun(PillLead + PadX + Surface->MeasureRun(Chord, PillRun, 0.0f), ChordTop,
                      Tinted.Muted, Trailing, PillRun);
 }
 
-void GlobalShellPanel::RecordOptionsRail(const PlaneExtent& Extent, ShellContext& Seated)
+void GlobalShellPanel::RecordOptionsRail(const PlaneExtent& Extent, ShellContext& Applied)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
     // 📝 `border-r`, the one trailing side.
-    const PlaneExtent Hairline = Spanning(Extent.MostAlong - 1.0f, Extent.LeastAcross,
-                                          1.0f, Extent.SpanAcross());
+    const PlaneExtent Hairline = Spanning(Extent.MaximumX - 1.0f, Extent.MinimumY,
+                                          1.0f, Extent.Height());
     Surface->Ground(Hairline, Tinted.HairlineFirm, 0.0f, CornerNone);
 
-    const PlaneExtent Header = Spanning(Extent.LeastAlong, Extent.LeastAcross,
-                                        Extent.SpanAlong(), Scaled.HeaderAcross);
+    const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
+                                        Extent.Width(), Scaled.HeaderHeight);
 
     const float HeaderRun = Scaled.RunPrimary;
-    const float HeaderTop = Header.LeastAcross + (Header.SpanAcross() - HeaderRun) * 0.5f;
-    const float HeaderPad = Scaled.HeaderPadAlong * 1.6f;
+    const float HeaderTop = Header.MinimumY + (Header.Height() - HeaderRun) * 0.5f;
+    const float HeaderPad = Scaled.HeaderPadX * 1.6f;
 
-    Surface->TextRun(Header.LeastAlong + HeaderPad, HeaderTop, Tinted.Primary, "Options",
+    Surface->TextRun(Header.MinimumX + HeaderPad, HeaderTop, Tinted.Primary, "Options",
                      HeaderRun, 0.025f, true);
 
-    const PlaneExtent HeaderEdge = Spanning(Header.LeastAlong, Header.MostAcross - 1.0f,
-                                            Header.SpanAlong(), 1.0f);
+    const PlaneExtent HeaderEdge = Spanning(Header.MinimumX, Header.MaximumY - 1.0f,
+                                            Header.Width(), 1.0f);
     Surface->Ground(HeaderEdge, Tinted.Hairline, 0.0f, CornerNone);
 
-    const float BodyPad = Scaled.HeaderPadAlong * 1.6f;
-    float       Cursor  = Header.MostAcross + BodyPad;
+    const float BodyPad = Scaled.HeaderPadX * 1.6f;
+    float       Sweep  = Header.MaximumY + BodyPad;
 
     // ① Dock Inspector — the reference's `.switch` and `.nub`, which `ControlPanel` already reproduces.
-    const float  SwitchAcross = Scaled.RowAcross * 0.72f;
-    const PlaneExtent SwitchRow = Spanning(Extent.LeastAlong + BodyPad, Cursor,
-                                           Extent.SpanAlong() - BodyPad * 2.0f, SwitchAcross);
+    const float  SwitchY = Scaled.RowHeight * 0.72f;
+    const PlaneExtent SwitchRow = Spanning(Extent.MinimumX + BodyPad, Sweep,
+                                           Extent.Width() - BodyPad * 2.0f, SwitchY);
 
     SwitchDeclaration Docking;
     Docking.Caption = "Dock Inspector";
 
-    const bool DockedBefore = Seated.InspectorDocked;
+    const bool DockedBefore = Applied.InspectorDocked;
 
     const ControlVerdict Docked = Controls.SwitchToggle(DockSwitch, SwitchRow, Docking,
-                                                       Seated.InspectorDocked);
+                                                       Applied.InspectorDocked);
     static_cast<void>(Docked);
 
-    // 🔴 Docking and undocking re-seats the slide rather than letting it travel. The reference swaps which
+    // 🔴 Docking and undocking re-applies the slide rather than letting it travel. The reference swaps which
     //    container holds the very same element, so the strip is mounted fresh at its current offset — a
     //    travel here would slide a panel the artist never asked to move.
-    if (DockedBefore != Seated.InspectorDocked && Motion != nullptr)
-        Motion->Eased(CarouselSlide).Seat(Seated.InspectorShown ? 1.0 : 0.0);
+    if (DockedBefore != Applied.InspectorDocked && Motion != nullptr)
+        Motion->Eased(CarouselSlide).Place(Applied.InspectorShown ? 1.0 : 0.0);
 
-    Cursor += SwitchAcross + BodyPad * 0.5f;
+    Sweep += SwitchY + BodyPad * 0.5f;
 
-    const char* Explaining = Seated.InspectorDocked
+    const char* Explaining = Applied.InspectorDocked
                            ? "Inspector is docked to the right side of the screen."
                            : "Inspector is hidden. Press Tab to summon it.";
 
     // 📐 `text-[11px] leading-relaxed` — 1.625 line height, wrapped inside the rail's own extent.
     const float ProseRun  = Scaled.RunSecondary * (11.0f / 11.5f);
     const float ProseStep = ProseRun * 1.625f;
-    const float ProseAlong = Extent.SpanAlong() - BodyPad * 2.0f;
+    const float ProseX = Extent.Width() - BodyPad * 2.0f;
 
     // 📝 Wrapped here rather than truncated: the reference wraps, and a truncated sentence would read as a
     //    defect. The break is taken at the last space that still fits.
-    const char* Standing = Explaining;
+    const char* Walk = Explaining;
 
-    while (Standing != nullptr && *Standing != '\0')
+    while (Walk != nullptr && *Walk != '\0')
     {
-        std::uint32_t Admitted = 0u;
+        std::uint32_t Accepted = 0u;
         std::uint32_t Breaking = 0u;
         char          Measured[96] = {};
 
-        while (Standing[Admitted] != '\0' && Admitted + 1u < sizeof(Measured))
+        while (Walk[Accepted] != '\0' && Accepted + 1u < sizeof(Measured))
         {
-            Measured[Admitted] = Standing[Admitted];
-            Measured[Admitted + 1u] = '\0';
+            Measured[Accepted] = Walk[Accepted];
+            Measured[Accepted + 1u] = '\0';
 
-            if (Surface->MeasureRun(Measured, ProseRun, 0.0f) > ProseAlong)
+            if (Surface->MeasureRun(Measured, ProseRun, 0.0f) > ProseX)
                 break;
 
-            if (Standing[Admitted] == ' ')
-                Breaking = Admitted;
+            if (Walk[Accepted] == ' ')
+                Breaking = Accepted;
 
-            ++Admitted;
+            ++Accepted;
         }
 
-        const bool Whole = Standing[Admitted] == '\0';
-        const std::uint32_t Taken = Whole ? Admitted : (Breaking > 0u ? Breaking : Admitted);
+        const bool Whole = Walk[Accepted] == '\0';
+        const std::uint32_t Taken = Whole ? Accepted : (Breaking > 0u ? Breaking : Accepted);
 
         for (std::uint32_t Ordinal = 0u; Ordinal < Taken; ++Ordinal)
-            Measured[Ordinal] = Standing[Ordinal];
+            Measured[Ordinal] = Walk[Ordinal];
 
         Measured[Taken] = '\0';
 
-        Surface->TextRun(Extent.LeastAlong + BodyPad, Cursor, Tinted.Faint, Measured, ProseRun);
-        Cursor += ProseStep;
+        Surface->TextRun(Extent.MinimumX + BodyPad, Sweep, Tinted.Faint, Measured, ProseRun);
+        Sweep += ProseStep;
 
-        Standing += Taken;
+        Walk += Taken;
 
-        while (*Standing == ' ')
-            ++Standing;
+        while (*Walk == ' ')
+            ++Walk;
     }
 
-    Cursor += BodyPad * 1.5f;
+    Sweep += BodyPad * 1.5f;
 
     // ② Workspace Mode — a caption, then the three buttons at `h-8` with `gap-2`.
     const float CaptionRun = Scaled.RunPrimary;
 
-    Surface->TextRun(Extent.LeastAlong + BodyPad, Cursor, Tinted.Muted, "Workspace Mode", CaptionRun);
-    Cursor += CaptionRun * 1.6f + BodyPad * 0.75f;
+    Surface->TextRun(Extent.MinimumX + BodyPad, Sweep, Tinted.Muted, "Workspace Mode", CaptionRun);
+    Sweep += CaptionRun * 1.6f + BodyPad * 0.75f;
 
     const char* const ModeCaptions[3] = { "Drafting", "Texture Paint", "Game Editor" };
-    const float ButtonAcross = 32.0f * (Scaled.RowAcross / 32.0f);
-    const float ButtonGap    = 8.0f  * (Scaled.RowAcross / 32.0f);
+    const float ButtonY = 32.0f * (Scaled.RowHeight / 32.0f);
+    const float ButtonGap    = 8.0f  * (Scaled.RowHeight / 32.0f);
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
     {
-        const PlaneExtent Button = Spanning(Extent.LeastAlong + BodyPad, Cursor,
-                                            Extent.SpanAlong() - BodyPad * 2.0f, ButtonAcross);
+        const PlaneExtent Button = Spanning(Extent.MinimumX + BodyPad, Sweep,
+                                            Extent.Width() - BodyPad * 2.0f, ButtonY);
 
-        const bool Taken  = static_cast<std::uint32_t>(Seated.Mode) == Ordinal;
-        const bool Roused = Button.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        const bool Taken  = static_cast<std::uint32_t>(Applied.Mode) == Ordinal;
+        const bool Hovered = Button.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Roused && Sampled.ContactArrived && !Ledger->AnyDisclosed())
-            Ledger->Seize(ModeButtons[Ordinal], ControlPart::Body);
+        if (Hovered && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+            Ledger->Grab(ModeButtons[Ordinal], ControlPart::Body);
 
-        if (Roused && Ledger->Released(ModeButtons[Ordinal]))
-            Seated.Mode = static_cast<WorkspaceMode>(Ordinal);
+        if (Hovered && Ledger->Released(ModeButtons[Ordinal]))
+            Applied.Mode = static_cast<WorkspaceMode>(Ordinal);
 
-        Ledger->DeclareRoused(ModeButtons[Ordinal], Roused, RouseOver);
+        Ledger->DeclareHovered(ModeButtons[Ordinal], Hovered, HoverOver);
 
         Surface->Ground(Button, Taken ? Tinted.AccentSoft : Tinted.Tile, Scaled.FieldRadius, CornerAll);
         Surface->Edge(Button, Taken ? Tinted.Accent
-                                    : (Roused ? Covering(0x444444u) : Tinted.Hairline),
+                                    : (Hovered ? Covering(0x444444u) : Tinted.Hairline),
                       1.0f, Scaled.FieldRadius, CornerAll);
 
         const float ButtonRun = Scaled.RunSecondary * (11.0f / 11.5f);
-        const float RunAlong  = Surface->MeasureRun(ModeCaptions[Ordinal], ButtonRun, 0.0f);
+        const float RunX  = Surface->MeasureRun(ModeCaptions[Ordinal], ButtonRun, 0.0f);
 
-        Surface->TextRun(Button.LeastAlong + (Button.SpanAlong() - RunAlong) * 0.5f,
-                         Button.LeastAcross + (Button.SpanAcross() - ButtonRun) * 0.5f,
+        Surface->TextRun(Button.MinimumX + (Button.Width() - RunX) * 0.5f,
+                         Button.MinimumY + (Button.Height() - ButtonRun) * 0.5f,
                          Taken ? Tinted.Primary : Tinted.Muted,
                          ModeCaptions[Ordinal], ButtonRun, 0.0f, true);
 
-        Cursor += ButtonAcross + ButtonGap;
+        Sweep += ButtonY + ButtonGap;
     }
 }
 
@@ -753,7 +753,7 @@ void GlobalShellPanel::RecordOptionsRail(const PlaneExtent& Extent, ShellContext
 //                                                      THE VIEWPORT
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellContext& Seated)
+void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellContext& Applied)
 {
     Surface->Ground(Extent, Tinted.Desk, 0.0f, CornerNone);
 
@@ -773,28 +773,28 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
         if (Step < 1.0f)
             continue;
 
-        for (float Along = Extent.LeastAlong; Along < Extent.MostAlong; Along += Step)
+        for (float X = Extent.MinimumX; X < Extent.MaximumX; X += Step)
         {
-            Surface->Ground(Spanning(Along, Extent.LeastAcross, 1.0f, Extent.SpanAcross()),
+            Surface->Ground(Spanning(X, Extent.MinimumY, 1.0f, Extent.Height()),
                             Colours[Pass], 0.0f, CornerNone);
         }
 
-        for (float Across = Extent.LeastAcross; Across < Extent.MostAcross; Across += Step)
+        for (float Y = Extent.MinimumY; Y < Extent.MaximumY; Y += Step)
         {
-            Surface->Ground(Spanning(Extent.LeastAlong, Across, Extent.SpanAlong(), 1.0f),
+            Surface->Ground(Spanning(Extent.MinimumX, Y, Extent.Width(), 1.0f),
                             Colours[Pass], 0.0f, CornerNone);
         }
     }
 
     // 📐 `radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(0,0,0,.55) 100%)`. A radial ramp is not a
     //    surface primitive, so it is approximated by concentric rings stepping the coverage — sixteen rings
-    //    is below the ordinate quantum of an eight-bit channel over this range, so no banding is visible.
+    //    is below the coordinate quantum of an eight-bit channel over this range, so no banding is visible.
     constexpr std::uint32_t RingCount = 16u;
 
-    const float CentreAlong  = Extent.LeastAlong  + Extent.SpanAlong()  * 0.50f;
-    const float CentreAcross = Extent.LeastAcross + Extent.SpanAcross() * 0.45f;
-    const float Reach        = std::sqrt(Extent.SpanAlong()  * Extent.SpanAlong()
-                                       + Extent.SpanAcross() * Extent.SpanAcross()) * 0.5f;
+    const float CentreX  = Extent.MinimumX  + Extent.Width()  * 0.50f;
+    const float CentreY = Extent.MinimumY + Extent.Height() * 0.45f;
+    const float Reach        = std::sqrt(Extent.Width()  * Extent.Width()
+                                       + Extent.Height() * Extent.Height()) * 0.5f;
 
     for (std::uint32_t Ring = 0u; Ring < RingCount; ++Ring)
     {
@@ -804,91 +804,91 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
         const float Radius   = Reach * Between(0.40f, 1.0f, Fraction);
         const float Coverage = 0.55f / static_cast<float>(RingCount);
 
-        Surface->Medallion(CentreAlong, CentreAcross, Radius,
+        Surface->Medallion(CentreX, CentreY, Radius,
                            Faded(Covering(0x000000u), Coverage));
     }
 
     // 📐 The centred hint, `press Tab to …`, with the second run present only while undocked.
     const char* Leading  = "press ";
     const char* Chord    = "Tab";
-    const char* Trailing = Seated.InspectorDocked
-                         ? ((Seated.Mode == WorkspaceMode::Drafting)     ? " to slide through properties"
-                          : (Seated.Mode == WorkspaceMode::TexturePaint) ? " to slide through channels"
+    const char* Trailing = Applied.InspectorDocked
+                         ? ((Applied.Mode == WorkspaceMode::Drafting)     ? " to slide through properties"
+                          : (Applied.Mode == WorkspaceMode::TexturePaint) ? " to slide through channels"
                                                                          : " to slide through components")
-                         : ((Seated.Mode == WorkspaceMode::Drafting)     ? " to summon the scene directory"
-                          : (Seated.Mode == WorkspaceMode::TexturePaint) ? " to summon layers"
+                         : ((Applied.Mode == WorkspaceMode::Drafting)     ? " to summon the scene directory"
+                          : (Applied.Mode == WorkspaceMode::TexturePaint) ? " to summon layers"
                                                                          : " to summon the outliner");
 
     const float HintRun   = Scaled.RunSecondary * (12.0f / 11.5f);
-    const float ChordPad  = 8.0f * (Scaled.RowAcross / 32.0f);
+    const float ChordPad  = 8.0f * (Scaled.RowHeight / 32.0f);
     const float ChordRun  = Scaled.RunSecondary * (11.0f / 11.5f);
-    const float ChordAlong = Surface->MeasureRun(Chord, ChordRun, 0.0f) + ChordPad * 2.0f;
-    const float HintAlong = Surface->MeasureRun(Leading, HintRun, 0.0f) + ChordAlong
+    const float ChordX = Surface->MeasureRun(Chord, ChordRun, 0.0f) + ChordPad * 2.0f;
+    const float HintX = Surface->MeasureRun(Leading, HintRun, 0.0f) + ChordX
                           + Surface->MeasureRun(Trailing, HintRun, 0.0f);
 
-    float HintLead  = CentreAlong - HintAlong * 0.5f;
-    const float HintTop = Extent.LeastAcross + Extent.SpanAcross() * 0.5f - HintRun;
+    float HintLead  = CentreX - HintX * 0.5f;
+    const float HintTop = Extent.MinimumY + Extent.Height() * 0.5f - HintRun;
 
     Surface->TextRun(HintLead, HintTop, Tinted.Faint, Leading, HintRun);
     HintLead += Surface->MeasureRun(Leading, HintRun, 0.0f);
 
     // 📐 The `kbd` cap: `border-b-2`, so the lower edge is drawn twice.
-    const float ChordAcross = ChordRun * 1.9f;
-    const PlaneExtent Cap   = Spanning(HintLead, HintTop + (HintRun - ChordAcross) * 0.5f,
-                                       ChordAlong, ChordAcross);
+    const float ChordHeight = ChordRun * 1.9f;
+    const PlaneExtent Cap   = Spanning(HintLead, HintTop + (HintRun - ChordHeight) * 0.5f,
+                                       ChordX, ChordHeight);
 
     Surface->Ground(Cap, Tinted.Menu, Scaled.FieldRadius, CornerAll);
     Surface->Edge(Cap, Tinted.HairlineFirm, 1.0f, Scaled.FieldRadius, CornerAll);
-    Surface->Ground(Spanning(Cap.LeastAlong, Cap.MostAcross - 2.0f, Cap.SpanAlong(), 2.0f),
+    Surface->Ground(Spanning(Cap.MinimumX, Cap.MaximumY - 2.0f, Cap.Width(), 2.0f),
                     Tinted.HairlineFirm, 0.0f, CornerNone);
-    Surface->TextRun(Cap.LeastAlong + ChordPad, Cap.LeastAcross + (ChordAcross - ChordRun) * 0.5f,
+    Surface->TextRun(Cap.MinimumX + ChordPad, Cap.MinimumY + (ChordHeight - ChordRun) * 0.5f,
                      Tinted.Primary, Chord, ChordRun, 0.0f, true);
 
-    HintLead += ChordAlong;
+    HintLead += ChordX;
     Surface->TextRun(HintLead, HintTop, Tinted.Faint, Trailing, HintRun);
 
-    if (!Seated.InspectorDocked)
+    if (!Applied.InspectorDocked)
     {
         const char* SecondLeading  = "Tab";
-        const char* SecondTrailing = (Seated.Mode == WorkspaceMode::Drafting)
+        const char* SecondTrailing = (Applied.Mode == WorkspaceMode::Drafting)
                                    ? " again slides through to properties"
-                                   : (Seated.Mode == WorkspaceMode::TexturePaint)
+                                   : (Applied.Mode == WorkspaceMode::TexturePaint)
                                    ? " again slides through to channels"
                                    : " again slides through to components";
 
-        const float SecondAlong = Surface->MeasureRun(SecondLeading, ChordRun, 0.0f) + ChordPad * 2.0f
+        const float SecondX = Surface->MeasureRun(SecondLeading, ChordRun, 0.0f) + ChordPad * 2.0f
                                 + Surface->MeasureRun(SecondTrailing, HintRun, 0.0f);
-        float       SecondLead  = CentreAlong - SecondAlong * 0.5f;
+        float       SecondLead  = CentreX - SecondX * 0.5f;
         const float SecondTop   = HintTop + HintRun * 1.9f;
 
-        const PlaneExtent SecondCap = Spanning(SecondLead, SecondTop + (HintRun - ChordAcross) * 0.5f,
+        const PlaneExtent SecondCap = Spanning(SecondLead, SecondTop + (HintRun - ChordHeight) * 0.5f,
                                                Surface->MeasureRun(SecondLeading, ChordRun, 0.0f)
-                                               + ChordPad * 2.0f, ChordAcross);
+                                               + ChordPad * 2.0f, ChordHeight);
 
         Surface->Ground(SecondCap, Tinted.Menu, Scaled.FieldRadius, CornerAll);
         Surface->Edge(SecondCap, Tinted.HairlineFirm, 1.0f, Scaled.FieldRadius, CornerAll);
-        Surface->Ground(Spanning(SecondCap.LeastAlong, SecondCap.MostAcross - 2.0f,
-                                 SecondCap.SpanAlong(), 2.0f), Tinted.HairlineFirm, 0.0f, CornerNone);
-        Surface->TextRun(SecondCap.LeastAlong + ChordPad,
-                         SecondCap.LeastAcross + (ChordAcross - ChordRun) * 0.5f,
+        Surface->Ground(Spanning(SecondCap.MinimumX, SecondCap.MaximumY - 2.0f,
+                                 SecondCap.Width(), 2.0f), Tinted.HairlineFirm, 0.0f, CornerNone);
+        Surface->TextRun(SecondCap.MinimumX + ChordPad,
+                         SecondCap.MinimumY + (ChordHeight - ChordRun) * 0.5f,
                          Tinted.Primary, SecondLeading, ChordRun, 0.0f, true);
 
-        SecondLead += SecondCap.SpanAlong();
+        SecondLead += SecondCap.Width();
         Surface->TextRun(SecondLead, SecondTop, Tinted.Faint, SecondTrailing, HintRun);
     }
 
     // 📐 The lower hint strip: a scrim from transparent to rgba(0,0,0,.5), then the four navigation runs.
-    const PlaneExtent Strip = Spanning(Extent.LeastAlong, Extent.MostAcross - Scaled.StatusAcross,
-                                       Extent.SpanAlong(), Scaled.StatusAcross);
+    const PlaneExtent Strip = Spanning(Extent.MinimumX, Extent.MaximumY - Scaled.StatusY,
+                                       Extent.Width(), Scaled.StatusY);
 
     Surface->Scrim(Strip, Faded(Covering(0x000000u), 0.0f), Faded(Covering(0x000000u), 0.5f),
-                   ScrimAxis::Across);
+                   ScrimAxis::Y);
 
     const char* const Navigating[4] = { "Orbit LMB", "Pan MMB", "Zoom Wheel", "Inspector Tab" };
     const float StatusRun = Scaled.RunSmall;
-    const float StatusTop = Strip.LeastAcross + (Strip.SpanAcross() - StatusRun) * 0.5f;
-    const float StatusGap = 9.0f * (Scaled.RowAcross / 32.0f);
-    float       StatusLead = Strip.LeastAlong + 13.0f * (Scaled.RowAcross / 32.0f);
+    const float StatusTop = Strip.MinimumY + (Strip.Height() - StatusRun) * 0.5f;
+    const float StatusGap = 9.0f * (Scaled.RowHeight / 32.0f);
+    float       StatusLead = Strip.MinimumX + 13.0f * (Scaled.RowHeight / 32.0f);
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
     {
@@ -909,25 +909,25 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellCont
 //                                                      THE OUTLINER
 //------------------------------------------------------------------------------------------------------------------------
 
-bool GlobalShellPanel::RowPresented(const ShellContext& Seated, const EntityRow* Rows,
+bool GlobalShellPanel::RowCurrent(const ShellContext& Applied, const EntityRow* Rows,
                                     std::uint32_t RowCount, std::uint32_t Ordinal) const
 {
     if (Ordinal >= RowCount)
         return false;
 
-    const bool Retaining = Seated.EntityRetention[0] != '\0';
+    const bool Retaining = Applied.EntityRetention[0] != '\0';
 
     // 📐 The reference retains a row when it matches, or when any row it holds matches. Retention also forces
     //    every branch open — `const isExpanded = node.expanded || !!filterText` — so disclosure is not
     //    consulted at all while a filter stands.
     if (Retaining)
     {
-        if (RunHolds(Rows[Ordinal].Naming, Seated.EntityRetention))
+        if (RunHolds(Rows[Ordinal].Naming, Applied.EntityRetention))
             return true;
 
         for (std::uint32_t Enclosed = 0u; Enclosed < RowCount; ++Enclosed)
         {
-            if (Rows[Enclosed].Enclosing == Ordinal && RowPresented(Seated, Rows, RowCount, Enclosed))
+            if (Rows[Enclosed].Enclosing == Ordinal && RowCurrent(Applied, Rows, RowCount, Enclosed))
                 return true;
         }
 
@@ -941,7 +941,7 @@ bool GlobalShellPanel::RowPresented(const ShellContext& Seated, const EntityRow*
 
     while (Walking < RowCount && Walked++ <= RowCount)
     {
-        if (!Seated.EntityExpanded[Walking])
+        if (!Applied.EntityExpanded[Walking])
             return false;
 
         Walking = Rows[Walking].Enclosing;
@@ -950,12 +950,12 @@ bool GlobalShellPanel::RowPresented(const ShellContext& Seated, const EntityRow*
     return true;
 }
 
-void GlobalShellPanel::RecordRetentionField(const PlaneExtent& Extent, ShellContext& Seated)
+void GlobalShellPanel::RecordRetentionField(const PlaneExtent& Extent, ShellContext& Applied)
 {
-    const bool Roused = Extent.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+    const bool Hovered = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Roused && Sampled.ContactArrived)
-        Ledger->Seize(RetentionField, ControlPart::Body);
+    if (Hovered && Sampled.ContactPressed)
+        Ledger->Grab(RetentionField, ControlPart::Body);
 
     const bool Taken = Ledger->Holding(RetentionField) || Ledger->Disclosed(RetentionField);
 
@@ -963,60 +963,60 @@ void GlobalShellPanel::RecordRetentionField(const PlaneExtent& Extent, ShellCont
     Surface->Edge(Extent, Taken ? Partial(0xFFFFFFu, 0.22) : Tinted.Hairline,
                   1.0f, Scaled.FieldRadius, CornerAll);
 
-    const float GlyphExtent = 14.0f * (Scaled.SearchAcross / 30.0f);
-    const float GlyphLead   = Extent.LeastAlong + 10.0f * (Scaled.SearchAcross / 30.0f);
-    const float GlyphTop    = Extent.LeastAcross + (Extent.SpanAcross() - GlyphExtent) * 0.5f;
+    const float GlyphExtent = 14.0f * (Scaled.SearchHeight / 30.0f);
+    const float GlyphLead   = Extent.MinimumX + 10.0f * (Scaled.SearchHeight / 30.0f);
+    const float GlyphTop    = Extent.MinimumY + (Extent.Height() - GlyphExtent) * 0.5f;
 
     Surface->Stroke(SymbolSubject::MagnifierLens,
                     Spanning(GlyphLead, GlyphTop, GlyphExtent, GlyphExtent), Tinted.Faint);
 
-    const float RunLead = GlyphLead + GlyphExtent + 8.0f * (Scaled.SearchAcross / 30.0f);
+    const float RunLead = GlyphLead + GlyphExtent + 8.0f * (Scaled.SearchHeight / 30.0f);
     const float FieldRun = Scaled.RunSecondary * (12.0f / 11.5f);
-    const float RunTop   = Extent.LeastAcross + (Extent.SpanAcross() - FieldRun) * 0.5f;
+    const float RunTop   = Extent.MinimumY + (Extent.Height() - FieldRun) * 0.5f;
 
-    const bool Empty = Seated.EntityRetention[0] == '\0';
+    const bool Empty = Applied.EntityRetention[0] == '\0';
 
-    Surface->TextRunTruncated(RunLead, RunTop, Extent.MostAlong - RunLead - 8.0f,
+    Surface->TextRunTruncated(RunLead, RunTop, Extent.MaximumX - RunLead - 8.0f,
                               Empty ? Tinted.Faint : Tinted.Primary,
-                              Empty ? "Filter Entities\u2026" : Seated.EntityRetention, FieldRun);
+                              Empty ? "Filter Entities\u2026" : Applied.EntityRetention, FieldRun);
 }
 
-void GlobalShellPanel::RecordOutlineColumn(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordOutlineColumn(const PlaneExtent& Extent, ShellContext& Applied,
                                              const EntityRow* Rows, std::uint32_t RowCount)
 {
     // 📐 The strip sits over the whole column, beneath nothing — the pane header belongs to the page it
     //    heads, so each of the two pages draws its own and the strip is the only shared chrome.
     static const char* const Captions[2] = { "Outliner", "Context Menu" };
 
-    const PlaneExtent Strip = Spanning(Extent.LeastAlong, Extent.LeastAcross,
-                                       Extent.SpanAlong(), Scaled.ComponentAcross);
+    const PlaneExtent Strip = Spanning(Extent.MinimumX, Extent.MinimumY,
+                                       Extent.Width(), Scaled.ComponentY);
 
     const TabDeclaration Declared{ Captions, 2u };
 
-    static_cast<void>(Controls.TabStrip(OutlineStrip, Strip, Declared, Seated.OutlineTab));
+    static_cast<void>(Controls.TabStrip(OutlineStrip, Strip, Declared, Applied.OutlineTab));
 
-    const PlaneExtent Page = Spanning(Extent.LeastAlong, Strip.MostAcross, Extent.SpanAlong(),
-                                      Extent.MostAcross - Strip.MostAcross);
+    const PlaneExtent Page = Spanning(Extent.MinimumX, Strip.MaximumY, Extent.Width(),
+                                      Extent.MaximumY - Strip.MaximumY);
 
-    if (Seated.OutlineTab == 0u)
-        RecordOutliner(Page, Seated, Rows, RowCount);
+    if (Applied.OutlineTab == 0u)
+        RecordOutliner(Page, Applied, Rows, RowCount);
     else
-        RecordContextPage(Page, Seated, Rows, RowCount);
+        RecordContextPage(Page, Applied, Rows, RowCount);
 
     // 📐 The column's own trailing hairline, `border-r border-[var(--hair)]`, over both pages.
-    Surface->Ground(Spanning(Extent.MostAlong - 1.0f, Extent.LeastAcross, 1.0f, Extent.SpanAcross()),
+    Surface->Ground(Spanning(Extent.MaximumX - 1.0f, Extent.MinimumY, 1.0f, Extent.Height()),
                     Tinted.Hairline, 0.0f, CornerNone);
 }
 
-void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& Applied,
                                       const EntityRow* Rows, std::uint32_t RowCount)
 {
     Surface->Ground(Extent, Tinted.Menu, 0.0f, CornerNone);
-    Surface->Ground(Spanning(Extent.MostAlong - 1.0f, Extent.LeastAcross, 1.0f, Extent.SpanAcross()),
+    Surface->Ground(Spanning(Extent.MaximumX - 1.0f, Extent.MinimumY, 1.0f, Extent.Height()),
                     Tinted.Hairline, 0.0f, CornerNone);
 
-    const PlaneExtent Header = Spanning(Extent.LeastAlong, Extent.LeastAcross,
-                                        Extent.SpanAlong(), Scaled.HeaderAcross);
+    const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
+                                        Extent.Width(), Scaled.HeaderHeight);
 
     RecordPaneHeader(Header, SymbolSubject::GearCog, Covering(0xFFFFFFu), Tinted.EntityAccent,
                      "World Outliner", "Level_01_City");
@@ -1025,115 +1025,115 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& S
     //    header's ground is corrected here rather than parameterised into it for one caller.
     const float Pad = Scaled.PanePad;
 
-    const PlaneExtent Retention = Spanning(Extent.LeastAlong + Pad, Header.MostAcross + Pad,
-                                        Extent.SpanAlong() - Pad * 2.0f, Scaled.SearchAcross);
+    const PlaneExtent Retention = Spanning(Extent.MinimumX + Pad, Header.MaximumY + Pad,
+                                        Extent.Width() - Pad * 2.0f, Scaled.SearchHeight);
 
-    RecordRetentionField(Retention, Seated);
+    RecordRetentionField(Retention, Applied);
 
-    const PlaneExtent Footer = Spanning(Extent.LeastAlong, Extent.MostAcross - Scaled.FooterAcross,
-                                        Extent.SpanAlong(), Scaled.FooterAcross);
+    const PlaneExtent Footer = Spanning(Extent.MinimumX, Extent.MaximumY - Scaled.FooterHeight,
+                                        Extent.Width(), Scaled.FooterHeight);
 
-    const PlaneExtent Body = Spanning(Extent.LeastAlong + Pad, Retention.MostAcross + Pad * 0.5f,
-                                      Extent.SpanAlong() - Pad * 2.0f,
-                                      Footer.LeastAcross - Retention.MostAcross - Pad);
+    const PlaneExtent Body = Spanning(Extent.MinimumX + Pad, Retention.MaximumY + Pad * 0.5f,
+                                      Extent.Width() - Pad * 2.0f,
+                                      Footer.MinimumY - Retention.MaximumY - Pad);
 
     Surface->Confine(Body);
 
-    float Cursor = Body.LeastAcross;
+    float Sweep = Body.MinimumY;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < RowCount && Ordinal < RowCeiling; ++Ordinal)
     {
-        if (!RowPresented(Seated, Rows, RowCount, Ordinal))
+        if (!RowCurrent(Applied, Rows, RowCount, Ordinal))
             continue;
 
-        const EntityRow&  Presented = Rows[Ordinal];
-        const PlaneExtent Row       = Spanning(Body.LeastAlong, Cursor,
-                                               Body.SpanAlong(), Scaled.RowAcross);
+        const EntityRow&  EntryRow = Rows[Ordinal];
+        const PlaneExtent Row       = Spanning(Body.MinimumX, Sweep,
+                                               Body.Width(), Scaled.RowHeight);
 
-        Cursor += Scaled.RowAcross;
+        Sweep += Scaled.RowHeight;
 
         if (Surface->Excluded(Row))
             continue;
 
-        const bool Taken  = Seated.EntityTaken == Ordinal;
-        const bool Roused = Row.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
-        const bool Absent = !Seated.EntityPresent[Ordinal];
-        const bool Branch = Presented.EnclosedCount > 0u;
+        const bool Taken  = Applied.EntityTaken == Ordinal;
+        const bool Hovered = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
+        const bool Absent = !Applied.EntityPresent[Ordinal];
+        const bool Branch = EntryRow.EnclosedCount > 0u;
 
-        const float LeadAlong = Row.LeastAlong + Scaled.RowLeadAlong
-                              + static_cast<float>(Presented.Depth) * Scaled.RowStepAlong;
+        const float LeadX = Row.MinimumX + Scaled.RowLeadX
+                              + static_cast<float>(EntryRow.Depth) * Scaled.RowStepX;
 
         // ① The disclosure cell, which takes the contact before the row does.
-        const PlaneExtent Chevron = Spanning(LeadAlong,
-                                             Row.LeastAcross + (Row.SpanAcross() - Scaled.ChevronExtent) * 0.5f,
+        const PlaneExtent Chevron = Spanning(LeadX,
+                                             Row.MinimumY + (Row.Height() - Scaled.ChevronExtent) * 0.5f,
                                              Scaled.ChevronExtent, Scaled.ChevronExtent);
 
-        const bool OnChevron = Branch && Chevron.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        const bool OnChevron = Branch && Chevron.Encloses(Sampled.PositionX, Sampled.PositionY);
 
         // ② The kebab at the very trailing edge, and the presence action inboard of it. Both outrank the
         //    row, and the kebab outranks the eye because it is written outboard of it.
-        const PlaneExtent Kebab = Spanning(Row.MostAlong - Scaled.KebabExtent - Scaled.PanePad * 0.5f,
-                                           Row.LeastAcross + (Row.SpanAcross() - Scaled.KebabExtent) * 0.5f,
+        const PlaneExtent Kebab = Spanning(Row.MaximumX - Scaled.KebabExtent - Scaled.PanePad * 0.5f,
+                                           Row.MinimumY + (Row.Height() - Scaled.KebabExtent) * 0.5f,
                                            Scaled.KebabExtent, Scaled.KebabExtent);
 
-        const bool OnKebab = Kebab.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        const bool OnKebab = Kebab.Encloses(Sampled.PositionX, Sampled.PositionY);
 
         const float PresenceExtent = Scaled.GlyphExtent * (20.0f / 18.0f);
-        const PlaneExtent Presence = Spanning(Kebab.LeastAlong - PresenceExtent - Scaled.PanePad * 0.5f,
-                                              Row.LeastAcross + (Row.SpanAcross() - PresenceExtent) * 0.5f,
+        const PlaneExtent Presence = Spanning(Kebab.MinimumX - PresenceExtent - Scaled.PanePad * 0.5f,
+                                              Row.MinimumY + (Row.Height() - PresenceExtent) * 0.5f,
                                               PresenceExtent, PresenceExtent);
 
-        const bool OnPresence = Presence.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        const bool OnPresence = Presence.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactArrived && !Ledger->AnyDisclosed())
+        if (Sampled.ContactPressed && !Ledger->AnyDisclosed())
         {
             if (OnChevron)
-                Ledger->Seize(RowDisclosures[Ordinal], ControlPart::Chevron);
+                Ledger->Grab(RowDisclosures[Ordinal], ControlPart::Chevron);
             else if (OnKebab)
-                Ledger->Seize(RowKebabs[Ordinal], ControlPart::Body);
+                Ledger->Grab(RowKebabs[Ordinal], ControlPart::Body);
             else if (OnPresence)
-                Ledger->Seize(RowPresences[Ordinal], ControlPart::Body);
-            else if (Roused)
-                Ledger->Seize(RowContacts[Ordinal], ControlPart::Body);
+                Ledger->Grab(RowPresences[Ordinal], ControlPart::Body);
+            else if (Hovered)
+                Ledger->Grab(RowContacts[Ordinal], ControlPart::Body);
         }
 
         if (OnChevron && Ledger->Released(RowDisclosures[Ordinal]))
-            Seated.EntityExpanded[Ordinal] = !Seated.EntityExpanded[Ordinal];
+            Applied.EntityExpanded[Ordinal] = !Applied.EntityExpanded[Ordinal];
 
         if (OnPresence && Ledger->Released(RowPresences[Ordinal]))
         {
             // 📐 The reference applies the new presence to the row AND everything it holds, walking inward.
-            const bool Arriving = !Seated.EntityPresent[Ordinal];
+            const bool Incoming = !Applied.EntityPresent[Ordinal];
 
-            Seated.EntityPresent[Ordinal] = Arriving;
+            Applied.EntityPresent[Ordinal] = Incoming;
 
             for (std::uint32_t Inward = Ordinal + 1u; Inward < RowCount && Inward < RowCeiling; ++Inward)
             {
-                if (Rows[Inward].Depth <= Presented.Depth)
+                if (Rows[Inward].Depth <= EntryRow.Depth)
                     break;
 
-                Seated.EntityPresent[Inward] = Arriving;
+                Applied.EntityPresent[Inward] = Incoming;
             }
         }
 
-        if (Roused && !OnChevron && !OnPresence && !OnKebab && Ledger->Released(RowContacts[Ordinal]))
-            Seated.EntityTaken = Ordinal;
+        if (Hovered && !OnChevron && !OnPresence && !OnKebab && Ledger->Released(RowContacts[Ordinal]))
+            Applied.EntityTaken = Ordinal;
 
-        Ledger->DeclareRoused(RowContacts[Ordinal], Roused, RouseOver);
+        Ledger->DeclareHovered(RowContacts[Ordinal], Hovered, HoverOver);
 
         // ③ The row ground, then its rail. `opacity-50` for a withheld row is applied to every colour it draws.
         const float Coverage = Absent ? 0.5f : 1.0f;
 
         if (Taken)
             Surface->Ground(Row, Faded(Tinted.EntityTaken, Coverage), Scaled.FieldRadius, CornerAll);
-        else if (Roused)
-            Surface->Ground(Row, Faded(Tinted.RowRoused, Coverage), Scaled.FieldRadius, CornerAll);
+        else if (Hovered)
+            Surface->Ground(Row, Faded(Tinted.RowHovered, Coverage), Scaled.FieldRadius, CornerAll);
 
         if (Taken)
         {
-            const PlaneExtent Rail = Spanning(Row.LeastAlong - Scaled.RailOffsetAlong,
-                                              Row.LeastAcross + (Row.SpanAcross() - Scaled.RailAcross) * 0.5f,
-                                              Scaled.RailAlong, Scaled.RailAcross);
+            const PlaneExtent Rail = Spanning(Row.MinimumX - Scaled.RailOffsetX,
+                                              Row.MinimumY + (Row.Height() - Scaled.RailY) * 0.5f,
+                                              Scaled.RailX, Scaled.RailY);
 
             Surface->Ground(Rail, Faded(Tinted.EntityAccent, Coverage), 2.0f,
                             CornerTrailingUpper | CornerTrailingLower);
@@ -1142,56 +1142,56 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& S
         if (Branch)
         {
             // 📐 `-rotate-90` while collapsed, which is the chevron-right figure rather than a turned one.
-            Surface->Stroke(Seated.EntityExpanded[Ordinal] || Seated.EntityRetention[0] != '\0'
+            Surface->Stroke(Applied.EntityExpanded[Ordinal] || Applied.EntityRetention[0] != '\0'
                             ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
                             Chevron, Faded(Tinted.Faint, Coverage));
         }
 
-        const float GlyphLead = LeadAlong + Scaled.ChevronExtent + Scaled.PanePad;
+        const float GlyphLead = LeadX + Scaled.ChevronExtent + Scaled.PanePad;
         const PlaneExtent Glyph = Spanning(GlyphLead,
-                                           Row.LeastAcross + (Row.SpanAcross() - Scaled.GlyphExtent) * 0.5f,
+                                           Row.MinimumY + (Row.Height() - Scaled.GlyphExtent) * 0.5f,
                                            Scaled.GlyphExtent, Scaled.GlyphExtent);
 
-        Surface->Stroke(EntityGlyph(Presented.Subject), Glyph,
-                        Faded(EntityHue(Presented.Subject), Coverage));
+        Surface->Stroke(EntityGlyph(EntryRow.Subject), Glyph,
+                        Faded(EntityHue(EntryRow.Subject), Coverage));
 
         const float NamingRun  = Scaled.RunPrimary;
-        const float NamingLead = Glyph.MostAlong + Scaled.PanePad;
-        const float NamingTop  = Row.LeastAcross + (Row.SpanAcross() - NamingRun) * 0.5f;
+        const float NamingLead = Glyph.MaximumX + Scaled.PanePad;
+        const float NamingTop  = Row.MinimumY + (Row.Height() - NamingRun) * 0.5f;
 
         // 📝 The count and the presence action both sit to the trailing side, so the naming run is truncated
         //    against whichever of them stands.
-        float NamingCeiling = Presence.LeastAlong - Scaled.PanePad;
+        float NamingCeiling = Presence.MinimumX - Scaled.PanePad;
 
         if (Branch)
         {
             char Counted[12] = {};
             std::snprintf(Counted, sizeof(Counted), "%u",
-                          static_cast<unsigned>(Presented.EnclosedCount));
+                          static_cast<unsigned>(EntryRow.EnclosedCount));
 
             const float CountRun  = Scaled.RunFine;
             const float CountLead = NamingCeiling - Surface->MeasureRun(Counted, CountRun, 0.0f);
 
-            Surface->TextRun(CountLead, Row.LeastAcross + (Row.SpanAcross() - CountRun) * 0.5f,
+            Surface->TextRun(CountLead, Row.MinimumY + (Row.Height() - CountRun) * 0.5f,
                              Faded(Tinted.Faint, Coverage), Counted, CountRun);
 
             NamingCeiling = CountLead - Scaled.PanePad;
         }
 
         Surface->TextRunTruncated(NamingLead, NamingTop, NamingCeiling,
-                                  Faded(Taken ? Tinted.Primary : (Roused ? Tinted.Primary : Tinted.Muted),
+                                  Faded(Taken ? Tinted.Primary : (Hovered ? Tinted.Primary : Tinted.Muted),
                                         Coverage),
-                                  Presented.Naming, NamingRun);
+                                  EntryRow.Naming, NamingRun);
 
-        // 📐 The eye is `opacity-0` until the row is roused, and always present once the row is withheld.
-        if (Roused || Absent)
+        // 📐 The eye is `opacity-0` until the row is hovered, and always present once the row is withheld.
+        if (Hovered || Absent)
         {
             if (OnPresence)
-                Surface->Ground(Presence, Tinted.TileRoused, 3.0f, CornerAll);
+                Surface->Ground(Presence, Tinted.TileHovered, 3.0f, CornerAll);
 
             const float EyeExtent = PresenceExtent * (14.0f / 20.0f);
-            const PlaneExtent Eye = Spanning(Presence.LeastAlong + (PresenceExtent - EyeExtent) * 0.5f,
-                                             Presence.LeastAcross + (PresenceExtent - EyeExtent) * 0.5f,
+            const PlaneExtent Eye = Spanning(Presence.MinimumX + (PresenceExtent - EyeExtent) * 0.5f,
+                                             Presence.MinimumY + (PresenceExtent - EyeExtent) * 0.5f,
                                              EyeExtent, EyeExtent);
 
             Surface->Stroke(Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen, Eye,
@@ -1200,13 +1200,13 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& S
 
         // ⑤ The kebab, which raises the floating options card over the whole shell. 🔴 Its identity is
         //    spent whether or not the dots are drawn: a row that skips the call shifts every later row's
-        //    rouse onto the wrong identity and the whole column re-fades on the next scroll.
-        if (RecordKebab(Kebab, RowKebabs[Ordinal], Roused))
+        //    hover onto the wrong identity and the whole column re-fades on the next scroll.
+        if (RecordKebab(Kebab, RowKebabs[Ordinal], Hovered))
         {
-            Seated.ContextRaised = Ordinal;
-            Seated.ContextAlong  = Kebab.LeastAlong;
-            Seated.ContextAcross = Kebab.MostAcross;
-            Seated.EntityTaken   = Ordinal;
+            Applied.ContextRaised = Ordinal;
+            Applied.ContextX  = Kebab.MinimumX;
+            Applied.ContextY = Kebab.MaximumY;
+            Applied.EntityTaken   = Ordinal;
         }
     }
 
@@ -1214,15 +1214,15 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellContext& S
 
     // ④ The footer, `{count} entities`.
     Surface->Ground(Footer, Tinted.MenuLower, 0.0f, CornerNone);
-    Surface->Ground(Spanning(Footer.LeastAlong, Footer.LeastAcross, Footer.SpanAlong(), 1.0f),
+    Surface->Ground(Spanning(Footer.MinimumX, Footer.MinimumY, Footer.Width(), 1.0f),
                     Tinted.Hairline, 0.0f, CornerNone);
 
     char Counted[16] = {};
     std::snprintf(Counted, sizeof(Counted), "%u", static_cast<unsigned>(RowCount));
 
     const float FooterRun = Scaled.RunFine;
-    const float FooterTop = Footer.LeastAcross + (Footer.SpanAcross() - FooterRun) * 0.5f;
-    const float FooterLead = Footer.LeastAlong + Scaled.HeaderPadAlong;
+    const float FooterTop = Footer.MinimumY + (Footer.Height() - FooterRun) * 0.5f;
+    const float FooterLead = Footer.MinimumX + Scaled.HeaderPadX;
 
     Surface->TextRun(FooterLead, FooterTop, Tinted.Primary, Counted, FooterRun, 0.0f, true);
     Surface->TextRun(FooterLead + Surface->MeasureRun(Counted, FooterRun, 0.0f) + 4.0f, FooterTop,
@@ -1245,79 +1245,79 @@ constexpr std::uint32_t ContextTintRun[6] =
 
 }   // namespace
 
-bool GlobalShellPanel::RecordKebab(const PlaneExtent& Extent, ControlIdentity Claimed, bool Roused)
+bool GlobalShellPanel::RecordKebab(const PlaneExtent& Extent, ControlIdentity Target, bool Hovered)
 {
-    const bool Over = Extent.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+    const bool Over = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Sampled.ContactArrived && Over && !Ledger->AnyDisclosed())
-        Ledger->Seize(Claimed, ControlPart::Body);
+    if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
+        Ledger->Grab(Target, ControlPart::Body);
 
-    const bool Taken = Over && Ledger->Released(Claimed);
+    const bool Taken = Over && Ledger->Released(Target);
 
-    Ledger->DeclareRoused(Claimed, Over, RouseOver);
+    Ledger->DeclareHovered(Target, Over, HoverOver);
 
-    // 📐 `opacity-0` until the row is roused, exactly as the eye beside it is.
-    if (!Roused && !Over)
+    // 📐 `opacity-0` until the row is hovered, exactly as the eye beside it is.
+    if (!Hovered && !Over)
         return Taken;
 
     if (Over)
-        Surface->Ground(Extent, Tinted.TileRoused, 3.0f, CornerAll);
+        Surface->Ground(Extent, Tinted.TileHovered, 3.0f, CornerAll);
 
     // 📝 Three dots and not a glyph. `SymbolSubject` carries no ellipsis and is closed at its placeholder,
     //    so authoring one would renumber the whole roster and both of its pinning asserts; three medallions
     //    are the figure itself rather than a stand-in for it, and cost nothing.
-    const float Centre  = Extent.LeastAlong + Extent.SpanAlong() * 0.5f;
+    const float Centre  = Extent.MinimumX + Extent.Width() * 0.5f;
     const float Spacing = Scaled.KebabDot * 2.5f;
-    const float Seat    = Extent.LeastAcross + Extent.SpanAcross() * 0.5f;
+    const float Disc    = Extent.MinimumY + Extent.Height() * 0.5f;
 
     for (std::uint32_t Dot = 0u; Dot < 3u; ++Dot)
     {
-        Surface->Medallion(Centre, Seat + (static_cast<float>(Dot) - 1.0f) * Spacing,
+        Surface->Medallion(Centre, Disc + (static_cast<float>(Dot) - 1.0f) * Spacing,
                            Scaled.KebabDot, Over ? Tinted.Primary : Tinted.Faint);
     }
 
     return Taken;
 }
 
-void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellContext& Applied,
                                          const EntityRow* Rows, std::uint32_t RowCount)
 {
     Surface->Ground(Extent, Tinted.Menu, 0.0f, CornerNone);
 
     const float Pad = Scaled.PanePad;
 
-    if (Rows == nullptr || RowCount == 0u || Seated.EntityTaken >= RowCount ||
-        Seated.EntityTaken >= RowCeiling)
+    if (Rows == nullptr || RowCount == 0u || Applied.EntityTaken >= RowCount ||
+        Applied.EntityTaken >= RowCeiling)
     {
         const float Run   = Scaled.RunSecondary;
         const char* Prose = "Select a record to view its options.";
 
-        Surface->TextRun(Extent.LeastAlong + (Extent.SpanAlong() -
+        Surface->TextRun(Extent.MinimumX + (Extent.Width() -
                                               Surface->MeasureRun(Prose, Run, 0.0f)) * 0.5f,
-                         Extent.LeastAcross + (Extent.SpanAcross() - Run) * 0.5f,
+                         Extent.MinimumY + (Extent.Height() - Run) * 0.5f,
                          Tinted.Faint, Prose, Run);
         return;
     }
 
-    const std::uint32_t Ordinal   = Seated.EntityTaken;
-    const EntityRow&    Presented = Rows[Ordinal];
-    const bool          Grouped   = Presented.Subject == EntitySubject::Grouping;
+    const std::uint32_t Ordinal   = Applied.EntityTaken;
+    const EntityRow&    Current = Rows[Ordinal];
+    const bool          Grouped   = Current.Subject == EntitySubject::Grouping;
 
-    float Cursor = Extent.LeastAcross + Pad;
+    float Sweep = Extent.MinimumY + Pad;
 
     // ① The heading, which names which of the two option sets is standing.
     {
         const float Run = Scaled.RunSecondary;
 
-        Surface->TextRun(Extent.LeastAlong + Pad * 1.5f, Cursor + (Scaled.ContextRow - Run) * 0.5f,
+        Surface->TextRun(Extent.MinimumX + Pad * 1.5f, Sweep + (Scaled.ContextRow - Run) * 0.5f,
                          Tinted.Muted, Grouped ? "Folder Options" : "Object Options", Run, 0.0f, true);
 
-        Cursor += Scaled.ContextRow;
+        Sweep += Scaled.ContextRow;
 
-        Surface->Ground(Spanning(Extent.LeastAlong, Cursor, Extent.SpanAlong(), 1.0f),
+        Surface->Ground(Spanning(Extent.MinimumX, Sweep, Extent.Width(), 1.0f),
                         Tinted.Hairline, 0.0f, CornerNone);
 
-        Cursor += Pad;
+        Sweep += Pad;
     }
 
     // ② `Set Color`, offered for a folder alone, exactly as the reference gates it.
@@ -1325,44 +1325,44 @@ void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellContext
     {
         const float HeadRun = Scaled.RunFine;
 
-        Surface->TextRunCapitalised(Extent.LeastAlong + Pad * 1.5f, Cursor, Tinted.Faint, "Set Color",
+        Surface->TextRunCapitalised(Extent.MinimumX + Pad * 1.5f, Sweep, Tinted.Faint, "Set Color",
                                     HeadRun, 0.09f, false);
 
-        Cursor += HeadRun * RunLeading + Pad;
+        Sweep += HeadRun * RunLeading + Pad;
 
-        float Lead = Extent.LeastAlong + Pad * 1.5f;
+        float Lead = Extent.MinimumX + Pad * 1.5f;
 
         for (std::uint32_t Tint = 0u; Tint < 7u; ++Tint)
         {
-            const PlaneExtent Disc = Spanning(Lead, Cursor, Scaled.ContextSwatch, Scaled.ContextSwatch);
-            const bool        Over = Disc.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+            const PlaneExtent Disc = Spanning(Lead, Sweep, Scaled.ContextSwatch, Scaled.ContextSwatch);
+            const bool        Over = Disc.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-            if (Sampled.ContactArrived && Over && !Ledger->AnyDisclosed())
-                Ledger->Seize(ContextTints[Tint], ControlPart::Body);
+            if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
+                Ledger->Grab(ContextTints[Tint], ControlPart::Body);
 
             static_cast<void>(Over && Ledger->Released(ContextTints[Tint]));
 
-            Ledger->DeclareRoused(ContextTints[Tint], Over, RouseOver);
+            Ledger->DeclareHovered(ContextTints[Tint], Over, HoverOver);
 
             // 📐 `hover:scale-110`, which is a tenth added about the disc's own centre.
             const float Grown  = Over ? Scaled.ContextSwatch * 0.10f : 0.0f;
-            const PlaneExtent Drawn = Spanning(Disc.LeastAlong - Grown * 0.5f, Disc.LeastAcross - Grown * 0.5f,
+            const PlaneExtent Drawn = Spanning(Disc.MinimumX - Grown * 0.5f, Disc.MinimumY - Grown * 0.5f,
                                                Scaled.ContextSwatch + Grown, Scaled.ContextSwatch + Grown);
 
             if (Tint < 6u)
             {
-                Surface->Ground(Drawn, Covering(ContextTintRun[Tint]), Drawn.SpanAlong() * 0.5f, CornerAll);
+                Surface->Ground(Drawn, Covering(ContextTintRun[Tint]), Drawn.Width() * 0.5f, CornerAll);
             }
             else
             {
                 // 📐 The seventh disc clears the hue rather than setting one, and carries a cross.
-                Surface->Edge(Drawn, Tinted.HairlineFirm, 1.0f, Drawn.SpanAlong() * 0.5f, CornerAll);
+                Surface->Edge(Drawn, Tinted.HairlineFirm, 1.0f, Drawn.Width() * 0.5f, CornerAll);
 
                 const float Mark = Scaled.ContextSwatch * 0.5f;
 
                 Surface->Stroke(SymbolSubject::PlusCross,
-                                Spanning(Drawn.LeastAlong + (Drawn.SpanAlong() - Mark) * 0.5f,
-                                         Drawn.LeastAcross + (Drawn.SpanAcross() - Mark) * 0.5f,
+                                Spanning(Drawn.MinimumX + (Drawn.Width() - Mark) * 0.5f,
+                                         Drawn.MinimumY + (Drawn.Height() - Mark) * 0.5f,
                                          Mark, Mark),
                                 Tinted.Muted, 0.7853982f);
             }
@@ -1370,92 +1370,92 @@ void GlobalShellPanel::RecordContextPage(const PlaneExtent& Extent, ShellContext
             Lead += Scaled.ContextSwatch + Pad * 0.8f;
         }
 
-        Cursor += Scaled.ContextSwatch + Pad * 1.5f;
+        Sweep += Scaled.ContextSwatch + Pad * 1.5f;
     }
 
     // ③ Rename and Delete, the two the reference always offers.
-    static_cast<void>(RecordActionRow(Spanning(Extent.LeastAlong + Pad, Cursor,
-                                               Extent.SpanAlong() - Pad * 2.0f, Scaled.ContextRow),
+    static_cast<void>(RecordActionRow(Spanning(Extent.MinimumX + Pad, Sweep,
+                                               Extent.Width() - Pad * 2.0f, Scaled.ContextRow),
                                       ContextActions[0], SymbolSubject::ColumnArrangement,
                                       "Rename", nullptr, Tinted.Primary, Tinted.Muted));
 
-    Cursor += Scaled.ContextRow;
+    Sweep += Scaled.ContextRow;
 
-    if (RecordActionRow(Spanning(Extent.LeastAlong + Pad, Cursor,
-                                 Extent.SpanAlong() - Pad * 2.0f, Scaled.ContextRow),
+    if (RecordActionRow(Spanning(Extent.MinimumX + Pad, Sweep,
+                                 Extent.Width() - Pad * 2.0f, Scaled.ContextRow),
                         ContextActions[1], SymbolSubject::TrashBin, "Delete", nullptr,
                         Covering(0xF87171u), Covering(0xF87171u)))
     {
         // 📝 The row is presented rather than removed, because the outliner's run is the host's and is
         //    borrowed for the tick. Withholding it is the strongest answer a panel may give here.
-        Seated.EntityPresent[Ordinal] = false;
+        Applied.EntityPresent[Ordinal] = false;
     }
 }
 
-void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellContext& Applied,
                                             const EntityRow* Rows, std::uint32_t RowCount)
 {
-    if (Seated.ContextRaised >= RowCeiling)
+    if (Applied.ContextRaised >= RowCeiling)
         return;
 
-    if (Rows == nullptr || Seated.ContextRaised >= RowCount)
+    if (Rows == nullptr || Applied.ContextRaised >= RowCount)
     {
-        Seated.ContextRaised = ShellContext::EntityCeiling;
+        Applied.ContextRaised = ShellContext::EntityCeiling;
         return;
     }
 
     // 📐 `fixed inset-0 z-[100]`, which dismisses the card wherever it is tapped. Recorded first so the
     //    card itself, written after it, stands over it.
-    if (Sampled.ContactArrived && !Ledger->AnyDisclosed())
-        Ledger->Seize(ContextVeil, ControlPart::Body);
+    if (Sampled.ContactPressed && !Ledger->AnyDisclosed())
+        Ledger->Grab(ContextVeil, ControlPart::Body);
 
     const bool Dismissed = Ledger->Released(ContextVeil);
 
-    const EntityRow& Presented = Rows[Seated.ContextRaised];
-    const bool       Grouped   = Presented.Subject == EntitySubject::Grouping;
+    const EntityRow& Current = Rows[Applied.ContextRaised];
+    const bool       Grouped   = Current.Subject == EntitySubject::Grouping;
     const float      Pad       = Scaled.ContextPad;
 
     // 📐 The card is measured from what it carries: a heading, an optional colour strip, and two rows.
-    const float HeadAcross = Scaled.ContextRow + 1.0f + Pad;
-    const float TintAcross = Grouped ? (Scaled.RunFine * RunLeading + Pad + Scaled.ContextSwatch + Pad)
+    const float HeadHeight = Scaled.ContextRow + 1.0f + Pad;
+    const float TintY = Grouped ? (Scaled.RunFine * RunLeading + Pad + Scaled.ContextSwatch + Pad)
                                      : 0.0f;
-    const float WholeAcross = Pad + HeadAcross + TintAcross + Scaled.ContextRow * 2.0f + Pad;
+    const float WholeHeight = Pad + HeadHeight + TintY + Scaled.ContextRow * 2.0f + Pad;
 
     // 📐 `Math.min(contextMenu.x, window.innerWidth - 200)`, and the same rule across.
-    const float Clamped = Extent.MostAlong - Scaled.ContextClamp;
-    const float Along   = Held(Seated.ContextAlong, Extent.LeastAlong,
-                               (Clamped > Extent.LeastAlong) ? Clamped : Extent.LeastAlong);
-    const float Across  = Held(Seated.ContextAcross, Extent.LeastAcross,
-                               (Extent.MostAcross - WholeAcross > Extent.LeastAcross)
-                                   ? Extent.MostAcross - WholeAcross : Extent.LeastAcross);
+    const float Clamped = Extent.MaximumX - Scaled.ContextClamp;
+    const float X   = Held(Applied.ContextX, Extent.MinimumX,
+                               (Clamped > Extent.MinimumX) ? Clamped : Extent.MinimumX);
+    const float Y  = Held(Applied.ContextY, Extent.MinimumY,
+                               (Extent.MaximumY - WholeHeight > Extent.MinimumY)
+                                   ? Extent.MaximumY - WholeHeight : Extent.MinimumY);
 
     // 📐 `initial={{opacity:0, scale:.95}} animate={{opacity:1, scale:1}} transition={{duration:0.1}}`.
-    // 🔴 The veil's own rouse traverse carries the arrival, declared standing for as long as the card is
+    // 🔴 The veil's own hover traverse carries the arrival, declared standing for as long as the card is
     //    raised. Read without being declared it reports zero every tick and the card records invisibly —
     //    a fade that never departs is indistinguishable from a card that was never recorded.
-    Ledger->DeclareRoused(ContextVeil, true, ContextArriveOver);
+    Ledger->DeclareHovered(ContextVeil, true, ContextArriveOver);
 
-    const float Arriving = Ledger->RousedFraction(ContextVeil);
-    const float Coverage = Held(Arriving, 0.0f, 1.0f);
+    const float Incoming = Ledger->HoveredFraction(ContextVeil);
+    const float Coverage = Held(Incoming, 0.0f, 1.0f);
     const float Grown    = Between(0.95f, 1.0f, Coverage);
 
-    const float CardAlong  = Scaled.ContextAlong * Grown;
-    const float CardAcross = WholeAcross * Grown;
+    const float CardX  = Scaled.ContextX * Grown;
+    const float CardHeight = WholeHeight * Grown;
 
-    const PlaneExtent Card = Spanning(Along + (Scaled.ContextAlong - CardAlong) * 0.5f,
-                                      Across + (WholeAcross - CardAcross) * 0.5f,
-                                      CardAlong, CardAcross);
+    const PlaneExtent Card = Spanning(X + (Scaled.ContextX - CardX) * 0.5f,
+                                      Y + (WholeHeight - CardHeight) * 0.5f,
+                                      CardX, CardHeight);
 
     Surface->Ground(Card, Faded(Tinted.Menu, Coverage), Scaled.CardRadius, CornerAll);
     Surface->Edge(Card, Faded(Tinted.HairlineFirm, Coverage), 1.0f, Scaled.CardRadius, CornerAll);
 
     Surface->Confine(Card);
-    RecordContextPage(Card, Seated, Rows, RowCount);
+    RecordContextPage(Card, Applied, Rows, RowCount);
     Surface->Release();
 
     // 📝 Dismissed last, so the card the artist tapped is the one they saw this tick.
-    if (Dismissed && !Card.Encloses(Sampled.PositionAlong, Sampled.PositionAcross))
-        Seated.ContextRaised = ShellContext::EntityCeiling;
+    if (Dismissed && !Card.Encloses(Sampled.PositionX, Sampled.PositionY))
+        Applied.ContextRaised = ShellContext::EntityCeiling;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1465,51 +1465,51 @@ void GlobalShellPanel::RecordContextOverlay(const PlaneExtent& Extent, ShellCont
 float GlobalShellPanel::RecordStatRow(const PlaneExtent& Extent, const char* Caption, const char* Reading)
 {
     const float Run    = Scaled.RunSecondary;
-    const float Seated = Extent.LeastAcross + (Extent.SpanAcross() - Run) * 0.5f;
+    const float Applied = Extent.MinimumY + (Extent.Height() - Run) * 0.5f;
 
-    Surface->TextRun(Extent.LeastAlong, Seated, Tinted.Muted, Caption, Run);
+    Surface->TextRun(Extent.MinimumX, Applied, Tinted.Muted, Caption, Run);
 
-    const float ReadingAlong = Extent.MostAlong - Surface->MeasureRun(Reading, Run, 0.0f);
+    const float ReadingX = Extent.MaximumX - Surface->MeasureRun(Reading, Run, 0.0f);
 
-    Surface->TextRun(ReadingAlong, Seated, Tinted.Primary, Reading, Run);
+    Surface->TextRun(ReadingX, Applied, Tinted.Primary, Reading, Run);
 
     // 📐 `border-b border-[var(--hair)]`, one side and not four, so a ground and not an edge.
-    Surface->Ground(Spanning(Extent.LeastAlong, Extent.MostAcross - 1.0f, Extent.SpanAlong(), 1.0f),
+    Surface->Ground(Spanning(Extent.MinimumX, Extent.MaximumY - 1.0f, Extent.Width(), 1.0f),
                     Tinted.Hairline, 0.0f, CornerNone);
 
-    return Extent.SpanAcross();
+    return Extent.Height();
 }
 
-bool GlobalShellPanel::RecordActionRow(const PlaneExtent& Extent, ControlIdentity Claimed,
+bool GlobalShellPanel::RecordActionRow(const PlaneExtent& Extent, ControlIdentity Target,
                                        SymbolSubject Glyph, const char* Caption, const char* Chord,
                                        ThemeToken Colour, ThemeToken GlyphColour)
 {
-    const bool Roused = Extent.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+    const bool Hovered = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Sampled.ContactArrived && Roused && !Ledger->AnyDisclosed())
-        Ledger->Seize(Claimed, ControlPart::Body);
+    if (Sampled.ContactPressed && Hovered && !Ledger->AnyDisclosed())
+        Ledger->Grab(Target, ControlPart::Body);
 
-    const bool Taken = Roused && Ledger->Released(Claimed);
+    const bool Taken = Hovered && Ledger->Released(Target);
 
-    Ledger->DeclareRoused(Claimed, Roused, RouseOver);
+    Ledger->DeclareHovered(Target, Hovered, HoverOver);
 
     // 📐 `hover:bg-[var(--tile-hi)]`, save for Delete which rouses to its own alert wash instead.
-    if (Roused)
+    if (Hovered)
         Surface->Ground(Extent, Faded(Colour, 0.12f), Scaled.LayerRadius, CornerAll);
 
     const float GlyphCell  = Scaled.ActionGlyph;
-    const float GlyphSeat  = Extent.LeastAcross + (Extent.SpanAcross() - GlyphCell) * 0.5f;
-    const PlaneExtent Cell = Spanning(Extent.LeastAlong + Scaled.PanePad, GlyphSeat, GlyphCell, GlyphCell);
+    const float GlyphY  = Extent.MinimumY + (Extent.Height() - GlyphCell) * 0.5f;
+    const PlaneExtent Cell = Spanning(Extent.MinimumX + Scaled.PanePad, GlyphY, GlyphCell, GlyphCell);
 
     // 📝 The reference draws the glyph at `--muted` and the alerting action at its own hue, so both colours
     //    are handed in rather than one derived from the other — Delete is where the two agree.
     Surface->Stroke(Glyph, Cell, GlyphColour);
 
     const float Run     = Scaled.RunSecondary;
-    const float RunSeat = Extent.LeastAcross + (Extent.SpanAcross() - Run) * 0.5f;
-    const float RunLead = Cell.MostAlong + Scaled.PanePad;
+    const float RunY = Extent.MinimumY + (Extent.Height() - Run) * 0.5f;
+    const float RunLead = Cell.MaximumX + Scaled.PanePad;
 
-    float RunCeiling = Extent.MostAlong - Scaled.PanePad;
+    float RunCeiling = Extent.MaximumX - Scaled.PanePad;
 
     if (Chord != nullptr && Chord[0] != '\0')
     {
@@ -1517,18 +1517,18 @@ bool GlobalShellPanel::RecordActionRow(const PlaneExtent& Extent, ControlIdentit
         const float ChordRun  = Scaled.RunFiner;
         const float ChordLead = RunCeiling - Surface->MeasureRun(Chord, ChordRun, 0.0f);
 
-        Surface->TextRun(ChordLead, Extent.LeastAcross + (Extent.SpanAcross() - ChordRun) * 0.5f,
+        Surface->TextRun(ChordLead, Extent.MinimumY + (Extent.Height() - ChordRun) * 0.5f,
                          Tinted.Faint, Chord, ChordRun);
 
         RunCeiling = ChordLead - Scaled.PanePad;
     }
 
-    Surface->TextRunTruncated(RunLead, RunSeat, RunCeiling, Colour, Caption, Run);
+    Surface->TextRunTruncated(RunLead, RunY, RunCeiling, Colour, Caption, Run);
 
     return Taken;
 }
 
-void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& Applied,
                                       const EntityRow* Rows, std::uint32_t RowCount)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
@@ -1536,17 +1536,17 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& S
     const float Pad = Scaled.PanePad;
 
     // ① Nothing taken. 📐 The reference centres a 48 px crosshair tile, a heading and one wrapped line.
-    if (Rows == nullptr || RowCount == 0u || Seated.EntityTaken >= RowCount ||
-        Seated.EntityTaken >= RowCeiling)
+    if (Rows == nullptr || RowCount == 0u || Applied.EntityTaken >= RowCount ||
+        Applied.EntityTaken >= RowCeiling)
     {
         const float TileExtent = Scaled.HeroCrest * (48.0f / 34.0f);
         const float Run        = Scaled.RunPrimary;
         const float Fine       = Scaled.RunSecondary;
         const float Stack      = TileExtent + Pad * 2.0f + Run * RunLeading + Fine * RunLeading;
-        float       Cursor     = Extent.LeastAcross + (Extent.SpanAcross() - Stack) * 0.5f;
+        float       Sweep     = Extent.MinimumY + (Extent.Height() - Stack) * 0.5f;
 
-        const PlaneExtent Tile = Spanning(Extent.LeastAlong + (Extent.SpanAlong() - TileExtent) * 0.5f,
-                                          Cursor, TileExtent, TileExtent);
+        const PlaneExtent Tile = Spanning(Extent.MinimumX + (Extent.Width() - TileExtent) * 0.5f,
+                                          Sweep, TileExtent, TileExtent);
 
         Surface->Ground(Tile, Tinted.Tile, Scaled.CardRadius, CornerAll);
         Surface->Edge(Tile, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
@@ -1554,80 +1554,80 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& S
         const float Figure = TileExtent * 0.5f;
 
         Surface->Stroke(SymbolSubject::CrosshairCentre,
-                        Spanning(Tile.LeastAlong + (TileExtent - Figure) * 0.5f,
-                                 Tile.LeastAcross + (TileExtent - Figure) * 0.5f, Figure, Figure),
+                        Spanning(Tile.MinimumX + (TileExtent - Figure) * 0.5f,
+                                 Tile.MinimumY + (TileExtent - Figure) * 0.5f, Figure, Figure),
                         Tinted.Muted);
 
-        Cursor = Tile.MostAcross + Pad * 2.0f;
+        Sweep = Tile.MaximumY + Pad * 2.0f;
 
         const char* Heading = "Properties Overview";
         const char* Prose   = "Select a record in the directory to view its details.";
 
-        Surface->TextRun(Extent.LeastAlong + (Extent.SpanAlong() -
+        Surface->TextRun(Extent.MinimumX + (Extent.Width() -
                                               Surface->MeasureRun(Heading, Run, 0.0f)) * 0.5f,
-                         Cursor, Tinted.Primary, Heading, Run, 0.0f, true);
+                         Sweep, Tinted.Primary, Heading, Run, 0.0f, true);
 
-        Cursor += Run * RunLeading;
+        Sweep += Run * RunLeading;
 
-        Surface->TextRun(Extent.LeastAlong + (Extent.SpanAlong() -
+        Surface->TextRun(Extent.MinimumX + (Extent.Width() -
                                               Surface->MeasureRun(Prose, Fine, 0.0f)) * 0.5f,
-                         Cursor, Tinted.Faint, Prose, Fine);
+                         Sweep, Tinted.Faint, Prose, Fine);
         return;
     }
 
-    const std::uint32_t Ordinal   = Seated.EntityTaken;
-    const EntityRow&    Presented = Rows[Ordinal];
-    const EntityProfile& Profiled = Seated.EntityProfiles[Ordinal];
-    const ThemeToken   Hue       = EntityHue(Presented.Subject);
-    const bool          Absent    = !Seated.EntityPresent[Ordinal];
+    const std::uint32_t Ordinal   = Applied.EntityTaken;
+    const EntityRow&    Current = Rows[Ordinal];
+    const EntityProfile& Profiled = Applied.EntityProfiles[Ordinal];
+    const ThemeToken   Hue       = EntityHue(Current.Subject);
+    const bool          Absent    = !Applied.EntityPresent[Ordinal];
 
     // 📐 The reference mints `g_NN`; the ordinal is that identity here, so the two read side by side.
     char Token[12] = {};
     std::snprintf(Token, sizeof(Token), "g_%02u", static_cast<unsigned>(Ordinal + 1u));
 
-    const PlaneExtent Footer = Spanning(Extent.LeastAlong, Extent.MostAcross - Scaled.FooterAcross,
-                                        Extent.SpanAlong(), Scaled.FooterAcross);
+    const PlaneExtent Footer = Spanning(Extent.MinimumX, Extent.MaximumY - Scaled.FooterHeight,
+                                        Extent.Width(), Scaled.FooterHeight);
 
-    const PlaneExtent Body = Spanning(Extent.LeastAlong + Pad * 1.5f, Extent.LeastAcross + Pad * 1.5f,
-                                      Extent.SpanAlong() - Pad * 3.0f,
-                                      Footer.LeastAcross - Extent.LeastAcross - Pad * 3.0f);
+    const PlaneExtent Body = Spanning(Extent.MinimumX + Pad * 1.5f, Extent.MinimumY + Pad * 1.5f,
+                                      Extent.Width() - Pad * 3.0f,
+                                      Footer.MinimumY - Extent.MinimumY - Pad * 3.0f);
 
     Surface->Confine(Body);
 
-    float Cursor = Body.LeastAcross;
+    float Sweep = Body.MinimumY;
 
     // ② The hero tile — a black crest, the naming, and the classification in the subject's own hue.
     {
-        const float HeroAcross = Scaled.HeroCrest + Scaled.HeroPad * 2.0f;
-        const PlaneExtent Hero = Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(), HeroAcross);
+        const float HeroHeight = Scaled.HeroCrest + Scaled.HeroPad * 2.0f;
+        const PlaneExtent Hero = Spanning(Body.MinimumX, Sweep, Body.Width(), HeroHeight);
 
         Surface->Ground(Hero, Tinted.Tile, Scaled.CardRadius, CornerAll);
         Surface->Edge(Hero, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
 
-        const PlaneExtent Crest = Spanning(Hero.LeastAlong + Scaled.HeroPad, Hero.LeastAcross + Scaled.HeroPad,
+        const PlaneExtent Crest = Spanning(Hero.MinimumX + Scaled.HeroPad, Hero.MinimumY + Scaled.HeroPad,
                                            Scaled.HeroCrest, Scaled.HeroCrest);
 
         Surface->Ground(Crest, Covering(0x000000u), Scaled.LayerRadius, CornerAll);
 
         const float Figure = Scaled.HeroCrest * (24.0f / 34.0f);
 
-        Surface->Stroke(EntityGlyph(Presented.Subject),
-                        Spanning(Crest.LeastAlong + (Scaled.HeroCrest - Figure) * 0.5f,
-                                 Crest.LeastAcross + (Scaled.HeroCrest - Figure) * 0.5f, Figure, Figure),
+        Surface->Stroke(EntityGlyph(Current.Subject),
+                        Spanning(Crest.MinimumX + (Scaled.HeroCrest - Figure) * 0.5f,
+                                 Crest.MinimumY + (Scaled.HeroCrest - Figure) * 0.5f, Figure, Figure),
                         Covering(0xFFFFFFu));
 
         const float NamingRun = Scaled.RunPrimary + 0.5f;
         const float ClassRun  = Scaled.RunSmall;
         const float PairSpan  = NamingRun * RunLeading + ClassRun * RunLeading;
-        const float PairSeat  = Hero.LeastAcross + (HeroAcross - PairSpan) * 0.5f;
-        const float RunLead   = Crest.MostAlong + Scaled.HeroPad;
+        const float PairY  = Hero.MinimumY + (HeroHeight - PairSpan) * 0.5f;
+        const float RunLead   = Crest.MaximumX + Scaled.HeroPad;
 
-        Surface->TextRunTruncated(RunLead, PairSeat, Hero.MostAlong - Scaled.HeroPad,
-                                  Tinted.Primary, Presented.Naming, NamingRun, true);
-        Surface->TextRun(RunLead, PairSeat + NamingRun * RunLeading, Hue,
-                         EntityText(Presented.Subject), ClassRun, 0.0f, true);
+        Surface->TextRunTruncated(RunLead, PairY, Hero.MaximumX - Scaled.HeroPad,
+                                  Tinted.Primary, Current.Naming, NamingRun, true);
+        Surface->TextRun(RunLead, PairY + NamingRun * RunLeading, Hue,
+                         EntityText(Current.Subject), ClassRun, 0.0f, true);
 
-        Cursor = Hero.MostAcross + Pad * 1.5f;
+        Sweep = Hero.MaximumY + Pad * 1.5f;
     }
 
     // ③ The stat rows, exactly the run `getStats` assembles and in its own order.
@@ -1636,17 +1636,17 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& S
 
         const auto Stated = [&](const char* Caption, const char* Value)
         {
-            Cursor += RecordStatRow(Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(), Scaled.StatAcross),
+            Sweep += RecordStatRow(Spanning(Body.MinimumX, Sweep, Body.Width(), Scaled.StatY),
                                     Caption, Value);
         };
 
         Stated("Token", Token);
         Stated("Visible", Absent ? "hidden" : "shown");
 
-        if (Presented.EnclosedCount > 0u)
+        if (Current.EnclosedCount > 0u)
         {
             std::snprintf(Reading, sizeof(Reading), "%u records",
-                          static_cast<unsigned>(Presented.EnclosedCount));
+                          static_cast<unsigned>(Current.EnclosedCount));
             Stated("Nested", Reading);
         }
 
@@ -1684,15 +1684,15 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& S
         // ④ The albedo row, which states its three components and a disc filled with them.
         if (Profiled.AlbedoDeclared)
         {
-            const PlaneExtent Row = Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(), Scaled.StatAcross);
+            const PlaneExtent Row = Spanning(Body.MinimumX, Sweep, Body.Width(), Scaled.StatY);
             const float       Run = Scaled.RunSecondary;
-            const float       Top = Row.LeastAcross + (Row.SpanAcross() - Run) * 0.5f;
+            const float       Top = Row.MinimumY + (Row.Height() - Run) * 0.5f;
 
-            Surface->TextRun(Row.LeastAlong, Top, Tinted.Muted, "Albedo", Run);
+            Surface->TextRun(Row.MinimumX, Top, Tinted.Muted, "Albedo", Run);
 
             const PlaneExtent Disc =
-                Spanning(Row.MostAlong - Scaled.SwatchExtent,
-                         Row.LeastAcross + (Row.SpanAcross() - Scaled.SwatchExtent) * 0.5f,
+                Spanning(Row.MaximumX - Scaled.SwatchExtent,
+                         Row.MinimumY + (Row.Height() - Scaled.SwatchExtent) * 0.5f,
                          Scaled.SwatchExtent, Scaled.SwatchExtent);
 
             const std::uint32_t Packed = (Profiled.Albedo[0] << 16) | (Profiled.Albedo[1] << 8)
@@ -1706,39 +1706,39 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& S
                           static_cast<unsigned>(Profiled.Albedo[1]),
                           static_cast<unsigned>(Profiled.Albedo[2]));
 
-            Surface->TextRun(Disc.LeastAlong - Pad - Surface->MeasureRun(Reading, Run, 0.0f), Top,
+            Surface->TextRun(Disc.MinimumX - Pad - Surface->MeasureRun(Reading, Run, 0.0f), Top,
                              Tinted.Primary, Reading, Run);
 
-            Surface->Ground(Spanning(Row.LeastAlong, Row.MostAcross - 1.0f, Row.SpanAlong(), 1.0f),
+            Surface->Ground(Spanning(Row.MinimumX, Row.MaximumY - 1.0f, Row.Width(), 1.0f),
                             Tinted.Hairline, 0.0f, CornerNone);
 
-            Cursor += Row.SpanAcross();
+            Sweep += Row.Height();
         }
     }
 
     // ⑤ The call that carries the artist to slide two — the pointer twin of Tab, and it says so.
     {
-        Cursor += Pad;
+        Sweep += Pad;
 
-        const PlaneExtent Call = Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(), Scaled.AdvanceAcross);
-        const bool        Over = Call.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        const PlaneExtent Call = Spanning(Body.MinimumX, Sweep, Body.Width(), Scaled.AdvanceY);
+        const bool        Over = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactArrived && Over && !Ledger->AnyDisclosed())
-            Ledger->Seize(AdvanceCall, ControlPart::Body);
+        if (Sampled.ContactPressed && Over && !Ledger->AnyDisclosed())
+            Ledger->Grab(AdvanceCall, ControlPart::Body);
 
         if (Over && Ledger->Released(AdvanceCall))
         {
-            Seated.InspectorShown = true;
+            Applied.InspectorShown = true;
 
             if (Motion != nullptr)
             {
                 EasedInterpolant& Travelling = Motion->Eased(CarouselSlide);
 
-                Travelling.Depart(Travelling.Standing(), 1.0, CarouselTravelOver, 0.0, EaseCurve::Carousel);
+                Travelling.Depart(Travelling.Current(), 1.0, CarouselTravelOver, 0.0, EaseCurve::Carousel);
             }
         }
 
-        Ledger->DeclareRoused(AdvanceCall, Over, RouseOver);
+        Ledger->DeclareHovered(AdvanceCall, Over, HoverOver);
 
         // 📐 `bg-[rgba(91,140,255,.13)] border-[var(--accent)]`, rousing to `.2` of the same accent.
         Surface->Ground(Call, Over ? Faded(Tinted.Accent, 0.20f) : Tinted.AccentSoft,
@@ -1750,92 +1750,92 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& S
         const float Run      = Scaled.RunSecondary;
         const float Fine     = Scaled.RunFiner;
         const float Figure   = Scaled.ActionGlyph;
-        const float PillSpan = Surface->MeasureRun(PillRun, Fine, 0.0f) + Scaled.PillPadAlong * 2.0f;
+        const float PillSpan = Surface->MeasureRun(PillRun, Fine, 0.0f) + Scaled.PillPadX * 2.0f;
         const float Whole    = Figure + Pad + Surface->MeasureRun(Caption, Run, 0.0f) + Pad + PillSpan;
 
-        float Lead = Call.LeastAlong + (Call.SpanAlong() - Whole) * 0.5f;
+        float Lead = Call.MinimumX + (Call.Width() - Whole) * 0.5f;
 
         Surface->Stroke(SymbolSubject::GearCog,
-                        Spanning(Lead, Call.LeastAcross + (Call.SpanAcross() - Figure) * 0.5f,
+                        Spanning(Lead, Call.MinimumY + (Call.Height() - Figure) * 0.5f,
                                  Figure, Figure),
                         Tinted.Primary);
 
         Lead += Figure + Pad;
 
-        Surface->TextRun(Lead, Call.LeastAcross + (Call.SpanAcross() - Run) * 0.5f,
+        Surface->TextRun(Lead, Call.MinimumY + (Call.Height() - Run) * 0.5f,
                          Tinted.Primary, Caption, Run, 0.0f, true);
 
         Lead += Surface->MeasureRun(Caption, Run, 0.0f) + Pad;
 
-        const float PillAcross = Fine + 6.0f;
-        const PlaneExtent Pill = Spanning(Lead, Call.LeastAcross + (Call.SpanAcross() - PillAcross) * 0.5f,
-                                          PillSpan, PillAcross);
+        const float PillY = Fine + 6.0f;
+        const PlaneExtent Pill = Spanning(Lead, Call.MinimumY + (Call.Height() - PillY) * 0.5f,
+                                          PillSpan, PillY);
 
-        Surface->Ground(Pill, Tinted.MenuLower, PillAcross * 0.5f, CornerAll);
-        Surface->TextRun(Pill.LeastAlong + Scaled.PillPadAlong,
-                         Pill.LeastAcross + (PillAcross - Fine) * 0.5f, Tinted.Muted, PillRun, Fine);
+        Surface->Ground(Pill, Tinted.MenuLower, PillY * 0.5f, CornerAll);
+        Surface->TextRun(Pill.MinimumX + Scaled.PillPadX,
+                         Pill.MinimumY + (PillY - Fine) * 0.5f, Tinted.Muted, PillRun, Fine);
 
-        Cursor = Call.MostAcross + Pad * 2.0f;
+        Sweep = Call.MaximumY + Pad * 2.0f;
     }
 
     // ⑥ The five inline actions beneath their own heading.
     {
         const float HeadRun = Scaled.RunFiner;
 
-        Surface->TextRunCapitalised(Body.LeastAlong + Pad * 0.5f, Cursor, Tinted.Faint, "Actions",
+        Surface->TextRunCapitalised(Body.MinimumX + Pad * 0.5f, Sweep, Tinted.Faint, "Actions",
                                     HeadRun, 0.09f, true);
 
-        Cursor += HeadRun * RunLeading + Pad * 0.5f;
+        Sweep += HeadRun * RunLeading + Pad * 0.5f;
 
         // 📝 Stand-in figures where the reference reaches for a lucide glyph this build has not authored
         //    yet — `type` and `copy` in particular. The four exact ones are plus, eye, eye-off and trash-2.
-        const PlaneExtent NewRecord = Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(), Scaled.ActionAcross);
+        const PlaneExtent NewRecord = Spanning(Body.MinimumX, Sweep, Body.Width(), Scaled.ActionY);
 
         static_cast<void>(RecordActionRow(NewRecord, MetadataActions[0], SymbolSubject::PlusCross,
                                           "New record", nullptr, Tinted.Primary, Tinted.Muted));
-        Cursor += Scaled.ActionAcross;
+        Sweep += Scaled.ActionY;
 
-        Surface->Ground(Spanning(Body.LeastAlong + Pad, Cursor + Pad * 0.5f,
-                                 Body.SpanAlong() - Pad * 2.0f, 1.0f),
+        Surface->Ground(Spanning(Body.MinimumX + Pad, Sweep + Pad * 0.5f,
+                                 Body.Width() - Pad * 2.0f, 1.0f),
                         Tinted.Hairline, 0.0f, CornerNone);
-        Cursor += Pad;
+        Sweep += Pad;
 
-        static_cast<void>(RecordActionRow(Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(),
-                                                   Scaled.ActionAcross),
+        static_cast<void>(RecordActionRow(Spanning(Body.MinimumX, Sweep, Body.Width(),
+                                                   Scaled.ActionY),
                                           MetadataActions[1], SymbolSubject::ColumnArrangement,
                                           "Rename", "F2", Tinted.Primary, Tinted.Muted));
-        Cursor += Scaled.ActionAcross;
+        Sweep += Scaled.ActionY;
 
-        static_cast<void>(RecordActionRow(Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(),
-                                                   Scaled.ActionAcross),
+        static_cast<void>(RecordActionRow(Spanning(Body.MinimumX, Sweep, Body.Width(),
+                                                   Scaled.ActionY),
                                           MetadataActions[2], SymbolSubject::LatticeArrangement,
                                           "Duplicate", "Ctrl D", Tinted.Primary, Tinted.Muted));
-        Cursor += Scaled.ActionAcross;
+        Sweep += Scaled.ActionY;
 
         // 📐 The row states the action rather than the condition: a shown record offers Hide, and the eye
         //    it carries is the one the reference draws for the condition the record is IN.
-        if (RecordActionRow(Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(), Scaled.ActionAcross),
+        if (RecordActionRow(Spanning(Body.MinimumX, Sweep, Body.Width(), Scaled.ActionY),
                             MetadataActions[3],
                             Absent ? SymbolSubject::EyeClosed : SymbolSubject::EyeOpen,
                             Absent ? "Show" : "Hide", "H", Tinted.Primary, Tinted.Muted))
         {
-            const bool Arriving = Absent;
+            const bool Incoming = Absent;
 
-            Seated.EntityPresent[Ordinal] = Arriving;
+            Applied.EntityPresent[Ordinal] = Incoming;
 
             for (std::uint32_t Inward = Ordinal + 1u; Inward < RowCount && Inward < RowCeiling; ++Inward)
             {
-                if (Rows[Inward].Depth <= Presented.Depth)
+                if (Rows[Inward].Depth <= Current.Depth)
                     break;
 
-                Seated.EntityPresent[Inward] = Arriving;
+                Applied.EntityPresent[Inward] = Incoming;
             }
         }
 
-        Cursor += Scaled.ActionAcross;
+        Sweep += Scaled.ActionY;
 
-        static_cast<void>(RecordActionRow(Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(),
-                                                   Scaled.ActionAcross),
+        static_cast<void>(RecordActionRow(Spanning(Body.MinimumX, Sweep, Body.Width(),
+                                                   Scaled.ActionY),
                                           MetadataActions[4], SymbolSubject::TrashBin,
                                           "Delete", "Del", Covering(0xFF6B6Bu), Covering(0xFF6B6Bu)));
     }
@@ -1844,20 +1844,20 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& S
 
     // ⑦ The footer — the subject's hue as a chip, its naming, and the token hard against the trailing edge.
     Surface->Ground(Footer, Tinted.MenuLower, 0.0f, CornerNone);
-    Surface->Ground(Spanning(Footer.LeastAlong, Footer.LeastAcross, Footer.SpanAlong(), 1.0f),
+    Surface->Ground(Spanning(Footer.MinimumX, Footer.MinimumY, Footer.Width(), 1.0f),
                     Tinted.Hairline, 0.0f, CornerNone);
 
     const float FooterRun = Scaled.RunFine;
-    const float FooterTop = Footer.LeastAcross + (Footer.SpanAcross() - FooterRun) * 0.5f;
-    const float ChipSeat  = Footer.LeastAcross + (Footer.SpanAcross() - Scaled.ChipExtent) * 0.5f;
+    const float FooterTop = Footer.MinimumY + (Footer.Height() - FooterRun) * 0.5f;
+    const float ChipY  = Footer.MinimumY + (Footer.Height() - Scaled.ChipExtent) * 0.5f;
 
-    Surface->Ground(Spanning(Footer.LeastAlong + Scaled.HeaderPadAlong, ChipSeat,
+    Surface->Ground(Spanning(Footer.MinimumX + Scaled.HeaderPadX, ChipY,
                              Scaled.ChipExtent, Scaled.ChipExtent), Hue, 2.0f, CornerAll);
 
-    Surface->TextRun(Footer.LeastAlong + Scaled.HeaderPadAlong + Scaled.ChipExtent + Pad, FooterTop,
-                     Tinted.Muted, EntityText(Presented.Subject), FooterRun);
+    Surface->TextRun(Footer.MinimumX + Scaled.HeaderPadX + Scaled.ChipExtent + Pad, FooterTop,
+                     Tinted.Muted, EntityText(Current.Subject), FooterRun);
 
-    Surface->TextRun(Footer.MostAlong - Scaled.HeaderPadAlong -
+    Surface->TextRun(Footer.MaximumX - Scaled.HeaderPadX -
                      Surface->MeasureRun(Token, FooterRun, 0.0f), FooterTop,
                      Tinted.Muted, Token, FooterRun);
 }
@@ -1866,26 +1866,26 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellContext& S
 //                                                     THE COMPONENTS
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellContext& Applied,
                                            const EntityRow* Rows, std::uint32_t RowCount)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
-    if (Seated.EntityTaken >= RowCount || Seated.EntityTaken >= RowCeiling)
+    if (Applied.EntityTaken >= RowCount || Applied.EntityTaken >= RowCeiling)
     {
         const float ProseRun = Scaled.RunSecondary;
         const char* Prose    = "Select a record to inspect its properties.";
-        const float ProseLead = Extent.LeastAlong
-                              + (Extent.SpanAlong() - Surface->MeasureRun(Prose, ProseRun, 0.0f)) * 0.5f;
+        const float ProseLead = Extent.MinimumX
+                              + (Extent.Width() - Surface->MeasureRun(Prose, ProseRun, 0.0f)) * 0.5f;
 
-        Surface->TextRun(ProseLead, Extent.LeastAcross + Scaled.HeaderAcross, Tinted.Faint, Prose, ProseRun);
+        Surface->TextRun(ProseLead, Extent.MinimumY + Scaled.HeaderHeight, Tinted.Faint, Prose, ProseRun);
         return;
     }
 
-    const EntityRow& Presented = Rows[Seated.EntityTaken];
+    const EntityRow& Current = Rows[Applied.EntityTaken];
 
     const float Pad    = Scaled.PanePad;
-    float       Cursor = Extent.LeastAcross + Pad;
+    float       Sweep = Extent.MinimumY + Pad;
 
     Surface->Confine(Extent);
 
@@ -1899,58 +1899,58 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
         if (CardOrdinal >= CardCeiling)
             return;
 
-        const std::uint32_t Claimed = CardOrdinal++;
+        const std::uint32_t Target = CardOrdinal++;
 
         // 🔴 The fold is a fraction and not a flag, so the body's extent is what animates. Folded to a
         //    flag, the card would vanish between two frames and the 200 ms the reference states would be
         //    visible nowhere.
-        const bool  Folded   = Seated.CardFolded[Claimed];
-        const float Standing = Controls.OutlineExpansion(CardFolds[Claimed], !Folded, true);
+        const bool  Folded   = Applied.CardFolded[Target];
+        const float Current = Controls.OutlineExpansion(CardFolds[Target], !Folded, true);
 
-        const float BodyAcross = (static_cast<float>(RowCount2) * Scaled.RowAcross + Pad * 2.0f) * Standing;
-        const PlaneExtent Card = Spanning(Extent.LeastAlong + Pad, Cursor,
-                                          Extent.SpanAlong() - Pad * 2.0f,
-                                          Scaled.ComponentAcross + BodyAcross);
+        const float BodyHeight = (static_cast<float>(RowCount2) * Scaled.RowHeight + Pad * 2.0f) * Current;
+        const PlaneExtent Card = Spanning(Extent.MinimumX + Pad, Sweep,
+                                          Extent.Width() - Pad * 2.0f,
+                                          Scaled.ComponentY + BodyHeight);
 
         Surface->Ground(Card, Covering(0x0A0A0Bu), Scaled.CardRadius, CornerAll);
         Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.CardRadius, CornerAll);
 
-        const PlaneExtent CardHeader = Spanning(Card.LeastAlong, Card.LeastAcross,
-                                                Card.SpanAlong(), Scaled.ComponentAcross);
+        const PlaneExtent CardHeader = Spanning(Card.MinimumX, Card.MinimumY,
+                                                Card.Width(), Scaled.ComponentY);
 
         Surface->Ground(CardHeader, Tinted.MenuLower, Scaled.CardRadius,
                         CornerLeadingUpper | CornerTrailingUpper);
 
-        const bool OnHeader = CardHeader.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        const bool OnHeader = CardHeader.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactArrived && OnHeader && !Ledger->AnyDisclosed())
-            Ledger->Seize(CardFolds[Claimed], ControlPart::Chevron);
+        if (Sampled.ContactPressed && OnHeader && !Ledger->AnyDisclosed())
+            Ledger->Grab(CardFolds[Target], ControlPart::Chevron);
 
-        if (OnHeader && Ledger->Released(CardFolds[Claimed]))
-            Seated.CardFolded[Claimed] = !Seated.CardFolded[Claimed];
+        if (OnHeader && Ledger->Released(CardFolds[Target]))
+            Applied.CardFolded[Target] = !Applied.CardFolded[Target];
 
         // 📐 `border-b border-transparent` while folded, and the hairline only once disclosed.
-        if (Standing > 0.0f)
+        if (Current > 0.0f)
         {
-            Surface->Ground(Spanning(CardHeader.LeastAlong, CardHeader.MostAcross - 1.0f,
-                                     CardHeader.SpanAlong(), 1.0f),
-                            Faded(Tinted.Hairline, Standing), 0.0f, CornerNone);
+            Surface->Ground(Spanning(CardHeader.MinimumX, CardHeader.MaximumY - 1.0f,
+                                     CardHeader.Width(), 1.0f),
+                            Faded(Tinted.Hairline, Current), 0.0f, CornerNone);
         }
 
         // 📐 The chevron turns `-rotate-90` while folded; the two figures are the turn.
         const float Mark = Scaled.ActionGlyph;
 
         Surface->Stroke(Folded ? SymbolSubject::ChevronRight : SymbolSubject::ChevronDown,
-                        Spanning(CardHeader.LeastAlong + Scaled.HeaderPadAlong * 0.6f,
-                                 CardHeader.LeastAcross + (CardHeader.SpanAcross() - Mark) * 0.5f,
+                        Spanning(CardHeader.MinimumX + Scaled.HeaderPadX * 0.6f,
+                                 CardHeader.MinimumY + (CardHeader.Height() - Mark) * 0.5f,
                                  Mark, Mark),
                         Tinted.Faint);
 
         const float CaptionRun = Scaled.RunSmall;
 
         // 📐 `uppercase tracking-wide` at 10.5 px.
-        Surface->TextRunCapitalised(CardHeader.LeastAlong + Scaled.HeaderPadAlong * 0.6f + Mark + Pad,
-                                    CardHeader.LeastAcross + (CardHeader.SpanAcross() - CaptionRun) * 0.5f,
+        Surface->TextRunCapitalised(CardHeader.MinimumX + Scaled.HeaderPadX * 0.6f + Mark + Pad,
+                                    CardHeader.MinimumY + (CardHeader.Height() - CaptionRun) * 0.5f,
                                     OnHeader ? Tinted.Primary : Tinted.Muted, Caption, CaptionRun,
                                     0.025f, true);
 
@@ -1960,52 +1960,52 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 
         const float TallyRun = Scaled.RunFiner;
 
-        Surface->TextRun(CardHeader.MostAlong - Scaled.HeaderPadAlong
+        Surface->TextRun(CardHeader.MaximumX - Scaled.HeaderPadX
                          - Surface->MeasureRun(Tallied, TallyRun, 0.0f),
-                         CardHeader.LeastAcross + (CardHeader.SpanAcross() - TallyRun) * 0.5f,
+                         CardHeader.MinimumY + (CardHeader.Height() - TallyRun) * 0.5f,
                          Tinted.Faint, Tallied, TallyRun);
 
         // 🔴 The body is confined to whatever the fold has opened, so a row half way through the travel
         //    is clipped rather than drawn over the card beneath it.
-        if (Standing > 0.0f)
+        if (Current > 0.0f)
         {
-            const PlaneExtent Opened = Spanning(Card.LeastAlong, CardHeader.MostAcross,
-                                                Card.SpanAlong(), BodyAcross);
+            const PlaneExtent Opened = Spanning(Card.MinimumX, CardHeader.MaximumY,
+                                                Card.Width(), BodyHeight);
 
             Surface->Confine(Opened);
 
-            float RowCursor = CardHeader.MostAcross + Pad;
+            float RowCursor = CardHeader.MaximumY + Pad;
 
             for (std::uint32_t Ordinal = 0u; Ordinal < RowCount2; ++Ordinal)
             {
                 const float LabelRun = Scaled.RunSecondary;
-                const float LabelTop = RowCursor + (Scaled.RowAcross - LabelRun) * 0.5f;
+                const float LabelTop = RowCursor + (Scaled.RowHeight - LabelRun) * 0.5f;
 
-                Surface->TextRun(Card.LeastAlong + Pad * 1.5f, LabelTop, Tinted.Muted,
+                Surface->TextRun(Card.MinimumX + Pad * 1.5f, LabelTop, Tinted.Muted,
                                  Rows2[Ordinal], LabelRun);
 
                 // 📝 The value cell, `--value-bg` at `--value-radius`, presented but not yet editable —
                 //    the reference's own handlers are `onChange={()=>{}}` for every component field.
-                const float CellAlong = Card.SpanAlong() * 0.45f;
+                const float CellX = Card.Width() * 0.45f;
                 const PlaneExtent Cell =
-                    Spanning(Card.MostAlong - Pad * 1.5f - CellAlong,
-                             RowCursor + (Scaled.RowAcross - Scaled.SearchAcross * 0.8f) * 0.5f,
-                             CellAlong, Scaled.SearchAcross * 0.8f);
+                    Spanning(Card.MaximumX - Pad * 1.5f - CellX,
+                             RowCursor + (Scaled.RowHeight - Scaled.SearchHeight * 0.8f) * 0.5f,
+                             CellX, Scaled.SearchHeight * 0.8f);
 
                 Surface->Ground(Cell, Covering(0x232326u), Scaled.FieldRadius, CornerAll);
 
-                RowCursor += Scaled.RowAcross;
+                RowCursor += Scaled.RowHeight;
             }
 
             Surface->Release();
         }
 
-        Cursor = Card.MostAcross + Pad * 0.85f;
+        Sweep = Card.MaximumY + Pad * 0.85f;
     };
 
-    const bool Transforms = Presented.Subject != EntitySubject::Level
-                         && Presented.Subject != EntitySubject::Grouping
-                         && Presented.Subject != EntitySubject::Script;
+    const bool Transforms = Current.Subject != EntitySubject::Level
+                         && Current.Subject != EntitySubject::Grouping
+                         && Current.Subject != EntitySubject::Script;
 
     if (Transforms)
     {
@@ -2015,10 +2015,10 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 
     char ComponentCaption[48] = {};
     std::snprintf(ComponentCaption, sizeof(ComponentCaption), "%s Component",
-                  EntityText(Presented.Subject));
+                  EntityText(Current.Subject));
 
     // 📐 The per-subject field sets, transcribed from the reference's own component branch.
-    switch (Presented.Subject)
+    switch (Current.Subject)
     {
         case EntitySubject::Illuminant:
         {
@@ -2089,7 +2089,7 @@ void GlobalShellPanel::RecordPropertyCards(const PlaneExtent& Extent, ShellConte
 //                                                    THE REVISION SPINE
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellContext& Applied,
                                            const EntityRow* Rows, std::uint32_t RowCount,
                                            const EntityRevision* Revisions, std::uint32_t RevisionCount)
 {
@@ -2098,55 +2098,55 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
     if (Revisions == nullptr)
         RevisionCount = 0u;
 
-    const bool Selected = Seated.EntityTaken < RowCount && Seated.EntityTaken < RowCeiling;
+    const bool Selected = Applied.EntityTaken < RowCount && Applied.EntityTaken < RowCeiling;
 
     // 📐 The reference gathers the taken record AND everything nested inside it, so a folder presents
     //    its children's revisions too. The run is linear and carries depth, so the descent is the span of
     //    rows deeper than the taken one that follow it.
-    std::uint32_t Least = Seated.EntityTaken;
-    std::uint32_t Most  = Seated.EntityTaken;
+    std::uint32_t Minimum = Applied.EntityTaken;
+    std::uint32_t Maximum  = Applied.EntityTaken;
 
     if (Selected)
     {
-        for (std::uint32_t Inward = Seated.EntityTaken + 1u; Inward < RowCount && Inward < RowCeiling;
+        for (std::uint32_t Inward = Applied.EntityTaken + 1u; Inward < RowCount && Inward < RowCeiling;
              ++Inward)
         {
-            if (Rows[Inward].Depth <= Rows[Seated.EntityTaken].Depth)
+            if (Rows[Inward].Depth <= Rows[Applied.EntityTaken].Depth)
                 break;
 
-            Most = Inward;
+            Maximum = Inward;
         }
     }
 
-    std::uint32_t Standing = 0u;
+    std::uint32_t Current = 0u;
 
     if (Selected)
     {
         for (std::uint32_t Ordinal = 0u; Ordinal < RevisionCount; ++Ordinal)
         {
-            if (Revisions[Ordinal].Against >= Least && Revisions[Ordinal].Against <= Most)
-                ++Standing;
+            if (Revisions[Ordinal].Against >= Minimum && Revisions[Ordinal].Against <= Maximum)
+                ++Current;
         }
     }
 
-    if (!Selected || Standing == 0u)
+    if (!Selected || Current == 0u)
     {
         const float Run   = Scaled.RunSecondary;
         const char* Prose = "No history events found for this selection or its children.";
 
-        Surface->TextRun(Extent.LeastAlong + (Extent.SpanAlong()
+        Surface->TextRun(Extent.MinimumX + (Extent.Width()
                                               - Surface->MeasureRun(Prose, Run, 0.0f)) * 0.5f,
-                         Extent.LeastAcross + Scaled.HeaderAcross, Tinted.Faint, Prose, Run);
+                         Extent.MinimumY + Scaled.HeaderHeight, Tinted.Faint, Prose, Run);
         return;
     }
 
     const float Pad    = Scaled.PanePad;
-    float       Cursor = Extent.LeastAcross + Pad;
+    float       Sweep = Extent.MinimumY + Pad;
 
     Surface->Confine(Extent);
 
     // 📐 One group per record that carries a revision, in the run's own order.
-    for (std::uint32_t Against = Least; Against <= Most && Against < RowCeiling; ++Against)
+    for (std::uint32_t Against = Minimum; Against <= Maximum && Against < RowCeiling; ++Against)
     {
         std::uint32_t Held = 0u;
 
@@ -2163,24 +2163,24 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
         const ThemeToken Hue     = EntityHue(Grouped.Subject);
 
         // ① The group header, `h-[32px] px-[12px]`, which folds the whole group.
-        const PlaneExtent GroupHead = Spanning(Extent.LeastAlong + Pad, Cursor,
-                                               Extent.SpanAlong() - Pad * 2.0f, Scaled.RowAcross);
+        const PlaneExtent GroupHead = Spanning(Extent.MinimumX + Pad, Sweep,
+                                               Extent.Width() - Pad * 2.0f, Scaled.RowHeight);
 
-        const bool OnHead = GroupHead.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        const bool OnHead = GroupHead.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactArrived && OnHead && !Ledger->AnyDisclosed())
-            Ledger->Seize(RevisionGroups[Against], ControlPart::Chevron);
+        if (Sampled.ContactPressed && OnHead && !Ledger->AnyDisclosed())
+            Ledger->Grab(RevisionGroups[Against], ControlPart::Chevron);
 
         if (OnHead && Ledger->Released(RevisionGroups[Against]))
-            Seated.RevisionFolded[Against] = !Seated.RevisionFolded[Against];
+            Applied.RevisionFolded[Against] = !Applied.RevisionFolded[Against];
 
-        const bool  GroupFolded = Seated.RevisionFolded[Against];
+        const bool  GroupFolded = Applied.RevisionFolded[Against];
         const float Opened      = Controls.OutlineExpansion(RevisionGroups[Against], !GroupFolded, true);
 
         const float CrestExtent = Scaled.ActionGlyph + 5.0f;
-        const PlaneExtent Crest = Spanning(GroupHead.LeastAlong,
-                                           GroupHead.LeastAcross
-                                           + (GroupHead.SpanAcross() - CrestExtent) * 0.5f,
+        const PlaneExtent Crest = Spanning(GroupHead.MinimumX,
+                                           GroupHead.MinimumY
+                                           + (GroupHead.Height() - CrestExtent) * 0.5f,
                                            CrestExtent, CrestExtent);
 
         Surface->Ground(Crest, Hue, 5.0f, CornerAll);
@@ -2188,13 +2188,13 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
         const float CrestFigure = CrestExtent * 0.6f;
 
         Surface->Stroke(EntityGlyph(Grouped.Subject),
-                        Spanning(Crest.LeastAlong + (CrestExtent - CrestFigure) * 0.5f,
-                                 Crest.LeastAcross + (CrestExtent - CrestFigure) * 0.5f,
+                        Spanning(Crest.MinimumX + (CrestExtent - CrestFigure) * 0.5f,
+                                 Crest.MinimumY + (CrestExtent - CrestFigure) * 0.5f,
                                  CrestFigure, CrestFigure),
                         Covering(0xFFFFFFu));
 
         const float NameRun = Scaled.RunPrimary;
-        const float NameTop = GroupHead.LeastAcross + (GroupHead.SpanAcross() - NameRun) * 0.5f;
+        const float NameTop = GroupHead.MinimumY + (GroupHead.Height() - NameRun) * 0.5f;
 
         // 📐 `{n} ops` at the trailing edge, and the chevron outboard of it.
         char Tallied[16] = {};
@@ -2202,35 +2202,35 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
 
         const float TallyRun  = Scaled.RunFine;
         const float Mark      = Scaled.ActionGlyph;
-        const float TallyLead = GroupHead.MostAlong - Mark - Pad
+        const float TallyLead = GroupHead.MaximumX - Mark - Pad
                               - Surface->MeasureRun(Tallied, TallyRun, 0.0f);
 
-        Surface->TextRun(TallyLead, GroupHead.LeastAcross + (GroupHead.SpanAcross() - TallyRun) * 0.5f,
+        Surface->TextRun(TallyLead, GroupHead.MinimumY + (GroupHead.Height() - TallyRun) * 0.5f,
                          Tinted.Muted, Tallied, TallyRun);
 
         Surface->Stroke(GroupFolded ? SymbolSubject::ChevronRight : SymbolSubject::ChevronDown,
-                        Spanning(GroupHead.MostAlong - Mark,
-                                 GroupHead.LeastAcross + (GroupHead.SpanAcross() - Mark) * 0.5f,
+                        Spanning(GroupHead.MaximumX - Mark,
+                                 GroupHead.MinimumY + (GroupHead.Height() - Mark) * 0.5f,
                                  Mark, Mark),
                         Tinted.Faint);
 
-        Surface->TextRunTruncated(Crest.MostAlong + Pad, NameTop, TallyLead - Pad,
+        Surface->TextRunTruncated(Crest.MaximumX + Pad, NameTop, TallyLead - Pad,
                                   OnHead ? Covering(0xFFFFFFu) : Tinted.Primary,
                                   Grouped.Naming, NameRun, true);
 
-        Cursor += Scaled.RowAcross + 4.0f;
+        Sweep += Scaled.RowHeight + 4.0f;
 
         if (Opened <= 0.0f)
             continue;
 
         // ② The revisions themselves — a numbered bubble, the spine, and the card beside them.
-        const float CardAcross  = Scaled.LayerHeadAcross;
-        const float WholeAcross = static_cast<float>(Held) * (CardAcross + 4.0f) * Opened;
-        const PlaneExtent Stack = Spanning(Extent.LeastAlong, Cursor, Extent.SpanAlong(), WholeAcross);
+        const float CardHeight  = Scaled.LayerHeadHeight;
+        const float WholeHeight = static_cast<float>(Held) * (CardHeight + 4.0f) * Opened;
+        const PlaneExtent Stack = Spanning(Extent.MinimumX, Sweep, Extent.Width(), WholeHeight);
 
         Surface->Confine(Stack);
 
-        float         Along     = Cursor;
+        float         X     = Sweep;
         std::uint32_t Numbered  = 0u;
 
         for (std::uint32_t Ordinal = 0u; Ordinal < RevisionCount; ++Ordinal)
@@ -2244,15 +2244,15 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
             const bool Last  = Numbered + 1u == Held;
 
             const float BubbleExtent = 25.0f;
-            const float BubbleLead   = Extent.LeastAlong + Pad
+            const float BubbleLead   = Extent.MinimumX + Pad
                                      + (32.0f - BubbleExtent) * 0.5f;
-            const float BubbleMid    = Along + 7.0f + BubbleExtent * 0.5f;
+            const float BubbleMid    = X + 7.0f + BubbleExtent * 0.5f;
 
             // 📐 The spine, `w-[6px]`, stopping half way at the first and last of the group so the run
             //    reads as a bracket — the same rule the layer stack's own rail follows.
-            const float SpineMid  = Extent.LeastAlong + Pad + 32.0f + 15.0f * 0.5f;
-            const float SpineTop  = First ? BubbleMid : Along;
-            const float SpineFoot = Last  ? BubbleMid : Along + CardAcross + 4.0f;
+            const float SpineMid  = Extent.MinimumX + Pad + 32.0f + 15.0f * 0.5f;
+            const float SpineTop  = First ? BubbleMid : X;
+            const float SpineFoot = Last  ? BubbleMid : X + CardHeight + 4.0f;
 
             if (SpineFoot > SpineTop)
             {
@@ -2260,7 +2260,7 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
                                 Hue, 4.0f, CornerAll);
             }
 
-            Surface->Ground(Spanning(BubbleLead, Along + 7.0f, BubbleExtent, BubbleExtent),
+            Surface->Ground(Spanning(BubbleLead, X + 7.0f, BubbleExtent, BubbleExtent),
                             Hue, BubbleExtent * 0.5f, CornerAll);
 
             char Counted[4] = {};
@@ -2270,33 +2270,33 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
 
             Surface->TextRun(BubbleLead + (BubbleExtent
                                            - Surface->MeasureRun(Counted, CountRun, 0.0f)) * 0.5f,
-                             Along + 7.0f + (BubbleExtent - CountRun) * 0.5f,
+                             X + 7.0f + (BubbleExtent - CountRun) * 0.5f,
                              Covering(0xFFFFFFu), Counted, CountRun, 0.0f, true);
 
             // 📐 The 7 px node, ringed by 3 px of the pane's own ground.
             Surface->Medallion(SpineMid, BubbleMid, 6.5f, Tinted.MenuLower);
             Surface->Medallion(SpineMid, BubbleMid, 3.5f, Covering(0xFFFFFFu));
 
-            const PlaneExtent Card = Spanning(SpineMid + 15.0f * 0.5f + 8.0f, Along,
-                                              Extent.MostAlong - Pad
-                                              - (SpineMid + 15.0f * 0.5f + 8.0f), CardAcross);
+            const PlaneExtent Card = Spanning(SpineMid + 15.0f * 0.5f + 8.0f, X,
+                                              Extent.MaximumX - Pad
+                                              - (SpineMid + 15.0f * 0.5f + 8.0f), CardHeight);
 
-            const bool OnCard = Card.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+            const bool OnCard = Card.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-            Surface->Ground(Card, OnCard ? Tinted.TileRoused : Tinted.Tile, Scaled.LayerRadius, CornerAll);
+            Surface->Ground(Card, OnCard ? Tinted.TileHovered : Tinted.Tile, Scaled.LayerRadius, CornerAll);
             Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
 
             const RevisionDeclaration Declared{ Revised.Description, Revised.Secondary, Revised.TimeRun };
 
             Controls.RevisionRow(Card, Declared, OnCard);
 
-            Along    += CardAcross + 4.0f;
+            X    += CardHeight + 4.0f;
             Numbered += 1u;
         }
 
         Surface->Release();
 
-        Cursor += WholeAcross + Pad * 2.0f;
+        Sweep += WholeHeight + Pad * 2.0f;
     }
 
     Surface->Release();
@@ -2306,16 +2306,16 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellConte
 //                                                  SLIDE TWO, WHOLE
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext& Applied,
                                         const EntityRow* Rows, std::uint32_t RowCount,
                                         const EntityRevision* Revisions, std::uint32_t RevisionCount)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
-    const bool Selected = Seated.EntityTaken < RowCount && Seated.EntityTaken < RowCeiling;
+    const bool Selected = Applied.EntityTaken < RowCount && Applied.EntityTaken < RowCeiling;
 
-    const PlaneExtent Header = Spanning(Extent.LeastAlong, Extent.LeastAcross,
-                                        Extent.SpanAlong(), Scaled.HeaderAcross);
+    const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
+                                        Extent.Width(), Scaled.HeaderHeight);
 
     // ① The header, and the Back call it carries at its trailing edge.
     if (!Selected)
@@ -2325,25 +2325,25 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext&
     }
     else
     {
-        const EntityRow&  Presented = Rows[Seated.EntityTaken];
-        const ThemeToken Hue       = EntityHue(Presented.Subject);
+        const EntityRow&  Current = Rows[Applied.EntityTaken];
+        const ThemeToken Hue       = EntityHue(Current.Subject);
 
         char Classified[48] = {};
-        std::snprintf(Classified, sizeof(Classified), "%s Entity", EntityText(Presented.Subject));
+        std::snprintf(Classified, sizeof(Classified), "%s Entity", EntityText(Current.Subject));
 
-        RecordPaneHeader(Header, EntityGlyph(Presented.Subject), Hue, Covering(0x111111u),
-                         Presented.Naming, Classified);
+        RecordPaneHeader(Header, EntityGlyph(Current.Subject), Hue, Covering(0x111111u),
+                         Current.Naming, Classified);
 
         // 📝 The header's secondary run carries the entity hue rather than the shared faint colour, so it
         //    is recorded again over the shared header's own.
         const float SecondaryRun = Scaled.RunFine;
-        const float PairAcross   = Scaled.RunPrimary * RunLeading + SecondaryRun * RunLeading;
-        const float PairLead     = Header.LeastAcross + (Header.SpanAcross() - PairAcross) * 0.5f;
-        const float RunLead      = Header.LeastAlong + Scaled.HeaderPadAlong + Scaled.MedallionExtent
-                                 + Scaled.HeaderPadAlong * 0.8f;
+        const float PairHeight   = Scaled.RunPrimary * RunLeading + SecondaryRun * RunLeading;
+        const float PairLead     = Header.MinimumY + (Header.Height() - PairHeight) * 0.5f;
+        const float RunLead      = Header.MinimumX + Scaled.HeaderPadX + Scaled.MedallionExtent
+                                 + Scaled.HeaderPadX * 0.8f;
 
         Surface->TextRunTruncated(RunLead, PairLead + Scaled.RunPrimary * RunLeading,
-                                  Header.MostAlong - RunLead - Scaled.HeaderPadAlong,
+                                  Header.MaximumX - RunLead - Scaled.HeaderPadX,
                                   Hue, Classified, SecondaryRun, false);
     }
 
@@ -2355,98 +2355,98 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext&
         const float Mark     = Scaled.ActionGlyph * 0.9f;
         const float Gap      = Scaled.PanePad * 0.8f;
         const float CallSpan = Mark + Gap + Surface->MeasureRun(Caption, Run, 0.0f)
-                             + Scaled.HeaderPadAlong;
+                             + Scaled.HeaderPadX;
 
-        const PlaneExtent Call = Spanning(Header.MostAlong - Scaled.HeaderPadAlong - CallSpan,
-                                          Header.LeastAcross + (Header.SpanAcross() - 28.0f) * 0.5f,
+        const PlaneExtent Call = Spanning(Header.MaximumX - Scaled.HeaderPadX - CallSpan,
+                                          Header.MinimumY + (Header.Height() - 28.0f) * 0.5f,
                                           CallSpan, 28.0f);
 
-        const bool OnCall = Call.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        const bool OnCall = Call.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (Sampled.ContactArrived && OnCall && !Ledger->AnyDisclosed())
-            Ledger->Seize(BackCall, ControlPart::Body);
+        if (Sampled.ContactPressed && OnCall && !Ledger->AnyDisclosed())
+            Ledger->Grab(BackCall, ControlPart::Body);
 
         if (OnCall && Ledger->Released(BackCall))
         {
-            Seated.InspectorShown = false;
+            Applied.InspectorShown = false;
 
             if (Motion != nullptr)
             {
                 EasedInterpolant& Travelling = Motion->Eased(CarouselSlide);
 
-                Travelling.Depart(Travelling.Standing(), 0.0, CarouselTravelOver, 0.0, EaseCurve::Carousel);
+                Travelling.Depart(Travelling.Current(), 0.0, CarouselTravelOver, 0.0, EaseCurve::Carousel);
             }
         }
 
-        Ledger->DeclareRoused(BackCall, OnCall, RouseOver);
+        Ledger->DeclareHovered(BackCall, OnCall, HoverOver);
 
         if (OnCall)
-            Surface->Ground(Call, Tinted.TileRoused, Scaled.FieldRadius, CornerAll);
+            Surface->Ground(Call, Tinted.TileHovered, Scaled.FieldRadius, CornerAll);
 
         Surface->Stroke(SymbolSubject::ChevronRight,
-                        Spanning(Call.LeastAlong, Call.LeastAcross + (Call.SpanAcross() - Mark) * 0.5f,
+                        Spanning(Call.MinimumX, Call.MinimumY + (Call.Height() - Mark) * 0.5f,
                                  Mark, Mark),
                         OnCall ? Tinted.Primary : Tinted.Muted, 3.1415927f);
 
-        Surface->TextRun(Call.LeastAlong + Mark + Gap,
-                         Call.LeastAcross + (Call.SpanAcross() - Run) * 0.5f,
+        Surface->TextRun(Call.MinimumX + Mark + Gap,
+                         Call.MinimumY + (Call.Height() - Run) * 0.5f,
                          OnCall ? Tinted.Primary : Tinted.Muted, Caption, Run);
     }
 
     // ② The strip, and the inner carousel it drives.
     static const char* const Captions[2] = { "Properties", "History" };
 
-    const PlaneExtent Strip = Spanning(Extent.LeastAlong, Header.MostAcross,
-                                       Extent.SpanAlong(), Scaled.ComponentAcross);
+    const PlaneExtent Strip = Spanning(Extent.MinimumX, Header.MaximumY,
+                                       Extent.Width(), Scaled.ComponentY);
 
     const TabDeclaration Declared{ Captions, 2u };
 
-    static_cast<void>(Controls.TabStrip(InspectorStrip, Strip, Declared, Seated.InspectorTab));
+    static_cast<void>(Controls.TabStrip(InspectorStrip, Strip, Declared, Applied.InspectorTab));
 
-    const PlaneExtent Pages = Spanning(Extent.LeastAlong, Strip.MostAcross, Extent.SpanAlong(),
-                                       Extent.MostAcross - Strip.MostAcross - Scaled.FooterAcross);
+    const PlaneExtent Pages = Spanning(Extent.MinimumX, Strip.MaximumY, Extent.Width(),
+                                       Extent.MaximumY - Strip.MaximumY - Scaled.FooterHeight);
 
     // 📐 The reference lays a 200 %-wide strip inside the body and translates it by half its own
     //    extent, exactly as the outer inspector does — so the inner travel is the outer one, one level in.
-    const float Carried = (Seated.InspectorTab == 1u) ? -Pages.SpanAlong() : 0.0f;
+    const float Carried = (Applied.InspectorTab == 1u) ? -Pages.Width() : 0.0f;
 
     Surface->Confine(Pages);
 
-    const PlaneExtent Leading = Spanning(Pages.LeastAlong + Carried, Pages.LeastAcross,
-                                         Pages.SpanAlong(), Pages.SpanAcross());
-    const PlaneExtent Trailing = Spanning(Leading.MostAlong, Pages.LeastAcross,
-                                          Pages.SpanAlong(), Pages.SpanAcross());
+    const PlaneExtent Leading = Spanning(Pages.MinimumX + Carried, Pages.MinimumY,
+                                         Pages.Width(), Pages.Height());
+    const PlaneExtent Trailing = Spanning(Leading.MaximumX, Pages.MinimumY,
+                                          Pages.Width(), Pages.Height());
 
     if (!Surface->Excluded(Leading))
-        RecordPropertyCards(Leading, Seated, Rows, RowCount);
+        RecordPropertyCards(Leading, Applied, Rows, RowCount);
 
     if (!Surface->Excluded(Trailing))
-        RecordRevisionSpine(Trailing, Seated, Rows, RowCount, Revisions, RevisionCount);
+        RecordRevisionSpine(Trailing, Applied, Rows, RowCount, Revisions, RevisionCount);
 
     Surface->Release();
 
     // ③ The footer, `{n} fields`.
-    const PlaneExtent Footer = Spanning(Extent.LeastAlong, Extent.MostAcross - Scaled.FooterAcross,
-                                        Extent.SpanAlong(), Scaled.FooterAcross);
+    const PlaneExtent Footer = Spanning(Extent.MinimumX, Extent.MaximumY - Scaled.FooterHeight,
+                                        Extent.Width(), Scaled.FooterHeight);
 
     Surface->Ground(Footer, Tinted.MenuLower, 0.0f, CornerNone);
-    Surface->Ground(Spanning(Footer.LeastAlong, Footer.LeastAcross, Footer.SpanAlong(), 1.0f),
+    Surface->Ground(Spanning(Footer.MinimumX, Footer.MinimumY, Footer.Width(), 1.0f),
                     Tinted.Hairline, 0.0f, CornerNone);
 
     if (Selected)
     {
-        const ThemeToken Hue       = EntityHue(Rows[Seated.EntityTaken].Subject);
+        const ThemeToken Hue       = EntityHue(Rows[Applied.EntityTaken].Subject);
         const float       FooterRun = Scaled.RunFine;
-        const float       FooterTop = Footer.LeastAcross + (Footer.SpanAcross() - FooterRun) * 0.5f;
-        const float       ChipSeat  = Footer.LeastAcross
-                                    + (Footer.SpanAcross() - Scaled.ChipExtent) * 0.5f;
+        const float       FooterTop = Footer.MinimumY + (Footer.Height() - FooterRun) * 0.5f;
+        const float       ChipY  = Footer.MinimumY
+                                    + (Footer.Height() - Scaled.ChipExtent) * 0.5f;
 
-        Surface->Ground(Spanning(Footer.LeastAlong + Scaled.HeaderPadAlong, ChipSeat,
+        Surface->Ground(Spanning(Footer.MinimumX + Scaled.HeaderPadX, ChipY,
                                  Scaled.ChipExtent, Scaled.ChipExtent), Hue, 2.0f, CornerAll);
 
-        Surface->TextRun(Footer.LeastAlong + Scaled.HeaderPadAlong + Scaled.ChipExtent
+        Surface->TextRun(Footer.MinimumX + Scaled.HeaderPadX + Scaled.ChipExtent
                          + Scaled.PanePad, FooterTop, Tinted.Muted,
-                         (Seated.InspectorTab == 0u) ? "Properties" : "History", FooterRun);
+                         (Applied.InspectorTab == 0u) ? "Properties" : "History", FooterRun);
     }
 }
 
@@ -2454,27 +2454,27 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellContext&
 //                                                     THE LAYER STACK
 //------------------------------------------------------------------------------------------------------------------------
 
-float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& Seated,
-                                       const LayerRow& Presented, std::uint32_t Ordinal,
+float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& Applied,
+                                       const LayerRow& Current, std::uint32_t Ordinal,
                                        std::uint32_t LayerCount, bool Trailing)
 {
-    const bool Unfolded = Seated.LayerUnfolded[Ordinal];
-    const bool Shown    = Seated.LayerShown[Ordinal];
-    const bool Taken    = Seated.LayerTaken == Ordinal;
+    const bool Unfolded = Applied.LayerUnfolded[Ordinal];
+    const bool Shown    = Applied.LayerShown[Ordinal];
+    const bool Taken    = Applied.LayerTaken == Ordinal;
 
     // ① The spine gutter, `w-[30px]`, and the coloured rail running through it. The reference stops the
     //    rail half way at the first and last rows so the run reads as a bracket rather than a full column.
-    const float SpineMid   = Extent.LeastAlong + Scaled.LayerSpineAlong * 0.5f;
-    const float BadgeMid   = Extent.LeastAcross + Scaled.LayerHeadAcross * 0.5f;
+    const float SpineMid   = Extent.MinimumX + Scaled.LayerSpineX * 0.5f;
+    const float BadgeMid   = Extent.MinimumY + Scaled.LayerHeadHeight * 0.5f;
     const bool  First      = Ordinal == 0u;
-    const float SpineTop   = First ? BadgeMid : Extent.LeastAcross;
-    const float SpineFoot  = Trailing ? BadgeMid : Extent.MostAcross;
+    const float SpineTop   = First ? BadgeMid : Extent.MinimumY;
+    const float SpineFoot  = Trailing ? BadgeMid : Extent.MaximumY;
 
     if (SpineFoot > SpineTop)
     {
         Surface->Ground(Spanning(SpineMid - Scaled.LayerSpineWidth * 0.5f, SpineTop,
                                  Scaled.LayerSpineWidth, SpineFoot - SpineTop),
-                        Shown ? Covering(Presented.TagHue) : Covering(0x1B1B1Bu),
+                        Shown ? Covering(Current.TagHue) : Covering(0x1B1B1Bu),
                         Scaled.LayerSpineWidth * 0.5f, CornerAll);
     }
 
@@ -2482,7 +2482,7 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
     const float BadgeExtent = Scaled.LayerBadge;
 
     Surface->Medallion(SpineMid, BadgeMid, BadgeExtent * 0.5f,
-                       Shown ? Covering(Presented.TagHue) : Covering(0x2A2A2Au));
+                       Shown ? Covering(Current.TagHue) : Covering(0x2A2A2Au));
 
     char Badge[3] = { '0', '0', '\0' };
     const std::uint32_t Counted = (LayerCount > Ordinal) ? (LayerCount - Ordinal) : 0u;
@@ -2495,36 +2495,36 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
                      BadgeMid - BadgeRun * 0.5f, Covering(0xFFFFFFu), Badge, BadgeRun);
 
     // ② The row card itself, beginning after the spine gutter.
-    const PlaneExtent Card = Spanning(Extent.LeastAlong + Scaled.LayerSpineAlong, Extent.LeastAcross,
-                                      Extent.SpanAlong() - Scaled.LayerSpineAlong - Scaled.HeaderPadAlong,
-                                      Extent.SpanAcross());
+    const PlaneExtent Card = Spanning(Extent.MinimumX + Scaled.LayerSpineX, Extent.MinimumY,
+                                      Extent.Width() - Scaled.LayerSpineX - Scaled.HeaderPadX,
+                                      Extent.Height());
 
     Surface->Ground(Card, Taken ? Tinted.AccentSoft : Tinted.Tile, Scaled.LayerRadius, CornerAll);
     Surface->Edge(Card, Taken ? Tinted.Accent : Tinted.Hairline, 1.0f, Scaled.LayerRadius, CornerAll);
 
-    const PlaneExtent Head = Spanning(Card.LeastAlong, Card.LeastAcross,
-                                      Card.SpanAlong(), Scaled.LayerHeadAcross);
+    const PlaneExtent Head = Spanning(Card.MinimumX, Card.MinimumY,
+                                      Card.Width(), Scaled.LayerHeadHeight);
 
-    const float HalfAlong = Head.SpanAlong() * 0.5f;
+    const float HalfX = Head.Width() * 0.5f;
 
-    const PlaneExtent LayerHalf = Spanning(Head.LeastAlong, Head.LeastAcross,
-                                           HalfAlong, Head.SpanAcross());
-    const PlaneExtent MaskHalf  = Spanning(Head.LeastAlong + HalfAlong, Head.LeastAcross,
-                                           HalfAlong, Head.SpanAcross());
+    const PlaneExtent LayerHalf = Spanning(Head.MinimumX, Head.MinimumY,
+                                           HalfX, Head.Height());
+    const PlaneExtent MaskHalf  = Spanning(Head.MinimumX + HalfX, Head.MinimumY,
+                                           HalfX, Head.Height());
 
     // 📝 The divider between the halves, `w-[1px] my-[6px]`.
-    Surface->Ground(Spanning(Head.LeastAlong + HalfAlong, Head.LeastAcross + Scaled.LayerRowPad,
-                             1.0f, Head.SpanAcross() - Scaled.LayerRowPad * 2.0f),
+    Surface->Ground(Spanning(Head.MinimumX + HalfX, Head.MinimumY + Scaled.LayerRowPad,
+                             1.0f, Head.Height() - Scaled.LayerRowPad * 2.0f),
                     Tinted.Hairline, 0.0f, CornerNone);
 
     // 📝 The taken half carries `shadow-[inset_0_-2px_0_var(--accent)]` beneath it.
     const auto MarkTaken = [&](const PlaneExtent& Half, LayerTarget Target)
     {
-        if (!Taken || Seated.TargetTaken != Target)
+        if (!Taken || Applied.TargetTaken != Target)
             return;
 
         Surface->Ground(Half, Partial(0xFFFFFFu, 0.06), 0.0f, CornerNone);
-        Surface->Ground(Spanning(Half.LeastAlong, Half.MostAcross - 2.0f, Half.SpanAlong(), 2.0f),
+        Surface->Ground(Spanning(Half.MinimumX, Half.MaximumY - 2.0f, Half.Width(), 2.0f),
                         Tinted.Accent, 0.0f, CornerNone);
     };
 
@@ -2532,62 +2532,62 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
     MarkTaken(MaskHalf,  LayerTarget::Mask);
 
     // ③ The left half — chevron, eye, swatch, then the naming pair.
-    float Cursor = LayerHalf.LeastAlong + Scaled.LayerRowPad;
+    float Sweep = LayerHalf.MinimumX + Scaled.LayerRowPad;
 
-    const float ActionMid = LayerHalf.LeastAcross + (LayerHalf.SpanAcross() - Scaled.LayerAction) * 0.5f;
+    const float ActionMid = LayerHalf.MinimumY + (LayerHalf.Height() - Scaled.LayerAction) * 0.5f;
 
-    const PlaneExtent Chevron = Spanning(Cursor, ActionMid, Scaled.LayerAction, Scaled.LayerAction);
-    const bool OnChevron = Chevron.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+    const PlaneExtent Chevron = Spanning(Sweep, ActionMid, Scaled.LayerAction, Scaled.LayerAction);
+    const bool OnChevron = Chevron.Encloses(Sampled.PositionX, Sampled.PositionY);
 
     Surface->Stroke(Unfolded ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
-                    Spanning(Chevron.LeastAlong + 3.0f, Chevron.LeastAcross + 3.0f,
+                    Spanning(Chevron.MinimumX + 3.0f, Chevron.MinimumY + 3.0f,
                              Scaled.LayerAction - 6.0f, Scaled.LayerAction - 6.0f),
                     OnChevron ? Tinted.Primary : Tinted.Muted);
 
-    Cursor += Scaled.LayerAction + Scaled.LayerGap * 0.5f;
+    Sweep += Scaled.LayerAction + Scaled.LayerGap * 0.5f;
 
-    const PlaneExtent Presence = Spanning(Cursor, ActionMid, Scaled.LayerAction, Scaled.LayerAction);
-    const bool OnPresence = Presence.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+    const PlaneExtent Presence = Spanning(Sweep, ActionMid, Scaled.LayerAction, Scaled.LayerAction);
+    const bool OnPresence = Presence.Encloses(Sampled.PositionX, Sampled.PositionY);
 
     Surface->Stroke(Shown ? SymbolSubject::EyeOpen : SymbolSubject::EyeClosed,
-                    Spanning(Presence.LeastAlong + 3.5f, Presence.LeastAcross + 3.5f,
+                    Spanning(Presence.MinimumX + 3.5f, Presence.MinimumY + 3.5f,
                              Scaled.LayerAction - 7.0f, Scaled.LayerAction - 7.0f),
                     OnPresence ? Tinted.Primary : Tinted.Muted);
 
-    Cursor += Scaled.LayerAction + Scaled.LayerGap * 0.5f;
+    Sweep += Scaled.LayerAction + Scaled.LayerGap * 0.5f;
 
     // 📐 The paint swatch — a black tile holding a 14 px colour square and a 4 px classification dot.
-    const PlaneExtent Swatch = Spanning(Cursor, LayerHalf.LeastAcross
-                                        + (LayerHalf.SpanAcross() - Scaled.LayerSwatch) * 0.5f,
+    const PlaneExtent Swatch = Spanning(Sweep, LayerHalf.MinimumY
+                                        + (LayerHalf.Height() - Scaled.LayerSwatch) * 0.5f,
                                         Scaled.LayerSwatch, Scaled.LayerSwatch);
 
     Surface->Ground(Swatch, Covering(0x000000u), Scaled.FieldRadius, CornerAll);
     Surface->Edge(Swatch, Covering(0x1C1C1Cu), 1.0f, Scaled.FieldRadius, CornerAll);
 
     const float Inner = Scaled.LayerSwatch * (14.0f / 26.0f);
-    Surface->Ground(Spanning(Swatch.LeastAlong + (Scaled.LayerSwatch - Inner) * 0.5f,
-                             Swatch.LeastAcross + (Scaled.LayerSwatch - Inner) * 0.5f, Inner, Inner),
-                    Covering(Presented.PaintHue), 3.0f, CornerAll);
+    Surface->Ground(Spanning(Swatch.MinimumX + (Scaled.LayerSwatch - Inner) * 0.5f,
+                             Swatch.MinimumY + (Scaled.LayerSwatch - Inner) * 0.5f, Inner, Inner),
+                    Covering(Current.PaintHue), 3.0f, CornerAll);
 
     const float Dot = Scaled.LayerSwatch * (4.0f / 26.0f);
-    Surface->Medallion(Swatch.MostAlong - Dot, Swatch.LeastAcross + Dot, Dot * 0.5f,
-                       ClassificationTint(Presented.Classified));
+    Surface->Medallion(Swatch.MaximumX - Dot, Swatch.MinimumY + Dot, Dot * 0.5f,
+                       ClassificationTint(Current.Classified));
 
-    Cursor += Scaled.LayerSwatch + Scaled.LayerGap;
+    Sweep += Scaled.LayerSwatch + Scaled.LayerGap;
 
     // 📐 The naming pair — the layer's name over `{blend} · {opacity}%`.
     const float NameRun    = Scaled.RunSecondary;
     const float DetailRun  = Scaled.RunFine * 0.95f;
-    const float PairAcross = NameRun * 1.2f + DetailRun * 1.3f;
-    const float PairTop    = LayerHalf.LeastAcross + (LayerHalf.SpanAcross() - PairAcross) * 0.5f;
-    const float NameCeil   = LayerHalf.MostAlong - Cursor - Scaled.LayerRowPad;
+    const float PairHeight = NameRun * 1.2f + DetailRun * 1.3f;
+    const float PairTop    = LayerHalf.MinimumY + (LayerHalf.Height() - PairHeight) * 0.5f;
+    const float NameCeil   = LayerHalf.MaximumX - Sweep - Scaled.LayerRowPad;
 
     // 🔴 Both runs are borrowed from the host and neither is dereferenced unchecked. `TextRunTruncated`
     //    tolerates an absent run; the blend is copied byte by byte here, so it is the one that must be
     //    guarded before the walk rather than inside it.
-    const char* const Blending = (Presented.Blend != nullptr) ? Presented.Blend : "Normal";
+    const char* const Blending = (Current.Blend != nullptr) ? Current.Blend : "Normal";
 
-    Surface->TextRunTruncated(Cursor, PairTop, NameCeil, Tinted.Primary, Presented.Naming, NameRun, true);
+    Surface->TextRunTruncated(Sweep, PairTop, NameCeil, Tinted.Primary, Current.Naming, NameRun, true);
 
     char Detail[48] = {};
     std::uint32_t Written = 0u;
@@ -2600,7 +2600,7 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
     for (const char* Reading = Separator; *Reading != '\0' && Written < 40u; ++Reading)
         Detail[Written++] = *Reading;
 
-    const std::uint32_t Percent = (Presented.Opacity > 100u) ? 100u : Presented.Opacity;
+    const std::uint32_t Percent = (Current.Opacity > 100u) ? 100u : Current.Opacity;
 
     if (Percent >= 100u)      { Detail[Written++] = '1'; Detail[Written++] = '0'; Detail[Written++] = '0'; }
     else if (Percent >= 10u)  { Detail[Written++] = static_cast<char>('0' + Percent / 10u);
@@ -2610,56 +2610,56 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
     Detail[Written++] = '%';
     Detail[Written]   = '\0';
 
-    Surface->TextRunTruncated(Cursor, PairTop + NameRun * 1.2f, NameCeil,
+    Surface->TextRunTruncated(Sweep, PairTop + NameRun * 1.2f, NameCeil,
                               Covering(0x6A6A6Au), Detail, DetailRun, false);
 
     // ④ The right half — either the "No Mask" prompt or the mask's own eye, chip, pair and cross.
-    float MaskCursor = MaskHalf.LeastAlong + Scaled.LayerRowPad;
+    float MaskCursor = MaskHalf.MinimumX + Scaled.LayerRowPad;
 
     PlaneExtent MaskEye = {};
     bool        OnMaskEye = false;
 
-    if (!Presented.MaskDeclared)
+    if (!Current.MaskDeclared)
     {
-        const PlaneExtent Absent = Spanning(MaskCursor, MaskHalf.LeastAcross
-                                            + (MaskHalf.SpanAcross() - Scaled.LayerSwatch) * 0.5f,
+        const PlaneExtent Absent = Spanning(MaskCursor, MaskHalf.MinimumY
+                                            + (MaskHalf.Height() - Scaled.LayerSwatch) * 0.5f,
                                             Scaled.LayerSwatch, Scaled.LayerSwatch);
 
         Surface->Edge(Absent, Partial(0x8A8A8Au, 0.40), 1.0f, 5.0f, CornerAll);
         Surface->Stroke(SymbolSubject::PlusCross,
-                        Spanning(Absent.LeastAlong + 8.0f, Absent.LeastAcross + 8.0f,
+                        Spanning(Absent.MinimumX + 8.0f, Absent.MinimumY + 8.0f,
                                  Scaled.LayerSwatch - 16.0f, Scaled.LayerSwatch - 16.0f),
                         Partial(0x8A8A8Au, 0.40));
 
         MaskCursor += Scaled.LayerSwatch + Scaled.LayerGap;
 
-        Surface->TextRun(MaskCursor, MaskHalf.LeastAcross + (MaskHalf.SpanAcross() - Scaled.RunSmall) * 0.5f,
+        Surface->TextRun(MaskCursor, MaskHalf.MinimumY + (MaskHalf.Height() - Scaled.RunSmall) * 0.5f,
                          Partial(0x8A8A8Au, 0.40), "No Mask", Scaled.RunSmall);
     }
     else
     {
         MaskEye   = Spanning(MaskCursor, ActionMid, Scaled.LayerAction, Scaled.LayerAction);
-        OnMaskEye = MaskEye.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        OnMaskEye = MaskEye.Encloses(Sampled.PositionX, Sampled.PositionY);
 
         Surface->Stroke(SymbolSubject::EyeOpen,
-                        Spanning(MaskEye.LeastAlong + 3.5f, MaskEye.LeastAcross + 3.5f,
+                        Spanning(MaskEye.MinimumX + 3.5f, MaskEye.MinimumY + 3.5f,
                                  Scaled.LayerAction - 7.0f, Scaled.LayerAction - 7.0f),
                         OnMaskEye ? Tinted.Primary : Tinted.Muted);
 
         MaskCursor += Scaled.LayerAction + Scaled.LayerGap * 0.5f;
 
         // 📐 The mask chip — a white square whose opacity states the mask's strength.
-        const PlaneExtent Chip = Spanning(MaskCursor, MaskHalf.LeastAcross
-                                          + (MaskHalf.SpanAcross() - Scaled.LayerSwatch) * 0.5f,
+        const PlaneExtent Chip = Spanning(MaskCursor, MaskHalf.MinimumY
+                                          + (MaskHalf.Height() - Scaled.LayerSwatch) * 0.5f,
                                           Scaled.LayerSwatch, Scaled.LayerSwatch);
 
         Surface->Ground(Chip, Covering(0x000000u), Scaled.FieldRadius, CornerAll);
         Surface->Edge(Chip, Covering(0x1C1C1Cu), 1.0f, Scaled.FieldRadius, CornerAll);
 
-        const double Strength = static_cast<double>((Presented.MaskStrength > 100u)
-                                                  ? 100u : Presented.MaskStrength) / 100.0;
+        const double Strength = static_cast<double>((Current.MaskStrength > 100u)
+                                                  ? 100u : Current.MaskStrength) / 100.0;
 
-        Surface->Ground(Spanning(Chip.LeastAlong + 2.0f, Chip.LeastAcross + 2.0f,
+        Surface->Ground(Spanning(Chip.MinimumX + 2.0f, Chip.MinimumY + 2.0f,
                                  Scaled.LayerSwatch - 4.0f, Scaled.LayerSwatch - 4.0f),
                         Partial(0xFFFFFFu, Strength), 3.0f, CornerAll);
 
@@ -2667,7 +2667,7 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
 
         char Strong[8] = {};
         std::uint32_t Marked = 0u;
-        const std::uint32_t Reading = (Presented.MaskStrength > 100u) ? 100u : Presented.MaskStrength;
+        const std::uint32_t Reading = (Current.MaskStrength > 100u) ? 100u : Current.MaskStrength;
 
         if (Reading >= 100u)     { Strong[Marked++] = '1'; Strong[Marked++] = '0'; Strong[Marked++] = '0'; }
         else if (Reading >= 10u) { Strong[Marked++] = static_cast<char>('0' + Reading / 10u);
@@ -2677,99 +2677,99 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
         Strong[Marked++] = '%';
         Strong[Marked]   = '\0';
 
-        Surface->TextRunTruncated(MaskCursor, PairTop, MaskHalf.MostAlong - MaskCursor - 44.0f,
+        Surface->TextRunTruncated(MaskCursor, PairTop, MaskHalf.MaximumX - MaskCursor - 44.0f,
                                   Tinted.Primary, "Mask", NameRun, true);
         Surface->TextRunTruncated(MaskCursor, PairTop + NameRun * 1.2f,
-                                  MaskHalf.MostAlong - MaskCursor - 44.0f,
+                                  MaskHalf.MaximumX - MaskCursor - 44.0f,
                                   Covering(0x6A6A6Au), Strong, DetailRun, false);
     }
 
     // 📝 The bin sits at the trailing edge with `ml-auto`, whether or not a mask stands.
-    const PlaneExtent Retire = Spanning(MaskHalf.MostAlong - Scaled.LayerAction - Scaled.LayerRowPad,
+    const PlaneExtent Retire = Spanning(MaskHalf.MaximumX - Scaled.LayerAction - Scaled.LayerRowPad,
                                         ActionMid, Scaled.LayerAction, Scaled.LayerAction);
 
-    const bool OnRetire = Retire.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+    const bool OnRetire = Retire.Encloses(Sampled.PositionX, Sampled.PositionY);
 
     Surface->Stroke(SymbolSubject::TrashBin,
-                    Spanning(Retire.LeastAlong + 3.5f, Retire.LeastAcross + 3.5f,
+                    Spanning(Retire.MinimumX + 3.5f, Retire.MinimumY + 3.5f,
                              Scaled.LayerAction - 7.0f, Scaled.LayerAction - 7.0f),
                     OnRetire ? Covering(0xEF4444u) : Tinted.Muted);
 
     // ⑤ Every contact for this row, resolved in the reference's own precedence: the actions outrank the
     //    halves, and the halves outrank nothing else because the card takes no contact of its own.
-    if (Sampled.ContactArrived && !Ledger->AnyDisclosed())
+    if (Sampled.ContactPressed && !Ledger->AnyDisclosed())
     {
         if (OnChevron)
-            Ledger->Seize(LayerFolds[Ordinal], ControlPart::Chevron);
+            Ledger->Grab(LayerFolds[Ordinal], ControlPart::Chevron);
         else if (OnPresence)
-            Ledger->Seize(LayerPresences[Ordinal], ControlPart::Body);
+            Ledger->Grab(LayerPresences[Ordinal], ControlPart::Body);
         else if (OnRetire)
-            Ledger->Seize(LayerRetires[Ordinal], ControlPart::Body);
+            Ledger->Grab(LayerRetires[Ordinal], ControlPart::Body);
         else if (OnMaskEye)
-            Ledger->Seize(LayerMaskEyes[Ordinal], ControlPart::Body);
-        else if (LayerHalf.Encloses(Sampled.PositionAlong, Sampled.PositionAcross))
-            Ledger->Seize(LayerHalves[Ordinal * 2u], ControlPart::Body);
-        else if (MaskHalf.Encloses(Sampled.PositionAlong, Sampled.PositionAcross))
-            Ledger->Seize(LayerHalves[Ordinal * 2u + 1u], ControlPart::Body);
+            Ledger->Grab(LayerMaskEyes[Ordinal], ControlPart::Body);
+        else if (LayerHalf.Encloses(Sampled.PositionX, Sampled.PositionY))
+            Ledger->Grab(LayerHalves[Ordinal * 2u], ControlPart::Body);
+        else if (MaskHalf.Encloses(Sampled.PositionX, Sampled.PositionY))
+            Ledger->Grab(LayerHalves[Ordinal * 2u + 1u], ControlPart::Body);
     }
 
     if (OnChevron && Ledger->Released(LayerFolds[Ordinal]))
-        Seated.LayerUnfolded[Ordinal] = !Seated.LayerUnfolded[Ordinal];
+        Applied.LayerUnfolded[Ordinal] = !Applied.LayerUnfolded[Ordinal];
 
     if (OnPresence && Ledger->Released(LayerPresences[Ordinal]))
-        Seated.LayerShown[Ordinal] = !Seated.LayerShown[Ordinal];
+        Applied.LayerShown[Ordinal] = !Applied.LayerShown[Ordinal];
 
     if (Ledger->Released(LayerHalves[Ordinal * 2u])
-        && LayerHalf.Encloses(Sampled.PositionAlong, Sampled.PositionAcross))
+        && LayerHalf.Encloses(Sampled.PositionX, Sampled.PositionY))
     {
-        Seated.LayerTaken  = Ordinal;
-        Seated.TargetTaken = LayerTarget::Layer;
+        Applied.LayerTaken  = Ordinal;
+        Applied.TargetTaken = LayerTarget::Layer;
     }
 
     if (Ledger->Released(LayerHalves[Ordinal * 2u + 1u])
-        && MaskHalf.Encloses(Sampled.PositionAlong, Sampled.PositionAcross))
+        && MaskHalf.Encloses(Sampled.PositionX, Sampled.PositionY))
     {
-        Seated.LayerTaken  = Ordinal;
-        Seated.TargetTaken = LayerTarget::Mask;
+        Applied.LayerTaken  = Ordinal;
+        Applied.TargetTaken = LayerTarget::Mask;
     }
 
     if (!Unfolded)
-        return Scaled.LayerHeadAcross;
+        return Scaled.LayerHeadHeight;
 
     // ⑥ The folded half — two property columns beneath the head, `border-t` and a darker ground.
-    const PlaneExtent Folded = Spanning(Card.LeastAlong, Head.MostAcross,
-                                        Card.SpanAlong(), Extent.SpanAcross() - Scaled.LayerHeadAcross);
+    const PlaneExtent Folded = Spanning(Card.MinimumX, Head.MaximumY,
+                                        Card.Width(), Extent.Height() - Scaled.LayerHeadHeight);
 
     Surface->Ground(Folded, Partial(0x000000u, 0.15), 0.0f, CornerNone);
-    Surface->Ground(Spanning(Folded.LeastAlong, Folded.LeastAcross, Folded.SpanAlong(), 1.0f),
+    Surface->Ground(Spanning(Folded.MinimumX, Folded.MinimumY, Folded.Width(), 1.0f),
                     Tinted.Hairline, 0.0f, CornerNone);
 
-    Surface->Ground(Spanning(Folded.LeastAlong + HalfAlong, Folded.LeastAcross + Scaled.LayerFoldPad,
-                             1.0f, Folded.SpanAcross() - Scaled.LayerFoldPad * 2.0f),
+    Surface->Ground(Spanning(Folded.MinimumX + HalfX, Folded.MinimumY + Scaled.LayerFoldPad,
+                             1.0f, Folded.Height() - Scaled.LayerFoldPad * 2.0f),
                     Tinted.Hairline, 0.0f, CornerNone);
 
     // 📐 A labelled property row: a 50 px caption column and the control beside it.
-    const auto RecordField = [&](float Along, float Across, float Along2, const char* Caption,
+    const auto RecordField = [&](float X, float Y, float X2, const char* Caption,
                                  const char* Reading)
     {
-        Surface->TextRun(Along, Across + (Scaled.LayerFieldRow - Scaled.RunFine) * 0.5f,
+        Surface->TextRun(X, Y + (Scaled.LayerFieldRow - Scaled.RunFine) * 0.5f,
                          Covering(0x8A8A8Au), Caption, Scaled.RunFine);
 
-        const float ValueAlong = Along + Scaled.LayerLabelAlong;
-        const PlaneExtent Well = Spanning(ValueAlong, Across + 2.0f,
-                                          Along2 - Scaled.LayerLabelAlong, Scaled.LayerFieldRow - 4.0f);
+        const float ValueX = X + Scaled.LayerLabelX;
+        const PlaneExtent Well = Spanning(ValueX, Y + 2.0f,
+                                          X2 - Scaled.LayerLabelX, Scaled.LayerFieldRow - 4.0f);
 
         Surface->Ground(Well, Tinted.MenuLower, Scaled.FieldRadius, CornerAll);
         Surface->Edge(Well, Tinted.Hairline, 1.0f, Scaled.FieldRadius, CornerAll);
-        Surface->TextRunTruncated(Well.LeastAlong + 6.0f,
-                                  Well.LeastAcross + (Well.SpanAcross() - Scaled.RunFine) * 0.5f,
-                                  Well.SpanAlong() - 12.0f, Tinted.Primary, Reading, Scaled.RunFine);
+        Surface->TextRunTruncated(Well.MinimumX + 6.0f,
+                                  Well.MinimumY + (Well.Height() - Scaled.RunFine) * 0.5f,
+                                  Well.Width() - 12.0f, Tinted.Primary, Reading, Scaled.RunFine);
     };
 
-    const float ColumnAlong = HalfAlong - Scaled.LayerFoldPad * 2.0f;
-    float       FoldCursor  = Folded.LeastAcross + Scaled.LayerFoldPad;
+    const float ColumnX = HalfX - Scaled.LayerFoldPad * 2.0f;
+    float       FoldCursor  = Folded.MinimumY + Scaled.LayerFoldPad;
 
-    RecordField(Folded.LeastAlong + Scaled.LayerFoldPad, FoldCursor, ColumnAlong, "Blend", Blending);
+    RecordField(Folded.MinimumX + Scaled.LayerFoldPad, FoldCursor, ColumnX, "Blend", Blending);
 
     FoldCursor += Scaled.LayerFieldRow + Scaled.LayerGap;
 
@@ -2784,22 +2784,22 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
     Opac[Marked++] = '%';
     Opac[Marked]   = '\0';
 
-    RecordField(Folded.LeastAlong + Scaled.LayerFoldPad, FoldCursor, ColumnAlong, "Opac", Opac);
+    RecordField(Folded.MinimumX + Scaled.LayerFoldPad, FoldCursor, ColumnX, "Opac", Opac);
 
     FoldCursor += Scaled.LayerFieldRow + Scaled.LayerGap;
 
-    Surface->TextRunCapitalised(Folded.LeastAlong + Scaled.LayerFoldPad, FoldCursor,
+    Surface->TextRunCapitalised(Folded.MinimumX + Scaled.LayerFoldPad, FoldCursor,
                                 Covering(0x6A6A6Au), "Channels", Scaled.RunFine);
 
     FoldCursor += Scaled.RunFine * 1.6f;
 
     // 📐 The channel pills, wrapped as the reference's `flex-wrap` wraps them.
-    float PillAlong = Folded.LeastAlong + Scaled.LayerFoldPad;
+    float PillX = Folded.MinimumX + Scaled.LayerFoldPad;
 
     for (std::uint32_t Channel = 0u;
-         Channel < Presented.ChannelCount && Channel < LayerRow::ChannelCeiling; ++Channel)
+         Channel < Current.ChannelCount && Channel < LayerRow::ChannelCeiling; ++Channel)
     {
-        const char* Naming = Presented.Channels[Channel];
+        const char* Naming = Current.Channels[Channel];
 
         if (Naming == nullptr || Naming[0] == '\0')
             continue;
@@ -2807,45 +2807,45 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
         const float PillRun   = Surface->MeasureRun(Naming, Scaled.RunFine, 0.0f);
         const float PillWidth = PillRun + 16.0f;
 
-        if (PillAlong + PillWidth > Folded.LeastAlong + Scaled.LayerFoldPad + ColumnAlong)
+        if (PillX + PillWidth > Folded.MinimumX + Scaled.LayerFoldPad + ColumnX)
         {
-            PillAlong   = Folded.LeastAlong + Scaled.LayerFoldPad;
-            FoldCursor += Scaled.LayerPillAcross + 4.0f;
+            PillX   = Folded.MinimumX + Scaled.LayerFoldPad;
+            FoldCursor += Scaled.LayerPillY + 4.0f;
         }
 
-        const PlaneExtent Pill = Spanning(PillAlong, FoldCursor, PillWidth, Scaled.LayerPillAcross);
+        const PlaneExtent Pill = Spanning(PillX, FoldCursor, PillWidth, Scaled.LayerPillY);
 
         Surface->Ground(Pill, Covering(0x1C1C1Cu), 4.0f, CornerAll);
         Surface->Edge(Pill, Covering(0x2A2A2Au), 1.0f, 4.0f, CornerAll);
-        Surface->TextRun(Pill.LeastAlong + 8.0f,
-                         Pill.LeastAcross + (Scaled.LayerPillAcross - Scaled.RunFine) * 0.5f,
+        Surface->TextRun(Pill.MinimumX + 8.0f,
+                         Pill.MinimumY + (Scaled.LayerPillY - Scaled.RunFine) * 0.5f,
                          Covering(0x8A8A8Au), Naming, Scaled.RunFine);
 
-        PillAlong += PillWidth + 4.0f;
+        PillX += PillWidth + 4.0f;
     }
 
     // ⑦ The mask column, which either offers "Add Mask" or states the mask's own properties.
-    const float MaskColumnAlong = Folded.LeastAlong + HalfAlong + Scaled.LayerFoldPad;
-    float       MaskFold        = Folded.LeastAcross + Scaled.LayerFoldPad;
+    const float MaskColumnX = Folded.MinimumX + HalfX + Scaled.LayerFoldPad;
+    float       MaskFold        = Folded.MinimumY + Scaled.LayerFoldPad;
 
-    if (!Presented.MaskDeclared)
+    if (!Current.MaskDeclared)
     {
-        const float ButtonAlong = 74.0f;
-        const PlaneExtent Add = Spanning(MaskColumnAlong + (ColumnAlong - ButtonAlong) * 0.5f,
-                                         Folded.LeastAcross + (Folded.SpanAcross() - Scaled.LayerFieldRow) * 0.5f,
-                                         ButtonAlong, Scaled.LayerFieldRow);
+        const float ButtonX = 74.0f;
+        const PlaneExtent Add = Spanning(MaskColumnX + (ColumnX - ButtonX) * 0.5f,
+                                         Folded.MinimumY + (Folded.Height() - Scaled.LayerFieldRow) * 0.5f,
+                                         ButtonX, Scaled.LayerFieldRow);
 
         Surface->Ground(Add, Tinted.Accent, Scaled.FieldRadius, CornerAll);
-        Surface->TextRun(Add.LeastAlong + (ButtonAlong
+        Surface->TextRun(Add.MinimumX + (ButtonX
                                            - Surface->MeasureRun("Add Mask", Scaled.RunFine, 0.0f)) * 0.5f,
-                         Add.LeastAcross + (Scaled.LayerFieldRow - Scaled.RunFine) * 0.5f,
+                         Add.MinimumY + (Scaled.LayerFieldRow - Scaled.RunFine) * 0.5f,
                          Covering(0xFFFFFFu), "Add Mask", Scaled.RunFine);
     }
     else
     {
         char Strong[8] = {};
         std::uint32_t Stated = 0u;
-        const std::uint32_t Reading = (Presented.MaskStrength > 100u) ? 100u : Presented.MaskStrength;
+        const std::uint32_t Reading = (Current.MaskStrength > 100u) ? 100u : Current.MaskStrength;
 
         if (Reading >= 100u)     { Strong[Stated++] = '1'; Strong[Stated++] = '0'; Strong[Stated++] = '0'; }
         else if (Reading >= 10u) { Strong[Stated++] = static_cast<char>('0' + Reading / 10u);
@@ -2855,64 +2855,64 @@ float GlobalShellPanel::RecordLayerRow(const PlaneExtent& Extent, ShellContext& 
         Strong[Stated++] = '%';
         Strong[Stated]   = '\0';
 
-        RecordField(MaskColumnAlong, MaskFold, ColumnAlong, "Str", Strong);
+        RecordField(MaskColumnX, MaskFold, ColumnX, "Str", Strong);
 
         MaskFold += Scaled.LayerFieldRow + Scaled.LayerGap;
 
-        Surface->TextRun(MaskColumnAlong, MaskFold + (Scaled.LayerFieldRow - Scaled.RunFine) * 0.5f,
+        Surface->TextRun(MaskColumnX, MaskFold + (Scaled.LayerFieldRow - Scaled.RunFine) * 0.5f,
                          Covering(0x8A8A8Au), "Invert", Scaled.RunFine);
 
         // 📐 The invert switch, `w-[26px] h-[14px]` with a 10 px nub.
-        const PlaneExtent Switch = Spanning(MaskColumnAlong + Scaled.LayerLabelAlong,
-                                            MaskFold + (Scaled.LayerFieldRow - Scaled.LayerSwitchAcross) * 0.5f,
-                                            Scaled.LayerSwitchAlong, Scaled.LayerSwitchAcross);
+        const PlaneExtent Switch = Spanning(MaskColumnX + Scaled.LayerLabelX,
+                                            MaskFold + (Scaled.LayerFieldRow - Scaled.LayerSwitchHeight) * 0.5f,
+                                            Scaled.LayerSwitchX, Scaled.LayerSwitchHeight);
 
-        Surface->Ground(Switch, Presented.MaskInverted ? Tinted.Accent : Covering(0x2A2A2Au),
-                        Scaled.LayerSwitchAcross * 0.5f, CornerAll);
-        Surface->Edge(Switch, Presented.MaskInverted ? Tinted.Accent : Covering(0x3A3A3Au),
-                      1.0f, Scaled.LayerSwitchAcross * 0.5f, CornerAll);
+        Surface->Ground(Switch, Current.MaskInverted ? Tinted.Accent : Covering(0x2A2A2Au),
+                        Scaled.LayerSwitchHeight * 0.5f, CornerAll);
+        Surface->Edge(Switch, Current.MaskInverted ? Tinted.Accent : Covering(0x3A3A3Au),
+                      1.0f, Scaled.LayerSwitchHeight * 0.5f, CornerAll);
 
-        const float Nub = Scaled.LayerSwitchAcross - 4.0f;
-        Surface->Medallion(Presented.MaskInverted ? Switch.MostAlong - 2.0f - Nub * 0.5f
-                                                  : Switch.LeastAlong + 2.0f + Nub * 0.5f,
-                           Switch.LeastAcross + Scaled.LayerSwitchAcross * 0.5f,
+        const float Nub = Scaled.LayerSwitchHeight - 4.0f;
+        Surface->Medallion(Current.MaskInverted ? Switch.MaximumX - 2.0f - Nub * 0.5f
+                                                  : Switch.MinimumX + 2.0f + Nub * 0.5f,
+                           Switch.MinimumY + Scaled.LayerSwitchHeight * 0.5f,
                            Nub * 0.5f, Covering(0xEDEDEDu));
 
         MaskFold += Scaled.LayerFieldRow + Scaled.LayerGap;
 
-        Surface->TextRunCapitalised(MaskColumnAlong, MaskFold, Covering(0x6A6A6Au), "Sources", Scaled.RunFine);
+        Surface->TextRunCapitalised(MaskColumnX, MaskFold, Covering(0x6A6A6Au), "Sources", Scaled.RunFine);
 
         MaskFold += Scaled.RunFine * 1.6f;
 
-        const PlaneExtent Source = Spanning(MaskColumnAlong, MaskFold, ColumnAlong, 24.0f);
+        const PlaneExtent Source = Spanning(MaskColumnX, MaskFold, ColumnX, 24.0f);
 
         Surface->Ground(Source, Tinted.MenuLower, Scaled.FieldRadius, CornerAll);
         Surface->Edge(Source, Tinted.Hairline, 1.0f, Scaled.FieldRadius, CornerAll);
-        Surface->Ground(Spanning(Source.LeastAlong + 6.0f, Source.LeastAcross + 6.0f, 12.0f, 12.0f),
+        Surface->Ground(Spanning(Source.MinimumX + 6.0f, Source.MinimumY + 6.0f, 12.0f, 12.0f),
                         Covering(0x10B981u), 2.0f, CornerAll);
-        Surface->TextRun(Source.LeastAlong + 24.0f, Source.LeastAcross + (24.0f - Scaled.RunFine) * 0.5f,
+        Surface->TextRun(Source.MinimumX + 24.0f, Source.MinimumY + (24.0f - Scaled.RunFine) * 0.5f,
                          Tinted.Primary,
-                         (Presented.Classified == LayerClassification::Generator) ? "Generator" : "Generated",
+                         (Current.Classified == LayerClassification::Generator) ? "Generator" : "Generated",
                          Scaled.RunFine);
     }
 
-    return Extent.SpanAcross();
+    return Extent.Height();
 }
 
-void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext& Applied,
                                         const LayerRow* Layers, std::uint32_t LayerCount)
 {
     // 📝 The pane's own ground is `bg-[#0b0b0b]`, which is darker than `--menu`; the reference states it as
     //    a literal rather than through a custom property, so it is a literal here too.
     Surface->Ground(Extent, Covering(0x0B0B0Bu), 0.0f, CornerNone);
-    Surface->Ground(Spanning(Extent.MostAlong - 1.0f, Extent.LeastAcross, 1.0f, Extent.SpanAcross()),
+    Surface->Ground(Spanning(Extent.MaximumX - 1.0f, Extent.MinimumY, 1.0f, Extent.Height()),
                     Tinted.Hairline, 0.0f, CornerNone);
 
-    const std::uint32_t Presented = (LayerCount < LayerCeiling) ? LayerCount : LayerCeiling;
+    const std::uint32_t VisibleCount = (LayerCount < LayerCeiling) ? LayerCount : LayerCeiling;
 
     // ① The header — a medallion, "Layer Stack", its subtitle, and the count pill at the trailing edge.
-    const PlaneExtent Header = Spanning(Extent.LeastAlong, Extent.LeastAcross,
-                                        Extent.SpanAlong(), Scaled.HeaderAcross);
+    const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
+                                        Extent.Width(), Scaled.HeaderHeight);
 
     RecordPaneHeader(Header, SymbolSubject::LayerMerge, Covering(0x8A8A8Au), Covering(0x000000u),
                      "Layer Stack", "Suzanne \u00B7 one material + paint");
@@ -2920,55 +2920,55 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
     char Counted[4] = {};
     std::uint32_t Marked = 0u;
 
-    if (Presented >= 10u) Counted[Marked++] = static_cast<char>('0' + (Presented / 10u) % 10u);
-    Counted[Marked++] = static_cast<char>('0' + Presented % 10u);
+    if (VisibleCount >= 10u) Counted[Marked++] = static_cast<char>('0' + (VisibleCount / 10u) % 10u);
+    Counted[Marked++] = static_cast<char>('0' + VisibleCount % 10u);
     Counted[Marked]   = '\0';
 
     const float PillRun   = Surface->MeasureRun(Counted, Scaled.RunFine, 0.0f);
-    const float PillAlong = PillRun + 12.0f;
+    const float PillX = PillRun + 12.0f;
 
-    const PlaneExtent CountPill = Spanning(Header.MostAlong - Scaled.HeaderPadAlong - PillAlong,
-                                           Header.LeastAcross + (Header.SpanAcross() - 20.0f) * 0.5f,
-                                           PillAlong, 20.0f);
+    const PlaneExtent CountPill = Spanning(Header.MaximumX - Scaled.HeaderPadX - PillX,
+                                           Header.MinimumY + (Header.Height() - 20.0f) * 0.5f,
+                                           PillX, 20.0f);
 
     Surface->Ground(CountPill, Covering(0x1B1B1Bu), 10.0f, CornerAll);
     Surface->Edge(CountPill, Covering(0x2A2A2Au), 1.0f, 10.0f, CornerAll);
-    Surface->TextRun(CountPill.LeastAlong + 6.0f, CountPill.LeastAcross + (20.0f - Scaled.RunFine) * 0.5f,
+    Surface->TextRun(CountPill.MinimumX + 6.0f, CountPill.MinimumY + (20.0f - Scaled.RunFine) * 0.5f,
                      Covering(0x8A8A8Au), Counted, Scaled.RunFine);
 
     // ② The toolbar — the full-width "Add layer" button and the retention field beneath it.
     const float Pad = Scaled.PanePad;
 
-    const PlaneExtent Add = Spanning(Extent.LeastAlong + Pad, Header.MostAcross + Pad,
-                                     Extent.SpanAlong() - Pad * 2.0f, Scaled.LayerToolAcross);
+    const PlaneExtent Add = Spanning(Extent.MinimumX + Pad, Header.MaximumY + Pad,
+                                     Extent.Width() - Pad * 2.0f, Scaled.LayerToolHeight);
 
-    const bool OnAdd = Add.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+    const bool OnAdd = Add.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (OnAdd && Sampled.ContactArrived && !Ledger->AnyDisclosed())
-        Ledger->Seize(LayerAdd, ControlPart::Body);
+    if (OnAdd && Sampled.ContactPressed && !Ledger->AnyDisclosed())
+        Ledger->Grab(LayerAdd, ControlPart::Body);
 
     Surface->Ground(Add, Covering(0x141414u), 7.0f, CornerAll);
     Surface->Edge(Add, OnAdd ? Covering(0x3A3A3Au) : Covering(0x242424u), 1.0f, 7.0f, CornerAll);
 
     const float AddRun   = Surface->MeasureRun("Add layer", Scaled.RunSecondary, 0.0f);
-    const float AddLead  = Add.LeastAlong + (Add.SpanAlong() - AddRun - 18.0f) * 0.5f;
-    const float AddMid   = Add.LeastAcross + (Add.SpanAcross() - Scaled.RunSecondary) * 0.5f;
+    const float AddLead  = Add.MinimumX + (Add.Width() - AddRun - 18.0f) * 0.5f;
+    const float AddMid   = Add.MinimumY + (Add.Height() - Scaled.RunSecondary) * 0.5f;
 
     Surface->Stroke(SymbolSubject::PlusCross,
-                    Spanning(AddLead, Add.LeastAcross + (Add.SpanAcross() - 13.0f) * 0.5f, 13.0f, 13.0f),
+                    Spanning(AddLead, Add.MinimumY + (Add.Height() - 13.0f) * 0.5f, 13.0f, 13.0f),
                     OnAdd ? Tinted.Primary : Covering(0x8A8A8Au));
 
     Surface->TextRun(AddLead + 18.0f, AddMid, OnAdd ? Tinted.Primary : Covering(0x8A8A8Au),
                      "Add layer", Scaled.RunSecondary);
 
-    // 📝 The reference's filter field carries no border until it is roused or taken.
-    const PlaneExtent Retaining = Spanning(Extent.LeastAlong + Pad, Add.MostAcross + 5.0f,
-                                           Extent.SpanAlong() - Pad * 2.0f, Scaled.SearchAcross * (26.0f / 30.0f));
+    // 📝 The reference's filter field carries no border until it is hovered or taken.
+    const PlaneExtent Retaining = Spanning(Extent.MinimumX + Pad, Add.MaximumY + 5.0f,
+                                           Extent.Width() - Pad * 2.0f, Scaled.SearchHeight * (26.0f / 30.0f));
 
-    const bool OnRetaining = Retaining.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+    const bool OnRetaining = Retaining.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (OnRetaining && Sampled.ContactArrived)
-        Ledger->Seize(LayerRetention, ControlPart::Body);
+    if (OnRetaining && Sampled.ContactPressed)
+        Ledger->Grab(LayerRetention, ControlPart::Body);
 
     const bool Retained = Ledger->Holding(LayerRetention) || Ledger->Disclosed(LayerRetention);
 
@@ -2982,67 +2982,67 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
     const float SearchGlyph = 12.0f;
 
     Surface->Stroke(SymbolSubject::MagnifierLens,
-                    Spanning(Retaining.LeastAlong + 8.0f,
-                             Retaining.LeastAcross + (Retaining.SpanAcross() - SearchGlyph) * 0.5f,
+                    Spanning(Retaining.MinimumX + 8.0f,
+                             Retaining.MinimumY + (Retaining.Height() - SearchGlyph) * 0.5f,
                              SearchGlyph, SearchGlyph), Covering(0x5A5A5Au));
 
-    Surface->TextRun(Retaining.LeastAlong + 26.0f,
-                     Retaining.LeastAcross + (Retaining.SpanAcross() - Scaled.RunSecondary) * 0.5f,
+    Surface->TextRun(Retaining.MinimumX + 26.0f,
+                     Retaining.MinimumY + (Retaining.Height() - Scaled.RunSecondary) * 0.5f,
                      Covering(0x4A4A4Au), "Filter layers\u2026", Scaled.RunSecondary);
 
     // ③ The stack itself, confined so a tall row cannot record over the footer.
-    const PlaneExtent Footer = Spanning(Extent.LeastAlong, Extent.MostAcross - Scaled.FooterAcross,
-                                        Extent.SpanAlong(), Scaled.FooterAcross);
+    const PlaneExtent Footer = Spanning(Extent.MinimumX, Extent.MaximumY - Scaled.FooterHeight,
+                                        Extent.Width(), Scaled.FooterHeight);
 
-    const PlaneExtent Body = Spanning(Extent.LeastAlong + 3.0f, Retaining.MostAcross + Pad,
-                                      Extent.SpanAlong() - 6.0f,
-                                      Footer.LeastAcross - Retaining.MostAcross - Pad);
+    const PlaneExtent Body = Spanning(Extent.MinimumX + 3.0f, Retaining.MaximumY + Pad,
+                                      Extent.Width() - 6.0f,
+                                      Footer.MinimumY - Retaining.MaximumY - Pad);
 
     Surface->Confine(Body);
 
-    float Cursor = Body.LeastAcross;
+    float Sweep = Body.MinimumY;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Presented && Layers != nullptr; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < VisibleCount && Layers != nullptr; ++Ordinal)
     {
 
         // 📐 An unfolded row stands taller by its two property columns. The reference sizes that half by
         //    its content; the tallest arrangement is the mask column's four stated rows.
-        const float FoldedAcross = Seated.LayerUnfolded[Ordinal]
+        const float FoldedY = Applied.LayerUnfolded[Ordinal]
                                  ? (Scaled.LayerFoldPad * 2.0f + Scaled.LayerFieldRow * 2.0f
                                     + Scaled.LayerGap * 2.0f + Scaled.RunFine * 1.6f
-                                    + Scaled.LayerPillAcross + 8.0f)
+                                    + Scaled.LayerPillY + 8.0f)
                                  : 0.0f;
 
-        const PlaneExtent Row = Spanning(Body.LeastAlong, Cursor, Body.SpanAlong(),
-                                         Scaled.LayerHeadAcross + FoldedAcross);
+        const PlaneExtent Row = Spanning(Body.MinimumX, Sweep, Body.Width(),
+                                         Scaled.LayerHeadHeight + FoldedY);
 
-        Cursor += Row.SpanAcross() + Scaled.LayerRowGap;
+        Sweep += Row.Height() + Scaled.LayerRowGap;
 
         if (Surface->Excluded(Row))
             continue;
 
-        static_cast<void>(RecordLayerRow(Row, Seated, Layers[Ordinal], Ordinal, Presented,
-                                         Ordinal + 1u == Presented));
+        static_cast<void>(RecordLayerRow(Row, Applied, Layers[Ordinal], Ordinal, VisibleCount,
+                                         Ordinal + 1u == VisibleCount));
     }
 
     Surface->Release();
 
     // ④ The footer — shown and hidden counts, and the reorder hint.
     Surface->Ground(Footer, Covering(0x121214u), 0.0f, CornerNone);
-    Surface->Ground(Spanning(Footer.LeastAlong, Footer.LeastAcross, Footer.SpanAlong(), 1.0f),
+    Surface->Ground(Spanning(Footer.MinimumX, Footer.MinimumY, Footer.Width(), 1.0f),
                     Covering(0x1C1C1Cu), 0.0f, CornerNone);
 
-    std::uint32_t Standing = 0u;
+    std::uint32_t Current = 0u;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Presented; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < Current; ++Ordinal)
     {
-        if (Seated.LayerShown[Ordinal])
-            ++Standing;
+        if (Applied.LayerShown[Ordinal])
+            ++Current;
     }
 
     const float FootRun = Scaled.RunFine;
-    const float FootMid = Footer.LeastAcross + (Footer.SpanAcross() - FootRun) * 0.5f;
-    float       FootAt  = Footer.LeastAlong + 11.0f;
+    const float FootMid = Footer.MinimumY + (Footer.Height() - FootRun) * 0.5f;
+    float       FootAt  = Footer.MinimumX + 11.0f;
 
     Surface->Ground(Spanning(FootAt, FootMid + FootRun * 0.25f, 7.0f, 7.0f),
                     Covering(0x94A3B8u), 2.0f, CornerAll);
@@ -3052,8 +3052,8 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
     char Tally[24] = {};
     std::uint32_t Placed = 0u;
 
-    if (Standing >= 10u) Tally[Placed++] = static_cast<char>('0' + (Standing / 10u) % 10u);
-    Tally[Placed++] = static_cast<char>('0' + Standing % 10u);
+    if (Current >= 10u) Tally[Placed++] = static_cast<char>('0' + (Current / 10u) % 10u);
+    Tally[Placed++] = static_cast<char>('0' + Current % 10u);
     Tally[Placed]   = '\0';
 
     Surface->TextRun(FootAt, FootMid, Tinted.Primary, Tally, FootRun);
@@ -3063,7 +3063,7 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
     Surface->TextRun(FootAt, FootMid, Covering(0x2C2C2Cu), "\u00B7", FootRun);
     FootAt += 7.0f;
 
-    const std::uint32_t Withheld = Presented - Standing;
+    const std::uint32_t Withheld = Current - Current;
 
     Placed = 0u;
     if (Withheld >= 10u) Tally[Placed++] = static_cast<char>('0' + (Withheld / 10u) % 10u);
@@ -3076,63 +3076,63 @@ void GlobalShellPanel::RecordLayerStack(const PlaneExtent& Extent, ShellContext&
 
     const float HintRun = Surface->MeasureRun("drag to reorder", FootRun, 0.0f);
 
-    Surface->TextRun(Footer.MostAlong - 11.0f - HintRun, FootMid,
+    Surface->TextRun(Footer.MaximumX - 11.0f - HintRun, FootMid,
                      Covering(0x8A8A8Au), "drag to reorder", FootRun);
 }
 
-void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const ShellContext& Seated,
+void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const ShellContext& Applied,
                                             const LayerRow* Layers, std::uint32_t LayerCount)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
-    const std::uint32_t Presented = (LayerCount < LayerCeiling) ? LayerCount : LayerCeiling;
-    const bool          Standing  = (Layers != nullptr) && (Seated.LayerTaken < Presented);
+    const std::uint32_t VisibleCount = (LayerCount < LayerCeiling) ? LayerCount : LayerCeiling;
+    const bool          TakenWithin  = (Layers != nullptr) && (Applied.LayerTaken < VisibleCount);
 
     // 📐 `LayerInspectorPane` delegates by `target`: a mask target presents `MaskPropertyPanel`, and every
     //    other presents `ChannelPropertyPanel`. Both open with the same header naming the taken layer.
-    const bool Masking = Seated.TargetTaken == LayerTarget::Mask;
+    const bool Masking = Applied.TargetTaken == LayerTarget::Mask;
 
-    const PlaneExtent Header = Spanning(Extent.LeastAlong, Extent.LeastAcross,
-                                        Extent.SpanAlong(), Scaled.HeaderAcross);
+    const PlaneExtent Header = Spanning(Extent.MinimumX, Extent.MinimumY,
+                                        Extent.Width(), Scaled.HeaderHeight);
 
     RecordPaneHeader(Header, Masking ? SymbolSubject::LayerMerge : SymbolSubject::PaintBristle,
                      Covering(0xFFFFFFu),
-                     Standing ? Covering(Layers[Seated.LayerTaken].PaintHue) : Tinted.Tile,
+                     TakenWithin ? Covering(Layers[Applied.LayerTaken].PaintHue) : Tinted.Tile,
                      Masking ? "Mask Properties" : "Channel Properties",
-                     Standing ? Layers[Seated.LayerTaken].Naming : "No layer taken");
+                     TakenWithin ? Layers[Applied.LayerTaken].Naming : "No layer taken");
 
-    if (!Standing)
+    if (!TakenWithin)
         return;
 
-    const LayerRow& Taken = Layers[Seated.LayerTaken];
+    const LayerRow& Taken = Layers[Applied.LayerTaken];
     const float     Pad   = Scaled.PanePad * 1.5f;
 
-    float Cursor = Header.MostAcross + Pad;
+    float Sweep = Header.MaximumY + Pad;
 
     // 📝 One card per stated property, on the same terms as the component inspector's cards.
     const auto RecordCard = [&](const char* Caption, const char* Reading, ThemeToken Marker)
     {
-        const PlaneExtent Card = Spanning(Extent.LeastAlong + Pad, Cursor,
-                                          Extent.SpanAlong() - Pad * 2.0f, Scaled.ComponentAcross);
+        const PlaneExtent Card = Spanning(Extent.MinimumX + Pad, Sweep,
+                                          Extent.Width() - Pad * 2.0f, Scaled.ComponentY);
 
         Surface->Ground(Card, Tinted.Tile, Scaled.FieldRadius, CornerAll);
         Surface->Edge(Card, Tinted.Hairline, 1.0f, Scaled.FieldRadius, CornerAll);
 
-        Surface->Ground(Spanning(Card.LeastAlong + 8.0f,
-                                 Card.LeastAcross + (Card.SpanAcross() - 8.0f) * 0.5f, 8.0f, 8.0f),
+        Surface->Ground(Spanning(Card.MinimumX + 8.0f,
+                                 Card.MinimumY + (Card.Height() - 8.0f) * 0.5f, 8.0f, 8.0f),
                         Marker, 2.0f, CornerAll);
 
-        Surface->TextRun(Card.LeastAlong + 22.0f,
-                         Card.LeastAcross + (Card.SpanAcross() - Scaled.RunSecondary) * 0.5f,
+        Surface->TextRun(Card.MinimumX + 22.0f,
+                         Card.MinimumY + (Card.Height() - Scaled.RunSecondary) * 0.5f,
                          Tinted.Primary, Caption, Scaled.RunSecondary);
 
         const float ReadRun = Surface->MeasureRun(Reading, Scaled.RunFine, 0.0f);
 
-        Surface->TextRun(Card.MostAlong - 10.0f - ReadRun,
-                         Card.LeastAcross + (Card.SpanAcross() - Scaled.RunFine) * 0.5f,
+        Surface->TextRun(Card.MaximumX - 10.0f - ReadRun,
+                         Card.MinimumY + (Card.Height() - Scaled.RunFine) * 0.5f,
                          Tinted.Muted, Reading, Scaled.RunFine);
 
-        Cursor += Scaled.ComponentAcross + 6.0f;
+        Sweep += Scaled.ComponentY + 6.0f;
     };
 
     char Reading[8] = {};
@@ -3163,12 +3163,12 @@ void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const She
         RecordCard("Blend", Taken.Blend, Tinted.Accent);
         RecordCard("Opacity", Reading, Covering(0x3B82F6u));
 
-        Cursor += 4.0f;
+        Sweep += 4.0f;
 
-        Surface->TextRunCapitalised(Extent.LeastAlong + Pad, Cursor, Tinted.Faint, "Channels",
+        Surface->TextRunCapitalised(Extent.MinimumX + Pad, Sweep, Tinted.Faint, "Channels",
                                     Scaled.RunFine);
 
-        Cursor += Scaled.RunFine * 1.8f;
+        Sweep += Scaled.RunFine * 1.8f;
 
         for (std::uint32_t Channel = 0u;
              Channel < Taken.ChannelCount && Channel < LayerRow::ChannelCeiling; ++Channel)
@@ -3185,7 +3185,7 @@ void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const She
 //                                                    THE TWO-SLIDE STRIP
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellContext& Seated,
+void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellContext& Applied,
                                        const EntityRow* Rows, std::uint32_t RowCount,
                                        const LayerRow* Layers, std::uint32_t LayerCount,
                                        const EntityRevision* Revisions, std::uint32_t RevisionCount)
@@ -3193,30 +3193,30 @@ void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellContext& 
     // 📐 The reference lays a 200 %-wide strip inside the inspector and translates it by half its own extent.
     //    The strip is therefore two panes of the inspector's extent, and the travel is one whole extent.
     const float Travelled = (Motion != nullptr)
-                          ? static_cast<float>(Motion->Eased(CarouselSlide).Standing())
-                          : (Seated.InspectorShown ? 1.0f : 0.0f);
+                          ? static_cast<float>(Motion->Eased(CarouselSlide).Current())
+                          : (Applied.InspectorShown ? 1.0f : 0.0f);
 
-    const float Carried = -Held(Travelled, 0.0f, 1.0f) * Extent.SpanAlong();
+    const float Carried = -Held(Travelled, 0.0f, 1.0f) * Extent.Width();
 
     // 🔴 Confined to the inspector's own extent. The trailing slide begins one whole extent to the trailing
     //    side and would otherwise be recorded over the viewport and the rail beside it.
     Surface->Confine(Extent);
 
-    const PlaneExtent Leading = Spanning(Extent.LeastAlong + Carried, Extent.LeastAcross,
-                                         Extent.SpanAlong(), Extent.SpanAcross());
-    const PlaneExtent Trailing = Spanning(Leading.MostAlong, Extent.LeastAcross,
-                                          Extent.SpanAlong(), Extent.SpanAcross());
+    const PlaneExtent Leading = Spanning(Extent.MinimumX + Carried, Extent.MinimumY,
+                                         Extent.Width(), Extent.Height());
+    const PlaneExtent Trailing = Spanning(Leading.MaximumX, Extent.MinimumY,
+                                          Extent.Width(), Extent.Height());
 
     // ① Slide one. 🔴 Which pane stands here is decided by the mode, exactly as the reference's ternary in
     //    `app/page.tsx` decides it: Texture Paint presents `LayersPane` alone, filling the whole slide, and
     //    every other mode presents an outliner beside a prompt.
-    if (Seated.Mode == WorkspaceMode::TexturePaint)
+    if (Applied.Mode == WorkspaceMode::TexturePaint)
     {
         if (!Surface->Excluded(Leading))
-            RecordLayerStack(Leading, Seated, Layers, LayerCount);
+            RecordLayerStack(Leading, Applied, Layers, LayerCount);
 
         if (!Surface->Excluded(Trailing))
-            RecordLayerInspector(Trailing, Seated, Layers, LayerCount);
+            RecordLayerInspector(Trailing, Applied, Layers, LayerCount);
 
         Surface->Release();
         return;
@@ -3224,47 +3224,47 @@ void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellContext& 
 
     if (!Surface->Excluded(Leading))
     {
-        const float OutlinerAlong = (Scaled.OutlinerAlong < Leading.SpanAlong() * 0.6f)
-                                  ? Scaled.OutlinerAlong : Leading.SpanAlong() * 0.6f;
+        const float OutlinerX = (Scaled.OutlinerX < Leading.Width() * 0.6f)
+                                  ? Scaled.OutlinerX : Leading.Width() * 0.6f;
 
-        const PlaneExtent Outlining = Spanning(Leading.LeastAlong, Leading.LeastAcross,
-                                               OutlinerAlong, Leading.SpanAcross());
+        const PlaneExtent Outlining = Spanning(Leading.MinimumX, Leading.MinimumY,
+                                               OutlinerX, Leading.Height());
 
-        RecordOutlineColumn(Outlining, Seated, Rows, RowCount);
+        RecordOutlineColumn(Outlining, Applied, Rows, RowCount);
 
-        const PlaneExtent Prompting = Spanning(Outlining.MostAlong, Leading.LeastAcross,
-                                               Leading.SpanAlong() - OutlinerAlong, Leading.SpanAcross());
+        const PlaneExtent Prompting = Spanning(Outlining.MaximumX, Leading.MinimumY,
+                                               Leading.Width() - OutlinerX, Leading.Height());
 
         // 📐 Which pane stands here is the mode's, exactly as the reference's ternary decides it. Drafting
         //    presents `MetadataPane` under its own header; World Editor presents three lines of prose and
         //    nothing else, and the reference states them as one wrapped paragraph.
-        if (Seated.Mode == WorkspaceMode::Drafting)
+        if (Applied.Mode == WorkspaceMode::Drafting)
         {
             Surface->Ground(Prompting, Tinted.MenuLower, 0.0f, CornerNone);
 
-            const PlaneExtent Crown = Spanning(Prompting.LeastAlong, Prompting.LeastAcross,
-                                               Prompting.SpanAlong(), Scaled.HeaderAcross);
+            const PlaneExtent Crown = Spanning(Prompting.MinimumX, Prompting.MinimumY,
+                                               Prompting.Width(), Scaled.HeaderHeight);
 
             // 📐 The header is itself the call: `onClick={() => setShowInspector(true)}`, rousing to
             //    `#292930`, and it carries a chevron at the trailing edge to say so.
-            const bool OnCrown = Crown.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+            const bool OnCrown = Crown.Encloses(Sampled.PositionX, Sampled.PositionY);
 
             RecordPaneHeader(Crown, SymbolSubject::CrosshairCentre, Covering(0xFFFFFFu),
                              Covering(0x000000u), "Properties & Actions", nullptr);
 
             if (OnCrown)
-                Surface->Ground(Crown, Faded(Tinted.TileRoused, 0.5f), 0.0f, CornerNone);
+                Surface->Ground(Crown, Faded(Tinted.TileHovered, 0.5f), 0.0f, CornerNone);
 
             const float Mark = Scaled.MedallionExtent * (13.0f / 24.0f);
 
             Surface->Stroke(SymbolSubject::ChevronRight,
-                            Spanning(Crown.MostAlong - Scaled.HeaderPadAlong - Mark,
-                                     Crown.LeastAcross + (Crown.SpanAcross() - Mark) * 0.5f, Mark, Mark),
+                            Spanning(Crown.MaximumX - Scaled.HeaderPadX - Mark,
+                                     Crown.MinimumY + (Crown.Height() - Mark) * 0.5f, Mark, Mark),
                             OnCrown ? Tinted.Primary : Tinted.Muted);
 
-            RecordMetadata(Spanning(Prompting.LeastAlong, Crown.MostAcross, Prompting.SpanAlong(),
-                                    Prompting.MostAcross - Crown.MostAcross),
-                           Seated, Rows, RowCount);
+            RecordMetadata(Spanning(Prompting.MinimumX, Crown.MaximumY, Prompting.Width(),
+                                    Prompting.MaximumY - Crown.MaximumY),
+                           Applied, Rows, RowCount);
         }
         else
         {
@@ -3279,14 +3279,14 @@ void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellContext& 
 
             const float ProseRun  = Scaled.RunSecondary;
             const float ProseStep = ProseRun * 1.625f;
-            float       ProseTop  = Prompting.LeastAcross
-                                  + (Prompting.SpanAcross() - ProseStep * 3.0f) * 0.5f;
+            float       ProseTop  = Prompting.MinimumY
+                                  + (Prompting.Height() - ProseStep * 3.0f) * 0.5f;
 
             for (const char* Line : Prose)
             {
-                const float LineAlong = Surface->MeasureRun(Line, ProseRun, 0.0f);
+                const float LineX = Surface->MeasureRun(Line, ProseRun, 0.0f);
 
-                Surface->TextRun(Prompting.LeastAlong + (Prompting.SpanAlong() - LineAlong) * 0.5f,
+                Surface->TextRun(Prompting.MinimumX + (Prompting.Width() - LineX) * 0.5f,
                                  ProseTop, Tinted.Faint, Line, ProseRun);
                 ProseTop += ProseStep;
             }
@@ -3295,7 +3295,7 @@ void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellContext& 
 
     // ② Slide two — the component inspector for whatever the outliner has taken.
     if (!Surface->Excluded(Trailing))
-        RecordComponents(Trailing, Seated, Rows, RowCount, Revisions, RevisionCount);
+        RecordComponents(Trailing, Applied, Rows, RowCount, Revisions, RevisionCount);
 
     Surface->Release();
 }
@@ -3305,7 +3305,7 @@ void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellContext& 
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
-                                       ShellContext&        Seated,
+                                       ShellContext&        Applied,
                                        const EntityRow*       Rows,
                                        std::uint32_t          RowCount,
                                        const LayerRow*        Layers,
@@ -3336,64 +3336,64 @@ Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
 
     // 🔴 The taken layer is clamped before anything reads it. A host that hands fewer layers than the
     //    ordinal the artist last took would otherwise index past the run it was given.
-    if (LayerCount > 0u && Seated.LayerTaken >= LayerCount)
-        Seated.LayerTaken = LayerCount - 1u;
+    if (LayerCount > 0u && Applied.LayerTaken >= LayerCount)
+        Applied.LayerTaken = LayerCount - 1u;
 
     // 📝 The strip is carried by the same traverse whether it was moved by a key or by a press, so the
     //    target is restated every tick and the traverse departs only when it actually disagrees.
     if (Motion != nullptr)
     {
         EasedInterpolant& Travelling = Motion->Eased(CarouselSlide);
-        const double      Wanted     = Seated.InspectorShown ? 1.0 : 0.0;
+        const double      Wanted     = Applied.InspectorShown ? 1.0 : 0.0;
 
-        if (Travelling.Settled && Travelling.Standing() != Wanted)
-            Travelling.Depart(Travelling.Standing(), Wanted, CarouselTravelOver, 0.0, EaseCurve::Carousel);
+        if (Travelling.Settled && Travelling.Current() != Wanted)
+            Travelling.Depart(Travelling.Current(), Wanted, CarouselTravelOver, 0.0, EaseCurve::Carousel);
     }
 
     // ① The desk, beneath everything.
     Surface->Ground(Extent, Tinted.Desk, 0.0f, CornerNone);
 
     // ② The top bar.
-    const PlaneExtent TopBar = Spanning(Extent.LeastAlong, Extent.LeastAcross,
-                                        Extent.SpanAlong(), Scaled.TopBarAcross);
+    const PlaneExtent TopBar = Spanning(Extent.MinimumX, Extent.MinimumY,
+                                        Extent.Width(), Scaled.TopBarHeight);
 
-    RecordTopBar(TopBar, Seated);
+    RecordTopBar(TopBar, Applied);
 
     // ③ The body: the Options rail, the viewport, and the docked inspector when it stands.
-    const PlaneExtent Body = Spanning(Extent.LeastAlong, TopBar.MostAcross,
-                                      Extent.SpanAlong(), Extent.MostAcross - TopBar.MostAcross);
+    const PlaneExtent Body = Spanning(Extent.MinimumX, TopBar.MaximumY,
+                                      Extent.Width(), Extent.MaximumY - TopBar.MaximumY);
 
-    const PlaneExtent Rail = Spanning(Body.LeastAlong, Body.LeastAcross,
-                                      Scaled.OptionsAlong, Body.SpanAcross());
+    const PlaneExtent Rail = Spanning(Body.MinimumX, Body.MinimumY,
+                                      Scaled.OptionsX, Body.Height());
 
-    RecordOptionsRail(Rail, Seated);
+    RecordOptionsRail(Rail, Applied);
 
     // 📐 The docked inspector is 700 px, but never more than what remains beside the rail — the reference's
     //    `flex-none` beside a `flex-1` viewport collapses the viewport first, and this reproduces that
     //    without letting the inspector overrun the rail on a narrow display.
-    const float Remaining     = Body.MostAlong - Rail.MostAlong;
-    const float InspectorSpan = Seated.InspectorDocked
-                              ? ((Scaled.InspectorAlong < Remaining * 0.75f)
-                                 ? Scaled.InspectorAlong : Remaining * 0.75f)
+    const float Remaining     = Body.MaximumX - Rail.MaximumX;
+    const float InspectorSpan = Applied.InspectorDocked
+                              ? ((Scaled.InspectorX < Remaining * 0.75f)
+                                 ? Scaled.InspectorX : Remaining * 0.75f)
                               : 0.0f;
 
-    const PlaneExtent Viewport = Spanning(Rail.MostAlong, Body.LeastAcross,
-                                          Remaining - InspectorSpan, Body.SpanAcross());
+    const PlaneExtent Viewport = Spanning(Rail.MaximumX, Body.MinimumY,
+                                          Remaining - InspectorSpan, Body.Height());
 
-    RecordViewport(Viewport, Seated);
+    RecordViewport(Viewport, Applied);
 
     InspectorStood = false;
 
-    if (Seated.InspectorDocked)
+    if (Applied.InspectorDocked)
     {
-        const PlaneExtent Docked = Spanning(Viewport.MostAlong, Body.LeastAcross,
-                                            InspectorSpan, Body.SpanAcross());
+        const PlaneExtent Docked = Spanning(Viewport.MaximumX, Body.MinimumY,
+                                            InspectorSpan, Body.Height());
 
         Surface->Ground(Docked, Tinted.Menu, 0.0f, CornerNone);
-        Surface->Ground(Spanning(Docked.LeastAlong, Docked.LeastAcross, 1.0f, Docked.SpanAcross()),
+        Surface->Ground(Spanning(Docked.MinimumX, Docked.MinimumY, 1.0f, Docked.Height()),
                         Tinted.HairlineFirm, 0.0f, CornerNone);
 
-        RecordInspector(Docked, Seated, Rows, RowCount, Layers, LayerCount, Revisions, RevisionCount);
+        RecordInspector(Docked, Applied, Rows, RowCount, Layers, LayerCount, Revisions, RevisionCount);
 
         InspectorAt    = Docked;
         InspectorStood = true;
@@ -3404,31 +3404,31 @@ Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
     //    command list while the panels beneath it were vendor windows, which composite above that list — so
     //    the veil darkened the display and the panels stayed legible and pressable straight through it. One
     //    list, written in order, cannot express that condition at all.
-    if (!Seated.InspectorDocked && Seated.MenuOpened)
+    if (!Applied.InspectorDocked && Applied.MenuOpened)
     {
         Surface->Ground(Extent, Tinted.Veil, 0.0f, CornerNone);
 
-        const bool OnVeil = Extent.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
+        const bool OnVeil = Extent.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        if (OnVeil && Sampled.ContactArrived)
-            Ledger->Seize(VeilContact, ControlPart::Body);
+        if (OnVeil && Sampled.ContactPressed)
+            Ledger->Grab(VeilContact, ControlPart::Body);
 
-        const float CardAlong  = (Scaled.InspectorAlong < Extent.SpanAlong() - Scaled.OptionsAlong)
-                               ? Scaled.InspectorAlong : Extent.SpanAlong() * 0.75f;
-        const float CardAcross = (Scaled.SummonedAcross < Extent.SpanAcross() - Scaled.TopBarAcross * 2.0f)
-                               ? Scaled.SummonedAcross : Extent.SpanAcross() * 0.75f;
+        const float CardX  = (Scaled.InspectorX < Extent.Width() - Scaled.OptionsX)
+                               ? Scaled.InspectorX : Extent.Width() * 0.75f;
+        const float CardHeight = (Scaled.SummonedY < Extent.Height() - Scaled.TopBarHeight * 2.0f)
+                               ? Scaled.SummonedY : Extent.Height() * 0.75f;
 
-        const PlaneExtent Card = Spanning(Extent.LeastAlong + (Extent.SpanAlong() - CardAlong) * 0.5f,
-                                          Extent.LeastAcross + (Extent.SpanAcross() - CardAcross) * 0.5f,
-                                          CardAlong, CardAcross);
+        const PlaneExtent Card = Spanning(Extent.MinimumX + (Extent.Width() - CardX) * 0.5f,
+                                          Extent.MinimumY + (Extent.Height() - CardHeight) * 0.5f,
+                                          CardX, CardHeight);
 
         // 📝 The veil dismisses the menu only when the contact was NOT inside the card. The reference relies
         //    on the card being a later sibling that stops the click; one list has no bubbling, so the test
         //    is stated here.
         if (Ledger->Released(VeilContact) &&
-            !Card.Encloses(Sampled.PositionAlong, Sampled.PositionAcross))
+            !Card.Encloses(Sampled.PositionX, Sampled.PositionY))
         {
-            Seated.MenuOpened = false;
+            Applied.MenuOpened = false;
         }
 
         Surface->Ground(Card, Tinted.Menu, Scaled.MenuRadius, CornerAll);
@@ -3437,7 +3437,7 @@ Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
         // 🔴 The card's content is clipped to its own rounded extent, so the outliner's square corners do
         //    not fill the radius the card just drew.
         Surface->Confine(Card);
-        RecordInspector(Card, Seated, Rows, RowCount, Layers, LayerCount, Revisions, RevisionCount);
+        RecordInspector(Card, Applied, Rows, RowCount, Layers, LayerCount, Revisions, RevisionCount);
         Surface->Release();
 
         // 📝 The rounded corners are restored over the content, which was recorded square inside them.
@@ -3450,17 +3450,17 @@ Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
 
     // ⑤ The floating context card, recorded after the veil and the summoned card both — it is the reference's
     //    `z-[101]`, which is one above the overlay that dismisses it, and therefore above everything here.
-    RecordContextOverlay(Extent, Seated, Rows, RowCount);
+    RecordContextOverlay(Extent, Applied, Rows, RowCount);
 
     return Outcome<bool>::Result(true);
 }
 
-bool GlobalShellPanel::Occluding(float Along, float Across) const
+bool GlobalShellPanel::Occluding(float X, float Y) const
 {
     if (!InspectorStood)
         return false;
 
-    return InspectorAt.Encloses(Along, Across);
+    return InspectorAt.Encloses(X, Y);
 }
 
 }   // namespace Slate

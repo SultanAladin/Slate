@@ -20,7 +20,7 @@ namespace Slate
 
 /// 🧩 What the file system reports a path currently names.
 /// note  🔴 Absent is one of the four rather than a refusal, because "no file is there" is an answer the
-///       caller asked for and acts on. A refusal names a file system that declined to answer at all, which
+///       caller asked for and acts on. A refusal names a file system that failed to answer at all, which
 ///       is a different fact and is reported through `Result` instead.
 /// tag   contract
 enum class PathContent : std::uint32_t
@@ -58,8 +58,8 @@ public:
 
     /// 🧩 What a path currently names.
     /// in    Path     [-]  UTF-8
-    /// out   Result  [-]  refuses with HostDenied when the file system declined to answer
-    /// note  📝 An absent path is delivered as Absent rather than refused. Refusing would make the ordinary
+    /// out   Result  [-]  refuses with HostDenied when the file system failed to answer
+    /// note  📝 An absent path is delivered as Absent rather than rejected. Refusing would make the ordinary
     ///        question "is this here" indistinguishable from a file system that failed to answer it.
     /// cost  ✔️
     /// tag   api, nonthrowing
@@ -78,7 +78,7 @@ public:
     /// 🧩 Writes a whole stream, verifies what landed, and only then replaces what was there.
     /// in    Path      [-]  UTF-8; what the caller wants to end up holding the content
     /// in    Content   [-]  the bytes to write
-    /// out   Result   [-]  refuses with HostDenied when the file system declined, and with
+    /// out   Result   [-]  refuses with HostDenied when the file system rejected, and with
     ///                      ExtentExhausted when what landed does not match what was written
     /// note  🔴 `48` §3's sequence, and the reason this is one routine rather than three. The content is
     ///        written beside the target, read back and compared, and only a verified stream replaces the
@@ -94,15 +94,15 @@ public:
 
     /// 🧩 Creates a directory and every absent directory above it.
     /// in    Path     [-]  UTF-8
-    /// out   Result  [-]  refuses with HostDenied when the file system declined
-    /// note  📝 A directory that already exists is delivered rather than refused — the caller asked for it to
+    /// out   Result  [-]  refuses with HostDenied when the file system rejected
+    /// note  📝 A directory that already exists is delivered rather than rejected — the caller asked for it to
     ///        be there, and it is.
     /// cost  🚩
     /// tag   api, nonthrowing
     static Outcome<bool> DeclareDirectory(const std::string& Path);
 
     /// 🧩 Removes what a path names, when it names a stream.
-    /// out   Result  [-]  refuses with HostDenied when the file system declined; delivers for an absent path
+    /// out   Result  [-]  refuses with HostDenied when the file system rejected; delivers for an absent path
     /// cost  ✔️
     /// tag   api, nonthrowing
     static Outcome<bool> Reclaim(const std::string& Path);

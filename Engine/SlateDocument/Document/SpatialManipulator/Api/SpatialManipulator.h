@@ -31,9 +31,9 @@ namespace Slate
 /// tag   contract
 enum class ManipulationAxis : std::uint32_t
 {
-    AxisAlong   = 0u,   // [-] - the reference orientation's first axis
+    AxisX   = 0u,   // [-] - the reference orientation's first axis
     AxisUp      = 1u,   // [-] - its second
-    AxisAcross  = 2u,   // [-] - its third
+    AxisY  = 2u,   // [-] - its third
     AxisScreen  = 3u,   // [-] - the camera plane; `78` §3's screen and free constraints
     AxisCount   = 4u    // [-] - the closed count, never an axis
 };
@@ -78,7 +78,7 @@ enum class ConstraintSubject : std::uint32_t
 enum class ReferenceOrientation : std::uint32_t
 {
     DocumentAxes   = 0u,   // [-] - the document's own axes
-    OccupantAxes   = 1u,   // [-] - the manipulated occupant's own orientation
+    OwnerAxes   = 1u,   // [-] - the manipulated owner's own orientation
     SurfaceAxes    = 2u,   // [-] - the intersected surface's orientation, from `74`
     PlacementAxes  = 3u,   // [-] - the placement's own axes on the surface it sits on
     OrientationCount = 4u  // [-] - the closed count, never an orientation
@@ -93,8 +93,8 @@ enum class ReferenceOrientation : std::uint32_t
 enum class ManipulatedSubject : std::uint32_t
 {
     Nothing        = 0u,   // [-] - no target; the manipulator is not presented
-    OneOccupant    = 1u,   // [-] - its own transform, composed downward through `AttachmentFollows`
-    ManyOccupants  = 2u,   // [-] - each own transform, about one shared origin
+    OneOwner    = 1u,   // [-] - its own transform, composed downward through `AttachmentFollows`
+    ManyOwners  = 2u,   // [-] - each own transform, about one shared origin
     OnePlacement   = 3u,   // [-] - its placing transform, relative to the surface — `72` §1
     OneCamera      = 4u,   // [-] - `46`'s projection origin
     TargetCount    = 5u    // [-] - the closed count, never a target
@@ -106,7 +106,7 @@ enum class ManipulatedSubject : std::uint32_t
 
 /// 🧩 One grabbable part of the manipulator, in the manipulator's own space.
 /// note  🔴 A grip's geometry is declared in the manipulator's own space and scaled to a constant display extent
-///        when it is laid out. A manipulator that scaled with its target vanishes on a small occupant and fills
+///        when it is laid out. A manipulator that scaled with its target vanishes on a small owner and fills
 ///        the workspace on a large one, and in both cases the artist can no longer grasp the axis they want.
 /// note  📝 `Reach` and `HalfExtent` describe a capsule about the grip's own axis, and that capsule is what the
 ///        screen-space intersection in `78` §4 actually tests. Testing the generated triangles instead would make
@@ -115,7 +115,7 @@ enum class ManipulatedSubject : std::uint32_t
 struct ManipulationGrip
 {
     ManipulationSubject   Edits          = ManipulationSubject::Translate;   // [-]  - what grasping it does
-    ManipulationAxis      Addressed      = ManipulationAxis::AxisAlong;      // [-]  - which axis it addresses
+    ManipulationAxis      Addressed      = ManipulationAxis::AxisX;      // [-]  - which axis it addresses
     ColourSpecification   GripColour     = {};                              // [-]  - display-space; `80` §2's rule
     DocumentPosition      NearPosition   = {};                              // [-]  - the capsule's first end, in manipulator space
     DocumentPosition      FarPosition    = {};                              // [-]  - its second
@@ -153,7 +153,7 @@ inline constexpr double GripViewFraction    = 0.16;     // [-] - the axis length
 inline constexpr double SnapTranslation     = 0.25;     // [mm]  - one snapped step of a translation
 inline constexpr double SnapScaleStep       = 0.1;      // [-]   - one snapped step of a scale factor
 inline constexpr double SnapRotationStep    = 0.0872664625997165;   // [rad] - five degrees
-inline constexpr double ScaleFactorLeast    = 0.05;     // [-]   - a scale is never dragged through zero into inversion
+inline constexpr double ScaleFactorMinimum    = 0.05;     // [-]   - a scale is never dragged through zero into inversion
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE LAYOUT
@@ -192,10 +192,10 @@ public:
 
     /// 🧩 Which grip one pointer position grasps — `78` §4's own intersection, before `74` is consulted.
     /// in    Camera         [-]   the camera the pointer was reported against
-    /// in    PointerAlong   [px]  the display's first axis, zero at the left edge
-    /// in    PointerAcross  [px]  its second, zero at the top edge
-    /// in    DisplayAlong   [px]  the drawable extent the position was reported against
-    /// in    DisplayAcross  [px]  ?
+    /// in    PointerX   [px]  the display's first axis, zero at the left edge
+    /// in    PointerY  [px]  its second, zero at the top edge
+    /// in    DisplayX   [px]  the drawable extent the position was reported against
+    /// in    DisplayY  [px]  ?
     /// out   Result        [-]   the grip ordinal grasped; refuses with ContentUnsupported when the pointer
     ///                            grasps no grip, and when no layout stands
     /// note  🔴 `78` §4: this is a **separate** screen-space test against the grips' own geometry, at precedence 2
@@ -208,10 +208,10 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<std::uint32_t> Grasp(const CameraProjection& Camera,
-                                 double                  PointerAlong,
-                                 double                  PointerAcross,
-                                 std::uint32_t           DisplayAlong,
-                                 std::uint32_t           DisplayAcross) const;
+                                 double                  PointerX,
+                                 double                  PointerY,
+                                 std::uint32_t           DisplayX,
+                                 std::uint32_t           DisplayY) const;
 
     /// 🧩 One laid-out grip.
     /// out   Result  [-]  refuses with ContentUnsupported outside the laid-out count and for an undeclared grip
@@ -244,7 +244,7 @@ public:
     /// 🧩 Whether a layout stands at all.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool LayoutStanding() const;
+    bool LayoutCurrent() const;
 
     /// 🧩 Discards the layout. The manipulator is not presented until one is laid out again.
     /// cost  ✔️
@@ -268,15 +268,15 @@ private:
 /// 🧩 What one amendment of a drag has produced, in the space the target is stored in.
 /// note  🔴 The amendment is reported as a **displacement, a factor and a rotation** rather than as a finished
 ///        transform. `78` §1's four targets each compose it differently — a placement composes it against its
-///        surface, an occupant against its attachment — and a finished transform would have had to choose one.
+///        surface, an owner against its attachment — and a finished transform would have had to choose one.
 /// tag   nonallocating, nonthrowing
 struct ManipulationAmendment
 {
     DocumentPosition    Displacement  = {};                  // [mm] - what a translation has moved by
     RotationQuaternion  Turned        = {};                  // [-]  - what a rotation has turned by, about the drag axis
-    double              ScaleAlong    = 1.0;                 // [-]  - the factor on the reference orientation's first axis
+    double              ScaleX    = 1.0;                 // [-]  - the factor on the reference orientation's first axis
     double              ScaleUp       = 1.0;                 // [-]  - its second
-    double              ScaleAcross   = 1.0;                 // [-]  - its third
+    double              ScaleY   = 1.0;                 // [-]  - its third
     double              TurnedRadians = 0.0;                 // [rad] - the same rotation as a signed angle, for a readout
     ManipulationSubject Edited        = ManipulationSubject::Translate;   // [-] - which of the three this amendment is
 };
@@ -300,10 +300,10 @@ public:
     /// in    Grasped        [-]   the grip the pointer grasped
     /// in    Laid           [-]   the layout it was grasped from
     /// in    Camera         [-]   the camera; read once here and never again during the drag
-    /// in    PointerAlong   [px]  where the pointer stood when the grip was grasped
-    /// in    PointerAcross  [px]  ?
-    /// in    DisplayAlong   [px]  the drawable extent
-    /// in    DisplayAcross  [px]  ?
+    /// in    PointerX   [px]  where the pointer stood when the grip was grasped
+    /// in    PointerY  [px]  ?
+    /// in    DisplayX   [px]  the drawable extent
+    /// in    DisplayY  [px]  ?
     /// out   Result        [-]   refuses with HostDenied when a drag is already open, and with ContentUnsupported
     ///                            for an undeclared grip or a pointer that resolves no position on the fixed plane
     /// post  🔴 the drag axis or plane is fixed; nothing is recorded until Seal
@@ -314,16 +314,16 @@ public:
     Outcome<bool> Open(const ManipulationGrip&   Grasped,
                        const ManipulationLayout& Laid,
                        const CameraProjection&   Camera,
-                       double                    PointerAlong,
-                       double                    PointerAcross,
-                       std::uint32_t             DisplayAlong,
-                       std::uint32_t             DisplayAcross);
+                       double                    PointerX,
+                       double                    PointerY,
+                       std::uint32_t             DisplayX,
+                       std::uint32_t             DisplayY);
 
     /// 🧩 Amends the open drag by one pointer position, against the axis or plane Open fixed.
-    /// in    PointerAlong    [px]  where the pointer stands now
-    /// in    PointerAcross   [px]  ?
-    /// in    DisplayAlong    [px]  the drawable extent
-    /// in    DisplayAcross   [px]  ?
+    /// in    PointerX    [px]  where the pointer stands now
+    /// in    PointerY   [px]  ?
+    /// in    DisplayX    [px]  the drawable extent
+    /// in    DisplayY   [px]  ?
     /// in    SnapDeclared    [-]   true snaps the amendment to the declared increment
     /// out   Result         [-]   refuses with HostDenied when no drag is open, and with ContentUnsupported for a
     ///                             pointer that resolves no position against the fixed plane
@@ -333,10 +333,10 @@ public:
     ///        increment over a long gesture — which reads as the snapping having been switched off.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(double        PointerAlong,
-                        double        PointerAcross,
-                        std::uint32_t DisplayAlong,
-                        std::uint32_t DisplayAcross,
+    Outcome<bool> Amend(double        PointerX,
+                        double        PointerY,
+                        std::uint32_t DisplayX,
+                        std::uint32_t DisplayY,
                         bool          SnapDeclared);
 
     /// 🧩 Ends the drag with no effect. The caller restores what stood at Open.
@@ -375,7 +375,7 @@ public:
 private:
 
     ManipulationGrip       GraspedGrip;                                            // [-]  - as it stood at Open
-    ManipulationAmendment  Standing;                                               // [-]  - what the drag has amended
+    ManipulationAmendment  Current;                                               // [-]  - what the drag has amended
     ConstraintSubject      FixedConstraint = ConstraintSubject::AxisConstrained;   // [-]  - fixed at Open
 
     // 🔴 The camera is **held** rather than passed to each amendment, which is what makes the note above
@@ -384,15 +384,15 @@ private:
     CameraProjection       HeldCamera      = {};    // [-]  - as it stood at Open, and never re-read
 
     DocumentPosition       DragOrigin      = {};      // [mm] - the manipulator's origin, held from Open
-    double                 AxisAlongSpan   = 0.0;     // [-]  - the drag axis in document space, unit length
+    double                 AxisXSpan   = 0.0;     // [-]  - the drag axis in document space, unit length
     double                 AxisUpSpan      = 0.0;     // [-]
-    double                 AxisAcrossSpan  = 0.0;     // [-]
-    double                 PlaneAlongSpan  = 0.0;     // [-]  - the drag plane's first span, for a plane drag
+    double                 AxisYSpan  = 0.0;     // [-]
+    double                 PlaneXSpan  = 0.0;     // [-]  - the drag plane's first span, for a plane drag
     double                 PlaneUpSpan     = 0.0;     // [-]
-    double                 PlaneAcrossSpan = 0.0;     // [-]
-    double                 ReferenceAlong  = 0.0;     // [-]  - the angle's reference direction, for a rotation
+    double                 PlaneYSpan = 0.0;     // [-]
+    double                 ReferenceX  = 0.0;     // [-]  - the angle's reference direction, for a rotation
     double                 ReferenceUp     = 0.0;     // [-]
-    double                 ReferenceAcross = 0.0;     // [-]
+    double                 ReferenceY = 0.0;     // [-]
 
     double                 OpenParameter   = 0.0;     // [mm] - the axis parameter the pointer stood at, at Open
     double                 OpenAngle       = 0.0;     // [rad] - the angle it stood at, for a rotation

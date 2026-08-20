@@ -58,14 +58,14 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Construct(std::uint32_t SlotCeiling, std::uint32_t BytesPerTexel);
 
-    /// 🧩 Claims one free slot.
+    /// 🧩 Reservations one free slot.
     /// out   Result  [-]  refuses with ExtentExhausted when every slot is claimed or quarantined
     /// note  🔴 A refusal is **not** a failure — `20` §2.2 and `86` §5. Every slot claimed means the promotion
     ///        must evict first, and exhaustion during ordinary painting is residency policy operating as
     ///        designed. Reporting it would mean the register is never quiet.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Claim();
+    Outcome<std::uint32_t> Reserve();
 
     /// 🧩 Releases one claimed slot into quarantine.
     /// in    SlotOrdinal      [-]  the slot
@@ -105,7 +105,7 @@ public:
     std::uint64_t BackingBytes() const;
 
     std::uint32_t SlotCeiling() const;
-    std::uint32_t ClaimedCount() const;
+    std::uint32_t HeldCount() const;
     std::uint32_t QuarantinedCount() const;
     std::uint32_t FreeCount() const;
 
@@ -116,19 +116,19 @@ public:
 
 private:
 
-    enum class SlotStanding : std::uint32_t
+    enum class SlotCondition : std::uint32_t
     {
         Free        = 0u,   // [-] - claimable now
-        Claimed     = 1u,   // [-] - a resident cell holds it
+        Held     = 1u,   // [-] - a resident cell holds it
         Quarantined = 2u    // [-] - released; the device may still be reading it
     };
 
-    std::vector<SlotStanding>   Standing;                 // [-] - one per slot
+    std::vector<SlotCondition>   Conditions;                 // [-] - one per slot
     std::vector<std::uint64_t>  ReleasedAt;               // [-] - rotation each quarantined slot was released
     std::vector<std::uint32_t>  FreeOrdinals;             // [-] - claimable slots, most recently freed first
     std::uint64_t               TileBytes         = 0u;   // [B] - StoredTexelsPerEdge² × the declared width
     std::uint32_t               Ceiling           = 0u;   // [-] - slots the ledger spans
-    std::uint32_t               ClaimedSlots      = 0u;   // [-]
+    std::uint32_t               HeldSlots      = 0u;   // [-]
     std::uint32_t               QuarantinedSlots  = 0u;   // [-]
 };
 

@@ -23,7 +23,7 @@ namespace Slate
 /// tag   contract, nonallocating, nonthrowing
 struct SpringInterpolant
 {
-    double  Standing   = 0.0;     // [px] - where it is now
+    double  Current   = 0.0;     // [px] - where it is now
     double  Target     = 0.0;     // [px] - where it is heading
     double  Rate       = 0.0;     // [px/ms] - how fast, signed
     double  Stiffness  = 350.0;   // [-]
@@ -38,12 +38,12 @@ struct SpringInterpolant
     /// cost  ✔️
     bool Advance(double Elapsed);
 
-    /// 🧩 Places it at an ordinate immediately, discarding any motion.
+    /// 🧩 Places it at an coordinate immediately, discarding any motion.
     /// cost  ✔️
-    void Seat(double Ordinate);
+    void Place(double Coordinate);
 };
 
-/// 🧩 A cubic-eased traverse from one ordinate to another over a declared duration.
+/// 🧩 A cubic-eased traverse from one coordinate to another over a declared duration.
 /// note  The source's default easing is the cubic Bézier (0.4, 0, 0.2, 1) — Material's standard curve — and
 ///       every `transition-colors` and accordion height uses it at 150 ms.
 /// tag   contract, nonallocating, nonthrowing
@@ -60,8 +60,8 @@ enum class EaseCurve : std::uint32_t
 
 struct EasedInterpolant
 {
-    double  Departed  = 0.0;     // [-]  - where the traverse began
-    double  Arriving  = 0.0;     // [-]  - where it ends
+    double  Previous  = 0.0;     // [-]  - where the traverse began
+    double  Incoming  = 0.0;     // [-]  - where it ends
     double  Elapsed   = 0.0;     // [ms] - how far through it is
     double  Duration  = 150.0;   // [ms] - the whole traverse
     double  Deferral  = 0.0;     // [ms] - held before it begins; the card arrival stagger
@@ -69,10 +69,10 @@ struct EasedInterpolant
     bool    Settled   = true;    // [-]
 
     bool   Advance(double Interval);
-    double Standing() const;
+    double Current() const;
     void   Depart(double From, double To, double Over, double Held = 0.0,
                   EaseCurve Declared = EaseCurve::Standard);
-    void   Seat(double Ordinate);
+    void   Place(double Coordinate);
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -89,12 +89,12 @@ class MotionIntegrator
 public:
 
     // 🔴 Springs and eases are counted apart because they are drawn at wildly different rates. Every
-    //    `InteractionIndex::Enrol` burns TWO eases (a rouse fade and a take fade) and no spring at all, so
+    //    `InteractionIndex::Register` burns TWO eases (a hover fade and a take fade) and no spring at all, so
     //    one shared ceiling sized for springs starves the eases long before the springs are touched. At
     //    `523aa61` the host's construct chain demanded 1100 eases against a shared 1024 and the shell — the
-    //    last panel constructed — was refused mid-enrolment, which retired the window before its first frame.
+    //    last panel constructed — was rejected mid-registration, which retired the window before its first frame.
     static constexpr std::uint32_t SpringCapacity = 64u;     // [-] - four are drawn today; never allocated
-    // 🔴 Raised from 2048 when the layer stack's unfolded card was seated. The card lends one shared run of
+    // 🔴 Raised from 2048 when the layer stack's unfolded card was applied. The card lends one shared run of
     //    44 controls, which is 88 further eases, and the host's chain stood at 1968 of 2048 — eight short.
     //    The ceiling is a .bss reservation and not an allocation, so the margin costs bytes and never a tick.
     static constexpr std::uint32_t EaseCapacity   = 2560u;   // [-] - 2056 are drawn today; never allocated
@@ -104,40 +104,40 @@ public:
     MotionIntegrator& operator=(const MotionIntegrator&) = delete;
     ~MotionIntegrator()                                  = default;
 
-    /// 🧩 Enrols a spring and delivers the ordinal the caller advances it by.
+    /// 🧩 Registers a spring and delivers the ordinal the caller advances it by.
     /// out   Result  [-]  refuses with ExtentExhausted when the capacity is full
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> EnrolSpring(const MotionScale& Motion, double Seated);
+    Outcome<std::uint32_t> RegisterSpring(const MotionScale& Motion, double Applied);
 
-    /// 🧩 Enrols an eased traverse and delivers its ordinal.
+    /// 🧩 Registers an eased traverse and delivers its ordinal.
     /// out   Result  [-]  refuses with ExtentExhausted when the capacity is full
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> EnrolEased(double Seated);
+    Outcome<std::uint32_t> RegisterEased(double Applied);
 
-    /// 🧩 The enrolled spring at one ordinal, for the caller to read and re-target.
-    /// pre   the ordinal was delivered by EnrolSpring
+    /// 🧩 The registered spring at one ordinal, for the caller to read and re-target.
+    /// pre   the ordinal was delivered by RegisterSpring
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     SpringInterpolant& Spring(std::uint32_t Ordinal);
 
-    /// 🧩 The enrolled spring at one ordinal, for a caller that only reads it.
-    /// note  🔴 Exists so that `DrawerSpace::StandingOrdinate` and `Moving` — both const, both read-only —
+    /// 🧩 The registered spring at one ordinal, for a caller that only reads it.
+    /// note  🔴 Exists so that `DrawerSpace::CurrentY` and `Moving` — both const, both read-only —
     ///       need no const_cast. A cast that removes constness to reach a read is a cast that will one day
     ///       be copied to reach a write.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     const SpringInterpolant& Spring(std::uint32_t Ordinal) const;
 
-    /// 🧩 The enrolled eased traverse at one ordinal.
-    /// pre   the ordinal was delivered by EnrolEased
+    /// 🧩 The registered eased traverse at one ordinal.
+    /// pre   the ordinal was delivered by RegisterEased
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     EasedInterpolant& Eased(std::uint32_t Ordinal);
     const EasedInterpolant& Eased(std::uint32_t Ordinal) const;
 
-    /// 🧩 Advances every enrolled interpolant by one host interval.
+    /// 🧩 Advances every registered interpolant by one host interval.
     /// in    Elapsed  [ms]  what `TickSequence::Span` measured between this tick and the last
     /// out   Moving   [-]   false when every interpolant has settled — the caller may then block
     /// note  ⏱️ Sampled against elapsed host time and never against a rotation count. A rotation-counted

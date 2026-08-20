@@ -52,7 +52,7 @@ const char* SpanSpace::NameOf(SpanIntent Intent)
 
 VkBufferUsageFlags SpanSpace::UsageOf(SpanIntent Intent)
 {
-    // 📝 Every intent admits a transfer **into** the span, because a device-local span is written no other way.
+    // 📝 Every intent accepts a transfer **into** the span, because a device-local span is written no other way.
     //    The transfer out is declared only where something reads back, which is the written storage alone.
     switch (Intent)
     {
@@ -83,19 +83,19 @@ VkBufferUsageFlags SpanSpace::UsageOf(SpanIntent Intent)
 //                                                       THE CLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<SpanClaim> SpanSpace::Claim(const SpanShape& Declared)
+Outcome<SpanReservation> SpanSpace::Reserve(const SpanShape& Declared)
 {
     if (DeviceEdge == nullptr || BackingBytes == nullptr)
-        return Outcome<SpanClaim>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<SpanReservation>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     if (Declared.SpanBytes == 0u)
-        return Outcome<SpanClaim>::Refuse({ RefusalReason::ContentUnsupported, "a span of zero bytes" });
+        return Outcome<SpanReservation>::Refuse({ RefusalReason::ContentUnsupported, "a span of zero bytes" });
 
     if (Declared.Intent == SpanIntent::IntentCount)
-        return Outcome<SpanClaim>::Refuse({ RefusalReason::ContentUnsupported, "no such span intent" });
+        return Outcome<SpanReservation>::Refuse({ RefusalReason::ContentUnsupported, "no such span intent" });
 
     if (Declared.Residency == ExtentResidency::ResidencyCount)
-        return Outcome<SpanClaim>::Refuse({ RefusalReason::ContentUnsupported, "no such residency" });
+        return Outcome<SpanReservation>::Refuse({ RefusalReason::ContentUnsupported, "no such residency" });
 
     const VkDevice Active = DeviceEdge->ActiveDevice();
 
@@ -105,42 +105,42 @@ Outcome<SpanClaim> SpanSpace::Claim(const SpanShape& Declared)
     SpanDeclaration.usage              = UsageOf(Declared.Intent);
     SpanDeclaration.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkBuffer Arriving = VK_NULL_HANDLE;
+    VkBuffer Incoming = VK_NULL_HANDLE;
 
-    if (vkCreateBuffer(Active, &SpanDeclaration, nullptr, &Arriving) != VK_SUCCESS)
-        return Outcome<SpanClaim>::Refuse({ RefusalReason::ExtentExhausted, "the device declined the span" });
+    if (vkCreateBuffer(Active, &SpanDeclaration, nullptr, &Incoming) != VK_SUCCESS)
+        return Outcome<SpanReservation>::Refuse({ RefusalReason::ExtentExhausted, "the device rejected the span" });
 
     // 📝 Read from the created span and never computed from the shape, for `ImageSpace`'s reason: the alignment
     //    a uniform read requires is the vendor's declaration and a computed figure is right on one driver.
     VkMemoryRequirements Required = {};
-    vkGetBufferMemoryRequirements(Active, Arriving, &Required);
+    vkGetBufferMemoryRequirements(Active, Incoming, &Required);
 
     // 🔴 Committed rather than discretionary. A span is the working set of whichever document claimed it, and
     //    `06` §7 makes exhaustion of a committed claim a reported failure rather than residency policy.
-    const Outcome<ByteClaim> Backing = BackingBytes->Claim(Required.size,
+    const Outcome<ByteReservation> Backing = BackingBytes->Reserve(Required.size,
                                                           Required.alignment,
                                                           Declared.Residency,
-                                                          ClaimStanding::Committed);
+                                                          ReservationCondition::Committed);
 
     if (!Backing.Resolved)
     {
-        vkDestroyBuffer(Active, Arriving, nullptr);
-        return Outcome<SpanClaim>::Refuse(Backing.Error);
+        vkDestroyBuffer(Active, Incoming, nullptr);
+        return Outcome<SpanReservation>::Refuse(Backing.Error);
     }
 
-    const ByteClaim Sliced = Backing.Resolve();
+    const ByteReservation Sliced = Backing.Resolve();
 
-    if (vkBindBufferMemory(Active, Arriving, Sliced.BackingExtent, Sliced.ByteOffset) != VK_SUCCESS)
+    if (vkBindBufferMemory(Active, Incoming, Sliced.BackingExtent, Sliced.ByteOffset) != VK_SUCCESS)
     {
         BackingBytes->Release(Sliced);
-        vkDestroyBuffer(Active, Arriving, nullptr);
+        vkDestroyBuffer(Active, Incoming, nullptr);
 
-        return Outcome<SpanClaim>::Refuse(
-            { RefusalReason::ContentUnsupported, "the device declined to bind the claimed bytes to the span" });
+        return Outcome<SpanReservation>::Refuse(
+            { RefusalReason::ContentUnsupported, "the device failed to bind the claimed bytes to the span" });
     }
 
     HeldSpan Taken;
-    Taken.Extent       = Arriving;
+    Taken.Extent       = Incoming;
     Taken.Backing      = Sliced;
     Taken.Shape        = Declared;
     Taken.SlotOccupied = true;
@@ -168,18 +168,18 @@ Outcome<SpanClaim> SpanSpace::Claim(const SpanShape& Declared)
     // 📝 🔴 `06` §7's diagnostic-name gate, named by the ordinal the claimant resolves the span by. The
     //    refusal is discarded for `ByteSpace`'s reason — a span that stands and could not be named is still
     //    the span the claimant asked for.
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_BUFFER,
-                        reinterpret_cast<std::uint64_t>(Arriving),
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_BUFFER,
+                        reinterpret_cast<std::uint64_t>(Incoming),
                         NameOf(Declared.Intent),
                         SpanOrdinal));
 
-    SpanClaim Claimed;
-    Claimed.Extent      = Arriving;
-    Claimed.SpanBytes   = Declared.SpanBytes;
-    Claimed.HostAddress = Sliced.HostAddress;
-    Claimed.SpanOrdinal = SpanOrdinal;
+    SpanReservation Reserved;
+    Reserved.Extent      = Incoming;
+    Reserved.SpanBytes   = Declared.SpanBytes;
+    Reserved.HostAddress = Sliced.HostAddress;
+    Reserved.SpanOrdinal = SpanOrdinal;
 
-    return Outcome<SpanClaim>::Result(Claimed);
+    return Outcome<SpanReservation>::Result(Reserved);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -187,8 +187,8 @@ Outcome<SpanClaim> SpanSpace::Claim(const SpanShape& Declared)
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<bool> SpanSpace::Amend(std::uint32_t  SpanOrdinal,
-                               const void*    Arriving,
-                               VkDeviceSize   ArrivingBytes,
+                               const void*    Incoming,
+                               VkDeviceSize   IncomingBytes,
                                VkDeviceSize   ByteOffset)
 {
     if (static_cast<std::size_t>(SpanOrdinal) >= Spans.size() || !Spans[SpanOrdinal].SlotOccupied)
@@ -202,15 +202,15 @@ Outcome<bool> SpanSpace::Amend(std::uint32_t  SpanOrdinal,
             { RefusalReason::ContentUnsupported, "a device-local span carries no host address to write through" });
     }
 
-    if (Arriving == nullptr || ArrivingBytes == 0u)
+    if (Incoming == nullptr || IncomingBytes == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "nothing was supplied to write" });
 
-    if (ByteOffset > Held.Shape.SpanBytes || ArrivingBytes > Held.Shape.SpanBytes - ByteOffset)
+    if (ByteOffset > Held.Shape.SpanBytes || IncomingBytes > Held.Shape.SpanBytes - ByteOffset)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the write would run past the claimed span" });
 
     std::memcpy(static_cast<unsigned char*>(Held.Backing.HostAddress) + ByteOffset,
-                Arriving,
-                static_cast<std::size_t>(ArrivingBytes));
+                Incoming,
+                static_cast<std::size_t>(IncomingBytes));
 
     return Outcome<bool>::Result(true);
 }
@@ -253,23 +253,23 @@ Outcome<bool> SpanSpace::Transfer(VkCommandBuffer  Recorded,
 //                                                       THE READS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<SpanClaim> SpanSpace::Standing(std::uint32_t SpanOrdinal) const
+Outcome<SpanReservation> SpanSpace::Current(std::uint32_t SpanOrdinal) const
 {
     if (static_cast<std::size_t>(SpanOrdinal) >= Spans.size() || !Spans[SpanOrdinal].SlotOccupied)
-        return Outcome<SpanClaim>::Refuse({ RefusalReason::ContentUnsupported, "no span stands at that ordinal" });
+        return Outcome<SpanReservation>::Refuse({ RefusalReason::ContentUnsupported, "no span stands at that ordinal" });
 
     const HeldSpan& Held = Spans[SpanOrdinal];
 
-    SpanClaim Standing;
-    Standing.Extent      = Held.Extent;
-    Standing.SpanBytes   = Held.Shape.SpanBytes;
-    Standing.HostAddress = Held.Backing.HostAddress;
-    Standing.SpanOrdinal = SpanOrdinal;
+    SpanReservation Current;
+    Current.Extent      = Held.Extent;
+    Current.SpanBytes   = Held.Shape.SpanBytes;
+    Current.HostAddress = Held.Backing.HostAddress;
+    Current.SpanOrdinal = SpanOrdinal;
 
-    return Outcome<SpanClaim>::Result(Standing);
+    return Outcome<SpanReservation>::Result(Current);
 }
 
-std::uint32_t SpanSpace::ClaimedCount() const
+std::uint32_t SpanSpace::ReservedCount() const
 {
     std::uint32_t Occupied = 0u;
 
@@ -282,17 +282,17 @@ std::uint32_t SpanSpace::ClaimedCount() const
     return Occupied;
 }
 
-VkDeviceSize SpanSpace::ClaimedBytes() const
+VkDeviceSize SpanSpace::ReservedBytes() const
 {
-    VkDeviceSize Claimed = 0u;
+    VkDeviceSize Reserved = 0u;
 
     for (const HeldSpan& Held : Spans)
     {
         if (Held.SlotOccupied)
-            Claimed += Held.Shape.SpanBytes;
+            Reserved += Held.Shape.SpanBytes;
     }
 
-    return Claimed;
+    return Reserved;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

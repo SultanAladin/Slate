@@ -45,7 +45,7 @@ namespace
     constexpr VkFormat FormatOf[TargetSpan] =
     {
         VK_FORMAT_D32_SFLOAT,             // DepthSurface
-        VK_FORMAT_R32G32_UINT,            // VisibilityIndex — occupant ordinal and primitive ordinal
+        VK_FORMAT_R32G32_UINT,            // VisibilityIndex — owner ordinal and primitive ordinal
         VK_FORMAT_R8_UNORM,               // OccupancySurface
         VK_FORMAT_R16G16_SFLOAT,          // MotionSurface
         VK_FORMAT_R8_UNORM,               // OcclusionSurface
@@ -85,20 +85,20 @@ namespace
     // 📝 The absolute extents come from `Contract/ToleranceContract.h` because `28` reads them too — one set
     //    of numbers, two units, which is where `00` §2 places them. A zero here means the target is not
     //    absolute and its extent is derived from the display instead.
-    constexpr std::uint32_t AbsoluteAlong[TargetSpan] =
+    constexpr std::uint32_t AbsoluteX[TargetSpan] =
     {
         0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u,
-        TransmittanceExtentAlong,
-        MultiScatterExtentAlong,
-        SkyViewExtentAlong
+        TransmittanceExtentX,
+        MultiScatterExtentX,
+        SkyViewExtentX
     };
 
-    constexpr std::uint32_t AbsoluteAcross[TargetSpan] =
+    constexpr std::uint32_t AbsoluteY[TargetSpan] =
     {
         0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u,
-        TransmittanceExtentAcross,
-        MultiScatterExtentAcross,
-        SkyViewExtentAcross
+        TransmittanceExtentY,
+        MultiScatterExtentY,
+        SkyViewExtentY
     };
 
     // 📝 🔴 `TransmissionIndex` is `TransmissionDepth` sorted pairs per pixel and is claimed as that many
@@ -144,8 +144,8 @@ Outcome<ImageShape> TargetSpace::ShapeOf(SharedTarget Target) const
     {
         case ExtentRelation::DisplayRelative:
         {
-            Declared.Width  = StandingWidth;
-            Declared.Height = StandingHeight;
+            Declared.Width  = CurrentWidth;
+            Declared.Height = CurrentHeight;
             break;
         }
 
@@ -153,16 +153,16 @@ Outcome<ImageShape> TargetSpace::ShapeOf(SharedTarget Target) const
         {
             // 📝 Half per edge, rounded up. Rounding down leaves the last column of the display with no
             //    coarse texel over it, and `60` then samples outside its own target along one edge.
-            Declared.Width  = (StandingWidth  + 1u) / 2u;
-            Declared.Height = (StandingHeight + 1u) / 2u;
+            Declared.Width  = (CurrentWidth  + 1u) / 2u;
+            Declared.Height = (CurrentHeight + 1u) / 2u;
             break;
         }
 
         case ExtentRelation::Absolute:
         default:
         {
-            Declared.Width  = AbsoluteAlong[TargetOrdinal];
-            Declared.Height = AbsoluteAcross[TargetOrdinal];
+            Declared.Width  = AbsoluteX[TargetOrdinal];
+            Declared.Height = AbsoluteY[TargetOrdinal];
             break;
         }
     }
@@ -186,7 +186,7 @@ Outcome<ImageShape> TargetSpace::ShapeOf(SharedTarget Target) const
 //                                                      THE CLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> TargetSpace::Claim(ImageSpace&    Images,
+Outcome<bool> TargetSpace::Reserve(ImageSpace&    Images,
                                  std::uint32_t  DisplayWidth,
                                  std::uint32_t  DisplayHeight,
                                  VkFormat       DisplayFormat)
@@ -206,11 +206,11 @@ Outcome<bool> TargetSpace::Claim(ImageSpace&    Images,
     // 📝 A second claim over a standing one surrenders first rather than claiming twice. The alternative
     //    leaks fifteen images per call and reports as memory growth attributable to nothing in particular.
     if (ImageEdge != nullptr)
-        Surrender();
+        Release();
 
     ImageEdge      = &Images;
-    StandingWidth  = DisplayWidth;
-    StandingHeight = DisplayHeight;
+    CurrentWidth  = DisplayWidth;
+    CurrentHeight = DisplayHeight;
     DisplayCarries = DisplayFormat;
 
     for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
@@ -219,22 +219,22 @@ Outcome<bool> TargetSpace::Claim(ImageSpace&    Images,
 
         if (!Declared.Resolved)
         {
-            Surrender();
+            Release();
             return Outcome<bool>::Refuse(Declared.Error);
         }
 
-        const Outcome<ImageClaim> Claimed = Images.Claim(Declared.Resolve());
+        const Outcome<ImageReservation> Reserved = Images.Reserve(Declared.Resolve());
 
-        // 🔴 Refused in full. Every target claimed so far is surrendered, so the caller is left with nothing
-        //    rather than with a set that is complete up to whichever target the device declined.
-        if (!Claimed.Resolved)
+        // 🔴 Rejected in full. Every target claimed so far is surrendered, so the caller is left with nothing
+        //    rather than with a set that is complete up to whichever target the device rejected.
+        if (!Reserved.Resolved)
         {
-            Surrender();
-            return Outcome<bool>::Refuse(Claimed.Error);
+            Release();
+            return Outcome<bool>::Refuse(Reserved.Error);
         }
 
-        ClaimedFor[TargetOrdinal]    = Claimed.Resolve().ImageOrdinal;
-        TargetClaimed[TargetOrdinal] = true;
+        ReservedFor[TargetOrdinal]    = Reserved.Resolve().ImageOrdinal;
+        TargetReserved[TargetOrdinal] = true;
     }
 
     return Outcome<bool>::Result(true);
@@ -251,21 +251,21 @@ Outcome<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t Dis
     if (DisplayWidth > DisplayExtentCeiling || DisplayHeight > DisplayExtentCeiling)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent above the declared ceiling" });
 
-    StandingWidth  = DisplayWidth;
-    StandingHeight = DisplayHeight;
+    CurrentWidth  = DisplayWidth;
+    CurrentHeight = DisplayHeight;
 
     // 🔴 `06` §7: **every** display-relative and fraction-of-display target, and no absolute one. The two
     //    passes are separate — every affected target is released before any is re-claimed — so that the peak
     //    residency of a resize is one target set and not two.
     for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
     {
-        if (RelationOf[TargetOrdinal] == ExtentRelation::Absolute || !TargetClaimed[TargetOrdinal])
+        if (RelationOf[TargetOrdinal] == ExtentRelation::Absolute || !TargetReserved[TargetOrdinal])
             continue;
 
-        ImageEdge->Release(ClaimedFor[TargetOrdinal]);
+        ImageEdge->Release(ReservedFor[TargetOrdinal]);
 
-        ClaimedFor[TargetOrdinal]    = AbsentImage;
-        TargetClaimed[TargetOrdinal] = false;
+        ReservedFor[TargetOrdinal]    = AbsentImage;
+        TargetReserved[TargetOrdinal] = false;
     }
 
     for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
@@ -277,20 +277,20 @@ Outcome<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t Dis
 
         if (!Declared.Resolved)
         {
-            Surrender();
+            Release();
             return Outcome<bool>::Refuse(Declared.Error);
         }
 
-        const Outcome<ImageClaim> Claimed = ImageEdge->Claim(Declared.Resolve());
+        const Outcome<ImageReservation> Reserved = ImageEdge->Reserve(Declared.Resolve());
 
-        if (!Claimed.Resolved)
+        if (!Reserved.Resolved)
         {
-            Surrender();
-            return Outcome<bool>::Refuse(Claimed.Error);
+            Release();
+            return Outcome<bool>::Refuse(Reserved.Error);
         }
 
-        ClaimedFor[TargetOrdinal]    = Claimed.Resolve().ImageOrdinal;
-        TargetClaimed[TargetOrdinal] = true;
+        ReservedFor[TargetOrdinal]    = Reserved.Resolve().ImageOrdinal;
+        TargetReserved[TargetOrdinal] = true;
     }
 
     return Outcome<bool>::Result(true);
@@ -300,14 +300,14 @@ Outcome<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t Dis
 //                                                   WHAT IS CLAIMED
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ImageClaim> TargetSpace::Resolve(SharedTarget Target) const
+Outcome<ImageReservation> TargetSpace::Resolve(SharedTarget Target) const
 {
     const Outcome<std::uint32_t> Ordinal = OrdinalOf(Target);
 
     if (!Ordinal.Resolved)
-        return Outcome<ImageClaim>::Refuse(Ordinal.Error);
+        return Outcome<ImageReservation>::Refuse(Ordinal.Error);
 
-    return ImageEdge->Standing(Ordinal.Resolve());
+    return ImageEdge->Current(Ordinal.Resolve());
 }
 
 Outcome<std::uint32_t> TargetSpace::OrdinalOf(SharedTarget Target) const
@@ -317,35 +317,35 @@ Outcome<std::uint32_t> TargetSpace::OrdinalOf(SharedTarget Target) const
     if (TargetOrdinal >= TargetSpan)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
 
-    if (ImageEdge == nullptr || !TargetClaimed[TargetOrdinal])
+    if (ImageEdge == nullptr || !TargetReserved[TargetOrdinal])
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "the target is not claimed" });
 
-    return Outcome<std::uint32_t>::Result(ClaimedFor[TargetOrdinal]);
+    return Outcome<std::uint32_t>::Result(ReservedFor[TargetOrdinal]);
 }
 
-void TargetSpace::Surrender()
+void TargetSpace::Release()
 {
     if (ImageEdge != nullptr)
     {
         for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
         {
-            if (TargetClaimed[TargetOrdinal])
-                ImageEdge->Release(ClaimedFor[TargetOrdinal]);
+            if (TargetReserved[TargetOrdinal])
+                ImageEdge->Release(ReservedFor[TargetOrdinal]);
         }
     }
 
     for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
     {
-        ClaimedFor[TargetOrdinal]    = AbsentImage;
-        TargetClaimed[TargetOrdinal] = false;
+        ReservedFor[TargetOrdinal]    = AbsentImage;
+        TargetReserved[TargetOrdinal] = false;
     }
 
     // 📝 🔴 `06` §7: no persistent extent is carried across a change. The standing extent is forgotten with
     //    the images, so a re-claim that refuses cannot leave a later reader deriving a shape from the extent
     //    the surrendered set was claimed at.
     ImageEdge      = nullptr;
-    StandingWidth  = 0u;
-    StandingHeight = 0u;
+    CurrentWidth  = 0u;
+    CurrentHeight = 0u;
     DisplayCarries = VK_FORMAT_UNDEFINED;
 }
 
@@ -353,20 +353,20 @@ void TargetSpace::Surrender()
 //                                                     CONTRIBUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> RenderSchedule::Contribute(const DeclaredRecording& Arriving)
+Outcome<bool> RenderSchedule::Contribute(const DeclaredRecording& Incoming)
 {
     if (OrderingFixed)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the ordering is already fixed" });
 
     // 📝 🔴 A capability requirement with no substitution is rejected here rather than discovered at the
     //    recording site. The substitution is a design decision belonging to the contributing document.
-    if (Arriving.CapabilityRequired && (Arriving.Substitution == nullptr || Arriving.Substitution[0] == '\0'))
+    if (Incoming.CapabilityRequired && (Incoming.Substitution == nullptr || Incoming.Substitution[0] == '\0'))
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::CapabilityAbsent, "a capability is required with no declared substitution" });
     }
 
-    for (const SharedTarget Produced : Arriving.Produces)
+    for (const SharedTarget Produced : Incoming.Produces)
     {
         const std::size_t TargetOrdinal = static_cast<std::size_t>(Produced);
 
@@ -385,7 +385,7 @@ Outcome<bool> RenderSchedule::Contribute(const DeclaredRecording& Arriving)
         ProducerOf[TargetOrdinal].SlotGeneration = 1u;
     }
 
-    ContributedOrder.push_back(Arriving);
+    ContributedOrder.push_back(Incoming);
     return Outcome<bool>::Result(true);
 }
 

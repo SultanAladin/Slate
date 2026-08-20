@@ -71,16 +71,16 @@ SLATE_SHARED SLATE_CONSTEXPR Unsigned32 UnpackTransmissionTriangle(Unsigned32 Su
 //                                                     THE DEPTH KEY
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The ordering key one reversed-depth ordinate carries.
+/// 🧩 The ordering key one reversed-depth coordinate carries.
 /// in    ReversedDepth  [-]  in the closed unit interval; near is one — `Contract/`'s convention
-/// out   DepthKey       [-]  an unsigned ordinal ordered identically to the ordinate
-/// note  📐 A non-negative floating-point ordinate and its own bit pattern are **identically ordered**, so the
+/// out   DepthKey       [-]  an unsigned ordinal ordered identically to the coordinate
+/// note  📐 A non-negative floating-point coordinate and its own bit pattern are **identically ordered**, so the
 ///        key is the bit pattern and the comparison is an integer one. That is what makes the ordering Exact
 ///        without quantising the depth: a quantisation coarse enough to compare cheaply is one that reports two
 ///        distinct panes as coplanar, and a fine one is a second precision nobody declared.
 /// note  🔴 Reversed depth is bounded below at nought by the convention, so the sign bit is never set and the
-///        ordering never inverts. An ordinate outside the interval is bounded rather than trusted — a depth
-///        arriving negative would order above every legitimate fragment and occupy the nearest slot forever.
+///        ordering never inverts. An coordinate outside the interval is bounded rather than trusted — a depth
+///        incoming negative would order above every legitimate fragment and occupy the nearest slot forever.
 /// cost  ✔️
 /// note  Exact — a bound and a reinterpretation; identical on the host and on the device.
 /// tag   shared, parity, nonallocating, nonthrowing
@@ -90,7 +90,7 @@ SLATE_SHARED Unsigned32 ProjectTransmissionKey(Real64 ReversedDepth)
 
     // 📐 Scaled onto the whole unsigned range rather than reinterpreted, because the two toolchains do not
     //    share a reinterpretation spelling and a union is not expressible under one of them. The scale is a
-    //    power of two less one, so it is exact at every representable ordinate and monotone throughout.
+    //    power of two less one, so it is exact at every representable coordinate and monotone throughout.
     return Unsigned32(Bounded * 4294967295.0);
 }
 
@@ -103,10 +103,10 @@ SLATE_SHARED Unsigned32 ProjectTransmissionKey(Real64 ReversedDepth)
 /// in    EarlierSurface [-]  its packed surface word
 /// in    LaterKey       [-]  the second fragment's depth key
 /// in    LaterSurface   [-]  its packed surface word
-/// out   Precedes       [-]  true where the first is nearer, or coplanar and lower in occupant order
+/// out   Precedes       [-]  true where the first is nearer, or coplanar and lower in owner order
 /// note  🔴 Ties resolve by the **surface word** and never by arrival — `62` §7. The word's high field is the
-///        document-wide partition ordinal, and `16`'s enrolment lays each occupant's partitions contiguously,
-///        so ordering by it is ordering by occupant with a deterministic order inside each one. Two coplanar
+///        document-wide partition ordinal, and `16`'s registration lays each owner's partitions contiguously,
+///        so ordering by it is ordering by owner with a deterministic order inside each one. Two coplanar
 ///        surfaces therefore order the same way on every rotation, every run and every machine.
 /// cost  ✔️
 /// note  Exact — two integer comparisons.
@@ -119,11 +119,11 @@ SLATE_SHARED SLATE_CONSTEXPR bool TransmissionPrecedes(Unsigned32 EarlierKey,
     return EarlierKey != LaterKey ? EarlierKey > LaterKey : EarlierSurface < LaterSurface;
 }
 
-/// 🧩 Where one arriving fragment belongs in a column already held in nearest-first order.
+/// 🧩 Where one incoming fragment belongs in a column already held in nearest-first order.
 /// in    HeldKey      [-]  the column's depth keys, nearest first
 /// in    HeldCount    [-]  entries occupied
-/// in    ArrivingKey  [-]  the arriving fragment's key
-/// in    ArrivingSurface [-] its packed surface word
+/// in    IncomingKey  [-]  the incoming fragment's key
+/// in    IncomingSurface [-] its packed surface word
 /// in    HeldSurface  [-]  the column's surface words, parallel to HeldKey
 /// out   Slot         [-]  below `TransmissionDepth`, or `SlateTransmissionAbsent` where the column is full
 ///                         and the arrival is farther than everything in it
@@ -135,12 +135,12 @@ SLATE_SHARED SLATE_CONSTEXPR bool TransmissionPrecedes(Unsigned32 EarlierKey,
 SLATE_SHARED Unsigned32 ProjectTransmissionSlot(SLATE_INOUT_SPAN(Unsigned32, HeldKey, TransmissionDepth),
                                                 SLATE_INOUT_SPAN(Unsigned32, HeldSurface, TransmissionDepth),
                                                 Unsigned32 HeldCount,
-                                                Unsigned32 ArrivingKey,
-                                                Unsigned32 ArrivingSurface)
+                                                Unsigned32 IncomingKey,
+                                                Unsigned32 IncomingSurface)
 {
     for (Unsigned32 Ordinal = 0u; Ordinal < HeldCount; ++Ordinal)
     {
-        if (TransmissionPrecedes(ArrivingKey, ArrivingSurface, HeldKey[Ordinal], HeldSurface[Ordinal]))
+        if (TransmissionPrecedes(IncomingKey, IncomingSurface, HeldKey[Ordinal], HeldSurface[Ordinal]))
         {
             return Ordinal;
         }
@@ -162,7 +162,7 @@ SLATE_SHARED Unsigned32 ProjectTransmissionSlot(SLATE_INOUT_SPAN(Unsigned32, Hel
 /// note  🔴 Refraction does **not displace** what is behind — `62` §4 and `00` §5.1's third substitution point.
 ///        A screen-space displacement reads whatever happens to be at the displaced pixel, which is frequently a
 ///        surface in front of the glass, and the artist sees the foreground smeared through the object it
-///        stands behind. What a transmissive occupant does is tint, attenuate and blur.
+///        stands behind. What a transmissive owner does is tint, attenuate and blur.
 /// note  📐 The four factors multiply rather than compose, because each is independently declared and none is a
 ///        function of another. An arrangement that folded Fresnel into opacity would make a sheet of glass
 ///        opaque at grazing angles regardless of the opacity its material declared.

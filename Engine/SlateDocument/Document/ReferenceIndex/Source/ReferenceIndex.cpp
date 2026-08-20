@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                            REFERENCEINDEX.CPP
 //============================================================================================================================================
-// 🧩 `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
+// 🧩 `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence registered.
 
 #include "SlateDocument/Document/ReferenceIndex/Api/ReferenceIndex.h"
 
@@ -14,7 +14,7 @@ namespace
 // 📝 Static text only. `ReportSpecification` holds every string as a literal, so nothing appended here can
 //    outlive its storage or allocate on the thread that appends it.
 constexpr const char* AbsenceOrigin  = "`48` §5";
-constexpr const char* AbsenceDetail  = "a declared reference was not where the document named it; enrolled, never substituted";
+constexpr const char* AbsenceDetail  = "a declared reference was not where the document named it; registered, never substituted";
 
 /// 🧩 The subject spelling `86` presents beside an absence.
 const char* SubjectSpelling(ReferenceSubject Subject)
@@ -36,22 +36,22 @@ const char* SubjectSpelling(ReferenceSubject Subject)
 //                                                    THE DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> ReferenceIndex::Declare(const DeclaredReference& Arriving)
+Outcome<std::uint32_t> ReferenceIndex::Declare(const DeclaredReference& Incoming)
 {
-    if (Arriving.Retention == ReferenceRetention::Referenced && Arriving.OriginPath.empty())
+    if (Incoming.Retention == ReferenceRetention::Referenced && Incoming.OriginPath.empty())
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "a referenced dependency naming no path can never be resolved — `48` §5" });
     }
 
-    const std::uint32_t Issued = static_cast<std::uint32_t>(Declarations.size());
+    const std::uint32_t Registered = static_cast<std::uint32_t>(Declarations.size());
 
-    Declarations.push_back(Arriving);
+    Declarations.push_back(Incoming);
     AbsenceReported.push_back(false);
 
-    if (Arriving.Standing == ReferenceStanding::Absent) { ++AbsentTotal; }
+    if (Incoming.Condition == ReferenceCondition::Absent) { ++AbsentTotal; }
 
-    return Outcome<std::uint32_t>::Result(Issued);
+    return Outcome<std::uint32_t>::Result(Registered);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -89,9 +89,9 @@ Outcome<bool> ReferenceIndex::DeclareResolved(std::uint32_t ReferenceOrdinal, st
 
     // 📝 A reference that was absent and is now found leaves the absent count. The report already appended for
     //    it stays in the register, because it happened — `86` §2.2 appends at the occurrence and never retracts.
-    if (Amending.Standing == ReferenceStanding::Absent && AbsentTotal > 0u) { --AbsentTotal; }
+    if (Amending.Condition == ReferenceCondition::Absent && AbsentTotal > 0u) { --AbsentTotal; }
 
-    Amending.Standing     = ReferenceStanding::Resolved;
+    Amending.Condition     = ReferenceCondition::Resolved;
     Amending.SpannedBytes = SpannedBytes;
 
     return Outcome<bool>::Result(true);
@@ -106,11 +106,11 @@ Outcome<bool> ReferenceIndex::DeclareAbsent(std::uint32_t ReferenceOrdinal)
 
     DeclaredReference& Amending = Declarations[ReferenceOrdinal];
 
-    if (Amending.Standing != ReferenceStanding::Absent) { ++AbsentTotal; }
+    if (Amending.Condition != ReferenceCondition::Absent) { ++AbsentTotal; }
 
     // 🔴 The origin path is untouched. It is the only thing that tells the artist which file to go and find,
     //    and the extent is cleared instead because the last reading described a file that is no longer there.
-    Amending.Standing     = ReferenceStanding::Absent;
+    Amending.Condition     = ReferenceCondition::Absent;
     Amending.SpannedBytes = 0u;
 
     return Outcome<bool>::Result(true);
@@ -124,15 +124,15 @@ void ReferenceIndex::Report(ReportSequence& Reporting, TickPoint Sampled)
 {
     for (std::size_t Ordinal = 0u; Ordinal < Declarations.size(); ++Ordinal)
     {
-        if (Declarations[Ordinal].Standing != ReferenceStanding::Absent) { continue; }
+        if (Declarations[Ordinal].Condition != ReferenceCondition::Absent) { continue; }
         if (AbsenceReported[Ordinal])                                    { continue; }
 
         ReportSpecification Appending;
         Appending.Origin         = AbsenceOrigin;
         Appending.Subject        = SubjectSpelling(Declarations[Ordinal].Subject);
         Appending.Detail         = AbsenceDetail;
-        Appending.SubjectOrdinal = static_cast<std::uint64_t>(Declarations[Ordinal].Enrolled.SlotOrdinal);
-        Appending.Disposition    = ReportDisposition::Refused;
+        Appending.SubjectOrdinal = static_cast<std::uint64_t>(Declarations[Ordinal].Registered.SlotOrdinal);
+        Appending.Verdict    = ReportVerdict::Rejected;
         Appending.Arrival        = Sampled;
 
         Reporting.Append(Appending);

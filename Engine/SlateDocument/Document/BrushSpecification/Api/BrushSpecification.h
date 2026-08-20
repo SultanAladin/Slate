@@ -105,7 +105,7 @@ enum class DynamicParameter : std::uint32_t
 /// 🧩 How a dynamic moves across its declared interval.
 /// note  🔴 Declared, **never linear by assumption** — `58` §4. Pressure mapped linearly onto radius feels wrong
 ///        to every artist who has used a stylus, and a brush that cannot state its own progression is a brush
-///        every artist immediately abandons. `ProgressionCount` is the undeclared value and is refused.
+///        every artist immediately abandons. `ProgressionCount` is the undeclared value and is rejected.
 /// tag   contract
 enum class ProgressionSubject : std::uint32_t
 {
@@ -113,7 +113,7 @@ enum class ProgressionSubject : std::uint32_t
     Quadratic       = 1u,   // [-] - slow at first
     Radical         = 2u,   // [-] - fast at first
     Sigmoid         = 3u,   // [-] - soft at both ends
-    ProgressionCount = 4u   // [-] - undeclared; refused at declaration
+    ProgressionCount = 4u   // [-] - undeclared; rejected at declaration
 };
 
 /// 🧩 One input axis mapped onto one parameter.
@@ -195,8 +195,8 @@ struct ResolvedBrush
     double  Rotation          = 0.0;   // [deg]
     double  CoverageStrength  = 1.0;   // [-]
     double  Spacing           = 0.25;  // [-]   - relative to the extent
-    double  DisplacementAlong = 0.0;   // [-]   - positional variation about the path
-    double  DisplacementAcross = 0.0;  // [-]
+    double  DisplacementX = 0.0;   // [-]   - positional variation about the path
+    double  DisplacementY = 0.0;  // [-]
 };
 
 /// 🧩 What the input device reported for one impression, and which of it is genuinely present.

@@ -108,7 +108,7 @@ struct ProjectionFace
 };
 
 /// 🧩 One illuminant's whole projection — every face, and what it was derived against.
-/// note  🔴 One projection per **occlusion-enrolled** illuminant and none for the rest — `44` §2 gives the artist
+/// note  🔴 One projection per **occlusion-registered** illuminant and none for the rest — `44` §2 gives the artist
 ///        the switch and `60` §3 declares that an unenrolled illuminant is integrated unattenuated. That is a
 ///        declared behaviour and not a failure: an artist lighting a workspace with six fill illuminants does
 ///        not want six projections, and deleting the illuminant is not the alternative they wanted either.
@@ -116,7 +116,7 @@ struct ProjectionFace
 struct DerivedProjection
 {
     std::vector<ProjectionFace>  Faces          = {};                          // [-]  - one, four or six
-    OccupantIdentity             Illuminant     = {};                          // [-]  - who it projects for
+    OwnerIdentity             Illuminant     = {};                          // [-]  - who it projects for
     ProjectionShape              Shape          = ProjectionShape::ShapeCount;  // [-]
     double                       EmissionSize   = 0.0;                          // [mm] - drives `60` §3.2's penumbra
     std::uint32_t                ExtentTexels   = ProjectionExtentTexels;       // [px] - per edge, per face
@@ -137,10 +137,10 @@ struct DerivedProjection
 enum class InvalidationSubject : std::uint32_t
 {
     IlluminantAmended  = 0u,   // [-] - moved or resized; its own projection only
-    OccupantMoved      = 1u,   // [-] - every projection whose extent reaches it
+    OwnerMoved      = 1u,   // [-] - every projection whose extent reaches it
     CameraMoved        = 2u,   // [-] - the directional subdivision, and nothing else
     RadiantIntensity   = 3u,   // [-] - nothing; the extent is declared, not derived from it
-    OccupantPainted    = 4u,   // [-] - nothing; occlusion reads topology, not channels
+    OwnerPainted    = 4u,   // [-] - nothing; occlusion reads topology, not channels
     CutoutCoverage     = 5u,   // [-] - the exception `62` §2 declares; projections reaching it
     SubjectCount       = 6u    // [-] - the closed count, never a subject
 };
@@ -164,10 +164,10 @@ public:
 
     /// 🧩 Derives the packing for every partition of a reaching index.
     /// in    Reaching     [-]  `44` §5's index, already derived against this rotation's partitions
-    /// in    Illuminants  [-]  the population, for each reaching illuminant's enrolment
+    /// in    Illuminants  [-]  the population, for each reaching illuminant's registration
     /// out   Result      [-]  refuses with ContentUnsupported when the reaching index spans no partition
-    /// post  every partition carries a slot per occlusion-enrolled illuminant it can hold, and a truncation count
-    /// note  🔴 An illuminant **not enrolled for occlusion** occupies no slot at all rather than occupying one
+    /// post  every partition carries a slot per occlusion-registered illuminant it can hold, and a truncation count
+    /// note  🔴 An illuminant **not registered for occlusion** occupies no slot at all rather than occupying one
     ///        and writing unity into it. A slot spent on an illuminant that casts nothing is a slot the fifth
     ///        illuminant that does cast something cannot have, and the artist meets that as their key light
     ///        losing its shadow when they add a fill.
@@ -183,13 +183,13 @@ public:
     ///        contributes its whole direct term unattenuated, and `18` must know which.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> SlotOf(std::uint32_t PartitionOrdinal, OccupantIdentity Illuminant) const;
+    Outcome<std::uint32_t> SlotOf(std::uint32_t PartitionOrdinal, OwnerIdentity Illuminant) const;
 
     /// 🧩 The illuminant one packed component carries in one partition.
     /// out   Result  [-]  refuses with ExtentExhausted where the slot is unoccupied
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> IlluminantAt(std::uint32_t PartitionOrdinal, std::uint32_t Slot) const;
+    Outcome<OwnerIdentity> IlluminantAt(std::uint32_t PartitionOrdinal, std::uint32_t Slot) const;
 
     /// 🧩 How many illuminants one partition could not pack — the excess `18` integrates unattenuated.
     /// cost  ✔️
@@ -203,9 +203,9 @@ private:
 
     struct PackedPartition
     {
-        OccupantIdentity  Occupying[DirectOcclusionCapacity] = {};   // [-] - by packed component
+        OwnerIdentity  Occupying[DirectOcclusionCapacity] = {};   // [-] - by packed component
         std::uint32_t     OccupiedCount                      = 0u;   // [-] - components carrying an illuminant
-        std::uint32_t     TruncatedCount                     = 0u;   // [-] - reaching, enrolled, and unpackable
+        std::uint32_t     TruncatedCount                     = 0u;   // [-] - reaching, registered, and unpackable
     };
 
     std::vector<PackedPartition>  Packed               = {};   // [-] - by partition ordinal
@@ -248,7 +248,7 @@ public:
     /// 🧩 Declares what the term is resolved against.
     /// out   Result  [-]  refuses with ContentUnsupported for a radius or sample count of nothing, and for a
     ///                     divisor that is not two
-    /// note  ⚠️ The divisor is refused above two rather than admitted as a quality setting. `08` §2 claims
+    /// note  ⚠️ The divisor is rejected above two rather than accepted as a quality setting. `08` §2 claims
     ///        `OcclusionSurface` at half extent and `Shared/`'s upsample reads four taps against that claim; a
     ///        third of the extent would need a different tap count, and the two would be declared in two places.
     /// cost  ✔️
@@ -262,10 +262,10 @@ public:
     ///        then reads outside its own target along one edge.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Resolve(std::uint32_t DisplayAlong,
-                          std::uint32_t DisplayAcross,
-                          std::uint32_t& ResolvedAlong,
-                          std::uint32_t& ResolvedAcross) const;
+    Outcome<bool> Resolve(std::uint32_t DisplayX,
+                          std::uint32_t DisplayY,
+                          std::uint32_t& ResolvedX,
+                          std::uint32_t& ResolvedY) const;
 
     const AmbientOcclusionSpecification& Declared() const;
 
@@ -297,7 +297,7 @@ struct OcclusionMetrics
 //                                                    THE PROJECTIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Every occlusion-enrolled illuminant's projection, and the two terms `18` attenuates with.
+/// 🧩 Every occlusion-registered illuminant's projection, and the two terms `18` attenuates with.
 /// note  🔴 `60` §6: this records at `08` §3 ③ — after `16` produced `DepthSurface`, before `18` reads either
 ///        term. It **produces** both targets and amends neither.
 /// note  🔴 Nothing here reads `RadianceSurface`. Occlusion is a visibility question and is resolved before
@@ -309,7 +309,7 @@ class OcclusionProjectionSpace
 public:
 
     /// 🧩 Contributes `08` §3 ③'s recording.
-    /// out   Result  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule rejected
     /// note  📝 Both targets are produced by one recording rather than by two, because both are resolved from
     ///        one reconstruction of the same depth. Two recordings would reconstruct the position at every pixel
     ///        twice to write two scalars.
@@ -332,26 +332,26 @@ public:
 
     /// 🧩 Records that something changed, so that only what it reaches is owed a rebuild.
     /// in    Declared  [-]  which of `60` §4's rows
-    /// in    Subject   [-]  the illuminant that changed, or the moved occupant's identity; may be undeclared
+    /// in    Subject   [-]  the illuminant that changed, or the moved owner's identity; may be undeclared
     /// in    Extent    [mm] what the change reaches, for the rows that test reach
     /// out   Result   [-]  refuses with ContentUnsupported for a subject outside the declared set
-    /// note  🔴 `RadiantIntensity` and `OccupantPainted` invalidate **nothing**, and both are admitted rather
-    ///        than refused. They are the two rows an artist triggers constantly, and admitting them here is what
+    /// note  🔴 `RadiantIntensity` and `OwnerPainted` invalidate **nothing**, and both are accepted rather
+    ///        than rejected. They are the two rows an artist triggers constantly, and accepting them here is what
     ///        lets a caller declare every change it makes without knowing which ones matter — which is the only
     ///        arrangement where the ones that do not matter stay free.
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> Invalidate(InvalidationSubject Declared,
-                             OccupantIdentity    Subject,
+                             OwnerIdentity    Subject,
                              PartitionExtent     Extent);
 
     /// 🧩 Rebuilds whatever the declared conditions owe, and nothing else.
-    /// in    Illuminants      [-]  the population; every occlusion-enrolled member is projected
+    /// in    Illuminants      [-]  the population; every occlusion-registered member is projected
     /// in    RecordingOrdinal  [-]  the rotation rebuilding
     /// out   Result          [-]  refuses with ContentUnsupported before a camera is declared, and carries a
     ///                             face derivation's own refusal
     /// post  🔴 with nothing owed, nothing is rebuilt and nothing is recorded
-    /// note  🔴 An illuminant not enrolled for occlusion is **counted** and skipped rather than silently
+    /// note  🔴 An illuminant not registered for occlusion is **counted** and skipped rather than silently
     ///        ignored, so `86` can present how many of a scene's illuminants cast nothing. An artist who
     ///        disabled occlusion on their key light six months ago has no other way to find out.
     /// cost  🔴
@@ -362,7 +362,7 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted where the illuminant carries none
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<const DerivedProjection*> Standing(OccupantIdentity Illuminant) const;
+    Outcome<const DerivedProjection*> Current(OwnerIdentity Illuminant) const;
 
     /// 🧩 Whether anything is owed a rebuild.
     /// note  🔴 What the schedule's contributor reads to decide whether ③ records at all. `60` §4's table exists
@@ -393,21 +393,21 @@ public:
 private:
 
     Outcome<DerivedProjection> Derive(const IlluminantSpecification& Declared,
-                                      OccupantIdentity               Illuminant,
+                                      OwnerIdentity               Illuminant,
                                       std::uint64_t                  RecordingOrdinal) const;
 
-    std::size_t Located(OccupantIdentity Illuminant) const;
+    std::size_t Located(OwnerIdentity Illuminant) const;
 
-    std::vector<DerivedProjection>  Projections     = {};      // [-] - one per enrolled illuminant
+    std::vector<DerivedProjection>  Projections     = {};      // [-] - one per registered illuminant
     OcclusionIndex                  PackedIndex     = {};      // [-] - who occupies which component
     AmbientOcclusionSequence        AmbientTerm     = {};      // [-] - the half-extent term
     OcclusionMetrics                Reported        = {};      // [-] - what `86` presents
-    CameraSpecification             StandingCamera  = {};      // [-] - what the subdivision is sized against
+    CameraSpecification             ReferenceCamera  = {};      // [-] - what the subdivision is sized against
     bool                            CameraDeclared  = false;   // [-] - DeclareCamera has delivered
     bool                            SubdivisionOwed = true;    // [-] - the directional shapes alone
 };
 
-// 📐 Illuminant identity, the packed slot and the enrolment test are Exact; the projections, the penumbra width
+// 📐 Illuminant identity, the packed slot and the registration test are Exact; the projections, the penumbra width
 //    and the hemisphere accumulation are Bounded, and `60` §7 declares the last of the three Perceptual because
 //    it attenuates a Tier D term and claims nothing more. `00` §3's transitivity rule folds them to the weakest.
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Perceptual,

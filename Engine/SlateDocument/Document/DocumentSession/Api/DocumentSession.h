@@ -29,11 +29,11 @@ namespace Slate
 /// note  📝 A session with no location is a document the artist began rather than opened. It is not an error and
 ///        it is not a lesser document — it simply has no target for a save until one is declared.
 /// tag   contract
-enum class StorageStanding : std::uint32_t
+enum class StorageCurrent : std::uint32_t
 {
     Undeclared    = 0u,   // [-] - begun here; no file behind it yet
     Declared      = 1u,   // [-] - opened from, or last saved to, a location
-    StandingCount = 2u    // [-] - the closed count, never a standing
+    CurrentCount = 2u    // [-] - the closed count, never a standing
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -48,7 +48,7 @@ enum class StorageStanding : std::uint32_t
 ///        itself, so nothing derived is written and nothing derived is stored here either.
 /// note  🔴 `SelectionSequence` sits inside `OutlinerSequence` and is session state — `48` §2 and `12` §11. It is
 ///        not written on save. A document that reopened with someone else's selection restored has restored a
-///        decision the artist had already finished making, and the first stroke lands on the wrong occupant.
+///        decision the artist had already finished making, and the first stroke lands on the wrong owner.
 /// note  ⚠️ Non-copyable. Two copies of one open document are two populations issuing identities from two ledgers,
 ///        and the generation that makes a reference safe is only unique within one of them.
 /// tag   owning
@@ -101,13 +101,13 @@ public:
     Outcome<SealedContent> Seal(const std::vector<std::uint8_t>& Encoded, std::uint64_t SealedAt) const;
 
     /// 🧩 Records that a save landed, so the session stops standing amended.
-    /// in    Concluded  [-]  what `PersistenceSequence::Persist` delivered
+    /// in    Completed  [-]  what `PersistenceSequence::Persist` delivered
     /// post  the journal entries the save subsumes are retired — `48` §3 ④
     /// note  📝 Called on the tick, after the save's conclusion is drained from `34`. Retiring the journal from
     ///        the worker would retire it before the requester knew the replacement had landed.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void DeclareSaved(const PersistenceConclusion& Concluded);
+    void DeclareSaved(const PersistenceConclusion& Completed);
 
     /// 🧩 Records that the document was amended, so a save is owed and the journal has a tail.
     /// note  📝 Declared by whoever sealed the transaction rather than derived from a revision count. A count
@@ -119,15 +119,15 @@ public:
     /// 🧩 Whether this session holds amendments the file does not.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool AmendmentsStanding() const;
+    bool AmendmentsCurrent() const;
 
-    /// 🧩 Which camera occupant this session presents. Session state — `48` §2.
+    /// 🧩 Which camera owner this session presents. Session state — `48` §2.
     /// note  🔴 The cameras are in the document and which one is presented is not. Two artists opening one file
     ///        should each look at it from where they left off, not from where the last person to save was.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void             DeclarePresentedCamera(OccupantIdentity Presenting);
-    OccupantIdentity PresentedCamera() const;
+    void             DeclareCurrentCamera(OwnerIdentity CameraOwner);
+    OwnerIdentity CurrentCamera() const;
 
     /// 🧩 Where the outliner is scrolled to. Session state — `48` §2.
     /// cost  ✔️
@@ -143,7 +143,7 @@ public:
     /// 🧩 Whether a file stands behind this session yet.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    StorageStanding Standing() const;
+    StorageCurrent Current() const;
 
     /// 🧩 The revision ordinal the file on disc carries; zero when nothing has been saved.
     /// cost  ✔️
@@ -168,12 +168,12 @@ private:
     RecoverySequence   Recovery;                                         // [-]  - `48` §4.1's per-document journal
 
     std::string        StoragePath        = {};                          // [-]  - UTF-8; empty while Undeclared
-    OccupantIdentity   Presented          = {};                          // [-]  - session state, never written
+    OwnerIdentity   CameraIdentity   = {};                          // [-]  - session state, never written
     std::uint64_t      SavedRevision      = 0u;                          // [-]  - what the file carries
     std::uint64_t      SavedStamp         = 0u;                          // [ns] - when the replacement landed
     std::uint32_t      ScrollVisible      = 0u;                          // [-]  - session state, never written
     std::uint32_t      VersionRead        = CurrentStreamVersion;        // [-]  - `48` §7's migrated-from version
-    StorageStanding    StorageDeclared    = StorageStanding::Undeclared; // [-]  - whether a file stands behind it
+    StorageCurrent    StorageDeclared    = StorageCurrent::Undeclared; // [-]  - whether a file stands behind it
     bool               AmendmentsDeclared = false;                       // [-]  - session state; a save is owed
 };
 
@@ -226,19 +226,19 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted outside the open count, and for a closed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> DeclarePresented(std::uint32_t SessionOrdinal);
+    Outcome<bool> DeclareCurrent(std::uint32_t SessionOrdinal);
 
     /// 🧩 The session the interface presents.
     /// out   Result  [-]  refuses with ExtentExhausted when no session is open
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<DocumentSession*>       Presenting();
-    Outcome<const DocumentSession*> Presenting() const;
+    Outcome<DocumentSession*>       Current();
+    Outcome<const DocumentSession*> Current() const;
 
     /// 🧩 Which ordinal is presented; the ceiling when nothing is open.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t PresentedOrdinal() const;
+    std::uint32_t CurrentOrdinal() const;
 
     /// 🧩 The most recently opened session naming one storage location.
     /// out   Result  [-]  refuses with ExtentExhausted when no open session holds that path
@@ -266,7 +266,7 @@ public:
 private:
 
     std::vector<std::unique_ptr<DocumentSession>>  Sessions;                            // [-] - by session ordinal; empty where closed
-    std::uint32_t                                  PresentedSession = SessionCeiling;   // [-] - the ceiling declares none
+    std::uint32_t                                  CurrentSession = SessionCeiling;   // [-] - the ceiling declares none
     std::uint32_t                                  OpenTotal        = 0u;               // [-] - sessions currently open
 };
 

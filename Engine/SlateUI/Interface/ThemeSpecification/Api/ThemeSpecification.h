@@ -92,12 +92,12 @@ struct AccentDeclaration
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Which appearance and which accents the artist chose, independent of what those appearances contain.
-/// note  These are the six choices the Control Centre writes. Every other Control Centre ordinate is a
+/// note  These are the six choices the Control Centre writes. Every other Control Centre coordinate is a
 ///       preference about something other than colour and is not carried here.
 /// tag   contract, nonallocating, nonthrowing
 struct ThemeSelection
 {
-    ThemeSubject   Presented   = ThemeSubject::Oled;      // [-] - the appearance every panel resolves against
+    ThemeSubject   Current   = ThemeSubject::Oled;      // [-] - the appearance every panel resolves against
     AccentSubject  Primary     = AccentSubject::Blue;     // [-] - the emphasis accent
     AccentSubject  Secondary   = AccentSubject::Violet;   // [-] - the supporting accent
     AccentSubject  Information = AccentSubject::Cyan;     // [-] - advisory emphasis
@@ -147,22 +147,22 @@ public:
     static const AccentDeclaration& Accent(AccentSubject Subject);
 
     /// 🧩 Adopts an appearance read from a stream, replacing every declaration the interface draws from.
-    /// in    Arriving  [-]  a whole archive; partial adoption is not offered, because a half-applied
+    /// in    Incoming  [-]  a whole archive; partial adoption is not offered, because a half-applied
     ///                      appearance is the one outcome no panel can present honestly
     /// post  every later Theme and Accent call reads the adopted declarations
     /// note  ⚠️ References previously returned by Theme or Accent remain valid — the storage is static and is
     ///        overwritten in place — but the colours behind them change. Nothing should retain one across a tick.
     /// cost  ✔️
-    static void Adopt(const ThemeArchive& Arriving);
+    static void Adopt(const ThemeArchive& Incoming);
 
     /// 🧩 The standing appearance as one value, ready to be transcribed to a stream.
     /// in    Selected  [-]  the selection to record alongside the declarations, which the panel owns
     /// out   ThemeArchive  [-]  a copy; the caller may outlive the next Adopt
     /// cost  ✔️
-    static ThemeArchive Standing(const ThemeSelection& Selected);
+    static ThemeArchive Current(const ThemeSelection& Selected);
 
     /// 🧩 Returns every declaration to the values compiled into this build.
-    /// use   Reached when no appearance file exists yet, and when a stream is refused and the interface must
+    /// use   Reached when no appearance file exists yet, and when a stream is rejected and the interface must
     ///       still present something a reader recognises.
     /// post  every later Theme and Accent call reads the transcribed defaults
     /// cost  ✔️
@@ -183,7 +183,7 @@ public:
 ///        standing among its neighbours, so a row that was one step above its ground stays one step above
 ///        it in every theme. And mapping a ladder through itself is the identity — under `Oled`, which is
 ///        what the references were transcribed against, every colour resolves to the literal it was ported as.
-///        `ThemeSpecificationHeldIdentity` asserts exactly that, so a drift in this arithmetic is a refused
+///        `ThemeSpecificationHeldIdentity` asserts exactly that, so a drift in this arithmetic is a rejected
 ///        build rather than six themes that each look slightly wrong.
 /// note  ⚠️ Coverage is carried through untouched. A hairline at four per cent of white is a hairline at four
 ///        per cent in every theme; re-anchoring its opacity would erase the hairline on a light appearance.
@@ -199,7 +199,7 @@ ThemeProfile Tinted(const ThemeProfile& Resolved, const ThemeSelection& Selected
 /// 🧩 Resolves the appearance against the display and then restates it in the standing theme, in one call.
 /// in    DisplayScale  [-]  what the window system reports; values at or below zero resolve at one
 /// in    ArtistScale   [-]  the artist's own preference; clamped as `Resolve` clamps it
-/// in    ExtentAlong   [px] the drawable extent the density is classified from
+/// in    Width   [px] the drawable extent the density is classified from
 /// in    Selected      [-]  the theme and accents the artist chose
 /// out   Appearance    [-]  ready to hand to every panel
 /// use   The one call a host makes; it replaces a bare `Resolve` at every host that has a theme to honour.
@@ -207,7 +207,7 @@ ThemeProfile Tinted(const ThemeProfile& Resolved, const ThemeSelection& Selected
 /// tag   api, nonallocating, nonthrowing
 ThemeProfile ResolveTinted(double                DisplayScale,
                                       double                ArtistScale,
-                                      float                 ExtentAlong,
+                                      float                 Width,
                                       const ThemeSelection& Selected);
 
 }   // namespace Slate

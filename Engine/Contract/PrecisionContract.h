@@ -69,7 +69,7 @@ constexpr PrecisionGuarantee WeakestOf(std::initializer_list<PrecisionGuarantee>
 // 📝 Placed at namespace scope immediately below the declaration it describes. The first argument is the
 //    guarantee claimed; every further argument is a guarantee consumed. At least one consumed guarantee is
 //    required — a computation that reads nothing declares PrecisionGuarantee::Exact as its only consumption.
-#define SLATE_DECLARES_PRECISION(ClaimedGuarantee, ...)                                                    \
-    static_assert(static_cast<std::uint32_t>(ClaimedGuarantee) >=                                          \
+#define SLATE_DECLARES_PRECISION(DeclaredGuarantee, ...)                                                    \
+    static_assert(static_cast<std::uint32_t>(DeclaredGuarantee) >=                                          \
                   static_cast<std::uint32_t>(::Slate::WeakestOf({ __VA_ARGS__ })),                         \
                   "A computation may not claim a guarantee stronger than the weakest guarantee it reads.")

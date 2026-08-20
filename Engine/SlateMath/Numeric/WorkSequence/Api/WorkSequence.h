@@ -43,15 +43,15 @@ enum class WorkPriority : std::uint32_t
 };
 
 /// 🧩 How one declaration ended.
-/// note  ⚠️ Withdrawn and Superseded are both cancellations and are reported apart, because `86` §5 rules a
+/// note  ⚠️ Cancelled and Superseded are both cancellations and are reported apart, because `86` §5 rules a
 ///        superseded cancellation ordinary operation and a withdrawn one the requester's own decision.
 /// tag   contract
 enum class WorkConclusion : std::uint32_t
 {
     Delivered  = 0u,   // [-] - the resolution delivered
-    Withdrawn  = 1u,   // [-] - the requester withdrew it; no result was produced
+    Cancelled  = 1u,   // [-] - the requester withdrew it; no result was produced
     Superseded = 2u,   // [-] - a newer declaration replaced it; no result was produced
-    Refused    = 3u    // [-] - the resolution refused; the refusal is carried and reported through `86`
+    Rejected    = 3u    // [-] - the resolution rejected; the refusal is carried and reported through `86`
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -65,14 +65,14 @@ enum class WorkConclusion : std::uint32_t
 /// tag   nonallocating, nonthrowing
 struct WorkCancellation
 {
-    const std::atomic<bool>*  WithdrawalSlot = nullptr;   // [-] - owned by the sequence, never by the resolution
+    const std::atomic<bool>*  CancellationSlot = nullptr;   // [-] - owned by the sequence, never by the resolution
 
     /// 🧩 Whether the requester has withdrawn this declaration.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool WithdrawalDeclared() const
+    bool CancellationDeclared() const
     {
-        return WithdrawalSlot != nullptr && WithdrawalSlot->load(std::memory_order_relaxed);
+        return CancellationSlot != nullptr && CancellationSlot->load(std::memory_order_relaxed);
     }
 };
 
@@ -173,14 +173,14 @@ struct WorkDeclaration
     std::function<Outcome<bool>(const WorkCancellation&, WorkProgress&)>  Resolve;   // [-] - the whole of the work
 };
 
-/// 🧩 One concluded declaration, crossing back to the tick.
+/// 🧩 One completed declaration, crossing back to the tick.
 /// tag   nonallocating, nonthrowing
 struct WorkCompletion
 {
-    WorkIdentity    Declared        = {};                          // [-]  - the identity Declare issued
+    WorkIdentity    Declared        = {};                          // [-]  - the identity Declare registered
     const char*     Origin          = "";                          // [-]  - as declared
-    WorkConclusion  Concluded       = WorkConclusion::Withdrawn;   // [-]  - how it ended
-    Refusal         Declining       = {};                          // [-]  - meaningful only when Refused
+    WorkConclusion  Completed       = WorkConclusion::Cancelled;   // [-]  - how it ended
+    Refusal         Declining       = {};                          // [-]  - meaningful only when Rejected
     std::uint64_t   DeclaredOrdinal = 0u;                          // [-]  - declaration order; Drain sorts by it
     TickPoint       Sealed          = {};                          // [ns] - when the conclusion was recorded
 };
@@ -197,16 +197,16 @@ class WorkQueue
 {
 public:
 
-    /// 🧩 Admits one record ordinal at the end of the order.
+    /// 🧩 Accepts one record ordinal at the end of the order.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Admit(std::uint32_t RecordOrdinal);
+    void Accept(std::uint32_t RecordOrdinal);
 
-    /// 🧩 Claims the earliest pending record ordinal.
+    /// 🧩 Reservations the earliest pending record ordinal.
     /// out   Result  [-]  refuses with ExtentExhausted when nothing is pending
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> Claim();
+    Outcome<std::uint32_t> Reserve();
 
     /// 🧩 Strikes one record ordinal from the order without claiming it.
     /// cost  ✔️
@@ -221,7 +221,7 @@ public:
 private:
 
     std::vector<std::uint32_t>  PendingOrder;          // [-] - record ordinals; AbsentWork where struck
-    std::size_t                 ClaimOrdinal = 0u;     // [-] - how far the claim has walked
+    std::size_t                 ReservationOrdinal = 0u;     // [-] - how far the claim has walked
     std::uint32_t               PendingHeld  = 0u;     // [-] - unstruck, unclaimed entries
 };
 
@@ -261,25 +261,25 @@ public:
     Outcome<bool> Construct(std::uint32_t RequestedWorkers, const TickSequence& HostTimeline, ReportSequence& Reporting);
 
     /// 🧩 Declares one unit of work, to be resolved by a worker.
-    /// in    Arriving  [-]  the declaration, its inputs already captured
+    /// in    Incoming  [-]  the declaration, its inputs already captured
     /// out   Result   [-]  refuses with HostDenied when no worker stands, and with ContentUnsupported when the
     ///                      declaration carries no resolution
     /// note  Declaring is not spawning. The declaration takes its place in its priority's order and a worker
     ///        claims it; nothing about the calling thread decides when.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<WorkIdentity> Declare(const WorkDeclaration& Arriving);
+    Outcome<WorkIdentity> Declare(const WorkDeclaration& Incoming);
 
     /// 🧩 Withdraws one declaration, because the requester no longer wants it.
-    /// in    Subject  [-]  the identity Declare issued
-    /// out   Result  [-]  refuses with IdentityStale when the declaration has already concluded
-    /// post  the declaration concludes as Withdrawn and produces no result — `34` §5
+    /// in    Subject  [-]  the identity Declare registered
+    /// out   Result  [-]  refuses with IdentityStale when the declaration has already completed
+    /// post  the declaration concludes as Cancelled and produces no result — `34` §5
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Withdraw(WorkIdentity Subject);
 
     /// 🧩 Withdraws one declaration because a newer one replaces it.
-    /// out   Result  [-]  refuses with IdentityStale when the declaration has already concluded
+    /// out   Result  [-]  refuses with IdentityStale when the declaration has already completed
     /// note  Reported apart from a withdrawal so the requester can tell the two apart. `86` §5 rules a
     ///        superseded cancellation ordinary operation, so nothing is appended to the register for it.
     /// cost  ✔️
@@ -303,13 +303,13 @@ public:
     const std::vector<WorkCompletion>& Drain();
 
     /// 🧩 One declaration's resolved fraction.
-    /// out   Result  [-]  refuses with IdentityStale once the declaration has concluded
+    /// out   Result  [-]  refuses with IdentityStale once the declaration has completed
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<double> Progress(WorkIdentity Subject) const;
 
     /// 🧩 One declaration's resolved count.
-    /// out   Result  [-]  refuses with IdentityStale once the declaration has concluded
+    /// out   Result  [-]  refuses with IdentityStale once the declaration has completed
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<std::uint64_t> ProgressCount(WorkIdentity Subject) const;
@@ -330,7 +330,7 @@ public:
     std::uint32_t PendingCount() const;
 
     /// 🧩 Withdraws everything pending, joins every worker, and returns the sequence to its unconstructed state.
-    /// post  every pending declaration has concluded as Withdrawn and is drainable
+    /// post  every pending declaration has completed as Cancelled and is drainable
     /// cost  🔴
     /// tag   api, nonthrowing
     void Reclaim();
@@ -343,8 +343,8 @@ private:
     static constexpr std::uint32_t InteractiveReservedOrdinal = 0u;
 
     void          Serve(std::uint32_t WorkerOrdinal);
-    bool          Claimable(std::uint32_t WorkerOrdinal) const;
-    std::uint32_t Claim(std::uint32_t WorkerOrdinal);
+    bool          Reservable(std::uint32_t WorkerOrdinal) const;
+    std::uint32_t Reserve(std::uint32_t WorkerOrdinal);
     void          Seal(std::uint32_t RecordOrdinal, const Outcome<bool>& Resolved);
     Outcome<bool> Cancel(WorkIdentity Subject, bool SupersessionPosed);
     std::uint32_t Resolved(WorkIdentity Subject) const;

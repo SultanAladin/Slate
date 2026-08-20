@@ -58,7 +58,7 @@ Outcome<bool> DocumentSession::DeclareStorage(const std::string& DeclaredPath, c
     }
 
     StoragePath     = DeclaredPath;
-    StorageDeclared = StorageStanding::Declared;
+    StorageDeclared = StorageCurrent::Declared;
 
     return Outcome<bool>::Result(true);
 }
@@ -69,7 +69,7 @@ Outcome<bool> DocumentSession::DeclareStorage(const std::string& DeclaredPath, c
 
 Outcome<SealedContent> DocumentSession::Seal(const std::vector<std::uint8_t>& Encoded, std::uint64_t SealedAt) const
 {
-    if (StorageDeclared != StorageStanding::Declared)
+    if (StorageDeclared != StorageCurrent::Declared)
     {
         return Outcome<SealedContent>::Refuse(
             { RefusalReason::ContentUnsupported, "this session has no storage location to save to — `48` §2" });
@@ -97,17 +97,17 @@ Outcome<SealedContent> DocumentSession::Seal(const std::vector<std::uint8_t>& En
     return Outcome<SealedContent>::Result(Capturing);
 }
 
-void DocumentSession::DeclareSaved(const PersistenceConclusion& Concluded)
+void DocumentSession::DeclareSaved(const PersistenceConclusion& Completed)
 {
-    if (Concluded.Reached != PersistenceStep::Replaced) { return; }
+    if (Completed.Reached != PersistenceStep::Replaced) { return; }
 
-    SavedRevision      = Concluded.SavedThrough;
-    SavedStamp         = Concluded.SavedAt;
+    SavedRevision      = Completed.SavedThrough;
+    SavedStamp         = Completed.SavedAt;
     AmendmentsDeclared = false;
 
     // 📝 `48` §3 ④, run here because the journal belongs to the session and the save ran off the tick. What
     //    remains past the save is exactly what a crash after this point would have to replay.
-    Recovery.Retire(Concluded.SavedThrough);
+    Recovery.Retire(Completed.SavedThrough);
 }
 
 void DocumentSession::DeclareAmended()
@@ -115,7 +115,7 @@ void DocumentSession::DeclareAmended()
     AmendmentsDeclared = true;
 }
 
-bool DocumentSession::AmendmentsStanding() const
+bool DocumentSession::AmendmentsCurrent() const
 {
     return AmendmentsDeclared;
 }
@@ -124,14 +124,14 @@ bool DocumentSession::AmendmentsStanding() const
 //                                                     SESSION STATE
 //------------------------------------------------------------------------------------------------------------------------
 
-void DocumentSession::DeclarePresentedCamera(OccupantIdentity Presenting)
+void DocumentSession::DeclareCurrentCamera(OwnerIdentity CameraOwner)
 {
-    Presented = Presenting;
+    CameraIdentity = CameraOwner;
 }
 
-OccupantIdentity DocumentSession::PresentedCamera() const
+OwnerIdentity DocumentSession::CurrentCamera() const
 {
-    return Presented;
+    return CameraIdentity;
 }
 
 void DocumentSession::DeclareScrollPosition(std::uint32_t VisiblePosition)
@@ -149,7 +149,7 @@ const std::string& DocumentSession::StorageOrigin() const
     return StoragePath;
 }
 
-StorageStanding DocumentSession::Standing() const
+StorageCurrent DocumentSession::Current() const
 {
     return StorageDeclared;
 }
@@ -189,9 +189,9 @@ Outcome<std::uint32_t> SessionIndex::Open()
         Sessions[Ordinal] = std::make_unique<DocumentSession>();
         ++OpenTotal;
 
-        if (PresentedSession == SessionCeiling)
+        if (CurrentSession == SessionCeiling)
         {
-            PresentedSession = static_cast<std::uint32_t>(Ordinal);
+            CurrentSession = static_cast<std::uint32_t>(Ordinal);
         }
 
         return Outcome<std::uint32_t>::Result(static_cast<std::uint32_t>(Ordinal));
@@ -203,17 +203,17 @@ Outcome<std::uint32_t> SessionIndex::Open()
             { RefusalReason::ExtentExhausted, "the declared session ceiling is reached — `48` §6" });
     }
 
-    const std::uint32_t Issued = static_cast<std::uint32_t>(Sessions.size());
+    const std::uint32_t Registered = static_cast<std::uint32_t>(Sessions.size());
 
     Sessions.push_back(std::make_unique<DocumentSession>());
     ++OpenTotal;
 
-    if (PresentedSession == SessionCeiling)
+    if (CurrentSession == SessionCeiling)
     {
-        PresentedSession = Issued;
+        CurrentSession = Registered;
     }
 
-    return Outcome<std::uint32_t>::Result(Issued);
+    return Outcome<std::uint32_t>::Result(Registered);
 }
 
 Outcome<bool> SessionIndex::Close(std::uint32_t SessionOrdinal)
@@ -226,20 +226,20 @@ Outcome<bool> SessionIndex::Close(std::uint32_t SessionOrdinal)
     Sessions[SessionOrdinal].reset();
     --OpenTotal;
 
-    if (PresentedSession != SessionOrdinal)
+    if (CurrentSession != SessionOrdinal)
     {
         return Outcome<bool>::Result(true);
     }
 
     // 📝 The presentation moves to the first session still open rather than to none. Closing one of two open
     //    documents and being left presenting nothing reads as the application having closed both.
-    PresentedSession = SessionCeiling;
+    CurrentSession = SessionCeiling;
 
     for (std::size_t Ordinal = 0u; Ordinal < Sessions.size(); ++Ordinal)
     {
         if (Sessions[Ordinal] == nullptr) { continue; }
 
-        PresentedSession = static_cast<std::uint32_t>(Ordinal);
+        CurrentSession = static_cast<std::uint32_t>(Ordinal);
         break;
     }
 
@@ -266,31 +266,31 @@ Outcome<const DocumentSession*> SessionIndex::Resolve(std::uint32_t SessionOrdin
     return Outcome<const DocumentSession*>::Result(Sessions[SessionOrdinal].get());
 }
 
-Outcome<bool> SessionIndex::DeclarePresented(std::uint32_t SessionOrdinal)
+Outcome<bool> SessionIndex::DeclareCurrent(std::uint32_t SessionOrdinal)
 {
     if (SessionOrdinal >= Sessions.size() || Sessions[SessionOrdinal] == nullptr)
     {
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no session is open at that ordinal" });
     }
 
-    PresentedSession = SessionOrdinal;
+    CurrentSession = SessionOrdinal;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<DocumentSession*> SessionIndex::Presenting()
+Outcome<DocumentSession*> SessionIndex::Current()
 {
-    return Resolve(PresentedSession);
+    return Resolve(CurrentSession);
 }
 
-Outcome<const DocumentSession*> SessionIndex::Presenting() const
+Outcome<const DocumentSession*> SessionIndex::Current() const
 {
-    return Resolve(PresentedSession);
+    return Resolve(CurrentSession);
 }
 
-std::uint32_t SessionIndex::PresentedOrdinal() const
+std::uint32_t SessionIndex::CurrentOrdinal() const
 {
-    return PresentedSession;
+    return CurrentSession;
 }
 
 Outcome<std::uint32_t> SessionIndex::Located(const std::string& StoragePath) const
@@ -321,7 +321,7 @@ std::uint32_t SessionIndex::SpannedCount() const
 void SessionIndex::Reclaim()
 {
     Sessions.clear();
-    PresentedSession = SessionCeiling;
+    CurrentSession = SessionCeiling;
     OpenTotal        = 0u;
 }
 

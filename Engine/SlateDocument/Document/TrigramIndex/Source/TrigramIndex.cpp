@@ -112,13 +112,13 @@ void TrigramIndex::Enter(std::uint32_t SlotOrdinal, const std::string& Declared)
     }
 }
 
-Outcome<bool> TrigramIndex::Declare(OccupantIdentity Subject, const std::string& Declared)
+Outcome<bool> TrigramIndex::Declare(OwnerIdentity Subject, const std::string& Declared)
 {
     if (!Subject.IdentityDeclared())
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity carries no name" });
 
     // 🔴 The former name's entries are withdrawn before the new ones are entered. Skipping the withdrawal is
-    //    exactly the defect step ⑦ exists to prevent: the occupant stays findable under a name it lost.
+    //    exactly the defect step ⑦ exists to prevent: the owner stays findable under a name it lost.
     Withdraw(Subject);
 
     const std::size_t Required = static_cast<std::size_t>(Subject.SlotOrdinal) + 1u;
@@ -133,14 +133,14 @@ Outcome<bool> TrigramIndex::Declare(OccupantIdentity Subject, const std::string&
     NamedIdentities[Subject.SlotOrdinal] = Subject;
 
     if (!Declared.empty())
-        ++NamedOccupants;
+        ++NamedOwners;
 
     Enter(Subject.SlotOrdinal, Declared);
 
     return Outcome<bool>::Result(true);
 }
 
-void TrigramIndex::Withdraw(OccupantIdentity Subject)
+void TrigramIndex::Withdraw(OwnerIdentity Subject)
 {
     if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= DeclaredNames.size())
         return;
@@ -165,17 +165,17 @@ void TrigramIndex::Withdraw(OccupantIdentity Subject)
     }
 
     DeclaredNames[Subject.SlotOrdinal].clear();
-    NamedIdentities[Subject.SlotOrdinal] = OccupantIdentity{};
-    --NamedOccupants;
+    NamedIdentities[Subject.SlotOrdinal] = OwnerIdentity{};
+    --NamedOwners;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE NARROWING
 //------------------------------------------------------------------------------------------------------------------------
 
-std::vector<OccupantIdentity> TrigramIndex::Narrow(const std::string& Sought) const
+std::vector<OwnerIdentity> TrigramIndex::Narrow(const std::string& Sought) const
 {
-    std::vector<OccupantIdentity> Confirmed;
+    std::vector<OwnerIdentity> Confirmed;
 
     if (Sought.empty())
         return Confirmed;
@@ -221,7 +221,7 @@ std::vector<OccupantIdentity> TrigramIndex::Narrow(const std::string& Sought) co
     return Confirmed;
 }
 
-const std::string& TrigramIndex::DeclaredName(OccupantIdentity Subject) const
+const std::string& TrigramIndex::DeclaredName(OwnerIdentity Subject) const
 {
     if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= DeclaredNames.size())
         return AbsentName;
@@ -231,7 +231,7 @@ const std::string& TrigramIndex::DeclaredName(OccupantIdentity Subject) const
 
 std::uint32_t TrigramIndex::NamedCount() const
 {
-    return NamedOccupants;
+    return NamedOwners;
 }
 
 }   // namespace Slate

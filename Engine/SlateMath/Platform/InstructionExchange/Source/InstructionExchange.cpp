@@ -77,9 +77,9 @@ InstructionWidth ResolveSupported()
 
     QueryHost(0u, 0u, Reported);
 
-    const std::uint32_t GreatestLeaf = Reported[0];
+    const std::uint32_t MaximumLeaf = Reported[0];
 
-    if (GreatestLeaf < 1u)
+    if (MaximumLeaf < 1u)
         return InstructionWidth::Baseline;
 
     QueryHost(1u, 0u, Reported);
@@ -105,7 +105,7 @@ InstructionWidth ResolveSupported()
     if (!FusedDecoded)
         return InstructionWidth::Baseline;
 
-    if (GreatestLeaf < 7u)
+    if (MaximumLeaf < 7u)
         return InstructionWidth::Widened;
 
     QueryHost(7u, 0u, Reported);
@@ -163,7 +163,7 @@ std::uint32_t ResolveCacheLine()
 // 🔴 The selection is a single record read once, per `04` §6. `02` §7's sweep moves it deliberately through
 //    Fix, which is why it is not const — but nothing else writes it, and a selection derived per call site is
 //    what this exists to prevent.
-InstructionReport& StandingReport()
+InstructionReport& CurrentReport()
 {
     // 📝 Held as a function-local static so the query happens on the first read rather than before the process
     //    has a chance to run at all. Initialisation of a function-local static is thread-safe under C++20, so
@@ -190,31 +190,31 @@ InstructionReport& StandingReport()
 
 const InstructionReport& InstructionExchange::Report()
 {
-    return StandingReport();
+    return CurrentReport();
 }
 
 InstructionWidth InstructionExchange::Fix(InstructionWidth Fixed)
 {
-    InstructionReport& Standing = StandingReport();
+    InstructionReport& Current = CurrentReport();
 
-    // 🔴 Reduced to what the host supports rather than refused. A caller sweeping every specialisation asks for
+    // 🔴 Reduced to what the host supports rather than rejected. A caller sweeping every specialisation asks for
     //    each in turn without first asking which exist, and taking a computation through an instruction the host
     //    does not decode is not a refusal that can be reported — the process stops at the instruction.
     const std::uint32_t Requested = static_cast<std::uint32_t>(Fixed);
-    const std::uint32_t Available = static_cast<std::uint32_t>(Standing.Supported);
+    const std::uint32_t Available = static_cast<std::uint32_t>(Current.Supported);
 
-    Standing.Selected        = Requested <= Available ? Fixed : Standing.Supported;
-    Standing.SelectionForced = true;
+    Current.Selected        = Requested <= Available ? Fixed : Current.Supported;
+    Current.SelectionForced = true;
 
-    return Standing.Selected;
+    return Current.Selected;
 }
 
 void InstructionExchange::Release()
 {
-    InstructionReport& Standing = StandingReport();
+    InstructionReport& Current = CurrentReport();
 
-    Standing.Selected        = Standing.Supported;
-    Standing.SelectionForced = false;
+    Current.Selected        = Current.Supported;
+    Current.SelectionForced = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

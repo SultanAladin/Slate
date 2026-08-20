@@ -49,8 +49,8 @@ public:
     Outcome<bool> Construct(MotionIntegrator& Motion,
                             RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
-    void Advance(const PointerCondition& Arrived, double Elapsed);
-    float MeasureAcross(float ExtentAlong,
+    void Advance(const PointerCondition& Sampled, double Elapsed);
+    float MeasureHeight(float Width,
                         const FacetDeclaration& Declared,
                         const bool* Enabled) const;
     Outcome<bool> Record(const PlaneExtent& Extent,
@@ -66,12 +66,12 @@ private:
         PlaneExtent Header       = {};   // [px] - heading and count
         PlaneExtent Chips        = {};   // [px] - wrapped active chips
         PlaneExtent Dropdown     = {};   // [px] - shared selection field
-        float       TotalAcross  = 0.0f; // [px] - complete card height
+        float       TotalY  = 0.0f; // [px] - complete card height
     };
 
-    Arrangement Arrange(float Along,
-                        float Across,
-                        float ExtentAlong,
+    Arrangement Arrange(float X,
+                        float Y,
+                        float Width,
                         const FacetDeclaration& Declared,
                         const bool* Enabled) const;
     bool Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent);

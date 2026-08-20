@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                      THEMEINTERCHANGE.CPP
 //============================================================================================================================================
-// 🧩 The appearance file's text form — read, written, and refused rather than guessed at.
+// 🧩 The appearance file's text form — read, written, and rejected rather than guessed at.
 
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 
@@ -19,7 +19,7 @@ namespace Slate
 // 🔴 MSVC raises C4996 on `std::fopen`, and Slate builds warnings-as-defects on Windows. `fopen_s` is the
 //    sanctioned replacement there and does not exist anywhere else, so the choice is made ONCE, here, rather
 //    than at each call site with a pragma that suppresses the diagnostic instead of answering it.
-// 📝 The two signatures differ — `fopen_s` returns an error ordinate and writes the stream through a pointer
+// 📝 The two signatures differ — `fopen_s` returns an error coordinate and writes the stream through a pointer
 //    — so the fold returns the stream and nothing else, which is all either call site reads.
 static std::FILE* OpenStream(const char* Path, const char* Manner)
 {
@@ -171,7 +171,7 @@ char Lowered(char Letter)
 // 🔴 Every key comparison folds case, and that is a correctness property rather than a courtesy. The colour keys
 //    are written from the member spellings in `ThemeDeclaration`, which are PascalCase, while every other key
 //    in the form is lower case. A reader who evens them out by hand — the obvious thing to do to a file that
-//    presents both — would otherwise have each corrected line refused as an colour this build does not declare.
+//    presents both — would otherwise have each corrected line rejected as an colour this build does not declare.
 bool Matched(const char* Named, const char* Against)
 {
     while (*Named != '\0' && *Against != '\0')
@@ -215,7 +215,7 @@ std::uint32_t StemOrdinal(const char* const* Stems, std::uint32_t Counted, const
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📝 Which section the reader is inside. A key outside every section is a key with no appearance to apply
-//    to, and is refused rather than guessed at.
+//    to, and is rejected rather than guessed at.
 enum class SectionSubject : std::uint32_t
 {
     Nowhere   = 0u,
@@ -247,7 +247,7 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
     // 🔴 Seeded from the standing appearance, not from zero. A file that names only the selection leaves every
     //    colour to the build, and a reader who deletes one line gets the compiled-in colour back rather than a
     //    transparent panel.
-    ThemeArchive Produced = ThemeSpecification::Standing(ThemeSelection{});
+    ThemeArchive Produced = ThemeSpecification::Current(ThemeSelection{});
 
     static char Content[ArchiveCeiling];
 
@@ -383,7 +383,7 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
                         {RefusalReason::ContentUnsupported, "the selected theme is not one this build declares"});
                 }
 
-                Produced.Selected.Presented = static_cast<ThemeSubject>(Ordinal);
+                Produced.Selected.Current = static_cast<ThemeSubject>(Ordinal);
                 continue;
             }
 
@@ -522,7 +522,7 @@ Outcome<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
 
     std::fprintf(Stream, "[selection]\n");
     std::fprintf(Stream, "theme       = \"%s\"\n",
-                 ThemeStems[static_cast<std::uint32_t>(Recorded.Selected.Presented) % ThemeCeiling]);
+                 ThemeStems[static_cast<std::uint32_t>(Recorded.Selected.Current) % ThemeCeiling]);
     std::fprintf(Stream, "primary     = \"%s\"\n",
                  AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Primary) % AccentCeiling]);
     std::fprintf(Stream, "secondary   = \"%s\"\n",
@@ -658,7 +658,7 @@ Outcome<bool> ThemeInterchange::Beside(const char*   ExecutablePath,
     return Outcome<bool>::Result(true);
 }
 
-const char* ThemeInterchange::StandingLeaf()
+const char* ThemeInterchange::CurrentLeaf()
 {
     return "SlateAppearance.toml";
 }
@@ -667,7 +667,7 @@ Outcome<bool> ThemeInterchange::AdoptBeside(const char* ExecutablePath, ThemeSel
 {
     char Path[PathCeiling] = {};
 
-    const Outcome<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
+    const Outcome<bool> Resolved = Beside(ExecutablePath, CurrentLeaf(), Path, PathCeiling);
 
     if (!Resolved) return Resolved;
 
@@ -685,11 +685,11 @@ Outcome<bool> ThemeInterchange::RecordBeside(const char* ExecutablePath, const T
 {
     char Path[PathCeiling] = {};
 
-    const Outcome<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
+    const Outcome<bool> Resolved = Beside(ExecutablePath, CurrentLeaf(), Path, PathCeiling);
 
     if (!Resolved) return Resolved;
 
-    return Inscribe(Path, ThemeSpecification::Standing(Selected));
+    return Inscribe(Path, ThemeSpecification::Current(Selected));
 }
 
 }   // namespace Slate

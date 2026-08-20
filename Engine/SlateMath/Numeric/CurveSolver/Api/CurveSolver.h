@@ -33,7 +33,7 @@ struct PlanarPosition
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What a path segment's geometry is, which fixes which control positions below are read.
-/// note  ⚠️ `52` §2's accepted subset and nothing beyond it. A construct outside this enumeration is refused at
+/// note  ⚠️ `52` §2's accepted subset and nothing beyond it. A construct outside this enumeration is rejected at
 ///        intake with its position named, never approximated by the nearest member.
 /// tag   contract
 enum class SegmentSubject : std::uint32_t
@@ -55,8 +55,8 @@ struct PathSegment
     PlanarPosition  Terminus        = {};                     // [-]   - where the segment ends
     PlanarPosition  FirstControl    = {};                     // [-]   - Quadratic and Cubic
     PlanarPosition  SecondControl   = {};                     // [-]   - Cubic
-    double          RadiusAlong     = 0.0;                    // [-]   - Arc; along the arc's own abscissa
-    double          RadiusAcross    = 0.0;                    // [-]   - Arc; along its ordinate
+    double          RadiusX     = 0.0;                    // [-]   - Arc; along the arc's own abscissa
+    double          RadiusY    = 0.0;                    // [-]   - Arc; along its coordinate
     double          Rotation        = 0.0;                    // [deg] - Arc; rotation of its own axes
     bool            LargeArcEnabled = false;                  // [-]   - Arc; take the greater sweep
     bool            SweepEnabled    = false;                  // [-]   - Arc; sweep in increasing angle

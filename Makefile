@@ -4,7 +4,7 @@
 #   make partition  prove the dependency partition alone
 #   make patches    apply Slate's ImGui divergence
 #   make codeindex  regenerate the .symbolindex digests
-#   make check      gate the committed VisualProof PNGs against their seated inks
+#   make check      gate the committed VisualProof PNGs against their applied inks
 #   make clean      remove sandbox build output
 #
 # 🔴 `all` deliberately does NOT link a host. Every host in Engine/Application rides HostLifecycle, which

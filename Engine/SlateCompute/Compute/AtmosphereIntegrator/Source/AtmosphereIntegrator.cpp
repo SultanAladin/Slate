@@ -68,7 +68,7 @@ float DecodeHalf(std::uint16_t Encoded)
     if (Exponent == 0u)
     {
         // 📐 A subnormal half is Mantissa × 2⁻²⁴. Encode never produces one, but a surface uploaded and read back
-        //    by a device might, so decoding admits them rather than reporting them as zero.
+        //    by a device might, so decoding accepts them rather than reporting them as zero.
         const float Subnormal = static_cast<float>(Mantissa) * 5.960464477539063e-8f;
 
         return (Signum != 0u) ? -Subnormal : Subnormal;
@@ -306,28 +306,28 @@ Outcome<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
 //                                                 ONE RESIDENT SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ResidentSurface::Construct(std::uint32_t ExtentAlong_,
-                                         std::uint32_t ExtentAcross_,
-                                         bool          WrapAlongDeclared)
+Outcome<bool> ResidentSurface::Construct(std::uint32_t Width_,
+                                         std::uint32_t Height_,
+                                         bool          WrapXDeclared)
 {
-    if (ExtentAlong_ == 0u || ExtentAcross_ == 0u)
+    if (Width_ == 0u || Height_ == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a surface of no extent" });
 
-    SpannedAlong  = ExtentAlong_;
-    SpannedAcross = ExtentAcross_;
-    WrapAlong     = WrapAlongDeclared;
+    SpannedX  = Width_;
+    SpannedY = Height_;
+    WrapX     = WrapXDeclared;
 
-    Encoded.assign(static_cast<std::size_t>(ExtentAlong_) * ExtentAcross_ * AtmosphereComponentCount, 0u);
+    Encoded.assign(static_cast<std::size_t>(Width_) * Height_ * AtmosphereComponentCount, 0u);
 
     return Outcome<bool>::Result(true);
 }
 
-void ResidentSurface::Write(std::uint32_t Along, std::uint32_t Across, double Red, double Green, double Blue)
+void ResidentSurface::Write(std::uint32_t X, std::uint32_t Y, double Red, double Green, double Blue)
 {
-    if (Along >= SpannedAlong || Across >= SpannedAcross)
+    if (X >= SpannedX || Y >= SpannedY)
         return;
 
-    const std::size_t Writing = (static_cast<std::size_t>(Across) * SpannedAlong + Along)
+    const std::size_t Writing = (static_cast<std::size_t>(Y) * SpannedX + X)
                               * AtmosphereComponentCount;
 
     Encoded[Writing]      = EncodeHalf(static_cast<float>(Red));
@@ -336,7 +336,7 @@ void ResidentSurface::Write(std::uint32_t Along, std::uint32_t Across, double Re
     Encoded[Writing + 3u] = EncodeHalf(1.0f);
 }
 
-void ResidentSurface::Sample(double CoordinateAlong, double CoordinateAcross,
+void ResidentSurface::Sample(double CoordinateX, double CoordinateY,
                              double& Red, double& Green, double& Blue) const
 {
     Red   = 0.0;
@@ -346,58 +346,58 @@ void ResidentSurface::Sample(double CoordinateAlong, double CoordinateAcross,
     if (Encoded.empty())
         return;
 
-    const double SpanAlong  = static_cast<double>(SpannedAlong);
-    const double SpanAcross = static_cast<double>(SpannedAcross);
+    const double Width  = static_cast<double>(SpannedX);
+    const double Height = static_cast<double>(SpannedY);
 
-    double TexelAcross = BoundedMagnitude(CoordinateAcross, 0.0, 1.0) * SpanAcross - 0.5;
-    TexelAcross        = BoundedMagnitude(TexelAcross, 0.0, SpanAcross - 1.0);
+    double TexelY = BoundedMagnitude(CoordinateY, 0.0, 1.0) * Height - 0.5;
+    TexelY        = BoundedMagnitude(TexelY, 0.0, Height - 1.0);
 
     // 📐 🔴 The periodic axis wraps its **filter**, not merely its coordinate. Wrapping the coordinate into the
     //    unit interval and then clamping the texel blends texel 191 with itself at the seam instead of with
     //    texel 0, which is a one-texel discontinuity running down the sky at the azimuth origin.
-    double TexelAlong = CoordinateAlong * SpanAlong - 0.5;
+    double TexelX = CoordinateX * Width - 0.5;
 
-    if (WrapAlong)
+    if (WrapX)
     {
-        while (TexelAlong <  0.0)       TexelAlong += SpanAlong;
-        while (TexelAlong >= SpanAlong) TexelAlong -= SpanAlong;
+        while (TexelX <  0.0)       TexelX += Width;
+        while (TexelX >= Width) TexelX -= Width;
     }
     else
     {
-        TexelAlong = BoundedMagnitude(TexelAlong, 0.0, SpanAlong - 1.0);
+        TexelX = BoundedMagnitude(TexelX, 0.0, Width - 1.0);
     }
 
-    const std::uint32_t LeastAlong  = static_cast<std::uint32_t>(TexelAlong);
-    const std::uint32_t LeastAcross = static_cast<std::uint32_t>(TexelAcross);
+    const std::uint32_t MinimumX  = static_cast<std::uint32_t>(TexelX);
+    const std::uint32_t MinimumY = static_cast<std::uint32_t>(TexelY);
 
-    const std::uint32_t NextAlong  = WrapAlong
-                                   ? (LeastAlong + 1u) % SpannedAlong
-                                   : (LeastAlong + 1u < SpannedAlong ? LeastAlong + 1u : LeastAlong);
-    const std::uint32_t NextAcross = LeastAcross + 1u < SpannedAcross ? LeastAcross + 1u : LeastAcross;
+    const std::uint32_t NextX  = WrapX
+                                   ? (MinimumX + 1u) % SpannedX
+                                   : (MinimumX + 1u < SpannedX ? MinimumX + 1u : MinimumX);
+    const std::uint32_t NextY = MinimumY + 1u < SpannedY ? MinimumY + 1u : MinimumY;
 
-    const double FractionAlong  = TexelAlong  - static_cast<double>(LeastAlong);
-    const double FractionAcross = TexelAcross - static_cast<double>(LeastAcross);
+    const double FractionX  = TexelX  - static_cast<double>(MinimumX);
+    const double FractionY = TexelY - static_cast<double>(MinimumY);
 
-    const std::size_t LowerLeft  = (static_cast<std::size_t>(LeastAcross) * SpannedAlong + LeastAlong)
+    const std::size_t LowerLeft  = (static_cast<std::size_t>(MinimumY) * SpannedX + MinimumX)
                                  * AtmosphereComponentCount;
-    const std::size_t LowerRight = (static_cast<std::size_t>(LeastAcross) * SpannedAlong + NextAlong)
+    const std::size_t LowerRight = (static_cast<std::size_t>(MinimumY) * SpannedX + NextX)
                                  * AtmosphereComponentCount;
-    const std::size_t UpperLeft  = (static_cast<std::size_t>(NextAcross)  * SpannedAlong + LeastAlong)
+    const std::size_t UpperLeft  = (static_cast<std::size_t>(NextY)  * SpannedX + MinimumX)
                                  * AtmosphereComponentCount;
-    const std::size_t UpperRight = (static_cast<std::size_t>(NextAcross)  * SpannedAlong + NextAlong)
+    const std::size_t UpperRight = (static_cast<std::size_t>(NextY)  * SpannedX + NextX)
                                  * AtmosphereComponentCount;
 
     double* Resolved[3] = { &Red, &Green, &Blue };
 
     for (std::uint32_t Component = 0u; Component < 3u; ++Component)
     {
-        const double Lower = static_cast<double>(DecodeHalf(Encoded[LowerLeft  + Component])) * (1.0 - FractionAlong)
-                           + static_cast<double>(DecodeHalf(Encoded[LowerRight + Component])) * FractionAlong;
+        const double Lower = static_cast<double>(DecodeHalf(Encoded[LowerLeft  + Component])) * (1.0 - FractionX)
+                           + static_cast<double>(DecodeHalf(Encoded[LowerRight + Component])) * FractionX;
 
-        const double Upper = static_cast<double>(DecodeHalf(Encoded[UpperLeft  + Component])) * (1.0 - FractionAlong)
-                           + static_cast<double>(DecodeHalf(Encoded[UpperRight + Component])) * FractionAlong;
+        const double Upper = static_cast<double>(DecodeHalf(Encoded[UpperLeft  + Component])) * (1.0 - FractionX)
+                           + static_cast<double>(DecodeHalf(Encoded[UpperRight + Component])) * FractionX;
 
-        *Resolved[Component] = Lower * (1.0 - FractionAcross) + Upper * FractionAcross;
+        *Resolved[Component] = Lower * (1.0 - FractionY) + Upper * FractionY;
     }
 }
 
@@ -408,8 +408,8 @@ std::uint64_t ResidentSurface::ResidentBytes() const
     return static_cast<std::uint64_t>(Encoded.size()) * AtmosphereComponentBytes;
 }
 
-std::uint32_t ResidentSurface::ExtentAlong() const        { return SpannedAlong;  }
-std::uint32_t ResidentSurface::ExtentAcross() const       { return SpannedAcross; }
+std::uint32_t ResidentSurface::Width() const        { return SpannedX;  }
+std::uint32_t ResidentSurface::Height() const       { return SpannedY; }
 bool          ResidentSurface::SurfaceConstructed() const { return !Encoded.empty(); }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -589,26 +589,26 @@ Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rul
     if (!Rule.Derived())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
 
-    const Outcome<bool> Claimed =
-        TransmittanceSurface.Construct(TransmittanceExtentAlong, TransmittanceExtentAcross, false);
+    const Outcome<bool> Reserved =
+        TransmittanceSurface.Construct(TransmittanceExtentX, TransmittanceExtentY, false);
 
-    if (!Claimed.Resolved)
-        return Claimed;
+    if (!Reserved.Resolved)
+        return Reserved;
 
     const double PlanetRadius     = DeclaredMedium.PlanetRadius;
     const double Thickness        = DeclaredMedium.AtmosphereThickness;
     const double AtmosphereRadius = PlanetRadius + Thickness;
 
-    for (std::uint32_t Across = 0u; Across < TransmittanceExtentAcross; ++Across)
+    for (std::uint32_t Y = 0u; Y < TransmittanceExtentY; ++Y)
     {
-        for (std::uint32_t Along = 0u; Along < TransmittanceExtentAlong; ++Along)
+        for (std::uint32_t X = 0u; X < TransmittanceExtentX; ++X)
         {
-            const double CoordinateAlong  = (static_cast<double>(Along)  + 0.5) / TransmittanceExtentAlong;
-            const double CoordinateAcross = (static_cast<double>(Across) + 0.5) / TransmittanceExtentAcross;
+            const double CoordinateX  = (static_cast<double>(X)  + 0.5) / TransmittanceExtentX;
+            const double CoordinateY = (static_cast<double>(Y) + 0.5) / TransmittanceExtentY;
 
             double Radius       = 0.0;
             double ZenithCosine = 0.0;
-            ProjectTransmittanceParameter(ShapedProfile, CoordinateAlong, CoordinateAcross,
+            ProjectTransmittanceParameter(ShapedProfile, CoordinateX, CoordinateY,
                                           Radius, ZenithCosine);
 
             // 🔴 A sun below the horizon is occluded by the planet, so its transmittance is zero. Marching
@@ -617,7 +617,7 @@ Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rul
             //    round the right way. Stating the occlusion is both correct and finite.
             if (ClassifyGroundReach(Radius, ZenithCosine, PlanetRadius))
             {
-                TransmittanceSurface.Write(Along, Across, 0.0, 0.0, 0.0);
+                TransmittanceSurface.Write(X, Y, 0.0, 0.0, 0.0);
                 continue;
             }
 
@@ -661,7 +661,7 @@ Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rul
             //    exponent is dimensionless without a conversion — the donor formulation marches in kilometres and
             //    carries a factor of a thousand at exactly this line, which is the factor to look for first if an
             //    atmosphere ported from it is either opaque or absent.
-            TransmittanceSurface.Write(Along, Across,
+            TransmittanceSurface.Write(X, Y,
                                        std::exp(-DepthRed), std::exp(-DepthGreen), std::exp(-DepthBlue));
         }
     }
@@ -672,12 +672,12 @@ Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rul
 void AtmosphereIntegrator::TransmittanceAt(double Radius, double ZenithCosine,
                                            double& Red, double& Green, double& Blue) const
 {
-    double CoordinateAlong  = 0.0;
-    double CoordinateAcross = 0.0;
+    double CoordinateX  = 0.0;
+    double CoordinateY = 0.0;
 
-    ProjectTransmittanceCoordinate(ShapedProfile, Radius, ZenithCosine, CoordinateAlong, CoordinateAcross);
+    ProjectTransmittanceCoordinate(ShapedProfile, Radius, ZenithCosine, CoordinateX, CoordinateY);
 
-    TransmittanceSurface.Sample(CoordinateAlong, CoordinateAcross, Red, Green, Blue);
+    TransmittanceSurface.Sample(CoordinateX, CoordinateY, Red, Green, Blue);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -687,11 +687,11 @@ void AtmosphereIntegrator::TransmittanceAt(double Radius, double ZenithCosine,
 void AtmosphereIntegrator::MultiScatterAt(double Radius, double SunZenithCosine,
                                           double& Red, double& Green, double& Blue) const
 {
-    double CoordinateAlong  = 0.0;
-    double CoordinateAcross = 0.0;
-    ProjectMultiScatterCoordinate(ShapedProfile, Radius, SunZenithCosine, CoordinateAlong, CoordinateAcross);
+    double CoordinateX  = 0.0;
+    double CoordinateY = 0.0;
+    ProjectMultiScatterCoordinate(ShapedProfile, Radius, SunZenithCosine, CoordinateX, CoordinateY);
 
-    MultiScatterSurface.Sample(CoordinateAlong, CoordinateAcross, Red, Green, Blue);
+    MultiScatterSurface.Sample(CoordinateX, CoordinateY, Red, Green, Blue);
 }
 
 Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
@@ -699,25 +699,25 @@ Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
     if (!TransmittanceSurface.SurfaceConstructed())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the transmittance surface does not stand" });
 
-    const Outcome<bool> Claimed =
-        MultiScatterSurface.Construct(MultiScatterExtentAlong, MultiScatterExtentAcross, false);
+    const Outcome<bool> Reserved =
+        MultiScatterSurface.Construct(MultiScatterExtentX, MultiScatterExtentY, false);
 
-    if (!Claimed.Resolved)
-        return Claimed;
+    if (!Reserved.Resolved)
+        return Reserved;
 
     const double PlanetRadius     = DeclaredMedium.PlanetRadius;
     const double Thickness        = DeclaredMedium.AtmosphereThickness;
     const double AtmosphereRadius = PlanetRadius + Thickness;
     const double Reciprocal       = 1.0 / static_cast<double>(MultiScatterDirectionCount);
 
-    for (std::uint32_t Across = 0u; Across < MultiScatterExtentAcross; ++Across)
+    for (std::uint32_t Y = 0u; Y < MultiScatterExtentY; ++Y)
     {
-        for (std::uint32_t Along = 0u; Along < MultiScatterExtentAlong; ++Along)
+        for (std::uint32_t X = 0u; X < MultiScatterExtentX; ++X)
         {
-            const double SunZenithCosine = 2.0 * ((static_cast<double>(Along) + 0.5) / MultiScatterExtentAlong)
+            const double SunZenithCosine = 2.0 * ((static_cast<double>(X) + 0.5) / MultiScatterExtentX)
                                          - 1.0;
             const double StartRadius     = PlanetRadius
-                                         + ((static_cast<double>(Across) + 0.5) / MultiScatterExtentAcross)
+                                         + ((static_cast<double>(Y) + 0.5) / MultiScatterExtentY)
                                          * Thickness;
 
             // 📝 The surface is sun-independent: the sun is placed in the plane the zenith cosine names rather
@@ -827,7 +827,7 @@ Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
                 Psi[Component] = Order / Divisor;
             }
 
-            MultiScatterSurface.Write(Along, Across, Psi[0], Psi[1], Psi[2]);
+            MultiScatterSurface.Write(X, Y, Psi[0], Psi[1], Psi[2]);
         }
     }
 
@@ -853,26 +853,26 @@ Outcome<bool> AtmosphereIntegrator::BuildSkyView()
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "① or ② does not stand" });
 
     // 🔴 The azimuth is the one periodic axis in the whole component — finding ② above.
-    const Outcome<bool> Claimed = SkyViewSurface.Construct(SkyViewExtentAlong, SkyViewExtentAcross, true);
+    const Outcome<bool> Reserved = SkyViewSurface.Construct(SkyViewExtentX, SkyViewExtentY, true);
 
-    if (!Claimed.Resolved)
-        return Claimed;
+    if (!Reserved.Resolved)
+        return Reserved;
 
     const double PlanetRadius     = DeclaredMedium.PlanetRadius;
     const double AtmosphereRadius = PlanetRadius + DeclaredMedium.AtmosphereThickness;
     const double StartRadius      = PlanetRadius + CameraAltitude;
 
-    for (std::uint32_t Across = 0u; Across < SkyViewExtentAcross; ++Across)
+    for (std::uint32_t Y = 0u; Y < SkyViewExtentY; ++Y)
     {
-        for (std::uint32_t Along = 0u; Along < SkyViewExtentAlong; ++Along)
+        for (std::uint32_t X = 0u; X < SkyViewExtentX; ++X)
         {
-            const double CoordinateAlong  = (static_cast<double>(Along)  + 0.5) / SkyViewExtentAlong;
-            const double CoordinateAcross = (static_cast<double>(Across) + 0.5) / SkyViewExtentAcross;
+            const double CoordinateX  = (static_cast<double>(X)  + 0.5) / SkyViewExtentX;
+            const double CoordinateY = (static_cast<double>(Y) + 0.5) / SkyViewExtentY;
 
             double ViewX = 0.0;
             double ViewY = 0.0;
             double ViewZ = 0.0;
-            ProjectSkyViewDirection(CoordinateAlong, CoordinateAcross, ViewX, ViewY, ViewZ);
+            ProjectSkyViewDirection(CoordinateX, CoordinateY, ViewX, ViewY, ViewZ);
 
             const double ViewZenithCosine = ViewY;
 
@@ -948,10 +948,10 @@ Outcome<bool> AtmosphereIntegrator::BuildSkyView()
                 }
             }
 
-            // 📝 🚧 The illuminant's own magnitude is **not** applied here. `44` §8 enrols the atmospheric source
+            // 📝 🚧 The illuminant's own magnitude is **not** applied here. `44` §8 registers the atmospheric source
             //    and the requester supplies its direction; its flux scales this radiance uniformly and applying it
             //    at this depth would bake one illuminant's brightness into a surface rebuilt on direction alone.
-            SkyViewSurface.Write(Along, Across, Radiance[0], Radiance[1], Radiance[2]);
+            SkyViewSurface.Write(X, Y, Radiance[0], Radiance[1], Radiance[2]);
         }
     }
 
@@ -988,12 +988,12 @@ void AtmosphereIntegrator::DeriveIrradiance()
         const double DirectionY = SampleZ;
         const double DirectionZ = SampleY;
 
-        double CoordinateAlong  = 0.0;
-        double CoordinateAcross = 0.0;
-        ProjectSkyViewCoordinate(DirectionX, DirectionY, DirectionZ, CoordinateAlong, CoordinateAcross);
+        double CoordinateX  = 0.0;
+        double CoordinateY = 0.0;
+        ProjectSkyViewCoordinate(DirectionX, DirectionY, DirectionZ, CoordinateX, CoordinateY);
 
         double Radiance[3] = { 0.0, 0.0, 0.0 };
-        SkyViewSurface.Sample(CoordinateAlong, CoordinateAcross, Radiance[0], Radiance[1], Radiance[2]);
+        SkyViewSurface.Sample(CoordinateX, CoordinateY, Radiance[0], Radiance[1], Radiance[2]);
 
         double Basis[9] = {};
         HarmonicBasis(DirectionX, DirectionY, DirectionZ, Basis);
@@ -1117,12 +1117,12 @@ Outcome<bool> AtmosphereIntegrator::SampleSkyView(double DirectionX, double Dire
     if (Length <= 0.0)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a direction of no length" });
 
-    double CoordinateAlong  = 0.0;
-    double CoordinateAcross = 0.0;
+    double CoordinateX  = 0.0;
+    double CoordinateY = 0.0;
     ProjectSkyViewCoordinate(DirectionX / Length, DirectionY / Length, DirectionZ / Length,
-                             CoordinateAlong, CoordinateAcross);
+                             CoordinateX, CoordinateY);
 
-    SkyViewSurface.Sample(CoordinateAlong, CoordinateAcross, Red, Green, Blue);
+    SkyViewSurface.Sample(CoordinateX, CoordinateY, Red, Green, Blue);
 
     return Outcome<bool>::Result(true);
 }

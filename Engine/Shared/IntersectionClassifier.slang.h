@@ -115,12 +115,12 @@ SLATE_SHARED Signed32 ClassifySegmentIntersection(Real64 AlphaX, Real64 AlphaY,
     //    other segment's extent, in which case the segments are disjoint.
     if (GammaSide == 0)
     {
-        const Real64 LeastX    = AlphaX < BetaX ? AlphaX : BetaX;
-        const Real64 GreatestX = AlphaX < BetaX ? BetaX  : AlphaX;
-        const Real64 LeastY    = AlphaY < BetaY ? AlphaY : BetaY;
-        const Real64 GreatestY = AlphaY < BetaY ? BetaY  : AlphaY;
+        const Real64 MinimumX    = AlphaX < BetaX ? AlphaX : BetaX;
+        const Real64 MaximumX = AlphaX < BetaX ? BetaX  : AlphaX;
+        const Real64 MinimumY    = AlphaY < BetaY ? AlphaY : BetaY;
+        const Real64 MaximumY = AlphaY < BetaY ? BetaY  : AlphaY;
 
-        if (GammaX >= LeastX && GammaX <= GreatestX && GammaY >= LeastY && GammaY <= GreatestY)
+        if (GammaX >= MinimumX && GammaX <= MaximumX && GammaY >= MinimumY && GammaY <= MaximumY)
             return SlateIntersectionTouching;
 
         return SlateIntersectionDisjoint;
@@ -128,12 +128,12 @@ SLATE_SHARED Signed32 ClassifySegmentIntersection(Real64 AlphaX, Real64 AlphaY,
 
     if (DeltaSide == 0)
     {
-        const Real64 LeastX    = AlphaX < BetaX ? AlphaX : BetaX;
-        const Real64 GreatestX = AlphaX < BetaX ? BetaX  : AlphaX;
-        const Real64 LeastY    = AlphaY < BetaY ? AlphaY : BetaY;
-        const Real64 GreatestY = AlphaY < BetaY ? BetaY  : AlphaY;
+        const Real64 MinimumX    = AlphaX < BetaX ? AlphaX : BetaX;
+        const Real64 MaximumX = AlphaX < BetaX ? BetaX  : AlphaX;
+        const Real64 MinimumY    = AlphaY < BetaY ? AlphaY : BetaY;
+        const Real64 MaximumY = AlphaY < BetaY ? BetaY  : AlphaY;
 
-        if (DeltaX >= LeastX && DeltaX <= GreatestX && DeltaY >= LeastY && DeltaY <= GreatestY)
+        if (DeltaX >= MinimumX && DeltaX <= MaximumX && DeltaY >= MinimumY && DeltaY <= MaximumY)
             return SlateIntersectionTouching;
 
         return SlateIntersectionDisjoint;
@@ -141,12 +141,12 @@ SLATE_SHARED Signed32 ClassifySegmentIntersection(Real64 AlphaX, Real64 AlphaY,
 
     if (AlphaSide == 0)
     {
-        const Real64 LeastX    = GammaX < DeltaX ? GammaX : DeltaX;
-        const Real64 GreatestX = GammaX < DeltaX ? DeltaX : GammaX;
-        const Real64 LeastY    = GammaY < DeltaY ? GammaY : DeltaY;
-        const Real64 GreatestY = GammaY < DeltaY ? DeltaY : GammaY;
+        const Real64 MinimumX    = GammaX < DeltaX ? GammaX : DeltaX;
+        const Real64 MaximumX = GammaX < DeltaX ? DeltaX : GammaX;
+        const Real64 MinimumY    = GammaY < DeltaY ? GammaY : DeltaY;
+        const Real64 MaximumY = GammaY < DeltaY ? DeltaY : GammaY;
 
-        if (AlphaX >= LeastX && AlphaX <= GreatestX && AlphaY >= LeastY && AlphaY <= GreatestY)
+        if (AlphaX >= MinimumX && AlphaX <= MaximumX && AlphaY >= MinimumY && AlphaY <= MaximumY)
             return SlateIntersectionTouching;
 
         return SlateIntersectionDisjoint;
@@ -154,12 +154,12 @@ SLATE_SHARED Signed32 ClassifySegmentIntersection(Real64 AlphaX, Real64 AlphaY,
 
     if (BetaSide == 0)
     {
-        const Real64 LeastX    = GammaX < DeltaX ? GammaX : DeltaX;
-        const Real64 GreatestX = GammaX < DeltaX ? DeltaX : GammaX;
-        const Real64 LeastY    = GammaY < DeltaY ? GammaY : DeltaY;
-        const Real64 GreatestY = GammaY < DeltaY ? DeltaY : GammaY;
+        const Real64 MinimumX    = GammaX < DeltaX ? GammaX : DeltaX;
+        const Real64 MaximumX = GammaX < DeltaX ? DeltaX : GammaX;
+        const Real64 MinimumY    = GammaY < DeltaY ? GammaY : DeltaY;
+        const Real64 MaximumY = GammaY < DeltaY ? DeltaY : GammaY;
 
-        if (BetaX >= LeastX && BetaX <= GreatestX && BetaY >= LeastY && BetaY <= GreatestY)
+        if (BetaX >= MinimumX && BetaX <= MaximumX && BetaY >= MinimumY && BetaY <= MaximumY)
             return SlateIntersectionTouching;
 
         return SlateIntersectionDisjoint;
@@ -178,7 +178,7 @@ SLATE_SHARED Signed32 ClassifySegmentIntersection(Real64 AlphaX, Real64 AlphaY,
 /// in    DeltaX      [-]
 /// in    DeltaY      [-]
 /// out   CrossingX   [-]  resolved abscissa
-/// out   CrossingY   [-]  resolved ordinate
+/// out   CrossingY   [-]  resolved coordinate
 /// out   Resolved    [-]  false when the segments are parallel or degenerate — refuses rather than dividing by zero
 /// note  Bounded — linear interpolation over double-precision inputs.
 /// tag   shared, parity, nonallocating, nonthrowing
@@ -217,35 +217,35 @@ SLATE_SHARED bool ResolveSegmentCrossing(Real64 AlphaX, Real64 AlphaY,
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Classifies the overlap of two axis-aligned extents.
-/// in    AlphaLeastX   [-]  first extent — least corner
-/// in    AlphaLeastY   [-]
-/// in    AlphaGreatestX [-]  first extent — greatest corner
-/// in    AlphaGreatestY [-]
-/// in    BetaLeastX    [-]  second extent — least corner
-/// in    BetaLeastY    [-]
-/// in    BetaGreatestX [-]  second extent — greatest corner
-/// in    BetaGreatestY [-]
+/// in    AlphaMinimumX   [-]  first extent — least corner
+/// in    AlphaMinimumY   [-]
+/// in    AlphaMaximumX [-]  first extent — greatest corner
+/// in    AlphaMaximumY [-]
+/// in    BetaMinimumX    [-]  second extent — least corner
+/// in    BetaMinimumY    [-]
+/// in    BetaMaximumX [-]  second extent — greatest corner
+/// in    BetaMaximumY [-]
 /// out   Overlap       [-]  +1 interiors overlap, 0 touching on a bound, −1 disjoint
 /// note  🔴 Returns 0 for extents that share exactly one bound but whose interiors do not overlap. `38` §6
 ///        rounds every extent outward before asking this predicate, so a boundary contact is turned into an
 ///        interior overlap at the rasterisation stage rather than here.
 /// note  Exact — comparisons of representable coordinates; identical on the host and on the device.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Signed32 ClassifyExtentOverlap(Real64 AlphaLeastX,    Real64 AlphaLeastY,
-                                            Real64 AlphaGreatestX, Real64 AlphaGreatestY,
-                                            Real64 BetaLeastX,     Real64 BetaLeastY,
-                                            Real64 BetaGreatestX,  Real64 BetaGreatestY)
+SLATE_SHARED Signed32 ClassifyExtentOverlap(Real64 AlphaMinimumX,    Real64 AlphaMinimumY,
+                                            Real64 AlphaMaximumX, Real64 AlphaMaximumY,
+                                            Real64 BetaMinimumX,     Real64 BetaMinimumY,
+                                            Real64 BetaMaximumX,  Real64 BetaMaximumY)
 {
     // 📐 Disjoint: one extent's least exceeds the other's greatest along either axis.
-    if (AlphaGreatestX < BetaLeastX || BetaGreatestX < AlphaLeastX
-     || AlphaGreatestY < BetaLeastY || BetaGreatestY < AlphaLeastY)
+    if (AlphaMaximumX < BetaMinimumX || BetaMaximumX < AlphaMinimumX
+     || AlphaMaximumY < BetaMinimumY || BetaMaximumY < AlphaMinimumY)
     {
         return -1;
     }
 
     // 📐 Touching: their bounds meet but interiors are apart along at least one axis.
-    if (AlphaGreatestX == BetaLeastX || BetaGreatestX == AlphaLeastX
-     || AlphaGreatestY == BetaLeastY || BetaGreatestY == AlphaLeastY)
+    if (AlphaMaximumX == BetaMinimumX || BetaMaximumX == AlphaMinimumX
+     || AlphaMaximumY == BetaMinimumY || BetaMaximumY == AlphaMinimumY)
     {
         return 0;
     }
@@ -254,18 +254,18 @@ SLATE_SHARED Signed32 ClassifyExtentOverlap(Real64 AlphaLeastX,    Real64 AlphaL
 }
 
 /// 🧩 Classifies the overlap of two axis-aligned volumetric extents.
-/// in    AlphaLeastX    [-]  first extent — least corner
-/// in    AlphaLeastY    [-]
-/// in    AlphaLeastZ    [-]
-/// in    AlphaGreatestX [-]  first extent — greatest corner
-/// in    AlphaGreatestY [-]
-/// in    AlphaGreatestZ [-]
-/// in    BetaLeastX     [-]  second extent — least corner
-/// in    BetaLeastY     [-]
-/// in    BetaLeastZ     [-]
-/// in    BetaGreatestX  [-]  second extent — greatest corner
-/// in    BetaGreatestY  [-]
-/// in    BetaGreatestZ  [-]
+/// in    AlphaMinimumX    [-]  first extent — least corner
+/// in    AlphaMinimumY    [-]
+/// in    AlphaMinimumZ    [-]
+/// in    AlphaMaximumX [-]  first extent — greatest corner
+/// in    AlphaMaximumY [-]
+/// in    AlphaMaximumZ [-]
+/// in    BetaMinimumX     [-]  second extent — least corner
+/// in    BetaMinimumY     [-]
+/// in    BetaMinimumZ     [-]
+/// in    BetaMaximumX  [-]  second extent — greatest corner
+/// in    BetaMaximumY  [-]
+/// in    BetaMaximumZ  [-]
 /// out   Overlap        [-]  +1 interiors overlap, 0 touching on a bound, −1 disjoint
 /// note  🔴 The volumetric form of the predicate above, declared beside it rather than derived from it by three
 ///        planar calls. Three planar answers do not compose into one volumetric answer: two extents may overlap
@@ -275,21 +275,21 @@ SLATE_SHARED Signed32 ClassifyExtentOverlap(Real64 AlphaLeastX,    Real64 AlphaL
 ///        the artist cannot click; a missed overlap in `44` is a surface an illuminant reaches and does not light.
 /// note  Exact — comparisons of representable coordinates; identical on the host and on the device.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Signed32 ClassifyVolumeOverlap(Real64 AlphaLeastX,    Real64 AlphaLeastY,    Real64 AlphaLeastZ,
-                                            Real64 AlphaGreatestX, Real64 AlphaGreatestY, Real64 AlphaGreatestZ,
-                                            Real64 BetaLeastX,     Real64 BetaLeastY,     Real64 BetaLeastZ,
-                                            Real64 BetaGreatestX,  Real64 BetaGreatestY,  Real64 BetaGreatestZ)
+SLATE_SHARED Signed32 ClassifyVolumeOverlap(Real64 AlphaMinimumX,    Real64 AlphaMinimumY,    Real64 AlphaMinimumZ,
+                                            Real64 AlphaMaximumX, Real64 AlphaMaximumY, Real64 AlphaMaximumZ,
+                                            Real64 BetaMinimumX,     Real64 BetaMinimumY,     Real64 BetaMinimumZ,
+                                            Real64 BetaMaximumX,  Real64 BetaMaximumY,  Real64 BetaMaximumZ)
 {
-    if (AlphaGreatestX < BetaLeastX || BetaGreatestX < AlphaLeastX
-     || AlphaGreatestY < BetaLeastY || BetaGreatestY < AlphaLeastY
-     || AlphaGreatestZ < BetaLeastZ || BetaGreatestZ < AlphaLeastZ)
+    if (AlphaMaximumX < BetaMinimumX || BetaMaximumX < AlphaMinimumX
+     || AlphaMaximumY < BetaMinimumY || BetaMaximumY < AlphaMinimumY
+     || AlphaMaximumZ < BetaMinimumZ || BetaMaximumZ < AlphaMinimumZ)
     {
         return -1;
     }
 
-    if (AlphaGreatestX == BetaLeastX || BetaGreatestX == AlphaLeastX
-     || AlphaGreatestY == BetaLeastY || BetaGreatestY == AlphaLeastY
-     || AlphaGreatestZ == BetaLeastZ || BetaGreatestZ == AlphaLeastZ)
+    if (AlphaMaximumX == BetaMinimumX || BetaMaximumX == AlphaMinimumX
+     || AlphaMaximumY == BetaMinimumY || BetaMaximumY == AlphaMinimumY
+     || AlphaMaximumZ == BetaMinimumZ || BetaMaximumZ == AlphaMinimumZ)
     {
         return 0;
     }

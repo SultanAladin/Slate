@@ -22,12 +22,12 @@ namespace
 //    at every face instead.
 std::uint32_t MaterialOfFace(const TopologyStructure& Imported, std::uint32_t FaceOrdinal)
 {
-    const std::vector<std::uint32_t>& Enrollment = Imported.MaterialEnrollment();
+    const std::vector<std::uint32_t>& Registration = Imported.MaterialRegistration();
 
-    return FaceOrdinal < static_cast<std::uint32_t>(Enrollment.size()) ? Enrollment[FaceOrdinal] : 0u;
+    return FaceOrdinal < static_cast<std::uint32_t>(Registration.size()) ? Registration[FaceOrdinal] : 0u;
 }
 
-// 📝 The fan triangles one face amounts to. `50` §2 ① admits n-gons, so this is the corner count less two and
+// 📝 The fan triangles one face amounts to. `50` §2 ① accepts n-gons, so this is the corner count less two and
 //    never the constant one — a partition budgeted as though every face were a triangle overruns by the amount
 //    the artist's quads and n-gons exceed it, which on a subdivided surface is the whole budget again.
 std::uint32_t TrianglesOfFace(const TopologyStructure& Imported, std::uint32_t FaceOrdinal)
@@ -44,7 +44,7 @@ std::uint32_t TrianglesOfFace(const TopologyStructure& Imported, std::uint32_t F
 ///        supposed to enclose.
 /// note  📝 Accumulated at 64 bits and narrowed only at the end. The positions are `mm` in document space and
 ///        `02` §3.2 keeps them at 64 bits precisely because differencing them at 32 bits is where a distant
-///        occupant's geometry turns to noise.
+///        owner's geometry turns to noise.
 SurfaceDirection OrientationOfFace(const TopologyStructure& Imported, std::uint32_t FaceOrdinal, bool& OrientationDerived)
 {
     const std::vector<DocumentPosition>& Positions   = Imported.Positions();
@@ -74,8 +74,8 @@ SurfaceDirection OrientationOfFace(const TopologyStructure& Imported, std::uint3
 
     // ⚠️ A face of no area has no orientation, and normalising one produces three quiet infinities that
     //    propagate into the cone axis and reject the whole partition from every direction at once. The
-    //    conditioning enrols such a face as `ZeroExtentFace` and the growth steps over it; this guard is what
-    //    covers a face that is enrolled under nothing and still sums to nothing.
+    //    conditioning registers such a face as `ZeroExtentFace` and the growth steps over it; this guard is what
+    //    covers a face that is registered under nothing and still sums to nothing.
     OrientationDerived = Magnitude > 0.0;
 
     if (!OrientationDerived)
@@ -91,20 +91,20 @@ SurfaceDirection OrientationOfFace(const TopologyStructure& Imported, std::uint3
 // 📝 The extent one face contributes, folded into a running one. Both corners move outward and neither is
 //    rounded in, per `38` §6 — the conditioning already rounded each face outward and taking the extremes of
 //    outward extents keeps the result outward.
-void AdmitExtent(ConditionedExtent& Running, const ConditionedExtent& Arriving, bool FirstAdmission)
+void AcceptExtent(ConditionedExtent& Running, const ConditionedExtent& Incoming, bool FirstAdmission)
 {
     if (FirstAdmission)
     {
-        Running = Arriving;
+        Running = Incoming;
         return;
     }
 
-    Running.Least.PositionX    = Arriving.Least.PositionX    < Running.Least.PositionX    ? Arriving.Least.PositionX    : Running.Least.PositionX;
-    Running.Least.PositionY    = Arriving.Least.PositionY    < Running.Least.PositionY    ? Arriving.Least.PositionY    : Running.Least.PositionY;
-    Running.Least.PositionZ    = Arriving.Least.PositionZ    < Running.Least.PositionZ    ? Arriving.Least.PositionZ    : Running.Least.PositionZ;
-    Running.Greatest.PositionX = Arriving.Greatest.PositionX > Running.Greatest.PositionX ? Arriving.Greatest.PositionX : Running.Greatest.PositionX;
-    Running.Greatest.PositionY = Arriving.Greatest.PositionY > Running.Greatest.PositionY ? Arriving.Greatest.PositionY : Running.Greatest.PositionY;
-    Running.Greatest.PositionZ = Arriving.Greatest.PositionZ > Running.Greatest.PositionZ ? Arriving.Greatest.PositionZ : Running.Greatest.PositionZ;
+    Running.Minimum.PositionX    = Incoming.Minimum.PositionX    < Running.Minimum.PositionX    ? Incoming.Minimum.PositionX    : Running.Minimum.PositionX;
+    Running.Minimum.PositionY    = Incoming.Minimum.PositionY    < Running.Minimum.PositionY    ? Incoming.Minimum.PositionY    : Running.Minimum.PositionY;
+    Running.Minimum.PositionZ    = Incoming.Minimum.PositionZ    < Running.Minimum.PositionZ    ? Incoming.Minimum.PositionZ    : Running.Minimum.PositionZ;
+    Running.Maximum.PositionX = Incoming.Maximum.PositionX > Running.Maximum.PositionX ? Incoming.Maximum.PositionX : Running.Maximum.PositionX;
+    Running.Maximum.PositionY = Incoming.Maximum.PositionY > Running.Maximum.PositionY ? Incoming.Maximum.PositionY : Running.Maximum.PositionY;
+    Running.Maximum.PositionZ = Incoming.Maximum.PositionZ > Running.Maximum.PositionZ ? Incoming.Maximum.PositionZ : Running.Maximum.PositionZ;
 }
 
 /// 🧩 Closes the cone over the orientations one partition accumulated.
@@ -174,31 +174,31 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
     Derived.DescribedRevision = Imported.Revision();
     Derived.OrderedFaces.reserve(FaceCeiling);
 
-    // 📝 Two marks and not one. Admitted says the face belongs to a closed partition and is never revisited;
+    // 📝 Two marks and not one. Accepted says the face belongs to a closed partition and is never revisited;
     //    Enqueued says it is standing on a growth front that may yet close before reaching it, and that mark is
     //    lifted at the close so the face seeds or joins the next partition instead of vanishing from the surface.
-    std::vector<bool> Admitted(FaceCeiling, false);
+    std::vector<bool> Accepted(FaceCeiling, false);
     std::vector<bool> Enqueued(FaceCeiling, false);
 
     std::vector<std::uint32_t> Front;
     Front.reserve(FaceCeiling);
 
-    bool LeastRecorded = false;
+    bool MinimumRecorded = false;
 
     for (std::uint32_t SeedFace = 0u; SeedFace < FaceCeiling; ++SeedFace)
     {
-        if (Admitted[SeedFace])
+        if (Accepted[SeedFace])
             continue;
 
-        if (Conditioned.FaceEnrolled(SeedFace, DegeneracySubject::ZeroExtentFace))
+        if (Conditioned.FaceRegistered(SeedFace, DegeneracySubject::ZeroExtentFace))
         {
             // 📝 Counted once, here, rather than at every adjacency that meets it. A face reached from four
             //    neighbours would otherwise be reported four times and `86` would read the exclusion as larger
             //    than the surface it happened on.
-            if (!Admitted[SeedFace])
+            if (!Accepted[SeedFace])
                 ++Derived.Metrics.ExcludedFaceCount;
 
-            Admitted[SeedFace] = true;
+            Accepted[SeedFace] = true;
             continue;
         }
 
@@ -217,7 +217,7 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
         double SummedX        = 0.0;
         double SummedY        = 0.0;
         double SummedZ        = 0.0;
-        double LeastAgreement = 0.0;
+        double MinimumAgreement = 0.0;
 
         bool AgreementRecorded = false;
         bool EveryFaceOriented = true;
@@ -233,19 +233,19 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
         while (FrontHead < Front.size() && Growing.TriangleCount < PartitionTriangleCeiling)
         {
-            const std::uint32_t AdmittedFace = Front[FrontHead];
+            const std::uint32_t AcceptedFace = Front[FrontHead];
             ++FrontHead;
 
-            Admitted[AdmittedFace] = true;
-            Derived.OrderedFaces.push_back(AdmittedFace);
+            Accepted[AcceptedFace] = true;
+            Derived.OrderedFaces.push_back(AcceptedFace);
             ++Growing.FaceCount;
-            Growing.TriangleCount += TrianglesOfFace(Imported, AdmittedFace);
+            Growing.TriangleCount += TrianglesOfFace(Imported, AcceptedFace);
 
-            AdmitExtent(Growing.Extent, FaceExtents[AdmittedFace], FirstAdmission);
+            AcceptExtent(Growing.Extent, FaceExtents[AcceptedFace], FirstAdmission);
             FirstAdmission = false;
 
             bool                   FaceOriented = false;
-            const SurfaceDirection Oriented     = OrientationOfFace(Imported, AdmittedFace, FaceOriented);
+            const SurfaceDirection Oriented     = OrientationOfFace(Imported, AcceptedFace, FaceOriented);
 
             if (FaceOriented)
             {
@@ -259,29 +259,29 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
                 EveryFaceOriented = false;
             }
 
-            const std::uint32_t FirstCorner = Imported.FaceFirstCorner(AdmittedFace);
-            const std::uint32_t CornerRun   = Imported.FaceCornerCount(AdmittedFace);
+            const std::uint32_t FirstCorner = Imported.FaceFirstCorner(AcceptedFace);
+            const std::uint32_t CornerRun   = Imported.FaceCornerCount(AcceptedFace);
 
             for (std::uint32_t Step = 0u; Step < CornerRun; ++Step)
             {
-                const Outcome<std::uint32_t> Across = Conditioned.AdjacentCorner(FirstCorner + Step);
+                const Outcome<std::uint32_t> Y = Conditioned.AdjacentCorner(FirstCorner + Step);
 
                 // 📝 🔴 A refusal is where the surface stops, not where the derivation failed. `38` refuses at a
                 //    boundary edge and at a non-manifold one rather than choosing among several faces, so the
                 //    front simply does not cross here and the count is what `86` reads the partitioning's
                 //    fragmentation from.
-                if (!Across.Resolved)
+                if (!Y.Resolved)
                 {
                     ++Derived.Metrics.BoundaryRefusalCount;
                     continue;
                 }
 
-                const std::uint32_t Adjacent = Imported.CornerFace(Across.Resolve());
+                const std::uint32_t Adjacent = Imported.CornerFace(Y.Resolve());
 
-                if (Adjacent >= FaceCeiling || Admitted[Adjacent] || Enqueued[Adjacent])
+                if (Adjacent >= FaceCeiling || Accepted[Adjacent] || Enqueued[Adjacent])
                     continue;
 
-                if (Conditioned.FaceEnrolled(Adjacent, DegeneracySubject::ZeroExtentFace))
+                if (Conditioned.FaceRegistered(Adjacent, DegeneracySubject::ZeroExtentFace))
                     continue;
 
                 // 🔴 Growth stops at an enrollment change. `42`'s resolution carries one material ordinal per
@@ -296,10 +296,10 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
         }
 
         // 📝 The front is lifted rather than discarded. Everything still standing on it was reachable and is not
-        //    yet admitted, and leaving the mark down is how a partition that closed at its ceiling takes a ring
+        //    yet accepted, and leaving the mark down is how a partition that closed at its ceiling takes a ring
         //    of its own neighbours out of the surface with it.
-        for (std::size_t Standing = FrontHead; Standing < Front.size(); ++Standing)
-            Enqueued[Front[Standing]] = false;
+        for (std::size_t Current = FrontHead; Current < Front.size(); ++Current)
+            Enqueued[Front[Current]] = false;
 
         // 📐 Measured against the unnormalised sum and divided once at the end, rather than normalising the axis
         //    and then taking a dot product per face. One square root per partition instead of one per face, and
@@ -314,16 +314,16 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
                                    + static_cast<double>(Compared.DirectionY) * SummedY
                                    + static_cast<double>(Compared.DirectionZ) * SummedZ;
 
-            if (!AgreementRecorded || Agreement < LeastAgreement)
+            if (!AgreementRecorded || Agreement < MinimumAgreement)
             {
-                LeastAgreement    = Agreement;
+                MinimumAgreement    = Agreement;
                 AgreementRecorded = true;
             }
         }
 
         const double AxisMagnitude = std::sqrt(SummedX * SummedX + SummedY * SummedY + SummedZ * SummedZ);
         const double Aperture      = AgreementRecorded && AxisMagnitude > 0.0
-                                   ? LeastAgreement / AxisMagnitude
+                                   ? MinimumAgreement / AxisMagnitude
                                    : 0.0;
 
         Growing.Orientation = CloseCone(SummedX, SummedY, SummedZ, Aperture, EveryFaceOriented);
@@ -334,14 +334,14 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
         if (Growing.TriangleCount < PartitionTriangleFloor)
             ++Derived.Metrics.ShortPartitionCount;
 
-        if (!LeastRecorded || Growing.TriangleCount < Derived.Metrics.LeastTriangleCount)
+        if (!MinimumRecorded || Growing.TriangleCount < Derived.Metrics.MinimumTriangleCount)
         {
-            Derived.Metrics.LeastTriangleCount = Growing.TriangleCount;
-            LeastRecorded                      = true;
+            Derived.Metrics.MinimumTriangleCount = Growing.TriangleCount;
+            MinimumRecorded                      = true;
         }
 
-        if (Growing.TriangleCount > Derived.Metrics.GreatestTriangleCount)
-            Derived.Metrics.GreatestTriangleCount = Growing.TriangleCount;
+        if (Growing.TriangleCount > Derived.Metrics.MaximumTriangleCount)
+            Derived.Metrics.MaximumTriangleCount = Growing.TriangleCount;
 
         Derived.Partitions.push_back(Growing);
     }
@@ -351,7 +351,7 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
     if (Derived.Partitions.empty())
     {
         return Outcome<DerivedPartitioning>::Refuse(
-            { RefusalReason::ContentUnsupported, "every face of the topology is enrolled as zero-extent" });
+            { RefusalReason::ContentUnsupported, "every face of the topology is registered as zero-extent" });
     }
 
     return Outcome<DerivedPartitioning>::Result(Derived);
@@ -361,14 +361,14 @@ Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 //                                               ADOPTION AND DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> PartitionStructure::Adopt(const DerivedPartitioning& Arriving)
+Outcome<bool> PartitionStructure::Adopt(const DerivedPartitioning& Incoming)
 {
-    if (Arriving.Partitions.empty())
+    if (Incoming.Partitions.empty())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a partitioning of no partition stands for nothing" });
 
-    StandingPartitioning = Arriving;
+    CurrentPartitioning = Incoming;
 
-    // 📝 The identities go with the adoption. They were issued against the partition ordinals of the partitioning
+    // 📝 The identities go with the adoption. They were registered against the partition ordinals of the partitioning
     //    being replaced, and retaining them would let `IdentityOf` hand out an identity naming a partition the
     //    new partitioning numbers differently — which resolves, and resolves to the wrong surface.
     Identities.clear();
@@ -379,38 +379,38 @@ Outcome<bool> PartitionStructure::Adopt(const DerivedPartitioning& Arriving)
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> PartitionStructure::Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant)
+Outcome<bool> PartitionStructure::Declare(PartitionResolutionIndex& Resolutions, OwnerIdentity Owner)
 {
     if (!PartitioningAdopted)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no partitioning stands to declare" });
 
-    if (!Occupant.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant identity names no slot" });
+    if (!Owner.IdentityDeclared())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the owner identity names no slot" });
 
     Identities.clear();
-    Identities.reserve(StandingPartitioning.Partitions.size());
+    Identities.reserve(CurrentPartitioning.Partitions.size());
 
-    for (const MicroSurfacePartition& Standing : StandingPartitioning.Partitions)
+    for (const MicroSurfacePartition& Current : CurrentPartitioning.Partitions)
     {
         ResolvedPartition Resolving;
-        Resolving.Occupant        = Occupant;
-        Resolving.MaterialOrdinal = Standing.MaterialOrdinal;
-        Resolving.FirstFace       = Standing.FirstFace;
-        Resolving.FaceCount       = Standing.FaceCount;
+        Resolving.Owner        = Owner;
+        Resolving.MaterialOrdinal = Current.MaterialOrdinal;
+        Resolving.FirstFace       = Current.FirstFace;
+        Resolving.FaceCount       = Current.FaceCount;
 
-        const Outcome<PartitionIdentity> Issued = Resolutions.Declare(Resolving);
+        const Outcome<PartitionIdentity> Registered = Resolutions.Declare(Resolving);
 
-        if (!Issued.Resolved)
+        if (!Registered.Resolved)
         {
             // 📝 The retained identities are dropped on a partial declaration. Half a partitioning declared is
             //    one where `IdentityOf` answers for the low ordinals and refuses for the high ones, and the
             //    caller reads that as a partitioning with a hole rather than as this refusal.
             Identities.clear();
 
-            return Outcome<bool>::Refuse(Issued.Error);
+            return Outcome<bool>::Refuse(Registered.Error);
         }
 
-        Identities.push_back(Issued.Resolve());
+        Identities.push_back(Registered.Resolve());
     }
 
     return Outcome<bool>::Result(true);
@@ -418,7 +418,7 @@ Outcome<bool> PartitionStructure::Declare(PartitionResolutionIndex& Resolutions,
 
 void PartitionStructure::Reclaim()
 {
-    StandingPartitioning = {};
+    CurrentPartitioning = {};
     Identities.clear();
 
     PartitioningAdopted = false;
@@ -428,17 +428,17 @@ void PartitionStructure::Reclaim()
 //                                                      THE READS
 //------------------------------------------------------------------------------------------------------------------------
 
-const DerivedPartitioning& PartitionStructure::Standing() const
+const DerivedPartitioning& PartitionStructure::Current() const
 {
-    return StandingPartitioning;
+    return CurrentPartitioning;
 }
 
 Outcome<PartitionIdentity> PartitionStructure::IdentityOf(std::uint32_t PartitionOrdinal) const
 {
-    if (PartitionOrdinal >= static_cast<std::uint32_t>(StandingPartitioning.Partitions.size()))
+    if (PartitionOrdinal >= static_cast<std::uint32_t>(CurrentPartitioning.Partitions.size()))
         return Outcome<PartitionIdentity>::Refuse({ RefusalReason::ContentUnsupported, "no such partition" });
 
-    if (Identities.size() != StandingPartitioning.Partitions.size())
+    if (Identities.size() != CurrentPartitioning.Partitions.size())
     {
         return Outcome<PartitionIdentity>::Refuse(
             { RefusalReason::IdentityStale, "nothing has been declared since the partitioning was adopted" });
@@ -447,7 +447,7 @@ Outcome<PartitionIdentity> PartitionStructure::IdentityOf(std::uint32_t Partitio
     return Outcome<PartitionIdentity>::Result(Identities[PartitionOrdinal]);
 }
 
-bool PartitionStructure::PartitioningStanding() const
+bool PartitionStructure::PartitioningCurrent() const
 {
     return PartitioningAdopted;
 }
@@ -459,12 +459,12 @@ std::uint64_t PartitionStructure::Revision() const
 
 std::uint64_t PartitionStructure::DescribedRevision() const
 {
-    return StandingPartitioning.DescribedRevision;
+    return CurrentPartitioning.DescribedRevision;
 }
 
 std::uint32_t PartitionStructure::PartitionCount() const
 {
-    return static_cast<std::uint32_t>(StandingPartitioning.Partitions.size());
+    return static_cast<std::uint32_t>(CurrentPartitioning.Partitions.size());
 }
 
 }   // namespace Slate

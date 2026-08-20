@@ -80,7 +80,7 @@ ScoredCandidate Classify(VkPhysicalDevice Candidate, VkSurfaceKHR PresentationSu
     Scored.Scored.HalfPrecisionStore         = CandidateFeatures.shaderStorageImageExtendedFormats == VK_TRUE;
     Scored.Scored.TimestampQueryAvailable    = CandidateProperties.limits.timestampComputeAndGraphics == VK_TRUE;
     Scored.Scored.DynamicRecordingAvailable  = CoreThirteenFeatures.dynamicRendering == VK_TRUE;
-    Scored.Scored.LargestExtentClaim         = CandidateProperties.limits.maxStorageBufferRange;
+    Scored.Scored.LargestExtentReservation         = CandidateProperties.limits.maxStorageBufferRange;
 
     // 📐 The timestamp period is reported in nanoseconds per increment; the metrics surface reports in
     //    milliseconds, so the conversion is folded in once here rather than at every measurement site.

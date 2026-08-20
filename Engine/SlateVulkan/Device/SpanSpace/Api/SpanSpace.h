@@ -29,7 +29,7 @@ inline constexpr std::uint32_t AbsentSpan = 0xFFFFFFFFu;   // [-] - the claim na
 /// note  🔴 Declared and never inferred. The vendor fixes the permitted reads when the span is created, and a
 ///       span created without the indirect read is one the recording meets as a validation error at the draw —
 ///       four calls and one ordering away from the declaration that omitted it.
-/// note  ⚠️ Every intent below admits a transfer into the span, because a device-local span is written no other
+/// note  ⚠️ Every intent below accepts a transfer into the span, because a device-local span is written no other
 ///       way. The transfer **out** is declared only where something reads it back, since `06` §3 sizes the
 ///       host-writable extent against what is staged rather than against what is claimed.
 /// tag   contract
@@ -60,7 +60,7 @@ struct SpanShape
 ///        convenience. A caller writing through it unconditionally has written through a null address on the
 ///        residency that carries the working set, which is every residency but staging.
 /// tag   nonallocating, nonthrowing
-struct SpanClaim
+struct SpanReservation
 {
     VkBuffer       Extent      = VK_NULL_HANDLE;   // [-] - the vendor span; the vendor spelling
     VkDeviceSize   SpanBytes   = 0u;               // [B] - as claimed, never as re-queried
@@ -104,21 +104,21 @@ public:
                             ByteSpace&                 BackingSpace,
                             const DiagnosticExtension& Naming);
 
-    /// 🧩 Claims one span of the declared shape and binds the bytes it occupies.
+    /// 🧩 Reservations one span of the declared shape and binds the bytes it occupies.
     /// in    Declared  [-]  the shape; nothing about it is inferred from the intent but its permitted reads
     /// out   Result   [-]  refuses with ExtentExhausted when no bytes remain, and with ContentUnsupported for
     ///                      a zero span or an intent outside the declared set
     /// post  the span stands and is written by a transfer, or through its host address where it carries one
-    /// note  🔴 Refused in full. A span whose bytes were claimed and whose binding was declined leaves a vendor
+    /// note  🔴 Rejected in full. A span whose bytes were claimed and whose binding was rejected leaves a vendor
     ///        allocation nothing holds a reference to, reclaimed only at device teardown.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<SpanClaim> Claim(const SpanShape& Declared);
+    Outcome<SpanReservation> Reserve(const SpanShape& Declared);
 
     /// 🧩 Writes host-supplied bytes into one host-writable span.
-    /// in    SpanOrdinal    [-]  a claim this component issued
-    /// in    Arriving       [-]  what is written; read for ArrivingBytes and never retained
-    /// in    ArrivingBytes  [B]  how far the write runs
+    /// in    SpanOrdinal    [-]  a claim this component registered
+    /// in    Incoming       [-]  what is written; read for IncomingBytes and never retained
+    /// in    IncomingBytes  [B]  how far the write runs
     /// in    ByteOffset     [B]  where in the span the write begins
     /// out   Result        [-]  refuses with ContentUnsupported for an unclaimed ordinal or a device-local
     ///                           span, and with ExtentExhausted when the write would run past the claim
@@ -127,14 +127,14 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> Amend(std::uint32_t  SpanOrdinal,
-                        const void*    Arriving,
-                        VkDeviceSize   ArrivingBytes,
+                        const void*    Incoming,
+                        VkDeviceSize   IncomingBytes,
                         VkDeviceSize   ByteOffset);
 
     /// 🧩 Records the transfer that carries one span's bytes into another.
     /// in    Recorded      [-]  the recording being written into
-    /// in    SourceOrdinal [-]  a claim this component issued, declared as a transfer source
-    /// in    TargetOrdinal [-]  a claim this component issued
+    /// in    SourceOrdinal [-]  a claim this component registered, declared as a transfer source
+    /// in    TargetOrdinal [-]  a claim this component registered
     /// in    TransferBytes [B]  how far the transfer runs; zero reads as the whole of the source
     /// out   Result       [-]  refuses with ContentUnsupported for an unclaimed ordinal and with
     ///                          ExtentExhausted when the transfer would run past either span
@@ -149,14 +149,14 @@ public:
                            VkDeviceSize     TransferBytes);
 
     /// 🧩 The current record for one claimed span.
-    /// in    SpanOrdinal  [-]  a claim this component issued
+    /// in    SpanOrdinal  [-]  a claim this component registered
     /// out   Result      [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<SpanClaim> Standing(std::uint32_t SpanOrdinal) const;
+    Outcome<SpanReservation> Current(std::uint32_t SpanOrdinal) const;
 
     /// 🧩 Destroys one span and returns its bytes.
-    /// in    SpanOrdinal  [-]  a claim this component issued; an unclaimed ordinal is a no-op
+    /// in    SpanOrdinal  [-]  a claim this component registered; an unclaimed ordinal is a no-op
     /// pre   the device is idle, or no recording still in the rotation reads it
     /// cost  🚩
     /// tag   api, nonthrowing
@@ -168,15 +168,15 @@ public:
     /// tag   api, nonthrowing
     void Reclaim();
 
-    std::uint32_t ClaimedCount() const;
-    VkDeviceSize  ClaimedBytes() const;
+    std::uint32_t ReservedCount() const;
+    VkDeviceSize  ReservedBytes() const;
 
 private:
 
     struct HeldSpan
     {
         VkBuffer      Extent       = VK_NULL_HANDLE;          // [-] - the vendor span
-        ByteClaim     Backing      = {};                      // [-] - the bytes it occupies
+        ByteReservation     Backing      = {};                      // [-] - the bytes it occupies
         SpanShape     Shape        = {};                      // [-] - as claimed
         bool          SlotOccupied = false;                   // [-] - false once released
     };

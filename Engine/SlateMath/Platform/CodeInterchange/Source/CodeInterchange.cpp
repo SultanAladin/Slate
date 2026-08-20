@@ -73,7 +73,7 @@ void* LoadModule(const std::string& ModulePath)
 
 #else
 
-    // 📝 Bound at load rather than lazily, so a module missing a symbol is refused here instead of faulting at
+    // 📝 Bound at load rather than lazily, so a module missing a symbol is rejected here instead of faulting at
     //    the first call — which would be attributed to the caller rather than to the module.
     return dlopen(ModulePath.c_str(), RTLD_NOW | RTLD_LOCAL);
 
@@ -128,7 +128,7 @@ Outcome<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, F
 
     for (std::uint32_t Ordinal = 0u; Ordinal < ModuleCapacity; ++Ordinal)
     {
-        if (Standing[Ordinal].HostToken == nullptr)
+        if (Current[Ordinal].HostToken == nullptr)
         {
             Vacant = Ordinal;
             break;
@@ -144,7 +144,7 @@ Outcome<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, F
     void* const HostToken = LoadModule(ModulePath);
 
     if (HostToken == nullptr)
-        return Outcome<std::uint32_t>::Refuse({ RefusalReason::HostDenied, "the host declined to load the module" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::HostDenied, "the host failed to load the module" });
 
     const SlateAcquireModuleEntry Acquiring = ResolveAcquisition(HostToken);
 
@@ -163,7 +163,7 @@ Outcome<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, F
         UnloadModule(HostToken);
 
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::VersionUnmigratable, "the module declined the requested interface" });
+            { RefusalReason::VersionUnmigratable, "the module rejected the requested interface" });
     }
 
     // 🔴 Equality, not "at least". A module reporting a later major was compiled against declarations this
@@ -197,7 +197,7 @@ Outcome<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, F
     }
 
     // ⚠️ A module reserving through a surface it never received releases through it too, and the release lands
-    //    in the wrong allocator. Refused rather than accepted with the members left null, because the failure
+    //    in the wrong allocator. Rejected rather than accepted with the members left null, because the failure
     //    would surface as a corrupted reservation structure long after this call returned.
     if (Reported->Reserving.Reserve == nullptr || Reported->Reserving.Release == nullptr)
     {
@@ -207,8 +207,8 @@ Outcome<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, F
             { RefusalReason::ContentUnsupported, "the module reports no extent exchange" });
     }
 
-    Standing[Vacant].HostToken = HostToken;
-    Standing[Vacant].Reported  = Reported;
+    Current[Vacant].HostToken = HostToken;
+    Current[Vacant].Reported  = Reported;
 
     return Outcome<std::uint32_t>::Result(Vacant);
 }
@@ -219,30 +219,30 @@ Outcome<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, F
 
 Outcome<const void*> CodeInterchange::EntryTable(std::uint32_t ModuleOrdinal) const
 {
-    if (ModuleOrdinal >= ModuleCapacity || Standing[ModuleOrdinal].HostToken == nullptr)
+    if (ModuleOrdinal >= ModuleCapacity || Current[ModuleOrdinal].HostToken == nullptr)
         return Outcome<const void*>::Refuse({ RefusalReason::IdentityStale, "no module stands at that ordinal" });
 
-    return Outcome<const void*>::Result(Standing[ModuleOrdinal].Reported->EntryTable);
+    return Outcome<const void*>::Result(Current[ModuleOrdinal].Reported->EntryTable);
 }
 
 Outcome<const SlateModuleReport*> CodeInterchange::Report(std::uint32_t ModuleOrdinal) const
 {
-    if (ModuleOrdinal >= ModuleCapacity || Standing[ModuleOrdinal].HostToken == nullptr)
+    if (ModuleOrdinal >= ModuleCapacity || Current[ModuleOrdinal].HostToken == nullptr)
     {
         return Outcome<const SlateModuleReport*>::Refuse(
             { RefusalReason::IdentityStale, "no module stands at that ordinal" });
     }
 
-    return Outcome<const SlateModuleReport*>::Result(Standing[ModuleOrdinal].Reported);
+    return Outcome<const SlateModuleReport*>::Result(Current[ModuleOrdinal].Reported);
 }
 
-std::uint32_t CodeInterchange::StandingCount() const
+std::uint32_t CodeInterchange::CurrentCount() const
 {
     std::uint32_t Counted = 0u;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < ModuleCapacity; ++Ordinal)
     {
-        if (Standing[Ordinal].HostToken != nullptr)
+        if (Current[Ordinal].HostToken != nullptr)
             ++Counted;
     }
 
@@ -255,16 +255,16 @@ std::uint32_t CodeInterchange::StandingCount() const
 
 void CodeInterchange::Release(std::uint32_t ModuleOrdinal)
 {
-    if (ModuleOrdinal >= ModuleCapacity || Standing[ModuleOrdinal].HostToken == nullptr)
+    if (ModuleOrdinal >= ModuleCapacity || Current[ModuleOrdinal].HostToken == nullptr)
         return;
 
     // 📝 The report is dropped before the module is unloaded. It points into the module's own read-only extent,
     //    so a reference retained across the unload names an address the host has reassigned.
-    Standing[ModuleOrdinal].Reported = nullptr;
+    Current[ModuleOrdinal].Reported = nullptr;
 
-    UnloadModule(Standing[ModuleOrdinal].HostToken);
+    UnloadModule(Current[ModuleOrdinal].HostToken);
 
-    Standing[ModuleOrdinal].HostToken = nullptr;
+    Current[ModuleOrdinal].HostToken = nullptr;
 }
 
 void CodeInterchange::Reclaim()

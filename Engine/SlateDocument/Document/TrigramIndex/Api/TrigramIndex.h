@@ -26,29 +26,29 @@ inline constexpr std::uint32_t TrigramAlphabet = 40u;                           
 inline constexpr std::uint32_t TrigramSpan     = TrigramAlphabet * TrigramAlphabet * TrigramAlphabet; // [-] - 64000
 
 /// 🧩 Folds one character to its alphabet ordinal, case-insensitively.
-/// in    Arriving  [-]  one character of a name
+/// in    Incoming  [-]  one character of a name
 /// out   Ordinal   [-]  below TrigramAlphabet; everything unrecognised folds to the last four
 /// note  Case folding is what makes a search for "arm" find "Arm". The artist typed a name, not a spelling.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-constexpr std::uint32_t FoldedOrdinal(char Arriving)
+constexpr std::uint32_t FoldedOrdinal(char Incoming)
 {
-    if (Arriving >= 'a' && Arriving <= 'z')
-        return static_cast<std::uint32_t>(Arriving - 'a');
+    if (Incoming >= 'a' && Incoming <= 'z')
+        return static_cast<std::uint32_t>(Incoming - 'a');
 
-    if (Arriving >= 'A' && Arriving <= 'Z')
-        return static_cast<std::uint32_t>(Arriving - 'A');
+    if (Incoming >= 'A' && Incoming <= 'Z')
+        return static_cast<std::uint32_t>(Incoming - 'A');
 
-    if (Arriving >= '0' && Arriving <= '9')
-        return 26u + static_cast<std::uint32_t>(Arriving - '0');
+    if (Incoming >= '0' && Incoming <= '9')
+        return 26u + static_cast<std::uint32_t>(Incoming - '0');
 
-    if (Arriving == ' ' || Arriving == '_')
+    if (Incoming == ' ' || Incoming == '_')
         return 36u;
 
-    if (Arriving == '.' || Arriving == '-')
+    if (Incoming == '.' || Incoming == '-')
         return 37u;
 
-    if (Arriving == '/' || Arriving == '\\')
+    if (Incoming == '/' || Incoming == '\\')
         return 38u;
 
     return 39u;
@@ -69,24 +69,24 @@ class TrigramIndex
 {
 public:
 
-    /// 🧩 Declares one occupant's name, replacing whatever it held before.
-    /// in    Subject   [-]  the occupant
+    /// 🧩 Declares one owner's name, replacing whatever it held before.
+    /// in    Subject   [-]  the owner
     /// in    Declared  [-]  the name the artist gave it
     /// out   Result   [-]  refuses with IdentityStale for an undeclared identity
-    /// post  every trigram run mentioning this occupant describes the new name only
+    /// post  every trigram run mentioning this owner describes the new name only
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(OccupantIdentity Subject, const std::string& Declared);
+    Outcome<bool> Declare(OwnerIdentity Subject, const std::string& Declared);
 
-    /// 🧩 Withdraws one occupant's name and every trigram entry that reached it.
-    /// in    Subject  [-]  the occupant being retired or renamed
+    /// 🧩 Withdraws one owner's name and every trigram entry that reached it.
+    /// in    Subject  [-]  the owner being retired or renamed
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Withdraw(OccupantIdentity Subject);
+    void Withdraw(OwnerIdentity Subject);
 
-    /// 🧩 Narrows to the occupants whose names contain the sought text, then confirms each exactly.
+    /// 🧩 Narrows to the owners whose names contain the sought text, then confirms each exactly.
     /// in    Sought      [-]  what the artist typed; shorter than a trigram falls back to confirmation alone
-    /// out   Confirmed   [-]  occupants whose names genuinely contain it, in ascending slot order
+    /// out   Confirmed   [-]  owners whose names genuinely contain it, in ascending slot order
     /// note  The narrowing is the rarest trigram's run rather than the intersection of all of them: one run
     ///        is already small, and intersecting costs more than confirming the difference.
     /// note  🔴 Every returned identity is the one Declare was given, generation included. Reconstructing an
@@ -94,14 +94,14 @@ public:
     ///        took the slot, which is the defect the generation exists to prevent.
     /// cost  🚩
     /// tag   api, nonthrowing
-    std::vector<OccupantIdentity> Narrow(const std::string& Sought) const;
+    std::vector<OwnerIdentity> Narrow(const std::string& Sought) const;
 
-    /// 🧩 One occupant's declared name, empty when it has none.
+    /// 🧩 One owner's declared name, empty when it has none.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const std::string& DeclaredName(OccupantIdentity Subject) const;
+    const std::string& DeclaredName(OwnerIdentity Subject) const;
 
-    /// 🧩 How many occupants carry a declared name.
+    /// 🧩 How many owners carry a declared name.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     std::uint32_t NamedCount() const;
@@ -111,10 +111,10 @@ private:
     void Enter(std::uint32_t SlotOrdinal, const std::string& Declared);
 
     std::vector<std::string>                  DeclaredNames;           // [-] - by slot ordinal; the exact text
-    std::vector<OccupantIdentity>             NamedIdentities;         // [-] - as declared; never reconstructed
+    std::vector<OwnerIdentity>             NamedIdentities;         // [-] - as declared; never reconstructed
     std::vector<std::vector<std::uint32_t>>   TrigramRuns;             // [-] - slot ordinals per trigram ordinal
-    std::string                               AbsentName     = {};    // [-] - returned for an unnamed occupant
-    std::uint32_t                             NamedOccupants = 0u;    // [-] - occupants carrying a name
+    std::string                               AbsentName     = {};    // [-] - returned for an unnamed owner
+    std::uint32_t                             NamedOwners = 0u;    // [-] - owners carrying a name
 };
 
 }   // namespace Slate

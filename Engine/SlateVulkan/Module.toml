@@ -6,7 +6,7 @@ name    = "SlateVulkan"
 product = "StaticLibrary"
 subject = [ "Device" ]
 
-# 🔴 SlateDocument is absent from this list and stays absent. Nothing device-side may name an occupant, a
+# 🔴 SlateDocument is absent from this list and stays absent. Nothing device-side may name an owner, a
 #    revision or a stream heading; the peer partition is enforced by the include path, not by convention.
 [requires]
 unit = [ "SlateMath" ]

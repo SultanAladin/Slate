@@ -25,8 +25,8 @@ struct StreamHeading
 {
     std::uint32_t  Signature      = 0u;   // [-] - fixed four bytes; a stream without them is not a document
     std::uint32_t  StreamVersion  = 0u;   // [-] - the version the stream was written at
-    std::uint64_t  OccupantCount  = 0u;   // [-] - occupants the stream carries
-    std::uint64_t  ContentOrdinal = 0u;   // [B] - where the occupant content begins
+    std::uint64_t  OwnerCount  = 0u;   // [-] - owners the stream carries
+    std::uint64_t  ContentOrdinal = 0u;   // [B] - where the owner content begins
 };
 
 //------------------------------------------------------------------------------------------------------------------------

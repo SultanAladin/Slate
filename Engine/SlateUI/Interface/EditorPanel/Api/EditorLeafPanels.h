@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                        EDITORLEAFPANELS.H
 //============================================================================================================================================
-// 🧩 One skeletal render target, seated four ways, for the scene, UV, outliner and property leaves inside editor chrome.
+// 🧩 One skeletal render target, applied four ways, for the scene, UV, outliner and property leaves inside editor chrome.
 
 #pragma once
 
@@ -37,17 +37,17 @@ enum class LeafSubject : std::uint32_t
 class LeafPanel
 {
 public:
-    /// 🧩 Seats the recording surface, the appearance declarations and the leaf this instance presents.
-    /// in    ArrivingSurface     [-]  the surface every recording is made against
-    /// in    ArrivingAppearance  [-]  the appearance declarations the ground colour is read from
-    /// in    ArrivingSubject     [-]  which leaf this instance presents
+    /// 🧩 Applies the recording surface, the appearance declarations and the leaf this instance presents.
+    /// in    IncomingSurface     [-]  the surface every recording is made against
+    /// in    IncomingAppearance  [-]  the appearance declarations the ground colour is read from
+    /// in    IncomingSubject     [-]  which leaf this instance presents
     /// out   Outcome<bool>       [-]  refuses when a construction already stands
     /// cost  ✔️
-    Outcome<bool> Construct(RecordingSurface& ArrivingSurface,
-                            const ThemeProfile& ArrivingAppearance,
-                            LeafSubject ArrivingSubject);
+    Outcome<bool> Construct(RecordingSurface& IncomingSurface,
+                            const ThemeProfile& IncomingAppearance,
+                            LeafSubject IncomingSubject);
 
-    /// 🧩 Records the leaf's ground and its centred caption across the arriving extent.
+    /// 🧩 Records the leaf's ground and its centred caption across the incoming extent.
     /// in    Extent  [px]  the body the leaf occupies
     /// cost  ✔️
     void Record(const PlaneExtent& Extent);

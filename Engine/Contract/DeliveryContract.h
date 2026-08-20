@@ -18,7 +18,7 @@ namespace Slate
 //                                                       REFUSAL
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Why a computation declined to deliver content. Absence without one of these is never reported.
+/// 🧩 Why a computation failed to deliver content. Absence without one of these is never reported.
 /// tag   contract
 enum class RefusalReason : std::uint32_t
 {
@@ -27,7 +27,7 @@ enum class RefusalReason : std::uint32_t
     IdentityStale       = 2u,   // [-] - the generation held by the reference no longer occupies the slot
     ContentUnsupported  = 3u,   // [-] - the intake subset does not accept what the stream contained
     VersionUnmigratable = 4u,   // [-] - no declared migration reaches the current stream version
-    HostDenied          = 5u,   // [-] - the operating system declined the request
+    HostDenied          = 5u,   // [-] - the operating system rejected the request
     RelationCyclic      = 6u,   // [-] - the relation change would close a cycle; never applied
     DeviceLost          = 7u    // [-] - the device was lost; nothing it holds is valid to destroy or reuse
 };
@@ -63,7 +63,7 @@ struct Refusal
 #ifdef SLATE_DEBUG
 inline void ReportResolvedRefusal(const Refusal& Declining)
 {
-    std::fprintf(stderr, "Slate \u2014 a refused delivery was resolved: reason %u, %s\n",
+    std::fprintf(stderr, "Slate \u2014 a rejected delivery was resolved: reason %u, %s\n",
                  static_cast<unsigned>(Declining.DeclaredReason),
                  (Declining.Detail != nullptr) ? Declining.Detail : "");
     std::fflush(stderr);
@@ -73,11 +73,11 @@ inline void ReportResolvedRefusal(const Refusal& Declining)
 /// 🧩 Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
 /// note  ⚠️ Delivered is default-constructed when Resolved is false. Read it only through Resolve.
 /// note  🔴 `[[nodiscard]]`. A refusal nobody read is a refusal that did not happen: the caller carries on
-///        against state the callee declined to produce, and the defect surfaces later at a call that is
+///        against state the callee failed to produce, and the defect surfaces later at a call that is
 ///        correct. Applying it found `HostLifecycle` discarding the delivery from a presentation-chain
 ///        re-establishment — a resize that failed would have reported success and ticked on against a
 ///        chain that no longer existed. A delivery genuinely not worth reading is discarded through
-///        `Disregard`, which says so in one word at the site.
+///        `Discard`, which says so in one word at the site.
 /// tag   contract, nonallocating, nonthrowing
 template <typename Content>
 struct [[nodiscard]] ContentDelivery
@@ -98,7 +98,7 @@ struct [[nodiscard]] ContentDelivery
         return Constructed;
     }
 
-    /// 🧩 Constructs a refused result carrying the reason the content is absent.
+    /// 🧩 Constructs a rejected result carrying the reason the content is absent.
     /// in    Declining  [-]  the reason and the operand it applies to
     /// out   Result    [-]  Resolved is false
     /// cost  ✔️
@@ -123,7 +123,7 @@ struct [[nodiscard]] ContentDelivery
     /// 🧩 Reads the delivered content.
     /// out   Content    [-]  the produced content
     /// pre   Resolved holds
-    /// note  🔴 🔍 Under SLATE_DEBUG a read of refused content reports here, at the call that did it.
+    /// note  🔴 🔍 Under SLATE_DEBUG a read of rejected content reports here, at the call that did it.
     ///        Without the check it returns a default-constructed Content — a zero handle, an empty span, an
     ///        identity of generation zero — and the defect surfaces wherever that value is finally used,
     ///        which is never the call that failed to test the delivery.
@@ -142,7 +142,7 @@ struct [[nodiscard]] ContentDelivery
 
 /// 🧩 Discards a delivery deliberately, saying so at the site.
 /// in    Delivered  [-]  the delivery whose outcome genuinely does not affect what follows
-/// use   `Disregard(NamingEdge->Declare(…));` — a debug label the vendor declined changes nothing about
+/// use   `Discard(NamingEdge->Declare(…));` — a debug label the vendor rejected changes nothing about
 ///       the object it would have named.
 /// note  🔴 The one sanctioned way past `[[nodiscard]]`. A cast to void would do the same thing and say
 ///        nothing; this spelling is greppable, so the set of deliberate discards can be read as a list and
@@ -151,12 +151,12 @@ struct [[nodiscard]] ContentDelivery
 /// cost  ✔️
 /// tag   contract, constexpr, nonallocating, nonthrowing
 template <typename Content>
-constexpr void Disregard(const ContentDelivery<Content>& Delivered)
+constexpr void Discard(const ContentDelivery<Content>& Delivered)
 {
     (void)Delivered;
 }
 
-/// 🧩 Public spelling for content delivered or refused across one fallible call.
+/// 🧩 Public spelling for content delivered or rejected across one fallible call.
 /// note  An alias permits `Outcome<Content>::Result(Produced)`: a class named Result cannot declare a static
 ///       function carrying its own name because C++ reserves that spelling for its constructor.
 /// tag   contract, nonallocating, nonthrowing

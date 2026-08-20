@@ -80,19 +80,19 @@ public:
     TargetSpace(const TargetSpace&)            = delete;
     TargetSpace& operator=(const TargetSpace&) = delete;
 
-    /// 🧩 Claims every declared target against one display extent and one display format.
+    /// 🧩 Reservations every declared target against one display extent and one display format.
     /// in    Images        [-]  where the images are claimed; borrowed and outlives this component
     /// in    DisplayWidth  [px] the display extent this claim is relative to
     /// in    DisplayHeight [px] the display extent this claim is relative to
     /// in    DisplayFormat [-]  what the display surface itself carries; the vendor spelling
     /// out   Result       [-]  refuses with ContentUnsupported for a zero or excessive extent, and with
-    ///                          whatever `ImageSpace` refused when a target could not be claimed
-    /// post  every target carries an image ordinal, or nothing does — refused in full
-    /// note  🔴 Refused in full. A half-claimed target set is one where `08` §3's ordering reads a target that
+    ///                          whatever `ImageSpace` rejected when a target could not be claimed
+    /// post  every target carries an image ordinal, or nothing does — rejected in full
+    /// note  🔴 Rejected in full. A half-claimed target set is one where `08` §3's ordering reads a target that
     ///        was never claimed, and the recording site meets it as a null view rather than as this refusal.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Claim(ImageSpace&    Images,
+    Outcome<bool> Reserve(ImageSpace&    Images,
                         std::uint32_t  DisplayWidth,
                         std::uint32_t  DisplayHeight,
                         VkFormat       DisplayFormat);
@@ -100,7 +100,7 @@ public:
     /// 🧩 Re-claims every display-relative and fraction-of-display target against a new display extent.
     /// in    DisplayWidth  [px] the arrived extent; an intermediate drag extent is the caller's to discard
     /// in    DisplayHeight [px]
-    /// out   Result       [-]  refuses as Claim does; the absolute targets stand untouched either way
+    /// out   Result       [-]  refuses as Reserve does; the absolute targets stand untouched either way
     /// pre   🔴 the device is idle — every rotation that reads the old targets has completed
     /// note  🔴 `06` §7's fourth gate, verbatim: **every** display-relative target is recreated and no
     ///        persistent extent is carried across. Re-claiming a subset is how one target keeps the previous
@@ -113,7 +113,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported when the target is unclaimed
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<ImageClaim> Resolve(SharedTarget Target) const;
+    Outcome<ImageReservation> Resolve(SharedTarget Target) const;
 
     /// 🧩 The image ordinal one target was claimed as, for the transition `ImageSpace` records.
     /// out   Result  [-]  refuses with ContentUnsupported when the target is unclaimed
@@ -125,7 +125,7 @@ public:
     /// pre   the device is idle
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Surrender();
+    void Release();
 
 private:
 
@@ -134,10 +134,10 @@ private:
     Outcome<ImageShape> ShapeOf(SharedTarget Target) const;
 
     ImageSpace*    ImageEdge      = nullptr;                // [-] - borrowed; never owned
-    std::uint32_t  ClaimedFor[static_cast<std::size_t>(SharedTarget::TargetCount)] = {};
-    bool           TargetClaimed[static_cast<std::size_t>(SharedTarget::TargetCount)] = {};
-    std::uint32_t  StandingWidth  = 0u;                     // [px] - the display extent claimed against
-    std::uint32_t  StandingHeight = 0u;                     // [px]
+    std::uint32_t  ReservedFor[static_cast<std::size_t>(SharedTarget::TargetCount)] = {};
+    bool           TargetReserved[static_cast<std::size_t>(SharedTarget::TargetCount)] = {};
+    std::uint32_t  CurrentWidth  = 0u;                     // [px] - the display extent claimed against
+    std::uint32_t  CurrentHeight = 0u;                     // [px]
     VkFormat       DisplayCarries = VK_FORMAT_UNDEFINED;    // [-]  - what the display surface itself carries
 };
 
@@ -193,12 +193,12 @@ class RenderSchedule
 public:
 
     /// 🧩 Contributes one recording to the schedule.
-    /// in    Arriving [-]  the declaration the contributing document authored
+    /// in    Incoming [-]  the declaration the contributing document authored
     /// out   Result  [-]  refuses when a capability is required with no substitution, or when the
     ///                     contribution produces a target another recording already produces
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Contribute(const DeclaredRecording& Arriving);
+    Outcome<bool> Contribute(const DeclaredRecording& Incoming);
 
     /// 🧩 Fixes the ordering. Derived from the declared reads and writes, never hand-written.
     /// out   Result  [-]  refuses when a target is read by a recording ordered before its producer, or

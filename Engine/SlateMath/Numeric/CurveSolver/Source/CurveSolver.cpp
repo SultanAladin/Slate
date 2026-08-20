@@ -88,10 +88,10 @@ void FlattenArc(PlanarPosition                Origin,
                 double                        Tolerance,
                 std::vector<PlanarPosition>&  Appending)
 {
-    const double RadiusAlong  = std::fabs(Segment.RadiusAlong);
-    const double RadiusAcross = std::fabs(Segment.RadiusAcross);
+    const double RadiusX  = std::fabs(Segment.RadiusX);
+    const double RadiusY = std::fabs(Segment.RadiusY);
 
-    if (RadiusAlong <= 0.0 || RadiusAcross <= 0.0)
+    if (RadiusX <= 0.0 || RadiusY <= 0.0)
     {
         // 📝 A degenerate radius is a line to the terminus, which is what the geometry degenerates to. Refusing
         //    here would refuse a whole outline over one flattened segment nobody can see.
@@ -111,25 +111,25 @@ void FlattenArc(PlanarPosition                Origin,
     const double RotatedX = Cosine * HalfSpanX + Sine   * HalfSpanY;
     const double RotatedY = -Sine  * HalfSpanX + Cosine * HalfSpanY;
 
-    double ScaledAlong  = RadiusAlong;
-    double ScaledAcross = RadiusAcross;
+    double ScaledX  = RadiusX;
+    double ScaledY = RadiusY;
 
-    const double Excess = (RotatedX * RotatedX) / (ScaledAlong * ScaledAlong)
-                        + (RotatedY * RotatedY) / (ScaledAcross * ScaledAcross);
+    const double Excess = (RotatedX * RotatedX) / (ScaledX * ScaledX)
+                        + (RotatedY * RotatedY) / (ScaledY * ScaledY);
 
     if (Excess > 1.0)
     {
         const double Enlargement = std::sqrt(Excess);
-        ScaledAlong  *= Enlargement;
-        ScaledAcross *= Enlargement;
+        ScaledX  *= Enlargement;
+        ScaledY *= Enlargement;
     }
 
-    const double Numerator = ScaledAlong * ScaledAlong * ScaledAcross * ScaledAcross
-                           - ScaledAlong * ScaledAlong * RotatedY * RotatedY
-                           - ScaledAcross * ScaledAcross * RotatedX * RotatedX;
+    const double Numerator = ScaledX * ScaledX * ScaledY * ScaledY
+                           - ScaledX * ScaledX * RotatedY * RotatedY
+                           - ScaledY * ScaledY * RotatedX * RotatedX;
 
-    const double Denominator = ScaledAlong * ScaledAlong * RotatedY * RotatedY
-                             + ScaledAcross * ScaledAcross * RotatedX * RotatedX;
+    const double Denominator = ScaledX * ScaledX * RotatedY * RotatedY
+                             + ScaledY * ScaledY * RotatedX * RotatedX;
 
     double CentreScale = 0.0;
 
@@ -139,18 +139,18 @@ void FlattenArc(PlanarPosition                Origin,
     if (Segment.LargeArcEnabled == Segment.SweepEnabled)
         CentreScale = -CentreScale;
 
-    const double RotatedCentreX =  CentreScale * ScaledAlong  * RotatedY / ScaledAcross;
-    const double RotatedCentreY = -CentreScale * ScaledAcross * RotatedX / ScaledAlong;
+    const double RotatedCentreX =  CentreScale * ScaledX  * RotatedY / ScaledY;
+    const double RotatedCentreY = -CentreScale * ScaledY * RotatedX / ScaledX;
 
     const double CentreX = Cosine * RotatedCentreX - Sine   * RotatedCentreY
                          + (Origin.PositionX + Segment.Terminus.PositionX) * 0.5;
     const double CentreY = Sine   * RotatedCentreX + Cosine * RotatedCentreY
                          + (Origin.PositionY + Segment.Terminus.PositionY) * 0.5;
 
-    const double FirstAngle = std::atan2((RotatedY - RotatedCentreY) / ScaledAcross,
-                                         (RotatedX - RotatedCentreX) / ScaledAlong);
-    const double LastAngle  = std::atan2((-RotatedY - RotatedCentreY) / ScaledAcross,
-                                         (-RotatedX - RotatedCentreX) / ScaledAlong);
+    const double FirstAngle = std::atan2((RotatedY - RotatedCentreY) / ScaledY,
+                                         (RotatedX - RotatedCentreX) / ScaledX);
+    const double LastAngle  = std::atan2((-RotatedY - RotatedCentreY) / ScaledY,
+                                         (-RotatedX - RotatedCentreX) / ScaledX);
 
     double Sweep = LastAngle - FirstAngle;
 
@@ -162,11 +162,11 @@ void FlattenArc(PlanarPosition                Origin,
     // 📐 The sagitta of one step of angular width θ over radius r is r(1 − cos(θ/2)). Solving that for the
     //    declared tolerance gives the step count directly, so the arc is never subdivided further than the
     //    tolerance asks and never less.
-    const double GreatestRadius = ScaledAlong > ScaledAcross ? ScaledAlong : ScaledAcross;
+    const double MaximumRadius = ScaledX > ScaledY ? ScaledX : ScaledY;
     double       StepAngle      = Pi * 0.5;
 
-    if (Tolerance > 0.0 && Tolerance < GreatestRadius)
-        StepAngle = 2.0 * std::acos(1.0 - Tolerance / GreatestRadius);
+    if (Tolerance > 0.0 && Tolerance < MaximumRadius)
+        StepAngle = 2.0 * std::acos(1.0 - Tolerance / MaximumRadius);
 
     std::uint32_t StepCount = static_cast<std::uint32_t>(std::ceil(std::fabs(Sweep) / StepAngle));
 
@@ -181,12 +181,12 @@ void FlattenArc(PlanarPosition                Origin,
         const double Angle = FirstAngle + Sweep * static_cast<double>(Ordinal)
                                                 / static_cast<double>(StepCount);
 
-        const double AlongTerm  = ScaledAlong  * std::cos(Angle);
-        const double AcrossTerm = ScaledAcross * std::sin(Angle);
+        const double XTerm  = ScaledX  * std::cos(Angle);
+        const double YTerm = ScaledY * std::sin(Angle);
 
         PlanarPosition Walked;
-        Walked.PositionX = CentreX + Cosine * AlongTerm - Sine   * AcrossTerm;
-        Walked.PositionY = CentreY + Sine   * AlongTerm + Cosine * AcrossTerm;
+        Walked.PositionX = CentreX + Cosine * XTerm - Sine   * YTerm;
+        Walked.PositionY = CentreY + Sine   * XTerm + Cosine * YTerm;
 
         Appending.push_back(Walked);
     }

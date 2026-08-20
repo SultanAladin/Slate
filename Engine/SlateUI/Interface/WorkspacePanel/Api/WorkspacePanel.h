@@ -85,7 +85,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     PlaneExtent Body() const;
 
-    /// 🧩 The strip extent the last `Record` left, for the caller seating the vendor's tab bar on it.
+    /// 🧩 The strip extent the last `Record` left, for the caller applying the vendor's tab bar on it.
     /// note  ⚠️ Valid only until the next `Record`, and zero before the first.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -101,7 +101,7 @@ private:
     RecordingSurface*              Surface     = nullptr;   // [-] - borrowed; never owned
     const ThemeProfile* Appearance  = nullptr;   // [-] - borrowed; never owned
     PlaneExtent                    BodyExtent  = {};        // [px] - what the last Record left
-    PlaneExtent                    StripExtent = {};        // [px] - where the vendor's tab bar is seated
+    PlaneExtent                    StripExtent = {};        // [px] - where the vendor's tab bar is applied
 };
 
 }   // namespace Slate

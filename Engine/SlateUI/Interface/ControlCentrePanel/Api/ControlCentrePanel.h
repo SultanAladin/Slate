@@ -75,7 +75,7 @@ struct ControlCentreConfiguration
     // 📝 FontWeight values (100..900), not ordinals. `ApplyFontWeights` casts them straight back to
     //    `FontWeight`, and `FontLoader::Face` derives its slot from the 100-step — a small ordinal would
     //    underflow the slot arithmetic and read past the face run. The eight are Title, Header, Subheader,
-    //    Body, Label, Caption, Warning, Alert, seated at the `FontProfile` defaults.
+    //    Body, Label, Caption, Warning, Alert, applied at the `FontProfile` defaults.
     std::uint32_t TypographyWeight[8] = {600u, 600u, 500u, 400u, 500u, 400u, 500u, 600u};
     std::uint32_t PointerSpeed = 5u;
     std::uint32_t MonitorLevel = 67u;
@@ -97,16 +97,16 @@ struct ControlCentreConfiguration
 class ControlCentrePanel
 {
 public:
-    // 📝 192 seated every control the panel drew before the typography strips; each role row's family
+    // 📝 192 applied every control the panel drew before the typography strips; each role row's family
     //    carousel adds ten (two arrows and up to eight visible weight tiles), and a strip whose press
-    //    ordinals fell past the ceiling was drawn but could never be seized — the tiles looked selectable
-    //    and were not. 256 seats the eight strips with the rest of the panel's controls intact.
+    //    ordinals fell past the ceiling was drawn but could never be grabbed — the tiles looked selectable
+    //    and were not. 256 applies the eight strips with the rest of the panel's controls intact.
     static constexpr std::uint32_t ControlCapacity = 256u;
 
     Outcome<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
-    void Advance(const PointerCondition& Arrived, double Elapsed);
-    Outcome<bool> Record(const PlaneExtent& Interior, ControlCentreConfiguration& Ordinates);
+    void Advance(const PointerCondition& Sampled, double Elapsed);
+    Outcome<bool> Record(const PlaneExtent& Interior, ControlCentreConfiguration& Configuration);
     void Exclude(DrawerSpace& Drawers) const;
     void Reset();
     void SetFontFamilies(FontLoader& Loader);
@@ -114,27 +114,27 @@ public:
 private:
     void RetainExclusion(const PlaneExtent& Extent);
     bool Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent);
-    bool Slider(std::uint32_t Ordinal, const PlaneExtent& Extent, std::uint32_t Least, std::uint32_t Most,
+    bool Slider(std::uint32_t Ordinal, const PlaneExtent& Extent, std::uint32_t Minimum, std::uint32_t Maximum,
                 std::uint32_t& Reading, const char* UnitGlyph, ThemeToken Rail, ThemeToken Accent);
     void Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet, ThemeToken Accent);
     void Symbol(const PlaneExtent& Extent, ThemeToken Colour);
-    void DashboardPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
+    void DashboardPage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration, const ThemeDeclaration& Theme,
                        ThemeToken Accent);
-    void SettingsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
+    void SettingsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration, const ThemeDeclaration& Theme,
                       ThemeToken Accent);
-    void NotificationsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
+    void NotificationsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration, const ThemeDeclaration& Theme,
                            ThemeToken Accent);
-    void DisplayPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
+    void DisplayPage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration, const ThemeDeclaration& Theme,
                      ThemeToken Accent);
-    void InputPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
+    void InputPage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration, const ThemeDeclaration& Theme,
                    ThemeToken Accent);
-    void ThemePage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
+    void ThemePage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration, const ThemeDeclaration& Theme,
                    ThemeToken Accent);
-    void FontsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates, const ThemeDeclaration& Theme,
+    void FontsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration, const ThemeDeclaration& Theme,
                    ThemeToken Accent);
-    void DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
+    void DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreConfiguration& Configuration,
                              const ThemeDeclaration& Theme, ThemeToken Accent);
-    void Navigate(ControlCentrePage Arriving);
+    void Navigate(ControlCentrePage Incoming);
 
     MotionIntegrator* Motion = nullptr;
     RecordingSurface* Surface = nullptr;
@@ -146,28 +146,28 @@ private:
     PlaneExtent Exclusions[ControlCapacity] = {};
     std::uint32_t ExclusionCount = 0u;
     PointerCondition Pointer = {};
-    ControlCentrePage PresentedPage = ControlCentrePage::Dashboard;
-    ControlCentrePage DepartedPage = ControlCentrePage::Dashboard;
+    ControlCentrePage CurrentPage = ControlCentrePage::Dashboard;
+    ControlCentrePage PreviousPage = ControlCentrePage::Dashboard;
     std::uint32_t PageMotion = 0u;
     std::uint32_t TabMotion = 0u;
     std::uint32_t ThemeMotion = 0u;
     std::uint32_t FontMotion = 0u;
     std::uint32_t RoleFontMotion[8] = {};
-    ThemeSubject PresentedTheme = ThemeSubject::Oled;
-    ThemeSubject DepartedTheme = ThemeSubject::Oled;
+    ThemeSubject CurrentTheme = ThemeSubject::Oled;
+    ThemeSubject PreviousTheme = ThemeSubject::Oled;
     bool PageForward = true;
-    DisplayPreferencePage PresentedTab = DisplayPreferencePage::Fonts;
-    DisplayPreferencePage DepartedTab = DisplayPreferencePage::Fonts;
+    DisplayPreferencePage CurrentTab = DisplayPreferencePage::Fonts;
+    DisplayPreferencePage PreviousTab = DisplayPreferencePage::Fonts;
     bool TabForward = true;
     std::uint32_t ScrollMotion[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float Scroll[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
-    float ScrollDeparted[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
+    float ScrollFrom[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float ScrollTarget[static_cast<std::uint32_t>(ControlCentrePage::PageCount)] = {};
     float FontScroll = 0.0f;
-    float FontDeparted = 0.0f;
+    float FontFrom = 0.0f;
     float FontTarget = 0.0f;
     float RoleFontScroll[8] = {};
-    float RoleFontDeparted[8] = {};
+    float RoleFontFrom[8] = {};
     float RoleFontTarget[8] = {};
     std::uint32_t OpenPalette = 5u;
     bool InputPresetOpen = false;

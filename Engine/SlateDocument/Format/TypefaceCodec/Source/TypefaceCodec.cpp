@@ -128,7 +128,7 @@ Outcome<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std:
     if (Offset < 0 || stbtt_InitFont(&Reading, Stream.data(), Offset) == 0)
     {
         return Outcome<DecodedTypeface>::Refuse(
-            { RefusalReason::ContentUnsupported, "the reader declined the typeface stream" });
+            { RefusalReason::ContentUnsupported, "the reader rejected the typeface stream" });
     }
 
     const int DeclaredGlyphCount = Reading.numGlyphs;
@@ -157,13 +157,13 @@ Outcome<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std:
         stbtt_GetGlyphHMetrics(&Reading, static_cast<int>(Ordinal), &Advance, &Bearing);
 
         Constructing.Advance      = static_cast<double>(Advance);
-        Constructing.BearingAlong = static_cast<double>(Bearing);
+        Constructing.BearingX = static_cast<double>(Bearing);
 
         int Boundary[4] = { 0, 0, 0, 0 };
 
         if (stbtt_GetGlyphBox(&Reading, static_cast<int>(Ordinal), &Boundary[0], &Boundary[1], &Boundary[2], &Boundary[3]) != 0)
         {
-            Constructing.BearingAcross = static_cast<double>(Boundary[1]);
+            Constructing.BearingY = static_cast<double>(Boundary[1]);
         }
 
         stbtt_vertex* Contours     = nullptr;
@@ -225,7 +225,7 @@ Outcome<std::uint32_t> ResolveCodepoint(const std::vector<std::uint8_t>& Stream,
     if (Offset < 0 || stbtt_InitFont(&Reading, Stream.data(), Offset) == 0)
     {
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::ContentUnsupported, "the reader declined the typeface stream" });
+            { RefusalReason::ContentUnsupported, "the reader rejected the typeface stream" });
     }
 
     const int Resolved = stbtt_FindGlyphIndex(&Reading, static_cast<int>(Codepoint));

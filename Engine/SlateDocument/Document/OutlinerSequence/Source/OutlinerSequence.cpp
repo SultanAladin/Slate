@@ -12,80 +12,80 @@ namespace Slate
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<OccupantIdentity> OutlinerSequence::Enrol(const std::string& DeclaredName)
+Outcome<OwnerIdentity> OutlinerSequence::Register(const std::string& DeclaredName)
 {
-    const Outcome<OccupantIdentity> Enrolled = Population.Enrol();
+    const Outcome<OwnerIdentity> Registered = Population.Register();
 
-    if (!Enrolled.Resolved)
-        return Enrolled;
+    if (!Registered.Resolved)
+        return Registered;
 
-    const OccupantIdentity Arriving = Enrolled.Resolve();
+    const OwnerIdentity Incoming = Registered.Resolve();
 
-    const Outcome<bool> Admitted = NestingRelations.Admit(Arriving);
+    const Outcome<bool> Accepted = NestingRelations.Accept(Incoming);
 
-    if (!Admitted.Resolved)
+    if (!Accepted.Resolved)
     {
-        // 📝 The slot is withdrawn again rather than left enrolled in a population the relations do not hold.
+        // 📝 The slot is withdrawn again rather than left registered in a population the relations do not hold.
         //    A slot present in one and absent from the other is invariant 6 broken at the moment of arrival.
-        Disregard(Population.Withdraw(Arriving));
-        return Outcome<OccupantIdentity>::Refuse(Admitted.Error);
+        Discard(Population.Withdraw(Incoming));
+        return Outcome<OwnerIdentity>::Refuse(Accepted.Error);
     }
 
     if (!DeclaredName.empty())
-        Disregard(NameSearch.Declare(Arriving, DeclaredName));
+        Discard(NameSearch.Declare(Incoming, DeclaredName));
 
-    const std::size_t Required = static_cast<std::size_t>(Arriving.SlotOrdinal) + 1u;
+    const std::size_t Required = static_cast<std::size_t>(Incoming.SlotOrdinal) + 1u;
 
     if (Required > LiveGenerations.size())
         LiveGenerations.resize(Required, 0u);
 
-    LiveGenerations[Arriving.SlotOrdinal] = Arriving.SlotGeneration;
+    LiveGenerations[Incoming.SlotOrdinal] = Incoming.SlotGeneration;
 
-    // 📝 An occupant arriving while a narrowing stands is retained by nothing, so the narrowing is owed again
+    // 📝 An owner incoming while a narrowing stands is retained by nothing, so the narrowing is owed again
     //    at ⑦. Without it the arrival is hidden by a search its own name may well confirm.
     NarrowingOwed = true;
 
-    return Outcome<OccupantIdentity>::Result(Arriving);
+    return Outcome<OwnerIdentity>::Result(Incoming);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   DECLARED INTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> OutlinerSequence::Declare(const DeclaredIntent& Arriving)
+Outcome<bool> OutlinerSequence::Declare(const DeclaredIntent& Incoming)
 {
-    // 📝 Narrowing addresses the whole sequence rather than one occupant, so it is the one intent admitted
+    // 📝 Narrowing addresses the whole sequence rather than one owner, so it is the one intent accepted
     //    with an undeclared subject. Every other intent names what it applies to and is gated on it here.
-    if (Arriving.Declared != OutlinerIntent::Narrow && !Population.Resolve(Arriving.Subject))
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the intent addresses no enrolled occupant" });
+    if (Incoming.Declared != OutlinerIntent::Narrow && !Population.Resolve(Incoming.Subject))
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the intent addresses no registered owner" });
 
-    PendingDeclarations.push_back(Arriving);
+    PendingDeclarations.push_back(Incoming);
 
     return Outcome<bool>::Result(true);
 }
 
-void OutlinerSequence::Reject(const DeclaredIntent& Refused, const Refusal& Declining)
+void OutlinerSequence::Reject(const DeclaredIntent& Rejected, const Refusal& Declining)
 {
     RejectedIntent Reported;
-    Reported.Refused   = Refused;
+    Reported.Rejected   = Rejected;
     Reported.Declining = Declining;
 
-    RefusedDeclarations.push_back(Reported);
+    RejectedDeclarations.push_back(Reported);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    SUBSET INTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 The subset half of a selection, taken on its own so that a selection arriving as intent and one restored
-//    by a scrub reach the same enrolment without the scrub sealing a selection the artist never made.
-Outcome<bool> OutlinerSequence::EnrolSelection(const std::vector<OccupantIdentity>& Standing)
+// 📝 The subset half of a selection, taken on its own so that a selection incoming as intent and one restored
+//    by a scrub reach the same registration without the scrub sealing a selection the artist never made.
+Outcome<bool> OutlinerSequence::RegisterSelection(const std::vector<OwnerIdentity>& Current)
 {
     Subsets.Reclaim(SubsetSubject::Selection);
 
-    for (const OccupantIdentity& Enrolling : Standing)
+    for (const OwnerIdentity& Registering : Current)
     {
-        const Outcome<bool> Held = Subsets.Enrol(Enrolling, SubsetSubject::Selection);
+        const Outcome<bool> Held = Subsets.Register(Registering, SubsetSubject::Selection);
 
         if (!Held.Resolved)
             return Held;
@@ -94,15 +94,15 @@ Outcome<bool> OutlinerSequence::EnrolSelection(const std::vector<OccupantIdentit
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> OutlinerSequence::ApplySelection(const std::vector<OccupantIdentity>& Standing,
+Outcome<bool> OutlinerSequence::ApplySelection(const std::vector<OwnerIdentity>& Current,
                                                std::uint64_t                        SealedAt)
 {
-    const Outcome<bool> Enrolled = EnrolSelection(Standing);
+    const Outcome<bool> Registered = RegisterSelection(Current);
 
-    if (!Enrolled.Resolved)
-        return Enrolled;
+    if (!Registered.Resolved)
+        return Registered;
 
-    Selected.Seal(Standing, Revised.Committed().size());
+    Selected.Seal(Current, Revised.Committed().size());
 
     // 📝 The stamp is accepted and unused: selection is sealed against the document revision it stands at
     //    rather than against an arrival, which is what `12` §11 pairs a scrub with. Taking it keeps every
@@ -120,17 +120,17 @@ Outcome<bool> OutlinerSequence::ApplySubset(const DeclaredIntent& Applying,
     //    is where the transaction is recorded, and selection is the only one recorded outside the document.
     if (Addressed == SubsetSubject::Selection)
     {
-        std::vector<OccupantIdentity> Standing = Applying.SelectionExtended
-                                               ? Selected.Standing()
-                                               : std::vector<OccupantIdentity>{};
+        std::vector<OwnerIdentity> Current = Applying.SelectionExtended
+                                               ? Selected.Current()
+                                               : std::vector<OwnerIdentity>{};
 
-        if (Applying.StandingEnabled)
+        if (Applying.CurrentEnabled)
         {
             bool Held = false;
 
-            for (const OccupantIdentity& Enrolled : Standing)
+            for (const OwnerIdentity& Registered : Current)
             {
-                if (Enrolled == Applying.Subject)
+                if (Registered == Applying.Subject)
                 {
                     Held = true;
                     break;
@@ -138,38 +138,38 @@ Outcome<bool> OutlinerSequence::ApplySubset(const DeclaredIntent& Applying,
             }
 
             if (!Held)
-                Standing.push_back(Applying.Subject);
+                Current.push_back(Applying.Subject);
         }
         else
         {
-            for (std::size_t Ordinal = 0u; Ordinal < Standing.size(); ++Ordinal)
+            for (std::size_t Ordinal = 0u; Ordinal < Current.size(); ++Ordinal)
             {
-                if (Standing[Ordinal] == Applying.Subject)
+                if (Current[Ordinal] == Applying.Subject)
                 {
-                    Standing.erase(Standing.begin() + static_cast<std::ptrdiff_t>(Ordinal));
+                    Current.erase(Current.begin() + static_cast<std::ptrdiff_t>(Ordinal));
                     break;
                 }
             }
         }
 
-        return ApplySelection(Standing, SealedAt);
+        return ApplySelection(Current, SealedAt);
     }
 
-    const Outcome<bool> Opened = Revised.Open("", Applying.StandingEnabled ? "EnrolSubset" : "UnenrolSubset");
+    const Outcome<bool> Opened = Revised.Open("", Applying.CurrentEnabled ? "RegisterSubset" : "UnenrolSubset");
 
     if (!Opened.Resolved)
         return Opened;
 
-    const Outcome<bool> Enrolled = Applying.StandingEnabled
-                                 ? Subsets.Enrol(Applying.Subject, Addressed)
+    const Outcome<bool> Registered = Applying.CurrentEnabled
+                                 ? Subsets.Register(Applying.Subject, Addressed)
                                  : Subsets.Unenrol(Applying.Subject, Addressed);
 
-    if (!Enrolled.Resolved)
+    if (!Registered.Resolved)
     {
-        // 📝 Abandoned rather than sealed. A refused enrolment that sealed anyway would put a transaction in
+        // 📝 Abandoned rather than sealed. A rejected registration that sealed anyway would put a transaction in
         //    the sequence whose forward operation does nothing and whose inverse undoes nothing.
         Revised.Abandon();
-        return Enrolled;
+        return Registered;
     }
 
     return Revised.Seal(SealedAt, false);
@@ -219,10 +219,10 @@ Outcome<bool> OutlinerSequence::Retreat(std::uint64_t SealedAt)
     //    recorded its own navigation is one no artist can reason about.
     if (Selected.RestoreAt(Revised.ScrubPosition()).Resolved)
     {
-        const Outcome<bool> Enrolled = EnrolSelection(Selected.Standing());
+        const Outcome<bool> Registered = RegisterSelection(Selected.Current());
 
-        if (!Enrolled.Resolved)
-            return Enrolled;
+        if (!Registered.Resolved)
+            return Registered;
     }
 
     static_cast<void>(SealedAt);
@@ -239,10 +239,10 @@ Outcome<bool> OutlinerSequence::Advance(std::uint64_t SealedAt)
 
     if (Selected.RestoreAt(Revised.ScrubPosition()).Resolved)
     {
-        const Outcome<bool> Enrolled = EnrolSelection(Selected.Standing());
+        const Outcome<bool> Registered = RegisterSelection(Selected.Current());
 
-        if (!Enrolled.Resolved)
-            return Enrolled;
+        if (!Registered.Resolved)
+            return Registered;
     }
 
     static_cast<void>(SealedAt);
@@ -258,19 +258,19 @@ Outcome<bool> OutlinerSequence::RetireCascade(const DeclaredIntent& Applying, st
 {
     // 🔴 `12` §12: retirement is one transaction including its whole cascade. A cascade committed as several
     //    transactions is undone in pieces, and the intermediate pieces are states the document was never in.
-    const Outcome<bool> Opened = Revised.Open("", "RetireOccupant");
+    const Outcome<bool> Opened = Revised.Open("", "RetireOwner");
 
     if (!Opened.Resolved)
         return Opened;
 
-    // 📝 The relations re-enclose what the occupant enclosed and reattach what followed it. `12` §12 makes
+    // 📝 The relations re-enclose what the owner enclosed and reattach what followed it. `12` §12 makes
     //    that a declared policy rather than a default: deleting a group deletes the group, not the work.
-    const Outcome<bool> Withdrawn = NestingRelations.Retire(Applying.Subject);
+    const Outcome<bool> Retired = NestingRelations.Retire(Applying.Subject);
 
-    if (!Withdrawn.Resolved)
+    if (!Retired.Resolved)
     {
         Revised.Abandon();
-        return Withdrawn;
+        return Retired;
     }
 
     Subsets.UnenrolEverywhere(Applying.Subject);
@@ -278,7 +278,7 @@ Outcome<bool> OutlinerSequence::RetireCascade(const DeclaredIntent& Applying, st
 
     // 📝 The population slot is withdrawn at ② rather than here, so that everything applied in this ① still
     //    resolves against the generation it was declared with.
-    WithdrawnOccupants.push_back(Applying.Subject);
+    RemovedOwners.push_back(Applying.Subject);
 
     return Revised.Seal(SealedAt, false);
 }
@@ -295,13 +295,13 @@ Outcome<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std:
         {
             // 🔴 Reordering a row is a transaction against the enclosure relation, committed like any other
             //    edit. `12` §7: a drag that mutated the relation directly would bypass undo entirely.
-            const Outcome<bool> Opened = Revised.Open("", "EncloseOccupant");
+            const Outcome<bool> Opened = Revised.Open("", "EncloseOwner");
 
             if (!Opened.Resolved)
                 return Opened;
 
             const Outcome<bool> Enclosed = NestingRelations.Enclose(Applying.Subject,
-                                                                   Applying.RelatedOccupant,
+                                                                   Applying.RelatedOwner,
                                                                    Applying.OrderWithinEnclosure);
 
             if (!Enclosed.Resolved)
@@ -315,12 +315,12 @@ Outcome<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std:
 
         case OutlinerIntent::Attach:
         {
-            const Outcome<bool> Opened = Revised.Open("", "AttachOccupant");
+            const Outcome<bool> Opened = Revised.Open("", "AttachOwner");
 
             if (!Opened.Resolved)
                 return Opened;
 
-            const Outcome<bool> Attached = NestingRelations.Attach(Applying.Subject, Applying.RelatedOccupant);
+            const Outcome<bool> Attached = NestingRelations.Attach(Applying.Subject, Applying.RelatedOwner);
 
             if (!Attached.Resolved)
             {
@@ -333,7 +333,7 @@ Outcome<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std:
 
         case OutlinerIntent::Rename:
         {
-            const Outcome<bool> Opened = Revised.Open("", "RenameOccupant");
+            const Outcome<bool> Opened = Revised.Open("", "RenameOwner");
 
             if (!Opened.Resolved)
                 return Opened;
@@ -362,7 +362,7 @@ Outcome<bool> OutlinerSequence::ApplyIntent(const DeclaredIntent& Applying, std:
             // 📝 Expansion is a count adjustment and mutates nothing in the document, so it is not a
             //    transaction. `14` §4.1 rules the same way for every non-document state: undo must not step
             //    back through the artist collapsing a row.
-            return Linearisation.DeclareExpansion(Applying.Subject, Applying.StandingEnabled);
+            return Linearisation.DeclareExpansion(Applying.Subject, Applying.CurrentEnabled);
 
         case OutlinerIntent::Retire:
             return RetireCascade(Applying, SealedAt);
@@ -385,7 +385,7 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     {
         if (!Population.Resolve(Applying.Subject))
         {
-            Reject(Applying, { RefusalReason::IdentityStale, "the occupant was retired before the intent applied" });
+            Reject(Applying, { RefusalReason::IdentityStale, "the owner was retired before the intent applied" });
             continue;
         }
 
@@ -398,15 +398,15 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     PendingDeclarations.clear();
 
     // ② Reconcile the population — retire the slots whose generation this tick advanced.
-    for (const OccupantIdentity& Departing : WithdrawnOccupants)
+    for (const OwnerIdentity& Departing : RemovedOwners)
     {
-        Disregard(Population.Withdraw(Departing));
+        Discard(Population.Withdraw(Departing));
 
         if (Departing.SlotOrdinal < LiveGenerations.size())
             LiveGenerations[Departing.SlotOrdinal] = 0u;
     }
 
-    WithdrawnOccupants.clear();
+    RemovedOwners.clear();
 
     // ③ Reconcile the attachment relation, compounding transforms downward from each attachment root. Before
     //    ④ deliberately: transforms must be final before anything spatial is derived from them.
@@ -438,19 +438,19 @@ Outcome<bool> OutlinerSequence::Reconcile(std::uint64_t SealedAt)
     if (!Linearized.Resolved)
         return Linearized;
 
-    // ⑥ Re-derive the subsets whose enrolment changed. Withdrawn slots left every subset at ①, so what
-    //    remains is confirming that no enrolment outlived its occupant.
-    if (!Subsets.EnrolmentsOccupied(LiveGenerations))
+    // ⑥ Re-derive the subsets whose registration changed. Retired slots left every subset at ①, so what
+    //    remains is confirming that no registration outlived its owner.
+    if (!Subsets.RegistrationsOccupied(LiveGenerations))
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::IdentityStale, "a subset held a slot that is no longer occupied" });
     }
 
-    // ⑦ Re-derive the search entries for occupants whose name changed, within this same tick. Each declaration
+    // ⑦ Re-derive the search entries for owners whose name changed, within this same tick. Each declaration
     //    carries its own name, so nothing here consults a run ① has already cleared.
     for (const DeclaredIntent& Naming : RenamedDeclarations)
     {
-        Disregard(NameSearch.Declare(Naming.Subject, Naming.DeclaredName));
+        Discard(NameSearch.Declare(Naming.Subject, Naming.DeclaredName));
         NarrowingOwed = true;
     }
 
@@ -480,7 +480,7 @@ const RowSequence& OutlinerSequence::Sequenced() const
     return Linearisation;
 }
 
-const EnrollmentIndex& OutlinerSequence::Enrollments() const
+const RegistrationIndex& OutlinerSequence::Registrations() const
 {
     return Subsets;
 }
@@ -512,23 +512,23 @@ const std::string& OutlinerSequence::Sought() const
 
 const std::vector<RejectedIntent>& OutlinerSequence::Rejected() const
 {
-    return RefusedDeclarations;
+    return RejectedDeclarations;
 }
 
 void OutlinerSequence::ReclaimRejected()
 {
-    RefusedDeclarations.clear();
+    RejectedDeclarations.clear();
 }
 
 bool OutlinerSequence::InvariantsHeld() const
 {
     // 📝 Invariants 1, 2, 8 and 9 are structural: the relations hold one enclosure and one attachment per
-    //    occupant by storage rather than by check, retirement withdraws from both and from every subset in one
+    //    owner by storage rather than by check, retirement withdraws from both and from every subset in one
     //    routine, and row order has no input but the enclosure relation. What remains measurable is checked.
     return NestingRelations.RelationsAcyclic()
         && NestingRelations.LabelsNested()
         && Linearisation.CountsAgree()
-        && Subsets.EnrolmentsOccupied(LiveGenerations);
+        && Subsets.RegistrationsOccupied(LiveGenerations);
 }
 
 }   // namespace Slate

@@ -82,8 +82,8 @@ struct PartitioningMetrics
     std::uint32_t  ConelessCount         = 0u;   // [-] - orientations spanning more than a hemisphere
     std::uint32_t  BoundaryRefusalCount  = 0u;   // [-] - adjacency refusals the growth front met
     std::uint32_t  ExcludedFaceCount     = 0u;   // [-] - zero-extent faces the growth stepped over
-    std::uint32_t  LeastTriangleCount    = 0u;   // [-] - the smallest partition derived
-    std::uint32_t  GreatestTriangleCount = 0u;   // [-] - the largest; above the ceiling only for a lone wide face
+    std::uint32_t  MinimumTriangleCount    = 0u;   // [-] - the smallest partition derived
+    std::uint32_t  MaximumTriangleCount = 0u;   // [-] - the largest; above the ceiling only for a lone wide face
 };
 
 /// 🧩 A whole derived partitioning, as a value that crosses back to the tick.
@@ -111,7 +111,7 @@ struct DerivedPartitioning
 /// out   Result      [-]  refuses with HostDenied for an unsealed topology, with ContentUnsupported when the
 ///                         conditioning describes another revision, and with ExtentExhausted where the partition
 ///                         count would reach `AbsentPartition` and stop being an ordinal
-/// note  ⚠️ `42`'s own resolution ceiling is refused by `42`, at `PartitionStructure::Declare`. It is not
+/// note  ⚠️ `42`'s own resolution ceiling is rejected by `42`, at `PartitionStructure::Declare`. It is not
 ///        re-declared here, because a second spelling of one number is `00` §2's case whichever unit holds it.
 /// note  🔴 `16` §1 and `16` §6's first two gates. Growth is across `38`'s adjacency rather than along the
 ///        imported face ordering, because a contiguous run of face ordinals is spatially coherent only in files
@@ -120,8 +120,8 @@ struct DerivedPartitioning
 /// note  🔴 An adjacency refusal is a **growth-front terminator and not an error**. `38`'s `AdjacentCorner`
 ///        refuses at a boundary and at a non-manifold edge rather than choosing one of several faces, so the
 ///        front simply does not cross there and the count is reported through `PartitioningMetrics`.
-/// note  📝 Faces enrolled as zero-extent are stepped over rather than admitted. They contribute no triangle and
-///        no orientation, and admitting them would spend a partition's budget on geometry that rasterises to
+/// note  📝 Faces registered as zero-extent are stepped over rather than accepted. They contribute no triangle and
+///        no orientation, and accepting them would spend a partition's budget on geometry that rasterises to
 ///        nothing.
 /// cost  🔴
 /// tag   api, nonthrowing
@@ -136,9 +136,9 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 //                                              THE STANDING PARTITIONING
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The partitioning one occupant's topology currently stands at, and the identities `42` issued against it.
+/// 🧩 The partitioning one owner's topology currently stands at, and the identities `42` registered against it.
 /// note  🔴 `16` §1: derived once when the topology changes and **never** per rotation. A camera move, an
-///        occupant move and a paint stroke re-derive nothing here — the extents and the cone are in object space
+///        owner move and a paint stroke re-derive nothing here — the extents and the cone are in object space
 ///        and none of the three touches object space.
 /// tag   owning
 class PartitionStructure
@@ -146,32 +146,32 @@ class PartitionStructure
 public:
 
     /// 🧩 Adopts a derived partitioning on the tick, advancing the revision.
-    /// in    Arriving  [-]  as DerivePartitioning produced it
+    /// in    Incoming  [-]  as DerivePartitioning produced it
     /// out   Result   [-]  refuses with ContentUnsupported for a partitioning carrying no partition
-    /// post  the revision advanced; every identity issued against the prior one is discoverably stale
+    /// post  the revision advanced; every identity registered against the prior one is discoverably stale
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Adopt(const DerivedPartitioning& Arriving);
+    Outcome<bool> Adopt(const DerivedPartitioning& Incoming);
 
     /// 🧩 Declares every standing partition into `42`'s resolution, retaining the identities it issues.
     /// in    Resolutions  [-]  the document's resolution; rebuilt by `42` and written here
-    /// in    Occupant     [-]  who the standing partitioning belongs to
-    /// out   Result      [-]  refuses with whatever the resolution refused, having declared nothing further
+    /// in    Owner     [-]  who the standing partitioning belongs to
+    /// out   Result      [-]  refuses with whatever the resolution rejected, having declared nothing further
     /// post  Identities carries one identity per standing partition, in partition ordinal order
-    /// note  🔴 `16` §4.1 and `00` §10's conflict 15: the occupant is supplied here and written into the
-    ///        resolution, because a partition identity is not an occupant identity and nothing downstream can
+    /// note  🔴 `16` §4.1 and `00` §10's conflict 15: the owner is supplied here and written into the
+    ///        resolution, because a partition identity is not an owner identity and nothing downstream can
     ///        recover one from the other. This declaration is the only place the two are related.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant);
+    Outcome<bool> Declare(PartitionResolutionIndex& Resolutions, OwnerIdentity Owner);
 
     /// 🧩 The standing partitioning.
-    /// pre   PartitioningStanding holds
+    /// pre   PartitioningCurrent holds
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const DerivedPartitioning& Standing() const;
+    const DerivedPartitioning& Current() const;
 
-    /// 🧩 The identity `42` issued for one standing partition.
+    /// 🧩 The identity `42` registered for one standing partition.
     /// out   Result  [-]  refuses with ContentUnsupported outside the standing partition count, and with
     ///                     IdentityStale when nothing has been declared since the last adoption
     /// cost  ✔️
@@ -183,15 +183,15 @@ public:
     /// tag   api, nonthrowing
     void Reclaim();
 
-    bool          PartitioningStanding() const;
+    bool          PartitioningCurrent() const;
     std::uint64_t Revision() const;
     std::uint64_t DescribedRevision() const;
     std::uint32_t PartitionCount() const;
 
 private:
 
-    DerivedPartitioning             StandingPartitioning = {};    // [-] - as Adopt took it
-    std::vector<PartitionIdentity>  Identities           = {};    // [-] - one per partition, as Declare issued them
+    DerivedPartitioning             CurrentPartitioning = {};    // [-] - as Adopt took it
+    std::vector<PartitionIdentity>  Identities           = {};    // [-] - one per partition, as Declare registered them
     std::uint64_t                   AdoptedRevision      = 0u;    // [-] - advanced by Adopt
     bool                            PartitioningAdopted  = false; // [-] - Adopt has delivered
 };

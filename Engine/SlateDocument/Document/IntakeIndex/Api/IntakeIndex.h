@@ -22,7 +22,7 @@ namespace Slate
 /// 🧩 The two things intake assumes when the source is silent, and nothing else.
 /// note  🔴 `50` §3: these are exactly the two rows that produce a result which looks plausible and is wrong. A
 ///        model at a hundredth of its intended size still renders, and an image decoded as though it were linear
-///        still looks like an image. Every other silent row is refused rather than assumed.
+///        still looks like an image. Every other silent row is rejected rather than assumed.
 /// tag   contract
 enum class AssumedSubject : std::uint32_t
 {
@@ -65,7 +65,7 @@ public:
     /// 🧩 Records one intake.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Record(const IntakeRecord& Arriving);
+    void Record(const IntakeRecord& Incoming);
 
     /// 🧩 Appends every unreported assumption to the register.
     /// in    Reporting  [-]  where `86` §4's `50` §3 row lands

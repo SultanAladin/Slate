@@ -107,9 +107,9 @@ enum class TransactionSubject : std::uint32_t
 struct ToolSpecification
 {
     std::string         Identity   = {};                            // [-] - the mechanism's spelling
-    std::string         Presented  = {};                            // [-] - what the artist reads
+    std::string         Current  = {};                            // [-] - what the artist reads
     PropertyIndex       Parameters = {};                            // [-] - `10` §2.2's declarations
-    PointerPrecedence   Claimed    = PointerPrecedence::Workspace;  // [-] - which level it takes the pointer at
+    PointerPrecedence   Reserved    = PointerPrecedence::Workspace;  // [-] - which level it takes the pointer at
     PreviewSubject      Previewed  = PreviewSubject::Absent;        // [-] - what `82` shows
     TransactionSubject  Recorded   = TransactionSubject::Dragged;   // [-] - what shape its edit takes
 };
@@ -239,7 +239,7 @@ public:
     Outcome<bool> DeclareOverlay(OverlaySubject Declaring, bool PresenceEnabled);
 
     /// 🧩 Takes the pointer at a declared precedence, recording the pick it was taken against.
-    /// in    Claiming  [-]  which level is claiming it
+    /// in    Precedence  [-]  which level is claiming it
     /// in    Opened    [-]  the pick as `74` resolved it at this instant
     /// out   Result   [-]  refuses with HostDenied while a capture already stands
     /// note  🔴 A standing capture is **not** stolen by a stronger claimant. `76` §3 and `14` §4.2: capture
@@ -247,7 +247,7 @@ public:
     ///        moment the cursor crosses a floating panel. Arbitration happens before capture is taken, once.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> OpenCapture(PointerPrecedence Claiming, const ResolvedPointer& Opened);
+    Outcome<bool> OpenCapture(PointerPrecedence Precedence, const ResolvedPointer& Opened);
 
     /// 🧩 Releases the standing capture.
     /// out   Result  [-]  refuses with HostDenied when no capture stands
@@ -260,7 +260,7 @@ public:
     /// in    InterfaceReported  [-]  the interface reports the pointer over itself — `14` §4.2's level 1
     /// in    ManipulatorOpen    [-]  a drag stands in `78`
     /// in    StrokeOpen         [-]  a stroke stands in `22`
-    /// out   Claiming           [-]  the standing holder while one stands, the arbitration otherwise
+    /// out   Precedence           [-]  the standing holder while one stands, the arbitration otherwise
     /// note  📝 Declared here rather than in `14` because `22` and `78` both ask it and neither may read
     ///        `SlateUI`. The interface supplies its own condition as an argument.
     /// cost  ✔️
@@ -286,7 +286,7 @@ public:
     std::uint32_t   ActiveBrushOrdinal() const;
     DisplaySubject  Display() const;
     ChannelSubject  IsolatedChannel() const;
-    bool            OverlayStanding(OverlaySubject Subject) const;
+    bool            OverlayActive(OverlaySubject Subject) const;
 
 private:
 
@@ -295,9 +295,9 @@ private:
     ToolIndex            DeclaredTools     = {};                                 // [-] - the application's tools
     BrushIndex           DeclaredBrushes   = {};                                 // [-] - `58` §7's store
     ColourSpecification  ActiveColour      = {};                                 // [-] - carries its space
-    PointerCapture       StandingCapture   = {};                                 // [-] - who holds the pointer
-    DisplaySubject       PresentedDisplay  = DisplaySubject::Shaded;             // [-]
-    ChannelSubject       PresentedChannel  = ChannelSubject::AlbedoColour;       // [-] - read at ChannelIsolated
+    PointerCapture       CurrentCapture   = {};                                 // [-] - who holds the pointer
+    DisplaySubject       CurrentDisplay  = DisplaySubject::Shaded;             // [-]
+    ChannelSubject       CurrentChannel  = ChannelSubject::AlbedoColour;       // [-] - read at ChannelIsolated
     std::uint32_t        ToolOrdinal       = AbsentTool;                         // [-] - the active tool
     std::uint32_t        BrushOrdinal      = AbsentTool;                         // [-] - the active brush
     bool                 OverlayPresent[OverlaySpan] = {};                       // [-] - per `80` overlay

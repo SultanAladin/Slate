@@ -54,13 +54,13 @@ inline constexpr std::uint64_t EvaluationUnitsPerEntry = 1u;   // [-] - one anal
 
 /// 🧩 How one considered promotion ended.
 /// tag   contract
-enum class PromotionDisposition : std::uint32_t
+enum class PromotionVerdict : std::uint32_t
 {
     Promoted         = 0u,   // [-] - a tile was claimed and the cost charged
     ReResolved       = 1u,   // [-] - already resident at a stale revision; resolved again into its own slot
     AlreadyResident  = 2u,   // [-] - resident at the current revision; nothing was done — `70` §2
     Deferred         = 3u,   // [-] - the budget or the ledger could not admit it this rotation
-    DispositionCount = 4u    // [-] - the closed count, never a disposition
+    VerdictCount = 4u    // [-] - the closed count, never a verdict
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -80,12 +80,12 @@ struct EvictionCandidate
 /// 🧩 Which ordering eviction follows.
 /// note  🚧 `20` §6 carries this as open — least-recent, or distance from the camera. The second would need an
 ///        edge to `46` that `20` does not declare, and `00` §11 gates that a declared edge is a real read, so
-///        acquiring one to answer a tuning question would be paying a build-order cost for a constant. Least
+///        acquiring one to answer a tuning question would be paying a build-order cost for a constant. Minimum
 ///        recently demanded ships; the row stays open.
 /// tag   contract
 enum class EvictionOrdering : std::uint32_t
 {
-    LeastRecentlyDemanded = 0u,   // [-] - the cell nothing has sampled for longest
+    OldestDemanded = 0u,   // [-] - the cell nothing has sampled for longest
     FinestLevelFirst      = 1u,   // [-] - the deepest level first; coarse levels answer more samples each
     OrderingCount         = 2u    // [-] - the closed count, never an ordering
 };
@@ -138,7 +138,7 @@ public:
 
     /// 🧩 Declares what one rotation may spend.
     /// out   Result  [-]  refuses with ContentUnsupported when both measures are zero
-    /// note  A budget of zero on one measure alone is admitted deliberately: a document with no analytic
+    /// note  A budget of zero on one measure alone is accepted deliberately: a document with no analytic
     ///        content genuinely has no evaluation to bound, and refusing it would force a fictitious number.
     /// cost  ✔️
     /// tag   api, nonthrowing
@@ -162,11 +162,11 @@ public:
     /// 🧩 Whether a cost fits what remains of this rotation.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Admits(const PromotionCost& Costing) const;
+    bool Accepts(const PromotionCost& Costing) const;
 
     /// 🧩 Charges a cost against what remains.
     /// out   Result  [-]  refuses with ExtentExhausted when it does not fit
-    /// post  a refused charge spends nothing
+    /// post  a rejected charge spends nothing
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Charge(const PromotionCost& Costing);
@@ -178,7 +178,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void DeferOne();
 
-    /// 🧩 Records that one promotion was admitted.
+    /// 🧩 Records that one promotion was accepted.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void PromoteOne();
@@ -196,13 +196,13 @@ private:
 
     PromotionBudget   DeclaredBudget  = {};                                 // [-] - restored every rotation
     PromotionBudget   RemainingBudget = {};                                 // [-] - what this rotation has left
-    EvictionOrdering  DeclaredOrder   = EvictionOrdering::LeastRecentlyDemanded;
+    EvictionOrdering  DeclaredOrder   = EvictionOrdering::OldestDemanded;
     std::uint64_t     RecordingOpened  = 0u;                                 // [-] - the rotation now spending
     std::uint32_t     PromotedThis    = 0u;                                 // [-] - this rotation
     std::uint32_t     DeferredThis    = 0u;                                 // [-] - this rotation
     std::uint64_t     PromotedSession = 0u;                                 // [-] - the whole session
     std::uint64_t     DeferredSession = 0u;                                 // [-] - the whole session
-    bool              RecordingStanding = false;                             // [-] - OpenRecording has delivered
+    bool              RecordingCurrent = false;                             // [-] - OpenRecording has delivered
 };
 
 }   // namespace Slate

@@ -45,7 +45,7 @@ Outcome<bool> IntersectionOutline::Declare(const OutlineSpecification& Outlining
     }
 
     // 🔴 The recording is display-referred and nothing between here and the display surface compresses. A colour
-    //    arriving in the working space would therefore be presented as display code without ever crossing `36`,
+    //    incoming in the working space would therefore be presented as display code without ever crossing `36`,
     //    and it reads as an outline in a plausible but wrong hue rather than as a mistake.
     if (Outlining_.VisibleColour.SpaceIdentity  != DisplaySpaceIdentity
      || Outlining_.OccludedColour.SpaceIdentity != DisplaySpaceIdentity)
@@ -59,7 +59,7 @@ Outcome<bool> IntersectionOutline::Declare(const OutlineSpecification& Outlining
                                  + std::fabs(Outlining_.VisibleColour.BlueCoordinate  - Outlining_.OccludedColour.BlueCoordinate);
 
     // 🔴 `26` §2: the occluded rendering must be visually distinct and **not merely dimmer**. Distinctness is
-    //    admitted from either the colour or the dash, and refused only where neither supplies it — a
+    //    accepted from either the colour or the dash, and rejected only where neither supplies it — a
     //    specification satisfying it in neither has withdrawn the one thing that says which part of a selection
     //    stands behind something, and the artist meets that as a selection that looks whole when it is not.
     if (ColourDeparture < DistinctColourDeparture && !(Outlining_.OccludedDashExtent > 0.0))
@@ -69,7 +69,7 @@ Outcome<bool> IntersectionOutline::Declare(const OutlineSpecification& Outlining
     }
 
     Outlining       = Outlining_;
-    OutlineStanding = true;
+    OutlineCurrent = true;
 
     return Outcome<bool>::Result(true);
 }
@@ -80,7 +80,7 @@ Outcome<bool> IntersectionOutline::Declare(const OutlineSpecification& Outlining
 
 Outcome<bool> IntersectionOutline::Contribute(RenderSchedule& Schedule) const
 {
-    if (!OutlineStanding)
+    if (!OutlineCurrent)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "no outline was declared to record" });
@@ -112,13 +112,13 @@ Outcome<bool> IntersectionOutline::Contribute(RenderSchedule& Schedule) const
 //                                                    THE ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> IntersectionOutline::ClassifyEnrolment(VisibilityWord                  Written,
+Outcome<bool> IntersectionOutline::ClassifyRegistration(VisibilityWord                  Written,
                                                      const VisibilityIndex&          Visibility,
                                                      const PartitionResolutionIndex& Resolutions,
-                                                     const EnrollmentIndex&          Enrollments) const
+                                                     const RegistrationIndex&          Registrations) const
 {
     // ① The pixel resolves through `16`, which performs the two indexed lookups and refuses an unoccupied pixel.
-    //    Nothing here reconstructs an occupant from a partition ordinal — that relation exists only in `42`.
+    //    Nothing here reconstructs an owner from a partition ordinal — that relation exists only in `42`.
     const Outcome<ResolvedPartition> Resolved = Visibility.Resolve(Written, Resolutions);
 
     if (!Resolved.Resolved)
@@ -126,11 +126,11 @@ Outcome<bool> IntersectionOutline::ClassifyEnrolment(VisibilityWord             
         return Outcome<bool>::Refuse(Resolved.Error);
     }
 
-    // ② Enrolment, answered by `12`'s interval comparison over its compressed runs. Held as a call rather than as
+    // ② Registration, answered by `12`'s interval comparison over its compressed runs. Held as a call rather than as
     //    a structure beside it, so the outline and the document cannot disagree about what is selected.
-    const bool Enrolled = Enrollments.Enrolled(Resolved.Resolve().Occupant, SubsetSubject::Selection);
+    const bool Registered = Registrations.Registered(Resolved.Resolve().Owner, SubsetSubject::Selection);
 
-    return Outcome<bool>::Result(Enrolled);
+    return Outcome<bool>::Result(Registered);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -144,7 +144,7 @@ double IntersectionOutline::ProjectCoverage(double DivergenceExtent) const
         return 0.0;
     }
 
-    // 📐 ③ A pixel is an outline pixel when a neighbour within the width disagrees with it about enrolment. The
+    // 📐 ③ A pixel is an outline pixel when a neighbour within the width disagrees with it about registration. The
     //    coverage is unity at the divergence itself and falls linearly to nothing at the declared width, so the
     //    silhouette carries a gradient rather than the one-pixel staircase a binary decision leaves.
     return 1.0 - DivergenceExtent / Outlining.OutlineWidth;
@@ -155,7 +155,7 @@ bool IntersectionOutline::ClassifyOcclusion(double OutlineDepth, double Recorded
     return OutlineDepth < RecordedDepth;
 }
 
-bool IntersectionOutline::DashStanding(double AlongOrdinate, double AcrossOrdinate) const
+bool IntersectionOutline::DashCurrent(double XCoordinate, double YCoordinate) const
 {
     if (!(Outlining.OccludedDashExtent > 0.0))
     {
@@ -163,7 +163,7 @@ bool IntersectionOutline::DashStanding(double AlongOrdinate, double AcrossOrdina
     }
 
     const double Period   = Outlining.OccludedDashExtent * 2.0;
-    const double Position = std::fmod(AlongOrdinate + AcrossOrdinate, Period);
+    const double Position = std::fmod(XCoordinate + YCoordinate, Period);
 
     return (Position < 0.0 ? Position + Period : Position) < Outlining.OccludedDashExtent;
 }
@@ -174,7 +174,7 @@ bool IntersectionOutline::DashStanding(double AlongOrdinate, double AcrossOrdina
 
 Outcome<ColourSpecification> IntersectionOutline::OutlineColour(bool Occluded) const
 {
-    if (!OutlineStanding)
+    if (!OutlineCurrent)
     {
         return Outcome<ColourSpecification>::Refuse(
             { RefusalReason::ContentUnsupported, "no outline was declared to draw in" });

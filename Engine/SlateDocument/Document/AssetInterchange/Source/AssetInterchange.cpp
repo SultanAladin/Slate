@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                          ASSETINTERCHANGE.CPP
 //============================================================================================================================================
-// 🧩 Faithful enrolment, unit scale applied once, and the emission validated before anything is resolved.
+// 🧩 Faithful registration, unit scale applied once, and the emission validated before anything is resolved.
 
 #include "SlateDocument/Document/AssetInterchange/Api/AssetInterchange.h"
 
@@ -90,7 +90,7 @@ Outcome<bool> EmissionSpecification::Validate(const MaterialIndex& Materials) co
 //------------------------------------------------------------------------------------------------------------------------
 
 std::string ResolveName(const std::string& Pattern,
-                        const std::string& OccupantName,
+                        const std::string& OwnerName,
                         const std::string& MaterialName,
                         const std::string& ChannelName,
                         std::uint32_t      ExtentTexels)
@@ -124,8 +124,8 @@ std::string ResolveName(const std::string& Pattern,
 
         const std::string Named = Pattern.substr(Ordinal + 1u, Closing - Ordinal - 1u);
 
-        if (Named == "Occupant")
-            Resolved += OccupantName;
+        if (Named == "Owner")
+            Resolved += OwnerName;
         else if (Named == "Material")
             Resolved += MaterialName;
         else if (Named == "Channel")
@@ -153,7 +153,7 @@ Outcome<bool> AssetInterchange::IntakeTopology(const DecodedTopology& Decoded,
                                                TopologyStructure&     Into,
                                                IntakeIndex&           Recorded)
 {
-    // 🔴 `50` §3: positions and face indexing are refused when absent. There is no default for either — a
+    // 🔴 `50` §3: positions and face indexing are rejected when absent. There is no default for either — a
     //    topology with no positions is not a topology at a smaller scale, it is not a topology.
     if (Decoded.Positions.empty())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the source declared no position" });
@@ -161,8 +161,8 @@ Outcome<bool> AssetInterchange::IntakeTopology(const DecodedTopology& Decoded,
     if (Decoded.Faces.empty())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the source declared no face indexing" });
 
-    // 📝 🔴 Validated in full before anything is enrolled. `50` §8: a partially failed intake enrols nothing,
-    //    because half a topology enrolled as an occupant is an occupant the artist will paint on and export.
+    // 📝 🔴 Validated in full before anything is registered. `50` §8: a partially failed intake registers nothing,
+    //    because half a topology registered as an owner is an owner the artist will paint on and export.
     for (const std::vector<std::uint32_t>& Face : Decoded.Faces)
     {
         if (Face.size() < 3u)
@@ -192,10 +192,10 @@ Outcome<bool> AssetInterchange::IntakeTopology(const DecodedTopology& Decoded,
     if (!Decoded.TangentBases.empty() && Decoded.TangentBases.size() != Decoded.Positions.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one basis per vertex is required" });
 
-    if (!Decoded.MaterialEnrollment.empty() && Decoded.MaterialEnrollment.size() != Decoded.Faces.size())
+    if (!Decoded.MaterialRegistration.empty() && Decoded.MaterialRegistration.size() != Decoded.Faces.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one enrollment per face is required" });
 
-    // 🔴 Unit scale applied **once**, here, at 64-bit and before anything narrows. Carried as a per-occupant
+    // 🔴 Unit scale applied **once**, here, at 64-bit and before anything narrows. Carried as a per-owner
     //    multiplier instead, `02` §3.2's rebasing would still be correct and the geometry would still not line up.
     const double Scale = Decoded.UnitScaleDeclared ? Decoded.UnitScale : AssumedUnitScale;
 
@@ -218,23 +218,23 @@ Outcome<bool> AssetInterchange::IntakeTopology(const DecodedTopology& Decoded,
 
     for (const std::vector<std::uint32_t>& Face : Decoded.Faces)
     {
-        const Outcome<bool> Enrolled = Into.DeclareFace(Face);
+        const Outcome<bool> Registered = Into.DeclareFace(Face);
 
-        if (!Enrolled.Resolved)
-            return Enrolled;
+        if (!Registered.Resolved)
+            return Registered;
     }
 
     if (!Decoded.CornerCoordinates.empty())
-        Disregard(Into.DeclareCoordinates(Decoded.CornerCoordinates));
+        Discard(Into.DeclareCoordinates(Decoded.CornerCoordinates));
 
     if (!Decoded.Perpendiculars.empty())
-        Disregard(Into.DeclarePerpendiculars(Decoded.Perpendiculars));
+        Discard(Into.DeclarePerpendiculars(Decoded.Perpendiculars));
 
     if (!Decoded.TangentBases.empty())
-        Disregard(Into.DeclareTangentBases(Decoded.TangentBases));
+        Discard(Into.DeclareTangentBases(Decoded.TangentBases));
 
-    if (!Decoded.MaterialEnrollment.empty())
-        Disregard(Into.DeclareMaterialEnrollment(Decoded.MaterialEnrollment));
+    if (!Decoded.MaterialRegistration.empty())
+        Discard(Into.DeclareMaterialRegistration(Decoded.MaterialRegistration));
 
     const Outcome<bool> Sealed = Into.Seal();
 
@@ -329,15 +329,15 @@ void AssetInterchange::Report(ReportSequence& Reporting, TickPoint Sampled)
 {
     while (UnsupportedReported < UnsupportedNamed.size())
     {
-        ReportSpecification Refused;
-        Refused.Origin         = "50 §6 AssetInterchange";
-        Refused.Subject        = "UnsupportedConstruct";
-        Refused.Detail         = "the source carries a construct that will not survive an emission";
-        Refused.SubjectOrdinal = UnsupportedReported;
-        Refused.Disposition    = ReportDisposition::Refused;
-        Refused.Arrival        = Sampled;
+        ReportSpecification Rejected;
+        Rejected.Origin         = "50 §6 AssetInterchange";
+        Rejected.Subject        = "UnsupportedConstruct";
+        Rejected.Detail         = "the source carries a construct that will not survive an emission";
+        Rejected.SubjectOrdinal = UnsupportedReported;
+        Rejected.Verdict    = ReportVerdict::Rejected;
+        Rejected.Arrival        = Sampled;
 
-        Reporting.Append(Refused);
+        Reporting.Append(Rejected);
 
         ++UnsupportedReported;
     }

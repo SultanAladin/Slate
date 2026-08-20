@@ -50,7 +50,7 @@ struct DescriptorContent
     VkDeviceSize    SpanBytes     = VK_WHOLE_SIZE;    // [B]
     VkImageView     ImageView     = VK_NULL_HANDLE;   // [-] - for an image slot
     VkSampler       ImageSampler  = VK_NULL_HANDLE;   // [-] - null for a storage image
-    VkImageLayout   ImageStanding = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;   // [-] - what it stands in when read
+    VkImageLayout   ImageCurrent = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;   // [-] - what it stands in when read
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -97,23 +97,23 @@ public:
     /// 🧩 Closes the declaration and constructs the one descriptor extent every later claim is sliced from.
     /// in    ConcurrentSets [-]  how many sets the extent must admit, across every layout and every rotation
     /// out   Result        [-]  refuses with ExtentExhausted when the device declines the extent
-    /// post  Declare refuses thereafter; Claim delivers
+    /// post  Declare refuses thereafter; Reserve delivers
     /// note  🔴 One extent sized against the declaration rather than one grown on demand. A descriptor extent
     ///       that reallocates invalidates every set sliced from it, including the ones a rotation still reads.
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> Fix(std::uint32_t ConcurrentSets);
 
-    /// 🧩 Claims one set per cycle slot against a declared layout, returning the claim's ordinal.
+    /// 🧩 Reservations one set per cycle slot against a declared layout, returning the claim's ordinal.
     /// in    LayoutOrdinal [-]  a layout this component declared
-    /// out   Result       [-]  refuses with ExtentExhausted when the extent admits no further set
+    /// out   Result       [-]  refuses with ExtentExhausted when the extent accepts no further set
     /// post  `RecordingSlotCount` sets stand and are addressed by the returned ordinal and a cycle slot
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Claim(std::uint32_t LayoutOrdinal);
+    Outcome<std::uint32_t> Reserve(std::uint32_t LayoutOrdinal);
 
     /// 🧩 Writes the content of one claimed set for one cycle slot.
-    /// in    ClaimOrdinal  [-]  a claim this component issued
+    /// in    ReservationOrdinal  [-]  a claim this component registered
     /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
     /// in    Amended       [-]  one entry per slot being written; a slot omitted is left as it stood
     /// out   Result       [-]  refuses with ContentUnsupported for an unclaimed ordinal, a cycle slot at
@@ -121,7 +121,7 @@ public:
     /// pre   🔴 no recording that reads this set for this cycle slot is still executing
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(std::uint32_t                          ClaimOrdinal,
+    Outcome<bool> Amend(std::uint32_t                          ReservationOrdinal,
                         std::uint32_t                          SlotOrdinal,
                         const std::vector<DescriptorContent>&  Amended);
 
@@ -129,7 +129,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal or an excessive slot
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<VkDescriptorSet> Resolve(std::uint32_t ClaimOrdinal, std::uint32_t SlotOrdinal) const;
+    Outcome<VkDescriptorSet> Resolve(std::uint32_t ReservationOrdinal, std::uint32_t SlotOrdinal) const;
 
     /// 🧩 The layout one ordinal names, for the recording that constructs a program against it.
     /// out   Result  [-]  refuses with ContentUnsupported for an undeclared ordinal
@@ -144,7 +144,7 @@ public:
     void Reclaim();
 
     std::uint32_t DeclaredCount() const;
-    std::uint32_t ClaimedCount() const;
+    std::uint32_t ReservedCount() const;
 
 private:
 
@@ -154,7 +154,7 @@ private:
         std::vector<DescriptorSlot>  Slots       = {};               // [-] - as declared, ordered as given
     };
 
-    struct ClaimedSet
+    struct ReservedSet
     {
         std::uint32_t                  LayoutOrdinal = AbsentDescriptor;   // [-] - which layout it was sliced against
         std::vector<VkDescriptorSet>   PerSlot   = {};                 // [-] - RecordingSlotCount entries
@@ -167,7 +167,7 @@ private:
     const DiagnosticExtension*   NamingEdge       = nullptr;         // [-] - borrowed; never owned
     VkDescriptorPool             DescriptorExtent = VK_NULL_HANDLE;  // [-] - vendor spelling; one, fixed at Fix
     std::vector<DeclaredLayout>  Layouts          = {};              // [-] - every declared layout
-    std::vector<ClaimedSet>      Claimed          = {};              // [-] - every claim, rotation-deep
+    std::vector<ReservedSet>      Reserved          = {};              // [-] - every claim, rotation-deep
     bool                         DeclarationFixed = false;           // [-] - true once Fix resolved
 };
 

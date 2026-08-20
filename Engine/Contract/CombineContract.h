@@ -14,7 +14,7 @@ namespace Slate
 //                                              THE FIVE COMBINATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 How arriving content reads against what already stands.
+/// 🧩 How incoming content reads against what already stands.
 /// note  🔴 Declared here rather than inside any one of `22`, `54` or `56`, because all three apply it and none of
 ///        them may include another — they are peers in `00` §9.1's stratum 5. `00` §2's rule is written for a
 ///        constant and the reasoning is the same for a declaration: three copies of one behaviour are three that
@@ -26,7 +26,7 @@ namespace Slate
 /// tag   contract
 enum class CombineSpecification : std::uint32_t
 {
-    Over         = 0u,   // [-] - source-over with the arriving coverage
+    Over         = 0u,   // [-] - source-over with the incoming coverage
     Additive     = 1u,   // [-] - accumulates without coverage limiting
     Multiply     = 2u,   // [-] - attenuates what stands
     Replace      = 3u,   // [-] - overwrites within coverage, coverage included
@@ -38,11 +38,11 @@ enum class CombineSpecification : std::uint32_t
 //                                                    THE ARITHMETIC
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Combines one arriving channel value into what stands.
+/// 🧩 Combines one incoming channel value into what stands.
 /// in    Declared          [-]  which of the five
-/// in    Standing          [-]  the value already resolved at this position
-/// in    Arriving          [-]  the value the arriving content declares
-/// in    ArrivingCoverage  [-]  how strongly it applies here, in the closed unit interval
+/// in    Current          [-]  the value already resolved at this position
+/// in    Incoming          [-]  the value the incoming content declares
+/// in    IncomingCoverage  [-]  how strongly it applies here, in the closed unit interval
 /// out   Combined          [-]  the resolved value
 /// note  🔴 Nothing is clamped. `18` §2's emission channel is unbounded above, and clamping here would compress a
 ///        radiance before `66` had the chance to project it.
@@ -54,25 +54,25 @@ enum class CombineSpecification : std::uint32_t
 /// cost  ✔️
 /// tag   api, contract, nonallocating, nonthrowing
 constexpr double CombineValue(CombineSpecification Declared,
-                              double               Standing,
-                              double               Arriving,
-                              double               ArrivingCoverage)
+                              double               Current,
+                              double               Incoming,
+                              double               IncomingCoverage)
 {
     return Declared == CombineSpecification::Over
-         ? Standing * (1.0 - ArrivingCoverage) + Arriving * ArrivingCoverage
+         ? Current * (1.0 - IncomingCoverage) + Incoming * IncomingCoverage
          : Declared == CombineSpecification::Additive
-         ? Standing + Arriving * ArrivingCoverage
+         ? Current + Incoming * IncomingCoverage
          : Declared == CombineSpecification::Multiply
-         ? Standing * (1.0 - ArrivingCoverage + Arriving * ArrivingCoverage)
+         ? Current * (1.0 - IncomingCoverage + Incoming * IncomingCoverage)
          : Declared == CombineSpecification::Replace
-         ? Standing * (1.0 - ArrivingCoverage) + Arriving * ArrivingCoverage
-         : Standing;
+         ? Current * (1.0 - IncomingCoverage) + Incoming * IncomingCoverage
+         : Current;
 }
 
-/// 🧩 Combines one arriving coverage into the coverage that stands.
+/// 🧩 Combines one incoming coverage into the coverage that stands.
 /// in    Declared          [-]  which of the five
-/// in    StandingCoverage  [-]  coverage already resolved here
-/// in    ArrivingCoverage  [-]  coverage the arriving content declares
+/// in    CurrentCoverage  [-]  coverage already resolved here
+/// in    IncomingCoverage  [-]  coverage the incoming content declares
 /// out   Combined          [-]  the resolved coverage, in the closed unit interval
 /// note  🔴 Erase is the one combination that reduces coverage, and it leaves the value untouched. An eraser that
 ///        wrote a value would leave the artist's colour underneath whatever they erased with, visible the moment
@@ -80,14 +80,14 @@ constexpr double CombineValue(CombineSpecification Declared,
 /// cost  ✔️
 /// tag   api, contract, nonallocating, nonthrowing
 constexpr double CombineCoverage(CombineSpecification Declared,
-                                 double               StandingCoverage,
-                                 double               ArrivingCoverage)
+                                 double               CurrentCoverage,
+                                 double               IncomingCoverage)
 {
     return Declared == CombineSpecification::Erase
-         ? StandingCoverage * (1.0 - ArrivingCoverage)
+         ? CurrentCoverage * (1.0 - IncomingCoverage)
          : Declared == CombineSpecification::Replace
-         ? ArrivingCoverage
-         : StandingCoverage + ArrivingCoverage * (1.0 - StandingCoverage);
+         ? IncomingCoverage
+         : CurrentCoverage + IncomingCoverage * (1.0 - CurrentCoverage);
 }
 
 }   // namespace Slate

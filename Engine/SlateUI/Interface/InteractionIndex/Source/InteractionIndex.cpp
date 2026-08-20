@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                          INTERACTIONINDEX.CPP
 //============================================================================================================================================
-// 🧩 The one seizure, the one open popup, and the two fades every enrolled control carries.
+// 🧩 The one grab, the one open popup, and the two fades every registered control carries.
 
 #include "SlateUI/Interface/InteractionIndex/Api/InteractionIndex.h"
 
@@ -12,7 +12,7 @@ namespace Slate
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> InteractionIndex::Construct(MotionIntegrator& Arriving)
+Outcome<bool> InteractionIndex::Construct(MotionIntegrator& Incoming)
 {
     if (Motion != nullptr)
     {
@@ -20,12 +20,12 @@ Outcome<bool> InteractionIndex::Construct(MotionIntegrator& Arriving)
                                                    "InteractionIndex is already constructed" });
     }
 
-    Motion = &Arriving;
+    Motion = &Incoming;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<ControlIdentity> InteractionIndex::Enrol()
+Outcome<ControlIdentity> InteractionIndex::Register()
 {
     if (Motion == nullptr)
     {
@@ -33,190 +33,190 @@ Outcome<ControlIdentity> InteractionIndex::Enrol()
                                                           "InteractionIndex was not constructed" });
     }
 
-    if (EnrolledSlots >= ControlCapacity)
+    if (RegisteredSlots >= ControlCapacity)
     {
         return Outcome<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
                                                           "InteractionIndex holds no further control slot" });
     }
 
-    // 📝 🔴 Both fades are enrolled before the slot is claimed. Claiming first and refusing second would leave
-    //    a slot enrolled against an interpolant that does not exist, and every later read of it would return
+    // 📝 🔴 Both fades are registered before the slot is claimed. Target first and refusing second would leave
+    //    a slot registered against an interpolant that does not exist, and every later read of it would return
     //    the ordinal zero — which is another control's fade.
-    const Outcome<std::uint32_t> RouseEnrolled = Motion->EnrolEased(0.0);
+    const Outcome<std::uint32_t> HoverRegistered = Motion->RegisterEased(0.0);
 
-    if (!RouseEnrolled.Resolved)
+    if (!HoverRegistered.Resolved)
     {
         return Outcome<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
-                                                          "the integrator declined a rouse fade" });
+                                                          "the integrator rejected a hover fade" });
     }
 
-    const Outcome<std::uint32_t> TakeEnrolled = Motion->EnrolEased(0.0);
+    const Outcome<std::uint32_t> TakeRegistered = Motion->RegisterEased(0.0);
 
-    if (!TakeEnrolled.Resolved)
+    if (!TakeRegistered.Resolved)
     {
         return Outcome<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
-                                                          "the integrator declined a take fade" });
+                                                          "the integrator rejected a take fade" });
     }
 
-    const std::uint32_t Claimed = EnrolledSlots;
-    ++EnrolledSlots;
+    const std::uint32_t Target = RegisteredSlots;
+    ++RegisteredSlots;
 
-    // 📝 The generation rises with every Reset and never falls, so an identity issued before one resolves
+    // 📝 The generation rises with every Reset and never falls, so an identity registered before one resolves
     //    false afterwards rather than naming whatever now occupies its ordinal.
-    Generations[Claimed] = IssuedGeneration + 1u;
+    Generations[Target] = RegisteredGeneration + 1u;
 
-    Poses[Claimed].RouseOrdinal = RouseEnrolled.Resolve();
-    Poses[Claimed].TakeOrdinal  = TakeEnrolled.Resolve();
-    Poses[Claimed].Enrolled     = true;
+    Poses[Target].HoverOrdinal = HoverRegistered.Resolve();
+    Poses[Target].TakeOrdinal  = TakeRegistered.Resolve();
+    Poses[Target].Registered     = true;
 
-    return Outcome<ControlIdentity>::Result(ControlIdentity{ Claimed, Generations[Claimed] });
+    return Outcome<ControlIdentity>::Result(ControlIdentity{ Target, Generations[Target] });
 }
 
-std::uint32_t InteractionIndex::Slot(ControlIdentity Claimed) const
+std::uint32_t InteractionIndex::Slot(ControlIdentity Target) const
 {
-    if (!Claimed.IdentityDeclared() || Claimed.SlotOrdinal >= EnrolledSlots)
+    if (!Target.IdentityDeclared() || Target.SlotOrdinal >= RegisteredSlots)
         return ControlCapacity;
 
-    if (Generations[Claimed.SlotOrdinal] != Claimed.SlotGeneration)
+    if (Generations[Target.SlotOrdinal] != Target.SlotGeneration)
         return ControlCapacity;
 
-    return Claimed.SlotOrdinal;
+    return Target.SlotOrdinal;
 }
 
-bool InteractionIndex::Resolves(ControlIdentity Claimed) const
+bool InteractionIndex::Resolves(ControlIdentity Target) const
 {
-    return Slot(Claimed) != ControlCapacity;
+    return Slot(Target) != ControlCapacity;
 }
 
-std::uint32_t InteractionIndex::EnrolledCount() const
+std::uint32_t InteractionIndex::RegisteredCount() const
 {
-    return EnrolledSlots;
+    return RegisteredSlots;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                          THE TICK
 //------------------------------------------------------------------------------------------------------------------------
 
-void InteractionIndex::Advance(const PointerCondition& Arrived, double Elapsed)
+void InteractionIndex::Advance(const PointerCondition& Sampled, double Elapsed)
 {
     static_cast<void>(Elapsed);
 
-    // 📝 The tick's pointer is retained so that Seize can stamp the arrival ordinates without every control
+    // 📝 The tick's pointer is retained so that Grab can stamp the arrival ordinates without every control
     //    having to pass them in — and, more to the point, without a control being able to pass in a position
     //    it computed rather than the one the window system reported.
-    ArrivedAlong  = Arrived.PositionAlong;
-    ArrivedAcross = Arrived.PositionAcross;
+    SampledX  = Sampled.PositionX;
+    SampledY = Sampled.PositionY;
 
     // 📝 🔴 The release is retired here and not at the seizing control. A control whose extent left the
-    //    arrangement between two ticks never runs again, and a seizure retired only by that control would
-    //    stand for the life of the process — every later contact refused because something invisible holds it.
+    //    arrangement between two ticks never runs again, and a grab retired only by that control would
+    //    stand for the life of the process — every later contact rejected because something invisible holds it.
     ReleasedControl = {};
     ReleasedPart    = ControlPart::Nothing;
 
-    if (SeizedPart != ControlPart::Nothing && !Arrived.ContactHeld)
+    if (GrabbedPart != ControlPart::Nothing && !Sampled.ContactHeld)
     {
-        ReleasedControl    = SeizedControl;
-        ReleasedPart       = SeizedPart;
-        SeizedControl      = {};
-        SeizedPart         = ControlPart::Nothing;
-        SeizedDeparted     = 0.0f;
-        DepartedRecorded   = false;
+        ReleasedControl    = GrabbedControl;
+        ReleasedPart       = GrabbedPart;
+        GrabbedControl      = {};
+        GrabbedPart         = ControlPart::Nothing;
+        GrabbedInitial     = 0.0f;
+        InitialRecorded   = false;
     }
 }
 
-bool InteractionIndex::Seize(ControlIdentity Claimed, ControlPart Part)
+bool InteractionIndex::Grab(ControlIdentity Target, ControlPart Part)
 {
-    if (Part == ControlPart::Nothing || Slot(Claimed) == ControlCapacity)
+    if (Part == ControlPart::Nothing || Slot(Target) == ControlCapacity)
         return false;
 
-    // 🔴 One seizure. A second claim while one stands is refused rather than replacing it, which is what
+    // 🔴 One grab. A second claim while one stands is rejected rather than replacing it, which is what
     //    keeps a drag addressing the control it began on when the pointer crosses a neighbour.
-    if (SeizedPart != ControlPart::Nothing)
+    if (GrabbedPart != ControlPart::Nothing)
         return false;
 
-    SeizedControl      = Claimed;
-    SeizedPart         = Part;
-    SeizedOriginAlong  = ArrivedAlong;
-    SeizedOriginAcross = ArrivedAcross;
-    SeizedDeparted     = 0.0f;
-    DepartedRecorded   = false;
+    GrabbedControl      = Target;
+    GrabbedPart         = Part;
+    GrabbedOriginX  = SampledX;
+    GrabbedOriginY = SampledY;
+    GrabbedInitial     = 0.0f;
+    InitialRecorded   = false;
 
     return true;
 }
 
-bool InteractionIndex::Holding(ControlIdentity Claimed) const
+bool InteractionIndex::Holding(ControlIdentity Target) const
 {
-    return SeizedPart != ControlPart::Nothing && SeizedControl == Claimed && Slot(Claimed) != ControlCapacity;
+    return GrabbedPart != ControlPart::Nothing && GrabbedControl == Target && Slot(Target) != ControlCapacity;
 }
 
-ControlPart InteractionIndex::HeldPart(ControlIdentity Claimed) const
+ControlPart InteractionIndex::HeldPart(ControlIdentity Target) const
 {
-    return Holding(Claimed) ? SeizedPart : ControlPart::Nothing;
+    return Holding(Target) ? GrabbedPart : ControlPart::Nothing;
 }
 
-bool InteractionIndex::Released(ControlIdentity Claimed) const
+bool InteractionIndex::Released(ControlIdentity Target) const
 {
-    return ReleasedControl.IdentityDeclared() && ReleasedControl == Claimed;
+    return ReleasedControl.IdentityDeclared() && ReleasedControl == Target;
 }
 
-ControlPart InteractionIndex::ReleasedControlPart(ControlIdentity Claimed) const
+ControlPart InteractionIndex::ReleasedControlPart(ControlIdentity Target) const
 {
-    return Released(Claimed) ? ReleasedPart : ControlPart::Nothing;
+    return Released(Target) ? ReleasedPart : ControlPart::Nothing;
 }
 
-bool InteractionIndex::DepartFrom(ControlIdentity Claimed, float Ordinate)
+bool InteractionIndex::RecordInitial(ControlIdentity Target, float Coordinate)
 {
-    if (!Holding(Claimed))
+    if (!Holding(Target))
         return false;
 
-    SeizedDeparted   = Ordinate;
-    DepartedRecorded = true;
+    GrabbedInitial   = Coordinate;
+    InitialRecorded = true;
 
     return true;
 }
 
-Outcome<float> InteractionIndex::DepartedOrdinate(ControlIdentity Claimed) const
+Outcome<float> InteractionIndex::InitialReading(ControlIdentity Target) const
 {
-    if (!Holding(Claimed) || !DepartedRecorded)
+    if (!Holding(Target) || !InitialRecorded)
     {
         return Outcome<float>::Refuse(Refusal{ RefusalReason::IdentityStale,
-                                                       "this control holds no seizure to depart from" });
+                                                       "this control holds no grab to depart from" });
     }
 
-    return Outcome<float>::Result(SeizedDeparted);
+    return Outcome<float>::Result(GrabbedInitial);
 }
 
-float InteractionIndex::OriginAlong() const
+float InteractionIndex::OriginX() const
 {
-    return SeizedOriginAlong;
+    return GrabbedOriginX;
 }
 
-float InteractionIndex::OriginAcross() const
+float InteractionIndex::OriginY() const
 {
-    return SeizedOriginAcross;
+    return GrabbedOriginY;
 }
 
 void InteractionIndex::Abandon()
 {
-    SeizedControl    = {};
-    SeizedPart       = ControlPart::Nothing;
+    GrabbedControl    = {};
+    GrabbedPart       = ControlPart::Nothing;
     ReleasedControl  = {};
     ReleasedPart     = ControlPart::Nothing;
-    SeizedDeparted   = 0.0f;
-    DepartedRecorded = false;
+    GrabbedInitial   = 0.0f;
+    InitialRecorded = false;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE DISCLOSURE
 //------------------------------------------------------------------------------------------------------------------------
 
-bool InteractionIndex::Disclose(ControlIdentity Claimed)
+bool InteractionIndex::Disclose(ControlIdentity Target)
 {
-    if (Slot(Claimed) == ControlCapacity)
+    if (Slot(Target) == ControlCapacity)
         return false;
 
     // 🔴 Whatever stood before is closed by the assignment itself. Two open popups cannot be represented.
-    DisclosedControl = Claimed;
+    DisclosedControl = Target;
 
     return true;
 }
@@ -226,10 +226,10 @@ void InteractionIndex::Withdraw()
     DisclosedControl = {};
 }
 
-bool InteractionIndex::Disclosed(ControlIdentity Claimed) const
+bool InteractionIndex::Disclosed(ControlIdentity Target) const
 {
-    return DisclosedControl.IdentityDeclared() && DisclosedControl == Claimed
-        && Slot(Claimed) != ControlCapacity;
+    return DisclosedControl.IdentityDeclared() && DisclosedControl == Target
+        && Slot(Target) != ControlCapacity;
 }
 
 bool InteractionIndex::AnyDisclosed() const
@@ -245,7 +245,7 @@ namespace
 {
 
 /// 🧩 Departs one eased traverse toward a declared pose, if it is not already heading there.
-/// note  📐 Departed from where it **stands**, never from zero or one. A fade re-departed from its endpoint
+/// note  📐 Previous from where it **stands**, never from zero or one. A fade re-departed from its endpoint
 ///        jumps backward the moment the pointer crosses an edge twice inside one duration, which is exactly
 ///        what a pointer travelling along a column of rows does.
 /// cost  ✔️
@@ -255,57 +255,57 @@ bool DepartToward(MotionIntegrator& Motion, std::uint32_t Ordinal, bool Toward, 
     EasedInterpolant& Fade    = Motion.Eased(Ordinal);
     const double      Arrival = Toward ? 1.0 : 0.0;
 
-    if (Fade.Settled && Fade.Standing() == Arrival)
+    if (Fade.Settled && Fade.Current() == Arrival)
         return false;
 
-    if (!Fade.Settled && Fade.Arriving == Arrival)
+    if (!Fade.Settled && Fade.Incoming == Arrival)
         return false;
 
-    Fade.Depart(Fade.Standing(), Arrival, Duration, 0.0, Shape);
+    Fade.Depart(Fade.Current(), Arrival, Duration, 0.0, Shape);
 
     return true;
 }
 
 }   // namespace
 
-bool InteractionIndex::DeclareRoused(ControlIdentity Claimed, bool Roused, double Duration)
+bool InteractionIndex::DeclareHovered(ControlIdentity Target, bool Hovered, double Duration)
 {
-    const std::uint32_t Ordinal = Slot(Claimed);
+    const std::uint32_t Ordinal = Slot(Target);
 
-    if (Ordinal == ControlCapacity || Motion == nullptr || !Poses[Ordinal].Enrolled)
+    if (Ordinal == ControlCapacity || Motion == nullptr || !Poses[Ordinal].Registered)
         return false;
 
-    return DepartToward(*Motion, Poses[Ordinal].RouseOrdinal, Roused, Duration);
+    return DepartToward(*Motion, Poses[Ordinal].HoverOrdinal, Hovered, Duration);
 }
 
-bool InteractionIndex::DeclareTaken(ControlIdentity Claimed, bool Taken, double Duration, EaseCurve Shape)
+bool InteractionIndex::DeclareTaken(ControlIdentity Target, bool Taken, double Duration, EaseCurve Shape)
 {
-    const std::uint32_t Ordinal = Slot(Claimed);
+    const std::uint32_t Ordinal = Slot(Target);
 
-    if (Ordinal == ControlCapacity || Motion == nullptr || !Poses[Ordinal].Enrolled)
+    if (Ordinal == ControlCapacity || Motion == nullptr || !Poses[Ordinal].Registered)
         return false;
 
     return DepartToward(*Motion, Poses[Ordinal].TakeOrdinal, Taken, Duration, Shape);
 }
 
-float InteractionIndex::RousedFraction(ControlIdentity Claimed) const
+float InteractionIndex::HoveredFraction(ControlIdentity Target) const
 {
-    const std::uint32_t Ordinal = Slot(Claimed);
+    const std::uint32_t Ordinal = Slot(Target);
 
-    if (Ordinal == ControlCapacity || Motion == nullptr || !Poses[Ordinal].Enrolled)
+    if (Ordinal == ControlCapacity || Motion == nullptr || !Poses[Ordinal].Registered)
         return 0.0f;
 
-    return static_cast<float>(Motion->Eased(Poses[Ordinal].RouseOrdinal).Standing());
+    return static_cast<float>(Motion->Eased(Poses[Ordinal].HoverOrdinal).Current());
 }
 
-float InteractionIndex::TakenFraction(ControlIdentity Claimed) const
+float InteractionIndex::TakenFraction(ControlIdentity Target) const
 {
-    const std::uint32_t Ordinal = Slot(Claimed);
+    const std::uint32_t Ordinal = Slot(Target);
 
-    if (Ordinal == ControlCapacity || Motion == nullptr || !Poses[Ordinal].Enrolled)
+    if (Ordinal == ControlCapacity || Motion == nullptr || !Poses[Ordinal].Registered)
         return 0.0f;
 
-    return static_cast<float>(Motion->Eased(Poses[Ordinal].TakeOrdinal).Standing());
+    return static_cast<float>(Motion->Eased(Poses[Ordinal].TakeOrdinal).Current());
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -314,17 +314,17 @@ float InteractionIndex::TakenFraction(ControlIdentity Claimed) const
 
 void InteractionIndex::Reset()
 {
-    // 🔴 The generation rises past every ordinal ever issued, so no identity from before this call can ever
+    // 🔴 The generation rises past every ordinal ever registered, so no identity from before this call can ever
     //    resolve again. Rewinding it to zero would make a stale identity name a fresh slot silently.
-    ++IssuedGeneration;
+    ++RegisteredGeneration;
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < EnrolledSlots; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < RegisteredSlots; ++Ordinal)
     {
         Generations[Ordinal] = 0u;
         Poses[Ordinal]       = ControlPose{};
     }
 
-    EnrolledSlots    = 0u;
+    RegisteredSlots    = 0u;
     DisclosedControl = {};
 
     Abandon();

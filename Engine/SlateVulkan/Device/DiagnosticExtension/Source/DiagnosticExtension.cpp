@@ -23,19 +23,19 @@ Outcome<bool> DiagnosticExtension::Construct(const VulkanExchange&  Exchange,
 
     InstanceEdge = &Exchange;
 
-    const VkInstance Standing = Exchange.Instance();
+    const VkInstance Current = Exchange.Instance();
 
     // 📝 🔴 Resolved through the loader rather than linked. The capability is optional by declaration, so a
     //    loader that does not carry it has no symbol to link against — and a link-time reference makes the
     //    executable unloadable on that machine rather than merely undiagnosable.
     SinkConstruction = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(Standing, "vkCreateDebugUtilsMessengerEXT"));
+        vkGetInstanceProcAddr(Current, "vkCreateDebugUtilsMessengerEXT"));
 
     SinkReclamation = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(Standing, "vkDestroyDebugUtilsMessengerEXT"));
+        vkGetInstanceProcAddr(Current, "vkDestroyDebugUtilsMessengerEXT"));
 
     NameDeclaration = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
-        vkGetInstanceProcAddr(Standing, "vkSetDebugUtilsObjectNameEXT"));
+        vkGetInstanceProcAddr(Current, "vkSetDebugUtilsObjectNameEXT"));
 
     // 📝 The naming entry point is resolved but not required. A loader carrying the sink and not the naming is
     //    not a configuration Slate has met, and refusing over it would discard the diagnostic text as well.
@@ -66,11 +66,11 @@ Outcome<bool> DiagnosticExtension::Construct(const VulkanExchange&  Exchange,
     SinkDeclaration.pfnUserCallback = &DiagnosticExtension::Arrival;
     SinkDeclaration.pUserData       = &Forwarded;
 
-    if (SinkConstruction(Standing, &SinkDeclaration, nullptr, &DiagnosticSink) != VK_SUCCESS)
+    if (SinkConstruction(Current, &SinkDeclaration, nullptr, &DiagnosticSink) != VK_SUCCESS)
     {
         DiagnosticSink = VK_NULL_HANDLE;
         Reclaim();
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the driver declined the diagnostic sink" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the driver rejected the diagnostic sink" });
     }
 
     CapabilityHeld = true;
@@ -84,7 +84,7 @@ Outcome<bool> DiagnosticExtension::Construct(const VulkanExchange&  Exchange,
 
 VkBool32 DiagnosticExtension::Arrival(VkDebugUtilsMessageSeverityFlagBitsEXT       Severity,
                                       VkDebugUtilsMessageTypeFlagsEXT              Reported,
-                                      const VkDebugUtilsMessengerCallbackDataEXT*  Arriving,
+                                      const VkDebugUtilsMessengerCallbackDataEXT*  Incoming,
                                       void*                                        Forwarding)
 {
     (void)Severity;
@@ -92,21 +92,21 @@ VkBool32 DiagnosticExtension::Arrival(VkDebugUtilsMessageSeverityFlagBitsEXT    
 
     ArrivalForwarding* Destination = static_cast<ArrivalForwarding*>(Forwarding);
 
-    if (Destination == nullptr || Destination->Register == nullptr || Arriving == nullptr)
+    if (Destination == nullptr || Destination->Register == nullptr || Incoming == nullptr)
         return VK_FALSE;
 
     ++Destination->Arrivals;
 
     ReportSpecification Appended;
     Appended.Origin  = "06 §6 DiagnosticExtension";
-    Appended.Subject = (Arriving->pMessageIdName != nullptr) ? Arriving->pMessageIdName : "the vendor";
+    Appended.Subject = (Incoming->pMessageIdName != nullptr) ? Incoming->pMessageIdName : "the vendor";
 
     // 🔴 Both subscribed severities arrive as `Failed`, and the severity is therefore read by nothing. An
     //    error and a validation warning are each a defect in Slate's own use of the vendor rather than normal
-    //    operation, and `ReportSequence` declares no disposition for "warning". `86` §5 decides which of the
-    //    register's contents is presented as a problem; softening a warning to a milder disposition here would
+    //    operation, and `ReportSequence` declares no verdict for "warning". `86` §5 decides which of the
+    //    register's contents is presented as a problem; softening a warning to a milder verdict here would
     //    have taken that decision on `86`'s behalf, one layer below where it is declared.
-    Appended.Disposition = ReportDisposition::Failed;
+    Appended.Verdict = ReportVerdict::Failed;
 
     // 🔴 The driver's text is appended **verbatim** and never summarised. `86` §4.1 presents a reason as its
     //    origin declared it, and a validation message rewritten here is one whose vendor documentation the
@@ -116,8 +116,8 @@ VkBool32 DiagnosticExtension::Arrival(VkDebugUtilsMessageSeverityFlagBitsEXT    
     //    alternative is an allocation on whichever thread the driver was executing on, which `86` §3.1
     //    forbids outright. What survives the call is the identifier and the ordinal; the text is read by a
     //    presenter attached to the same run, which is when it is still standing.
-    Appended.Detail         = (Arriving->pMessage != nullptr) ? Arriving->pMessage : "";
-    Appended.SubjectOrdinal = static_cast<std::uint64_t>(Arriving->messageIdNumber);
+    Appended.Detail         = (Incoming->pMessage != nullptr) ? Incoming->pMessage : "";
+    Appended.SubjectOrdinal = static_cast<std::uint64_t>(Incoming->messageIdNumber);
 
     if (Destination->Timeline != nullptr)
         Appended.Arrival = Destination->Timeline->Advance();
@@ -136,7 +136,7 @@ VkBool32 DiagnosticExtension::Arrival(VkDebugUtilsMessageSeverityFlagBitsEXT    
 
 Outcome<bool> DiagnosticExtension::Declare(VkObjectType Subject, std::uint64_t VendorHandle, const char* DeclaredName) const
 {
-    // 📝 Delivered rather than refused when nothing negotiated the capability. Every claim site names its
+    // 📝 Delivered rather than rejected when nothing negotiated the capability. Every claim site names its
     //    objects unconditionally, and a refusal here would make each of them branch on the configuration to
     //    discard a refusal it already expected.
     if (!CapabilityHeld || NameDeclaration == nullptr)
@@ -148,14 +148,14 @@ Outcome<bool> DiagnosticExtension::Declare(VkObjectType Subject, std::uint64_t V
     if (VendorHandle == 0u || DeclaredName == nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no object or no name was declared" });
 
-    VkDebugUtilsObjectNameInfoEXT NameArriving = {};
-    NameArriving.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-    NameArriving.objectType   = Subject;
-    NameArriving.objectHandle = VendorHandle;
-    NameArriving.pObjectName  = DeclaredName;
+    VkDebugUtilsObjectNameInfoEXT ObjectName = {};
+    ObjectName.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    ObjectName.objectType   = Subject;
+    ObjectName.objectHandle = VendorHandle;
+    ObjectName.pObjectName  = DeclaredName;
 
-    if (NameDeclaration(InstanceEdge->ActiveDevice(), &NameArriving) != VK_SUCCESS)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the driver declined the object name" });
+    if (NameDeclaration(InstanceEdge->ActiveDevice(), &ObjectName) != VK_SUCCESS)
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the driver rejected the object name" });
 
     return Outcome<bool>::Result(true);
 }
@@ -179,7 +179,7 @@ Outcome<bool> DiagnosticExtension::Declare(VkObjectType   Subject,
 
     const int Composed = std::snprintf(ComposedName, sizeof(ComposedName), "%s %u", DeclaredPrefix, Ordinal);
 
-    // 🔴 A truncated name is refused rather than declared. Two objects whose prefixes agree for the first
+    // 🔴 A truncated name is rejected rather than declared. Two objects whose prefixes agree for the first
     //    hundred and twenty-seven characters would carry one name between them, and the driver's text would
     //    then attribute one object's error to the other — which is worse than no name at all.
     if (Composed < 0 || static_cast<std::size_t>(Composed) >= sizeof(ComposedName))

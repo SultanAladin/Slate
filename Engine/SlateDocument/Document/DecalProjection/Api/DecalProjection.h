@@ -62,11 +62,11 @@ enum class PlacedSource : std::uint32_t
 /// 🧩 One placed source and everything `72` §1 declares about it.
 /// note  🔴 `PlacingTransform` is stored **relative to the surface the placement is attached to**, never in
 ///        document space. `00` §10.1 ②'s first two rows depend on it entirely: a camera move re-resolves nothing
-///        and an occupant move re-resolves nothing, because neither changes a transform expressed against the
+///        and an owner move re-resolves nothing, because neither changes a transform expressed against the
 ///        surface. Stored absolutely, both rows become "re-resolve everything" and the invalidation table
 ///        degenerates into a list of things that always change.
 /// note  🔴 `RevisionCounter` is advanced by `00` §10.1 ②'s **third row alone** — the placing transform changing
-///        relative to the surface, or the source being replaced. It is not advanced by the occupant moving, by
+///        relative to the surface, or the source being replaced. It is not advanced by the owner moving, by
 ///        the camera moving, or by a promotion. `70` §2 compares it as one integer per tile, and the comparison's
 ///        answer is almost always "no work" precisely because the counter is this quiet.
 /// note  ⚠️ The channel mask is `42`'s channel ordinals as bits, matching `56`'s `LayerSpecification`. A logo
@@ -79,13 +79,13 @@ struct PlacementSpecification
     std::uint32_t         SourceOrdinal       = 0u;                            // [-]  - into `52`, `50` or `54`
     PlacementMode         Mode                = PlacementMode::DomainPlaced;   // [-]
     DecomposedTransform   PlacingTransform    = {};                            // [-]  - relative to the surface
-    OccupantIdentity      Occupant            = {};                            // [-]  - what it is attached to
+    OwnerIdentity      Owner            = {};                            // [-]  - what it is attached to
     std::uint32_t         ChannelMask         = 0u;                            // [-]  - one bit per `42` channel
     CombineSpecification  Combination         = CombineSpecification::Over;    // [-]  - `22` §3's, unamended
-    double                ProjectedHalfAlong  = 0.5;                           // [mm] - Projected; the volume's half extent
-    double                ProjectedHalfAcross = 0.5;                           // [mm]
+    double                ProjectedHalfX  = 0.5;                           // [mm] - Projected; the volume's half extent
+    double                ProjectedHalfY = 0.5;                           // [mm]
     double                ProjectedReach      = 1000.0;                        // [mm] - Projected; how far it reaches
-    bool                  BackFacingAdmitted  = false;                         // [-]  - 🚧 `72` §6's open row
+    bool                  BackFacingAccepted  = false;                         // [-]  - 🚧 `72` §6's open row
     std::uint64_t         RevisionCounter     = 1u;                            // [-]  - `00` §10.1 ② row three only
 };
 
@@ -103,7 +103,7 @@ constexpr bool PlacementWritesChannel(const PlacementSpecification& Placed, std:
 
 /// 🧩 Derives the domain extent one placement covers on a surface.
 /// in    Placed            [-]   the placement
-/// in    PlacementOrdinal  [-]   an ordinal `PlacementIndex` issued; carried into the extent
+/// in    PlacementOrdinal  [-]   an ordinal `PlacementIndex` registered; carried into the extent
 /// in    SequenceOrdinal   [-]   the placement's position in `56`'s sequence — `00` §10.1 ③'s one ordinal
 /// in    Imported          [-]   the sealed topology the surface carries
 /// in    CornerCoordinates [-]   one domain coordinate per imported corner
@@ -120,7 +120,7 @@ constexpr bool PlacementWritesChannel(const PlacementSpecification& Placed, std:
 /// note  ⚠️ The derived extent is conservative **outward**, matching `38` §6 and `40` §6. An inward-rounded
 ///        extent means `74` §3's precedence-1 test misses along one edge of the placement, and the artist meets
 ///        it as a decal whose border cannot be clicked.
-/// note  ⚠️ 🚧 A projected placement admits or refuses back-facing corners by its own declaration, and `72` §6
+/// note  ⚠️ 🚧 A projected placement accepts or refuses back-facing corners by its own declaration, and `72` §6
 ///        carries what the right rule is as open. Refusing is the conservative reading — a decal projected onto
 ///        a shoulder should not also appear on the far side of the arm — and it is what the default declares.
 /// cost  🔴
@@ -137,10 +137,10 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 
 /// 🧩 Carries one domain position into a placement's own source space.
 /// in    Placed          [-]  the placement
-/// in    PositionAlong   [-]  the domain's first axis
-/// in    PositionAcross  [-]  its second
-/// out   SourceAlong     [-]  the position in the source's own unit square
-/// out   SourceAcross    [-]
+/// in    PositionX   [-]  the domain's first axis
+/// in    PositionY  [-]  its second
+/// out   SourceX     [-]  the position in the source's own unit square
+/// out   SourceY    [-]
 /// out   Covered         [-]  false where the position lies outside the source's unit square
 /// note  🔴 This is the whole of `70` §3's placement row. A placement is **not** a fourth resolution mechanism;
 ///        it is a transform into a source space, and the source is then one of the other three. That is why text,
@@ -152,10 +152,10 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 bool ProjectIntoSource(const PlacementSpecification& Placed,
-                       double                        PositionAlong,
-                       double                        PositionAcross,
-                       double&                       SourceAlong,
-                       double&                       SourceAcross);
+                       double                        PositionX,
+                       double                        PositionY,
+                       double&                       SourceX,
+                       double&                       SourceY);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE PLACEMENTS
@@ -177,7 +177,7 @@ class PlacementIndex
 public:
 
     /// 🧩 Declares one placement and issues the ordinal `56` refers to it by.
-    /// out   Result  [-]  refuses with IdentityStale for an undeclared occupant, with ContentUnsupported for a
+    /// out   Result  [-]  refuses with IdentityStale for an undeclared owner, with ContentUnsupported for a
     ///                     source outside the declared set or a projected volume of no extent, and with
     ///                     ExtentExhausted at the declared ceiling
     /// cost  🚩
@@ -185,7 +185,7 @@ public:
     Outcome<std::uint32_t> Declare(const PlacementSpecification& Declaring);
 
     /// 🧩 Amends one placement, advancing its revision only where `00` §10.1 ② requires it.
-    /// in    PlacementOrdinal  [-]  an ordinal this component issued
+    /// in    PlacementOrdinal  [-]  an ordinal this component registered
     /// in    Amending          [-]  the amended specification
     /// out   Result           [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// note  🔴 The revision advances when the placing transform, the source or the channel mask changed, and
@@ -204,7 +204,7 @@ public:
 
     /// 🧩 Withdraws one placement, returning its slot for reuse.
     /// note  🔴 Called from `12` §12's retirement cascade, inside that cascade's single transaction. A placement
-    ///        is enclosed under the occupant it is attached to — `00` §10.1 ③ — so it retires with that occupant
+    ///        is enclosed under the owner it is attached to — `00` §10.1 ③ — so it retires with that owner
     ///        rather than surviving it as an orphaned reference `56` still names.
     /// cost  ✔️
     /// tag   api, nonthrowing
@@ -260,13 +260,13 @@ public:
 
     /// 🧩 Opens a positioning drag against a declared placement.
     /// in    PlacementOrdinal  [-]  the placement being positioned
-    /// in    Standing          [-]  its specification as it stands; restored by Abandon
+    /// in    Current          [-]  its specification as it stands; restored by Abandon
     /// in    CameraFollowed    [-]  true for the screen gesture, false for a domain or projected drag
     /// out   Result           [-]  refuses with HostDenied when a drag is already open
     /// post  nothing is recorded; the placement stands unamended until Seal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Open(std::uint32_t PlacementOrdinal, const PlacementSpecification& Standing, bool CameraFollowed);
+    Outcome<bool> Open(std::uint32_t PlacementOrdinal, const PlacementSpecification& Current, bool CameraFollowed);
 
     /// 🧩 Amends the open drag's placing transform.
     /// out   Result  [-]  refuses with HostDenied when no drag is open

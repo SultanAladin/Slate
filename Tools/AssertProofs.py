@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""AssertProofs — the seated-ink gate over every VisualProof shot.
+"""AssertProofs — the applied-ink gate over every VisualProof shot.
 
 Usage: python3 Tools/AssertProofs.py
 Every assertion below was verified by hand against the reference sheets; the gate
-fails loudly if a panel drifts from its seated ink.
+fails loudly if a panel drifts from its applied ink.
 """
 
 import sys
@@ -76,14 +76,14 @@ GATES = [
         (600, 300, 0x0D0D0D, 4, "channel blending row"),
         (600, 700, 0x0D0D0D, 4, "revisions row"),
     ]),
-    # ⑩ A row roused — the hover ink must differ from both quiet and taken.
+    # ⑩ A row hovered — the hover ink must differ from both quiet and taken.
     ("VisualProof/InterfaceValidationHost/layerstackhovered.png", [
-        (200, 255, 0x161616, 4, "roused mask row (--row-h)"),
+        (200, 255, 0x161616, 4, "hovered mask row (--row-h)"),
         (200, 110, 0x0D0D0D, 4, "unroused row stays quiet"),
     ]),
     # ⑪ A press-and-release takes the row it landed on, and releases the previous one.
     ("VisualProof/InterfaceValidationHost/layerstacktaken.png", [
-        (200, 300, 0x303030, 8, "newly taken row, roused and taken together"),
+        (200, 300, 0x303030, 8, "newly taken row, hovered and taken together"),
         (200, 480, 0x0D0D0D, 4, "the previously taken row released"),
     ]),
     # ⑫ Taking a mask row swaps the inspector's second slide to the mask panel.
@@ -96,12 +96,12 @@ GATES = [
     ]),
     # ⑭ The blend run, flipped above its anchor because it does not fit below.
     ("VisualProof/InterfaceValidationHost/layerstackblendmenu.png", [
-        (110, 700, 0x0A0A0A, 4, "blend popup ground, seated above the footer pill"),
+        (110, 700, 0x0A0A0A, 4, "blend popup ground, applied above the footer pill"),
     ]),
     # ⑮ The wheel: a live hue ring, and the entry's own tag in the preview.
     ("VisualProof/InterfaceValidationHost/layerstackcolourwheel.png", [
         (270, 290, 0x9748E5, 20, "hue ring, violet quadrant"),
-        (190, 465, 0xE5484D, 8, "preview carries the entry's seated colour tag"),
+        (190, 465, 0xE5484D, 8, "preview carries the entry's applied colour tag"),
     ]),
     # ⑯ A carry in flight — the carried row dims and the drop rule stands.
     ("VisualProof/InterfaceValidationHost/layerstackcarried.png", [
@@ -122,7 +122,7 @@ GATES = [
     #     standing unbroken through the gap between two cards.
     ("VisualProof/InterfaceValidationHost/revisions.png", [
         ( 16, 100, 0xFFFFFF, 6, "ordinal-zero medallion, carried in the accent"),
-        ( 39,  99, 0xFFFFFF, 6, "the node seated on the spine, 19px into the first card"),
+        ( 39,  99, 0xFFFFFF, 6, "the node applied on the spine, 19px into the first card"),
         ( 39, 130, 0x1E1E1E, 6, "the spine, unbroken across the gap between two cards"),
         (200, 110, 0x0D0D0D, 5, "a card at rest, on the row ground"),
     ]),
@@ -160,7 +160,7 @@ GATES = [
     # ㉒ The whole run folded shut at the head, which must record nothing beneath the head at all.
     ("VisualProof/InterfaceValidationHost/revisionsfolded.png", [
         (200, 201, 0x050505, 3, "bare panel ground where the folded run records nothing"),
-        (200,  16, 0x161616, 6, "the head, roused under the pointer that folded it"),
+        (200,  16, 0x161616, 6, "the head, hovered under the pointer that folded it"),
     ]),
 ]
 
@@ -170,17 +170,17 @@ def Main():
     Total = 0
     for Path, Probes in GATES:
         Width, Height, Pixels = Decode(Path)
-        for Along, Across, Expected, Tolerance, Label in Probes:
+        for X, Y, Expected, Tolerance, Label in Probes:
             Total += 1
-            Red, Green, Blue, _ = Sample(Pixels, Width, Along, Across)
+            Red, Green, Blue, _ = Sample(Pixels, Width, X, Y)
             Passed = (abs(Red - ((Expected >> 16) & 0xFF)) <= Tolerance and
                       abs(Green - ((Expected >> 8) & 0xFF)) <= Tolerance and
                       abs(Blue - (Expected & 0xFF)) <= Tolerance)
             if not Passed:
                 Failures += 1
                 Got = (Red << 16) | (Green << 8) | Blue
-                print(f"  [FAIL] {Path} ({Along},{Across}) {Label}: want #{Expected:06x} got #{Got:06x}")
-    print(f"AssertProofs: {Total - Failures}/{Total} seated inks stand")
+                print(f"  [FAIL] {Path} ({X},{Y}) {Label}: want #{Expected:06x} got #{Got:06x}")
+    print(f"AssertProofs: {Total - Failures}/{Total} applied inks stand")
     raise SystemExit(1 if Failures else 0)
 
 

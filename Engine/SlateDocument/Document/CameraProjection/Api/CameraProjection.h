@@ -146,8 +146,8 @@ public:
     void Construct(const ViewProjection& Projected);
 
     /// 🧩 Classifies one document-space extent against the frustum.
-    /// in    Least      [mm]  the extent's lower corner, in document space
-    /// in    Greatest   [mm]  its upper corner
+    /// in    Minimum      [mm]  the extent's lower corner, in document space
+    /// in    Maximum   [mm]  its upper corner
     /// out   Overlap    [-]   +1 wholly inside, 0 straddling a plane, −1 wholly outside
     /// note  🔴 The extent is rebased at 64-bit before it is narrowed — `02` §3.2 — so an extent a billion
     ///        millimetres from the document origin classifies against the camera rather than against the origin.
@@ -156,7 +156,7 @@ public:
     ///        straddling; the remaining six carry no additional fact.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::int32_t Classify(DocumentPosition Least, DocumentPosition Greatest) const;
+    std::int32_t Classify(DocumentPosition Minimum, DocumentPosition Maximum) const;
 
     /// 🧩 Whether one document-space position lies inside every plane.
     /// cost  ✔️
@@ -214,15 +214,15 @@ public:
     /// out   Result  [-]  refuses with HostDenied when a gesture is already open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Open(NavigationSubject Declaring, const CameraSpecification& Standing);
+    Outcome<bool> Open(NavigationSubject Declaring, const CameraSpecification& Current);
 
     /// 🧩 Amends the open gesture by one pointer displacement.
-    /// in    DisplacementAlong   [px]  horizontal displacement since the last amendment
-    /// in    DisplacementAcross  [px]  vertical displacement since the last amendment
+    /// in    DisplacementX   [px]  horizontal displacement since the last amendment
+    /// in    DisplacementY  [px]  vertical displacement since the last amendment
     /// out   Result             [-]   refuses with HostDenied when no gesture is open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Amend(double DisplacementAlong, double DisplacementAcross);
+    Outcome<bool> Amend(double DisplacementX, double DisplacementY);
 
     /// 🧩 Ends the gesture with no effect, returning the prior specification.
     /// out   Result  [-]  refuses with HostDenied when no gesture is open
@@ -259,9 +259,9 @@ private:
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Produces a placement containing one document-space extent.
-/// in    Standing  [-]   the camera whose projection and rotation are kept
-/// in    Least     [mm]  the extent's lower corner
-/// in    Greatest  [mm]  its upper corner
+/// in    Current  [-]   the camera whose projection and rotation are kept
+/// in    Minimum     [mm]  the extent's lower corner
+/// in    Maximum  [mm]  its upper corner
 /// out   Result   [-]   refuses with ContentUnsupported for an inverted extent or an invalid projection
 /// note  🔴 The **placement only** is produced. The projection's extent parameter is left as the artist set it,
 ///        because framing that also changed the field would be framing that changed the composition.
@@ -272,20 +272,20 @@ private:
 ///        the extent is contained on both axes rather than on whichever happens to be wider.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Outcome<DecomposedTransform> Frame(const CameraSpecification& Standing,
-                                   DocumentPosition           Least,
-                                   DocumentPosition           Greatest);
+Outcome<DecomposedTransform> Frame(const CameraSpecification& Current,
+                                   DocumentPosition           Minimum,
+                                   DocumentPosition           Maximum);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE CAMERA
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 One camera occupant — its specification, and the two derivations reconciled from it.
-/// note  🔴 A camera is an **occupant of the document population**. It enrols in `12`, appears in the outliner,
+/// 🧩 One camera owner — its specification, and the two derivations reconciled from it.
+/// note  🔴 A camera is an **owner of the document population**. It registers in `12`, appears in the outliner,
 ///        attaches through `AttachmentFollows` and is manipulated by `78`. A camera held outside the population
 ///        is one the artist cannot select, name, group, attach or undo.
-/// note  🔴 Being an occupant does not make a camera shaded. It writes no `VisibilityIndex`, exactly as `44`'s
+/// note  🔴 Being an owner does not make a camera shaded. It writes no `VisibilityIndex`, exactly as `44`'s
 ///        illuminants do not; its presence in the workspace is an `80` overlay at `08` §3 ⑩.
 /// note  ⚠️ `Reconcile` is the only writer of the two derivations, and it is owed after every amendment. A
 ///        consumer reading the frustum without it reads the frustum of the camera as it stood last tick, which is
@@ -295,11 +295,11 @@ class CameraProjection
 {
 public:
 
-    /// 🧩 Declares which occupant this camera is, and its initial specification.
+    /// 🧩 Declares which owner this camera is, and its initial specification.
     /// out   Result  [-]  refuses with IdentityStale for an undeclared identity
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Declare(OccupantIdentity Subject, const CameraSpecification& Declaring);
+    Outcome<bool> Declare(OwnerIdentity Subject, const CameraSpecification& Declaring);
 
     /// 🧩 Amends the specification, leaving the derivations owed.
     /// out   Result  [-]  refuses with IdentityStale before Declare has delivered
@@ -326,10 +326,10 @@ public:
     const ViewProjection&       Projected() const;
     const FrustumSpace&         Frustum() const;
 
-    /// 🧩 Which occupant this camera is.
+    /// 🧩 Which owner this camera is.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    OccupantIdentity Occupant() const;
+    OwnerIdentity Owner() const;
 
     /// 🧩 The authored exposure `66` §2 reads.
     /// cost  ✔️
@@ -346,7 +346,7 @@ private:
     CameraSpecification  Specification   = {};      // [-] - as declared and amended
     ViewProjection       DerivedView     = {};      // [-] - Reconcile writes it
     FrustumSpace         DerivedFrustum  = {};      // [-] - Reconcile writes it
-    OccupantIdentity     CameraOccupant  = {};      // [-] - the population slot
+    OwnerIdentity     CameraOwner  = {};      // [-] - the population slot
     bool                 ReconcileOwed   = true;    // [-] - an amendment stands unabsorbed
 };
 

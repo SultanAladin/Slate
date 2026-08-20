@@ -55,14 +55,14 @@ std::uint32_t OccupancyIndex::SpannedCount() const
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<OccupantIdentity> PopulationIndex::Enrol()
+Outcome<OwnerIdentity> PopulationIndex::Register()
 {
     std::uint32_t SlotOrdinal = 0u;
 
     if (!ReleasedOrdinals.empty())
     {
         // 📝 A released slot is reused with its generation already advanced by Withdraw, so the identity
-        //    issued here can never equal one issued for the slot's previous occupant.
+        //    registered here can never equal one registered for the slot's previous owner.
         SlotOrdinal = ReleasedOrdinals.back();
         ReleasedOrdinals.pop_back();
     }
@@ -70,7 +70,7 @@ Outcome<OccupantIdentity> PopulationIndex::Enrol()
     {
         if (SlotGenerations.size() >= PopulationCeiling)
         {
-            return Outcome<OccupantIdentity>::Refuse(
+            return Outcome<OwnerIdentity>::Refuse(
                 { RefusalReason::ExtentExhausted, "the population reached its declared ceiling" });
         }
 
@@ -81,18 +81,18 @@ Outcome<OccupantIdentity> PopulationIndex::Enrol()
     Occupancy.Occupy(SlotOrdinal);
     ++OccupiedCount;
 
-    OccupantIdentity Issued;
-    Issued.SlotOrdinal    = SlotOrdinal;
-    Issued.SlotGeneration = SlotGenerations[SlotOrdinal];
+    OwnerIdentity Registered;
+    Registered.SlotOrdinal    = SlotOrdinal;
+    Registered.SlotGeneration = SlotGenerations[SlotOrdinal];
 
-    return Outcome<OccupantIdentity>::Result(Issued);
+    return Outcome<OwnerIdentity>::Result(Registered);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
+Outcome<bool> PopulationIndex::Withdraw(OwnerIdentity Subject)
 {
     if (!Resolve(Subject))
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the identity no longer resolves" });
@@ -113,7 +113,7 @@ Outcome<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
 //                                                      RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-bool PopulationIndex::Resolve(OccupantIdentity Subject) const
+bool PopulationIndex::Resolve(OwnerIdentity Subject) const
 {
     if (!Subject.IdentityDeclared())
         return false;
@@ -127,7 +127,7 @@ bool PopulationIndex::Resolve(OccupantIdentity Subject) const
     return SlotGenerations[Subject.SlotOrdinal] == Subject.SlotGeneration;
 }
 
-std::uint32_t PopulationIndex::EnrolledCount() const
+std::uint32_t PopulationIndex::RegisteredCount() const
 {
     return OccupiedCount;
 }

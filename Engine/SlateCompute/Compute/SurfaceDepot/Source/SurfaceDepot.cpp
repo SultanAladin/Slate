@@ -52,7 +52,7 @@ Outcome<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
     }
 
     // 📝 A re-declaration of the same key replaces what stood. Two artefacts under one key would both be
-    //    resolvable and the resolution would take whichever was admitted first, which is the older of the two.
+    //    resolvable and the resolution would take whichever was accepted first, which is the older of the two.
     for (std::size_t Ordinal = 0u; Ordinal < Held.size(); ++Ordinal)
     {
         if (!KeysAgree(Held[Ordinal].Keyed, Keyed))
@@ -66,13 +66,13 @@ Outcome<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
     if (Occupied + ByteExtent > Ceiling)
         Evict((Occupied + ByteExtent) - Ceiling);
 
-    DepotArtefact Admitting;
-    Admitting.Keyed      = Keyed;
-    Admitting.Source     = Source;
-    Admitting.ByteExtent = ByteExtent;
-    Admitting.ResolvedAt = RecordingOrdinal;
+    DepotArtefact Accepting;
+    Accepting.Keyed      = Keyed;
+    Accepting.Source     = Source;
+    Accepting.ByteExtent = ByteExtent;
+    Accepting.ResolvedAt = RecordingOrdinal;
 
-    Held.push_back(Admitting);
+    Held.push_back(Accepting);
     Occupied += ByteExtent;
 
     return Outcome<bool>::Result(true);
@@ -84,18 +84,18 @@ Outcome<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
 
 Outcome<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal)
 {
-    for (DepotArtefact& Standing : Held)
+    for (DepotArtefact& Current : Held)
     {
-        if (!KeysAgree(Standing.Keyed, Keyed))
+        if (!KeysAgree(Current.Keyed, Keyed))
             continue;
 
         // 📝 Marked here rather than by a separate call, because an artefact resolved and not marked is one the
         //    eviction ordering believes is unused — and the tile being promoted from it right now is the one
         //    that gets evicted.
-        Standing.ResolvedAt = RecordingOrdinal;
+        Current.ResolvedAt = RecordingOrdinal;
         ++ResolvedTotal;
 
-        return Outcome<DepotArtefact>::Result(Standing);
+        return Outcome<DepotArtefact>::Result(Current);
     }
 
     return Outcome<DepotArtefact>::Refuse({ RefusalReason::ExtentExhausted, "nothing is held under that key" });
@@ -112,7 +112,7 @@ std::uint32_t SurfaceDepot::Evict(std::uint64_t ByteExtent)
 
     while (Freed < ByteExtent && !Held.empty())
     {
-        // 📝 Least recently resolved. An artefact resolved this rotation is one a promotion is reading now, and
+        // 📝 Minimum recently resolved. An artefact resolved this rotation is one a promotion is reading now, and
         //    evicting it to make room for the promotion that is reading it is the one ordering that cannot work.
         std::size_t Oldest = 0u;
 
@@ -171,12 +171,12 @@ bool SurfaceDepot::DepotConsistent() const
 {
     std::uint64_t Accumulated = 0u;
 
-    for (const DepotArtefact& Standing : Held)
+    for (const DepotArtefact& Current : Held)
     {
-        if (!SourceReconstructible(Standing.Source))
+        if (!SourceReconstructible(Current.Source))
             return false;
 
-        Accumulated += Standing.ByteExtent;
+        Accumulated += Current.ByteExtent;
     }
 
     return Accumulated == Occupied && Occupied <= Ceiling;

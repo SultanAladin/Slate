@@ -20,19 +20,19 @@ namespace Slate
 /// tag   contract, nonallocating, nonthrowing
 struct PixelSpace
 {
-    std::uint32_t           AlongExtent  = 0u;    // [px]
-    std::uint32_t           AcrossExtent = 0u;    // [px]
-    std::vector<std::uint8_t> Ordinates;          // [-] - RGBA, tightly packed row-major
+    std::uint32_t           XExtent  = 0u;    // [px]
+    std::uint32_t           YExtent = 0u;    // [px]
+    std::vector<std::uint8_t> Configuration;          // [-] - RGBA, tightly packed row-major
 };
 
-/// 🧩 One seated picture the codec resolves identities against — a depot glyph.
+/// 🧩 One applied picture the codec resolves identities against — a depot glyph.
 /// tag   contract, nonallocating, nonthrowing
 struct PictureDeclaration
 {
     void*            Identity     = nullptr;   // [-] - the vendor picture identity
-    std::uint32_t    AlongExtent  = 0u;        // [px]
-    std::uint32_t    AcrossExtent = 0u;        // [px]
-    const std::uint8_t* Ordinates = nullptr;   // [-] - borrowed RGBA
+    std::uint32_t    XExtent  = 0u;        // [px]
+    std::uint32_t    YExtent = 0u;        // [px]
+    const std::uint8_t* Configuration = nullptr;   // [-] - borrowed RGBA
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -49,17 +49,17 @@ public:
 
     static constexpr std::uint32_t RawMarkerExtent = 16u;   // [B] - the raw dump marker extent
 
-    /// 🧩 Seats the picture identities the codec resolves. Call before the first tick.
+    /// 🧩 Applies the picture identities the codec resolves. Call before the first tick.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void SeatPicture(const PictureDeclaration& Declared)   { Seated.push_back(Declared); }
+    void ApplyPicture(const PictureDeclaration& Declared)   { Applied.push_back(Declared); }
 
     /// 🧩 Resolves the vendored typeface atlas identity against the atlas the context holds.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> SeatAtlas(void* Identity);
+    Outcome<bool> ApplyAtlas(void* Identity);
 
-    /// 🧩 Translates one tick's recorded draw data into the seated pixel extent.
+    /// 🧩 Translates one tick's recorded draw data into the applied pixel extent.
     /// in    RecordedDrawData  [-]  borrowed; the vendor draw data of the tick
     /// cost  🚩
     /// tag   api, nonthrowing
@@ -79,11 +79,11 @@ public:
 
 private:
 
-    std::vector<PictureDeclaration>  Seated;          // [-] - identity → picture
-    void*                            AtlasSeat = nullptr;   // [-] - the typeface atlas identity
+    std::vector<PictureDeclaration>  Applied;          // [-] - identity → picture
+    void*                            AtlasIdentity = nullptr;   // [-] - the typeface atlas identity
     std::vector<std::uint8_t>        AtlasData;        // [-] - the atlas RGBA, resolved once
-    std::uint32_t                    AtlasAlongExtent = 0u; // [px]
-    std::uint32_t                    AtlasAcrossExtent = 0u;   // [px]
+    std::uint32_t                    AtlasXExtent = 0u; // [px]
+    std::uint32_t                    AtlasYExtent = 0u;   // [px]
 };
 
 }   // namespace Slate

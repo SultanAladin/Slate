@@ -17,7 +17,7 @@ Outcome<std::uint32_t> ToolIndex::Declare(const ToolSpecification& Declaring)
     if (Declaring.Identity.empty())
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a tool declares no identity" });
 
-    if (Declaring.Claimed  == PointerPrecedence::PrecedenceCount
+    if (Declaring.Reserved  == PointerPrecedence::PrecedenceCount
      || Declaring.Previewed == PreviewSubject::PreviewCount
      || Declaring.Recorded  == TransactionSubject::SubjectCount)
     {
@@ -25,7 +25,7 @@ Outcome<std::uint32_t> ToolIndex::Declare(const ToolSpecification& Declaring)
             { RefusalReason::ContentUnsupported, "no such precedence, preview or transaction shape" });
     }
 
-    // 📝 A repeated identity is refused rather than replacing the standing declaration. `Located` below resolves
+    // 📝 A repeated identity is rejected rather than replacing the standing declaration. `Located` below resolves
     //    by identity, and two tools sharing one would make the resolution answer whichever was declared first —
     //    which is a tool the artist activates and does not get.
     for (const ToolSpecification& Held : Declared)
@@ -110,7 +110,7 @@ Outcome<bool> ToolSequence::DeclareBrush(std::uint32_t BrushOrdinal_)
 
 Outcome<bool> ToolSequence::DeclareColour(const ColourSpecification& Declaring)
 {
-    // 🔴 `36` §1: a colour without its space is refused rather than assumed to be in the working space. An
+    // 🔴 `36` §1: a colour without its space is rejected rather than assumed to be in the working space. An
     //    assumed space here is the defect `36` exists to prevent, placed where every stroke reads it.
     if (!Declaring.ColourDeclared())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the colour declares no space" });
@@ -125,7 +125,7 @@ Outcome<bool> ToolSequence::DeclareDisplay(DisplaySubject Declaring)
     if (Declaring == DisplaySubject::DisplayCount)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such display mode" });
 
-    PresentedDisplay = Declaring;
+    CurrentDisplay = Declaring;
 
     return Outcome<bool>::Result(true);
 }
@@ -135,7 +135,7 @@ Outcome<bool> ToolSequence::DeclareChannel(ChannelSubject Declaring)
     if (Declaring == ChannelSubject::ChannelCount)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such channel" });
 
-    PresentedChannel = Declaring;
+    CurrentChannel = Declaring;
 
     return Outcome<bool>::Result(true);
 }
@@ -161,8 +161,8 @@ PointerPrecedence ToolSequence::Arbitrate(bool InterfaceReported,
     // 🔴 A standing capture answers unconditionally. `14` §4.2: capture persists for the whole drag, so a drag
     //    that began on a manipulator handle continues to address that handle after the cursor leaves the
     //    workspace, and a stroke is not stolen by a panel it passes under.
-    if (StandingCapture.CaptureDeclared)
-        return StandingCapture.Holder;
+    if (CurrentCapture.CaptureDeclared)
+        return CurrentCapture.Holder;
 
     if (InterfaceReported)
         return PointerPrecedence::Interface;
@@ -176,30 +176,30 @@ PointerPrecedence ToolSequence::Arbitrate(bool InterfaceReported,
     return PointerPrecedence::Workspace;
 }
 
-Outcome<bool> ToolSequence::OpenCapture(PointerPrecedence Claiming, const ResolvedPointer& Opened)
+Outcome<bool> ToolSequence::OpenCapture(PointerPrecedence Precedence, const ResolvedPointer& Opened)
 {
-    if (Claiming == PointerPrecedence::PrecedenceCount)
+    if (Precedence == PointerPrecedence::PrecedenceCount)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such precedence" });
 
     // 🔴 A stronger claimant does **not** steal a standing capture. Arbitration happens once, before capture is
     //    taken; re-arbitrating mid-drag is the defect where a stroke stops the moment the cursor crosses a
     //    floating panel, and it is exactly the case `14` §4.2 declares against.
-    if (StandingCapture.CaptureDeclared)
+    if (CurrentCapture.CaptureDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "a capture already stands" });
 
-    StandingCapture.Holder          = Claiming;
-    StandingCapture.Opened          = Opened;
-    StandingCapture.CaptureDeclared = true;
+    CurrentCapture.Holder          = Precedence;
+    CurrentCapture.Opened          = Opened;
+    CurrentCapture.CaptureDeclared = true;
 
     return Outcome<bool>::Result(true);
 }
 
 Outcome<bool> ToolSequence::ReleaseCapture()
 {
-    if (!StandingCapture.CaptureDeclared)
+    if (!CurrentCapture.CaptureDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no capture stands" });
 
-    StandingCapture = PointerCapture{};
+    CurrentCapture = PointerCapture{};
 
     return Outcome<bool>::Result(true);
 }
@@ -209,7 +209,7 @@ Outcome<bool> ToolSequence::ReleaseCapture()
 //------------------------------------------------------------------------------------------------------------------------
 
 const ColourSpecification& ToolSequence::Colour() const  { return ActiveColour;    }
-const PointerCapture&      ToolSequence::Capture() const { return StandingCapture; }
+const PointerCapture&      ToolSequence::Capture() const { return CurrentCapture; }
 
 Outcome<const ToolSpecification*> ToolSequence::ActiveTool() const
 {
@@ -235,10 +235,10 @@ Outcome<const BrushSpecification*> ToolSequence::ActiveBrush() const
 
 std::uint32_t  ToolSequence::ActiveToolOrdinal() const  { return ToolOrdinal;      }
 std::uint32_t  ToolSequence::ActiveBrushOrdinal() const { return BrushOrdinal;     }
-DisplaySubject ToolSequence::Display() const            { return PresentedDisplay; }
-ChannelSubject ToolSequence::IsolatedChannel() const    { return PresentedChannel; }
+DisplaySubject ToolSequence::Display() const            { return CurrentDisplay; }
+ChannelSubject ToolSequence::IsolatedChannel() const    { return CurrentChannel; }
 
-bool ToolSequence::OverlayStanding(OverlaySubject Subject) const
+bool ToolSequence::OverlayActive(OverlaySubject Subject) const
 {
     return Subject != OverlaySubject::OverlayCount
         && OverlayPresent[static_cast<std::size_t>(Subject)];

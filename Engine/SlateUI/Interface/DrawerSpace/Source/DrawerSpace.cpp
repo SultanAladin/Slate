@@ -18,28 +18,28 @@ namespace
 {
 
 constexpr float  ClickMargin     = 12.0f;    // [px] - extra reach around the tongue and the grip
-constexpr float  GutterAcross    = 28.0f;    // [px] - the edge strip a withdrawn drawer is swiped in from
+constexpr float  GutterY    = 28.0f;    // [px] - the edge strip a withdrawn drawer is swiped in from
 constexpr float  ExtentTolerance = 0.5f;     // [px] - below this the display extent did not move
 
-/// 🧩 Admits travel beyond a constraint at the declared elasticity.
+/// 🧩 Accepts travel beyond a constraint at the declared elasticity.
 /// cost  ✔️
-double Constrain(double Ordinate, double Least, double Most, double Elasticity)
+double Constrain(double Coordinate, double Minimum, double Maximum, double Elasticity)
 {
-    if (Ordinate < Least)
-        return Least - (Least - Ordinate) * Elasticity;
+    if (Coordinate < Minimum)
+        return Minimum - (Minimum - Coordinate) * Elasticity;
 
-    if (Ordinate > Most)
-        return Most + (Ordinate - Most) * Elasticity;
+    if (Coordinate > Maximum)
+        return Maximum + (Coordinate - Maximum) * Elasticity;
 
-    return Ordinate;
+    return Coordinate;
 }
 
 /// 🧩 Expands an extent by the click margin on every side.
 /// cost  ✔️
 PlaneExtent Reach(const PlaneExtent& Exact)
 {
-    return PlaneExtent{ Exact.LeastAlong  - ClickMargin, Exact.LeastAcross - ClickMargin,
-                        Exact.MostAlong   + ClickMargin, Exact.MostAcross  + ClickMargin };
+    return PlaneExtent{ Exact.MinimumX  - ClickMargin, Exact.MinimumY - ClickMargin,
+                        Exact.MaximumX   + ClickMargin, Exact.MaximumY  + ClickMargin };
 }
 
 }   // namespace
@@ -52,47 +52,47 @@ Outcome<bool> DrawerSpace::Construct(MotionIntegrator&              Integrator,
                                      const ThemeProfile& Resolved,
                                      const DrawerDeclaration&       North,
                                      const DrawerDeclaration&       South,
-                                     const DisplayCondition&        Arrived)
+                                     const DisplayCondition&        Sampled)
 {
-    if (Arrived.ExtentAlong <= 0.0f || Arrived.ExtentAcross <= 0.0f)
+    if (Sampled.Width <= 0.0f || Sampled.Height <= 0.0f)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display extent is not positive" });
 
     if (Motion != nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the arrangement already stands" });
 
-    // 📝 🔴 All four enrolments are attempted before any ordinal is retained. An integrator that declines
+    // 📝 🔴 All four registrations are attempted before any ordinal is retained. An integrator that declines
     //    the third delivers slot zero for it, and the south tongue would then drive the north drawer's
-    //    across ordinate — a defect with no operand and no error.
-    const Outcome<std::uint32_t> NorthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
-    const Outcome<std::uint32_t> NorthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
-    const Outcome<std::uint32_t> SouthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
-    const Outcome<std::uint32_t> SouthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
+    //    across coordinate — a defect with no operand and no error.
+    const Outcome<std::uint32_t> NorthY = Integrator.RegisterSpring(Resolved.Motion, 0.0);
+    const Outcome<std::uint32_t> NorthTongue = Integrator.RegisterSpring(Resolved.Motion, 0.0);
+    const Outcome<std::uint32_t> SouthY = Integrator.RegisterSpring(Resolved.Motion, 0.0);
+    const Outcome<std::uint32_t> SouthTongue = Integrator.RegisterSpring(Resolved.Motion, 0.0);
 
-    if (!NorthAcross.Resolved || !NorthTongue.Resolved ||
-        !SouthAcross.Resolved || !SouthTongue.Resolved)
+    if (!NorthY.Resolved || !NorthTongue.Resolved ||
+        !SouthY.Resolved || !SouthTongue.Resolved)
     {
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the integrator declined a drawer spring" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the integrator rejected a drawer spring" });
     }
 
     Motion       = &Integrator;
     Appearance   = &Resolved;
-    ExtentAlong  = Arrived.ExtentAlong;
-    ExtentAcross = Arrived.ExtentAcross;
+    Width  = Sampled.Width;
+    Height = Sampled.Height;
 
     Slots[0]              = {};
     Slots[1]              = {};
     Slots[0].Declared     = North;
     Slots[1].Declared     = South;
-    Slots[0].AcrossSpring = NorthAcross.Resolve();
+    Slots[0].YSpring = NorthY.Resolve();
     Slots[0].TongueSpring = NorthTongue.Resolve();
-    Slots[1].AcrossSpring = SouthAcross.Resolve();
+    Slots[1].YSpring = SouthY.Resolve();
     Slots[1].TongueSpring = SouthTongue.Resolve();
 
     Contacts.Reset();
     GrabbedBy = DrawerBearing::BearingCount;
 
-    Seat(DrawerBearing::North, DrawerPose::Closed);
-    Seat(DrawerBearing::South, DrawerPose::Closed);
+    Place(DrawerBearing::North, DrawerPose::Closed);
+    Place(DrawerBearing::South, DrawerPose::Closed);
 
     return Outcome<bool>::Result(true);
 }
@@ -103,8 +103,8 @@ void DrawerSpace::Reset()
     Appearance   = nullptr;
     Slots[0]     = {};
     Slots[1]     = {};
-    ExtentAlong  = 0.0f;
-    ExtentAcross = 0.0f;
+    Width  = 0.0f;
+    Height = 0.0f;
     GrabbedBy    = DrawerBearing::BearingCount;
 
     Contacts.Reset();
@@ -114,49 +114,49 @@ void DrawerSpace::Reset()
 //                                                      REARRANGEMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-bool DrawerSpace::Rearrange(const DisplayCondition& Arrived)
+bool DrawerSpace::Rearrange(const DisplayCondition& Sampled)
 {
     if (Motion == nullptr || Appearance == nullptr)
         return false;
 
-    if (Arrived.ExtentAlong <= 0.0f || Arrived.ExtentAcross <= 0.0f)
+    if (Sampled.Width <= 0.0f || Sampled.Height <= 0.0f)
         return false;
 
     // 📝 🔴 The gate the previous arrangement did not have. Re-solving is correct exactly when the extent
-    //    moved; on every other tick it re-seats each spring onto its pose ordinate, drops the live grab and
+    //    moved; on every other tick it re-applies each spring onto its pose coordinate, drops the live grab and
     //    erases the drag one tick after it began.
-    const bool Altered = std::fabs(Arrived.ExtentAlong  - ExtentAlong)  > ExtentTolerance
-                      || std::fabs(Arrived.ExtentAcross - ExtentAcross) > ExtentTolerance;
+    const bool Altered = std::fabs(Sampled.Width  - Width)  > ExtentTolerance
+                      || std::fabs(Sampled.Height - Height) > ExtentTolerance;
 
     if (!Altered)
         return false;
 
-    ExtentAlong  = Arrived.ExtentAlong;
-    ExtentAcross = Arrived.ExtentAcross;
+    Width  = Sampled.Width;
+    Height = Sampled.Height;
 
     const float Admissible = TongueAdmissible();
 
     for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < 2u; ++SlotOrdinal)
     {
-        DrawerSlot&         Standing = Slots[SlotOrdinal];
+        DrawerSlot&         Current = Slots[SlotOrdinal];
         const DrawerBearing Bearing  = static_cast<DrawerBearing>(SlotOrdinal);
 
-        Standing.Seized         = GrabSubject::Nothing;
-        Standing.AxisResolved   = false;
-        Standing.AcrossDominant = false;
-        Standing.TravelAcross   = 0.0;
-        Standing.ReleaseRate    = 0.0;
-        Standing.StandingCount  = 0u;
-        Standing.PendingCount   = 0u;
+        Current.Grabbed         = GrabSubject::Nothing;
+        Current.AxisResolved   = false;
+        Current.YDominant = false;
+        Current.TravelY   = 0.0;
+        Current.ReleaseRate    = 0.0;
+        Current.CurrentCount  = 0u;
+        Current.PendingCount   = 0u;
 
-        Motion->Spring(Standing.AcrossSpring).Seat(PoseOrdinate(Bearing, Standing.Standing));
+        Motion->Spring(Current.YSpring).Place(PoseY(Bearing, Current.Current));
 
         // 📝 The tongue's travel is clamped rather than re-derived. It is the artist's own placement along
         //    the edge and carries no fraction of the extent.
-        if (Standing.TongueTravel >  Admissible) Standing.TongueTravel =  Admissible;
-        if (Standing.TongueTravel < -Admissible) Standing.TongueTravel = -Admissible;
+        if (Current.TongueTravel >  Admissible) Current.TongueTravel =  Admissible;
+        if (Current.TongueTravel < -Admissible) Current.TongueTravel = -Admissible;
 
-        Motion->Spring(Standing.TongueSpring).Seat(static_cast<double>(Standing.TongueTravel));
+        Motion->Spring(Current.TongueSpring).Place(static_cast<double>(Current.TongueTravel));
     }
 
     // 📝 The contact is abandoned rather than released. A drag arbitrated against an extent that no longer
@@ -181,9 +181,9 @@ DrawerSpace::DrawerSlot& DrawerSpace::Slot(DrawerBearing Bearing)
     return Slots[(Bearing == DrawerBearing::South) ? 1u : 0u];
 }
 
-double DrawerSpace::PoseOrdinate(DrawerBearing Bearing, DrawerPose Declared) const
+double DrawerSpace::PoseY(DrawerBearing Bearing, DrawerPose Declared) const
 {
-    const double Extent = static_cast<double>(ExtentAcross);
+    const double Extent = static_cast<double>(Height);
 
     if (Bearing == DrawerBearing::North)
         return (Declared == DrawerPose::Open) ? 0.0 : -Extent;
@@ -196,36 +196,36 @@ double DrawerSpace::PoseOrdinate(DrawerBearing Bearing, DrawerPose Declared) con
     }
 }
 
-double DrawerSpace::StandingOrdinate(DrawerBearing Bearing) const
+double DrawerSpace::CurrentY(DrawerBearing Bearing) const
 {
     if (Motion == nullptr)
-        return PoseOrdinate(Bearing, DrawerPose::Closed);
+        return PoseY(Bearing, DrawerPose::Closed);
 
-    return Motion->Spring(Slot(Bearing).AcrossSpring).Standing;
+    return Motion->Spring(Slot(Bearing).YSpring).Current;
 }
 
 DrawerPose DrawerSpace::Pose(DrawerBearing Bearing) const
 {
-    return Slot(Bearing).Standing;
+    return Slot(Bearing).Current;
 }
 
 GrabSubject DrawerSpace::Grabbed() const
 {
-    return (GrabbedBy == DrawerBearing::BearingCount) ? GrabSubject::Nothing : Slot(GrabbedBy).Seized;
+    return (GrabbedBy == DrawerBearing::BearingCount) ? GrabSubject::Nothing : Slot(GrabbedBy).Grabbed;
 }
 
-void DrawerSpace::Seat(DrawerBearing Bearing, DrawerPose Declared)
+void DrawerSpace::Place(DrawerBearing Bearing, DrawerPose Declared)
 {
     if (Motion == nullptr)
         return;
 
-    DrawerSlot& Standing = Slot(Bearing);
+    DrawerSlot& Current = Slot(Bearing);
 
-    if (Standing.Declared.PoseCount < 3u && Declared == DrawerPose::Half)
+    if (Current.Declared.PoseCount < 3u && Declared == DrawerPose::Half)
         Declared = DrawerPose::Closed;
 
-    Standing.Standing = Declared;
-    Motion->Spring(Standing.AcrossSpring).Seat(PoseOrdinate(Bearing, Declared));
+    Current.Current = Declared;
+    Motion->Spring(Current.YSpring).Place(PoseY(Bearing, Declared));
 }
 
 void DrawerSpace::Depart(DrawerBearing Bearing, DrawerPose Declared)
@@ -233,26 +233,26 @@ void DrawerSpace::Depart(DrawerBearing Bearing, DrawerPose Declared)
     if (Motion == nullptr)
         return;
 
-    DrawerSlot& Standing = Slot(Bearing);
+    DrawerSlot& Current = Slot(Bearing);
 
-    if (Standing.Declared.PoseCount < 3u && Declared == DrawerPose::Half)
+    if (Current.Declared.PoseCount < 3u && Declared == DrawerPose::Half)
         Declared = DrawerPose::Closed;
 
-    Standing.Standing = Declared;
+    Current.Current = Declared;
 
-    SpringInterpolant& Travelling = Motion->Spring(Standing.AcrossSpring);
-    Travelling.Target  = PoseOrdinate(Bearing, Declared);
+    SpringInterpolant& Travelling = Motion->Spring(Current.YSpring);
+    Travelling.Target  = PoseY(Bearing, Declared);
     Travelling.Settled = false;
 }
 
-DrawerPose DrawerSpace::Advanced(DrawerBearing Bearing) const
+DrawerPose DrawerSpace::Opening(DrawerBearing Bearing) const
 {
-    const DrawerSlot& Standing = Slot(Bearing);
+    const DrawerSlot& Current = Slot(Bearing);
 
-    if (Standing.Declared.PoseCount < 3u)
-        return (Standing.Standing == DrawerPose::Open) ? DrawerPose::Closed : DrawerPose::Open;
+    if (Current.Declared.PoseCount < 3u)
+        return (Current.Current == DrawerPose::Open) ? DrawerPose::Closed : DrawerPose::Open;
 
-    switch (Standing.Standing)
+    switch (Current.Current)
     {
         case DrawerPose::Closed: return DrawerPose::Half;
         case DrawerPose::Half:   return DrawerPose::Open;
@@ -260,14 +260,14 @@ DrawerPose DrawerSpace::Advanced(DrawerBearing Bearing) const
     }
 }
 
-DrawerPose DrawerSpace::Withdrawing(DrawerBearing Bearing) const
+DrawerPose DrawerSpace::Closing(DrawerBearing Bearing) const
 {
-    const DrawerSlot& Standing = Slot(Bearing);
+    const DrawerSlot& Current = Slot(Bearing);
 
-    if (Standing.Declared.PoseCount < 3u)
+    if (Current.Declared.PoseCount < 3u)
         return DrawerPose::Closed;
 
-    return (Standing.Standing == DrawerPose::Open) ? DrawerPose::Half : DrawerPose::Closed;
+    return (Current.Current == DrawerPose::Open) ? DrawerPose::Half : DrawerPose::Closed;
 }
 
 float DrawerSpace::TongueAdmissible() const
@@ -275,7 +275,7 @@ float DrawerSpace::TongueAdmissible() const
     if (Appearance == nullptr)
         return 0.0f;
 
-    const float Ceiling = (ExtentAlong - Appearance->Measure.TongueAlong) * 0.5f;
+    const float Ceiling = (Width - Appearance->Measure.TongueX) * 0.5f;
     return (Ceiling > 0.0f) ? Ceiling : 0.0f;
 }
 
@@ -290,28 +290,28 @@ float DrawerSpace::TongueAdmissible() const
 // 📝 The nesting is the source's too. `closed` and `full` each gate an inner pair behind an outer condition.
 DrawerPose DrawerSpace::Classify(DrawerBearing Bearing) const
 {
-    const DrawerSlot&  Standing = Slot(Bearing);
+    const DrawerSlot&  Current = Slot(Bearing);
     const MotionScale& Figures  = Appearance->Motion;
 
-    const double Extent       = static_cast<double>(ExtentAcross);
-    const double Displacement = Standing.TravelAcross;
-    const double Rate         = Standing.ReleaseRate;
+    const double Extent       = static_cast<double>(Height);
+    const double Displacement = Current.TravelY;
+    const double Rate         = Current.ReleaseRate;
     const double Near         = Extent * Figures.SnapFractionNear;
     const double Far          = Extent * Figures.SnapFractionFar;
 
     if (Bearing == DrawerBearing::North)
     {
-        if (Standing.Standing == DrawerPose::Open)
+        if (Current.Current == DrawerPose::Open)
             return (Displacement < -Near || Rate < -Figures.SnapRateSoft) ? DrawerPose::Closed : DrawerPose::Open;
 
         return (Displacement > Near || Rate > Figures.SnapRateSoft) ? DrawerPose::Open : DrawerPose::Closed;
     }
 
     // 📐 The source's `Be`. The south drawer rests at `h` when closed and at zero when full, so this is the
-    //    ordinate the release would have left it at had nothing been constrained.
+    //    coordinate the release would have left it at had nothing been constrained.
     const double Reached = Extent + Displacement;
 
-    if (Standing.Standing == DrawerPose::Closed)
+    if (Current.Current == DrawerPose::Closed)
     {
         if (Rate < -Figures.SnapRateFirm || Reached < Far)
             return (Rate < -Figures.SnapRateHard || Reached < Near) ? DrawerPose::Open : DrawerPose::Half;
@@ -319,7 +319,7 @@ DrawerPose DrawerSpace::Classify(DrawerBearing Bearing) const
         return DrawerPose::Closed;
     }
 
-    if (Standing.Standing == DrawerPose::Half)
+    if (Current.Current == DrawerPose::Half)
     {
         if (Rate < -Figures.SnapRateSoft || Reached < Near) return DrawerPose::Open;
         if (Rate >  Figures.SnapRateSoft || Reached > Far)  return DrawerPose::Closed;
@@ -336,35 +336,35 @@ DrawerPose DrawerSpace::Classify(DrawerBearing Bearing) const
 //                                                   THE GRAB ARBITRATION
 //------------------------------------------------------------------------------------------------------------------------
 
-GrabSubject DrawerSpace::Contacted(DrawerBearing Bearing, float Along, float Across) const
+GrabSubject DrawerSpace::Contacted(DrawerBearing Bearing, float X, float Y) const
 {
-    const DrawerSlot& Standing = Slot(Bearing);
-    const bool        Visible  = !Withdrawn(Bearing);
+    const DrawerSlot& Current = Slot(Bearing);
+    const bool        Visible  = !Closed(Bearing);
 
     // ① The grip outranks the body it sits inside, so that a contact on the pill withdraws rather than drags.
     // 📝 The grip keeps its margin on all four sides: it sits INSIDE the drawer's own body, so an inflated
     //    reach can only take pixels from the body beside it and never from the workspace beyond.
-    if (Visible && Reach(Grip(Bearing)).Encloses(Along, Across))
+    if (Visible && Reach(Grip(Bearing)).Encloses(X, Y))
         return GrabSubject::Grip;
 
     // ② The tongue outranks everything, visible or not — it is the only chrome a closed drawer offers.
     // 🔴 Reached ALONG only, never across. `Reach` inflates all four sides by the click margin, which on
     //    the leading edge pushes the claim twelve pixels past the notch and INTO the workspace: a 36 px
     //    tongue claimed 48 px of depth, and the artist met an invisible band below a notch they could see
-    //    the bottom of. Across the drawer's own axis the notch's drawn edge is the edge that may be
+    //    the bottom of. Y the drawer's own axis the notch's drawn edge is the edge that may be
     //    pressed; along it the margin is what makes a narrow pill comfortable to hit.
     const PlaneExtent Notch   = Tongue(Bearing);
-    const PlaneExtent Reached = { Notch.LeastAlong - ClickMargin, Notch.LeastAcross,
-                                  Notch.MostAlong  + ClickMargin, Notch.MostAcross };
+    const PlaneExtent Reached = { Notch.MinimumX - ClickMargin, Notch.MinimumY,
+                                  Notch.MaximumX  + ClickMargin, Notch.MaximumY };
 
-    if (Reached.Encloses(Along, Across))
+    if (Reached.Encloses(X, Y))
         return GrabSubject::Tongue;
 
-    if (Visible && Body(Bearing).Encloses(Along, Across))
+    if (Visible && Body(Bearing).Encloses(X, Y))
     {
-        for (std::uint32_t Ordinal = 0u; Ordinal < Standing.StandingCount; ++Ordinal)
+        for (std::uint32_t Ordinal = 0u; Ordinal < Current.CurrentCount; ++Ordinal)
         {
-            if (Standing.Standing_Excluded[Ordinal].Encloses(Along, Across))
+            if (Current.CurrentExcluded[Ordinal].Encloses(X, Y))
                 return GrabSubject::Nothing;
         }
 
@@ -372,13 +372,13 @@ GrabSubject DrawerSpace::Contacted(DrawerBearing Bearing, float Along, float Acr
     }
 
     // ③ The gutter — what makes a swipe from the display edge open a drawer that has no body on screen.
-    if (!Visible && Gutter(Bearing).Encloses(Along, Across))
+    if (!Visible && Gutter(Bearing).Encloses(X, Y))
         return GrabSubject::Gutter;
 
     return GrabSubject::Nothing;
 }
 
-bool DrawerSpace::Claims(float Along, float Across, DrawerBearing& Bearing) const
+bool DrawerSpace::Covers(float X, float Y, DrawerBearing& Bearing) const
 {
     // 🔴 The OPEN drawer is asked first, both of them, before either withdrawn one. A raised body reaches
     //    across the display and can cover the other drawer's gutter; the drawer the artist raised is the
@@ -387,10 +387,10 @@ bool DrawerSpace::Claims(float Along, float Across, DrawerBearing& Bearing) cons
     {
         const DrawerBearing Asked = static_cast<DrawerBearing>(Ordinal);
 
-        if (Withdrawn(Asked))
+        if (Closed(Asked))
             continue;
 
-        if (Contacted(Asked, Along, Across) != GrabSubject::Nothing)
+        if (Contacted(Asked, X, Y) != GrabSubject::Nothing)
         {
             Bearing = Asked;
             return true;
@@ -402,10 +402,10 @@ bool DrawerSpace::Claims(float Along, float Across, DrawerBearing& Bearing) cons
     {
         const DrawerBearing Asked = static_cast<DrawerBearing>(Ordinal);
 
-        if (!Withdrawn(Asked))
+        if (!Closed(Asked))
             continue;
 
-        if (Contacted(Asked, Along, Across) != GrabSubject::Nothing)
+        if (Contacted(Asked, X, Y) != GrabSubject::Nothing)
         {
             Bearing = Asked;
             return true;
@@ -419,7 +419,7 @@ bool DrawerSpace::Claims(float Along, float Across, DrawerBearing& Bearing) cons
 //                                                      THE TICK
 //------------------------------------------------------------------------------------------------------------------------
 
-bool DrawerSpace::Advance(const PointerCondition& Arrived, double Elapsed, bool Available)
+bool DrawerSpace::Advance(const PointerCondition& Sampled, double Elapsed, bool Available)
 {
     if (Motion == nullptr || Appearance == nullptr)
         return false;
@@ -434,11 +434,11 @@ bool DrawerSpace::Advance(const PointerCondition& Arrived, double Elapsed, bool 
         return false;
     }
 
-    const ContactTravel& Contact = Contacts.Advance(Arrived, Elapsed);
+    const ContactTravel& Contact = Contacts.Advance(Sampled, Elapsed);
 
     switch (Contact.Phase)
     {
-        case ContactPhase::Arrived:    return Seize(Contact);
+        case ContactPhase::Sampled:    return Grab(Contact);
         case ContactPhase::Travelling: return Carry(Contact);
         case ContactPhase::Released:   return Relinquish(Contact);
         default:                       break;
@@ -447,30 +447,30 @@ bool DrawerSpace::Advance(const PointerCondition& Arrived, double Elapsed, bool 
     return GrabbedBy != DrawerBearing::BearingCount;
 }
 
-bool DrawerSpace::Seize(const ContactTravel& Contact)
+bool DrawerSpace::Grab(const ContactTravel& Contact)
 {
     // 📝 Tested in reverse paint order, so the drawer drawn on top is the drawer a contact reaches first.
-    const bool          SouthAbove = (Slots[1].Standing == DrawerPose::Open);
+    const bool          SouthAbove = (Slots[1].Current == DrawerPose::Open);
     const DrawerBearing Order[2]   = { SouthAbove ? DrawerBearing::South : DrawerBearing::North,
                                        SouthAbove ? DrawerBearing::North : DrawerBearing::South };
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 2u; ++Ordinal)
     {
         const DrawerBearing Bearing = Order[Ordinal];
-        const GrabSubject   Seized  = Contacted(Bearing, Contact.PositionAlong, Contact.PositionAcross);
+        const GrabSubject   Grabbed  = Contacted(Bearing, Contact.PositionX, Contact.PositionY);
 
-        if (Seized == GrabSubject::Nothing)
+        if (Grabbed == GrabSubject::Nothing)
             continue;
 
-        DrawerSlot& Standing = Slot(Bearing);
+        DrawerSlot& Current = Slot(Bearing);
 
-        Standing.Seized         = Seized;
-        Standing.AxisResolved   = (Seized != GrabSubject::Tongue);
-        Standing.AcrossDominant = (Seized != GrabSubject::Tongue);
-        Standing.SeatedOrdinate = StandingOrdinate(Bearing);
-        Standing.TongueSeated   = Standing.TongueTravel;
-        Standing.TravelAcross   = 0.0;
-        Standing.ReleaseRate    = 0.0;
+        Current.Grabbed         = Grabbed;
+        Current.AxisResolved   = (Grabbed != GrabSubject::Tongue);
+        Current.YDominant = (Grabbed != GrabSubject::Tongue);
+        Current.GrabbedY = CurrentY(Bearing);
+        Current.GrabbedTongueY   = Current.TongueTravel;
+        Current.TravelY   = 0.0;
+        Current.ReleaseRate    = 0.0;
 
         GrabbedBy = Bearing;
         return true;
@@ -484,52 +484,52 @@ bool DrawerSpace::Carry(const ContactTravel& Contact)
     if (GrabbedBy == DrawerBearing::BearingCount)
         return false;
 
-    DrawerSlot& Standing = Slot(GrabbedBy);
+    DrawerSlot& Current = Slot(GrabbedBy);
 
-    Standing.TravelAcross = Contact.TravelAcross;
-    Standing.ReleaseRate  = Contact.RateAcross;
+    Current.TravelY = Contact.TravelY;
+    Current.ReleaseRate  = Contact.RateY;
 
     // 📐 The tongue's axis is decided once, on the first travel that clears the tap ceiling, and by the
     //    larger of the two displacements. Deciding it per tick makes a diagonal drag alternate between
     //    sliding the notch and opening the drawer.
-    if (Standing.Seized == GrabSubject::Tongue && !Standing.AxisResolved && Contact.TravelExceeded)
+    if (Current.Grabbed == GrabSubject::Tongue && !Current.AxisResolved && Contact.TravelExceeded)
     {
-        Standing.AcrossDominant = std::fabs(Contact.TravelAcross) > std::fabs(Contact.TravelAlong);
-        Standing.AxisResolved   = true;
+        Current.YDominant = std::fabs(Contact.TravelY) > std::fabs(Contact.TravelX);
+        Current.AxisResolved   = true;
     }
 
-    if (Standing.Seized == GrabSubject::Tongue && !Standing.AcrossDominant)
+    if (Current.Grabbed == GrabSubject::Tongue && !Current.YDominant)
     {
-        CarryTongue(Standing, Contact);
+        CarryTongue(Current, Contact);
         return true;
     }
 
-    if (Standing.Seized != GrabSubject::Nothing)
-        CarryBody(Standing, Contact);
+    if (Current.Grabbed != GrabSubject::Nothing)
+        CarryBody(Current, Contact);
 
     return true;
 }
 
-void DrawerSpace::CarryBody(DrawerSlot& Standing, const ContactTravel& Contact)
+void DrawerSpace::CarryBody(DrawerSlot& Current, const ContactTravel& Contact)
 {
     const bool   Northern = (GrabbedBy == DrawerBearing::North);
-    const double Least    = Northern ? -static_cast<double>(ExtentAcross) : 0.0;
-    const double Most     = Northern ?  0.0 : static_cast<double>(ExtentAcross);
-    const double Dragged  = Standing.SeatedOrdinate + Contact.TravelAcross;
+    const double Minimum    = Northern ? -static_cast<double>(Height) : 0.0;
+    const double Maximum     = Northern ?  0.0 : static_cast<double>(Height);
+    const double Dragged  = Current.GrabbedY + Contact.TravelY;
 
-    Motion->Spring(Standing.AcrossSpring)
-           .Seat(Constrain(Dragged, Least, Most, Appearance->Motion.DragElasticity));
+    Motion->Spring(Current.YSpring)
+           .Place(Constrain(Dragged, Minimum, Maximum, Appearance->Motion.DragElasticity));
 }
 
-void DrawerSpace::CarryTongue(DrawerSlot& Standing, const ContactTravel& Contact)
+void DrawerSpace::CarryTongue(DrawerSlot& Current, const ContactTravel& Contact)
 {
     const double Admissible = static_cast<double>(TongueAdmissible());
-    const double Dragged    = static_cast<double>(Standing.TongueSeated) + Contact.TravelAlong;
+    const double Dragged    = static_cast<double>(Current.GrabbedTongueY) + Contact.TravelX;
 
-    Standing.TongueTravel = static_cast<float>(
+    Current.TongueTravel = static_cast<float>(
         Constrain(Dragged, -Admissible, Admissible, Appearance->Motion.DragElasticity));
 
-    Motion->Spring(Standing.TongueSpring).Seat(static_cast<double>(Standing.TongueTravel));
+    Motion->Spring(Current.TongueSpring).Place(static_cast<double>(Current.TongueTravel));
 }
 
 bool DrawerSpace::Relinquish(const ContactTravel& Contact)
@@ -537,35 +537,35 @@ bool DrawerSpace::Relinquish(const ContactTravel& Contact)
     if (GrabbedBy == DrawerBearing::BearingCount)
         return false;
 
-    DrawerSlot&  Standing   = Slot(GrabbedBy);
+    DrawerSlot&  Current   = Slot(GrabbedBy);
     const float  Admissible = TongueAdmissible();
 
-    Standing.TravelAcross = Contact.TravelAcross;
-    Standing.ReleaseRate  = Contact.RateAcross;
+    Current.TravelY = Contact.TravelY;
+    Current.ReleaseRate  = Contact.RateY;
 
-    const bool TongueAlong = (Standing.Seized == GrabSubject::Tongue) && !Standing.AcrossDominant;
+    const bool TongueX = (Current.Grabbed == GrabSubject::Tongue) && !Current.YDominant;
 
-    if (Contact.TapResolved && Standing.Seized == GrabSubject::Tongue)
+    if (Contact.TapResolved && Current.Grabbed == GrabSubject::Tongue)
     {
         // 📝 The tap the previous arrangement did not have. Its comment argued the source declares no press
         //    handler on the notch; a notch that cannot be tapped is a notch the artist reports as dead.
-        Depart(GrabbedBy, Advanced(GrabbedBy));
+        Depart(GrabbedBy, Opening(GrabbedBy));
     }
-    else if (Contact.TapResolved && Standing.Seized == GrabSubject::Grip)
+    else if (Contact.TapResolved && Current.Grabbed == GrabSubject::Grip)
     {
-        Depart(GrabbedBy, Withdrawing(GrabbedBy));
+        Depart(GrabbedBy, Closing(GrabbedBy));
     }
-    else if (TongueAlong)
+    else if (TongueX)
     {
-        SpringInterpolant& Travelling = Motion->Spring(Standing.TongueSpring);
+        SpringInterpolant& Travelling = Motion->Spring(Current.TongueSpring);
 
-        const float Settled = (Standing.TongueTravel >  Admissible) ?  Admissible
-                            : (Standing.TongueTravel < -Admissible) ? -Admissible
-                                                                    :  Standing.TongueTravel;
+        const float Settled = (Current.TongueTravel >  Admissible) ?  Admissible
+                            : (Current.TongueTravel < -Admissible) ? -Admissible
+                                                                    :  Current.TongueTravel;
 
-        Standing.TongueTravel = Settled;
+        Current.TongueTravel = Settled;
         Travelling.Target     = static_cast<double>(Settled);
-        Travelling.Settled    = (std::fabs(Travelling.Standing - Travelling.Target) < 0.1);
+        Travelling.Settled    = (std::fabs(Travelling.Current - Travelling.Target) < 0.1);
     }
     else
     {
@@ -573,7 +573,7 @@ bool DrawerSpace::Relinquish(const ContactTravel& Contact)
 
         // 📐 The release's own rate is injected into the spring rather than discarded. A spring departing
         //    from rest arrives visibly later than the flick that asked for it.
-        Motion->Spring(Standing.AcrossSpring).Rate = Contact.RateAcross / 1000.0;
+        Motion->Spring(Current.YSpring).Rate = Contact.RateY / 1000.0;
     }
 
     Loosen();
@@ -585,13 +585,13 @@ void DrawerSpace::Loosen()
     if (GrabbedBy == DrawerBearing::BearingCount)
         return;
 
-    DrawerSlot& Standing = Slot(GrabbedBy);
+    DrawerSlot& Current = Slot(GrabbedBy);
 
-    Standing.Seized         = GrabSubject::Nothing;
-    Standing.AxisResolved   = false;
-    Standing.AcrossDominant = false;
-    Standing.TravelAcross   = 0.0;
-    Standing.ReleaseRate    = 0.0;
+    Current.Grabbed         = GrabSubject::Nothing;
+    Current.AxisResolved   = false;
+    Current.YDominant = false;
+    Current.TravelY   = 0.0;
+    Current.ReleaseRate    = 0.0;
 
     GrabbedBy = DrawerBearing::BearingCount;
 }
@@ -602,7 +602,7 @@ void DrawerSpace::Loosen()
 
 PlaneExtent DrawerSpace::Body(DrawerBearing Bearing) const
 {
-    return Spanning(0.0f, static_cast<float>(StandingOrdinate(Bearing)), ExtentAlong, ExtentAcross);
+    return Spanning(0.0f, static_cast<float>(CurrentY(Bearing)), Width, Height);
 }
 
 PlaneExtent DrawerSpace::Interior(DrawerBearing Bearing) const
@@ -612,12 +612,12 @@ PlaneExtent DrawerSpace::Interior(DrawerBearing Bearing) const
     if (Appearance == nullptr)
         return Occupied;
 
-    const float Strip = Appearance->Measure.GripStripAcross;
+    const float Strip = Appearance->Measure.GripStripHeight;
 
     if (Bearing == DrawerBearing::North)
-        Occupied.MostAcross -= Strip;
+        Occupied.MaximumY -= Strip;
     else
-        Occupied.LeastAcross += Strip;
+        Occupied.MinimumY += Strip;
 
     return Occupied;
 }
@@ -629,14 +629,14 @@ PlaneExtent DrawerSpace::Tongue(DrawerBearing Bearing) const
 
     const MetricScale& Measure  = Appearance->Measure;
     const PlaneExtent  Occupied = Body(Bearing);
-    const float        Centre   = ExtentAlong * 0.5f + Slot(Bearing).TongueTravel;
-    const float        Leading  = Centre - Measure.TongueAlong * 0.5f;
+    const float        Centre   = Width * 0.5f + Slot(Bearing).TongueTravel;
+    const float        Leading  = Centre - Measure.TongueX * 0.5f;
 
     if (Bearing == DrawerBearing::North)
-        return Spanning(Leading, Occupied.MostAcross, Measure.TongueAlong, Measure.TongueAcross);
+        return Spanning(Leading, Occupied.MaximumY, Measure.TongueX, Measure.TongueY);
 
-    return Spanning(Leading, Occupied.LeastAcross - Measure.TongueAcross,
-                    Measure.TongueAlong, Measure.TongueAcross);
+    return Spanning(Leading, Occupied.MinimumY - Measure.TongueY,
+                    Measure.TongueX, Measure.TongueY);
 }
 
 PlaneExtent DrawerSpace::Grip(DrawerBearing Bearing) const
@@ -648,17 +648,17 @@ PlaneExtent DrawerSpace::Grip(DrawerBearing Bearing) const
     const PlaneExtent  Occupied = Body(Bearing);
     const bool         Northern = (Bearing == DrawerBearing::North);
 
-    const float PillAlong  = ExtentAlong * 0.5f - Measure.GripAlong * 0.5f;
-    const float PillAcross = Northern
-                           ? Occupied.MostAcross  - Measure.GripLiftNorth - Measure.GripAcross
-                           : Occupied.LeastAcross + (Measure.GripStripAcross - Measure.GripAcross) * 0.5f;
+    const float PillX  = Width * 0.5f - Measure.GripX * 0.5f;
+    const float PillY = Northern
+                           ? Occupied.MaximumY  - Measure.GripLiftNorth - Measure.GripHeight
+                           : Occupied.MinimumY + (Measure.GripStripHeight - Measure.GripHeight) * 0.5f;
 
-    return Spanning(PillAlong, PillAcross, Measure.GripAlong, Measure.GripAcross);
+    return Spanning(PillX, PillY, Measure.GripX, Measure.GripHeight);
 }
 
 PlaneExtent DrawerSpace::Gutter(DrawerBearing Bearing) const
 {
-    if (!Withdrawn(Bearing) || Appearance == nullptr)
+    if (!Closed(Bearing) || Appearance == nullptr)
         return {};
 
     // 🔴 The gutter spans the TONGUE and nothing more. Spanning the whole display edge put an invisible
@@ -669,22 +669,22 @@ PlaneExtent DrawerSpace::Gutter(DrawerBearing Bearing) const
     // 📝 A shade wider than the tongue, by half the gutter's own depth, so a swipe that begins a pixel
     //    outside the notch still opens the drawer rather than reporting nothing.
     const PlaneExtent Notch   = Tongue(Bearing);
-    const float       Reached = GutterAcross * 0.5f;
+    const float       Reached = GutterY * 0.5f;
 
-    const float Leading  = Notch.LeastAlong - Reached;
-    const float Trailing = Notch.MostAlong  + Reached;
+    const float Leading  = Notch.MinimumX - Reached;
+    const float Trailing = Notch.MaximumX  + Reached;
 
     if (Bearing == DrawerBearing::North)
-        return PlaneExtent{ Leading, 0.0f, Trailing, GutterAcross };
+        return PlaneExtent{ Leading, 0.0f, Trailing, GutterY };
 
-    return PlaneExtent{ Leading, ExtentAcross - GutterAcross, Trailing, ExtentAcross };
+    return PlaneExtent{ Leading, Height - GutterY, Trailing, Height };
 }
 
-bool DrawerSpace::Withdrawn(DrawerBearing Bearing) const
+bool DrawerSpace::Closed(DrawerBearing Bearing) const
 {
     const PlaneExtent Occupied = Body(Bearing);
 
-    return Occupied.MostAcross <= 0.0f || Occupied.LeastAcross >= ExtentAcross;
+    return Occupied.MaximumY <= 0.0f || Occupied.MinimumY >= Height;
 }
 
 bool DrawerSpace::Moving() const
@@ -695,8 +695,8 @@ bool DrawerSpace::Moving() const
     if (GrabbedBy != DrawerBearing::BearingCount)
         return true;
 
-    return !Motion->Spring(Slots[0].AcrossSpring).Settled
-        || !Motion->Spring(Slots[1].AcrossSpring).Settled
+    return !Motion->Spring(Slots[0].YSpring).Settled
+        || !Motion->Spring(Slots[1].YSpring).Settled
         || !Motion->Spring(Slots[0].TongueSpring).Settled
         || !Motion->Spring(Slots[1].TongueSpring).Settled;
 }
@@ -707,12 +707,12 @@ bool DrawerSpace::Moving() const
 
 void DrawerSpace::Exclude(DrawerBearing Bearing, const PlaneExtent& Extent)
 {
-    DrawerSlot& Standing = Slot(Bearing);
+    DrawerSlot& Current = Slot(Bearing);
 
-    if (Standing.PendingCount >= ExclusionCapacity)
+    if (Current.PendingCount >= ExclusionCapacity)
         return;
 
-    Standing.Pending_Excluded[Standing.PendingCount++] = Extent;
+    Current.PendingExcluded[Current.PendingCount++] = Extent;
 }
 
 void DrawerSpace::PromoteExclusions()
@@ -721,13 +721,13 @@ void DrawerSpace::PromoteExclusions()
     //    previous tick's set is what lets the two run in that order without the set growing without bound.
     for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < 2u; ++SlotOrdinal)
     {
-        DrawerSlot& Standing = Slots[SlotOrdinal];
+        DrawerSlot& Current = Slots[SlotOrdinal];
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < Standing.PendingCount; ++Ordinal)
-            Standing.Standing_Excluded[Ordinal] = Standing.Pending_Excluded[Ordinal];
+        for (std::uint32_t Ordinal = 0u; Ordinal < Current.PendingCount; ++Ordinal)
+            Current.CurrentExcluded[Ordinal] = Current.PendingExcluded[Ordinal];
 
-        Standing.StandingCount = Standing.PendingCount;
-        Standing.PendingCount  = 0u;
+        Current.CurrentCount = Current.PendingCount;
+        Current.PendingCount  = 0u;
     }
 }
 
@@ -740,7 +740,7 @@ void DrawerSpace::Record(RecordingSurface& Surface) const
     if (Appearance == nullptr)
         return;
 
-    if (Slots[1].Standing == DrawerPose::Open)
+    if (Slots[1].Current == DrawerPose::Open)
     {
         RecordOne(Surface, DrawerBearing::North);
         RecordOne(Surface, DrawerBearing::South);
@@ -763,55 +763,55 @@ void DrawerSpace::RecordOne(RecordingSurface& Surface, DrawerBearing Bearing) co
 {
     const SurfaceColour&  Colour      = Appearance->Colour;
     const MetricScale& Measure  = Appearance->Measure;
-    const DrawerSlot&  Standing = Slot(Bearing);
+    const DrawerSlot&  Current = Slot(Bearing);
     const PlaneExtent  Occupied = Body(Bearing);
     const PlaneExtent  Tab      = Tongue(Bearing);
     const bool         Northern = (Bearing == DrawerBearing::North);
-    const bool         Visible  = !Withdrawn(Bearing);
+    const bool         Visible  = !Closed(Bearing);
 
     if (Visible)
     {
         // ① The drawer body.
-        Surface.Ground(Occupied, Colour.SurfaceStanding, 0.0f, CornerNone);
+        Surface.Ground(Occupied, Colour.SurfaceCurrent, 0.0f, CornerNone);
 
         // ② The one edge the source declares — a rule on the travelling side only.
-        const float EdgeAcross = Northern ? Occupied.MostAcross : Occupied.LeastAcross;
+        const float EdgeY = Northern ? Occupied.MaximumY : Occupied.MinimumY;
 
-        Surface.Ground(PlaneExtent{ Occupied.LeastAlong, EdgeAcross - (Northern ? 1.0f : 0.0f),
-                                    Occupied.MostAlong,  EdgeAcross + (Northern ? 0.0f : 1.0f) },
+        Surface.Ground(PlaneExtent{ Occupied.MinimumX, EdgeY - (Northern ? 1.0f : 0.0f),
+                                    Occupied.MaximumX,  EdgeY + (Northern ? 0.0f : 1.0f) },
                        Colour.EdgeQuiet, 0.0f, CornerNone);
 
         // ③ The grip pill, centred along, lifted from the travelling edge.
-        Surface.Ground(Grip(Bearing), Colour.GripPill, Measure.GripAcross * 0.5f, CornerAll);
+        Surface.Ground(Grip(Bearing), Colour.GripPill, Measure.GripHeight * 0.5f, CornerAll);
     }
 
     // ④ The tongue's clipped outline — always drawn so the notch is reachable when closed.
-    const float Inset = Tab.SpanAlong() * Measure.TongueClipFraction;
-    const float Least = Tab.LeastAlong;
-    const float Most  = Tab.MostAlong;
-    const float Upper = Tab.LeastAcross;
-    const float Lower = Tab.MostAcross;
+    const float Inset = Tab.Width() * Measure.TongueClipFraction;
+    const float Minimum = Tab.MinimumX;
+    const float Maximum  = Tab.MaximumX;
+    const float Upper = Tab.MinimumY;
+    const float Lower = Tab.MaximumY;
 
-    const float NorthOutline[8] = { Least,         Upper, Most,          Upper,
-                                    Most - Inset,  Lower, Least + Inset, Lower };
-    const float SouthOutline[8] = { Least + Inset, Upper, Most - Inset,  Upper,
-                                    Most,          Lower, Least,         Lower };
+    const float NorthOutline[8] = { Minimum,         Upper, Maximum,          Upper,
+                                    Maximum - Inset,  Lower, Minimum + Inset, Lower };
+    const float SouthOutline[8] = { Minimum + Inset, Upper, Maximum - Inset,  Upper,
+                                    Maximum,          Lower, Minimum,         Lower };
 
     Surface.Tongue(Northern ? NorthOutline : SouthOutline, 4u, Colour.SurfaceSunken);
 
     // ⑤ The tongue's figure and its run, measured together and centred inside the pad.
-    const char* Caption = Standing.Declared.Caption;
+    const char* Caption = Current.Declared.Caption;
     const float RunSpan = Surface.MeasureRun(Caption, Measure.TextSmall, Measure.TrackingWide);
-    const float Content = Measure.SymbolTongue + Measure.TongueGapAlong + RunSpan;
-    const float Origin  = (Least + Most) * 0.5f - Content * 0.5f;
+    const float Content = Measure.SymbolTongue + Measure.TongueGapX + RunSpan;
+    const float Origin  = (Minimum + Maximum) * 0.5f - Content * 0.5f;
     const float Middle  = (Upper + Lower) * 0.5f;
 
-    Surface.Stroke(Standing.Declared.TongueSubject,
+    Surface.Stroke(Current.Declared.TongueSubject,
                    Spanning(Origin, Middle - Measure.SymbolTongue * 0.5f,
                             Measure.SymbolTongue, Measure.SymbolTongue),
                    Colour.ColourPrimary);
 
-    Surface.TextRunCapitalised(Origin + Measure.SymbolTongue + Measure.TongueGapAlong,
+    Surface.TextRunCapitalised(Origin + Measure.SymbolTongue + Measure.TongueGapX,
                                Middle - Measure.TextSmall * 0.5f,
                                Colour.ColourPrimary, Caption, Measure.TextSmall, Measure.TrackingWide, true);
 }

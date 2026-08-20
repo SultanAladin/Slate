@@ -13,13 +13,13 @@ TypographyMetrics TextComponent::Measure(const RecordingSurface& Surface,
 
 PlaneExtent TextComponent::Fit(const PlaneExtent& Origin,
                                const TypographyMetrics& Metrics,
-                               float PaddingAlong,
-                               float PaddingAcross)
+                               float PaddingX,
+                               float PaddingY)
 {
-    const float Width = Metrics.Width + PaddingAlong * 2.0f;
-    const float Height = Metrics.Height + PaddingAcross * 2.0f;
-    return PlaneExtent{Origin.LeastAlong, Origin.LeastAcross,
-                       Origin.LeastAlong + Width, Origin.LeastAcross + Height};
+    const float Width = Metrics.Width + PaddingX * 2.0f;
+    const float Height = Metrics.Height + PaddingY * 2.0f;
+    return PlaneExtent{Origin.MinimumX, Origin.MinimumY,
+                       Origin.MinimumX + Width, Origin.MinimumY + Height};
 }
 
 void TextComponent::Draw(RecordingSurface& Surface,
@@ -29,8 +29,8 @@ void TextComponent::Draw(RecordingSurface& Surface,
                          const TextStyle& Style)
 {
     const TypographyMetrics Metrics = Measure(Surface, Text, Style);
-    Surface.TextRun(Bounds.LeastAlong + (Bounds.SpanAlong() - Metrics.Width) * 0.5f,
-                    Bounds.LeastAcross + (Bounds.SpanAcross() - Metrics.Height) * 0.5f,
+    Surface.TextRun(Bounds.MinimumX + (Bounds.Width() - Metrics.Width) * 0.5f,
+                    Bounds.MinimumY + (Bounds.Height() - Metrics.Height) * 0.5f,
                     Colour, Text != nullptr ? Text : "", Style.Size, Style.Tracking, true);
 }
 

@@ -24,7 +24,7 @@ namespace Slate
 struct ParityRegistration
 {
     const char*         EntryName    = "";                             // [-] - the entry point's spelling
-    PrecisionGuarantee  Claimed      = PrecisionGuarantee::Exact;      // [-] - what it claims
+    PrecisionGuarantee  Reserved      = PrecisionGuarantee::Exact;      // [-] - what it claims
     std::uint32_t       SampleCount  = 0u;                             // [-] - samples the common set holds
 };
 
@@ -57,11 +57,11 @@ class ParityRunner
 public:
 
     /// 🧩 Registers one `Shared/` entry point for comparison.
-    /// in    Arriving [-]  the entry point and the guarantee it claims
+    /// in    Incoming [-]  the entry point and the guarantee it claims
     /// out   Result  [-]  refuses when the entry point is already registered
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Register(const ParityRegistration& Arriving);
+    Outcome<bool> Register(const ParityRegistration& Incoming);
 
     /// 🧩 Compares every registered entry point and reports each one.
     /// out   Reports  [-]  one report per registration, in registration order

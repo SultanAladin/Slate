@@ -53,26 +53,26 @@ constexpr float PageGroundInk[4] = { 0.0196f, 0.0196f, 0.0196f, 1.0f };   // [-]
 ///        offers the same handles as `DeviceOffering` and the host performs the copy.
 InterfaceAttachment Attach(const DeviceOffering& Offered)
 {
-    InterfaceAttachment Arriving = {};
+    InterfaceAttachment Incoming = {};
 
-    Arriving.Instance                 = Offered.Instance;
-    Arriving.ScoredDevice             = Offered.ScoredDevice;
-    Arriving.ActiveDevice             = Offered.ActiveDevice;
-    Arriving.GraphicsQueue            = Offered.GraphicsQueue;
-    Arriving.GraphicsFamilyOrdinal    = Offered.GraphicsFamilyOrdinal;
-    Arriving.ColourTargetFormat       = Offered.ColourTargetFormat;
-    Arriving.MinimumDisplayImageCount = Offered.MinimumDisplayImageCount;
-    Arriving.DisplayImageCount        = Offered.DisplayImageCount;
-    Arriving.NativeWindowSlot         = Offered.NativeWindowSlot;
+    Incoming.Instance                 = Offered.Instance;
+    Incoming.ScoredDevice             = Offered.ScoredDevice;
+    Incoming.ActiveDevice             = Offered.ActiveDevice;
+    Incoming.GraphicsQueue            = Offered.GraphicsQueue;
+    Incoming.GraphicsFamilyOrdinal    = Offered.GraphicsFamilyOrdinal;
+    Incoming.ColourTargetFormat       = Offered.ColourTargetFormat;
+    Incoming.MinimumDisplayImageCount = Offered.MinimumDisplayImageCount;
+    Incoming.DisplayImageCount        = Offered.DisplayImageCount;
+    Incoming.NativeWindowSlot         = Offered.NativeWindowSlot;
 
-    return Arriving;
+    return Incoming;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    WHAT THE SHEET SEATS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Every datum the sheet presents, seated at the value the sheet itself states.
+/// 🧩 Every datum the sheet presents, applied at the value the sheet itself states.
 /// note  🔴 The host owns these and the panel does not. `14` §1's gate is visible here as an ordinary struct:
 ///       every control below is handed a reference into this record and writes through it.
 struct ValidationConfiguration
@@ -151,21 +151,21 @@ constexpr EntityRevision LevelRevisions[9] =
 
 // 🔴 Stated here so the ceiling can never silently fall behind the demand again. Every panel below owns a
 //    private `InteractionIndex` but they ALL draw from this host's single `MotionIntegrator`, and each
-//    enrolled control costs TWO eased interpolants — a rouse fade and a take fade. That doubling is what
+//    registered control costs TWO eased interpolants — a hover fade and a take fade. That doubling is what
 //    made the arithmetic surprising: the ledgers were nowhere near their own 256 ceilings while the shared
 //    ease pool was already empty. A panel that grows its control count now fails the build here, at the
 //    line that states the budget, rather than at run time in whichever panel happens to be constructed last.
-constexpr std::uint32_t SheetControls   = 31u;                 // [-] - EnrolEvery
+constexpr std::uint32_t SheetControls   = 31u;                 // [-] - RegisterEvery
 constexpr std::uint32_t FacetControls   = 24u + 2u;            // [-] - FacetPanel::FacetCapacity + 2
 constexpr std::uint32_t EditorControls  = 11u * 22u;           // [-] - RecordCeiling * ControlsPerRecord
 constexpr std::uint32_t CentreControls  = 192u;                // [-] - ControlCentrePanel::ControlCapacity
-constexpr std::uint32_t ShellControls   = GlobalShellPanel::EnrolmentDemand;   // [-] - chrome, outline rows,
+constexpr std::uint32_t ShellControls   = GlobalShellPanel::RegistrationDemand;   // [-] - chrome, outline rows,
                                                                               //       layer rows, metadata
-constexpr std::uint32_t StackControls   = LayerStackPanel::EnrolmentDemand;   // [-] - rows, chrome,
+constexpr std::uint32_t StackControls   = LayerStackPanel::RegistrationDemand;   // [-] - rows, chrome,
                                                                              //       popups, revisions, card
-constexpr std::uint32_t BrowserControls = ContentBrowserPanel::EnrolmentDemand;   // [-] - sources, lattice, chrome
+constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDemand;   // [-] - sources, lattice, chrome
 
-constexpr std::uint32_t EasesPerControl = 2u;                  // [-] - InteractionIndex::Enrol draws both fades
+constexpr std::uint32_t EasesPerControl = 2u;                  // [-] - InteractionIndex::Register draws both fades
 constexpr std::uint32_t BareEases       = 9u + 1u;             // [-] - Control Centre motions, shell carousel
 
 constexpr std::uint32_t DemandedEases =
@@ -175,21 +175,21 @@ constexpr std::uint32_t DemandedEases =
 
 static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
               "the host's construct chain demands more eased interpolants than the integrator holds — the "
-              "panel constructed last will be refused mid-enrolment and the window will retire before its "
+              "panel constructed last will be rejected mid-registration and the window will retire before its "
               "first frame; raise MotionIntegrator::EaseCapacity or reduce a panel's control count");
 
 // 🔴 The eased budget above was necessary but NOT sufficient, and the gap cost a whole bring-up. Ledger
 //    SLOTS are a second, separate ceiling: `FacetPanel`, `EditorPanel` and `ControlCentrePanel` each own a
-//    PRIVATE `InteractionIndex`, but the sheet, the reference shell and the layer stack all enrol into the
+//    PRIVATE `InteractionIndex`, but the sheet, the reference shell and the layer stack all register into the
 //    ONE `Ledger` declared below. That shared total is what overflowed — 31 + 128 + 240 = 399 against a
-//    ceiling of 256 — so `LayerStack.Construct` was refused with "no further control slot" and the host
+//    ceiling of 256 — so `LayerStack.Construct` was rejected with "no further control slot" and the host
 //    printed its refusal and exited 1 before recording a single frame. Only the panels sharing the ledger
 //    are counted here; a panel with its own ledger is weighed against its own capacity, not this one.
 constexpr std::uint32_t SharedSlots = SheetControls + ShellControls + StackControls + BrowserControls;
 
 static_assert(SharedSlots <= InteractionIndex::ControlCapacity,
-              "the panels sharing this host's one InteractionIndex enrol more controls than it holds — the "
-              "panel constructed last is refused at bring-up and the host exits before its first frame; "
+              "the panels sharing this host's one InteractionIndex register more controls than it holds — the "
+              "panel constructed last is rejected at bring-up and the host exits before its first frame; "
               "raise InteractionIndex::ControlCapacity or reduce a sharing panel's control count");
 
 // 🔴 A THIRD ceiling, and the one that actually killed this host: automatic storage. A Windows thread is
@@ -226,7 +226,7 @@ constexpr LayerRow StackLayers[4] =
               false, 100u, false, { "Base Color", "Roughness", "Metallic", "Bump" },  4u }
 };
 
-/// 🧩 Every identity the sheet's controls are enrolled under, claimed once at bring-up.
+/// 🧩 Every identity the sheet's controls are registered under, claimed once at bring-up.
 struct ValidationIdentities
 {
     ControlIdentity  Selection    = {};
@@ -254,39 +254,39 @@ struct ValidationIdentities
     ControlIdentity  OutlineExpansion[5] = {};
 };
 
-/// 🧩 Claims every identity the sheet needs, refusing in full rather than in part.
+/// 🧩 Reservations every identity the sheet needs, refusing in full rather than in part.
 /// out   Result  [-]  refuses with ExtentExhausted when the ledger declines any requested identity
-/// note  🔴 A partial enrolment would leave one control reading another's fade, which draws correctly on the
+/// note  🔴 A partial registration would leave one control reading another's fade, which draws correctly on the
 ///       first tick and diverges on the second — the hardest possible shape of defect to attribute.
-Outcome<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
+Outcome<ValidationIdentities> RegisterEvery(InteractionIndex& Ledger)
 {
-    ValidationIdentities  Claimed;
+    ValidationIdentities  Target;
     ControlIdentity*      Every[] = {
-        &Claimed.Selection, &Claimed.Degree,     &Claimed.Percent,    &Claimed.Pixel,
-        &Claimed.Rotation,  &Claimed.Snapping,   &Claimed.GridLines,  &Claimed.AspectLocked,
-        &Claimed.EntryOne,  &Claimed.EntryTwo,   &Claimed.EntryThree, &Claimed.EntryFour,
-        &Claimed.Size,      &Claimed.TooltipLight, &Claimed.TooltipDark,
-        &Claimed.InspectorDock, &Claimed.WorkspaceMode, &Claimed.InspectorTabs, &Claimed.TransformFold,
-        &Claimed.ShadingMenu, &Claimed.AlbedoPicker,
-        &Claimed.OutlineRows[0], &Claimed.OutlineRows[1], &Claimed.OutlineRows[2],
-        &Claimed.OutlineRows[3], &Claimed.OutlineRows[4],
-        &Claimed.OutlineExpansion[0], &Claimed.OutlineExpansion[1], &Claimed.OutlineExpansion[2],
-        &Claimed.OutlineExpansion[3], &Claimed.OutlineExpansion[4]
+        &Target.Selection, &Target.Degree,     &Target.Percent,    &Target.Pixel,
+        &Target.Rotation,  &Target.Snapping,   &Target.GridLines,  &Target.AspectLocked,
+        &Target.EntryOne,  &Target.EntryTwo,   &Target.EntryThree, &Target.EntryFour,
+        &Target.Size,      &Target.TooltipLight, &Target.TooltipDark,
+        &Target.InspectorDock, &Target.WorkspaceMode, &Target.InspectorTabs, &Target.TransformFold,
+        &Target.ShadingMenu, &Target.AlbedoPicker,
+        &Target.OutlineRows[0], &Target.OutlineRows[1], &Target.OutlineRows[2],
+        &Target.OutlineRows[3], &Target.OutlineRows[4],
+        &Target.OutlineExpansion[0], &Target.OutlineExpansion[1], &Target.OutlineExpansion[2],
+        &Target.OutlineExpansion[3], &Target.OutlineExpansion[4]
     };
 
-    for (ControlIdentity* Claiming : Every)
+    for (ControlIdentity* Target : Every)
     {
-        const Outcome<ControlIdentity> Issued = Ledger.Enrol();
+        const Outcome<ControlIdentity> Registered = Ledger.Register();
 
-        if (!Issued.Resolved)
+        if (!Registered.Resolved)
         {
-            return Outcome<ValidationIdentities>::Refuse(Issued.Error);
+            return Outcome<ValidationIdentities>::Refuse(Registered.Error);
         }
 
-        *Claiming = Issued.Resolve();
+        *Target = Registered.Resolve();
     }
 
-    return Outcome<ValidationIdentities>::Result(Claimed);
+    return Outcome<ValidationIdentities>::Result(Target);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -296,12 +296,12 @@ Outcome<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
 #ifdef SLATE_DEBUG
 
 /// 🧩 One control's recorded extent, retained for the overlay to stroke over it.
-/// note  🔍 Debug only. Nothing in a shipped build enrols, retains or records any of this.
+/// note  🔍 Debug only. Nothing in a shipped build registers, retains or records any of this.
 struct MeasuredExtent
 {
     const char*  Naming  = "";   // [-] - static text; never allocated
     PlaneExtent  Where   = {};   // [px] - what the control was handed
-    float        Claimed = 0.0f; // [px] - what the sheet declares it should span across, already reduced
+    float        Target = 0.0f; // [px] - what the sheet declares it should span across, already reduced
 };
 
 /// 🧩 Retains what each control was arranged at, so the overlay can compare it against the sheet.
@@ -313,14 +313,14 @@ public:
 
     static constexpr std::uint32_t MeasuredCeiling = 32u;   // [-] - never allocated
 
-    void Retain(const char* Naming, const PlaneExtent& Where, float Claimed)
+    void Retain(const char* Naming, const PlaneExtent& Where, float Target)
     {
         if (MeasuredCount >= MeasuredCeiling)
             return;
 
         Measured[MeasuredCount].Naming  = Naming;
         Measured[MeasuredCount].Where   = Where;
-        Measured[MeasuredCount].Claimed = Claimed;
+        Measured[MeasuredCount].Target = Target;
         ++MeasuredCount;
     }
 
@@ -331,7 +331,7 @@ public:
 
     /// 🧩 Strokes every retained extent and reports the four factors the appearance was resolved by.
     void Record(RecordingSurface& Surface, const ThemeProfile& Appearance,
-                double ArtistScale, float ExtentAlong, std::uint32_t Disagreeing) const
+                double ArtistScale, float Width, std::uint32_t Disagreeing) const
     {
         const ControlColour&    Colours = Appearance.Control;
         const ControlMetric& Measure = Appearance.ControlMeasure;
@@ -339,7 +339,7 @@ public:
         for (std::uint32_t Ordinal = 0u; Ordinal < MeasuredCount; ++Ordinal)
         {
             const MeasuredExtent& Held  = Measured[Ordinal];
-            const float           Apart = Held.Where.SpanAcross() - Held.Claimed;
+            const float           Apart = Held.Where.Height() - Held.Target;
             const bool            Agreed = (Apart < 0.5f && Apart > -0.5f);
 
             Surface.Edge(Held.Where, Agreed ? Colours.RulerPointer : Colours.StopTaken, 1.0f, 0.0f, CornerNone);
@@ -354,7 +354,7 @@ public:
                       static_cast<unsigned>(Measure.Density),
                       ArtistScale,
                       static_cast<double>(Measure.AppliedFactor),
-                      static_cast<double>(ExtentAlong),
+                      static_cast<double>(Width),
                       static_cast<unsigned>(MeasuredCount),
                       static_cast<unsigned>(Disagreeing));
 
@@ -368,7 +368,7 @@ public:
 
         for (std::uint32_t Ordinal = 0u; Ordinal < MeasuredCount; ++Ordinal)
         {
-            const float Apart = Measured[Ordinal].Where.SpanAcross() - Measured[Ordinal].Claimed;
+            const float Apart = Measured[Ordinal].Where.Height() - Measured[Ordinal].Target;
 
             if (Apart >= 0.5f || Apart <= -0.5f)
                 ++Counted;
@@ -420,7 +420,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     if (!Interface.Construct(Attach(Lifetime.Offering())).Resolved)
     {
-        std::printf("%s \u2014 the interface context was refused\n", HostName);
+        std::printf("%s \u2014 the interface context was rejected\n", HostName);
         return 1;
     }
 
@@ -465,7 +465,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
         if (ThemeInterchange::AdoptBeside(InvokedAs, Recorded))
         {
-            ControlCentreValues.Theme       = Recorded.Presented;
+            ControlCentreValues.Theme       = Recorded.Current;
             ControlCentreValues.Primary     = Recorded.Primary;
             ControlCentreValues.Secondary   = Recorded.Secondary;
             ControlCentreValues.Information = Recorded.Information;
@@ -478,25 +478,25 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    A write per frame would rewrite the whole appearance sixty times a second for as long as the
     //    Control Centre is open, which is a disk cost no artist asked for.
     ThemeSelection InscribedSelection;
-    InscribedSelection.Presented   = ControlCentreValues.Theme;
+    InscribedSelection.Current   = ControlCentreValues.Theme;
     InscribedSelection.Primary     = ControlCentreValues.Primary;
     InscribedSelection.Secondary   = ControlCentreValues.Secondary;
     InscribedSelection.Information = ControlCentreValues.Information;
     InscribedSelection.Warning     = ControlCentreValues.Warning;
     InscribedSelection.Alert       = ControlCentreValues.Alert;
     GlobalShellPanel         ReferenceShell;
-    ShellContext           ShellSeated;
+    ShellContext           ShellApplied;
 
     // 📝 The ported `LayerstackV1` pane and the two property panels its inspector pairs with. The
-    //    arrangement is seated from the reference once, then the artist amends it through the panel.
+    //    arrangement is applied from the reference once, then the artist amends it through the panel.
     LayerStackPanel          LayerStack;
-    LayerStackContext      LayerStackSeated;
+    LayerStackContext      LayerStackApplied;
 
     // 📝 The ported `AsstbrowsrBasic` page — the sources aside, the record lattice and the inspector. The
-    //    library is seated from the reference's own `ASSETS` run once, before the first tick.
+    //    library is applied from the reference's own `ASSETS` run once, before the first tick.
     ContentBrowserPanel      ContentBrowser;
-    ContentBrowserConfiguration  ContentBrowserSeated;
-    ContentLibrary           ContentSeated;
+    ContentBrowserConfiguration  ContentBrowserApplied;
+    ContentLibrary           ContentApplied;
 
     // 🔴 `static`, and that is not a style choice. `LayerArrangement` is 157 KB and `RevisionSequence`
     //    retains sixteen whole arrangements against its undo ring, which is 2.5 MB — together they are
@@ -513,21 +513,21 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     if (const auto Verdict = Ledger.Construct(Motion); !Verdict.Resolved)
     {
-        std::printf("%s \u2014 the interaction ledger was refused: %s\n", HostName, Verdict.Error.Detail);
+        std::printf("%s \u2014 the interaction ledger was rejected: %s\n", HostName, Verdict.Error.Detail);
         std::fflush(stdout);
         return 1;
     }
 
-    const Outcome<ValidationIdentities> Enrolled = EnrolEvery(Ledger);
+    const Outcome<ValidationIdentities> Registered = RegisterEvery(Ledger);
 
-    if (!Enrolled.Resolved)
+    if (!Registered.Resolved)
     {
-        std::printf("%s \u2014 the ledger declined an enrolment: %s\n", HostName, Enrolled.Error.Detail);
+        std::printf("%s \u2014 the ledger rejected an registration: %s\n", HostName, Registered.Error.Detail);
         std::fflush(stdout);
         return 1;
     }
 
-    const ValidationIdentities Claimed = Enrolled.Resolve();
+    const ValidationIdentities Target = Registered.Resolve();
 
     // 🔴 Seeded from what was transcribed beside the executable, so gate ⑱ and every sheet above it come up in
 //    the recorded theme rather than in the transcription's own and correcting themselves a tick later.
@@ -538,74 +538,74 @@ ApplyUserScale(Appearance,
                static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
                static_cast<float>(ControlCentreValues.Radius) / 24.0f);
 ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
-    Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
+    Discard(Interface.ApplyWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
     Surface.ApplyFontLoader(Fonts);
-    Disregard(Fonts.Discover(FontArchivesPath));
+    Discard(Fonts.Discover(FontArchivesPath));
     // 📝 The family carousel's preview faces are added to the atlas BEFORE the first tick records. Added
     //    during recording instead, the faces would land in an atlas the renderer had already uploaded and
     //    the preview tiles would draw from stale texture data.
-    Disregard(Fonts.PreparePreviews(1.0f));
+    Discard(Fonts.PreparePreviews(1.0f));
     ControlCentre.SetFontFamilies(Fonts);
-    Disregard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
+    Discard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
 
     // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
     //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
     //    already open by this point, so the host appeared to "open white and crash" when it had in fact
     //    stated its reason and exited 1. Naming the stage and flushing it is what makes the next one legible.
-    const auto Refused = [](const char* Stage, const Refusal& Declined) -> int
+    const auto Rejected = [](const char* Stage, const Refusal& Rejected) -> int
     {
-        std::printf("%s \u2014 %s was refused: %s\n", HostName, Stage, Declined.Detail);
+        std::printf("%s \u2014 %s was rejected: %s\n", HostName, Stage, Rejected.Detail);
         std::fflush(stdout);
         return 1;
     };
 
     if (const auto Verdict = Panel.Construct(Ledger, Surface, Appearance); !Verdict.Resolved)
-        return Refused("the control panel", Verdict.Error);
+        return Rejected("the control panel", Verdict.Error);
 
     if (const auto Verdict = ReferenceControls.Construct(Ledger, Surface, Appearance); !Verdict.Resolved)
-        return Refused("the reference controls", Verdict.Error);
+        return Rejected("the reference controls", Verdict.Error);
 
     if (const auto Verdict = Facets.Construct(Motion, Surface, Appearance); !Verdict.Resolved)
-        return Refused("the facet panel", Verdict.Error);
+        return Rejected("the facet panel", Verdict.Error);
 
     if (const auto Verdict = EditorPanels.Construct(Motion, Surface, Appearance); !Verdict.Resolved)
-        return Refused("the editor panels", Verdict.Error);
+        return Rejected("the editor panels", Verdict.Error);
 
     EditorPartition.Construct(PanelSubject::Viewport);
 
     if (const auto Verdict = ControlCentre.Construct(Motion, Surface, Appearance); !Verdict.Resolved)
-        return Refused("the Control Centre panel", Verdict.Error);
+        return Rejected("the Control Centre panel", Verdict.Error);
 
     // 🔴 The reference shell is constructed LAST and recorded FIRST. It occupies the whole display, and the
-    //    validation sheet is the page that scrolls beneath it — so its enrolments are claimed after every
+    //    validation sheet is the page that scrolls beneath it — so its registrations are claimed after every
     //    other panel's, and nothing below it can take a contact the shell's own chrome stands over.
     // 🔴 Being last also makes it the first to starve: every earlier panel draws two eased interpolants per
-    //    enrolled control from the ONE integrator, so a ceiling that fits the others exactly refuses here.
+    //    registered control from the ONE integrator, so a ceiling that fits the others exactly refuses here.
     if (const auto Verdict = ReferenceShell.Construct(Ledger, Motion, Surface, Appearance); !Verdict.Resolved)
-        return Refused("the reference shell", Verdict.Error);
+        return Rejected("the reference shell", Verdict.Error);
 
     // 📝 The layer stack carries its own inks and lengths from `LayerstackV1` rather than from
     //    ThemeProfile, because the reference states them absolutely — but it shares the one
-    //    interaction ledger, so its enrolments are counted in the interpolant budget above.
+    //    interaction ledger, so its registrations are counted in the interpolant budget above.
     if (const auto Verdict = LayerStack.Construct(Ledger, Surface, Appearance); !Verdict.Resolved)
-        return Refused("the layer stack", Verdict.Error);
+        return Rejected("the layer stack", Verdict.Error);
 
     if (const auto Verdict = ContentBrowser.Construct(Ledger, Surface); !Verdict.Resolved)
-        return Refused("the content browser", Verdict.Error);
+        return Rejected("the content browser", Verdict.Error);
 
-    // 📝 The reference's own `ASSETS` run, seated once. The panel amends what the artist takes; it never
+    // 📝 The reference's own `ASSETS` run, applied once. The panel amends what the artist takes; it never
     //    amends the run itself, so this is the only write the library ever receives.
-    SeatReferenceContent(ContentSeated);
+    ApplyReferenceContent(ContentApplied);
 
-    // 🔴 The seat is read rather than dropped. A refused seat leaves the arrangement empty, and an empty
+    // 🔴 The seat is read rather than dropped. A rejected seat leaves the arrangement empty, and an empty
     //    stack draws as a bare pane — indistinguishable from a panel that recorded nothing.
-    if (const auto Verdict = SeatReferenceArrangement(LayerArranged); !Verdict.Resolved)
-        return Refused("the layer arrangement", Verdict.Error);
+    if (const auto Verdict = ApplyReferenceArrangement(LayerArranged); !Verdict.Resolved)
+        return Rejected("the layer arrangement", Verdict.Error);
 
-    // What the sheet seats, and the runs it presents — the sole owner of every datum below.
-    ValidationConfiguration Seated;
+    // What the sheet applies, and the runs it presents — the sole owner of every datum below.
+    ValidationConfiguration Applied;
 
     const char* SelectionOptions[] = { "Entry name", "Second Entry", "Third Entry" };
     const char* SizeStops[]        = { "S", "M", "L", "XL" };
@@ -730,7 +730,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
 
 #ifdef SLATE_DEBUG
     MeasureOverlay Overlay;
-    bool           OverlayPresented = false;
+    bool           OverlayShown = false;
 #endif
 
     double ArtistScale     = SheetColumnScale;
@@ -739,7 +739,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
     // 📝 🔴 The sheet is a scrolling page — `py-32` above and below a column that runs past 1000 px at the
     //    reduced scale. A host that recorded it into a fixed window would present the first four cards and
     //    silently lose the last two, which is exactly the kind of disagreement this host exists to catch.
-    float ScrollAcross  = 0.0f;   // [px] - how far the column has been carried upward
+    float ScrollY  = 0.0f;   // [px] - how far the column has been carried upward
     float ColumnMeasured = 0.0f;  // [px] - what the previous tick's column actually occupied
 
     std::printf("%s \u2014 running\n", HostName);
@@ -748,16 +748,16 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
     //                                                       THE TICK LOOP
     // ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
-    while (Lifetime.Standing())
+    while (Lifetime.Active())
     {
         const TickPass Pass = Lifetime.Await(PageGroundInk);
 
-        if (Pass.Standing == TickStanding::Closed)
+        if (Pass.Current == TickCondition::Closed)
             break;
 
         // 🔴 The DEVICE was rebuilt, so every device handle the interface holds names an object the vendor
         //    has returned. The interface alone is reconstructed: the ledger, the panel and the recording
-        //    surface hold no device handle, so retiring them would discard interaction state — the seizure
+        //    surface hold no device handle, so retiring them would discard interaction state — the grab
         //    an artist is mid-drag on — over a rebuild that did not invalidate any of it.
         //    Tested before DisplayRecovered because a device rebuild raises both.
         if (Lifetime.DeviceRecovered())
@@ -784,23 +784,23 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
             //    descriptor mismatch several ticks later rather than as the resize that caused it.
             if (!Interface.Renegotiate(Offered.MinimumDisplayImageCount, Offered.DisplayImageCount))
             {
-                std::printf("%s \u2014 the interface declined the restated image counts\n", HostName);
+                std::printf("%s \u2014 the interface rejected the restated image counts\n", HostName);
             }
         }
 
-        if (Pass.Standing != TickStanding::Recording)
+        if (Pass.Current != TickCondition::Recording)
             continue;
 
         const double ElapsedMs = Pass.ElapsedMilliseconds;
 
         // ① Open the interface tick and adopt the surface. 🔴 A refusal here must NOT return to the top
-        //    of the loop: Await has already acquired an image and opened a recording, and only Surrender
+        //    of the loop: Await has already acquired an image and opened a recording, and only Complete
         //    closes them. The tick records nothing and the cleared ground is presented instead.
         bool ContentBuilt = Interface.Advance().Resolved;
 
         if (ContentBuilt && !Surface.Adopt().Resolved)
         {
-            Disregard(Interface.Abandon());
+            Discard(Interface.Abandon());
             ContentBuilt = false;
         }
 
@@ -812,27 +812,27 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         // ② 🔴 Re-resolve only when a factor actually moved. Resolved unconditionally, every extent is
         //    recomputed sixty times a second to the same figures, and the density classification steps
         //    while a drag is live.
-        if (Display.ExtentAlong != ResolvedAgainst)
+        if (Display.Width != ResolvedAgainst)
         {
-            Appearance      = ResolveTinted(Display.DisplayScale, ArtistScale, Display.ExtentAlong, Selected);
+            Appearance      = ResolveTinted(Display.DisplayScale, ArtistScale, Display.Width, Selected);
             std::strncpy(Appearance.Fonts.Family, Selected.FontFamily, sizeof(Appearance.Fonts.Family) - 1u);
             ApplyUserScale(Appearance,
                            static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
                            static_cast<float>(ControlCentreValues.Radius) / 24.0f);
 ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
-            Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
+            Discard(Interface.ApplyWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
-    Disregard(Fonts.Discover(FontArchivesPath));
-    Disregard(Fonts.PreparePreviews(1.0f));
+    Discard(Fonts.Discover(FontArchivesPath));
+    Discard(Fonts.PreparePreviews(1.0f));
     ControlCentre.SetFontFamilies(Fonts);
     Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
-            ResolvedAgainst = Display.ExtentAlong;
+            ResolvedAgainst = Display.Width;
 
             // 🔴 The shell holds its own scaled extents, so a resolve it is not told about leaves it
             //    arranging at the previous display's figures — every other panel reads the appearance
             //    through the borrowed reference and needs no such call.
-            ReferenceShell.Reseat(Appearance);
+            ReferenceShell.Reapply(Appearance);
         }
 
         // 📝 Re-stated every tick rather than only when the display or the theme moves: the per-role
@@ -848,9 +848,9 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         // 📝 Shift is read from the modifier condition rather than from a second key subject, because the
         //    exchange states Tab once and reports the modifiers standing with it; a `ShiftedSummon`
         //    enumerator would be a second spelling of the same arrival for every host to keep in step.
-        static_cast<void>(ReferenceShell.AdvanceSummoning(ShellSeated,
-                                                          Interface.KeyArrived(KeySubject::Summon),
-                                                          Interface.KeyArrived(KeySubject::Withdraw),
+        static_cast<void>(ReferenceShell.AdvanceSummoning(ShellApplied,
+                                                          Interface.KeyPressed(KeySubject::Summon),
+                                                          Interface.KeyPressed(KeySubject::Withdraw),
                                                           Interface.Modifiers().Shifted));
 
         ReferenceShell.Advance(Surface.Pointer(), ElapsedMs);
@@ -871,73 +871,73 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
 
             // 📝 The search run takes what was typed only while it holds the keyboard, and the panel's own
             //    guard refuses every chord in that condition — so the two can never both consume a key.
-            if (LayerStackSeated.RetentionRoused)
+            if (LayerStackApplied.RetentionHovered)
             {
-                static_cast<void>(Interface.AdmitTyped(LayerStackSeated.Retention,
+                static_cast<void>(Interface.AcceptTyped(LayerStackApplied.Retention,
                                                        LayerStackContext::RetentionCeiling));
 
-                if (Interface.KeyArrived(KeySubject::Retract))
+                if (Interface.KeyPressed(KeySubject::Retract))
                 {
                     std::uint32_t Occupied = 0u;
 
                     while (Occupied + 1u < LayerStackContext::RetentionCeiling &&
-                           LayerStackSeated.Retention[Occupied] != '\0')
+                           LayerStackApplied.Retention[Occupied] != '\0')
                     {
                         ++Occupied;
                     }
 
                     if (Occupied > 0u)
-                        LayerStackSeated.Retention[Occupied - 1u] = '\0';
+                        LayerStackApplied.Retention[Occupied - 1u] = '\0';
                 }
 
-                if (Interface.KeyArrived(KeySubject::Withdraw))
+                if (Interface.KeyPressed(KeySubject::Withdraw))
                 {
-                    LayerStackSeated.Retention[0]    = '\0';
-                    LayerStackSeated.RetentionRoused = false;
+                    LayerStackApplied.Retention[0]    = '\0';
+                    LayerStackApplied.RetentionHovered = false;
                 }
             }
-            else if (LayerStackSeated.Renaming != LayerStackCeiling::AbsentOrdinal)
+            else if (LayerStackApplied.Renaming != LayerStackCeiling::AbsentOrdinal)
             {
-                static_cast<void>(Interface.AdmitTyped(LayerStackSeated.RenamingRun,
+                static_cast<void>(Interface.AcceptTyped(LayerStackApplied.RenamingRun,
                                                        LayerStackContext::NamingCeiling));
 
-                if (Interface.KeyArrived(KeySubject::Retract))
+                if (Interface.KeyPressed(KeySubject::Retract))
                 {
                     std::uint32_t Occupied = 0u;
 
                     while (Occupied + 1u < LayerStackContext::NamingCeiling &&
-                           LayerStackSeated.RenamingRun[Occupied] != '\0')
+                           LayerStackApplied.RenamingRun[Occupied] != '\0')
                     {
                         ++Occupied;
                     }
 
                     if (Occupied > 0u)
-                        LayerStackSeated.RenamingRun[Occupied - 1u] = '\0';
+                        LayerStackApplied.RenamingRun[Occupied - 1u] = '\0';
                 }
 
                 // 📐 `commit(false)` on Escape — the naming is abandoned rather than written.
-                if (Interface.KeyArrived(KeySubject::Withdraw))
-                    LayerStackSeated.Renaming = LayerStackCeiling::AbsentOrdinal;
+                if (Interface.KeyPressed(KeySubject::Withdraw))
+                    LayerStackApplied.Renaming = LayerStackCeiling::AbsentOrdinal;
             }
-            else if (LayerStackSeated.RevisionField != 0u)
+            else if (LayerStackApplied.RevisionField != 0u)
             {
                 // 📐 The unfolded revision card's comment and value fields, on the same terms as the two
                 //    above: the field holding the keyboard consumes what was typed, and no chord reaches
                 //    the arrangement while it does. `RevisionField` is `Ordinal * 2 + 1` for the comment
                 //    and `+ 2` for the value, so the ordinal and the field both fall out of one reading.
-                const std::uint32_t Field   = LayerStackSeated.RevisionField - 1u;
+                const std::uint32_t Field   = LayerStackApplied.RevisionField - 1u;
                 const std::uint32_t Ordinal = Field / 2u;
                 const bool          Reading = (Field % 2u) == 1u;
 
                 if (Ordinal < LayerStackContext::RevisionCeiling)
                 {
-                    char* Written = Reading ? LayerStackSeated.RevisionReading[Ordinal]
-                                            : LayerStackSeated.RevisionRemark[Ordinal];
+                    char* Written = Reading ? LayerStackApplied.RevisionReading[Ordinal]
+                                            : LayerStackApplied.RevisionRemark[Ordinal];
 
-                    static_cast<void>(Interface.AdmitTyped(Written,
+                    static_cast<void>(Interface.AcceptTyped(Written,
                                                            LayerStackContext::RemarkCeiling));
 
-                    if (Interface.KeyArrived(KeySubject::Retract))
+                    if (Interface.KeyPressed(KeySubject::Retract))
                     {
                         std::uint32_t Occupied = 0u;
 
@@ -952,8 +952,8 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
                     }
                 }
 
-                if (Interface.KeyArrived(KeySubject::Withdraw))
-                    LayerStackSeated.RevisionField = 0u;
+                if (Interface.KeyPressed(KeySubject::Withdraw))
+                    LayerStackApplied.RevisionField = 0u;
             }
             else
             {
@@ -966,10 +966,10 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
                     if (Subject == KeySubject::Summon || Subject == KeySubject::Retract)
                         continue;
 
-                    if (Interface.KeyArrived(Subject))
+                    if (Interface.KeyPressed(Subject))
                     {
-                        static_cast<void>(LayerStack.AdmitChord(Subject, Modifiers, LayerArranged,
-                                                                LayerStackSeated, LayerRevisions));
+                        static_cast<void>(LayerStack.AcceptChord(Subject, Modifiers, LayerArranged,
+                                                                LayerStackApplied, LayerRevisions));
                     }
                 }
             }
@@ -983,53 +983,53 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         const ControlMetric& Measure = Appearance.ControlMeasure;
 
         // ③ The page ground, then the sheet's own column, centred.
-        const PlaneExtent Page = Spanning(0.0f, 0.0f, Display.ExtentAlong, Display.ExtentAcross);
+        const PlaneExtent Page = Spanning(0.0f, 0.0f, Display.Width, Display.Height);
 
         Surface.Ground(Page, Colours.PageGround, 0.0f, CornerNone);
 
-        const float ColumnAlong  = (Measure.ColumnAlong < Display.ExtentAlong - Measure.PagePad * 2.0f)
-                                 ? Measure.ColumnAlong
-                                 : Display.ExtentAlong - Measure.PagePad * 2.0f;
-        const float ColumnLeast  = (Display.ExtentAlong - ColumnAlong) * 0.5f;
+        const float ColumnX  = (Measure.ColumnX < Display.Width - Measure.PagePad * 2.0f)
+                                 ? Measure.ColumnX
+                                 : Display.Width - Measure.PagePad * 2.0f;
+        const float ColumnMinimum  = (Display.Width - ColumnX) * 0.5f;
 
         // 📐 The wheel carries the column, and the travel is held between zero and whatever the column
         //    overruns the display by. Clamped against the **previous** tick's measured extent, because this
         //    tick's is not known until every card has been arranged — and a scroll clamped against a stale
         //    extent by one tick is invisible, where an unclamped one scrolls into empty space forever.
-        const float Overrun = (ColumnMeasured > Display.ExtentAcross)
-                            ? (ColumnMeasured - Display.ExtentAcross) : 0.0f;
+        const float Overrun = (ColumnMeasured > Display.Height)
+                            ? (ColumnMeasured - Display.Height) : 0.0f;
 
-        ScrollAcross -= Surface.Pointer().WheelAcross * Measure.CardGapAcross * 2.0f;
-        ScrollAcross  = (ScrollAcross < 0.0f) ? 0.0f
-                      : (ScrollAcross > Overrun) ? Overrun : ScrollAcross;
+        ScrollY -= Surface.Pointer().WheelY * Measure.CardGapY * 2.0f;
+        ScrollY  = (ScrollY < 0.0f) ? 0.0f
+                      : (ScrollY > Overrun) ? Overrun : ScrollY;
 
-        float Cursor = Measure.PagePad - ScrollAcross;
+        float Cursor = Measure.PagePad - ScrollY;
 
         // 📝 Every card below is arranged from its own row extents and then recorded, so the arrangement the
         //    overlay measures and the arrangement the control was handed are the same object by construction.
         const auto AdvanceCard = [&](const float* RowExtents, std::uint32_t RowCount) -> CardArrangement
         {
-            const CardArrangement Arranged = Panel.ArrangeCard(ColumnLeast, Cursor, ColumnAlong,
+            const CardArrangement Arranged = Panel.ArrangeCard(ColumnMinimum, Cursor, ColumnX,
                                                                RowExtents, RowCount);
             Panel.RecordCard(Arranged);
-            Cursor = Arranged.Enclosure.MostAcross + Measure.CardGapAcross;
+            Cursor = Arranged.Enclosure.MaximumY + Measure.CardGapY;
             return Arranged;
         };
 
         const auto RowAt = [&](const CardArrangement& Card, const float* RowExtents,
                                std::uint32_t Ordinal) -> PlaneExtent
         {
-            float Along = Card.Interior.LeastAcross;
+            float X = Card.Interior.MinimumY;
 
             for (std::uint32_t Passed = 0u; Passed < Ordinal; ++Passed)
-                Along += RowExtents[Passed] + Card.RowGap;
+                X += RowExtents[Passed] + Card.RowGap;
 
-            return Spanning(Card.Interior.LeastAlong, Along, Card.Interior.SpanAlong(), RowExtents[Ordinal]);
+            return Spanning(Card.Interior.MinimumX, X, Card.Interior.Width(), RowExtents[Ordinal]);
         };
 
         // ④ Card one — the selection field and the three magnitude rows.
-        const float TopRows[4] = { Measure.FieldAcross, Measure.FieldAcross,
-                                   Measure.FieldAcross, Measure.FieldAcross };
+        const float TopRows[4] = { Measure.FieldHeight, Measure.FieldHeight,
+                                   Measure.FieldHeight, Measure.FieldHeight };
         const CardArrangement TopCard = AdvanceCard(TopRows, 4u);
 
         const PlaneExtent SelectionRow = RowAt(TopCard, TopRows, 0u);
@@ -1037,10 +1037,10 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         const PlaneExtent PercentRow   = RowAt(TopCard, TopRows, 2u);
         const PlaneExtent PixelRow     = RowAt(TopCard, TopRows, 3u);
 
-        Panel.SelectionField(Claimed.Selection, SelectionRow, Selection, Seated.SelectionTaken);
-        Panel.MagnitudeRow(Claimed.Degree,  DegreeRow,  Degree,  Seated.Degree);
-        Panel.MagnitudeRow(Claimed.Percent, PercentRow, Percent, Seated.Percent);
-        Panel.MagnitudeRow(Claimed.Pixel,   PixelRow,   Pixel,   Seated.Pixel);
+        Panel.SelectionField(Target.Selection, SelectionRow, Selection, Applied.SelectionTaken);
+        Panel.MagnitudeRow(Target.Degree,  DegreeRow,  Degree,  Applied.Degree);
+        Panel.MagnitudeRow(Target.Percent, PercentRow, Percent, Applied.Percent);
+        Panel.MagnitudeRow(Target.Pixel,   PixelRow,   Pixel,   Applied.Pixel);
 
         // ⑤ Card two — the two tooltip triggers inside their well.
         const float TooltipRows[1] = { Measure.TooltipWellFloor };
@@ -1051,123 +1051,123 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         Surface.Edge(TooltipWell, Colours.CardEdge, Measure.CardEdgeWeight, Measure.TooltipWellRadius, CornerAll);
 
         // 📐 The sheet places its two triggers `items-end` with a gap of 32 units between them, and lifts each
-        //    by `ml-8`. Both are seated against the well's lower padding, which is what items-end states.
-        const float TriggerAcross = TooltipWell.MostAcross - Measure.TooltipWellPad - Measure.TriggerExtent;
+        //    by `ml-8`. Both are applied against the well's lower padding, which is what items-end states.
+        const float TriggerY = TooltipWell.MaximumY - Measure.TooltipWellInset - Measure.TriggerExtent;
         const float TriggerPair   = Measure.TriggerExtent * 2.0f + Measure.TooltipWellGap;
-        const float TriggerLeast  = TooltipWell.LeastAlong + (TooltipWell.SpanAlong() - TriggerPair) * 0.5f;
+        const float TriggerTop  = TooltipWell.MinimumX + (TooltipWell.Width() - TriggerPair) * 0.5f;
 
-        const PlaneExtent LightTrigger = Spanning(TriggerLeast + Measure.TriggerLeadAlong, TriggerAcross,
+        const PlaneExtent LightTrigger = Spanning(TriggerTop + Measure.TriggerLeadX, TriggerY,
                                                   Measure.TriggerExtent, Measure.TriggerExtent);
-        const PlaneExtent DarkTrigger  = Spanning(TriggerLeast + Measure.TriggerExtent + Measure.TooltipWellGap,
-                                                  TriggerAcross, Measure.TriggerExtent, Measure.TriggerExtent);
+        const PlaneExtent DarkTrigger  = Spanning(TriggerTop + Measure.TriggerExtent + Measure.TooltipWellGap,
+                                                  TriggerY, Measure.TriggerExtent, Measure.TriggerExtent);
 
-        Panel.TooltipTrigger(Claimed.TooltipLight, LightTrigger, TooltipLight);
-        Panel.TooltipTrigger(Claimed.TooltipDark,  DarkTrigger,  TooltipDark);
+        Panel.TooltipTrigger(Target.TooltipLight, LightTrigger, TooltipLight);
+        Panel.TooltipTrigger(Target.TooltipDark,  DarkTrigger,  TooltipDark);
 
         // ⑥ Card three — the rotation ruler.
-        const float RulerRows[1] = { Measure.FieldAcross + Measure.CardRowGap * 0.5f + Measure.RulerAcross };
+        const float RulerRows[1] = { Measure.FieldHeight + Measure.CardRowGap * 0.5f + Measure.RulerHeight };
         const CardArrangement RulerCard = AdvanceCard(RulerRows, 1u);
 
-        Panel.RotationRuler(Claimed.Rotation, RowAt(RulerCard, RulerRows, 0u), Rotation, Seated.Rotation);
+        Panel.RotationRuler(Target.Rotation, RowAt(RulerCard, RulerRows, 0u), Rotation, Applied.Rotation);
 
         // ⑦ Card four — the three toggles inside their well.
-        const float ToggleWellAcross = Measure.ToggleRowAcross * 3.0f + Measure.WellGapAcross * 2.0f
-                                     + Measure.WellPad * 2.0f;
-        const float ToggleRows[1] = { ToggleWellAcross };
+        const float ToggleWellHeight = Measure.ToggleRowHeight * 3.0f + Measure.WellGapY * 2.0f
+                                     + Measure.WellInset * 2.0f;
+        const float ToggleRows[1] = { ToggleWellHeight };
         const CardArrangement ToggleCard = AdvanceCard(ToggleRows, 1u);
         const PlaneExtent     ToggleWell = RowAt(ToggleCard, ToggleRows, 0u);
 
         Surface.Ground(ToggleWell, Colours.WellGround, Measure.WellRadius, CornerAll);
         Surface.Edge(ToggleWell, Colours.CardEdge, Measure.CardEdgeWeight, Measure.WellRadius, CornerAll);
 
-        const auto WellRow = [&](const PlaneExtent& Well, float RowAcross, std::uint32_t Ordinal) -> PlaneExtent
+        const auto WellRow = [&](const PlaneExtent& Well, float RowHeight, std::uint32_t Ordinal) -> PlaneExtent
         {
-            return Spanning(Well.LeastAlong + Measure.WellPad,
-                            Well.LeastAcross + Measure.WellPad +
-                                static_cast<float>(Ordinal) * (RowAcross + Measure.WellGapAcross),
-                            Well.SpanAlong() - Measure.WellPad * 2.0f, RowAcross);
+            return Spanning(Well.MinimumX + Measure.WellInset,
+                            Well.MinimumY + Measure.WellInset +
+                                static_cast<float>(Ordinal) * (RowHeight + Measure.WellGapY),
+                            Well.Width() - Measure.WellInset * 2.0f, RowHeight);
         };
 
-        Panel.ToggleRow(Claimed.Snapping,     WellRow(ToggleWell, Measure.ToggleRowAcross, 0u),
-                        Snapping,     Seated.Snapping);
-        Panel.ToggleRow(Claimed.GridLines,    WellRow(ToggleWell, Measure.ToggleRowAcross, 1u),
-                        GridLines,    Seated.GridLines);
-        Panel.ToggleRow(Claimed.AspectLocked, WellRow(ToggleWell, Measure.ToggleRowAcross, 2u),
-                        AspectLocked, Seated.AspectLocked);
+        Panel.ToggleRow(Target.Snapping,     WellRow(ToggleWell, Measure.ToggleRowHeight, 0u),
+                        Snapping,     Applied.Snapping);
+        Panel.ToggleRow(Target.GridLines,    WellRow(ToggleWell, Measure.ToggleRowHeight, 1u),
+                        GridLines,    Applied.GridLines);
+        Panel.ToggleRow(Target.AspectLocked, WellRow(ToggleWell, Measure.ToggleRowHeight, 2u),
+                        AspectLocked, Applied.AspectLocked);
 
         // ⑧ Card five — the four multi-select rows inside their well.
-        const float SubsetWellAcross = Measure.SubsetRowAcross * 4.0f + Measure.WellGapAcross * 3.0f
-                                     + Measure.WellPad * 2.0f;
-        const float SubsetRows[1] = { SubsetWellAcross };
+        const float SubsetWellHeight = Measure.SubsetRowHeight * 4.0f + Measure.WellGapY * 3.0f
+                                     + Measure.WellInset * 2.0f;
+        const float SubsetRows[1] = { SubsetWellHeight };
         const CardArrangement SubsetCard = AdvanceCard(SubsetRows, 1u);
         const PlaneExtent     SubsetWell = RowAt(SubsetCard, SubsetRows, 0u);
 
         Surface.Ground(SubsetWell, Colours.WellGround, Measure.WellRadius, CornerAll);
         Surface.Edge(SubsetWell, Colours.CardEdge, Measure.CardEdgeWeight, Measure.WellRadius, CornerAll);
 
-        Panel.SubsetRow(Claimed.EntryOne,   WellRow(SubsetWell, Measure.SubsetRowAcross, 0u),
-                        EntryOne,   Seated.EntryOne);
-        Panel.SubsetRow(Claimed.EntryTwo,   WellRow(SubsetWell, Measure.SubsetRowAcross, 1u),
-                        EntryTwo,   Seated.EntryTwo);
-        Panel.SubsetRow(Claimed.EntryThree, WellRow(SubsetWell, Measure.SubsetRowAcross, 2u),
-                        EntryThree, Seated.EntryThree);
-        Panel.SubsetRow(Claimed.EntryFour,  WellRow(SubsetWell, Measure.SubsetRowAcross, 3u),
-                        EntryFour,  Seated.EntryFour);
+        Panel.SubsetRow(Target.EntryOne,   WellRow(SubsetWell, Measure.SubsetRowHeight, 0u),
+                        EntryOne,   Applied.EntryOne);
+        Panel.SubsetRow(Target.EntryTwo,   WellRow(SubsetWell, Measure.SubsetRowHeight, 1u),
+                        EntryTwo,   Applied.EntryTwo);
+        Panel.SubsetRow(Target.EntryThree, WellRow(SubsetWell, Measure.SubsetRowHeight, 2u),
+                        EntryThree, Applied.EntryThree);
+        Panel.SubsetRow(Target.EntryFour,  WellRow(SubsetWell, Measure.SubsetRowHeight, 3u),
+                        EntryFour,  Applied.EntryFour);
 
         // ⑨ Card six — the magnitude stops.
-        const float StopRows[1] = { Measure.StopStripAcross };
+        const float StopRows[1] = { Measure.StopStripHeight };
         const CardArrangement StopCard = AdvanceCard(StopRows, 1u);
 
-        Panel.MagnitudeStops(Claimed.Size, RowAt(StopCard, StopRows, 0u), Size, Seated.SizeTaken);
+        Panel.MagnitudeStops(Target.Size, RowAt(StopCard, StopRows, 0u), Size, Applied.SizeTaken);
 
         // ⑩ The general-purpose filter card — wrapped active chips, removal, clear-all, and the shared dropdown.
-        const float FacetAcross = Facets.MeasureAcross(ColumnAlong, FacetCard, Seated.FacetEnabled);
-        const PlaneExtent FacetExtent = Spanning(ColumnLeast, Cursor, ColumnAlong, FacetAcross);
-        Disregard(Facets.Record(FacetExtent, FacetCard, Seated.FacetEnabled));
-        Cursor = FacetExtent.MostAcross + Measure.CardGapAcross;
+        const float FacetY = Facets.MeasureHeight(ColumnX, FacetCard, Applied.FacetEnabled);
+        const PlaneExtent FacetExtent = Spanning(ColumnMinimum, Cursor, ColumnX, FacetY);
+        Discard(Facets.Record(FacetExtent, FacetCard, Applied.FacetEnabled));
+        Cursor = FacetExtent.MaximumY + Measure.CardGapY;
 
         // ⑪ The global-interface primitives — switch, segmented selector, inspector carousel, fold and dropdown.
         const float ReferenceRows[7] = { 32.0f, 38.0f, 31.0f, 154.0f, 129.0f, 124.0f, 341.0f };
         const CardArrangement ReferenceCard = AdvanceCard(ReferenceRows, 7u);
 
-        ReferenceControls.SwitchToggle(Claimed.InspectorDock, RowAt(ReferenceCard, ReferenceRows, 0u),
-                                       InspectorDock, Seated.InspectorDocked);
-        ReferenceControls.SegmentedChoice(Claimed.WorkspaceMode, RowAt(ReferenceCard, ReferenceRows, 1u),
-                                          WorkspaceMode, Seated.WorkspaceTaken);
-        ReferenceControls.TabStrip(Claimed.InspectorTabs, RowAt(ReferenceCard, ReferenceRows, 2u),
-                                   InspectorTabs, Seated.InspectorTaken);
-        ReferenceControls.CarouselPages(Claimed.InspectorTabs, RowAt(ReferenceCard, ReferenceRows, 3u),
-                                        InspectorCarousel, Seated.InspectorTaken);
-        ReferenceControls.CollapsibleCard(Claimed.TransformFold, RowAt(ReferenceCard, ReferenceRows, 4u),
-                                          TransformFold, Seated.TransformOpen);
-        ReferenceControls.DropdownCard(Claimed.ShadingMenu, RowAt(ReferenceCard, ReferenceRows, 5u),
-                                       ShadingMenu, Seated.ShadingTaken);
-        ReferenceControls.ColourPicker(Claimed.AlbedoPicker, RowAt(ReferenceCard, ReferenceRows, 6u),
-                                       AlbedoPicker, Seated.Albedo);
+        ReferenceControls.SwitchToggle(Target.InspectorDock, RowAt(ReferenceCard, ReferenceRows, 0u),
+                                       InspectorDock, Applied.InspectorDocked);
+        ReferenceControls.SegmentedChoice(Target.WorkspaceMode, RowAt(ReferenceCard, ReferenceRows, 1u),
+                                          WorkspaceMode, Applied.WorkspaceTaken);
+        ReferenceControls.TabStrip(Target.InspectorTabs, RowAt(ReferenceCard, ReferenceRows, 2u),
+                                   InspectorTabs, Applied.InspectorTaken);
+        ReferenceControls.CarouselPages(Target.InspectorTabs, RowAt(ReferenceCard, ReferenceRows, 3u),
+                                        InspectorCarousel, Applied.InspectorTaken);
+        ReferenceControls.CollapsibleCard(Target.TransformFold, RowAt(ReferenceCard, ReferenceRows, 4u),
+                                          TransformFold, Applied.TransformOpen);
+        ReferenceControls.DropdownCard(Target.ShadingMenu, RowAt(ReferenceCard, ReferenceRows, 5u),
+                                       ShadingMenu, Applied.ShadingTaken);
+        ReferenceControls.ColourPicker(Target.AlbedoPicker, RowAt(ReferenceCard, ReferenceRows, 6u),
+                                       AlbedoPicker, Applied.Albedo);
 
         // ⑫ One identity-backed outline. A drop's destination is declared here; document ownership stays outside
         //     the panel exactly as it does for selection and visibility.
         for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
         {
             OutlineRows[RecordOrdinal].EnclosedCount = 0u;
-            if (Seated.OutlineEnclosure[RecordOrdinal] < 5u)
-                ++OutlineRows[Seated.OutlineEnclosure[RecordOrdinal]].EnclosedCount;
+            if (Applied.OutlineEnclosure[RecordOrdinal] < 5u)
+                ++OutlineRows[Applied.OutlineEnclosure[RecordOrdinal]].EnclosedCount;
         }
 
-        std::uint32_t PresentedRecords[5] = {};
-        std::uint32_t PresentedCount = 0u;
+        std::uint32_t CurrentRecords[5] = {};
+        std::uint32_t CurrentCount = 0u;
         const auto LinearizeOutline = [&](auto&& Traverse, std::uint32_t Enclosing, std::uint32_t Depth) -> void
         {
             for (std::uint32_t Position = 0u; Position < 5u; ++Position)
             {
                 for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
                 {
-                    if (Seated.OutlineEnclosure[RecordOrdinal] != Enclosing ||
-                        Seated.OutlineOrder[RecordOrdinal] != Position)
+                    if (Applied.OutlineEnclosure[RecordOrdinal] != Enclosing ||
+                        Applied.OutlineOrder[RecordOrdinal] != Position)
                         continue;
 
                     OutlineRows[RecordOrdinal].Depth = Depth;
-                    PresentedRecords[PresentedCount++] = RecordOrdinal;
+                    CurrentRecords[CurrentCount++] = RecordOrdinal;
                     Traverse(Traverse, RecordOrdinal, Depth + 1u);
                 }
             }
@@ -1178,68 +1178,68 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
         {
             OutlineExpansion[RecordOrdinal] = ReferenceControls.OutlineExpansion(
-                Claimed.OutlineExpansion[RecordOrdinal], Seated.OutlineExpanded[RecordOrdinal],
+                Target.OutlineExpansion[RecordOrdinal], Applied.OutlineExpanded[RecordOrdinal],
                 OutlineRows[RecordOrdinal].AnimationEnabled);
         }
 
         float RowPresence[5] = {};
-        float OutlineAcross = 0.0f;
-        for (std::uint32_t PresentedOrdinal = 0u; PresentedOrdinal < PresentedCount; ++PresentedOrdinal)
+        float OutlineHeight = 0.0f;
+        for (std::uint32_t CurrentOrdinal = 0u; CurrentOrdinal < CurrentCount; ++CurrentOrdinal)
         {
-            const std::uint32_t RecordOrdinal = PresentedRecords[PresentedOrdinal];
+            const std::uint32_t RecordOrdinal = CurrentRecords[CurrentOrdinal];
             float Presence = 1.0f;
-            std::uint32_t Enclosing = Seated.OutlineEnclosure[RecordOrdinal];
+            std::uint32_t Enclosing = Applied.OutlineEnclosure[RecordOrdinal];
             std::uint32_t WalkCount = 0u;
 
             while (Enclosing < 5u && WalkCount++ < 5u)
             {
                 Presence *= OutlineExpansion[Enclosing];
-                Enclosing = Seated.OutlineEnclosure[Enclosing];
+                Enclosing = Applied.OutlineEnclosure[Enclosing];
             }
 
-            RowPresence[PresentedOrdinal] = Presence;
-            OutlineAcross += 28.0f * Presence;
+            RowPresence[CurrentOrdinal] = Presence;
+            OutlineHeight += 28.0f * Presence;
         }
 
         std::uint32_t DragSource = 5u;
-        const float DragAlong = Surface.Pointer().PositionAlong - Ledger.OriginAlong();
-        const float DragAcross = Surface.Pointer().PositionAcross - Ledger.OriginAcross();
-        const bool DragTravelled = DragAlong * DragAlong + DragAcross * DragAcross >= 16.0f;
+        const float DragX = Surface.Pointer().PositionX - Ledger.OriginX();
+        const float DragY = Surface.Pointer().PositionY - Ledger.OriginY();
+        const bool DragTravelled = DragX * DragX + DragY * DragY >= 16.0f;
 
         if (DragTravelled)
         {
             for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
             {
-                const bool BodyHeld = Ledger.Holding(Claimed.OutlineRows[RecordOrdinal]) &&
-                                      Ledger.HeldPart(Claimed.OutlineRows[RecordOrdinal]) == ControlPart::Body;
-                const bool BodyReleased = Ledger.Released(Claimed.OutlineRows[RecordOrdinal]) &&
-                                          Ledger.ReleasedControlPart(Claimed.OutlineRows[RecordOrdinal]) == ControlPart::Body;
+                const bool BodyHeld = Ledger.Holding(Target.OutlineRows[RecordOrdinal]) &&
+                                      Ledger.HeldPart(Target.OutlineRows[RecordOrdinal]) == ControlPart::Body;
+                const bool BodyReleased = Ledger.Released(Target.OutlineRows[RecordOrdinal]) &&
+                                          Ledger.ReleasedControlPart(Target.OutlineRows[RecordOrdinal]) == ControlPart::Body;
                 if (BodyHeld || BodyReleased)
                     DragSource = RecordOrdinal;
             }
         }
 
-        const float OutlineRowsAcross[1] = { OutlineAcross };
-        const CardArrangement OutlineCard = AdvanceCard(OutlineRowsAcross, 1u);
-        float OutlineCursor = OutlineCard.Interior.LeastAcross;
+        const float OutlineRowsHeight[1] = { OutlineHeight };
+        const CardArrangement OutlineCard = AdvanceCard(OutlineRowsHeight, 1u);
+        float OutlineCursor = OutlineCard.Interior.MinimumY;
         std::uint32_t DropTarget = 5u;
         OutlineDropPlacement DropPlacement = OutlineDropPlacement::Absent;
 
-        for (std::uint32_t PresentedOrdinal = 0u; PresentedOrdinal < PresentedCount; ++PresentedOrdinal)
+        for (std::uint32_t CurrentOrdinal = 0u; CurrentOrdinal < CurrentCount; ++CurrentOrdinal)
         {
-            const std::uint32_t RecordOrdinal = PresentedRecords[PresentedOrdinal];
-            const float Presence = RowPresence[PresentedOrdinal];
+            const std::uint32_t RecordOrdinal = CurrentRecords[CurrentOrdinal];
+            const float Presence = RowPresence[CurrentOrdinal];
             if (Presence <= 0.0f)
                 continue;
 
-            const PlaneExtent Row = Spanning(OutlineCard.Interior.LeastAlong, OutlineCursor,
-                                             OutlineCard.Interior.SpanAlong(), 28.0f);
+            const PlaneExtent Row = Spanning(OutlineCard.Interior.MinimumX, OutlineCursor,
+                                             OutlineCard.Interior.Width(), 28.0f);
             OutlineDropPlacement RowPlacement = OutlineDropPlacement::Absent;
 
             if (DragSource < 5u && DragSource != RecordOrdinal &&
-                Row.Encloses(Surface.Pointer().PositionAlong, Surface.Pointer().PositionAcross))
+                Row.Encloses(Surface.Pointer().PositionX, Surface.Pointer().PositionY))
             {
-                const float RowFraction = (Surface.Pointer().PositionAcross - Row.LeastAcross) / Row.SpanAcross();
+                const float RowFraction = (Surface.Pointer().PositionY - Row.MinimumY) / Row.Height();
                 RowPlacement = (RowFraction < 0.25f) ? OutlineDropPlacement::Before
                              : (RowFraction > 0.75f) ? OutlineDropPlacement::After
                                                      : OutlineDropPlacement::Enclosed;
@@ -1247,21 +1247,21 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
                 DropPlacement = RowPlacement;
             }
 
-            const PlaneExtent Revealed = Spanning(Row.LeastAlong, Row.LeastAcross,
-                                                  Row.SpanAlong(), 28.0f * Presence);
+            const PlaneExtent Revealed = Spanning(Row.MinimumX, Row.MinimumY,
+                                                  Row.Width(), 28.0f * Presence);
             Surface.Confine(Revealed);
-            ReferenceControls.OutlineRow(Claimed.OutlineRows[RecordOrdinal], Row, OutlineRows[RecordOrdinal], true,
+            ReferenceControls.OutlineRow(Target.OutlineRows[RecordOrdinal], Row, OutlineRows[RecordOrdinal], true,
                                          OutlineExpansion[RecordOrdinal], RowPlacement,
-                                         Seated.OutlineExpanded[RecordOrdinal], Seated.OutlineTaken[RecordOrdinal],
-                                         Seated.OutlinePresent[RecordOrdinal]);
+                                         Applied.OutlineExpanded[RecordOrdinal], Applied.OutlineTaken[RecordOrdinal],
+                                         Applied.OutlinePresent[RecordOrdinal]);
             Surface.Release();
             OutlineCursor += 28.0f * Presence;
         }
 
-        if (DragSource < 5u && DropTarget < 5u && Ledger.Released(Claimed.OutlineRows[DragSource]))
+        if (DragSource < 5u && DropTarget < 5u && Ledger.Released(Target.OutlineRows[DragSource]))
         {
             const std::uint32_t ProposedEnclosure = (DropPlacement == OutlineDropPlacement::Enclosed)
-                                                   ? DropTarget : Seated.OutlineEnclosure[DropTarget];
+                                                   ? DropTarget : Applied.OutlineEnclosure[DropTarget];
             bool CycleDeclared = ProposedEnclosure == DragSource;
             std::uint32_t Walking = ProposedEnclosure;
             std::uint32_t WalkCount = 0u;
@@ -1269,41 +1269,41 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
             while (!CycleDeclared && Walking < 5u && WalkCount++ < 5u)
             {
                 CycleDeclared = Walking == DragSource;
-                Walking = Seated.OutlineEnclosure[Walking];
+                Walking = Applied.OutlineEnclosure[Walking];
             }
 
             if (!CycleDeclared)
             {
-                const std::uint32_t DepartingEnclosure = Seated.OutlineEnclosure[DragSource];
-                const std::uint32_t DepartingOrder = Seated.OutlineOrder[DragSource];
+                const std::uint32_t DepartingEnclosure = Applied.OutlineEnclosure[DragSource];
+                const std::uint32_t DepartingOrder = Applied.OutlineOrder[DragSource];
                 for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
                 {
-                    if (RecordOrdinal != DragSource && Seated.OutlineEnclosure[RecordOrdinal] == DepartingEnclosure &&
-                        Seated.OutlineOrder[RecordOrdinal] > DepartingOrder)
-                        --Seated.OutlineOrder[RecordOrdinal];
+                    if (RecordOrdinal != DragSource && Applied.OutlineEnclosure[RecordOrdinal] == DepartingEnclosure &&
+                        Applied.OutlineOrder[RecordOrdinal] > DepartingOrder)
+                        --Applied.OutlineOrder[RecordOrdinal];
                 }
 
-                std::uint32_t ArrivingOrder = 0u;
+                std::uint32_t IncomingOrder = 0u;
                 if (DropPlacement == OutlineDropPlacement::Enclosed)
                 {
-                    Seated.OutlineExpanded[DropTarget] = true;
+                    Applied.OutlineExpanded[DropTarget] = true;
                 }
                 else
                 {
-                    ArrivingOrder = Seated.OutlineOrder[DropTarget];
+                    IncomingOrder = Applied.OutlineOrder[DropTarget];
                     if (DropPlacement == OutlineDropPlacement::After)
-                        ++ArrivingOrder;
+                        ++IncomingOrder;
                 }
 
                 for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < 5u; ++RecordOrdinal)
                 {
-                    if (RecordOrdinal != DragSource && Seated.OutlineEnclosure[RecordOrdinal] == ProposedEnclosure &&
-                        Seated.OutlineOrder[RecordOrdinal] >= ArrivingOrder)
-                        ++Seated.OutlineOrder[RecordOrdinal];
+                    if (RecordOrdinal != DragSource && Applied.OutlineEnclosure[RecordOrdinal] == ProposedEnclosure &&
+                        Applied.OutlineOrder[RecordOrdinal] >= IncomingOrder)
+                        ++Applied.OutlineOrder[RecordOrdinal];
                 }
 
-                Seated.OutlineEnclosure[DragSource] = ProposedEnclosure;
-                Seated.OutlineOrder[DragSource] = ArrivingOrder;
+                Applied.OutlineEnclosure[DragSource] = ProposedEnclosure;
+                Applied.OutlineOrder[DragSource] = IncomingOrder;
             }
         }
 
@@ -1319,26 +1319,26 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
 
         // ⑭ The reusable editor partition stands inside a workspace-sized page. Its leaf headers, footers,
         //     menus, split rails, resizing and withdrawal are live; scene and UV GPU targets remain skeletal.
-        const float EditorAlong = (Display.ExtentAlong - 32.0f < 1152.0f)
-                                ? Display.ExtentAlong - 32.0f : 1152.0f;
-        const float EditorAcross = (Display.ExtentAcross - 48.0f > 600.0f)
-                                 ? Display.ExtentAcross - 48.0f : 600.0f;
-        const PlaneExtent EditorExtent = Spanning((Display.ExtentAlong - EditorAlong) * 0.5f,
+        const float EditorX = (Display.Width - 32.0f < 1152.0f)
+                                ? Display.Width - 32.0f : 1152.0f;
+        const float EditorY = (Display.Height - 48.0f > 600.0f)
+                                 ? Display.Height - 48.0f : 600.0f;
+        const PlaneExtent EditorExtent = Spanning((Display.Width - EditorX) * 0.5f,
                                                   Cursor,
-                                                  EditorAlong,
-                                                  EditorAcross);
-        Disregard(EditorPanels.Record(EditorExtent, EditorPartition, EditorConfiguration));
-        Cursor = EditorExtent.MostAcross + Measure.CardGapAcross;
+                                                  EditorX,
+                                                  EditorY);
+        Discard(EditorPanels.Record(EditorExtent, EditorPartition, EditorConfiguration));
+        Cursor = EditorExtent.MaximumY + Measure.CardGapY;
 
         // ⑮ The complete notch Control Centre remains the final full display-sized page.
-        const PlaneExtent ControlCentreExtent = Spanning(0.0f, Cursor, Display.ExtentAlong, Display.ExtentAcross);
-        Disregard(ControlCentre.Record(ControlCentreExtent, ControlCentreValues));
+        const PlaneExtent ControlCentreExtent = Spanning(0.0f, Cursor, Display.Width, Display.Height);
+        Discard(ControlCentre.Record(ControlCentreExtent, ControlCentreValues));
 
         // 📝 Compared rather than watched. The Control Centre writes the artist's choice straight into the
         //    ordinates, so the change is visible here as a difference and needs no callback to report it.
         {
             ThemeSelection Chosen;
-            Chosen.Presented   = ControlCentreValues.Theme;
+            Chosen.Current   = ControlCentreValues.Theme;
             Chosen.Primary     = ControlCentreValues.Primary;
             Chosen.Secondary   = ControlCentreValues.Secondary;
             Chosen.Information = ControlCentreValues.Information;
@@ -1347,7 +1347,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
                 if (ControlCentreValues.Font < Fonts.FamilyCount() && Fonts.FamilyName(ControlCentreValues.Font) != nullptr)
                     std::strncpy(Chosen.FontFamily, Fonts.FamilyName(ControlCentreValues.Font), sizeof(Chosen.FontFamily) - 1u);
 
-            const bool Altered = Chosen.Presented   != InscribedSelection.Presented
+            const bool Altered = Chosen.Current   != InscribedSelection.Current
                               || Chosen.Primary     != InscribedSelection.Primary
                               || Chosen.Secondary   != InscribedSelection.Secondary
                               || Chosen.Information != InscribedSelection.Information
@@ -1355,121 +1355,121 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
                               || Chosen.Alert       != InscribedSelection.Alert
                                   || std::strcmp(Chosen.FontFamily, InscribedSelection.FontFamily) != 0;
 
-            // 🔴 The record is advanced whether the write was delivered or refused. A read-only folder would
-            //    otherwise have every later tick retry the same refused write for the life of the process.
+            // 🔴 The record is advanced whether the write was delivered or rejected. A read-only folder would
+            //    otherwise have every later tick retry the same rejected write for the life of the process.
             if (Altered)
             {
-                Disregard(ThemeInterchange::RecordBeside(InvokedAs, Chosen));
+                Discard(ThemeInterchange::RecordBeside(InvokedAs, Chosen));
                 InscribedSelection = Chosen;
 
                 // 🔴 The next tick's resolve reads this, and the two panels that keep their own copy of the
-                //    inks are reseated from the appearance this tick already holds.
+                //    inks are reapplied from the appearance this tick already holds.
                 Selected = Chosen;
-                Appearance = ResolveTinted(Display.DisplayScale, ArtistScale, Display.ExtentAlong, Selected);
+                Appearance = ResolveTinted(Display.DisplayScale, ArtistScale, Display.Width, Selected);
                 std::strncpy(Appearance.Fonts.Family, Selected.FontFamily, sizeof(Appearance.Fonts.Family) - 1u);
                 ApplyUserScale(Appearance,
                                static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
                                static_cast<float>(ControlCentreValues.Radius) / 24.0f);
 ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
-                Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
+                Discard(Interface.ApplyWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
-    Disregard(Fonts.Discover(FontArchivesPath));
-    Disregard(Fonts.PreparePreviews(1.0f));
+    Discard(Fonts.Discover(FontArchivesPath));
+    Discard(Fonts.PreparePreviews(1.0f));
     ControlCentre.SetFontFamilies(Fonts);
     Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
-                ContentBrowser.Reseat(Appearance);
-                LayerStack.Reseat(Appearance);
+                ContentBrowser.Reapply(Appearance);
+                LayerStack.Reapply(Appearance);
             }
         }
-        Cursor = ControlCentreExtent.MostAcross + Measure.CardGapAcross;
+        Cursor = ControlCentreExtent.MaximumY + Measure.CardGapY;
 
         // ⑯ The ported reference shell, the final full display-sized page. Its filter takes whatever was
         //    typed this tick before it is recorded, so the run the field strokes is the run the artist has
         //    just entered rather than the previous tick's.
-        const PlaneExtent ShellExtent = Spanning(0.0f, Cursor, Display.ExtentAlong, Display.ExtentAcross);
+        const PlaneExtent ShellExtent = Spanning(0.0f, Cursor, Display.Width, Display.Height);
 
-        static_cast<void>(Interface.AdmitTyped(ShellSeated.EntityRetention,
+        static_cast<void>(Interface.AcceptTyped(ShellApplied.EntityRetention,
                                                ShellContext::RetentionCeiling));
 
-        if (Interface.KeyArrived(KeySubject::Retract))
+        if (Interface.KeyPressed(KeySubject::Retract))
         {
             std::uint32_t Occupied = 0u;
 
             while (Occupied + 1u < ShellContext::RetentionCeiling &&
-                   ShellSeated.EntityRetention[Occupied] != '\0')
+                   ShellApplied.EntityRetention[Occupied] != '\0')
             {
                 ++Occupied;
             }
 
             if (Occupied > 0u)
-                ShellSeated.EntityRetention[Occupied - 1u] = '\0';
+                ShellApplied.EntityRetention[Occupied - 1u] = '\0';
         }
 
-        Disregard(ReferenceShell.Record(ShellExtent, ShellSeated, LevelEntities, 14u, StackLayers, 4u,
+        Discard(ReferenceShell.Record(ShellExtent, ShellApplied, LevelEntities, 14u, StackLayers, 4u,
                                         LevelRevisions, 9u));
-        Cursor = ShellExtent.MostAcross + Measure.CardGapAcross;
+        Cursor = ShellExtent.MaximumY + Measure.CardGapY;
 
         // 📝 The browser's seek run takes what was typed only while its field holds the keyboard, on the
         //    same terms as the shell's filter above — the two guards are exclusive, so no key reaches both.
-        if (ContentBrowserSeated.SeekHolding)
+        if (ContentBrowserApplied.SeekHolding)
         {
-            static_cast<void>(Interface.AdmitTyped(ContentBrowserSeated.Seek,
+            static_cast<void>(Interface.AcceptTyped(ContentBrowserApplied.Seek,
                                                    ContentBrowserConfiguration::SeekCeiling));
 
-            if (Interface.KeyArrived(KeySubject::Retract))
-                static_cast<void>(ContentBrowser.RetractTyped(ContentBrowserSeated));
+            if (Interface.KeyPressed(KeySubject::Retract))
+                static_cast<void>(ContentBrowser.RetractTyped(ContentBrowserApplied));
 
-            if (Interface.KeyArrived(KeySubject::Withdraw))
+            if (Interface.KeyPressed(KeySubject::Withdraw))
             {
-                ContentBrowserSeated.Seek[0]     = '\0';
-                ContentBrowserSeated.SeekHolding = false;
+                ContentBrowserApplied.Seek[0]     = '\0';
+                ContentBrowserApplied.SeekHolding = false;
             }
         }
-        else if (Interface.KeyArrived(KeySubject::Seek))
+        else if (Interface.KeyPressed(KeySubject::Seek))
         {
             // 📐 The `/` chip in the field is not decoration — the reference binds the key to the focus.
-            ContentBrowserSeated.SeekHolding = true;
+            ContentBrowserApplied.SeekHolding = true;
         }
 
         // ⑰ The ported `LayerstackV1` page: the stack on the leading edge, and beside it the inspector's
         //     second slide — a property panel over the revisions. Which property panel stands is not a
         //     choice the host makes; it follows the taken half, exactly as the reference switches it.
         {
-            constexpr float LayerPaneAlong  = 392.0f;   // [px] - --w, the reference's own panel extent
+            constexpr float LayerPaneX  = 392.0f;   // [px] - --w, the reference's own panel extent
             constexpr float LayerPageGap    =  16.0f;   // [px]
 
             // 📐 The property panel is sized to the taller of the two it may present. The mask panel runs
             //    to its mesh-map and channel sections, so a ratio of the stack's extent clips it; the
             //    lengths are stated instead, and the page is as tall as the sum.
-            constexpr float PropertyAcross  = 600.0f;   // [px] - the mask panel, its tallest arrangement
-            constexpr float RevisionAcross  = 420.0f;   // [px] - the five seated revisions and their head
-            constexpr float SlideAcross     = PropertyAcross + LayerPageGap + RevisionAcross;
-            constexpr float LayerPageAcross = (SlideAcross > 760.0f) ? SlideAcross : 760.0f;
+            constexpr float PropertyHeight  = 600.0f;   // [px] - the mask panel, its tallest arrangement
+            constexpr float RevisionHeight  = 420.0f;   // [px] - the five applied revisions and their head
+            constexpr float SlideHeight     = PropertyHeight + LayerPageGap + RevisionHeight;
+            constexpr float LayerPageHeight = (SlideHeight > 760.0f) ? SlideHeight : 760.0f;
 
-            const PlaneExtent StackExtent = Spanning(0.0f, Cursor, LayerPaneAlong, LayerPageAcross);
-            LayerStack.RecordStack(StackExtent, LayerArranged, LayerStackSeated, LayerRevisions);
+            const PlaneExtent StackExtent = Spanning(0.0f, Cursor, LayerPaneX, LayerPageHeight);
+            LayerStack.RecordStack(StackExtent, LayerArranged, LayerStackApplied, LayerRevisions);
 
-            const float SlideAlong = LayerPaneAlong;
-            const float SlideLeast = StackExtent.MostAlong + LayerPageGap;
+            const float SlideX = LayerPaneX;
+            const float SlideTop = StackExtent.MaximumX + LayerPageGap;
 
-            const PlaneExtent PropertyExtent = Spanning(SlideLeast, Cursor, SlideAlong, PropertyAcross);
+            const PlaneExtent PropertyExtent = Spanning(SlideTop, Cursor, SlideX, PropertyHeight);
 
             // 🔴 A mask taken presents the mask panel and a layer taken the channel panel. The reference
             //    switches on the taken half and never on the content, so a folder taken still reaches here.
             if (LayerArranged.TakenHalf == LayerTaken::Mask)
-                LayerStack.RecordMaskProperties(PropertyExtent, LayerArranged, LayerStackSeated,
+                LayerStack.RecordMaskProperties(PropertyExtent, LayerArranged, LayerStackApplied,
                                                 LayerRevisions);
             else
-                LayerStack.RecordChannelProperties(PropertyExtent, LayerArranged, LayerStackSeated,
+                LayerStack.RecordChannelProperties(PropertyExtent, LayerArranged, LayerStackApplied,
                                                    LayerRevisions);
 
-            const PlaneExtent RevisionExtent = Spanning(SlideLeast,
-                                                        PropertyExtent.MostAcross + LayerPageGap,
-                                                        SlideAlong, RevisionAcross);
-            LayerStack.RecordRevisions(RevisionExtent, LayerArranged, LayerStackSeated, LayerRevisions);
+            const PlaneExtent RevisionExtent = Spanning(SlideTop,
+                                                        PropertyExtent.MaximumY + LayerPageGap,
+                                                        SlideX, RevisionHeight);
+            LayerStack.RecordRevisions(RevisionExtent, LayerArranged, LayerStackApplied, LayerRevisions);
 
-            Cursor = Cursor + LayerPageAcross + Measure.CardGapAcross;
+            Cursor = Cursor + LayerPageHeight + Measure.CardGapY;
         }
 
         // ⑱ The ported `AsstbrowsrBasic` page: the sources aside, the record lattice between them, and the
@@ -1478,42 +1478,42 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
         // 🔴 The Three.js preview is deliberately not built. The inspector's preview region states what it
         //     would present instead of standing empty, so the absence reads as withheld and not as failed.
         {
-            constexpr float BrowserPageAcross = 720.0f;   // [px] - what the whole browser wants across
+            constexpr float BrowserPageHeight = 720.0f;   // [px] - what the whole browser wants across
 
-            const float BrowserAcross = (Display.ExtentAcross > BrowserPageAcross)
-                                      ? Display.ExtentAcross : BrowserPageAcross;
+            const float BrowserY = (Display.Height > BrowserPageHeight)
+                                      ? Display.Height : BrowserPageHeight;
 
-            const PlaneExtent BrowserExtent = Spanning(0.0f, Cursor, Display.ExtentAlong, BrowserAcross);
+            const PlaneExtent BrowserExtent = Spanning(0.0f, Cursor, Display.Width, BrowserY);
 
-            ContentBrowser.RecordBrowser(BrowserExtent, ContentSeated, ContentBrowserSeated);
+            ContentBrowser.RecordBrowser(BrowserExtent, ContentApplied, ContentBrowserApplied);
 
-            Cursor = BrowserExtent.MostAcross + Measure.CardGapAcross;
+            Cursor = BrowserExtent.MaximumY + Measure.CardGapY;
         }
 
         // 🔴 The deferred sweep — every menu and every tooltip card, above every row recorded above.
         Panel.RecordDeferred();
         Facets.RecordDeferred();
-        LayerStack.RecordDeferred(LayerArranged, LayerStackSeated, LayerRevisions);
-        ContentBrowser.RecordDeferred(ContentBrowserSeated);
+        LayerStack.RecordDeferred(LayerArranged, LayerStackApplied, LayerRevisions);
+        ContentBrowser.RecordDeferred(ContentBrowserApplied);
 
         // 📝 What the page sequence actually occupied, for the next tick's scroll to be held against. The
         //    trailing `py-32` is added so the Control Centre page can be carried clear of the lower edge.
-        ColumnMeasured = Cursor + ScrollAcross + Measure.PagePadAcross;
+        ColumnMeasured = Cursor + ScrollY + Measure.PagePadY;
 
 #ifdef SLATE_DEBUG
         // 🔍 The overlay retains what the sheet declares each control should span across, and strokes the
         //    disagreement. Recorded last so it sits above even the deferred sweep.
-        Overlay.Retain("selection", SelectionRow, Measure.FieldAcross);
-        Overlay.Retain("degree",    DegreeRow,    Measure.FieldAcross);
-        Overlay.Retain("percent",   PercentRow,   Measure.FieldAcross);
-        Overlay.Retain("pixel",     PixelRow,     Measure.FieldAcross);
+        Overlay.Retain("selection", SelectionRow, Measure.FieldHeight);
+        Overlay.Retain("degree",    DegreeRow,    Measure.FieldHeight);
+        Overlay.Retain("percent",   PercentRow,   Measure.FieldHeight);
+        Overlay.Retain("pixel",     PixelRow,     Measure.FieldHeight);
         Overlay.Retain("light",     LightTrigger, Measure.TriggerExtent);
         Overlay.Retain("dark",      DarkTrigger,  Measure.TriggerExtent);
-        Overlay.Retain("toggles",   ToggleWell,   ToggleWellAcross);
-        Overlay.Retain("subsets",   SubsetWell,   SubsetWellAcross);
+        Overlay.Retain("toggles",   ToggleWell,   ToggleWellHeight);
+        Overlay.Retain("subsets",   SubsetWell,   SubsetWellHeight);
 
-        if (OverlayPresented)
-            Overlay.Record(Surface, Appearance, ArtistScale, Display.ExtentAlong, Overlay.Disagreeing());
+        if (OverlayShown)
+            Overlay.Record(Surface, Appearance, ArtistScale, Display.Width, Overlay.Disagreeing());
 #endif
 
             // ⑫ Seal the tick and record it into the recording Await opened.
@@ -1523,7 +1523,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
 
             if (Interface.Seal().Resolved)
             {
-                // 🔴 Read. A refused Record presents the cleared ground with nothing on it, which is
+                // 🔴 Read. A rejected Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
                 if (!Interface.Record(Pass.Recording))
                 {
@@ -1532,13 +1532,13 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
             }
             else
             {
-                Disregard(Interface.Abandon());
+                Discard(Interface.Abandon());
             }
         }
 
-        // ⑬ Close the scope, submit, present, advance. A refused present re-establishes the chain rather
-        //    than ending the loop, and a tick whose content declined still presents the cleared ground.
-        if (!Lifetime.Surrender().Resolved)
+        // ⑬ Close the scope, submit, present, advance. A rejected present re-establishes the chain rather
+        //    than ending the loop, and a tick whose content rejected still presents the cleared ground.
+        if (!Lifetime.Complete().Resolved)
             break;
     }
 

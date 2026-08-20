@@ -51,7 +51,7 @@ Outcome<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue&
 
         case PropertyMeasure::Magnitude:
         {
-            // 🔴 A magnitude that is not a number is refused whether or not bounds are declared. `02` §2 admits
+            // 🔴 A magnitude that is not a number is rejected whether or not bounds are declared. `02` §2 accepts
             //    unbounded emission but never an unrepresentable value, and one written here propagates through
             //    every integration that reads it without ever naming its origin.
             if (std::isnan(Offered.MagnitudeHeld))
@@ -79,7 +79,7 @@ Outcome<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue&
 
         case PropertyMeasure::Colour:
         {
-            // 🔴 `36` §1: a colour without its space is refused rather than assumed to be in the working space.
+            // 🔴 `36` §1: a colour without its space is rejected rather than assumed to be in the working space.
             //    An assumed space is the defect `36` exists to prevent, and assuming it here would place the
             //    assumption where no report can name it.
             if (!Offered.ColourHeld.ColourDeclared())
@@ -94,20 +94,20 @@ Outcome<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue&
             return Outcome<bool>::Result(true);
         }
 
-        case PropertyMeasure::Enrolment:
+        case PropertyMeasure::Registration:
         {
-            if (Offered.OrdinalHeld >= Declared.EnrolledOptions.size())
+            if (Offered.OrdinalHeld >= Declared.RegisteredOptions.size())
                 return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such declared option" });
 
             return Outcome<bool>::Result(true);
         }
 
-        case PropertyMeasure::Occupant:
+        case PropertyMeasure::Owner:
         {
-            if (!Offered.OccupantHeld.IdentityDeclared())
+            if (!Offered.OwnerHeld.IdentityDeclared())
             {
                 return Outcome<bool>::Refuse(
-                    { RefusalReason::IdentityStale, "an undeclared identity names no occupant" });
+                    { RefusalReason::IdentityStale, "an undeclared identity names no owner" });
             }
 
             // 📝 Resolution against the population is the caller's, not this unit's. A property index that held
@@ -188,7 +188,7 @@ Outcome<bool> PropertyIndex::Declare(const PropertyDeclaration& Declaring)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a property declares no identity" });
 
     // 🔴 The declaration's own default is validated against it. A default outside its bounds presents an invalid
-    //    value on every occupant that never wrote the property, which is every occupant at the moment it arrives.
+    //    value on every owner that never wrote the property, which is every owner at the moment it arrives.
     const Outcome<bool> Defaulted = Validate(Declaring, Declaring.Defaulted);
 
     if (!Defaulted.Resolved)
@@ -207,7 +207,7 @@ Outcome<bool> PropertyIndex::Declare(const PropertyDeclaration& Declaring)
 
     // 📝 A redeclaration returns the value to the new default rather than retaining the old one. The former
     //    value was validated against a declaration that no longer stands, and retaining it would hold a value
-    //    no current declaration admits.
+    //    no current declaration accepts.
     DeclaredProperties[Located_] = Declaring;
     HeldValues[Located_]         = Declaring.Defaulted;
     ValueDeclared[Located_]      = false;

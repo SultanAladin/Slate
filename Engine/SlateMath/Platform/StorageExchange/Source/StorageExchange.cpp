@@ -96,7 +96,7 @@ Outcome<bool> StorageExchange::Open(const std::string& Path)
     if (GetFileSizeEx(Stream, &Spanned) == FALSE)
     {
         CloseHandle(Stream);
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the storage device declined the extent" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the storage device rejected the extent" });
     }
 
     StreamSlot    = Stream;
@@ -116,7 +116,7 @@ Outcome<bool> StorageExchange::Open(const std::string& Path)
     if (Spanned < 0)
     {
         std::fclose(Stream);
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the storage device declined the extent" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the storage device rejected the extent" });
     }
 
     StreamSlot    = Stream;
@@ -179,14 +179,14 @@ Outcome<std::uint32_t> StorageExchange::Declare(RangeRequest Wanted)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted,
                                                 "the offset lies beyond the stream" });
 
-    const std::uint32_t Issued = DeclaredCount;
+    const std::uint32_t Registered = DeclaredCount;
 
     ++DeclaredCount;
 
     PendingOrder.push_back(Wanted);
-    PendingOrdinal.push_back(Issued);
+    PendingOrdinal.push_back(Registered);
 
-    return Outcome<std::uint32_t>::Result(Issued);
+    return Outcome<std::uint32_t>::Result(Registered);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -212,19 +212,19 @@ const std::vector<RangeArrival>& StorageExchange::Drain()
     {
         const RangeRequest& Wanted = PendingOrder[Ordinal];
 
-        RangeArrival Arrived;
-        Arrived.Declared = PendingOrdinal[Ordinal];
-        Arrived.Offset   = Wanted.Offset;
+        RangeArrival Sampled;
+        Sampled.Declared = PendingOrdinal[Ordinal];
+        Sampled.Offset   = Wanted.Offset;
 
         const TickPoint Began = LatencyTimeline.Advance();
 
         // 📐 The read extent is the declared one clipped to what remains of the stream. A range reaching past
-        //    the end is truncated rather than refused, and the truncation is reported so a codec can tell a
+        //    the end is truncated rather than rejected, and the truncation is reported so a codec can tell a
         //    short last range from a storage device that gave up halfway through one.
         const std::uint64_t Remaining = StreamSpanned - Wanted.Offset;
         const std::uint64_t Reading   = Wanted.SpannedBytes > Remaining ? Remaining : Wanted.SpannedBytes;
 
-        Arrived.Landed.resize(static_cast<std::size_t>(Reading));
+        Sampled.Received.resize(static_cast<std::size_t>(Reading));
 
         bool Read = true;
 
@@ -236,29 +236,29 @@ const std::vector<RangeArrival>& StorageExchange::Drain()
         Positioned.Offset      = static_cast<DWORD>(Wanted.Offset & 0xFFFFFFFFull);
         Positioned.OffsetHigh  = static_cast<DWORD>(Wanted.Offset >> 32);
 
-        std::uint64_t Landed = 0u;
+        std::uint64_t Received = 0u;
 
-        while (Landed < Reading)
+        while (Received < Reading)
         {
-            const std::uint64_t Outstanding = Reading - Landed;
+            const std::uint64_t Outstanding = Reading - Received;
             const DWORD         Asked       = Outstanding > 0x40000000ull ? 0x40000000u
                                                                           : static_cast<DWORD>(Outstanding);
 
-            const std::uint64_t Positioning = Wanted.Offset + Landed;
+            const std::uint64_t Positioning = Wanted.Offset + Received;
 
             Positioned.Offset     = static_cast<DWORD>(Positioning & 0xFFFFFFFFull);
             Positioned.OffsetHigh = static_cast<DWORD>(Positioning >> 32);
 
             DWORD Delivered = 0u;
 
-            if (ReadFile(Stream, Arrived.Landed.data() + Landed, Asked, &Delivered, &Positioned) == FALSE
+            if (ReadFile(Stream, Sampled.Received.data() + Received, Asked, &Delivered, &Positioned) == FALSE
                 || Delivered == 0u)
             {
                 Read = false;
                 break;
             }
 
-            Landed += Delivered;
+            Received += Delivered;
         }
 
 #else
@@ -271,32 +271,32 @@ const std::vector<RangeArrival>& StorageExchange::Drain()
         }
         else
         {
-            const std::size_t Landed = std::fread(Arrived.Landed.data(), 1u, Arrived.Landed.size(), Stream);
+            const std::size_t Received = std::fread(Sampled.Received.data(), 1u, Sampled.Received.size(), Stream);
 
-            Read = Landed == Arrived.Landed.size();
+            Read = Received == Sampled.Received.size();
         }
 
 #endif
 
         const TickPoint Ended = LatencyTimeline.Advance();
 
-        Arrived.LatencyMillis = TickSequence::Span(Began, Ended);
+        Sampled.LatencyMillis = TickSequence::Span(Began, Ended);
 
         if (!Read)
         {
             // 🔴 Nothing landed, so nothing is delivered. Handing back a partially filled extent with a
-            //    Declined conclusion would leave a codec free to read bytes the storage device never
+            //    Rejected conclusion would leave a codec free to read bytes the storage device never
             //    produced, and the zeros it would find decode as content rather than as an absence.
-            Arrived.Landed.clear();
-            Arrived.Concluded = RangeConclusion::Declined;
+            Sampled.Received.clear();
+            Sampled.Completed = RangeConclusion::Rejected;
         }
         else
         {
-            Arrived.Concluded = Reading < Wanted.SpannedBytes ? RangeConclusion::Truncated
+            Sampled.Completed = Reading < Wanted.SpannedBytes ? RangeConclusion::Truncated
                                                               : RangeConclusion::Delivered;
         }
 
-        DrainedRanges.push_back(std::move(Arrived));
+        DrainedRanges.push_back(std::move(Sampled));
     }
 
     PendingOrder.clear();

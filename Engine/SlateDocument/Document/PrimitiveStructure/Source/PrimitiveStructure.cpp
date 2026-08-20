@@ -28,34 +28,34 @@ struct GeneratedSurface
     std::vector<DomainCoordinate>          Coordinates;
     std::vector<std::vector<std::uint32_t>> Faces;
 
-    std::uint32_t Emit(double PositionAlong, double PositionUp, double PositionAcross,
-                       double DirectionAlong, double DirectionUp, double DirectionAcross,
-                       double DomainAlong, double DomainAcross)
+    std::uint32_t Emit(double PositionX, double PositionUp, double PositionY,
+                       double DirectionX, double DirectionUp, double DirectionY,
+                       double DomainX, double DomainY)
     {
         DocumentPosition Placing;
-        Placing.PositionX = PositionAlong;
+        Placing.PositionX = PositionX;
         Placing.PositionY = PositionUp;
-        Placing.PositionZ = PositionAcross;
+        Placing.PositionZ = PositionY;
 
         SurfaceDirection Facing;
 
         // 📐 Normalised here rather than by the caller. Every generator below writes a direction it derived from
         //    the parametrisation, and a cone's wall perpendicular is the one place where the obvious expression is
         //    not unit length — normalising once here is what keeps that from being six separate omissions.
-        const double Length = std::sqrt(DirectionAlong  * DirectionAlong
+        const double Length = std::sqrt(DirectionX  * DirectionX
                                       + DirectionUp     * DirectionUp
-                                      + DirectionAcross * DirectionAcross);
+                                      + DirectionY * DirectionY);
 
         if (Length > 0.0)
         {
-            Facing.DirectionX = static_cast<float>(DirectionAlong  / Length);
+            Facing.DirectionX = static_cast<float>(DirectionX  / Length);
             Facing.DirectionY = static_cast<float>(DirectionUp     / Length);
-            Facing.DirectionZ = static_cast<float>(DirectionAcross / Length);
+            Facing.DirectionZ = static_cast<float>(DirectionY / Length);
         }
 
         DomainCoordinate Addressing;
-        Addressing.CoordinateAlong  = static_cast<float>(DomainAlong);
-        Addressing.CoordinateAcross = static_cast<float>(DomainAcross);
+        Addressing.CoordinateX  = static_cast<float>(DomainX);
+        Addressing.CoordinateY = static_cast<float>(DomainY);
 
         Positions.push_back(Placing);
         Perpendiculars.push_back(Facing);
@@ -87,9 +87,9 @@ constexpr double Turn = 6.283185307179586;
 //    puts one seam through the middle of whatever is placed on it.
 void GenerateBox(const PrimitiveSpecification& Declaring, GeneratedSurface& Generating)
 {
-    const double HalfAlong  = Declaring.HalfExtentAlong;
+    const double HalfX  = Declaring.HalfExtentX;
     const double HalfUp     = Declaring.HalfExtentUp;
-    const double HalfAcross = Declaring.HalfExtentAcross;
+    const double HalfY = Declaring.HalfExtentY;
 
     // 📝 Each row is one face's outward direction and the two spans that traverse it, in winding order. Written as
     //    data so the six faces cannot disagree about winding, which is the defect where one side of a box is
@@ -108,36 +108,36 @@ void GenerateBox(const PrimitiveSpecification& Declaring, GeneratedSurface& Gene
     {
         const double* Declared = Faces[FaceOrdinal];
 
-        const double CentreAlong  = Declared[0] * HalfAlong;
+        const double CentreX  = Declared[0] * HalfX;
         const double CentreUp     = Declared[1] * HalfUp;
-        const double CentreAcross = Declared[2] * HalfAcross;
+        const double CentreY = Declared[2] * HalfY;
 
-        const double AlongSpanX = Declared[3] * HalfAlong;
-        const double AlongSpanY = Declared[4] * HalfUp;
-        const double AlongSpanZ = Declared[5] * HalfAcross;
+        const double XSpanX = Declared[3] * HalfX;
+        const double XSpanY = Declared[4] * HalfUp;
+        const double XSpanZ = Declared[5] * HalfY;
 
-        const double AcrossSpanX = Declared[6] * HalfAlong;
-        const double AcrossSpanY = Declared[7] * HalfUp;
-        const double AcrossSpanZ = Declared[8] * HalfAcross;
+        const double YSpanX = Declared[6] * HalfX;
+        const double YSpanY = Declared[7] * HalfUp;
+        const double YSpanZ = Declared[8] * HalfY;
 
-        const std::uint32_t LowerNear = Generating.Emit(CentreAlong  - AlongSpanX - AcrossSpanX,
-                                                        CentreUp     - AlongSpanY - AcrossSpanY,
-                                                        CentreAcross - AlongSpanZ - AcrossSpanZ,
+        const std::uint32_t LowerNear = Generating.Emit(CentreX  - XSpanX - YSpanX,
+                                                        CentreUp     - XSpanY - YSpanY,
+                                                        CentreY - XSpanZ - YSpanZ,
                                                         Declared[0], Declared[1], Declared[2], 0.0, 0.0);
 
-        const std::uint32_t LowerFar  = Generating.Emit(CentreAlong  + AlongSpanX - AcrossSpanX,
-                                                        CentreUp     + AlongSpanY - AcrossSpanY,
-                                                        CentreAcross + AlongSpanZ - AcrossSpanZ,
+        const std::uint32_t LowerFar  = Generating.Emit(CentreX  + XSpanX - YSpanX,
+                                                        CentreUp     + XSpanY - YSpanY,
+                                                        CentreY + XSpanZ - YSpanZ,
                                                         Declared[0], Declared[1], Declared[2], 1.0, 0.0);
 
-        const std::uint32_t UpperFar  = Generating.Emit(CentreAlong  + AlongSpanX + AcrossSpanX,
-                                                        CentreUp     + AlongSpanY + AcrossSpanY,
-                                                        CentreAcross + AlongSpanZ + AcrossSpanZ,
+        const std::uint32_t UpperFar  = Generating.Emit(CentreX  + XSpanX + YSpanX,
+                                                        CentreUp     + XSpanY + YSpanY,
+                                                        CentreY + XSpanZ + YSpanZ,
                                                         Declared[0], Declared[1], Declared[2], 1.0, 1.0);
 
-        const std::uint32_t UpperNear = Generating.Emit(CentreAlong  - AlongSpanX + AcrossSpanX,
-                                                        CentreUp     - AlongSpanY + AcrossSpanY,
-                                                        CentreAcross - AlongSpanZ + AcrossSpanZ,
+        const std::uint32_t UpperNear = Generating.Emit(CentreX  - XSpanX + YSpanX,
+                                                        CentreUp     - XSpanY + YSpanY,
+                                                        CentreY - XSpanZ + YSpanZ,
                                                         Declared[0], Declared[1], Declared[2], 0.0, 1.0);
 
         Generating.EmitFace(LowerNear, LowerFar, UpperFar, UpperNear);
@@ -158,24 +158,24 @@ void GenerateSphere(const PrimitiveSpecification& Declaring, GeneratedSurface& G
     //    smeared across the whole sphere, which is the artefact that reads as the texture being wrong.
     for (std::uint32_t Ring = 0u; Ring <= Axial; ++Ring)
     {
-        const double AcrossFraction = static_cast<double>(Ring) / static_cast<double>(Axial);
-        const double Inclination    = AcrossFraction * Turn * 0.5;
+        const double YFraction = static_cast<double>(Ring) / static_cast<double>(Axial);
+        const double Inclination    = YFraction * Turn * 0.5;
         const double RingRadius     = std::sin(Inclination);
         const double RingHeight     = std::cos(Inclination);
 
         for (std::uint32_t Step = 0u; Step <= Radial; ++Step)
         {
-            const double AlongFraction = static_cast<double>(Step) / static_cast<double>(Radial);
-            const double Azimuth       = Declaring.SweepOffset + AlongFraction * Turn;
+            const double XFraction = static_cast<double>(Step) / static_cast<double>(Radial);
+            const double Azimuth       = Declaring.SweepOffset + XFraction * Turn;
 
-            const double DirectionAlong  = RingRadius * std::cos(Azimuth);
-            const double DirectionAcross = RingRadius * std::sin(Azimuth);
+            const double DirectionX  = RingRadius * std::cos(Azimuth);
+            const double DirectionY = RingRadius * std::sin(Azimuth);
 
-            Generating.Emit(DirectionAlong  * Declaring.HalfExtentAlong,
+            Generating.Emit(DirectionX  * Declaring.HalfExtentX,
                             RingHeight      * Declaring.HalfExtentUp,
-                            DirectionAcross * Declaring.HalfExtentAcross,
-                            DirectionAlong, RingHeight, DirectionAcross,
-                            AlongFraction, 1.0 - AcrossFraction);
+                            DirectionY * Declaring.HalfExtentY,
+                            DirectionX, RingHeight, DirectionY,
+                            XFraction, 1.0 - YFraction);
         }
     }
 
@@ -191,7 +191,7 @@ void GenerateSphere(const PrimitiveSpecification& Declaring, GeneratedSurface& G
             const std::uint32_t LowerFar  = LowerNear + 1u;
 
             // 📝 The pole rings collapse to a point, so their quadrilaterals are emitted as triangles instead. A
-            //    quadrilateral with two coincident corners is degenerate, and `38` §3 enrols it rather than
+            //    quadrilateral with two coincident corners is degenerate, and `38` §3 registers it rather than
             //    removing it — the degenerate face then survives all the way to whatever divides by its area.
             if (Ring == 0u)
             {
@@ -227,28 +227,28 @@ void GenerateRevolution(const PrimitiveSpecification& Declaring, GeneratedSurfac
 
     for (std::uint32_t Ring = 0u; Ring <= Axial; ++Ring)
     {
-        const double AcrossFraction = static_cast<double>(Ring) / static_cast<double>(Axial);
-        const double RingScale      = 1.0 + AcrossFraction * (UpperFraction - 1.0);
-        const double RingHeight     = -HalfUp + AcrossFraction * 2.0 * HalfUp;
+        const double YFraction = static_cast<double>(Ring) / static_cast<double>(Axial);
+        const double RingScale      = 1.0 + YFraction * (UpperFraction - 1.0);
+        const double RingHeight     = -HalfUp + YFraction * 2.0 * HalfUp;
 
         for (std::uint32_t Step = 0u; Step <= Radial; ++Step)
         {
-            const double AlongFraction = static_cast<double>(Step) / static_cast<double>(Radial);
-            const double Azimuth       = Declaring.SweepOffset + AlongFraction * Turn;
+            const double XFraction = static_cast<double>(Step) / static_cast<double>(Radial);
+            const double Azimuth       = Declaring.SweepOffset + XFraction * Turn;
 
-            const double UnitAlong  = std::cos(Azimuth);
-            const double UnitAcross = std::sin(Azimuth);
+            const double UnitX  = std::cos(Azimuth);
+            const double UnitY = std::sin(Azimuth);
 
             // 📐 The wall perpendicular of a taper is not radial. Its upward part is the profile's own slope —
             //    the radius lost over the height — and a radial perpendicular on a cone shades it as a cylinder,
             //    which is visible as a band of constant brightness where the taper should darken.
-            const double SlopeUp = (1.0 - UpperFraction) * Declaring.HalfExtentAlong / (2.0 * HalfUp);
+            const double SlopeUp = (1.0 - UpperFraction) * Declaring.HalfExtentX / (2.0 * HalfUp);
 
-            Generating.Emit(UnitAlong  * RingScale * Declaring.HalfExtentAlong,
+            Generating.Emit(UnitX  * RingScale * Declaring.HalfExtentX,
                             RingHeight,
-                            UnitAcross * RingScale * Declaring.HalfExtentAcross,
-                            UnitAlong, SlopeUp, UnitAcross,
-                            AlongFraction, AcrossFraction);
+                            UnitY * RingScale * Declaring.HalfExtentY,
+                            UnitX, SlopeUp, UnitY,
+                            XFraction, YFraction);
         }
     }
 
@@ -300,17 +300,17 @@ void GenerateRevolution(const PrimitiveSpecification& Declaring, GeneratedSurfac
 
         for (std::uint32_t Step = 0u; Step <= Radial; ++Step)
         {
-            const double AlongFraction = static_cast<double>(Step) / static_cast<double>(Radial);
-            const double Azimuth       = Declaring.SweepOffset + AlongFraction * Turn;
+            const double XFraction = static_cast<double>(Step) / static_cast<double>(Radial);
+            const double Azimuth       = Declaring.SweepOffset + XFraction * Turn;
 
-            const double UnitAlong  = std::cos(Azimuth);
-            const double UnitAcross = std::sin(Azimuth);
+            const double UnitX  = std::cos(Azimuth);
+            const double UnitY = std::sin(Azimuth);
 
-            Generating.Emit(UnitAlong  * CapScales[CapOrdinal] * Declaring.HalfExtentAlong,
+            Generating.Emit(UnitX  * CapScales[CapOrdinal] * Declaring.HalfExtentX,
                             CapHeights[CapOrdinal],
-                            UnitAcross * CapScales[CapOrdinal] * Declaring.HalfExtentAcross,
+                            UnitY * CapScales[CapOrdinal] * Declaring.HalfExtentY,
                             0.0, CapFacing[CapOrdinal], 0.0,
-                            0.5 + 0.5 * UnitAlong, 0.5 + 0.5 * UnitAcross);
+                            0.5 + 0.5 * UnitX, 0.5 + 0.5 * UnitY);
         }
 
         for (std::uint32_t Step = 0u; Step < Radial; ++Step)
@@ -342,32 +342,32 @@ void GenerateTorus(const PrimitiveSpecification& Declaring, GeneratedSurface& Ge
     const std::uint32_t Axial  = Declaring.AxialCount;
     const std::uint32_t Stride = Axial + 1u;
 
-    const double MajorRadius = Declaring.HalfExtentAlong;
+    const double MajorRadius = Declaring.HalfExtentX;
     const double MinorRadius = Declaring.MinorRadius;
 
     for (std::uint32_t Step = 0u; Step <= Radial; ++Step)
     {
-        const double AlongFraction = static_cast<double>(Step) / static_cast<double>(Radial);
-        const double Azimuth       = Declaring.SweepOffset + AlongFraction * Declaring.SweepRadians;
+        const double XFraction = static_cast<double>(Step) / static_cast<double>(Radial);
+        const double Azimuth       = Declaring.SweepOffset + XFraction * Declaring.SweepRadians;
 
-        const double UnitAlong  = std::cos(Azimuth);
-        const double UnitAcross = std::sin(Azimuth);
+        const double UnitX  = std::cos(Azimuth);
+        const double UnitY = std::sin(Azimuth);
 
         for (std::uint32_t Tube = 0u; Tube <= Axial; ++Tube)
         {
-            const double AcrossFraction = static_cast<double>(Tube) / static_cast<double>(Axial);
-            const double TubeAngle      = AcrossFraction * Turn;
+            const double YFraction = static_cast<double>(Tube) / static_cast<double>(Axial);
+            const double TubeAngle      = YFraction * Turn;
 
             const double TubeOut = std::cos(TubeAngle);
             const double TubeUp  = std::sin(TubeAngle);
 
             const double RingRadius = MajorRadius + MinorRadius * TubeOut;
 
-            Generating.Emit(UnitAlong * RingRadius,
+            Generating.Emit(UnitX * RingRadius,
                             MinorRadius * TubeUp,
-                            UnitAcross * RingRadius,
-                            UnitAlong * TubeOut, TubeUp, UnitAcross * TubeOut,
-                            AlongFraction, AcrossFraction);
+                            UnitY * RingRadius,
+                            UnitX * TubeOut, TubeUp, UnitY * TubeOut,
+                            XFraction, YFraction);
         }
     }
 
@@ -391,31 +391,31 @@ void GenerateTorus(const PrimitiveSpecification& Declaring, GeneratedSurface& Ge
 
 void GeneratePlane(const PrimitiveSpecification& Declaring, GeneratedSurface& Generating)
 {
-    const std::uint32_t Along  = Declaring.RadialCount;
-    const std::uint32_t Across = Declaring.AxialCount;
-    const std::uint32_t Stride = Along + 1u;
+    const std::uint32_t X  = Declaring.RadialCount;
+    const std::uint32_t Y = Declaring.AxialCount;
+    const std::uint32_t Stride = X + 1u;
 
-    for (std::uint32_t AcrossStep = 0u; AcrossStep <= Across; ++AcrossStep)
+    for (std::uint32_t YStep = 0u; YStep <= Y; ++YStep)
     {
-        const double AcrossFraction = static_cast<double>(AcrossStep) / static_cast<double>(Across);
+        const double YFraction = static_cast<double>(YStep) / static_cast<double>(Y);
 
-        for (std::uint32_t AlongStep = 0u; AlongStep <= Along; ++AlongStep)
+        for (std::uint32_t XStep = 0u; XStep <= X; ++XStep)
         {
-            const double AlongFraction = static_cast<double>(AlongStep) / static_cast<double>(Along);
+            const double XFraction = static_cast<double>(XStep) / static_cast<double>(X);
 
-            Generating.Emit((AlongFraction  * 2.0 - 1.0) * Declaring.HalfExtentAlong,
+            Generating.Emit((XFraction  * 2.0 - 1.0) * Declaring.HalfExtentX,
                             0.0,
-                            (AcrossFraction * 2.0 - 1.0) * Declaring.HalfExtentAcross,
+                            (YFraction * 2.0 - 1.0) * Declaring.HalfExtentY,
                             0.0, 1.0, 0.0,
-                            AlongFraction, AcrossFraction);
+                            XFraction, YFraction);
         }
     }
 
-    for (std::uint32_t AcrossStep = 0u; AcrossStep < Across; ++AcrossStep)
+    for (std::uint32_t YStep = 0u; YStep < Y; ++YStep)
     {
-        for (std::uint32_t AlongStep = 0u; AlongStep < Along; ++AlongStep)
+        for (std::uint32_t XStep = 0u; XStep < X; ++XStep)
         {
-            const std::uint32_t NearLower = AcrossStep * Stride + AlongStep;
+            const std::uint32_t NearLower = YStep * Stride + XStep;
             const std::uint32_t NearUpper = NearLower + 1u;
             const std::uint32_t FarLower  = NearLower + Stride;
             const std::uint32_t FarUpper  = FarLower + 1u;
@@ -438,22 +438,22 @@ void GenerateAnnularSector(const PrimitiveSpecification& Declaring, GeneratedSur
     const std::uint32_t Radial = Declaring.RadialCount;
     const std::uint32_t Stride = 2u;
 
-    const double InnerRadius = Declaring.HalfExtentAlong - Declaring.MinorRadius;
-    const double OuterRadius = Declaring.HalfExtentAlong + Declaring.MinorRadius;
+    const double InnerRadius = Declaring.HalfExtentX - Declaring.MinorRadius;
+    const double OuterRadius = Declaring.HalfExtentX + Declaring.MinorRadius;
 
     for (std::uint32_t Step = 0u; Step <= Radial; ++Step)
     {
-        const double AlongFraction = static_cast<double>(Step) / static_cast<double>(Radial);
-        const double Azimuth       = Declaring.SweepOffset + AlongFraction * Declaring.SweepRadians;
+        const double XFraction = static_cast<double>(Step) / static_cast<double>(Radial);
+        const double Azimuth       = Declaring.SweepOffset + XFraction * Declaring.SweepRadians;
 
-        const double UnitAlong  = std::cos(Azimuth);
-        const double UnitAcross = std::sin(Azimuth);
+        const double UnitX  = std::cos(Azimuth);
+        const double UnitY = std::sin(Azimuth);
 
-        Generating.Emit(UnitAlong * InnerRadius, 0.0, UnitAcross * InnerRadius,
-                        0.0, 1.0, 0.0, AlongFraction, 0.0);
+        Generating.Emit(UnitX * InnerRadius, 0.0, UnitY * InnerRadius,
+                        0.0, 1.0, 0.0, XFraction, 0.0);
 
-        Generating.Emit(UnitAlong * OuterRadius, 0.0, UnitAcross * OuterRadius,
-                        0.0, 1.0, 0.0, AlongFraction, 1.0);
+        Generating.Emit(UnitX * OuterRadius, 0.0, UnitY * OuterRadius,
+                        0.0, 1.0, 0.0, XFraction, 1.0);
     }
 
     for (std::uint32_t Step = 0u; Step < Radial; ++Step)
@@ -484,7 +484,7 @@ Outcome<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, Topolog
     if (Generated.Sealed())
     {
         return Outcome<bool>::Refuse(
-            { RefusalReason::HostDenied, "the topology is sealed and admits no declaration" });
+            { RefusalReason::HostDenied, "the topology is sealed and accepts no declaration" });
     }
 
     GeneratedSurface Generating;
@@ -555,26 +555,26 @@ Outcome<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, Topolog
 //------------------------------------------------------------------------------------------------------------------------
 
 void ProjectPrimitiveExtent(const PrimitiveSpecification& Declaring,
-                            DocumentPosition&             Least,
-                            DocumentPosition&             Greatest)
+                            DocumentPosition&             Minimum,
+                            DocumentPosition&             Maximum)
 {
-    double HalfAlong  = Declaring.HalfExtentAlong;
+    double HalfX  = Declaring.HalfExtentX;
     double HalfUp     = Declaring.HalfExtentUp;
-    double HalfAcross = Declaring.HalfExtentAcross;
+    double HalfY = Declaring.HalfExtentY;
 
     // 📝 The torus and the sector are the two entries whose occupied extent is not the three half-extents. Both
     //    reach the major radius plus the minor one outward and only the minor one upward, and assuming otherwise
     //    frames a camera on an extent nearly twice what is there.
     if (Declaring.Generated == PrimitiveSubject::Torus)
     {
-        HalfAlong  = Declaring.HalfExtentAlong + Declaring.MinorRadius;
-        HalfAcross = Declaring.HalfExtentAlong + Declaring.MinorRadius;
+        HalfX  = Declaring.HalfExtentX + Declaring.MinorRadius;
+        HalfY = Declaring.HalfExtentX + Declaring.MinorRadius;
         HalfUp     = Declaring.MinorRadius;
     }
     else if (Declaring.Generated == PrimitiveSubject::AnnularSector)
     {
-        HalfAlong  = Declaring.HalfExtentAlong + Declaring.MinorRadius;
-        HalfAcross = Declaring.HalfExtentAlong + Declaring.MinorRadius;
+        HalfX  = Declaring.HalfExtentX + Declaring.MinorRadius;
+        HalfY = Declaring.HalfExtentX + Declaring.MinorRadius;
         HalfUp     = 0.0;
     }
     else if (Declaring.Generated == PrimitiveSubject::Plane)
@@ -582,13 +582,13 @@ void ProjectPrimitiveExtent(const PrimitiveSpecification& Declaring,
         HalfUp = 0.0;
     }
 
-    Least.PositionX    = -HalfAlong;
-    Least.PositionY    = -HalfUp;
-    Least.PositionZ    = -HalfAcross;
+    Minimum.PositionX    = -HalfX;
+    Minimum.PositionY    = -HalfUp;
+    Minimum.PositionZ    = -HalfY;
 
-    Greatest.PositionX =  HalfAlong;
-    Greatest.PositionY =  HalfUp;
-    Greatest.PositionZ =  HalfAcross;
+    Maximum.PositionX =  HalfX;
+    Maximum.PositionY =  HalfUp;
+    Maximum.PositionZ =  HalfY;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -603,11 +603,11 @@ Outcome<std::uint32_t> PrimitiveIndex::Declare(const PrimitiveSpecification& Dec
             { RefusalReason::ContentUnsupported, "the declared parameters generate no surface" });
     }
 
-    ++RevisionIssued;
+    ++LatestRevision;
 
     HeldPrimitive Holding;
     Holding.Declared         = Declaring;
-    Holding.DeclaredRevision = RevisionIssued;
+    Holding.DeclaredRevision = LatestRevision;
     Holding.SlotOccupied     = true;
 
     if (!ReleasedOrdinals.empty())
@@ -627,12 +627,12 @@ Outcome<std::uint32_t> PrimitiveIndex::Declare(const PrimitiveSpecification& Dec
             { RefusalReason::ExtentExhausted, "the declared primitive ceiling is reached" });
     }
 
-    const std::uint32_t Issued = static_cast<std::uint32_t>(Primitives.size());
+    const std::uint32_t Registered = static_cast<std::uint32_t>(Primitives.size());
 
     Primitives.push_back(Holding);
     ++OccupiedCount;
 
-    return Outcome<std::uint32_t>::Result(Issued);
+    return Outcome<std::uint32_t>::Result(Registered);
 }
 
 Outcome<bool> PrimitiveIndex::Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending)
@@ -649,25 +649,25 @@ Outcome<bool> PrimitiveIndex::Amend(std::uint32_t PrimitiveOrdinal, const Primit
     }
 
     HeldPrimitive&                Holding  = Primitives[PrimitiveOrdinal];
-    const PrimitiveSpecification& Standing = Holding.Declared;
+    const PrimitiveSpecification& Current = Holding.Declared;
 
-    const bool SurfaceDiffers = Standing.Generated        != Amending.Generated
-                             || Standing.HalfExtentAlong  != Amending.HalfExtentAlong
-                             || Standing.HalfExtentUp     != Amending.HalfExtentUp
-                             || Standing.HalfExtentAcross != Amending.HalfExtentAcross
-                             || Standing.MinorRadius      != Amending.MinorRadius
-                             || Standing.SweepRadians     != Amending.SweepRadians
-                             || Standing.SweepOffset      != Amending.SweepOffset
-                             || Standing.RadialCount      != Amending.RadialCount
-                             || Standing.AxialCount       != Amending.AxialCount
-                             || Standing.CapsDeclared     != Amending.CapsDeclared;
+    const bool SurfaceDiffers = Current.Generated        != Amending.Generated
+                             || Current.HalfExtentX  != Amending.HalfExtentX
+                             || Current.HalfExtentUp     != Amending.HalfExtentUp
+                             || Current.HalfExtentY != Amending.HalfExtentY
+                             || Current.MinorRadius      != Amending.MinorRadius
+                             || Current.SweepRadians     != Amending.SweepRadians
+                             || Current.SweepOffset      != Amending.SweepOffset
+                             || Current.RadialCount      != Amending.RadialCount
+                             || Current.AxialCount       != Amending.AxialCount
+                             || Current.CapsDeclared     != Amending.CapsDeclared;
 
     Holding.Declared = Amending;
 
     if (SurfaceDiffers)
     {
-        ++RevisionIssued;
-        Holding.DeclaredRevision = RevisionIssued;
+        ++LatestRevision;
+        Holding.DeclaredRevision = LatestRevision;
     }
 
     return Outcome<bool>::Result(true);
@@ -726,7 +726,7 @@ void PrimitiveIndex::Reclaim()
     ReleasedOrdinals.clear();
 
     OccupiedCount  = 0u;
-    RevisionIssued = 0u;
+    LatestRevision = 0u;
 }
 
 }   // namespace Slate

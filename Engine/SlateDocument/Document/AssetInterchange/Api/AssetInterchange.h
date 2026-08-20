@@ -37,7 +37,7 @@ struct DecodedTopology
     std::vector<DomainCoordinate>            CornerCoordinates  = {};      // [-]  - empty where absent
     std::vector<SurfaceDirection>            Perpendiculars     = {};      // [-]  - empty where absent
     std::vector<TangentBasis>                TangentBases       = {};      // [-]  - empty where absent
-    std::vector<std::uint32_t>               MaterialEnrollment = {};      // [-]  - empty where absent
+    std::vector<std::uint32_t>               MaterialRegistration = {};      // [-]  - empty where absent
     std::vector<std::string>                 UnsupportedNamed   = {};      // [-]  - constructs that will not survive
     std::string                              OriginPath         = {};      // [-]  - where it was read from
     double                                   UnitScale          = 1.0;     // [-]  - applied once, at intake
@@ -103,23 +103,23 @@ struct EmittedImage
 struct EmissionSpecification
 {
     std::vector<EmittedImage>  Images      = {};   // [-] - one entry per emitted image
-    std::string                NamePattern = {};   // [-] - over occupant, material and channel
+    std::string                NamePattern = {};   // [-] - over owner, material and channel
 
     /// 🧩 Whether the specification describes an export that can be produced at all.
-    /// in    Materials  [-]  the declared materials, so a channel no material declares is refused
+    /// in    Materials  [-]  the declared materials, so a channel no material declares is rejected
     /// out   Result    [-]  refuses with ContentUnsupported for an extent of zero, an image with no occupied
     ///                       component, a colour-carrying channel in an image declaring no space, and a channel
     ///                       occupying two components anywhere in the specification
     /// note  🔴 A channel emitted twice is two answers to one question, and the consumer reads whichever image
-    ///        it loaded second. Refused here rather than discovered by whoever ships the asset.
+    ///        it loaded second. Rejected here rather than discovered by whoever ships the asset.
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> Validate(const MaterialIndex& Materials) const;
 };
 
 /// 🧩 Resolves an emission's declared naming pattern.
-/// in    Pattern       [-]  carrying `{Occupant}`, `{Material}`, `{Channel}` and `{Extent}`
-/// in    OccupantName  [-]  what the artist called the occupant
+/// in    Pattern       [-]  carrying `{Owner}`, `{Material}`, `{Channel}` and `{Extent}`
+/// in    OwnerName  [-]  what the artist called the owner
 /// in    MaterialName  [-]  what they called the material
 /// in    ChannelName   [-]  the channel's own spelling
 /// in    ExtentTexels  [px] the emitted extent
@@ -129,7 +129,7 @@ struct EmissionSpecification
 /// cost  🚩
 /// tag   api, nonthrowing
 std::string ResolveName(const std::string& Pattern,
-                        const std::string& OccupantName,
+                        const std::string& OwnerName,
                         const std::string& MaterialName,
                         const std::string& ChannelName,
                         std::uint32_t      ExtentTexels);
@@ -139,10 +139,10 @@ std::string ResolveName(const std::string& Pattern,
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Intake and emission as one contract, in both directions.
-/// note  🔴 `50` §2: intake is three steps and they are separate. ① decodes faithfully — the codec's. ② enrols
-///        occupants — this document's. ③ derives companions — `38`'s, through `34`, and where the cost lives.
-/// note  🔴 `50` §8: a partially failed intake **enrols nothing**. Half a topology enrolled as an occupant is an
-///        occupant the artist will paint on and export.
+/// note  🔴 `50` §2: intake is three steps and they are separate. ① decodes faithfully — the codec's. ② registers
+///        owners — this document's. ③ derives companions — `38`'s, through `34`, and where the cost lives.
+/// note  🔴 `50` §8: a partially failed intake **registers nothing**. Half a topology registered as an owner is an
+///        owner the artist will paint on and export.
 /// tag   owning
 class AssetInterchange
 {
@@ -153,14 +153,14 @@ public:
     //    less. The number is declared here because no second unit reads it.
     static constexpr double AssumedUnitScale = 1.0;   // [-] - source units to millimetres, when the file is silent
 
-    /// 🧩 Enrols one decoded topology into a topology structure, sealing it.
+    /// 🧩 Registers one decoded topology into a topology structure, sealing it.
     /// in    Decoded  [-]  the decoded specification, faithful to the source
-    /// in    Into     [-]  the structure to enrol into; untouched when the intake refuses
+    /// in    Into     [-]  the structure to register into; untouched when the intake refuses
     /// in    Recorded [-]  where the assumption, if any, is recorded
     /// out   Result  [-]  refuses with ContentUnsupported for absent positions or absent face indexing — `50`
     ///                     §3 gives neither a default — and carries the structure's own refusal otherwise
-    /// note  🔴 Unit scale is applied **once, at intake**, and is never carried as a per-occupant multiplier.
-    ///        A scene where each occupant carries its own unit convention is a scene where `02` §3.2's rebasing
+    /// note  🔴 Unit scale is applied **once, at intake**, and is never carried as a per-owner multiplier.
+    ///        A scene where each owner carries its own unit convention is a scene where `02` §3.2's rebasing
     ///        is correct and the geometry still does not line up.
     /// note  🔴 Every construct named in `UnsupportedNamed` is recorded **at intake** rather than at export.
     ///        `50` §6: a construct that will not survive is named at the moment it arrives, not at the moment it
@@ -214,7 +214,7 @@ private:
     EmissionSpecification     Declared;                     // [-] - as DeclareEmission validated it
     std::vector<std::string>  UnsupportedNamed;             // [-] - named at intake, awaiting `86`
     std::uint32_t             UnsupportedReported = 0u;     // [-] - how many have been appended
-    std::uint32_t             TopologyCount       = 0u;     // [-] - topologies enrolled
+    std::uint32_t             TopologyCount       = 0u;     // [-] - topologies registered
     std::uint32_t             ImageCount          = 0u;     // [-] - images declared
 };
 

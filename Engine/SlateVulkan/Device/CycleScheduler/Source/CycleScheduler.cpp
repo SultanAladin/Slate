@@ -35,23 +35,23 @@ Outcome<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const Di
     Slots.assign(RecordingSlotCount, CycleSlot{});
 
     // 📝 Walked by ordinal rather than by reference, because the cycle slot is what each of the three points
-    //    is named by, and it is the same ordinal `StandingOrdinal` reports the stall against.
+    //    is named by, and it is the same ordinal `CurrentOrdinal` reports the stall against.
     for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
     {
         CycleSlot& Slot = Slots[SlotOrdinal];
 
         const bool Constructed =
             vkCreateFence(Active, &CompletionDeclaration, nullptr, &Slot.Completion)        == VK_SUCCESS &&
-            vkCreateSemaphore(Active, &OrderingDeclaration, nullptr, &Slot.ImageArrived)    == VK_SUCCESS &&
+            vkCreateSemaphore(Active, &OrderingDeclaration, nullptr, &Slot.ImageAvailable)    == VK_SUCCESS &&
             vkCreateSemaphore(Active, &OrderingDeclaration, nullptr, &Slot.RecordingDone)   == VK_SUCCESS;
 
-        // 📝 🔴 Refused in full. A cycle half-constructed leaves some slots orderable and some not, and the
+        // 📝 🔴 Rejected in full. A cycle half-constructed leaves some slots orderable and some not, and the
         //    defect surfaces on whichever recording first reaches the unordered slot rather than at bring-up.
         if (!Constructed)
         {
             Reclaim();
             return Outcome<bool>::Refuse(
-                { RefusalReason::ExtentExhausted, "the device declined an ordering point of the cycle" });
+                { RefusalReason::ExtentExhausted, "the device rejected an ordering point of the cycle" });
         }
 
         // 📝 🔴 `06` §7's diagnostic-name gate. The two semaphores are named apart rather than by one prefix and
@@ -59,23 +59,23 @@ Outcome<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const Di
         //    never arrived and one whose recording never signalled are different defects with different causes,
         //    and the addresses alone say only that the cycle stopped. The refusals are discarded for
         //    `ByteSpace`'s reason.
-        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
+        Discard(NamingEdge->Declare(VK_OBJECT_TYPE_FENCE,
                             reinterpret_cast<std::uint64_t>(Slot.Completion),
                             "CycleScheduler cycle completion",
                             SlotOrdinal));
 
-        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
-                            reinterpret_cast<std::uint64_t>(Slot.ImageArrived),
+        Discard(NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
+                            reinterpret_cast<std::uint64_t>(Slot.ImageAvailable),
                             "CycleScheduler cycle image arrival",
                             SlotOrdinal));
 
-        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
+        Discard(NamingEdge->Declare(VK_OBJECT_TYPE_SEMAPHORE,
                             reinterpret_cast<std::uint64_t>(Slot.RecordingDone),
                             "CycleScheduler cycle recording completion",
                             SlotOrdinal));
     }
 
-    SlotStanding = 0u;
+    SlotCurrent = 0u;
     CompletedCount = 0u;
 
     return Outcome<bool>::Result(true);
@@ -92,7 +92,7 @@ Outcome<bool> CycleScheduler::Await()
 
     const VkResult Reached = vkWaitForFences(DeviceEdge->ActiveDevice(),
                                              1u,
-                                             &Slots[SlotStanding].Completion,
+                                             &Slots[SlotCurrent].Completion,
                                              VK_TRUE,
                                              CompletionCeilingNanoseconds);
 
@@ -109,7 +109,7 @@ Outcome<bool> CycleScheduler::Await()
         return Outcome<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost awaiting the standing slot" });
 
     if (Reached != VK_SUCCESS)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device declined the wait" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device rejected the wait" });
 
     return Outcome<bool>::Result(true);
 }
@@ -120,10 +120,10 @@ Outcome<bool> CycleScheduler::Arm()
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
 
     // 📝 Cleared immediately before the submission that signals it, never immediately after the wait. A slot
-    //    cleared early and then refused before submitting is a slot no submission will ever signal, and the
+    //    cleared early and then rejected before submitting is a slot no submission will ever signal, and the
     //    next recording to reach it waits the whole ceiling out for nothing.
-    if (vkResetFences(DeviceEdge->ActiveDevice(), 1u, &Slots[SlotStanding].Completion) != VK_SUCCESS)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device declined to clear the completion" });
+    if (vkResetFences(DeviceEdge->ActiveDevice(), 1u, &Slots[SlotCurrent].Completion) != VK_SUCCESS)
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device failed to clear the completion" });
 
     return Outcome<bool>::Result(true);
 }
@@ -137,21 +137,21 @@ void CycleScheduler::Advance()
     if (Slots.empty())
         return;
 
-    SlotStanding = (SlotStanding + 1u) % static_cast<std::uint32_t>(Slots.size());
+    SlotCurrent = (SlotCurrent + 1u) % static_cast<std::uint32_t>(Slots.size());
     ++CompletedCount;
 }
 
-Outcome<CycleSlot> CycleScheduler::Standing() const
+Outcome<CycleSlot> CycleScheduler::Current() const
 {
     if (Slots.empty())
         return Outcome<CycleSlot>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
 
-    return Outcome<CycleSlot>::Result(Slots[SlotStanding]);
+    return Outcome<CycleSlot>::Result(Slots[SlotCurrent]);
 }
 
-std::uint32_t CycleScheduler::StandingOrdinal() const
+std::uint32_t CycleScheduler::CurrentOrdinal() const
 {
-    return SlotStanding;
+    return SlotCurrent;
 }
 
 std::uint64_t CycleScheduler::CompletedRecordings() const
@@ -177,10 +177,10 @@ void CycleScheduler::Reclaim()
                 Slot.Completion = VK_NULL_HANDLE;
             }
 
-            if (Slot.ImageArrived != VK_NULL_HANDLE)
+            if (Slot.ImageAvailable != VK_NULL_HANDLE)
             {
-                vkDestroySemaphore(Active, Slot.ImageArrived, nullptr);
-                Slot.ImageArrived = VK_NULL_HANDLE;
+                vkDestroySemaphore(Active, Slot.ImageAvailable, nullptr);
+                Slot.ImageAvailable = VK_NULL_HANDLE;
             }
 
             if (Slot.RecordingDone != VK_NULL_HANDLE)
@@ -192,7 +192,7 @@ void CycleScheduler::Reclaim()
     }
 
     Slots.clear();
-    SlotStanding = 0u;
+    SlotCurrent = 0u;
 }
 
 CycleScheduler::~CycleScheduler()

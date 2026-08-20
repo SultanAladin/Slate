@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                            REDRAWSCHEDULER.CPP
 //============================================================================================================================================
-// 🧩 A flat enrolment of marks, and the three-operand wake rule read from it.
+// 🧩 A flat registration of marks, and the three-operand wake rule read from it.
 
 #include "SlateUI/Interface/RedrawScheduler/Api/RedrawScheduler.h"
 
@@ -12,20 +12,20 @@ namespace Slate
 //                                                      THE ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> RedrawScheduler::Enrol(const char* Naming)
+Outcome<std::uint32_t> RedrawScheduler::Register(const char* Naming)
 {
-    if (Enrolled >= PanelCapacity)
+    if (Registered >= PanelCapacity)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no panel slot remains" });
 
-    Marks[Enrolled]   = RedrawMark::Rearrange;
-    Namings[Enrolled] = (Naming != nullptr) ? Naming : "";
+    Marks[Registered]   = RedrawMark::Rearrange;
+    Namings[Registered] = (Naming != nullptr) ? Naming : "";
 
-    return Outcome<std::uint32_t>::Result(Enrolled++);
+    return Outcome<std::uint32_t>::Result(Registered++);
 }
 
 void RedrawScheduler::Mark(std::uint32_t PanelOrdinal, RedrawMark Declared)
 {
-    if (PanelOrdinal >= Enrolled)
+    if (PanelOrdinal >= Registered)
         return;
 
     Marks[PanelOrdinal] = Dearer(Marks[PanelOrdinal], Declared);
@@ -33,18 +33,18 @@ void RedrawScheduler::Mark(std::uint32_t PanelOrdinal, RedrawMark Declared)
 
 void RedrawScheduler::MarkEvery(RedrawMark Declared)
 {
-    for (std::uint32_t PanelOrdinal = 0u; PanelOrdinal < Enrolled; ++PanelOrdinal)
+    for (std::uint32_t PanelOrdinal = 0u; PanelOrdinal < Registered; ++PanelOrdinal)
         Marks[PanelOrdinal] = Dearer(Marks[PanelOrdinal], Declared);
 }
 
-RedrawMark RedrawScheduler::Standing(std::uint32_t PanelOrdinal) const
+RedrawMark RedrawScheduler::Current(std::uint32_t PanelOrdinal) const
 {
-    return (PanelOrdinal < Enrolled) ? Marks[PanelOrdinal] : RedrawMark::Quiet;
+    return (PanelOrdinal < Registered) ? Marks[PanelOrdinal] : RedrawMark::Quiet;
 }
 
 bool RedrawScheduler::Marked() const
 {
-    for (std::uint32_t PanelOrdinal = 0u; PanelOrdinal < Enrolled; ++PanelOrdinal)
+    for (std::uint32_t PanelOrdinal = 0u; PanelOrdinal < Registered; ++PanelOrdinal)
     {
         if (Marks[PanelOrdinal] != RedrawMark::Quiet)
             return true;
@@ -76,13 +76,13 @@ void RedrawScheduler::Retire()
     else
         ++QuietCount;
 
-    for (std::uint32_t PanelOrdinal = 0u; PanelOrdinal < Enrolled; ++PanelOrdinal)
+    for (std::uint32_t PanelOrdinal = 0u; PanelOrdinal < Registered; ++PanelOrdinal)
         Marks[PanelOrdinal] = RedrawMark::Quiet;
 }
 
 void RedrawScheduler::Retire(std::uint32_t PanelOrdinal)
 {
-    if (PanelOrdinal < Enrolled)
+    if (PanelOrdinal < Registered)
         Marks[PanelOrdinal] = RedrawMark::Quiet;
 }
 
@@ -90,14 +90,14 @@ void RedrawScheduler::Retire(std::uint32_t PanelOrdinal)
 //                                                       THE READS
 //------------------------------------------------------------------------------------------------------------------------
 
-std::uint32_t RedrawScheduler::EnrolledCount() const
+std::uint32_t RedrawScheduler::RegisteredCount() const
 {
-    return Enrolled;
+    return Registered;
 }
 
 const char* RedrawScheduler::Naming(std::uint32_t PanelOrdinal) const
 {
-    return (PanelOrdinal < Enrolled) ? Namings[PanelOrdinal] : "";
+    return (PanelOrdinal < Registered) ? Namings[PanelOrdinal] : "";
 }
 
 std::uint64_t RedrawScheduler::QuietTicks() const

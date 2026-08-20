@@ -42,8 +42,8 @@ struct PointerSample
     double        PositionX   = 0.0;      // [px]  - in the window's drawable extent
     double        PositionY   = 0.0;      // [px]  - in the window's drawable extent
     double        Pressure    = 0.0;      // [-]   - normalised; meaningful only when reported
-    double        TiltAlong   = 0.0;      // [deg] - meaningful only when reported
-    double        TiltAcross  = 0.0;      // [deg] - meaningful only when reported
+    double        TiltX   = 0.0;      // [deg] - meaningful only when reported
+    double        TiltY  = 0.0;      // [deg] - meaningful only when reported
     double        Rotation    = 0.0;      // [deg] - barrel rotation; meaningful only when reported
     AxisPresence  Supplied    = {};       // [-]   - read this before reading any optional axis above
     std::uint32_t ContactMask = 0u;       // [-]   - bit per pointer contact currently down
@@ -107,11 +107,11 @@ public:
     /// tag   api, nonallocating, nonthrowing
     TickPoint ArrivalStamp(std::uint64_t HostCount) const;
 
-    /// 🧩 Records one arriving sample against the supplied timeline.
-    /// in    Arriving   [-]  the sample as the device reported it
+    /// 🧩 Records one incoming sample against the supplied timeline.
+    /// in    Incoming   [-]  the sample as the device reported it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Record(const PointerSample& Arriving);
+    void Record(const PointerSample& Incoming);
 
     /// 🧩 Reads one held sample in arrival order.
     /// in    ArrivalOrdinal [-]  zero is the oldest sample still held

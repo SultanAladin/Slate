@@ -19,16 +19,16 @@ const char* const DepthTestedIdentity = "80-OverlayProjection-DepthTested";
 const char* const DepthFreeIdentity   = "80-OverlayProjection-DepthFree";
 const char* const OverlayOrigin       = "80 §3 OverlayProjection";
 
-constexpr bool OverlayDeclarable(OverlaySubject Presented)
+constexpr bool OverlayDeclarable(OverlaySubject Current)
 {
-    return static_cast<std::uint32_t>(Presented) < static_cast<std::uint32_t>(OverlaySubject::OverlayCount);
+    return static_cast<std::uint32_t>(Current) < static_cast<std::uint32_t>(OverlaySubject::OverlayCount);
 }
 
 }   // namespace
 
-Outcome<bool> OverlayProjection::Declare(OverlaySubject Presented, const OverlaySpecification& Declaring)
+Outcome<bool> OverlayProjection::Declare(OverlaySubject Current, const OverlaySpecification& Declaring)
 {
-    if (!OverlayDeclarable(Presented))
+    if (!OverlayDeclarable(Current))
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the closed count is not an overlay" });
@@ -40,7 +40,7 @@ Outcome<bool> OverlayProjection::Declare(OverlaySubject Presented, const Overlay
     }
 
     // 🔴 `80` §2: both recordings run after `66` and nothing between here and the display surface compresses. A
-    //    colour arriving in the working space would be presented as display code without ever crossing `36`, and it
+    //    colour incoming in the working space would be presented as display code without ever crossing `36`, and it
     //    reads as an overlay in a plausible but wrong hue rather than as a mistake.
     if (Declaring.OverlayColour.SpaceIdentity != DisplaySpaceIdentity)
     {
@@ -54,19 +54,19 @@ Outcome<bool> OverlayProjection::Declare(OverlaySubject Presented, const Overlay
             { RefusalReason::ContentUnsupported, "a line extent of nothing draws the overlay at no pixel" });
     }
 
-    // 🔴 Refused rather than ignored. A depth-free recording tests nothing, so an offset declared against it has no
+    // 🔴 Rejected rather than ignored. A depth-free recording tests nothing, so an offset declared against it has no
     //    comparison to displace; ignored silently, the caller reads it as an offset that was too small and raises it
     //    until something the offset does reach breaks instead.
-    if (DepthOfOverlay(Presented) == DepthSubject::DepthFree && Declaring.DepthOffset != 0.0)
+    if (DepthOfOverlay(Current) == DepthSubject::DepthFree && Declaring.DepthOffset != 0.0)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a depth-free overlay tests no depth to offset — `80` §1" });
     }
 
-    const std::size_t Ordinal = static_cast<std::size_t>(Presented);
+    const std::size_t Ordinal = static_cast<std::size_t>(Current);
 
     Declared[Ordinal]            = Declaring;
-    DeclarationStanding[Ordinal] = true;
+    DeclarationCurrent[Ordinal] = true;
     OverlayDeclared              = true;
 
     return Outcome<bool>::Result(true);
@@ -129,9 +129,9 @@ Outcome<bool> OverlayProjection::Contribute(RenderSchedule& Schedule) const
 //                                                      THE PRESENCE
 //------------------------------------------------------------------------------------------------------------------------
 
-bool OverlayProjection::OverlayStanding(const ToolSequence& Tooling, OverlaySubject Presented) const
+bool OverlayProjection::OverlayActive(const ToolSequence& Tooling, OverlaySubject Current) const
 {
-    if (!OverlayDeclarable(Presented))
+    if (!OverlayDeclarable(Current))
     {
         return false;
     }
@@ -139,8 +139,8 @@ bool OverlayProjection::OverlayStanding(const ToolSequence& Tooling, OverlaySubj
     // 🔴 `80` §3's closing line: which overlays are present is held in `76` and is read here on the rotation it is
     //    read on. Nothing is copied — a held copy disagrees with the toggle the artist has just used, and the overlay
     //    then appears in one recording and not the other for as long as the copies differ.
-    return DeclarationStanding[static_cast<std::size_t>(Presented)]
-        && Tooling.OverlayStanding(Presented);
+    return DeclarationCurrent[static_cast<std::size_t>(Current)]
+        && Tooling.OverlayActive(Current);
 }
 
 bool OverlayProjection::RecordingOccupied(const ToolSequence& Tooling, DepthSubject Behaviour) const
@@ -149,9 +149,9 @@ bool OverlayProjection::RecordingOccupied(const ToolSequence& Tooling, DepthSubj
          Ordinal < static_cast<std::uint32_t>(OverlaySubject::OverlayCount);
          ++Ordinal)
     {
-        const OverlaySubject Presented = static_cast<OverlaySubject>(Ordinal);
+        const OverlaySubject Current = static_cast<OverlaySubject>(Ordinal);
 
-        if (DepthOfOverlay(Presented) == Behaviour && OverlayStanding(Tooling, Presented))
+        if (DepthOfOverlay(Current) == Behaviour && OverlayActive(Tooling, Current))
         {
             return true;
         }
@@ -160,17 +160,17 @@ bool OverlayProjection::RecordingOccupied(const ToolSequence& Tooling, DepthSubj
     return false;
 }
 
-Outcome<const OverlaySpecification*> OverlayProjection::Specification(OverlaySubject Presented) const
+Outcome<const OverlaySpecification*> OverlayProjection::Specification(OverlaySubject Current) const
 {
-    if (!OverlayDeclarable(Presented))
+    if (!OverlayDeclarable(Current))
     {
         return Outcome<const OverlaySpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "the closed count is not an overlay" });
     }
 
-    const std::size_t Ordinal = static_cast<std::size_t>(Presented);
+    const std::size_t Ordinal = static_cast<std::size_t>(Current);
 
-    if (!DeclarationStanding[Ordinal])
+    if (!DeclarationCurrent[Ordinal])
     {
         return Outcome<const OverlaySpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "that overlay was never declared" });
@@ -192,14 +192,14 @@ void OverlayProjection::Report(const ToolSequence& Tooling, MeasureIndex& Measur
          Ordinal < static_cast<std::uint32_t>(OverlaySubject::OverlayCount);
          ++Ordinal)
     {
-        const OverlaySubject Presented = static_cast<OverlaySubject>(Ordinal);
+        const OverlaySubject Current = static_cast<OverlaySubject>(Ordinal);
 
-        if (!OverlayStanding(Tooling, Presented))
+        if (!OverlayActive(Tooling, Current))
         {
             continue;
         }
 
-        if (DepthOfOverlay(Presented) == DepthSubject::DepthTested)
+        if (DepthOfOverlay(Current) == DepthSubject::DepthTested)
         {
             ++TestedCount;
         }

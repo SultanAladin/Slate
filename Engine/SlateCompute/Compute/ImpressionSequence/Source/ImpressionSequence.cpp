@@ -93,7 +93,7 @@ Outcome<bool> ImpressionSequence::Open(const StrokeDeclaration& Declaring, const
     if (!Declaring.Subject.IdentityDeclared())
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the stroke names no entry to paint into" });
 
-    // 🚧 `58` §3's imagery and outline sources need `50` and `52` intake, which are unbuilt. Refused at Open
+    // 🚧 `58` §3's imagery and outline sources need `50` and `52` intake, which are unbuilt. Rejected at Open
     //    rather than substituted, because `58` §8 promises the preview and the committed impression share one
     //    shape — and a substituted profile breaks that promise where the artist is least able to see it coming.
     if (Brushed.Shape().Source != ShapeSource::Analytic)
@@ -155,8 +155,8 @@ Outcome<bool> ImpressionSequence::Open(const StrokeDeclaration& Declaring, const
     Sequenced.clear();
     Accumulated.Construct();
 
-    LastAlong         = 0.0;
-    LastAcross        = 0.0;
+    LastX         = 0.0;
+    LastY        = 0.0;
     LastArrival       = {};
     TravelledDistance = 0.0;
     PendingDistance   = 0.0;
@@ -173,39 +173,39 @@ Outcome<bool> ImpressionSequence::Open(const StrokeDeclaration& Declaring, const
 //                                                    THE RESAMPLING
 //------------------------------------------------------------------------------------------------------------------------
 
-ResolvedAxes ImpressionSequence::ProjectAxes(const PointerSample& Arriving,
-                                             double               TangentAlong,
-                                             double               TangentAcross,
+ResolvedAxes ImpressionSequence::ProjectAxes(const PointerSample& Incoming,
+                                             double               TangentX,
+                                             double               TangentY,
                                              double               Speed,
                                              double               PathDistance) const
 {
-    static_cast<void>(TangentAlong);
-    static_cast<void>(TangentAcross);
+    static_cast<void>(TangentX);
+    static_cast<void>(TangentY);
 
     ResolvedAxes Axes;
 
     // 🔴 `58` §4 and `04` §3: an absent axis stays absent. A tablet reporting no tilt and a stylus held upright
     //    are different facts, and the dynamic that reads tilt falls back to its declared value for the first and
     //    reads zero for the second. Normalising an unreported axis to zero collapses the two.
-    Axes.PressureReported = Arriving.Supplied.PressureReported;
-    Axes.TiltReported     = Arriving.Supplied.TiltReported;
-    Axes.RotationReported = Arriving.Supplied.RotationReported;
+    Axes.PressureReported = Incoming.Supplied.PressureReported;
+    Axes.TiltReported     = Incoming.Supplied.TiltReported;
+    Axes.RotationReported = Incoming.Supplied.RotationReported;
 
-    Axes.Pressure = Arriving.Supplied.PressureReported ? BoundedUnit(Arriving.Pressure) : 0.0;
+    Axes.Pressure = Incoming.Supplied.PressureReported ? BoundedUnit(Incoming.Pressure) : 0.0;
 
-    if (Arriving.Supplied.TiltReported)
+    if (Incoming.Supplied.TiltReported)
     {
         // 📐 The two reported tilt angles are one departure from the perpendicular, taken as their magnitude
         //    rather than as either alone. A dynamic reading one axis of a two-axis tilt responds to the
         //    direction the artist leans as well as to how far, which nobody expects of a tilt dynamic.
-        const double Departure = std::sqrt(Arriving.TiltAlong  * Arriving.TiltAlong
-                                         + Arriving.TiltAcross * Arriving.TiltAcross);
+        const double Departure = std::sqrt(Incoming.TiltX  * Incoming.TiltX
+                                         + Incoming.TiltY * Incoming.TiltY);
 
         Axes.Tilt = BoundedUnit(Departure / TiltReference);
     }
 
-    if (Arriving.Supplied.RotationReported)
-        Axes.Rotation = BoundedUnit(Arriving.Rotation / RotationReference);
+    if (Incoming.Supplied.RotationReported)
+        Axes.Rotation = BoundedUnit(Incoming.Rotation / RotationReference);
 
     // 🔴 Speed and path distance are **derived** and are never absent — `58` §4. Speed comes from the domain
     //    distance divided by the elapsed **arrival** interval, which is why `04` §3 stamps at arrival: divided
@@ -216,10 +216,10 @@ ResolvedAxes ImpressionSequence::ProjectAxes(const PointerSample& Arriving,
     return Axes;
 }
 
-void ImpressionSequence::Emit(double              PositionAlong,
-                              double              PositionAcross,
-                              double              TangentAlong,
-                              double              TangentAcross,
+void ImpressionSequence::Emit(double              PositionX,
+                              double              PositionY,
+                              double              TangentX,
+                              double              TangentY,
                               const ResolvedAxes& Axes,
                               double              PathDistance)
 {
@@ -233,15 +233,15 @@ void ImpressionSequence::Emit(double              PositionAlong,
     //    input. Raw input at a low sample rate produces a tangent that jitters at every reported position, and
     //    a shaped brush then flickers along a stroke the artist drew smoothly.
     if (Brush.Shape().Rotated == RotationSubject::PathRelative
-     && (TangentAlong != 0.0 || TangentAcross != 0.0))
+     && (TangentX != 0.0 || TangentY != 0.0))
     {
-        Impressing.Resolved.Rotation += std::atan2(TangentAcross, TangentAlong) * 180.0 / Pi;
+        Impressing.Resolved.Rotation += std::atan2(TangentY, TangentX) * 180.0 / Pi;
     }
 
     // 📝 `58` §6's positional variation displaces the impression about the path. Applied here rather than in
     //    `58` because the path is this document's and the displacement is in domain units of it.
-    Impressing.PositionAlong  = PositionAlong  + Impressing.Resolved.DisplacementAlong;
-    Impressing.PositionAcross = PositionAcross + Impressing.Resolved.DisplacementAcross;
+    Impressing.PositionX  = PositionX  + Impressing.Resolved.DisplacementX;
+    Impressing.PositionY = PositionY + Impressing.Resolved.DisplacementY;
 
     Sequenced.push_back(Impressing);
 
@@ -253,7 +253,7 @@ void ImpressionSequence::Emit(double              PositionAlong,
         NextSpacing = ImpressionSpacingFloor * Brush.Extent();
 }
 
-Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Arriving)
+Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Incoming)
 {
     if (!OpenDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no stroke is open" });
@@ -261,7 +261,7 @@ Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Arriving)
     // 🔴 The pointer left the surface. The path breaks here and the next resolved arrival begins a new segment
     //    rather than interpolating across the gap — a stroke that leaves an object and returns must not paint a
     //    line between the two places, and the artist cannot undo half a stroke to remove one.
-    if (!Arriving.SurfaceResolved)
+    if (!Incoming.SurfaceResolved)
     {
         PathBroken      = true;
         PendingDistance = 0.0;
@@ -282,49 +282,49 @@ Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Arriving)
             // 📝 The first impression has no preceding segment and therefore no tangent, so a path-relative
             //    rotation reads the brush's fixed angle for it alone. Withholding it until a tangent exists
             //    would mean a tap paints nothing, which is not what a tap means.
-            const ResolvedAxes Axes = ProjectAxes(Arriving.Arriving, 0.0, 0.0, 0.0, 0.0);
+            const ResolvedAxes Axes = ProjectAxes(Incoming.Incoming, 0.0, 0.0, 0.0, 0.0);
 
-            Emit(Arriving.PositionAlong, Arriving.PositionAcross, 0.0, 0.0, Axes, 0.0);
+            Emit(Incoming.PositionX, Incoming.PositionY, 0.0, 0.0, Axes, 0.0);
 
             PathBegun = true;
         }
 
-        LastAlong       = Arriving.PositionAlong;
-        LastAcross      = Arriving.PositionAcross;
-        LastArrival     = Arriving.Arriving.Arrival;
+        LastX       = Incoming.PositionX;
+        LastY      = Incoming.PositionY;
+        LastArrival     = Incoming.Incoming.Arrival;
         PendingDistance = 0.0;
         PathBroken      = false;
 
         return Outcome<bool>::Result(true);
     }
 
-    const double SpanAlong  = Arriving.PositionAlong  - LastAlong;
-    const double SpanAcross = Arriving.PositionAcross - LastAcross;
-    const double SegmentSpan = std::sqrt(SpanAlong * SpanAlong + SpanAcross * SpanAcross);
+    const double Width  = Incoming.PositionX  - LastX;
+    const double Height = Incoming.PositionY - LastY;
+    const double SegmentSpan = std::sqrt(Width * Width + Height * Height);
 
     if (SegmentSpan <= 0.0)
     {
         // 📝 A stationary arrival advances nothing and is not an error. A stylus held still still reports, and
         //    emitting an impression for each report is how a held brush burns a hole where it rests.
-        LastArrival = Arriving.Arriving.Arrival;
+        LastArrival = Incoming.Incoming.Arrival;
 
         return Outcome<bool>::Result(true);
     }
 
-    const double TangentAlong  = SpanAlong  / SegmentSpan;
-    const double TangentAcross = SpanAcross / SegmentSpan;
+    const double TangentX  = Width  / SegmentSpan;
+    const double TangentY = Height / SegmentSpan;
 
     // 🔴 `TickSequence::Span` reports milliseconds and reports zero for reversed operands, so a sample that
     //    arrived out of order yields no speed rather than a negative one. `04`'s ordering makes that unreachable;
     //    the guard is here because a speed of the wrong sign drives a dynamic off the end of its interval.
-    const double ElapsedMilliseconds = TickSequence::Span(LastArrival, Arriving.Arriving.Arrival);
+    const double ElapsedMilliseconds = TickSequence::Span(LastArrival, Incoming.Incoming.Arrival);
     const double Speed               = ElapsedMilliseconds > 0.0
                                      ? SegmentSpan / (ElapsedMilliseconds * 1.0e-3)
                                      : 0.0;
 
     double Walked = 0.0;
 
-    // 🔴 The arrival is admitted a tolerance of one spacing, never compared exactly. `PendingDistance` and
+    // 🔴 The arrival is accepted a tolerance of one spacing, never compared exactly. `PendingDistance` and
     //    `Walked` are both accumulated sums and `NextSpacing` is a product of two resolved reals, so an exact
     //    comparison decides the last impression of the segment on the residue of the additions. A path of four
     //    tenths at a spacing of one fortieth is sixteen spacings by the geometry and 5.6e-17 short of sixteen in
@@ -332,24 +332,24 @@ Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Arriving)
     while (Sequenced.size() < ImpressionCeiling
         && PendingDistance + (SegmentSpan - Walked) >= NextSpacing * (1.0 - SpacingArrivalTolerance))
     {
-        // 📝 The advance is the full spacing even where the tolerance admitted the step, so `Walked` tracks the
+        // 📝 The advance is the full spacing even where the tolerance accepted the step, so `Walked` tracks the
         //    impressions placed and not the tolerance spent. Advancing by the shortfall instead would let the
         //    tolerance accumulate across a long stroke into a real drift of the spacing.
         const double Advance = NextSpacing - PendingDistance;
 
         Walked += Advance;
 
-        // 📝 The tolerance admits a step whose full advance runs marginally past the arrival, so the fraction is
+        // 📝 The tolerance accepts a step whose full advance runs marginally past the arrival, so the fraction is
         //    bounded at the arrival itself. An impression is placed where the artist released, never beyond it.
         const double Fraction = Walked < SegmentSpan ? Walked / SegmentSpan : 1.0;
 
-        const double PositionAlong  = LastAlong  + SpanAlong  * Fraction;
-        const double PositionAcross = LastAcross + SpanAcross * Fraction;
+        const double PositionX  = LastX  + Width  * Fraction;
+        const double PositionY = LastY + Height * Fraction;
         const double PathDistance   = TravelledDistance + Walked;
 
-        const ResolvedAxes Axes = ProjectAxes(Arriving.Arriving, TangentAlong, TangentAcross, Speed, PathDistance);
+        const ResolvedAxes Axes = ProjectAxes(Incoming.Incoming, TangentX, TangentY, Speed, PathDistance);
 
-        Emit(PositionAlong, PositionAcross, TangentAlong, TangentAcross, Axes, PathDistance);
+        Emit(PositionX, PositionY, TangentX, TangentY, Axes, PathDistance);
 
         PendingDistance = 0.0;
     }
@@ -359,9 +359,9 @@ Outcome<bool> ImpressionSequence::Amend(const StrokeArrival& Arriving)
     PendingDistance   += Walked < SegmentSpan ? SegmentSpan - Walked : 0.0;
     TravelledDistance += SegmentSpan;
 
-    LastAlong   = Arriving.PositionAlong;
-    LastAcross  = Arriving.PositionAcross;
-    LastArrival = Arriving.Arriving.Arrival;
+    LastX   = Incoming.PositionX;
+    LastY  = Incoming.PositionY;
+    LastArrival = Incoming.Incoming.Arrival;
 
     return Outcome<bool>::Result(true);
 }
@@ -384,12 +384,12 @@ Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
     // 📐 The impression's domain extent, clamped into the unit square. `68` §5 packs every chart strictly inside
     //    the domain with a gap, so a clamp at the edge writes into an apron the artist cannot paint on rather
     //    than into a neighbouring chart's content.
-    const double LeastAlong    = Impressing.PositionAlong  - Extent;
-    const double LeastAcross   = Impressing.PositionAcross - Extent;
-    const double GreatestAlong = Impressing.PositionAlong  + Extent;
-    const double GreatestAcross = Impressing.PositionAcross + Extent;
+    const double MinimumX    = Impressing.PositionX  - Extent;
+    const double MinimumY   = Impressing.PositionY - Extent;
+    const double MaximumX = Impressing.PositionX  + Extent;
+    const double MaximumY = Impressing.PositionY + Extent;
 
-    if (GreatestAlong <= 0.0 || GreatestAcross <= 0.0 || LeastAlong >= 1.0 || LeastAcross >= 1.0)
+    if (MaximumX <= 0.0 || MaximumY <= 0.0 || MinimumX >= 1.0 || MinimumY >= 1.0)
     {
         // 📝 Wholly outside the domain. Resolved rather than deferred, because no promotion will ever bring it
         //    inside and a deferral that can never clear is a stroke that can never seal.
@@ -398,30 +398,30 @@ Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
         return Outcome<bool>::Result(true);
     }
 
-    const std::uint32_t FirstCellAlong  = LeastAlong  <= 0.0 ? 0u
-                                        : static_cast<std::uint32_t>(LeastAlong * CellsPerEdge);
-    const std::uint32_t FirstCellAcross = LeastAcross <= 0.0 ? 0u
-                                        : static_cast<std::uint32_t>(LeastAcross * CellsPerEdge);
+    const std::uint32_t FirstCellX  = MinimumX  <= 0.0 ? 0u
+                                        : static_cast<std::uint32_t>(MinimumX * CellsPerEdge);
+    const std::uint32_t FirstCellY = MinimumY <= 0.0 ? 0u
+                                        : static_cast<std::uint32_t>(MinimumY * CellsPerEdge);
 
-    std::uint32_t LastCellAlong  = static_cast<std::uint32_t>(GreatestAlong  * CellsPerEdge);
-    std::uint32_t LastCellAcross = static_cast<std::uint32_t>(GreatestAcross * CellsPerEdge);
+    std::uint32_t LastCellX  = static_cast<std::uint32_t>(MaximumX  * CellsPerEdge);
+    std::uint32_t LastCellY = static_cast<std::uint32_t>(MaximumY * CellsPerEdge);
 
-    LastCellAlong  = LastCellAlong  >= CellsPerEdge ? CellsPerEdge - 1u : LastCellAlong;
-    LastCellAcross = LastCellAcross >= CellsPerEdge ? CellsPerEdge - 1u : LastCellAcross;
+    LastCellX  = LastCellX  >= CellsPerEdge ? CellsPerEdge - 1u : LastCellX;
+    LastCellY = LastCellY >= CellsPerEdge ? CellsPerEdge - 1u : LastCellY;
 
     // 🔴 Residency is confirmed over **every** covered cell before a single texel is written. Writing what is
     //    resident and deferring the remainder would apply one impression twice — once now over part of its
     //    footprint and once later over the rest — and `StrokeSpace`'s `Over` accumulation would darken the
     //    overlap, which is the exact defect `22` §3 accumulates once to avoid.
-    for (std::uint32_t Across = FirstCellAcross; Across <= LastCellAcross; ++Across)
+    for (std::uint32_t Y = FirstCellY; Y <= LastCellY; ++Y)
     {
-        for (std::uint32_t Along = FirstCellAlong; Along <= LastCellAlong; ++Along)
+        for (std::uint32_t X = FirstCellX; X <= LastCellX; ++X)
         {
-            const double SampleAlong  = (static_cast<double>(Along)  + 0.5) / static_cast<double>(CellsPerEdge);
-            const double SampleAcross = (static_cast<double>(Across) + 0.5) / static_cast<double>(CellsPerEdge);
+            const double SampleX  = (static_cast<double>(X)  + 0.5) / static_cast<double>(CellsPerEdge);
+            const double SampleY = (static_cast<double>(Y) + 0.5) / static_cast<double>(CellsPerEdge);
 
             const Outcome<SampledCell> Sampled =
-                Residency.Sample(Level, SampleAlong, SampleAcross, RecordingOrdinal, Requesting);
+                Residency.Sample(Level, SampleX, SampleY, RecordingOrdinal, Requesting);
 
             if (!Sampled.Resolved)
                 return Outcome<bool>::Refuse(Sampled.Error);
@@ -440,34 +440,34 @@ Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
     // 📐 The texel footprint, half-open and clamped. Texel (i, j) centres at ((i + ½)/W, (j + ½)/W), so the
     //    first texel whose centre can fall inside the impression is the floor of its least bound times the
     //    extent, and the last is the ceiling of its greatest.
-    std::int64_t FirstTexelAlong  = static_cast<std::int64_t>(std::floor(LeastAlong    * Edge));
-    std::int64_t FirstTexelAcross = static_cast<std::int64_t>(std::floor(LeastAcross   * Edge));
-    std::int64_t LastTexelAlong   = static_cast<std::int64_t>(std::ceil (GreatestAlong  * Edge));
-    std::int64_t LastTexelAcross  = static_cast<std::int64_t>(std::ceil (GreatestAcross * Edge));
+    std::int64_t FirstTexelX  = static_cast<std::int64_t>(std::floor(MinimumX    * Edge));
+    std::int64_t FirstTexelY = static_cast<std::int64_t>(std::floor(MinimumY   * Edge));
+    std::int64_t LastTexelX   = static_cast<std::int64_t>(std::ceil (MaximumX  * Edge));
+    std::int64_t LastTexelY  = static_cast<std::int64_t>(std::ceil (MaximumY * Edge));
 
-    FirstTexelAlong  = FirstTexelAlong  < 0 ? 0 : FirstTexelAlong;
-    FirstTexelAcross = FirstTexelAcross < 0 ? 0 : FirstTexelAcross;
-    LastTexelAlong   = LastTexelAlong   > static_cast<std::int64_t>(WorkingExtent)
-                     ? static_cast<std::int64_t>(WorkingExtent) : LastTexelAlong;
-    LastTexelAcross  = LastTexelAcross  > static_cast<std::int64_t>(WorkingExtent)
-                     ? static_cast<std::int64_t>(WorkingExtent) : LastTexelAcross;
+    FirstTexelX  = FirstTexelX  < 0 ? 0 : FirstTexelX;
+    FirstTexelY = FirstTexelY < 0 ? 0 : FirstTexelY;
+    LastTexelX   = LastTexelX   > static_cast<std::int64_t>(WorkingExtent)
+                     ? static_cast<std::int64_t>(WorkingExtent) : LastTexelX;
+    LastTexelY  = LastTexelY  > static_cast<std::int64_t>(WorkingExtent)
+                     ? static_cast<std::int64_t>(WorkingExtent) : LastTexelY;
 
     const double Reciprocal = Extent > 0.0 ? 1.0 / Extent : 0.0;
 
-    for (std::int64_t Across = FirstTexelAcross; Across < LastTexelAcross; ++Across)
+    for (std::int64_t Y = FirstTexelY; Y < LastTexelY; ++Y)
     {
-        const double CentreAcross = (static_cast<double>(Across) + 0.5) / Edge;
-        const double SpanAcross   = (CentreAcross - Impressing.PositionAcross) * Reciprocal;
+        const double CentreY = (static_cast<double>(Y) + 0.5) / Edge;
+        const double Height   = (CentreY - Impressing.PositionY) * Reciprocal;
 
-        if (SpanAcross <= -1.0 || SpanAcross >= 1.0)
+        if (Height <= -1.0 || Height >= 1.0)
             continue;
 
-        for (std::int64_t Along = FirstTexelAlong; Along < LastTexelAlong; ++Along)
+        for (std::int64_t X = FirstTexelX; X < LastTexelX; ++X)
         {
-            const double CentreAlong = (static_cast<double>(Along) + 0.5) / Edge;
-            const double SpanAlong   = (CentreAlong - Impressing.PositionAlong) * Reciprocal;
+            const double CentreX = (static_cast<double>(X) + 0.5) / Edge;
+            const double Width   = (CentreX - Impressing.PositionX) * Reciprocal;
 
-            const double RadiusSquared = SpanAlong * SpanAlong + SpanAcross * SpanAcross;
+            const double RadiusSquared = Width * Width + Height * Height;
 
             if (RadiusSquared >= 1.0)
                 continue;
@@ -481,20 +481,20 @@ Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
             if (Coverage <= 0.0)
                 continue;
 
-            const std::uint32_t CellAlong  = static_cast<std::uint32_t>(Along)  / CoverageTileTexels;
-            const std::uint32_t CellAcross = static_cast<std::uint32_t>(Across) / CoverageTileTexels;
+            const std::uint32_t CellX  = static_cast<std::uint32_t>(X)  / CoverageTileTexels;
+            const std::uint32_t CellY = static_cast<std::uint32_t>(Y) / CoverageTileTexels;
 
             CellAddress Addressed;
             Addressed.Level  = Level;
-            Addressed.Along  = CellAlong;
-            Addressed.Across = CellAcross;
+            Addressed.X  = CellX;
+            Addressed.Y = CellY;
 
             const Outcome<std::uint32_t> CellOrdinal = OrdinalOf(Addressed);
 
             if (!CellOrdinal.Resolved)
                 continue;
 
-            const Outcome<std::uint32_t> TileOrdinal = Accumulated.Claim(CellOrdinal.Resolve());
+            const Outcome<std::uint32_t> TileOrdinal = Accumulated.Reserve(CellOrdinal.Resolve());
 
             if (!TileOrdinal.Resolved)
                 return Outcome<bool>::Refuse(TileOrdinal.Error);
@@ -505,11 +505,11 @@ Outcome<bool> ImpressionSequence::ResolveOne(ImpressionSample& Impressing,
             // ⚠️ A speculative extent never declares it — `22` §4.1. A brush preview that pinned every tile the
             //    cursor passed over would exhaust residency while the artist painted nothing.
             if (!Declared.Speculative)
-                Disregard(Residency.DeclareUncommitted(CellOrdinal.Resolve(), true));
+                Discard(Residency.DeclareUncommitted(CellOrdinal.Resolve(), true));
 
             Accumulated.Accumulate(TileOrdinal.Resolve(),
-                                   static_cast<std::uint32_t>(Along)  % CoverageTileTexels,
-                                   static_cast<std::uint32_t>(Across) % CoverageTileTexels,
+                                   static_cast<std::uint32_t>(X)  % CoverageTileTexels,
+                                   static_cast<std::uint32_t>(Y) % CoverageTileTexels,
                                    Coverage);
         }
     }
@@ -568,7 +568,7 @@ void ImpressionSequence::Abandon(SurfaceTileSpace& Residency)
     if (!Declared.Speculative)
     {
         for (const std::uint32_t CellOrdinal : Accumulated.TouchedCells())
-            Disregard(Residency.DeclareUncommitted(CellOrdinal, false));
+            Discard(Residency.DeclareUncommitted(CellOrdinal, false));
     }
 
     Accumulated.Reclaim();
@@ -662,18 +662,18 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
         if (!Addressed.Resolved || !TileOrdinal.Resolved)
             continue;
 
-        const std::uint32_t OriginAlong  = Addressed.Resolve().Along  * CoverageTileTexels;
-        const std::uint32_t OriginAcross = Addressed.Resolve().Across * CoverageTileTexels;
+        const std::uint32_t OriginX  = Addressed.Resolve().X  * CoverageTileTexels;
+        const std::uint32_t OriginY = Addressed.Resolve().Y * CoverageTileTexels;
 
-        for (std::uint32_t Across = 0u; Across < CoverageTileTexels; ++Across)
+        for (std::uint32_t Y = 0u; Y < CoverageTileTexels; ++Y)
         {
-            for (std::uint32_t Along = 0u; Along < CoverageTileTexels; ++Along)
+            for (std::uint32_t X = 0u; X < CoverageTileTexels; ++X)
             {
-                const std::size_t Reading = (static_cast<std::size_t>(OriginAcross + Across) * Painted.ExtentTexels
-                                           + (OriginAlong + Along)) * Stride;
+                const std::size_t Reading = (static_cast<std::size_t>(OriginY + Y) * Painted.ExtentTexels
+                                           + (OriginX + X)) * Stride;
 
                 const std::size_t Writing = ((Passed * TileTexels)
-                                           + static_cast<std::size_t>(Across) * CoverageTileTexels + Along) * Stride;
+                                           + static_cast<std::size_t>(Y) * CoverageTileTexels + X) * Stride;
 
                 // 📝 The prior tile is recorded whole, before anything is written into it. Recording only the
                 //    covered texels would need a mask, and at any realistic coverage the mask costs more than
@@ -681,7 +681,7 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
                 for (std::size_t Component = 0u; Component < Stride; ++Component)
                     Sealing.PriorTexels[Writing + Component] = Painted.Texels[Reading + Component];
 
-                const double Coverage = Accumulated.Coverage(TileOrdinal.Resolve(), Along, Across);
+                const double Coverage = Accumulated.Coverage(TileOrdinal.Resolve(), X, Y);
 
                 if (Coverage <= 0.0)
                     continue;
@@ -698,7 +698,7 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
 
                         if (Writing_.ColourDeclared)
                         {
-                            const double Arriving[3] =
+                            const double Incoming[3] =
                             {
                                 Writing_.ColourValue.RedCoordinate,
                                 Writing_.ColourValue.GreenCoordinate,
@@ -712,7 +712,7 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
                                 Painted.Texels[Slot] = static_cast<float>(
                                     CombineValue(Combination,
                                                  static_cast<double>(Painted.Texels[Slot]),
-                                                 Arriving[Component],
+                                                 Incoming[Component],
                                                  Coverage));
                             }
                         }
@@ -733,10 +733,10 @@ Outcome<SealedStroke> ImpressionSequence::Seal(SurfaceLayerSequence& Content,
             }
         }
 
-        // 🔴 Withdrawn here rather than after the transaction seals. `20` §5: at this point the paint is in `56`
+        // 🔴 Cancelled here rather than after the transaction seals. `20` §5: at this point the paint is in `56`
         //    and the tile is a projection of it again, so the tile is evictable and re-resolvable — holding the
         //    gate open past the write would pin tiles for a stroke that has already committed.
-        Disregard(Residency.DeclareUncommitted(CellOrdinal, false));
+        Discard(Residency.DeclareUncommitted(CellOrdinal, false));
     }
 
     const Outcome<bool> Committed = Revised.Seal(SealedAt, false);
@@ -791,18 +791,18 @@ Outcome<bool> Restore(const SealedStroke& Sealed, SurfaceLayerSequence& Content)
                 { RefusalReason::ContentUnsupported, "a recorded cell does not address the recorded level" });
         }
 
-        const std::uint32_t OriginAlong  = Addressed.Resolve().Along  * CoverageTileTexels;
-        const std::uint32_t OriginAcross = Addressed.Resolve().Across * CoverageTileTexels;
+        const std::uint32_t OriginX  = Addressed.Resolve().X  * CoverageTileTexels;
+        const std::uint32_t OriginY = Addressed.Resolve().Y * CoverageTileTexels;
 
-        for (std::uint32_t Across = 0u; Across < CoverageTileTexels; ++Across)
+        for (std::uint32_t Y = 0u; Y < CoverageTileTexels; ++Y)
         {
-            for (std::uint32_t Along = 0u; Along < CoverageTileTexels; ++Along)
+            for (std::uint32_t X = 0u; X < CoverageTileTexels; ++X)
             {
-                const std::size_t Writing = (static_cast<std::size_t>(OriginAcross + Across) * WorkingExtent
-                                           + (OriginAlong + Along)) * Stride;
+                const std::size_t Writing = (static_cast<std::size_t>(OriginY + Y) * WorkingExtent
+                                           + (OriginX + X)) * Stride;
 
                 const std::size_t Reading = ((Passed * TileTexels)
-                                           + static_cast<std::size_t>(Across) * CoverageTileTexels + Along) * Stride;
+                                           + static_cast<std::size_t>(Y) * CoverageTileTexels + X) * Stride;
 
                 for (std::size_t Component = 0u; Component < Stride; ++Component)
                     Painted.Texels[Writing + Component] = Sealed.PriorTexels[Reading + Component];

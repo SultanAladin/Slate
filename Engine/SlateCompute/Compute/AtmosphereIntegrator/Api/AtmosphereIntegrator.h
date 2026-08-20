@@ -105,15 +105,15 @@ class ResidentSurface
 {
 public:
 
-    /// 🧩 Claims the surface at a declared extent, every texel zero.
-    /// in    WrapAlongDeclared  [-]  the first axis is periodic and its filter wraps rather than clamps
+    /// 🧩 Reservations the surface at a declared extent, every texel zero.
+    /// in    WrapXDeclared  [-]  the first axis is periodic and its filter wraps rather than clamps
     /// out   Result  [-]  refuses with ContentUnsupported for a zero extent on either axis
     /// note  🔴 Wrapping is declared per surface because only ③'s azimuth is periodic. ①'s and ②'s axes are
     ///        altitude and sun zenith, both genuinely bounded — a wrapped sample at ③'s zenith would read the
     ///        horizon while standing at the pole, which appears as a bright ring directly overhead.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross, bool WrapAlongDeclared);
+    Outcome<bool> Construct(std::uint32_t Width, std::uint32_t Height, bool WrapXDeclared);
 
     /// 🧩 Writes one texel's three components; the fourth is written as unity.
     /// note  📝 The fourth component is claimed and unused. `08` §2 declares the format RGBA16F and a
@@ -121,17 +121,17 @@ public:
     ///        one-queue, explicit-descriptor spine has no appetite for.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Write(std::uint32_t Along, std::uint32_t Across, double Red, double Green, double Blue);
+    void Write(std::uint32_t X, std::uint32_t Y, double Red, double Green, double Blue);
 
     /// 🧩 Samples the surface bilinearly at a declared coordinate; the axis declared periodic wraps, the other clamps.
-    /// in    CoordinateAlong   [-]  the closed unit interval; outside it the sample clamps, or wraps where constructed
-    /// in    CoordinateAcross  [-]  likewise
-    /// note  🔴 Wrapping is declared per surface by `Construct`'s `WrapAlongDeclared`, and only ③'s azimuth is
+    /// in    CoordinateX   [-]  the closed unit interval; outside it the sample clamps, or wraps where constructed
+    /// in    CoordinateY  [-]  likewise
+    /// note  🔴 Wrapping is declared per surface by `Construct`'s `WrapXDeclared`, and only ③'s azimuth is
     ///        periodic. The zenith axis genuinely ends at the zenith, and a wrapped sample there reads the horizon —
     ///        which appears as a bright ring directly overhead.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    void Sample(double CoordinateAlong, double CoordinateAcross, double& Red, double& Green, double& Blue) const;
+    void Sample(double CoordinateX, double CoordinateY, double& Red, double& Green, double& Blue) const;
 
     /// 🧩 The encoded texels, for whoever uploads them.
     /// cost  ✔️
@@ -143,16 +143,16 @@ public:
     /// tag   api, nonallocating, nonthrowing
     std::uint64_t ResidentBytes() const;
 
-    std::uint32_t ExtentAlong() const;
-    std::uint32_t ExtentAcross() const;
+    std::uint32_t Width() const;
+    std::uint32_t Height() const;
     bool          SurfaceConstructed() const;
 
 private:
 
     std::vector<std::uint16_t>  Encoded;              // [-] - four components per texel, half precision
-    std::uint32_t               SpannedAlong  = 0u;   // [px]
-    std::uint32_t               SpannedAcross = 0u;   // [px]
-    bool                        WrapAlong     = false; // [-] - the first axis filters periodically
+    std::uint32_t               SpannedX  = 0u;   // [px]
+    std::uint32_t               SpannedY = 0u;   // [px]
+    bool                        WrapX     = false; // [-] - the first axis filters periodically
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -174,7 +174,7 @@ struct IrradianceProjection
 {
     double  Coefficient[9][3] = {};   // [-] - nine harmonics, three components, cosine-convolved
 
-    /// 🧩 Evaluates the irradiance arriving at a surface of a declared orientation.
+    /// 🧩 Evaluates the irradiance incoming at a surface of a declared orientation.
     /// in    DirectionX  [-]  the surface's outward orientation, unit length
     /// in    DirectionY  [-]
     /// in    DirectionZ  [-]
@@ -194,10 +194,10 @@ struct IrradianceProjection
 
 /// 🧩 The three resident surfaces, their construction order, and the conditions each rebuilds on.
 /// note  🔴 `28` §2: strictly ordered ① ② ③, and each surface reads only the surfaces before it. Constructing ③
-///        against a ① that does not stand is refused rather than performed against zeros — a sky-view surface
+///        against a ① that does not stand is rejected rather than performed against zeros — a sky-view surface
 ///        built against an absent transmittance is uniformly black and reads as a device failure.
 /// note  🔴 The sun direction is **supplied**, not read from `44`. `44` §8 gates that exactly one illuminant is
-///        enrolled as the atmospheric source and that `28` reads it; the requester resolves that enrolment on the
+///        registered as the atmospheric source and that `28` reads it; the requester resolves that registration on the
 ///        tick and hands the direction over. Declaring the edge instead would put `44` in this document's
 ///        Upstream and move `28` from `00` §9.1's stratum 4 to stratum 5, and `00` §11 gates that a declared edge
 ///        is a real read — so the choice is between a false edge and a supplied parameter.
@@ -222,8 +222,8 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> DeclareMedium(const MediumSpecification& Declaring);
 
-    /// 🧩 Declares the direction toward the atmospheric source, as `44`'s enrolled illuminant reports it.
-    /// in    DirectionX  [-]  toward the sun; normalised here, so an unnormalised direction is admitted
+    /// 🧩 Declares the direction toward the atmospheric source, as `44`'s registered illuminant reports it.
+    /// in    DirectionX  [-]  toward the sun; normalised here, so an unnormalised direction is accepted
     /// in    DirectionY  [-]  the local zenith is the second axis, matching `46`'s upward convention
     /// in    DirectionZ  [-]
     /// out   Result     [-]  refuses with ContentUnsupported for a direction of no length
@@ -331,7 +331,7 @@ public:
     std::uint64_t ResidentBytes() const;
 
     /// 🧩 How many times each surface has been rebuilt this session.
-    /// note  📝 Presented so that `28` §4's "almost never" and "occasionally" are measurable rather than hoped
+    /// note  📝 Current so that `28` §4's "almost never" and "occasionally" are measurable rather than hoped
     ///        for. A transmittance count that tracks the rotation count is the defect §4 exists to prevent.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing

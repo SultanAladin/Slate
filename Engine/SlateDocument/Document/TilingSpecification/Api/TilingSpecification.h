@@ -30,19 +30,19 @@ namespace Slate
 /// tag   nonallocating, nonthrowing
 struct LatticeSpecification
 {
-    double         CellExtentAlong         = 0.1;     // [-] - the repeating unit, in domain units
-    double         CellExtentAcross        = 0.1;     // [-] - likewise
-    double         OffsetProgressionAlong  = 0.0;     // [-] - row-to-row displacement, as a fraction of a cell
-    double         OffsetProgressionAcross = 0.0;     // [-] - column-to-column; never declared beside the above
-    double         SkewAlong               = 0.0;     // [-] - shear for a diagonal repeat
-    double         SkewAcross              = 0.0;     // [-] - likewise
-    std::uint32_t  ReflectionMask          = 0u;      // [-] - SlateReflectAlong and SlateReflectAcross, composed
+    double         CellExtentX         = 0.1;     // [-] - the repeating unit, in domain units
+    double         CellExtentY        = 0.1;     // [-] - likewise
+    double         OffsetProgressionX  = 0.0;     // [-] - row-to-row displacement, as a fraction of a cell
+    double         OffsetProgressionY = 0.0;     // [-] - column-to-column; never declared beside the above
+    double         SkewX               = 0.0;     // [-] - shear for a diagonal repeat
+    double         SkewY              = 0.0;     // [-] - likewise
+    std::uint32_t  ReflectionMask          = 0u;      // [-] - SlateReflectX and SlateReflectY, composed
     std::uint32_t  RotationIncrement       = 0u;      // [-] - quarter turns per step of the cell schedule
 
     /// 🧩 Whether the lattice can be classified at all.
     /// out   Result  [-]  refuses with ContentUnsupported for a non-positive extent, for an extent finer than
     ///                     one texel of the maximum working extent, and for both offset progressions at once
-    /// note  🔴 Both progressions together are refused rather than resolved in a declared order. A row
+    /// note  🔴 Both progressions together are rejected rather than resolved in a declared order. A row
     ///        displacement depending on the column and a column displacement depending on the row have no
     ///        consistent inverse, and a lattice that cannot be inverted cannot be sampled — which is exactly
     ///        what `70` does at every promotion.
@@ -77,8 +77,8 @@ struct CellContent
 {
     CellContentSource     Source           = CellContentSource::DeclaredColour;
     std::uint32_t         SourceOrdinal    = 0u;                             // [-] - into `52`, `50` or the index below
-    double                PlacedAlong      = 0.0;                            // [-] - within the cell's unit square
-    double                PlacedAcross     = 0.0;                            // [-]
+    double                PlacedX      = 0.0;                            // [-] - within the cell's unit square
+    double                PlacedY     = 0.0;                            // [-]
     double                PlacedScale      = 1.0;                            // [-] - strictly positive
     double                PlacedRotation   = 0.0;                            // [deg]
     ColourSpecification   DeclaredColour   = {};                             // [-] - read at DeclaredColour
@@ -124,10 +124,10 @@ struct VariationSpecification
 /// tag   nonallocating, nonthrowing
 struct ClassifiedCell
 {
-    std::int32_t   CellAlong        = 0;     // [-] - the cell ordinal along, signed
-    std::int32_t   CellAcross       = 0;     // [-] - the cell ordinal across, signed
-    double         WithinAlong      = 0.0;   // [-] - after the declared reflections and turns
-    double         WithinAcross     = 0.0;   // [-] - likewise
+    std::int32_t   CellX        = 0;     // [-] - the cell ordinal along, signed
+    std::int32_t   CellY       = 0;     // [-] - the cell ordinal across, signed
+    double         WithinX      = 0.0;   // [-] - after the declared reflections and turns
+    double         WithinY     = 0.0;   // [-] - likewise
     std::uint32_t  VariationOrdinal = 0u;    // [-] - below the declared span; zero when Uniform
     double         VariationScale   = 1.0;   // [-] - within the declared interval
 };
@@ -169,22 +169,22 @@ public:
     Outcome<bool> DeclareVariation(const VariationSpecification& Declaring);
 
     /// 🧩 Declares this tiling as nested inside another, which bars it from nesting one itself.
-    /// note  Recorded here rather than checked by the holder, so that a tiling admitted into a cell can refuse a
-    ///        nested element afterwards rather than only at the moment it is admitted.
+    /// note  Recorded here rather than checked by the holder, so that a tiling accepted into a cell can refuse a
+    ///        nested element afterwards rather than only at the moment it is accepted.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void DeclareNestingDepth(std::uint32_t Depth);
 
     /// 🧩 Classifies one domain position into its cell.
-    /// in    PositionAlong   [-]  the domain's first axis
-    /// in    PositionAcross  [-]  its second
+    /// in    PositionX   [-]  the domain's first axis
+    /// in    PositionY  [-]  its second
     /// out   Result         [-]  refuses with ContentUnsupported while no valid lattice is declared
     /// note  🔴 Classification goes through `02` §5's `LatticeProjection` in `Shared/`, at Tier A, and never
     ///        through arithmetic written here. `54` §5's gate is that the host and the device agree about which
     ///        cell a position falls in, and two implementations of one boundary are two that will disagree.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<ClassifiedCell> Classify(double PositionAlong, double PositionAcross) const;
+    Outcome<ClassifiedCell> Classify(double PositionX, double PositionY) const;
 
     const LatticeSpecification&     Lattice() const;
     const std::vector<CellContent>& Content() const;
@@ -215,7 +215,7 @@ private:
 
 /// 🧩 Every declared tiling in the document, addressed by ordinal, with the nesting bound enforced across them.
 /// note  🔴 The bound is enforced **here** rather than inside a tiling, because a tiling cannot see what it has
-///        been nested inside. Admitting a nested reference is where the depth is known, so it is where the
+///        been nested inside. Accepting a nested reference is where the depth is known, so it is where the
 ///        refusal belongs.
 /// tag   owning
 class TilingIndex

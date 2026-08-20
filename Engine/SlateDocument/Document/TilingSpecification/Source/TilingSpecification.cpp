@@ -16,23 +16,23 @@ namespace Slate
 
 Outcome<bool> LatticeSpecification::Validate() const
 {
-    if (CellExtentAlong <= 0.0 || CellExtentAcross <= 0.0)
+    if (CellExtentX <= 0.0 || CellExtentY <= 0.0)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a cell of no extent repeats nothing" });
 
     // 📝 A cell finer than one texel of the maximum working extent can never be resolved distinctly at any level
-    //    `20` will promote, so it is refused where it is declared rather than discovered as a grey smear.
+    //    `20` will promote, so it is rejected where it is declared rather than discovered as a grey smear.
     const double FinestExtent = 1.0 / static_cast<double>(MaximumWorkingEdge);
 
-    if (CellExtentAlong < FinestExtent || CellExtentAcross < FinestExtent)
+    if (CellExtentX < FinestExtent || CellExtentY < FinestExtent)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a cell finer than one texel of the maximum working extent" });
     }
 
-    // 🔴 `54` §2: the two progressions have no consistent inverse together. Refused rather than resolved in some
+    // 🔴 `54` §2: the two progressions have no consistent inverse together. Rejected rather than resolved in some
     //    declared order, because whichever order was chosen would be invisible in the declaration and decisive
     //    in the result.
-    if (OffsetProgressionAlong != 0.0 && OffsetProgressionAcross != 0.0)
+    if (OffsetProgressionX != 0.0 && OffsetProgressionY != 0.0)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "two offset progressions at once cannot be inverted" });
@@ -40,7 +40,7 @@ Outcome<bool> LatticeSpecification::Validate() const
 
     // 📐 A skew product reaching unity collapses the lattice onto a line, and the unskewing above then divides
     //    by a vanishing determinant.
-    if (SkewAlong * SkewAcross >= 1.0 || SkewAlong * SkewAcross <= -1.0)
+    if (SkewX * SkewY >= 1.0 || SkewX * SkewY <= -1.0)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the declared skew collapses the lattice" });
 
     return Outcome<bool>::Result(true);
@@ -97,47 +97,47 @@ Outcome<bool> TilingSpecification::DeclareVariation(const VariationSpecification
     return Outcome<bool>::Result(true);
 }
 
-void TilingSpecification::DeclareNestingDepth(std::uint32_t ArrivingDepth)
+void TilingSpecification::DeclareNestingDepth(std::uint32_t IncomingDepth)
 {
-    Depth = ArrivingDepth;
+    Depth = IncomingDepth;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE CLASSIFICATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ClassifiedCell> TilingSpecification::Classify(double PositionAlong, double PositionAcross) const
+Outcome<ClassifiedCell> TilingSpecification::Classify(double PositionX, double PositionY) const
 {
     if (!LatticeHeld)
         return Outcome<ClassifiedCell>::Refuse({ RefusalReason::ContentUnsupported, "no lattice is declared" });
 
     ClassifiedCell Classified;
 
-    std::int32_t CellAlong    = 0;
-    std::int32_t CellAcross   = 0;
-    double       WithinAlong  = 0.0;
-    double       WithinAcross = 0.0;
+    std::int32_t CellX    = 0;
+    std::int32_t CellY   = 0;
+    double       WithinX  = 0.0;
+    double       WithinY = 0.0;
 
-    ClassifyLatticeCell(PositionAlong,                    PositionAcross,
-                        DeclaredLattice.CellExtentAlong,  DeclaredLattice.CellExtentAcross,
-                        DeclaredLattice.OffsetProgressionAlong,
-                        DeclaredLattice.OffsetProgressionAcross,
-                        DeclaredLattice.SkewAlong,        DeclaredLattice.SkewAcross,
-                        CellAlong, CellAcross, WithinAlong, WithinAcross);
+    ClassifyLatticeCell(PositionX,                    PositionY,
+                        DeclaredLattice.CellExtentX,  DeclaredLattice.CellExtentY,
+                        DeclaredLattice.OffsetProgressionX,
+                        DeclaredLattice.OffsetProgressionY,
+                        DeclaredLattice.SkewX,        DeclaredLattice.SkewY,
+                        CellX, CellY, WithinX, WithinY);
 
-    ProjectWithinCell(CellAlong, CellAcross, WithinAlong, WithinAcross,
+    ProjectWithinCell(CellX, CellY, WithinX, WithinY,
                       DeclaredLattice.ReflectionMask, DeclaredLattice.RotationIncrement,
-                      Classified.WithinAlong, Classified.WithinAcross);
+                      Classified.WithinX, Classified.WithinY);
 
-    Classified.CellAlong  = CellAlong;
-    Classified.CellAcross = CellAcross;
+    Classified.CellX  = CellX;
+    Classified.CellY = CellY;
 
     // 🔴 The variation is a **function of the cell ordinal** and of nothing else. That is what makes it survive a
     //    reopen, agree between a coarse level and the finer one that replaces it, and agree between `82`'s host
     //    preview and `70`'s device resolution — `54` §1.
     if (DeclaredVariation.Declared == VariationSubject::Permuted)
     {
-        const std::uint32_t Folded = FoldedCellOrdinal(CellAlong, CellAcross);
+        const std::uint32_t Folded = FoldedCellOrdinal(CellX, CellY);
 
         Classified.VariationOrdinal =
             ProjectPermutedOrdinal(Folded, DeclaredVariation.PatternSeed) % DeclaredVariation.DeclaredSpan;
@@ -154,9 +154,9 @@ Outcome<ClassifiedCell> TilingSpecification::Classify(double PositionAlong, doub
     {
         // 📝 A progression is indexed by position rather than permuted, so a gradient across a bolt of cloth is
         //    expressible without a permutation pretending to be one.
-        const double Fraction = ProjectVariation(FoldedCellOrdinal(CellAlong, 0), DeclaredVariation.PatternSeed);
+        const double Fraction = ProjectVariation(FoldedCellOrdinal(CellX, 0), DeclaredVariation.PatternSeed);
 
-        Classified.VariationOrdinal = static_cast<std::uint32_t>(CellAlong + CellAcross);
+        Classified.VariationOrdinal = static_cast<std::uint32_t>(CellX + CellY);
         Classified.VariationScale   = DeclaredVariation.LowerScale
                                     + (DeclaredVariation.UpperScale - DeclaredVariation.LowerScale) * Fraction;
     }
@@ -214,9 +214,9 @@ Outcome<bool> TilingIndex::Nest(std::uint32_t EnclosingOrdinal, std::uint32_t Ne
     if (EnclosingOrdinal == NestedOrdinal)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a tiling cannot nest itself" });
 
-    const std::uint32_t Arriving = Declared[EnclosingOrdinal].NestingDepth() + 1u;
+    const std::uint32_t Incoming = Declared[EnclosingOrdinal].NestingDepth() + 1u;
 
-    if (Arriving > TilingNestingCeiling)
+    if (Incoming > TilingNestingCeiling)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "nesting is bounded at one level — `54` §3" });
@@ -233,7 +233,7 @@ Outcome<bool> TilingIndex::Nest(std::uint32_t EnclosingOrdinal, std::uint32_t Ne
         }
     }
 
-    Declared[NestedOrdinal].DeclareNestingDepth(Arriving);
+    Declared[NestedOrdinal].DeclareNestingDepth(Incoming);
 
     return Outcome<bool>::Result(true);
 }

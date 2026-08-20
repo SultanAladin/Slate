@@ -25,12 +25,12 @@ namespace Slate
 //                                                    THE THREE BEHAVIOURS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Which of `62` §2's three rows an occupant's material takes.
+/// 🧩 Which of `62` §2's three rows an owner's material takes.
 /// note  🔴 Cutout is **not** transmission and is resolved at `16`, at visibility time — `62` §2. Conflating the
 ///        two is the defect that makes foliage cost what glass costs: a leaf card is opaque with a hole in it,
 ///        and resolving it as transparent puts every leaf into the sorted column below, so a tree becomes the
 ///        most expensive object in the workspace for no visual gain whatever.
-/// note  🔴 Because a cutout occupant writes `VisibilityIndex`, it is shaded by `18`, outlined by `26`, picked by
+/// note  🔴 Because a cutout owner writes `VisibilityIndex`, it is shaded by `18`, outlined by `26`, picked by
 ///        `74` and occluded by `60` with no special case in any of them. That is the whole reason the
 ///        classification lives at `16` rather than here.
 /// tag   contract
@@ -46,7 +46,7 @@ enum class TransmissionBehaviour : std::uint32_t
 /// in    Declared   [-]  the material
 /// out   Behaviour  [-]  derived from the declaration; never authored beside it
 /// note  🔴 Derived rather than declared as a fourth property. A behaviour declared separately is a second
-///        answer to a question the reflectance selection and the cutout enrolment already answer, and the two
+///        answer to a question the reflectance selection and the cutout registration already answer, and the two
 ///        disagree the moment an artist switches a material from transmissive to standard.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
@@ -96,7 +96,7 @@ struct TransmissionColumn
 //                                                   WHAT ONE FRAGMENT IS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 What a transmissive occupant declares, read from `42` and added to by nothing.
+/// 🧩 What a transmissive owner declares, read from `42` and added to by nothing.
 /// note  🔴 `62` §4: this document **adds no channel**. Every field below is one of `18` §2's twenty, read
 ///        unamended, and the reflectance selection that consumes them is `18` §3's Transmissive.
 /// tag   nonallocating, nonthrowing
@@ -124,13 +124,13 @@ TransmissionSpecification DeclaredTransmission(const ResolvedChannelSet& Resolve
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What `62` reports through `86`.
-/// note  🔴 The truncation **appends** and every count **overwrites** — `86` §2. A per-slot occupant count
+/// note  🔴 The truncation **appends** and every count **overwrites** — `86` §2. A per-slot owner count
 ///        appended once per rotation would bury the one truncation the artist did not expect.
 /// tag   nonallocating, nonthrowing
 struct TransmissionMetrics
 {
-    std::uint32_t  OccupantCount        = 0u;   // [-] - transmissive occupants collected this rotation
-    std::uint32_t  GreatestColumnDepth  = 0u;   // [-] - the deepest column any pixel reached
+    std::uint32_t  OwnerCount        = 0u;   // [-] - transmissive owners collected this rotation
+    std::uint32_t  MaximumColumnDepth  = 0u;   // [-] - the deepest column any pixel reached
     std::uint32_t  TruncatedThisRecording = 0u;  // [-] - fragments the ceiling turned away this rotation
     std::uint64_t  TruncatedTotal       = 0u;   // [-] - across the session
 };
@@ -141,11 +141,11 @@ struct TransmissionMetrics
 
 /// 🧩 `62` — the two recordings, the sorted collection, and the back-to-front amendment of `RadianceSurface`.
 /// note  🔴 `62` §6: **nothing here writes** `VisibilityIndex`, `DepthSurface` or `OccupancySurface`. A
-///        transmissive occupant that wrote depth would occlude what is behind it in `16`, and the surface it
+///        transmissive owner that wrote depth would occlude what is behind it in `16`, and the surface it
 ///        exists to reveal would never be shaded at all.
-/// note  🔴 A transmissive occupant casts **no** occlusion and a cutout occupant does — `62` §5. The asymmetry
-///        is deliberate: `60` §3's projections resolve topology, so a transmissive occupant enrolled in one
-///        would cast the shadow of a solid object, while a cutout occupant is topology with a coverage test and
+/// note  🔴 A transmissive owner casts **no** occlusion and a cutout owner does — `62` §5. The asymmetry
+///        is deliberate: `60` §3's projections resolve topology, so a transmissive owner registered in one
+///        would cast the shadow of a solid object, while a cutout owner is topology with a coverage test and
 ///        casts correctly with no special case at all.
 /// note  ⚠️ 🚧 Ordering between this and `30` is `08` §2's amendment list. `RenderSchedule` orders by declared
 ///        reads and writes and does not yet order two amenders of one target, so both declare an amendment
@@ -161,7 +161,7 @@ public:
     static constexpr std::uint32_t ResolveAmendmentOrdinal = 20u;   // [-] - ⑤·ii amends `RadianceSurface`
 
     /// 🧩 Contributes ⑤·i — the collection that writes `TransmissionIndex` and no depth.
-    /// out   Result  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule rejected
     /// note  🔴 Produces `TransmissionIndex` and amends nothing. Every fragment is inserted with an atomic
     ///        sorted insertion, so no depth write is performed and the opaque resolution `16` produced stands
     ///        untouched.
@@ -170,16 +170,16 @@ public:
     Outcome<bool> ContributeCollection(RenderSchedule& Schedule) const;
 
     /// 🧩 Contributes ⑤·ii — the resolution that amends `RadianceSurface` back to front.
-    /// out   Result  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule rejected
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> ContributeResolution(RenderSchedule& Schedule) const;
 
     /// 🧩 Inserts one fragment into one pixel's column, in depth order.
     /// in    Column        [-]  the column, amended in place
-    /// in    Arriving      [-]  the fragment
+    /// in    Incoming      [-]  the fragment
     /// in    OpaqueDepth   [-]  `16`'s resolved depth at this pixel, reversed
-    /// out   Admitted      [-]  false where the fragment was discarded
+    /// out   Accepted      [-]  false where the fragment was discarded
     /// note  🔴 A transmissive surface **behind the opaque depth is discarded** — `62` §3. It is not visible,
     ///        and resolving it would amend a pixel it does not reach.
     /// note  📝 The host form of the device's atomic sorted insertion, and the same ordering. `82` §5 resolves a
@@ -187,7 +187,7 @@ public:
     ///        `Shared/` rather than here.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Insert(TransmissionColumn& Column, const TransmissionFragment& Arriving, double OpaqueDepth) const;
+    bool Insert(TransmissionColumn& Column, const TransmissionFragment& Incoming, double OpaqueDepth) const;
 
     /// 🧩 Amends one pixel's standing radiance by one fragment.
     /// in    Behind    [-]  what stands behind the fragment, in the working space
@@ -213,7 +213,7 @@ public:
     /// in    Declared  [-]  one specification per held fragment, parallel to the column
     /// in    Shaded    [-]  one shaded radiance per held fragment, parallel to the column
     /// in    ViewCosine[-]  one per held fragment
-    /// in    Standing  [-]  what `18` left in `RadianceSurface`, amended in place
+    /// in    Current  [-]  what `18` left in `RadianceSurface`, amended in place
     /// note  🔴 Walked from the **last** held entry to the first, which is far to near — the column is stored
     ///        nearest first and read in reverse. Reading it forward composites the near pane under the far one,
     ///        which reads as two sheets of glass in the wrong order and is not visibly an ordering defect.
@@ -223,13 +223,13 @@ public:
                  const std::vector<TransmissionSpecification>&   Declared,
                  const std::vector<std::array<double, 3>>&       Shaded,
                  const std::vector<double>&                      ViewCosine,
-                 double                                          Standing[3]) const;
+                 double                                          Current[3]) const;
 
     /// 🧩 Records what one rotation's collection cost, for `86`.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void DeclareRotation(std::uint32_t OccupantCount,
-                         std::uint32_t GreatestColumnDepth,
+    void DeclareRotation(std::uint32_t OwnerCount,
+                         std::uint32_t MaximumColumnDepth,
                          std::uint32_t TruncatedThisRecording);
 
     /// 🧩 Appends `62` §3.1's truncation and declares every measure beside it.
@@ -247,7 +247,7 @@ private:
     TransmissionMetrics  Reported = {};   // [-] - what `86` presents
 };
 
-// 📐 Occupant identity, the depth ordering and the packed slot are Exact; the Fresnel term and the amendment are
+// 📐 Owner identity, the depth ordering and the packed slot are Exact; the Fresnel term and the amendment are
 //    Bounded, and the accumulation is Perceptual because `RadianceSurface` is Tier D — `62` §7. `00` §3's
 //    transitivity rule folds them to the weakest.
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Perceptual,

@@ -39,7 +39,7 @@ public:
 
     explicit ClipboardHolder(std::uint32_t AttemptCeiling)
     {
-        // 📝 Retried rather than refused on the first denial. Another process holds the clipboard for the length
+        // 📝 Retried rather than rejected on the first denial. Another process holds the clipboard for the length
         //    of its own read, and the artist pressing paste while a browser is still closing it is the ordinary
         //    case — a single attempt reports a failure the artist resolves by pressing paste again.
         for (std::uint32_t Attempt = 0u; Attempt < AttemptCeiling; ++Attempt)
@@ -135,7 +135,7 @@ Outcome<std::string> ClipboardExchange::ReadText()
     const HANDLE Carried = GetClipboardData(CF_UNICODETEXT);
 
     if (Carried == nullptr)
-        return Outcome<std::string>::Refuse({ RefusalReason::HostDenied, "the clipboard declined to report its text" });
+        return Outcome<std::string>::Refuse({ RefusalReason::HostDenied, "the clipboard failed to report its text" });
 
     const wchar_t* Reading = static_cast<const wchar_t*>(GlobalLock(Carried));
 
@@ -168,7 +168,7 @@ Outcome<bool> ClipboardExchange::WriteText(const std::string& Supplied)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard could not be opened" });
 
     if (EmptyClipboard() == 0)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard declined to be emptied" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard failed to be emptied" });
 
     if (Supplied.empty())
         return Outcome<bool>::Result(true);
@@ -181,7 +181,7 @@ Outcome<bool> ClipboardExchange::WriteText(const std::string& Supplied)
     const HGLOBAL Reserved = GlobalAlloc(GMEM_MOVEABLE, (Widened.size() + 1u) * sizeof(wchar_t));
 
     if (Reserved == nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the host declined the clipboard extent" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the host rejected the clipboard extent" });
 
     wchar_t* Writing = static_cast<wchar_t*>(GlobalLock(Reserved));
 
@@ -201,7 +201,7 @@ Outcome<bool> ClipboardExchange::WriteText(const std::string& Supplied)
     if (SetClipboardData(CF_UNICODETEXT, Reserved) == nullptr)
     {
         GlobalFree(Reserved);
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard declined the text" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard rejected the text" });
     }
 
     return Outcome<bool>::Result(true);
@@ -237,7 +237,7 @@ Outcome<ClipboardImage> ClipboardExchange::ReadImage()
     if (Carried == nullptr)
     {
         return Outcome<ClipboardImage>::Refuse(
-            { RefusalReason::HostDenied, "the clipboard declined to report its imagery" });
+            { RefusalReason::HostDenied, "the clipboard failed to report its imagery" });
     }
 
     const std::uint8_t* Reading = static_cast<const std::uint8_t*>(GlobalLock(Carried));
@@ -291,7 +291,7 @@ Outcome<ClipboardImage> ClipboardExchange::ReadImage()
 
     // 📝 Twenty-four and thirty-two bits only, and uncompressed only. The remaining layouts — palette-indexed,
     //    run-length encoded, bitfield-masked — are a decode, and `04` §4 states that nothing in `Layer0_Platform`
-    //    interprets content. A caller wanting them reaches `10`'s codecs with the extent this refused.
+    //    interprets content. A caller wanting them reaches `10`'s codecs with the extent this rejected.
     if (Declared.biCompression != BI_RGB || (Declared.biBitCount != 24u && Declared.biBitCount != 32u))
     {
         GlobalUnlock(Carried);
@@ -317,10 +317,10 @@ Outcome<ClipboardImage> ClipboardExchange::ReadImage()
             { RefusalReason::ContentUnsupported, "the clipboard imagery is shorter than its own declaration" });
     }
 
-    ClipboardImage Landed;
-    Landed.Width  = static_cast<std::uint32_t>(ColumnCount);
-    Landed.Height = static_cast<std::uint32_t>(RowCount);
-    Landed.Texels.assign(static_cast<std::size_t>(ColumnCount) * static_cast<std::size_t>(RowCount) * 4u, 0u);
+    ClipboardImage Received;
+    Received.Width  = static_cast<std::uint32_t>(ColumnCount);
+    Received.Height = static_cast<std::uint32_t>(RowCount);
+    Received.Texels.assign(static_cast<std::size_t>(ColumnCount) * static_cast<std::size_t>(RowCount) * 4u, 0u);
 
     const std::uint8_t* Supplied     = Reading + DeclaredBytes;
     bool                AlphaCarried = false;
@@ -336,12 +336,12 @@ Outcome<ClipboardImage> ClipboardExchange::ReadImage()
 
             // 📝 The host stores its components blue first. The order is the layout's, not a preference, and is
             //    reversed here so that everything above reads one order regardless of which host supplied it.
-            Landed.Texels[Into]      = Supplied[From + 2u];
-            Landed.Texels[Into + 1u] = Supplied[From + 1u];
-            Landed.Texels[Into + 2u] = Supplied[From];
-            Landed.Texels[Into + 3u] = ComponentBytes == 4u ? Supplied[From + 3u] : 255u;
+            Received.Texels[Into]      = Supplied[From + 2u];
+            Received.Texels[Into + 1u] = Supplied[From + 1u];
+            Received.Texels[Into + 2u] = Supplied[From];
+            Received.Texels[Into + 3u] = ComponentBytes == 4u ? Supplied[From + 3u] : 255u;
 
-            if (Landed.Texels[Into + 3u] != 0u)
+            if (Received.Texels[Into + 3u] != 0u)
                 AlphaCarried = true;
         }
     }
@@ -355,13 +355,13 @@ Outcome<ClipboardImage> ClipboardExchange::ReadImage()
     //    and is delivered opaque; it is also an image carrying no visible content either way.
     if (!AlphaCarried)
     {
-        for (std::size_t Ordinal = 3u; Ordinal < Landed.Texels.size(); Ordinal += 4u)
-            Landed.Texels[Ordinal] = 255u;
+        for (std::size_t Ordinal = 3u; Ordinal < Received.Texels.size(); Ordinal += 4u)
+            Received.Texels[Ordinal] = 255u;
     }
 
     GlobalUnlock(Carried);
 
-    return Outcome<ClipboardImage>::Result(Landed);
+    return Outcome<ClipboardImage>::Result(Received);
 
 #else
 
@@ -393,7 +393,7 @@ Outcome<bool> ClipboardExchange::WriteImage(const ClipboardImage& Supplied)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard could not be opened" });
 
     if (EmptyClipboard() == 0)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard declined to be emptied" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard failed to be emptied" });
 
     const std::size_t RowStride    = static_cast<std::size_t>(Supplied.Width) * 4u;
     const std::size_t SuppliedSpan = sizeof(BITMAPINFOHEADER) + RowStride * Supplied.Height;
@@ -401,7 +401,7 @@ Outcome<bool> ClipboardExchange::WriteImage(const ClipboardImage& Supplied)
     const HGLOBAL Reserved = GlobalAlloc(GMEM_MOVEABLE, SuppliedSpan);
 
     if (Reserved == nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the host declined the clipboard extent" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the host rejected the clipboard extent" });
 
     std::uint8_t* Writing = static_cast<std::uint8_t*>(GlobalLock(Reserved));
 
@@ -444,7 +444,7 @@ Outcome<bool> ClipboardExchange::WriteImage(const ClipboardImage& Supplied)
     if (SetClipboardData(CF_DIB, Reserved) == nullptr)
     {
         GlobalFree(Reserved);
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard declined the imagery" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the clipboard rejected the imagery" });
     }
 
     return Outcome<bool>::Result(true);

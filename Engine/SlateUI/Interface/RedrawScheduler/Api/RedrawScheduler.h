@@ -17,7 +17,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What must be done to one panel before it may be presented again.
-/// note  🔴 Ordered by cost, and the ordering is load-bearing: two marks arriving on one panel within one
+/// note  🔴 Ordered by cost, and the ordering is load-bearing: two marks incoming on one panel within one
 ///       tick resolve to the dearer by numeric comparison alone. Reordering these members reorders the
 ///       resolution, and the defect appears as a panel that recolours where it should have re-solved.
 /// note  The three are separated because they cost three different amounts. Conflating them means paying
@@ -26,7 +26,7 @@ namespace Slate
 enum class RedrawMark : std::uint32_t
 {
     Quiet     = 0u,   // [-] - nothing changed; the recorded content of the previous tick still stands
-    Recolour  = 1u,   // [-] - rewrite colours only — a rouse fade, an appearance fade, a selection moving
+    Recolour  = 1u,   // [-] - rewrite colours only — a hover fade, an appearance fade, a selection moving
     Rerecord  = 2u,   // [-] - re-record this panel — text changed, an arrangement toggled, a subject set changed
     Rearrange = 3u,   // [-] - re-solve extents, then record — a resize, a breakpoint crossed, a disclosure opening
     MarkCount = 4u    // [-] - the closed count, never a mark
@@ -34,9 +34,9 @@ enum class RedrawMark : std::uint32_t
 
 /// 🧩 The dearer of two marks.
 /// cost  ✔️
-constexpr RedrawMark Dearer(RedrawMark Standing, RedrawMark Arriving)
+constexpr RedrawMark Dearer(RedrawMark Current, RedrawMark Incoming)
 {
-    return (static_cast<std::uint32_t>(Arriving) > static_cast<std::uint32_t>(Standing)) ? Arriving : Standing;
+    return (static_cast<std::uint32_t>(Incoming) > static_cast<std::uint32_t>(Current)) ? Incoming : Current;
 }
 
 /// 🧩 Static text naming one mark, for the diagnostic overlay and for nothing the artist reads.
@@ -70,33 +70,33 @@ class RedrawScheduler
 {
 public:
 
-    static constexpr std::uint32_t PanelCapacity = 64u;   // [-] - enrolled panels, never allocated
+    static constexpr std::uint32_t PanelCapacity = 64u;   // [-] - registered panels, never allocated
 
     RedrawScheduler()                                  = default;
     RedrawScheduler(const RedrawScheduler&)            = delete;
     RedrawScheduler& operator=(const RedrawScheduler&) = delete;
     ~RedrawScheduler()                                 = default;
 
-    /// 🧩 Enrols one panel and delivers the ordinal it is marked by thereafter.
+    /// 🧩 Registers one panel and delivers the ordinal it is marked by thereafter.
     /// in    Naming   [-]  static text naming the panel; presented by the diagnostic overlay only
     /// out   Result  [-]  refuses with ExtentExhausted when the capacity is full
-    /// post  the enrolled panel stands at Rearrange — nothing has ever been solved for it
+    /// post  the registered panel stands at Rearrange — nothing has ever been solved for it
     /// note  🔴 A panel arrives marked at the dearest mark rather than quiet. The alternative is a panel
-    ///        that enrols during a quiet tick and is never recorded at all, which reads as a panel that
+    ///        that registers during a quiet tick and is never recorded at all, which reads as a panel that
     ///        failed to open rather than as a mark that was never raised.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> Enrol(const char* Naming);
+    Outcome<std::uint32_t> Register(const char* Naming);
 
     /// 🧩 Raises one panel's mark to the dearer of what it carries and what is declared.
-    /// in    PanelOrdinal  [-]  what Enrol delivered; an unenrolled ordinal marks nothing
+    /// in    PanelOrdinal  [-]  what Register delivered; an unenrolled ordinal marks nothing
     /// note  Never lowers. A panel that already stands at Rearrange is not reduced to Recolour by a hover
-    ///       arriving in the same tick, which is the ordering the enumeration's numbering encodes.
+    ///       incoming in the same tick, which is the ordering the enumeration's numbering encodes.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Mark(std::uint32_t PanelOrdinal, RedrawMark Declared);
 
-    /// 🧩 Raises every enrolled panel's mark — a display resize, or an appearance resolved afresh.
+    /// 🧩 Raises every registered panel's mark — a display resize, or an appearance resolved afresh.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void MarkEvery(RedrawMark Declared);
@@ -105,7 +105,7 @@ public:
     /// out   RedrawMark  [-]  Quiet for an unenrolled ordinal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    RedrawMark Standing(std::uint32_t PanelOrdinal) const;
+    RedrawMark Current(std::uint32_t PanelOrdinal) const;
 
     /// 🧩 Whether anything at all stands above Quiet.
     /// cost  ✔️
@@ -136,12 +136,12 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Retire(std::uint32_t PanelOrdinal);
 
-    /// 🧩 How many panels are enrolled.
+    /// 🧩 How many panels are registered.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t EnrolledCount() const;
+    std::uint32_t RegisteredCount() const;
 
-    /// 🧩 The static text one enrolled panel was named with.
+    /// 🧩 The static text one registered panel was named with.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     const char* Naming(std::uint32_t PanelOrdinal) const;
@@ -158,9 +158,9 @@ public:
 
 private:
 
-    RedrawMark     Marks[PanelCapacity]   = {};   // [-] - one per enrolled panel, indexed by ordinal
+    RedrawMark     Marks[PanelCapacity]   = {};   // [-] - one per registered panel, indexed by ordinal
     const char*    Namings[PanelCapacity] = {};   // [-] - static text; never allocated
-    std::uint32_t  Enrolled               = 0u;   // [-]
+    std::uint32_t  Registered               = 0u;   // [-]
     std::uint64_t  QuietCount             = 0u;   // [-] - ticks retired with nothing marked
     std::uint64_t  RecordedCount          = 0u;   // [-] - ticks retired with something marked
 };

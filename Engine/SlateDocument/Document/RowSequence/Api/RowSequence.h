@@ -25,10 +25,10 @@ namespace Slate
 /// tag   nonallocating, nonthrowing
 struct SequencedRow
 {
-    OccupantIdentity  Occupant           = {};      // [-] - what the row presents
+    OwnerIdentity  Owner           = {};      // [-] - what the row presents
     std::uint32_t     EnclosureDepth     = 0u;      // [-] - indentation, in enclosures from the root ordering
-    std::uint32_t     EnclosedCount      = 0u;      // [-] - occupants enclosed directly; zero admits no arrow
-    bool              ExpansionEnabled   = true;    // [-] - this occupant's enclosed rows are counted
+    std::uint32_t     EnclosedCount      = 0u;      // [-] - owners enclosed directly; zero accepts no arrow
+    bool              ExpansionEnabled   = true;    // [-] - this owner's enclosed rows are counted
     bool              VisibleInCount     = true;    // [-] - counted; false while collapsed above or narrowed out
 };
 
@@ -116,29 +116,29 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Linearize(const SceneStructure& Relations);
 
-    /// 🧩 Declares one occupant's enclosed rows counted or uncounted, and re-derives the counts below it.
-    /// in    Subject           [-]  the enclosing occupant
+    /// 🧩 Declares one owner's enclosed rows counted or uncounted, and re-derives the counts below it.
+    /// in    Subject           [-]  the enclosing owner
     /// in    ExpansionEnabled  [-]  whether its enclosed rows are counted
-    /// out   Result           [-]  refuses with IdentityStale when the occupant holds no row
-    /// note  A collapse is a count adjustment over the occupant's own span, never a re-linearisation.
+    /// out   Result           [-]  refuses with IdentityStale when the owner holds no row
+    /// note  A collapse is a count adjustment over the owner's own span, never a re-linearisation.
     /// note  🔴 Recorded against the slot rather than against the row, so that the next linearisation carries
     ///        it forward. Held on the row alone it would be erased by every rebuild, and a collapsed
     ///        enclosure would reopen on the following tick without the artist touching it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareExpansion(OccupantIdentity Subject, bool ExpansionEnabled);
+    Outcome<bool> DeclareExpansion(OwnerIdentity Subject, bool ExpansionEnabled);
 
-    /// 🧩 Declares which occupants a standing narrowing retains, or withdraws the narrowing entirely.
-    /// in    Retained           [-]  the occupants a narrowing confirmed, read only while one is declared
+    /// 🧩 Declares which owners a standing narrowing retains, or withdraws the narrowing entirely.
+    /// in    Retained           [-]  the owners a narrowing confirmed, read only while one is declared
     /// in    NarrowingDeclared  [-]  false returns every row to the count and ignores Retained
-    /// out   Result            [-]  refuses with IdentityStale when a retained occupant holds no slot here
+    /// out   Result            [-]  refuses with IdentityStale when a retained owner holds no slot here
     /// note  🔴 `12` §10 rules row narrowing a subset rather than a predicate. A predicate re-derived every
     ///        tick makes the cost of a search proportional to the population for as long as the text stands;
     ///        a declared subset is derived once, where the text changed.
     /// note  A narrowed row leaves the count and stays in the sequence, exactly as a collapsed one does.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareNarrowing(const std::vector<OccupantIdentity>& Retained, bool NarrowingDeclared);
+    Outcome<bool> DeclareNarrowing(const std::vector<OwnerIdentity>& Retained, bool NarrowingDeclared);
 
     /// 🧩 The rows, in linearised order, including the uncounted ones.
     /// cost  ✔️
@@ -150,17 +150,17 @@ public:
     /// tag   api, nonallocating, nonthrowing
     const RankIndex& Counted() const;
 
-    /// 🧩 Which row an occupant sits at.
-    /// in    Subject  [-]  the occupant
-    /// out   Result  [-]  refuses with IdentityStale when the occupant holds no row
+    /// 🧩 Which row an owner sits at.
+    /// in    Subject  [-]  the owner
+    /// out   Result  [-]  refuses with IdentityStale when the owner holds no row
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<std::uint32_t> RowOf(OccupantIdentity Subject) const;
+    Outcome<std::uint32_t> RowOf(OwnerIdentity Subject) const;
 
     /// 🧩 Whether a narrowing stands over the rows.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool NarrowingStanding() const;
+    bool NarrowingCurrent() const;
 
     /// 🧩 🔍 Whether the counts agree with the visible rows of the sequence — invariant 5.
     /// cost  🚩

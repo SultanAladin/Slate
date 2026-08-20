@@ -71,7 +71,7 @@ struct ReflectionMetrics
 ///        ordered. `08` §6 previously gated "no shared target is produced by two recordings" while this section
 ///        wrote back into a target `18` produced — recorded as `00` §10 conflict 26 and closed by the ordinal.
 /// note  🔴 `30` §5: the trace reads `RadianceSurface` at the hit, so it reads `62`'s amendment — a reflection of
-///        a transmissive occupant shows that occupant. It reads nothing display-referred, so a selection outline
+///        a transmissive owner shows that owner. It reads nothing display-referred, so a selection outline
 ///        appearing inside a mirror is impossible by ordering rather than by a test.
 /// note  🔴 No geometry is submitted and no second visibility resolution occurs — `30` §6. Everything the trace
 ///        needs was already resolved by `16` and shaded by `18`.
@@ -87,15 +87,15 @@ public:
     /// 🧩 Declares what the trace is bounded by.
     /// out   Result  [-]  refuses with ContentUnsupported for a march ceiling of nothing, a non-positive
     ///                     thickness, and a divisor that is not two
-    /// note  ⚠️ The divisor is refused above two rather than admitted as a quality setting, for the reason
-    ///        `60`'s ambient term refuses one: `08` §2 claims `ReflectionSurface` at half extent, and admitting
+    /// note  ⚠️ The divisor is rejected above two rather than accepted as a quality setting, for the reason
+    ///        `60`'s ambient term refuses one: `08` §2 claims `ReflectionSurface` at half extent, and accepting
     ///        a third would declare the extent in two places that could disagree.
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Declare(const ReflectionSpecification& Declaring);
 
     /// 🧩 Contributes `08` §3 ⑥'s recording.
-    /// out   Result  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule rejected
     /// note  📝 Produces `ReflectionSurface` and amends `RadianceSurface`. The produced target carries `18`'s
     ///        pre-added contribution and the resolved weight, which is what makes the composite expressible at
     ///        all — a target carrying the trace result instead would leave nothing to subtract.
@@ -109,17 +109,17 @@ public:
     ///        Rounding down leaves the display's last column with no coarse texel above it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Resolve(std::uint32_t  DisplayAlong,
-                          std::uint32_t  DisplayAcross,
-                          std::uint32_t& ResolvedAlong,
-                          std::uint32_t& ResolvedAcross) const;
+    Outcome<bool> Resolve(std::uint32_t  DisplayX,
+                          std::uint32_t  DisplayY,
+                          std::uint32_t& ResolvedX,
+                          std::uint32_t& ResolvedY) const;
 
     /// 🧩 What the caller must sample and where — one step of the march, in display coordinates.
-    /// in    OriginAlong   [-]  the shading pixel, in the closed unit square
-    /// in    OriginAcross  [-]  its second ordinate, likewise
+    /// in    OriginX   [-]  the shading pixel, in the closed unit square
+    /// in    OriginY  [-]  its second coordinate, likewise
     /// in    OriginDepth   [-]  its reversed depth
-    /// in    StepAlong     [-]  the reflected direction projected into display coordinates, per step
-    /// in    StepAcross    [-]  its second ordinate, likewise
+    /// in    StepX     [-]  the reflected direction projected into display coordinates, per step
+    /// in    StepY    [-]  its second coordinate, likewise
     /// in    StepDepth     [-]  the reversed-depth change per step
     /// in    Sampling      [-]  answers with `DepthSurface` and `RadianceSurface` at a coordinate
     /// out   Traced        [-]  the crossing, or a weight of nothing
@@ -134,16 +134,16 @@ public:
     /// cost  🔴
     /// tag   api, nonthrowing
     template <typename Sampler>
-    TracedReflection March(double        OriginAlong,
-                           double        OriginAcross,
+    TracedReflection March(double        OriginX,
+                           double        OriginY,
                            double        OriginDepth,
-                           double        StepAlong,
-                           double        StepAcross,
+                           double        StepX,
+                           double        StepY,
                            double        StepDepth,
                            const Sampler& Sampling) const;
 
     /// 🧩 Applies `30` §1's composite at one pixel.
-    /// in    Standing   [-]  `RadianceSurface` as `18` and `62` left it
+    /// in    Current   [-]  `RadianceSurface` as `18` and `62` left it
     /// in    PreAdded   [-]  `ReflectionSurface` RGB — what `18`'s ambient term already contributed
     /// in    Traced     [-]  the trace's own result and weight
     /// out   Resolved   [-]  the amended radiance
@@ -152,7 +152,7 @@ public:
     ///        a double count brightens uniformly and reads as the material being wrong.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Compose(const double            Standing[3],
+    void Compose(const double            Current[3],
                  const double            PreAdded[3],
                  const TracedReflection& Traced,
                  double                  Resolved[3]) const;
@@ -183,28 +183,28 @@ private:
 //------------------------------------------------------------------------------------------------------------------------
 
 template <typename Sampler>
-TracedReflection SpecularProjection::March(double         OriginAlong,
-                                           double         OriginAcross,
+TracedReflection SpecularProjection::March(double         OriginX,
+                                           double         OriginY,
                                            double         OriginDepth,
-                                           double         StepAlong,
-                                           double         StepAcross,
+                                           double         StepX,
+                                           double         StepY,
                                            double         StepDepth,
                                            const Sampler& Sampling) const
 {
     TracedReflection Traced;
 
-    double WalkingAlong  = OriginAlong;
-    double WalkingAcross = OriginAcross;
+    double WalkingX  = OriginX;
+    double WalkingY = OriginY;
     double WalkingDepth  = OriginDepth;
 
     for (std::uint32_t Step = 0u; Step < Specification.MarchCeiling; ++Step)
     {
-        const double PriorAlong  = WalkingAlong;
-        const double PriorAcross = WalkingAcross;
+        const double PriorX  = WalkingX;
+        const double PriorY = WalkingY;
         const double PriorDepth  = WalkingDepth;
 
-        WalkingAlong  += StepAlong;
-        WalkingAcross += StepAcross;
+        WalkingX  += StepX;
+        WalkingY += StepY;
         WalkingDepth  += StepDepth;
 
         ++Traced.StepsTaken;
@@ -212,53 +212,53 @@ TracedReflection SpecularProjection::March(double         OriginAlong,
         // 🔴 Off the extent is a failure and a **termination**, not a clamp. Clamping walks the ray along the
         //    display edge and eventually reports a crossing against whatever surface happens to be there, which
         //    reads as a smear of the scene's border across every reflective surface facing outward.
-        if (ReflectionLeftExtent(WalkingAlong, WalkingAcross))
+        if (ReflectionLeftExtent(WalkingX, WalkingY))
             return Traced;
 
-        const double RecordedDepth = Sampling.Depth(WalkingAlong, WalkingAcross);
+        const double RecordedDepth = Sampling.Depth(WalkingX, WalkingY);
 
         if (!ReflectionCrossed(WalkingDepth, RecordedDepth, Specification.ThicknessBound))
             continue;
 
         // 📐 The crossing lies between the previous step and this one. Halving that interval refines it without
         //    another depth march, and the six declared halvings resolve it to a sixty-fourth of a step.
-        double LowerAlong  = PriorAlong;
-        double LowerAcross = PriorAcross;
+        double LowerX  = PriorX;
+        double LowerY = PriorY;
         double LowerDepth  = PriorDepth;
-        double UpperAlong  = WalkingAlong;
-        double UpperAcross = WalkingAcross;
+        double UpperX  = WalkingX;
+        double UpperY = WalkingY;
         double UpperDepth  = WalkingDepth;
 
         for (std::uint32_t Refining = 0u; Refining < Specification.RefineCount; ++Refining)
         {
-            const double MiddleAlong  = (LowerAlong  + UpperAlong)  * 0.5;
-            const double MiddleAcross = (LowerAcross + UpperAcross) * 0.5;
+            const double MiddleX  = (LowerX  + UpperX)  * 0.5;
+            const double MiddleY = (LowerY + UpperY) * 0.5;
             const double MiddleDepth  = (LowerDepth  + UpperDepth)  * 0.5;
 
-            const double MiddleRecorded = Sampling.Depth(MiddleAlong, MiddleAcross);
+            const double MiddleRecorded = Sampling.Depth(MiddleX, MiddleY);
 
             if (ReflectionCrossed(MiddleDepth, MiddleRecorded, Specification.ThicknessBound))
             {
-                UpperAlong  = MiddleAlong;
-                UpperAcross = MiddleAcross;
+                UpperX  = MiddleX;
+                UpperY = MiddleY;
                 UpperDepth  = MiddleDepth;
             }
             else
             {
-                LowerAlong  = MiddleAlong;
-                LowerAcross = MiddleAcross;
+                LowerX  = MiddleX;
+                LowerY = MiddleY;
                 LowerDepth  = MiddleDepth;
             }
         }
 
-        Sampling.Radiance(UpperAlong, UpperAcross, Traced.Component);
+        Sampling.Radiance(UpperX, UpperY, Traced.Component);
 
         // 📐 The weight falls off toward the extent's edge rather than ending at it, so a reflection does not
         //    terminate in a hard line as the artist orbits. The falloff is over the outer tenth on each axis,
         //    which is wide enough to be invisible and narrow enough not to dim a reflection that is fully inside.
-        const double MarginAlong  = 1.0 - std::fabs(UpperAlong  * 2.0 - 1.0);
-        const double MarginAcross = 1.0 - std::fabs(UpperAcross * 2.0 - 1.0);
-        const double Margin       = MarginAlong < MarginAcross ? MarginAlong : MarginAcross;
+        const double MarginX  = 1.0 - std::fabs(UpperX  * 2.0 - 1.0);
+        const double MarginY = 1.0 - std::fabs(UpperY * 2.0 - 1.0);
+        const double Margin       = MarginX < MarginY ? MarginX : MarginY;
 
         Traced.Weight   = Margin >= 0.1 ? 1.0 : Margin / 0.1;
         Traced.Resolved = true;

@@ -116,7 +116,7 @@ constexpr StrokeStep PulseSteps[] =
 // 📐 lucide `lightbulb` — the tooltip trigger `Controls.html` states as
 //    `M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5`,
 //    plus the two rules `M9 18h6` and `M10 22h4`. Every relative control offset is resolved to the absolute
-//    ordinate below, so the figure can be read without carrying a pen position in the reader's head.
+//    coordinate below, so the figure can be read without carrying a pen position in the reader's head.
 // 📐 The `A6 6 0 0 0` is a true semicircle of radius six about (12, 8) and is the one arc here that is not
 //    already a cubic. It is transcribed as **two** quarter cubics at the declared κ rather than one — a single
 //    cubic across 180° is wrong by about a fortieth of the radius at its midpoint, which is a visible flat at
@@ -370,10 +370,10 @@ constexpr SymbolFigure PlaceholderFigure =
     PlaceholderSteps, 7u, SymbolDiscipline::Workspace, DeclaredWeight, false
 };
 
-/// 🧩 Constructs the enrolment entry for a subject with no artwork yet.
-constexpr SymbolFigure Unresolved(SymbolDiscipline Enrolled)
+/// 🧩 Constructs the registration entry for a subject with no artwork yet.
+constexpr SymbolFigure Unresolved(SymbolDiscipline Registered)
 {
-    return SymbolFigure{ PlaceholderSteps, 7u, Enrolled, DeclaredWeight, false };
+    return SymbolFigure{ PlaceholderSteps, 7u, Registered, DeclaredWeight, false };
 }
 
 constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectCount)] =
@@ -434,9 +434,9 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* CameraAperture      */ { CameraApertureSteps, 14u, SymbolDiscipline::Rendering, DeclaredWeight, true },
     /* SampleConverge      */ Unresolved(SymbolDiscipline::Rendering),
     /* DenoiseSweep        */ Unresolved(SymbolDiscipline::Rendering),
-    /* ExposureOrdinate    */ Unresolved(SymbolDiscipline::Rendering),
+    /* ExposureCoordinate    */ Unresolved(SymbolDiscipline::Rendering),
 
-    /* KeyOrdinate         */ Unresolved(SymbolDiscipline::Animation),
+    /* KeyCoordinate         */ Unresolved(SymbolDiscipline::Animation),
     /* CurveTangent        */ Unresolved(SymbolDiscipline::Animation),
     /* TimelineScrub       */ Unresolved(SymbolDiscipline::Animation),
     /* SkeletonJoint       */ Unresolved(SymbolDiscipline::Animation),
@@ -459,7 +459,7 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* PlaceholderMark     */ PlaceholderFigure
 };
 
-// 📝 🔴 The roster is declared in discipline order and the enrolment spans below index into it. Two orderings
+// 📝 🔴 The roster is declared in discipline order and the registration spans below index into it. Two orderings
 //    that agree only until somebody inserts a subject is exactly the disguised edge `00` §2 exists to remove,
 //    so the spans are checked against the roster at compile time rather than reviewed.
 constexpr SymbolSubject DisciplineOrder[] =
@@ -483,8 +483,8 @@ constexpr SymbolSubject DisciplineOrder[] =
     SymbolSubject::SunDirectional,      SymbolSubject::LampPoint,           SymbolSubject::AreaEmitter,
     SymbolSubject::SkyDome,
     SymbolSubject::CameraAperture,      SymbolSubject::SampleConverge,      SymbolSubject::DenoiseSweep,
-    SymbolSubject::ExposureOrdinate,
-    SymbolSubject::KeyOrdinate,         SymbolSubject::CurveTangent,        SymbolSubject::TimelineScrub,
+    SymbolSubject::ExposureCoordinate,
+    SymbolSubject::KeyCoordinate,         SymbolSubject::CurveTangent,        SymbolSubject::TimelineScrub,
     SymbolSubject::SkeletonJoint,
     SymbolSubject::ClothDrape,          SymbolSubject::FluidStream,         SymbolSubject::RigidCollide,
     SymbolSubject::ParticleEmit,
@@ -500,10 +500,10 @@ constexpr std::uint32_t DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipl
 };
 
 static_assert(sizeof(DisciplineOrder) / sizeof(SymbolSubject) == 66u,
-              "The discipline ordering must enrol every subject except the placeholder mark.");
+              "The discipline ordering must register every subject except the placeholder mark.");
 
 static_assert(DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount)] == 66u,
-              "The final enrolment boundary must reach the end of the discipline ordering.");
+              "The final registration boundary must reach the end of the discipline ordering.");
 
 }   // namespace
 
@@ -521,12 +521,12 @@ const SymbolFigure& Figure(SymbolSubject Subject)
     return Roster[Ordinal];
 }
 
-SymbolDiscipline Enrolment(SymbolSubject Subject)
+SymbolDiscipline Registration(SymbolSubject Subject)
 {
-    return Figure(Subject).Enrolment;
+    return Figure(Subject).Registration;
 }
 
-std::uint32_t EnrolledIn(SymbolDiscipline Discipline, const SymbolSubject** Delivered)
+std::uint32_t RegisteredIn(SymbolDiscipline Discipline, const SymbolSubject** Delivered)
 {
     const std::uint32_t Ordinal = static_cast<std::uint32_t>(Discipline);
 

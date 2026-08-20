@@ -60,7 +60,7 @@ public:
     /// tag   api, nonthrowing
     void Construct();
 
-    /// 🧩 Claims the coverage tile backing one cell, or resolves the one already claimed.
+    /// 🧩 Reservations the coverage tile backing one cell, or resolves the one already claimed.
     /// in    CellOrdinal  [-]  into `20` §1's single ordinal span
     /// out   Result      [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
     ///                         the declared tile ceiling
@@ -69,7 +69,7 @@ public:
     ///        refuses rather than growing so that a defect there is a refusal instead of an allocation storm.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Claim(std::uint32_t CellOrdinal);
+    Outcome<std::uint32_t> Reserve(std::uint32_t CellOrdinal);
 
     /// 🧩 The tile backing one cell, if one is claimed.
     /// out   Result  [-]  refuses with ExtentExhausted when the cell is untouched
@@ -78,27 +78,27 @@ public:
     Outcome<std::uint32_t> Located(std::uint32_t CellOrdinal) const;
 
     /// 🧩 Accumulates one impression's coverage at one texel of one claimed tile.
-    /// in    TileOrdinal  [-]  as `Claim` delivered it
-    /// in    Along        [px] within the tile
-    /// in    Across       [px] within the tile
-    /// in    Arriving     [-]  the impression's coverage there, in the closed unit interval
+    /// in    TileOrdinal  [-]  as `Reserve` delivered it
+    /// in    X        [px] within the tile
+    /// in    Y       [px] within the tile
+    /// in    Incoming     [-]  the impression's coverage there, in the closed unit interval
     /// note  🔴 Combined by `Over` and never by addition. Additive accumulation exceeds unity wherever two
     ///        impressions overlap, and the excess is invisible in the accumulation and abrupt at the apply.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Accumulate(std::uint32_t TileOrdinal, std::uint32_t Along, std::uint32_t Across, double Arriving);
+    void Accumulate(std::uint32_t TileOrdinal, std::uint32_t X, std::uint32_t Y, double Incoming);
 
     /// 🧩 The coverage standing at one texel.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    double Coverage(std::uint32_t TileOrdinal, std::uint32_t Along, std::uint32_t Across) const;
+    double Coverage(std::uint32_t TileOrdinal, std::uint32_t X, std::uint32_t Y) const;
 
     /// 🧩 The cells this stroke has touched, in claim order.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     const std::vector<std::uint32_t>& TouchedCells() const;
 
-    std::uint32_t ClaimedCount() const;
+    std::uint32_t ReservedCount() const;
     std::uint64_t TouchedTexelCount() const;
 
     /// 🧩 Discards every claimed tile, keeping the sparse index sized.
@@ -114,8 +114,8 @@ private:
     //    than a search, and a stroke that touches four hundred cells pays four hundred indexed reads per
     //    impression instead of four hundred scans.
     std::vector<std::uint32_t>        TileOfCell;              // [-] - AbsentTile where untouched
-    std::vector<std::uint32_t>        ClaimedCells;            // [-] - in claim order, parallel to Claimed
-    std::vector<std::vector<float>>   Claimed;                 // [-] - CoverageTileTexels² each
+    std::vector<std::uint32_t>        ReservedCells;            // [-] - in claim order, parallel to Reserved
+    std::vector<std::vector<float>>   Reserved;                 // [-] - CoverageTileTexels² each
     std::uint64_t                     TouchedTexels    = 0u;   // [-] - texels this stroke has written at all
 };
 

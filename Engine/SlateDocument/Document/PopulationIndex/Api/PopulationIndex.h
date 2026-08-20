@@ -1,7 +1,7 @@
 ﻿//============================================================================================================================================
 //                                                            POPULATIONINDEX.H
 //============================================================================================================================================
-// 🧩 Generationally versioned slot ledger — the population every occupant of the document sits inside.
+// 🧩 Generationally versioned slot ledger — the population every owner of the document sits inside.
 
 #pragma once
 
@@ -56,7 +56,7 @@ private:
 //                                                    THE POPULATION
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The slot ledger with generational identity. Every occupant in the document is one slot here.
+/// 🧩 The slot ledger with generational identity. Every owner in the document is one slot here.
 /// note  🔴 A reference held across a deletion resolves to absent rather than to whatever later took the
 ///       slot. That is what makes references safe without reference counting.
 /// tag   owning
@@ -64,33 +64,33 @@ class PopulationIndex
 {
 public:
 
-    /// 🧩 Enrols one occupant and issues its identity.
-    /// out   OccupantIdentity [-]  slot ordinal paired with the generation now held
+    /// 🧩 Registers one owner and issues its identity.
+    /// out   OwnerIdentity [-]  slot ordinal paired with the generation now held
     /// err   refuses with ExtentExhausted when the population reaches its declared ceiling
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> Enrol();
+    Outcome<OwnerIdentity> Register();
 
-    /// 🧩 Withdraws one occupant and advances the slot's generation.
+    /// 🧩 Withdraws one owner and advances the slot's generation.
     /// in    Subject  [-]  the identity to withdraw
     /// out   Result  [-]  refuses with IdentityStale when the identity no longer resolves
     /// post  every reference carrying the prior generation resolves to absent
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Withdraw(OccupantIdentity Subject);
+    Outcome<bool> Withdraw(OwnerIdentity Subject);
 
-    /// 🧩 Whether an identity still names the occupant it was issued for.
+    /// 🧩 Whether an identity still names the owner it was registered for.
     /// in    Subject  [-]  the identity to resolve
     /// out   Resolved [-]  false for a stale generation and for an unoccupied slot alike
     /// note  Comparison is an integer test, at Exact. An identity that collides is not an identity.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Resolve(OccupantIdentity Subject) const;
+    bool Resolve(OwnerIdentity Subject) const;
 
-    /// 🧩 How many occupants are enrolled.
+    /// 🧩 How many owners are registered.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t EnrolledCount() const;
+    std::uint32_t RegisteredCount() const;
 
 private:
 
@@ -99,7 +99,7 @@ private:
     std::vector<std::uint32_t>  SlotGenerations;      // [-] - current generation per slot; one-based
     std::vector<std::uint32_t>  ReleasedOrdinals;     // [-] - slots free for reuse, most recent first
     OccupancyIndex              Occupancy;            // [-] - which of them are occupied
-    std::uint32_t               OccupiedCount = 0u;   // [-] - enrolled occupants
+    std::uint32_t               OccupiedCount = 0u;   // [-] - registered owners
 };
 
 }   // namespace Slate

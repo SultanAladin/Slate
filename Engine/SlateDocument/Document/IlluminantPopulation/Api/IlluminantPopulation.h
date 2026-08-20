@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                          ILLUMINANTPOPULATION.H
 //============================================================================================================================================
-// 🧩 The illuminants `18` integrates — every one an occupant, every one with a size, every extent declared not derived.
+// 🧩 The illuminants `18` integrates — every one an owner, every one with a size, every extent declared not derived.
 
 #pragma once
 
@@ -65,7 +65,7 @@ struct IlluminantSpecification
     double               ExtendedWidth       = 100.0;                  // [mm]  - Extended; never zero
     double               ExtendedHeight      = 100.0;                  // [mm]  - Extended; never zero
     bool                 ExtendedElliptical  = false;                  // [-]   - a disc rather than a rectangle
-    bool                 OcclusionEnrolled   = true;                   // [-]   - whether `60` projects it
+    bool                 OcclusionRegistered   = true;                   // [-]   - whether `60` projects it
     bool                 AtmosphericSource   = false;                  // [-]   - `28` reads exactly one of these
 };
 
@@ -92,7 +92,7 @@ struct IncidenceProjection
 /// in    Declared  [-]   the illuminant
 /// in    Shaded    [mm]  the position being lit, in document space
 /// out   Result   [-]   refuses with ContentUnsupported for a shape with no declared size
-/// note  ⚠️ An attenuation of zero is a legitimate result and is delivered rather than refused. The position is
+/// note  ⚠️ An attenuation of zero is a legitimate result and is delivered rather than rejected. The position is
 ///        outside the declared extent or outside the cone, and `18` multiplies by zero — which costs less than a
 ///        refusal the integrator would have to branch on.
 /// cost  ✔️
@@ -105,70 +105,70 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Every illuminant in the document, held in identity order.
-/// note  🔴 An illuminant is an occupant of `10`'s population. It enrols in `12`, appears in the outliner,
+/// note  🔴 An illuminant is an owner of `10`'s population. It registers in `12`, appears in the outliner,
 ///        attaches through `AttachmentFollows` and is manipulated by `78` like anything else. An illuminant held
 ///        outside the population is one the artist cannot select, name, group or undo.
 /// note  🔴 Order is by identity and is therefore stable across ticks, runs and machines. `18` integrates in this
 ///        order and `02` §5's ordered recombination is why: an accumulation in arrival order is a different number
 ///        each run at Bounded, and the difference is visible as flicker on a surface lit by many sources.
-/// note  🔴 Exactly one illuminant may be enrolled as the atmospheric source. Two suns disagreeing about their
+/// note  🔴 Exactly one illuminant may be registered as the atmospheric source. Two suns disagreeing about their
 ///        direction is a scene where the shadows fall one way and the sky brightens the other.
 /// tag   owning
 class IlluminantPopulation
 {
 public:
 
-    /// 🧩 Declares one illuminant against an enrolled occupant.
+    /// 🧩 Declares one illuminant against an registered owner.
     /// out   Result  [-]  refuses with IdentityStale for an undeclared identity, with ContentUnsupported for a
     ///                     shape of zero size or a non-positive extent, and with HostDenied for a second
     ///                     atmospheric source
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(OccupantIdentity Subject, const IlluminantSpecification& Declaring);
+    Outcome<bool> Declare(OwnerIdentity Subject, const IlluminantSpecification& Declaring);
 
     /// 🧩 Amends one declared illuminant, validated exactly as a declaration is.
-    /// out   Result  [-]  refuses with IdentityStale when the occupant declares no illuminant
+    /// out   Result  [-]  refuses with IdentityStale when the owner declares no illuminant
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(OccupantIdentity Subject, const IlluminantSpecification& Amending);
+    Outcome<bool> Amend(OwnerIdentity Subject, const IlluminantSpecification& Amending);
 
     /// 🧩 Withdraws one illuminant.
-    /// out   Result  [-]  refuses with IdentityStale when the occupant declares no illuminant
+    /// out   Result  [-]  refuses with IdentityStale when the owner declares no illuminant
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Withdraw(OccupantIdentity Subject);
+    Outcome<bool> Withdraw(OwnerIdentity Subject);
 
     /// 🧩 One declared illuminant.
-    /// out   Result  [-]  refuses with IdentityStale when the occupant declares no illuminant
+    /// out   Result  [-]  refuses with IdentityStale when the owner declares no illuminant
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<IlluminantSpecification> Resolve(OccupantIdentity Subject) const;
+    Outcome<IlluminantSpecification> Resolve(OwnerIdentity Subject) const;
 
     /// 🧩 One illuminant's colour, projected into a declared space.
     /// in    Working  [-]  the space to express the colour in — `36` §2's working space
-    /// out   Result  [-]  refuses with IdentityStale for an unknown occupant, and carries `36`'s refusal when a
+    /// out   Result  [-]  refuses with IdentityStale for an unknown owner, and carries `36`'s refusal when a
     ///                     declared temperature lies outside the locus interval
     /// note  📝 A declared temperature is projected here and is **not** written back over the declaration. The
     ///        authored temperature is what the artist edits; the coordinate is what `18` integrates.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<ColourSpecification> ResolveColour(OccupantIdentity Subject, const ColourSpaceSpecification& Working) const;
+    Outcome<ColourSpecification> ResolveColour(OwnerIdentity Subject, const ColourSpaceSpecification& Working) const;
 
-    /// 🧩 The occupant enrolled as `28`'s atmospheric source.
-    /// out   Result  [-]  refuses with ExtentExhausted when none is enrolled
+    /// 🧩 The owner registered as `28`'s atmospheric source.
+    /// out   Result  [-]  refuses with ExtentExhausted when none is registered
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> AtmosphericSource() const;
+    Outcome<OwnerIdentity> AtmosphericSource() const;
 
     /// 🧩 Every declared illuminant, in identity order.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const std::vector<OccupantIdentity>& Enrolled() const;
+    const std::vector<OwnerIdentity>& Registered() const;
 
     /// 🧩 How many illuminants are declared.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t EnrolledCount() const;
+    std::uint32_t RegisteredCount() const;
 
     /// 🧩 The revision the last amendment advanced to; `IlluminantIndex` compares counters against it.
     /// cost  ✔️
@@ -177,10 +177,10 @@ public:
 
 private:
 
-    std::size_t   Located(OccupantIdentity Subject) const;
-    Outcome<bool> Validate(const IlluminantSpecification& Declaring, OccupantIdentity Subject) const;
+    std::size_t   Located(OwnerIdentity Subject) const;
+    Outcome<bool> Validate(const IlluminantSpecification& Declaring, OwnerIdentity Subject) const;
 
-    std::vector<OccupantIdentity>         EnrolledOrder;         // [-] - ascending by slot, then by generation
+    std::vector<OwnerIdentity>         RegisteredOrder;         // [-] - ascending by slot, then by generation
     std::vector<IlluminantSpecification>  Declarations;          // [-] - parallel to it
     std::uint64_t                         DeclaredRevision = 1u; // [-] - advanced by every amendment
 };
@@ -196,8 +196,8 @@ private:
 /// tag   nonallocating, nonthrowing
 struct PartitionExtent
 {
-    DocumentPosition  Least    = {};   // [mm] - the lower corner
-    DocumentPosition  Greatest = {};   // [mm] - the upper corner
+    DocumentPosition  Minimum    = {};   // [mm] - the lower corner
+    DocumentPosition  Maximum = {};   // [mm] - the upper corner
 };
 
 /// 🧩 Which illuminants each partition may be lit by — `44` §5.
@@ -221,7 +221,7 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Derive(const IlluminantPopulation& Illuminants, const std::vector<PartitionExtent>& Extents);
 
-    /// 🧩 Re-derives one partition's reaching set — the row `44` §5 reaches when an occupant moved.
+    /// 🧩 Re-derives one partition's reaching set — the row `44` §5 reaches when an owner moved.
     /// out   Result  [-]  refuses with ExtentExhausted outside the derived partition count
     /// cost  🚩
     /// tag   api, nonthrowing
@@ -238,7 +238,7 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted outside the reaching count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const;
+    Outcome<OwnerIdentity> Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const;
 
     /// 🧩 How many illuminants one partition could not carry — `86`'s truncation row.
     /// cost  ✔️
@@ -262,13 +262,13 @@ public:
 
 private:
 
-    std::vector<std::vector<OccupantIdentity>>  ReachingSets;         // [-] - per partition, in identity order
+    std::vector<std::vector<OwnerIdentity>>  ReachingSets;         // [-] - per partition, in identity order
     std::vector<std::uint32_t>                  TruncatedCounts;      // [-] - per partition
     std::uint32_t                               TruncatedAccumulated = 0u;   // [-] - across every partition
     std::uint64_t                               DescribedOrdinal     = 0u;   // [-] - the population revision
 };
 
-// 📐 Identity, enrolment and the reach comparison are Exact; the incidence projection reads a square root and a
+// 📐 Identity, registration and the reach comparison are Exact; the incidence projection reads a square root and a
 //    pair of circular functions and is Bounded. The component claims Bounded, per `00` §3's transitivity rule.
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded, PrecisionGuarantee::Exact);
 

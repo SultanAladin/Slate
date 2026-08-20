@@ -88,14 +88,14 @@ SLATE_SHARED Real64 ResolveOcclusionSlot(Real64 PackedRed,
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Whether one receiver stands behind what its illuminant's projection recorded.
-/// in    ReceiverDepth  [-]  the receiver's own ordinate in the projection, reversed
-/// in    RecordedDepth  [-]  the nearest ordinate the projection recorded there, reversed
+/// in    ReceiverDepth  [-]  the receiver's own coordinate in the projection, reversed
+/// in    RecordedDepth  [-]  the nearest coordinate the projection recorded there, reversed
 /// in    GrazingTangent [-]  the tangent of the angle between the surface and the incidence direction
 /// out   Occluded       [-]  true only where something nearer to the illuminant stands
-/// note  📐 Reversed depth throughout — near is one. The receiver is occluded when its own ordinate is **below**
-///        the recorded one by more than the offset, so the offset is subtracted from the recorded ordinate and
+/// note  📐 Reversed depth throughout — near is one. The receiver is occluded when its own coordinate is **below**
+///        the recorded one by more than the offset, so the offset is subtracted from the recorded coordinate and
 ///        never added to it. Written the other way round, every surface shadows itself completely and the image
-///        is uniformly unlit by every enrolled illuminant at once.
+///        is uniformly unlit by every registered illuminant at once.
 /// note  🔴 The offset is slope-scaled and both of its terms live in `Contract/` — `60` §7 and `02` §8. A
 ///        constant term alone either leaves a gap under every contact or fails to clear a surface at a grazing
 ///        angle, and the two failures are corrected by moving one number in opposite directions.
@@ -141,16 +141,16 @@ SLATE_SHARED Real64 ProjectPenumbraWidth(Real64 EmissionSize, Real64 OccluderDis
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The weight one half-extent tap carries at a display-extent pixel.
-/// in    CentreDepth  [-]  the shading pixel's own ordinate
-/// in    SampleDepth  [-]  the coarse tap's ordinate
+/// in    CentreDepth  [-]  the shading pixel's own coordinate
+/// in    SampleDepth  [-]  the coarse tap's coordinate
 /// out   Weight       [-]  unity where the two describe one surface, falling to nothing across a discontinuity
 /// note  🔴 `60` §5: the ambient term is upsampled with a **depth-aware** weighting and never bilinearly. A
 ///        bilinear read crosses depth discontinuities and pulls a background surface's occlusion onto a
 ///        foreground silhouette, which the artist meets as a dark fringe around every object in the workspace.
-/// note  📐 Relative to the centre ordinate rather than absolute, so the bound means the same thing at every
+/// note  📐 Relative to the centre coordinate rather than absolute, so the bound means the same thing at every
 ///        distance. An absolute bound rejects every tap in the distance and accepts every tap up close, which
 ///        is the fringe appearing at one depth and vanishing at another.
-/// note  📝 The falloff is linear in the departure rather than a step. A step admits a tap and then rejects the
+/// note  📝 The falloff is linear in the departure rather than a step. A step accepts a tap and then rejects the
 ///        one beside it, and the boundary between the two is a hard edge in the upsampled term.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing

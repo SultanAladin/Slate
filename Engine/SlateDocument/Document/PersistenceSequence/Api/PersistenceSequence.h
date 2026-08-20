@@ -21,7 +21,7 @@ namespace Slate
 //                                                    THE FOUR STEPS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Where a save stands, so a refusal names which of `48` §3's four steps declined.
+/// 🧩 Where a save stands, so a refusal names which of `48` §3's four steps rejected.
 /// note  🔴 The step matters to the artist, not just to the reporter. A refusal at ① or ② means their previous
 ///        save is untouched and nothing is lost; a refusal at ③ means the replacement exists beside the target
 ///        and can be recovered by hand. Reporting all three as "the save failed" throws that away.
@@ -98,15 +98,15 @@ public:
 
     /// 🧩 Whether two streams are identical, byte for byte — `48` §3 ② and `48` §8's exact tier.
     /// in    Written  [-]  what the save handed to the file surface
-    /// in    Landed   [-]  what was read back from it
+    /// in    ReadBack   [-]  what was read back from it
     /// out   Identical [-] false at the first difference, and for two different extents
     /// note  🔴 Exact, never tolerant. A verification that accepted a near match would accept exactly the
     ///        corruptions a failing disk produces, which are the ones this step exists to catch.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    static bool VerifyIdentical(const std::vector<std::uint8_t>& Written, const std::vector<std::uint8_t>& Landed);
+    static bool VerifyIdentical(const std::vector<std::uint8_t>& Written, const std::vector<std::uint8_t>& ReadBack);
 
-    /// 🧩 How far the last save got, whether it delivered or refused.
+    /// 🧩 How far the last save got, whether it delivered or rejected.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     PersistenceStep LastReached() const;

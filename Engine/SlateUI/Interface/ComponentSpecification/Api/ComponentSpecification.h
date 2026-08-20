@@ -56,8 +56,8 @@ struct MagnitudeDeclaration
 {
     const char*  Caption      = "";      // [-] - the leading label
     const char*  UnitGlyph    = "";      // [-] - the trailing cell's run — the degree sign, percent, or px
-    double       LeastOrdinal = 0.0;     // [-] - the domain's floor
-    double       MostOrdinal  = 255.0;   // [-] - the domain's ceiling; max="255"
+    double       Minimum = 0.0;     // [-] - the domain's floor
+    double       Maximum  = 255.0;   // [-] - the domain's ceiling; max="255"
 };
 
 /// 🧩 What the rotation ruler presents — its label and the unit its captions carry.
@@ -84,7 +84,7 @@ struct SubsetDeclaration
 
 /// 🧩 What the magnitude stops present — the four captions, of which the taken one is drawn.
 /// note  ⚠️ Exactly `StopCeiling` captions are read. The sheet declares four; a caller declaring more is
-///        refused rather than silently truncated, because a fifth stop the artist can see and cannot reach
+///        rejected rather than silently truncated, because a fifth stop the artist can see and cannot reach
 ///        is worse than a refusal at bring-up.
 /// tag   contract, nonallocating, nonthrowing
 struct StopDeclaration
@@ -123,7 +123,7 @@ struct TooltipDeclaration
 /// note  🔴 Stores **no** artist-visible datum. Every value arrives by reference and is written back through
 ///        that same reference in the same call, so `14` §1's "a panel presents state owned elsewhere and
 ///        stores none of it" is a property of the signatures rather than a discipline. What is stored —
-///        which control is seized, which menu stands open, what is fading — lives in `InteractionIndex`,
+///        which control is grabbed, which menu stands open, what is fading — lives in `InteractionIndex`,
 ///        which is `14` §4.1's sanctioned home for it.
 /// note  🔴 Two phases, never interleaved. `Advance` arbitrates and records nothing; the eight recording
 ///        methods draw and mutate no interaction. The separation is what lets every popup be recorded in a
@@ -157,31 +157,31 @@ public:
                             const ThemeProfile& Appearance);
 
     /// 🧩 Advances one tick of arbitration — samples the contact and clears the deferred sweep.
-    /// in    Arrived  [-]   what `RecordingSurface::Pointer` sampled this tick
+    /// in    Sampled  [-]   what `RecordingSurface::Pointer` sampled this tick
     /// in    Elapsed  [ms]  what the same tick's display condition measured
     /// note  🔴 Advances the ledger too. A caller that advances both is advancing the ledger twice, which
-    ///        retires a release before the control that seized it has run.
+    ///        retires a release before the control that grabbed it has run.
     /// post  the deferred sweep is empty; every recording method is valid until RecordDeferred
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Advance(const PointerCondition& Arrived, double Elapsed);
+    void Advance(const PointerCondition& Sampled, double Elapsed);
 
     /// 🧩 Samples a pointer after the shared interaction index was advanced by the owning panel.
     /// note  🔴 This does not advance the index; two advances erase the release before controls observe it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Sample(const PointerCondition& Arrived);
+    void Sample(const PointerCondition& Sampled);
 
     /// 🧩 Arranges one card around a stated number of rows of stated extents.
-    /// in    Along        [px] the card's leading edge
-    /// in    Across       [px] the card's upper edge
-    /// in    ExtentAlong  [px] the column's extent; the sheet states 800 before reduction
+    /// in    X        [px] the card's leading edge
+    /// in    Y       [px] the card's upper edge
+    /// in    Width  [px] the column's extent; the sheet states 800 before reduction
     /// in    RowExtents   [px] each row's own extent across; borrowed for the duration of the call
     /// in    RowCount     [-]  how many rows; zero arranges an empty card of padding alone
     /// out   Arranged     [-]  the enclosure to record and the interior the first row begins at
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    CardArrangement ArrangeCard(float Along, float Across, float ExtentAlong,
+    CardArrangement ArrangeCard(float X, float Y, float Width,
                                 const float* RowExtents, std::uint32_t RowCount) const;
 
     /// 🧩 Records one card's ground and edge.
@@ -194,65 +194,65 @@ public:
     //--------------------------------------------------------------------------------------------------------
 
     /// 🧩 The selection field — a black field, a chevron cell, and a menu that discloses beneath it.
-    /// in    Claimed       [-]  the identity this field was enrolled under
+    /// in    Target       [-]  the identity this field was registered under
     /// in    Row           [px] the extent the whole row occupies
     /// in    Declared      [-]  what it presents; borrowed
     /// in    TakenOrdinal  [-]  which option stands taken; written when the artist takes another
-    /// out   Verdict       [-]  OrdinateAltered when TakenOrdinal was written this tick
+    /// out   Verdict       [-]  ReadingAltered when TakenOrdinal was written this tick
     /// note  The menu is not recorded here. It is deferred, so that it draws above every row below it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict SelectionField(ControlIdentity Claimed, const PlaneExtent& Row,
+    ControlVerdict SelectionField(ControlIdentity Target, const PlaneExtent& Row,
                                   const SelectionDeclaration& Declared, std::uint32_t& TakenOrdinal);
 
     /// 🧩 One magnitude row — a numeric readout, a unit cell, and a slider spanning the declared domain.
-    /// in    Ordinate         [-]  the presented magnitude; written while the thumb or track is held
+    /// in    Coordinate         [-]  the presented magnitude; written while the thumb or track is held
     /// in    ReadoutTrailing  [-]  places the slider first and the number/unit pill at the trailing edge
-    /// out   Verdict          [-]  OrdinateAltered on every tick the drag moved it
+    /// out   Verdict          [-]  ReadingAltered on every tick the drag moved it
     /// note  📐 The drag reads the pointer's absolute position against the track, not an accumulated delta.
     ///        An accumulated delta drifts by a pixel for every tick the pointer left the track's extent.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict MagnitudeRow(ControlIdentity Claimed, const PlaneExtent& Row,
-                                const MagnitudeDeclaration& Declared, double& Ordinate,
+    ControlVerdict MagnitudeRow(ControlIdentity Target, const PlaneExtent& Row,
+                                const MagnitudeDeclaration& Declared, double& Coordinate,
                                 bool ReadoutTrailing = false);
 
     /// 🧩 The rotation ruler — a readout and a draggable tick strip that fades at both ends.
     /// in    Degrees  [deg] the presented rotation; written while the strip is dragged
-    /// note  📐 The sheet's law is `Value = ValueAtArrival − ΔAlong / 10`, and the strip is translated by
+    /// note  📐 The sheet's law is `Value = ValueAtArrival − ΔX / 10`, and the strip is translated by
     ///        `−Value × TickSpacing`. Dragging leftward therefore raises the reading, which is what a
     ///        physical dial does and is the opposite of what an accumulated pointer delta would give.
     /// cost  🔴
     /// tag   api, nonthrowing
-    ControlVerdict RotationRuler(ControlIdentity Claimed, const PlaneExtent& Row,
+    ControlVerdict RotationRuler(ControlIdentity Target, const PlaneExtent& Row,
                                  const RulerDeclaration& Declared, double& Degrees);
 
     /// 🧩 One toggle row — a ring, a dot that scales in, and a label.
     /// in    Taken  [-]  written on the tick the row resolves a tap
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict ToggleRow(ControlIdentity Claimed, const PlaneExtent& Row,
+    ControlVerdict ToggleRow(ControlIdentity Target, const PlaneExtent& Row,
                              const ToggleDeclaration& Declared, bool& Taken);
 
     /// 🧩 One multi-select row — a leading rail, a ground, and a label.
-    /// in    Enrolled  [-]  written on the tick the row resolves a tap
+    /// in    Registered  [-]  written on the tick the row resolves a tap
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict SubsetRow(ControlIdentity Claimed, const PlaneExtent& Row,
-                             const SubsetDeclaration& Declared, bool& Enrolled);
+    ControlVerdict SubsetRow(ControlIdentity Target, const PlaneExtent& Row,
+                             const SubsetDeclaration& Declared, bool& Registered);
 
     /// 🧩 The magnitude stops — small discs, of which the taken one grows and carries its letter.
     /// in    TakenOrdinal  [-]  which stop stands taken; written when another is tapped
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict MagnitudeStops(ControlIdentity Claimed, const PlaneExtent& Row,
+    ControlVerdict MagnitudeStops(ControlIdentity Target, const PlaneExtent& Row,
                                   const StopDeclaration& Declared, std::uint32_t& TakenOrdinal);
 
     /// 🧩 One tooltip trigger — a rounded button whose card discloses above it while the pointer rests on it.
     /// note  The card is deferred, so it draws above every control recorded after this one.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict TooltipTrigger(ControlIdentity Claimed, const PlaneExtent& Trigger,
+    ControlVerdict TooltipTrigger(ControlIdentity Target, const PlaneExtent& Trigger,
                                   const TooltipDeclaration& Declared);
 
     //--------------------------------------------------------------------------------------------------------
@@ -276,7 +276,7 @@ public:
     /// 🧩 The dearest mark any control raised since the last Advance.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    RedrawMark StandingMark() const;
+    RedrawMark CurrentMark() const;
 
     /// 🧩 Returns the panel to its constructed condition, forgetting every borrowed reference.
     /// cost  ✔️
@@ -290,7 +290,7 @@ private:
     ///       Nothing here is a copy of a datum the artist edits.
     struct DeferredRecording
     {
-        ControlIdentity     Claimed     = {};                            // [-] - whose popup this is
+        ControlIdentity     Target     = {};                            // [-] - whose popup this is
         PlaneExtent         Anchor      = {};                            // [px] - the extent it hangs from
         const char* const*  Options     = nullptr;                       // [-] - borrowed, for a menu
         std::uint32_t       OptionCount = 0u;                            // [-]
@@ -303,7 +303,7 @@ private:
 
     void RecordMenu(const DeferredRecording& Deferred);
     void RecordTooltip(const DeferredRecording& Deferred);
-    void FoldMark(RedrawMark Arriving);
+    void FoldMark(RedrawMark Incoming);
 
     /// 🧩 The extent an open menu occupies beneath its field.
     /// note  Derived from the field rather than retained, so the menu the pointer is tested against this tick
@@ -316,10 +316,10 @@ private:
     InteractionIndex*               Ledger                          = nullptr;   // [-] - borrowed
     RecordingSurface*               Surface                         = nullptr;   // [-] - borrowed
     const ThemeProfile*  Appearance                      = nullptr;   // [-] - borrowed
-    PointerCondition                Arrived                         = {};        // [-] - this tick's pointer
+    PointerCondition                Sampled                         = {};        // [-] - this tick's pointer
     DeferredRecording               Deferred[DeferredCeiling]       = {};        // [-] - never allocated
     std::uint32_t                   DeferredCount                   = 0u;        // [-]
-    RedrawMark                      Standing                        = RedrawMark::Quiet;   // [-]
+    RedrawMark                      Current                        = RedrawMark::Quiet;   // [-]
     bool                            ContactHeldByPanel              = false;     // [-]
 };
 
@@ -328,24 +328,24 @@ private:
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Projects a magnitude onto the fraction of its domain it occupies.
-/// in    Ordinate  [-]  the magnitude; outside the domain it clamps rather than extrapolating
-/// in    Least     [-]  the domain's floor
-/// in    Most      [-]  the domain's ceiling; a domain of zero extent projects to zero
+/// in    Coordinate  [-]  the magnitude; outside the domain it clamps rather than extrapolating
+/// in    Minimum     [-]  the domain's floor
+/// in    Maximum      [-]  the domain's ceiling; a domain of zero extent projects to zero
 /// out   Fraction  [-]  zero at the floor, one at the ceiling
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-double MagnitudeFraction(double Ordinate, double Least, double Most);
+double MagnitudeFraction(double Coordinate, double Minimum, double Maximum);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 /// 🧩 Projects a rotation drag onto the degrees it turned through.
-/// in    Departed      [deg]   the reading when the contact arrived
-/// in    TravelAlong   [px]    how far the contact has travelled since
+/// in    Previous      [deg]   the reading when the contact arrived
+/// in    TravelX   [px]    how far the contact has travelled since
 /// in    DegreesPerPixel [deg/px] what the sheet states as `deltaX / 10`
 /// out   Degrees       [deg]   the new reading
 /// note  📐 Subtractive, per the sheet: `startVal - (deltaX / 10)`.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-double RotationDegrees(double Departed, double TravelAlong, double DegreesPerPixel);
+double RotationDegrees(double Previous, double TravelX, double DegreesPerPixel);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 }   // namespace Slate

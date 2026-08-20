@@ -47,7 +47,7 @@ def WriteReport(Tag, Message):
 
 def WriteApplied(Message): WriteReport('ImGui',  Message)
 def WriteSkipped(Message): WriteReport('SKIP',   Message)
-def WriteRefused(Message): WriteReport('FAILED', Message)
+def WriteRejected(Message): WriteReport('FAILED', Message)
 def WriteNoted(Message):   WriteReport('Patch',  Message)
 
 
@@ -63,17 +63,17 @@ def Main(Arguments):
     Verify = '--verify' in Arguments
 
     if not os.path.isfile(os.path.join(ImGuiRoot, 'imgui.cpp')):
-        WriteRefused("the ImGui submodule is not checked out at {0}".format(ImGuiRoot))
+        WriteRejected("the ImGui submodule is not checked out at {0}".format(ImGuiRoot))
         WriteNoted('run: git submodule update --init --recursive')
         return 1
 
     # 📝 The pin is reported rather than enforced. A deliberate ImGui upgrade should reach a message naming
     #    both commits, not an assertion that reads as a broken checkout.
-    Code, Standing = Git(['rev-parse', 'HEAD'])
+    Code, Current = Git(['rev-parse', 'HEAD'])
 
-    if Code == 0 and Standing != ExpectedCommit:
+    if Code == 0 and Current != ExpectedCommit:
         WriteNoted("submodule stands at {0}; patches were cut against {1}".format(
-            Standing[:7], ExpectedCommit[:7]))
+            Current[:7], ExpectedCommit[:7]))
         WriteNoted('if ImGui was upgraded deliberately, re-cut the patches against the new commit')
 
     # 🔴 Reverting runs the stack backwards. B sits on top of A, so reverting A first would leave B's hunks
@@ -85,7 +85,7 @@ def Main(Arguments):
         PatchPath = os.path.join(PatchRoot, PatchName)
 
         if not os.path.isfile(PatchPath):
-            WriteRefused("declared patch {0} is absent from {1}".format(PatchName, PatchRoot))
+            WriteRejected("declared patch {0} is absent from {1}".format(PatchName, PatchRoot))
             return 1
 
         WitnessPath = os.path.join(ImGuiRoot, Entry['Witness'])
@@ -106,7 +106,7 @@ def Main(Arguments):
             Code, Output = Git(['apply', '--reverse', PatchPath])
 
             if Code != 0:
-                WriteRefused("could not revert {0}".format(PatchName))
+                WriteRejected("could not revert {0}".format(PatchName))
                 if Output: print(Output)
                 return 1
 
@@ -120,14 +120,14 @@ def Main(Arguments):
         Code, Output = Git(['apply', '--check', PatchPath])
 
         if Code != 0:
-            WriteRefused("{0} does not apply to the standing ImGui tree".format(PatchName))
+            WriteRejected("{0} does not apply to the standing ImGui tree".format(PatchName))
             if Output: print(Output)
             return 1
 
         Code, Output = Git(['apply', PatchPath])
 
         if Code != 0:
-            WriteRefused("could not apply {0}".format(PatchName))
+            WriteRejected("could not apply {0}".format(PatchName))
             if Output: print(Output)
             return 1
 

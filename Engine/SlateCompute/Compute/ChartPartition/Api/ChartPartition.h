@@ -72,8 +72,8 @@ struct PartitionMetrics
     std::uint32_t  CeilingTerminationCount = 0u;    // [-]   - charts that ended at the ceiling — `68` §4
     std::uint32_t  FoldCount               = 0u;    // [-]   - folds found and subdivided away — `68` §4.1
     double         Occupancy               = 0.0;   // [-]   - fraction of the domain covered — `68` §5
-    double         GreatestAreaRatio       = 1.0;   // [-]   - worst across every chart
-    double         GreatestAngleDeviation  = 0.0;   // [deg] - worst across every chart
+    double         MaximumAreaRatio       = 1.0;   // [-]   - worst across every chart
+    double         MaximumAngleDeviation  = 0.0;   // [deg] - worst across every chart
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Convergent, PrecisionGuarantee::Con
 ///        while `20` promotes against it. Re-partitioning moves domain positions, so every derived artefact
 ///        addressed in the old domain is invalid — and the revision is what makes that discoverable rather than
 ///        silent.
-/// note  🔴 A camera move, an occupant move and a paint stroke re-derive nothing here. The domain is parametric
+/// note  🔴 A camera move, an owner move and a paint stroke re-derive nothing here. The domain is parametric
 ///        rather than world-referred, which is `68` §6's table read from the storage side.
 /// tag   owning
 class ChartPartition
@@ -145,18 +145,18 @@ class ChartPartition
 public:
 
     /// 🧩 Adopts a derived partition on the tick, advancing the revision.
-    /// in    Arriving  [-]  as `Derive` produced it
+    /// in    Incoming  [-]  as `Derive` produced it
     /// out   Result   [-]  refuses with ContentUnsupported for a partition carrying no chart
     /// post  the revision advanced; every artefact keyed on the prior one is discoverably stale
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Adopt(const DerivedPartition& Arriving);
+    Outcome<bool> Adopt(const DerivedPartition& Incoming);
 
     /// 🧩 The standing partition.
-    /// pre   PartitionStanding holds
+    /// pre   PartitionCurrent holds
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const DerivedPartition& Standing() const;
+    const DerivedPartition& Current() const;
 
     /// 🧩 One imported corner's domain coordinate.
     /// out   Result  [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
@@ -168,7 +168,7 @@ public:
     /// 🧩 Whether a partition stands at all.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool PartitionStanding() const;
+    bool PartitionCurrent() const;
 
     /// 🧩 The revision `24` §3 keys on and `20` promotes against.
     /// cost  ✔️
@@ -188,7 +188,7 @@ public:
 
 private:
 
-    DerivedPartition  StandingPartition = {};    // [-] - as the last Adopt left it
+    DerivedPartition  CurrentPartition = {};    // [-] - as the last Adopt left it
     std::uint64_t     PartitionRevision = 0u;    // [-] - zero until the first Adopt
 };
 

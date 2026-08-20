@@ -32,8 +32,8 @@ enum class PropertyMeasure : std::uint32_t
     Magnitude    = 3u,   // [-] - a real quantity, bounded by the declared interval
     Text         = 4u,   // [-] - a name or a declaration the artist typed
     Colour       = 5u,   // [-] - a ColourSpecification; the space is validated, not assumed
-    Enrolment    = 6u,   // [-] - a selection among declared options
-    Occupant     = 7u,   // [-] - a reference to another occupant, generation included
+    Registration    = 6u,   // [-] - a selection among declared options
+    Owner     = 7u,   // [-] - a reference to another owner, generation included
     MeasureCount = 8u    // [-] - the closed count, never a measure
 };
 
@@ -50,12 +50,12 @@ struct PropertyValue
 {
     PropertyMeasure      Measured       = PropertyMeasure::Truth;   // [-] - which member below is meaningful
     bool                 TruthDeclared  = false;                    // [-] - read at Truth
-    std::uint64_t        OrdinalHeld    = 0u;                       // [-] - read at Ordinal and Enrolment
+    std::uint64_t        OrdinalHeld    = 0u;                       // [-] - read at Ordinal and Registration
     std::int64_t         SignedHeld     = 0;                        // [-] - read at Signed
     double               MagnitudeHeld  = 0.0;                      // [-] - read at Magnitude
     std::string          TextHeld       = {};                       // [-] - read at Text
     ColourSpecification  ColourHeld     = {};                       // [-] - read at Colour
-    OccupantIdentity     OccupantHeld   = {};                       // [-] - read at Occupant
+    OwnerIdentity     OwnerHeld   = {};                       // [-] - read at Owner
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -76,7 +76,7 @@ struct PropertyValue
 struct PropertyDeclaration
 {
     std::string                Identity        = {};                          // [-] - the mechanism's spelling
-    std::string                Presented       = {};                          // [-] - what the artist reads
+    std::string                Current       = {};                          // [-] - what the artist reads
     PropertyMeasure            Measured        = PropertyMeasure::Truth;      // [-] - what the value measures
     PropertyValue              Defaulted       = {};                          // [-] - never assumed to be zero
     double                     LowerMagnitude  = 0.0;                         // [-] - read at Magnitude
@@ -84,8 +84,8 @@ struct PropertyDeclaration
     std::int64_t               LowerSigned     = 0;                           // [-] - read at Signed
     std::int64_t               UpperSigned     = 0;                           // [-] - read at Signed
     std::uint64_t              UpperOrdinal    = 0u;                          // [-] - read at Ordinal; zero unbounds
-    std::uint32_t              RequiredSpace   = 0u;                          // [-] - read at Colour; zero admits any
-    std::vector<std::string>   EnrolledOptions = {};                          // [-] - read at Enrolment
+    std::uint32_t              RequiredSpace   = 0u;                          // [-] - read at Colour; zero accepts any
+    std::vector<std::string>   RegisteredOptions = {};                          // [-] - read at Registration
     std::uint32_t              TextExtent      = 0u;                          // [-] - read at Text; zero unbounds
     bool                       BoundsDeclared  = false;                       // [-] - whether the interval is read
 };
@@ -98,14 +98,14 @@ struct PropertyDeclaration
 /// in    Declared  [-]  the declaration, bounds included
 /// in    Offered   [-]  the value a caller wishes to write
 /// out   Result   [-]  refuses with ContentUnsupported when the measures disagree or a bound is exceeded, and
-///                      with IdentityStale when an occupant reference is undeclared
+///                      with IdentityStale when an owner reference is undeclared
 /// note  🔴 A refusal names which bound was exceeded, in static text. `86` §4's register presents that text
 ///        verbatim, so a refusal reading "invalid" sends the artist to guess.
 /// cost  ✔️
 /// tag   api, nonthrowing
 Outcome<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue& Offered);
 
-/// 🧩 Brings one value inside a declaration's bounds where the measure admits it.
+/// 🧩 Brings one value inside a declaration's bounds where the measure accepts it.
 /// in    Declared  [-]  the declaration
 /// in    Offered   [-]  the value; returned bounded at Magnitude, Signed and Ordinal
 /// out   Result   [-]  refuses when the measures disagree, because no bounding can reconcile that
@@ -121,7 +121,7 @@ Outcome<PropertyValue> Bounded(const PropertyDeclaration& Declared, const Proper
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 An ordered set of declarations and the values held against them.
-/// note  🔴 A write validates before it stores, and a refused write leaves the prior value standing. There is no
+/// note  🔴 A write validates before it stores, and a rejected write leaves the prior value standing. There is no
 ///        route by which an invalid value is held here — which is what makes reading one unnecessary to check.
 /// tag   owning
 class PropertyIndex
@@ -133,7 +133,7 @@ public:
     /// out   Result    [-]  refuses with ContentUnsupported for an empty identity, and when the declaration's
     ///                       own default does not satisfy it
     /// note  🔴 The default is validated against its own declaration here. A declaration whose default is out of
-    ///        bounds presents an invalid value on every occupant that never wrote it.
+    ///        bounds presents an invalid value on every owner that never wrote it.
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> Declare(const PropertyDeclaration& Declaring);
@@ -143,7 +143,7 @@ public:
     /// in    Offered   [-]  the value
     /// out   Result   [-]  refuses with ContentUnsupported when nothing declares that identity, and carries
     ///                      Validate's refusal otherwise
-    /// post  a refused write leaves the prior value standing
+    /// post  a rejected write leaves the prior value standing
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> Write(const std::string& Identity, const PropertyValue& Offered);

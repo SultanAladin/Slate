@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                              TILESPACE.CPP
 //============================================================================================================================================
-// 🧩 Claim, release into quarantine, and the reclamation deferred by the recording slot count.
+// 🧩 Reserve, release into quarantine, and the reclamation deferred by the recording slot count.
 
 #include "SlateCompute/Compute/TileSpace/Api/TileSpace.h"
 
@@ -29,7 +29,7 @@ Outcome<bool> TileSpace::Construct(std::uint32_t SlotCeiling_, std::uint32_t Byt
               * static_cast<std::uint64_t>(StoredTexelsPerEdge)
               * static_cast<std::uint64_t>(BytesPerTexel);
 
-    Standing.assign(Ceiling, SlotStanding::Free);
+    Conditions.assign(Ceiling, SlotCondition::Free);
     ReleasedAt.assign(Ceiling, 0u);
 
     FreeOrdinals.clear();
@@ -40,7 +40,7 @@ Outcome<bool> TileSpace::Construct(std::uint32_t SlotCeiling_, std::uint32_t Byt
     for (std::uint32_t Ordinal = Ceiling; Ordinal-- > 0u;)
         FreeOrdinals.push_back(Ordinal);
 
-    ClaimedSlots     = 0u;
+    HeldSlots     = 0u;
     QuarantinedSlots = 0u;
 
     return Outcome<bool>::Result(true);
@@ -50,7 +50,7 @@ Outcome<bool> TileSpace::Construct(std::uint32_t SlotCeiling_, std::uint32_t Byt
 //                                                    CLAIM AND RELEASE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> TileSpace::Claim()
+Outcome<std::uint32_t> TileSpace::Reserve()
 {
     if (FreeOrdinals.empty())
     {
@@ -58,13 +58,13 @@ Outcome<std::uint32_t> TileSpace::Claim()
             { RefusalReason::ExtentExhausted, "every slot is claimed or quarantined" });
     }
 
-    const std::uint32_t Claimed = FreeOrdinals.back();
+    const std::uint32_t Held = FreeOrdinals.back();
     FreeOrdinals.pop_back();
 
-    Standing[Claimed] = SlotStanding::Claimed;
-    ++ClaimedSlots;
+    Conditions[Held] = SlotCondition::Held;
+    ++HeldSlots;
 
-    return Outcome<std::uint32_t>::Result(Claimed);
+    return Outcome<std::uint32_t>::Result(Held);
 }
 
 Outcome<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal)
@@ -72,13 +72,13 @@ Outcome<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t Record
     if (SlotOrdinal >= Ceiling)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such slot" });
 
-    if (Standing[SlotOrdinal] != SlotStanding::Claimed)
+    if (Conditions[SlotOrdinal] != SlotCondition::Held)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the slot is not claimed" });
 
-    Standing[SlotOrdinal]   = SlotStanding::Quarantined;
+    Conditions[SlotOrdinal]   = SlotCondition::Quarantined;
     ReleasedAt[SlotOrdinal] = RecordingOrdinal;
 
-    --ClaimedSlots;
+    --HeldSlots;
     ++QuarantinedSlots;
 
     return Outcome<bool>::Result(true);
@@ -93,7 +93,7 @@ std::uint32_t TileSpace::Reclaim(std::uint64_t RecordingOrdinal)
 
     for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < Ceiling; ++SlotOrdinal)
     {
-        if (Standing[SlotOrdinal] != SlotStanding::Quarantined)
+        if (Conditions[SlotOrdinal] != SlotCondition::Quarantined)
             continue;
 
         // 🔴 `20` §5: reclamation is deferred by the recording slot count. The comparison is written as a subtraction
@@ -105,7 +105,7 @@ std::uint32_t TileSpace::Reclaim(std::uint64_t RecordingOrdinal)
             continue;
         }
 
-        Standing[SlotOrdinal] = SlotStanding::Free;
+        Conditions[SlotOrdinal] = SlotCondition::Free;
         FreeOrdinals.push_back(SlotOrdinal);
 
         --QuarantinedSlots;
@@ -135,7 +135,7 @@ std::uint64_t TileSpace::BackingBytes() const
 }
 
 std::uint32_t TileSpace::SlotCeiling() const       { return Ceiling;          }
-std::uint32_t TileSpace::ClaimedCount() const      { return ClaimedSlots;     }
+std::uint32_t TileSpace::HeldCount() const      { return HeldSlots;     }
 std::uint32_t TileSpace::QuarantinedCount() const  { return QuarantinedSlots; }
 
 std::uint32_t TileSpace::FreeCount() const
@@ -149,15 +149,15 @@ bool TileSpace::LedgerConsistent() const
     std::uint32_t Held = 0u;
     std::uint32_t Kept = 0u;
 
-    for (const SlotStanding Standing_ : Standing)
+    for (const SlotCondition Condition_ : Conditions)
     {
-        if (Standing_ == SlotStanding::Free)             ++Free;
-        else if (Standing_ == SlotStanding::Claimed)     ++Held;
+        if (Condition_ == SlotCondition::Free)             ++Free;
+        else if (Condition_ == SlotCondition::Held)     ++Held;
         else                                             ++Kept;
     }
 
     return Free == FreeOrdinals.size()
-        && Held == ClaimedSlots
+        && Held == HeldSlots
         && Kept == QuarantinedSlots
         && Free + Held + Kept == Ceiling;
 }

@@ -55,7 +55,7 @@ inline constexpr std::uint32_t ResolvedComponentCeiling = 4u;   // [-] - compone
 
 /// 🧩 One position's resolved value and the coverage it applies at.
 /// note  🔴 Coverage is carried **beside** the value rather than folded into it. `56` §2's combination reads the
-///        two separately — `CombineValue` takes the arriving coverage and `CombineCoverage` accumulates it — and
+///        two separately — `CombineValue` takes the incoming coverage and `CombineCoverage` accumulates it — and
 ///        a resolution that premultiplied would make `Erase` reduce a value it is declared to leave alone.
 /// tag   nonallocating, nonthrowing
 struct ResolvedSample
@@ -83,7 +83,7 @@ struct ResolvedTile
 //                                                   THE LEVEL TOLERANCE
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The flattening tolerance one reduction level admits, in domain units.
+/// 🧩 The flattening tolerance one reduction level accepts, in domain units.
 /// in    Level      [-]  the level being resolved; zero is finest
 /// out   Tolerance  [-]  one texel of that level's working extent
 /// note  🔴 `52` §4's rule, as a number. Tolerance is **relative to the level being resolved**, because a fixed
@@ -117,7 +117,7 @@ constexpr double ToleranceAtLevel(std::uint32_t Level)
 ///        through `ParityRunner`. Where the two disagree the artist blames the preview, because the preview is
 ///        the thing that looks provisional, and the defect is then attributed to the wrong subsystem for as long
 ///        as it takes someone to check.
-/// note  ⚠️ 🚧 Imagery is **refused** rather than sampled. `50` retains a decoded image's original bytes and
+/// note  ⚠️ 🚧 Imagery is **rejected** rather than sampled. `50` retains a decoded image's original bytes and
 ///        performs `36` §3's conversion into the working space nowhere, so sampling here would return values in a
 ///        content-native space nothing declared. Refusing is the honest state of the tree; converting per sample
 ///        would violate `36` §3's once-at-intake rule at the one site that would make the violation invisible.
@@ -138,7 +138,7 @@ public:
     /// out   Revision [-]  folded from every entry's own revision and every placement's
     /// note  🔴 `70` §2's comparison operand. `SurfaceTileSpace::Promote` tests it against what a resident tile
     ///        recorded, one integer per tile, and the answer is almost always "no work": a camera move advances
-    ///        no counter and a moved occupant advances none either, because `72` §1 stores a placing transform
+    ///        no counter and a moved owner advances none either, because `72` §1 stores a placing transform
     ///        relative to the surface it is attached to.
     /// note  ⚠️ 🚧 Folded over the **whole** sequence rather than over the entries a tile's extent reaches, so a
     ///        stroke in one corner of the domain re-resolves every analytic tile. That is conservative and
@@ -151,12 +151,12 @@ public:
     /// 🧩 Resolves one domain position through the whole layer sequence.
     /// in    Content         [-]  the surface's layer sequence
     /// in    Placements      [-]  where each of `42`'s channels sits among the components
-    /// in    PositionAlong   [-]  the domain's first axis
-    /// in    PositionAcross  [-]  its second
+    /// in    PositionX   [-]  the domain's first axis
+    /// in    PositionY  [-]  its second
     /// in    Tolerance       [-]  the flattening tolerance, from `ToleranceAtLevel`
     /// in    ComponentCount  [-]  components the caller's texel carries
     /// out   Result         [-]  refuses with ContentUnsupported for a component count above the ceiling, and
-    ///                            with whatever a source refused
+    ///                            with whatever a source rejected
     /// note  🔴 This is the form `74` §1 and `82` §5 read on the host, and `ResolveTile` below walks it. One
     ///        routine and not two, because a preview resolved by a second implementation is a preview that
     ///        disagrees with the result in exactly the way `00` §11's gate exists to catch.
@@ -167,8 +167,8 @@ public:
     /// tag   api, nonthrowing
     Outcome<ResolvedSample> ResolveAt(const SurfaceLayerSequence&           Content,
                                       const std::vector<ChannelPlacement>&  Placements,
-                                      double                                PositionAlong,
-                                      double                                PositionAcross,
+                                      double                                PositionX,
+                                      double                                PositionY,
                                       double                                Tolerance,
                                       std::uint32_t                         ComponentCount) const;
 
@@ -178,7 +178,7 @@ public:
     /// in    Addressed       [-]  the cell the tile backs — level, along, across
     /// in    ComponentCount  [-]  components per texel
     /// out   Result         [-]  refuses with ContentUnsupported outside the level count or above the component
-    ///                            ceiling, and with whatever a source refused
+    ///                            ceiling, and with whatever a source rejected
     /// post  the returned run is `StoredTexelsPerEdge` squared texels, interleaved
     /// note  🔴 The **apron** is resolved along with the interior, per `20` §1. A tile whose apron were left
     ///        unwritten would read whatever the slot previously held at every filtered sample near its edge, and
@@ -204,30 +204,30 @@ public:
 private:
 
     Outcome<ResolvedSample> ResolveEntryAt(const LayerSpecification&  Held,
-                                           double                     PositionAlong,
-                                           double                     PositionAcross,
+                                           double                     PositionX,
+                                           double                     PositionY,
                                            double                     Tolerance,
                                            std::uint32_t              ComponentCount) const;
 
     Outcome<ResolvedSample> ResolveOutlineAt(std::uint32_t  SourceOrdinal,
-                                             double         SourceAlong,
-                                             double         SourceAcross,
+                                             double         SourceX,
+                                             double         SourceY,
                                              double         Tolerance) const;
 
     Outcome<ResolvedSample> ResolveTextAt(std::uint32_t  SourceOrdinal,
-                                          double         SourceAlong,
-                                          double         SourceAcross,
+                                          double         SourceX,
+                                          double         SourceY,
                                           double         Tolerance) const;
 
     Outcome<ResolvedSample> ResolveTilingAt(std::uint32_t  TilingOrdinal,
-                                            double         SourceAlong,
-                                            double         SourceAcross,
+                                            double         SourceX,
+                                            double         SourceY,
                                             double         Tolerance,
                                             std::uint32_t  NestingDepth) const;
 
     Outcome<ResolvedSample> ResolvePlacedAt(std::uint32_t  PlacementOrdinal,
-                                            double         PositionAlong,
-                                            double         PositionAcross,
+                                            double         PositionX,
+                                            double         PositionY,
                                             double         Tolerance) const;
 
     /// 🧩 One outline flattened at one tolerance, held for the duration of one walk.

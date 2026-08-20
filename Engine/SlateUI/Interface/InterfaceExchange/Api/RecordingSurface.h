@@ -20,40 +20,40 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 One axis-aligned extent in display pixels, stated as its two corners.
-/// note  The ordinate increases **downward**, as the display does. Nothing in the interface uses the
+/// note  The coordinate increases **downward**, as the display does. Nothing in the interface uses the
 ///       upward convention `ToleranceContract.h` declares for clip space; the two never meet.
 /// tag   contract, nonallocating, nonthrowing
 struct PlaneExtent
 {
-    float  LeastAlong  = 0.0f;   // [px] - leading edge
-    float  LeastAcross = 0.0f;   // [px] - upper edge
-    float  MostAlong   = 0.0f;   // [px] - trailing edge
-    float  MostAcross  = 0.0f;   // [px] - lower edge
+    float  MinimumX  = 0.0f;   // [px] - leading edge
+    float  MinimumY = 0.0f;   // [px] - upper edge
+    float  MaximumX   = 0.0f;   // [px] - trailing edge
+    float  MaximumY  = 0.0f;   // [px] - lower edge
 
-    constexpr float SpanAlong() const  { return MostAlong  - LeastAlong;  }
-    constexpr float SpanAcross() const { return MostAcross - LeastAcross; }
+    constexpr float Width() const  { return MaximumX  - MinimumX;  }
+    constexpr float Height() const { return MaximumY - MinimumY; }
 
-    constexpr bool Encloses(float Along, float Across) const
+    constexpr bool Encloses(float X, float Y) const
     {
-        return Along >= LeastAlong && Along < MostAlong && Across >= LeastAcross && Across < MostAcross;
+        return X >= MinimumX && X < MaximumX && Y >= MinimumY && Y < MaximumY;
     }
 };
 
 /// 🧩 Constructs an extent from an origin and a span.
 /// cost  ✔️
-constexpr PlaneExtent Spanning(float Along, float Across, float ExtentAlong, float ExtentAcross)
+constexpr PlaneExtent Spanning(float X, float Y, float Width, float Height)
 {
-    return PlaneExtent{ Along, Across, Along + ExtentAlong, Across + ExtentAcross };
+    return PlaneExtent{ X, Y, X + Width, Y + Height };
 }
 
 /// 🧩 Which axis a scrim's colour varies along.
-/// note  The ordinate axis is declared first and carries the ordinal zero, so the enumeration's default and
+/// note  The coordinate axis is declared first and carries the ordinal zero, so the enumeration's default and
 ///       the scrim's default are the same statement rather than two that must be kept agreeing.
 /// tag   contract
 enum class ScrimAxis : std::uint32_t
 {
-    Across    = 0u,   // [-] - varies from LeastAcross to MostAcross; the card's caption scrim
-    Along     = 1u,   // [-] - varies from LeastAlong to MostAlong; the ruler's leading and trailing fade
+    Y    = 0u,   // [-] - varies from MinimumY to MaximumY; the card's caption scrim
+    X     = 1u,   // [-] - varies from MinimumX to MaximumX; the ruler's leading and trailing fade
     AxisCount = 2u    // [-] - the closed count, never an axis
 };
 
@@ -79,13 +79,13 @@ inline constexpr std::uint32_t CornerAll          = 0x0Fu;
 /// tag   contract, nonallocating, nonthrowing
 struct PointerCondition
 {
-    float   PositionAlong   = 0.0f;    // [px] - in the display's drawable extent
-    float   PositionAcross  = 0.0f;    // [px]
-    float   TravelAlong     = 0.0f;    // [px] - since the previous tick
-    float   TravelAcross    = 0.0f;    // [px]
-    float   WheelAcross     = 0.0f;    // [-]  - notches; positive is away from the artist
+    float   PositionX   = 0.0f;    // [px] - in the display's drawable extent
+    float   PositionY  = 0.0f;    // [px]
+    float   TravelX     = 0.0f;    // [px] - since the previous tick
+    float   TravelY    = 0.0f;    // [px]
+    float   WheelY     = 0.0f;    // [-]  - notches; positive is away from the artist
     bool    ContactHeld     = false;   // [-]  - the primary contact is down now
-    bool    ContactArrived  = false;   // [-]  - it went down during this tick
+    bool    ContactPressed  = false;   // [-]  - it went down during this tick
     bool    ContactReleased = false;   // [-]  - it came up during this tick
     double  HeldDuration    = 0.0;     // [ms] - how long it has been down; zero while it is not
 };
@@ -94,8 +94,8 @@ struct PointerCondition
 /// tag   contract, nonallocating, nonthrowing
 struct DisplayCondition
 {
-    float   ExtentAlong  = 0.0f;   // [px] - the drawable extent
-    float   ExtentAcross = 0.0f;   // [px]
+    float   Width  = 0.0f;   // [px] - the drawable extent
+    float   Height = 0.0f;   // [px]
     double  Elapsed      = 0.0;    // [ms] - since the previous tick; what every interpolant is advanced by
     double  DisplayScale = 1.0;    // [-]  - what ThemeProfile was resolved against
 };
@@ -105,7 +105,7 @@ struct DisplayCondition
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 The keys the shell arbitrates for itself, named by what they do rather than by their scan position.
-/// note  🔴 A closed roster and not a scan ordinate. The seam exists so that a panel may ask "did the artist
+/// note  🔴 A closed roster and not a scan coordinate. The seam exists so that a panel may ask "did the artist
 ///        summon" without naming a vendor key enumeration, which `00` §2.2 keeps inside this unit. Adding a
 ///        key is adding a line here and a line in the source's translation, and nothing else moves.
 /// note  ⚠️ Every arrival is edge-triggered and unrepeated — the shell's summon must not fire sixty times
@@ -115,7 +115,7 @@ enum class KeySubject : std::uint32_t
 {
     Summon       = 0u,   // [-] - Tab; carries the inspector between its two presentations
     Withdraw     = 1u,   // [-] - Escape; closes the inspector, then the summoned menu
-    Retract      = 2u,   // [-] - Backspace; removes the last character of the roused filter field
+    Retract      = 2u,   // [-] - Backspace; removes the last character of the hovered filter field
 
     // 📐 The layer stack's own roster, from `LayerstackV1`'s KEYBOARD section. Every one is edge-triggered
     //    and unrepeated on the same terms as the three above.
@@ -144,7 +144,7 @@ enum class KeySubject : std::uint32_t
 };
 
 /// 🧩 Which modifiers stood down when a key arrived, so a caller may separate `D` from `⌘D`.
-/// note  🔴 Read alongside `KeyArrived` rather than folded into it. The reference branches on the SAME key
+/// note  🔴 Read alongside `KeyPressed` rather than folded into it. The reference branches on the SAME key
 ///        by modifier — `d` declares a decal, `⌘d` copies the taken entry — so a seam that reported only
 ///        "D arrived" would make both branches fire from one press.
 /// tag   contract, nonallocating, nonthrowing
@@ -210,7 +210,7 @@ public:
     /// note  ⚠️ Refuses when no tick stands adopted, so a layer change cannot open one by accident.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> Relayer(ShellLayer Layer);
+    Outcome<bool> SwitchLayer(ShellLayer Layer);
 
     /// 🧩 Moves subsequent primitives into the currently open workspace window's command list.
     /// out   Result  [-]  refuses when no tick or no workspace window stands open
@@ -218,7 +218,7 @@ public:
     ///       content clips and orders with its own dockable window instead of the global shell layers.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<bool> RelayerWindow();
+    Outcome<bool> SwitchToWindow();
 
     /// 🧩 What the pointer did this tick.
     /// cost  ✔️
@@ -246,18 +246,18 @@ public:
               float Radius = 0.0f, std::uint32_t Corners = CornerAll);
 
     /// 🧩 Fills an extent with a linearly varying colour — the card's caption scrim, and the ruler's fade.
-    /// in    UpperColour  [-]  at LeastAcross, or at LeastAlong when the axis is Along
-    /// in    LowerColour  [-]  at MostAcross, or at MostAlong when the axis is Along
+    /// in    UpperColour  [-]  at MinimumY, or at MinimumX when the axis is X
+    /// in    LowerColour  [-]  at MaximumY, or at MaximumX when the axis is X
     /// in    Axis      [-]  which axis the colour varies along; the default is what every existing caller means
     /// note  📐 A four-stop ramp is two of these. `Controls.html` masks its ruler with
     ///       `linear-gradient(to right, transparent, black 20%, black 80%, transparent)`, which records as one
-    ///       Along scrim over the leading fifth and a second, reversed, over the trailing fifth. Declaring a
+    ///       X scrim over the leading fifth and a second, reversed, over the trailing fifth. Declaring a
     ///       four-stop primitive to serve one call site would put the stop fractions inside this component,
     ///       where the sheet that states them could never be compared against them.
     /// cost  ✔️
     /// tag   api, nonthrowing
     void Scrim(const PlaneExtent& Extent, ThemeToken UpperColour, ThemeToken LowerColour,
-               ScrimAxis Axis = ScrimAxis::Across);
+               ScrimAxis Axis = ScrimAxis::Y);
 
     /// 🧩 Covers the four areas outside a rounded extent after rectangular gradients were recorded into it.
     /// in    OutsideColour  [-]  the surrounding ground restored at each corner
@@ -269,7 +269,7 @@ public:
     /// 🧩 Fills a disc — every medallion and the meta separator.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    void Medallion(float CentreAlong, float CentreAcross, float Radius, ThemeToken Colour);
+    void Medallion(float CentreX, float CentreY, float Radius, ThemeToken Colour);
 
     /// 🧩 Fills a convex outline of up to eight corners — the drawer tongue's clip polygon.
     /// in    Corners      [px] alternating along and across ordinates, in winding order
@@ -304,7 +304,7 @@ public:
     ///                      weight draws once, because the face itself is the emphasis.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void TextRun(float Along, float Across, ThemeToken Colour, const char* Text,
+    void TextRun(float X, float Y, ThemeToken Colour, const char* Text,
                  float PointSize, float Tracking = 0.0f, bool Emphatic = false,
                  FontWeight Weight = FontWeight::Regular);
 
@@ -312,7 +312,7 @@ public:
     /// note  ⚠️ ASCII only. A capital of a codepoint outside ASCII is a locale question, not a formatting one.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void TextRunCapitalised(float Along, float Across, ThemeToken Colour, const char* Text,
+    void TextRunCapitalised(float X, float Y, ThemeToken Colour, const char* Text,
                             float PointSize, float Tracking = 0.0f, bool Emphatic = false,
                             FontWeight Weight = FontWeight::Regular);
 
@@ -321,12 +321,12 @@ public:
     /// note  The ellipsis is three full stops rather than U+2026, which the default typeface does not carry.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void TextRunTruncated(float Along, float Across, float CeilingAlong, ThemeToken Colour,
+    void TextRunTruncated(float X, float Y, float CeilingX, ThemeToken Colour,
                           const char* Text, float PointSize, bool Emphatic = false,
                           FontWeight Weight = FontWeight::Regular);
 
     /// 🧩 The extent a run would occupy, without recording it.
-    /// out   ExtentAlong  [px] zero for empty text
+    /// out   Width  [px] zero for empty text
     /// in    Weight  [-]  the face the run is measured with; see `TextRun`
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -342,7 +342,7 @@ public:
     /// 🧩 The baseline-to-baseline extent at one point size.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    float RunAcross(float PointSize) const;
+    float LineHeight(float PointSize) const;
 
     //--------------------------------------------------------------------------------------------------------
     //                                                CLIPPING
@@ -397,8 +397,8 @@ private:
     //    late recording wrote into content nothing would ever assemble — no refusal, no diagnostic, and the
     //    only symptom a panel that silently failed to appear.
     void*             CommandSlot   = nullptr;   // [-] - opaque; the ImGui spelling stays in the source file
-    PointerCondition  ArrivedPointer = {};       // [-] - sampled once, at Adopt
-    DisplayCondition  ArrivedDisplay = {};       // [-] - sampled once, at Adopt
+    PointerCondition  SampledPointer = {};       // [-] - sampled once, at Adopt
+    DisplayCondition  SampledDisplay = {};       // [-] - sampled once, at Adopt
     float             TypographyScale = 1.0f;    // [-] - shared text scale
     float             CornerScale = 1.0f;        // [-] - shared corner scale
     FontLoader*       Fonts = nullptr;           // [-] - borrowed active font loader

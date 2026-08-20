@@ -19,11 +19,11 @@ Outcome<std::uint32_t> OrdinalOf(CellAddress Addressed)
 
     const std::uint32_t Span = CellsPerEdgeAt(Addressed.Level);
 
-    if (Addressed.Along >= Span || Addressed.Across >= Span)
+    if (Addressed.X >= Span || Addressed.Y >= Span)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such cell at that level" });
 
-    return Outcome<std::uint32_t>::Result(LevelBaseOrdinal(Addressed.Level) + Addressed.Across * Span
-                                         + Addressed.Along);
+    return Outcome<std::uint32_t>::Result(LevelBaseOrdinal(Addressed.Level) + Addressed.Y * Span
+                                         + Addressed.X);
 }
 
 Outcome<CellAddress> AddressOf(std::uint32_t CellOrdinal)
@@ -41,8 +41,8 @@ Outcome<CellAddress> AddressOf(std::uint32_t CellOrdinal)
 
         CellAddress Addressed;
         Addressed.Level  = Level;
-        Addressed.Along  = (CellOrdinal - Base) % Span;
-        Addressed.Across = (CellOrdinal - Base) / Span;
+        Addressed.X  = (CellOrdinal - Base) % Span;
+        Addressed.Y = (CellOrdinal - Base) / Span;
 
         return Outcome<CellAddress>::Result(Addressed);
     }
@@ -50,7 +50,7 @@ Outcome<CellAddress> AddressOf(std::uint32_t CellOrdinal)
     return Outcome<CellAddress>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
 }
 
-Outcome<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionAlong, double PositionAcross)
+Outcome<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionX, double PositionY)
 {
     if (Level >= ReductionLevelCount)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such reduction level" });
@@ -58,19 +58,19 @@ Outcome<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionAlong, doub
     const std::uint32_t Span = CellsPerEdgeAt(Level);
     const double        Edge = static_cast<double>(Span);
 
-    // 📝 Clamped rather than refused. `68` §5 packs every chart strictly inside the domain with an apron's gap,
+    // 📝 Clamped rather than rejected. `68` §5 packs every chart strictly inside the domain with an apron's gap,
     //    so a position outside the unit square is an apron read at the domain edge — and the edge cell is what
     //    it should read from.
-    double AlongCell  = PositionAlong  * Edge;
-    double AcrossCell = PositionAcross * Edge;
+    double XCell  = PositionX  * Edge;
+    double YCell = PositionY * Edge;
 
-    AlongCell  = AlongCell  < 0.0 ? 0.0 : (AlongCell  > Edge - 1.0 ? Edge - 1.0 : AlongCell);
-    AcrossCell = AcrossCell < 0.0 ? 0.0 : (AcrossCell > Edge - 1.0 ? Edge - 1.0 : AcrossCell);
+    XCell  = XCell  < 0.0 ? 0.0 : (XCell  > Edge - 1.0 ? Edge - 1.0 : XCell);
+    YCell = YCell < 0.0 ? 0.0 : (YCell > Edge - 1.0 ? Edge - 1.0 : YCell);
 
     CellAddress Addressed;
     Addressed.Level  = Level;
-    Addressed.Along  = static_cast<std::uint32_t>(AlongCell);
-    Addressed.Across = static_cast<std::uint32_t>(AcrossCell);
+    Addressed.X  = static_cast<std::uint32_t>(XCell);
+    Addressed.Y = static_cast<std::uint32_t>(YCell);
 
     return OrdinalOf(Addressed);
 }
@@ -194,12 +194,12 @@ Outcome<bool> SurfaceTileSpace::Construct(std::uint32_t SurfaceOrdinal_,
         if (!Cells_.Records()[CellOrdinal].Permanent)
             continue;
 
-        const Outcome<std::uint32_t> Claimed = Tiles_.Claim();
+        const Outcome<std::uint32_t> Reserved = Tiles_.Reserve();
 
-        if (!Claimed.Resolved)
-            return Outcome<bool>::Refuse(Claimed.Error);
+        if (!Reserved.Resolved)
+            return Outcome<bool>::Refuse(Reserved.Error);
 
-        Cells_.DeclareResident(CellOrdinal, Claimed.Resolve(), 0u);
+        Cells_.DeclareResident(CellOrdinal, Reserved.Resolve(), 0u);
     }
 
     return Outcome<bool>::Result(true);
@@ -210,8 +210,8 @@ Outcome<bool> SurfaceTileSpace::Construct(std::uint32_t SurfaceOrdinal_,
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
-                                              double        PositionAlong,
-                                              double        PositionAcross,
+                                              double        PositionX,
+                                              double        PositionY,
                                               std::uint64_t RecordingOrdinal,
                                               RequestQueue& Requesting)
 {
@@ -228,7 +228,7 @@ Outcome<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
     //    levels are permanently resident, so the loop cannot fall off the end of the chain.
     for (std::uint32_t Walking = Level; Walking < ReductionLevelCount; ++Walking)
     {
-        const Outcome<std::uint32_t> Located = OrdinalAt(Walking, PositionAlong, PositionAcross);
+        const Outcome<std::uint32_t> Located = OrdinalAt(Walking, PositionX, PositionY);
 
         if (!Located.Resolved)
             continue;
@@ -270,7 +270,7 @@ Outcome<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
         { RefusalReason::ExtentExhausted, "no resident level answered; the permanence guarantee is broken" });
 }
 
-Outcome<SampledCell> SurfaceTileSpace::SampleGuaranteed(double PositionAlong, double PositionAcross) const
+Outcome<SampledCell> SurfaceTileSpace::SampleGuaranteed(double PositionX, double PositionY) const
 {
     if (!Constructed)
         return Outcome<SampledCell>::Refuse({ RefusalReason::HostDenied, "the residency is not constructed" });
@@ -280,7 +280,7 @@ Outcome<SampledCell> SurfaceTileSpace::SampleGuaranteed(double PositionAlong, do
     //    record a demand that would put a visibility recording on the promotion path.
     for (std::uint32_t Walking = ReductionLevelCount - PermanentLevelCount; Walking < ReductionLevelCount; ++Walking)
     {
-        const Outcome<std::uint32_t> Located = OrdinalAt(Walking, PositionAlong, PositionAcross);
+        const Outcome<std::uint32_t> Located = OrdinalAt(Walking, PositionX, PositionY);
 
         if (!Located.Resolved)
             continue;
@@ -339,12 +339,12 @@ Outcome<bool> SurfaceTileSpace::DeclareUncommitted(std::uint32_t CellOrdinal, bo
 //                                                      PROMOTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal)
+Outcome<std::uint32_t> SurfaceTileSpace::ReserveOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal)
 {
-    const Outcome<std::uint32_t> Claimed = Tiles_.Claim();
+    const Outcome<std::uint32_t> Reserved = Tiles_.Reserve();
 
-    if (Claimed.Resolved)
-        return Claimed;
+    if (Reserved.Resolved)
+        return Reserved;
 
     // 📝 The whole span is walked once. It is 5461 entries at the declared subdivision, which is a scan the
     //    promotion of one tile can afford and which needs no second ordering to be kept current — and a second
@@ -396,10 +396,10 @@ Outcome<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Schedu
     // 🔴 The evicted slot is quarantined, not freed, so the claim below still refuses. Reclaiming it here would
     //    be reclaiming inside the recording slot count, which is the one thing `20` §5 forbids — so the promotion
     //    defers this rotation and takes the freed slot on the rotation after the depth elapses.
-    return Tiles_.Claim();
+    return Tiles_.Reserve();
 }
 
-Outcome<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        CellOrdinal,
+Outcome<PromotionVerdict> SurfaceTileSpace::Promote(std::uint32_t        CellOrdinal,
                                                         const PromotionCost& Costing,
                                                         std::uint64_t        ContentRevision,
                                                         PromotionScheduler&  Scheduling,
@@ -407,27 +407,27 @@ Outcome<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
 {
     if (!Constructed)
     {
-        return Outcome<PromotionDisposition>::Refuse(
+        return Outcome<PromotionVerdict>::Refuse(
             { RefusalReason::HostDenied, "the residency is not constructed" });
     }
 
     const Outcome<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
 
     if (!Amending.Resolved)
-        return Outcome<PromotionDisposition>::Refuse(Amending.Error);
+        return Outcome<PromotionVerdict>::Refuse(Amending.Error);
 
     CellRecord& Held_ = *Amending.Resolve();
 
     // 🔴 `70` §2's comparison, and the reason the whole mechanism is affordable. One integer test at Exact, per
-    //    tile, whose answer is almost always "no work": a camera move advances no counter, and an occupant that
+    //    tile, whose answer is almost always "no work": a camera move advances no counter, and an owner that
     //    moved advances none either, because a placement's transform is stored relative to its surface.
     if (Held_.Resident && Held_.ResolvedRevision == ContentRevision)
-        return Outcome<PromotionDisposition>::Result(PromotionDisposition::AlreadyResident);
+        return Outcome<PromotionVerdict>::Result(PromotionVerdict::AlreadyResident);
 
-    if (!Scheduling.Admits(Costing))
+    if (!Scheduling.Accepts(Costing))
     {
         Scheduling.DeferOne();
-        return Outcome<PromotionDisposition>::Result(PromotionDisposition::Deferred);
+        return Outcome<PromotionVerdict>::Result(PromotionVerdict::Deferred);
     }
 
     // 📝 A resident cell at a stale revision keeps its own slot and is resolved into again. Releasing and
@@ -440,7 +440,7 @@ Outcome<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
         if (!Charged.Resolved)
         {
             Scheduling.DeferOne();
-            return Outcome<PromotionDisposition>::Result(PromotionDisposition::Deferred);
+            return Outcome<PromotionVerdict>::Result(PromotionVerdict::Deferred);
         }
 
         Held_.ResolvedRevision = ContentRevision;
@@ -449,15 +449,15 @@ Outcome<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
 
         Scheduling.PromoteOne();
 
-        return Outcome<PromotionDisposition>::Result(PromotionDisposition::ReResolved);
+        return Outcome<PromotionVerdict>::Result(PromotionVerdict::ReResolved);
     }
 
-    const Outcome<std::uint32_t> Claimed = ClaimOrEvict(Scheduling, RecordingOrdinal);
+    const Outcome<std::uint32_t> Reserved = ReserveOrEvict(Scheduling, RecordingOrdinal);
 
-    if (!Claimed.Resolved)
+    if (!Reserved.Resolved)
     {
         Scheduling.DeferOne();
-        return Outcome<PromotionDisposition>::Result(PromotionDisposition::Deferred);
+        return Outcome<PromotionVerdict>::Result(PromotionVerdict::Deferred);
     }
 
     const Outcome<bool> Charged = Scheduling.Charge(Costing);
@@ -468,18 +468,18 @@ Outcome<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
         //    quarantine like any release, which is correct: nothing was written into it, and the depth costs one
         //    slot for two rotations rather than a rule that has to distinguish an unwritten slot from a written
         //    one.
-        Disregard(Tiles_.Release(Claimed.Resolve(), RecordingOrdinal));
+        Discard(Tiles_.Release(Reserved.Resolve(), RecordingOrdinal));
 
         Scheduling.DeferOne();
-        return Outcome<PromotionDisposition>::Result(PromotionDisposition::Deferred);
+        return Outcome<PromotionVerdict>::Result(PromotionVerdict::Deferred);
     }
 
-    Cells_.DeclareResident(CellOrdinal, Claimed.Resolve(), RecordingOrdinal);
+    Cells_.DeclareResident(CellOrdinal, Reserved.Resolve(), RecordingOrdinal);
     Held_.ResolvedRevision = ContentRevision;
 
     Scheduling.PromoteOne();
 
-    return Outcome<PromotionDisposition>::Result(PromotionDisposition::Promoted);
+    return Outcome<PromotionVerdict>::Result(PromotionVerdict::Promoted);
 }
 
 Outcome<bool> SurfaceTileSpace::DeclareApronWritten(std::uint32_t CellOrdinal)
@@ -617,7 +617,7 @@ bool SurfaceTileSpace::ResidencyValid(std::uint64_t RecordingOrdinal) const
             return false;
     }
 
-    return Resident == Cells_.ResidentCount() && Resident == Tiles_.ClaimedCount();
+    return Resident == Cells_.ResidentCount() && Resident == Tiles_.HeldCount();
 }
 
 }   // namespace Slate

@@ -16,12 +16,12 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 bool PersistenceSequence::VerifyIdentical(const std::vector<std::uint8_t>& Written,
-                                          const std::vector<std::uint8_t>& Landed)
+                                          const std::vector<std::uint8_t>& ReadBack)
 {
-    if (Written.size() != Landed.size()) { return false; }
+    if (Written.size() != ReadBack.size()) { return false; }
     if (Written.empty())                 { return true;  }
 
-    return std::memcmp(Written.data(), Landed.data(), Written.size()) == 0;
+    return std::memcmp(Written.data(), ReadBack.data(), Written.size()) == 0;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ Outcome<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent&
 
     if (Sealed.Content.empty())
     {
-        // 🔴 An empty stream is refused rather than written. Writing it would replace a good document with a
+        // 🔴 An empty stream is rejected rather than written. Writing it would replace a good document with a
         //    file carrying no heading at all, and `48` §3's whole sequence exists to stop a save from being
         //    the thing that destroys the artist's previous save.
         return Outcome<PersistenceConclusion>::Refuse(
@@ -51,33 +51,33 @@ Outcome<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent&
     //    reads it back, compares it, and only then renames — and the rename is atomic within one file system.
     //    Splitting them here would put the staged stream's path in two places, and a host that died between
     //    two of the calls would leave the artist a directory with two documents and no way to tell which.
-    const Outcome<bool> Landed = FileInterchange::WriteStream(Sealed.TargetPath, Sealed.Content);
+    const Outcome<bool> ReadBack = FileInterchange::WriteStream(Sealed.TargetPath, Sealed.Content);
 
-    if (!Landed.Resolved)
+    if (!ReadBack.Resolved)
     {
-        // 📝 Which step the surface refused at is carried in its own reason: ExtentExhausted is ② failing the
+        // 📝 Which step the surface rejected at is carried in its own reason: ExtentExhausted is ② failing the
         //    comparison, and HostDenied is ① or ③. Either way the existing file stands, which is the fact the
         //    artist needs and the reason nothing is amended here before returning.
-        Reached = Landed.Error.DeclaredReason == RefusalReason::ExtentExhausted
+        Reached = ReadBack.Error.DeclaredReason == RefusalReason::ExtentExhausted
                 ? PersistenceStep::Written
                 : PersistenceStep::Unbegun;
 
-        return Outcome<PersistenceConclusion>::Refuse(Landed.Error);
+        return Outcome<PersistenceConclusion>::Refuse(ReadBack.Error);
     }
 
     Reached = PersistenceStep::Replaced;
     ++ReplacedTotal;
 
-    PersistenceConclusion Concluded;
-    Concluded.Reached      = PersistenceStep::Replaced;
-    Concluded.SavedThrough = Sealed.SavedThrough;
-    Concluded.SavedAt      = Sealed.SealedAt;
-    Concluded.SpannedBytes = static_cast<std::uint64_t>(Sealed.Content.size());
+    PersistenceConclusion Completed;
+    Completed.Reached      = PersistenceStep::Replaced;
+    Completed.SavedThrough = Sealed.SavedThrough;
+    Completed.SavedAt      = Sealed.SealedAt;
+    Completed.SpannedBytes = static_cast<std::uint64_t>(Sealed.Content.size());
 
     // 📝 ④ — retiring the journal entries this save subsumes — is the caller's, on the tick. The journal belongs
     //    to the session and this runs off it, and `48` §3 ④ makes an unretired entry merely redundant on replay
     //    rather than wrong. Retiring it from here would be the one step of the four that could lose work.
-    return Outcome<PersistenceConclusion>::Result(Concluded);
+    return Outcome<PersistenceConclusion>::Result(Completed);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

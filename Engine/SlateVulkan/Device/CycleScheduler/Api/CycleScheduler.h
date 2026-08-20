@@ -30,7 +30,7 @@ namespace Slate
 struct CycleSlot
 {
     VkFence      Completion    = VK_NULL_HANDLE;   // [-] - the host waits on this before writing the slot
-    VkSemaphore  ImageArrived  = VK_NULL_HANDLE;   // [-] - the display signals it; the recording waits on it
+    VkSemaphore  ImageAvailable  = VK_NULL_HANDLE;   // [-] - the display signals it; the recording waits on it
     VkSemaphore  RecordingDone = VK_NULL_HANDLE;   // [-] - the recording signals it; the display waits on it
 };
 
@@ -58,7 +58,7 @@ public:
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
     /// in    Naming    [-]  names every ordering point; borrowed and outlives this component
     /// out   Result   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
-    ///                      device declines an ordering point; refused in full, with nothing half-constructed
+    ///                      device declines an ordering point; rejected in full, with nothing half-constructed
     /// post  the standing ordinal is zero and every completion is signalled
     /// note  🔴 `06` §7's diagnostic-name gate. Each of the three points is named by its slot **and** by what it
     ///        orders, because a stall reports one waiter against one signaller and the two are indistinguishable
@@ -95,12 +95,12 @@ public:
     /// out   Result  [-]  refuses with CapabilityAbsent before Construct delivered
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Outcome<CycleSlot> Standing() const;
+    Outcome<CycleSlot> Current() const;
 
     /// 🧩 Which slot in the cycle is standing — what every per-slot claim is addressed by.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t StandingOrdinal() const;
+    std::uint32_t CurrentOrdinal() const;
 
     /// 🧩 How many recordings have completed since bring-up, for `86`'s pacing report.
     /// cost  ✔️
@@ -123,7 +123,7 @@ private:
     const VulkanExchange*      DeviceEdge   = nullptr;   // [-] - borrowed; never owned
     const DiagnosticExtension* NamingEdge   = nullptr;   // [-] - borrowed; never owned
     std::vector<CycleSlot>  Slots          = {};   // [-] - RecordingSlotCount entries
-    std::uint32_t           SlotStanding   = 0u;   // [-] - which slot is being recorded into
+    std::uint32_t           SlotCurrent   = 0u;   // [-] - which slot is being recorded into
     std::uint64_t           CompletedCount = 0u;   // [-] - recordings completed since bring-up
 };
 

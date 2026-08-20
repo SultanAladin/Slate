@@ -43,7 +43,7 @@ public:
     ~ViewportSequence()                                 = default;
 
     /// 🧩 Constructs the interface context and both drawers over the supplied device handles.
-    /// in    Arriving [-]  the device handles and the window the interface reads from
+    /// in    Incoming [-]  the device handles and the window the interface reads from
     /// in    North    [-]  what the upper drawer's tongue carries
     /// in    South    [-]  what the lower drawer's tongue carries
     /// out   Result  [-]  refuses with CapabilityAbsent when no interface context is current, and with
@@ -51,7 +51,7 @@ public:
     /// post  both drawers stand Closed and settled; nothing moves until a pointer arrives
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const InterfaceAttachment& Arriving,
+    Outcome<bool> Construct(const InterfaceAttachment& Incoming,
                             const DrawerDeclaration&   North,
                             const DrawerDeclaration&   South);
 
@@ -85,7 +85,7 @@ public:
 
     /// 🧩 Closes an open tick without assembling it — the escape from any refusal after Advance.
     /// out   Result  [-]  delivers true when no tick was open
-    /// note  🔴 A host that returns to the top of its loop after Advance declined must call this. A tick
+    /// note  🔴 A host that returns to the top of its loop after Advance rejected must call this. A tick
     ///       left open refuses every subsequent Advance for the life of the process.
     /// cost  ✔️
     /// tag   api, nonthrowing
@@ -145,7 +145,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     MotionIntegrator& MotionSource();
 
-    /// 🧩 The interface seam, for a host seating vendor style or recording a vendor tab bar.
+    /// 🧩 The interface seam, for a host applying vendor style or recording a vendor tab bar.
     /// note  🔴 Handed out as the SEAM and never as ImGui. `00` §2.2 keeps every ImGui spelling inside
     ///        `SlateUI`, and this returns the component that owns them — a host still names none.
     /// note  📝 Named `Seam` and not for the member it returns: `Interface` is already the member's own

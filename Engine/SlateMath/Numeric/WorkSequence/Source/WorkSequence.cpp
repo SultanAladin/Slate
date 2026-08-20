@@ -21,7 +21,7 @@ struct WorkSequence::WorkRecord
 {
     WorkDeclaration    Declared          = {};        // [-] - as the requester handed it over
     WorkProgress       Progressed        = {};        // [-] - written by the resolution, sampled by the tick
-    std::atomic<bool>  WithdrawalPosed   { false };   // [-] - read at the resolution's declared points
+    std::atomic<bool>  CancellationPosed   { false };   // [-] - read at the resolution's declared points
     std::uint64_t      DeclaredOrdinal   = 0u;        // [-] - declaration order across the session
     std::uint32_t      SlotGeneration    = 0u;        // [-] - advanced at every conclusion
     bool               ResolutionOpen    = false;     // [-] - a worker holds it now
@@ -33,44 +33,44 @@ struct WorkSequence::WorkRecord
 //                                                      ONE QUEUE
 //------------------------------------------------------------------------------------------------------------------------
 
-void WorkQueue::Admit(std::uint32_t RecordOrdinal)
+void WorkQueue::Accept(std::uint32_t RecordOrdinal)
 {
     PendingOrder.push_back(RecordOrdinal);
     ++PendingHeld;
 }
 
-Outcome<std::uint32_t> WorkQueue::Claim()
+Outcome<std::uint32_t> WorkQueue::Reserve()
 {
-    while (ClaimOrdinal < PendingOrder.size())
+    while (ReservationOrdinal < PendingOrder.size())
     {
-        const std::uint32_t Claimed = PendingOrder[ClaimOrdinal];
-        ++ClaimOrdinal;
+        const std::uint32_t Reserved = PendingOrder[ReservationOrdinal];
+        ++ReservationOrdinal;
 
-        if (Claimed == AbsentWork)
+        if (Reserved == AbsentWork)
             continue;
 
         --PendingHeld;
 
         // 📝 Emptied rather than shifted. The order is walked once and discarded, so compacting it at the end
         //    keeps a queue that has served a thousand declarations from carrying a thousand struck entries.
-        if (ClaimOrdinal == PendingOrder.size())
+        if (ReservationOrdinal == PendingOrder.size())
         {
             PendingOrder.clear();
-            ClaimOrdinal = 0u;
+            ReservationOrdinal = 0u;
         }
 
-        return Outcome<std::uint32_t>::Result(Claimed);
+        return Outcome<std::uint32_t>::Result(Reserved);
     }
 
     PendingOrder.clear();
-    ClaimOrdinal = 0u;
+    ReservationOrdinal = 0u;
 
     return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "nothing is pending at this priority" });
 }
 
 void WorkQueue::Withdraw(std::uint32_t RecordOrdinal)
 {
-    for (std::size_t Ordinal = ClaimOrdinal; Ordinal < PendingOrder.size(); ++Ordinal)
+    for (std::size_t Ordinal = ReservationOrdinal; Ordinal < PendingOrder.size(); ++Ordinal)
     {
         if (PendingOrder[Ordinal] != RecordOrdinal)
             continue;
@@ -149,7 +149,7 @@ WorkSequence::~WorkSequence()
 //                                                    THE WORKERS
 //------------------------------------------------------------------------------------------------------------------------
 
-bool WorkSequence::Claimable(std::uint32_t WorkerOrdinal) const
+bool WorkSequence::Reservable(std::uint32_t WorkerOrdinal) const
 {
     if (PendingByPriority[static_cast<std::size_t>(WorkPriority::Interactive)].PendingCount() != 0u)
         return true;
@@ -168,7 +168,7 @@ bool WorkSequence::Claimable(std::uint32_t WorkerOrdinal) const
     return false;
 }
 
-std::uint32_t WorkSequence::Claim(std::uint32_t WorkerOrdinal)
+std::uint32_t WorkSequence::Reserve(std::uint32_t WorkerOrdinal)
 {
     const bool InteractiveOnly = WorkerOrdinal == InteractiveReservedOrdinal && SpannedWorkers > 1u;
 
@@ -177,10 +177,10 @@ std::uint32_t WorkSequence::Claim(std::uint32_t WorkerOrdinal)
         if (InteractiveOnly && Priority != static_cast<std::size_t>(WorkPriority::Interactive))
             break;
 
-        const Outcome<std::uint32_t> Claimed = PendingByPriority[Priority].Claim();
+        const Outcome<std::uint32_t> Reserved = PendingByPriority[Priority].Reserve();
 
-        if (Claimed.Resolved)
-            return Claimed.Resolve();
+        if (Reserved.Resolved)
+            return Reserved.Resolve();
     }
 
     return AbsentWork;
@@ -194,13 +194,13 @@ void WorkSequence::Serve(std::uint32_t WorkerOrdinal)
 
         ArrivalDeclared.wait(Holding, [this, WorkerOrdinal]
         {
-            return TeardownDeclared || Claimable(WorkerOrdinal);
+            return TeardownDeclared || Reservable(WorkerOrdinal);
         });
 
         if (TeardownDeclared)
             return;
 
-        const std::uint32_t RecordOrdinal = Claim(WorkerOrdinal);
+        const std::uint32_t RecordOrdinal = Reserve(WorkerOrdinal);
 
         if (RecordOrdinal == AbsentWork)
             continue;
@@ -211,7 +211,7 @@ void WorkSequence::Serve(std::uint32_t WorkerOrdinal)
         ++OccupiedWorkerCount;
 
         WorkCancellation Posed;
-        Posed.WithdrawalSlot = &Serving.WithdrawalPosed;
+        Posed.CancellationSlot = &Serving.CancellationPosed;
 
         // 📝 The resolution runs with the guard released. It reads only what the requester captured — `34` §2 —
         //    so nothing it touches is guarded by anything here.
@@ -238,15 +238,15 @@ void WorkSequence::Serve(std::uint32_t WorkerOrdinal)
 //                                                    DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<WorkIdentity> WorkSequence::Declare(const WorkDeclaration& Arriving)
+Outcome<WorkIdentity> WorkSequence::Declare(const WorkDeclaration& Incoming)
 {
-    if (!Arriving.Resolve)
+    if (!Incoming.Resolve)
     {
         return Outcome<WorkIdentity>::Refuse(
             { RefusalReason::ContentUnsupported, "the declaration carries no resolution to run" });
     }
 
-    if (static_cast<std::size_t>(Arriving.Priority) >= PrioritySpan)
+    if (static_cast<std::size_t>(Incoming.Priority) >= PrioritySpan)
         return Outcome<WorkIdentity>::Refuse({ RefusalReason::ContentUnsupported, "no such priority" });
 
     std::lock_guard<std::mutex> Holding(WorkGuard);
@@ -258,8 +258,8 @@ Outcome<WorkIdentity> WorkSequence::Declare(const WorkDeclaration& Arriving)
 
     if (!ReleasedOrdinals.empty())
     {
-        // 📝 A released slot is reused with its generation already advanced by Seal, so the identity issued here
-        //    can never equal one issued for the slot's previous declaration — `10` §2.1's scheme, unchanged.
+        // 📝 A released slot is reused with its generation already advanced by Seal, so the identity registered here
+        //    can never equal one registered for the slot's previous declaration — `10` §2.1's scheme, unchanged.
         RecordOrdinal = ReleasedOrdinals.back();
         ReleasedOrdinals.pop_back();
         Records[RecordOrdinal]->Progressed.Reclaim();
@@ -271,24 +271,24 @@ Outcome<WorkIdentity> WorkSequence::Declare(const WorkDeclaration& Arriving)
         Records[RecordOrdinal]->SlotGeneration = 1u;
     }
 
-    WorkRecord& Arrived = *Records[RecordOrdinal];
+    WorkRecord& Sampled = *Records[RecordOrdinal];
 
-    Arrived.Declared        = Arriving;
-    Arrived.DeclaredOrdinal = ++DeclaredCount;
-    Arrived.ResolutionOpen  = false;
-    Arrived.SupersessionPosed = false;
-    Arrived.Occupied        = true;
-    Arrived.WithdrawalPosed.store(false, std::memory_order_relaxed);
+    Sampled.Declared        = Incoming;
+    Sampled.DeclaredOrdinal = ++DeclaredCount;
+    Sampled.ResolutionOpen  = false;
+    Sampled.SupersessionPosed = false;
+    Sampled.Occupied        = true;
+    Sampled.CancellationPosed.store(false, std::memory_order_relaxed);
 
-    PendingByPriority[static_cast<std::size_t>(Arriving.Priority)].Admit(RecordOrdinal);
+    PendingByPriority[static_cast<std::size_t>(Incoming.Priority)].Accept(RecordOrdinal);
 
-    WorkIdentity Issued;
-    Issued.SlotOrdinal    = RecordOrdinal;
-    Issued.SlotGeneration = Arrived.SlotGeneration;
+    WorkIdentity Registered;
+    Registered.SlotOrdinal    = RecordOrdinal;
+    Registered.SlotGeneration = Sampled.SlotGeneration;
 
     ArrivalDeclared.notify_all();
 
-    return Outcome<WorkIdentity>::Result(Issued);
+    return Outcome<WorkIdentity>::Result(Registered);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -315,12 +315,12 @@ Outcome<bool> WorkSequence::Cancel(WorkIdentity Subject, bool SupersessionPosed)
     const std::uint32_t RecordOrdinal = Resolved(Subject);
 
     if (RecordOrdinal == AbsentWork)
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the declaration has already concluded" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the declaration has already completed" });
 
     WorkRecord& Cancelling = *Records[RecordOrdinal];
 
     Cancelling.SupersessionPosed = SupersessionPosed;
-    Cancelling.WithdrawalPosed.store(true, std::memory_order_relaxed);
+    Cancelling.CancellationPosed.store(true, std::memory_order_relaxed);
 
     // 🔴 A declaration a worker already holds is **not** sealed here. `34` §5: cancellation is not abandonment —
     //    the resolution runs to its next declared point and releases what it holds, and Seal concludes it then.
@@ -352,25 +352,25 @@ void WorkSequence::Seal(std::uint32_t RecordOrdinal, const Outcome<bool>& Resolv
 {
     WorkRecord& Sealing = *Records[RecordOrdinal];
 
-    WorkCompletion Concluding;
-    Concluding.Declared.SlotOrdinal    = RecordOrdinal;
-    Concluding.Declared.SlotGeneration = Sealing.SlotGeneration;
-    Concluding.Origin                  = Sealing.Declared.Origin;
-    Concluding.DeclaredOrdinal         = Sealing.DeclaredOrdinal;
-    Concluding.Sealed                  = Timeline != nullptr ? Timeline->Advance() : TickPoint{};
+    WorkCompletion Completing;
+    Completing.Declared.SlotOrdinal    = RecordOrdinal;
+    Completing.Declared.SlotGeneration = Sealing.SlotGeneration;
+    Completing.Origin                  = Sealing.Declared.Origin;
+    Completing.DeclaredOrdinal         = Sealing.DeclaredOrdinal;
+    Completing.Sealed                  = Timeline != nullptr ? Timeline->Advance() : TickPoint{};
 
-    if (Sealing.WithdrawalPosed.load(std::memory_order_relaxed))
+    if (Sealing.CancellationPosed.load(std::memory_order_relaxed))
     {
-        Concluding.Concluded = Sealing.SupersessionPosed ? WorkConclusion::Superseded : WorkConclusion::Withdrawn;
+        Completing.Completed = Sealing.SupersessionPosed ? WorkConclusion::Superseded : WorkConclusion::Cancelled;
     }
     else if (Resolved_.Resolved)
     {
-        Concluding.Concluded = WorkConclusion::Delivered;
+        Completing.Completed = WorkConclusion::Delivered;
     }
     else
     {
-        Concluding.Concluded = WorkConclusion::Refused;
-        Concluding.Declining = Resolved_.Error;
+        Completing.Completed = WorkConclusion::Rejected;
+        Completing.Declining = Resolved_.Error;
 
         // 🔴 `34` §5 and `86` §4: a failed declaration is reported with its origin. A cancellation is not —
         //    `86` §5 rules a superseded cancellation ordinary operation, and reporting it never leaves the
@@ -382,14 +382,14 @@ void WorkSequence::Seal(std::uint32_t RecordOrdinal, const Outcome<bool>& Resolv
             Reported.Subject        = Sealing.Declared.Origin;
             Reported.Detail         = Resolved_.Error.Detail;
             Reported.SubjectOrdinal = Sealing.DeclaredOrdinal;
-            Reported.Disposition    = ReportDisposition::Failed;
-            Reported.Arrival        = Concluding.Sealed;
+            Reported.Verdict    = ReportVerdict::Failed;
+            Reported.Arrival        = Completing.Sealed;
 
             Reporting->Append(Reported);
         }
     }
 
-    SealedCompletions.push_back(Concluding);
+    SealedCompletions.push_back(Completing);
 
     // 📝 The generation advances on conclusion, not on reuse, so every identity the requester still holds
     //    resolves to absent from this point whether or not the slot is ever declared into again.
@@ -437,7 +437,7 @@ Outcome<double> WorkSequence::Progress(WorkIdentity Subject) const
     const std::uint32_t RecordOrdinal = Resolved(Subject);
 
     if (RecordOrdinal == AbsentWork)
-        return Outcome<double>::Refuse({ RefusalReason::IdentityStale, "the declaration has already concluded" });
+        return Outcome<double>::Refuse({ RefusalReason::IdentityStale, "the declaration has already completed" });
 
     return Outcome<double>::Result(Records[RecordOrdinal]->Progressed.Fraction());
 }
@@ -451,7 +451,7 @@ Outcome<std::uint64_t> WorkSequence::ProgressCount(WorkIdentity Subject) const
     if (RecordOrdinal == AbsentWork)
     {
         return Outcome<std::uint64_t>::Refuse(
-            { RefusalReason::IdentityStale, "the declaration has already concluded" });
+            { RefusalReason::IdentityStale, "the declaration has already completed" });
     }
 
     return Outcome<std::uint64_t>::Result(Records[RecordOrdinal]->Progressed.ResolvedCount());
@@ -499,7 +499,7 @@ void WorkSequence::Reclaim()
         for (std::unique_ptr<WorkRecord>& Held : Records)
         {
             if (Held->Occupied)
-                Held->WithdrawalPosed.store(true, std::memory_order_relaxed);
+                Held->CancellationPosed.store(true, std::memory_order_relaxed);
         }
 
         TeardownDeclared = true;
@@ -516,7 +516,7 @@ void WorkSequence::Reclaim()
 
     std::lock_guard<std::mutex> Holding(WorkGuard);
 
-    // 📝 What no worker reached is concluded here, so a requester waiting on a drain is told the declaration
+    // 📝 What no worker reached is completed here, so a requester waiting on a drain is told the declaration
     //    was withdrawn rather than left waiting for a conclusion that will never arrive — `34` §5.
     for (std::uint32_t RecordOrdinal = 0u; RecordOrdinal < Records.size(); ++RecordOrdinal)
     {

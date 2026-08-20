@@ -101,7 +101,7 @@ RecoveryOffer RecoverySequence::OfferReplay(std::uint64_t SavedAt, std::uint64_t
     {
         // 🔴 Nothing of the journal was readable. `48` §4 reports it and offers nothing, because an offer of
         //    zero transactions presented as a recovery teaches the artist that recovery does nothing.
-        Stating.Standing = RecoveryStanding::Unreadable;
+        Stating.Current = RecoveryCurrent::Unreadable;
         return Stating;
     }
 
@@ -122,15 +122,15 @@ RecoveryOffer RecoverySequence::OfferReplay(std::uint64_t SavedAt, std::uint64_t
 
     if (Offering == 0u)
     {
-        Stating.Standing = RecoveryStanding::NothingOffered;
+        Stating.Current = RecoveryCurrent::NothingOffered;
         return Stating;
     }
 
     // ⚠️ Partial for either reason — an entry that could not be read, or entries the ceiling discarded before
     //    the save. Both leave a gap between the file and the offer, and the artist is told which they have.
-    const bool GapStanding = UnreadableOrdinal != EntryCeiling || DiscardedTotal > 0u;
+    const bool GapCurrent = UnreadableOrdinal != EntryCeiling || DiscardedTotal > 0u;
 
-    Stating.Standing = GapStanding ? RecoveryStanding::PartlyOffered : RecoveryStanding::Offered;
+    Stating.Current = GapCurrent ? RecoveryCurrent::PartlyOffered : RecoveryCurrent::Offered;
 
     return Stating;
 }

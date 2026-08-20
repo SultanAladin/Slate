@@ -60,7 +60,7 @@ public:
     ~InterfaceExchange();
 
     /// 🧩 Constructs the interface context over the supplied device handles.
-    /// in    Arriving [-]  the device handles and the window the interface reads from
+    /// in    Incoming [-]  the device handles and the window the interface reads from
     /// out   Result  [-]  refuses with CapabilityAbsent when any required handle is absent, and with
     ///                     HostDenied when the vendor attachment declines
     /// note  🚧 Recording is declared against dynamic rendering, so `06`'s bring-up must negotiate
@@ -68,7 +68,7 @@ public:
     ///       recording into a target the device never agreed to.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const InterfaceAttachment& Arriving);
+    Outcome<bool> Construct(const InterfaceAttachment& Incoming);
 
     /// 🧩 Destroys the interface context and both vendor attachments.
     /// cost  🚩
@@ -108,20 +108,20 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
 
-    /// 🧩 Seats the sheet's tab figures into the vendor's style, including the four `Patches/` adds.
+    /// 🧩 Applies the sheet's tab figures into the vendor's style, including the four `Patches/` adds.
     /// out   Result  [-]  refuses with CapabilityAbsent before Construct
     /// note  🔴 The four patched members default to 0.0f, at which a patched build rasterises exactly as an
-    ///        unpatched one. Seating them is what turns the trapezoid on — a build that never called this
+    ///        unpatched one. Applying them is what turns the trapezoid on — a build that never called this
     ///        drew stock rectangular tabs and read as though the patches had failed to apply.
-    /// note  ⚠️ `TabPadAlong` and `TabOverlap` are coupled: the 38 px padding clears the slant plus the
+    /// note  ⚠️ `TabPadX` and `TabOverlap` are coupled: the 38 px padding clears the slant plus the
     ///        overlap, and raising one without the other runs adjacent tabs together.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     /// note  🔴 The seat is RETAINED and re-applied by `Construct`. A device rebuild constructs a fresh
     ///        vendor context, which starts at the vendor's own defaults and is then overwritten by
-    ///        `StyleColorsDark` — so a style seated once at bring-up was silently lost on every rebuild
+    ///        `StyleColorsDark` — so a style applied once at bring-up was silently lost on every rebuild
     ///        and the trapezoidal tabs reverted to stock rectangles with nothing reporting it.
-    Outcome<bool> SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted);
+    Outcome<bool> ApplyWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted);
 
     /// 🧩 Opens the dock space the workspace body is docked into, filling the declared extent.
     /// note  🔴 One dock space per host, over the body alone. `DockingEnable` makes panels dockable; a dock
@@ -133,26 +133,26 @@ public:
     /// 🧩 Records one workspace as a dockable window inside the dock space.
     /// in    Titled    [-]  static text; the window identity AND the tab label
     /// in    Docked    [-]  true on the first tick, to seat it into the dock space
-    /// out   Standing  [-]  false when the artist closed it
+    /// out   Current  [-]  false when the artist closed it
     /// note  🔴 THIS is what makes a tab draggable out into a floating window. A tab bar recorded by hand
     ///        cannot be undocked: the vendor's docking works on WINDOWS, and a workspace has to BE one for
     ///        `DockNode` to tear it off, float it, and let it be dropped back.
     /// cost  🚩
     /// tag   api, nonthrowing
     /// in    IntoNode  [-]  the dock node to seat it into on its first tick; zero means the main space
-    void RecordWorkspaceWindow(const char* Titled, bool Docked, std::uint32_t IntoNode, bool& Standing);
+    void RecordWorkspaceWindow(const char* Titled, bool Docked, std::uint32_t IntoNode, bool& Opened);
 
     /// 🧩 Enters one dockable workspace window and reports its absolute content extent.
     /// out   Extent    [px]  zero when the window is hidden or no interface tick stands
     /// note  `LeaveWorkspaceWindow` must follow every successful entry, including a hidden dock tab whose
-    ///       delivered extent is zero. Between the pair, `RecordingSurface::RelayerWindow` seats panel content
+    ///       delivered extent is zero. Between the pair, `RecordingSurface::SwitchToWindow` applies panel content
     ///       into the window's own clipped command list.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
     PlaneExtent EnterWorkspaceWindow(const char* Titled,
                                      bool Docked,
                                      std::uint32_t IntoNode,
-                                     bool& Standing);
+                                     bool& Opened);
 
     /// 🧩 Leaves the workspace window entered by `EnterWorkspaceWindow`.
     /// cost  ✔️
@@ -162,10 +162,10 @@ public:
     /// 🧩 Whether a dockable workspace window is the one the artist is looking at.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool WorkspacePresented(const char* Titled) const;
+    bool WorkspaceCurrent(const char* Titled) const;
 
     /// 🧩 Records the strip's `+`, and reports whether the artist pressed it.
-    /// in    Extent    [px]  the strip; the button is seated at its trailing end
+    /// in    Extent    [px]  the strip; the button is applied at its trailing end
     /// in    OpenCount [-]   how many workspaces stand, so the button clears the dock node's own tabs
     /// out   Pressed   [-]   true on the tick the artist pressed it
     /// note  🔴 Recorded even at a zero count. An empty shell with no way to add a workspace is a state the
@@ -173,8 +173,8 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     /// out   AskingNode [-]  the dock node whose `+` was pressed, or zero when none was
-    /// note  🔴 The node is REPORTED because a workspace must be enrolled into the strip the artist
-    ///        pressed. Returning only "pressed" left the caller seating every new workspace into the main
+    /// note  🔴 The node is REPORTED because a workspace must be registered into the strip the artist
+    ///        pressed. Returning only "pressed" left the caller applying every new workspace into the main
     ///        dock space, so a `+` on a torn-out float added its workspace to the other window.
     bool RecordWorkspaceAddition(const PlaneExtent& Extent, std::uint32_t OpenCount,
                                  std::uint32_t& AskingNode);
@@ -203,7 +203,7 @@ public:
 
     /// 🧩 Takes the pointer away from the interface for the standing tick.
     /// note  🔴 Called by whoever outranks the interface for this contact — the drawers, which are drawn
-    ///        over every window and must therefore be pressable over every window. `14` §4.2 admits
+    ///        over every window and must therefore be pressable over every window. `14` §4.2 accepts
     ///        exactly one consumer of the pointer; this is how a consumer above ImGui declares itself.
     /// note  ⚠️ Lasts one tick. The vendor recomputes its capture every frame from what the pointer is
     ///        over, so nothing here has to be undone.
@@ -218,7 +218,7 @@ public:
 
     /// 🧩 Whether one arbitrated key went down during this tick and no text entry stands over it.
     /// in    Subject  [-]  which of the closed roster to ask about
-    /// out   Arrived  [-]  true exactly once per press; false while the key is held and while a field has focus
+    /// out   Sampled  [-]  true exactly once per press; false while the key is held and while a field has focus
     /// note  🔴 The text-entry test is inside this call and not at the call site. The reference states it once
     ///        — `if (document.activeElement?.tagName === 'INPUT') return;` — ahead of its whole key map, so a
     ///        seam that returned the raw press would make every caller re-derive the same guard and one of
@@ -227,10 +227,10 @@ public:
     ///        belongs to no tick and the call reports false.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool KeyArrived(KeySubject Subject) const;
+    bool KeyPressed(KeySubject Subject) const;
 
     /// 🧩 Which modifiers stood down during this tick.
-    /// note  ⚠️ Valid only between `Advance` and `Seal`, on the same terms as `KeyArrived`. Read at the same
+    /// note  ⚠️ Valid only between `Advance` and `Seal`, on the same terms as `KeyPressed`. Read at the same
     ///       moment as the arrival it qualifies — a modifier sampled a tick later is a different press.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -239,7 +239,7 @@ public:
     /// 🧩 Appends this tick's typed characters to a caller-owned run, and reports whether any arrived.
     /// in    Intake     [-]  the run written into; always left terminated
     /// in    Ceiling    [-]  the run's full extent in bytes, terminator included
-    /// out   Admitted   [-]  true when at least one character was appended
+    /// out   Accepted   [-]  true when at least one character was appended
     /// note  🔴 The filter fields are recorded as PRIMITIVES and not as vendor widgets. A vendor `InputText`
     ///        opens its own window draw list, which composites above every shell layer — that is precisely
     ///        the defect that left the reference's panels legible and pressable through a ground painted
@@ -250,7 +250,7 @@ public:
     ///        stroked as replacement marks.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool AdmitTyped(char* Intake, std::uint32_t Ceiling) const;
+    bool AcceptTyped(char* Intake, std::uint32_t Ceiling) const;
 
 private:
 
@@ -262,10 +262,10 @@ private:
     bool                 ContentAssembled  = false;            // [-] - Seal delivered, Record has not
     bool                 WindowAttached    = false;            // [-] - the window system attachment stands
     bool                 VendorAttached    = false;            // [-] - the vendor attachment stands
-    bool                 StyleSeated       = false;            // [-] - a workspace style was seated once
+    bool                 StyleApplied       = false;            // [-] - a workspace style was applied once
     bool                 WorkspaceEntered  = false;            // [-] - between workspace entry and leave
-    WorkspaceMetric      SeatedMeasure     = {};               // [-] - retained, so Construct re-applies it
-    WorkspaceColour         SeatedColour         = {};               // [-] - retained, so Construct re-applies it
+    WorkspaceMetric      AppliedMeasure     = {};               // [-] - retained, so Construct re-applies it
+    WorkspaceColour         AppliedColour         = {};               // [-] - retained, so Construct re-applies it
 };
 
 }   // namespace Slate

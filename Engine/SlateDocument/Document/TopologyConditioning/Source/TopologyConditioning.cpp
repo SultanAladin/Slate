@@ -31,16 +31,16 @@ constexpr std::uint32_t AbsentCorner = 0xFFFFFFFFu;   // [-] - no adjacent corne
 //    one tolerance. That is a declared tolerance rather than a discovered one, which is what `38` §2 asks for.
 struct LatticeCell
 {
-    std::int64_t  CellAlong  = 0;   // [-] - lattice ordinal along the first axis
-    std::int64_t  CellAcross = 0;   // [-] - along the second
+    std::int64_t  CellX  = 0;   // [-] - lattice ordinal along the first axis
+    std::int64_t  CellY = 0;   // [-] - along the second
     std::int64_t  CellDeep   = 0;   // [-] - along the third
 };
 
 LatticeCell Quantise(DocumentPosition Subject, double Spacing)
 {
     LatticeCell Cell;
-    Cell.CellAlong  = static_cast<std::int64_t>(std::floor(Subject.PositionX / Spacing));
-    Cell.CellAcross = static_cast<std::int64_t>(std::floor(Subject.PositionY / Spacing));
+    Cell.CellX  = static_cast<std::int64_t>(std::floor(Subject.PositionX / Spacing));
+    Cell.CellY = static_cast<std::int64_t>(std::floor(Subject.PositionY / Spacing));
     Cell.CellDeep   = static_cast<std::int64_t>(std::floor(Subject.PositionZ / Spacing));
 
     return Cell;
@@ -50,39 +50,39 @@ std::uint64_t CellOrdinal(LatticeCell Cell)
 {
     // 📐 A mixing of the three lattice ordinals into one search ordinal. Exact equality of the ordinals is
     //    confirmed after a candidate is found, so a collision costs a comparison and never a wrong weld.
-    const std::uint64_t Along  = static_cast<std::uint64_t>(Cell.CellAlong)  * 0x9E3779B97F4A7C15ull;
-    const std::uint64_t Across = static_cast<std::uint64_t>(Cell.CellAcross) * 0xC2B2AE3D27D4EB4Full;
+    const std::uint64_t X  = static_cast<std::uint64_t>(Cell.CellX)  * 0x9E3779B97F4A7C15ull;
+    const std::uint64_t Y = static_cast<std::uint64_t>(Cell.CellY) * 0xC2B2AE3D27D4EB4Full;
     const std::uint64_t Deep   = static_cast<std::uint64_t>(Cell.CellDeep)   * 0x165667B19E3779F9ull;
 
-    return Along ^ Across ^ Deep;
+    return X ^ Y ^ Deep;
 }
 
-double GreatestSpan(const std::vector<DocumentPosition>& Positions)
+double MaximumSpan(const std::vector<DocumentPosition>& Positions)
 {
     if (Positions.empty())
         return 1.0;
 
-    DocumentPosition Least    = Positions[0];
-    DocumentPosition Greatest = Positions[0];
+    DocumentPosition Minimum    = Positions[0];
+    DocumentPosition Maximum = Positions[0];
 
     for (const DocumentPosition& Held : Positions)
     {
-        Least.PositionX    = Held.PositionX < Least.PositionX    ? Held.PositionX : Least.PositionX;
-        Least.PositionY    = Held.PositionY < Least.PositionY    ? Held.PositionY : Least.PositionY;
-        Least.PositionZ    = Held.PositionZ < Least.PositionZ    ? Held.PositionZ : Least.PositionZ;
-        Greatest.PositionX = Held.PositionX > Greatest.PositionX ? Held.PositionX : Greatest.PositionX;
-        Greatest.PositionY = Held.PositionY > Greatest.PositionY ? Held.PositionY : Greatest.PositionY;
-        Greatest.PositionZ = Held.PositionZ > Greatest.PositionZ ? Held.PositionZ : Greatest.PositionZ;
+        Minimum.PositionX    = Held.PositionX < Minimum.PositionX    ? Held.PositionX : Minimum.PositionX;
+        Minimum.PositionY    = Held.PositionY < Minimum.PositionY    ? Held.PositionY : Minimum.PositionY;
+        Minimum.PositionZ    = Held.PositionZ < Minimum.PositionZ    ? Held.PositionZ : Minimum.PositionZ;
+        Maximum.PositionX = Held.PositionX > Maximum.PositionX ? Held.PositionX : Maximum.PositionX;
+        Maximum.PositionY = Held.PositionY > Maximum.PositionY ? Held.PositionY : Maximum.PositionY;
+        Maximum.PositionZ = Held.PositionZ > Maximum.PositionZ ? Held.PositionZ : Maximum.PositionZ;
     }
 
-    const double SpanX = Greatest.PositionX - Least.PositionX;
-    const double SpanY = Greatest.PositionY - Least.PositionY;
-    const double SpanZ = Greatest.PositionZ - Least.PositionZ;
+    const double SpanX = Maximum.PositionX - Minimum.PositionX;
+    const double SpanY = Maximum.PositionY - Minimum.PositionY;
+    const double SpanZ = Maximum.PositionZ - Minimum.PositionZ;
 
-    double Greatest_ = SpanX > SpanY ? SpanX : SpanY;
-    Greatest_        = Greatest_ > SpanZ ? Greatest_ : SpanZ;
+    double LargestSpan = SpanX > SpanY ? SpanX : SpanY;
+    LargestSpan        = LargestSpan > SpanZ ? LargestSpan : SpanZ;
 
-    return Greatest_ > 0.0 ? Greatest_ : 1.0;
+    return LargestSpan > 0.0 ? LargestSpan : 1.0;
 }
 
 SurfaceDirection Normalise(double DirectionX, double DirectionY, double DirectionZ)
@@ -110,7 +110,7 @@ SurfaceDirection Normalise(double DirectionX, double DirectionY, double Directio
 void TopologyConditioning::DeriveWelding(const TopologyStructure& Imported)
 {
     const std::vector<DocumentPosition>& Positions = Imported.Positions();
-    const double                         Spacing   = GreatestSpan(Positions) * WeldTolerance;
+    const double                         Spacing   = MaximumSpan(Positions) * WeldTolerance;
 
     WeldedPositionOfVertex.assign(Positions.size(), 0u);
     DistinctPositionCount = 0u;
@@ -131,15 +131,15 @@ void TopologyConditioning::DeriveWelding(const TopologyStructure& Imported)
 
         std::uint32_t Welded = AbsentCorner;
 
-        for (std::int64_t Along = -1; Along <= 1 && Welded == AbsentCorner; ++Along)
+        for (std::int64_t X = -1; X <= 1 && Welded == AbsentCorner; ++X)
         {
-            for (std::int64_t Across = -1; Across <= 1 && Welded == AbsentCorner; ++Across)
+            for (std::int64_t Y = -1; Y <= 1 && Welded == AbsentCorner; ++Y)
             {
                 for (std::int64_t Deep = -1; Deep <= 1 && Welded == AbsentCorner; ++Deep)
                 {
                     LatticeCell Sought;
-                    Sought.CellAlong  = Cell.CellAlong  + Along;
-                    Sought.CellAcross = Cell.CellAcross + Across;
+                    Sought.CellX  = Cell.CellX  + X;
+                    Sought.CellY = Cell.CellY + Y;
                     Sought.CellDeep   = Cell.CellDeep   + Deep;
 
                     const std::uint64_t Ordinal = CellOrdinal(Sought);
@@ -153,8 +153,8 @@ void TopologyConditioning::DeriveWelding(const TopologyStructure& Imported)
                         {
                             const LatticeCell Held = CellOfVertex[Candidate];
 
-                            if (Held.CellAlong  == Sought.CellAlong
-                             && Held.CellAcross == Sought.CellAcross
+                            if (Held.CellX  == Sought.CellX
+                             && Held.CellY == Sought.CellY
                              && Held.CellDeep   == Sought.CellDeep)
                             {
                                 Welded = WeldedPositionOfVertex[Candidate];
@@ -222,8 +222,8 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
     }
 
     std::vector<std::uint32_t> IncidenceCountOfEdge;
-    std::vector<std::uint32_t> LeastOfEdge;
-    std::vector<std::uint32_t> GreatestOfEdge;
+    std::vector<std::uint32_t> MinimumOfEdge;
+    std::vector<std::uint32_t> MaximumOfEdge;
     std::vector<std::uint32_t> FirstCornerOfEdge;
     std::vector<std::uint32_t> SecondCornerOfEdge;
 
@@ -240,24 +240,24 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
             const std::uint32_t Opening = WeldedPositionOfVertex[Imported.CornerVertex(CornerOrdinal)];
             const std::uint32_t Closing = WeldedPositionOfVertex[Imported.CornerVertex(Following)];
 
-            const std::uint32_t Least    = Opening < Closing ? Opening : Closing;
-            const std::uint32_t Greatest = Opening < Closing ? Closing : Opening;
+            const std::uint32_t Minimum    = Opening < Closing ? Opening : Closing;
+            const std::uint32_t Maximum = Opening < Closing ? Closing : Opening;
 
-            std::size_t Located = LeastOfEdge.size();
+            std::size_t Located = MinimumOfEdge.size();
 
-            for (std::size_t EdgeOrdinal = 0u; EdgeOrdinal < LeastOfEdge.size(); ++EdgeOrdinal)
+            for (std::size_t EdgeOrdinal = 0u; EdgeOrdinal < MinimumOfEdge.size(); ++EdgeOrdinal)
             {
-                if (LeastOfEdge[EdgeOrdinal] == Least && GreatestOfEdge[EdgeOrdinal] == Greatest)
+                if (MinimumOfEdge[EdgeOrdinal] == Minimum && MaximumOfEdge[EdgeOrdinal] == Maximum)
                 {
                     Located = EdgeOrdinal;
                     break;
                 }
             }
 
-            if (Located == LeastOfEdge.size())
+            if (Located == MinimumOfEdge.size())
             {
-                LeastOfEdge.push_back(Least);
-                GreatestOfEdge.push_back(Greatest);
+                MinimumOfEdge.push_back(Minimum);
+                MaximumOfEdge.push_back(Maximum);
                 IncidenceCountOfEdge.push_back(1u);
                 FirstCornerOfEdge.push_back(CornerOrdinal);
                 SecondCornerOfEdge.push_back(AbsentCorner);
@@ -272,10 +272,10 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
         }
     }
 
-    for (std::size_t EdgeOrdinal = 0u; EdgeOrdinal < LeastOfEdge.size(); ++EdgeOrdinal)
+    for (std::size_t EdgeOrdinal = 0u; EdgeOrdinal < MinimumOfEdge.size(); ++EdgeOrdinal)
     {
         // 🔴 Only an edge with exactly two incidences yields an adjacency. An edge with more is non-manifold and
-        //    every face it touches is enrolled, because `68` §4.1 cuts a chart boundary there rather than
+        //    every face it touches is registered, because `68` §4.1 cuts a chart boundary there rather than
         //    choosing one of several continuations arbitrarily.
         if (IncidenceCountOfEdge[EdgeOrdinal] == 2u)
         {
@@ -287,12 +287,12 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
         }
         else if (IncidenceCountOfEdge[EdgeOrdinal] > 2u)
         {
-            EnrolInterval(EnrolledConditions[static_cast<std::size_t>(DegeneracySubject::NonManifoldEdge)],
+            RegisterInterval(RegisteredConditions[static_cast<std::size_t>(DegeneracySubject::NonManifoldEdge)],
                           Imported.CornerFace(FirstCornerOfEdge[EdgeOrdinal]));
 
             if (SecondCornerOfEdge[EdgeOrdinal] != AbsentCorner)
             {
-                EnrolInterval(EnrolledConditions[static_cast<std::size_t>(DegeneracySubject::NonManifoldEdge)],
+                RegisterInterval(RegisteredConditions[static_cast<std::size_t>(DegeneracySubject::NonManifoldEdge)],
                               Imported.CornerFace(SecondCornerOfEdge[EdgeOrdinal]));
             }
         }
@@ -301,7 +301,7 @@ void TopologyConditioning::DeriveAdjacency(const TopologyStructure& Imported)
     for (std::uint32_t Position = 0u; Position < DistinctPositionCount; ++Position)
     {
         if (FirstCornerOfPosition[Position] == AbsentCorner)
-            EnrolInterval(EnrolledConditions[static_cast<std::size_t>(DegeneracySubject::IsolatedVertex)], Position);
+            RegisterInterval(RegisteredConditions[static_cast<std::size_t>(DegeneracySubject::IsolatedVertex)], Position);
     }
 }
 
@@ -351,19 +351,19 @@ void TopologyConditioning::DeriveOrientation(const TopologyStructure& Imported)
 
         if (CornerRepeated)
         {
-            EnrolInterval(EnrolledConditions[static_cast<std::size_t>(DegeneracySubject::RepeatedCorner)],
+            RegisterInterval(RegisteredConditions[static_cast<std::size_t>(DegeneracySubject::RepeatedCorner)],
                           FaceOrdinal);
         }
 
-        const double AlongMagnitude  = std::fabs(NewellX);
-        const double AcrossMagnitude = std::fabs(NewellY);
+        const double XMagnitude  = std::fabs(NewellX);
+        const double YMagnitude = std::fabs(NewellY);
         const double DeepMagnitude   = std::fabs(NewellZ);
 
         std::uint32_t DominantAxis = 2u;
 
-        if (AlongMagnitude >= AcrossMagnitude && AlongMagnitude >= DeepMagnitude)
+        if (XMagnitude >= YMagnitude && XMagnitude >= DeepMagnitude)
             DominantAxis = 0u;
-        else if (AcrossMagnitude >= DeepMagnitude)
+        else if (YMagnitude >= DeepMagnitude)
             DominantAxis = 1u;
 
         // 🔴 The signed area's **sign** is taken from `02` §4's exact predicate over the projected corners, not
@@ -399,7 +399,7 @@ void TopologyConditioning::DeriveOrientation(const TopologyStructure& Imported)
 
         if (OrientationSignum == 0)
         {
-            EnrolInterval(EnrolledConditions[static_cast<std::size_t>(DegeneracySubject::ZeroExtentFace)],
+            RegisterInterval(RegisteredConditions[static_cast<std::size_t>(DegeneracySubject::ZeroExtentFace)],
                           FaceOrdinal);
         }
     }
@@ -422,14 +422,14 @@ void TopologyConditioning::DeriveOrientation(const TopologyStructure& Imported)
         if (Opening == AdjacentOpening)
         {
             // 📝 Both faces open the shared edge at the same position, so both traverse it the same way and
-            //    their orientations disagree. Enrolled and reported; `38` §3 renders it both-sided rather than
+            //    their orientations disagree. Registered and reported; `38` §3 renders it both-sided rather than
             //    reversing the artist's winding.
             const std::size_t Condition = static_cast<std::size_t>(DegeneracySubject::Unoriented);
 
-            if (EnrolInterval(EnrolledConditions[Condition], FaceOrdinal))
+            if (RegisterInterval(RegisteredConditions[Condition], FaceOrdinal))
                 ++UnorientedFaceCount;
 
-            if (EnrolInterval(EnrolledConditions[Condition], AdjacentFace))
+            if (RegisterInterval(RegisteredConditions[Condition], AdjacentFace))
                 ++UnorientedFaceCount;
         }
     }
@@ -457,7 +457,7 @@ void TopologyConditioning::DerivePerpendiculars(const TopologyStructure& Importe
 
     for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < Imported.FaceCount(); ++FaceOrdinal)
     {
-        if (FaceEnrolled(FaceOrdinal, DegeneracySubject::ZeroExtentFace))
+        if (FaceRegistered(FaceOrdinal, DegeneracySubject::ZeroExtentFace))
             continue;
 
         const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
@@ -534,7 +534,7 @@ void TopologyConditioning::DeriveTangentBases(const TopologyStructure& Imported)
 
     for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < Imported.FaceCount(); ++FaceOrdinal)
     {
-        if (FaceEnrolled(FaceOrdinal, DegeneracySubject::ZeroExtentFace))
+        if (FaceRegistered(FaceOrdinal, DegeneracySubject::ZeroExtentFace))
             continue;
 
         const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
@@ -558,16 +558,16 @@ void TopologyConditioning::DeriveTangentBases(const TopologyStructure& Imported)
             const double SecondSpanY = Gamma.PositionY - Alpha.PositionY;
             const double SecondSpanZ = Gamma.PositionZ - Alpha.PositionZ;
 
-            const double FirstAlong  = static_cast<double>(Coordinates[BetaCorner].CoordinateAlong)
-                                     - static_cast<double>(Coordinates[AlphaCorner].CoordinateAlong);
-            const double FirstAcross = static_cast<double>(Coordinates[BetaCorner].CoordinateAcross)
-                                     - static_cast<double>(Coordinates[AlphaCorner].CoordinateAcross);
-            const double SecondAlong  = static_cast<double>(Coordinates[GammaCorner].CoordinateAlong)
-                                      - static_cast<double>(Coordinates[AlphaCorner].CoordinateAlong);
-            const double SecondAcross = static_cast<double>(Coordinates[GammaCorner].CoordinateAcross)
-                                      - static_cast<double>(Coordinates[AlphaCorner].CoordinateAcross);
+            const double FirstX  = static_cast<double>(Coordinates[BetaCorner].CoordinateX)
+                                     - static_cast<double>(Coordinates[AlphaCorner].CoordinateX);
+            const double FirstY = static_cast<double>(Coordinates[BetaCorner].CoordinateY)
+                                     - static_cast<double>(Coordinates[AlphaCorner].CoordinateY);
+            const double SecondX  = static_cast<double>(Coordinates[GammaCorner].CoordinateX)
+                                      - static_cast<double>(Coordinates[AlphaCorner].CoordinateX);
+            const double SecondY = static_cast<double>(Coordinates[GammaCorner].CoordinateY)
+                                      - static_cast<double>(Coordinates[AlphaCorner].CoordinateY);
 
-            const double DomainArea = FirstAlong * SecondAcross - SecondAlong * FirstAcross;
+            const double DomainArea = FirstX * SecondY - SecondX * FirstY;
 
             // 📝 A chart of zero area in the domain contributes nothing rather than a division by it. `18` §1.1
             //    marks the basis absent exactly there, and this is the same condition seen from the derivation.
@@ -576,13 +576,13 @@ void TopologyConditioning::DeriveTangentBases(const TopologyStructure& Imported)
 
             const double Reciprocal = 1.0 / DomainArea;
 
-            const double TangentX = (SecondAcross * FirstSpanX - FirstAcross * SecondSpanX) * Reciprocal;
-            const double TangentY = (SecondAcross * FirstSpanY - FirstAcross * SecondSpanY) * Reciprocal;
-            const double TangentZ = (SecondAcross * FirstSpanZ - FirstAcross * SecondSpanZ) * Reciprocal;
+            const double TangentX = (SecondY * FirstSpanX - FirstY * SecondSpanX) * Reciprocal;
+            const double TangentY = (SecondY * FirstSpanY - FirstY * SecondSpanY) * Reciprocal;
+            const double TangentZ = (SecondY * FirstSpanZ - FirstY * SecondSpanZ) * Reciprocal;
 
-            const double AcrossX = (FirstAlong * SecondSpanX - SecondAlong * FirstSpanX) * Reciprocal;
-            const double AcrossY = (FirstAlong * SecondSpanY - SecondAlong * FirstSpanY) * Reciprocal;
-            const double AcrossZ = (FirstAlong * SecondSpanZ - SecondAlong * FirstSpanZ) * Reciprocal;
+            const double YX = (FirstX * SecondSpanX - SecondX * FirstSpanX) * Reciprocal;
+            const double YY = (FirstX * SecondSpanY - SecondX * FirstSpanY) * Reciprocal;
+            const double YZ = (FirstX * SecondSpanZ - SecondX * FirstSpanZ) * Reciprocal;
 
             const std::uint32_t Corners[3] = { AlphaCorner, BetaCorner, GammaCorner };
 
@@ -606,7 +606,7 @@ void TopologyConditioning::DeriveTangentBases(const TopologyStructure& Imported)
                 const double CrossZ = static_cast<double>(Perpendicular.DirectionX) * TangentY
                                     - static_cast<double>(Perpendicular.DirectionY) * TangentX;
 
-                AccumulatedHandedness[VertexOrdinal] += CrossX * AcrossX + CrossY * AcrossY + CrossZ * AcrossZ;
+                AccumulatedHandedness[VertexOrdinal] += CrossX * YX + CrossY * YY + CrossZ * YZ;
             }
         }
     }
@@ -645,33 +645,33 @@ void TopologyConditioning::DeriveExtents(const TopologyStructure& Imported)
         const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
         const std::uint32_t CornerSpan  = Imported.FaceCornerCount(FaceOrdinal);
 
-        DocumentPosition Least    = Positions[Imported.CornerVertex(FirstCorner)];
-        DocumentPosition Greatest = Least;
+        DocumentPosition Minimum    = Positions[Imported.CornerVertex(FirstCorner)];
+        DocumentPosition Maximum = Minimum;
 
         for (std::uint32_t Passed = 1u; Passed < CornerSpan; ++Passed)
         {
             const DocumentPosition& Held = Positions[Imported.CornerVertex(FirstCorner + Passed)];
 
-            Least.PositionX    = Held.PositionX < Least.PositionX    ? Held.PositionX : Least.PositionX;
-            Least.PositionY    = Held.PositionY < Least.PositionY    ? Held.PositionY : Least.PositionY;
-            Least.PositionZ    = Held.PositionZ < Least.PositionZ    ? Held.PositionZ : Least.PositionZ;
-            Greatest.PositionX = Held.PositionX > Greatest.PositionX ? Held.PositionX : Greatest.PositionX;
-            Greatest.PositionY = Held.PositionY > Greatest.PositionY ? Held.PositionY : Greatest.PositionY;
-            Greatest.PositionZ = Held.PositionZ > Greatest.PositionZ ? Held.PositionZ : Greatest.PositionZ;
+            Minimum.PositionX    = Held.PositionX < Minimum.PositionX    ? Held.PositionX : Minimum.PositionX;
+            Minimum.PositionY    = Held.PositionY < Minimum.PositionY    ? Held.PositionY : Minimum.PositionY;
+            Minimum.PositionZ    = Held.PositionZ < Minimum.PositionZ    ? Held.PositionZ : Minimum.PositionZ;
+            Maximum.PositionX = Held.PositionX > Maximum.PositionX ? Held.PositionX : Maximum.PositionX;
+            Maximum.PositionY = Held.PositionY > Maximum.PositionY ? Held.PositionY : Maximum.PositionY;
+            Maximum.PositionZ = Held.PositionZ > Maximum.PositionZ ? Held.PositionZ : Maximum.PositionZ;
         }
 
         // 🔴 Rounded outward by one representable step on every face of the extent. `38` §6: an inward-rounded
         //    extent excludes a face from traversal, and the artist meets it as a surface with a thin band along
         //    one edge that cannot be selected or painted.
-        Least.PositionX    = std::nextafter(Least.PositionX,    -HUGE_VAL);
-        Least.PositionY    = std::nextafter(Least.PositionY,    -HUGE_VAL);
-        Least.PositionZ    = std::nextafter(Least.PositionZ,    -HUGE_VAL);
-        Greatest.PositionX = std::nextafter(Greatest.PositionX,  HUGE_VAL);
-        Greatest.PositionY = std::nextafter(Greatest.PositionY,  HUGE_VAL);
-        Greatest.PositionZ = std::nextafter(Greatest.PositionZ,  HUGE_VAL);
+        Minimum.PositionX    = std::nextafter(Minimum.PositionX,    -HUGE_VAL);
+        Minimum.PositionY    = std::nextafter(Minimum.PositionY,    -HUGE_VAL);
+        Minimum.PositionZ    = std::nextafter(Minimum.PositionZ,    -HUGE_VAL);
+        Maximum.PositionX = std::nextafter(Maximum.PositionX,  HUGE_VAL);
+        Maximum.PositionY = std::nextafter(Maximum.PositionY,  HUGE_VAL);
+        Maximum.PositionZ = std::nextafter(Maximum.PositionZ,  HUGE_VAL);
 
-        DerivedFaceExtents[FaceOrdinal].Least    = Least;
-        DerivedFaceExtents[FaceOrdinal].Greatest = Greatest;
+        DerivedFaceExtents[FaceOrdinal].Minimum    = Minimum;
+        DerivedFaceExtents[FaceOrdinal].Maximum = Maximum;
 
         if (!WholeDeclared)
         {
@@ -680,18 +680,18 @@ void TopologyConditioning::DeriveExtents(const TopologyStructure& Imported)
             continue;
         }
 
-        WholeExtent.Least.PositionX    = Least.PositionX < WholeExtent.Least.PositionX
-                                       ? Least.PositionX : WholeExtent.Least.PositionX;
-        WholeExtent.Least.PositionY    = Least.PositionY < WholeExtent.Least.PositionY
-                                       ? Least.PositionY : WholeExtent.Least.PositionY;
-        WholeExtent.Least.PositionZ    = Least.PositionZ < WholeExtent.Least.PositionZ
-                                       ? Least.PositionZ : WholeExtent.Least.PositionZ;
-        WholeExtent.Greatest.PositionX = Greatest.PositionX > WholeExtent.Greatest.PositionX
-                                       ? Greatest.PositionX : WholeExtent.Greatest.PositionX;
-        WholeExtent.Greatest.PositionY = Greatest.PositionY > WholeExtent.Greatest.PositionY
-                                       ? Greatest.PositionY : WholeExtent.Greatest.PositionY;
-        WholeExtent.Greatest.PositionZ = Greatest.PositionZ > WholeExtent.Greatest.PositionZ
-                                       ? Greatest.PositionZ : WholeExtent.Greatest.PositionZ;
+        WholeExtent.Minimum.PositionX    = Minimum.PositionX < WholeExtent.Minimum.PositionX
+                                       ? Minimum.PositionX : WholeExtent.Minimum.PositionX;
+        WholeExtent.Minimum.PositionY    = Minimum.PositionY < WholeExtent.Minimum.PositionY
+                                       ? Minimum.PositionY : WholeExtent.Minimum.PositionY;
+        WholeExtent.Minimum.PositionZ    = Minimum.PositionZ < WholeExtent.Minimum.PositionZ
+                                       ? Minimum.PositionZ : WholeExtent.Minimum.PositionZ;
+        WholeExtent.Maximum.PositionX = Maximum.PositionX > WholeExtent.Maximum.PositionX
+                                       ? Maximum.PositionX : WholeExtent.Maximum.PositionX;
+        WholeExtent.Maximum.PositionY = Maximum.PositionY > WholeExtent.Maximum.PositionY
+                                       ? Maximum.PositionY : WholeExtent.Maximum.PositionY;
+        WholeExtent.Maximum.PositionZ = Maximum.PositionZ > WholeExtent.Maximum.PositionZ
+                                       ? Maximum.PositionZ : WholeExtent.Maximum.PositionZ;
     }
 }
 
@@ -708,7 +708,7 @@ Outcome<bool> TopologyConditioning::Condition(const TopologyStructure& Imported)
     }
 
     for (std::size_t Condition = 0u; Condition < DegeneracySpan; ++Condition)
-        EnrolledConditions[Condition].clear();
+        RegisteredConditions[Condition].clear();
 
     // 📝 The order is load-bearing rather than incidental. Welding precedes adjacency because incidence is over
     //    welded positions; adjacency precedes orientation because consistency compares against it; orientation
@@ -755,9 +755,9 @@ Outcome<std::uint32_t> TopologyConditioning::AdjacentCorner(std::uint32_t Corner
     return Outcome<std::uint32_t>::Result(AdjacentCornerOfCorner[CornerOrdinal]);
 }
 
-bool TopologyConditioning::FaceEnrolled(std::uint32_t FaceOrdinal, DegeneracySubject Condition) const
+bool TopologyConditioning::FaceRegistered(std::uint32_t FaceOrdinal, DegeneracySubject Condition) const
 {
-    return IntervalEnrolled(EnrolledConditions[static_cast<std::size_t>(Condition)], FaceOrdinal);
+    return IntervalRegistered(RegisteredConditions[static_cast<std::size_t>(Condition)], FaceOrdinal);
 }
 
 bool TopologyConditioning::VertexIsolated(std::uint32_t VertexOrdinal) const
@@ -767,12 +767,12 @@ bool TopologyConditioning::VertexIsolated(std::uint32_t VertexOrdinal) const
 
     const std::size_t Condition = static_cast<std::size_t>(DegeneracySubject::IsolatedVertex);
 
-    return IntervalEnrolled(EnrolledConditions[Condition], WeldedPositionOfVertex[VertexOrdinal]);
+    return IntervalRegistered(RegisteredConditions[Condition], WeldedPositionOfVertex[VertexOrdinal]);
 }
 
-const std::vector<EnrolledInterval>& TopologyConditioning::Enrolled(DegeneracySubject Condition) const
+const std::vector<RegisteredInterval>& TopologyConditioning::Registered(DegeneracySubject Condition) const
 {
-    return EnrolledConditions[static_cast<std::size_t>(Condition)];
+    return RegisteredConditions[static_cast<std::size_t>(Condition)];
 }
 
 const std::vector<SurfaceDirection>&  TopologyConditioning::Perpendiculars() const { return DerivedPerpendiculars; }

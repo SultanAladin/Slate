@@ -8,7 +8,7 @@
 #include "Contract/IdentityContract.h"
 #include "Contract/DeliveryContract.h"
 #include "Contract/PrecisionContract.h"
-#include "SlateDocument/Document/EnrollmentIndex/Api/EnrollmentIndex.h"
+#include "SlateDocument/Document/RegistrationIndex/Api/RegistrationIndex.h"
 #include "SlateDocument/Document/TopologyConditioning/Api/TopologyConditioning.h"
 #include "SlateDocument/Document/TopologyStructure/Api/TopologyStructure.h"
 
@@ -23,7 +23,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📝 Read by this unit alone, so `00` §2 places them here rather than in `Contract/`. Both are tuning figures and
-//    `40` §8 carries them as open: the depth bounds the recursion so a pathological occupant distribution cannot
+//    `40` §8 carries them as open: the depth bounds the recursion so a pathological owner distribution cannot
 //    make a traversal unbounded, and the occupancy is where subdividing further stops paying for itself.
 inline constexpr std::uint32_t SubdivisionDepthCeiling = 20u;         // [-] - subdivisions permitted below the root
 inline constexpr std::uint32_t SubdivisionLeafCeiling  = 8u;          // [-] - entries a record holds before dividing
@@ -33,7 +33,7 @@ inline constexpr std::uint32_t AbsentRecord            = 0xFFFFFFFFu; // [-] - n
 //                                                 WHAT A RAY RESOLVES TO
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 One face intersection in an occupant's own object space.
+/// 🧩 One face intersection in an owner's own object space.
 /// note  📝 The three corner ordinals and their weights are carried rather than an interpolated attribute,
 ///        because `74` interpolates the domain position, `78` interpolates the orientation, and neither wants the
 ///        other's. Carrying the weights lets one traversal serve every consumer.
@@ -53,7 +53,7 @@ struct FaceIntersection
 /// tag   nonallocating, nonthrowing
 struct ResolvedIntersection
 {
-    OccupantIdentity  Occupant          = {};                  // [-]  - `12` enrolment, `78` manipulation
+    OwnerIdentity  Owner          = {};                  // [-]  - `12` registration, `78` manipulation
     std::uint32_t     FaceOrdinal       = 0u;                  // [-]  - component selection
     std::uint32_t     CornerOrdinals[3] = { 0u, 0u, 0u };      // [-]  - `74` interpolates the domain from these
     double            Weights[3]        = { 0.0, 0.0, 0.0 };   // [-]  - barycentric
@@ -67,9 +67,9 @@ struct ResolvedIntersection
 //                                              THE INNER LEVEL — PER OCCUPANT
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Extents over one occupant's faces, in that occupant's own object space.
-/// note  🔴 Object space, and therefore **invariant under occupant motion** — `40` §2. A single document-space
-///        subdivision over every face would be re-derived whenever any occupant moved, and moving an occupant is
+/// 🧩 Extents over one owner's faces, in that owner's own object space.
+/// note  🔴 Object space, and therefore **invariant under owner motion** — `40` §2. A single document-space
+///        subdivision over every face would be re-derived whenever any owner moved, and moving an owner is
 ///        the most frequent thing an artist does to a scene.
 /// note  ⚠️ Faces are corner runs of any count and are fan-triangulated for intersection, matching `38` §4's
 ///        convention. Two triangulations of one n-gon would classify its interior differently along the diagonal.
@@ -90,7 +90,7 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Construct(const TopologyStructure& Imported, const TopologyConditioning& Conditioned);
 
-    /// 🧩 Intersects one ray, in the occupant's own object space.
+    /// 🧩 Intersects one ray, in the owner's own object space.
     /// in    Origin            [mm]  the ray's origin, in object space
     /// in    DirectionX        [-]   the ray's direction; not required to be unit length
     /// in    DirectionY        [-]
@@ -160,70 +160,70 @@ private:
 //                                            THE OUTER LEVEL — OVER OCCUPANTS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 One occupant admitted to the document-space subdivision.
-/// note  🔴 The transform held is the **composed** one — `12`'s `AttachmentFollows` resolved downward. An occupant
+/// 🧩 One owner accepted to the document-space subdivision.
+/// note  🔴 The transform held is the **composed** one — `12`'s `AttachmentFollows` resolved downward. An owner
 ///        attached to a moved carrier moves here even though its own transform did not change, which is `40` §5's
 ///        rule and the one place the two nesting relations differ observably in intersection.
 /// tag   nonallocating, nonthrowing
-struct AdmittedOccupant
+struct AcceptedOwner
 {
-    OccupantIdentity          Occupant  = {};        // [-]  - the population slot
+    OwnerIdentity          Owner  = {};        // [-]  - the population slot
     DecomposedTransform       Composed  = {};        // [mm] - as `12` §4 step ③ compounded it
     ConditionedExtent         Extent    = {};        // [mm] - document space, outward
     const BoundingStructure*  Inner     = nullptr;   // [-]  - not owned; the caller keeps it alive
 };
 
-/// 🧩 The document-space subdivision over occupants, and the traversal `74` asks every pointer sample.
-/// note  🔴 An occupant move is a **refit** of one extent, never a rebuild — `40` §4. Refitting propagates the
-///        changed extent upward and leaves the subdivision's shape alone; the shape degrades as occupants move far
+/// 🧩 The document-space subdivision over owners, and the traversal `74` asks every pointer sample.
+/// note  🔴 An owner move is a **refit** of one extent, never a rebuild — `40` §4. Refitting propagates the
+///        changed extent upward and leaves the subdivision's shape alone; the shape degrades as owners move far
 ///        from where they were built, and quality is recovered by a rebuild through `34` at Background. Degraded
 ///        quality costs traversal time; a stalled tick costs the artist's stroke.
-/// note  🔴 Enrolment exclusion is tested **before** descent, so a locked or hidden population costs nothing
+/// note  🔴 Registration exclusion is tested **before** descent, so a locked or hidden population costs nothing
 ///        rather than costing a rejected test each — `40` §3.
 /// tag   owning
 class OctantSpace
 {
 public:
 
-    /// 🧩 Admits one occupant, or amends the one already admitted at that identity.
+    /// 🧩 Accepts one owner, or amends the one already accepted at that identity.
     /// out   Result  [-]  refuses with IdentityStale for an undeclared identity
     /// post  the subdivision is owed a rebuild before the admission is traversable
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Admit(const AdmittedOccupant& Arriving);
+    Outcome<bool> Accept(const AcceptedOwner& Incoming);
 
-    /// 🧩 Withdraws one occupant.
-    /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
+    /// 🧩 Withdraws one owner.
+    /// out   Result  [-]  refuses with IdentityStale when the owner is not accepted
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Withdraw(OccupantIdentity Subject);
+    Outcome<bool> Withdraw(OwnerIdentity Subject);
 
-    /// 🧩 Refits one occupant's extent and composed transform, without rebuilding.
-    /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
+    /// 🧩 Refits one owner's extent and composed transform, without rebuilding.
+    /// out   Result  [-]  refuses with IdentityStale when the owner is not accepted
     /// note  🔴 This is `40` §4's most frequent row and it is deliberately cheap. The subdivision's shape is
-    ///        untouched; only the extents along the path to the occupant's record widen.
+    ///        untouched; only the extents along the path to the owner's record widen.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Refit(OccupantIdentity Subject, const DecomposedTransform& Composed, ConditionedExtent Extent);
+    Outcome<bool> Refit(OwnerIdentity Subject, const DecomposedTransform& Composed, ConditionedExtent Extent);
 
-    /// 🧩 Surrenders one admitted occupant's standing record.
-    /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
+    /// 🧩 Returns one accepted owner's standing record.
+    /// out   Result  [-]  refuses with IdentityStale when the owner is not accepted
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<AdmittedOccupant> Standing(OccupantIdentity Subject) const;
+    Outcome<AcceptedOwner> Current(OwnerIdentity Subject) const;
 
-    /// 🧩 Rebuilds the subdivision's shape over every admitted occupant.
+    /// 🧩 Rebuilds the subdivision's shape over every accepted owner.
     /// post  the shape is optimal for the current extents; nothing is owed
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> Construct();
 
-    /// 🧩 Resolves the nearest occupant surface along one document-space ray — `74`'s precedence 2.
+    /// 🧩 Resolves the nearest owner surface along one document-space ray — `74`'s precedence 2.
     /// in    Origin      [mm]  the ray's origin, in document space
     /// in    DirectionX  [-]   unit length, in document space
     /// in    DirectionY  [-]
     /// in    DirectionZ  [-]
-    /// in    Subsets     [-]   `12`'s enrolments; locked and visibility-excluded occupants are never traversed
+    /// in    Subsets     [-]   `12`'s registrations; locked and visibility-excluded owners are never traversed
     /// out   Resolved    [-]   the whole tuple, or an unresolved intersection
     /// note  🔴 Descends nearest-first and stops when the remaining extents are further than the nearest confirmed
     ///        hit. Without the ordering the traversal visits every record whose extent the ray touches, which on a
@@ -234,26 +234,26 @@ public:
                                       double                 DirectionX,
                                       double                 DirectionY,
                                       double                 DirectionZ,
-                                      const EnrollmentIndex& Subsets) const;
+                                      const RegistrationIndex& Subsets) const;
 
-    /// 🧩 Resolves every occupant a document-space extent reaches — `74`'s marquee and `16`'s culling.
-    /// in    Containment  [-]  true enrols only occupants wholly inside; false enrols any that overlap
-    /// out   Enrolled     [-]  in admission order
+    /// 🧩 Resolves every owner a document-space extent reaches — `74`'s marquee and `16`'s culling.
+    /// in    Containment  [-]  true registers only owners wholly inside; false registers any that overlap
+    /// out   Registered     [-]  in admission order
     /// note  🔴 One traversal over the extent, never one per position inside it — `74` §4.
     /// cost  🚩
     /// tag   api, nonthrowing
-    std::vector<OccupantIdentity> IntersectExtent(ConditionedExtent      Extent,
+    std::vector<OwnerIdentity> IntersectExtent(ConditionedExtent      Extent,
                                                   bool                   Containment,
-                                                  const EnrollmentIndex& Subsets) const;
+                                                  const RegistrationIndex& Subsets) const;
 
     /// 🧩 Whether the shape has degraded enough that a rebuild is worth declaring through `34`.
     /// note  📝 Measured as the ratio of accumulated refit widening to the extent at the last build. A rebuild
-    ///        triggered by a refit count would rebuild for a thousand occupants that each moved a millimetre.
+    ///        triggered by a refit count would rebuild for a thousand owners that each moved a millimetre.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     bool RebuildWorthwhile() const;
 
-    std::uint32_t AdmittedCount() const;
+    std::uint32_t AcceptedCount() const;
     std::uint32_t RecordCount() const;
 
     /// 🧩 Whether a rebuild is owed before the subdivision may be traversed.
@@ -271,17 +271,17 @@ private:
         std::uint32_t      FirstDivided = AbsentRecord;
     };
 
-    std::size_t Located(OccupantIdentity Subject) const;
+    std::size_t Located(OwnerIdentity Subject) const;
     void        Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth);
     void        Descend(std::uint32_t          RecordOrdinal,
                         DocumentPosition       Origin,
                         double                 DirectionX,
                         double                 DirectionY,
                         double                 DirectionZ,
-                        const EnrollmentIndex& Subsets,
+                        const RegistrationIndex& Subsets,
                         ResolvedIntersection&  Nearest) const;
 
-    std::vector<AdmittedOccupant>  Admitted;                    // [-] - in admission order
+    std::vector<AcceptedOwner>  Accepted;                    // [-] - in admission order
     std::vector<OctantRecord>      Records;                     // [-] - record zero is the root
     std::vector<std::uint32_t>     EntryOrder;                  // [-] - admission ordinals, partitioned
     double                         BuiltVolume    = 0.0;        // [-] - root extent volume at the last build
@@ -297,17 +297,17 @@ private:
 /// tag   nonallocating, nonthrowing
 struct DomainExtent
 {
-    double         LeastAlong     = 0.0;   // [-] - the domain's first axis
-    double         LeastAcross    = 0.0;   // [-] - its second
-    double         GreatestAlong  = 0.0;   // [-]
-    double         GreatestAcross = 0.0;   // [-]
+    double         MinimumX     = 0.0;   // [-] - the domain's first axis
+    double         MinimumY    = 0.0;   // [-] - its second
+    double         MaximumX  = 0.0;   // [-]
+    double         MaximumY = 0.0;   // [-]
     std::uint32_t  PlacementOrdinal = 0u;  // [-] - what the caller resolves it back to
     std::uint32_t  SequenceOrdinal  = 0u;  // [-] - `56` layer order; the topmost containing extent wins
 };
 
 /// 🧩 The two-dimensional subdivision over one surface's domain — `74` precedence 1 and `72`.
 /// note  🔴 Over the **domain**, not over space, and per surface. It answers which placements contain a domain
-///        position, which is a different question from which occupant a ray meets and shares no space with it.
+///        position, which is a different question from which owner a ray meets and shares no space with it.
 /// note  ⚠️ The topmost containing placement wins, by `56` sequence order. Resolving the first found would make
 ///        picking depend on insertion order, and the artist would select whichever decal happened to be declared
 ///        first rather than the one they can see.
@@ -331,7 +331,7 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted when no placement contains it
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Resolve(double PositionAlong, double PositionAcross) const;
+    Outcome<std::uint32_t> Resolve(double PositionX, double PositionY) const;
 
     /// 🧩 Every placement whose extent overlaps a domain extent.
     /// cost  🚩

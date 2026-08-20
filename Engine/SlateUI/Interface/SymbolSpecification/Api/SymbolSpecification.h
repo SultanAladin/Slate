@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                         SYMBOLSPECIFICATION.H
 //============================================================================================================================================
-// 🧩 Stroke figures declared in a 24-unit square, enrolled by discipline — no raster, no store, no vendor library.
+// 🧩 Stroke figures declared in a 24-unit square, registered by discipline — no raster, no store, no vendor library.
 
 #pragma once
 
@@ -14,10 +14,10 @@ namespace Slate
 //                                                      THE DISCIPLINES
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The working discipline a figure belongs to. Every figure is enrolled in exactly one.
+/// 🧩 The working discipline a figure belongs to. Every figure is registered in exactly one.
 /// note  🔴 `Geometry` and not `Modelling`: `Model` is a banned structural word and the ban has no carve-out
 ///       for the participle. `Assembly` and not `Compositing`, for the same reason.
-/// note  The enrolment is a property of the **figure**, not of where it is presented. A magnifier is a
+/// note  The registration is a property of the **figure**, not of where it is presented. A magnifier is a
 ///       navigation figure wherever it is drawn.
 /// tag   contract
 enum class SymbolDiscipline : std::uint32_t
@@ -112,10 +112,10 @@ enum class SymbolSubject : std::uint32_t
     CameraAperture      = 46u,   // 🟢 lucide `camera`      — the camera entity
     SampleConverge      = 47u,   // 🚧
     DenoiseSweep        = 48u,   // 🚧
-    ExposureOrdinate    = 49u,   // 🚧
+    ExposureCoordinate    = 49u,   // 🚧
 
     // Animation ---------------------------------------------------------------------------------------------
-    KeyOrdinate         = 50u,   // 🚧
+    KeyCoordinate         = 50u,   // 🚧
     CurveTangent        = 51u,   // 🚧
     TimelineScrub       = 52u,   // 🚧
     SkeletonJoint       = 53u,   // 🚧
@@ -152,11 +152,11 @@ enum class SymbolSubject : std::uint32_t
 enum class StrokeCommand : std::uint32_t
 {
     Origin     = 0u,   // [-] - lifts the pen and places it; ends any open outline
-    Segment    = 1u,   // [-] - straight to (Along, Across)
-    Curve      = 2u,   // [-] - cubic to (Along, Across) via the two declared controls
+    Segment    = 1u,   // [-] - straight to (X, Y)
+    Curve      = 2u,   // [-] - cubic to (X, Y) via the two declared controls
     Close      = 3u,   // [-] - joins back to the last Origin and ends the outline
-    Disc       = 4u,   // [-] - a circle centred at (Along, Across) of radius FirstAlong
-    Enclosure  = 5u    // [-] - a rounded rectangle, (Along, Across) to (First…), corner radius SecondAlong
+    Disc       = 4u,   // [-] - a circle centred at (X, Y) of radius FirstX
+    Enclosure  = 5u    // [-] - a rounded rectangle, (X, Y) to (First…), corner radius SecondX
 };
 
 /// 🧩 One step, in the 24-unit declared square Lucide draws in.
@@ -164,12 +164,12 @@ enum class StrokeCommand : std::uint32_t
 struct StrokeStep
 {
     StrokeCommand  Command      = StrokeCommand::Origin;   // [-] - what this step does
-    float          Along        = 0.0f;                    // [-] - primary abscissa, 0 … 24
-    float          Across       = 0.0f;                    // [-] - primary ordinate, 0 … 24, increasing down
-    float          FirstAlong   = 0.0f;                    // [-] - control one, or radius, or trailing corner
-    float          FirstAcross  = 0.0f;                    // [-] - control one ordinate, or trailing corner
-    float          SecondAlong  = 0.0f;                    // [-] - control two, or corner radius
-    float          SecondAcross = 0.0f;                    // [-] - control two ordinate
+    float          X        = 0.0f;                    // [-] - primary abscissa, 0 … 24
+    float          Y       = 0.0f;                    // [-] - primary coordinate, 0 … 24, increasing down
+    float          FirstX   = 0.0f;                    // [-] - control one, or radius, or trailing corner
+    float          FirstY  = 0.0f;                    // [-] - control one coordinate, or trailing corner
+    float          SecondX  = 0.0f;                    // [-] - control two, or corner radius
+    float          SecondY = 0.0f;                    // [-] - control two coordinate
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -180,7 +180,7 @@ struct StrokeStep
 //    numbers travel with the figure rather than sitting at the recording site, because the two tongue symbols
 //    are drawn at 2.5 and everything else at 2 — a weight chosen where the figure is drawn is a weight that
 //    disagrees with itself across two panels.
-inline constexpr float DeclaredSquare      = 24.0f;   // [-] - the square every ordinate above is stated in
+inline constexpr float DeclaredSquare      = 24.0f;   // [-] - the square every coordinate above is stated in
 inline constexpr float DeclaredWeight      = 2.0f;    // [-] - lucide's default
 inline constexpr float TongueWeight        = 2.5f;    // [-] - the two drawer tongues, strokeWidth={2.5}
 
@@ -189,7 +189,7 @@ inline constexpr float TongueWeight        = 2.5f;    // [-] - the two drawer to
 //    the radius — far under a pixel at the 16 px and 20 px extents these are drawn at.
 inline constexpr float QuarterArcControl   = 0.5522847498f;   // [-] - κ
 
-/// 🧩 One declared figure — its stroke stream, its enrolment, and the weight it is drawn at.
+/// 🧩 One declared figure — its stroke stream, its registration, and the weight it is drawn at.
 /// note  Points into static storage. Nothing here ever owns an allocation, and a figure outlives every
 ///       reference to it by construction.
 /// tag   contract, nonallocating, nonthrowing
@@ -197,7 +197,7 @@ struct SymbolFigure
 {
     const StrokeStep*  Steps       = nullptr;                        // [-] - static; never allocated
     std::uint32_t      StepCount   = 0u;                             // [-]
-    SymbolDiscipline   Enrolment   = SymbolDiscipline::Workspace;    // [-]
+    SymbolDiscipline   Registration   = SymbolDiscipline::Workspace;    // [-]
     float              Weight      = DeclaredWeight;                 // [-] - in declared-square units
     bool               ArtworkHeld = false;                          // [-] - false while it draws as the mark
 };
@@ -213,19 +213,19 @@ struct SymbolFigure
 /// tag   api, nonallocating, nonthrowing
 const SymbolFigure& Figure(SymbolSubject Subject);
 
-/// 🧩 Which discipline a subject is enrolled in, without resolving its artwork.
+/// 🧩 Which discipline a subject is registered in, without resolving its artwork.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-SymbolDiscipline Enrolment(SymbolSubject Subject);
+SymbolDiscipline Registration(SymbolSubject Subject);
 
-/// 🧩 The subjects enrolled in one discipline, in declared order.
+/// 🧩 The subjects registered in one discipline, in declared order.
 /// in    Discipline  [-]  the discipline to read
 /// in    Delivered   [-]  receives a pointer into static storage; untouched when the count is zero
 /// out   Count       [-]  how many subjects the discipline holds
-/// use   `const SymbolSubject* Held = nullptr; const auto Count = EnrolledIn(Texturing, &Held);`
+/// use   `const SymbolSubject* Held = nullptr; const auto Count = RegisteredIn(Texturing, &Held);`
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-std::uint32_t EnrolledIn(SymbolDiscipline Discipline, const SymbolSubject** Delivered);
+std::uint32_t RegisteredIn(SymbolDiscipline Discipline, const SymbolSubject** Delivered);
 
 /// 🧩 Static text naming a discipline, for the diagnostic overlay and for nothing the artist reads.
 /// cost  ✔️

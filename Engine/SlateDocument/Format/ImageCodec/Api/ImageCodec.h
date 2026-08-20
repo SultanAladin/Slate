@@ -62,7 +62,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
 /// in    Stream      [-]  the whole stream, as `StorageExchange` drained it
 /// in    OriginPath  [-]  where it was read from; carried into the record, never parsed for meaning
 /// out   Result     [-]  refuses with ContentUnsupported for an unrecognised layout or a stream the decoder
-///                        declined, and with ExtentExhausted for a stream too long to address
+///                        rejected, and with ExtentExhausted for a stream too long to address
 /// err   never throws; the decoder's own reason is carried verbatim in the refusal
 /// cost  🔴
 /// pre   the stream has landed in full — a partial stream classifies but does not translate

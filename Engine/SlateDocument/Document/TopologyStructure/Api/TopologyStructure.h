@@ -25,11 +25,11 @@ namespace Slate
 /// tag   nonallocating, nonthrowing
 struct DomainCoordinate
 {
-    float  CoordinateAlong  = 0.0f;   // [-] - the domain's first axis
-    float  CoordinateAcross = 0.0f;   // [-] - its second
+    float  CoordinateX  = 0.0f;   // [-] - the domain's first axis
+    float  CoordinateY = 0.0f;   // [-] - its second
 };
 
-/// 🧩 A unit direction in an occupant's own object space.
+/// 🧩 A unit direction in an owner's own object space.
 /// tag   nonallocating, nonthrowing
 struct SurfaceDirection
 {
@@ -57,7 +57,7 @@ struct TangentBasis
 /// note  🔴 Sealed once and read thereafter. `38`'s non-mutation guarantee begins here: an index into these
 ///        arrays means the same thing after conditioning as before it, so nothing may renumber them.
 /// note  🔴 Faces are corner runs and may carry any corner count. `50` §2 ① never repairs, so n-gons, repeated
-///        indices and degenerate faces all survive intake and are **enrolled** by `38` §3 rather than removed.
+///        indices and degenerate faces all survive intake and are **registered** by `38` §3 rather than removed.
 /// note  ⚠️ A format that stores a domain coordinate per corner has already split every vertex where its
 ///        coordinates differ, which is why coordinates are held per corner and positions per vertex. `38` §2's
 ///        welding index is what relates the two, and it is derived, not stored here.
@@ -67,17 +67,17 @@ class TopologyStructure
 public:
 
     /// 🧩 Declares the vertex positions, in the source's own ordering.
-    /// in    Arriving  [-]  positions in object space at 64-bit
+    /// in    Incoming  [-]  positions in object space at 64-bit
     /// out   Result   [-]  refuses with HostDenied once the topology is sealed
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclarePositions(const std::vector<DocumentPosition>& Arriving);
+    Outcome<bool> DeclarePositions(const std::vector<DocumentPosition>& Incoming);
 
     /// 🧩 Declares one face as a run of vertex ordinals, in the source's own winding.
     /// in    CornerVertices  [-]  vertex ordinals, in traversal order
     /// out   Result         [-]  refuses with HostDenied once sealed, with ExtentExhausted for a run of fewer
     ///                            than three corners, and with ContentUnsupported for an out-of-range ordinal
-    /// note  📝 A run of fewer than three corners is refused rather than enrolled as degenerate, because it is
+    /// note  📝 A run of fewer than three corners is rejected rather than registered as degenerate, because it is
     ///        not a face at all and `38` §3's enrollment is over faces. `50` §3 refuses the intake instead.
     /// cost  🚩
     /// tag   api, nonthrowing
@@ -87,13 +87,13 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported when the count does not equal the corner count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareCoordinates(const std::vector<DomainCoordinate>& Arriving);
+    Outcome<bool> DeclareCoordinates(const std::vector<DomainCoordinate>& Incoming);
 
     /// 🧩 Declares one perpendicular per vertex, as the source supplied it.
     /// out   Result  [-]  refuses with ContentUnsupported when the count does not equal the vertex count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclarePerpendiculars(const std::vector<SurfaceDirection>& Arriving);
+    Outcome<bool> DeclarePerpendiculars(const std::vector<SurfaceDirection>& Incoming);
 
     /// 🧩 Declares one tangent basis per vertex, as the source supplied it.
     /// note  🔴 A supplied basis is retained and `38` §4 does not override it with a derived one. An imported
@@ -101,13 +101,13 @@ public:
     ///        their appearance requires reproducing it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareTangentBases(const std::vector<TangentBasis>& Arriving);
+    Outcome<bool> DeclareTangentBases(const std::vector<TangentBasis>& Incoming);
 
     /// 🧩 Declares one material enrollment per face.
     /// out   Result  [-]  refuses with ContentUnsupported when the count does not equal the face count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving);
+    Outcome<bool> DeclareMaterialRegistration(const std::vector<std::uint32_t>& Incoming);
 
     /// 🧩 Seals the topology, issuing its revision. Nothing may be declared afterwards.
     /// out   Result  [-]  refuses with ExtentExhausted when no face was declared
@@ -125,9 +125,9 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool Sealed() const;
 
-    /// 🧩 The revision the seal issued — what `24` §3 keys a transferred result on.
+    /// 🧩 The revision the seal registered — what `24` §3 keys a transferred result on.
     /// out   Revision  [-]  zero until sealed; thereafter distinct across every topology in the process
-    /// note  🔴 Issued from one process-wide sequence, not counted per topology. Two topologies never share a
+    /// note  🔴 Registered from one process-wide sequence, not counted per topology. Two topologies never share a
     ///        revision, which is what lets `38`, `40`, `68`, `16` and `24` refuse a description derived from a
     ///        different one. A per-topology count would make all five comparisons read one against one.
     /// cost  ✔️
@@ -158,7 +158,7 @@ public:
     const std::vector<DomainCoordinate>&  Coordinates() const;
     const std::vector<SurfaceDirection>&  Perpendiculars() const;
     const std::vector<TangentBasis>&      TangentBases() const;
-    const std::vector<std::uint32_t>&     MaterialEnrollment() const;
+    const std::vector<std::uint32_t>&     MaterialRegistration() const;
 
     bool CoordinatesSupplied() const;
     bool PerpendicularsSupplied() const;
@@ -175,8 +175,8 @@ private:
     std::vector<SurfaceDirection>  VertexPerpendiculars;             // [-]  - per vertex where supplied
     std::vector<TangentBasis>      VertexTangentBases;               // [-]  - per vertex where supplied
     std::vector<std::uint32_t>     FaceMaterialOrdinals;             // [-]  - material enrollment per face
-    std::uint64_t                  SealedRevision      = 0u;         // [-]  - issued at Seal, process-wide
-    bool                           SealDeclared        = false;      // [-]  - no further declaration is admitted
+    std::uint64_t                  SealedRevision      = 0u;         // [-]  - registered at Seal, process-wide
+    bool                           SealDeclared        = false;      // [-]  - no further declaration is accepted
 };
 
 }   // namespace Slate

@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                      CONTAINMENTCLASSIFIER.SLANG.H
 //============================================================================================================================================
-// 🧩 Interval containment over the gapped labels `12` issues — one comparison, asked per occupant per rotation.
+// 🧩 Interval containment over the gapped labels `12` issues — one comparison, asked per owner per rotation.
 
 #pragma once
 
@@ -9,8 +9,8 @@
 
 // 📐 `12` §2.1 answers "is A enclosed by B, at any depth" by comparing two interval labels rather than by walking
 //    a relation, and `12` §3 compresses every subset into runs of ordinals for the same reason. Both reduce to
-//    the three comparisons below, and both are asked by `16` and `26` **per occupant per rotation**, on the
-//    device, against the same labels the host issued.
+//    the three comparisons below, and both are asked by `16` and `26` **per owner per rotation**, on the
+//    device, against the same labels the host registered.
 //
 // 🔴 That is why the predicate is here rather than inside `SceneStructure`. A containment test written twice —
 //    once for the outliner and once for the shading dispatch — is two tests that must agree about strictness at
@@ -30,8 +30,8 @@ namespace Slate
 /// in    Ordinal        [-]  the ordinal being classified
 /// out   Containment    [-]  +1 strictly inside, 0 on a bound, −1 outside
 /// note  🔴 A bound resolves to zero and not to inside. `12` §5's invariant 4 requires labels to nest strictly,
-///        so an occupant sitting exactly on its enclosure's bound is a label that was issued wrongly rather than
-///        an occupant that is enclosed — and reporting it as enclosed hides the defect that produced it.
+///        so an owner sitting exactly on its enclosure's bound is a label that was registered wrongly rather than
+///        an owner that is enclosed — and reporting it as enclosed hides the defect that produced it.
 /// cost  ✔️
 /// note  Exact — an integer comparison; identical on the host and on the device by construction.
 /// tag   shared, parity, nonallocating, nonthrowing
@@ -45,14 +45,14 @@ SLATE_SHARED SLATE_CONSTEXPR Signed32 ClassifyOrdinalContainment(Unsigned64 Inte
          : -1;
 }
 
-/// 🧩 Whether one ordinal is enrolled in a closed run.
-/// out   Enrolled  [-]  true on a bound as well as strictly inside
-/// note  ⚠️ Inclusive where the predicate above is strict, because `12` §3's enrolment runs are inclusive at
+/// 🧩 Whether one ordinal is registered in a closed run.
+/// out   Registered  [-]  true on a bound as well as strictly inside
+/// note  ⚠️ Inclusive where the predicate above is strict, because `12` §3's registration runs are inclusive at
 ///        both ends while its interval labels nest strictly. Both spellings exist so that neither consumer has
 ///        to remember to adjust the other's answer by one.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED SLATE_CONSTEXPR bool OrdinalEnrolled(Unsigned64 RunBegin, Unsigned64 RunEnd, Unsigned64 Ordinal)
+SLATE_SHARED SLATE_CONSTEXPR bool OrdinalRegistered(Unsigned64 RunBegin, Unsigned64 RunEnd, Unsigned64 Ordinal)
 {
     return RunEnd >= RunBegin && Ordinal >= RunBegin && Ordinal <= RunEnd;
 }
@@ -68,7 +68,7 @@ SLATE_SHARED SLATE_CONSTEXPR bool OrdinalEnrolled(Unsigned64 RunBegin, Unsigned6
 /// in    InnerEnd     [-]
 /// out   Containment  [-]  +1 the outer strictly contains the inner, 0 they are identical, −1 otherwise
 /// note  🔴 An interval never strictly contains itself, which is what makes `12` §2.1's predicate answer false
-///        for an occupant against itself without any consumer having to exclude it. Overlapping and inverted
+///        for an owner against itself without any consumer having to exclude it. Overlapping and inverted
 ///        intervals both resolve to −1: neither is containment, and `12` invariant 4 forbids the first outright.
 /// cost  ✔️
 /// note  Exact — integer comparisons throughout.

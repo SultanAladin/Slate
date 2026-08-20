@@ -41,7 +41,7 @@ typedef float4   Real32x4;
 //
 //    `Unsigned32x3` is what `SV_DispatchThreadID` is delivered as; the toolchain refuses a three-element array in
 //    its place. `Unsigned32x2` is what a writable surface is **addressed** through: the toolchain takes one operand
-//    between the brackets and not two, so `Surface[Along, Across]` is a call carrying an argument too many rather
+//    between the brackets and not two, so `Surface[X, Y]` is a call carrying an argument too many rather
 //    than the pair it reads as, and the two ordinates are named into this width first. Both are declared once here
 //    rather than reached for at each entry point, which is what makes every entry point the same shape as the rest.
 typedef uint2    Unsigned32x2;
@@ -154,7 +154,7 @@ SLATE_SHARED Real64 Power(Real64 Operand, Real64 Exponent)
 }
 
 // 📝 The bound is spelled here rather than reached for per toolchain because the shader form's `clamp` and the
-//    host's nested conditional disagree on a non-finite operand, and a zenith cosine arriving as one is exactly
+//    host's nested conditional disagree on a non-finite operand, and a zenith cosine incoming as one is exactly
 //    the input a parity comparison is meant to catch rather than to silently normalise.
 SLATE_SHARED Real64 BoundedMagnitude(Real64 Operand, Real64 Lower, Real64 Upper)
 {

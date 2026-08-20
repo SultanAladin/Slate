@@ -68,8 +68,8 @@ SLATE_SHARED Real64 ProjectDistributionGGX(Real64 RoughnessSquared, Real64 HalfC
 }
 
 /// 🧩 The GGX distribution stretched along the tangent by a declared anisotropy.
-/// in    RoughnessAlong   [-]  the distribution parameter along the tangent
-/// in    RoughnessAcross  [-]  and across it
+/// in    RoughnessX   [-]  the distribution parameter along the tangent
+/// in    RoughnessY  [-]  and across it
 /// in    TangentCosine    [-]  the half-direction's component along the tangent
 /// in    BitangentCosine  [-]  its component across
 /// in    HalfCosine       [-]  its component along the orientation
@@ -79,19 +79,19 @@ SLATE_SHARED Real64 ProjectDistributionGGX(Real64 RoughnessSquared, Real64 HalfC
 ///        the seven of `18` §3's eight selections that are isotropic.
 /// cost  🚩
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Real64 ProjectDistributionAnisotropic(Real64 RoughnessAlong,
-                                                   Real64 RoughnessAcross,
+SLATE_SHARED Real64 ProjectDistributionAnisotropic(Real64 RoughnessX,
+                                                   Real64 RoughnessY,
                                                    Real64 TangentCosine,
                                                    Real64 BitangentCosine,
                                                    Real64 HalfCosine)
 {
-    const Real64 Along  = RoughnessAlong  < DistributionParameterFloor()
-                        ? DistributionParameterFloor() : RoughnessAlong;
-    const Real64 Across = RoughnessAcross < DistributionParameterFloor()
-                        ? DistributionParameterFloor() : RoughnessAcross;
+    const Real64 X  = RoughnessX  < DistributionParameterFloor()
+                        ? DistributionParameterFloor() : RoughnessX;
+    const Real64 Y = RoughnessY < DistributionParameterFloor()
+                        ? DistributionParameterFloor() : RoughnessY;
 
-    const Real64 ScaledTangent   = TangentCosine   / Along;
-    const Real64 ScaledBitangent = BitangentCosine / Across;
+    const Real64 ScaledTangent   = TangentCosine   / X;
+    const Real64 ScaledBitangent = BitangentCosine / Y;
 
     const Real64 Denom = ScaledTangent * ScaledTangent
                        + ScaledBitangent * ScaledBitangent
@@ -102,7 +102,7 @@ SLATE_SHARED Real64 ProjectDistributionAnisotropic(Real64 RoughnessAlong,
         return 0.0;
     }
 
-    return 1.0 / (Pi * Along * Across * Denom * Denom);
+    return 1.0 / (Pi * X * Y * Denom * Denom);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -319,8 +319,8 @@ SLATE_SHARED Real64 ProjectSheenVisibility(Real64 ViewCosine, Real64 LightCosine
 /// 🧩 Where a declared view angle and roughness sit on `18` §4.1's lookup.
 /// in    ViewCosine        [-]  the orientation against the view direction
 /// in    Roughness         [-]  perceptual
-/// out   CoordinateAlong   [-]  the view cosine, linear
-/// out   CoordinateAcross  [-]  the roughness, biased toward the smooth end
+/// out   CoordinateX   [-]  the view cosine, linear
+/// out   CoordinateY  [-]  the roughness, biased toward the smooth end
 /// note  📐 The roughness axis carries the **square root** of the roughness, because the split-sum terms vary
 ///        fastest where the surface is nearly smooth and barely at all where it is fully rough. A linear axis
 ///        spends most of its texels on the half of the domain that is almost constant, and the artist meets that
@@ -334,11 +334,11 @@ SLATE_SHARED Real64 ProjectSheenVisibility(Real64 ViewCosine, Real64 LightCosine
 /// tag   shared, parity, nonallocating, nonthrowing
 SLATE_SHARED void ProjectAlbedoCoordinate(Real64 ViewCosine,
                                           Real64 Roughness,
-                                          SLATE_OUT(Real64) CoordinateAlong,
-                                          SLATE_OUT(Real64) CoordinateAcross)
+                                          SLATE_OUT(Real64) CoordinateX,
+                                          SLATE_OUT(Real64) CoordinateY)
 {
-    CoordinateAlong  = BoundedMagnitude(ViewCosine, 0.0, 1.0);
-    CoordinateAcross = SquareRoot(BoundedMagnitude(Roughness, 0.0, 1.0));
+    CoordinateX  = BoundedMagnitude(ViewCosine, 0.0, 1.0);
+    CoordinateY = SquareRoot(BoundedMagnitude(Roughness, 0.0, 1.0));
 }
 
 /// 🧩 The inverse — what one texel centre of the lookup stands for.
@@ -346,14 +346,14 @@ SLATE_SHARED void ProjectAlbedoCoordinate(Real64 ViewCosine,
 ///        They are a pair and neither is correct alone.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED void ProjectAlbedoParameter(Real64 CoordinateAlong,
-                                         Real64 CoordinateAcross,
+SLATE_SHARED void ProjectAlbedoParameter(Real64 CoordinateX,
+                                         Real64 CoordinateY,
                                          SLATE_OUT(Real64) ViewCosine,
                                          SLATE_OUT(Real64) Roughness)
 {
-    ViewCosine = BoundedMagnitude(CoordinateAlong, 0.0, 1.0);
+    ViewCosine = BoundedMagnitude(CoordinateX, 0.0, 1.0);
 
-    const Real64 Bounded = BoundedMagnitude(CoordinateAcross, 0.0, 1.0);
+    const Real64 Bounded = BoundedMagnitude(CoordinateY, 0.0, 1.0);
 
     Roughness = Bounded * Bounded;
 }

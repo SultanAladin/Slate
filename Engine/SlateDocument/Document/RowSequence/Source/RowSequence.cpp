@@ -132,7 +132,7 @@ std::uint32_t RankIndex::CountedTotal() const
 namespace
 {
 
-// 📝 Appends one enclosure's ordering to the pending run, last occupant first. The reversal is what makes a
+// 📝 Appends one enclosure's ordering to the pending run, last owner first. The reversal is what makes a
 //    run taken from the end reproduce the declared order.
 void AppendReversed(std::vector<std::uint32_t>& Pending,
                     const SceneStructure&       Relations,
@@ -181,7 +181,7 @@ Outcome<bool> RowSequence::Linearize(const SceneStructure& Relations)
 
     // 📝 The walk carries its own pending ordering rather than recursing, so enclosure depth is bounded by
     //    the relation's declared ceiling instead of by whatever call stack the walk happens to be given.
-    //    Occupants are appended in reverse so they come off the end in the order their enclosure declares
+    //    Owners are appended in reverse so they come off the end in the order their enclosure declares
     //    them: depth-first order is the row order, and the two never diverge.
     std::vector<std::uint32_t> Pending;
     Pending.reserve(Relations.SpannedCount());
@@ -193,10 +193,10 @@ Outcome<bool> RowSequence::Linearize(const SceneStructure& Relations)
         const std::uint32_t SlotOrdinal = Pending.back();
         Pending.pop_back();
 
-        SequencedRow Arriving;
-        Arriving.Occupant         = Relations.OccupantAt(SlotOrdinal);
-        Arriving.EnclosureDepth   = Relations.EnclosureDepth(SlotOrdinal);
-        Arriving.ExpansionEnabled = !SlotCollapsed[SlotOrdinal];
+        SequencedRow Incoming;
+        Incoming.Owner         = Relations.OwnerAt(SlotOrdinal);
+        Incoming.EnclosureDepth   = Relations.EnclosureDepth(SlotOrdinal);
+        Incoming.ExpansionEnabled = !SlotCollapsed[SlotOrdinal];
 
         std::uint32_t EnclosedCount = 0u;
 
@@ -207,16 +207,16 @@ Outcome<bool> RowSequence::Linearize(const SceneStructure& Relations)
             ++EnclosedCount;
         }
 
-        Arriving.EnclosedCount = EnclosedCount;
+        Incoming.EnclosedCount = EnclosedCount;
 
         RowOfSlot[SlotOrdinal] = static_cast<std::uint32_t>(SequencedRows.size());
-        SequencedRows.push_back(Arriving);
+        SequencedRows.push_back(Incoming);
 
         AppendReversed(Pending, Relations, Relations.FirstEnclosed(SlotOrdinal));
     }
 
     // 📝 🔴 A slot that holds no row holds no standing decision either. Clearing here is what makes a reused
-    //    slot safe: without it a new occupant inherits the collapse and the retention of whoever the slot
+    //    slot safe: without it a new owner inherits the collapse and the retention of whoever the slot
     //    carried before, and appears collapsed, or retained by a narrowing it was never confirmed against.
     for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RowOfSlot.size(); ++SlotOrdinal)
     {
@@ -260,11 +260,11 @@ void RowSequence::Recount()
         if (Held.EnclosureDepth <= CollapsedAtDepth)
             CollapsedAtDepth = NothingCollapsed;
 
-        // 📝 A narrowing narrows by retention rather than by exclusion, so an occupant enrolled in nothing
+        // 📝 A narrowing narrows by retention rather than by exclusion, so an owner registered in nothing
         //    leaves the count while one stands. `12` §10 makes it a subset, and the subset is what is kept.
         const bool Retained = !NarrowingHeld
-                           || (Held.Occupant.SlotOrdinal < SlotRetained.size()
-                            && SlotRetained[Held.Occupant.SlotOrdinal]);
+                           || (Held.Owner.SlotOrdinal < SlotRetained.size()
+                            && SlotRetained[Held.Owner.SlotOrdinal]);
 
         Held.VisibleInCount = CollapsedAtDepth == NothingCollapsed && Retained;
 
@@ -275,7 +275,7 @@ void RowSequence::Recount()
     }
 }
 
-Outcome<bool> RowSequence::DeclareExpansion(OccupantIdentity Subject, bool ExpansionEnabled)
+Outcome<bool> RowSequence::DeclareExpansion(OwnerIdentity Subject, bool ExpansionEnabled)
 {
     const Outcome<std::uint32_t> Located = RowOf(Subject);
 
@@ -292,7 +292,7 @@ Outcome<bool> RowSequence::DeclareExpansion(OccupantIdentity Subject, bool Expan
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> RowSequence::DeclareNarrowing(const std::vector<OccupantIdentity>& Retained, bool NarrowingDeclared)
+Outcome<bool> RowSequence::DeclareNarrowing(const std::vector<OwnerIdentity>& Retained, bool NarrowingDeclared)
 {
     // 📝 Withdrawing the narrowing ignores what was retained rather than requiring the whole population to be
     //    handed back. Every row returns to the count, which is the one thing an empty search text means.
@@ -309,18 +309,18 @@ Outcome<bool> RowSequence::DeclareNarrowing(const std::vector<OccupantIdentity>&
 
     // 📝 Confirmed against the rows before anything is written, so a stale identity refuses the whole
     //    narrowing rather than leaving a subset that retains part of what the search found.
-    for (const OccupantIdentity& Confirming : Retained)
+    for (const OwnerIdentity& Confirming : Retained)
     {
         if (!RowOf(Confirming).Resolved)
         {
             return Outcome<bool>::Refuse(
-                { RefusalReason::IdentityStale, "a retained occupant holds no row in this sequence" });
+                { RefusalReason::IdentityStale, "a retained owner holds no row in this sequence" });
         }
     }
 
     SlotRetained.assign(SlotRetained.size(), false);
 
-    for (const OccupantIdentity& Retaining : Retained)
+    for (const OwnerIdentity& Retaining : Retained)
         SlotRetained[Retaining.SlotOrdinal] = true;
 
     NarrowingHeld = true;
@@ -344,20 +344,20 @@ const RankIndex& RowSequence::Counted() const
     return VisibleOrdering;
 }
 
-Outcome<std::uint32_t> RowSequence::RowOf(OccupantIdentity Subject) const
+Outcome<std::uint32_t> RowSequence::RowOf(OwnerIdentity Subject) const
 {
     if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= RowOfSlot.size())
-        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the occupant holds no row" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the owner holds no row" });
 
     const std::uint32_t RowOrdinal = RowOfSlot[Subject.SlotOrdinal];
 
-    if (RowOrdinal == AbsentSlot || SequencedRows[RowOrdinal].Occupant != Subject)
-        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the occupant holds no row" });
+    if (RowOrdinal == AbsentSlot || SequencedRows[RowOrdinal].Owner != Subject)
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the owner holds no row" });
 
     return Outcome<std::uint32_t>::Result(RowOrdinal);
 }
 
-bool RowSequence::NarrowingStanding() const
+bool RowSequence::NarrowingCurrent() const
 {
     return NarrowingHeld;
 }

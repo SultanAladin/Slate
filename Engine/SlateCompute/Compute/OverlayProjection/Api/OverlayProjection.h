@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                         OVERLAYPROJECTION.H
 //============================================================================================================================================
-// 🧩 `80` — non-occupant geometry the artist needs to see, as two recordings whose depth behaviour is opposite and never merged.
+// 🧩 `80` — non-owner geometry the artist needs to see, as two recordings whose depth behaviour is opposite and never merged.
 
 #pragma once
 
@@ -38,9 +38,9 @@ enum class DepthSubject : std::uint32_t
 // 📐 `80` §1 and §3's table, as a computation rather than as a comment. Everything the artist reaches through the
 //    workspace is depth-tested; only what they reach through directly — the manipulator and the pivot it turns about
 //    — stands free of it.
-constexpr DepthSubject DepthOfOverlay(OverlaySubject Presented)
+constexpr DepthSubject DepthOfOverlay(OverlaySubject Current)
 {
-    return Presented == OverlaySubject::Manipulator || Presented == OverlaySubject::Pivot
+    return Current == OverlaySubject::Manipulator || Current == OverlaySubject::Pivot
          ? DepthSubject::DepthFree
          : DepthSubject::DepthTested;
 }
@@ -66,7 +66,7 @@ static_assert(DepthOfOverlay(OverlaySubject::Pivot)             == DepthSubject:
 ///        as the exposure rises, and a wireframe that disappears when the artist brightens the workspace is a
 ///        wireframe that fails precisely while it is being used to see something.
 /// note  📐 The offset exists because the wireframe and the seam display lie **exactly on** the surfaces they trace.
-///        Compared without it the two ordinates are the same ordinate, and the overlay reads as stippled along every
+///        Compared without it the two ordinates are the same coordinate, and the overlay reads as stippled along every
 ///        face it follows rather than as a line.
 /// tag   nonallocating, nonthrowing
 struct OverlaySpecification
@@ -100,24 +100,24 @@ public:
     static constexpr std::uint32_t DepthFreeOrdinal   = 80u;   // [-] - `08` §3 ⑪
 
     /// 🧩 Declares how one overlay is drawn.
-    /// in    Presented  [-]  which of `80` §3's seven overlays
+    /// in    Current  [-]  which of `80` §3's seven overlays
     /// in    Declaring  [-]  its display-space colour, its display-pixel extent, and its depth offset
     /// out   Result    [-]  refuses with ContentUnsupported for the closed count, an undeclared colour, a colour
     ///                       that is not a coordinate in the display space, an extent of nothing, and a depth offset
     ///                       declared on an overlay whose recording tests no depth
     /// post  the overlay is declared and its recording draws it wherever `76` says it is present
-    /// note  🔴 A working-referred colour is refused rather than admitted. Both recordings run after `66` and nothing
+    /// note  🔴 A working-referred colour is rejected rather than accepted. Both recordings run after `66` and nothing
     ///        between here and the display surface compresses, so such a colour would be presented as display code
     ///        without ever crossing `36` — an overlay in a plausible but wrong hue rather than a visible mistake.
-    /// note  🔴 An offset declared on a depth-free overlay is refused rather than ignored. Silently ignored it reads
+    /// note  🔴 An offset declared on a depth-free overlay is rejected rather than ignored. Silently ignored it reads
     ///        as an offset that had no effect, and the caller then raises it until something else breaks.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(OverlaySubject Presented, const OverlaySpecification& Declaring);
+    Outcome<bool> Declare(OverlaySubject Current, const OverlaySpecification& Declaring);
 
     /// 🧩 Contributes both of `08` §3's overlay recordings — ⑩ depth-tested, ⑪ depth-free.
     /// in    Schedule  [-]  where the two declarations land
-    /// out   Result   [-]  refuses with whatever the schedule refused, and with ContentUnsupported before any
+    /// out   Result   [-]  refuses with whatever the schedule rejected, and with ContentUnsupported before any
     ///                      overlay has been declared
     /// note  🔴 **Two** declarations, never one. `08` §3.2 and `80` §5's first gate: a single recording carrying both
     ///        behaviours would have to switch depth state per primitive, which is the merge both documents refuse.
@@ -131,14 +131,14 @@ public:
 
     /// 🧩 Whether one overlay is presented this rotation, as `76` holds it.
     /// in    Tooling    [-]  `76`, the one owner of overlay presence
-    /// in    Presented  [-]  which overlay
-    /// out   Standing   [-]  false for an overlay that was never declared, whatever `76` says about it
+    /// in    Current  [-]  which overlay
+    /// out   Current   [-]  false for an overlay that was never declared, whatever `76` says about it
     /// note  🔴 A straight read of `76` §1's row, with no copy kept. `80` §5's fifth gate is that presence is never
     ///        held here, and this is the whole of the compliance — an overlay `76` has switched off is not drawn on
     ///        the same rotation the artist switched it off on.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool OverlayStanding(const ToolSequence& Tooling, OverlaySubject Presented) const;
+    bool OverlayActive(const ToolSequence& Tooling, OverlaySubject Current) const;
 
     /// 🧩 Whether either recording has anything to draw this rotation.
     /// in    Tooling    [-]  `76`
@@ -152,11 +152,11 @@ public:
     bool RecordingOccupied(const ToolSequence& Tooling, DepthSubject Behaviour) const;
 
     /// 🧩 How one declared overlay is drawn.
-    /// in    Presented  [-]  which overlay
+    /// in    Current  [-]  which overlay
     /// out   Result    [-]  refuses with ContentUnsupported for the closed count and for an overlay never declared
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const OverlaySpecification*> Specification(OverlaySubject Presented) const;
+    Outcome<const OverlaySpecification*> Specification(OverlaySubject Current) const;
 
     /// 🧩 Declares how many overlays each recording drew; appends nothing.
     /// in    Tooling   [-]  `76`, read for presence
@@ -173,7 +173,7 @@ private:
     static constexpr std::size_t OverlaySpan = static_cast<std::size_t>(OverlaySubject::OverlayCount);
 
     OverlaySpecification  Declared[OverlaySpan]            = {};      // [-] - as Declare validated each of them
-    bool                  DeclarationStanding[OverlaySpan] = {};      // [-] - false until that overlay was declared
+    bool                  DeclarationCurrent[OverlaySpan] = {};      // [-] - false until that overlay was declared
     bool                  OverlayDeclared                  = false;   // [-] - false until any overlay was declared
 };
 

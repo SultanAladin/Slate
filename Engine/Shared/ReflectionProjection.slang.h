@@ -26,7 +26,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Resolves one component of `30` §1's composite.
-/// in    StandingRadiance  [-]  `RadianceSurface` as `18` and `62` left it
+/// in    CurrentRadiance  [-]  `RadianceSurface` as `18` and `62` left it
 /// in    PreAddedComponent [-]  what `18`'s ambient term already contributed here — `ReflectionSurface` RGB
 /// in    TracedRadiance    [-]  what the trace found, or anything at all where the weight is nothing
 /// in    Weight            [-]  `ReflectionSurface` A; how much of the specular the trace resolved
@@ -37,14 +37,14 @@ namespace Slate
 ///        exactly where nobody is looking.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Real64 ResolveExactComposite(Real64 StandingRadiance,
+SLATE_SHARED Real64 ResolveExactComposite(Real64 CurrentRadiance,
                                           Real64 PreAddedComponent,
                                           Real64 TracedRadiance,
                                           Real64 Weight)
 {
     const Real64 Resolved = BoundedMagnitude(Weight, 0.0, 1.0);
 
-    return StandingRadiance - PreAddedComponent * Resolved + TracedRadiance * Resolved;
+    return CurrentRadiance - PreAddedComponent * Resolved + TracedRadiance * Resolved;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -129,10 +129,10 @@ SLATE_SHARED void ProjectReflectedDirection(Real64 ViewX, Real64 ViewY, Real64 V
 /// note  🔴 `30` §3's first failure row. Weight zero, and §1's contract makes it a no-op.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED SLATE_CONSTEXPR bool ReflectionLeftExtent(Real64 CoordinateAlong, Real64 CoordinateAcross)
+SLATE_SHARED SLATE_CONSTEXPR bool ReflectionLeftExtent(Real64 CoordinateX, Real64 CoordinateY)
 {
-    return CoordinateAlong < 0.0 || CoordinateAlong >= 1.0
-        || CoordinateAcross < 0.0 || CoordinateAcross >= 1.0;
+    return CoordinateX < 0.0 || CoordinateX >= 1.0
+        || CoordinateY < 0.0 || CoordinateY >= 1.0;
 }
 
 /// 🧩 Whether a crossing is a genuine hit or lies behind a surface by more than the declared thickness.
@@ -140,7 +140,7 @@ SLATE_SHARED SLATE_CONSTEXPR bool ReflectionLeftExtent(Real64 CoordinateAlong, R
 /// in    RecordedDepth  [-]  `DepthSurface` at the sample, reversed
 /// in    Thickness      [-]  the declared thickness threshold, in reversed depth
 /// out   Crossed        [-]  true only where the ray passed just behind the recorded surface
-/// note  📐 Reversed depth — near is one — so "behind" is a **lesser** ordinate and the crossing condition reads
+/// note  📐 Reversed depth — near is one — so "behind" is a **lesser** coordinate and the crossing condition reads
 ///        the way it does. Written the other way round the march reports a crossing at its first step, and every
 ///        reflection is a copy of the surface reflecting it.
 /// note  🔴 A crossing deeper than the thickness is **not** a hit. Without the threshold a ray passing behind a

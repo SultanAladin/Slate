@@ -39,7 +39,7 @@ void RotateSpan(RotationQuaternion Rotation,
 
 // 📝 Ordered by slot and then by generation, so the ordering is total over identities and survives a slot being
 //    reused. `IlluminantPopulation` orders its own storage the same way and for the same reason.
-bool PrecedesInIdentity(OccupantIdentity Earlier, OccupantIdentity Later)
+bool PrecedesInIdentity(OwnerIdentity Earlier, OwnerIdentity Later)
 {
     if (Earlier.SlotOrdinal != Later.SlotOrdinal)
         return Earlier.SlotOrdinal < Later.SlotOrdinal;
@@ -54,12 +54,12 @@ bool PrecedesInIdentity(OccupantIdentity Earlier, OccupantIdentity Later)
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
-                                        double                  PointerAlong,
-                                        double                  PointerAcross,
-                                        std::uint32_t           DisplayAlong,
-                                        std::uint32_t           DisplayAcross)
+                                        double                  PointerX,
+                                        double                  PointerY,
+                                        std::uint32_t           DisplayX,
+                                        std::uint32_t           DisplayY)
 {
-    if (DisplayAlong == 0u || DisplayAcross == 0u)
+    if (DisplayX == 0u || DisplayY == 0u)
         return Outcome<ProjectedRay>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero" });
 
     // 🔴 A camera owing a reconciliation refuses. `46` §7 makes `Reconcile` the only writer of the derivation,
@@ -73,22 +73,22 @@ Outcome<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
     const CameraSpecification& Declared  = Camera.Declared();
     const double*              Projected = Camera.Projected().Projected.Coefficient;
 
-    const double AlongScale  = Projected[0];
-    const double AcrossScale = Projected[5];
+    const double XScale  = Projected[0];
+    const double YScale = Projected[5];
 
-    if (AlongScale == 0.0 || AcrossScale == 0.0)
+    if (XScale == 0.0 || YScale == 0.0)
     {
         return Outcome<ProjectedRay>::Refuse(
             { RefusalReason::ContentUnsupported, "the projection resolves no interior on one axis" });
     }
 
-    // 📐 The clip ordinate is already inverted by `ClipOrdinateSignum` in the projection's second row, so the
-    //    display's downward-increasing ordinate maps directly and no second inversion belongs here.
-    const double ClipAlong  = 2.0 * PointerAlong  / static_cast<double>(DisplayAlong)  - 1.0;
-    const double ClipAcross = 2.0 * PointerAcross / static_cast<double>(DisplayAcross) - 1.0;
+    // 📐 The clip coordinate is already inverted by `ClipCoordinateSignum` in the projection's second row, so the
+    //    display's downward-increasing coordinate maps directly and no second inversion belongs here.
+    const double ClipX  = 2.0 * PointerX  / static_cast<double>(DisplayX)  - 1.0;
+    const double ClipY = 2.0 * PointerY / static_cast<double>(DisplayY) - 1.0;
 
-    const double ViewAlong  = ClipAlong  / AlongScale;
-    const double ViewAcross = ClipAcross / AcrossScale;
+    const double ViewX  = ClipX  / XScale;
+    const double ViewY = ClipY / YScale;
 
     ProjectedRay Ray;
 
@@ -100,10 +100,10 @@ Outcome<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
     {
         // 📐 Every ray leaves the camera's own position and the view-space direction is the clip position at
         //    unit depth. Normalising here is what makes `40`'s returned parameter a document-space distance.
-        const double Length = std::sqrt(ViewAlong * ViewAlong + ViewAcross * ViewAcross + 1.0);
+        const double Length = std::sqrt(ViewX * ViewX + ViewY * ViewY + 1.0);
 
         RotateSpan(Declared.Placement.Rotation,
-                   ViewAlong / Length, ViewAcross / Length, -1.0 / Length,
+                   ViewX / Length, ViewY / Length, -1.0 / Length,
                    DirectionX, DirectionY, DirectionZ);
 
         Ray.Origin = Declared.Placement.Translation;
@@ -115,7 +115,7 @@ Outcome<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
         double OffsetX = 0.0;
         double OffsetY = 0.0;
         double OffsetZ = 0.0;
-        RotateSpan(Declared.Placement.Rotation, ViewAlong, ViewAcross, 0.0, OffsetX, OffsetY, OffsetZ);
+        RotateSpan(Declared.Placement.Rotation, ViewX, ViewY, 0.0, OffsetX, OffsetY, OffsetZ);
 
         RotateSpan(Declared.Placement.Rotation, 0.0, 0.0, -1.0, DirectionX, DirectionY, DirectionZ);
 
@@ -135,7 +135,7 @@ Outcome<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
 //                                                      THE ADMISSIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-std::size_t PointerIntersection::Located(OccupantIdentity Subject) const
+std::size_t PointerIntersection::Located(OwnerIdentity Subject) const
 {
     std::size_t Lower = 0u;
     std::size_t Upper = Surfaces.size();
@@ -144,7 +144,7 @@ std::size_t PointerIntersection::Located(OccupantIdentity Subject) const
     {
         const std::size_t Middle = Lower + (Upper - Lower) / 2u;
 
-        if (PrecedesInIdentity(Surfaces[Middle].Occupant, Subject))
+        if (PrecedesInIdentity(Surfaces[Middle].Owner, Subject))
             Lower = Middle + 1u;
         else
             Upper = Middle;
@@ -153,57 +153,57 @@ std::size_t PointerIntersection::Located(OccupantIdentity Subject) const
     return Lower;
 }
 
-Outcome<bool> PointerIntersection::Admit(const AdmittedSurface& Arriving)
+Outcome<bool> PointerIntersection::Accept(const AcceptedSurface& Incoming)
 {
-    if (!Arriving.Occupant.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity admits nothing" });
+    if (!Incoming.Owner.IdentityDeclared())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity accepts nothing" });
 
     // 🔴 Confirmed here rather than at the hit. A run one corner short reads past its end at whichever triangle
     //    happens to touch the last corner, which is a pick that is correct almost everywhere — and the artist
     //    meets it as one face of a model painting somewhere else.
-    if (Arriving.Imported != nullptr && Arriving.CornerCoordinates != nullptr
-     && static_cast<std::uint32_t>(Arriving.CornerCoordinates->size()) != Arriving.Imported->CornerCount())
+    if (Incoming.Imported != nullptr && Incoming.CornerCoordinates != nullptr
+     && static_cast<std::uint32_t>(Incoming.CornerCoordinates->size()) != Incoming.Imported->CornerCount())
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the coordinate run carries a corner count the topology does not" });
     }
 
-    const std::size_t Located_ = Located(Arriving.Occupant);
+    const std::size_t Located_ = Located(Incoming.Owner);
 
-    if (Located_ < Surfaces.size() && Surfaces[Located_].Occupant == Arriving.Occupant)
-        Surfaces[Located_] = Arriving;
+    if (Located_ < Surfaces.size() && Surfaces[Located_].Owner == Incoming.Owner)
+        Surfaces[Located_] = Incoming;
     else
-        Surfaces.insert(Surfaces.begin() + static_cast<std::ptrdiff_t>(Located_), Arriving);
+        Surfaces.insert(Surfaces.begin() + static_cast<std::ptrdiff_t>(Located_), Incoming);
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> PointerIntersection::Withdraw(OccupantIdentity Subject)
+Outcome<bool> PointerIntersection::Withdraw(OwnerIdentity Subject)
 {
     const std::size_t Located_ = Located(Subject);
 
-    if (Located_ >= Surfaces.size() || !(Surfaces[Located_].Occupant == Subject))
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
+    if (Located_ >= Surfaces.size() || !(Surfaces[Located_].Owner == Subject))
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the owner is not accepted here" });
 
     Surfaces.erase(Surfaces.begin() + static_cast<std::ptrdiff_t>(Located_));
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<const AdmittedSurface*> PointerIntersection::Standing(OccupantIdentity Subject) const
+Outcome<const AcceptedSurface*> PointerIntersection::Current(OwnerIdentity Subject) const
 {
     const std::size_t Located_ = Located(Subject);
 
-    if (Located_ >= Surfaces.size() || !(Surfaces[Located_].Occupant == Subject))
+    if (Located_ >= Surfaces.size() || !(Surfaces[Located_].Owner == Subject))
     {
-        return Outcome<const AdmittedSurface*>::Refuse(
-            { RefusalReason::IdentityStale, "the occupant is not admitted here" });
+        return Outcome<const AcceptedSurface*>::Refuse(
+            { RefusalReason::IdentityStale, "the owner is not accepted here" });
     }
 
-    return Outcome<const AdmittedSurface*>::Result(&Surfaces[Located_]);
+    return Outcome<const AcceptedSurface*>::Result(&Surfaces[Located_]);
 }
 
-std::uint32_t PointerIntersection::AdmittedCount() const
+std::uint32_t PointerIntersection::AcceptedCount() const
 {
     return static_cast<std::uint32_t>(Surfaces.size());
 }
@@ -214,7 +214,7 @@ std::uint32_t PointerIntersection::AdmittedCount() const
 
 ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
                                              const OctantSpace&     Subdivision,
-                                             const EnrollmentIndex& Subsets,
+                                             const RegistrationIndex& Subsets,
                                              const PlacementIndex&  Placements) const
 {
     ResolvedPointer Pointed;
@@ -228,7 +228,7 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
     if (!Met.Resolved)
         return Pointed;
 
-    Pointed.Occupant          = Met.Occupant;
+    Pointed.Owner          = Met.Owner;
     Pointed.FaceOrdinal       = Met.FaceOrdinal;
     Pointed.CornerOrdinals[0] = Met.CornerOrdinals[0];
     Pointed.CornerOrdinals[1] = Met.CornerOrdinals[1];
@@ -240,12 +240,12 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
     Pointed.Position          = Met.Position;
     Pointed.Resolved          = true;
 
-    const Outcome<const AdmittedSurface*> Admitted = Standing(Met.Occupant);
+    const Outcome<const AcceptedSurface*> Accepted = Current(Met.Owner);
 
-    if (!Admitted.Resolved || Admitted.Resolve()->Imported == nullptr)
+    if (!Accepted.Resolved || Accepted.Resolve()->Imported == nullptr)
         return Pointed;
 
-    const AdmittedSurface&   Surfaced = *Admitted.Resolve();
+    const AcceptedSurface&   Surfaced = *Accepted.Resolve();
     const TopologyStructure& Imported = *Surfaced.Imported;
 
     // 📐 The hit face's own flat perpendicular, from the three corner positions the traversal named. `38`'s
@@ -270,7 +270,7 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
 
     const double PerpLength = std::sqrt(PerpX * PerpX + PerpY * PerpY + PerpZ * PerpZ);
 
-    const Outcome<AdmittedOccupant> Occupying = Subdivision.Standing(Met.Occupant);
+    const Outcome<AcceptedOwner> Occupying = Subdivision.Current(Met.Owner);
 
     if (PerpLength > 0.0 && Occupying.Resolved)
     {
@@ -298,8 +298,8 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
     {
         const DomainCoordinate& Held = Coordinates[Met.CornerOrdinals[Ordinal]];
 
-        Pointed.DomainAlong  += Met.Weights[Ordinal] * static_cast<double>(Held.CoordinateAlong);
-        Pointed.DomainAcross += Met.Weights[Ordinal] * static_cast<double>(Held.CoordinateAcross);
+        Pointed.DomainX  += Met.Weights[Ordinal] * static_cast<double>(Held.CoordinateX);
+        Pointed.DomainY += Met.Weights[Ordinal] * static_cast<double>(Held.CoordinateY);
     }
 
     Pointed.DomainResolved = true;
@@ -313,7 +313,7 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
     //    pick a decal whose corner the cursor is beside, and `26` §5 outlines the placement rather than its
     //    extent, so the two would disagree about what the artist selected.
     const Outcome<std::uint32_t> Contained =
-        Surfaced.Placements->Resolve(Pointed.DomainAlong, Pointed.DomainAcross);
+        Surfaced.Placements->Resolve(Pointed.DomainX, Pointed.DomainY);
 
     if (!Contained.Resolved)
         return Pointed;
@@ -323,11 +323,11 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
     if (!Placed.Resolved)
         return Pointed;
 
-    double SourceAlong  = 0.0;
-    double SourceAcross = 0.0;
+    double SourceX  = 0.0;
+    double SourceY = 0.0;
 
-    if (!ProjectIntoSource(*Placed.Resolve(), Pointed.DomainAlong, Pointed.DomainAcross,
-                           SourceAlong, SourceAcross))
+    if (!ProjectIntoSource(*Placed.Resolve(), Pointed.DomainX, Pointed.DomainY,
+                           SourceX, SourceY))
     {
         return Pointed;
     }
@@ -342,54 +342,54 @@ ResolvedPointer PointerIntersection::Resolve(const ProjectedRay&    Projected,
 //                                                       THE MARQUEE
 //------------------------------------------------------------------------------------------------------------------------
 
-std::vector<OccupantIdentity> PointerIntersection::ResolveExtent(const CameraProjection& Camera,
-                                                                 double                  LeastAlong,
-                                                                 double                  LeastAcross,
-                                                                 double                  GreatestAlong,
-                                                                 double                  GreatestAcross,
-                                                                 std::uint32_t           DisplayAlong,
-                                                                 std::uint32_t           DisplayAcross,
+std::vector<OwnerIdentity> PointerIntersection::ResolveExtent(const CameraProjection& Camera,
+                                                                 double                  MinimumX,
+                                                                 double                  MinimumY,
+                                                                 double                  MaximumX,
+                                                                 double                  MaximumY,
+                                                                 std::uint32_t           DisplayX,
+                                                                 std::uint32_t           DisplayY,
                                                                  bool                    ContainmentDeclared,
                                                                  const OctantSpace&      Subdivision,
-                                                                 const EnrollmentIndex&  Subsets) const
+                                                                 const RegistrationIndex&  Subsets) const
 {
-    std::vector<OccupantIdentity> Enrolled;
+    std::vector<OwnerIdentity> Registered;
 
-    if (DisplayAlong == 0u || DisplayAcross == 0u || Camera.DerivationOwed())
-        return Enrolled;
+    if (DisplayX == 0u || DisplayY == 0u || Camera.DerivationOwed())
+        return Registered;
 
-    const double ClipLeastAlong     = 2.0 * LeastAlong     / static_cast<double>(DisplayAlong)  - 1.0;
-    const double ClipGreatestAlong  = 2.0 * GreatestAlong  / static_cast<double>(DisplayAlong)  - 1.0;
-    const double ClipLeastAcross    = 2.0 * LeastAcross    / static_cast<double>(DisplayAcross) - 1.0;
-    const double ClipGreatestAcross = 2.0 * GreatestAcross / static_cast<double>(DisplayAcross) - 1.0;
+    const double ClipLeft     = 2.0 * MinimumX     / static_cast<double>(DisplayX)  - 1.0;
+    const double ClipRight  = 2.0 * MaximumX  / static_cast<double>(DisplayX)  - 1.0;
+    const double ClipTop    = 2.0 * MinimumY    / static_cast<double>(DisplayY) - 1.0;
+    const double ClipBottom = 2.0 * MaximumY / static_cast<double>(DisplayY) - 1.0;
 
-    const double SpanAlong  = ClipGreatestAlong  - ClipLeastAlong;
-    const double SpanAcross = ClipGreatestAcross - ClipLeastAcross;
+    const double Width  = ClipRight  - ClipLeft;
+    const double Height = ClipBottom - ClipTop;
 
-    if (SpanAlong <= 0.0 || SpanAcross <= 0.0)
-        return Enrolled;
+    if (Width <= 0.0 || Height <= 0.0)
+        return Registered;
 
     // 📐 A screen rectangle is a **narrower camera**. The sub-projection's first two rows are the camera's own,
     //    scaled and offset onto the rectangle's clip bounds; every other row is untouched, so the reversed depth
     //    convention and the clipping interval both carry over unamended. `46`'s plane extraction is then read as
     //    it stands, which is what stops the marquee frustum and the culling frustum disagreeing about a plane.
-    const ViewProjection& Standing = Camera.Projected();
+    const ViewProjection& Current = Camera.Projected();
 
-    ViewProjection Narrowed = Standing;
+    ViewProjection Narrowed = Current;
 
-    const double AlongScale   = 2.0 / SpanAlong;
-    const double AlongOffset  = -(ClipGreatestAlong + ClipLeastAlong) / SpanAlong;
-    const double AcrossScale  = 2.0 / SpanAcross;
-    const double AcrossOffset = -(ClipGreatestAcross + ClipLeastAcross) / SpanAcross;
+    const double XScale   = 2.0 / Width;
+    const double XOffset  = -(ClipRight + ClipLeft) / Width;
+    const double YScale  = 2.0 / Height;
+    const double YOffset = -(ClipBottom + ClipTop) / Height;
 
     for (std::uint32_t Column = 0u; Column < 4u; ++Column)
     {
-        const double AlongRow  = Standing.Projected.Coefficient[Column * 4u];
-        const double AcrossRow = Standing.Projected.Coefficient[Column * 4u + 1u];
-        const double ScaleRow  = Standing.Projected.Coefficient[Column * 4u + 3u];
+        const double XRow  = Current.Projected.Coefficient[Column * 4u];
+        const double YRow = Current.Projected.Coefficient[Column * 4u + 1u];
+        const double ScaleRow  = Current.Projected.Coefficient[Column * 4u + 3u];
 
-        Narrowed.Projected.Coefficient[Column * 4u]      = AlongScale  * AlongRow  + AlongOffset  * ScaleRow;
-        Narrowed.Projected.Coefficient[Column * 4u + 1u] = AcrossScale * AcrossRow + AcrossOffset * ScaleRow;
+        Narrowed.Projected.Coefficient[Column * 4u]      = XScale  * XRow  + XOffset  * ScaleRow;
+        Narrowed.Projected.Coefficient[Column * 4u + 1u] = YScale * YRow + YOffset * ScaleRow;
     }
 
     for (std::uint32_t Column = 0u; Column < 4u; ++Column)
@@ -401,7 +401,7 @@ std::vector<OccupantIdentity> PointerIntersection::ResolveExtent(const CameraPro
             for (std::uint32_t Passed = 0u; Passed < 4u; ++Passed)
             {
                 Accumulated += Narrowed.Projected.Coefficient[Passed * 4u + Row]
-                             * Standing.ViewRotation.Coefficient[Column * 4u + Passed];
+                             * Current.ViewRotation.Coefficient[Column * 4u + Passed];
             }
 
             Narrowed.Composed.Coefficient[Column * 4u + Row] = Accumulated;
@@ -415,11 +415,11 @@ std::vector<OccupantIdentity> PointerIntersection::ResolveExtent(const CameraPro
     //    into document space. `40` subdivides extents rather than frusta, so the axis-aligned bound is what
     //    narrows the traversal and the six planes are what decide the answer.
     const CameraSpecification& Declared    = Camera.Declared();
-    const double               AlongScale_ = Narrowed.Projected.Coefficient[0];
-    const double               AcrossScale_ = Narrowed.Projected.Coefficient[5];
+    const double               XScale_ = Narrowed.Projected.Coefficient[0];
+    const double               YScale_ = Narrowed.Projected.Coefficient[5];
 
-    if (AlongScale_ == 0.0 || AcrossScale_ == 0.0)
-        return Enrolled;
+    if (XScale_ == 0.0 || YScale_ == 0.0)
+        return Registered;
 
     ConditionedExtent Bounding;
     bool              FirstAdmission = true;
@@ -432,8 +432,8 @@ std::vector<OccupantIdentity> PointerIntersection::ResolveExtent(const CameraPro
         for (std::uint32_t Corner = 0u; Corner < 4u; ++Corner)
         {
             const double Distance   = ClipDistances[Depth];
-            const double CornerX    = ClipCorners[Corner & 1u]  / AlongScale_;
-            const double CornerY    = ClipCorners[(Corner >> 1) & 1u] / AcrossScale_;
+            const double CornerX    = ClipCorners[Corner & 1u]  / XScale_;
+            const double CornerY    = ClipCorners[(Corner >> 1) & 1u] / YScale_;
 
             const double ViewX = Declared.Projected == ProjectionSubject::Perspective ? CornerX * Distance : CornerX;
             const double ViewY = Declared.Projected == ProjectionSubject::Perspective ? CornerY * Distance : CornerY;
@@ -449,44 +449,44 @@ std::vector<OccupantIdentity> PointerIntersection::ResolveExtent(const CameraPro
 
             if (FirstAdmission)
             {
-                Bounding.Least.PositionX    = PositionX;
-                Bounding.Least.PositionY    = PositionY;
-                Bounding.Least.PositionZ    = PositionZ;
-                Bounding.Greatest           = Bounding.Least;
+                Bounding.Minimum.PositionX    = PositionX;
+                Bounding.Minimum.PositionY    = PositionY;
+                Bounding.Minimum.PositionZ    = PositionZ;
+                Bounding.Maximum           = Bounding.Minimum;
                 FirstAdmission              = false;
 
                 continue;
             }
 
-            Bounding.Least.PositionX    = PositionX < Bounding.Least.PositionX    ? PositionX : Bounding.Least.PositionX;
-            Bounding.Least.PositionY    = PositionY < Bounding.Least.PositionY    ? PositionY : Bounding.Least.PositionY;
-            Bounding.Least.PositionZ    = PositionZ < Bounding.Least.PositionZ    ? PositionZ : Bounding.Least.PositionZ;
-            Bounding.Greatest.PositionX = PositionX > Bounding.Greatest.PositionX ? PositionX : Bounding.Greatest.PositionX;
-            Bounding.Greatest.PositionY = PositionY > Bounding.Greatest.PositionY ? PositionY : Bounding.Greatest.PositionY;
-            Bounding.Greatest.PositionZ = PositionZ > Bounding.Greatest.PositionZ ? PositionZ : Bounding.Greatest.PositionZ;
+            Bounding.Minimum.PositionX    = PositionX < Bounding.Minimum.PositionX    ? PositionX : Bounding.Minimum.PositionX;
+            Bounding.Minimum.PositionY    = PositionY < Bounding.Minimum.PositionY    ? PositionY : Bounding.Minimum.PositionY;
+            Bounding.Minimum.PositionZ    = PositionZ < Bounding.Minimum.PositionZ    ? PositionZ : Bounding.Minimum.PositionZ;
+            Bounding.Maximum.PositionX = PositionX > Bounding.Maximum.PositionX ? PositionX : Bounding.Maximum.PositionX;
+            Bounding.Maximum.PositionY = PositionY > Bounding.Maximum.PositionY ? PositionY : Bounding.Maximum.PositionY;
+            Bounding.Maximum.PositionZ = PositionZ > Bounding.Maximum.PositionZ ? PositionZ : Bounding.Maximum.PositionZ;
         }
     }
 
-    // 📝 The broad phase asks for **overlap** in both modes. An occupant wholly inside the frustum is wholly
+    // 📝 The broad phase asks for **overlap** in both modes. An owner wholly inside the frustum is wholly
     //    inside the frustum's own bound, so a containment broad phase would be sound — but it would also refuse
-    //    every occupant the bound merely clips, and the exact classification below is what should decide that.
-    const std::vector<OccupantIdentity> Candidates = Subdivision.IntersectExtent(Bounding, false, Subsets);
+    //    every owner the bound merely clips, and the exact classification below is what should decide that.
+    const std::vector<OwnerIdentity> Candidates = Subdivision.IntersectExtent(Bounding, false, Subsets);
 
-    for (const OccupantIdentity& Candidate : Candidates)
+    for (const OwnerIdentity& Candidate : Candidates)
     {
-        const Outcome<AdmittedOccupant> Occupying = Subdivision.Standing(Candidate);
+        const Outcome<AcceptedOwner> Occupying = Subdivision.Current(Candidate);
 
         if (!Occupying.Resolved)
             continue;
 
-        const std::int32_t Classified = Marquee.Classify(Occupying.Resolve().Extent.Least,
-                                                         Occupying.Resolve().Extent.Greatest);
+        const std::int32_t Classified = Marquee.Classify(Occupying.Resolve().Extent.Minimum,
+                                                         Occupying.Resolve().Extent.Maximum);
 
         if (ContainmentDeclared ? Classified > 0 : Classified >= 0)
-            Enrolled.push_back(Candidate);
+            Registered.push_back(Candidate);
     }
 
-    return Enrolled;
+    return Registered;
 }
 
 }   // namespace Slate

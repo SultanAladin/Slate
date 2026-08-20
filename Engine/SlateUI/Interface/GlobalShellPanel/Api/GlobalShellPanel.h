@@ -38,47 +38,47 @@ namespace Slate
 /// tag   contract, nonallocating, nonthrowing
 struct ShellMetric
 {
-    float  TopBarAcross    =  36.0f;   // [px] - h-[36px]
-    float  TopBarPadAlong  =  14.0f;   // [px] - px-[14px]
-    float  OptionsAlong    = 220.0f;   // [px] - w-[220px]
-    float  HeaderAcross    =  46.0f;   // [px] - h-[46px], every pane header
-    float  HeaderPadAlong  =  10.0f;   // [px] - px-[10px]
-    float  RowAcross       =  32.0f;   // [px] - h-[32px], an outline row
-    float  RowStepAlong    =  15.0f;   // [px] - depth * 15
-    float  RowLeadAlong    =   8.0f;   // [px] - paddingLeft 8 + depth * 15
+    float  TopBarHeight    =  36.0f;   // [px] - h-[36px]
+    float  TopBarPadX  =  14.0f;   // [px] - px-[14px]
+    float  OptionsX    = 220.0f;   // [px] - w-[220px]
+    float  HeaderHeight    =  46.0f;   // [px] - h-[46px], every pane header
+    float  HeaderPadX  =  10.0f;   // [px] - px-[10px]
+    float  RowHeight       =  32.0f;   // [px] - h-[32px], an outline row
+    float  RowStepX    =  15.0f;   // [px] - depth * 15
+    float  RowLeadX    =   8.0f;   // [px] - paddingLeft 8 + depth * 15
     float  ChevronExtent   =  15.0f;   // [px] - the w-[15px] disclosure cell
     float  GlyphExtent     =  18.0f;   // [px] - the w-[18px] classification cell
-    float  RailAlong       =   3.0f;   // [px] - the w-[3px] selection rail
-    float  RailAcross      =  15.0f;   // [px] - h-[15px]
-    float  RailOffsetAlong =   7.0f;   // [px] - left-[-7px]
-    float  SearchAcross    =  30.0f;   // [px] - h-[30px], the filter field
-    float  FooterAcross    =  26.0f;   // [px] - h-[26px]
-    float  InspectorAlong  = 700.0f;   // [px] - w-[700px], docked and summoned alike
-    float  SummonedAcross  = 400.0f;   // [px] - h-[400px], the summoned card
-    float  OutlinerAlong   = 350.0f;   // [px] - grid-cols-[350px_minmax(0,1fr)]
+    float  RailX       =   3.0f;   // [px] - the w-[3px] selection rail
+    float  RailY      =  15.0f;   // [px] - h-[15px]
+    float  RailOffsetX =   7.0f;   // [px] - left-[-7px]
+    float  SearchHeight    =  30.0f;   // [px] - h-[30px], the filter field
+    float  FooterHeight    =  26.0f;   // [px] - h-[26px]
+    float  InspectorX  = 700.0f;   // [px] - w-[700px], docked and summoned alike
+    float  SummonedY  = 400.0f;   // [px] - h-[400px], the summoned card
+    float  OutlinerX   = 350.0f;   // [px] - grid-cols-[350px_minmax(0,1fr)]
     float  MedallionExtent =  24.0f;   // [px] - the w-6 h-6 header medallion
     float  CardRadius      =  12.0f;   // [px] - --r-tile
     float  MenuRadius      =  18.0f;   // [px] - --r-menu
     float  FieldRadius     =   6.0f;   // [px] - rounded-md
-    float  StatusAcross    =  28.0f;   // [px] - the viewport's h-[28px] hint strip
+    float  StatusY    =  28.0f;   // [px] - the viewport's h-[28px] hint strip
     float  WeaveFineStep   =  28.0f;   // [px] - backgroundSize 28px
     float  WeaveCoarseStep = 140.0f;   // [px] - backgroundSize 140px
-    float  ComponentAcross =  31.0f;   // [px] - h-[31px], a component card header
+    float  ComponentY =  31.0f;   // [px] - h-[31px], a component card header
 
     // 📐 The metadata pane, from `components/MetadataPane.tsx`.
     float  HeroCrest       =  34.0f;   // [px] - the w-[34px] hero tile
     float  HeroPad         =  10.0f;   // [px] - p-2.5 around the hero
-    float  StatAcross      =  28.0f;   // [px] - h-[28px], one hairline stat row
-    float  AdvanceAcross   =  32.0f;   // [px] - h-[32px], the Properties & History call
-    float  ActionAcross    =  29.0f;   // [px] - h-[29px], one inline action
+    float  StatY      =  28.0f;   // [px] - h-[28px], one hairline stat row
+    float  AdvanceY   =  32.0f;   // [px] - h-[32px], the Properties & History call
+    float  ActionY    =  29.0f;   // [px] - h-[29px], one inline action
     float  ActionGlyph     =  15.0f;   // [px] - the w-[15px] leading glyph cell
     float  ChipExtent      =   8.0f;   // [px] - the w-2 h-2 footer hue chip
     float  SwatchExtent    =  16.0f;   // [px] - the w-4 h-4 albedo disc
-    float  PillPadAlong    =   8.0f;   // [px] - px-2 inside the Tab pill
+    float  PillPadX    =   8.0f;   // [px] - px-2 inside the Tab pill
     float  RunFiner        =   9.5f;   // [px] - text-[9.5px]
 
     // 📐 The Context Menu surface, from `References/remix-notch-ui/src/components/Outliner.tsx`.
-    float  ContextAlong    = 192.0f;   // [px] - w-48, the floating card's extent along
+    float  ContextX    = 192.0f;   // [px] - w-48, the floating card's extent along
     float  ContextRow      =  30.0f;   // [px] - px-2 py-1.5 text-sm, one action row
     float  ContextSwatch   =  20.0f;   // [px] - the w-5 h-5 colour disc
     float  ContextPad      =   4.0f;   // [px] - p-1 inside the card
@@ -92,8 +92,8 @@ struct ShellMetric
     float  RunFine         =  10.0f;   // [px] - text-[10px]
 
     // 📐 The Layer Stack, from `components/TexturePaint.tsx`.
-    float  LayerHeadAcross =  44.0f;   // [px] - h-[44px], the row's top half
-    float  LayerSpineAlong =  30.0f;   // [px] - w-[30px], the spine gutter
+    float  LayerHeadHeight =  44.0f;   // [px] - h-[44px], the row's top half
+    float  LayerSpineX =  30.0f;   // [px] - w-[30px], the spine gutter
     float  LayerSpineWidth =   3.0f;   // [px] - w-[3px], the spine itself
     float  LayerBadge      =  20.0f;   // [px] - the w-[20px] ordinal badge
     float  LayerSwatch     =  26.0f;   // [px] - the w-[26px] paint swatch
@@ -101,13 +101,13 @@ struct ShellMetric
     float  LayerGap        =   6.0f;   // [px] - gap-[6px]
     float  LayerRowPad     =   6.0f;   // [px] - px-[6px]
     float  LayerRowGap     =   5.0f;   // [px] - pb-[5px] between rows
-    float  LayerToolAcross =  28.0f;   // [px] - h-[28px], the Add layer button
+    float  LayerToolHeight =  28.0f;   // [px] - h-[28px], the Add layer button
     float  LayerFoldPad    =   8.0f;   // [px] - p-[8px] inside the folded half
     float  LayerFieldRow   =  26.0f;   // [px] - min-h-[26px], a folded property row
-    float  LayerLabelAlong =  50.0f;   // [px] - grid-cols-[50px_minmax(0,1fr)]
-    float  LayerPillAcross =  20.0f;   // [px] - h-[20px], a channel pill
-    float  LayerSwitchAlong=  26.0f;   // [px] - the w-[26px] invert switch
-    float  LayerSwitchAcross= 14.0f;   // [px] - h-[14px]
+    float  LayerLabelX =  50.0f;   // [px] - grid-cols-[50px_minmax(0,1fr)]
+    float  LayerPillY =  20.0f;   // [px] - h-[20px], a channel pill
+    float  LayerSwitchX=  26.0f;   // [px] - the w-[26px] invert switch
+    float  LayerSwitchHeight= 14.0f;   // [px] - h-[14px]
     float  LayerRadius     =   8.0f;   // [px] - rounded-[8px]
 };
 
@@ -226,7 +226,7 @@ struct LayerRow
 ///    cards write back through.
 /// note  📐 `RecordProfile` from `lib/store.tsx`, transcribed field for field. The reference declares each
 ///        member optionally and tests for its presence before stating a row; an optional member is a
-///        refused spelling here, so each conditional member is paired with the flag that declares it.
+///        rejected spelling here, so each conditional member is paired with the flag that declares it.
 /// note  🔴 Lives beside the artist's other conditions in `ShellContext` and NOT in `EntityRow`, because
 ///        the inspector writes to it. `EntityRow` is the borrowed description of what a row IS; this is the
 ///        mutable record of what the artist has made it.
@@ -340,10 +340,10 @@ struct ShellContext
     //    from and `EntityCeiling` is the closed count standing for "no card"; the two ordinates are where
     //    the kebab was, before the reference's own clamp against the trailing edge is applied.
     std::uint32_t  ContextRaised   = EntityCeiling;                // [-] - contextMenu.id
-    float          ContextAlong    = 0.0f;                         // [px] - contextMenu.x
-    float          ContextAcross   = 0.0f;                         // [px] - contextMenu.y
+    float          ContextX    = 0.0f;                         // [px] - contextMenu.x
+    float          ContextY   = 0.0f;                         // [px] - contextMenu.y
     WorkspaceMode  Mode            = WorkspaceMode::WorldEditor;   // [-] - the reference begins on 'game'
-    std::uint32_t  EntityTaken     = 2u;                           // [-] - activeGameId, seated at 'g_03'
+    std::uint32_t  EntityTaken     = 2u;                           // [-] - activeGameId, applied at 'g_03'
     char           EntityRetention[RetentionCeiling] = {};         // [-] - filterText
 
     // 📝 The disclosure conditions the reference's own graph declares: the level, Lighting, Environment and
@@ -353,21 +353,21 @@ struct ShellContext
     bool  EntityPresent[EntityCeiling]  = { true, true, true, true, true, true,
                                             true, true, true, true, true, true, true, true };
 
-    // 📝 What the metadata pane states and the property cards write back through. Seated at the reference's
+    // 📝 What the metadata pane states and the property cards write back through. Applied at the reference's
     //    own defaults and amended by the artist; the panel reads and writes it and retains none of it.
     EntityProfile  EntityProfiles[EntityCeiling] = {};
 
-    // 📐 `collapsedCards` and `collapsedHistory`. The reference seats both empty, so every card and every
+    // 📐 `collapsedCards` and `collapsedHistory`. The reference applies both empty, so every card and every
     //    revision group arrives disclosed and the artist folds what they do not want.
     bool  CardFolded[CardCeiling]        = {};
     bool  RevisionFolded[EntityCeiling]  = {};
 
     // 📝 The Layer Stack's own conditions. `activeLayerId` is an ordinal here rather than the reference's
-    //    minted identifier, on the same terms as `EntityTaken`; the reference seats it on its first layer.
+    //    minted identifier, on the same terms as `EntityTaken`; the reference applies it on its first layer.
     std::uint32_t  LayerTaken   = 0u;                      // [-] - activeLayerId
     LayerTarget    TargetTaken  = LayerTarget::Layer;      // [-] - activeTarget
 
-    // 🔴 The reference seats `expandedIds` to `[activeLayerId]` — the taken layer alone arrives unfolded.
+    // 🔴 The reference applies `expandedIds` to `[activeLayerId]` — the taken layer alone arrives unfolded.
     bool  LayerUnfolded[LayerCeiling] = { true };          // [-] - expandedIds
     bool  LayerShown[LayerCeiling]    = { true, true, false, true, true, true,
                                           true, true, true, true, true, true };   // [-] - shown
@@ -393,10 +393,10 @@ public:
 
     /// 🧩 Exactly how many control identities `Construct` claims, stated where they are claimed.
     /// note  🔴 A host counted these by hand and the count went stale the first time the shell grew a
-    ///        button; the ledger then refused whichever panel was constructed after it, at bring-up, with
-    ///        a message naming the wrong panel. The arithmetic lives beside the enrolments it describes so
+    ///        button; the ledger then rejected whichever panel was constructed after it, at bring-up, with
+    ///        a message naming the wrong panel. The arithmetic lives beside the registrations it describes so
     ///        the two can only disagree by an edit that touches both.
-    static constexpr std::uint32_t EnrolmentDemand =
+    static constexpr std::uint32_t RegistrationDemand =
           14u                                       // [-] - the chrome: dock, three modes, retention,
                                                     //       veil, the stack's two, the call and five actions
         + 13u                                       // [-] - both strips, six tints, the clear, Rename,
@@ -411,9 +411,9 @@ public:
     GlobalShellPanel& operator=(const GlobalShellPanel&) = delete;
     ~GlobalShellPanel()                                  = default;
 
-    /// 🧩 Borrows the recording facilities and enrols every identity and interpolant the shell needs.
+    /// 🧩 Borrows the recording facilities and registers every identity and interpolant the shell needs.
     /// out   Result  [-]  refuses with ContentUnsupported when a construction already stands, and with
-    ///                     ExtentExhausted when the ledger or the integrator declines an enrolment
+    ///                     ExtentExhausted when the ledger or the integrator declines an registration
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<bool> Construct(InteractionIndex&              Interaction,
@@ -427,14 +427,14 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Advance(const PointerCondition& Sampled, double Elapsed);
 
-    /// 🧩 Re-seats every scaled extent after the appearance was resolved against a new display extent.
+    /// 🧩 Re-applies every scaled extent after the appearance was resolved against a new display extent.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Reseat(const ThemeProfile& Resolved);
+    void Reapply(const ThemeProfile& Resolved);
 
     /// 🧩 Applies the reference's Tab and Escape rules to the summoning conditions the host owns.
     /// in    Summoned   [-]  Tab arrived this tick and no text field held it
-    /// in    Withdrawn  [-]  Escape arrived this tick
+    /// in    Dismissed  [-]  Escape arrived this tick
     /// in    Reversed   [-]  Shift stood with the Tab, so the cycle is walked the other way
     /// out   Altered    [-]  true when any presentation condition moved, so the host may re-record
     /// note  📐 The reference's own order, from `app/page.tsx`, extended by the two tab strips the summoned
@@ -444,21 +444,21 @@ public:
     /// note  📐 Escape is unchanged: the slide closes first and the menu second, and only while undocked.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool AdvanceSummoning(ShellContext& Seated, bool Summoned, bool Withdrawn, bool Reversed = false);
+    bool AdvanceSummoning(ShellContext& Applied, bool Summoned, bool Dismissed, bool Reversed = false);
 
     /// 🧩 Records the whole shell — bar, rail, viewport, docked inspector, veil and summoned card.
     /// in    Extent      [px] the display's full drawable extent
     /// in    Rows        [-]  the outliner's linearised entities, borrowed for the tick
-    /// in    RowCount    [-]  how many of them; clamped to the seated ceiling
+    /// in    RowCount    [-]  how many of them; clamped to the applied ceiling
     /// in    Layers      [-]  the Layer Stack's rows, borrowed for the tick; absent presents an empty stack
-    /// in    LayerCount  [-]  how many of them; clamped to the seated ceiling
+    /// in    LayerCount  [-]  how many of them; clamped to the applied ceiling
     /// out   Result     [-]  refuses with CapabilityAbsent when no construction stands or no tick is adopted
-    /// note  📐 Which pair of panes the inspector presents is decided by `Seated.Mode`, exactly as the
+    /// note  📐 Which pair of panes the inspector presents is decided by `Applied.Mode`, exactly as the
     ///       reference's two ternaries in `app/page.tsx` decide it for each of its two slides.
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> Record(const PlaneExtent&     Extent,
-                         ShellContext&        Seated,
+                         ShellContext&        Applied,
                          const EntityRow*       Rows,
                          std::uint32_t          RowCount,
                          const LayerRow*        Layers        = nullptr,
@@ -466,11 +466,11 @@ public:
                          const EntityRevision*  Revisions     = nullptr,
                          std::uint32_t          RevisionCount = 0u);
 
-    /// 🧩 Whether the shell's own chrome stands over a display ordinate.
+    /// 🧩 Whether the shell's own chrome stands over a display coordinate.
     /// note  Consulted by a host before it treats a contact as a viewport stroke.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Occluding(float Along, float Across) const;
+    bool Occluding(float X, float Y) const;
 
     /// 🧩 Returns the panel to its unconstructed condition.
     /// cost  ✔️
@@ -483,32 +483,32 @@ private:
     static constexpr std::uint32_t LayerCeiling = ShellContext::LayerCeiling;
     static constexpr std::uint32_t CardCeiling  = ShellContext::CardCeiling;
 
-    void RecordTopBar(const PlaneExtent& Extent, const ShellContext& Seated);
-    void RecordOptionsRail(const PlaneExtent& Extent, ShellContext& Seated);
-    void RecordViewport(const PlaneExtent& Extent, const ShellContext& Seated);
-    void RecordInspector(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordTopBar(const PlaneExtent& Extent, const ShellContext& Applied);
+    void RecordOptionsRail(const PlaneExtent& Extent, ShellContext& Applied);
+    void RecordViewport(const PlaneExtent& Extent, const ShellContext& Applied);
+    void RecordInspector(const PlaneExtent& Extent, ShellContext& Applied,
                          const EntityRow* Rows, std::uint32_t RowCount,
                          const LayerRow* Layers, std::uint32_t LayerCount,
                          const EntityRevision* Revisions, std::uint32_t RevisionCount);
-    void RecordOutliner(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordOutliner(const PlaneExtent& Extent, ShellContext& Applied,
                         const EntityRow* Rows, std::uint32_t RowCount);
-    void RecordComponents(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordComponents(const PlaneExtent& Extent, ShellContext& Applied,
                           const EntityRow* Rows, std::uint32_t RowCount,
                           const EntityRevision* Revisions, std::uint32_t RevisionCount);
 
     /// 🧩 The property cards for whatever the directory has taken — slide two's leading page.
-    void RecordPropertyCards(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordPropertyCards(const PlaneExtent& Extent, ShellContext& Applied,
                              const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 The revision spine — slide two's trailing page, grouped by the row each revision stands against.
-    void RecordRevisionSpine(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordRevisionSpine(const PlaneExtent& Extent, ShellContext& Applied,
                              const EntityRow* Rows, std::uint32_t RowCount,
                              const EntityRevision* Revisions, std::uint32_t RevisionCount);
 
     /// 🧩 Slide one's trailing pane — the reference's `MetadataPane`, hero, stats, call and actions.
     /// note  📐 `components/MetadataPane.tsx`. It presents what the directory has taken and offers the five
     ///        inline actions; the call beneath the stats is the pointer-driven twin of Tab.
-    void RecordMetadata(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordMetadata(const PlaneExtent& Extent, ShellContext& Applied,
                         const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 One hairline stat row — a muted key at the leading edge and a value at the trailing one.
@@ -516,48 +516,48 @@ private:
     float RecordStatRow(const PlaneExtent& Extent, const char* Caption, const char* Reading);
 
     /// 🧩 Slide one's leading column — the tab strip and whichever of its two pages stands taken.
-    void RecordOutlineColumn(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordOutlineColumn(const PlaneExtent& Extent, ShellContext& Applied,
                                const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 The Context Menu page — the taken row's options presented as a whole pane.
-    void RecordContextPage(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordContextPage(const PlaneExtent& Extent, ShellContext& Applied,
                            const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 The same options as a card floating over everything, raised by a row's kebab.
     /// note  📐 Recorded last of all, after the veil and the summoned card, because it stands over both.
-    void RecordContextOverlay(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordContextOverlay(const PlaneExtent& Extent, ShellContext& Applied,
                               const EntityRow* Rows, std::uint32_t RowCount);
 
     /// 🧩 The three dots one row carries at its trailing edge, and whether they were tapped.
-    bool RecordKebab(const PlaneExtent& Extent, ControlIdentity Claimed, bool Roused);
+    bool RecordKebab(const PlaneExtent& Extent, ControlIdentity Target, bool Hovered);
 
     /// 🧩 One inline action row — a glyph cell, a run, and an optional trailing chord.
-    /// in    Claimed   [-]  the identity the row was enrolled under
+    /// in    Target   [-]  the identity the row was registered under
     /// in    Colour       [-]  the run's own colour; the reference states `--colour` for four rows and its alert hue
-    ///                      for the fifth, and the rouse wash is that same colour at a twelfth of its coverage
+    ///                      for the fifth, and the hover wash is that same colour at a twelfth of its coverage
     /// in    GlyphColour  [-]  the leading cell's colour, which is `--muted` wherever the run is not alerting
     /// out   Taken     [-]  true on the tick the row resolves a tap
-    bool RecordActionRow(const PlaneExtent& Extent, ControlIdentity Claimed, SymbolSubject Glyph,
+    bool RecordActionRow(const PlaneExtent& Extent, ControlIdentity Target, SymbolSubject Glyph,
                          const char* Caption, const char* Chord, ThemeToken Colour, ThemeToken GlyphColour);
 
     /// 🧩 Slide one in Texture Paint — the reference's `LayersPane`, header, toolbar, stack and footer.
-    void RecordLayerStack(const PlaneExtent& Extent, ShellContext& Seated,
+    void RecordLayerStack(const PlaneExtent& Extent, ShellContext& Applied,
                           const LayerRow* Layers, std::uint32_t LayerCount);
 
     /// 🧩 One layer row — its spine, its two halves and, when unfolded, its two property columns.
     /// out   Consumed  [px]  what the row actually spanned across, folded or unfolded
-    float RecordLayerRow(const PlaneExtent& Extent, ShellContext& Seated, const LayerRow& Presented,
+    float RecordLayerRow(const PlaneExtent& Extent, ShellContext& Applied, const LayerRow& Current,
                          std::uint32_t Ordinal, std::uint32_t LayerCount, bool Trailing);
 
     /// 🧩 Slide two in Texture Paint — the reference's `LayerInspectorPane` and the panel it delegates to.
-    void RecordLayerInspector(const PlaneExtent& Extent, const ShellContext& Seated,
+    void RecordLayerInspector(const PlaneExtent& Extent, const ShellContext& Applied,
                               const LayerRow* Layers, std::uint32_t LayerCount);
-    void RecordRetentionField(const PlaneExtent& Extent, ShellContext& Seated);
+    void RecordRetentionField(const PlaneExtent& Extent, ShellContext& Applied);
     void RecordPaneHeader(const PlaneExtent& Extent, SymbolSubject Glyph, ThemeToken GlyphColour,
                           ThemeToken MedallionColour, const char* Title, const char* Secondary);
 
     /// 🧩 Whether a row is presented, given the filter and every enclosure's disclosure.
-    bool RowPresented(const ShellContext& Seated, const EntityRow* Rows,
+    bool RowCurrent(const ShellContext& Applied, const EntityRow* Rows,
                       std::uint32_t RowCount, std::uint32_t Ordinal) const;
 
     InteractionIndex*              Ledger     = nullptr;   // [-] - borrowed; never owned
@@ -566,11 +566,11 @@ private:
     const ThemeProfile* Appearance = nullptr;   // [-] - borrowed; never owned
     ControlPanel                   Controls   = {};        // [-] - the shared inspector controls
 
-    ShellColour     Tinted  = {};   // [-] - seated once at construction
-    ShellMetric  Scaled  = {};   // [-] - re-seated whenever the appearance is resolved again
+    ShellColour     Tinted  = {};   // [-] - applied once at construction
+    ShellMetric  Scaled  = {};   // [-] - re-applied whenever the appearance is resolved again
 
     PointerCondition  Sampled       = {};      // [-] - this tick's contact
-    std::uint32_t     CarouselSlide = 0u;      // [-] - the enrolled traverse carrying the two slides
+    std::uint32_t     CarouselSlide = 0u;      // [-] - the registered traverse carrying the two slides
     PlaneExtent       InspectorAt   = {};      // [px] - where the inspector was last recorded
     bool              InspectorStood = false;  // [-] - whether it was recorded at all last tick
 
@@ -584,7 +584,7 @@ private:
     ControlIdentity  MetadataActions[5]         = {};   // [-] - the five inline actions
 
     // 📝 The directory strip and the Context Menu surface it discloses. The six colour discs and the two
-    //    actions are enrolled once and lent to whichever presentation is recording — the page and the
+    //    actions are registered once and lent to whichever presentation is recording — the page and the
     //    floating card are the same options and can never both take a contact in one tick.
     // 📝 Slide two's own strip, its Back call, and the fold each property card and revision group carries.
     ControlIdentity  InspectorStrip             = {};   // [-] - the Properties / History strip
@@ -603,8 +603,8 @@ private:
     ControlIdentity  RowPresences[RowCeiling]   = {};   // [-] - one per presence action
 
     // 📝 The Layer Stack's own contacts. Its rows carry two takeable halves and three actions apiece, so
-    //    they are enrolled as their own run rather than shared with the outliner's — a shared identity
-    //    would let a contact on an outline row rouse a layer row that is not even presented this tick.
+    //    they are registered as their own run rather than shared with the outliner's — a shared identity
+    //    would let a contact on an outline row hover a layer row that is not even presented this tick.
     ControlIdentity  LayerHalves[LayerCeiling * 2u] = {};   // [-] - the layer half and the mask half
     ControlIdentity  LayerFolds[LayerCeiling]       = {};   // [-] - one per disclosure chevron
     ControlIdentity  LayerPresences[LayerCeiling]   = {};   // [-] - one per eye

@@ -15,9 +15,9 @@ namespace
 
 constexpr float CardRadius       = 12.0f;   // [px] - --r-tile
 constexpr float CardPad          = 10.0f;   // [px] - chips-region horizontal padding
-constexpr float HeaderAcross     = 22.0f;   // [px] - heading and count line
+constexpr float HeaderHeight     = 22.0f;   // [px] - heading and count line
 constexpr float HeaderGap        = 8.0f;    // [px] - heading to chips
-constexpr float ChipAcross       = 27.0f;   // [px] - chip and add button height
+constexpr float ChipHeight       = 27.0f;   // [px] - chip and add button height
 constexpr float ChipGap          = 6.0f;    // [px] - flex gap
 constexpr float ChipPadLeading   = 10.0f;   // [px] - caption leading inset
 constexpr float ChipSwatch       = 9.0f;    // [px] - classification dot
@@ -27,8 +27,8 @@ constexpr float ChipRemoveGap    = 6.0f;    // [px] - caption to remove action
 constexpr float ChipPadTrailing  = 5.0f;    // [px] - remove action trailing inset
 constexpr float DropdownGap      = 10.0f;   // [px] - chips to dropdown
 constexpr float CardTrailingPad  = 10.0f;   // [px] - dropdown to card edge
-constexpr float CountAlong       = 24.0f;   // [px] - active count badge floor
-constexpr float ClearAlong       = 48.0f;   // [px] - clear-all action
+constexpr float CountX       = 24.0f;   // [px] - active count badge floor
+constexpr float ClearX       = 48.0f;   // [px] - clear-all action
 
 float Scaled(float Figure, const ThemeProfile& Appearance)
 {
@@ -41,66 +41,66 @@ float Scaled(float Figure, const ThemeProfile& Appearance)
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> FacetPanel::Construct(MotionIntegrator& ArrivingMotion,
-                                    RecordingSurface& ArrivingSurface,
-                                    const ThemeProfile& ArrivingAppearance)
+Outcome<bool> FacetPanel::Construct(MotionIntegrator& IncomingMotion,
+                                    RecordingSurface& IncomingSurface,
+                                    const ThemeProfile& IncomingAppearance)
 {
     if (Motion != nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a facet panel construction stands" });
 
-    Motion     = &ArrivingMotion;
-    Surface    = &ArrivingSurface;
-    Appearance = &ArrivingAppearance;
+    Motion     = &IncomingMotion;
+    Surface    = &IncomingSurface;
+    Appearance = &IncomingAppearance;
 
-    if (!Interaction.Construct(ArrivingMotion).Resolved)
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "facet interaction was refused" });
+    if (!Interaction.Construct(IncomingMotion).Resolved)
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "facet interaction was rejected" });
 
-    if (!SharedControls.Construct(Interaction, ArrivingSurface, ArrivingAppearance).Resolved)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "shared facet controls were refused" });
+    if (!SharedControls.Construct(Interaction, IncomingSurface, IncomingAppearance).Resolved)
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "shared facet controls were rejected" });
 
     for (std::uint32_t Ordinal = 0u; Ordinal < FacetCapacity + 2u; ++Ordinal)
     {
-        const Outcome<ControlIdentity> Issued = Interaction.Enrol();
-        if (!Issued.Resolved)
-            return Outcome<bool>::Refuse(Issued.Error);
+        const Outcome<ControlIdentity> Registered = Interaction.Register();
+        if (!Registered.Resolved)
+            return Outcome<bool>::Refuse(Registered.Error);
 
-        Controls[Ordinal] = Issued.Resolve();
+        Controls[Ordinal] = Registered.Resolve();
     }
 
     return Outcome<bool>::Result(true);
 }
 
-void FacetPanel::Advance(const PointerCondition& Arrived, double Elapsed)
+void FacetPanel::Advance(const PointerCondition& Sampled, double Elapsed)
 {
-    Pointer = Arrived;
-    Interaction.Advance(Arrived, Elapsed);
-    SharedControls.Sample(Arrived);
+    Pointer = Sampled;
+    Interaction.Advance(Sampled, Elapsed);
+    SharedControls.Sample(Sampled);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        ARRANGEMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-FacetPanel::Arrangement FacetPanel::Arrange(float Along,
-                                            float Across,
-                                            float ExtentAlong,
+FacetPanel::Arrangement FacetPanel::Arrange(float X,
+                                            float Y,
+                                            float Width,
                                             const FacetDeclaration& Declared,
                                             const bool* Enabled) const
 {
     Arrangement Arranged;
-    if (Surface == nullptr || Appearance == nullptr || ExtentAlong <= 0.0f)
+    if (Surface == nullptr || Appearance == nullptr || Width <= 0.0f)
         return Arranged;
 
     const float Scale = Appearance->Measure.DisplayScale;
     const float Pad = CardPad * Scale;
-    const float InteriorAlong = (ExtentAlong > Pad * 2.0f) ? ExtentAlong - Pad * 2.0f : 0.0f;
+    const float InteriorX = (Width > Pad * 2.0f) ? Width - Pad * 2.0f : 0.0f;
     const float TextSize = (Appearance->ControlMeasure.RowText > 11.0f * Scale)
                          ? Appearance->ControlMeasure.RowText : 11.0f * Scale;
-    const float ChipHeight = ChipAcross * Scale;
+    const float ChipHeight = ChipHeight * Scale;
     const float Gap = ChipGap * Scale;
-    float ChipAlong = 0.0f;
-    float ChipCursorAcross = 0.0f;
-    float ChipsAcross = ChipHeight;
+    float ChipX = 0.0f;
+    float ChipCursorY = 0.0f;
+    float ChipsHeight = ChipHeight;
     bool ActivePresent = false;
 
     const std::uint32_t Count = (Declared.OptionCount < FacetCapacity)
@@ -113,41 +113,41 @@ FacetPanel::Arrangement FacetPanel::Arrange(float Along,
         ActivePresent = true;
         const char* Caption = (Declared.Options != nullptr && Declared.Options[Ordinal] != nullptr)
                             ? Declared.Options[Ordinal] : "";
-        const float CaptionAlong = Surface->MeasureRun(Caption, TextSize);
-        const float RequiredAlong = (ChipPadLeading + ChipSwatch + ChipSwatchGap + ChipRemoveGap +
-                                     ChipRemove + ChipPadTrailing) * Scale + CaptionAlong;
-        if (ChipAlong > 0.0f && ChipAlong + RequiredAlong > InteriorAlong)
+        const float CaptionX = Surface->MeasureRun(Caption, TextSize);
+        const float RequiredX = (ChipPadLeading + ChipSwatch + ChipSwatchGap + ChipRemoveGap +
+                                     ChipRemove + ChipPadTrailing) * Scale + CaptionX;
+        if (ChipX > 0.0f && ChipX + RequiredX > InteriorX)
         {
-            ChipAlong = 0.0f;
-            ChipCursorAcross += ChipHeight + Gap;
-            ChipsAcross += ChipHeight + Gap;
+            ChipX = 0.0f;
+            ChipCursorY += ChipHeight + Gap;
+            ChipsHeight += ChipHeight + Gap;
         }
 
-        ChipAlong += RequiredAlong + Gap;
+        ChipX += RequiredX + Gap;
     }
 
     if (!ActivePresent)
-        ChipsAcross = ChipHeight;
+        ChipsHeight = ChipHeight;
 
-    const float HeaderHeight = HeaderAcross * Scale;
+    const float HeaderHeight = HeaderHeight * Scale;
     const float HeaderToChips = HeaderGap * Scale;
-    const float ChipsLeast = Across + Pad + HeaderHeight + HeaderToChips;
-    const float DropdownLeast = ChipsLeast + ChipsAcross + DropdownGap * Scale;
-    const float DropdownAcross = Appearance->ControlMeasure.FieldAcross;
+    const float ChipsTop = Y + Pad + HeaderHeight + HeaderToChips;
+    const float DropdownTop = ChipsTop + ChipsHeight + DropdownGap * Scale;
+    const float DropdownHeight = Appearance->ControlMeasure.FieldHeight;
 
-    Arranged.Header = Spanning(Along + Pad, Across + Pad, InteriorAlong, HeaderHeight);
-    Arranged.Chips = Spanning(Along + Pad, ChipsLeast, InteriorAlong, ChipsAcross);
-    Arranged.Dropdown = Spanning(Along + Pad, DropdownLeast, InteriorAlong, DropdownAcross);
-    Arranged.TotalAcross = Pad + HeaderHeight + HeaderToChips + ChipsAcross + DropdownGap * Scale +
-                           DropdownAcross + CardTrailingPad * Scale;
+    Arranged.Header = Spanning(X + Pad, Y + Pad, InteriorX, HeaderHeight);
+    Arranged.Chips = Spanning(X + Pad, ChipsTop, InteriorX, ChipsHeight);
+    Arranged.Dropdown = Spanning(X + Pad, DropdownTop, InteriorX, DropdownHeight);
+    Arranged.TotalY = Pad + HeaderHeight + HeaderToChips + ChipsHeight + DropdownGap * Scale +
+                           DropdownHeight + CardTrailingPad * Scale;
     return Arranged;
 }
 
-float FacetPanel::MeasureAcross(float ExtentAlong,
+float FacetPanel::MeasureHeight(float Width,
                                 const FacetDeclaration& Declared,
                                 const bool* Enabled) const
 {
-    return Arrange(0.0f, 0.0f, ExtentAlong, Declared, Enabled).TotalAcross;
+    return Arrange(0.0f, 0.0f, Width, Declared, Enabled).TotalY;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -159,13 +159,13 @@ bool FacetPanel::Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent)
     if (Ordinal >= FacetCapacity + 2u)
         return false;
 
-    const ControlIdentity Claimed = Controls[Ordinal];
-    const bool Roused = Extent.Encloses(Pointer.PositionAlong, Pointer.PositionAcross);
-    if (Roused && Pointer.ContactArrived && !Interaction.AnyDisclosed())
-        Interaction.Seize(Claimed, ControlPart::Body);
+    const ControlIdentity Target = Controls[Ordinal];
+    const bool Hovered = Extent.Encloses(Pointer.PositionX, Pointer.PositionY);
+    if (Hovered && Pointer.ContactPressed && !Interaction.AnyDisclosed())
+        Interaction.Grab(Target, ControlPart::Body);
 
-    Interaction.DeclareRoused(Claimed, Roused, 130.0);
-    return Roused && Interaction.Released(Claimed);
+    Interaction.DeclareHovered(Target, Hovered, 130.0);
+    return Hovered && Interaction.Released(Target);
 }
 
 ThemeToken FacetPanel::FacetColour(const FacetDeclaration& Declared, std::uint32_t Ordinal) const
@@ -189,8 +189,8 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
 
     const std::uint32_t Count = (Declared.OptionCount < FacetCapacity)
                               ? Declared.OptionCount : FacetCapacity;
-    const Arrangement Arranged = Arrange(Extent.LeastAlong, Extent.LeastAcross,
-                                         Extent.SpanAlong(), Declared, Enabled);
+    const Arrangement Arranged = Arrange(Extent.MinimumX, Extent.MinimumY,
+                                         Extent.Width(), Declared, Enabled);
     const ControlColour& Colour = Appearance->Control;
     const float Scale = Appearance->Measure.DisplayScale;
     const float Radius = CardRadius * Scale;
@@ -204,8 +204,8 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
     for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
         if (Enabled != nullptr && Enabled[Ordinal]) ++ActiveCount;
 
-    Surface->TextRunCapitalised(Arranged.Header.LeastAlong,
-                                Arranged.Header.LeastAcross + 5.0f * Scale,
+    Surface->TextRunCapitalised(Arranged.Header.MinimumX,
+                                Arranged.Header.MinimumY + 5.0f * Scale,
                                 Colour.LabelQuiet,
                                 Declared.Caption,
                                 Appearance->ControlMeasure.LabelText,
@@ -214,31 +214,31 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
 
     char CountRun[12] = {};
     std::snprintf(CountRun, sizeof(CountRun), "%u", static_cast<unsigned>(ActiveCount));
-    const PlaneExtent CountBadge = Spanning(Arranged.Header.LeastAlong +
+    const PlaneExtent CountBadge = Spanning(Arranged.Header.MinimumX +
                                                Surface->MeasureRun(Declared.Caption,
                                                                    Appearance->ControlMeasure.LabelText,
                                                                    0.08f) + 10.0f * Scale,
-                                           Arranged.Header.LeastAcross + 2.0f * Scale,
-                                           CountAlong * Scale,
+                                           Arranged.Header.MinimumY + 2.0f * Scale,
+                                           CountX * Scale,
                                            18.0f * Scale);
     Surface->Ground(CountBadge, Colour.StopTaken, 9.0f * Scale, CornerAll);
-    Surface->TextRun(CountBadge.LeastAlong + CountBadge.SpanAlong() * 0.5f,
-                     CountBadge.LeastAcross + 4.0f * Scale,
+    Surface->TextRun(CountBadge.MinimumX + CountBadge.Width() * 0.5f,
+                     CountBadge.MinimumY + 4.0f * Scale,
                      Colour.StopTakenColour,
                      CountRun,
                      Appearance->ControlMeasure.LabelText,
                      0.0f,
                      true);
 
-    const PlaneExtent Clear = Spanning(Arranged.Header.MostAlong - ClearAlong * Scale,
-                                       Arranged.Header.LeastAcross,
-                                       ClearAlong * Scale,
-                                       Arranged.Header.SpanAcross());
+    const PlaneExtent Clear = Spanning(Arranged.Header.MaximumX - ClearX * Scale,
+                                       Arranged.Header.MinimumY,
+                                       ClearX * Scale,
+                                       Arranged.Header.Height());
     if (ActiveCount > ((Declared.LockedOrdinal < Count && Enabled != nullptr &&
                         Enabled[Declared.LockedOrdinal]) ? 1u : 0u))
     {
-        Surface->TextRun(Clear.LeastAlong,
-                         Clear.LeastAcross + 5.0f * Scale,
+        Surface->TextRun(Clear.MinimumX,
+                         Clear.MinimumY + 5.0f * Scale,
                          Colour.LabelQuiet,
                          "Clear all",
                          Appearance->ControlMeasure.LabelText,
@@ -251,10 +251,10 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
         }
     }
 
-    const float ChipHeight = ChipAcross * Scale;
+    const float ChipHeight = ChipHeight * Scale;
     const float Gap = ChipGap * Scale;
-    float CursorAlong = Arranged.Chips.LeastAlong;
-    float CursorAcross = Arranged.Chips.LeastAcross;
+    float CursorX = Arranged.Chips.MinimumX;
+    float CursorY = Arranged.Chips.MinimumY;
     for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
     {
         if (Enabled == nullptr || !Enabled[Ordinal])
@@ -262,46 +262,46 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
 
         const char* Caption = (Declared.Options != nullptr && Declared.Options[Ordinal] != nullptr)
                             ? Declared.Options[Ordinal] : "";
-        const float CaptionAlong = Surface->MeasureRun(Caption, TextSize);
-        const float RequiredAlong = (ChipPadLeading + ChipSwatch + ChipSwatchGap + ChipRemoveGap +
-                                     ChipRemove + ChipPadTrailing) * Scale + CaptionAlong;
-        if (CursorAlong > Arranged.Chips.LeastAlong && CursorAlong + RequiredAlong > Arranged.Chips.MostAlong)
+        const float CaptionX = Surface->MeasureRun(Caption, TextSize);
+        const float RequiredX = (ChipPadLeading + ChipSwatch + ChipSwatchGap + ChipRemoveGap +
+                                     ChipRemove + ChipPadTrailing) * Scale + CaptionX;
+        if (CursorX > Arranged.Chips.MinimumX && CursorX + RequiredX > Arranged.Chips.MaximumX)
         {
-            CursorAlong = Arranged.Chips.LeastAlong;
-            CursorAcross += ChipHeight + Gap;
+            CursorX = Arranged.Chips.MinimumX;
+            CursorY += ChipHeight + Gap;
         }
 
-        const PlaneExtent Chip = Spanning(CursorAlong, CursorAcross, RequiredAlong, ChipHeight);
+        const PlaneExtent Chip = Spanning(CursorX, CursorY, RequiredX, ChipHeight);
         Surface->Ground(Chip, Colour.FieldGround, ChipHeight * 0.5f, CornerAll);
         Surface->Edge(Chip, Colour.CardEdge, Appearance->ControlMeasure.CardEdgeWeight,
                       ChipHeight * 0.5f, CornerAll);
-        Surface->Medallion(Chip.LeastAlong + ChipPadLeading * Scale + ChipSwatch * Scale * 0.5f,
-                           Chip.LeastAcross + ChipHeight * 0.5f,
+        Surface->Medallion(Chip.MinimumX + ChipPadLeading * Scale + ChipSwatch * Scale * 0.5f,
+                           Chip.MinimumY + ChipHeight * 0.5f,
                            ChipSwatch * Scale * 0.5f,
                            FacetColour(Declared, Ordinal));
-        const float CaptionLeast = Chip.LeastAlong + (ChipPadLeading + ChipSwatch + ChipSwatchGap) * Scale;
-        Surface->TextRun(CaptionLeast,
-                         Chip.LeastAcross + (ChipHeight - TextSize) * 0.5f,
+        const float CaptionTop = Chip.MinimumX + (ChipPadLeading + ChipSwatch + ChipSwatchGap) * Scale;
+        Surface->TextRun(CaptionTop,
+                         Chip.MinimumY + (ChipHeight - TextSize) * 0.5f,
                          Colour.FieldColour,
                          Caption,
                          TextSize,
                          0.0f,
                          false);
 
-        const PlaneExtent Remove = Spanning(Chip.MostAlong - (ChipRemove + ChipPadTrailing) * Scale,
-                                            Chip.LeastAcross + (ChipHeight - ChipRemove * Scale) * 0.5f,
+        const PlaneExtent Remove = Spanning(Chip.MaximumX - (ChipRemove + ChipPadTrailing) * Scale,
+                                            Chip.MinimumY + (ChipHeight - ChipRemove * Scale) * 0.5f,
                                             ChipRemove * Scale,
                                             ChipRemove * Scale);
-        Surface->Ground(Remove, Colour.CellGround, Remove.SpanAcross() * 0.5f, CornerAll);
-        Surface->Stroke(SymbolSubject::PlaceholderMark, Spanning(Remove.LeastAlong + 4.0f * Scale,
-                                                       Remove.LeastAcross + 4.0f * Scale,
-                                                       Remove.SpanAlong() - 8.0f * Scale,
-                                                       Remove.SpanAcross() - 8.0f * Scale),
+        Surface->Ground(Remove, Colour.CellGround, Remove.Height() * 0.5f, CornerAll);
+        Surface->Stroke(SymbolSubject::PlaceholderMark, Spanning(Remove.MinimumX + 4.0f * Scale,
+                                                       Remove.MinimumY + 4.0f * Scale,
+                                                       Remove.Width() - 8.0f * Scale,
+                                                       Remove.Height() - 8.0f * Scale),
                         Colour.CellColour);
         if (Ordinal != Declared.LockedOrdinal && Pressed(Ordinal + 2u, Remove))
             Enabled[Ordinal] = false;
 
-        CursorAlong = Chip.MostAlong + Gap;
+        CursorX = Chip.MaximumX + Gap;
     }
 
     AvailableCount = 1u;
@@ -326,7 +326,7 @@ Outcome<bool> FacetPanel::Record(const PlaneExtent& Extent,
 
     const ControlVerdict Selected = SharedControls.SelectionField(Controls[0], Arranged.Dropdown,
                                                                   Dropdown, PendingSelection);
-    if (Selected.OrdinateAltered && PendingSelection > 0u && PendingSelection < AvailableCount && Enabled != nullptr)
+    if (Selected.ReadingAltered && PendingSelection > 0u && PendingSelection < AvailableCount && Enabled != nullptr)
     {
         const std::uint32_t FacetOrdinal = AvailableOrdinals[PendingSelection];
         if (FacetOrdinal < Count)

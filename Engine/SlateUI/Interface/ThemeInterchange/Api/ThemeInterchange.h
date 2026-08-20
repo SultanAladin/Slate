@@ -19,7 +19,7 @@ namespace Slate
 
 // 📝 The file is a fixed shape — six appearances and eight accents — so its extent is known rather than
 //    discovered. The ceiling is generous against that shape: the inscribed form runs near four kilobytes,
-//    and anything an order of magnitude larger is not this file and is refused rather than parsed.
+//    and anything an order of magnitude larger is not this file and is rejected rather than parsed.
 inline constexpr std::uint32_t ArchiveCeiling = 65536u;   // [B] - largest appearance stream accepted
 inline constexpr std::uint32_t PathCeiling    = 512u;     // [-] - longest resolved path, NUL included
 
@@ -34,7 +34,7 @@ inline constexpr std::uint32_t PathCeiling    = 512u;     // [-] - longest resol
 ///        trusting it. The file is a flat table of named colours; the twenty lines below read it, and that
 ///        is a smaller cost than the reach.
 /// note  ⚠️ The form is TOML-shaped — sections, `key = value`, `#` comments — and is not general TOML. Arrays,
-///        inline tables and multi-line strings are not read. A file using them is refused, not half-read.
+///        inline tables and multi-line strings are not read. A file using them is rejected, not half-read.
 /// tag   api, nonallocating, nonthrowing
 class ThemeInterchange
 {
@@ -76,7 +76,7 @@ public:
 
     /// 🧩 The leaf name every host reads its appearance from.
     /// cost  ✔️
-    static const char* StandingLeaf();
+    static const char* CurrentLeaf();
 
     /// 🧩 Reads the appearance sitting beside the executable and adopts it, so every panel draws from it.
     /// in    ExecutablePath  [-]  argv[0] as the host received it

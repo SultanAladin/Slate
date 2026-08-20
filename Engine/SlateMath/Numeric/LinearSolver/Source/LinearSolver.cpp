@@ -25,35 +25,35 @@ namespace
 //    here — because a solve that consumed the system it was handed could not be followed by a residual measured
 //    against that system, and the residual is the only check the caller has.
 Outcome<SolvedSystem> Eliminate(std::vector<double>&  Working,
-                                std::vector<double>&  Standing,
+                                std::vector<double>&  Current,
                                 std::uint32_t         Order,
-                                std::uint32_t         OrdinateRuns)
+                                std::uint32_t         CoordinateRuns)
 {
     // 📐 The pivot floor is relative to the greatest magnitude the system supplied, so the same system scaled by
-    //    any constant is refused or admitted identically. An absolute floor would call a system in millimetres
+    //    any constant is rejected or accepted identically. An absolute floor would call a system in millimetres
     //    solvable and the same system in metres singular.
-    double GreatestSupplied = 0.0;
+    double MaximumSupplied = 0.0;
 
     for (const double Supplied : Working)
     {
         const double Magnitude = std::fabs(Supplied);
 
-        if (Magnitude > GreatestSupplied)
-            GreatestSupplied = Magnitude;
+        if (Magnitude > MaximumSupplied)
+            MaximumSupplied = Magnitude;
     }
 
-    if (GreatestSupplied <= 0.0)
+    if (MaximumSupplied <= 0.0)
     {
         return Outcome<SolvedSystem>::Refuse(
             { RefusalReason::ExtentExhausted, "every coefficient of the system is zero" });
     }
 
-    const double PivotFloor = FactorisationPivotFloor * GreatestSupplied;
+    const double PivotFloor = FactorisationPivotFloor * MaximumSupplied;
 
     SolvedSystem Produced;
 
-    double LeastPivot    = 0.0;
-    double GreatestPivot = 0.0;
+    double MinimumPivot    = 0.0;
+    double MaximumPivot = 0.0;
 
     for (std::uint32_t Diagonal = 0u; Diagonal < Order; ++Diagonal)
     {
@@ -89,21 +89,21 @@ Outcome<SolvedSystem> Eliminate(std::vector<double>&  Working,
                 Working[Chosen * Order + Column]   = Held;
             }
 
-            for (std::uint32_t Run = 0u; Run < OrdinateRuns; ++Run)
+            for (std::uint32_t Run = 0u; Run < CoordinateRuns; ++Run)
             {
-                const double Held                       = Standing[Diagonal * OrdinateRuns + Run];
-                Standing[Diagonal * OrdinateRuns + Run] = Standing[Chosen * OrdinateRuns + Run];
-                Standing[Chosen * OrdinateRuns + Run]   = Held;
+                const double Held                       = Current[Diagonal * CoordinateRuns + Run];
+                Current[Diagonal * CoordinateRuns + Run] = Current[Chosen * CoordinateRuns + Run];
+                Current[Chosen * CoordinateRuns + Run]   = Held;
             }
 
             ++Produced.ExchangedRows;
         }
 
-        if (Diagonal == 0u || ChosenExtent < LeastPivot)
-            LeastPivot = ChosenExtent;
+        if (Diagonal == 0u || ChosenExtent < MinimumPivot)
+            MinimumPivot = ChosenExtent;
 
-        if (ChosenExtent > GreatestPivot)
-            GreatestPivot = ChosenExtent;
+        if (ChosenExtent > MaximumPivot)
+            MaximumPivot = ChosenExtent;
 
         const double Pivot = Working[Diagonal * Order + Diagonal];
 
@@ -122,14 +122,14 @@ Outcome<SolvedSystem> Eliminate(std::vector<double>&  Working,
             for (std::uint32_t Column = Diagonal + 1u; Column < Order; ++Column)
                 Working[Row * Order + Column] -= Multiplier * Working[Diagonal * Order + Column];
 
-            for (std::uint32_t Run = 0u; Run < OrdinateRuns; ++Run)
-                Standing[Row * OrdinateRuns + Run] -= Multiplier * Standing[Diagonal * OrdinateRuns + Run];
+            for (std::uint32_t Run = 0u; Run < CoordinateRuns; ++Run)
+                Current[Row * CoordinateRuns + Run] -= Multiplier * Current[Diagonal * CoordinateRuns + Run];
         }
     }
 
-    Produced.Solution.assign(static_cast<std::size_t>(Order) * OrdinateRuns, 0.0);
+    Produced.Solution.assign(static_cast<std::size_t>(Order) * CoordinateRuns, 0.0);
 
-    for (std::uint32_t Run = 0u; Run < OrdinateRuns; ++Run)
+    for (std::uint32_t Run = 0u; Run < CoordinateRuns; ++Run)
     {
         // 📝 Walked upward from the last row, which is the only order the upper triangle can be read in — every
         //    row reads the unknowns the rows below it already resolved.
@@ -137,16 +137,16 @@ Outcome<SolvedSystem> Eliminate(std::vector<double>&  Working,
         {
             const std::uint32_t Row = Stepped - 1u;
 
-            double Accumulated = Standing[Row * OrdinateRuns + Run];
+            double Accumulated = Current[Row * CoordinateRuns + Run];
 
             for (std::uint32_t Column = Row + 1u; Column < Order; ++Column)
-                Accumulated -= Working[Row * Order + Column] * Produced.Solution[Column * OrdinateRuns + Run];
+                Accumulated -= Working[Row * Order + Column] * Produced.Solution[Column * CoordinateRuns + Run];
 
-            Produced.Solution[Row * OrdinateRuns + Run] = Accumulated / Working[Row * Order + Row];
+            Produced.Solution[Row * CoordinateRuns + Run] = Accumulated / Working[Row * Order + Row];
         }
     }
 
-    Produced.PivotRatio = GreatestPivot > 0.0 ? LeastPivot / GreatestPivot : 0.0;
+    Produced.PivotRatio = MaximumPivot > 0.0 ? MinimumPivot / MaximumPivot : 0.0;
 
     return Outcome<SolvedSystem>::Result(Produced);
 }
@@ -162,11 +162,11 @@ Outcome<SolvedSystem> Solve(const DenseSystem& Declaring)
     if (Declaring.Order == 0u)
         return Outcome<SolvedSystem>::Refuse({ RefusalReason::ContentUnsupported, "a system of no order" });
 
-    if (Declaring.OrdinateRuns == 0u)
+    if (Declaring.CoordinateRuns == 0u)
         return Outcome<SolvedSystem>::Refuse({ RefusalReason::ContentUnsupported, "a system solved against nothing" });
 
     const std::size_t SquaredExtent  = static_cast<std::size_t>(Declaring.Order) * Declaring.Order;
-    const std::size_t OrdinateExtent = static_cast<std::size_t>(Declaring.Order) * Declaring.OrdinateRuns;
+    const std::size_t CoordinateExtent = static_cast<std::size_t>(Declaring.Order) * Declaring.CoordinateRuns;
 
     if (Declaring.Coefficients.size() != SquaredExtent)
     {
@@ -174,16 +174,16 @@ Outcome<SolvedSystem> Solve(const DenseSystem& Declaring)
             { RefusalReason::ContentUnsupported, "the coefficient extent is not the order squared" });
     }
 
-    if (Declaring.Ordinates.size() != OrdinateExtent)
+    if (Declaring.Configuration.size() != CoordinateExtent)
     {
         return Outcome<SolvedSystem>::Refuse(
-            { RefusalReason::ContentUnsupported, "the ordinate extent is not the order by the run count" });
+            { RefusalReason::ContentUnsupported, "the coordinate extent is not the order by the run count" });
     }
 
     std::vector<double> Working  = Declaring.Coefficients;
-    std::vector<double> Standing = Declaring.Ordinates;
+    std::vector<double> Current = Declaring.Configuration;
 
-    return Eliminate(Working, Standing, Declaring.Order, Declaring.OrdinateRuns);
+    return Eliminate(Working, Current, Declaring.Order, Declaring.CoordinateRuns);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -195,10 +195,10 @@ Outcome<SolvedSystem> Solve(const SparseSystem& Declaring)
     if (Declaring.Order == 0u)
         return Outcome<SolvedSystem>::Refuse({ RefusalReason::ContentUnsupported, "a system of no order" });
 
-    if (Declaring.Ordinates.size() != static_cast<std::size_t>(Declaring.Order))
+    if (Declaring.Configuration.size() != static_cast<std::size_t>(Declaring.Order))
     {
         return Outcome<SolvedSystem>::Refuse(
-            { RefusalReason::ContentUnsupported, "the ordinate extent is not the declared order" });
+            { RefusalReason::ContentUnsupported, "the coordinate extent is not the declared order" });
     }
 
     std::vector<double> Working(static_cast<std::size_t>(Declaring.Order) * Declaring.Order, 0.0);
@@ -243,9 +243,9 @@ Outcome<SolvedSystem> Solve(const SparseSystem& Declaring)
         }
     }
 
-    std::vector<double> Standing = Declaring.Ordinates;
+    std::vector<double> Current = Declaring.Configuration;
 
-    return Eliminate(Working, Standing, Declaring.Order, 1u);
+    return Eliminate(Working, Current, Declaring.Order, 1u);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -255,40 +255,40 @@ Outcome<SolvedSystem> Solve(const SparseSystem& Declaring)
 double Measure(const DenseSystem& Declaring, const SolvedSystem& Solved)
 {
     const std::size_t SquaredExtent  = static_cast<std::size_t>(Declaring.Order) * Declaring.Order;
-    const std::size_t OrdinateExtent = static_cast<std::size_t>(Declaring.Order) * Declaring.OrdinateRuns;
+    const std::size_t CoordinateExtent = static_cast<std::size_t>(Declaring.Order) * Declaring.CoordinateRuns;
 
-    if (Declaring.Order == 0u || Declaring.OrdinateRuns == 0u)
+    if (Declaring.Order == 0u || Declaring.CoordinateRuns == 0u)
         return 0.0;
 
-    if (Declaring.Coefficients.size() != SquaredExtent || Declaring.Ordinates.size() != OrdinateExtent)
+    if (Declaring.Coefficients.size() != SquaredExtent || Declaring.Configuration.size() != CoordinateExtent)
         return 0.0;
 
-    if (Solved.Solution.size() != OrdinateExtent)
+    if (Solved.Solution.size() != CoordinateExtent)
         return 0.0;
 
-    double Greatest = 0.0;
+    double Maximum = 0.0;
 
     for (std::uint32_t Row = 0u; Row < Declaring.Order; ++Row)
     {
-        for (std::uint32_t Run = 0u; Run < Declaring.OrdinateRuns; ++Run)
+        for (std::uint32_t Run = 0u; Run < Declaring.CoordinateRuns; ++Run)
         {
             double Accumulated = 0.0;
 
             for (std::uint32_t Column = 0u; Column < Declaring.Order; ++Column)
             {
                 Accumulated += Declaring.Coefficients[static_cast<std::size_t>(Row) * Declaring.Order + Column]
-                             * Solved.Solution[static_cast<std::size_t>(Column) * Declaring.OrdinateRuns + Run];
+                             * Solved.Solution[static_cast<std::size_t>(Column) * Declaring.CoordinateRuns + Run];
             }
 
-            const std::size_t Supplied = static_cast<std::size_t>(Row) * Declaring.OrdinateRuns + Run;
-            const double      Departed = std::fabs(Accumulated - Declaring.Ordinates[Supplied]);
+            const std::size_t Supplied = static_cast<std::size_t>(Row) * Declaring.CoordinateRuns + Run;
+            const double      Previous = std::fabs(Accumulated - Declaring.Configuration[Supplied]);
 
-            if (Departed > Greatest)
-                Greatest = Departed;
+            if (Previous > Maximum)
+                Maximum = Previous;
         }
     }
 
-    return Greatest;
+    return Maximum;
 }
 
 }   // namespace Slate

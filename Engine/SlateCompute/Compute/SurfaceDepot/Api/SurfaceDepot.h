@@ -70,7 +70,7 @@ struct DepotArtefact
 
 /// 🧩 The evictable half of a surface's residency — reduction levels and transferred results, keyed by content.
 /// note  🔴 `20` §4: eviction requires reconstructibility. An artefact that cannot be rebuilt is not evictable
-///        and does not belong here, and `Declare` refuses one outright rather than admitting it and hoping
+///        and does not belong here, and `Declare` refuses one outright rather than accepting it and hoping
 ///        nothing evicts it.
 /// note  🔴 The decision is read from `56` §3 and never made here — `SourceReconstructible` is that document's
 ///        function and this calls it. `20` never decides what may be discarded; it reads the decision the
@@ -90,15 +90,15 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Construct(std::uint64_t ByteCeiling);
 
-    /// 🧩 Admits one derived artefact, evicting to make room for it.
+    /// 🧩 Accepts one derived artefact, evicting to make room for it.
     /// in    Keyed       [-]  what it was derived from
     /// in    Source      [-]  which of `56` §3's four sources produced it
     /// in    ByteExtent  [B]  what it occupies
     /// in    RecordingOrdinal [-]  the rotation it was derived on
     /// out   Result     [-]  refuses with ContentUnsupported for an unreconstructible source, and with
     ///                        ExtentExhausted when the artefact alone exceeds the whole ceiling
-    /// note  🔴 A painted source is refused. `20` §4: painted texels are authored content and live in `56`'s
-    ///        layer sequence; admitting them here would make the artist's work evictable, and it would be
+    /// note  🔴 A painted source is rejected. `20` §4: painted texels are authored content and live in `56`'s
+    ///        layer sequence; accepting them here would make the artist's work evictable, and it would be
     ///        evicted under exactly the memory pressure a long painting session produces.
     /// cost  🚩
     /// tag   api, nonthrowing

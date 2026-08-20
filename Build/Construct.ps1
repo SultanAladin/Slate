@@ -45,7 +45,7 @@ function Write-Report([string] $Tag, [System.ConsoleColor] $Colour, [string] $Me
 
 function Write-Building([string] $Message) { Write-Report 'Build'    DarkGray $Message }
 function Write-Skipped([string]  $Message) { Write-Report 'SKIP'     Cyan     $Message }
-function Write-Refused([string]  $Message) { Write-Report 'FAILED'   Red      $Message }
+function Write-Rejected([string]  $Message) { Write-Report 'FAILED'   Red      $Message }
 function Write-Produced([string] $Message) { Write-Report 'Compiled' Green    $Message }
 function Write-Lowered([string]  $Message) { Write-Report 'SPIR-V'   Magenta  $Message }
 
@@ -130,7 +130,7 @@ function Read-UnitGraph
 }
 
 # 🔴 Kahn's algorithm, so a cycle is reported as a cycle rather than as a stack overflow or an arbitrary
-#    order. An unknown unit is refused here too: naming an archive that no manifest declares would reach
+#    order. An unknown unit is rejected here too: naming an archive that no manifest declares would reach
 #    link.exe as a missing file, which names the path and not the declaration that asked for it.
 function Resolve-TranslationOrder([hashtable] $Declared)
 {
@@ -183,7 +183,7 @@ function Resolve-TranslationOrder([hashtable] $Declared)
 }
 
 # 🔴 A subject declared twice would have one host's objects overwrite the other's in a shared folder, and
-#    both would compile. Refused here rather than discovered as a host that runs the wrong main().
+#    both would compile. Rejected here rather than discovered as a host that runs the wrong main().
 function Test-SubjectUniqueness([hashtable] $Declared)
 {
     $Seen = @{}
@@ -580,7 +580,7 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
     Write-Building "$UnitName — translating $($Stale.Count) of $($Sources.Count)"
 
     $Diagnostics = & cl.exe '/nologo' "@$ResponsePath"
-    $Refused     = $LASTEXITCODE -ne 0
+    $Rejected     = $LASTEXITCODE -ne 0
 
     $Notable = $Diagnostics | Where-Object { $_ -match ': (warning|error) ' -or $_ -match 'Command line (warning|error)' -or $_ -match 'fatal error' }
 
@@ -589,14 +589,14 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
         $Notable | ForEach-Object { Write-Host "    $_" }
     }
 
-    if ($Refused)
+    if ($Rejected)
     {
         if (-not $Notable -and $Diagnostics)
         {
             $Diagnostics | ForEach-Object { Write-Host "    $_" }
         }
-        Write-Refused "$UnitName — cl.exe refused the translation batch"
-        throw "$UnitName — cl.exe refused the translation batch"
+        Write-Rejected "$UnitName — cl.exe rejected the translation batch"
+        throw "$UnitName — cl.exe rejected the translation batch"
     }
 
     # 📝 The records land beside the objects under the name the predicate looks for. Moved rather than
@@ -631,8 +631,8 @@ function Invoke-Translation([hashtable] $UnitEntry, [string] $Selection, [string
     if ($Recorded -lt $Stale.Count)
     {
         $Absent = $Stale.Count - $Recorded
-        Write-Refused "$UnitName — $Absent of $($Stale.Count) translations wrote no dependency record"
-        Write-Refused "$UnitName — the next build cannot be incremental until that is corrected"
+        Write-Rejected "$UnitName — $Absent of $($Stale.Count) translations wrote no dependency record"
+        Write-Rejected "$UnitName — the next build cannot be incremental until that is corrected"
     }
 
     return $Produced.ToArray()
@@ -767,13 +767,13 @@ function Invoke-ShaderTranslation([hashtable] $UnitEntry, [string] $VulkanRoot)
         #    is above: redirecting a native executable's stderr in Windows PowerShell wraps each line in an
         #    ErrorRecord and turns a warning into a thrown failure. The lines reach the console on their own.
         & $Compiler @Arguments | ForEach-Object { Write-Host "    $_" }
-        $Refused = $LASTEXITCODE -ne 0
+        $Rejected = $LASTEXITCODE -ne 0
         ++$Lowered
 
-        if ($Refused)
+        if ($Rejected)
         {
-            Write-Refused "$UnitName — slangc refused $([System.IO.Path]::GetFileName($Source))"
-            throw "$UnitName — slangc refused $([System.IO.Path]::GetFileName($Source))"
+            Write-Rejected "$UnitName — slangc rejected $([System.IO.Path]::GetFileName($Source))"
+            throw "$UnitName — slangc rejected $([System.IO.Path]::GetFileName($Source))"
         }
     }
 
@@ -805,8 +805,8 @@ function Invoke-Archive([hashtable] $UnitEntry, [string[]] $ObjectPath)
     if ($LASTEXITCODE -ne 0)
     {
         $Diagnostics | ForEach-Object { Write-Host "    $_" }
-        Write-Refused "$($UnitEntry.Name) — lib.exe refused the archive"
-        throw "$($UnitEntry.Name) — lib.exe refused the archive"
+        Write-Rejected "$($UnitEntry.Name) — lib.exe rejected the archive"
+        throw "$($UnitEntry.Name) — lib.exe rejected the archive"
     }
 
     Write-Produced $LibraryPath
@@ -890,7 +890,7 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
             Start-Sleep -Milliseconds 200
             try { Remove-Item $ExecutablePath -Force -ErrorAction Stop } catch
             {
-                Write-Refused "$Subject is still running and holds its executable open"
+                Write-Rejected "$Subject is still running and holds its executable open"
                 throw "$Subject held its executable open"
             }
         }
@@ -901,8 +901,8 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
     if ($LASTEXITCODE -ne 0)
     {
         $Diagnostics | ForEach-Object { Write-Host "    $_" }
-        Write-Refused "link.exe refused $Subject"
-        throw "link.exe refused $Subject"
+        Write-Rejected "link.exe rejected $Subject"
+        throw "link.exe rejected $Subject"
     }
 
     # 📝 🔴 Every file `[link].carry` names is placed beside the executable. glfw3dll.lib is an import
@@ -931,28 +931,28 @@ function Invoke-HostLink([hashtable] $UnitEntry, [string[]] $ObjectPath, [string
         #    at Binary/EngineContent/GraphicArchives and the run-time path is the same on both platforms.
         if (Test-Path $CarriedPath -PathType Container)
         {
-            $SeatedRoot = Join-Path $BinaryRoot $CarriedLeaf
+            $AppliedRoot = Join-Path $BinaryRoot $CarriedLeaf
 
-            if (-not (Test-Path $SeatedRoot))
+            if (-not (Test-Path $AppliedRoot))
             {
-                New-Item -ItemType Directory -Path $SeatedRoot -Force | Out-Null
+                New-Item -ItemType Directory -Path $AppliedRoot -Force | Out-Null
             }
 
-            Copy-Item (Join-Path $CarriedPath '*') $SeatedRoot -Recurse -Force
+            Copy-Item (Join-Path $CarriedPath '*') $AppliedRoot -Recurse -Force
             continue
         }
 
-        $Seated = Join-Path $BinaryRoot $CarriedLeaf
+        $Applied = Join-Path $BinaryRoot $CarriedLeaf
 
         # 📝 🔴 An appearance the artist has since edited is left alone. Overwriting on every construct
         #    would discard their theme each time they rebuilt, which reads as the editor forgetting.
-        if ((Test-Path $Seated) -and
-            ((Get-Item $Seated).LastWriteTimeUtc -ge (Get-Item $CarriedPath).LastWriteTimeUtc))
+        if ((Test-Path $Applied) -and
+            ((Get-Item $Applied).LastWriteTimeUtc -ge (Get-Item $CarriedPath).LastWriteTimeUtc))
         {
             continue
         }
 
-        Copy-Item $CarriedPath $Seated -Force
+        Copy-Item $CarriedPath $Applied -Force
     }
 
     Write-Produced $ExecutablePath
@@ -990,17 +990,17 @@ function Invoke-PostConstruction
         try
         {
             & python $Step.Path @($Step.Arguments)
-            $Refused = $LASTEXITCODE -ne 0
+            $Rejected = $LASTEXITCODE -ne 0
         }
         finally
         {
             Pop-Location
         }
 
-        if ($Refused)
+        if ($Rejected)
         {
-            Write-Refused "$($Step.Tag) refused with exit code $LASTEXITCODE"
-            throw "$($Step.Tag) refused"
+            Write-Rejected "$($Step.Tag) rejected with exit code $LASTEXITCODE"
+            throw "$($Step.Tag) rejected"
         }
     }
 }
@@ -1049,7 +1049,7 @@ if ($LASTEXITCODE -ne 0)
 
 if ($LASTEXITCODE -ne 0)
 {
-    throw 'VerifyPartition.ps1 refused; a unit reaches past what it declares'
+    throw 'VerifyPartition.ps1 rejected; a unit reaches past what it declares'
 }
 
 Write-Host ''
@@ -1068,7 +1068,7 @@ foreach ($UnitEntry in $Selected)
         $Produced = Invoke-Translation $UnitEntry $Configuration $VulkanRoot
 
         # 📝 The shaders are lowered after the unit's own translation units and before it is archived, so a seam
-        #    the host toolchain has just refused is never lowered by the shader toolchain against a source the
+        #    the host toolchain has just rejected is never lowered by the shader toolchain against a source the
         #    build has already rejected.
         Invoke-ShaderTranslation $UnitEntry $VulkanRoot
 

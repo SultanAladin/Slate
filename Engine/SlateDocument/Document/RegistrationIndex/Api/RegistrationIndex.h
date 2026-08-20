@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                            ENROLLMENTINDEX.H
 //============================================================================================================================================
-// 🧩 Which slots are enrolled in a named subset, compressed by interval rather than stored per occupant.
+// 🧩 Which slots are registered in a named subset, compressed by interval rather than stored per owner.
 
 #pragma once
 
@@ -34,14 +34,14 @@ enum class SubsetSubject : std::uint32_t
     SubsetCount         = 4u    // [-] - the closed count, never a subset
 };
 
-/// 🧩 One run of consecutively enrolled slots, inclusive at both ends.
+/// 🧩 One run of consecutively registered slots, inclusive at both ends.
 /// note  💾 A subset over a scene is overwhelmingly contiguous in row order, so a run is the storage that
-///        matches the shape of the fact. Storing it densely costs a bit per occupant per subset and a linear
-///        comparison to answer, and `12` §6 has room for neither at a million occupants.
+///        matches the shape of the fact. Storing it densely costs a bit per owner per subset and a linear
+///        comparison to answer, and `12` §6 has room for neither at a million owners.
 /// tag   nonallocating, nonthrowing
-struct EnrolledInterval
+struct RegisteredInterval
 {
-    std::uint32_t  FirstOrdinal = 0u;   // [-] - first enrolled slot ordinal of the run
+    std::uint32_t  FirstOrdinal = 0u;   // [-] - first registered slot ordinal of the run
     std::uint32_t  LastOrdinal  = 0u;   // [-] - last of it; equal to the first for a single slot
 };
 
@@ -49,32 +49,32 @@ struct EnrolledInterval
 //                                              INTERVAL ENROLMENT, ON ITS OWN
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Enrols one ordinal into a sorted run of intervals, merging where it abuts.
+/// 🧩 Registers one ordinal into a sorted run of intervals, merging where it abuts.
 /// in    Runs     [-]  sorted, never touching; amended in place
-/// in    Ordinal  [-]  the ordinal to enrol
-/// out   Arrived  [-]  false when the ordinal was already enrolled, so a caller may count arrivals
-/// note  🔴 Declared apart from `EnrollmentIndex` because `38` §3 enrols **faces and vertices** by this same
+/// in    Ordinal  [-]  the ordinal to register
+/// out   Sampled  [-]  false when the ordinal was already registered, so a caller may count arrivals
+/// note  🔴 Declared apart from `RegistrationIndex` because `38` §3 registers **faces and vertices** by this same
 ///        mechanism and neither is a slot of the document population. One implementation both read is the whole
 ///        point: two interval implementations that must agree are one that will not.
 /// cost  🚩
 /// tag   api, nonthrowing
-bool EnrolInterval(std::vector<EnrolledInterval>& Runs, std::uint32_t Ordinal);
+bool RegisterInterval(std::vector<RegisteredInterval>& Runs, std::uint32_t Ordinal);
 
-/// 🧩 Whether one ordinal is enrolled in a sorted run of intervals.
-/// out   Enrolled  [-]  answered by a search over the runs, never over the ordinals
+/// 🧩 Whether one ordinal is registered in a sorted run of intervals.
+/// out   Registered  [-]  answered by a search over the runs, never over the ordinals
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-bool IntervalEnrolled(const std::vector<EnrolledInterval>& Runs, std::uint32_t Ordinal);
+bool IntervalRegistered(const std::vector<RegisteredInterval>& Runs, std::uint32_t Ordinal);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   MUTUAL EXCLUSION
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Whether two subsets may hold one occupant at once.
+/// 🧩 Whether two subsets may hold one owner at once.
 /// in    LeftSubset   [-]  one subset
 /// in    RightSubset  [-]  the other
-/// out   Exclusive    [-]  true when an occupant may not be enrolled in both
-/// note  🔴 Isolation and visibility exclusion are mutually exclusive: an occupant isolated to be the only
+/// out   Exclusive    [-]  true when an owner may not be registered in both
+/// note  🔴 Isolation and visibility exclusion are mutually exclusive: an owner isolated to be the only
 ///        one visible cannot also be excluded from visibility. `12` §10 rules multi-enrollment in mutually
 ///        exclusive subsets rejected at commit rather than resolved by a precedence nobody declared.
 /// cost  ✔️
@@ -90,74 +90,74 @@ constexpr bool SubsetsExclusive(SubsetSubject LeftSubset, SubsetSubject RightSub
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Every named subset over one population, each held as an ordered run of intervals.
-/// note  The runs stay sorted and never touch, so an enrolment is a search and a merge rather than an append.
+/// note  The runs stay sorted and never touch, so an registration is a search and a merge rather than an append.
 ///        Two runs that abut are one run: leaving them apart grows the storage without adding a fact to it.
 /// tag   owning
-class EnrollmentIndex
+class RegistrationIndex
 {
 public:
 
-    /// 🧩 Enrols one occupant in a subset.
-    /// in    Subject         [-]  the occupant
-    /// in    EnrolledSubset  [-]  which subset
+    /// 🧩 Registers one owner in a subset.
+    /// in    Subject         [-]  the owner
+    /// in    RegisteredSubset  [-]  which subset
     /// out   Result         [-]  refuses with IdentityStale for an undeclared identity, and with
     ///                            ContentUnsupported when a mutually exclusive subset already holds it
-    /// note  🔴 The exclusion refusal is decided before anything is written, so a rejected enrolment leaves
+    /// note  🔴 The exclusion refusal is decided before anything is written, so a rejected registration leaves
     ///        no partial state behind. `12` §10 rejects at commit and resolves nothing silently.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Enrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
+    Outcome<bool> Register(OwnerIdentity Subject, SubsetSubject RegisteredSubset);
 
-    /// 🧩 Withdraws one occupant from a subset, dividing the run it sat inside.
-    /// in    Subject         [-]  the occupant
-    /// in    EnrolledSubset  [-]  which subset
-    /// out   Result         [-]  refuses with IdentityStale when the occupant was not enrolled
+    /// 🧩 Withdraws one owner from a subset, dividing the run it sat inside.
+    /// in    Subject         [-]  the owner
+    /// in    RegisteredSubset  [-]  which subset
+    /// out   Result         [-]  refuses with IdentityStale when the owner was not registered
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Unenrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
+    Outcome<bool> Unenrol(OwnerIdentity Subject, SubsetSubject RegisteredSubset);
 
-    /// 🧩 Withdraws one occupant from every subset — the subset half of invariant 8.
-    /// in    Subject  [-]  the occupant being retired
+    /// 🧩 Withdraws one owner from every subset — the subset half of invariant 8.
+    /// in    Subject  [-]  the owner being retired
     /// cost  🚩
     /// tag   api, nonthrowing
-    void UnenrolEverywhere(OccupantIdentity Subject);
+    void UnenrolEverywhere(OwnerIdentity Subject);
 
-    /// 🧩 Whether one occupant is enrolled in a subset.
-    /// in    Subject         [-]  the occupant
-    /// in    EnrolledSubset  [-]  which subset
-    /// out   Enrolled        [-]  answered by interval comparison over the runs
+    /// 🧩 Whether one owner is registered in a subset.
+    /// in    Subject         [-]  the owner
+    /// in    RegisteredSubset  [-]  which subset
+    /// out   Registered        [-]  answered by interval comparison over the runs
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Enrolled(OccupantIdentity Subject, SubsetSubject EnrolledSubset) const;
+    bool Registered(OwnerIdentity Subject, SubsetSubject RegisteredSubset) const;
 
     /// 🧩 The runs of one subset, in ascending slot order.
-    /// in    EnrolledSubset  [-]  which subset
+    /// in    RegisteredSubset  [-]  which subset
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const std::vector<EnrolledInterval>& Intervals(SubsetSubject EnrolledSubset) const;
+    const std::vector<RegisteredInterval>& Intervals(SubsetSubject RegisteredSubset) const;
 
-    /// 🧩 How many occupants one subset holds.
+    /// 🧩 How many owners one subset holds.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t EnrolledCount(SubsetSubject EnrolledSubset) const;
+    std::uint32_t RegisteredCount(SubsetSubject RegisteredSubset) const;
 
     /// 🧩 Empties one subset entirely.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    void Reclaim(SubsetSubject EnrolledSubset);
+    void Reclaim(SubsetSubject RegisteredSubset);
 
-    /// 🧩 🔍 Whether every enrolled slot is occupied at the current generation — invariant 6.
+    /// 🧩 🔍 Whether every registered slot is occupied at the current generation — invariant 6.
     /// in    Generations  [-]  the current generation per slot, zero where the slot is vacant
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    bool EnrolmentsOccupied(const std::vector<std::uint32_t>& Generations) const;
+    bool RegistrationsOccupied(const std::vector<std::uint32_t>& Generations) const;
 
 private:
 
     static constexpr std::size_t SubsetSpan = static_cast<std::size_t>(SubsetSubject::SubsetCount);
 
-    std::vector<EnrolledInterval>  SubsetIntervals[SubsetSpan] = {};   // [-] - sorted, never touching
-    std::uint32_t                  SubsetCounts[SubsetSpan]    = {};   // [-] - enrolled occupants per subset
+    std::vector<RegisteredInterval>  SubsetIntervals[SubsetSpan] = {};   // [-] - sorted, never touching
+    std::uint32_t                  SubsetCounts[SubsetSpan]    = {};   // [-] - registered owners per subset
 };
 
 }   // namespace Slate

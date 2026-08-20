@@ -73,7 +73,7 @@ struct ConstructedSpan
 /// note  🔴 Every attachment is declared to stand in the attachment layout on entry **and** on exit, so the
 ///       vendor performs no implicit transition. `ImageSpace::Transition` stays the one place a layout
 ///       changes — a construct that transitioned on its own would leave `ImageSpace`'s record naming a layout
-///       the image is not in, and the next barrier would then be issued from the wrong one.
+///       the image is not in, and the next barrier would then be registered from the wrong one.
 /// note  ⚠️ The constructs outlive an extent change and the spans do not. `06` §7 reclaims and re-claims every
 ///       display-relative target on a resize, which invalidates every view a span was derived over; the
 ///       construct describes formats alone and is untouched. `Derive` is what re-covers them.
@@ -89,12 +89,12 @@ public:
 
     /// 🧩 Takes the device and the claimed target set every construct is declared over.
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
-    /// in    Claimed   [-]  where the target views come from; borrowed and outlives this component
+    /// in    Reserved   [-]  where the target views come from; borrowed and outlives this component
     /// out   Result   [-]  refuses with CapabilityAbsent when no device is active
     /// post  no construct is declared
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(const VulkanExchange& Exchange, const TargetSpace& Claimed);
+    Outcome<bool> Construct(const VulkanExchange& Exchange, const TargetSpace& Reserved);
 
     /// 🧩 Declares one render construct, returning the ordinal every later resolution names it by.
     /// in    Declaring  [-]  the colour targets in output order, and the depth target or its absence
@@ -114,8 +114,8 @@ public:
     /// out   Result        [-]  refuses with ContentUnsupported for a zero extent or an unclaimed target,
     ///                           and with HostDenied when the device declines a span
     /// pre   🔴 the device is idle and `TargetSpace` has re-claimed at this extent
-    /// post  every declared construct carries a span at this extent, or none does — refused in full
-    /// note  🔴 Refused in full and derived for **every** construct, not the ones an extent change touched.
+    /// post  every declared construct carries a span at this extent, or none does — rejected in full
+    /// note  🔴 Rejected in full and derived for **every** construct, not the ones an extent change touched.
     ///       `06` §7's gate is that no persistent extent survives a resize, and a span retained because its
     ///       construct "looked unaffected" is exactly such an extent.
     /// cost  🔴
@@ -123,7 +123,7 @@ public:
     Outcome<bool> Derive(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
     /// 🧩 The construct and the span one ordinal names, for the recording that opens it.
-    /// in    ConstructOrdinal  [-]  an ordinal this component issued
+    /// in    ConstructOrdinal  [-]  an ordinal this component registered
     /// out   Result           [-]  refuses with ContentUnsupported for an ordinal naming no construct, and
     ///                              with ExtentExhausted before Derive has covered it
     /// cost  ✔️
@@ -143,7 +143,7 @@ public:
     /// pre   the device is idle
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Surrender();
+    void Release();
 
     /// 🧩 Destroys every span and every construct.
     /// pre   the device is idle and no program constructed against one is still recorded
@@ -173,7 +173,7 @@ private:
     std::vector<HeldConstruct>  Constructs    = {};        // [-] - every declared construct
     std::uint32_t               DerivedWidth  = 0u;        // [px] - what the standing spans were derived against
     std::uint32_t               DerivedHeight = 0u;        // [px]
-    bool                        SpanStanding  = false;     // [-]  - Derive has covered every construct
+    bool                        SpanCurrent  = false;     // [-]  - Derive has covered every construct
 };
 
 }   // namespace Slate

@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                         COMPONENTSPECIFICATION.CPP
 //============================================================================================================================================
-// 🧩 The eight controls, arranged and recorded from the sheet's own figures, arbitrated against the ledger's one seizure.
+// 🧩 The eight controls, arranged and recorded from the sheet's own figures, arbitrated against the ledger's one grab.
 
 #include "SlateUI/Interface/ComponentSpecification/Api/ComponentSpecification.h"
 
@@ -15,15 +15,15 @@ namespace Slate
 namespace
 {
 
-constexpr double RouseDuration    = 200.0;   // [ms] - the sheet's transition-colors on a hover
+constexpr double HoverDuration    = 200.0;   // [ms] - the sheet's transition-colors on a hover
 constexpr double DiscloseDuration = 150.0;   // [ms] - the accordion and the chevron's turn
 constexpr double TooltipDuration  = 300.0;   // [ms] - duration-300 on the tooltip's opacity
 
 /// 🧩 Interpolates between two ordinates by a fraction already clamped to the unit interval.
 /// cost  ✔️
-constexpr float Between(float Departed, float Arriving, float Fraction)
+constexpr float Between(float Previous, float Incoming, float Fraction)
 {
-    return Departed + (Arriving - Departed) * Fraction;
+    return Previous + (Incoming - Previous) * Fraction;
 }
 
 /// 🧩 Blends two colours by a fraction, component by component, in the display-referred encoding they are in.
@@ -31,20 +31,20 @@ constexpr float Between(float Departed, float Arriving, float Fraction)
 ///       the interface after the tone projection, and a fade that linearised would disagree with the browser
 ///       the sheet was measured in, which interpolates sRGB ordinates exactly as this does.
 /// cost  ✔️
-constexpr std::uint8_t BlendOrdinate(std::uint8_t Departed, std::uint8_t Arriving, float Fraction)
+constexpr std::uint8_t BlendCoordinate(std::uint8_t Previous, std::uint8_t Incoming, float Fraction)
 {
     return static_cast<std::uint8_t>(
-        Between(static_cast<float>(Departed), static_cast<float>(Arriving), Fraction) + 0.5f);
+        Between(static_cast<float>(Previous), static_cast<float>(Incoming), Fraction) + 0.5f);
 }
 
-constexpr ThemeToken Blend(ThemeToken Departed, ThemeToken Arriving, float Fraction)
+constexpr ThemeToken Blend(ThemeToken Previous, ThemeToken Incoming, float Fraction)
 {
     const float Held = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
 
-    return ThemeToken{ BlendOrdinate(Departed.Red,     Arriving.Red,     Held),
-                        BlendOrdinate(Departed.Green,   Arriving.Green,   Held),
-                        BlendOrdinate(Departed.Blue,    Arriving.Blue,    Held),
-                        BlendOrdinate(Departed.Opacity, Arriving.Opacity, Held) };
+    return ThemeToken{ BlendCoordinate(Previous.Red,     Incoming.Red,     Held),
+                        BlendCoordinate(Previous.Green,   Incoming.Green,   Held),
+                        BlendCoordinate(Previous.Blue,    Incoming.Blue,    Held),
+                        BlendCoordinate(Previous.Opacity, Incoming.Opacity, Held) };
 }
 
 /// 🧩 Restates an colour at a fraction of its own coverage — what a fading tooltip records with.
@@ -59,11 +59,11 @@ constexpr ThemeToken Faded(ThemeToken Declared, float Fraction)
     return Restated;
 }
 
-/// 🧩 Holds an ordinate inside a stated interval.
+/// 🧩 Holds an coordinate inside a stated interval.
 /// cost  ✔️
-constexpr double Held(double Ordinate, double Least, double Most)
+constexpr double Held(double Coordinate, double Minimum, double Maximum)
 {
-    return (Ordinate < Least) ? Least : (Ordinate > Most) ? Most : Ordinate;
+    return (Coordinate < Minimum) ? Minimum : (Coordinate > Maximum) ? Maximum : Coordinate;
 }
 
 /// 🧩 The extent one run occupies, centred across a stated extent at its own leading.
@@ -71,9 +71,9 @@ constexpr double Held(double Ordinate, double Least, double Most)
 ///        its row. Deriving the upper edge here rather than at nineteen call sites is what keeps a run from
 ///        sitting a pixel high in one control and correct in the next.
 /// cost  ✔️
-constexpr float CentredAcross(const PlaneExtent& Extent, float PointSize)
+constexpr float CentredY(const PlaneExtent& Extent, float PointSize)
 {
-    return Extent.LeastAcross + (Extent.SpanAcross() - PointSize) * 0.5f;
+    return Extent.MinimumY + (Extent.Height() - PointSize) * 0.5f;
 }
 
 /// 🧩 Rounds an integral reading to its decimal run, without allocating.
@@ -121,30 +121,30 @@ void IntegralRun(char* Staging, std::uint32_t StagingExtent, long long Reading)
 //                                                   THE TWO PROJECTIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-double MagnitudeFraction(double Ordinate, double Least, double Most)
+double MagnitudeFraction(double Coordinate, double Minimum, double Maximum)
 {
-    const double Span = Most - Least;
+    const double Span = Maximum - Minimum;
 
     if (Span <= 0.0)
         return 0.0;
 
-    return Held((Ordinate - Least) / Span, 0.0, 1.0);
+    return Held((Coordinate - Minimum) / Span, 0.0, 1.0);
 }
 
-double RotationDegrees(double Departed, double TravelAlong, double DegreesPerPixel)
+double RotationDegrees(double Previous, double TravelX, double DegreesPerPixel)
 {
     // 📐 The sheet: `rotationValue = startValRot - (deltaX / 10)`. Stated as a rate so that the reduction
     //    factor cannot silently change how far a drag turns the dial.
-    return Departed - TravelAlong * DegreesPerPixel;
+    return Previous - TravelX * DegreesPerPixel;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ComponentSpecification::Construct(InteractionIndex&              ArrivingLedger,
-                                      RecordingSurface&              ArrivingSurface,
-                                      const ThemeProfile& ArrivingAppearance)
+Outcome<bool> ComponentSpecification::Construct(InteractionIndex&              IncomingLedger,
+                                      RecordingSurface&              IncomingSurface,
+                                      const ThemeProfile& IncomingAppearance)
 {
     if (Ledger != nullptr)
     {
@@ -152,36 +152,36 @@ Outcome<bool> ComponentSpecification::Construct(InteractionIndex&              A
                                               "ComponentSpecification is already constructed" });
     }
 
-    Ledger     = &ArrivingLedger;
-    Surface    = &ArrivingSurface;
-    Appearance = &ArrivingAppearance;
+    Ledger     = &IncomingLedger;
+    Surface    = &IncomingSurface;
+    Appearance = &IncomingAppearance;
 
     return Outcome<bool>::Result(true);
 }
 
-void ComponentSpecification::Advance(const PointerCondition& Arriving, double Elapsed)
+void ComponentSpecification::Advance(const PointerCondition& Incoming, double Elapsed)
 {
     if (Ledger == nullptr)
         return;
 
-    Ledger->Advance(Arriving, Elapsed);
-    Sample(Arriving);
+    Ledger->Advance(Incoming, Elapsed);
+    Sample(Incoming);
 }
 
-void ComponentSpecification::Sample(const PointerCondition& Arriving)
+void ComponentSpecification::Sample(const PointerCondition& Incoming)
 {
     if (Ledger == nullptr)
         return;
 
-    Arrived       = Arriving;
+    Sampled       = Incoming;
     DeferredCount = 0u;
-    Standing      = RedrawMark::Quiet;
-    ContactHeldByPanel = Arriving.ContactHeld && ContactHeldByPanel;
+    Current      = RedrawMark::Quiet;
+    ContactHeldByPanel = Incoming.ContactHeld && ContactHeldByPanel;
 }
 
-void ComponentSpecification::FoldMark(RedrawMark Arriving)
+void ComponentSpecification::FoldMark(RedrawMark Incoming)
 {
-    Standing = Dearer(Standing, Arriving);
+    Current = Dearer(Current, Incoming);
 }
 
 bool ComponentSpecification::ContactTaken() const
@@ -189,9 +189,9 @@ bool ComponentSpecification::ContactTaken() const
     return ContactHeldByPanel;
 }
 
-RedrawMark ComponentSpecification::StandingMark() const
+RedrawMark ComponentSpecification::CurrentMark() const
 {
-    return Standing;
+    return Current;
 }
 
 void ComponentSpecification::Reset()
@@ -199,9 +199,9 @@ void ComponentSpecification::Reset()
     Ledger             = nullptr;
     Surface            = nullptr;
     Appearance         = nullptr;
-    Arrived            = {};
+    Sampled            = {};
     DeferredCount      = 0u;
-    Standing           = RedrawMark::Quiet;
+    Current           = RedrawMark::Quiet;
     ContactHeldByPanel = false;
 }
 
@@ -209,7 +209,7 @@ void ComponentSpecification::Reset()
 //                                                          THE CARD
 //------------------------------------------------------------------------------------------------------------------------
 
-CardArrangement ComponentSpecification::ArrangeCard(float Along, float Across, float ExtentAlong,
+CardArrangement ComponentSpecification::ArrangeCard(float X, float Y, float Width,
                                           const float* RowExtents, std::uint32_t RowCount) const
 {
     CardArrangement Arranged;
@@ -230,9 +230,9 @@ CardArrangement ComponentSpecification::ArrangeCard(float Along, float Across, f
             Interior += Measure.CardRowGap;
     }
 
-    Arranged.Enclosure = Spanning(Along, Across, ExtentAlong, Interior + Measure.CardPad * 2.0f);
-    Arranged.Interior  = Spanning(Along + Measure.CardPad, Across + Measure.CardPad,
-                                  ExtentAlong - Measure.CardPad * 2.0f, Interior);
+    Arranged.Enclosure = Spanning(X, Y, Width, Interior + Measure.CardPad * 2.0f);
+    Arranged.Interior  = Spanning(X + Measure.CardPad, Y + Measure.CardPad,
+                                  Width - Measure.CardPad * 2.0f, Interior);
     Arranged.RowGap    = Measure.CardRowGap;
 
     return Arranged;
@@ -254,47 +254,47 @@ void ComponentSpecification::RecordCard(const CardArrangement& Arranged)
 //                                                    THE SELECTION FIELD
 //------------------------------------------------------------------------------------------------------------------------
 
-ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, const PlaneExtent& Row,
+ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Target, const PlaneExtent& Row,
                                             const SelectionDeclaration& Declared, std::uint32_t& TakenOrdinal)
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
+    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     // ① The row divides into a leading label and the field that fills what remains.
-    const PlaneExtent Label = Spanning(Row.LeastAlong, Row.LeastAcross, Measure.LabelAlong, Row.SpanAcross());
-    const float       FieldAlong = Label.MostAlong + Measure.RowGapAlong;
-    const PlaneExtent Field = PlaneExtent{ FieldAlong, Row.LeastAcross, Row.MostAlong,
-                                           Row.LeastAcross + Measure.FieldAcross };
-    const PlaneExtent Cell  = PlaneExtent{ Field.MostAlong - Measure.ChevronCellAlong, Field.LeastAcross,
-                                           Field.MostAlong, Field.MostAcross };
+    const PlaneExtent Label = Spanning(Row.MinimumX, Row.MinimumY, Measure.LabelX, Row.Height());
+    const float       FieldX = Label.MaximumX + Measure.RowGapX;
+    const PlaneExtent Field = PlaneExtent{ FieldX, Row.MinimumY, Row.MaximumX,
+                                           Row.MinimumY + Measure.FieldHeight };
+    const PlaneExtent Cell  = PlaneExtent{ Field.MaximumX - Measure.ChevronCellX, Field.MinimumY,
+                                           Field.MaximumX, Field.MaximumY };
 
     // ② Arbitration. 🔴 The open menu is tested **before** the field, because it is recorded above it: a
     //    contact inside the menu's extent addresses the option under it and never the field it hangs from.
     //    Testing the field first is the defect where taking the last option instead re-toggles the menu.
-    const bool OverField = Field.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
-    const bool OverCell  = Cell.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool OverField = Field.Encloses(Sampled.PositionX, Sampled.PositionY);
+    const bool OverCell  = Cell.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    const bool StoodOpen = Ledger->Disclosed(Claimed);
+    const bool StoodOpen = Ledger->Disclosed(Target);
     const PlaneExtent Menu = StoodOpen ? MenuEnclosure(Field, Declared.OptionCount) : PlaneExtent{};
-    const bool OverMenu  = StoodOpen && Menu.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool OverMenu  = StoodOpen && Menu.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Ledger->DeclareRoused(Claimed, OverCell, RouseDuration))
+    if (Ledger->DeclareHovered(Target, OverCell, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Arrived.ContactArrived && (OverField || OverMenu))
+    if (Sampled.ContactPressed && (OverField || OverMenu))
     {
-        if (Ledger->Seize(Claimed, OverMenu  ? ControlPart::Option
+        if (Ledger->Grab(Target, OverMenu  ? ControlPart::Option
                                  : OverCell  ? ControlPart::Chevron
                                              : ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    if (Ledger->Released(Claimed))
+    if (Ledger->Released(Target))
     {
         if (StoodOpen && OverMenu)
         {
@@ -305,7 +305,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
             if (Chosen < Declared.OptionCount && Chosen != TakenOrdinal)
             {
                 TakenOrdinal             = Chosen;
-                Reported.OrdinateAltered = true;
+                Reported.ReadingAltered = true;
             }
 
             Ledger->Withdraw();
@@ -318,7 +318,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
             if (StoodOpen)
                 Ledger->Withdraw();
             else
-                Ledger->Disclose(Claimed);
+                Ledger->Disclose(Target);
 
             FoldMark(RedrawMark::Rearrange);
         }
@@ -326,41 +326,41 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
 
     // 📝 A contact that arrived outside both the field and its open menu withdraws it — the dismissal every
     //    menu the sheet declares performs, and the reason the test is on arrival rather than on release.
-    if (StoodOpen && Arrived.ContactArrived && !OverField && !OverMenu)
+    if (StoodOpen && Sampled.ContactPressed && !OverField && !OverMenu)
     {
         Ledger->Withdraw();
         FoldMark(RedrawMark::Rearrange);
     }
 
-    const bool  Disclosed = Ledger->Disclosed(Claimed);
-    const float Roused    = Ledger->RousedFraction(Claimed);
+    const bool  Disclosed = Ledger->Disclosed(Target);
+    const float Hovered    = Ledger->HoveredFraction(Target);
 
     // ③ The label, then the field's two grounds.
-    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Colour.LabelQuiet,
+    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
-    const float Radius = Field.SpanAcross() * 0.5f;
+    const float Radius = Field.Height() * 0.5f;
 
     Surface->Ground(Field, Colour.FieldGround, Radius, CornerAll);
-    Surface->Ground(Cell, Blend(Colour.CellGround, Colour.CellGroundRoused, Roused), Radius,
+    Surface->Ground(Cell, Blend(Colour.CellGround, Colour.CellGroundHovered, Hovered), Radius,
                     CornerTrailingUpper | CornerTrailingLower);
     Surface->Edge(Field, Colour.CardEdge, Measure.CardEdgeWeight, Radius, CornerAll);
 
     // ④ The taken option's caption, inside the black field.
-    const char* Presented = (Declared.Options != nullptr && TakenOrdinal < Declared.OptionCount)
+    const char* OptionCaption = (Declared.Options != nullptr && TakenOrdinal < Declared.OptionCount)
                           ? Declared.Options[TakenOrdinal]
                           : "";
 
-    Surface->TextRunTruncated(Field.LeastAlong + Measure.FieldPadAlong,
-                              CentredAcross(Field, Measure.RowText),
-                              Cell.LeastAlong - Field.LeastAlong - Measure.FieldPadAlong * 2.0f,
-                              Colour.FieldColour, Presented, Measure.RowText, false);
+    Surface->TextRunTruncated(Field.MinimumX + Measure.FieldPadX,
+                              CentredY(Field, Measure.RowText),
+                              Cell.MinimumX - Field.MinimumX - Measure.FieldPadX * 2.0f,
+                              Colour.FieldColour, OptionCaption, Measure.RowText, false);
 
     // ⑤ The chevron, turned a half turn while the menu stands open. The sheet rotates it; the figure roster
     //    holds one chevron, so the turned pose is recorded as the upward figure rather than as a rotation
     //    the recording surface does not offer.
-    const PlaneExtent Chevron = Spanning(Cell.LeastAlong + (Cell.SpanAlong() - Measure.ChevronSymbol) * 0.5f,
-                                         Cell.LeastAcross + (Cell.SpanAcross() - Measure.ChevronSymbol) * 0.5f,
+    const PlaneExtent Chevron = Spanning(Cell.MinimumX + (Cell.Width() - Measure.ChevronSymbol) * 0.5f,
+                                         Cell.MinimumY + (Cell.Height() - Measure.ChevronSymbol) * 0.5f,
                                          Measure.ChevronSymbol, Measure.ChevronSymbol);
 
     Surface->Stroke(SymbolSubject::ChevronDown, Chevron, Colour.CellColour);
@@ -370,7 +370,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
     {
         DeferredRecording& Holding = Deferred[DeferredCount++];
 
-        Holding.Claimed     = Claimed;
+        Holding.Target     = Target;
         Holding.Anchor      = Field;
         Holding.Options     = Declared.Options;
         Holding.OptionCount = Declared.OptionCount;
@@ -378,8 +378,8 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
         Holding.Menu        = true;
     }
 
-    Reported.ContactTaken = Ledger->Holding(Claimed);
-    Reported.Mark         = Standing;
+    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.Mark         = Current;
 
     return Reported;
 }
@@ -391,12 +391,12 @@ PlaneExtent ComponentSpecification::MenuEnclosure(const PlaneExtent& Field, std:
 
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
-    const float OptionAcross = Measure.RowText * 1.5f + Measure.OptionPadAcross * 2.0f;
-    const float Interior     = OptionAcross * static_cast<float>(OptionCount)
-                             + Measure.MenuGapAcross * static_cast<float>(OptionCount - 1u);
+    const float OptionHeight = Measure.RowText * 1.5f + Measure.OptionPadY * 2.0f;
+    const float Interior     = OptionHeight * static_cast<float>(OptionCount)
+                             + Measure.MenuGapY * static_cast<float>(OptionCount - 1u);
 
-    return Spanning(Field.LeastAlong, Field.MostAcross + Measure.MenuLift,
-                    Field.SpanAlong(), Interior + Measure.MenuPad * 2.0f);
+    return Spanning(Field.MinimumX, Field.MaximumY + Measure.MenuLift,
+                    Field.Width(), Interior + Measure.MenuPad * 2.0f);
 }
 
 std::uint32_t ComponentSpecification::OptionUnder(const PlaneExtent& Field, std::uint32_t OptionCount) const
@@ -407,18 +407,18 @@ std::uint32_t ComponentSpecification::OptionUnder(const PlaneExtent& Field, std:
     const ControlMetric& Measure = Appearance->ControlMeasure;
     const PlaneExtent    Menu    = MenuEnclosure(Field, OptionCount);
 
-    const float OptionAcross = Measure.RowText * 1.5f + Measure.OptionPadAcross * 2.0f;
-    float       Cursor       = Menu.LeastAcross + Measure.MenuPad;
+    const float OptionHeight = Measure.RowText * 1.5f + Measure.OptionPadY * 2.0f;
+    float       Cursor       = Menu.MinimumY + Measure.MenuPad;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < OptionCount; ++Ordinal)
     {
-        const PlaneExtent Option = Spanning(Menu.LeastAlong + Measure.MenuPad, Cursor,
-                                            Menu.SpanAlong() - Measure.MenuPad * 2.0f, OptionAcross);
+        const PlaneExtent Option = Spanning(Menu.MinimumX + Measure.MenuPad, Cursor,
+                                            Menu.Width() - Measure.MenuPad * 2.0f, OptionHeight);
 
-        if (Option.Encloses(Arrived.PositionAlong, Arrived.PositionAcross))
+        if (Option.Encloses(Sampled.PositionX, Sampled.PositionY))
             return Ordinal;
 
-        Cursor += OptionAcross + Measure.MenuGapAcross;
+        Cursor += OptionHeight + Measure.MenuGapY;
     }
 
     return OptionCount;
@@ -428,13 +428,13 @@ std::uint32_t ComponentSpecification::OptionUnder(const PlaneExtent& Field, std:
 //                                                    THE MAGNITUDE ROW
 //------------------------------------------------------------------------------------------------------------------------
 
-ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, const PlaneExtent& Row,
-                                          const MagnitudeDeclaration& Declared, double& Ordinate,
+ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Target, const PlaneExtent& Row,
+                                          const MagnitudeDeclaration& Declared, double& Coordinate,
                                           bool ReadoutTrailing)
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
+    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
@@ -447,115 +447,115 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
 
     if (ReadoutTrailing)
     {
-        Readout = Spanning(Row.MostAlong - Measure.ReadoutAlong, Row.LeastAcross,
-                           Measure.ReadoutAlong, Measure.FieldAcross);
-        Track = Spanning(Row.LeastAlong,
-                         Row.LeastAcross + (Row.SpanAcross() - Measure.SliderAcross) * 0.5f,
-                         Readout.LeastAlong - Row.LeastAlong - Measure.RowGapAlong,
-                         Measure.SliderAcross);
+        Readout = Spanning(Row.MaximumX - Measure.ReadoutX, Row.MinimumY,
+                           Measure.ReadoutX, Measure.FieldHeight);
+        Track = Spanning(Row.MinimumX,
+                         Row.MinimumY + (Row.Height() - Measure.SliderHeight) * 0.5f,
+                         Readout.MinimumX - Row.MinimumX - Measure.RowGapX,
+                         Measure.SliderHeight);
     }
     else
     {
-        Label = Spanning(Row.LeastAlong, Row.LeastAcross, Measure.LabelAlong, Row.SpanAcross());
-        Readout = Spanning(Label.MostAlong + Measure.RowGapAlong, Row.LeastAcross,
-                           Measure.ReadoutAlong, Measure.FieldAcross);
-        Track = Spanning(Row.MostAlong - Measure.SliderAlong,
-                         Row.LeastAcross + (Row.SpanAcross() - Measure.SliderAcross) * 0.5f,
-                         Measure.SliderAlong, Measure.SliderAcross);
+        Label = Spanning(Row.MinimumX, Row.MinimumY, Measure.LabelX, Row.Height());
+        Readout = Spanning(Label.MaximumX + Measure.RowGapX, Row.MinimumY,
+                           Measure.ReadoutX, Measure.FieldHeight);
+        Track = Spanning(Row.MaximumX - Measure.SliderX,
+                         Row.MinimumY + (Row.Height() - Measure.SliderHeight) * 0.5f,
+                         Measure.SliderX, Measure.SliderHeight);
     }
 
-    const PlaneExtent UnitCell = PlaneExtent{ Readout.MostAlong - Measure.UnitCellAlong, Readout.LeastAcross,
-                                              Readout.MostAlong, Readout.MostAcross };
+    const PlaneExtent UnitCell = PlaneExtent{ Readout.MaximumX - Measure.UnitCellX, Readout.MinimumY,
+                                              Readout.MaximumX, Readout.MaximumY };
 
     // ② Arbitration. The thumb's centre may travel only between the two ends of the track's inner run, so
     //    the fraction is projected onto that inner run and never onto the track's whole extent.
     const float Radius     = Measure.ThumbExtent * 0.5f;
-    const float TravelLeast = Track.LeastAlong + Radius;
-    const float TravelMost  = Track.MostAlong  - Radius;
-    const float TravelSpan  = (TravelMost > TravelLeast) ? (TravelMost - TravelLeast) : 0.0f;
+    const float TravelLeft = Track.MinimumX + Radius;
+    const float TravelRight  = Track.MaximumX  - Radius;
+    const float TravelWidth  = (TravelRight > TravelLeft) ? (TravelRight - TravelLeft) : 0.0f;
 
-    const bool OverTrack = Track.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool OverTrack = Track.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Ledger->DeclareRoused(Claimed, OverTrack, RouseDuration))
+    if (Ledger->DeclareHovered(Target, OverTrack, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Arrived.ContactArrived && OverTrack)
+    if (Sampled.ContactPressed && OverTrack)
     {
-        if (Ledger->Seize(Claimed, ControlPart::Thumb))
+        if (Ledger->Grab(Target, ControlPart::Thumb))
         {
             ContactHeldByPanel = true;
-            Ledger->DepartFrom(Claimed, static_cast<float>(Ordinate));
+            Ledger->RecordInitial(Target, static_cast<float>(Coordinate));
         }
     }
 
     // 📐 While held, the reading is projected from the pointer's absolute abscissa against the track — not
     //    accumulated from per-tick travel, which drifts by a pixel for every tick the pointer spent outside
     //    the extent and never returns to a round figure at either end.
-    if (Ledger->Holding(Claimed) && TravelSpan > 0.0f)
+    if (Ledger->Holding(Target) && TravelWidth > 0.0f)
     {
-        const double Fraction = Held((static_cast<double>(Arrived.PositionAlong) -
-                                      static_cast<double>(TravelLeast)) / static_cast<double>(TravelSpan),
+        const double Fraction = Held((static_cast<double>(Sampled.PositionX) -
+                                      static_cast<double>(TravelLeft)) / static_cast<double>(TravelWidth),
                                      0.0, 1.0);
-        const double Projected = Declared.LeastOrdinal +
-                                 Fraction * (Declared.MostOrdinal - Declared.LeastOrdinal);
+        const double Projected = Declared.Minimum +
+                                 Fraction * (Declared.Maximum - Declared.Minimum);
 
-        if (Projected != Ordinate)
+        if (Projected != Coordinate)
         {
-            Ordinate                 = Projected;
-            Reported.OrdinateAltered = true;
+            Coordinate                 = Projected;
+            Reported.ReadingAltered = true;
             FoldMark(RedrawMark::Rerecord);
         }
     }
 
-    const double Fraction = MagnitudeFraction(Ordinate, Declared.LeastOrdinal, Declared.MostOrdinal);
+    const double Fraction = MagnitudeFraction(Coordinate, Declared.Minimum, Declared.Maximum);
 
     // ③ The label, absent when the readout trails a full-width slider.
     if (!ReadoutTrailing)
-        Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Colour.LabelQuiet,
+        Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
                          Declared.Caption, Measure.LabelText, 0.0f, false);
 
     // ④ The readout pill — a black value cell and a raised unit cell, rounded at the ends only.
-    const float PillRadius = Readout.SpanAcross() * 0.5f;
+    const float PillRadius = Readout.Height() * 0.5f;
 
     Surface->Ground(Readout, Colour.FieldGround, PillRadius, CornerAll);
     Surface->Ground(UnitCell, Colour.CellGround, PillRadius, CornerTrailingUpper | CornerTrailingLower);
     Surface->Edge(Readout, Colour.CardEdge, Measure.CardEdgeWeight, PillRadius, CornerAll);
 
     char Reading[24] = {};
-    IntegralRun(Reading, 24u, static_cast<long long>(Ordinate + (Ordinate < 0.0 ? -0.5 : 0.5)));
+    IntegralRun(Reading, 24u, static_cast<long long>(Coordinate + (Coordinate < 0.0 ? -0.5 : 0.5)));
 
-    const float ValueAlong = Readout.LeastAlong;
-    const float ValueSpan  = UnitCell.LeastAlong - Readout.LeastAlong;
+    const float ValueX = Readout.MinimumX;
+    const float ValueSpan  = UnitCell.MinimumX - Readout.MinimumX;
     const float ReadingRun = Surface->MeasureRun(Reading, Measure.ReadoutText, Measure.ReadoutTracking);
 
-    Surface->TextRun(ValueAlong + (ValueSpan - ReadingRun) * 0.5f,
-                     CentredAcross(Readout, Measure.ReadoutText),
+    Surface->TextRun(ValueX + (ValueSpan - ReadingRun) * 0.5f,
+                     CentredY(Readout, Measure.ReadoutText),
                      Colour.FieldColour, Reading, Measure.ReadoutText, Measure.ReadoutTracking, true);
 
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
-    Surface->TextRun(UnitCell.LeastAlong + (UnitCell.SpanAlong() - UnitRun) * 0.5f,
-                     CentredAcross(UnitCell, Measure.UnitText),
+    Surface->TextRun(UnitCell.MinimumX + (UnitCell.Width() - UnitRun) * 0.5f,
+                     CentredY(UnitCell, Measure.UnitText),
                      Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
     // ⑤ The track — taken below the fraction, quiet above it, and the thumb centred on the division.
-    const float TrackRadius = Track.SpanAcross() * 0.5f;
-    const float Division    = TravelLeast + TravelSpan * static_cast<float>(Fraction);
+    const float TrackRadius = Track.Height() * 0.5f;
+    const float Division    = TravelLeft + TravelWidth * static_cast<float>(Fraction);
 
     Surface->Ground(Track, Colour.TrackQuiet, TrackRadius, CornerAll);
 
-    if (Division > Track.LeastAlong)
+    if (Division > Track.MinimumX)
     {
-        const PlaneExtent Taken = PlaneExtent{ Track.LeastAlong, Track.LeastAcross,
-                                               Division, Track.MostAcross };
+        const PlaneExtent Taken = PlaneExtent{ Track.MinimumX, Track.MinimumY,
+                                               Division, Track.MaximumY };
         Surface->Ground(Taken, Colour.TrackTaken, TrackRadius, CornerLeadingUpper | CornerLeadingLower);
     }
 
     Surface->Edge(Track, Colour.TrackEdge, Measure.CardEdgeWeight, TrackRadius, CornerAll);
-    Surface->Medallion(Division, Track.LeastAcross + Track.SpanAcross() * 0.5f, Radius, Colour.ThumbGround);
+    Surface->Medallion(Division, Track.MinimumY + Track.Height() * 0.5f, Radius, Colour.ThumbGround);
 
-    Reported.ContactTaken = Ledger->Holding(Claimed);
-    Reported.Mark         = Standing;
+    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.Mark         = Current;
 
     return Reported;
 }
@@ -564,65 +564,65 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
 //                                                    THE ROTATION RULER
 //------------------------------------------------------------------------------------------------------------------------
 
-ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, const PlaneExtent& Row,
+ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Target, const PlaneExtent& Row,
                                            const RulerDeclaration& Declared, double& Degrees)
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
+    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     // ① The ruler stacks: a label and readout above, the tick strip beneath them.
-    const PlaneExtent Head    = Spanning(Row.LeastAlong, Row.LeastAcross, Row.SpanAlong(), Measure.FieldAcross);
-    const PlaneExtent Label   = Spanning(Head.LeastAlong, Head.LeastAcross, Measure.LabelAlong, Head.SpanAcross());
-    const PlaneExtent Readout = Spanning(Head.MostAlong - Measure.ReadoutAlong, Head.LeastAcross,
-                                         Measure.ReadoutAlong, Measure.FieldAcross);
-    const PlaneExtent UnitCell = PlaneExtent{ Readout.MostAlong - Measure.UnitCellAlong, Readout.LeastAcross,
-                                              Readout.MostAlong, Readout.MostAcross };
-    const PlaneExtent Strip   = Spanning(Row.LeastAlong, Head.MostAcross + Measure.CardRowGap * 0.5f,
-                                         Row.SpanAlong(), Measure.RulerAcross);
+    const PlaneExtent Head    = Spanning(Row.MinimumX, Row.MinimumY, Row.Width(), Measure.FieldHeight);
+    const PlaneExtent Label   = Spanning(Head.MinimumX, Head.MinimumY, Measure.LabelX, Head.Height());
+    const PlaneExtent Readout = Spanning(Head.MaximumX - Measure.ReadoutX, Head.MinimumY,
+                                         Measure.ReadoutX, Measure.FieldHeight);
+    const PlaneExtent UnitCell = PlaneExtent{ Readout.MaximumX - Measure.UnitCellX, Readout.MinimumY,
+                                              Readout.MaximumX, Readout.MaximumY };
+    const PlaneExtent Strip   = Spanning(Row.MinimumX, Head.MaximumY + Measure.CardRowGap * 0.5f,
+                                         Row.Width(), Measure.RulerHeight);
 
     // ② Arbitration. The reading departs from where it stood when the contact arrived, so a drag that
     //    leaves and re-enters the strip resumes from the same origin rather than jumping.
-    const bool OverStrip = Strip.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool OverStrip = Strip.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Arrived.ContactArrived && OverStrip)
+    if (Sampled.ContactPressed && OverStrip)
     {
-        if (Ledger->Seize(Claimed, ControlPart::Strip))
+        if (Ledger->Grab(Target, ControlPart::Strip))
         {
             ContactHeldByPanel = true;
-            Ledger->DepartFrom(Claimed, static_cast<float>(Degrees));
+            Ledger->RecordInitial(Target, static_cast<float>(Degrees));
         }
     }
 
-    if (Ledger->Holding(Claimed) && Ledger->HeldPart(Claimed) == ControlPart::Strip)
+    if (Ledger->Holding(Target) && Ledger->HeldPart(Target) == ControlPart::Strip)
     {
-        const Outcome<float> Departed = Ledger->DepartedOrdinate(Claimed);
+        const Outcome<float> Previous = Ledger->InitialReading(Target);
 
-        if (Departed.Resolved)
+        if (Previous.Resolved)
         {
-            const double Travel   = static_cast<double>(Arrived.PositionAlong) -
-                                    static_cast<double>(Ledger->OriginAlong());
-            const double Turned   = RotationDegrees(static_cast<double>(Departed.Resolve()), Travel,
+            const double Travel   = static_cast<double>(Sampled.PositionX) -
+                                    static_cast<double>(Ledger->OriginX());
+            const double Turned   = RotationDegrees(static_cast<double>(Previous.Resolve()), Travel,
                                                     static_cast<double>(Measure.RulerDegreesPerPixel));
 
             if (Turned != Degrees)
             {
                 Degrees                  = Turned;
-                Reported.OrdinateAltered = true;
+                Reported.ReadingAltered = true;
                 FoldMark(RedrawMark::Rerecord);
             }
         }
     }
 
     // ③ The label and the readout pill.
-    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Colour.LabelQuiet,
+    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
-    const float PillRadius = Readout.SpanAcross() * 0.5f;
+    const float PillRadius = Readout.Height() * 0.5f;
 
     Surface->Ground(Readout, Colour.FieldGround, PillRadius, CornerAll);
     Surface->Ground(UnitCell, Colour.CellGround, PillRadius, CornerTrailingUpper | CornerTrailingLower);
@@ -633,17 +633,17 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
     char Reading[24] = {};
     IntegralRun(Reading, 24u, Rounded);
 
-    const float ValueSpan  = UnitCell.LeastAlong - Readout.LeastAlong;
+    const float ValueSpan  = UnitCell.MinimumX - Readout.MinimumX;
     const float ReadingRun = Surface->MeasureRun(Reading, Measure.ReadoutText, Measure.ReadoutTracking);
 
-    Surface->TextRun(Readout.LeastAlong + (ValueSpan - ReadingRun) * 0.5f,
-                     CentredAcross(Readout, Measure.ReadoutText),
+    Surface->TextRun(Readout.MinimumX + (ValueSpan - ReadingRun) * 0.5f,
+                     CentredY(Readout, Measure.ReadoutText),
                      Colour.FieldColour, Reading, Measure.ReadoutText, Measure.ReadoutTracking, true);
 
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
-    Surface->TextRun(UnitCell.LeastAlong + (UnitCell.SpanAlong() - UnitRun) * 0.5f,
-                     CentredAcross(UnitCell, Measure.UnitText),
+    Surface->TextRun(UnitCell.MinimumX + (UnitCell.Width() - UnitRun) * 0.5f,
+                     CentredY(UnitCell, Measure.UnitText),
                      Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
     // ④ The strip's ground, and every tick inside it, confined so nothing escapes the rounded extent.
@@ -651,8 +651,8 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
     Surface->Edge(Strip, Colour.CardEdge, Measure.CardEdgeWeight, Measure.RulerRadius, CornerAll);
     Surface->Confine(Strip);
 
-    const float CentreAlong  = Strip.LeastAlong + Strip.SpanAlong() * 0.5f;
-    const float CentreAcross = Strip.LeastAcross + Strip.SpanAcross() * 0.5f;
+    const float CentreX  = Strip.MinimumX + Strip.Width() * 0.5f;
+    const float CentreY = Strip.MinimumY + Strip.Height() * 0.5f;
     const long long Centred  = Rounded;
 
     for (long long Tick = Centred - static_cast<long long>(Measure.TickReach);
@@ -661,25 +661,25 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
         // 📐 The sheet places tick i at `i * TICK_SPACING` and then translates the whole strip by
         //    `-rotationValue * TICK_SPACING`. The two compose to this, which is what keeps the strip
         //    continuous while the reading is fractional.
-        const float TickAlong = CentreAlong +
+        const float TickX = CentreX +
                                 (static_cast<float>(Tick) - static_cast<float>(Degrees)) * Measure.TickSpacing;
 
-        if (TickAlong < Strip.LeastAlong - Measure.TickWeight ||
-            TickAlong > Strip.MostAlong  + Measure.TickWeight)
+        if (TickX < Strip.MinimumX - Measure.TickWeight ||
+            TickX > Strip.MaximumX  + Measure.TickWeight)
             continue;
 
         const long long Absolute = (Tick < 0) ? -Tick : Tick;
         const bool      Major    = (Absolute % 10) == 0;
         const bool      Medium   = !Major && (Absolute % 5) == 0;
 
-        const float       TickAcross = Major ? Measure.TickMajorAcross
-                                     : Medium ? Measure.TickMediumAcross
-                                              : Measure.TickMinorAcross;
+        const float       TickY = Major ? Measure.TickMajorHeight
+                                     : Medium ? Measure.TickMediumHeight
+                                              : Measure.TickMinorHeight;
         const ThemeToken TickColour    = Major ? Colour.TickMajor : Medium ? Colour.TickMedium : Colour.TickMinor;
 
-        const PlaneExtent Mark = Spanning(TickAlong - Measure.TickWeight * 0.5f,
-                                          CentreAcross - TickAcross * 0.5f,
-                                          Measure.TickWeight, TickAcross);
+        const PlaneExtent Mark = Spanning(TickX - Measure.TickWeight * 0.5f,
+                                          CentreY - TickY * 0.5f,
+                                          Measure.TickWeight, TickY);
 
         Surface->Ground(Mark, TickColour, Measure.TickWeight * 0.5f, CornerAll);
 
@@ -699,37 +699,37 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
 
         const float CaptionRun = Surface->MeasureRun(Caption, Measure.TickCaptionText, 0.0f);
 
-        Surface->TextRun(TickAlong - CaptionRun * 0.5f, CentreAcross + Measure.TickCaptionLift,
+        Surface->TextRun(TickX - CaptionRun * 0.5f, CentreY + Measure.TickCaptionLift,
                          Colour.TickCaption, Caption, Measure.TickCaptionText, 0.0f, true);
     }
 
-    // ⑤ The sheet's mask — transparent, opaque at a fifth, opaque to four fifths, transparent. Two Along
+    // ⑤ The sheet's mask — transparent, opaque at a fifth, opaque to four fifths, transparent. Two X
     //    scrims over the ruler's own ground reproduce it; the middle three fifths need nothing recorded.
     const ThemeToken Opaque      = Colour.CardGround;
     const ThemeToken Transparent = Faded(Colour.CardGround, 0.0f);
-    const float       FadeAlong   = Strip.SpanAlong() * 0.2f;
+    const float       FadeX   = Strip.Width() * 0.2f;
 
-    Surface->Scrim(PlaneExtent{ Strip.LeastAlong, Strip.LeastAcross,
-                                Strip.LeastAlong + FadeAlong, Strip.MostAcross },
-                   Opaque, Transparent, ScrimAxis::Along);
+    Surface->Scrim(PlaneExtent{ Strip.MinimumX, Strip.MinimumY,
+                                Strip.MinimumX + FadeX, Strip.MaximumY },
+                   Opaque, Transparent, ScrimAxis::X);
 
-    Surface->Scrim(PlaneExtent{ Strip.MostAlong - FadeAlong, Strip.LeastAcross,
-                                Strip.MostAlong, Strip.MostAcross },
-                   Transparent, Opaque, ScrimAxis::Along);
+    Surface->Scrim(PlaneExtent{ Strip.MaximumX - FadeX, Strip.MinimumY,
+                                Strip.MaximumX, Strip.MaximumY },
+                   Transparent, Opaque, ScrimAxis::X);
 
     // ⑥ The fixed centre pointer, recorded last so the fade never touches it.
-    const PlaneExtent Pointer = Spanning(CentreAlong - Measure.PointerWeight * 0.5f,
-                                         CentreAcross - Measure.PointerAcross * 0.5f,
-                                         Measure.PointerWeight, Measure.PointerAcross);
+    const PlaneExtent Pointer = Spanning(CentreX - Measure.PointerWeight * 0.5f,
+                                         CentreY - Measure.PointerY * 0.5f,
+                                         Measure.PointerWeight, Measure.PointerY);
 
     Surface->Ground(Pointer, Colour.RulerPointer, Measure.PointerWeight * 0.5f, CornerAll);
-    Surface->Medallion(CentreAlong, Strip.LeastAcross + Measure.PointerDotLift,
+    Surface->Medallion(CentreX, Strip.MinimumY + Measure.PointerDotLift,
                        Measure.PointerDot * 0.5f, Colour.RulerPointer);
 
     Surface->Release();
 
-    Reported.ContactTaken = Ledger->Holding(Claimed);
-    Reported.Mark         = Standing;
+    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.Mark         = Current;
 
     return Reported;
 }
@@ -738,47 +738,47 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
 //                                                      THE TOGGLE ROW
 //------------------------------------------------------------------------------------------------------------------------
 
-ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Claimed, const PlaneExtent& Row,
+ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Target, const PlaneExtent& Row,
                                        const ToggleDeclaration& Declared, bool& Taken)
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
+    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
-    const bool OverRow = Row.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool OverRow = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Ledger->DeclareRoused(Claimed, OverRow, RouseDuration))
+    if (Ledger->DeclareHovered(Target, OverRow, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Arrived.ContactArrived && OverRow)
+    if (Sampled.ContactPressed && OverRow)
     {
-        if (Ledger->Seize(Claimed, ControlPart::Body))
+        if (Ledger->Grab(Target, ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    if (Ledger->Released(Claimed) && OverRow)
+    if (Ledger->Released(Target) && OverRow)
     {
         Taken                    = !Taken;
-        Reported.OrdinateAltered = true;
+        Reported.ReadingAltered = true;
         FoldMark(RedrawMark::Rerecord);
     }
 
-    if (Ledger->DeclareTaken(Claimed, Taken, RouseDuration))
+    if (Ledger->DeclareTaken(Target, Taken, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    const float Roused = Ledger->RousedFraction(Claimed);
-    const float Held   = Ledger->TakenFraction(Claimed);
+    const float Hovered = Ledger->HoveredFraction(Target);
+    const float Held   = Ledger->TakenFraction(Target);
 
-    // ① The ring — quiet, roused, or taken. The sheet fades the border colour and scales the dot.
-    const PlaneExtent Ring = Spanning(Row.LeastAlong + Measure.ToggleRowPadAlong,
-                                      Row.LeastAcross + (Row.SpanAcross() - Measure.RingExtent) * 0.5f,
+    // ① The ring — quiet, hovered, or taken. The sheet fades the border colour and scales the dot.
+    const PlaneExtent Ring = Spanning(Row.MinimumX + Measure.ToggleRowPadX,
+                                      Row.MinimumY + (Row.Height() - Measure.RingExtent) * 0.5f,
                                       Measure.RingExtent, Measure.RingExtent);
 
-    const ThemeToken Quiet   = Blend(Colour.RingQuiet, Colour.RingRoused, Roused);
+    const ThemeToken Quiet   = Blend(Colour.RingQuiet, Colour.RingHovered, Hovered);
     const ThemeToken RingColour = Blend(Quiet, Colour.RingTaken, Held);
 
     Surface->Edge(Ring, RingColour, Measure.RingWeight, Measure.RingExtent * 0.5f, CornerAll);
@@ -788,20 +788,20 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Claimed, const 
 
     if (DotRadius > 0.0f)
     {
-        Surface->Medallion(Ring.LeastAlong + Ring.SpanAlong() * 0.5f,
-                           Ring.LeastAcross + Ring.SpanAcross() * 0.5f,
+        Surface->Medallion(Ring.MinimumX + Ring.Width() * 0.5f,
+                           Ring.MinimumY + Ring.Height() * 0.5f,
                            DotRadius, Colour.RingDot);
     }
 
     // ③ The label, fading between its three declared colours.
-    const ThemeToken QuietLabel = Blend(Colour.LabelQuiet, Colour.LabelRoused, Roused);
+    const ThemeToken QuietLabel = Blend(Colour.LabelQuiet, Colour.LabelHovered, Hovered);
     const ThemeToken LabelColour   = Blend(QuietLabel, Colour.LabelTaken, Held);
 
-    Surface->TextRun(Ring.MostAlong + Measure.ToggleGapAlong, CentredAcross(Row, Measure.RowText),
+    Surface->TextRun(Ring.MaximumX + Measure.ToggleGapX, CentredY(Row, Measure.RowText),
                      LabelColour, Declared.Caption, Measure.RowText, 0.0f, false);
 
-    Reported.ContactTaken = Ledger->Holding(Claimed);
-    Reported.Mark         = Standing;
+    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.Mark         = Current;
 
     return Reported;
 }
@@ -810,44 +810,44 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Claimed, const 
 //                                                    THE MULTI-SELECT ROW
 //------------------------------------------------------------------------------------------------------------------------
 
-ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Claimed, const PlaneExtent& Row,
-                                       const SubsetDeclaration& Declared, bool& Enrolled)
+ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Target, const PlaneExtent& Row,
+                                       const SubsetDeclaration& Declared, bool& Registered)
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
+    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
-    const bool OverRow = Row.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool OverRow = Row.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-    if (Ledger->DeclareRoused(Claimed, OverRow, RouseDuration))
+    if (Ledger->DeclareHovered(Target, OverRow, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Arrived.ContactArrived && OverRow)
+    if (Sampled.ContactPressed && OverRow)
     {
-        if (Ledger->Seize(Claimed, ControlPart::Body))
+        if (Ledger->Grab(Target, ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    if (Ledger->Released(Claimed) && OverRow)
+    if (Ledger->Released(Target) && OverRow)
     {
-        Enrolled                 = !Enrolled;
-        Reported.OrdinateAltered = true;
+        Registered                 = !Registered;
+        Reported.ReadingAltered = true;
         FoldMark(RedrawMark::Rerecord);
     }
 
-    if (Ledger->DeclareTaken(Claimed, Enrolled, RouseDuration))
+    if (Ledger->DeclareTaken(Target, Registered, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    const float Roused = Ledger->RousedFraction(Claimed);
-    const float Held   = Ledger->TakenFraction(Claimed);
+    const float Hovered = Ledger->HoveredFraction(Target);
+    const float Held   = Ledger->TakenFraction(Target);
 
-    // ① The ground. The sheet gives a quiet row no ground at all, a roused one #222222, and a taken one
-    //    #2a2a2a — and the taken ground wins over the roused one, which is why it is blended last.
-    const ThemeToken QuietGround = Blend(Colour.RowGroundQuiet, Colour.RowGroundRoused, Roused);
+    // ① The ground. The sheet gives a quiet row no ground at all, a hovered one #222222, and a taken one
+    //    #2a2a2a — and the taken ground wins over the hovered one, which is why it is blended last.
+    const ThemeToken QuietGround = Blend(Colour.RowGroundQuiet, Colour.RowGroundHovered, Hovered);
     const ThemeToken RowGround   = Blend(QuietGround, Colour.RowGroundTaken, Held);
 
     // 🔴 Square corners. The sheet states `rounded-none` on this row and rounds every other control; a
@@ -855,18 +855,18 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Claimed, const 
     Surface->Ground(Row, RowGround, 0.0f, CornerNone);
 
     // ② The rail, which the sheet grows from nothing along the row's whole extent across.
-    const PlaneExtent Rail = Spanning(Row.LeastAlong, Row.LeastAcross, Measure.SubsetRailAlong, Row.SpanAcross());
+    const PlaneExtent Rail = Spanning(Row.MinimumX, Row.MinimumY, Measure.SubsetRailX, Row.Height());
 
     Surface->Ground(Rail, Blend(Colour.RowRailQuiet, Colour.RowRailTaken, Held), 0.0f, CornerNone);
 
     // ③ The label.
     const ThemeToken LabelColour = Blend(Colour.LabelQuiet, Colour.LabelTaken, Held);
 
-    Surface->TextRun(Row.LeastAlong + Measure.SubsetRowPadAlong, CentredAcross(Row, Measure.RowText),
+    Surface->TextRun(Row.MinimumX + Measure.SubsetRowPadX, CentredY(Row, Measure.RowText),
                      LabelColour, Declared.Caption, Measure.RowText, 0.0f, false);
 
-    Reported.ContactTaken = Ledger->Holding(Claimed);
-    Reported.Mark         = Standing;
+    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.Mark         = Current;
 
     return Reported;
 }
@@ -875,12 +875,12 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Claimed, const 
 //                                                   THE MAGNITUDE STOPS
 //------------------------------------------------------------------------------------------------------------------------
 
-ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, const PlaneExtent& Row,
+ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Target, const PlaneExtent& Row,
                                             const StopDeclaration& Declared, std::uint32_t& TakenOrdinal)
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
+    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
         return Reported;
 
     if (Declared.StopCount < 2u || Declared.StopCount > StopCeiling || Declared.Stops == nullptr)
@@ -889,66 +889,66 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, c
     const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
-    const PlaneExtent Label = Spanning(Row.LeastAlong, Row.LeastAcross, Measure.LabelAlong, Row.SpanAcross());
-    const float       StripLeast = Label.MostAlong + Measure.RowGapAlong + Measure.StopStripPadLeading;
-    const float       StripMost  = Row.MostAlong - Measure.StopStripPadTrailing;
-    const float       StripSpan  = (StripMost > StripLeast) ? (StripMost - StripLeast) : 0.0f;
-    const float       CentreAcross = Row.LeastAcross + Row.SpanAcross() * 0.5f;
+    const PlaneExtent Label = Spanning(Row.MinimumX, Row.MinimumY, Measure.LabelX, Row.Height());
+    const float       StripLeft = Label.MaximumX + Measure.RowGapX + Measure.StopStripPadLeading;
+    const float       StripRight  = Row.MaximumX - Measure.StopStripPadTrailing;
+    const float       StripWidth  = (StripRight > StripLeft) ? (StripRight - StripLeft) : 0.0f;
+    const float       CentreY = Row.MinimumY + Row.Height() * 0.5f;
 
     // 📐 The sheet spaces its stops with `justify-between`, which places the first and the last against the
     //    two ends and divides the remainder evenly. With one stop there is no remainder to divide, which is
     //    why the declaration refuses a count below two rather than dividing by zero here.
-    const float Division = StripSpan / static_cast<float>(Declared.StopCount - 1u);
+    const float Division = StripWidth / static_cast<float>(Declared.StopCount - 1u);
 
-    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Colour.LabelQuiet,
+    Surface->TextRun(Label.MinimumX, CentredY(Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
-    std::uint32_t RousedOrdinal = Declared.StopCount;
+    std::uint32_t HoveredOrdinal = Declared.StopCount;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Declared.StopCount; ++Ordinal)
     {
-        const float  StopAlong = StripLeast + Division * static_cast<float>(Ordinal);
+        const float  StopX = StripLeft + Division * static_cast<float>(Ordinal);
         const bool   TakenStop = Ordinal == TakenOrdinal;
         const float  Extent    = TakenStop ? Measure.StopTakenExtent : Measure.StopQuietExtent;
         const float  Reach     = Extent * 0.5f;
 
-        const PlaneExtent Stop = Spanning(StopAlong - Reach, CentreAcross - Reach, Extent, Extent);
+        const PlaneExtent Stop = Spanning(StopX - Reach, CentreY - Reach, Extent, Extent);
 
-        if (Stop.Encloses(Arrived.PositionAlong, Arrived.PositionAcross))
-            RousedOrdinal = Ordinal;
+        if (Stop.Encloses(Sampled.PositionX, Sampled.PositionY))
+            HoveredOrdinal = Ordinal;
     }
 
-    // ① One rouse fade serves the whole strip, because the sheet roues exactly one stop at a time.
-    if (Ledger->DeclareRoused(Claimed, RousedOrdinal < Declared.StopCount, RouseDuration))
+    // ① One hover fade serves the whole strip, because the sheet roues exactly one stop at a time.
+    if (Ledger->DeclareHovered(Target, HoveredOrdinal < Declared.StopCount, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Arrived.ContactArrived && RousedOrdinal < Declared.StopCount)
+    if (Sampled.ContactPressed && HoveredOrdinal < Declared.StopCount)
     {
-        if (Ledger->Seize(Claimed, ControlPart::Body))
+        if (Ledger->Grab(Target, ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    if (Ledger->Released(Claimed) && RousedOrdinal < Declared.StopCount && RousedOrdinal != TakenOrdinal)
+    if (Ledger->Released(Target) && HoveredOrdinal < Declared.StopCount && HoveredOrdinal != TakenOrdinal)
     {
-        TakenOrdinal             = RousedOrdinal;
-        Reported.OrdinateAltered = true;
+        TakenOrdinal             = HoveredOrdinal;
+        Reported.ReadingAltered = true;
         FoldMark(RedrawMark::Rearrange);
     }
 
-    const float Roused = Ledger->RousedFraction(Claimed);
+    const float Hovered = Ledger->HoveredFraction(Target);
 
     // ② Every stop, the taken one grown and carrying its letter.
     for (std::uint32_t Ordinal = 0u; Ordinal < Declared.StopCount; ++Ordinal)
     {
-        const float StopAlong = StripLeast + Division * static_cast<float>(Ordinal);
+        const float StopX = StripLeft + Division * static_cast<float>(Ordinal);
         const bool  TakenStop = Ordinal == TakenOrdinal;
         const float Extent    = TakenStop ? Measure.StopTakenExtent : Measure.StopQuietExtent;
 
-        const ThemeToken Quiet = (Ordinal == RousedOrdinal) ? Blend(Colour.StopQuiet, Colour.StopRoused, Roused)
+        const ThemeToken Quiet = (Ordinal == HoveredOrdinal) ? Blend(Colour.StopQuiet, Colour.StopHovered, Hovered)
                                                              : Colour.StopQuiet;
         const ThemeToken StopColour = TakenStop ? Colour.StopTaken : Quiet;
 
-        Surface->Medallion(StopAlong, CentreAcross, Extent * 0.5f, StopColour);
+        Surface->Medallion(StopX, CentreY, Extent * 0.5f, StopColour);
 
         if (!TakenStop)
             continue;
@@ -960,12 +960,12 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, c
 
         const float LetterRun = Surface->MeasureRun(Letter, Measure.RowText, 0.0f);
 
-        Surface->TextRun(StopAlong - LetterRun * 0.5f, CentreAcross - Measure.RowText * 0.5f,
+        Surface->TextRun(StopX - LetterRun * 0.5f, CentreY - Measure.RowText * 0.5f,
                          Colour.StopTakenColour, Letter, Measure.RowText, 0.0f, true);
     }
 
-    Reported.ContactTaken = Ledger->Holding(Claimed);
-    Reported.Mark         = Standing;
+    Reported.ContactTaken = Ledger->Holding(Target);
+    Reported.Mark         = Current;
 
     return Reported;
 }
@@ -974,51 +974,51 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, c
 //                                                    THE TOOLTIP TRIGGER
 //------------------------------------------------------------------------------------------------------------------------
 
-ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, const PlaneExtent& Trigger,
+ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Target, const PlaneExtent& Trigger,
                                             const TooltipDeclaration& Declared)
 {
     ControlVerdict Reported;
 
-    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
+    if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Target))
         return Reported;
 
     const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     const bool Light   = Declared.Appearance == TooltipAppearance::Light;
-    const bool OverIt  = Trigger.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+    const bool OverIt  = Trigger.Encloses(Sampled.PositionX, Sampled.PositionY);
 
     // 📝 The card is disclosed by rest rather than by tap — `group-hover` — so this is the one control that
     //    declares its take fade from the pointer's presence and never from a release.
-    if (Ledger->DeclareRoused(Claimed, OverIt, RouseDuration))
+    if (Ledger->DeclareHovered(Target, OverIt, HoverDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Ledger->DeclareTaken(Claimed, OverIt, TooltipDuration))
+    if (Ledger->DeclareTaken(Target, OverIt, TooltipDuration))
         FoldMark(RedrawMark::Recolour);
 
-    if (Arrived.ContactArrived && OverIt)
+    if (Sampled.ContactPressed && OverIt)
     {
-        if (Ledger->Seize(Claimed, ControlPart::Body))
+        if (Ledger->Grab(Target, ControlPart::Body))
             ContactHeldByPanel = true;
     }
 
-    const float Roused    = Ledger->RousedFraction(Claimed);
-    const float Disclosed = Ledger->TakenFraction(Claimed);
-    const bool  Seized    = Ledger->Holding(Claimed);
+    const float Hovered    = Ledger->HoveredFraction(Target);
+    const float Disclosed = Ledger->TakenFraction(Target);
+    const bool  Grabbed    = Ledger->Holding(Target);
 
     // ① The sheet scales the trigger to 1.05 on hover and 0.95 while it is held. Both are recorded as an
     //    inset of the declared extent, because the recording surface places extents and does not transform.
-    const float Scaled  = Seized ? 0.95f : Between(1.0f, 1.05f, Roused);
-    const float Inset   = Trigger.SpanAlong() * (1.0f - Scaled) * 0.5f;
+    const float Scaled  = Grabbed ? 0.95f : Between(1.0f, 1.05f, Hovered);
+    const float Inset   = Trigger.Width() * (1.0f - Scaled) * 0.5f;
 
-    const PlaneExtent Grown = PlaneExtent{ Trigger.LeastAlong  + Inset, Trigger.LeastAcross + Inset,
-                                           Trigger.MostAlong   - Inset, Trigger.MostAcross  - Inset };
+    const PlaneExtent Grown = PlaneExtent{ Trigger.MinimumX  + Inset, Trigger.MinimumY + Inset,
+                                           Trigger.MaximumX   - Inset, Trigger.MaximumY  - Inset };
 
     Surface->Ground(Grown, Light ? Colour.TriggerLightGround : Colour.TriggerDarkGround,
                     Measure.TriggerRadius, CornerAll);
 
-    const PlaneExtent Figure = Spanning(Grown.LeastAlong + (Grown.SpanAlong() - Measure.TriggerSymbol) * 0.5f,
-                                        Grown.LeastAcross + (Grown.SpanAcross() - Measure.TriggerSymbol) * 0.5f,
+    const PlaneExtent Figure = Spanning(Grown.MinimumX + (Grown.Width() - Measure.TriggerSymbol) * 0.5f,
+                                        Grown.MinimumY + (Grown.Height() - Measure.TriggerSymbol) * 0.5f,
                                         Measure.TriggerSymbol, Measure.TriggerSymbol);
 
     Surface->Stroke(Declared.Figure, Figure, Light ? Colour.TriggerLightColour : Colour.TriggerDarkColour);
@@ -1028,7 +1028,7 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, c
     {
         DeferredRecording& Holding = Deferred[DeferredCount++];
 
-        Holding.Claimed    = Claimed;
+        Holding.Target    = Target;
         Holding.Anchor     = Trigger;
         Holding.Title      = Declared.Title;
         Holding.Body       = Declared.Body;
@@ -1036,8 +1036,8 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, c
         Holding.Menu       = false;
     }
 
-    Reported.ContactTaken = Seized;
-    Reported.Mark         = Standing;
+    Reported.ContactTaken = Grabbed;
+    Reported.Mark         = Current;
 
     return Reported;
 }
@@ -1056,34 +1056,34 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
     Surface->Ground(Menu, Colour.MenuGround, Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.MenuEdge, Measure.CardEdgeWeight, Measure.MenuRadius, CornerAll);
 
-    const float OptionAcross = Measure.RowText * 1.5f + Measure.OptionPadAcross * 2.0f;
-    float       Cursor       = Menu.LeastAcross + Measure.MenuPad;
+    const float OptionHeight = Measure.RowText * 1.5f + Measure.OptionPadY * 2.0f;
+    float       Cursor       = Menu.MinimumY + Measure.MenuPad;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Holding.OptionCount; ++Ordinal)
     {
-        const PlaneExtent Option = Spanning(Menu.LeastAlong + Measure.MenuPad, Cursor,
-                                            Menu.SpanAlong() - Measure.MenuPad * 2.0f, OptionAcross);
+        const PlaneExtent Option = Spanning(Menu.MinimumX + Measure.MenuPad, Cursor,
+                                            Menu.Width() - Measure.MenuPad * 2.0f, OptionHeight);
 
-        const bool Over = Option.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
+        const bool Over = Option.Encloses(Sampled.PositionX, Sampled.PositionY);
 
-        // 📝 The option's rouse is read from the pointer directly rather than from an enrolled fade. Every
+        // 📝 The option's hover is read from the pointer directly rather than from an registered fade. Every
         //    option would otherwise need its own identity, and the sheet fades an option in 150 ms — below
         //    the threshold at which the absence of a fade reads as a defect rather than as immediacy.
         if (Over)
         {
-            Surface->Ground(Option, Colour.OptionGroundRoused, Option.SpanAcross() * 0.5f, CornerAll);
+            Surface->Ground(Option, Colour.OptionGroundHovered, Option.Height() * 0.5f, CornerAll);
         }
 
         const char* Caption = (Holding.Options != nullptr) ? Holding.Options[Ordinal] : "";
         const bool  Taken   = Ordinal == Holding.TakenOption;
 
-        Surface->TextRunTruncated(Option.LeastAlong + Measure.OptionPadAlong,
-                                  CentredAcross(Option, Measure.RowText),
-                                  Option.SpanAlong() - Measure.OptionPadAlong * 2.0f,
-                                  (Over || Taken) ? Colour.OptionColourRoused : Colour.OptionColour,
+        Surface->TextRunTruncated(Option.MinimumX + Measure.OptionPadX,
+                                  CentredY(Option, Measure.RowText),
+                                  Option.Width() - Measure.OptionPadX * 2.0f,
+                                  (Over || Taken) ? Colour.OptionColourHovered : Colour.OptionColour,
                                   Caption, Measure.RowText, false);
 
-        Cursor += OptionAcross + Measure.MenuGapAcross;
+        Cursor += OptionHeight + Measure.MenuGapY;
     }
 }
 
@@ -1092,7 +1092,7 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
     const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
-    const float Disclosed = Ledger->TakenFraction(Holding.Claimed);
+    const float Disclosed = Ledger->TakenFraction(Holding.Target);
 
     if (Disclosed <= 0.0f)
         return;
@@ -1104,7 +1104,7 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
     const ThemeToken Body   = Faded(Light ? Colour.TooltipLightBody   : Colour.TooltipDarkBody,   Disclosed);
 
     // ① The body is wrapped first, because the card's extent across follows from how many lines it took.
-    const float Interior = Measure.TooltipAlong - Measure.TooltipPad * 2.0f;
+    const float Interior = Measure.TooltipX - Measure.TooltipPad * 2.0f;
 
     const char*   LineFirst[WrapCeiling] = {};
     std::uint32_t LineExtent[WrapCeiling] = {};
@@ -1149,14 +1149,14 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
         Sweeping = (*Breaking == ' ') ? Breaking + 1 : Breaking;
     }
 
-    const float BodyAcross  = Measure.TooltipBodyLeading * static_cast<float>(Lines);
-    const float CardAcross  = Measure.TooltipPad * 2.0f + Measure.TooltipTitleText * 1.5f
-                            + Measure.TooltipTitleGap + BodyAcross;
+    const float BodyHeight  = Measure.TooltipBodyLeading * static_cast<float>(Lines);
+    const float CardHeight  = Measure.TooltipPad * 2.0f + Measure.TooltipTitleText * 1.5f
+                            + Measure.TooltipTitleGap + BodyHeight;
 
     // ② The card hangs above its trigger by the declared lift, aligned to the trigger's leading edge.
-    const PlaneExtent Card = Spanning(Holding.Anchor.LeastAlong,
-                                      Holding.Anchor.LeastAcross - Measure.TooltipLift - CardAcross,
-                                      Measure.TooltipAlong, CardAcross);
+    const PlaneExtent Card = Spanning(Holding.Anchor.MinimumX,
+                                      Holding.Anchor.MinimumY - Measure.TooltipLift - CardHeight,
+                                      Measure.TooltipX, CardHeight);
 
     Surface->Ground(Card, Ground, Measure.TooltipRadius, CornerAll);
 
@@ -1164,21 +1164,21 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
     //    corners rather than as a rotated ground, because the recording surface places extents and the
     //    sheet's own arrow is a rotated div whose rounded corners are hidden behind the card regardless.
     const float ArrowReach  = Measure.TooltipArrowExtent * 0.5f;
-    const float ArrowCentre = Card.LeastAlong + Measure.TooltipArrowAlong;
-    const float ArrowAcross = Card.MostAcross - Measure.TooltipArrowScolour;
+    const float ArrowCentre = Card.MinimumX + Measure.TooltipArrowX;
+    const float ArrowY = Card.MaximumY - Measure.TooltipArrowScolour;
 
-    const float Corners[8] = { ArrowCentre,              ArrowAcross - ArrowReach,
-                               ArrowCentre + ArrowReach, ArrowAcross,
-                               ArrowCentre,              ArrowAcross + ArrowReach,
-                               ArrowCentre - ArrowReach, ArrowAcross };
+    const float Corners[8] = { ArrowCentre,              ArrowY - ArrowReach,
+                               ArrowCentre + ArrowReach, ArrowY,
+                               ArrowCentre,              ArrowY + ArrowReach,
+                               ArrowCentre - ArrowReach, ArrowY };
 
     Surface->Tongue(Corners, 4u, Ground);
 
     // ④ The title, then every wrapped line of the body.
-    Surface->TextRun(Card.LeastAlong + Measure.TooltipPad, Card.LeastAcross + Measure.TooltipPad,
+    Surface->TextRun(Card.MinimumX + Measure.TooltipPad, Card.MinimumY + Measure.TooltipPad,
                      Title, Holding.Title, Measure.TooltipTitleText, 0.0f, true);
 
-    float Cursor = Card.LeastAcross + Measure.TooltipPad + Measure.TooltipTitleText * 1.5f
+    float Cursor = Card.MinimumY + Measure.TooltipPad + Measure.TooltipTitleText * 1.5f
                  + Measure.TooltipTitleGap;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Lines; ++Ordinal)
@@ -1191,7 +1191,7 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
 
         Staging[Copied] = '\0';
 
-        Surface->TextRun(Card.LeastAlong + Measure.TooltipPad, Cursor, Body,
+        Surface->TextRun(Card.MinimumX + Measure.TooltipPad, Cursor, Body,
                          Staging, Measure.TooltipBodyText, 0.0f, false);
 
         Cursor += Measure.TooltipBodyLeading;

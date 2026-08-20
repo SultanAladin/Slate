@@ -16,17 +16,17 @@ def Encode(SourcePath, DestinationPath):
         Marker = Stream.read(8)
         if Marker != b"RIFTRAW1":
             raise SystemExit(f"{SourcePath}: not a marked raw dump")
-        AlongExtent, AcrossExtent = struct.unpack("<II", Stream.read(8))
-        Ordinates = Stream.read(AlongExtent * AcrossExtent * 4)
-        if len(Ordinates) != AlongExtent * AcrossExtent * 4:
+        XExtent, YExtent = struct.unpack("<II", Stream.read(8))
+        Configuration = Stream.read(XExtent * YExtent * 4)
+        if len(Configuration) != XExtent * YExtent * 4:
             raise SystemExit(f"{SourcePath}: ordinates short of the declared extent")
 
     # ① Filter 0 per scanline, zlib-compressed — the smallest honest PNG.
-    Stride = AlongExtent * 4
+    Stride = XExtent * 4
     Scanlines = bytearray()
-    for Across in range(AcrossExtent):
+    for Y in range(YExtent):
         Scanlines.append(0)
-        Scanlines.extend(Ordinates[Across * Stride:(Across + 1) * Stride])
+        Scanlines.extend(Configuration[Y * Stride:(Y + 1) * Stride])
     Compressed = zlib.compress(bytes(Scanlines), 9)
 
     def Chunk(Tag, Body):
@@ -35,13 +35,13 @@ def Encode(SourcePath, DestinationPath):
 
     Png = bytearray()
     Png += b"\x89PNG\r\n\x1a\n"
-    Png += Chunk(b"IHDR", struct.pack(">IIBBBBB", AlongExtent, AcrossExtent, 8, 6, 0, 0, 0))
+    Png += Chunk(b"IHDR", struct.pack(">IIBBBBB", XExtent, YExtent, 8, 6, 0, 0, 0))
     Png += Chunk(b"IDAT", Compressed)
     Png += Chunk(b"IEND", b"")
 
     with open(DestinationPath, "wb") as Stream:
         Stream.write(Png)
-    print(f"EncodeProof: {DestinationPath} ({AlongExtent}x{AcrossExtent}, {len(Png)} bytes)")
+    print(f"EncodeProof: {DestinationPath} ({XExtent}x{YExtent}, {len(Png)} bytes)")
 
 
 if __name__ == "__main__":

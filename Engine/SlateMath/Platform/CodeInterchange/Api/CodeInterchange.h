@@ -35,9 +35,9 @@ extern "C"
 /// tag   contract, nonallocating
 struct SlateExtentExchange
 {
-    void*  (*Reserve)(void* Standing, std::uint64_t WantedBytes);   // [-] - null when the reservation is declined
-    void   (*Release)(void* Standing, void* Reserved);              // [-] - only what this same surface reserved
-    void*  Standing;                                                // [-] - the reserving side's own context
+    void*  (*Reserve)(void* Current, std::uint64_t WantedBytes);   // [-] - null when the reservation is rejected
+    void   (*Release)(void* Current, void* Reserved);              // [-] - only what this same surface reserved
+    void*  Current;                                                // [-] - the reserving side's own context
 };
 
 /// 🧩 What a foreign module reports about itself before any of its entry points is taken.
@@ -78,8 +78,8 @@ inline constexpr std::uint32_t AbsentForeignModule = 0xFFFFFFFFu;   // [-] - the
 /// tag   nonallocating, nonthrowing
 struct ForeignRequirement
 {
-    std::uint32_t  InterfaceMajor = 0u;   // [-] - what this process declares; a differing report is refused
-    std::uint64_t  InterfaceHash  = 0u;   // [-] - what this process declares; a differing report is refused
+    std::uint32_t  InterfaceMajor = 0u;   // [-] - what this process declares; a differing report is rejected
+    std::uint64_t  InterfaceHash  = 0u;   // [-] - what this process declares; a differing report is rejected
 };
 
 /// 🧩 The one place genuinely foreign compiled code crosses into this process.
@@ -149,17 +149,17 @@ public:
     /// 🧩 How many modules stand.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t StandingCount() const;
+    std::uint32_t CurrentCount() const;
 
 private:
 
-    struct StandingModule
+    struct CurrentModule
     {
         void*                      HostToken = nullptr;   // [-] - opaque; the host spelling stays in the source
         const SlateModuleReport*   Reported  = nullptr;   // [-] - owned by the module, valid while it stands
     };
 
-    StandingModule  Standing[ModuleCapacity] = {};   // [-] - fixed; a seventeenth module is refused, not grown
+    CurrentModule  Current[ModuleCapacity] = {};   // [-] - fixed; a seventeenth module is rejected, not grown
 };
 
 }   // namespace Slate

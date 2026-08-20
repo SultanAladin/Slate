@@ -40,14 +40,14 @@ enum class DrawerPose : std::uint32_t
     PoseCount = 3u    // [-] - the closed count, never a pose
 };
 
-/// 🧩 What one contact seized when it arrived.
+/// 🧩 What one contact grabbed when it arrived.
 /// note  🔴 The subject is decided once, at arrival, and never re-decided while the contact stands. A
 ///       subject re-derived every tick changes underneath a drag the moment the extent it was tested
 ///       against moves — which is the drag moving it.
 /// tag   contract
 enum class GrabSubject : std::uint32_t
 {
-    Nothing      = 0u,   // [-] - the contact seized no drawer
+    Nothing      = 0u,   // [-] - the contact grabbed no drawer
     Body         = 1u,   // [-] - the drawer's own extent, less whatever a panel withheld
     Tongue       = 2u,   // [-] - the trapezoidal notch; resolves to one axis on first travel
     Grip         = 3u,   // [-] - the pill at the travelling edge; drags across, taps to withdraw
@@ -70,10 +70,10 @@ struct DrawerDeclaration
 
 /// 🧩 The two drawers, the contact arbitration between them, and the extents their panels record inside.
 /// note  🔴 📐 The snap arbitration is evaluated on the **drag displacement since contact arrived**, never on
-///       the drawer's absolute ordinate. Against an absolute ordinate the closed drawer's `y > h/4` can
+///       the drawer's absolute coordinate. Against an absolute coordinate the closed drawer's `y > h/4` can
 ///       never hold and the drawer never opens by drag at all.
 /// note  🔴 `Rearrange` re-solves **only when the display extent actually moved**. Called unconditionally it
-///       re-seats every spring onto its pose ordinate and releases the live grab, which erases a drag one
+///       re-applies every spring onto its pose coordinate and releases the live grab, which erases a drag one
 ///       tick after it began and teleports every departing spring onto its target.
 /// note  ⚠️ This component raises no mark of its own. `ViewportSequence` reads `Moving` and marks.
 /// tag   owning
@@ -88,15 +88,15 @@ public:
     DrawerSpace& operator=(const DrawerSpace&) = delete;
     ~DrawerSpace()                             = default;
 
-    /// 🧩 Enrols four springs and seats both drawers closed at the arrived display extent.
+    /// 🧩 Registers four springs and applies both drawers closed at the arrived display extent.
     /// in    Motion      [-]  the one integrator; borrowed and outlives this component
     /// in    Appearance  [-]  already resolved against the display scale; borrowed and outlives this
     /// in    North       [-]  what the upper drawer's tongue carries
     /// in    South       [-]  what the lower drawer's tongue carries
-    /// in    Arrived     [-]  the display extent this tick reported
+    /// in    Sampled     [-]  the display extent this tick reported
     /// out   Result     [-]  refuses with ContentUnsupported for a display extent at or below zero, and
     ///                        with ExtentExhausted when the integrator declines a spring
-    /// err   refused in full; a partial enrolment would leave one drawer driving the other's ordinate
+    /// err   rejected in full; a partial registration would leave one drawer driving the other's coordinate
     /// post  both drawers stand Closed and settled; nothing moves until a contact arrives
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -104,26 +104,26 @@ public:
                             const ThemeProfile& Appearance,
                             const DrawerDeclaration&       North,
                             const DrawerDeclaration&       South,
-                            const DisplayCondition&        Arrived);
+                            const DisplayCondition&        Sampled);
 
     /// 🧩 Re-solves both drawers against a new display extent, holding each pose.
-    /// in    Arrived  [-]  this tick's display condition
+    /// in    Sampled  [-]  this tick's display condition
     /// out   Altered  [-]  true when the extent moved and the arrangement was re-solved
-    /// note  🔴 Returns immediately when the extent is unchanged. Every ordinate is a fraction of the
+    /// note  🔴 Returns immediately when the extent is unchanged. Every coordinate is a fraction of the
     ///       extent, so re-solving is correct on a change and destructive on every other tick.
-    /// post  on a change: the live contact is abandoned, exclusions are dropped, springs are re-seated
+    /// post  on a change: the live contact is abandoned, exclusions are dropped, springs are re-applied
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Rearrange(const DisplayCondition& Arrived);
+    bool Rearrange(const DisplayCondition& Sampled);
 
     /// 🧩 Advances one tick of contact arbitration — seize, carry, release, snap, tongue travel.
-    /// in    Arrived    [-]   what `RecordingSurface::Pointer` sampled this tick
+    /// in    Sampled    [-]   what `RecordingSurface::Pointer` sampled this tick
     /// in    Elapsed    [ms]  what the same tick's display condition measured
     /// in    Available  [-]   false when the interface has taken the pointer for a window of its own
     /// out   Taken      [-]   true when the drawer chrome holds the pointer; the interior must then ignore it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Advance(const PointerCondition& Arrived, double Elapsed, bool Available = true);
+    bool Advance(const PointerCondition& Sampled, double Elapsed, bool Available = true);
 
     /// 🧩 Records both drawers — bodies, edges, grips, tongues and tongue runs.
     /// note  🔴 The south drawer is recorded last while it stands Open, and first otherwise.
@@ -149,7 +149,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     DrawerPose Pose(DrawerBearing Bearing) const;
 
-    /// 🧩 What the live contact seized, if anything.
+    /// 🧩 What the live contact grabbed, if anything.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     GrabSubject Grabbed() const;
@@ -157,7 +157,7 @@ public:
     /// 🧩 Places one drawer at a pose immediately, discarding any motion.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Seat(DrawerBearing Bearing, DrawerPose Declared);
+    void Place(DrawerBearing Bearing, DrawerPose Declared);
 
     /// 🧩 Starts one drawer travelling toward a pose under its spring — what a tongue tap does.
     /// cost  ✔️
@@ -193,7 +193,7 @@ public:
     /// 🧩 Whether one drawer's body lies wholly outside the display extent.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Withdrawn(DrawerBearing Bearing) const;
+    bool Closed(DrawerBearing Bearing) const;
 
     /// 🧩 Whether either drawer is being dragged or is still travelling under its spring.
     /// cost  ✔️
@@ -201,12 +201,12 @@ public:
     bool Moving() const;
 
     /// 🧩 Whether the drawers claim a contact at one point, and which bearing claims it.
-    /// in    Along    [px]  the pointer, in display pixels
-    /// in    Across   [px]
-    /// out   Claimed  [-]   true when either drawer would take a contact there
+    /// in    X    [px]  the pointer, in display pixels
+    /// in    Y   [px]
+    /// out   Target  [-]   true when either drawer would take a contact there
     /// out   Bearing  [-]   which one claims it; untouched when nothing does
     /// note  🔴 Answered WITHOUT the interface's capture flag, because it is what decides that flag rather
-    ///        than what obeys it. A drawer drawn over a workspace was previously refused every contact:
+    ///        than what obeys it. A drawer drawn over a workspace was previously rejected every contact:
     ///        the workspace window sets `WantCaptureMouse`, the drawers were gated on its negation, so
     ///        the handle the artist could see was the one thing they could not press.
     /// note  ⚠️ An OPEN drawer outranks a withdrawn one. Both tongues sit at opposite display edges and
@@ -214,36 +214,36 @@ public:
     ///        artist raised is the one they mean.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Claims(float Along, float Across, DrawerBearing& Bearing) const;
+    bool Covers(float X, float Y, DrawerBearing& Bearing) const;
 
     /// 🧩 Returns the arrangement to its constructed condition and forgets both borrowed references.
-    /// note  🔴 Springs already enrolled in the integrator are **not** withdrawn. A re-Construct against the
-    ///       same integrator enrols four more; reclaim the integrator alongside this.
+    /// note  🔴 Springs already registered in the integrator are **not** withdrawn. A re-Construct against the
+    ///       same integrator registers four more; reclaim the integrator alongside this.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Reset();
 
 private:
 
-    /// 🧩 One drawer's own condition. Its ordinate lives in the integrator; everything else lives here.
+    /// 🧩 One drawer's own condition. Its coordinate lives in the integrator; everything else lives here.
     /// tag   nonallocating, nonthrowing
     struct DrawerSlot
     {
         DrawerDeclaration  Declared        = {};                    // [-]    - as supplied, never re-read
-        std::uint32_t      AcrossSpring    = 0u;                    // [-]    - ordinal into the integrator
+        std::uint32_t      YSpring    = 0u;                    // [-]    - ordinal into the integrator
         std::uint32_t      TongueSpring    = 0u;                    // [-]    - the tongue's elastic release
-        DrawerPose         Standing        = DrawerPose::Closed;    // [-]    - settled, or being travelled to
-        GrabSubject        Seized          = GrabSubject::Nothing;  // [-]    - decided once, at arrival
+        DrawerPose         Current        = DrawerPose::Closed;    // [-]    - settled, or being travelled to
+        GrabSubject        Grabbed          = GrabSubject::Nothing;  // [-]    - decided once, at arrival
         float              TongueTravel    = 0.0f;                  // [px]   - signed, from the along centre
-        float              TongueSeated    = 0.0f;                  // [px]   - where the tongue was at grab
-        double             SeatedOrdinate  = 0.0;                   // [px]   - the across ordinate at grab
-        double             TravelAcross    = 0.0;                   // [px]   - displacement since arrival
+        float              GrabbedTongueY    = 0.0f;                  // [px]   - where the tongue was at grab
+        double             GrabbedY  = 0.0;                   // [px]   - the across coordinate at grab
+        double             TravelY    = 0.0;                   // [px]   - displacement since arrival
         double             ReleaseRate     = 0.0;                   // [px/s] - smoothed, signed
         bool               AxisResolved    = false;                 // [-]    - the tongue's axis is decided
-        bool               AcrossDominant  = false;                 // [-]    - and it is the across one
-        PlaneExtent        Standing_Excluded[ExclusionCapacity] = {};// [px]  - what arbitration tests against
-        PlaneExtent        Pending_Excluded[ExclusionCapacity]  = {};// [px]  - what this tick declared
-        std::uint32_t      StandingCount   = 0u;                    // [-]
+        bool               YDominant  = false;                 // [-]    - and it is the across one
+        PlaneExtent        CurrentExcluded[ExclusionCapacity] = {};// [px]  - what arbitration tests against
+        PlaneExtent        PendingExcluded[ExclusionCapacity]  = {};// [px]  - what this tick declared
+        std::uint32_t      CurrentCount   = 0u;                    // [-]
         std::uint32_t      PendingCount    = 0u;                    // [-]
     };
 
@@ -251,28 +251,28 @@ private:
     const DrawerSlot& Slot(DrawerBearing Bearing) const;
     DrawerSlot&       Slot(DrawerBearing Bearing);
 
-    /// 🧩 The across ordinate one pose rests at, at the standing extent.
-    double PoseOrdinate(DrawerBearing Bearing, DrawerPose Declared) const;
+    /// 🧩 The across coordinate one pose rests at, at the standing extent.
+    double PoseY(DrawerBearing Bearing, DrawerPose Declared) const;
 
-    /// 🧩 The across ordinate one drawer stands at now, read from its spring.
-    double StandingOrdinate(DrawerBearing Bearing) const;
+    /// 🧩 The across coordinate one drawer stands at now, read from its spring.
+    double CurrentY(DrawerBearing Bearing) const;
 
     /// 🧩 The pose a release resolves to, from the drawer's own arbitration.
     DrawerPose Classify(DrawerBearing Bearing) const;
 
     /// 🧩 The pose a tongue tap advances to, and the pose a grip tap withdraws to.
-    DrawerPose Advanced(DrawerBearing Bearing) const;
-    DrawerPose Withdrawing(DrawerBearing Bearing) const;
+    DrawerPose Opening(DrawerBearing Bearing) const;
+    DrawerPose Closing(DrawerBearing Bearing) const;
 
     /// 🧩 What a contact at this position would seize on this drawer.
-    GrabSubject Contacted(DrawerBearing Bearing, float Along, float Across) const;
+    GrabSubject Contacted(DrawerBearing Bearing, float X, float Y) const;
 
 
     /// 🧩 The three carriage paths and the two resolutions.
-    bool Seize(const ContactTravel& Contact);
+    bool Grab(const ContactTravel& Contact);
     bool Carry(const ContactTravel& Contact);
-    void CarryBody(DrawerSlot& Standing, const ContactTravel& Contact);
-    void CarryTongue(DrawerSlot& Standing, const ContactTravel& Contact);
+    void CarryBody(DrawerSlot& Current, const ContactTravel& Contact);
+    void CarryTongue(DrawerSlot& Current, const ContactTravel& Contact);
     bool Relinquish(const ContactTravel& Contact);
     void Loosen();
 
@@ -289,8 +289,8 @@ private:
     const ThemeProfile* Appearance   = nullptr;   // [-]  - borrowed; never owned
     GestureSequence                Contacts     = {};        // [-]  - one contact, resolved per tick
     DrawerSlot                     Slots[2]     = {};        // [-]  - north, then south
-    float                          ExtentAlong  = 0.0f;      // [px] - the display's drawable extent
-    float                          ExtentAcross = 0.0f;      // [px]
+    float                          Width  = 0.0f;      // [px] - the display's drawable extent
+    float                          Height = 0.0f;      // [px]
     DrawerBearing                  GrabbedBy    = DrawerBearing::BearingCount;   // [-] - which drawer holds
                                                                                  //       the pointer, if any
 };

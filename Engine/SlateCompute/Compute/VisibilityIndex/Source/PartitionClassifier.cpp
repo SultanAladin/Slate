@@ -17,24 +17,24 @@ namespace Slate
 
 ClassifiedPartition ProjectPartitionExtent(const ProjectedTransform&  Composed,
                                            const ConditionedExtent&   Bounded,
-                                           std::uint32_t              DisplayAlong,
-                                           std::uint32_t              DisplayAcross)
+                                           std::uint32_t              DisplayX,
+                                           std::uint32_t              DisplayY)
 {
     ClassifiedPartition Projected;
 
-    if (DisplayAlong == 0u || DisplayAcross == 0u)
+    if (DisplayX == 0u || DisplayY == 0u)
         return Projected;
 
-    // 📝 The eight corners as the three ordinate choices, read off the low three bits of the corner ordinal. An
+    // 📝 The eight corners as the three coordinate choices, read off the low three bits of the corner ordinal. An
     //    explicit table of eight positions says the same thing in eight lines that each have to be checked.
-    const double OrdinateX[2] = { Bounded.Least.PositionX, Bounded.Greatest.PositionX };
-    const double OrdinateY[2] = { Bounded.Least.PositionY, Bounded.Greatest.PositionY };
-    const double OrdinateZ[2] = { Bounded.Least.PositionZ, Bounded.Greatest.PositionZ };
+    const double CoordinateX[2] = { Bounded.Minimum.PositionX, Bounded.Maximum.PositionX };
+    const double CoordinateY[2] = { Bounded.Minimum.PositionY, Bounded.Maximum.PositionY };
+    const double CoordinateZ[2] = { Bounded.Minimum.PositionZ, Bounded.Maximum.PositionZ };
 
-    double LeastAlong    =  1.0;
-    double GreatestAlong = -1.0;
-    double LeastAcross   =  1.0;
-    double GreatestAcross = -1.0;
+    double MinimumX    =  1.0;
+    double MaximumX = -1.0;
+    double MinimumY   =  1.0;
+    double MaximumY = -1.0;
     double NearestDepth  =  0.0;
 
     bool StraddlesNearPlane = false;
@@ -42,15 +42,15 @@ ClassifiedPartition ProjectPartitionExtent(const ProjectedTransform&  Composed,
 
     for (std::uint32_t Corner = 0u; Corner < 8u; ++Corner)
     {
-        const double PositionX = OrdinateX[Corner        & 1u];
-        const double PositionY = OrdinateY[(Corner >> 1) & 1u];
-        const double PositionZ = OrdinateZ[(Corner >> 2) & 1u];
+        const double PositionX = CoordinateX[Corner        & 1u];
+        const double PositionY = CoordinateY[(Corner >> 1) & 1u];
+        const double PositionZ = CoordinateZ[(Corner >> 2) & 1u];
 
         // 📐 Column-major, matching `ProjectedTransform` — the coefficient at column `c` and row `r` sits at
         //    `4c + r`, so a column is contiguous and the product accumulates one column at a time.
-        const double ClipAlong  = Composed.Coefficient[0]  * PositionX + Composed.Coefficient[4]  * PositionY
+        const double ClipX  = Composed.Coefficient[0]  * PositionX + Composed.Coefficient[4]  * PositionY
                                 + Composed.Coefficient[8]  * PositionZ + Composed.Coefficient[12];
-        const double ClipAcross = Composed.Coefficient[1]  * PositionX + Composed.Coefficient[5]  * PositionY
+        const double ClipY = Composed.Coefficient[1]  * PositionX + Composed.Coefficient[5]  * PositionY
                                 + Composed.Coefficient[9]  * PositionZ + Composed.Coefficient[13];
         const double ClipDepth  = Composed.Coefficient[2]  * PositionX + Composed.Coefficient[6]  * PositionY
                                 + Composed.Coefficient[10] * PositionZ + Composed.Coefficient[14];
@@ -65,16 +65,16 @@ ClassifiedPartition ProjectPartitionExtent(const ProjectedTransform&  Composed,
             continue;
         }
 
-        const double ResolvedAlong  = ClipAlong  / ClipScale;
-        const double ResolvedAcross = ClipAcross / ClipScale;
+        const double ResolvedX  = ClipX  / ClipScale;
+        const double ResolvedY = ClipY / ClipScale;
         const double ResolvedDepth  = ClipDepth  / ClipScale;
 
         if (!AnyCornerResolved)
         {
-            LeastAlong     = ResolvedAlong;
-            GreatestAlong  = ResolvedAlong;
-            LeastAcross    = ResolvedAcross;
-            GreatestAcross = ResolvedAcross;
+            MinimumX     = ResolvedX;
+            MaximumX  = ResolvedX;
+            MinimumY    = ResolvedY;
+            MaximumY = ResolvedY;
             NearestDepth   = ResolvedDepth;
 
             AnyCornerResolved = true;
@@ -82,12 +82,12 @@ ClassifiedPartition ProjectPartitionExtent(const ProjectedTransform&  Composed,
             continue;
         }
 
-        LeastAlong     = ResolvedAlong  < LeastAlong     ? ResolvedAlong  : LeastAlong;
-        GreatestAlong  = ResolvedAlong  > GreatestAlong  ? ResolvedAlong  : GreatestAlong;
-        LeastAcross    = ResolvedAcross < LeastAcross    ? ResolvedAcross : LeastAcross;
-        GreatestAcross = ResolvedAcross > GreatestAcross ? ResolvedAcross : GreatestAcross;
+        MinimumX     = ResolvedX  < MinimumX     ? ResolvedX  : MinimumX;
+        MaximumX  = ResolvedX  > MaximumX  ? ResolvedX  : MaximumX;
+        MinimumY    = ResolvedY < MinimumY    ? ResolvedY : MinimumY;
+        MaximumY = ResolvedY > MaximumY ? ResolvedY : MaximumY;
 
-        // 📐 Reversed depth — the nearest ordinate is the greatest. This is the operand the occlusion comparison
+        // 📐 Reversed depth — the nearest coordinate is the greatest. This is the operand the occlusion comparison
         //    reads, and taking the least here rejects a partition whose front face stands in front of everything.
         NearestDepth = ResolvedDepth > NearestDepth ? ResolvedDepth : NearestDepth;
     }
@@ -99,10 +99,10 @@ ClassifiedPartition ProjectPartitionExtent(const ProjectedTransform&  Composed,
     {
         // ⚠️ Conservative in the only direction that is safe. A straddling extent covers an unbounded region of
         //    the display in the limit, so it is tested at the coarsest level and rejected by nothing but depth.
-        Projected.OriginAlong     = 0u;
-        Projected.OriginAcross    = 0u;
-        Projected.ProjectedAlong  = DisplayAlong;
-        Projected.ProjectedAcross = DisplayAcross;
+        Projected.OriginX     = 0u;
+        Projected.OriginY    = 0u;
+        Projected.ProjectedX  = DisplayX;
+        Projected.ProjectedY = DisplayY;
         Projected.NearestDepth    = static_cast<float>(NearestDepth);
 
         return Projected;
@@ -111,38 +111,38 @@ ClassifiedPartition ProjectPartitionExtent(const ProjectedTransform&  Composed,
     // 📐 Clip ordinates run from −1 to 1 along both display axes, so half the span is the fraction of the
     //    display the extent covers. Rounded outward by a ceiling, because a level chosen from an extent rounded
     //    down is one a two-by-two reading does not span.
-    const double SpannedAlong  = (GreatestAlong  - LeastAlong)  * 0.5 * static_cast<double>(DisplayAlong);
-    const double SpannedAcross = (GreatestAcross - LeastAcross) * 0.5 * static_cast<double>(DisplayAcross);
+    const double SpannedX  = (MaximumX  - MinimumX)  * 0.5 * static_cast<double>(DisplayX);
+    const double SpannedY = (MaximumY - MinimumY) * 0.5 * static_cast<double>(DisplayY);
 
-    const double WidenedAlong  = std::ceil(SpannedAlong);
-    const double WidenedAcross = std::ceil(SpannedAcross);
+    const double WidenedX  = std::ceil(SpannedX);
+    const double WidenedY = std::ceil(SpannedY);
 
-    // 📐 The origin is the least clip ordinate carried into texels and rounded **down**, which widens the covered
-    //    region in the same direction the ceiling above does. The second display ordinate is already inverted by
-    //    the projection — `ClipOrdinateSignum` is applied in `46`'s second row — so the least clip ordinate is
+    // 📐 The origin is the least clip coordinate carried into texels and rounded **down**, which widens the covered
+    //    region in the same direction the ceiling above does. The second display coordinate is already inverted by
+    //    the projection — `ClipCoordinateSignum` is applied in `46`'s second row — so the least clip coordinate is
     //    the least texel on both axes and no second inversion belongs here.
-    const double BeganAlong  = std::floor((LeastAlong  + 1.0) * 0.5 * static_cast<double>(DisplayAlong));
-    const double BeganAcross = std::floor((LeastAcross + 1.0) * 0.5 * static_cast<double>(DisplayAcross));
+    const double BeganX  = std::floor((MinimumX  + 1.0) * 0.5 * static_cast<double>(DisplayX));
+    const double BeganY = std::floor((MinimumY + 1.0) * 0.5 * static_cast<double>(DisplayY));
 
-    // 📝 Clamped into the display rather than refused. A partition partly off one edge projects a least ordinate
+    // 📝 Clamped into the display rather than rejected. A partition partly off one edge projects a least coordinate
     //    below −1, and its origin is then the first texel of the display it does reach; the span above already
     //    covers the whole of what it projects to, so the four texels read still enclose it.
-    Projected.OriginAlong  = BeganAlong  > 0.0
-                           ? (BeganAlong  > static_cast<double>(DisplayAlong  - 1u)
-                              ? DisplayAlong  - 1u : static_cast<std::uint32_t>(BeganAlong))
+    Projected.OriginX  = BeganX  > 0.0
+                           ? (BeganX  > static_cast<double>(DisplayX  - 1u)
+                              ? DisplayX  - 1u : static_cast<std::uint32_t>(BeganX))
                            : 0u;
-    Projected.OriginAcross = BeganAcross > 0.0
-                           ? (BeganAcross > static_cast<double>(DisplayAcross - 1u)
-                              ? DisplayAcross - 1u : static_cast<std::uint32_t>(BeganAcross))
+    Projected.OriginY = BeganY > 0.0
+                           ? (BeganY > static_cast<double>(DisplayY - 1u)
+                              ? DisplayY - 1u : static_cast<std::uint32_t>(BeganY))
                            : 0u;
 
-    Projected.ProjectedAlong  = WidenedAlong  > 0.0
-                              ? (WidenedAlong  > static_cast<double>(DisplayAlong)
-                                 ? DisplayAlong  : static_cast<std::uint32_t>(WidenedAlong))
+    Projected.ProjectedX  = WidenedX  > 0.0
+                              ? (WidenedX  > static_cast<double>(DisplayX)
+                                 ? DisplayX  : static_cast<std::uint32_t>(WidenedX))
                               : 0u;
-    Projected.ProjectedAcross = WidenedAcross > 0.0
-                              ? (WidenedAcross > static_cast<double>(DisplayAcross)
-                                 ? DisplayAcross : static_cast<std::uint32_t>(WidenedAcross))
+    Projected.ProjectedY = WidenedY > 0.0
+                              ? (WidenedY > static_cast<double>(DisplayY)
+                                 ? DisplayY : static_cast<std::uint32_t>(WidenedY))
                               : 0u;
     Projected.NearestDepth    = static_cast<float>(NearestDepth);
 
@@ -163,13 +163,13 @@ bool OrientationRejected(const OrientationCone&    Turned,
     if (!Turned.ConeDerived)
         return false;
 
-    const double CentreX = (Bounded.Least.PositionX + Bounded.Greatest.PositionX) * 0.5;
-    const double CentreY = (Bounded.Least.PositionY + Bounded.Greatest.PositionY) * 0.5;
-    const double CentreZ = (Bounded.Least.PositionZ + Bounded.Greatest.PositionZ) * 0.5;
+    const double CentreX = (Bounded.Minimum.PositionX + Bounded.Maximum.PositionX) * 0.5;
+    const double CentreY = (Bounded.Minimum.PositionY + Bounded.Maximum.PositionY) * 0.5;
+    const double CentreZ = (Bounded.Minimum.PositionZ + Bounded.Maximum.PositionZ) * 0.5;
 
-    const double HalfX = (Bounded.Greatest.PositionX - Bounded.Least.PositionX) * 0.5;
-    const double HalfY = (Bounded.Greatest.PositionY - Bounded.Least.PositionY) * 0.5;
-    const double HalfZ = (Bounded.Greatest.PositionZ - Bounded.Least.PositionZ) * 0.5;
+    const double HalfX = (Bounded.Maximum.PositionX - Bounded.Minimum.PositionX) * 0.5;
+    const double HalfY = (Bounded.Maximum.PositionY - Bounded.Minimum.PositionY) * 0.5;
+    const double HalfZ = (Bounded.Maximum.PositionZ - Bounded.Minimum.PositionZ) * 0.5;
 
     const double BoundingRadius = std::sqrt(HalfX * HalfX + HalfY * HalfY + HalfZ * HalfZ);
 
@@ -219,8 +219,8 @@ ClassifiedPartition ClassifyPartition(const MicroSurfacePartition&  Partitioned,
                                       const ProjectedTransform&     Composed,
                                       std::uint32_t                 PartitionOrdinal,
                                       std::uint32_t                 FirstTriangle,
-                                      std::uint32_t                 DisplayAlong,
-                                      std::uint32_t                 DisplayAcross)
+                                      std::uint32_t                 DisplayX,
+                                      std::uint32_t                 DisplayY)
 {
     ClassifiedPartition Classified;
     Classified.PartitionOrdinal = PartitionOrdinal;
@@ -229,29 +229,29 @@ ClassifiedPartition ClassifyPartition(const MicroSurfacePartition&  Partitioned,
 
     // 📝 Cheapest predicate first, and the one that rejects the most. `Classify` answers −1 for wholly outside,
     //    which is the only standing that excludes; straddling is drawn and clipped by the hardware.
-    if (Bounding.Classify(Partitioned.Extent.Least, Partitioned.Extent.Greatest) < 0)
+    if (Bounding.Classify(Partitioned.Extent.Minimum, Partitioned.Extent.Maximum) < 0)
     {
-        Classified.Standing = PartitionStanding::FrustumExcluded;
+        Classified.Current = PartitionVerdict::FrustumExcluded;
 
         return Classified;
     }
 
     if (OrientationRejected(Partitioned.Orientation, Partitioned.Extent, Viewing.ViewOrigin))
     {
-        Classified.Standing = PartitionStanding::OrientationExcluded;
+        Classified.Current = PartitionVerdict::OrientationExcluded;
 
         return Classified;
     }
 
     // 📝 The run is carried across from the standing above rather than assigned twice. `ProjectPartitionExtent`
     //    answers about the extent alone and knows nothing of the fan, so what it returns carries no run at all.
-    ClassifiedPartition Admitted = ProjectPartitionExtent(Composed, Partitioned.Extent, DisplayAlong, DisplayAcross);
-    Admitted.Standing         = PartitionStanding::Admitted;
-    Admitted.PartitionOrdinal = Classified.PartitionOrdinal;
-    Admitted.FirstTriangle    = Classified.FirstTriangle;
-    Admitted.TriangleCount    = Classified.TriangleCount;
+    ClassifiedPartition Accepted = ProjectPartitionExtent(Composed, Partitioned.Extent, DisplayX, DisplayY);
+    Accepted.Current         = PartitionVerdict::Accepted;
+    Accepted.PartitionOrdinal = Classified.PartitionOrdinal;
+    Accepted.FirstTriangle    = Classified.FirstTriangle;
+    Accepted.TriangleCount    = Classified.TriangleCount;
 
-    return Admitted;
+    return Accepted;
 }
 
 }   // namespace Slate

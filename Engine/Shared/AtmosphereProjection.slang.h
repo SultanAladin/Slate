@@ -288,21 +288,21 @@ SLATE_SHARED Real64 IntegrateStepInScatter(Real64 ScatteringMagnitude, Real64 Ex
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Where a declared radius and zenith cosine sit on ①.
-/// out   CoordinateAlong   [-]  the zenith cosine, spanning the wider axis linearly
-/// out   CoordinateAcross  [-]  the altitude, over the declared thickness
+/// out   CoordinateX   [-]  the zenith cosine, spanning the wider axis linearly
+/// out   CoordinateY  [-]  the altitude, over the declared thickness
 /// note  📐 The zenith cosine takes the wider of the two axes precisely because the transmittance gradient across
 ///        the horizon is the steep one, and the altitude the narrower because its gradient is not. Two hundred and
 ///        fifty-six against sixty-four is that observation as a number — `Contract/` holds both.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
 SLATE_SHARED void ProjectTransmittanceCoordinate(MediumProfile Medium, Real64 Radius, Real64 ZenithCosine,
-                                                 SLATE_OUT(Real64) CoordinateAlong,
-                                                 SLATE_OUT(Real64) CoordinateAcross)
+                                                 SLATE_OUT(Real64) CoordinateX,
+                                                 SLATE_OUT(Real64) CoordinateY)
 {
     const Real64 Altitude = Radius - Medium.PlanetRadius;
 
-    CoordinateAlong  = BoundedMagnitude(0.5 * (ZenithCosine + 1.0), 0.0, 1.0);
-    CoordinateAcross = Medium.AtmosphereThickness > 0.0
+    CoordinateX  = BoundedMagnitude(0.5 * (ZenithCosine + 1.0), 0.0, 1.0);
+    CoordinateY = Medium.AtmosphereThickness > 0.0
                      ? BoundedMagnitude(Altitude / Medium.AtmosphereThickness, 0.0, 1.0)
                      : 0.0;
 }
@@ -313,12 +313,12 @@ SLATE_SHARED void ProjectTransmittanceCoordinate(MediumProfile Medium, Real64 Ra
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
 SLATE_SHARED void ProjectTransmittanceParameter(MediumProfile Medium,
-                                                Real64 CoordinateAlong, Real64 CoordinateAcross,
+                                                Real64 CoordinateX, Real64 CoordinateY,
                                                 SLATE_OUT(Real64) Radius,
                                                 SLATE_OUT(Real64) ZenithCosine)
 {
-    Radius       = Medium.PlanetRadius + CoordinateAcross * Medium.AtmosphereThickness;
-    ZenithCosine = 2.0 * CoordinateAlong - 1.0;
+    Radius       = Medium.PlanetRadius + CoordinateY * Medium.AtmosphereThickness;
+    ZenithCosine = 2.0 * CoordinateX - 1.0;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -332,21 +332,21 @@ SLATE_SHARED void ProjectTransmittanceParameter(MediumProfile Medium,
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
 SLATE_SHARED void ProjectMultiScatterCoordinate(MediumProfile Medium, Real64 Radius, Real64 SunZenithCosine,
-                                                SLATE_OUT(Real64) CoordinateAlong,
-                                                SLATE_OUT(Real64) CoordinateAcross)
+                                                SLATE_OUT(Real64) CoordinateX,
+                                                SLATE_OUT(Real64) CoordinateY)
 {
-    ProjectTransmittanceCoordinate(Medium, Radius, SunZenithCosine, CoordinateAlong, CoordinateAcross);
+    ProjectTransmittanceCoordinate(Medium, Radius, SunZenithCosine, CoordinateX, CoordinateY);
 }
 
 /// 🧩 The inverse — what one texel centre of ② stands for.
 /// cost  ✔️
 /// tag   shared, parity, nonallocating, nonthrowing
 SLATE_SHARED void ProjectMultiScatterParameter(MediumProfile Medium,
-                                               Real64 CoordinateAlong, Real64 CoordinateAcross,
+                                               Real64 CoordinateX, Real64 CoordinateY,
                                                SLATE_OUT(Real64) Radius,
                                                SLATE_OUT(Real64) SunZenithCosine)
 {
-    ProjectTransmittanceParameter(Medium, CoordinateAlong, CoordinateAcross, Radius, SunZenithCosine);
+    ProjectTransmittanceParameter(Medium, CoordinateX, CoordinateY, Radius, SunZenithCosine);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -362,24 +362,24 @@ SLATE_SHARED void ProjectMultiScatterParameter(MediumProfile Medium,
 ///        the halfway point where both branches meet at zero departure.
 /// cost  🚩
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED void ProjectSkyViewDirection(Real64 CoordinateAlong, Real64 CoordinateAcross,
+SLATE_SHARED void ProjectSkyViewDirection(Real64 CoordinateX, Real64 CoordinateY,
                                           SLATE_OUT(Real64) DirectionX,
                                           SLATE_OUT(Real64) DirectionY,
                                           SLATE_OUT(Real64) DirectionZ)
 {
-    const Real64 Azimuth = (CoordinateAlong * 2.0 - 1.0) * Pi;
+    const Real64 Azimuth = (CoordinateX * 2.0 - 1.0) * Pi;
 
     Real64 Zenith = 0.0;
 
-    if (CoordinateAcross < 0.5)
+    if (CoordinateY < 0.5)
     {
-        const Real64 Departure = 1.0 - 2.0 * CoordinateAcross;   // [-] - nothing at the horizon, unity at the nadir
+        const Real64 Departure = 1.0 - 2.0 * CoordinateY;   // [-] - nothing at the horizon, unity at the nadir
 
         Zenith = Pi * 0.5 + Departure * Departure * Pi * 0.5;
     }
     else
     {
-        const Real64 Departure = 2.0 * CoordinateAcross - 1.0;   // [-] - nothing at the horizon, unity at the zenith
+        const Real64 Departure = 2.0 * CoordinateY - 1.0;   // [-] - nothing at the horizon, unity at the zenith
 
         Zenith = Pi * 0.5 - Departure * Departure * Pi * 0.5;
     }
@@ -404,25 +404,25 @@ SLATE_SHARED void ProjectSkyViewDirection(Real64 CoordinateAlong, Real64 Coordin
 /// cost  🚩
 /// tag   shared, parity, nonallocating, nonthrowing
 SLATE_SHARED void ProjectSkyViewCoordinate(Real64 DirectionX, Real64 DirectionY, Real64 DirectionZ,
-                                           SLATE_OUT(Real64) CoordinateAlong,
-                                           SLATE_OUT(Real64) CoordinateAcross)
+                                           SLATE_OUT(Real64) CoordinateX,
+                                           SLATE_OUT(Real64) CoordinateY)
 {
     const Real64 Azimuth = ArcTangentQuadrant(DirectionZ, DirectionX);
     const Real64 Zenith  = ArcCosine(BoundedMagnitude(DirectionY, -1.0, 1.0));
 
-    CoordinateAlong = BoundedMagnitude(Azimuth / (2.0 * Pi) + 0.5, 0.0, 1.0);
+    CoordinateX = BoundedMagnitude(Azimuth / (2.0 * Pi) + 0.5, 0.0, 1.0);
 
     if (Zenith > Pi * 0.5)
     {
         const Real64 Departure = SquareRoot(BoundedMagnitude((Zenith - Pi * 0.5) / (Pi * 0.5), 0.0, 1.0));
 
-        CoordinateAcross = 0.5 * (1.0 - Departure);
+        CoordinateY = 0.5 * (1.0 - Departure);
     }
     else
     {
         const Real64 Departure = SquareRoot(BoundedMagnitude((Pi * 0.5 - Zenith) / (Pi * 0.5), 0.0, 1.0));
 
-        CoordinateAcross = 0.5 * (1.0 + Departure);
+        CoordinateY = 0.5 * (1.0 + Departure);
     }
 }
 

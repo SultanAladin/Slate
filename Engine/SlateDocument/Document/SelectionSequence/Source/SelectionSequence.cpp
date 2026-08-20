@@ -12,20 +12,20 @@ namespace Slate
 //                                                       SEALING
 //------------------------------------------------------------------------------------------------------------------------
 
-void SelectionSequence::Seal(const std::vector<OccupantIdentity>& Selected, std::uint64_t RevisionOrdinal)
+void SelectionSequence::Seal(const std::vector<OwnerIdentity>& Selected, std::uint64_t RevisionOrdinal)
 {
     // 📝 Sealing after a backward traversal truncates what stood ahead, exactly as the document sequence
     //    does. Leaving it would let a forward traversal reach a selection the artist has since replaced.
     if (TraversalOrdinal < CommittedOrder.size())
         CommittedOrder.resize(static_cast<std::size_t>(TraversalOrdinal));
 
-    CommittedSelection Arriving;
-    Arriving.SelectedOccupants = Selected;
-    Arriving.RevisionOrdinal   = RevisionOrdinal;
+    CommittedSelection Incoming;
+    Incoming.SelectedOwners = Selected;
+    Incoming.RevisionOrdinal   = RevisionOrdinal;
 
-    CommittedOrder.push_back(Arriving);
+    CommittedOrder.push_back(Incoming);
 
-    StandingSelection = Selected;
+    CurrentSelection = Selected;
     TraversalOrdinal  = CommittedOrder.size();
 }
 
@@ -41,9 +41,9 @@ Outcome<bool> SelectionSequence::Retreat()
     --TraversalOrdinal;
 
     if (TraversalOrdinal == 0u)
-        StandingSelection.clear();
+        CurrentSelection.clear();
     else
-        StandingSelection = CommittedOrder[static_cast<std::size_t>(TraversalOrdinal) - 1u].SelectedOccupants;
+        CurrentSelection = CommittedOrder[static_cast<std::size_t>(TraversalOrdinal) - 1u].SelectedOwners;
 
     return Outcome<bool>::Result(true);
 }
@@ -53,7 +53,7 @@ Outcome<bool> SelectionSequence::Advance()
     if (TraversalOrdinal >= CommittedOrder.size())
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the traversal is at the end" });
 
-    StandingSelection = CommittedOrder[static_cast<std::size_t>(TraversalOrdinal)].SelectedOccupants;
+    CurrentSelection = CommittedOrder[static_cast<std::size_t>(TraversalOrdinal)].SelectedOwners;
     ++TraversalOrdinal;
 
     return Outcome<bool>::Result(true);
@@ -68,7 +68,7 @@ Outcome<bool> SelectionSequence::RestoreAt(std::uint64_t RevisionOrdinal)
         if (CommittedOrder[Ordinal].RevisionOrdinal > RevisionOrdinal)
             continue;
 
-        StandingSelection = CommittedOrder[Ordinal].SelectedOccupants;
+        CurrentSelection = CommittedOrder[Ordinal].SelectedOwners;
         TraversalOrdinal  = Ordinal + 1u;
 
         return Outcome<bool>::Result(true);
@@ -81,9 +81,9 @@ Outcome<bool> SelectionSequence::RestoreAt(std::uint64_t RevisionOrdinal)
 //                                                     WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-const std::vector<OccupantIdentity>& SelectionSequence::Standing() const
+const std::vector<OwnerIdentity>& SelectionSequence::Current() const
 {
-    return StandingSelection;
+    return CurrentSelection;
 }
 
 const std::vector<CommittedSelection>& SelectionSequence::Committed() const

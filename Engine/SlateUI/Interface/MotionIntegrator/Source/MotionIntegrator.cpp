@@ -30,7 +30,7 @@ constexpr double RateCriterion         = 0.001;    // [px/ms] - one pixel per se
 constexpr double IntervalCeiling = 64.0;   // [ms]
 
 /// 🧩 The abscissa of a cubic Bézier whose endpoints are the origin and unity.
-constexpr double CurveAlong(double Parameter, double FirstControl, double SecondControl)
+constexpr double CurveX(double Parameter, double FirstControl, double SecondControl)
 {
     const double Complement = 1.0 - Parameter;
 
@@ -50,14 +50,14 @@ constexpr double CurveSlope(double Parameter, double FirstControl, double Second
 }
 
 // 📐 🔴 The four curves the sources declare, and only those four. The browser's
-//    `cubic-bezier(a, b, c, d)` gives the abscissa its controls at a and c and the ordinate its controls at b
+//    `cubic-bezier(a, b, c, d)` gives the abscissa its controls at a and c and the coordinate its controls at b
 //    and d, so each curve below carries four figures and the solve inverts the abscissa before reading it.
 struct CurveControl
 {
-    double  FirstAlong   = 0.0;
-    double  FirstAcross  = 0.0;
-    double  SecondAlong  = 0.0;
-    double  SecondAcross = 0.0;
+    double  FirstX   = 0.0;
+    double  FirstY  = 0.0;
+    double  SecondX  = 0.0;
+    double  SecondY = 0.0;
 };
 
 constexpr CurveControl DeclaredCurves[static_cast<std::uint32_t>(EaseCurve::CurveCount)] =
@@ -73,7 +73,7 @@ constexpr CurveControl DeclaredCurves[static_cast<std::uint32_t>(EaseCurve::Curv
 //    below a thousandth — far under a pixel of the traverses these shape.
 constexpr std::uint32_t SolveSteps = 4u;
 
-double CurveOrdinate(double Fraction, EaseCurve Declared)
+double CurveCoordinate(double Fraction, EaseCurve Declared)
 {
     if (Fraction <= 0.0) return 0.0;
     if (Fraction >= 1.0) return 1.0;
@@ -86,8 +86,8 @@ double CurveOrdinate(double Fraction, EaseCurve Declared)
 
     for (std::uint32_t StepOrdinal = 0u; StepOrdinal < SolveSteps; ++StepOrdinal)
     {
-        const double Residue = CurveAlong(Parameter, Shape.FirstAlong, Shape.SecondAlong) - Fraction;
-        const double Slope   = CurveSlope(Parameter, Shape.FirstAlong, Shape.SecondAlong);
+        const double Residue = CurveX(Parameter, Shape.FirstX, Shape.SecondX) - Fraction;
+        const double Slope   = CurveSlope(Parameter, Shape.FirstX, Shape.SecondX);
 
         if (std::fabs(Slope) < 1.0e-9)
             break;
@@ -98,7 +98,7 @@ double CurveOrdinate(double Fraction, EaseCurve Declared)
         if (Parameter > 1.0) Parameter = 1.0;
     }
 
-    return CurveAlong(Parameter, Shape.FirstAcross, Shape.SecondAcross);
+    return CurveX(Parameter, Shape.FirstY, Shape.SecondY);
 }
 
 }   // namespace
@@ -107,10 +107,10 @@ double CurveOrdinate(double Fraction, EaseCurve Declared)
 //                                                       THE SPRING
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📐 🔴 Semi-implicit Euler: the rate is advanced first and the ordinate is advanced by the **new** rate.
-//    The explicit ordering — ordinate first, from the old rate — injects energy at every step and a spring
+// 📐 🔴 Semi-implicit Euler: the rate is advanced first and the coordinate is advanced by the **new** rate.
+//    The explicit ordering — coordinate first, from the old rate — injects energy at every step and a spring
 //    at ζ ≈ 0.935 stops converging entirely somewhere above a 20 ms tick. This ordering is unconditionally
-//    stable for every interval the tick ceiling below admits.
+//    stable for every interval the tick ceiling below accepts.
 bool SpringInterpolant::Advance(double Elapsed)
 {
     if (Settled)
@@ -127,15 +127,15 @@ bool SpringInterpolant::Advance(double Elapsed)
     //    milliseconds. Converting the interval once here is one division; converting the coefficients
     //    instead would convert two figures at every one of the four springs on every tick.
     const double Seconds      = Interval / 1000.0;
-    const double Displacement = Standing - Target;
+    const double Displacement = Current - Target;
     const double Acceleration = -Stiffness * Displacement - Damping * (Rate * 1000.0);
 
     Rate     = (Rate * 1000.0 + Acceleration * Seconds) / 1000.0;
-    Standing = Standing + Rate * Interval;
+    Current = Current + Rate * Interval;
 
-    if (std::fabs(Standing - Target) < DisplacementCriterion && std::fabs(Rate) < RateCriterion)
+    if (std::fabs(Current - Target) < DisplacementCriterion && std::fabs(Rate) < RateCriterion)
     {
-        Standing = Target;
+        Current = Target;
         Rate     = 0.0;
         Settled  = true;
         return false;
@@ -144,10 +144,10 @@ bool SpringInterpolant::Advance(double Elapsed)
     return true;
 }
 
-void SpringInterpolant::Seat(double Ordinate)
+void SpringInterpolant::Place(double Coordinate)
 {
-    Standing = Ordinate;
-    Target   = Ordinate;
+    Current = Coordinate;
+    Target   = Coordinate;
     Rate     = 0.0;
     Settled  = true;
 }
@@ -161,11 +161,11 @@ bool EasedInterpolant::Advance(double Interval)
     if (Settled)
         return false;
 
-    const double Admitted = (Interval > IntervalCeiling) ? IntervalCeiling
+    const double Accepted = (Interval > IntervalCeiling) ? IntervalCeiling
                           : (Interval > 0.0)             ? Interval
                                                          : 0.0;
 
-    Elapsed += Admitted;
+    Elapsed += Accepted;
 
     if (Elapsed >= Deferral + Duration)
     {
@@ -177,23 +177,23 @@ bool EasedInterpolant::Advance(double Interval)
     return true;
 }
 
-double EasedInterpolant::Standing() const
+double EasedInterpolant::Current() const
 {
     if (Duration <= 0.0)
-        return Arriving;
+        return Incoming;
 
     if (Elapsed <= Deferral)
-        return Departed;
+        return Previous;
 
     const double Fraction = (Elapsed - Deferral) / Duration;
 
-    return Departed + (Arriving - Departed) * CurveOrdinate(Fraction, Shape);
+    return Previous + (Incoming - Previous) * CurveCoordinate(Fraction, Shape);
 }
 
 void EasedInterpolant::Depart(double From, double To, double Over, double Held, EaseCurve Declared)
 {
-    Departed = From;
-    Arriving = To;
+    Previous = From;
+    Incoming = To;
     Duration = (Over > 0.0) ? Over : 1.0;
     Deferral = (Held > 0.0) ? Held : 0.0;
     Elapsed  = 0.0;
@@ -201,10 +201,10 @@ void EasedInterpolant::Depart(double From, double To, double Over, double Held, 
     Settled  = false;
 }
 
-void EasedInterpolant::Seat(double Ordinate)
+void EasedInterpolant::Place(double Coordinate)
 {
-    Departed = Ordinate;
-    Arriving = Ordinate;
+    Previous = Coordinate;
+    Incoming = Coordinate;
     Elapsed  = Deferral + Duration;
     Settled  = true;
 }
@@ -213,30 +213,30 @@ void EasedInterpolant::Seat(double Ordinate)
 //                                                      THE ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> MotionIntegrator::EnrolSpring(const MotionScale& Motion, double Seated)
+Outcome<std::uint32_t> MotionIntegrator::RegisterSpring(const MotionScale& Motion, double Applied)
 {
     if (SpringCount >= SpringCapacity)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no spring slot remains" });
 
-    SpringInterpolant& Enrolled = Springs[SpringCount];
+    SpringInterpolant& Registered = Springs[SpringCount];
 
-    Enrolled            = {};
-    Enrolled.Stiffness  = Motion.DrawerStiffness;
-    Enrolled.Damping    = Motion.DrawerDamping;
-    Enrolled.Seat(Seated);
+    Registered            = {};
+    Registered.Stiffness  = Motion.DrawerStiffness;
+    Registered.Damping    = Motion.DrawerDamping;
+    Registered.Place(Applied);
 
     return Outcome<std::uint32_t>::Result(SpringCount++);
 }
 
-Outcome<std::uint32_t> MotionIntegrator::EnrolEased(double Seated)
+Outcome<std::uint32_t> MotionIntegrator::RegisterEased(double Applied)
 {
     if (EaseCount >= EaseCapacity)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no eased slot remains" });
 
-    EasedInterpolant& Enrolled = Eases[EaseCount];
+    EasedInterpolant& Registered = Eases[EaseCount];
 
-    Enrolled = {};
-    Enrolled.Seat(Seated);
+    Registered = {};
+    Registered.Place(Applied);
 
     return Outcome<std::uint32_t>::Result(EaseCount++);
 }

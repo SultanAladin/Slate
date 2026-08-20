@@ -15,8 +15,8 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📝 Each tag exists only to make Identity<Subject> a distinct type. A PartitionIdentity passed where an
-//    OccupantIdentity is expected is a compile error, which is the whole reason the tags are declared.
-struct OccupantSubject  {};
+//    OwnerIdentity is expected is a compile error, which is the whole reason the tags are declared.
+struct OwnerSubject  {};
 struct PartitionSubject {};
 struct SurfaceSubject   {};
 struct RecordingSubject {};
@@ -29,12 +29,12 @@ struct LayerSubject     {};
 
 /// 🧩 A slot ordinal paired with the generation the slot held when the reference was taken.
 /// note  Identity is Exact. It is an unsigned integer pair, never a real number and never narrowed.
-/// note  A generation of zero declares the reference absent; issued generations begin at one.
+/// note  A generation of zero declares the reference absent; registered generations begin at one.
 /// tag   contract, nonallocating, nonthrowing
 template <typename Subject>
 struct Identity
 {
-    std::uint32_t  SlotOrdinal    = 0u;   // [-] - index into the slot ledger that issued it
+    std::uint32_t  SlotOrdinal    = 0u;   // [-] - index into the slot ledger that registered it
     std::uint32_t  SlotGeneration = 0u;   // [-] - zero declares the reference absent
 
     /// 🧩 Whether this reference names a slot at all.
@@ -65,8 +65,8 @@ constexpr bool operator!=(Identity<Subject> LeftIdentity, Identity<Subject> Righ
 //                                                THE DECLARED SUBJECTS
 //------------------------------------------------------------------------------------------------------------------------
 
-using OccupantIdentity  = Identity<OccupantSubject>;    // [-] - one occupant of the document population
-using PartitionIdentity = Identity<PartitionSubject>;   // [-] - one partition of one occupant's topology
+using OwnerIdentity  = Identity<OwnerSubject>;    // [-] - one owner of the document population
+using PartitionIdentity = Identity<PartitionSubject>;   // [-] - one partition of one owner's topology
 using SurfaceIdentity   = Identity<SurfaceSubject>;     // [-] - one paintable surface domain
 using RecordingIdentity = Identity<RecordingSubject>;   // [-] - one slot of the recording rotation
 using WorkIdentity      = Identity<WorkSubject>;        // [-] - one declaration in `34`'s work sequence
@@ -74,6 +74,6 @@ using LayerIdentity     = Identity<LayerSubject>;       // [-] - one entry of a 
 
 // 📝 🔴 `56` §8 requires an entry to carry `10` §2.1's integer pair rather than a bare position: a collision
 //    reorders a surface, and a position alone collides with whichever entry later occupies it. Tagged apart from
-//    an occupant because a painted layer is not one — only a placement is enrolled in the population.
+//    an owner because a painted layer is not one — only a placement is registered in the population.
 
 }   // namespace Slate

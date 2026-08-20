@@ -26,12 +26,12 @@ namespace Slate
 inline constexpr std::uint32_t AbsentModule = 0xFFFFFFFFu;   // [-] - the claim names no module
 
 // 📝 🔴 The first word of every SPIR-V stream, as the specification fixes it. A stream whose first word is
-//    the byte-reversed spelling was written by a differently-ordered host and is refused rather than swapped:
+//    the byte-reversed spelling was written by a differently-ordered host and is rejected rather than swapped:
 //    the toolchain that produced it is the build's own, so a reversed stream means the wrong file was read.
 inline constexpr std::uint32_t SpirvStreamMarker = 0x07230203u;   // [-] - the magic number, verbatim
 
 /// 🧩 One constant the module is specialised with at construction rather than read at execution.
-/// note  🔴 `06` §2.1 admits specialisation because a workgroup extent read from a span is one the vendor
+/// note  🔴 `06` §2.1 accepts specialisation because a workgroup extent read from a span is one the vendor
 ///       cannot fold into its own scheduling. `16`'s partition extent and `20`'s tile extent are both of that
 ///       character — fixed for the run and read on every invocation.
 /// tag   nonallocating, nonthrowing

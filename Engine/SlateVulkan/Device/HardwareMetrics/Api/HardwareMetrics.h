@@ -147,7 +147,7 @@ public:
     ///       member says it was declared and has no reading — two different facts, and `86` presents both.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<MeasuredSpan> Standing(std::uint32_t SpanOrdinal) const;
+    Outcome<MeasuredSpan> Current(std::uint32_t SpanOrdinal) const;
 
     /// 🧩 Declares every resolved reading into the register the tick samples.
     /// in    Sampled   [-]  where the readings are declared; borrowed for the call alone
@@ -200,7 +200,7 @@ private:
     VkQueryPool                    TimestampExtent     = VK_NULL_HANDLE;  // [-]  - the vendor spelling, verbatim
     std::vector<DeclaredSpan>      DeclaredSpans       = {};              // [-]  - at most SpanCeiling entries
     std::vector<RecordedSlot>  RecordedSlots           = {};              // [-]  - RecordingSlotCount entries
-    std::uint32_t                  StandingNesting     = 0u;              // [-]  - spans open in the recording now
+    std::uint32_t                  CurrentNesting     = 0u;              // [-]  - spans open in the recording now
     double                         TimestampToDuration = 0.0;             // [ms] - carried by one increment
     bool                           CapabilityHeld      = false;           // [-]  - the device declared timestamps
 };

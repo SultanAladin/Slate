@@ -85,16 +85,16 @@ SLATE_SHARED void ProjectToneTriple(Real64 Red, Real64 Green, Real64 Blue,
     const Real64 PerChannelGreen = ProjectToneCompressed(Green, WhiteMagnitude);
     const Real64 PerChannelBlue  = ProjectToneCompressed(Blue,  WhiteMagnitude);
 
-    Real64 Greatest = Red > Green ? Red : Green;
-    Greatest        = Greatest > Blue ? Greatest : Blue;
+    Real64 Maximum = Red > Green ? Red : Green;
+    Maximum        = Maximum > Blue ? Maximum : Blue;
 
     Real64 PreservedRed   = PerChannelRed;
     Real64 PreservedGreen = PerChannelGreen;
     Real64 PreservedBlue  = PerChannelBlue;
 
-    if (Greatest > 0.0)
+    if (Maximum > 0.0)
     {
-        const Real64 Scale = ProjectToneCompressed(Greatest, WhiteMagnitude) / Greatest;
+        const Real64 Scale = ProjectToneCompressed(Maximum, WhiteMagnitude) / Maximum;
 
         PreservedRed   = Red   * Scale;
         PreservedGreen = Green * Scale;

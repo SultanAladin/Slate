@@ -27,10 +27,10 @@ constexpr std::uint32_t AbsentFace = 0xFFFFFFFFu;   // [-] - no face; never a va
 //    vertex at a coordinate seam — and a seam test that missed those would cut the surface at every one of them.
 std::uint64_t EdgeKey(std::uint32_t FirstPosition, std::uint32_t SecondPosition)
 {
-    const std::uint64_t Least    = FirstPosition < SecondPosition ? FirstPosition  : SecondPosition;
-    const std::uint64_t Greatest = FirstPosition < SecondPosition ? SecondPosition : FirstPosition;
+    const std::uint64_t Minimum    = FirstPosition < SecondPosition ? FirstPosition  : SecondPosition;
+    const std::uint64_t Maximum = FirstPosition < SecondPosition ? SecondPosition : FirstPosition;
 
-    return (Least << 32) | Greatest;
+    return (Minimum << 32) | Maximum;
 }
 
 bool KeyHeld(const std::vector<std::uint64_t>& Keys, std::uint64_t Sought)
@@ -300,7 +300,7 @@ void Subdivide(const TopologyStructure&           Imported,
     std::vector<double> CentroidY(Faces.size(), 0.0);
     std::vector<double> CentroidZ(Faces.size(), 0.0);
 
-    double LeastX = 0.0, GreatestX = 0.0, LeastY = 0.0, GreatestY = 0.0, LeastZ = 0.0, GreatestZ = 0.0;
+    double MinimumX = 0.0, MaximumX = 0.0, MinimumY = 0.0, MaximumY = 0.0, MinimumZ = 0.0, MaximumZ = 0.0;
 
     for (std::size_t Ordinal = 0u; Ordinal < Faces.size(); ++Ordinal)
     {
@@ -323,36 +323,36 @@ void Subdivide(const TopologyStructure&           Imported,
 
         if (Ordinal == 0u)
         {
-            LeastX = GreatestX = CentroidX[0];
-            LeastY = GreatestY = CentroidY[0];
-            LeastZ = GreatestZ = CentroidZ[0];
+            MinimumX = MaximumX = CentroidX[0];
+            MinimumY = MaximumY = CentroidY[0];
+            MinimumZ = MaximumZ = CentroidZ[0];
             continue;
         }
 
-        LeastX    = CentroidX[Ordinal] < LeastX    ? CentroidX[Ordinal] : LeastX;
-        GreatestX = CentroidX[Ordinal] > GreatestX ? CentroidX[Ordinal] : GreatestX;
-        LeastY    = CentroidY[Ordinal] < LeastY    ? CentroidY[Ordinal] : LeastY;
-        GreatestY = CentroidY[Ordinal] > GreatestY ? CentroidY[Ordinal] : GreatestY;
-        LeastZ    = CentroidZ[Ordinal] < LeastZ    ? CentroidZ[Ordinal] : LeastZ;
-        GreatestZ = CentroidZ[Ordinal] > GreatestZ ? CentroidZ[Ordinal] : GreatestZ;
+        MinimumX    = CentroidX[Ordinal] < MinimumX    ? CentroidX[Ordinal] : MinimumX;
+        MaximumX = CentroidX[Ordinal] > MaximumX ? CentroidX[Ordinal] : MaximumX;
+        MinimumY    = CentroidY[Ordinal] < MinimumY    ? CentroidY[Ordinal] : MinimumY;
+        MaximumY = CentroidY[Ordinal] > MaximumY ? CentroidY[Ordinal] : MaximumY;
+        MinimumZ    = CentroidZ[Ordinal] < MinimumZ    ? CentroidZ[Ordinal] : MinimumZ;
+        MaximumZ = CentroidZ[Ordinal] > MaximumZ ? CentroidZ[Ordinal] : MaximumZ;
     }
 
-    const double SpanX = GreatestX - LeastX;
-    const double SpanY = GreatestY - LeastY;
-    const double SpanZ = GreatestZ - LeastZ;
+    const double SpanX = MaximumX - MinimumX;
+    const double SpanY = MaximumY - MinimumY;
+    const double SpanZ = MaximumZ - MinimumZ;
 
     const std::vector<double>* Measured = &CentroidX;
-    double                     Middle   = (LeastX + GreatestX) * 0.5;
+    double                     Middle   = (MinimumX + MaximumX) * 0.5;
 
     if (SpanY >= SpanX && SpanY >= SpanZ)
     {
         Measured = &CentroidY;
-        Middle   = (LeastY + GreatestY) * 0.5;
+        Middle   = (MinimumY + MaximumY) * 0.5;
     }
     else if (SpanZ >= SpanX && SpanZ >= SpanY)
     {
         Measured = &CentroidZ;
-        Middle   = (LeastZ + GreatestZ) * 0.5;
+        Middle   = (MinimumZ + MaximumZ) * 0.5;
     }
 
     for (std::size_t Ordinal = 0u; Ordinal < Faces.size(); ++Ordinal)
@@ -364,7 +364,7 @@ void Subdivide(const TopologyStructure&           Imported,
     }
 
     // 📝 A degenerate split — every centroid on one side — is broken by ordinal so the recursion still shrinks.
-    //    Coincident faces are the case that produces it, and they are exactly the case `38` §3 enrols.
+    //    Coincident faces are the case that produces it, and they are exactly the case `38` §3 registers.
     if (FirstHalf.empty() || SecondHalf.empty())
     {
         FirstHalf.clear();
@@ -415,11 +415,11 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
 
     for (const SeamEdge& Authored : Seams.Authored())
     {
-        const Outcome<std::uint32_t> LeastWelded    = Conditioned.WeldedPosition(Authored.LeastVertex);
-        const Outcome<std::uint32_t> GreatestWelded = Conditioned.WeldedPosition(Authored.GreatestVertex);
+        const Outcome<std::uint32_t> MinimumWelded    = Conditioned.WeldedPosition(Authored.MinimumVertex);
+        const Outcome<std::uint32_t> MaximumWelded = Conditioned.WeldedPosition(Authored.MaximumVertex);
 
-        if (LeastWelded.Resolved && GreatestWelded.Resolved)
-            SeamKeys.push_back(EdgeKey(LeastWelded.Resolve(), GreatestWelded.Resolve()));
+        if (MinimumWelded.Resolved && MaximumWelded.Resolved)
+            SeamKeys.push_back(EdgeKey(MinimumWelded.Resolve(), MaximumWelded.Resolve()));
     }
 
     // 📐 Flood fill over faces across non-seam, manifold adjacency. Every polygon lands in exactly one chart,
@@ -502,7 +502,7 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
     {
         // 🔴 `34` §5's cooperative point. A cancelled derivation runs to here and releases; a worker simply
         //    never joined leaks its inputs, proportional to how often the artist changes their mind about a seam.
-        if (Cancellation.WithdrawalDeclared())
+        if (Cancellation.CancellationDeclared())
             return Outcome<DerivedPartition>::Refuse({ RefusalReason::HostDenied, "the derivation was withdrawn" });
 
         PendingChart Considering = Pending.back();
@@ -646,7 +646,7 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
 
             for (const SeamEdge& Held : Produced.DerivedSeams)
             {
-                if (Held.LeastVertex == Derived.LeastVertex && Held.GreatestVertex == Derived.GreatestVertex)
+                if (Held.MinimumVertex == Derived.MinimumVertex && Held.MaximumVertex == Derived.MaximumVertex)
                 {
                     Recorded = true;
                     break;
@@ -661,29 +661,29 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
     // 📐 Each chart's own extent, then one common scale over all of them. `68` §5's default: one texel of domain
     //    covers the same topology area on every chart, so the artist's brush behaves the same everywhere.
     std::vector<ChartExtent> Extents(Accepted.size());
-    std::vector<double>      LeastAlong(Accepted.size(), 0.0);
-    std::vector<double>      LeastAcross(Accepted.size(), 0.0);
+    std::vector<double>      MinimumX(Accepted.size(), 0.0);
+    std::vector<double>      MinimumY(Accepted.size(), 0.0);
 
     for (std::size_t Ordinal = 0u; Ordinal < Accepted.size(); ++Ordinal)
     {
         const std::vector<PlanarPosition>& Flattened = AcceptedFlattened[Ordinal];
 
-        double MostAlong  = Flattened[0].PositionX;
-        double MostAcross = Flattened[0].PositionY;
+        double MaximumX  = Flattened[0].PositionX;
+        double MaximumY = Flattened[0].PositionY;
 
-        LeastAlong[Ordinal]  = Flattened[0].PositionX;
-        LeastAcross[Ordinal] = Flattened[0].PositionY;
+        MinimumX[Ordinal]  = Flattened[0].PositionX;
+        MinimumY[Ordinal] = Flattened[0].PositionY;
 
         for (const PlanarPosition& Held : Flattened)
         {
-            LeastAlong[Ordinal]  = Held.PositionX < LeastAlong[Ordinal]  ? Held.PositionX : LeastAlong[Ordinal];
-            LeastAcross[Ordinal] = Held.PositionY < LeastAcross[Ordinal] ? Held.PositionY : LeastAcross[Ordinal];
-            MostAlong            = Held.PositionX > MostAlong            ? Held.PositionX : MostAlong;
-            MostAcross           = Held.PositionY > MostAcross           ? Held.PositionY : MostAcross;
+            MinimumX[Ordinal]  = Held.PositionX < MinimumX[Ordinal]  ? Held.PositionX : MinimumX[Ordinal];
+            MinimumY[Ordinal] = Held.PositionY < MinimumY[Ordinal] ? Held.PositionY : MinimumY[Ordinal];
+            MaximumX            = Held.PositionX > MaximumX            ? Held.PositionX : MaximumX;
+            MaximumY           = Held.PositionY > MaximumY           ? Held.PositionY : MaximumY;
         }
 
-        Extents[Ordinal].Width        = MostAlong  - LeastAlong[Ordinal];
-        Extents[Ordinal].Height       = MostAcross - LeastAcross[Ordinal];
+        Extents[Ordinal].Width        = MaximumX  - MinimumX[Ordinal];
+        Extents[Ordinal].Height       = MaximumY - MinimumY[Ordinal];
         Extents[Ordinal].ChartOrdinal = Accepted[Ordinal].IdentityOrdinal;
     }
 
@@ -705,21 +705,21 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
             const PlanarPosition& Held = Flattened[Local.CornerLocals[Passed]];
 
             DomainCoordinate Writing;
-            Writing.CoordinateAlong  = static_cast<float>(Placement.LeastAlong
-                                                        + (Held.PositionX - LeastAlong[Ordinal]) * Placement.Scale);
-            Writing.CoordinateAcross = static_cast<float>(Placement.LeastAcross
-                                                        + (Held.PositionY - LeastAcross[Ordinal]) * Placement.Scale);
+            Writing.CoordinateX  = static_cast<float>(Placement.MinimumX
+                                                        + (Held.PositionX - MinimumX[Ordinal]) * Placement.Scale);
+            Writing.CoordinateY = static_cast<float>(Placement.MinimumY
+                                                        + (Held.PositionY - MinimumY[Ordinal]) * Placement.Scale);
 
             Produced.CornerCoordinates[Local.Corners[Passed]] = Writing;
         }
 
         if (Accepted[Ordinal].Distortion.MeasureDeclared)
         {
-            if (Accepted[Ordinal].Distortion.GreatestAreaRatio > Produced.Metrics.GreatestAreaRatio)
-                Produced.Metrics.GreatestAreaRatio = Accepted[Ordinal].Distortion.GreatestAreaRatio;
+            if (Accepted[Ordinal].Distortion.MaximumAreaRatio > Produced.Metrics.MaximumAreaRatio)
+                Produced.Metrics.MaximumAreaRatio = Accepted[Ordinal].Distortion.MaximumAreaRatio;
 
-            if (Accepted[Ordinal].Distortion.GreatestAngleDeviation > Produced.Metrics.GreatestAngleDeviation)
-                Produced.Metrics.GreatestAngleDeviation = Accepted[Ordinal].Distortion.GreatestAngleDeviation;
+            if (Accepted[Ordinal].Distortion.MaximumAngleDeviation > Produced.Metrics.MaximumAngleDeviation)
+                Produced.Metrics.MaximumAngleDeviation = Accepted[Ordinal].Distortion.MaximumAngleDeviation;
         }
     }
 
@@ -737,12 +737,12 @@ Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
 //                                                 THE STANDING PARTITION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ChartPartition::Adopt(const DerivedPartition& Arriving)
+Outcome<bool> ChartPartition::Adopt(const DerivedPartition& Incoming)
 {
-    if (Arriving.Charts.empty())
+    if (Incoming.Charts.empty())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a partition carrying no chart" });
 
-    StandingPartition = Arriving;
+    CurrentPartition = Incoming;
 
     // 🔴 Advanced on adoption and never on derivation. `24` §3 keys a transferred result on this revision and
     //    `20` promotes against it, so a revision that advanced while the previous partition still stood would
@@ -752,7 +752,7 @@ Outcome<bool> ChartPartition::Adopt(const DerivedPartition& Arriving)
     return Outcome<bool>::Result(true);
 }
 
-const DerivedPartition& ChartPartition::Standing() const { return StandingPartition; }
+const DerivedPartition& ChartPartition::Current() const { return CurrentPartition; }
 
 Outcome<DomainCoordinate> ChartPartition::Coordinate(std::uint32_t CornerOrdinal) const
 {
@@ -762,13 +762,13 @@ Outcome<DomainCoordinate> ChartPartition::Coordinate(std::uint32_t CornerOrdinal
             { RefusalReason::ContentUnsupported, "no partition stands for this surface" });
     }
 
-    if (CornerOrdinal >= StandingPartition.CornerCoordinates.size())
+    if (CornerOrdinal >= CurrentPartition.CornerCoordinates.size())
         return Outcome<DomainCoordinate>::Refuse({ RefusalReason::ExtentExhausted, "no such corner" });
 
-    return Outcome<DomainCoordinate>::Result(StandingPartition.CornerCoordinates[CornerOrdinal]);
+    return Outcome<DomainCoordinate>::Result(CurrentPartition.CornerCoordinates[CornerOrdinal]);
 }
 
-bool          ChartPartition::PartitionStanding() const { return PartitionRevision != 0u; }
+bool          ChartPartition::PartitionCurrent() const { return PartitionRevision != 0u; }
 std::uint64_t ChartPartition::Revision() const          { return PartitionRevision;       }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -782,7 +782,7 @@ void ChartPartition::Report(ReportSequence& Reporting, MeasureIndex& Measured, T
 
     // 📝 One appended entry per derived seam, carrying the chart it cut. `86` §6 coalesces by subject ordinal as
     //    well as by origin, so twelve distinct cuts present as twelve entries rather than as one with a count.
-    for (const Chart& Held : StandingPartition.Charts)
+    for (const Chart& Held : CurrentPartition.Charts)
     {
         if (Held.Cause != TerminationCause::CeilingReached)
             continue;
@@ -792,20 +792,20 @@ void ChartPartition::Report(ReportSequence& Reporting, MeasureIndex& Measured, T
         Terminated.Subject        = "Flattening";
         Terminated.Detail         = "the iteration ceiling terminated the solve; the result is the last iterate";
         Terminated.SubjectOrdinal = Held.IdentityOrdinal;
-        Terminated.Disposition    = ReportDisposition::Terminated;
+        Terminated.Verdict    = ReportVerdict::Terminated;
         Terminated.Arrival        = Sampled;
 
         Reporting.Append(Terminated);
     }
 
-    for (const SeamEdge& Held : StandingPartition.DerivedSeams)
+    for (const SeamEdge& Held : CurrentPartition.DerivedSeams)
     {
         ReportSpecification Amended;
         Amended.Origin         = "68 §2 ChartPartition";
         Amended.Subject        = "DerivedSeam";
         Amended.Detail         = "the authored seams did not admit a flattening; this edge was cut here";
-        Amended.SubjectOrdinal = (static_cast<std::uint64_t>(Held.LeastVertex) << 32) | Held.GreatestVertex;
-        Amended.Disposition    = ReportDisposition::Amended;
+        Amended.SubjectOrdinal = (static_cast<std::uint64_t>(Held.MinimumVertex) << 32) | Held.MaximumVertex;
+        Amended.Verdict    = ReportVerdict::Amended;
         Amended.Arrival        = Sampled;
 
         Reporting.Append(Amended);
@@ -813,13 +813,13 @@ void ChartPartition::Report(ReportSequence& Reporting, MeasureIndex& Measured, T
 
     // 🔴 Occupancy and distortion overwrite. `86` §2: a measure appended every partition buries the one seam
     //    the artist did not expect under a thousand readings nobody asked for.
-    Measured.DeclareMagnitude("68 §5 ChartPartition", "Occupancy", StandingPartition.Metrics.Occupancy, Sampled);
+    Measured.DeclareMagnitude("68 §5 ChartPartition", "Occupancy", CurrentPartition.Metrics.Occupancy, Sampled);
     Measured.DeclareMagnitude("68 §4 ChartPartition", "AreaDistortion",
-                              StandingPartition.Metrics.GreatestAreaRatio, Sampled);
+                              CurrentPartition.Metrics.MaximumAreaRatio, Sampled);
     Measured.DeclareMagnitude("68 §4 ChartPartition", "AngleDistortion",
-                              StandingPartition.Metrics.GreatestAngleDeviation, Sampled);
+                              CurrentPartition.Metrics.MaximumAngleDeviation, Sampled);
     Measured.DeclareCount("68 §3 ChartPartition", "ChartCount",
-                          StandingPartition.Metrics.ChartCount, Sampled);
+                          CurrentPartition.Metrics.ChartCount, Sampled);
 }
 
 }   // namespace Slate

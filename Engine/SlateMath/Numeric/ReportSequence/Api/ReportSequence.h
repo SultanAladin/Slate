@@ -23,21 +23,21 @@ namespace Slate
 /// note  ⚠️ `86` §4.1 calls these report classes. `Class` used as a noun is banned alongside `Kind`, and for the
 ///        same reason — it names the category rather than the mechanism. Each member below is instead the past
 ///        participle of what happened, which is the discriminating fact.
-/// note  🔴 The disposition is declared by the reporting mechanism and never inferred from the text. An inferred
-///        disposition is a presentation that disagrees with the document that made the promise — `86` §4.1.
+/// note  🔴 The verdict is declared by the reporting mechanism and never inferred from the text. An inferred
+///        verdict is a presentation that disagrees with the document that made the promise — `86` §4.1.
 /// note  Five of the seven describe normal operation. `86` §5 is the authority on which of them is a problem,
 ///        and a presenter that treats all seven as failures teaches the artist to ignore it.
 /// tag   contract
-enum class ReportDisposition : std::uint32_t
+enum class ReportVerdict : std::uint32_t
 {
     Measured         = 0u,   // [-] - a sampled quantity with a current value; belongs in MeasureIndex
     Assumed          = 1u,   // [-] - the source declared nothing and something was chosen
     Amended          = 2u,   // [-] - content was changed on the way in, out, or between partitions
     Truncated        = 3u,   // [-] - content was dropped at a declared capacity
-    Refused          = 4u,   // [-] - declined outright; nothing partial was produced
+    Rejected          = 4u,   // [-] - rejected outright; nothing partial was produced
     Terminated       = 5u,   // [-] - a Convergent solve ended at its ceiling instead of its criterion
     Failed           = 6u,   // [-] - the mechanism did not complete and there is no result
-    DispositionCount = 7u    // [-] - the closed count, never a disposition
+    VerdictCount = 7u    // [-] - the closed count, never a verdict
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -45,10 +45,10 @@ enum class ReportDisposition : std::uint32_t
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 One appended report — where it came from, what it applies to, and how many times it has happened.
-/// note  🔴 Every text field points at string literal storage only. `86` §3.1 admits an append from any thread,
+/// note  🔴 Every text field points at string literal storage only. `86` §3.1 accepts an append from any thread,
 ///        and a report that owned an allocation would allocate on a worker while the tick presents the register.
-/// note  ⚠️ The disposition defaults to Failed rather than to Measured. A report that forgot to declare its
-///        disposition then presents as the most serious thing it could be, which is the direction that gets fixed.
+/// note  ⚠️ The verdict defaults to Failed rather than to Measured. A report that forgot to declare its
+///        verdict then presents as the most serious thing it could be, which is the direction that gets fixed.
 /// tag   nonallocating, nonthrowing
 struct ReportSpecification
 {
@@ -56,7 +56,7 @@ struct ReportSpecification
     const char*        Subject         = "";                          // [-] - static text naming what it applies to
     const char*        Detail          = "";                          // [-] - static text; the reason, verbatim
     std::uint64_t      SubjectOrdinal  = 0u;                          // [-] - a position, a slot, a count; zero for none
-    ReportDisposition  Disposition     = ReportDisposition::Failed;   // [-] - declared, never inferred
+    ReportVerdict  Verdict     = ReportVerdict::Failed;   // [-] - declared, never inferred
     TickPoint          Arrival         = {};                          // [ns] - stamped where the occurrence happened
     std::uint32_t      OccurrenceCount = 1u;                          // [-] - raised by coalescing, never by the caller
 };
@@ -69,10 +69,10 @@ struct ReportSpecification
 /// note  🔴 This lives in `SlateMath` and not in `SlateUI`. `86` §3 gives the reason and it is the link partition:
 ///        every origin that must write here sits beneath `SlateUI`, so a register held in the interface could not
 ///        be written by a single one of the mechanisms obliged to write it.
-/// note  🔴 `86` §3.1: an append is admitted from any thread, and this is the one structure in the engine that
-///        admits one. A report about a failure has to survive the failure, and `34` §5's failed work produces no
+/// note  🔴 `86` §3.1: an append is accepted from any thread, and this is the one structure in the engine that
+///        accepts one. A report about a failure has to survive the failure, and `34` §5's failed work produces no
 ///        result to carry it back on.
-/// note  📝 `86` §1 also names a `ReportClassifier`. §4.1 forbids inferring a disposition from the text, which
+/// note  📝 `86` §1 also names a `ReportClassifier`. §4.1 forbids inferring a verdict from the text, which
 ///        leaves that component nothing to do; the coalescing rule it would have carried is `Coalesces` below.
 /// tag   owning
 class ReportSequence
@@ -81,15 +81,15 @@ public:
 
     // 🚧 `86` §11 leaves the session bound open — by count or by extent held. It is a count here, and the
     //    discard is itself presented, because a register that silently forgot the first report of a run is
-    //    worse than one that admits it is full.
+    //    worse than one that accepts it is full.
     static constexpr std::uint32_t RetainedCeiling = 4096u;   // [-] - reports retained before the oldest leaves
 
     ReportSequence()                                 = default;
     ReportSequence(const ReportSequence&)            = delete;
     ReportSequence& operator=(const ReportSequence&) = delete;
 
-    /// 🧩 Appends one report, coalescing it into a recurrence of the same origin, disposition and subject.
-    /// in    Arriving  [-]  the report as its origin declared it
+    /// 🧩 Appends one report, coalescing it into a recurrence of the same origin, verdict and subject.
+    /// in    Incoming  [-]  the report as its origin declared it
     /// post  the retained count never exceeds RetainedCeiling; the oldest report leaves when it would
     /// note  🔴 Appended exactly once per occurrence, at the moment of the occurrence — `86` §2.2. A report
     ///        reconstructed later from a measure that changed is a report about the wrong instant.
@@ -97,7 +97,7 @@ public:
     ///        integer comparisons per append rather than four thousand string comparisons.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Append(const ReportSpecification& Arriving);
+    void Append(const ReportSpecification& Incoming);
 
     /// 🧩 The retained reports, oldest first, as a copy taken under the register's own guard.
     /// out   Retained  [-]  at most RetainedCeiling entries, each carrying its occurrence count

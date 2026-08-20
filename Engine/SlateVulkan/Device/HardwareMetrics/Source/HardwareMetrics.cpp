@@ -25,7 +25,7 @@ Outcome<bool> HardwareMetrics::Construct(const VulkanExchange& Exchange)
     DeclaredSpans.clear();
     DeclaredSpans.reserve(SpanCeiling);
 
-    StandingNesting     = 0u;
+    CurrentNesting     = 0u;
     TimestampToDuration = Exchange.Capability().TimestampToMilliseconds;
 
     // 📝 🔴 `08` §5's substitution, executed. A device that declares no timestamp capability constructs no
@@ -46,7 +46,7 @@ Outcome<bool> HardwareMetrics::Construct(const VulkanExchange& Exchange)
     if (vkCreateQueryPool(Exchange.ActiveDevice(), &ExtentDeclaration, nullptr, &TimestampExtent) != VK_SUCCESS)
     {
         TimestampExtent = VK_NULL_HANDLE;
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the device declined the timestamp extent" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the device rejected the timestamp extent" });
     }
 
     CapabilityHeld = true;
@@ -77,20 +77,20 @@ Outcome<std::uint32_t> HardwareMetrics::Declare(const char* SpanName)
     // 📝 🔴 Two spans of one name make one unreadable reading: `MeasureIndex` is keyed by origin and quantity,
     //    so the second declaration would overwrite the first every time the tick sampled, and the report would
     //    name one span while carrying whichever duration happened to be declared last.
-    for (const DeclaredSpan& Standing : DeclaredSpans)
+    for (const DeclaredSpan& Current : DeclaredSpans)
     {
-        if (std::strcmp(Standing.Declared, SpanName) == 0)
+        if (std::strcmp(Current.Declared, SpanName) == 0)
         {
             return Outcome<std::uint32_t>::Refuse(
                 { RefusalReason::ContentUnsupported, "that span name is already declared" });
         }
     }
 
-    DeclaredSpan Arriving;
-    Arriving.Declared             = SpanName;
-    Arriving.LastReading.Declared = SpanName;
+    DeclaredSpan Incoming;
+    Incoming.Declared             = SpanName;
+    Incoming.LastReading.Declared = SpanName;
 
-    DeclaredSpans.push_back(Arriving);
+    DeclaredSpans.push_back(Incoming);
 
     return Outcome<std::uint32_t>::Result(static_cast<std::uint32_t>(DeclaredSpans.size()) - 1u);
 }
@@ -113,7 +113,7 @@ Outcome<bool> HardwareMetrics::Clear(VkCommandBuffer Recorded, std::uint32_t Slo
     vkCmdResetQueryPool(Recorded, TimestampExtent, SlotOrdinal * TimestampsPerSlot, TimestampsPerSlot);
 
     RecordedSlots[SlotOrdinal] = RecordedSlot{};
-    StandingNesting         = 0u;
+    CurrentNesting         = 0u;
 
     return Outcome<bool>::Result(true);
 }
@@ -136,8 +136,8 @@ Outcome<bool> HardwareMetrics::Open(VkCommandBuffer Recorded, std::uint32_t Slot
     // 📝 The nesting depth is what stood open **around** this span when it opened, so the outermost span reads
     //    zero. `06` §1's "duration and depth": ⑤·i and ⑤·ii each nest inside whatever span wraps ⑤, and that is
     //    what says the two of them together account for what ⑤ costs.
-    DeclaredSpans[SpanOrdinal].NestingDepth = StandingNesting;
-    ++StandingNesting;
+    DeclaredSpans[SpanOrdinal].NestingDepth = CurrentNesting;
+    ++CurrentNesting;
 
     RecordedSlots[SlotOrdinal].SpanOpened[SpanOrdinal] = true;
 
@@ -172,13 +172,13 @@ Outcome<bool> HardwareMetrics::Close(VkCommandBuffer Recorded, std::uint32_t Slo
 
     // 🔴 Closed in the reverse order it was opened. A span closed while one opened inside it still stands has
     //    crossed the nesting, and the depth each of them reports then belongs to neither.
-    if (StandingNesting == 0u || DeclaredSpans[SpanOrdinal].NestingDepth != StandingNesting - 1u)
+    if (CurrentNesting == 0u || DeclaredSpans[SpanOrdinal].NestingDepth != CurrentNesting - 1u)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::RelationCyclic, "a span was closed while a span opened inside it still stands" });
     }
 
-    --StandingNesting;
+    --CurrentNesting;
     RecordedSlots[SlotOrdinal].SpanClosed[SpanOrdinal] = true;
 
     vkCmdWriteTimestamp(Recorded,
@@ -209,7 +209,7 @@ Outcome<bool> HardwareMetrics::Resolve(std::uint32_t SlotOrdinal, std::uint64_t 
     // 📝 Read without `VK_QUERY_RESULT_WAIT_BIT`. The caller has already awaited this slot's completion, and a
     //    wait here would serialise the host against the device a second time for a reading it already has.
     //    `VK_NOT_READY` is therefore a defect in the caller's ordering rather than a slow device, and it is
-    //    refused rather than waited out.
+    //    rejected rather than waited out.
     const VkResult ReadBack = vkGetQueryPoolResults(DeviceEdge->ActiveDevice(),
                                                     TimestampExtent,
                                                     SlotOrdinal * TimestampsPerSlot,
@@ -225,7 +225,7 @@ Outcome<bool> HardwareMetrics::Resolve(std::uint32_t SlotOrdinal, std::uint64_t 
         return Outcome<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost reading back timestamps" });
 
     if (ReadBack != VK_SUCCESS)
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device declined the timestamp readback" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the device rejected the timestamp readback" });
 
     const RecordedSlot& Recorded = RecordedSlots[SlotOrdinal];
 
@@ -270,7 +270,7 @@ Outcome<bool> HardwareMetrics::Resolve(std::uint32_t SlotOrdinal, std::uint64_t 
 //                                                     THE READINGS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<MeasuredSpan> HardwareMetrics::Standing(std::uint32_t SpanOrdinal) const
+Outcome<MeasuredSpan> HardwareMetrics::Current(std::uint32_t SpanOrdinal) const
 {
     if (SpanOrdinal >= static_cast<std::uint32_t>(DeclaredSpans.size()))
         return Outcome<MeasuredSpan>::Refuse({ RefusalReason::ContentUnsupported, "that span was never declared" });
@@ -280,15 +280,15 @@ Outcome<MeasuredSpan> HardwareMetrics::Standing(std::uint32_t SpanOrdinal) const
 
 void HardwareMetrics::Report(MeasureIndex& Sampled, TickPoint Arrival) const
 {
-    for (const DeclaredSpan& Standing : DeclaredSpans)
+    for (const DeclaredSpan& Current : DeclaredSpans)
     {
         // 🔴 An unavailable span declares **nothing**, so `MeasureIndex::Resolve` refuses rather than reading
         //    zero. That is `08` §5 enforced at the presentation rather than promised in a comment: declaring a
         //    zero magnitude here would make an unmeasurable span indistinguishable from a free one.
-        if (!Standing.LastReading.Available)
+        if (!Current.LastReading.Available)
             continue;
 
-        Sampled.DeclareMagnitude("06 §6 HardwareMetrics", Standing.Declared, Standing.LastReading.Duration, Arrival);
+        Sampled.DeclareMagnitude("06 §6 HardwareMetrics", Current.Declared, Current.LastReading.Duration, Arrival);
     }
 }
 
@@ -317,7 +317,7 @@ void HardwareMetrics::Reclaim()
     TimestampExtent = VK_NULL_HANDLE;
     DeclaredSpans.clear();
     RecordedSlots.clear();
-    StandingNesting = 0u;
+    CurrentNesting = 0u;
     CapabilityHeld  = false;
 }
 

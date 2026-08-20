@@ -12,12 +12,12 @@ namespace Slate
 //                                                      RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-void IntakeIndex::Record(const IntakeRecord& Arriving)
+void IntakeIndex::Record(const IntakeRecord& Incoming)
 {
-    Recorded.push_back(Arriving);
+    Recorded.push_back(Incoming);
     AssumptionReported.push_back(false);
 
-    if (Arriving.AssumptionMade)
+    if (Incoming.AssumptionMade)
         ++AssumedTotal;
 }
 
@@ -34,11 +34,11 @@ void IntakeIndex::Report(ReportSequence& Reporting, TickPoint Sampled)
 
         ReportSpecification Assumed;
         Assumed.Origin         = "50 §3 AssetInterchange";
-        Assumed.Disposition    = ReportDisposition::Assumed;
+        Assumed.Verdict    = ReportVerdict::Assumed;
         Assumed.SubjectOrdinal = static_cast<std::uint64_t>(Ordinal);
         Assumed.Arrival        = Sampled;
 
-        // 📝 Static text only — `86` §3.1 admits an append from any thread and a report that owned an allocation
+        // 📝 Static text only — `86` §3.1 accepts an append from any thread and a report that owned an allocation
         //    would allocate while the tick presents the register. The origin path lives in the record beside the
         //    report and the presenter reads it from there.
         if (Recorded[Ordinal].Assumed == AssumedSubject::UnitScale)

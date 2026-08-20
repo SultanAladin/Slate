@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                    LAYERSTACKSPECIFICATION.CPP
 //============================================================================================================================================
-// 🧩 The seated layer arrangement and every closed run behind it, transcribed from `References/LayerstackV1.html`.
+// 🧩 The applied layer arrangement and every closed run behind it, transcribed from `References/LayerstackV1.html`.
 
 #include "SlateUI/Interface/LayerStackSpecification/Api/LayerStackSpecification.h"
 
@@ -17,14 +17,14 @@ namespace Slate
 
 // 📝 `CHANNELS` from the reference, in its own order. The Channel panel presents these eight; the
 //    fourteen-slot arrangement the property panel states is a superset presented there, not here.
-static const char* const SeatedChannels[LayerStackCeiling::Channels] =
+static const char* const AppliedChannels[LayerStackCeiling::Channels] =
 {
     "Base Color", "Metallic", "Roughness", "Normal",
     "Height", "Ambient Occlusion", "Emissive", "Opacity"
 };
 
 // 📝 One tint per channel, matching the property panel's own `CHANNEL_SLOTS` hues.
-static const std::uint32_t SeatedChannelTints[LayerStackCeiling::Channels] =
+static const std::uint32_t AppliedChannelTints[LayerStackCeiling::Channels] =
 {
     0xB87333u, 0x8B5CF6u, 0x3B82F6u, 0x10B981u,
     0x8A8A8Au, 0x6B7280u, 0xF59E0Bu, 0x94A3B8u
@@ -32,13 +32,13 @@ static const std::uint32_t SeatedChannelTints[LayerStackCeiling::Channels] =
 
 const char* const* ChannelNaming()
 {
-    return SeatedChannels;
+    return AppliedChannels;
 }
 
 ThemeToken ChannelTint(std::uint32_t Ordinal)
 {
     const std::uint32_t Resolved = (Ordinal < LayerStackCeiling::Channels) ? Ordinal : 0u;
-    return Covering(SeatedChannelTints[Resolved]);
+    return Covering(AppliedChannelTints[Resolved]);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ ThemeToken ChannelTint(std::uint32_t Ordinal)
 
 // 📝 `BLENDS`, `NBLENDS` and `HBLENDS` verbatim. Normal and Height accept their own shorter runs, which is
 //    why `blendsFor` exists in the reference and why the ordinal decides here.
-static const char* const SeatedBlends[] =
+static const char* const AppliedBlends[] =
 {
     "Normal", "Passthrough", "Replace", "Disable", "Multiply", "Divide", "Inverse Divide", "Screen",
     "Overlay", "Soft Light", "Hard Light", "Vivid Light", "Linear Light", "Pin Light",
@@ -56,12 +56,12 @@ static const char* const SeatedBlends[] =
     "Saturation", "Color", "Value"
 };
 
-static const char* const SeatedNormalBlends[] =
+static const char* const AppliedNormalBlends[] =
 {
     "Normal Map Combine", "Normal Map Detail", "Normal Map Inverse Detail", "Normal", "Replace", "Disable"
 };
 
-static const char* const SeatedHeightBlends[] =
+static const char* const AppliedHeightBlends[] =
 {
     "Linear Dodge (Add)", "Signed Addition (AddSub)", "Normal", "Multiply", "Subtract",
     "Darken (Min)", "Lighten (Max)", "Replace", "Disable"
@@ -69,21 +69,21 @@ static const char* const SeatedHeightBlends[] =
 
 const char* const* BlendNaming(std::uint32_t ChannelOrdinal, std::uint32_t& Count)
 {
-    // 📐 Ordinal three is Normal and ordinal four is Height, per `SeatedChannels`.
+    // 📐 Ordinal three is Normal and ordinal four is Height, per `AppliedChannels`.
     if (ChannelOrdinal == 3u)
     {
-        Count = static_cast<std::uint32_t>(sizeof SeatedNormalBlends / sizeof SeatedNormalBlends[0]);
-        return SeatedNormalBlends;
+        Count = static_cast<std::uint32_t>(sizeof AppliedNormalBlends / sizeof AppliedNormalBlends[0]);
+        return AppliedNormalBlends;
     }
 
     if (ChannelOrdinal == 4u)
     {
-        Count = static_cast<std::uint32_t>(sizeof SeatedHeightBlends / sizeof SeatedHeightBlends[0]);
-        return SeatedHeightBlends;
+        Count = static_cast<std::uint32_t>(sizeof AppliedHeightBlends / sizeof AppliedHeightBlends[0]);
+        return AppliedHeightBlends;
     }
 
-    Count = static_cast<std::uint32_t>(sizeof SeatedBlends / sizeof SeatedBlends[0]);
-    return SeatedBlends;
+    Count = static_cast<std::uint32_t>(sizeof AppliedBlends / sizeof AppliedBlends[0]);
+    return AppliedBlends;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -154,7 +154,7 @@ const char* SourceNaming(MaskSource Source)
 //                                                   WALKING THE NESTING
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EntryPresented(const LayerArrangement& Arrangement, std::uint32_t Ordinal)
+bool EntryCurrent(const LayerArrangement& Arrangement, std::uint32_t Ordinal)
 {
     if (Ordinal >= Arrangement.EntryCount)
         return false;
@@ -214,7 +214,7 @@ std::uint32_t ChannelsEnabled(const LayerEntry& Entry)
 
 // 📝 `defCh()` — every channel arrives enabled but Emissive and Opacity, Normal arrives combining and
 //    Height arrives adding, which is what makes the height-into-normal note on the card true.
-static void SeatChannels(LayerEntry& Entry)
+static void ApplyChannels(LayerEntry& Entry)
 {
     for (std::uint32_t Channel = 0u; Channel < LayerStackCeiling::Channels; ++Channel)
     {
@@ -227,14 +227,14 @@ static void SeatChannels(LayerEntry& Entry)
     Entry.Channels[4].Blend = "Linear Dodge (Add)";
 }
 
-static void SeatNaming(LayerEntry& Entry, const char* Naming)
+static void ApplyNaming(LayerEntry& Entry, const char* Naming)
 {
     std::strncpy(Entry.Naming, Naming, LayerStackCeiling::NamingCeiling - 1u);
     Entry.Naming[LayerStackCeiling::NamingCeiling - 1u] = '\0';
 }
 
 // 📝 One paint-sourced mask, the reference's simplest `MASK()`.
-static void SeatPaintMask(LayerEntry& Entry, std::uint32_t Density, bool Shown)
+static void ApplyPaintMask(LayerEntry& Entry, std::uint32_t Density, bool Shown)
 {
     Entry.Mask.Declared   = true;
     Entry.Mask.Shown      = Shown;
@@ -252,7 +252,7 @@ static void SeatPaintMask(LayerEntry& Entry, std::uint32_t Density, bool Shown)
 }
 
 // 📝 One generator-sourced mask. The mesh maps a generator reads are what the bake chips report.
-static void SeatGeneratorMask(LayerEntry& Entry, const char* Generator, std::uint32_t Density)
+static void ApplyGeneratorMask(LayerEntry& Entry, const char* Generator, std::uint32_t Density)
 {
     Entry.Mask.Declared   = true;
     Entry.Mask.Shown      = true;
@@ -280,7 +280,7 @@ static void SeatGeneratorMask(LayerEntry& Entry, const char* Generator, std::uin
     Entry.Mask.MeshMapCount = 3u;
 }
 
-// 📝 Claims one placement record and points the entry at it. An arrangement past the pool's ceiling seats
+// 📝 Reservations one placement record and points the entry at it. An arrangement past the pool's ceiling applies
 //    no record and leaves `Placement` absent, which records every other section and omits this one.
 static PlacementRun* OpenPlacement(LayerArrangement& Arrangement, LayerEntry& Entry)
 {
@@ -294,7 +294,7 @@ static PlacementRun* OpenPlacement(LayerArrangement& Arrangement, LayerEntry& En
 }
 
 // 📐 `DECAL` — one selection, eleven ranges and five switches, in the reference's own order.
-static void SeatDecalPlacement(LayerArrangement& Arrangement, LayerEntry& Entry)
+static void ApplyDecalPlacement(LayerArrangement& Arrangement, LayerEntry& Entry)
 {
     PlacementRun* const Run = OpenPlacement(Arrangement, Entry);
 
@@ -324,7 +324,7 @@ static void SeatDecalPlacement(LayerArrangement& Arrangement, LayerEntry& Entry)
 }
 
 // 📐 `PATTERN` — one selection, ten ranges and four switches, in the reference's own order.
-static void SeatPatternPlacement(LayerArrangement& Arrangement, LayerEntry& Entry)
+static void ApplyPatternPlacement(LayerArrangement& Arrangement, LayerEntry& Entry)
 {
     PlacementRun* const Run = OpenPlacement(Arrangement, Entry);
 
@@ -351,7 +351,7 @@ static void SeatPatternPlacement(LayerArrangement& Arrangement, LayerEntry& Entr
     Run->ParameterCount = 15u;
 }
 
-Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
+Outcome<bool> ApplyReferenceArrangement(LayerArrangement& Arrangement)
 {
     // 📐 The reference's own `tree`, laid outermost-first with everything a folder encloses immediately
     //    after it. Thirteen entries stand, well inside the ceiling — the guard states the invariant anyway
@@ -375,8 +375,8 @@ Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
         Entry.Enclosing = Enclosing;
         Entry.ColourTag = ColourTag;
 
-        SeatNaming(Entry, Naming);
-        SeatChannels(Entry);
+        ApplyNaming(Entry, Naming);
+        ApplyChannels(Entry);
 
         ++Arrangement.EntryCount;
         return Entry;
@@ -399,14 +399,14 @@ Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
     {
         LayerEntry& Stencil = Open(LayerContent::Decal, "Warning Stencil", 1u, 0u, 0xE5484Du);
         Stencil.Blend = "Normal";
-        SeatPaintMask(Stencil, 100u, true);
+        ApplyPaintMask(Stencil, 100u, true);
         Stencil.Mask.Source = MaskSource::Bitmap;
         Stencil.Mask.Parameters[0] = { "Bitmap", 0.0, 0.0, 0.0, "", false, "grunge_leaky_paint" };
         Stencil.Mask.Parameters[1] = { "Projection", 0.0, 0.0, 0.0, "", false, "UV" };
         Stencil.Mask.Parameters[2] = { "Scale", 100.0, 1.0, 800.0, "%", false, nullptr };
         Stencil.Mask.ParameterCount = 3u;
 
-        SeatDecalPlacement(Arrangement, Stencil);
+        ApplyDecalPlacement(Arrangement, Stencil);
     }
 
     {
@@ -415,7 +415,7 @@ Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
         Scratches.Opacity    = 38u;
         Scratches.Effects[0] = "Blur";
         Scratches.EffectCount = 1u;
-        SeatGeneratorMask(Scratches, "Metal Edge Wear", 88u);
+        ApplyGeneratorMask(Scratches, "Metal Edge Wear", 88u);
         Scratches.Mask.Effects[0]  = "Levels";
         Scratches.Mask.Effects[1]  = "Blur";
         Scratches.Mask.EffectCount = 2u;
@@ -425,7 +425,7 @@ Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
         LayerEntry& EdgeWear = Open(LayerContent::Fill, "Edge Wear", 1u, 0u, 0xF76B15u);
         EdgeWear.Blend   = "Multiply";
         EdgeWear.Opacity = 82u;
-        SeatGeneratorMask(EdgeWear, "Curvature", 100u);
+        ApplyGeneratorMask(EdgeWear, "Curvature", 100u);
         EdgeWear.Mask.Effects[0]  = "Levels";
         EdgeWear.Mask.EffectCount = 1u;
     }
@@ -433,14 +433,14 @@ Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
     // ② Three outermost entries between the two folders.
     {
         LayerEntry& Trim = Open(LayerContent::Fill, "Emissive Trim", 0u, 0xFFFFFFFFu, 0xFFC53Du);
-        SeatPaintMask(Trim, 100u, true);
+        ApplyPaintMask(Trim, 100u, true);
     }
 
     {
         LayerEntry& Panelling = Open(LayerContent::Pattern, "Hex Panelling", 0u, 0xFFFFFFFFu, 0x8AB4D8u);
-        SeatGeneratorMask(Panelling, "Position", 100u);
+        ApplyGeneratorMask(Panelling, "Position", 100u);
 
-        SeatPatternPlacement(Arrangement, Panelling);
+        ApplyPatternPlacement(Arrangement, Panelling);
     }
 
     // ③ Base Materials — a folder over four fills.
@@ -454,7 +454,7 @@ Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
 
     {
         LayerEntry& Steel = Open(LayerContent::Fill, "Brushed Steel", 1u, BaseOrdinal, 0x8AB4D8u);
-        SeatGeneratorMask(Steel, "Mask Editor", 100u);
+        ApplyGeneratorMask(Steel, "Mask Editor", 100u);
         Steel.Mask.Effects[0]  = "Warp";
         Steel.Mask.EffectCount = 1u;
     }
@@ -464,7 +464,7 @@ Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
         Gold.Effects[0]  = "Levels";
         Gold.Effects[1]  = "HSL Shift";
         Gold.EffectCount = 2u;
-        SeatPaintMask(Gold, 100u, false);
+        ApplyPaintMask(Gold, 100u, false);
         Gold.Mask.Source = MaskSource::ColourSelection;
         Gold.Mask.Parameters[0] = { "ID Colour", 0.0, 0.0, 0.0, "", false, "ID_04 \xC2\xB7 red" };
         Gold.Mask.Parameters[1] = { "Tolerance", 15.0, 0.0, 100.0, "%", false, nullptr };
@@ -489,7 +489,7 @@ Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
         Concrete.Resolution = 4096u;
     }
 
-    // 📝 The reference seats `sel` on its second outermost entry — Emissive Trim — and unfolds it.
+    // 📝 The reference applies `sel` on its second outermost entry — Emissive Trim — and unfolds it.
     Arrangement.Taken     = 5u;
     Arrangement.TakenHalf = LayerTaken::Layer;
     Arrangement.Entries[5].Unfolded = true;
@@ -497,11 +497,11 @@ Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
     return Outcome<bool>::Result(true);
 }
 
-void SeatReferenceRevisions(const RevisionOrdinate*& Revisions, std::uint32_t& Count)
+void ApplyReferenceRevisions(const RevisionCoordinate*& Revisions, std::uint32_t& Count)
 {
-    // 📝 `lib/store.tsx` seats its revisions from the record it opens on. The same readings are stated here
+    // 📝 `lib/store.tsx` applies its revisions from the record it opens on. The same readings are stated here
     //    so the second pane presents a standing run rather than an empty one.
-    static const RevisionOrdinate Seated[] =
+    static const RevisionCoordinate Applied[] =
     {
         // 📝 The rightwards arrow is written "->": the default typeface carries no U+2192, exactly as it
         //    carries no U+2026, and an absent glyph draws as a hollow box rather than as nothing.
@@ -512,36 +512,36 @@ void SeatReferenceRevisions(const RevisionOrdinate*& Revisions, std::uint32_t& C
         { "Entry opened",       "2026-08-17 08:05", "Paint"                 }
     };
 
-    Revisions = Seated;
-    Count     = static_cast<std::uint32_t>(sizeof Seated / sizeof Seated[0]);
+    Revisions = Applied;
+    Count     = static_cast<std::uint32_t>(sizeof Applied / sizeof Applied[0]);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE MENU RUNS
 //------------------------------------------------------------------------------------------------------------------------
 
-const std::uint32_t* SeatedColourTags()
+const std::uint32_t* AppliedColourTags()
 {
     // 📝 `COLORS`, verbatim and in the reference's own order.
-    static const std::uint32_t Seated[LayerStackCeiling::ColourTags] =
+    static const std::uint32_t Applied[LayerStackCeiling::ColourTags] =
     {
         0xE5484Du, 0xF76B15u, 0xFFC53Du, 0x46A758u, 0x12A594u,
         0x8AB4D8u, 0x9B8CF0u, 0xE93D82u, 0x8B8D98u, 0xB0E64Cu
     };
 
-    return Seated;
+    return Applied;
 }
 
 const char* const* PlacementOptions(LayerContent Content, std::uint32_t& Count)
 {
     // 📝 `DECAL`'s `proj` run, verbatim.
-    static const char* const SeatedProjections[] =
+    static const char* const AppliedProjections[] =
     {
         "Planar", "Tri-Planar", "UV", "Spherical", "Screen Space"
     };
 
     // 📝 `PATTERN`'s `pat` run, verbatim.
-    static const char* const SeatedPatterns[] =
+    static const char* const AppliedPatterns[] =
     {
         "Hex Grid", "Square Grid", "Herringbone", "Dots", "Stripes", "Diamond Plate", "Rivets",
         "Camo", "Woven", "Brick", "Voronoi"
@@ -549,26 +549,26 @@ const char* const* PlacementOptions(LayerContent Content, std::uint32_t& Count)
 
     if (Content == LayerContent::Pattern)
     {
-        Count = static_cast<std::uint32_t>(sizeof SeatedPatterns / sizeof SeatedPatterns[0]);
-        return SeatedPatterns;
+        Count = static_cast<std::uint32_t>(sizeof AppliedPatterns / sizeof AppliedPatterns[0]);
+        return AppliedPatterns;
     }
 
-    Count = static_cast<std::uint32_t>(sizeof SeatedProjections / sizeof SeatedProjections[0]);
-    return SeatedProjections;
+    Count = static_cast<std::uint32_t>(sizeof AppliedProjections / sizeof AppliedProjections[0]);
+    return AppliedProjections;
 }
 
 const char* const* EffectNaming(std::uint32_t& Count)
 {
     // 📝 `EFFECTS`, verbatim.
-    static const char* const Seated[] =
+    static const char* const Applied[] =
     {
         "Blur", "Blur Slope", "Sharpen", "Levels", "HSL Shift", "Warp", "Noise", "Curvature",
         "Anchor Point", "Clamp", "Contrast / Luminosity", "Height to Normal", "Normal to Height",
         "Matte Fill"
     };
 
-    Count = static_cast<std::uint32_t>(sizeof Seated / sizeof Seated[0]);
-    return Seated;
+    Count = static_cast<std::uint32_t>(sizeof Applied / sizeof Applied[0]);
+    return Applied;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -590,11 +590,11 @@ static bool RunCarries(const char* Within, const char* Sought)
         return (Written >= 'A' && Written <= 'Z') ? static_cast<char>(Written - 'A' + 'a') : Written;
     };
 
-    for (std::uint32_t Seat = 0u; Within[Seat] != '\0'; ++Seat)
+    for (std::uint32_t Ordinal = 0u; Within[Ordinal] != '\0'; ++Ordinal)
     {
         std::uint32_t Walk = 0u;
 
-        while (Sought[Walk] != '\0' && Lowered(Within[Seat + Walk]) == Lowered(Sought[Walk]))
+        while (Sought[Walk] != '\0' && Lowered(Within[Ordinal + Walk]) == Lowered(Sought[Walk]))
             ++Walk;
 
         if (Sought[Walk] == '\0')
@@ -625,8 +625,8 @@ bool EntryRetained(const LayerArrangement& Arrangement, std::uint32_t Ordinal, c
     return false;
 }
 
-std::uint32_t PresentedHalves(const LayerArrangement& Arrangement, const char* Retention,
-                              PresentedHalf* Written, std::uint32_t Ceiling)
+std::uint32_t CurrentHalves(const LayerArrangement& Arrangement, const char* Retention,
+                              CurrentHalf* Written, std::uint32_t Ceiling)
 {
     if (Written == nullptr || Ceiling == 0u)
         return 0u;
@@ -638,10 +638,10 @@ std::uint32_t PresentedHalves(const LayerArrangement& Arrangement, const char* R
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Arrangement.EntryCount; ++Ordinal)
     {
-        const bool Presented = Retaining ? EntryRetained(Arrangement, Ordinal, Retention)
-                                         : EntryPresented(Arrangement, Ordinal);
+        const bool Current = Retaining ? EntryRetained(Arrangement, Ordinal, Retention)
+                                         : EntryCurrent(Arrangement, Ordinal);
 
-        if (!Presented)
+        if (!Current)
             continue;
 
         if (Occupied >= Ceiling)
@@ -698,16 +698,16 @@ static std::uint32_t SubrunSpan(const LayerArrangement& Arrangement, std::uint32
     return 1u + EnclosedCount(Arrangement, Ordinal);
 }
 
-static void ReverseRun(LayerArrangement& Arrangement, std::uint32_t Least, std::uint32_t Most)
+static void ReverseRun(LayerArrangement& Arrangement, std::uint32_t Minimum, std::uint32_t Maximum)
 {
-    while (Least + 1u < Most)
+    while (Minimum + 1u < Maximum)
     {
-        const LayerEntry Held             = Arrangement.Entries[Least];
-        Arrangement.Entries[Least]        = Arrangement.Entries[Most - 1u];
-        Arrangement.Entries[Most - 1u]    = Held;
+        const LayerEntry Held             = Arrangement.Entries[Minimum];
+        Arrangement.Entries[Minimum]        = Arrangement.Entries[Maximum - 1u];
+        Arrangement.Entries[Maximum - 1u]    = Held;
 
-        ++Least;
-        --Most;
+        ++Minimum;
+        --Maximum;
     }
 }
 
@@ -760,22 +760,22 @@ bool DeclareEntry(LayerArrangement& Arrangement, LayerContent Content, const cha
     if (Arrangement.EntryCount >= LayerStackCeiling::Entries)
         return false;
 
-    // 📐 `s.list.splice(s.i,0,n)` — the fresh entry is seated immediately above whatever stands taken, at
+    // 📐 `s.list.splice(s.i,0,n)` — the fresh entry is applied immediately above whatever stands taken, at
     //    that entry's own nesting, so an addition inside an open folder stays inside it.
-    const std::uint32_t Seat  = (Arrangement.Taken < Arrangement.EntryCount) ? Arrangement.Taken : 0u;
-    const std::uint32_t Depth = (Arrangement.EntryCount > 0u) ? Arrangement.Entries[Seat].Depth : 0u;
+    const std::uint32_t Ordinal  = (Arrangement.Taken < Arrangement.EntryCount) ? Arrangement.Taken : 0u;
+    const std::uint32_t Depth = (Arrangement.EntryCount > 0u) ? Arrangement.Entries[Ordinal].Depth : 0u;
 
-    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Seat; --Walk)
+    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Ordinal; --Walk)
         Arrangement.Entries[Walk] = Arrangement.Entries[Walk - 1u];
 
-    LayerEntry& Declared = Arrangement.Entries[Seat];
+    LayerEntry& Declared = Arrangement.Entries[Ordinal];
 
     Declared         = LayerEntry{};
     Declared.Content = Content;
     Declared.Depth   = Depth;
 
-    SeatNaming(Declared, Naming);
-    SeatChannels(Declared);
+    ApplyNaming(Declared, Naming);
+    ApplyChannels(Declared);
 
     if (Content == LayerContent::Folder)
     {
@@ -785,7 +785,7 @@ bool DeclareEntry(LayerArrangement& Arrangement, LayerContent Content, const cha
 
     ++Arrangement.EntryCount;
 
-    Arrangement.Taken     = Seat;
+    Arrangement.Taken     = Ordinal;
     Arrangement.TakenHalf = LayerTaken::Layer;
 
     ResolveEnclosing(Arrangement);
@@ -800,15 +800,15 @@ bool RetireTaken(LayerArrangement& Arrangement)
     // 📐 The mask half retires the mask alone, exactly as `aDel` branches on `selMask`.
     if (Arrangement.TakenHalf == LayerTaken::Mask)
     {
-        Arrangement.Entries[Arrangement.Taken].Mask = MaskOrdinate{};
+        Arrangement.Entries[Arrangement.Taken].Mask = MaskCoordinate{};
         Arrangement.TakenHalf                       = LayerTaken::Layer;
         return true;
     }
 
-    const std::uint32_t Seat = Arrangement.Taken;
-    const std::uint32_t Span = SubrunSpan(Arrangement, Seat);
+    const std::uint32_t Ordinal = Arrangement.Taken;
+    const std::uint32_t Span = SubrunSpan(Arrangement, Ordinal);
 
-    for (std::uint32_t Walk = Seat; Walk + Span < Arrangement.EntryCount; ++Walk)
+    for (std::uint32_t Walk = Ordinal; Walk + Span < Arrangement.EntryCount; ++Walk)
         Arrangement.Entries[Walk] = Arrangement.Entries[Walk + Span];
 
     Arrangement.EntryCount -= Span;
@@ -817,7 +817,7 @@ bool RetireTaken(LayerArrangement& Arrangement)
         Arrangement.Soloed = LayerStackCeiling::AbsentOrdinal;
 
     Arrangement.Taken     = (Arrangement.EntryCount == 0u) ? 0u
-                          : ((Seat < Arrangement.EntryCount) ? Seat : Arrangement.EntryCount - 1u);
+                          : ((Ordinal < Arrangement.EntryCount) ? Ordinal : Arrangement.EntryCount - 1u);
     Arrangement.TakenHalf = LayerTaken::Layer;
 
     ResolveEnclosing(Arrangement);
@@ -829,26 +829,26 @@ bool DuplicateTaken(LayerArrangement& Arrangement)
     if (Arrangement.Taken >= Arrangement.EntryCount)
         return false;
 
-    const std::uint32_t Seat = Arrangement.Taken;
-    const std::uint32_t Span = SubrunSpan(Arrangement, Seat);
+    const std::uint32_t Ordinal = Arrangement.Taken;
+    const std::uint32_t Span = SubrunSpan(Arrangement, Ordinal);
 
     if (Arrangement.EntryCount + Span > LayerStackCeiling::Entries)
         return false;
 
-    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Seat; --Walk)
+    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Ordinal; --Walk)
         Arrangement.Entries[Walk + Span - 1u] = Arrangement.Entries[Walk - 1u];
 
     for (std::uint32_t Walk = 0u; Walk < Span; ++Walk)
-        Arrangement.Entries[Seat + Walk] = Arrangement.Entries[Seat + Span + Walk];
+        Arrangement.Entries[Ordinal + Walk] = Arrangement.Entries[Ordinal + Span + Walk];
 
     // 📐 `c.name=s.node.name+' copy'` — only the copied head is renamed, never what it encloses.
     char Copied[LayerStackCeiling::NamingCeiling] = {};
     std::snprintf(Copied, sizeof Copied, "%.*s copy",
-                  static_cast<int>(LayerStackCeiling::NamingCeiling - 7u), Arrangement.Entries[Seat].Naming);
-    SeatNaming(Arrangement.Entries[Seat], Copied);
+                  static_cast<int>(LayerStackCeiling::NamingCeiling - 7u), Arrangement.Entries[Ordinal].Naming);
+    ApplyNaming(Arrangement.Entries[Ordinal], Copied);
 
     Arrangement.EntryCount += Span;
-    Arrangement.Taken       = Seat;
+    Arrangement.Taken       = Ordinal;
     Arrangement.TakenHalf   = LayerTaken::Layer;
 
     ResolveEnclosing(Arrangement);
@@ -863,35 +863,35 @@ bool EncloseTaken(LayerArrangement& Arrangement)
     if (Arrangement.EntryCount >= LayerStackCeiling::Entries)
         return false;
 
-    const std::uint32_t Seat = Arrangement.Taken;
-    const std::uint32_t Span = SubrunSpan(Arrangement, Seat);
+    const std::uint32_t Ordinal = Arrangement.Taken;
+    const std::uint32_t Span = SubrunSpan(Arrangement, Ordinal);
 
-    if (DeepestWithin(Arrangement, Seat, Span) + 1u >= LayerStackCeiling::Depth)
+    if (DeepestWithin(Arrangement, Ordinal, Span) + 1u >= LayerStackCeiling::Depth)
         return false;
 
-    const std::uint32_t Depth = Arrangement.Entries[Seat].Depth;
+    const std::uint32_t Depth = Arrangement.Entries[Ordinal].Depth;
 
-    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Seat; --Walk)
+    for (std::uint32_t Walk = Arrangement.EntryCount; Walk > Ordinal; --Walk)
         Arrangement.Entries[Walk] = Arrangement.Entries[Walk - 1u];
 
     ++Arrangement.EntryCount;
 
-    for (std::uint32_t Walk = Seat + 1u; Walk <= Seat + Span; ++Walk)
+    for (std::uint32_t Walk = Ordinal + 1u; Walk <= Ordinal + Span; ++Walk)
         ++Arrangement.Entries[Walk].Depth;
 
-    LayerEntry& Folder = Arrangement.Entries[Seat];
+    LayerEntry& Folder = Arrangement.Entries[Ordinal];
 
     Folder           = LayerEntry{};
     Folder.Content   = LayerContent::Folder;
     Folder.Blend     = "Passthrough";
     Folder.Opened    = true;
     Folder.Depth     = Depth;
-    Folder.ColourTag = Arrangement.Entries[Seat + 1u].ColourTag;
+    Folder.ColourTag = Arrangement.Entries[Ordinal + 1u].ColourTag;
 
-    SeatNaming(Folder, "Group");
-    SeatChannels(Folder);
+    ApplyNaming(Folder, "Group");
+    ApplyChannels(Folder);
 
-    Arrangement.Taken     = Seat;
+    Arrangement.Taken     = Ordinal;
     Arrangement.TakenHalf = LayerTaken::Layer;
 
     ResolveEnclosing(Arrangement);
@@ -903,13 +903,13 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
     if (Arrangement.Taken >= Arrangement.EntryCount)
         return false;
 
-    const std::uint32_t Seat  = Arrangement.Taken;
-    const std::uint32_t Span  = SubrunSpan(Arrangement, Seat);
-    const std::uint32_t Depth = Arrangement.Entries[Seat].Depth;
+    const std::uint32_t Ordinal  = Arrangement.Taken;
+    const std::uint32_t Span  = SubrunSpan(Arrangement, Ordinal);
+    const std::uint32_t Depth = Arrangement.Entries[Ordinal].Depth;
 
     if (Downward)
     {
-        const std::uint32_t Neighbour = Seat + Span;
+        const std::uint32_t Neighbour = Ordinal + Span;
 
         // 📐 Nothing follows at this nesting, so the entry steps OUT of whatever encloses it.
         if (Neighbour >= Arrangement.EntryCount || Arrangement.Entries[Neighbour].Depth < Depth)
@@ -917,7 +917,7 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
             if (Depth == 0u)
                 return false;
 
-            for (std::uint32_t Walk = Seat; Walk < Seat + Span; ++Walk)
+            for (std::uint32_t Walk = Ordinal; Walk < Ordinal + Span; ++Walk)
                 --Arrangement.Entries[Walk].Depth;
 
             ResolveEnclosing(Arrangement);
@@ -931,30 +931,30 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
         if (Arrangement.Entries[Neighbour].Content == LayerContent::Folder &&
             Arrangement.Entries[Neighbour].Opened)
         {
-            if (DeepestWithin(Arrangement, Seat, Span) + 1u >= LayerStackCeiling::Depth)
+            if (DeepestWithin(Arrangement, Ordinal, Span) + 1u >= LayerStackCeiling::Depth)
                 return false;
 
-            CarrySubrun(Arrangement, Seat, Span, Seat + 1u);
+            CarrySubrun(Arrangement, Ordinal, Span, Ordinal + 1u);
 
-            for (std::uint32_t Walk = Seat + 1u; Walk < Seat + 1u + Span; ++Walk)
+            for (std::uint32_t Walk = Ordinal + 1u; Walk < Ordinal + 1u + Span; ++Walk)
                 ++Arrangement.Entries[Walk].Depth;
 
-            Arrangement.Taken = Seat + 1u;
+            Arrangement.Taken = Ordinal + 1u;
             ResolveEnclosing(Arrangement);
             return true;
         }
 
-        CarrySubrun(Arrangement, Seat, Span, Seat + NeighbourSpan);
-        Arrangement.Taken = Seat + NeighbourSpan;
+        CarrySubrun(Arrangement, Ordinal, Span, Ordinal + NeighbourSpan);
+        Arrangement.Taken = Ordinal + NeighbourSpan;
         ResolveEnclosing(Arrangement);
         return true;
     }
 
     // 📐 Upward. The preceding neighbour is found by walking back to the nearest entry at this nesting.
-    if (Seat == 0u)
+    if (Ordinal == 0u)
         return false;
 
-    std::uint32_t Preceding = Seat;
+    std::uint32_t Preceding = Ordinal;
 
     while (Preceding > 0u && Arrangement.Entries[Preceding - 1u].Depth > Depth)
         --Preceding;
@@ -967,10 +967,10 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
         // 📐 Stepping out of the enclosing folder, which now sits immediately before this subrun.
         const std::uint32_t Enclosing = Preceding - 1u;
 
-        for (std::uint32_t Walk = Seat; Walk < Seat + Span; ++Walk)
+        for (std::uint32_t Walk = Ordinal; Walk < Ordinal + Span; ++Walk)
             --Arrangement.Entries[Walk].Depth;
 
-        CarrySubrun(Arrangement, Seat, Span, Enclosing);
+        CarrySubrun(Arrangement, Ordinal, Span, Enclosing);
 
         Arrangement.Taken = Enclosing;
         ResolveEnclosing(Arrangement);
@@ -982,18 +982,18 @@ bool CarryTaken(LayerArrangement& Arrangement, bool Downward)
     if (Arrangement.Entries[Neighbour].Content == LayerContent::Folder &&
         Arrangement.Entries[Neighbour].Opened)
     {
-        if (DeepestWithin(Arrangement, Seat, Span) + 1u >= LayerStackCeiling::Depth)
+        if (DeepestWithin(Arrangement, Ordinal, Span) + 1u >= LayerStackCeiling::Depth)
             return false;
 
         // 📐 `nb.kids.push(n)` — stepping up into an open folder lands at its END, not its beginning.
-        for (std::uint32_t Walk = Seat; Walk < Seat + Span; ++Walk)
+        for (std::uint32_t Walk = Ordinal; Walk < Ordinal + Span; ++Walk)
             ++Arrangement.Entries[Walk].Depth;
 
         ResolveEnclosing(Arrangement);
         return true;
     }
 
-    CarrySubrun(Arrangement, Seat, Span, Neighbour);
+    CarrySubrun(Arrangement, Ordinal, Span, Neighbour);
     Arrangement.Taken = Neighbour;
     ResolveEnclosing(Arrangement);
     return true;
@@ -1008,12 +1008,12 @@ bool ToggleMask(LayerArrangement& Arrangement)
 
     if (Entry.Mask.Declared)
     {
-        Entry.Mask            = MaskOrdinate{};
+        Entry.Mask            = MaskCoordinate{};
         Arrangement.TakenHalf = LayerTaken::Layer;
         return true;
     }
 
-    SeatPaintMask(Entry, 100u, true);
+    ApplyPaintMask(Entry, 100u, true);
     Entry.Mask.Unfolded   = true;
     Arrangement.TakenHalf = LayerTaken::Mask;
     return true;
@@ -1058,9 +1058,9 @@ bool CarryEntry(LayerArrangement& Arrangement, std::uint32_t Carried, std::uint3
 
     const std::uint32_t Span     = SubrunSpan(Arrangement, Carried);
     const std::uint32_t Deepest  = DeepestWithin(Arrangement, Carried, Span);
-    const std::uint32_t Standing = Arrangement.Entries[Carried].Depth;
+    const std::uint32_t Current = Arrangement.Entries[Carried].Depth;
 
-    std::uint32_t Seat  = 0u;
+    std::uint32_t Ordinal  = 0u;
     std::uint32_t Depth = 0u;
 
     if (Enclosed)
@@ -1069,27 +1069,27 @@ bool CarryEntry(LayerArrangement& Arrangement, std::uint32_t Carried, std::uint3
             return false;
 
         Depth = Arrangement.Entries[Destined].Depth + 1u;
-        Seat  = Destined + 1u;
+        Ordinal  = Destined + 1u;
 
         Arrangement.Entries[Destined].Opened = true;
     }
     else
     {
         Depth = Arrangement.Entries[Destined].Depth;
-        Seat  = Trailing ? (Destined + SubrunSpan(Arrangement, Destined)) : Destined;
+        Ordinal  = Trailing ? (Destined + SubrunSpan(Arrangement, Destined)) : Destined;
     }
 
-    if (Deepest - Standing + Depth >= LayerStackCeiling::Depth)
+    if (Deepest - Current + Depth >= LayerStackCeiling::Depth)
         return false;
 
     // 📐 A seat beyond the carried subrun is measured against a run that still holds it, so it steps back
     //    by the span the removal will take out from under it.
-    const std::uint32_t Resolved = (Seat > Carried) ? (Seat - Span) : Seat;
+    const std::uint32_t Resolved = (Ordinal > Carried) ? (Ordinal - Span) : Ordinal;
 
     CarrySubrun(Arrangement, Carried, Span, Resolved);
 
     for (std::uint32_t Walk = Resolved; Walk < Resolved + Span; ++Walk)
-        Arrangement.Entries[Walk].Depth = Arrangement.Entries[Walk].Depth - Standing + Depth;
+        Arrangement.Entries[Walk].Depth = Arrangement.Entries[Walk].Depth - Current + Depth;
 
     Arrangement.Taken     = Resolved;
     Arrangement.TakenHalf = LayerTaken::Layer;
@@ -1102,7 +1102,7 @@ bool CarryEntry(LayerArrangement& Arrangement, std::uint32_t Carried, std::uint3
 //                                                    THE REVISION RING
 //------------------------------------------------------------------------------------------------------------------------
 
-void RevisionSequence::Record(const LayerArrangement& Standing, const char* Naming)
+void RevisionSequence::Record(const LayerArrangement& Current, const char* Naming)
 {
     // 📐 `snap()` — the recorded run drops its oldest reading once it is full, and every reinstatable
     //    reading is abandoned, because a fresh amendment makes the branch they belonged to unreachable.
@@ -1117,44 +1117,44 @@ void RevisionSequence::Record(const LayerArrangement& Standing, const char* Nami
         --Recorded;
     }
 
-    Reverting[Recorded] = Standing;
+    Reverting[Recorded] = Current;
     Namings[Recorded]   = (Naming != nullptr) ? Naming : "";
     ++Recorded;
 
     Reinstatable = 0u;
 }
 
-bool RevisionSequence::Revert(LayerArrangement& Standing)
+bool RevisionSequence::Revert(LayerArrangement& Current)
 {
     if (Recorded == 0u)
         return false;
 
     if (Reinstatable < RevisionCeiling)
     {
-        Reinstating[Reinstatable]      = Standing;
+        Reinstating[Reinstatable]      = Current;
         ReinstateNamings[Reinstatable] = Namings[Recorded - 1u];
         ++Reinstatable;
     }
 
     --Recorded;
-    Standing = Reverting[Recorded];
+    Current = Reverting[Recorded];
     return true;
 }
 
-bool RevisionSequence::Reinstate(LayerArrangement& Standing)
+bool RevisionSequence::Reinstate(LayerArrangement& Current)
 {
     if (Reinstatable == 0u)
         return false;
 
     if (Recorded < RevisionCeiling)
     {
-        Reverting[Recorded] = Standing;
+        Reverting[Recorded] = Current;
         Namings[Recorded]   = ReinstateNamings[Reinstatable - 1u];
         ++Recorded;
     }
 
     --Reinstatable;
-    Standing = Reinstating[Reinstatable];
+    Current = Reinstating[Reinstatable];
     return true;
 }
 

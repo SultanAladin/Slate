@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                             REFERENCEINDEX.H
 //============================================================================================================================================
-// 🧩 `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence enrolled.
+// 🧩 `48` §5 — what one document depends on outside itself, each declared embedded or referenced, absence registered.
 
 #pragma once
 
@@ -44,17 +44,17 @@ enum class ReferenceRetention : std::uint32_t
 };
 
 /// 🧩 Whether a declared reference was found where the document said it would be.
-/// note  🔴 `48` §5: Absent is a standing a reference **holds**, not a refusal that discards it. The occupant
-///        stays enrolled, reports what it was looking for, and presents as missing. A document that substituted
+/// note  🔴 `48` §5: Absent is a standing a reference **holds**, not a refusal that discards it. The owner
+///        stays registered, reports what it was looking for, and presents as missing. A document that substituted
 ///        a default for a missing texture is one the artist saves over with the defaults baked in, and the
 ///        original path is gone from the file at that point.
 /// tag   contract
-enum class ReferenceStanding : std::uint32_t
+enum class ReferenceCondition : std::uint32_t
 {
     Unresolved    = 0u,   // [-] - declared, not yet looked for
     Resolved      = 1u,   // [-] - found where the document named it
-    Absent        = 2u,   // [-] - looked for and not there; enrolled, never substituted
-    StandingCount = 3u    // [-] - the closed count, never a standing
+    Absent        = 2u,   // [-] - looked for and not there; registered, never substituted
+    CurrentCount = 3u    // [-] - the closed count, never a standing
 };
 
 /// 🧩 The retention `48` §5's table declares for one subject when the document declares none.
@@ -73,18 +73,18 @@ constexpr ReferenceRetention ResolveRetention(ReferenceSubject Subject)
 //                                                   ONE DECLARED REFERENCE
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 One thing the document depends on, the occupant that depends on it, and whether it is there.
-/// note  🔴 The occupant is held so that an absence is presentable **in the outliner**, which is where the artist
-///        is looking. An absence recorded without its occupant is a line in a register nobody reads until the
+/// 🧩 One thing the document depends on, the owner that depends on it, and whether it is there.
+/// note  🔴 The owner is held so that an absence is presentable **in the outliner**, which is where the artist
+///        is looking. An absence recorded without its owner is a line in a register nobody reads until the
 ///        render is already wrong.
 /// tag   owning
 struct DeclaredReference
 {
-    OccupantIdentity    Enrolled      = {};                                // [-] - the occupant that depends on it
+    OwnerIdentity    Registered      = {};                                // [-] - the owner that depends on it
     std::string         OriginPath    = {};                                // [-] - UTF-8; empty for embedded content
     ReferenceSubject    Subject       = ReferenceSubject::PaintedContent;  // [-] - which of `48` §5's five rows
     ReferenceRetention  Retention     = ReferenceRetention::Embedded;      // [-] - declared per document, per `48` §5
-    ReferenceStanding   Standing      = ReferenceStanding::Unresolved;     // [-] - whether it was found
+    ReferenceCondition   Condition      = ReferenceCondition::Unresolved;     // [-] - whether it was found
     std::uint64_t       SpannedBytes  = 0u;                                // [B] - as last resolved; zero when absent
 };
 
@@ -93,7 +93,7 @@ struct DeclaredReference
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Every external dependency of one document, by identity, with the typeface answer the document was made under.
-/// note  🔴 `48` §5: a missing reference is an enrolled absence and never a substitution. Nothing here produces
+/// note  🔴 `48` §5: a missing reference is an registered absence and never a substitution. Nothing here produces
 ///        stand-in content, and there is deliberately no routine that would.
 /// note  ⚠️ Held per document rather than per application. Two documents referring to the same imagery declare it
 ///        twice, because each has to open on its own — a shared declaration would make the second document's
@@ -104,13 +104,13 @@ class ReferenceIndex
 public:
 
     /// 🧩 Declares one external dependency and issues the ordinal that addresses it.
-    /// in    Arriving  [-]  the reference; Retention is honoured as given
+    /// in    Incoming  [-]  the reference; Retention is honoured as given
     /// out   Result   [-]  refuses with ContentUnsupported for a Referenced entry naming no path
     /// note  📝 A Referenced entry with no path cannot be looked for, so it could only ever stand Unresolved.
-    ///        Admitting it would put a permanent unknown into the document with nothing able to settle it.
+    ///        Accepting it would put a permanent unknown into the document with nothing able to settle it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Declare(const DeclaredReference& Arriving);
+    Outcome<std::uint32_t> Declare(const DeclaredReference& Incoming);
 
     /// 🧩 Declares one reference embedded or referenced, per the document's own answer.
     /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
@@ -124,9 +124,9 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> DeclareResolved(std::uint32_t ReferenceOrdinal, std::uint64_t SpannedBytes);
 
-    /// 🧩 Declares one reference missing — enrolled, reported, and never replaced.
+    /// 🧩 Declares one reference missing — registered, reported, and never replaced.
     /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
-    /// post  the occupant stays enrolled and the origin path stays exactly as the document wrote it
+    /// post  the owner stays registered and the origin path stays exactly as the document wrote it
     /// note  🔴 The path is retained rather than cleared. It is the only thing that tells the artist which file
     ///        to go and find, and clearing it turns a recoverable absence into a permanent one.
     /// cost  ✔️

@@ -85,7 +85,7 @@ Outcome<bool> VulkanExchange::ConstructInstance(bool DiagnosticRequested)
     {
         // 📝 The extension is requested whether or not the layer stands. The loader itself carries
         //    `VK_EXT_debug_utils` on every machine Slate targets, and it is what the diagnostic sink and
-        //    every object name need; the layer only adds the validation messages arriving through it.
+        //    every object name need; the layer only adds the validation messages incoming through it.
         RequestedExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
         if (ValidationAvailable)
@@ -154,7 +154,7 @@ Outcome<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device both draws and presents" });
 
     // 📝 🔴 `SlateUI` declares its recording against a rendering scope carrying its own attachment
-    //    declaration, so a device without dynamic recording is refused here, by the name of the capability
+    //    declaration, so a device without dynamic recording is rejected here, by the name of the capability
     //    it lacks. Creating the device anyway would surface the same absence later as an opaque vendor
     //    error at the first interface recording, with nothing naming what was missing.
     if (!Winner.Scored.DynamicRecordingAvailable)
@@ -188,7 +188,7 @@ Outcome<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
     if (vkCreateDevice(Winner.Candidate, &DeviceDeclaration, nullptr, &ActiveDeviceSlot) != VK_SUCCESS)
     {
         ActiveDeviceSlot = VK_NULL_HANDLE;
-        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the scored device declined creation" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the scored device rejected creation" });
     }
 
     // 📝 🔴 The capability set is fixed here and consulted thereafter. Recovery re-scores rather than

@@ -17,22 +17,22 @@
 
 namespace Slate
 {
-Outcome<bool> RasterCodec::SeatAtlas(void* Identity)
+Outcome<bool> RasterCodec::ApplyAtlas(void* Identity)
 {
     ImGuiIO& VendorIO = ImGui::GetIO();
     if (VendorIO.Fonts == nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no font atlas stands constructed" });
 
-    unsigned char* Ordinates = nullptr;
-    int Along = 0, Across = 0;
-    VendorIO.Fonts->GetTexDataAsRGBA32(&Ordinates, &Along, &Across);
-    if (Ordinates == nullptr)
+    unsigned char* Configuration = nullptr;
+    int X = 0, Y = 0;
+    VendorIO.Fonts->GetTexDataAsRGBA32(&Configuration, &X, &Y);
+    if (Configuration == nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the atlas resolved to no ordinates" });
 
-    AtlasSeat         = Identity;
-    AtlasAlongExtent  = static_cast<std::uint32_t>(Along);
-    AtlasAcrossExtent = static_cast<std::uint32_t>(Across);
-    AtlasData.assign(Ordinates, Ordinates + static_cast<std::size_t>(Along) * Across * 4u);
+    AtlasIdentity         = Identity;
+    AtlasXExtent  = static_cast<std::uint32_t>(X);
+    AtlasYExtent = static_cast<std::uint32_t>(Y);
+    AtlasData.assign(Configuration, Configuration + static_cast<std::size_t>(X) * Y * 4u);
     VendorIO.Fonts->SetTexID(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Identity)));
     return Outcome<bool>::Result(true);
 }
@@ -44,47 +44,47 @@ namespace
 /// tag   internal
 struct ResolvedTexture
 {
-    const std::uint8_t* Ordinates    = nullptr;   // [-] - borrowed RGBA
-    std::uint32_t       AlongExtent  = 1u;        // [px]
-    std::uint32_t       AcrossExtent = 1u;        // [px]
-    bool                Standing     = false;     // [-] - a real texture, else the white constant
+    const std::uint8_t* Configuration    = nullptr;   // [-] - borrowed RGBA
+    std::uint32_t       XExtent  = 1u;        // [px]
+    std::uint32_t       YExtent = 1u;        // [px]
+    bool                Current     = false;     // [-] - a real texture, else the white constant
 };
 
 /// 🧩 One bilinear texture read, clamped to the extent.
-/// in    Along   [-]  normalised sample ordinate along, nought to one
-/// in    Across  [-]  normalised sample ordinate across, nought to one
+/// in    X   [-]  normalised sample coordinate along, nought to one
+/// in    Y  [-]  normalised sample coordinate across, nought to one
 /// note  ⚠️ The vendor records normalised sample ordinates. Reading them as pixel ordinates lands every
 ///       glyph on the atlas's leading white block, which draws text as solid rectangles.
 /// cost  🚩
-void SampleTexture(const ResolvedTexture& Texture, float Along, float Across, float (&Ordinate)[4])
+void SampleTexture(const ResolvedTexture& Texture, float X, float Y, float (&Coordinate)[4])
 {
-    if (!Texture.Standing)
+    if (!Texture.Current)
     {
-        Ordinate[0] = Ordinate[1] = Ordinate[2] = Ordinate[3] = 255.0f;
+        Coordinate[0] = Coordinate[1] = Coordinate[2] = Coordinate[3] = 255.0f;
         return;
     }
 
     // ① Normalised to pixel-centre ordinates, then clamped so the corner reads stay inside the extent.
-    const float SeatedAlong  = Along  * static_cast<float>(Texture.AlongExtent)  - 0.5f;
-    const float SeatedAcross = Across * static_cast<float>(Texture.AcrossExtent) - 0.5f;
+    const float MappedX  = X  * static_cast<float>(Texture.XExtent)  - 0.5f;
+    const float MappedY = Y * static_cast<float>(Texture.YExtent) - 0.5f;
 
-    const float X = SeatedAlong  < 0.0f ? 0.0f : (SeatedAlong  > Texture.AlongExtent  - 1.0f ? Texture.AlongExtent  - 1.0f : SeatedAlong);
-    const float Y = SeatedAcross < 0.0f ? 0.0f : (SeatedAcross > Texture.AcrossExtent - 1.0f ? Texture.AcrossExtent - 1.0f : SeatedAcross);
+    const float ClampedX = MappedX  < 0.0f ? 0.0f : (MappedX  > Texture.XExtent  - 1.0f ? Texture.XExtent  - 1.0f : MappedX);
+    const float ClampedY = MappedY < 0.0f ? 0.0f : (MappedY > Texture.YExtent - 1.0f ? Texture.YExtent - 1.0f : MappedY);
 
-    const std::uint32_t X0 = static_cast<std::uint32_t>(X);
-    const std::uint32_t Y0 = static_cast<std::uint32_t>(Y);
-    const std::uint32_t X1 = X0 + 1u < Texture.AlongExtent ? X0 + 1u : X0;
-    const std::uint32_t Y1 = Y0 + 1u < Texture.AcrossExtent ? Y0 + 1u : Y0;
+    const std::uint32_t X0 = static_cast<std::uint32_t>(ClampedX);
+    const std::uint32_t Y0 = static_cast<std::uint32_t>(ClampedY);
+    const std::uint32_t X1 = X0 + 1u < Texture.XExtent ? X0 + 1u : X0;
+    const std::uint32_t Y1 = Y0 + 1u < Texture.YExtent ? Y0 + 1u : Y0;
     const float FractionX = X - static_cast<float>(X0);
     const float FractionY = Y - static_cast<float>(Y0);
 
     for (std::uint32_t Component = 0u; Component < 4u; ++Component)
     {
-        const float A = static_cast<float>(Texture.Ordinates[(static_cast<std::size_t>(Y0) * Texture.AlongExtent + X0) * 4u + Component]);
-        const float B = static_cast<float>(Texture.Ordinates[(static_cast<std::size_t>(Y0) * Texture.AlongExtent + X1) * 4u + Component]);
-        const float C = static_cast<float>(Texture.Ordinates[(static_cast<std::size_t>(Y1) * Texture.AlongExtent + X0) * 4u + Component]);
-        const float D = static_cast<float>(Texture.Ordinates[(static_cast<std::size_t>(Y1) * Texture.AlongExtent + X1) * 4u + Component]);
-        Ordinate[Component] = (A * (1.0f - FractionX) + B * FractionX) * (1.0f - FractionY)
+        const float A = static_cast<float>(Texture.Configuration[(static_cast<std::size_t>(Y0) * Texture.XExtent + X0) * 4u + Component]);
+        const float B = static_cast<float>(Texture.Configuration[(static_cast<std::size_t>(Y0) * Texture.XExtent + X1) * 4u + Component]);
+        const float C = static_cast<float>(Texture.Configuration[(static_cast<std::size_t>(Y1) * Texture.XExtent + X0) * 4u + Component]);
+        const float D = static_cast<float>(Texture.Configuration[(static_cast<std::size_t>(Y1) * Texture.XExtent + X1) * 4u + Component]);
+        Coordinate[Component] = (A * (1.0f - FractionX) + B * FractionX) * (1.0f - FractionY)
                             + (C * (1.0f - FractionX) + D * FractionX) * FractionY;
     }
 }
@@ -96,27 +96,27 @@ void RasterCodec::Rasterize(const void* RecordedDrawData, PixelSpace& Extent)
     const ImDrawData* Recorded = static_cast<const ImDrawData*>(RecordedDrawData);
 
     // ①① The atlas may have baked late in the tick — resolve its ordinates fresh, every translation.
-    if (AtlasSeat != nullptr)
+    if (AtlasIdentity != nullptr)
     {
-        unsigned char* Ordinates = nullptr;
-        int Along = 0, Across = 0;
-        ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&Ordinates, &Along, &Across);
-        if (Ordinates != nullptr)
+        unsigned char* Configuration = nullptr;
+        int X = 0, Y = 0;
+        ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&Configuration, &X, &Y);
+        if (Configuration != nullptr)
         {
-            AtlasAlongExtent  = static_cast<std::uint32_t>(Along);
-            AtlasAcrossExtent = static_cast<std::uint32_t>(Across);
-            AtlasData.assign(Ordinates, Ordinates + static_cast<std::size_t>(Along) * Across * 4u);
+            AtlasXExtent  = static_cast<std::uint32_t>(X);
+            AtlasYExtent = static_cast<std::uint32_t>(Y);
+            AtlasData.assign(Configuration, Configuration + static_cast<std::size_t>(X) * Y * 4u);
         }
     }
-    Extent.Ordinates.assign(static_cast<std::size_t>(Extent.AcrossExtent) * Extent.AlongExtent * 4u, 0u);
+    Extent.Configuration.assign(static_cast<std::size_t>(Extent.YExtent) * Extent.XExtent * 4u, 0u);
 
     const auto ResolveTexture = [&](ImTextureID Identity) -> ResolvedTexture
     {
-        if (reinterpret_cast<void*>(static_cast<std::uintptr_t>(Identity)) == AtlasSeat && AtlasSeat != nullptr)
-            return { AtlasData.data(), AtlasAlongExtent, AtlasAcrossExtent, true };
-        for (const PictureDeclaration& Picture : Seated)
+        if (reinterpret_cast<void*>(static_cast<std::uintptr_t>(Identity)) == AtlasIdentity && AtlasIdentity != nullptr)
+            return { AtlasData.data(), AtlasXExtent, AtlasYExtent, true };
+        for (const PictureDeclaration& Picture : Applied)
             if (Picture.Identity == reinterpret_cast<void*>(static_cast<std::uintptr_t>(Identity)))
-                return { Picture.Ordinates, Picture.AlongExtent, Picture.AcrossExtent, true };
+                return { Picture.Configuration, Picture.XExtent, Picture.YExtent, true };
         return { nullptr, 1u, 1u, false };
     };
 
@@ -133,10 +133,10 @@ void RasterCodec::Rasterize(const void* RecordedDrawData, PixelSpace& Extent)
                 continue;
 
             const ResolvedTexture Texture = ResolveTexture(Command.GetTexID());
-            const float ClipLeastAlong  = Command.ClipRect.x < 0.0f ? 0.0f : Command.ClipRect.x;
-            const float ClipLeastAcross = Command.ClipRect.y < 0.0f ? 0.0f : Command.ClipRect.y;
-            const float ClipMostAlong   = Command.ClipRect.z > static_cast<float>(Extent.AlongExtent)  ? static_cast<float>(Extent.AlongExtent)  : Command.ClipRect.z;
-            const float ClipMostAcross  = Command.ClipRect.w > static_cast<float>(Extent.AcrossExtent) ? static_cast<float>(Extent.AcrossExtent) : Command.ClipRect.w;
+            const float ClipLeft  = Command.ClipRect.x < 0.0f ? 0.0f : Command.ClipRect.x;
+            const float ClipTop = Command.ClipRect.y < 0.0f ? 0.0f : Command.ClipRect.y;
+            const float ClipRight   = Command.ClipRect.z > static_cast<float>(Extent.XExtent)  ? static_cast<float>(Extent.XExtent)  : Command.ClipRect.z;
+            const float ClipBottom  = Command.ClipRect.w > static_cast<float>(Extent.YExtent) ? static_cast<float>(Extent.YExtent) : Command.ClipRect.w;
 
             for (unsigned int Triangle = 0u; Triangle < Command.ElemCount; Triangle += 3u)
             {
@@ -151,54 +151,54 @@ void RasterCodec::Rasterize(const void* RecordedDrawData, PixelSpace& Extent)
                     continue;
                 const float Orientation = Area > 0.0f ? 1.0f : -1.0f;
 
-                float LeastAlong  = VertexA.pos.x, MostAlong  = VertexA.pos.x;
-                float LeastAcross = VertexA.pos.y, MostAcross = VertexA.pos.y;
+                float MinimumX  = VertexA.pos.x, MaximumX  = VertexA.pos.x;
+                float MinimumY = VertexA.pos.y, MaximumY = VertexA.pos.y;
                 const ImDrawVert* Corners[3] = { &VertexA, &VertexB, &VertexC };
                 for (const ImDrawVert* Corner : Corners)
                 {
-                    LeastAlong  = LeastAlong  < Corner->pos.x ? LeastAlong  : Corner->pos.x;
-                    MostAlong   = MostAlong   > Corner->pos.x ? MostAlong   : Corner->pos.x;
-                    LeastAcross = LeastAcross < Corner->pos.y ? LeastAcross : Corner->pos.y;
-                    MostAcross  = MostAcross  > Corner->pos.y ? MostAcross  : Corner->pos.y;
+                    MinimumX  = MinimumX  < Corner->pos.x ? MinimumX  : Corner->pos.x;
+                    MaximumX   = MaximumX   > Corner->pos.x ? MaximumX   : Corner->pos.x;
+                    MinimumY = MinimumY < Corner->pos.y ? MinimumY : Corner->pos.y;
+                    MaximumY  = MaximumY  > Corner->pos.y ? MaximumY  : Corner->pos.y;
                 }
-                LeastAlong  = LeastAlong  > ClipLeastAlong  ? LeastAlong  : ClipLeastAlong;
-                MostAlong   = MostAlong   < ClipMostAlong   ? MostAlong   : ClipMostAlong;
-                LeastAcross = LeastAcross > ClipLeastAcross ? LeastAcross : ClipLeastAcross;
-                MostAcross  = MostAcross  < ClipMostAcross  ? MostAcross  : ClipMostAcross;
+                MinimumX  = MinimumX  > ClipLeft  ? MinimumX  : ClipLeft;
+                MaximumX   = MaximumX   < ClipRight   ? MaximumX   : ClipRight;
+                MinimumY = MinimumY > ClipTop ? MinimumY : ClipTop;
+                MaximumY  = MaximumY  < ClipBottom  ? MaximumY  : ClipBottom;
 
-                const std::int32_t AcrossBegin = static_cast<std::int32_t>(LeastAcross);
-                const std::int32_t AcrossEnd   = static_cast<std::int32_t>(MostAcross + 1.0f);
-                const std::int32_t AlongBegin  = static_cast<std::int32_t>(LeastAlong);
-                const std::int32_t AlongEnd    = static_cast<std::int32_t>(MostAlong + 1.0f);
+                const std::int32_t YBegin = static_cast<std::int32_t>(MinimumY);
+                const std::int32_t YEnd   = static_cast<std::int32_t>(MaximumY + 1.0f);
+                const std::int32_t XBegin  = static_cast<std::int32_t>(MinimumX);
+                const std::int32_t XEnd    = static_cast<std::int32_t>(MaximumX + 1.0f);
 
-                for (std::int32_t Across = AcrossBegin; Across < AcrossEnd && Across < static_cast<std::int32_t>(Extent.AcrossExtent); ++Across)
+                for (std::int32_t Y = YBegin; Y < YEnd && Y < static_cast<std::int32_t>(Extent.YExtent); ++Y)
                 {
-                    if (Across < 0)
+                    if (Y < 0)
                         continue;
-                    for (std::int32_t Along = AlongBegin; Along < AlongEnd && Along < static_cast<std::int32_t>(Extent.AlongExtent); ++Along)
+                    for (std::int32_t X = XBegin; X < XEnd && X < static_cast<std::int32_t>(Extent.XExtent); ++X)
                     {
-                        if (Along < 0)
+                        if (X < 0)
                             continue;
 
-                        const float CentreAlong  = static_cast<float>(Along) + 0.5f;
-                        const float CentreAcross = static_cast<float>(Across) + 0.5f;
+                        const float CentreX  = static_cast<float>(X) + 0.5f;
+                        const float CentreY = static_cast<float>(Y) + 0.5f;
 
                         // ⚠️ An edge product carries the share of the corner it stands opposite: edge BC weighs
                         //    corner A. Reading edge AB as A's share rotates every interpolated colour and sample
-                        //    ordinate one corner round, which scrambles glyph coverage and haloes the fringe.
-                        const float AlongBC = ((VertexC.pos.x - VertexB.pos.x) * (CentreAcross - VertexB.pos.y)
-                                             - (CentreAlong - VertexB.pos.x) * (VertexC.pos.y - VertexB.pos.y)) * Orientation;
-                        const float AlongCA = ((VertexA.pos.x - VertexC.pos.x) * (CentreAcross - VertexC.pos.y)
-                                             - (CentreAlong - VertexC.pos.x) * (VertexA.pos.y - VertexC.pos.y)) * Orientation;
-                        const float AlongAB = ((VertexB.pos.x - VertexA.pos.x) * (CentreAcross - VertexA.pos.y)
-                                             - (CentreAlong - VertexA.pos.x) * (VertexB.pos.y - VertexA.pos.y)) * Orientation;
-                        if (AlongBC < 0.0f || AlongCA < 0.0f || AlongAB < 0.0f)
+                        //    coordinate one corner round, which scrambles glyph coverage and haloes the fringe.
+                        const float XBC = ((VertexC.pos.x - VertexB.pos.x) * (CentreY - VertexB.pos.y)
+                                             - (CentreX - VertexB.pos.x) * (VertexC.pos.y - VertexB.pos.y)) * Orientation;
+                        const float XCA = ((VertexA.pos.x - VertexC.pos.x) * (CentreY - VertexC.pos.y)
+                                             - (CentreX - VertexC.pos.x) * (VertexA.pos.y - VertexC.pos.y)) * Orientation;
+                        const float XAB = ((VertexB.pos.x - VertexA.pos.x) * (CentreY - VertexA.pos.y)
+                                             - (CentreX - VertexA.pos.x) * (VertexB.pos.y - VertexA.pos.y)) * Orientation;
+                        if (XBC < 0.0f || XCA < 0.0f || XAB < 0.0f)
                             continue;
 
                         const float InverseArea = 1.0f / Area * Orientation;
-                        const float ShareA = AlongBC * InverseArea;
-                        const float ShareB = AlongCA * InverseArea;
-                        const float ShareC = AlongAB * InverseArea;
+                        const float ShareA = XBC * InverseArea;
+                        const float ShareB = XCA * InverseArea;
+                        const float ShareC = XAB * InverseArea;
 
                         float Colour[4];
                         for (std::uint32_t Component = 0u; Component < 4u; ++Component)
@@ -209,28 +209,28 @@ void RasterCodec::Rasterize(const void* RecordedDrawData, PixelSpace& Extent)
                             Colour[Component] = ChannelA * ShareA + ChannelB * ShareB + ChannelC * ShareC;
                         }
 
-                        const float SampleAlong = VertexA.uv.x * ShareA + VertexB.uv.x * ShareB + VertexC.uv.x * ShareC;
-                        const float SampleAcross = VertexA.uv.y * ShareA + VertexB.uv.y * ShareB + VertexC.uv.y * ShareC;
-                        float TextureOrdinate[4];
-                        SampleTexture(Texture, SampleAlong, SampleAcross, TextureOrdinate);
+                        const float SampleX = VertexA.uv.x * ShareA + VertexB.uv.x * ShareB + VertexC.uv.x * ShareC;
+                        const float SampleY = VertexA.uv.y * ShareA + VertexB.uv.y * ShareB + VertexC.uv.y * ShareC;
+                        float TextureCoordinate[4];
+                        SampleTexture(Texture, SampleX, SampleY, TextureCoordinate);
 
                         // ② Modulate, then source-over in straight alpha onto the extent.
-                        const float SourceAlpha = (Colour[3] / 255.0f) * (TextureOrdinate[3] / 255.0f);
+                        const float SourceAlpha = (Colour[3] / 255.0f) * (TextureCoordinate[3] / 255.0f);
                         if (SourceAlpha <= 0.0f)
                             continue;
 
-                        std::uint8_t* Seat = &Extent.Ordinates[(static_cast<std::size_t>(Across) * Extent.AlongExtent + Along) * 4u];
-                        const float StandingAlpha = Seat[3] / 255.0f;
-                        const float BlendedAlpha = SourceAlpha + StandingAlpha * (1.0f - SourceAlpha);
+                        std::uint8_t* Pixel = &Extent.Configuration[(static_cast<std::size_t>(Y) * Extent.XExtent + X) * 4u];
+                        const float CurrentAlpha = Pixel[3] / 255.0f;
+                        const float BlendedAlpha = SourceAlpha + CurrentAlpha * (1.0f - SourceAlpha);
 
                         for (std::uint32_t Component = 0u; Component < 3u; ++Component)
                         {
-                            const float SourceChannel = (Colour[Component] / 255.0f) * (TextureOrdinate[Component] / 255.0f) * 255.0f;
-                            const float StandingChannel = Seat[Component];
-                            const float Blended = SourceAlpha * SourceChannel + StandingAlpha * (1.0f - SourceAlpha) * StandingChannel;
-                            Seat[Component] = static_cast<std::uint8_t>(BlendedAlpha > 0.0f ? Blended / BlendedAlpha + 0.5f : 0u);
+                            const float SourceChannel = (Colour[Component] / 255.0f) * (TextureCoordinate[Component] / 255.0f) * 255.0f;
+                            const float CurrentChannel = Pixel[Component];
+                            const float Blended = SourceAlpha * SourceChannel + CurrentAlpha * (1.0f - SourceAlpha) * CurrentChannel;
+                            Pixel[Component] = static_cast<std::uint8_t>(BlendedAlpha > 0.0f ? Blended / BlendedAlpha + 0.5f : 0u);
                         }
-                        Seat[3] = static_cast<std::uint8_t>(BlendedAlpha * 255.0f + 0.5f);
+                        Pixel[3] = static_cast<std::uint8_t>(BlendedAlpha * 255.0f + 0.5f);
                     }
                 }
             }
@@ -242,12 +242,12 @@ Outcome<bool> RasterCodec::WriteRawDump(const PixelSpace& Extent, const char* Pa
 {
     std::FILE* Stream = std::fopen(Path, "wb");
     if (Stream == nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the raw dump path refused to open" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the raw dump path failed to open" });
 
     std::fwrite("RIFTRAW1", 1u, 8u, Stream);
-    const std::uint32_t Header[2] = { Extent.AlongExtent, Extent.AcrossExtent };
+    const std::uint32_t Header[2] = { Extent.XExtent, Extent.YExtent };
     std::fwrite(Header, sizeof(std::uint32_t), 2u, Stream);
-    std::fwrite(Extent.Ordinates.data(), 1u, Extent.Ordinates.size(), Stream);
+    std::fwrite(Extent.Configuration.data(), 1u, Extent.Configuration.size(), Stream);
     std::fclose(Stream);
     return Outcome<bool>::Result(true);
 }
@@ -259,22 +259,22 @@ namespace
 /// cost  🚩
 std::uint32_t CyclicRedundancyCheck(const std::uint8_t* Run, std::size_t Extent)
 {
-    static std::uint32_t Standing[256];
-    static bool Seated = false;
-    if (!Seated)
+    static std::uint32_t Current[256];
+    static bool Applied = false;
+    if (!Applied)
     {
         for (std::uint32_t Ordinal = 0u; Ordinal < 256u; ++Ordinal)
         {
             std::uint32_t Remainder = Ordinal;
             for (int Cycle = 0; Cycle < 8; ++Cycle)
                 Remainder = (Remainder & 1u) ? (Remainder >> 1) ^ 0xEDB88320u : (Remainder >> 1);
-            Standing[Ordinal] = Remainder;
+            Current[Ordinal] = Remainder;
         }
-        Seated = true;
+        Applied = true;
     }
     std::uint32_t Check = 0xFFFFFFFFu;
     for (std::size_t Ordinal = 0u; Ordinal < Extent; ++Ordinal)
-        Check = Standing[(Check ^ Run[Ordinal]) & 0xFFu] ^ (Check >> 8);
+        Check = Current[(Check ^ Run[Ordinal]) & 0xFFu] ^ (Check >> 8);
     return Check ^ 0xFFFFFFFFu;
 }
 
@@ -292,12 +292,12 @@ std::uint32_t AdlerThirtyTwo(const std::uint8_t* Run, std::size_t Extent)
     return (Upper << 16) | Lower;
 }
 
-/// 🧩 Writes one big-endian ordinate.
+/// 🧩 Writes one big-endian coordinate.
 /// cost  ✔️
-void WriteBigEndian(std::FILE* Stream, std::uint32_t Ordinate)
+void WriteBigEndian(std::FILE* Stream, std::uint32_t Coordinate)
 {
-    const std::uint8_t Run[4] = { static_cast<std::uint8_t>(Ordinate >> 24), static_cast<std::uint8_t>(Ordinate >> 16),
-                                  static_cast<std::uint8_t>(Ordinate >> 8), static_cast<std::uint8_t>(Ordinate) };
+    const std::uint8_t Run[4] = { static_cast<std::uint8_t>(Coordinate >> 24), static_cast<std::uint8_t>(Coordinate >> 16),
+                                  static_cast<std::uint8_t>(Coordinate >> 8), static_cast<std::uint8_t>(Coordinate) };
     std::fwrite(Run, 1u, 4u, Stream);
 }
 
@@ -315,15 +315,15 @@ Outcome<bool> RasterCodec::WritePortableNetworkGraphic(const PixelSpace& Extent,
 
     std::FILE* Stream = std::fopen(Path, "wb");
     if (Stream == nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the proof path refused to open" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the proof path failed to open" });
 
     // ② Scanlines — filter 0, one stride each.
-    const std::size_t Stride = static_cast<std::size_t>(Extent.AlongExtent) * 4u;
-    std::vector<std::uint8_t> Scanlines((static_cast<std::size_t>(Extent.AcrossExtent)) * (Stride + 1u), 0u);
-    for (std::uint32_t Across = 0u; Across < Extent.AcrossExtent && Extent.AcrossExtent > 0u; ++Across)
+    const std::size_t Stride = static_cast<std::size_t>(Extent.XExtent) * 4u;
+    std::vector<std::uint8_t> Scanlines((static_cast<std::size_t>(Extent.YExtent)) * (Stride + 1u), 0u);
+    for (std::uint32_t Y = 0u; Y < Extent.YExtent && Extent.YExtent > 0u; ++Y)
         if (Stride > 0u)
-            std::memcpy(&Scanlines[static_cast<std::size_t>(Across) * (Stride + 1u) + 1u],
-                        &Extent.Ordinates[static_cast<std::size_t>(Across) * Stride], Stride);
+            std::memcpy(&Scanlines[static_cast<std::size_t>(Y) * (Stride + 1u) + 1u],
+                        &Extent.Configuration[static_cast<std::size_t>(Y) * Stride], Stride);
 
     // ③ zlib stream of stored blocks — honest, uncompressed, dependency-free.
     const std::size_t PayloadExtent = Scanlines.size();
@@ -367,10 +367,10 @@ Outcome<bool> RasterCodec::WritePortableNetworkGraphic(const PixelSpace& Extent,
     std::fwrite(Signature, 1u, 8u, Stream);
 
     std::vector<std::uint8_t> Header;
-    Header.insert(Header.end(), { static_cast<std::uint8_t>(Extent.AlongExtent >> 24), static_cast<std::uint8_t>(Extent.AlongExtent >> 16),
-                                  static_cast<std::uint8_t>(Extent.AlongExtent >> 8), static_cast<std::uint8_t>(Extent.AlongExtent),
-                                  static_cast<std::uint8_t>(Extent.AcrossExtent >> 24), static_cast<std::uint8_t>(Extent.AcrossExtent >> 16),
-                                  static_cast<std::uint8_t>(Extent.AcrossExtent >> 8), static_cast<std::uint8_t>(Extent.AcrossExtent),
+    Header.insert(Header.end(), { static_cast<std::uint8_t>(Extent.XExtent >> 24), static_cast<std::uint8_t>(Extent.XExtent >> 16),
+                                  static_cast<std::uint8_t>(Extent.XExtent >> 8), static_cast<std::uint8_t>(Extent.XExtent),
+                                  static_cast<std::uint8_t>(Extent.YExtent >> 24), static_cast<std::uint8_t>(Extent.YExtent >> 16),
+                                  static_cast<std::uint8_t>(Extent.YExtent >> 8), static_cast<std::uint8_t>(Extent.YExtent),
                                   8u, 6u, 0u, 0u, 0u });
     PresentChunk(reinterpret_cast<const std::uint8_t*>("IHDR"), Header);
     PresentChunk(reinterpret_cast<const std::uint8_t*>("IDAT"), Streamed);

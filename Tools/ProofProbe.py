@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ProofProbe — reads back a RIFT-encoded PNG and asserts seated inks, plus prints an ASCII reduction.
+"""ProofProbe — reads back a RIFT-encoded PNG and asserts applied inks, plus prints an ASCII reduction.
 
 Usage: python3 Tools/ProofProbe.py <proof.png> [--probe along across expectedHex tolerance]...
 The decoder is the mirror of EncodeProof (filter 0, stdlib only).
@@ -37,9 +37,9 @@ def Decode(Path):
     return Width, Height, Pixels
 
 
-def Sample(Pixels, Width, Along, Across):
-    Seat = (Across * Width + Along) * 4
-    return Pixels[Seat], Pixels[Seat + 1], Pixels[Seat + 2], Pixels[Seat + 3]
+def Sample(Pixels, Width, X, Y):
+    Offset = (Y * Width + X) * 4
+    return Pixels[Offset], Pixels[Offset + 1], Pixels[Offset + 2], Pixels[Offset + 3]
 
 
 def Main():
@@ -51,12 +51,12 @@ def Main():
     Arguments = sys.argv[2:]
     Index = 0
     while Index + 6 <= len(Arguments):
-        _, Along, Across, ExpectedHex, Tolerance, Label = Arguments[Index:Index + 6]
+        _, X, Y, ExpectedHex, Tolerance, Label = Arguments[Index:Index + 6]
         Index += 6
-        Along, Across = int(Along), int(Across)
+        X, Y = int(X), int(Y)
         Expected = int(ExpectedHex, 16)
         Delta = int(Tolerance)
-        Red, Green, Blue, Alpha = Sample(Pixels, Width, Along, Across)
+        Red, Green, Blue, Alpha = Sample(Pixels, Width, X, Y)
         Passed = (abs(Red - ((Expected >> 16) & 0xFF)) <= Delta and
                   abs(Green - ((Expected >> 8) & 0xFF)) <= Delta and
                   abs(Blue - (Expected & 0xFF)) <= Delta)
@@ -64,7 +64,7 @@ def Main():
         if not Passed:
             Failures += 1
         Got = (Red << 16) | (Green << 8) | Blue
-        print(f"  [{Mark}] ({Along:4d},{Across:4d}) {Label:<28} want #{ExpectedHex} got #{Got:06x} a={Alpha}")
+        print(f"  [{Mark}] ({X:4d},{Y:4d}) {Label:<28} want #{ExpectedHex} got #{Got:06x} a={Alpha}")
 
     # ① The ASCII reduction — one character per 15x15 cell, brightness ramp.
     Ramp = " .:-=+*#%@"
@@ -77,9 +77,9 @@ def Main():
         for Column in range(Columns):
             Total = 0
             Count = 0
-            for Across in range(Row * CellExtent, (Row + 1) * CellExtent, 3):
-                for Along in range(Column * CellExtent, (Column + 1) * CellExtent, 3):
-                    Red, Green, Blue, _ = Sample(Pixels, Width, Along, Across)
+            for Y in range(Row * CellExtent, (Row + 1) * CellExtent, 3):
+                for X in range(Column * CellExtent, (Column + 1) * CellExtent, 3):
+                    Red, Green, Blue, _ = Sample(Pixels, Width, X, Y)
                     Total += (Red + Green + Blue) // 3
                     Count += 1
             Luminance = Total // max(Count, 1)

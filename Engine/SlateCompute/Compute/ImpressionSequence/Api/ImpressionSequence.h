@@ -35,7 +35,7 @@ namespace Slate
 ///        stroke recorded at a resolution the artist did not choose, and no later promotion recovers it.
 /// note  📐 Level L holds `VirtualCellsPerEdge >> L` cells of `CoverageTileTexels` each, so its extent is
 ///        `MaximumWorkingEdge >> L`. The level is therefore the base-two logarithm of the ratio, and an extent
-///        that is not one of the seven is refused rather than rounded to the nearest.
+///        that is not one of the seven is rejected rather than rounded to the nearest.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 Outcome<std::uint32_t> PaintingLevelOf(std::uint32_t WorkingExtent);
@@ -57,8 +57,8 @@ Outcome<std::uint32_t> PaintingLevelOf(std::uint32_t WorkingExtent);
 /// tag   nonallocating, nonthrowing
 struct ImpressionSample
 {
-    double         PositionAlong     = 0.0;   // [-]  - the domain's first axis
-    double         PositionAcross    = 0.0;   // [-]  - its second
+    double         PositionX     = 0.0;   // [-]  - the domain's first axis
+    double         PositionY    = 0.0;   // [-]  - its second
     double         PathDistance      = 0.0;   // [-]  - accumulated along the resampled path
     ResolvedBrush  Resolved          = {};    // [-]  - `58`'s, at this impression's ordinal
     std::uint32_t  ImpressionOrdinal = 0u;    // [-]  - position within the stroke; `58` §6 seeds from it
@@ -80,9 +80,9 @@ struct ImpressionSample
 /// tag   nonallocating, nonthrowing
 struct StrokeArrival
 {
-    PointerSample  Arriving        = {};      // [-] - `04` §3's sample, arrival-timestamped
-    double         PositionAlong   = 0.0;     // [-] - the domain's first axis, from `74`
-    double         PositionAcross  = 0.0;     // [-] - its second
+    PointerSample  Incoming        = {};      // [-] - `04` §3's sample, arrival-timestamped
+    double         PositionX   = 0.0;     // [-] - the domain's first axis, from `74`
+    double         PositionY  = 0.0;     // [-] - its second
     bool           SurfaceResolved = false;   // [-] - the pointer met the surface at all
 };
 
@@ -190,8 +190,8 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> Open(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
 
-    /// 🧩 Admits one arrival, resampling the path and emitting whatever impressions it reached.
-    /// in    Arriving  [-]  the pointer sample, its arrival stamp, and `74`'s domain position
+    /// 🧩 Accepts one arrival, resampling the path and emitting whatever impressions it reached.
+    /// in    Incoming  [-]  the pointer sample, its arrival stamp, and `74`'s domain position
     /// out   Result   [-]  refuses with HostDenied before Open, and with ExtentExhausted at the ceiling
     /// post  the path advanced; zero or more impressions were appended, each owed resolution
     /// note  🔴 Resampling is in the **domain** at the brush's own spacing, so a stroke drawn slowly and one
@@ -205,9 +205,9 @@ public:
     ///        last impression on the residue of the additions rather than on the path the artist drew.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Amend(const StrokeArrival& Arriving);
+    Outcome<bool> Amend(const StrokeArrival& Incoming);
 
-    /// 🧩 Resolves whatever impressions the residency now admits, demanding what it does not.
+    /// 🧩 Resolves whatever impressions the residency now accepts, demanding what it does not.
     /// in    Residency        [-]  the surface's cells and tiles
     /// in    Requesting       [-]  where a demand for a non-resident cell is recorded
     /// in    RecordingOrdinal  [-]  the rotation resolving
@@ -276,11 +276,11 @@ public:
 
 private:
 
-    void          Emit(double PositionAlong, double PositionAcross,
-                       double TangentAlong,  double TangentAcross,
+    void          Emit(double PositionX, double PositionY,
+                       double TangentX,  double TangentY,
                        const ResolvedAxes& Axes, double PathDistance);
-    ResolvedAxes  ProjectAxes(const PointerSample& Arriving,
-                              double TangentAlong, double TangentAcross,
+    ResolvedAxes  ProjectAxes(const PointerSample& Incoming,
+                              double TangentX, double TangentY,
                               double Speed, double PathDistance) const;
     Outcome<bool> ResolveOne(ImpressionSample& Impressing,
                              SurfaceTileSpace& Residency,
@@ -293,8 +293,8 @@ private:
     std::vector<ImpressionSample>  Sequenced;                     // [-] - in stroke order; never reordered
     StrokeSpace                    Accumulated;                   // [-] - coverage, per touched cell
     CombineSpecification           Combination         = CombineSpecification::Over;
-    double                         LastAlong           = 0.0;     // [-] - the last arrival's domain position
-    double                         LastAcross          = 0.0;     // [-]
+    double                         LastX           = 0.0;     // [-] - the last arrival's domain position
+    double                         LastY          = 0.0;     // [-]
     TickPoint                      LastArrival         = {};      // [ns] - its arrival stamp
     double                         TravelledDistance   = 0.0;     // [-] - path length up to the last arrival
     double                         PendingDistance     = 0.0;     // [-] - walked since the last impression
@@ -302,7 +302,7 @@ private:
     std::uint32_t                  Level               = 0u;      // [-] - the painting level
     std::uint32_t                  ResolvedTotal       = 0u;      // [-] - impressions accumulated this stroke
     bool                           OpenDeclared        = false;   // [-] - Open delivered, Seal has not
-    bool                           PathBegun           = false;   // [-] - one arrival has been admitted
+    bool                           PathBegun           = false;   // [-] - one arrival has been accepted
     bool                           PathBroken          = false;   // [-] - the pointer left the surface
 };
 

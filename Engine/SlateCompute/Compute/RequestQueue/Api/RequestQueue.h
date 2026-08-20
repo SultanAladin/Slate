@@ -51,14 +51,14 @@ public:
     //    during a rotation. Read by this unit alone, so `00` §2 keeps it here.
     static constexpr std::uint32_t ArrivalCeiling = 4096u;   // [-] - distinct cells one drain may present
 
-    /// 🧩 Admits one demand, coalescing it into an earlier demand for the same cell.
+    /// 🧩 Accepts one demand, coalescing it into an earlier demand for the same cell.
     /// post  the arrival count never exceeds ArrivalCeiling; a demand beyond it is discarded and counted
     /// note  ⚠️ A discarded demand is a **deferral**, not a loss. Sampling still touches the cell next
     ///        rotation and demands it again, so the discard costs one rotation of coarseness and nothing else.
     ///        That is why it is a measure rather than a report — `86` §5.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Admit(const CellDemand& Arriving);
+    void Accept(const CellDemand& Incoming);
 
     /// 🧩 The demands, in first-arrival order.
     /// cost  ✔️
@@ -163,7 +163,7 @@ private:
 
     std::uint64_t  LastDrained  = 0u;      // [-] - the rotation the last drain read for
     std::uint64_t  DrainCount   = 0u;      // [-] - drains this session
-    bool           DrainStanding = false;  // [-] - a drain has happened at all
+    bool           DrainCurrent = false;  // [-] - a drain has happened at all
 };
 
 }   // namespace Slate

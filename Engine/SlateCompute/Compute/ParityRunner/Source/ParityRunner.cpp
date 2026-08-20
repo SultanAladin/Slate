@@ -27,15 +27,15 @@ namespace Slate
 //                                                     REGISTRATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ParityRunner::Register(const ParityRegistration& Arriving)
+Outcome<bool> ParityRunner::Register(const ParityRegistration& Incoming)
 {
     for (const ParityRegistration& Held : Registered)
     {
-        if (std::strcmp(Held.EntryName, Arriving.EntryName) == 0)
+        if (std::strcmp(Held.EntryName, Incoming.EntryName) == 0)
             return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the entry point is already registered" });
     }
 
-    Registered.push_back(Arriving);
+    Registered.push_back(Incoming);
     return Outcome<bool>::Result(true);
 }
 
@@ -144,15 +144,15 @@ namespace
     //    first departs from a flooring one and the departure is one cell wide.
     struct LatticeSample
     {
-        double       PositionAlong           = 0.0;   // [-] - the domain position classified
-        double       PositionAcross          = 0.0;
-        double       CellExtentAlong         = 1.0;   // [-] - the repeating unit, strictly positive
-        double       CellExtentAcross        = 1.0;
-        double       OffsetProgressionAlong  = 0.0;   // [-] - never declared beside the one across
-        double       OffsetProgressionAcross = 0.0;
-        double       SkewAlong               = 0.0;   // [-] - the shear a diagonal repeat declares
-        double       SkewAcross              = 0.0;
-        std::uint32_t  ReflectionMask        = 0u;    // [-] - SlateReflectAlong and SlateReflectAcross, composed
+        double       PositionX           = 0.0;   // [-] - the domain position classified
+        double       PositionY          = 0.0;
+        double       CellExtentX         = 1.0;   // [-] - the repeating unit, strictly positive
+        double       CellExtentY        = 1.0;
+        double       OffsetProgressionX  = 0.0;   // [-] - never declared beside the one across
+        double       OffsetProgressionY = 0.0;
+        double       SkewX               = 0.0;   // [-] - the shear a diagonal repeat declares
+        double       SkewY              = 0.0;
+        std::uint32_t  ReflectionMask        = 0u;    // [-] - SlateReflectX and SlateReflectY, composed
         std::uint32_t  RotationIncrement     = 0u;    // [-] - quarter turns per step of the cell schedule
     };
 
@@ -187,7 +187,7 @@ const std::vector<ParityReport>& ParityRunner::Compare()
         ParityReport Report;
         Report.EntryName = Held.EntryName;
 
-        if (Held.Claimed == PrecisionGuarantee::Perceptual)
+        if (Held.Reserved == PrecisionGuarantee::Perceptual)
         {
             // 📝 Perceptual entry points are not compared. Reporting agreement for one would claim a
             //    guarantee the guarantee itself disclaims.
@@ -310,7 +310,7 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                                                                        Sample.OuterBegin, Sample.OuterEnd);
 
                 // 📐 Strict containment is antisymmetric and identity is symmetric, so the two classifications
-                //    agree only where both are zero. Anything else would let two occupants each enclose the
+                //    agree only where both are zero. Anything else would let two owners each enclose the
                 //    other, which is `12` invariant 3 broken by the predicate rather than by the relation.
                 if (Classified > 0 && Exchanged > 0)
                     ++Report.DisagreeingCount;
@@ -319,7 +319,7 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                     ++Report.DisagreeingCount;
 
                 // 📐 An interval never strictly contains itself, and every consumer relies on it so that an
-                //    occupant tested against itself answers false without an exclusion at the call site.
+                //    owner tested against itself answers false without an exclusion at the call site.
                 if (ClassifyIntervalContainment(Sample.OuterBegin, Sample.OuterEnd,
                                                 Sample.OuterBegin, Sample.OuterEnd) > 0)
                 {
@@ -341,21 +341,21 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             {
                 const LatticeSample& Sample = LatticeSampleSet[Ordinal];
 
-                Signed32 CellAlong    = 0;
-                Signed32 CellAcross   = 0;
-                Real64   WithinAlong  = 0.0;
-                Real64   WithinAcross = 0.0;
+                Signed32 CellX    = 0;
+                Signed32 CellY   = 0;
+                Real64   WithinX  = 0.0;
+                Real64   WithinY = 0.0;
 
-                ClassifyLatticeCell(Sample.PositionAlong,           Sample.PositionAcross,
-                                    Sample.CellExtentAlong,         Sample.CellExtentAcross,
-                                    Sample.OffsetProgressionAlong,  Sample.OffsetProgressionAcross,
-                                    Sample.SkewAlong,               Sample.SkewAcross,
-                                    CellAlong, CellAcross, WithinAlong, WithinAcross);
+                ClassifyLatticeCell(Sample.PositionX,           Sample.PositionY,
+                                    Sample.CellExtentX,         Sample.CellExtentY,
+                                    Sample.OffsetProgressionX,  Sample.OffsetProgressionY,
+                                    Sample.SkewX,               Sample.SkewY,
+                                    CellX, CellY, WithinX, WithinY);
 
                 // 📐 The position within a cell lies in the half-open unit interval, which is what makes the
                 //    cell ordinals a partition of the domain rather than a covering of it. A position landing
                 //    at one belongs to the next cell and has been classified into the wrong one.
-                if (WithinAlong < 0.0 || WithinAlong >= 1.0 || WithinAcross < 0.0 || WithinAcross >= 1.0)
+                if (WithinX < 0.0 || WithinX >= 1.0 || WithinY < 0.0 || WithinY >= 1.0)
                     ++Report.DisagreeingCount;
 
                 // 📐 The ordinal and the position within recompose the coordinate they were classified from,
@@ -363,16 +363,16 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                 //    produced the position within lost nothing and the sum must return the coordinate.
                 //    Compared only where no progression is declared, because a declared progression classifies
                 //    the displaced coordinate rather than the supplied one.
-                if (Sample.OffsetProgressionAlong == 0.0 && Sample.OffsetProgressionAcross == 0.0)
+                if (Sample.OffsetProgressionX == 0.0 && Sample.OffsetProgressionY == 0.0)
                 {
-                    const Real64 Determinant    = 1.0 - Sample.SkewAlong * Sample.SkewAcross;
-                    const Real64 UnskewedAlong  = (Sample.PositionAlong
-                                                - Sample.SkewAlong  * Sample.PositionAcross) / Determinant;
-                    const Real64 UnskewedAcross = (Sample.PositionAcross
-                                                - Sample.SkewAcross * Sample.PositionAlong)  / Determinant;
+                    const Real64 Determinant    = 1.0 - Sample.SkewX * Sample.SkewY;
+                    const Real64 UnskewedX  = (Sample.PositionX
+                                                - Sample.SkewX  * Sample.PositionY) / Determinant;
+                    const Real64 UnskewedY = (Sample.PositionY
+                                                - Sample.SkewY * Sample.PositionX)  / Determinant;
 
-                    if (Real64(CellAlong)  + WithinAlong  != UnskewedAlong  / Sample.CellExtentAlong
-                     || Real64(CellAcross) + WithinAcross != UnskewedAcross / Sample.CellExtentAcross)
+                    if (Real64(CellX)  + WithinX  != UnskewedX  / Sample.CellExtentX
+                     || Real64(CellY) + WithinY != UnskewedY / Sample.CellExtentY)
                     {
                         ++Report.DisagreeingCount;
                     }
@@ -381,21 +381,21 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                 // 📐 Flooring, never truncation toward zero. The ordinal is never above the coordinate it was
                 //    floored from, which is the statement that separates the two below the origin and the one
                 //    a truncating device form would break by exactly one cell.
-                if (FlooredOrdinal(Sample.PositionAlong) > Sample.PositionAlong)
+                if (FlooredOrdinal(Sample.PositionX) > Sample.PositionX)
                     ++Report.DisagreeingCount;
 
-                Real64 ProjectedAlong  = 0.0;
-                Real64 ProjectedAcross = 0.0;
+                Real64 ProjectedX  = 0.0;
+                Real64 ProjectedY = 0.0;
 
-                ProjectWithinCell(CellAlong, CellAcross, WithinAlong, WithinAcross,
+                ProjectWithinCell(CellX, CellY, WithinX, WithinY,
                                   Sample.ReflectionMask, Sample.RotationIncrement,
-                                  ProjectedAlong, ProjectedAcross);
+                                  ProjectedX, ProjectedY);
 
                 // 📐 Bounded by the closed unit interval rather than the half-open one, because reflection
                 //    carries a position at zero onto one. The consumer samples content with it and a position
                 //    outside the interval samples content that was never resolved.
-                if (ProjectedAlong < 0.0 || ProjectedAlong > 1.0
-                 || ProjectedAcross < 0.0 || ProjectedAcross > 1.0)
+                if (ProjectedX < 0.0 || ProjectedX > 1.0
+                 || ProjectedY < 0.0 || ProjectedY > 1.0)
                 {
                     ++Report.DisagreeingCount;
                 }
@@ -403,33 +403,33 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                 // 📐 The turn count is taken modulo four, so an increment four greater turns the cell the same
                 //    way. Exactly — the two calls run the same arithmetic and any difference is a lapse in the
                 //    modulus rather than a rounding, which is what a signed turn count would produce.
-                Real64 TurnedAlong  = 0.0;
-                Real64 TurnedAcross = 0.0;
+                Real64 TurnedX  = 0.0;
+                Real64 TurnedY = 0.0;
 
-                ProjectWithinCell(CellAlong, CellAcross, WithinAlong, WithinAcross,
+                ProjectWithinCell(CellX, CellY, WithinX, WithinY,
                                   Sample.ReflectionMask, Sample.RotationIncrement + 4u,
-                                  TurnedAlong, TurnedAcross);
+                                  TurnedX, TurnedY);
 
-                if (TurnedAlong != ProjectedAlong || TurnedAcross != ProjectedAcross)
+                if (TurnedX != ProjectedX || TurnedY != ProjectedY)
                     ++Report.DisagreeingCount;
 
                 // 📐 An undeclared symmetry does nothing at all. A form that reflected on an empty mask would
                 //    mirror alternate cells of a lattice that declared no mirror, which reads as a pattern the
                 //    artist did not ask for rather than as a defect in a predicate.
-                Real64 UnturnedAlong  = 0.0;
-                Real64 UnturnedAcross = 0.0;
+                Real64 UnturnedX  = 0.0;
+                Real64 UnturnedY = 0.0;
 
-                ProjectWithinCell(CellAlong, CellAcross, WithinAlong, WithinAcross, 0u, 0u,
-                                  UnturnedAlong, UnturnedAcross);
+                ProjectWithinCell(CellX, CellY, WithinX, WithinY, 0u, 0u,
+                                  UnturnedX, UnturnedY);
 
-                if (UnturnedAlong != WithinAlong || UnturnedAcross != WithinAcross)
+                if (UnturnedX != WithinX || UnturnedY != WithinY)
                     ++Report.DisagreeingCount;
 
                 // 📐 The zigzag is a bijection onto the unsigned ordinals: a non-negative ordinal lands on an
                 //    even one and a negative ordinal on an odd one, so no two cells either side of the origin
                 //    can fold onto one variation. `54` §1's variation is a function of the fold alone.
-                if ((ZigzagOrdinal(CellAlong)  & 1u) != (CellAlong  < 0 ? 1u : 0u)
-                 || (ZigzagOrdinal(CellAcross) & 1u) != (CellAcross < 0 ? 1u : 0u))
+                if ((ZigzagOrdinal(CellX)  & 1u) != (CellX  < 0 ? 1u : 0u)
+                 || (ZigzagOrdinal(CellY) & 1u) != (CellY < 0 ? 1u : 0u))
                 {
                     ++Report.DisagreeingCount;
                 }
@@ -437,8 +437,8 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                 // 📐 A cell never shares a variation with the cell beside it. `54` §1 concedes that the fold
                 //    cannot be injective and that two distant cells eventually collide; a collision between
                 //    neighbours is a different matter, and reads as two adjacent tiles carrying one variation.
-                if (FoldedCellOrdinal(CellAlong, CellAcross) == FoldedCellOrdinal(CellAlong + 1, CellAcross)
-                 || FoldedCellOrdinal(CellAlong, CellAcross) == FoldedCellOrdinal(CellAlong, CellAcross + 1))
+                if (FoldedCellOrdinal(CellX, CellY) == FoldedCellOrdinal(CellX + 1, CellY)
+                 || FoldedCellOrdinal(CellX, CellY) == FoldedCellOrdinal(CellX, CellY + 1))
                 {
                     ++Report.DisagreeingCount;
                 }
@@ -562,16 +562,16 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             Profile.PlanetRadius        = 6360000.0;
             Profile.AtmosphereThickness = 100000.0;
 
-            for (std::uint32_t AlongOrdinal = 0u; AlongOrdinal < AxisSpan; ++AlongOrdinal)
+            for (std::uint32_t XOrdinal = 0u; XOrdinal < AxisSpan; ++XOrdinal)
             {
-                for (std::uint32_t AcrossOrdinal = 0u; AcrossOrdinal < AxisSpan; ++AcrossOrdinal)
+                for (std::uint32_t YOrdinal = 0u; YOrdinal < AxisSpan; ++YOrdinal)
                 {
-                    const Real64 CoordinateAlong  = (static_cast<Real64>(AlongOrdinal)  + 0.5) / AxisSpan;
-                    const Real64 CoordinateAcross = (static_cast<Real64>(AcrossOrdinal) + 0.5) / AxisSpan;
+                    const Real64 CoordinateX  = (static_cast<Real64>(XOrdinal)  + 0.5) / AxisSpan;
+                    const Real64 CoordinateY = (static_cast<Real64>(YOrdinal) + 0.5) / AxisSpan;
 
                     Real64 Radius       = 0.0;
                     Real64 ZenithCosine = 0.0;
-                    ProjectTransmittanceParameter(Profile, CoordinateAlong, CoordinateAcross,
+                    ProjectTransmittanceParameter(Profile, CoordinateX, CoordinateY,
                                                   Radius, ZenithCosine);
 
                     if (Radius < Profile.PlanetRadius
@@ -581,12 +581,12 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                         ++Report.DisagreeingCount;
                     }
 
-                    Real64 ReturnedAlong  = 0.0;
-                    Real64 ReturnedAcross = 0.0;
+                    Real64 ReturnedX  = 0.0;
+                    Real64 ReturnedY = 0.0;
                     ProjectTransmittanceCoordinate(Profile, Radius, ZenithCosine,
-                                                   ReturnedAlong, ReturnedAcross);
+                                                   ReturnedX, ReturnedY);
 
-                    const double Deviation = std::fabs(ReturnedAlong - CoordinateAlong) / MachineEpsilon;
+                    const double Deviation = std::fabs(ReturnedX - CoordinateX) / MachineEpsilon;
 
                     if (Deviation > Report.LargestDeviation)
                         Report.LargestDeviation = Deviation;
@@ -604,17 +604,17 @@ const std::vector<ParityReport>& ParityRunner::Compare()
             //    assumes and what a mis-set quadratic branch would break immediately.
             constexpr std::uint32_t AxisSpan = 64u;
 
-            for (std::uint32_t AlongOrdinal = 0u; AlongOrdinal < AxisSpan; ++AlongOrdinal)
+            for (std::uint32_t XOrdinal = 0u; XOrdinal < AxisSpan; ++XOrdinal)
             {
-                for (std::uint32_t AcrossOrdinal = 0u; AcrossOrdinal < AxisSpan; ++AcrossOrdinal)
+                for (std::uint32_t YOrdinal = 0u; YOrdinal < AxisSpan; ++YOrdinal)
                 {
-                    const Real64 CoordinateAlong  = (static_cast<Real64>(AlongOrdinal)  + 0.5) / AxisSpan;
-                    const Real64 CoordinateAcross = (static_cast<Real64>(AcrossOrdinal) + 0.5) / AxisSpan;
+                    const Real64 CoordinateX  = (static_cast<Real64>(XOrdinal)  + 0.5) / AxisSpan;
+                    const Real64 CoordinateY = (static_cast<Real64>(YOrdinal) + 0.5) / AxisSpan;
 
                     Real64 DirectionX = 0.0;
                     Real64 DirectionY = 0.0;
                     Real64 DirectionZ = 0.0;
-                    ProjectSkyViewDirection(CoordinateAlong, CoordinateAcross,
+                    ProjectSkyViewDirection(CoordinateX, CoordinateY,
                                             DirectionX, DirectionY, DirectionZ);
 
                     const double Length = std::sqrt(DirectionX * DirectionX
@@ -629,7 +629,7 @@ const std::vector<ParityReport>& ParityRunner::Compare()
                     // 📝 The lower half of the across axis descends and the upper half climbs, with the horizon
                     //    exactly at the halfway coordinate. A branch written the other way round produces a sky
                     //    that is upside down and otherwise entirely plausible.
-                    const bool Climbing = CoordinateAcross > 0.5;
+                    const bool Climbing = CoordinateY > 0.5;
 
                     if (Climbing != (DirectionY > 0.0))
                         ++Report.DisagreeingCount;
@@ -684,17 +684,17 @@ const std::vector<ParityReport>& ParityRunner::Compare()
 
             for (std::uint32_t Ordinal = 0u; Ordinal < SampleSpan; ++Ordinal)
             {
-                double Standing = 0.0;
+                double Current = 0.0;
                 double PreAdded = 0.0;
-                ProjectPlanarSample(Ordinal + 1u, Standing, PreAdded);
+                ProjectPlanarSample(Ordinal + 1u, Current, PreAdded);
 
                 const double Traced = ProjectRadicalThree(Ordinal + 7u) * 4.0;
 
-                if (ResolveExactComposite(Standing, PreAdded, Traced, 0.0) != Standing)
+                if (ResolveExactComposite(Current, PreAdded, Traced, 0.0) != Current)
                     ++Report.DisagreeingCount;
 
-                const double Swapped  = ResolveExactComposite(Standing, PreAdded, Traced, 1.0);
-                const double Expected = Standing - PreAdded + Traced;
+                const double Swapped  = ResolveExactComposite(Current, PreAdded, Traced, 1.0);
+                const double Expected = Current - PreAdded + Traced;
 
                 const double Deviation = std::fabs(Swapped - Expected) / MachineEpsilon;
 
@@ -773,7 +773,7 @@ const std::vector<ParityReport>& ParityRunner::Compare()
         // 🔴 A Bounded entry point holds only when its measured deviation stays inside the declared bound.
         //    Without this clause a Bounded registration would hold on the strength of an equality comparison
         //    it never performed, which is the vacant pass in a different disguise.
-        const bool DeviationHeld = Held.Claimed != PrecisionGuarantee::Bounded
+        const bool DeviationHeld = Held.Reserved != PrecisionGuarantee::Bounded
                                 || Report.LargestDeviation <= SampleUnitPlaceCeiling;
 
         Report.AgreementHeld = Report.SampleCount > 0u && Report.DisagreeingCount == 0u && DeviationHeld;

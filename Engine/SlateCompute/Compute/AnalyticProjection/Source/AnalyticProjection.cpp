@@ -24,29 +24,29 @@ namespace
 //    that a layer entry reads against what precedes it by exactly these, and `54` §3 declares the same for cell
 //    content — one arithmetic, three consumers, which is why `CombineContract` sits in `Contract/`.
 void AccumulateSample(ResolvedSample&        Running,
-                      const ResolvedSample&  Arriving,
+                      const ResolvedSample&  Incoming,
                       CombineSpecification   Combination,
                       std::uint32_t          ComponentCount)
 {
-    if (!Arriving.SampleResolved || Arriving.Coverage <= 0.0)
+    if (!Incoming.SampleResolved || Incoming.Coverage <= 0.0)
         return;
 
     for (std::uint32_t Component = 0u; Component < ComponentCount; ++Component)
     {
         Running.Component[Component] = CombineValue(Combination,
                                                     Running.Component[Component],
-                                                    Arriving.Component[Component],
-                                                    Arriving.Coverage);
+                                                    Incoming.Component[Component],
+                                                    Incoming.Coverage);
     }
 
-    Running.Coverage       = CombineCoverage(Combination, Running.Coverage, Arriving.Coverage);
+    Running.Coverage       = CombineCoverage(Combination, Running.Coverage, Incoming.Coverage);
     Running.ComponentCount = ComponentCount;
     Running.SampleResolved = true;
 }
 
 // 📝 A declared colour spread across the components the caller asked for. Three components take the colour's own
 //    coordinates; one takes the red coordinate, which is what a scalar channel authored as a colour means.
-void AdmitColour(ResolvedSample& Writing, const ColourSpecification& Declared, std::uint32_t ComponentCount)
+void AcceptColour(ResolvedSample& Writing, const ColourSpecification& Declared, std::uint32_t ComponentCount)
 {
     if (ComponentCount >= 3u)
     {
@@ -68,8 +68,8 @@ void AdmitColour(ResolvedSample& Writing, const ColourSpecification& Declared, s
 //    exactly and would also shear every diagonal the artist painted, which reads as a defect rather than as a
 //    resampling — `56` §3.1 chooses bilinear for the same reason and this is the same choice one layer down.
 double SamplePainted(const PaintedContent& Held,
-                     double                PositionAlong,
-                     double                PositionAcross,
+                     double                PositionX,
+                     double                PositionY,
                      std::uint32_t         Component)
 {
     if (Held.ExtentTexels == 0u || Held.Texels.empty() || Component >= Held.ComponentCount)
@@ -77,35 +77,35 @@ double SamplePainted(const PaintedContent& Held,
 
     const double Extent = static_cast<double>(Held.ExtentTexels);
 
-    double AlongTexel  = PositionAlong  * Extent - 0.5;
-    double AcrossTexel = PositionAcross * Extent - 0.5;
+    double XTexel  = PositionX  * Extent - 0.5;
+    double YTexel = PositionY * Extent - 0.5;
 
-    AlongTexel  = AlongTexel  < 0.0 ? 0.0 : (AlongTexel  > Extent - 1.0 ? Extent - 1.0 : AlongTexel);
-    AcrossTexel = AcrossTexel < 0.0 ? 0.0 : (AcrossTexel > Extent - 1.0 ? Extent - 1.0 : AcrossTexel);
+    XTexel  = XTexel  < 0.0 ? 0.0 : (XTexel  > Extent - 1.0 ? Extent - 1.0 : XTexel);
+    YTexel = YTexel < 0.0 ? 0.0 : (YTexel > Extent - 1.0 ? Extent - 1.0 : YTexel);
 
-    const std::uint32_t LeastAlong  = static_cast<std::uint32_t>(AlongTexel);
-    const std::uint32_t LeastAcross = static_cast<std::uint32_t>(AcrossTexel);
+    const std::uint32_t MinimumX  = static_cast<std::uint32_t>(XTexel);
+    const std::uint32_t MinimumY = static_cast<std::uint32_t>(YTexel);
 
-    const std::uint32_t NextAlong  = LeastAlong  + 1u < Held.ExtentTexels ? LeastAlong  + 1u : LeastAlong;
-    const std::uint32_t NextAcross = LeastAcross + 1u < Held.ExtentTexels ? LeastAcross + 1u : LeastAcross;
+    const std::uint32_t NextX  = MinimumX  + 1u < Held.ExtentTexels ? MinimumX  + 1u : MinimumX;
+    const std::uint32_t NextY = MinimumY + 1u < Held.ExtentTexels ? MinimumY + 1u : MinimumY;
 
-    const double FractionAlong  = AlongTexel  - static_cast<double>(LeastAlong);
-    const double FractionAcross = AcrossTexel - static_cast<double>(LeastAcross);
+    const double FractionX  = XTexel  - static_cast<double>(MinimumX);
+    const double FractionY = YTexel - static_cast<double>(MinimumY);
 
     const std::size_t Stride = static_cast<std::size_t>(Held.ComponentCount);
 
-    const std::size_t LowerLeft  = (static_cast<std::size_t>(LeastAcross) * Held.ExtentTexels + LeastAlong) * Stride;
-    const std::size_t LowerRight = (static_cast<std::size_t>(LeastAcross) * Held.ExtentTexels + NextAlong)  * Stride;
-    const std::size_t UpperLeft  = (static_cast<std::size_t>(NextAcross)  * Held.ExtentTexels + LeastAlong) * Stride;
-    const std::size_t UpperRight = (static_cast<std::size_t>(NextAcross)  * Held.ExtentTexels + NextAlong)  * Stride;
+    const std::size_t LowerLeft  = (static_cast<std::size_t>(MinimumY) * Held.ExtentTexels + MinimumX) * Stride;
+    const std::size_t LowerRight = (static_cast<std::size_t>(MinimumY) * Held.ExtentTexels + NextX)  * Stride;
+    const std::size_t UpperLeft  = (static_cast<std::size_t>(NextY)  * Held.ExtentTexels + MinimumX) * Stride;
+    const std::size_t UpperRight = (static_cast<std::size_t>(NextY)  * Held.ExtentTexels + NextX)  * Stride;
 
-    const double Lower = static_cast<double>(Held.Texels[LowerLeft  + Component]) * (1.0 - FractionAlong)
-                       + static_cast<double>(Held.Texels[LowerRight + Component]) * FractionAlong;
+    const double Lower = static_cast<double>(Held.Texels[LowerLeft  + Component]) * (1.0 - FractionX)
+                       + static_cast<double>(Held.Texels[LowerRight + Component]) * FractionX;
 
-    const double Upper = static_cast<double>(Held.Texels[UpperLeft  + Component]) * (1.0 - FractionAlong)
-                       + static_cast<double>(Held.Texels[UpperRight + Component]) * FractionAlong;
+    const double Upper = static_cast<double>(Held.Texels[UpperLeft  + Component]) * (1.0 - FractionX)
+                       + static_cast<double>(Held.Texels[UpperRight + Component]) * FractionX;
 
-    return Lower * (1.0 - FractionAcross) + Upper * FractionAcross;
+    return Lower * (1.0 - FractionY) + Upper * FractionY;
 }
 
 }   // namespace
@@ -118,7 +118,7 @@ Outcome<bool> AnalyticProjection::Construct(const AnalyticSources& Supplied_)
 {
     Supplied = Supplied_;
 
-    // 📝 Nothing is refused here. A document holding no tiling resolves every one of its layers without one, and
+    // 📝 Nothing is rejected here. A document holding no tiling resolves every one of its layers without one, and
     //    refusing at construction would refuse a document for content it does not contain. `SourcesPresent`
     //    below is what a promotion asks, against the sequence it is about to resolve.
     return Outcome<bool>::Result(true);
@@ -138,21 +138,21 @@ const std::vector<std::vector<PlanarPosition>>* AnalyticProjection::Flattening(s
     {
         // 📝 Compared for **equality** rather than within a tolerance of its own. The tolerance arrives from
         //    `ToleranceAtLevel`, which is one reciprocal of an integer product, so two asks at one level produce
-        //    the identical double and a tolerance comparison would only admit a level it should have refused.
+        //    the identical double and a tolerance comparison would only admit a level it should have rejected.
         if (Held.SourceOrdinal == SourceOrdinal && Held.Tolerance == Tolerance)
             return &Held.Flattened;
     }
 
-    FlattenedOutline Arriving;
+    FlattenedOutline Incoming;
 
-    Arriving.SourceOrdinal = SourceOrdinal;
-    Arriving.Tolerance     = Tolerance;
-    Arriving.Flattened     = (*Supplied.Outlines)[SourceOrdinal].Flatten(Tolerance);
+    Incoming.SourceOrdinal = SourceOrdinal;
+    Incoming.Tolerance     = Tolerance;
+    Incoming.Flattened     = (*Supplied.Outlines)[SourceOrdinal].Flatten(Tolerance);
 
-    if (Arriving.Flattened.empty())
+    if (Incoming.Flattened.empty())
         return nullptr;
 
-    Flattenings.push_back(std::move(Arriving));
+    Flattenings.push_back(std::move(Incoming));
 
     return &Flattenings.back().Flattened;
 }
@@ -162,8 +162,8 @@ const std::vector<std::vector<PlanarPosition>>* AnalyticProjection::Flattening(s
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<ResolvedSample> AnalyticProjection::ResolveOutlineAt(std::uint32_t  SourceOrdinal,
-                                                             double         SourceAlong,
-                                                             double         SourceAcross,
+                                                             double         SourceX,
+                                                             double         SourceY,
                                                              double         Tolerance) const
 {
     if (Supplied.Outlines == nullptr || SourceOrdinal >= Supplied.Outlines->size())
@@ -187,15 +187,15 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveOutlineAt(std::uint32_t  Sour
 
     ResolvedSample Resolved;
 
-    // 🔴 A boundary classifies as boundary and is admitted as covered. `52` §4 resolves a boundary to zero
-    //    rather than to inside so that the classification itself carries no bias; admitting it here is the
+    // 🔴 A boundary classifies as boundary and is accepted as covered. `52` §4 resolves a boundary to zero
+    //    rather than to inside so that the classification itself carries no bias; accepting it here is the
     //    outward rounding `38` §6 applies everywhere else, and refusing it would give every outline a one-texel
     //    gap along its own edge.
-    if (Declared.Classify(*Flattened, SourceAlong, SourceAcross) < 0)
+    if (Declared.Classify(*Flattened, SourceX, SourceY) < 0)
         return Outcome<ResolvedSample>::Result(Resolved);
 
     if (Declared.Declared().ColourDeclared)
-        AdmitColour(Resolved, Declared.Declared().DeclaredColour, ResolvedComponentCeiling);
+        AcceptColour(Resolved, Declared.Declared().DeclaredColour, ResolvedComponentCeiling);
 
     Resolved.Coverage       = 1.0;
     Resolved.SampleResolved = true;
@@ -270,30 +270,30 @@ std::int32_t ClassifyOutlinePaths(const std::vector<OutlinePath>&  Paths,
 //    in that order and in the element's own frame, matching `ProjectIntoSource`'s convention so that a source
 //    placed inside a tiling cell and the same source placed as a decal read their position identically.
 void ProjectIntoElement(const CellContent& Placed,
-                        double WithinAlong, double WithinAcross,
-                        double& SourceAlong, double& SourceAcross)
+                        double WithinX, double WithinY,
+                        double& SourceX, double& SourceY)
 {
-    const double SpanAlong  = WithinAlong  - Placed.PlacedAlong;
-    const double SpanAcross = WithinAcross - Placed.PlacedAcross;
+    const double Width  = WithinX  - Placed.PlacedX;
+    const double Height = WithinY - Placed.PlacedY;
 
     const double Radians = Placed.PlacedRotation * Pi / 180.0;
     const double Cosine  = std::cos(Radians);
     const double Sine    = std::sin(Radians);
 
-    const double TurnedAlong  =  Cosine * SpanAlong + Sine   * SpanAcross;
-    const double TurnedAcross = -Sine   * SpanAlong + Cosine * SpanAcross;
+    const double TurnedX  =  Cosine * Width + Sine   * Height;
+    const double TurnedY = -Sine   * Width + Cosine * Height;
 
     const double Scale = Placed.PlacedScale != 0.0 ? Placed.PlacedScale : 1.0;
 
-    SourceAlong  = TurnedAlong  / Scale + 0.5;
-    SourceAcross = TurnedAcross / Scale + 0.5;
+    SourceX  = TurnedX  / Scale + 0.5;
+    SourceY = TurnedY / Scale + 0.5;
 }
 
 // 📝 One integer folded into a running one. `70` §2's comparison is a single equality per tile, so the fold has
 //    only to change when any operand changes — it carries no ordering and names nothing.
-void FoldRevision(std::uint64_t& Running, std::uint64_t Arriving)
+void FoldRevision(std::uint64_t& Running, std::uint64_t Incoming)
 {
-    Running ^= Arriving + 0x9E3779B97F4A7C15ull + (Running << 6) + (Running >> 2);
+    Running ^= Incoming + 0x9E3779B97F4A7C15ull + (Running << 6) + (Running >> 2);
 }
 
 }   // namespace
@@ -303,8 +303,8 @@ void FoldRevision(std::uint64_t& Running, std::uint64_t Arriving)
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<ResolvedSample> AnalyticProjection::ResolveTextAt(std::uint32_t  SourceOrdinal,
-                                                         double         SourceAlong,
-                                                         double         SourceAcross,
+                                                         double         SourceX,
+                                                         double         SourceY,
                                                          double         Tolerance) const
 {
     if (Supplied.Texts == nullptr || SourceOrdinal >= Supplied.Texts->size() || Supplied.Typeface == nullptr)
@@ -328,8 +328,8 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveTextAt(std::uint32_t  SourceO
     //    drifts toward its end.
     const double UnitsPerEm = Faced.UnitsPerEm() > 0.0 ? Faced.UnitsPerEm() : 1000.0;
 
-    const double PositionAlongUnits  = SourceAlong  * UnitsPerEm;
-    const double PositionAcrossUnits = SourceAcross * UnitsPerEm;
+    const double PositionXUnits  = SourceX  * UnitsPerEm;
+    const double PositionYUnits = SourceY * UnitsPerEm;
     const double ToleranceUnits      = Tolerance    * UnitsPerEm;
 
     double Advanced = 0.0;
@@ -355,12 +355,12 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveTextAt(std::uint32_t  SourceO
         if (Ordinal != 0u)
             Advanced += Faced.Adjustment(Declared.GlyphSequence[Ordinal - 1u], GlyphIdentity);
 
-        const double GlyphAlong  = PositionAlongUnits  - (Advanced + Glyph.BearingAlong);
-        const double GlyphAcross = PositionAcrossUnits -  Glyph.BearingAcross;
+        const double GlyphX  = PositionXUnits  - (Advanced + Glyph.BearingX);
+        const double GlyphY = PositionYUnits -  Glyph.BearingY;
 
-        if (ClassifyOutlinePaths(Glyph.Paths, ToleranceUnits, GlyphAlong, GlyphAcross) >= 0)
+        if (ClassifyOutlinePaths(Glyph.Paths, ToleranceUnits, GlyphX, GlyphY) >= 0)
         {
-            // 📝 A boundary is admitted as covered, matching `ResolveOutlineAt`. Refusing it would give every
+            // 📝 A boundary is accepted as covered, matching `ResolveOutlineAt`. Refusing it would give every
             //    glyph a one-texel gap along its own edge, which at text extents is most of the glyph's weight.
             Resolved.Coverage       = 1.0;
             Resolved.ComponentCount = ResolvedComponentCeiling;
@@ -380,8 +380,8 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveTextAt(std::uint32_t  SourceO
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<ResolvedSample> AnalyticProjection::ResolveTilingAt(std::uint32_t  TilingOrdinal,
-                                                            double         SourceAlong,
-                                                            double         SourceAcross,
+                                                            double         SourceX,
+                                                            double         SourceY,
                                                             double         Tolerance,
                                                             std::uint32_t  NestingDepth) const
 {
@@ -407,7 +407,7 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveTilingAt(std::uint32_t  Tilin
 
     const TilingSpecification& Tiled = *Declared.Resolve();
 
-    const Outcome<ClassifiedCell> Classified = Tiled.Classify(SourceAlong, SourceAcross);
+    const Outcome<ClassifiedCell> Classified = Tiled.Classify(SourceX, SourceY);
 
     if (!Classified.Resolved)
         return Outcome<ResolvedSample>::Refuse(Classified.Error);
@@ -421,11 +421,11 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveTilingAt(std::uint32_t  Tilin
     //    different result from the identical cell one lattice step away.
     for (const CellContent& Element : Tiled.Content())
     {
-        double ElementAlong  = 0.0;
-        double ElementAcross = 0.0;
-        ProjectIntoElement(Element, Cell.WithinAlong, Cell.WithinAcross, ElementAlong, ElementAcross);
+        double ElementX  = 0.0;
+        double ElementY = 0.0;
+        ProjectIntoElement(Element, Cell.WithinX, Cell.WithinY, ElementX, ElementY);
 
-        ResolvedSample Arriving;
+        ResolvedSample Incoming;
 
         switch (Element.Source)
         {
@@ -433,45 +433,45 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveTilingAt(std::uint32_t  Tilin
             {
                 // 📝 Constant within its own coverage, and its coverage is the element's unit square. `54` §3
                 //    declares no shape for a colour element, so the square is the whole of what it covers.
-                if (ElementAlong < 0.0 || ElementAlong > 1.0 || ElementAcross < 0.0 || ElementAcross > 1.0)
+                if (ElementX < 0.0 || ElementX > 1.0 || ElementY < 0.0 || ElementY > 1.0)
                     break;
 
-                AdmitColour(Arriving, Element.DeclaredColour, ResolvedComponentCeiling);
+                AcceptColour(Incoming, Element.DeclaredColour, ResolvedComponentCeiling);
 
-                Arriving.Coverage = 1.0;
+                Incoming.Coverage = 1.0;
                 break;
             }
 
             case CellContentSource::VectorOutline:
             {
                 const Outcome<ResolvedSample> Outlined =
-                    ResolveOutlineAt(Element.SourceOrdinal, ElementAlong, ElementAcross, Tolerance);
+                    ResolveOutlineAt(Element.SourceOrdinal, ElementX, ElementY, Tolerance);
 
                 if (!Outlined.Resolved)
                     return Outlined;
 
-                Arriving = Outlined.Resolve();
+                Incoming = Outlined.Resolve();
                 break;
             }
 
             case CellContentSource::NestedTiling:
             {
                 const Outcome<ResolvedSample> Nested = ResolveTilingAt(Element.SourceOrdinal,
-                                                                      ElementAlong,
-                                                                      ElementAcross,
+                                                                      ElementX,
+                                                                      ElementY,
                                                                       Tolerance,
                                                                       NestingDepth + 1u);
 
                 if (!Nested.Resolved)
                     return Nested;
 
-                Arriving = Nested.Resolve();
+                Incoming = Nested.Resolve();
                 break;
             }
 
             case CellContentSource::Imagery:
             {
-                // ⚠️ 🚧 Refused for the reason the class note gives: `50` retains a decoded image's original
+                // ⚠️ 🚧 Rejected for the reason the class note gives: `50` retains a decoded image's original
                 //    bytes and performs `36` §3's conversion into the working space nowhere, so sampling here
                 //    would return values in a content-native space nothing declared.
                 return Outcome<ResolvedSample>::Refuse(
@@ -485,9 +485,9 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveTilingAt(std::uint32_t  Tilin
         // 🔴 `54` §1's variation scales the **coverage** and never the value. Scaling the value would make a
         //    varied cell a different colour rather than a lighter application of the same one, and an artist
         //    declaring a variation interval on a weave would watch its threads change hue rather than weight.
-        Arriving.Coverage *= Cell.VariationScale;
+        Incoming.Coverage *= Cell.VariationScale;
 
-        AccumulateSample(Resolved, Arriving, Element.Combination, ResolvedComponentCeiling);
+        AccumulateSample(Resolved, Incoming, Element.Combination, ResolvedComponentCeiling);
     }
 
     return Outcome<ResolvedSample>::Result(Resolved);
@@ -498,8 +498,8 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveTilingAt(std::uint32_t  Tilin
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<ResolvedSample> AnalyticProjection::ResolvePlacedAt(std::uint32_t  PlacementOrdinal,
-                                                            double         PositionAlong,
-                                                            double         PositionAcross,
+                                                            double         PositionX,
+                                                            double         PositionY,
                                                             double         Tolerance) const
 {
     if (Supplied.Placements == nullptr)
@@ -515,25 +515,25 @@ Outcome<ResolvedSample> AnalyticProjection::ResolvePlacedAt(std::uint32_t  Place
 
     const PlacementSpecification& Placed = *Declared.Resolve();
 
-    double SourceAlong  = 0.0;
-    double SourceAcross = 0.0;
+    double SourceX  = 0.0;
+    double SourceY = 0.0;
 
     // 🔴 `72` §3's whole row, and the reason this component needs no per-source placement path. A placement is a
     //    transform into a source space; the source is then one of the three below, resolved exactly as it would
     //    be resolved were it applied as a layer.
-    if (!ProjectIntoSource(Placed, PositionAlong, PositionAcross, SourceAlong, SourceAcross))
+    if (!ProjectIntoSource(Placed, PositionX, PositionY, SourceX, SourceY))
         return Outcome<ResolvedSample>::Result(ResolvedSample{});
 
     switch (Placed.Source)
     {
         case PlacedSource::VectorOutline:
-            return ResolveOutlineAt(Placed.SourceOrdinal, SourceAlong, SourceAcross, Tolerance);
+            return ResolveOutlineAt(Placed.SourceOrdinal, SourceX, SourceY, Tolerance);
 
         case PlacedSource::Text:
-            return ResolveTextAt(Placed.SourceOrdinal, SourceAlong, SourceAcross, Tolerance);
+            return ResolveTextAt(Placed.SourceOrdinal, SourceX, SourceY, Tolerance);
 
         case PlacedSource::Tiling:
-            return ResolveTilingAt(Placed.SourceOrdinal, SourceAlong, SourceAcross, Tolerance, 0u);
+            return ResolveTilingAt(Placed.SourceOrdinal, SourceX, SourceY, Tolerance, 0u);
 
         case PlacedSource::Imagery:
             return Outcome<ResolvedSample>::Refuse(
@@ -551,8 +551,8 @@ Outcome<ResolvedSample> AnalyticProjection::ResolvePlacedAt(std::uint32_t  Place
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<ResolvedSample> AnalyticProjection::ResolveEntryAt(const LayerSpecification&  Held,
-                                                           double                     PositionAlong,
-                                                           double                     PositionAcross,
+                                                           double                     PositionX,
+                                                           double                     PositionY,
                                                            double                     Tolerance,
                                                            std::uint32_t              ComponentCount) const
 {
@@ -571,7 +571,7 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveEntryAt(const LayerSpecificat
             for (std::uint32_t Component = 0u; Component < ComponentCount; ++Component)
             {
                 Resolved.Component[Component] =
-                    SamplePainted(Held.Painted, PositionAlong, PositionAcross, Component);
+                    SamplePainted(Held.Painted, PositionX, PositionY, Component);
             }
 
             Resolved.Coverage       = 1.0;
@@ -584,7 +584,7 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveEntryAt(const LayerSpecificat
         case LayerContentSource::PlacedContent:
         {
             const Outcome<ResolvedSample> Placed =
-                ResolvePlacedAt(Held.SourceOrdinal, PositionAlong, PositionAcross, Tolerance);
+                ResolvePlacedAt(Held.SourceOrdinal, PositionX, PositionY, Tolerance);
 
             if (!Placed.Resolved)
                 return Placed;
@@ -596,7 +596,7 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveEntryAt(const LayerSpecificat
         case LayerContentSource::Tiling:
         {
             const Outcome<ResolvedSample> Tiled =
-                ResolveTilingAt(Held.SourceOrdinal, PositionAlong, PositionAcross, Tolerance, 0u);
+                ResolveTilingAt(Held.SourceOrdinal, PositionX, PositionY, Tolerance, 0u);
 
             if (!Tiled.Resolved)
                 return Tiled;
@@ -608,7 +608,7 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveEntryAt(const LayerSpecificat
         case LayerContentSource::AnalyticResolution:
         {
             const Outcome<ResolvedSample> Outlined =
-                ResolveOutlineAt(Held.SourceOrdinal, PositionAlong, PositionAcross, Tolerance);
+                ResolveOutlineAt(Held.SourceOrdinal, PositionX, PositionY, Tolerance);
 
             if (!Outlined.Resolved)
                 return Outlined;
@@ -644,14 +644,14 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveEntryAt(const LayerSpecificat
         {
             Covered *= Held.Coverage.Painted.ExtentTexels == 0u || Held.Coverage.Painted.Texels.empty()
                      ? 1.0
-                     : SamplePainted(Held.Coverage.Painted, PositionAlong, PositionAcross, 0u);
+                     : SamplePainted(Held.Coverage.Painted, PositionX, PositionY, 0u);
             break;
         }
 
         case LayerContentSource::PlacedContent:
         {
             const Outcome<ResolvedSample> Masked =
-                ResolvePlacedAt(Held.Coverage.SourceOrdinal, PositionAlong, PositionAcross, Tolerance);
+                ResolvePlacedAt(Held.Coverage.SourceOrdinal, PositionX, PositionY, Tolerance);
 
             if (!Masked.Resolved)
                 return Masked;
@@ -663,7 +663,7 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveEntryAt(const LayerSpecificat
         case LayerContentSource::Tiling:
         {
             const Outcome<ResolvedSample> Masked =
-                ResolveTilingAt(Held.Coverage.SourceOrdinal, PositionAlong, PositionAcross, Tolerance, 0u);
+                ResolveTilingAt(Held.Coverage.SourceOrdinal, PositionX, PositionY, Tolerance, 0u);
 
             if (!Masked.Resolved)
                 return Masked;
@@ -675,7 +675,7 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveEntryAt(const LayerSpecificat
         case LayerContentSource::AnalyticResolution:
         {
             const Outcome<ResolvedSample> Masked =
-                ResolveOutlineAt(Held.Coverage.SourceOrdinal, PositionAlong, PositionAcross, Tolerance);
+                ResolveOutlineAt(Held.Coverage.SourceOrdinal, PositionX, PositionY, Tolerance);
 
             if (!Masked.Resolved)
                 return Masked;
@@ -753,8 +753,8 @@ std::uint64_t AnalyticProjection::ContentRevision(const SurfaceLayerSequence& Co
 
 Outcome<ResolvedSample> AnalyticProjection::ResolveAt(const SurfaceLayerSequence&           Content,
                                                       const std::vector<ChannelPlacement>&  Placements,
-                                                      double                                PositionAlong,
-                                                      double                                PositionAcross,
+                                                      double                                PositionX,
+                                                      double                                PositionY,
                                                       double                                Tolerance,
                                                       std::uint32_t                         ComponentCount) const
 {
@@ -771,7 +771,7 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveAt(const SurfaceLayerSequence
         if (!Held.PresenceEnabled)
             continue;
 
-        ResolvedSample Arriving;
+        ResolvedSample Incoming;
 
         if (Held.Source == LayerContentSource::NestedSequence)
         {
@@ -786,15 +786,15 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveAt(const SurfaceLayerSequence
             //    `22` §3's defect at a different scale.
             const Outcome<ResolvedSample> Nested = ResolveAt(*Nesting.Resolve(),
                                                              Placements,
-                                                             PositionAlong,
-                                                             PositionAcross,
+                                                             PositionX,
+                                                             PositionY,
                                                              Tolerance,
                                                              ComponentCount);
 
             if (!Nested.Resolved)
                 return Nested;
 
-            Arriving = Nested.Resolve();
+            Incoming = Nested.Resolve();
 
             if (Held.Coverage.CoverageDeclared)
             {
@@ -805,23 +805,23 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveAt(const SurfaceLayerSequence
                 // 📝 The enclosing coverage is resolved through the entry path with the nested content's own
                 //    source stood down, so one routine resolves coverage for every entry rather than two.
                 const Outcome<ResolvedSample> Masked =
-                    ResolveEntryAt(Enclosing, PositionAlong, PositionAcross, Tolerance, ComponentCount);
+                    ResolveEntryAt(Enclosing, PositionX, PositionY, Tolerance, ComponentCount);
 
                 if (!Masked.Resolved)
                     return Masked;
 
-                Arriving.Coverage *= Masked.Resolve().Coverage;
+                Incoming.Coverage *= Masked.Resolve().Coverage;
             }
         }
         else
         {
             const Outcome<ResolvedSample> Entry =
-                ResolveEntryAt(Held, PositionAlong, PositionAcross, Tolerance, ComponentCount);
+                ResolveEntryAt(Held, PositionX, PositionY, Tolerance, ComponentCount);
 
             if (!Entry.Resolved)
                 return Entry;
 
-            Arriving = Entry.Resolve();
+            Incoming = Entry.Resolve();
         }
 
         // 📝 🚧 `Placements` is accepted and not yet read. `00` §12 carries the channel packing layout as open,
@@ -830,7 +830,7 @@ Outcome<ResolvedSample> AnalyticProjection::ResolveAt(const SurfaceLayerSequence
         //    look for the answer. The run is carried so that the signature does not change when it is answered.
         static_cast<void>(Placements);
 
-        AccumulateSample(Resolved, Arriving, Held.Combination, ComponentCount);
+        AccumulateSample(Resolved, Incoming, Held.Combination, ComponentCount);
     }
 
     return Outcome<ResolvedSample>::Result(Resolved);
@@ -856,7 +856,7 @@ Outcome<ResolvedTile> AnalyticProjection::ResolveTile(const SurfaceLayerSequence
 
     const std::uint32_t CellsPerEdge = CellsPerEdgeAt(Addressed.Level);
 
-    if (Addressed.Along >= CellsPerEdge || Addressed.Across >= CellsPerEdge)
+    if (Addressed.X >= CellsPerEdge || Addressed.Y >= CellsPerEdge)
         return Outcome<ResolvedTile>::Refuse({ RefusalReason::ContentUnsupported, "no such cell at that level" });
 
     const std::uint32_t WorkingExtent = CellsPerEdge * PhysicalTileTexels;
@@ -878,28 +878,28 @@ Outcome<ResolvedTile> AnalyticProjection::ResolveTile(const SurfaceLayerSequence
     Produced.Texels.assign(TexelSpan, 0.0f);
 
     // 📐 The apron is walked with the interior, per `20` §1. Texel (i, j) of the stored extent sits at working
-    //    texel (Along·PhysicalTileTexels + i − PhysicalTileApron, …), so the first and last four rows and columns
+    //    texel (X·PhysicalTileTexels + i − PhysicalTileApron, …), so the first and last four rows and columns
     //    address the neighbouring cells' border — which is exactly the duplication the apron is.
-    const std::int64_t OriginAlong  = static_cast<std::int64_t>(Addressed.Along)  * PhysicalTileTexels
+    const std::int64_t OriginX  = static_cast<std::int64_t>(Addressed.X)  * PhysicalTileTexels
                                     - static_cast<std::int64_t>(PhysicalTileApron);
-    const std::int64_t OriginAcross = static_cast<std::int64_t>(Addressed.Across) * PhysicalTileTexels
+    const std::int64_t OriginY = static_cast<std::int64_t>(Addressed.Y) * PhysicalTileTexels
                                     - static_cast<std::int64_t>(PhysicalTileApron);
 
     const double Edge = static_cast<double>(WorkingExtent);
 
-    for (std::uint32_t Across = 0u; Across < StoredTexelsPerEdge; ++Across)
+    for (std::uint32_t Y = 0u; Y < StoredTexelsPerEdge; ++Y)
     {
-        for (std::uint32_t Along = 0u; Along < StoredTexelsPerEdge; ++Along)
+        for (std::uint32_t X = 0u; X < StoredTexelsPerEdge; ++X)
         {
-            const double PositionAlong  = (static_cast<double>(OriginAlong  + Along)  + 0.5) / Edge;
-            const double PositionAcross = (static_cast<double>(OriginAcross + Across) + 0.5) / Edge;
+            const double PositionX  = (static_cast<double>(OriginX  + X)  + 0.5) / Edge;
+            const double PositionY = (static_cast<double>(OriginY + Y) + 0.5) / Edge;
 
             const Outcome<ResolvedSample> Sampled =
-                ResolveAt(Content, Placements, PositionAlong, PositionAcross, Tolerance, ComponentCount);
+                ResolveAt(Content, Placements, PositionX, PositionY, Tolerance, ComponentCount);
 
             if (!Sampled.Resolved)
             {
-                // 📝 Refused whole rather than left part-written. `20`'s promotion charges its budget against a
+                // 📝 Rejected whole rather than left part-written. `20`'s promotion charges its budget against a
                 //    tile it is about to write; a tile written to the first refusing texel is one the residency
                 //    records as resolved and every later sample reads as content.
                 Flattenings.clear();
@@ -909,7 +909,7 @@ Outcome<ResolvedTile> AnalyticProjection::ResolveTile(const SurfaceLayerSequence
 
             const ResolvedSample& Resolved = Sampled.Resolve();
 
-            const std::size_t Writing = (static_cast<std::size_t>(Across) * StoredTexelsPerEdge + Along)
+            const std::size_t Writing = (static_cast<std::size_t>(Y) * StoredTexelsPerEdge + X)
                                       * static_cast<std::size_t>(ComponentCount);
 
             for (std::uint32_t Component = 0u; Component < ComponentCount; ++Component)

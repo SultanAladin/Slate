@@ -14,11 +14,11 @@ namespace Slate
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ViewportSequence::Construct(const InterfaceAttachment& Arriving,
+Outcome<bool> ViewportSequence::Construct(const InterfaceAttachment& Incoming,
                                           const DrawerDeclaration&   North,
                                           const DrawerDeclaration&   South)
 {
-    const Outcome<bool> InterfaceBuilt = Interface.Construct(Arriving);
+    const Outcome<bool> InterfaceBuilt = Interface.Construct(Incoming);
     if (!InterfaceBuilt.Resolved)
         return InterfaceBuilt;
 
@@ -45,11 +45,11 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     const Outcome<bool> SurfaceAdopted = SurfaceOwned.Adopt();
     if (!SurfaceAdopted.Resolved)
     {
-        // 📝 Retired although the adopt refused and there is nothing to retire. `Retire` is idempotent, and
+        // 📝 Retired although the adopt rejected and there is nothing to retire. `Retire` is idempotent, and
         //    a reader following this path should not have to prove it safe before moving on.
         SurfaceOwned.Retire();
 
-        Disregard(Interface.Abandon());
+        Discard(Interface.Abandon());
         return SurfaceAdopted;
     }
 
@@ -73,7 +73,7 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
             //    host's to remember — `00` prevents by declaration, not by discipline.
             SurfaceOwned.Retire();
 
-            Disregard(Interface.Abandon());
+            Discard(Interface.Abandon());
             return DrawersBuilt;
         }
 
@@ -82,7 +82,7 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     else
     {
         // 📝 🔴 Rearrange now returns immediately unless the extent moved. Calling it every tick — which is
-        //    what this line used to do — re-seated every spring onto its pose ordinate and released the live
+        //    what this line used to do — re-applied every spring onto its pose coordinate and released the live
         //    grab, so a drag was erased one tick after it began and no drawer could ever be dragged.
         DrawersOwned.Rearrange(Display);
     }
@@ -92,16 +92,16 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
 
     // 🔴 The drawers are asked FIRST, and their answer outranks the interface's capture flag. Gating them
     //    on `!PointerCaptured()` disabled them wherever a window sat beneath — and a docked workspace
-    //    fills the body, so a drawer raised over one was refused every contact. The artist could see the
+    //    fills the body, so a drawer raised over one was rejected every contact. The artist could see the
     //    handle and could not press it; the click selected the workspace behind it instead.
-    // 📝 `Claims` is the same arbitration `Contacted` already performed, asked before the gate rather than
+    // 📝 `Reservations` is the same arbitration `Contacted` already performed, asked before the gate rather than
     //    after it. `14` §4.2's rule is unchanged — exactly one consumer holds the pointer — but the
     //    ordering that decides which one now puts the drawers above the windows they are drawn above.
-    DrawerBearing Claiming   = DrawerBearing::North;
-    const bool    DrawerHeld = DrawersOwned.Claims(Pointer.PositionAlong, Pointer.PositionAcross, Claiming);
+    DrawerBearing Covered   = DrawerBearing::North;
+    const bool    DrawerHeld = DrawersOwned.Covers(Pointer.PositionX, Pointer.PositionY, Covered);
 
     // 🔴 Withheld BEFORE the advance as well as after. A resize grip seizes the contact on the very frame
-    //    the press lands, and `Claims` answers for where the pointer is NOW — so once a drag carries the
+    //    the press lands, and `Reservations` answers for where the pointer is NOW — so once a drag carries the
     //    pointer off the drawer, `DrawerHeld` goes false and the withholding stopped while the vendor's
     //    grip kept the identity it had already taken. Withholding on the seizing frame is what prevents
     //    the grip from ever taking it.
@@ -113,7 +113,7 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     // 🔴 The interface is told the drawers took it, so the window beneath does not act on the same
     //    contact. Without this both consumers answer one click: the drawer drags and the workspace
     //    selects, which is the defect wearing its other face.
-    // 🔴 And again after, because `Moving` only reports a live grab once `Advance` has seized it. A drag
+    // 🔴 And again after, because `Moving` only reports a live grab once `Advance` has grabbed it. A drag
     //    that has carried the pointer clear of the drawer is held by `GrabbedBy` alone, and it is that
     //    state — not where the pointer happens to be — that must keep the vendor out for the whole drag.
     if (DrawerHeld || DrawersOwned.Moving())
@@ -142,13 +142,13 @@ void ViewportSequence::RecordDrawers()
     // 🔴 RELAYERED, never re-adopted. `Adopt` re-samples the pointer, clears the confine depth and stamps
     //    a fresh tick ordinal — doing that twice a tick merely to raise the drawers sampled the pointer
     //    mid-tick, so a drag reported one travel to the panels and another to the drawers.
-    Disregard(SurfaceOwned.Relayer(RecordingSurface::ShellLayer::Above));
+    Discard(SurfaceOwned.SwitchLayer(RecordingSurface::ShellLayer::Above));
 
     DrawersOwned.Record(SurfaceOwned);
 
     // 📝 Returned to the ground layer, so anything recorded after the drawers this tick lands beneath the
     //    windows again rather than inheriting the overlay.
-    Disregard(SurfaceOwned.Relayer(RecordingSurface::ShellLayer::Beneath));
+    Discard(SurfaceOwned.SwitchLayer(RecordingSurface::ShellLayer::Beneath));
 }
 
 void ViewportSequence::DrawerPanels()
@@ -283,7 +283,7 @@ bool ViewportSequence::Moving() const
 
 void ViewportSequence::Reclaim()
 {
-    Disregard(Interface.Abandon());
+    Discard(Interface.Abandon());
     Interface.Reclaim();
 
     // 📝 🔴 The drawers are reset before the integrator, because their spring ordinals index into it. The

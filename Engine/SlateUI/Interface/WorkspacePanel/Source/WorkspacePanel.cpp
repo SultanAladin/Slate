@@ -47,8 +47,8 @@ Outcome<bool> WorkspacePanel::Record(const PlaneExtent& Extent, const char* Titl
 
         const float VacantTracking = Measure.VacantText * Measure.VacantTracking;
 
-        Surface->TextRunCapitalised(Extent.LeastAlong  + Extent.SpanAlong()  * 0.5f,
-                                    Extent.LeastAcross + Extent.SpanAcross() * 0.5f,
+        Surface->TextRunCapitalised(Extent.MinimumX  + Extent.Width()  * 0.5f,
+                                    Extent.MinimumY + Extent.Height() * 0.5f,
                                     Colour.VacantColour,
                                     "CREATE PANEL",
                                     Measure.VacantText,
@@ -62,25 +62,25 @@ Outcome<bool> WorkspacePanel::Record(const PlaneExtent& Extent, const char* Titl
     //    were both retired: the dock node draws its own strip behind the tabs it lays out, so a band
     //    recorded here stood proud of it wherever the node did not reach — across the full window width
     //    while the node spanned only its own tabs — and read as a grey bar with tabs floating on it.
-    // 📝 `WorkspaceMetric::FooterAcross`, `FooterEdgeWeight` and the two footer colours stay declared.
+    // 📝 `WorkspaceMetric::FooterHeight`, `FooterEdgeWeight` and the two footer colours stay declared.
     //    They transcribe `.panelfooter` from the sheet and nothing here is authorised to delete a
     //    transcription; they are simply not recorded, because the artist asked for the band gone.
     Surface->Ground(Extent, Colour.BodyGround);
 
-    // ⚠️ The strip extent is still reported, because the `+` and the dock space are seated against it.
+    // ⚠️ The strip extent is still reported, because the `+` and the dock space are applied against it.
     //    It measures where the node's own tab bar stands; it is no longer painted.
-    StripExtent = { Extent.LeastAlong,
-                    Extent.LeastAcross,
-                    Extent.MostAlong,
-                    Extent.LeastAcross + Measure.StripAcross };
+    StripExtent = { Extent.MinimumX,
+                    Extent.MinimumY,
+                    Extent.MaximumX,
+                    Extent.MinimumY + Measure.StripY };
 
-    BodyExtent = { Extent.LeastAlong,
-                   Extent.LeastAcross + Measure.StripAcross,
-                   Extent.MostAlong,
-                   Extent.MostAcross };
+    BodyExtent = { Extent.MinimumX,
+                   Extent.MinimumY + Measure.StripY,
+                   Extent.MaximumX,
+                   Extent.MaximumY };
 
-    if (BodyExtent.MostAcross < BodyExtent.LeastAcross)
-        BodyExtent.MostAcross = BodyExtent.LeastAcross;
+    if (BodyExtent.MaximumY < BodyExtent.MinimumY)
+        BodyExtent.MaximumY = BodyExtent.MinimumY;
 
     return Outcome<bool>::Result(true);
 }

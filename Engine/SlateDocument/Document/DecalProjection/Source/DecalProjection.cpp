@@ -47,23 +47,23 @@ void RotateSpan(RotationQuaternion Rotation,
     OutZ = SpanZ + 2.0 * (Rotation.Real * CrossZ + SecondZ);
 }
 
-// 📝 A domain placement's transform is read in the plane alone — the third ordinate carries nothing, because the
+// 📝 A domain placement's transform is read in the plane alone — the third coordinate carries nothing, because the
 //    domain is two-dimensional. Reading it would let a domain placement acquire a depth the domain cannot express.
 void ProjectPlanar(const DecomposedTransform& Placing,
-                   double SourceAlong, double SourceAcross,
-                   double& AlongOut, double& AcrossOut)
+                   double SourceX, double SourceY,
+                   double& XOut, double& YOut)
 {
-    const double ScaledAlong  = (SourceAlong  - 0.5) * Placing.ScaleX;
-    const double ScaledAcross = (SourceAcross - 0.5) * Placing.ScaleY;
+    const double ScaledX  = (SourceX  - 0.5) * Placing.ScaleX;
+    const double ScaledY = (SourceY - 0.5) * Placing.ScaleY;
 
-    double TurnedAlong  = 0.0;
-    double TurnedAcross = 0.0;
+    double TurnedX  = 0.0;
+    double TurnedY = 0.0;
     double TurnedDeep   = 0.0;
 
-    RotateSpan(Placing.Rotation, ScaledAlong, ScaledAcross, 0.0, TurnedAlong, TurnedAcross, TurnedDeep);
+    RotateSpan(Placing.Rotation, ScaledX, ScaledY, 0.0, TurnedX, TurnedY, TurnedDeep);
 
-    AlongOut  = TurnedAlong  + Placing.Translation.PositionX;
-    AcrossOut = TurnedAcross + Placing.Translation.PositionY;
+    XOut  = TurnedX  + Placing.Translation.PositionX;
+    YOut = TurnedY + Placing.Translation.PositionY;
 }
 
 // 📝 One representable step outward on each face, matching `38` §6. An extent rounded inward excludes the
@@ -71,30 +71,30 @@ void ProjectPlanar(const DecomposedTransform& Placing,
 //    along one edge that cannot be clicked.
 void WidenOutward(DomainExtent& Widening)
 {
-    Widening.LeastAlong     = std::nextafter(Widening.LeastAlong,     -HUGE_VAL);
-    Widening.LeastAcross    = std::nextafter(Widening.LeastAcross,    -HUGE_VAL);
-    Widening.GreatestAlong  = std::nextafter(Widening.GreatestAlong,   HUGE_VAL);
-    Widening.GreatestAcross = std::nextafter(Widening.GreatestAcross,  HUGE_VAL);
+    Widening.MinimumX     = std::nextafter(Widening.MinimumX,     -HUGE_VAL);
+    Widening.MinimumY    = std::nextafter(Widening.MinimumY,    -HUGE_VAL);
+    Widening.MaximumX  = std::nextafter(Widening.MaximumX,   HUGE_VAL);
+    Widening.MaximumY = std::nextafter(Widening.MaximumY,  HUGE_VAL);
 }
 
-void AdmitPosition(DomainExtent& Running, double Along, double Across, bool& FirstAdmission)
+void AcceptPosition(DomainExtent& Running, double X, double Y, bool& FirstAdmission)
 {
     if (FirstAdmission)
     {
-        Running.LeastAlong     = Along;
-        Running.GreatestAlong  = Along;
-        Running.LeastAcross    = Across;
-        Running.GreatestAcross = Across;
+        Running.MinimumX     = X;
+        Running.MaximumX  = X;
+        Running.MinimumY    = Y;
+        Running.MaximumY = Y;
 
         FirstAdmission = false;
 
         return;
     }
 
-    Running.LeastAlong     = Along  < Running.LeastAlong     ? Along  : Running.LeastAlong;
-    Running.GreatestAlong  = Along  > Running.GreatestAlong  ? Along  : Running.GreatestAlong;
-    Running.LeastAcross    = Across < Running.LeastAcross    ? Across : Running.LeastAcross;
-    Running.GreatestAcross = Across > Running.GreatestAcross ? Across : Running.GreatestAcross;
+    Running.MinimumX     = X  < Running.MinimumX     ? X  : Running.MinimumX;
+    Running.MaximumX  = X  > Running.MaximumX  ? X  : Running.MaximumX;
+    Running.MinimumY    = Y < Running.MinimumY    ? Y : Running.MinimumY;
+    Running.MaximumY = Y > Running.MaximumY ? Y : Running.MaximumY;
 }
 
 }   // namespace
@@ -104,31 +104,31 @@ void AdmitPosition(DomainExtent& Running, double Along, double Across, bool& Fir
 //------------------------------------------------------------------------------------------------------------------------
 
 bool ProjectIntoSource(const PlacementSpecification& Placed,
-                       double                        PositionAlong,
-                       double                        PositionAcross,
-                       double&                       SourceAlong,
-                       double&                       SourceAcross)
+                       double                        PositionX,
+                       double                        PositionY,
+                       double&                       SourceX,
+                       double&                       SourceY)
 {
     // 📐 The inverse of a decomposed transform, taken decomposed. Translation is subtracted, the rotation is
     //    conjugated, and the scale is reciprocated — `02` §3.1 keeps a transform in this form precisely so that
     //    the inverse is three cheap steps rather than a general matrix inversion whose conditioning nobody
     //    tracks.
-    const double SpanAlong  = PositionAlong  - Placed.PlacingTransform.Translation.PositionX;
-    const double SpanAcross = PositionAcross - Placed.PlacingTransform.Translation.PositionY;
+    const double Width  = PositionX  - Placed.PlacingTransform.Translation.PositionX;
+    const double Height = PositionY - Placed.PlacingTransform.Translation.PositionY;
 
-    double TurnedAlong  = 0.0;
-    double TurnedAcross = 0.0;
+    double TurnedX  = 0.0;
+    double TurnedY = 0.0;
     double TurnedDeep   = 0.0;
 
     RotateSpan(Conjugated(Placed.PlacingTransform.Rotation),
-               SpanAlong, SpanAcross, 0.0,
-               TurnedAlong, TurnedAcross, TurnedDeep);
+               Width, Height, 0.0,
+               TurnedX, TurnedY, TurnedDeep);
 
-    const double ScaleAlong  = Placed.PlacingTransform.ScaleX != 0.0 ? Placed.PlacingTransform.ScaleX : 1.0;
-    const double ScaleAcross = Placed.PlacingTransform.ScaleY != 0.0 ? Placed.PlacingTransform.ScaleY : 1.0;
+    const double ScaleX  = Placed.PlacingTransform.ScaleX != 0.0 ? Placed.PlacingTransform.ScaleX : 1.0;
+    const double ScaleY = Placed.PlacingTransform.ScaleY != 0.0 ? Placed.PlacingTransform.ScaleY : 1.0;
 
-    SourceAlong  = TurnedAlong  / ScaleAlong  + 0.5;
-    SourceAcross = TurnedAcross / ScaleAcross + 0.5;
+    SourceX  = TurnedX  / ScaleX  + 0.5;
+    SourceY = TurnedY / ScaleY + 0.5;
 
     // 📝 A tiling source is periodic and has no unit square to fall outside of — `54` §2's lattice classifies
     //    every position, at whatever cell ordinal it lands in. Bounding it here would clip a pattern to the
@@ -136,7 +136,7 @@ bool ProjectIntoSource(const PlacementSpecification& Placed,
     if (Placed.Source == PlacedSource::Tiling)
         return true;
 
-    return SourceAlong >= 0.0 && SourceAlong <= 1.0 && SourceAcross >= 0.0 && SourceAcross <= 1.0;
+    return SourceX >= 0.0 && SourceX <= 1.0 && SourceY >= 0.0 && SourceY <= 1.0;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -174,14 +174,14 @@ Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&      
         //    its extent, and taking two corners is the mistake that shows up only once the artist turns a decal.
         for (std::uint32_t Corner = 0u; Corner < 4u; ++Corner)
         {
-            const double SourceAlong  = (Corner & 1u) != 0u ? 1.0 : 0.0;
-            const double SourceAcross = (Corner & 2u) != 0u ? 1.0 : 0.0;
+            const double SourceX  = (Corner & 1u) != 0u ? 1.0 : 0.0;
+            const double SourceY = (Corner & 2u) != 0u ? 1.0 : 0.0;
 
-            double Along  = 0.0;
-            double Across = 0.0;
-            ProjectPlanar(Placed.PlacingTransform, SourceAlong, SourceAcross, Along, Across);
+            double X  = 0.0;
+            double Y = 0.0;
+            ProjectPlanar(Placed.PlacingTransform, SourceX, SourceY, X, Y);
 
-            AdmitPosition(Derived, Along, Across, FirstAdmission);
+            AcceptPosition(Derived, X, Y, FirstAdmission);
         }
 
         WidenOutward(Derived);
@@ -209,10 +209,10 @@ Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&      
         double LocalZ = 0.0;
         RotateSpan(Inverse, SpanX, SpanY, SpanZ, LocalX, LocalY, LocalZ);
 
-        if (LocalX < -Placed.ProjectedHalfAlong  || LocalX > Placed.ProjectedHalfAlong)
+        if (LocalX < -Placed.ProjectedHalfX  || LocalX > Placed.ProjectedHalfX)
             continue;
 
-        if (LocalY < -Placed.ProjectedHalfAcross || LocalY > Placed.ProjectedHalfAcross)
+        if (LocalY < -Placed.ProjectedHalfY || LocalY > Placed.ProjectedHalfY)
             continue;
 
         // 📐 The volume projects along its own negative third axis, matching `46`'s camera convention and `44`'s
@@ -223,15 +223,15 @@ Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&      
         if (Reach < 0.0 || Reach > Placed.ProjectedReach)
             continue;
 
-        // ⚠️ 🚧 Back-facing corners are refused unless the placement admits them, and `72` §6 carries what the
+        // ⚠️ 🚧 Back-facing corners are rejected unless the placement accepts them, and `72` §6 carries what the
         //    right rule is as open. Refusing is the conservative reading: a decal projected onto a shoulder
         //    should not also land on the far side of the arm, where the artist cannot see it and will not
         //    understand why the extent reaches there.
-        if (!Placed.BackFacingAdmitted)
+        if (!Placed.BackFacingAccepted)
         {
             // 📝 The perpendicular is not available here — `38`'s conditioning is the caller's, not this
             //    component's — so facing is judged by the corner's own displacement along the projection axis
-            //    relative to the face's first corner. That is coarse and it is conservative in the admitting
+            //    relative to the face's first corner. That is coarse and it is conservative in the accepting
             //    direction, which is the direction §6's note declares safe.
             const std::uint32_t FaceOrdinal = Imported.CornerFace(CornerOrdinal);
             const std::uint32_t FirstCorner = Imported.FaceFirstCorner(FaceOrdinal);
@@ -254,14 +254,14 @@ Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&      
             }
         }
 
-        AdmitPosition(Derived,
-                      static_cast<double>(CornerCoordinates[CornerOrdinal].CoordinateAlong),
-                      static_cast<double>(CornerCoordinates[CornerOrdinal].CoordinateAcross),
+        AcceptPosition(Derived,
+                      static_cast<double>(CornerCoordinates[CornerOrdinal].CoordinateX),
+                      static_cast<double>(CornerCoordinates[CornerOrdinal].CoordinateY),
                       FirstAdmission);
     }
 
     // 📝 A projected placement reaching no corner covers nothing, and that is reported as a refusal rather than
-    //    as an extent of nothing. An empty extent admitted into `AxisSpace` is a placement `74` can never pick
+    //    as an extent of nothing. An empty extent accepted into `AxisSpace` is a placement `74` can never pick
     //    and `12` can never present as missing — the artist sees a row that does nothing at all.
     if (FirstAdmission)
     {
@@ -280,17 +280,17 @@ Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&      
 
 Outcome<std::uint32_t> PlacementIndex::Declare(const PlacementSpecification& Declaring)
 {
-    if (!Declaring.Occupant.IdentityDeclared())
+    if (!Declaring.Owner.IdentityDeclared())
     {
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::IdentityStale, "a placement attaches to no occupant" });
+            { RefusalReason::IdentityStale, "a placement attaches to no owner" });
     }
 
     if (Declaring.Source == PlacedSource::SourceCount || Declaring.Mode == PlacementMode::ModeCount)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such source or mode" });
 
     if (Declaring.Mode == PlacementMode::ProjectedPlaced
-     && (Declaring.ProjectedHalfAlong <= 0.0 || Declaring.ProjectedHalfAcross <= 0.0
+     && (Declaring.ProjectedHalfX <= 0.0 || Declaring.ProjectedHalfY <= 0.0
       || Declaring.ProjectedReach     <= 0.0))
     {
         return Outcome<std::uint32_t>::Refuse(
@@ -322,16 +322,16 @@ Outcome<std::uint32_t> PlacementIndex::Declare(const PlacementSpecification& Dec
         Placements.push_back(HeldPlacement{});
     }
 
-    HeldPlacement& Arriving = Placements[PlacementOrdinal];
+    HeldPlacement& Incoming = Placements[PlacementOrdinal];
 
     // 📝 The revision carries across a slot's reuse rather than restarting at one. A resident tile that recorded
-    //    the previous occupant's revision would otherwise match the new one's and stand unresolved, which is a
+    //    the previous owner's revision would otherwise match the new one's and stand unresolved, which is a
     //    decal showing whatever the slot used to hold.
-    const std::uint64_t Carried = Arriving.Declared.RevisionCounter;
+    const std::uint64_t Carried = Incoming.Declared.RevisionCounter;
 
-    Arriving.Declared                 = Declaring;
-    Arriving.Declared.RevisionCounter = Carried + 1u;
-    Arriving.SlotOccupied             = true;
+    Incoming.Declared                 = Declaring;
+    Incoming.Declared.RevisionCounter = Carried + 1u;
+    Incoming.SlotOccupied             = true;
 
     ++OccupiedCount;
 
@@ -352,8 +352,8 @@ Outcome<bool> PlacementIndex::Amend(std::uint32_t PlacementOrdinal, const Placem
                           || Held.Declared.SourceOrdinal       != Amending.SourceOrdinal
                           || Held.Declared.Mode                != Amending.Mode
                           || Held.Declared.ChannelMask         != Amending.ChannelMask
-                          || Held.Declared.ProjectedHalfAlong  != Amending.ProjectedHalfAlong
-                          || Held.Declared.ProjectedHalfAcross != Amending.ProjectedHalfAcross
+                          || Held.Declared.ProjectedHalfX  != Amending.ProjectedHalfX
+                          || Held.Declared.ProjectedHalfY != Amending.ProjectedHalfY
                           || Held.Declared.ProjectedReach      != Amending.ProjectedReach
                           || Held.Declared.PlacingTransform.Translation.PositionX
                              != Amending.PlacingTransform.Translation.PositionX
@@ -373,10 +373,10 @@ Outcome<bool> PlacementIndex::Amend(std::uint32_t PlacementOrdinal, const Placem
                           || Held.Declared.PlacingTransform.Rotation.Real
                              != Amending.PlacingTransform.Rotation.Real;
 
-    const std::uint64_t Standing = Held.Declared.RevisionCounter;
+    const std::uint64_t Current = Held.Declared.RevisionCounter;
 
     Held.Declared                 = Amending;
-    Held.Declared.RevisionCounter = SourceMoved ? Standing + 1u : Standing;
+    Held.Declared.RevisionCounter = SourceMoved ? Current + 1u : Current;
 
     return Outcome<bool>::Result(true);
 }
@@ -428,14 +428,14 @@ std::uint32_t PlacementIndex::DeclaredCount() const
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<bool> PlacementSequence::Open(std::uint32_t                 PlacementOrdinal,
-                                      const PlacementSpecification& Standing,
+                                      const PlacementSpecification& Current,
                                       bool                          CameraFollowed_)
 {
     if (OpenDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "a positioning drag is already open" });
 
-    PriorPlacement   = Standing;
-    AmendedPlacement = Standing;
+    PriorPlacement   = Current;
+    AmendedPlacement = Current;
     SubjectOrdinal   = PlacementOrdinal;
     CameraFollowed   = CameraFollowed_;
     OpenDeclared     = true;

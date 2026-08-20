@@ -27,7 +27,7 @@ Outcome<bool> SpecularProjection::Declare(const ReflectionSpecification& Declari
     if (!(Declaring.ThicknessBound > 0.0))
     {
         return Outcome<bool>::Refuse(
-            { RefusalReason::ContentUnsupported, "a thickness of nothing admits no crossing at all" });
+            { RefusalReason::ContentUnsupported, "a thickness of nothing accepts no crossing at all" });
     }
 
     if (Declaring.RoughnessCeiling < 0.0 || Declaring.RoughnessCeiling > 1.0)
@@ -36,7 +36,7 @@ Outcome<bool> SpecularProjection::Declare(const ReflectionSpecification& Declari
             { RefusalReason::ContentUnsupported, "the roughness ceiling lies outside the channel's own interval" });
     }
 
-    // ⚠️ Refused above two rather than admitted as a quality setting — `08` §2 claims `ReflectionSurface` at half
+    // ⚠️ Rejected above two rather than accepted as a quality setting — `08` §2 claims `ReflectionSurface` at half
     //    extent and nowhere else, and a third of the extent would declare it in two places that can disagree.
     if (Declaring.ExtentDivisor != 2u)
     {
@@ -84,16 +84,16 @@ Outcome<bool> SpecularProjection::Contribute(RenderSchedule& Schedule) const
 //                                                      THE EXTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> SpecularProjection::Resolve(std::uint32_t  DisplayAlong,
-                                          std::uint32_t  DisplayAcross,
-                                          std::uint32_t& ResolvedAlong,
-                                          std::uint32_t& ResolvedAcross) const
+Outcome<bool> SpecularProjection::Resolve(std::uint32_t  DisplayX,
+                                          std::uint32_t  DisplayY,
+                                          std::uint32_t& ResolvedX,
+                                          std::uint32_t& ResolvedY) const
 {
-    if (DisplayAlong == 0u || DisplayAcross == 0u)
+    if (DisplayX == 0u || DisplayY == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of nothing" });
 
-    ResolvedAlong  = (DisplayAlong  + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
-    ResolvedAcross = (DisplayAcross + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
+    ResolvedX  = (DisplayX  + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
+    ResolvedY = (DisplayY + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
 
     return Outcome<bool>::Result(true);
 }
@@ -102,14 +102,14 @@ Outcome<bool> SpecularProjection::Resolve(std::uint32_t  DisplayAlong,
 //                                                     THE COMPOSITE
 //------------------------------------------------------------------------------------------------------------------------
 
-void SpecularProjection::Compose(const double            Standing[3],
+void SpecularProjection::Compose(const double            Current[3],
                                  const double            PreAdded[3],
                                  const TracedReflection& Traced,
                                  double                  Resolved[3]) const
 {
     for (std::uint32_t Component = 0u; Component < 3u; ++Component)
     {
-        Resolved[Component] = ResolveExactComposite(Standing[Component],
+        Resolved[Component] = ResolveExactComposite(Current[Component],
                                                     PreAdded[Component],
                                                     Traced.Component[Component],
                                                     Traced.Weight);

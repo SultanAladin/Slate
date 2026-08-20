@@ -35,15 +35,15 @@ void ScaleLengths(MetricScale& Measure, float AppliedScale)
     Measure.LeadingBody             *= AppliedScale;
     Measure.LeadingTitle            *= AppliedScale;
     Measure.WheelTravel             *= AppliedScale;
-    Measure.TongueAlong             *= AppliedScale;
-    Measure.TongueAcross            *= AppliedScale;
-    Measure.TongueGapAlong          *= AppliedScale;
-    Measure.TonguePadAlong          *= AppliedScale;
-    Measure.GripAlong               *= AppliedScale;
-    Measure.GripAcross              *= AppliedScale;
-    Measure.GripStripAcross         *= AppliedScale;
+    Measure.TongueX             *= AppliedScale;
+    Measure.TongueY            *= AppliedScale;
+    Measure.TongueGapX          *= AppliedScale;
+    Measure.TonguePadX          *= AppliedScale;
+    Measure.GripX               *= AppliedScale;
+    Measure.GripHeight              *= AppliedScale;
+    Measure.GripStripHeight         *= AppliedScale;
     Measure.GripLiftNorth           *= AppliedScale;
-    Measure.RailAcross              *= AppliedScale;
+    Measure.RailY              *= AppliedScale;
     Measure.SymbolChevron           *= AppliedScale;
     Measure.SymbolTongue            *= AppliedScale;
     Measure.SymbolToggle            *= AppliedScale;
@@ -51,34 +51,34 @@ void ScaleLengths(MetricScale& Measure, float AppliedScale)
     Measure.MedallionLattice        *= AppliedScale;
     Measure.MedallionColumn         *= AppliedScale;
     Measure.MedallionPreview        *= AppliedScale;
-    Measure.LibraryAlongMedium      *= AppliedScale;
-    Measure.LibraryAlongLarge       *= AppliedScale;
-    Measure.PreviewAlongMedium      *= AppliedScale;
-    Measure.PreviewAlongLarge       *= AppliedScale;
-    Measure.LibraryPadAlong         *= AppliedScale;
-    Measure.LibraryCaptionAcross    *= AppliedScale;
-    Measure.GroupPadAcross          *= AppliedScale;
-    Measure.GroupGapAcross          *= AppliedScale;
-    Measure.SubjectIndentAlong      *= AppliedScale;
+    Measure.LibraryXMedium      *= AppliedScale;
+    Measure.LibraryXLarge       *= AppliedScale;
+    Measure.PreviewXMedium      *= AppliedScale;
+    Measure.PreviewXLarge       *= AppliedScale;
+    Measure.LibraryPadX         *= AppliedScale;
+    Measure.LibraryCaptionHeight    *= AppliedScale;
+    Measure.GroupPadY          *= AppliedScale;
+    Measure.GroupGapY          *= AppliedScale;
+    Measure.SubjectIndentX      *= AppliedScale;
     Measure.SubjectPadTrailing      *= AppliedScale;
     Measure.SubjectStripPad         *= AppliedScale;
     Measure.ContentPad              *= AppliedScale;
     Measure.ContentPadLeading       *= AppliedScale;
-    Measure.ContentHeadAcross       *= AppliedScale;
-    Measure.ContentHeadPadAlong     *= AppliedScale;
+    Measure.ContentHeadHeight       *= AppliedScale;
+    Measure.ContentHeadPadX     *= AppliedScale;
     Measure.ContentHeadGap          *= AppliedScale;
     Measure.ContentTrailingPad      *= AppliedScale;
     Measure.ContentScrollPad        *= AppliedScale;
-    Measure.EntryAlongCeiling       *= AppliedScale;
-    Measure.EntryPadAlong           *= AppliedScale;
-    Measure.EntryPadAcross          *= AppliedScale;
+    Measure.EntryXCeiling       *= AppliedScale;
+    Measure.EntryPadX           *= AppliedScale;
+    Measure.EntryPadY          *= AppliedScale;
     Measure.TogglePad               *= AppliedScale;
     Measure.ToggleGap               *= AppliedScale;
     Measure.CardGapLattice          *= AppliedScale;
     Measure.CardGapColumn           *= AppliedScale;
     Measure.CardPadColumn           *= AppliedScale;
     Measure.CardGapColumnInner      *= AppliedScale;
-    Measure.CardScrimAcross         *= AppliedScale;
+    Measure.CardScrimHeight         *= AppliedScale;
     Measure.CardMetaGap             *= AppliedScale;
     Measure.CardMetaLift            *= AppliedScale;
     Measure.CardMetaDot             *= AppliedScale;
@@ -104,14 +104,14 @@ void ScaleLengths(MetricScale& Measure, float AppliedScale)
 /// cost  ✔️
 void ScaleControlLengths(ControlMetric& Measure, float AppliedScale)
 {
-    Measure.ColumnAlong          *= AppliedScale;
-    Measure.CardGapAcross        *= AppliedScale;
+    Measure.ColumnX          *= AppliedScale;
+    Measure.CardGapY        *= AppliedScale;
     Measure.CardPad              *= AppliedScale;
     Measure.CardRowGap           *= AppliedScale;
     Measure.CardRadius           *= AppliedScale;
     Measure.CardEdgeWeight       *= AppliedScale;
     Measure.PagePad              *= AppliedScale;
-    Measure.PagePadAcross        *= AppliedScale;
+    Measure.PagePadY        *= AppliedScale;
 
     Measure.LabelText            *= AppliedScale;
     Measure.RowText              *= AppliedScale;
@@ -122,73 +122,73 @@ void ScaleControlLengths(ControlMetric& Measure, float AppliedScale)
     Measure.TooltipBodyText      *= AppliedScale;
     Measure.TooltipBodyLeading   *= AppliedScale;
 
-    Measure.LabelAlong           *= AppliedScale;
-    Measure.RowGapAlong          *= AppliedScale;
+    Measure.LabelX           *= AppliedScale;
+    Measure.RowGapX          *= AppliedScale;
 
-    Measure.FieldAcross          *= AppliedScale;
-    Measure.FieldPadAlong        *= AppliedScale;
-    Measure.ChevronCellAlong     *= AppliedScale;
+    Measure.FieldHeight          *= AppliedScale;
+    Measure.FieldPadX        *= AppliedScale;
+    Measure.ChevronCellX     *= AppliedScale;
     Measure.ChevronSymbol        *= AppliedScale;
     Measure.MenuLift             *= AppliedScale;
     Measure.MenuRadius           *= AppliedScale;
     Measure.MenuPad              *= AppliedScale;
-    Measure.MenuGapAcross        *= AppliedScale;
-    Measure.OptionPadAlong       *= AppliedScale;
-    Measure.OptionPadAcross      *= AppliedScale;
+    Measure.MenuGapY        *= AppliedScale;
+    Measure.OptionPadX       *= AppliedScale;
+    Measure.OptionPadY      *= AppliedScale;
 
-    Measure.ReadoutAlong         *= AppliedScale;
-    Measure.UnitCellAlong        *= AppliedScale;
-    Measure.SliderAlong          *= AppliedScale;
-    Measure.SliderAcross         *= AppliedScale;
+    Measure.ReadoutX         *= AppliedScale;
+    Measure.UnitCellX        *= AppliedScale;
+    Measure.SliderX          *= AppliedScale;
+    Measure.SliderHeight         *= AppliedScale;
     Measure.ThumbExtent          *= AppliedScale;
 
-    Measure.RulerAcross          *= AppliedScale;
+    Measure.RulerHeight          *= AppliedScale;
     Measure.RulerRadius          *= AppliedScale;
     Measure.TickSpacing          *= AppliedScale;
     Measure.TickWeight           *= AppliedScale;
-    Measure.TickMajorAcross      *= AppliedScale;
-    Measure.TickMediumAcross     *= AppliedScale;
-    Measure.TickMinorAcross      *= AppliedScale;
+    Measure.TickMajorHeight      *= AppliedScale;
+    Measure.TickMediumHeight     *= AppliedScale;
+    Measure.TickMinorHeight      *= AppliedScale;
     Measure.TickCaptionLift      *= AppliedScale;
     Measure.PointerWeight        *= AppliedScale;
-    Measure.PointerAcross        *= AppliedScale;
+    Measure.PointerY        *= AppliedScale;
     Measure.PointerDot           *= AppliedScale;
     Measure.PointerDotLift       *= AppliedScale;
 
-    Measure.WellPad              *= AppliedScale;
+    Measure.WellInset              *= AppliedScale;
     Measure.WellRadius           *= AppliedScale;
-    Measure.WellGapAcross        *= AppliedScale;
-    Measure.ToggleRowAcross      *= AppliedScale;
-    Measure.ToggleRowPadAlong    *= AppliedScale;
-    Measure.ToggleGapAlong       *= AppliedScale;
+    Measure.WellGapY        *= AppliedScale;
+    Measure.ToggleRowHeight      *= AppliedScale;
+    Measure.ToggleRowPadX    *= AppliedScale;
+    Measure.ToggleGapX       *= AppliedScale;
     Measure.RingExtent           *= AppliedScale;
     Measure.RingWeight           *= AppliedScale;
     Measure.RingDotExtent        *= AppliedScale;
 
-    Measure.SubsetRowAcross      *= AppliedScale;
-    Measure.SubsetRowPadAlong    *= AppliedScale;
-    Measure.SubsetRailAlong      *= AppliedScale;
+    Measure.SubsetRowHeight      *= AppliedScale;
+    Measure.SubsetRowPadX    *= AppliedScale;
+    Measure.SubsetRailX      *= AppliedScale;
 
-    Measure.StopStripAcross      *= AppliedScale;
+    Measure.StopStripHeight      *= AppliedScale;
     Measure.StopStripPadLeading  *= AppliedScale;
     Measure.StopStripPadTrailing *= AppliedScale;
     Measure.StopQuietExtent      *= AppliedScale;
     Measure.StopTakenExtent      *= AppliedScale;
 
-    Measure.TooltipAlong         *= AppliedScale;
+    Measure.TooltipX         *= AppliedScale;
     Measure.TooltipPad           *= AppliedScale;
     Measure.TooltipRadius        *= AppliedScale;
     Measure.TooltipLift          *= AppliedScale;
     Measure.TooltipTitleGap      *= AppliedScale;
     Measure.TooltipArrowExtent   *= AppliedScale;
     Measure.TooltipArrowRadius   *= AppliedScale;
-    Measure.TooltipArrowAlong    *= AppliedScale;
+    Measure.TooltipArrowX    *= AppliedScale;
     Measure.TooltipArrowScolour     *= AppliedScale;
     Measure.TriggerExtent        *= AppliedScale;
     Measure.TriggerRadius        *= AppliedScale;
-    Measure.TriggerLeadAlong     *= AppliedScale;
+    Measure.TriggerLeadX     *= AppliedScale;
     Measure.TriggerSymbol        *= AppliedScale;
-    Measure.TooltipWellPad       *= AppliedScale;
+    Measure.TooltipWellInset       *= AppliedScale;
     Measure.TooltipWellRadius    *= AppliedScale;
     Measure.TooltipWellFloor     *= AppliedScale;
     Measure.TooltipWellGap       *= AppliedScale;
@@ -224,17 +224,17 @@ void FloorRuns(ControlMetric& Measure)
 /// cost  ✔️
 void ScaleWorkspaceLengths(WorkspaceMetric& Measure, float AppliedScale)
 {
-    Measure.TabAcross        *= AppliedScale;
+    Measure.TabY        *= AppliedScale;
     Measure.TabSlant         *= AppliedScale;
     Measure.TabOverlap       *= AppliedScale;
-    Measure.TabPadAlong      *= AppliedScale;
-    Measure.TabAlongFloor    *= AppliedScale;
-    Measure.TabAlongCeiling  *= AppliedScale;
+    Measure.TabPadX      *= AppliedScale;
+    Measure.TabXFloor    *= AppliedScale;
+    Measure.TabXCeiling  *= AppliedScale;
     Measure.TabRadius        *= AppliedScale;
     Measure.TabEdgeWeight    *= AppliedScale;
-    Measure.StripAcross      *= AppliedScale;
+    Measure.StripY      *= AppliedScale;
     Measure.StripPadTop      *= AppliedScale;
-    Measure.FooterAcross     *= AppliedScale;
+    Measure.FooterHeight     *= AppliedScale;
     Measure.FooterEdgeWeight *= AppliedScale;
     Measure.TabText          *= AppliedScale;
     Measure.VacantText       *= AppliedScale;
@@ -255,26 +255,26 @@ void ScaleWorkspaceLengths(WorkspaceMetric& Measure, float AppliedScale)
 /// cost  ✔️
 void ScaleEditorPanelLengths(EditorPanelMetric& Measure, float AppliedScale)
 {
-    Measure.HeaderAcross        *= AppliedScale;
-    Measure.FooterAcross        *= AppliedScale;
-    Measure.SplitterAcross      *= AppliedScale;
+    Measure.HeaderHeight        *= AppliedScale;
+    Measure.FooterHeight        *= AppliedScale;
+    Measure.SplitterHeight      *= AppliedScale;
     Measure.EdgeWeight          *= AppliedScale;
-    Measure.HeaderPadAlong      *= AppliedScale;
-    Measure.FooterPadAlong      *= AppliedScale;
+    Measure.HeaderPadX      *= AppliedScale;
+    Measure.FooterPadX      *= AppliedScale;
     Measure.HeaderAction        *= AppliedScale;
     Measure.HeaderSymbol        *= AppliedScale;
     Measure.HeaderTitleGap      *= AppliedScale;
     Measure.FooterGap           *= AppliedScale;
-    Measure.PillAcross          *= AppliedScale;
+    Measure.PillY          *= AppliedScale;
     Measure.PillRadius          *= AppliedScale;
-    Measure.MenuAlong           *= AppliedScale;
-    Measure.SplitMenuAlong      *= AppliedScale;
-    Measure.MenuPadAcross       *= AppliedScale;
-    Measure.MenuRowAcross       *= AppliedScale;
+    Measure.MenuX           *= AppliedScale;
+    Measure.SplitMenuX      *= AppliedScale;
+    Measure.MenuPadY       *= AppliedScale;
+    Measure.MenuRowHeight       *= AppliedScale;
     Measure.MenuRadius          *= AppliedScale;
     Measure.MenuLift            *= AppliedScale;
-    Measure.ChooserButtonAlong  *= AppliedScale;
-    Measure.ChooserButtonAcross *= AppliedScale;
+    Measure.ChooserButtonX  *= AppliedScale;
+    Measure.ChooserButtonHeight *= AppliedScale;
     Measure.ChooserGap          *= AppliedScale;
     Measure.ChooserRadius       *= AppliedScale;
     Measure.TextFine            *= AppliedScale;
@@ -288,30 +288,30 @@ void ScaleEditorPanelLengths(EditorPanelMetric& Measure, float AppliedScale)
 
 }   // namespace
 
-ComfortDensity ClassifyDensity(const MetricScale& Measure, float ExtentAlong)
+ComfortDensity ClassifyDensity(const MetricScale& Measure, float Width)
 {
-    if (ExtentAlong <= 0.0f)
+    if (Width <= 0.0f)
         return ComfortDensity::Regular;
 
-    if (ExtentAlong >= Measure.BreakpointLarge * 2.5f)
+    if (Width >= Measure.BreakpointLarge * 2.5f)
         return ComfortDensity::Expansive;
 
-    if (ExtentAlong >= Measure.BreakpointLarge * 1.875f)
+    if (Width >= Measure.BreakpointLarge * 1.875f)
         return ComfortDensity::Spacious;
 
-    if (ExtentAlong >= Measure.BreakpointLarge)
+    if (Width >= Measure.BreakpointLarge)
         return ComfortDensity::Regular;
 
     return ComfortDensity::Compact;
 }
 
-ThemeProfile Resolve(double DisplayScale, double ArtistScale, float ExtentAlong)
+ThemeProfile Resolve(double DisplayScale, double ArtistScale, float Width)
 {
     ThemeProfile Resolved;
 
     const float AppliedScale = (DisplayScale > 0.0) ? static_cast<float>(DisplayScale) : 1.0f;
 
-    // 📝 The preference is clamped and never refused — a preference outside the bounds is a settings file to
+    // 📝 The preference is clamped and never rejected — a preference outside the bounds is a settings file to
     //    survive, not a reason to bring the interface up at an extent nothing can be read at.
     const double Preferred    = (ArtistScale < ArtistScaleFloor)   ? ArtistScaleFloor
                               : (ArtistScale > ArtistScaleCeiling) ? ArtistScaleCeiling
@@ -324,7 +324,7 @@ ThemeProfile Resolve(double DisplayScale, double ArtistScale, float ExtentAlong)
     // 🔴 The density is classified against breakpoints that have already been scaled, so the extent it reads
     //    and the thresholds it compares against are in the same units. Classifying first would compare a
     //    display-pixel extent against declared-pixel thresholds and step a density early on every dense panel.
-    const ComfortDensity Classified   = ClassifyDensity(Resolved.Measure, ExtentAlong);
+    const ComfortDensity Classified   = ClassifyDensity(Resolved.Measure, Width);
     const float          ControlScale = AuthoredReduction * DensityFactor(Classified) * AppliedScale * ArtistFactor;
 
     ScaleControlLengths(Resolved.ControlMeasure, ControlScale);
@@ -342,7 +342,7 @@ ThemeProfile Resolve(double DisplayScale, double ArtistScale, float ExtentAlong)
     Resolved.ControlMeasure.ArtistFactor  = ArtistFactor;
 
     // 📝 🔴 The three snap rates are the only figures outside `MetricScale` carrying a length, and they are
-    //    scaled explicitly here rather than enrolled with its pixel measurements. Scaling the whole motion
+    //    scaled explicitly here rather than registered with its pixel measurements. Scaling the whole motion
     //    declaration would also multiply its fractions and elasticity, changing drawer arbitration.
     Resolved.Motion.SnapRateSoft *= static_cast<double>(AppliedScale);
     Resolved.Motion.SnapRateFirm *= static_cast<double>(AppliedScale);
@@ -391,15 +391,15 @@ void ApplyFontWeights(ThemeProfile& Profile, const std::uint32_t (&Weights)[8])
 //    has no viewport media query, so they are evaluated against the extent the lattice actually occupies. At
 //    the source's own proportions the two agree; a panel torn off into its own window is where they part, and
 //    the content-relative reading is the one that stays correct there.
-std::uint32_t LatticeColumns(const MetricScale& Measure, float ContentAlong)
+std::uint32_t LatticeColumns(const MetricScale& Measure, float ContentX)
 {
-    if (ContentAlong >= Measure.BreakpointLarge)
+    if (ContentX >= Measure.BreakpointLarge)
         return 5u;
 
-    if (ContentAlong >= Measure.BreakpointMedium)
+    if (ContentX >= Measure.BreakpointMedium)
         return 4u;
 
-    if (ContentAlong >= Measure.BreakpointSmall)
+    if (ContentX >= Measure.BreakpointSmall)
         return 3u;
 
     return 2u;

@@ -159,22 +159,22 @@ Outcome<std::uint32_t> EmissionSequence::ResolveBand(const SurfaceLayerSequence&
     {
         // 📝 Texel **centres**, not corners. A corner sample places the first texel exactly on the domain
         //    boundary, where a seam's two sides are equally near and the resolution picks one arbitrarily.
-        const double PositionAcross = (static_cast<double>(Row) + 0.5) * Reciprocal;
+        const double PositionY = (static_cast<double>(Row) + 0.5) * Reciprocal;
 
         for (std::uint32_t Column = 0u; Column < Extent; ++Column)
         {
-            const double PositionAlong = (static_cast<double>(Column) + 0.5) * Reciprocal;
+            const double PositionX = (static_cast<double>(Column) + 0.5) * Reciprocal;
 
             const Outcome<ResolvedSample> Resolved = Resolution->ResolveAt(Content,
                                                                            Arrangement,
-                                                                           PositionAlong,
-                                                                           PositionAcross,
+                                                                           PositionX,
+                                                                           PositionY,
                                                                            Tolerance,
                                                                            Requesting);
 
             // 🔴 A refusal abandons the **whole** emission rather than leaving the band half-written. An image
             //    resolved above a seam and zero below it is an asset the artist ships without noticing; an
-            //    export that refused is one they cannot miss.
+            //    export that rejected is one they cannot miss.
             if (!Resolved.Resolved)
             {
                 const Refusal Declining = Resolved.Error;

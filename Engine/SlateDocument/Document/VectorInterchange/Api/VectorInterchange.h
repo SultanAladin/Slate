@@ -70,14 +70,14 @@ struct OutlineSpecification
 //                                                      REFUSALS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 One refused construct, named and positioned in the source.
+/// 🧩 One rejected construct, named and positioned in the source.
 /// note  🔴 `52` §2: a refusal names the construct **and the position in the source**. "Unsupported" with no
 ///        position sends the artist to search a file they did not write.
-/// note  ⚠️ `00` §5.2's refused set: effect operations, clipping and masking, script and animation, and embedded
-///        raster content. Each is refused rather than approximated, because a vector source that silently loses
+/// note  ⚠️ `00` §5.2's rejected set: effect operations, clipping and masking, script and animation, and embedded
+///        raster content. Each is rejected rather than approximated, because a vector source that silently loses
 ///        content is worse than one that refuses it — the artist attributes the loss to their own file.
 /// tag   owning
-struct RefusedConstruct
+struct RejectedConstruct
 {
     std::string    Construct     = {};   // [-] - what the source declared
     std::uint32_t  SourceOrdinal = 0u;   // [-] - character position, or path ordinal for a file route
@@ -98,23 +98,23 @@ class VectorInterchange
 {
 public:
 
-    /// 🧩 Declares a decoded outline arriving from a file.
-    /// in    Arriving    [-]  the decoded specification
+    /// 🧩 Declares a decoded outline incoming from a file.
+    /// in    Incoming    [-]  the decoded specification
     /// in    OriginPath  [-]  where it was read from
     /// out   Result     [-]  refuses with ContentUnsupported when no path was declared
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareFromFile(const OutlineSpecification& Arriving, const std::string& OriginPath);
+    Outcome<bool> DeclareFromFile(const OutlineSpecification& Incoming, const std::string& OriginPath);
 
-    /// 🧩 Declares a decoded outline arriving as supplied source text.
-    /// in    Arriving    [-]  the decoded specification
+    /// 🧩 Declares a decoded outline incoming as supplied source text.
+    /// in    Incoming    [-]  the decoded specification
     /// in    SourceText  [-]  retained, because there is no file to re-read
     /// out   Result     [-]  refuses with ContentUnsupported when no path was declared
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> DeclareFromText(const OutlineSpecification& Arriving, const std::string& SourceText);
+    Outcome<bool> DeclareFromText(const OutlineSpecification& Incoming, const std::string& SourceText);
 
-    /// 🧩 Records one refused construct, to be reported through `86`.
+    /// 🧩 Records one rejected construct, to be reported through `86`.
     /// cost  🚩
     /// tag   api, nonthrowing
     void Refuse(const std::string& Construct, std::uint32_t SourceOrdinal, const Refusal& Declining);
@@ -150,13 +150,13 @@ public:
                           double                                         PointY) const;
 
     const OutlineSpecification&           Declared() const;
-    const std::vector<RefusedConstruct>&  Refusals() const;
+    const std::vector<RejectedConstruct>&  Refusals() const;
     bool                                  TextRetained() const;
 
 private:
 
     OutlineSpecification           DeclaredOutline;            // [-] - as decoded, never repaired
-    std::vector<RefusedConstruct>  RefusedConstructs;          // [-] - awaiting `86`
+    std::vector<RejectedConstruct>  RejectedConstructs;          // [-] - awaiting `86`
     bool                           TextSourceDeclared = false; // [-] - the supplied-text route was taken
 };
 
@@ -175,8 +175,8 @@ struct GlyphSpecification
     std::uint32_t             GlyphIdentity = 0u;   // [-] - the typeface's own glyph ordinal, not a character
     std::vector<OutlinePath>  Paths         = {};   // [-] - structurally identical to a vector outline's
     double                    Advance       = 0.0;  // [-] - in the typeface's own units
-    double                    BearingAlong  = 0.0;  // [-] - in the typeface's own units
-    double                    BearingAcross = 0.0;  // [-] - in the typeface's own units
+    double                    BearingX  = 0.0;  // [-] - in the typeface's own units
+    double                    BearingY = 0.0;  // [-] - in the typeface's own units
 };
 
 /// 🧩 One typeface's glyphs, and the resolved text that reads them.

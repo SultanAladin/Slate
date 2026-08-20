@@ -27,8 +27,8 @@ namespace Slate
 /// tag   nonallocating, nonthrowing
 struct SeamEdge
 {
-    std::uint32_t  LeastVertex    = 0u;   // [-] - the lesser imported vertex ordinal
-    std::uint32_t  GreatestVertex = 0u;   // [-] - the greater; normalised so one edge has one spelling
+    std::uint32_t  MinimumVertex    = 0u;   // [-] - the lesser imported vertex ordinal
+    std::uint32_t  MaximumVertex = 0u;   // [-] - the greater; normalised so one edge has one spelling
 };
 
 /// 🧩 Normalises two imported vertex ordinals into one seam edge.
@@ -37,8 +37,8 @@ struct SeamEdge
 constexpr SeamEdge DeclareEdge(std::uint32_t FirstVertex, std::uint32_t SecondVertex)
 {
     SeamEdge Declaring;
-    Declaring.LeastVertex    = FirstVertex < SecondVertex ? FirstVertex  : SecondVertex;
-    Declaring.GreatestVertex = FirstVertex < SecondVertex ? SecondVertex : FirstVertex;
+    Declaring.MinimumVertex    = FirstVertex < SecondVertex ? FirstVertex  : SecondVertex;
+    Declaring.MaximumVertex = FirstVertex < SecondVertex ? SecondVertex : FirstVertex;
 
     return Declaring;
 }
@@ -73,7 +73,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported when no authored seam runs between the two
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> WithdrawAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex);
+    Outcome<bool> RemoveAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex);
 
     /// 🧩 Records one seam the partitioner derived, for reporting and for the standing partition.
     /// note  Held apart from the authored set so that `ReclaimDerived` cannot reach an authored seam. The two

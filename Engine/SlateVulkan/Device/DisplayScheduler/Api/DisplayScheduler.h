@@ -37,7 +37,7 @@ inline constexpr std::uint32_t AbsentDisplayImage = 0xFFFFFFFFu;   // [-] - noth
 /// tag   contract
 enum class LatencyIntent : std::uint32_t
 {
-    LowestLatency  = 0u,   // [-] - the stroke reaches the display as early as the device admits
+    LowestLatency  = 0u,   // [-] - the stroke reaches the display as early as the device accepts
     SteadyPacing   = 1u,   // [-] - a regular interval, at the cost of one interval of latency
     IntentCount    = 2u    // [-] - the closed count, never an intent
 };
@@ -47,7 +47,7 @@ enum class LatencyIntent : std::uint32_t
 ///        image this rotation, and the caller re-claims **after** presenting it; refusing instead would drop
 ///        the rotation that noticed, and the artist sees the resize as one stalled stroke.
 /// tag   nonallocating, nonthrowing
-struct ArrivedImage
+struct AcquiredImage
 {
     std::uint32_t  ImageOrdinal   = AbsentDisplayImage;   // [-]  - which chain image this rotation writes
     VkImage        Extent         = VK_NULL_HANDLE;       // [-]  - the vendor image, owned by the chain
@@ -63,10 +63,10 @@ struct ArrivedImage
 /// 🧩 The chain of display images, the surface format every target is claimed against, and the pacing.
 /// note  🔴 This is `06` §2 ⑤ and ⑥ — the extent claimed and the presentation chain established. Until it
 ///        stood, `08` §2's `DisplaySurface` named a target with no format to claim it at:
-///        `TargetSpace::Claim` takes the display format as an operand, and `Carries` is where that operand
+///        `TargetSpace::Reserve` takes the display format as an operand, and `Carries` is where that operand
 ///        comes from. Re-deriving it at the claim site would let the chain and the targets disagree about one
 ///        format with nothing comparing them.
-/// note  🔴 `CycleScheduler` already declares the two ordering points a chain needs — `ImageArrived` signalled
+/// note  🔴 `CycleScheduler` already declares the two ordering points a chain needs — `ImageAvailable` signalled
 ///        by the display and awaited by the recording, `RecordingDone` signalled by the recording and awaited
 ///        by the display. Nothing here constructs an ordering point of its own; a second set would be one the
 ///        rotation does not know it is waiting on.
@@ -101,12 +101,12 @@ public:
     ///                           ExtentExhausted when the device declines the chain
     /// post  `Carries` names the format every display-relative target is claimed at; the chain holds no image
     ///       the display has not handed back
-    /// note  🔴 Refused in full. A chain whose images were constructed and whose views were declined leaves the
+    /// note  🔴 Rejected in full. A chain whose images were constructed and whose views were rejected leaves the
     ///        vendor holding images nothing references, and they are returned only when the surface is.
     /// note  🔴 `06` §7's diagnostic-name gate, discharged inside `Establish` so that `Reclaim` names the chain it
     ///        re-establishes too. The chain carries the establishment ordinal rather than no ordinal, because two
     ///        chains stand at once for the length of a resize — the retiring one is named as `oldSwapchain` while
-    ///        the arriving one is constructed — and a report against either would otherwise read alike.
+    ///        the incoming one is constructed — and a report against either would otherwise read alike.
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> Construct(const VulkanExchange&       Exchange,
@@ -126,21 +126,21 @@ public:
     ///        re-claimed views. A chain re-established without the targets following is a display image at the
     ///        arrived extent composited from targets at the previous one, which reads as a shifted image rather
     ///        than as a resize that was half applied.
-    /// note  ⚠️ A zero extent is refused rather than deferred. A minimised window reports one, and the caller
+    /// note  ⚠️ A zero extent is rejected rather than deferred. A minimised window reports one, and the caller
     ///        stops rotating instead of establishing a chain no image can be claimed from.
     /// cost  🔴
     /// tag   api, nonthrowing
     Outcome<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
     /// 🧩 Takes the next display image, ordering its arrival against the standing cycle slot.
-    /// in    Standing  [-]  the cycle slot this image is recorded into; its `ImageArrived` is signalled
+    /// in    Current  [-]  the cycle slot this image is recorded into; its `ImageAvailable` is signalled
     /// in    Timeline  [-]  measures the interval between this arrival and the last
     /// out   Result   [-]  refuses with CapabilityAbsent when no chain stands, RelationCyclic when an image is
     ///                      already taken, HostDenied when the display neither delivers an image nor reports
     ///                      the chain outgrown within the arrival ceiling, and DeviceLost when the device was
     ///                      lost; the chain is left standing for the recovery to reclaim
     /// post  the delivered ordinal is the caller's until `Present` returns it
-    /// note  🔴 The arrival is ordered on `SlotOrdinal::ImageArrived`, which the recording waits on before it
+    /// note  🔴 The arrival is ordered on `SlotOrdinal::ImageAvailable`, which the recording waits on before it
     ///        writes colour. An arrival ordered on nothing is a recording that writes an image the display is
     ///        still reading, and the artist sees the previous rotation's stroke tear through this one's.
     /// note  🔴 `Reclaimed` is delivered in two cases that differ in whether this rotation may proceed, and
@@ -150,15 +150,15 @@ public:
     ///        caller reading `Reclaimed` alone would record into a null view on the second of the two.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<ArrivedImage> Await(const CycleSlot& Standing, const TickSequence& Timeline);
+    Outcome<AcquiredImage> Await(const CycleSlot& Current, const TickSequence& Timeline);
 
-    /// 🧩 Surrenders one taken image back to the display, ordered behind the recording that wrote it.
-    /// in    Standing      [-]  the same slot `Await` was given; its `RecordingDone` is awaited
+    /// 🧩 Returns one taken image back to the display, ordered behind the recording that wrote it.
+    /// in    Current      [-]  the same slot `Await` was given; its `RecordingDone` is awaited
     /// in    ImageOrdinal  [-]  what `Await` delivered
     /// out   Result       [-]  refuses with ContentUnsupported for an ordinal `Await` did not deliver, with
     ///                          HostDenied when the display declines it, and with DeviceLost when the device
     ///                          was lost; the ordinal is released to the display either way
-    /// post  the ordinal is the display's again; `Presented` is raised
+    /// post  the ordinal is the display's again; `Current` is raised
     /// note  🔴 Awaits `RecordingDone` and never the completion. The completion is the host's fence and waiting
     ///        on it here would serialise the host against the device once per rotation — which is the whole
     ///        purpose of the recording slot count, spent.
@@ -172,11 +172,11 @@ public:
     ///        unreachable, so a resize was rebuilt one tick late by the extent test or not at all.
     /// cost  🚩
     /// tag   api, nonthrowing
-    [[nodiscard]] Outcome<bool> Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal);
+    [[nodiscard]] Outcome<bool> Present(const CycleSlot& Current, std::uint32_t ImageOrdinal);
 
     /// 🧩 What the surface carries, which is the format every display-relative target is claimed at.
     /// out   Format  [-]  VK_FORMAT_UNDEFINED before Construct delivered
-    /// note  🔴 Read by `TargetSpace::Claim` and by nothing that re-derives it. `08` §2 gives `DisplaySurface`
+    /// note  🔴 Read by `TargetSpace::Reserve` and by nothing that re-derives it. `08` §2 gives `DisplaySurface`
     ///        the format of the display rather than a declared one, and this is the only place that is known.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -185,8 +185,8 @@ public:
     /// 🧩 The extent the chain stands at, which every display-relative target is claimed against.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint32_t StandingWidth() const;
-    std::uint32_t StandingHeight() const;
+    std::uint32_t CurrentWidth() const;
+    std::uint32_t CurrentHeight() const;
 
     /// 🧩 The minimum image count requested when the standing chain was created.
     /// cost  ✔️
@@ -210,7 +210,7 @@ public:
     /// 🧩 How many images have been surrendered to the display since the chain was established.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    std::uint64_t Presented() const;
+    std::uint64_t Current() const;
 
     /// 🧩 Destroys every view and the chain, and forgets the extent it stood at.
     /// pre   the device is idle
@@ -218,7 +218,7 @@ public:
     ///       that destroyed the surface it was established against would reclaim what it borrowed.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Surrender();
+    void Return();
 
 private:
 
@@ -235,8 +235,8 @@ private:
     ///        encoding.
     Outcome<VkSurfaceFormatKHR> ScoreFormat(VkSurfaceKHR Surface) const;
 
-    /// 🧩 The vendor pacing one declared latency intent resolves to, from what the surface admits.
-    /// note  🔴 Every surface admits `VK_PRESENT_MODE_FIFO_KHR` by declaration, so it is the fallback for both
+    /// 🧩 The vendor pacing one declared latency intent resolves to, from what the surface accepts.
+    /// note  🔴 Every surface accepts `VK_PRESENT_MODE_FIFO_KHR` by declaration, so it is the fallback for both
     ///        intents and nothing here refuses over an absent mode.
     VkPresentModeKHR ScorePacing(VkSurfaceKHR Surface, LatencyIntent Intent) const;
 
@@ -260,7 +260,7 @@ private:
     std::uint32_t              EstablishedCount = 0u;                   // [-]  - chains stood so far; names this one
     TickPoint                  LastArrival      = {};                   // [ns] - when the previous image arrived
     double                     ArrivalInterval  = 0.0;                  // [ms] - between the last two arrivals
-    std::uint64_t              SurrenderedCount = 0u;                   // [-]  - images given to the display
+    std::uint64_t              ReturnedCount = 0u;                   // [-]  - images given to the display
 };
 
 }   // namespace Slate

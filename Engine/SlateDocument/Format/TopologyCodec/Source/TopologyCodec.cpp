@@ -159,7 +159,7 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
     if (Parsed == nullptr)
     {
         return Outcome<DecodedTopology>::Refuse(
-            { RefusalReason::ContentUnsupported, "the parser declined the polygon stream" });
+            { RefusalReason::ContentUnsupported, "the parser rejected the polygon stream" });
     }
 
     if (Parsed->face_count == 0u)
@@ -188,11 +188,11 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
 
     // 🔴 `50` §2 ①: every face is carried over as the run of corners the file wrote, in the file's own winding
     //    and at whatever corner count it used. A run of fewer than three corners is handed over intact and
-    //    refused by `TopologyStructure::DeclareFace`, which is where that refusal is declared to happen —
+    //    rejected by `TopologyStructure::DeclareFace`, which is where that refusal is declared to happen —
     //    dropping it here would produce a topology that no longer describes the file the artist supplied.
     Produced.Faces.reserve(Parsed->face_count);
     Produced.CornerCoordinates.reserve(Parsed->index_count);
-    Produced.MaterialEnrollment.reserve(Parsed->face_count);
+    Produced.MaterialRegistration.reserve(Parsed->face_count);
 
     bool CoordinatesComplete   = Parsed->texcoord_count > 1u;
     bool PerpendicularsPerFace = false;
@@ -225,8 +225,8 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
 
             if (Addressed.t > 0u && Addressed.t < Parsed->texcoord_count)
             {
-                Placed.CoordinateAlong  = Parsed->texcoords[Addressed.t * 2u + 0u];
-                Placed.CoordinateAcross = Parsed->texcoords[Addressed.t * 2u + 1u];
+                Placed.CoordinateX  = Parsed->texcoords[Addressed.t * 2u + 0u];
+                Placed.CoordinateY = Parsed->texcoords[Addressed.t * 2u + 1u];
             }
             else
             {
@@ -245,23 +245,23 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
 
                 if (VertexOrdinal < PerVertexPerpendiculars.size())
                 {
-                    SurfaceDirection Arriving;
-                    Arriving.DirectionX = Parsed->normals[Addressed.n * 3u + 0u];
-                    Arriving.DirectionY = Parsed->normals[Addressed.n * 3u + 1u];
-                    Arriving.DirectionZ = Parsed->normals[Addressed.n * 3u + 2u];
+                    SurfaceDirection Incoming;
+                    Incoming.DirectionX = Parsed->normals[Addressed.n * 3u + 0u];
+                    Incoming.DirectionY = Parsed->normals[Addressed.n * 3u + 1u];
+                    Incoming.DirectionZ = Parsed->normals[Addressed.n * 3u + 2u];
 
                     if (!PerpendicularOccupied[VertexOrdinal])
                     {
-                        PerVertexPerpendiculars[VertexOrdinal] = Arriving;
+                        PerVertexPerpendiculars[VertexOrdinal] = Incoming;
                         PerpendicularOccupied[VertexOrdinal]   = true;
                     }
                     else
                     {
                         const SurfaceDirection Held = PerVertexPerpendiculars[VertexOrdinal];
 
-                        if (Held.DirectionX != Arriving.DirectionX
-                         || Held.DirectionY != Arriving.DirectionY
-                         || Held.DirectionZ != Arriving.DirectionZ)
+                        if (Held.DirectionX != Incoming.DirectionX
+                         || Held.DirectionY != Incoming.DirectionY
+                         || Held.DirectionZ != Incoming.DirectionZ)
                         {
                             PerpendicularsPerFace = true;
                         }
@@ -271,7 +271,7 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
         }
 
         Produced.Faces.push_back(CornerVertices);
-        Produced.MaterialEnrollment.push_back(static_cast<std::uint32_t>(Parsed->face_materials[FaceOrdinal]));
+        Produced.MaterialRegistration.push_back(static_cast<std::uint32_t>(Parsed->face_materials[FaceOrdinal]));
 
         CornerOrdinal += CornerCount;
     }
@@ -300,7 +300,7 @@ Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, cons
     }
 
     // 📝 A tangent basis is never derived here. `38` §4 derives one where the source supplied none, and a
-    //    derived basis arriving through a codec would be indistinguishable from an authored one — which is
+    //    derived basis incoming through a codec would be indistinguishable from an authored one — which is
     //    precisely the distinction `TopologyStructure::DeclareTangentBases` exists to keep.
 
     Produced.OriginPath        = OriginPath;

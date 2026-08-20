@@ -30,9 +30,9 @@ bool DomainSpace::Feasible(const std::vector<std::uint32_t>&  Ordering,
 {
     const double Gap = DeclaredGap();
 
-    double ShelfAcross = Gap;
+    double ShelfY = Gap;
     double ShelfHeight = 0.0;
-    double WalkingAlong = Gap;
+    double WalkingX = Gap;
 
     for (const std::uint32_t Ordinal : Ordering)
     {
@@ -46,26 +46,26 @@ bool DomainSpace::Feasible(const std::vector<std::uint32_t>&  Ordering,
         if (Width + 2.0 * Gap > 1.0 || Height + 2.0 * Gap > 1.0)
             return false;
 
-        if (WalkingAlong + Width + Gap > 1.0)
+        if (WalkingX + Width + Gap > 1.0)
         {
-            ShelfAcross  += ShelfHeight + Gap;
-            WalkingAlong  = Gap;
+            ShelfY  += ShelfHeight + Gap;
+            WalkingX  = Gap;
             ShelfHeight   = 0.0;
         }
 
-        if (ShelfAcross + Height + Gap > 1.0)
+        if (ShelfY + Height + Gap > 1.0)
             return false;
 
         if (Recording != nullptr)
         {
-            (*Recording)[Ordinal].LeastAlong   = WalkingAlong;
-            (*Recording)[Ordinal].LeastAcross  = ShelfAcross;
+            (*Recording)[Ordinal].MinimumX   = WalkingX;
+            (*Recording)[Ordinal].MinimumY  = ShelfY;
             (*Recording)[Ordinal].Scale        = Scale;
             (*Recording)[Ordinal].ChartOrdinal = Held.ChartOrdinal;
             (*Recording)[Ordinal].Placed       = true;
         }
 
-        WalkingAlong += Width + Gap;
+        WalkingX += Width + Gap;
 
         if (Height > ShelfHeight)
             ShelfHeight = Height;
@@ -87,7 +87,7 @@ Outcome<bool> DomainSpace::Arrange(const std::vector<ChartExtent>& Extents, bool
     if (Extents.empty())
         return Outcome<bool>::Result(true);
 
-    // 🚧 `68` §10 carries the per-chart scale as an open row and `68` §5's default stands regardless. Refused
+    // 🚧 `68` §10 carries the per-chart scale as an open row and `68` §5's default stands regardless. Rejected
     //    rather than approximated, because a packing that silently chose its own per-chart scales would answer
     //    the open question by accident and nobody would know which answer shipped.
     if (!CommonScale)
@@ -163,7 +163,7 @@ Outcome<bool> DomainSpace::Arrange(const std::vector<ChartExtent>& Extents, bool
     }
 
     if (LowerScale <= 0.0 || !Feasible(Ordering, Extents, LowerScale, &Placed))
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no scale admits every chart" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no scale accepts every chart" });
 
     Settled = LowerScale;
     Covered = AccumulatedArea * LowerScale * LowerScale;

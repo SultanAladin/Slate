@@ -28,7 +28,7 @@ namespace Slate
 ///       that waits at the top of the ordering serialises against a point it only needs before it writes
 ///       colour, and the display stall that produces reads as a device too slow for the extent.
 /// tag   nonallocating, nonthrowing
-struct SurrenderOrdering
+struct SubmitOrdering
 {
     VkSemaphore           Awaited      = VK_NULL_HANDLE;                       // [-] - waited on before executing
     VkPipelineStageFlags  AwaitedStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;    // [-] - where the wait applies
@@ -61,7 +61,7 @@ public:
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
     /// in    Naming    [-]  names every extent and every recording; borrowed and outlives this component
     /// out   Result   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
-    ///                      device declines an extent or a recording; refused in full
+    ///                      device declines an extent or a recording; rejected in full
     /// post  `RecordingSlotCount` recordings stand, none of them open
     /// note  🔴 `06` §7's diagnostic-name gate. Each recording is named by its cycle slot, which is what the
     ///        driver's text needs to say — a report against an unnamed recording cannot distinguish the slot
@@ -75,7 +75,7 @@ public:
     /// out   Result       [-]  the opened recording; refuses with ContentUnsupported for an excessive slot
     ///                          and HostDenied when the device declines the reset or the open
     /// pre   🔴 `CycleScheduler::Await` delivered for this slot — the device no longer reads it
-    /// post  the slot is open; Surrender closes it
+    /// post  the slot is open; Submit closes it
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<VkCommandBuffer> Open(std::uint32_t SlotOrdinal);
@@ -98,11 +98,11 @@ public:
     ///        moment for every other reader of it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Surrender(std::uint32_t SlotOrdinal, const SurrenderOrdering& Ordering);
+    Outcome<bool> Submit(std::uint32_t SlotOrdinal, const SubmitOrdering& Ordering);
 
     /// 🧩 Opens a recording outside the rotation, for the one-off transfers bring-up records.
     /// out   Result  [-]  refuses with ExtentExhausted when the device declines the recording
-    /// note  ⚠️ Surrendered and awaited immediately by `SurrenderImmediate`. This is bring-up's path and never
+    /// note  ⚠️ Submitted and awaited immediately by `SubmitImmediate`. This is bring-up's path and never
     ///        a rotation's — an immediate wait inside a rotation is the whole device serialised on the host.
     /// cost  🚩
     /// tag   api, nonthrowing
@@ -114,7 +114,7 @@ public:
     ///                     DeviceLost when the device was lost; the recording is returned either way
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<bool> SurrenderImmediate(VkCommandBuffer Recorded);
+    Outcome<bool> SubmitImmediate(VkCommandBuffer Recorded);
 
     /// 🧩 Destroys every recording and every extent.
     /// pre   the device is idle
@@ -128,7 +128,7 @@ private:
     {
         VkCommandPool    RecordingExtent = VK_NULL_HANDLE;   // [-] - vendor spelling; reset whole
         VkCommandBuffer  Primary         = VK_NULL_HANDLE;   // [-] - the one recording of the slot
-        bool             SlotOpen        = false;            // [-] - true between Open and Surrender
+        bool             SlotOpen        = false;            // [-] - true between Open and Submit
     };
 
     // 📝 The same ceiling `CycleScheduler` waits under, for the same reason — a bounded wait reports a lost

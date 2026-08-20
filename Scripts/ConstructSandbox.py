@@ -57,7 +57,7 @@ def Report(Tag, Colour, Message):
 
 def WriteBuilding(Message): Report('Build',    ColourNeutral,  Message)
 def WriteSkipped(Message):  Report('SKIP',     ColourSkipped,  Message)
-def WriteRefused(Message):  Report('FAILED',   ColourFailed,   Message)
+def WriteRejected(Message):  Report('FAILED',   ColourFailed,   Message)
 def WriteProduced(Message): Report('Compiled', ColourCompiled, Message)
 
 #------------------------------------------------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ def ReadUnitGraph():
 
 
 # 🔴 A subject declared twice would have one host's objects overwrite the other's in a shared folder, and both
-#    would compile. Refused here rather than discovered as a host that runs the wrong main().
+#    would compile. Rejected here rather than discovered as a host that runs the wrong main().
 def TestSubjectUniqueness(Declared):
     Seen = {}
 
@@ -268,7 +268,7 @@ def InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn, Subje
 
     Include  = GetIncludePath(UnitEntry, VulkanInclude)
     Flags    = GetCompilationFlags(Selection) + (['-Wall', '-Wextra', '-Wno-unused-parameter'] if Warn else ['-w'])
-    Refused  = 0
+    Rejected  = 0
     LogRoot  = os.path.join(ScratchRoot, 'logs', 'construct')
 
     os.makedirs(LogRoot, exist_ok=True)
@@ -279,8 +279,8 @@ def InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn, Subje
                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
         if Finished.returncode != 0:
-            Refused += 1
-            WriteRefused(Relative)
+            Rejected += 1
+            WriteRejected(Relative)
 
             with open(os.path.join(LogRoot, Relative.replace('/', '_') + '.log'), 'w') as Writer:
                 Writer.write(Finished.stdout)
@@ -288,10 +288,10 @@ def InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn, Subje
             for Line in [L for L in Finished.stdout.split('\n') if 'error:' in L][:4]:
                 print("    " + Line.strip())
 
-    if Refused == 0:
+    if Rejected == 0:
         WriteProduced("{0} — {1} translation unit(s)".format(Named, len(Sources)))
 
-    return len(Sources), Refused
+    return len(Sources), Rejected
 
 #------------------------------------------------------------------------------------------------------------------------
 #                                                        THE SEQUENCE
@@ -306,7 +306,7 @@ def InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn, Subje
 #    names a path no longer present is reported here rather than discovered on Windows at run time.
 # 🔴 An absent carried file is reported and skipped, never fatal. glfw3.dll arrives with the vendored
 #    package rather than the repository, so a checkout without it must still construct.
-def SeatCarried(Selected):
+def ApplyCarried(Selected):
     BinaryRoot = os.path.join(ScratchRoot, 'build', 'Binary')
 
     for UnitEntry in Selected:
@@ -319,10 +319,10 @@ def SeatCarried(Selected):
             #    listing, and it would drift the first time content is added. The leaf name is preserved so
             #    the run-time path below the binary seat is the same on both platforms.
             if os.path.isdir(Origin):
-                SeatedRoot = os.path.join(BinaryRoot, Leaf)
+                AppliedRoot = os.path.join(BinaryRoot, Leaf)
 
                 os.makedirs(BinaryRoot, exist_ok = True)
-                shutil.copytree(Origin, SeatedRoot, dirs_exist_ok = True)
+                shutil.copytree(Origin, AppliedRoot, dirs_exist_ok = True)
                 WriteProduced("carried {0}{1}".format(Leaf, os.sep))
                 continue
 
@@ -331,14 +331,14 @@ def SeatCarried(Selected):
                 continue
 
             os.makedirs(BinaryRoot, exist_ok = True)
-            Seated = os.path.join(BinaryRoot, Leaf)
+            Applied = os.path.join(BinaryRoot, Leaf)
 
             # 📝 🔴 An appearance the artist has since edited is left alone. Overwriting on every construct
             #    would discard their theme each time they rebuilt, which reads as the editor forgetting.
-            if os.path.isfile(Seated) and os.path.getmtime(Seated) >= os.path.getmtime(Origin):
+            if os.path.isfile(Applied) and os.path.getmtime(Applied) >= os.path.getmtime(Origin):
                 continue
 
-            shutil.copyfile(Origin, Seated)
+            shutil.copyfile(Origin, Applied)
             WriteProduced("carried {0}".format(Leaf))
 
 
@@ -356,7 +356,7 @@ def Main(Arguments):
     Declared = ReadUnitGraph()
 
     if not Declared:
-        WriteRefused("no Module.toml was found under {0}".format(EngineRoot))
+        WriteRejected("no Module.toml was found under {0}".format(EngineRoot))
         return 1
 
     TestSubjectUniqueness(Declared)
@@ -378,7 +378,7 @@ def Main(Arguments):
         import ApplyImGuiPatches
 
         if ApplyImGuiPatches.Main([]) != 0:
-            WriteRefused('ApplyImGuiPatches refused; the ImGui tab-shape patches were not applied')
+            WriteRejected('ApplyImGuiPatches rejected; the ImGui tab-shape patches were not applied')
             return 1
 
     # 🔴 The dependency partition is proven before anything is translated, because a forbidden include should
@@ -386,7 +386,7 @@ def Main(Arguments):
     import VerifyPartition
 
     if VerifyPartition.Main([]) != 0:
-        WriteRefused('VerifyPartition refused; a unit reaches past what it declares')
+        WriteRejected('VerifyPartition rejected; a unit reaches past what it declares')
         return 1
 
     print('')
@@ -394,31 +394,31 @@ def Main(Arguments):
     Selected = [Entry for Entry in UnitOrder if Entry['Name'] == Unit] if Unit else UnitOrder
 
     if not Selected:
-        WriteRefused("no unit is named {0}".format(Unit))
+        WriteRejected("no unit is named {0}".format(Unit))
         return 1
 
     Translated = 0
-    Refused    = 0
+    Rejected    = 0
 
     for UnitEntry in Selected:
         if UnitEntry['Product'] == 'StaticLibrary':
             Count, Broken = InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn)
             Translated += Count
-            Refused    += Broken
+            Rejected    += Broken
         else:
             # 📝 One host per subject, so one host's main() never enters another's link.
             for Subject in UnitEntry['Subject']:
                 Count, Broken = InvokeTranslation(UnitEntry, Selection, VulkanInclude, Compiler, Warn, Subject)
                 Translated += Count
-                Refused    += Broken
+                Rejected    += Broken
 
     print('')
 
-    if Refused:
-        WriteRefused("{0} of {1} translation unit(s) refused".format(Refused, Translated))
+    if Rejected:
+        WriteRejected("{0} of {1} translation unit(s) rejected".format(Rejected, Translated))
         return 1
 
-    SeatCarried(Selected)
+    ApplyCarried(Selected)
 
     WriteProduced("{0} translation unit(s) accepted across {1} unit(s)".format(Translated, len(Selected)))
     return 0
@@ -428,5 +428,5 @@ if __name__ == '__main__':
     try:
         sys.exit(Main(sys.argv[1:]))
     except RuntimeError as Fault:
-        WriteRefused(str(Fault))
+        WriteRejected(str(Fault))
         sys.exit(1)

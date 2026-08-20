@@ -43,8 +43,8 @@ struct ReconstructedSurface
     DocumentPosition  Position          = {};                  // [mm] - the shaded position, in document space
     SurfaceDirection  Orientation       = {};                  // [-]  - interpolated and renormalised
     TangentBasis      Basis             = {};                  // [-]  - interpolated; absent where the domain is
-    double            DomainAlong       = 0.0;                 // [-]  - the domain's first axis
-    double            DomainAcross      = 0.0;                 // [-]  - its second
+    double            DomainX       = 0.0;                 // [-]  - the domain's first axis
+    double            DomainY      = 0.0;                 // [-]  - its second
     double            DomainGradient[4] = { 0.0, 0.0, 0.0, 0.0 };   // [-] - ∂along/∂x, ∂along/∂y, ∂across/∂x, ∂across/∂y
     double            Weights[3]        = { 0.0, 0.0, 0.0 };   // [-]  - barycentric, summing to one
     bool              BasisDeclared     = false;               // [-]  - false where the domain is degenerate
@@ -113,34 +113,34 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported for an extent of nothing on either axis
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross);
+    Outcome<bool> Construct(std::uint32_t Width, std::uint32_t Height);
 
     /// 🧩 Writes one texel's three components.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Declare(std::uint32_t Along, std::uint32_t Across, double Scale, double SingleScatter, double Charlie);
+    void Declare(std::uint32_t X, std::uint32_t Y, double Scale, double SingleScatter, double Charlie);
 
     /// 🧩 Samples the three components at a declared coordinate, bilinearly, clamped on both axes.
     /// note  📝 Clamped rather than wrapped. Neither axis is periodic — a view cosine of one is normal incidence
     ///        and a roughness of one is fully rough, and a wrapped read at either end returns the opposite end.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    void Sample(double  CoordinateAlong,
-                double  CoordinateAcross,
+    void Sample(double  CoordinateX,
+                double  CoordinateY,
                 double& Scale,
                 double& SingleScatter,
                 double& Charlie) const;
 
-    std::uint32_t ExtentAlong() const;
-    std::uint32_t ExtentAcross() const;
+    std::uint32_t Width() const;
+    std::uint32_t Height() const;
     std::uint64_t ResidentBytes() const;
     bool          Constructed() const;
 
 private:
 
     std::vector<float>  Components    = {};   // [-] - interleaved, ComponentCount per texel
-    std::uint32_t       SpannedAlong  = 0u;   // [px] - view cosine
-    std::uint32_t       SpannedAcross = 0u;   // [px] - roughness, square-root biased
+    std::uint32_t       SpannedX  = 0u;   // [px] - view cosine
+    std::uint32_t       SpannedY = 0u;   // [px] - roughness, square-root biased
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -229,7 +229,7 @@ class ReflectanceIntegrator
 public:
 
     /// 🧩 Contributes `08` §3 ④'s recording.
-    /// out   Result  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule rejected
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Contribute(RenderSchedule& Schedule) const;
@@ -257,7 +257,7 @@ public:
     /// in    Placements  [-]  where each channel sits among the resolved components
     /// in    Reconstructed [-] the pixel's reconstructed attributes
     /// in    Tolerance   [-]  the flattening tolerance for the level being shaded
-    /// out   Result     [-]  carries whatever the resolution refused
+    /// out   Result     [-]  carries whatever the resolution rejected
     /// note  🔴 `18` §9's fifth gate: each selection declares its channels and **unread channels are not
     ///        sampled**. The mask is consulted before the sample and not after it, so an unread channel costs
     ///        nothing rather than costing a sample that is then discarded.
@@ -362,8 +362,8 @@ private:
     // 📝 🚧 `18` §10 leaves the lookup's own extent unstated along with the packing. Sixty-four square is where
     //    the split-sum terms stop changing at the single precision `DirectionalAlbedoSurface` stores at, and the
     //    whole lookup is beneath the granularity of any budget that would object to it.
-    static constexpr std::uint32_t AlbedoExtentAlong  = 64u;   // [px] - view cosine
-    static constexpr std::uint32_t AlbedoExtentAcross = 64u;   // [px] - roughness, square-root biased
+    static constexpr std::uint32_t AlbedoExtentX  = 64u;   // [px] - view cosine
+    static constexpr std::uint32_t AlbedoExtentY = 64u;   // [px] - roughness, square-root biased
     static constexpr std::uint32_t AlbedoSampleCount  = 256u;  // [-]  - hemisphere samples per texel
 
     DirectionalAlbedoSurface  AlbedoLookup;              // [-] - `18` §4.1's three components

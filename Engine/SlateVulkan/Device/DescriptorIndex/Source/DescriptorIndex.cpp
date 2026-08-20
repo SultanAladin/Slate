@@ -78,24 +78,24 @@ Outcome<std::uint32_t> DescriptorIndex::Declare(const std::vector<DescriptorSlot
     LayoutDeclaration.bindingCount                    = static_cast<std::uint32_t>(VendorDeclared.size());
     LayoutDeclaration.pBindings                       = VendorDeclared.data();
 
-    DeclaredLayout Arriving;
-    Arriving.Slots = Declared;
+    DeclaredLayout Incoming;
+    Incoming.Slots = Declared;
 
-    if (vkCreateDescriptorSetLayout(DeviceEdge->ActiveDevice(), &LayoutDeclaration, nullptr, &Arriving.Constructed)
+    if (vkCreateDescriptorSetLayout(DeviceEdge->ActiveDevice(), &LayoutDeclaration, nullptr, &Incoming.Constructed)
         != VK_SUCCESS)
     {
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::ContentUnsupported, "the device declined the declared layout" });
+            { RefusalReason::ContentUnsupported, "the device rejected the declared layout" });
     }
 
-    Layouts.push_back(Arriving);
+    Layouts.push_back(Incoming);
 
     const std::uint32_t LayoutOrdinal = static_cast<std::uint32_t>(Layouts.size() - 1u);
 
     // 📝 🔴 `06` §7's diagnostic-name gate. The refusal is discarded for `ByteSpace`'s reason — a layout that
     //    stands and could not be named is still the layout every program is constructed against.
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
-                        reinterpret_cast<std::uint64_t>(Arriving.Constructed),
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
+                        reinterpret_cast<std::uint64_t>(Incoming.Constructed),
                         "DescriptorIndex layout",
                         LayoutOrdinal));
 
@@ -118,13 +118,13 @@ Outcome<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no layout was declared" });
 
     if (ConcurrentSets == 0u)
-        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "an extent admitting no set" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "an extent accepting no set" });
 
-    // 📝 Every declared slot of every declared layout is counted once per admitted set, so the extent is sized
+    // 📝 Every declared slot of every declared layout is counted once per accepted set, so the extent is sized
     //    for the worst arrangement of claims across the layouts rather than for one assumed distribution.
     //    Over-sizing costs descriptor bookkeeping the vendor keeps on the host; under-sizing refuses a claim
     //    at the rotation that needed it.
-    std::vector<VkDescriptorPoolSize> Admitted;
+    std::vector<VkDescriptorPoolSize> Accepted;
 
     for (const DeclaredLayout& Holding : Layouts)
     {
@@ -134,26 +134,26 @@ Outcome<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
 
             bool Folded = false;
 
-            for (VkDescriptorPoolSize& Standing : Admitted)
+            for (VkDescriptorPoolSize& Current : Accepted)
             {
-                if (Standing.type == Slot.Carried)
+                if (Current.type == Slot.Carried)
                 {
-                    Standing.descriptorCount += Spanned;
+                    Current.descriptorCount += Spanned;
                     Folded                    = true;
                     break;
                 }
             }
 
             if (!Folded)
-                Admitted.push_back({ Slot.Carried, Spanned });
+                Accepted.push_back({ Slot.Carried, Spanned });
         }
     }
 
     VkDescriptorPoolCreateInfo ExtentDeclaration = {};
     ExtentDeclaration.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     ExtentDeclaration.maxSets                    = ConcurrentSets * RecordingSlotCount;
-    ExtentDeclaration.poolSizeCount              = static_cast<std::uint32_t>(Admitted.size());
-    ExtentDeclaration.pPoolSizes                 = Admitted.data();
+    ExtentDeclaration.poolSizeCount              = static_cast<std::uint32_t>(Accepted.size());
+    ExtentDeclaration.pPoolSizes                 = Accepted.data();
 
     // 📝 No free-descriptor-set capability. Sets are returned by resetting the whole extent at teardown, which
     //    is the only point at which none of them is read — an individually freed set is one whose slot the
@@ -164,14 +164,14 @@ Outcome<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
         != VK_SUCCESS)
     {
         return Outcome<bool>::Refuse(
-            { RefusalReason::ExtentExhausted, "the device declined the descriptor extent the declaration was sized to" });
+            { RefusalReason::ExtentExhausted, "the device rejected the descriptor extent the declaration was sized to" });
     }
 
     DeclarationFixed = true;
 
     // 📝 🔴 `06` §7's gate. Named by the two-operand form and carrying no ordinal, because there is exactly one
     //    descriptor extent for the engine's whole life and an ordinal on a single object reads as one of many.
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_POOL,
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_POOL,
                         reinterpret_cast<std::uint64_t>(DescriptorExtent),
                         "DescriptorIndex descriptor extent"));
 
@@ -182,7 +182,7 @@ Outcome<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
 //                                                      THE CLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
+Outcome<std::uint32_t> DescriptorIndex::Reserve(std::uint32_t LayoutOrdinal)
 {
     if (DeviceEdge == nullptr || !DeclarationFixed || DescriptorExtent == VK_NULL_HANDLE)
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "the declaration is not yet closed" });
@@ -190,7 +190,7 @@ Outcome<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
     if (static_cast<std::size_t>(LayoutOrdinal) >= Layouts.size())
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no layout stands at that ordinal" });
 
-    // 📝 🔴 `06` §2.1: one set per cycle slot, claimed together. Claiming them apart admits a claim that
+    // 📝 🔴 `06` §2.1: one set per cycle slot, claimed together. Reserving them apart accepts a claim that
     //    half-succeeds, and the recording then writes rotation one against a set that was never sliced.
     const std::vector<VkDescriptorSetLayout> Repeated(RecordingSlotCount, Layouts[LayoutOrdinal].Constructed);
 
@@ -200,20 +200,20 @@ Outcome<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
     SetDeclaration.descriptorSetCount          = RecordingSlotCount;
     SetDeclaration.pSetLayouts                 = Repeated.data();
 
-    ClaimedSet Arriving;
-    Arriving.LayoutOrdinal = LayoutOrdinal;
-    Arriving.PerSlot.assign(RecordingSlotCount, VK_NULL_HANDLE);
+    ReservedSet Incoming;
+    Incoming.LayoutOrdinal = LayoutOrdinal;
+    Incoming.PerSlot.assign(RecordingSlotCount, VK_NULL_HANDLE);
 
-    if (vkAllocateDescriptorSets(DeviceEdge->ActiveDevice(), &SetDeclaration, Arriving.PerSlot.data())
+    if (vkAllocateDescriptorSets(DeviceEdge->ActiveDevice(), &SetDeclaration, Incoming.PerSlot.data())
         != VK_SUCCESS)
     {
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::ExtentExhausted, "the descriptor extent admits no further set" });
+            { RefusalReason::ExtentExhausted, "the descriptor extent accepts no further set" });
     }
 
-    Claimed.push_back(Arriving);
+    Reserved.push_back(Incoming);
 
-    const std::uint32_t ClaimOrdinal = static_cast<std::uint32_t>(Claimed.size() - 1u);
+    const std::uint32_t ReservationOrdinal = static_cast<std::uint32_t>(Reserved.size() - 1u);
 
     // 📝 🔴 `06` §7's gate. A set is addressed by a claim and a cycle slot, and the name carries the two
     //    flattened in the order the depth fixes — so a claim's sets sort adjacently in the driver's text and the
@@ -222,13 +222,13 @@ Outcome<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
     //    defect the depth exists to catch.
     for (std::uint32_t SlotOrdinal = 0u; SlotOrdinal < RecordingSlotCount; ++SlotOrdinal)
     {
-        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET,
-                            reinterpret_cast<std::uint64_t>(Arriving.PerSlot[SlotOrdinal]),
+        Discard(NamingEdge->Declare(VK_OBJECT_TYPE_DESCRIPTOR_SET,
+                            reinterpret_cast<std::uint64_t>(Incoming.PerSlot[SlotOrdinal]),
                             "DescriptorIndex set",
-                            ClaimOrdinal * RecordingSlotCount + SlotOrdinal));
+                            ReservationOrdinal * RecordingSlotCount + SlotOrdinal));
     }
 
-    return Outcome<std::uint32_t>::Result(ClaimOrdinal);
+    return Outcome<std::uint32_t>::Result(ReservationOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -246,14 +246,14 @@ const DescriptorSlot* DescriptorIndex::SlotOf(const DeclaredLayout& Holding, std
     return nullptr;
 }
 
-Outcome<bool> DescriptorIndex::Amend(std::uint32_t                          ClaimOrdinal,
+Outcome<bool> DescriptorIndex::Amend(std::uint32_t                          ReservationOrdinal,
                                      std::uint32_t                          SlotOrdinal,
                                      const std::vector<DescriptorContent>&  Amended)
 {
     if (DeviceEdge == nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
-    if (static_cast<std::size_t>(ClaimOrdinal) >= Claimed.size())
+    if (static_cast<std::size_t>(ReservationOrdinal) >= Reserved.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no claim stands at that ordinal" });
 
     if (SlotOrdinal >= RecordingSlotCount)
@@ -262,8 +262,8 @@ Outcome<bool> DescriptorIndex::Amend(std::uint32_t                          Clai
     if (Amended.empty())
         return Outcome<bool>::Result(true);
 
-    const ClaimedSet&     Standing = Claimed[ClaimOrdinal];
-    const DeclaredLayout& Holding  = Layouts[Standing.LayoutOrdinal];
+    const ReservedSet&     Current = Reserved[ReservationOrdinal];
+    const DeclaredLayout& Holding  = Layouts[Current.LayoutOrdinal];
 
     // 📝 The two content declarations are held alongside the writes rather than inside the loop, because the
     //    vendor reads them at the call and a pointer into a temporary is a read of what the stack now holds.
@@ -287,7 +287,7 @@ Outcome<bool> DescriptorIndex::Amend(std::uint32_t                          Clai
 
         VkWriteDescriptorSet Written = {};
         Written.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        Written.dstSet               = Standing.PerSlot[SlotOrdinal];
+        Written.dstSet               = Current.PerSlot[SlotOrdinal];
         Written.dstBinding           = Content.SlotOrdinal;
         Written.dstArrayElement      = 0u;
         Written.descriptorCount      = 1u;
@@ -321,7 +321,7 @@ Outcome<bool> DescriptorIndex::Amend(std::uint32_t                          Clai
                         { RefusalReason::ContentUnsupported, "an image slot written with no view" });
                 }
 
-                ImageContent.push_back({ Content.ImageSampler, Content.ImageView, Content.ImageStanding });
+                ImageContent.push_back({ Content.ImageSampler, Content.ImageView, Content.ImageCurrent });
 
                 Written.pImageInfo  = &ImageContent.back();
                 Written.pBufferInfo = nullptr;
@@ -345,9 +345,9 @@ Outcome<bool> DescriptorIndex::Amend(std::uint32_t                          Clai
 //                                                   WHAT IS DECLARED
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<VkDescriptorSet> DescriptorIndex::Resolve(std::uint32_t ClaimOrdinal, std::uint32_t SlotOrdinal) const
+Outcome<VkDescriptorSet> DescriptorIndex::Resolve(std::uint32_t ReservationOrdinal, std::uint32_t SlotOrdinal) const
 {
-    if (static_cast<std::size_t>(ClaimOrdinal) >= Claimed.size())
+    if (static_cast<std::size_t>(ReservationOrdinal) >= Reserved.size())
         return Outcome<VkDescriptorSet>::Refuse({ RefusalReason::ContentUnsupported, "no claim stands at that ordinal" });
 
     if (SlotOrdinal >= RecordingSlotCount)
@@ -356,7 +356,7 @@ Outcome<VkDescriptorSet> DescriptorIndex::Resolve(std::uint32_t ClaimOrdinal, st
             { RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
     }
 
-    return Outcome<VkDescriptorSet>::Result(Claimed[ClaimOrdinal].PerSlot[SlotOrdinal]);
+    return Outcome<VkDescriptorSet>::Result(Reserved[ReservationOrdinal].PerSlot[SlotOrdinal]);
 }
 
 Outcome<VkDescriptorSetLayout> DescriptorIndex::Layout(std::uint32_t LayoutOrdinal) const
@@ -375,9 +375,9 @@ std::uint32_t DescriptorIndex::DeclaredCount() const
     return static_cast<std::uint32_t>(Layouts.size());
 }
 
-std::uint32_t DescriptorIndex::ClaimedCount() const
+std::uint32_t DescriptorIndex::ReservedCount() const
 {
-    return static_cast<std::uint32_t>(Claimed.size());
+    return static_cast<std::uint32_t>(Reserved.size());
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -408,7 +408,7 @@ void DescriptorIndex::Reclaim()
         }
     }
 
-    Claimed.clear();
+    Reserved.clear();
     Layouts.clear();
     DeclarationFixed = false;
 }

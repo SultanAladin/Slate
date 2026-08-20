@@ -10,7 +10,7 @@
 //    host is the rasterizer at the end of the pipe.
 //
 //    Scenarios (each writes one PNG under VisualProof/Typography/):
-//      --shot fonts-archivo-carousels    the Fonts page, family Archivo seated, default weights
+//      --shot fonts-archivo-carousels    the Fonts page, family Archivo applied, default weights
 //      --shot fonts-title-bold           the Title strip's Bold tile pressed; the role label, page
 //                                        heading and sample all re-render in Bold
 //      --shot fonts-title-black-scrolled the Title strip scrolled twice and its Black tile pressed
@@ -318,32 +318,32 @@ struct ProofDriver
     {
         if (!Fonts.Discover(FontRoot).Resolved)
         {
-            std::fprintf(stderr, "refused: font discovery\n");
+            std::fprintf(stderr, "rejected: font discovery\n");
             return false;
         }
         if (!Fonts.PreparePreviews(1.0f).Resolved)
         {
-            std::fprintf(stderr, "refused: preview preparation\n");
+            std::fprintf(stderr, "rejected: preview preparation\n");
             return false;
         }
         FontProfile Profile;
         std::strncpy(Profile.Family, "Archivo", sizeof(Profile.Family) - 1u);
         if (!Fonts.Load(FontRoot, Profile, 1.0f).Resolved)
         {
-            std::fprintf(stderr, "refused: active family load (is Archivo installed?)\n");
+            std::fprintf(stderr, "rejected: active family load (is Archivo installed?)\n");
             return false;
         }
         std::fprintf(stderr, "[Fonts] active family: %s, %u families discovered\n",
                      Profile.Family, static_cast<unsigned>(Fonts.FamilyCount()));
 
-        // 🔴 A CPU harness has no backend to claim the atlas texture. Claim it exactly as a backend
+        // 🔴 A CPU harness has no backend to claim the atlas texture. Reserve it exactly as a backend
         //    would: the id is what `GetTexID()` resolves every command's ref to, and `NewFrame` pushes
         //    `io.Fonts->TexRef` onto the shell lists so `RenderText` emits textured glyph quads.
         IO.Fonts->TexData->SetTexID((ImTextureID)(intptr_t)1);
         IO.Fonts->TexRef._TexData = IO.Fonts->TexData;
 
         ThemeSelection Selected;
-        Selected.Presented = ThemeSubject::Oled;
+        Selected.Current = ThemeSubject::Oled;
         Appearance = ResolveTinted(1.0, 1.0, ViewportWidth, Selected);
         std::strncpy(Appearance.Fonts.Family, "Archivo", sizeof(Appearance.Fonts.Family) - 1u);
         ApplyFontWeights(Appearance, Values.TypographyWeight);
@@ -354,24 +354,24 @@ struct ProofDriver
 
         if (!Ledger.Construct(Motion).Resolved)
         {
-            std::fprintf(stderr, "refused: interaction ledger\n");
+            std::fprintf(stderr, "rejected: interaction ledger\n");
             return false;
         }
         if (!Shared.Construct(Ledger, Surface, Appearance).Resolved)
         {
-            std::fprintf(stderr, "refused: shared controls\n");
+            std::fprintf(stderr, "rejected: shared controls\n");
             return false;
         }
         if (!ControlCentre.Construct(Motion, Surface, Appearance).Resolved)
         {
-            std::fprintf(stderr, "refused: Control Centre\n");
+            std::fprintf(stderr, "rejected: Control Centre\n");
             return false;
         }
 
         return true;
     }
 
-    void Tick(float MouseX, float MouseY, bool Held, bool Arrived, bool Released)
+    void Tick(float MouseX, float MouseY, bool Held, bool Sampled, bool Released)
     {
         // 📝 The supported vendor cycle, exactly as a host runs it: queue the pointer, open the frame
         //    (which resets the shell lists and installs the full-screen clip and the atlas texture),
@@ -379,17 +379,17 @@ struct ProofDriver
         IO.MousePos = ImVec2(MouseX, MouseY);
         IO.MouseDelta = ImVec2(0.0f, 0.0f);
         IO.DeltaTime = static_cast<float>(TickMilliseconds / 1000.0);
-        if (Arrived)
+        if (Sampled)
             IO.AddMouseButtonEvent(0, true);
         else if (Released)
             IO.AddMouseButtonEvent(0, false);
 
         ImGui::NewFrame();
 
-        Disregard(Surface.Adopt(RecordingSurface::ShellLayer::Beneath));
+        Discard(Surface.Adopt(RecordingSurface::ShellLayer::Beneath));
         Motion.Advance(TickMilliseconds);
         ControlCentre.Advance(Surface.Pointer(), TickMilliseconds);
-        Disregard(ControlCentre.Record(Spanning(0.0f, 0.0f, ViewportWidth, ViewportHeight), Values));
+        Discard(ControlCentre.Record(Spanning(0.0f, 0.0f, ViewportWidth, ViewportHeight), Values));
         Surface.Retire();
 
         ImGui::Render();
@@ -452,12 +452,12 @@ struct ProofDriver
         }
         if (Data->CmdListsCount == 0)
         {
-            std::fprintf(stderr, "refused: the frame assembled no draw lists\n");
+            std::fprintf(stderr, "rejected: the frame assembled no draw lists\n");
             return false;
         }
         if (stbi_write_png(Path, Out.Width, Out.Height, 4, Out.Pixels.data(), Out.Width * 4) == 0)
         {
-            std::fprintf(stderr, "refused: writing %s\n", Path);
+            std::fprintf(stderr, "rejected: writing %s\n", Path);
             return false;
         }
         std::fprintf(stderr, "[proof] wrote %s (%dx%d) tris=%lld px=%lld max=%d\n",
@@ -472,19 +472,19 @@ struct ProofDriver
 
 // 📐 The geometry of the first role row on the Fonts page at 1280x900, mirrored from FontsPage's own
 //    constants so a script can aim at a tile. The Display page's chrome (back button, title, tabs)
-//    stands 136px tall, so the Fonts page viewport begins at across 224; ContentLeast is 118 along;
+//    stands 136px tall, so the Fonts page viewport begins at across 224; ContentLeft is 118 along;
 //    the specimen ends at 658 across; the first entry spans 688..892; its strip sits at across 728
 //    with tiles 120 wide on a 132 step starting at along 174.
-constexpr float TitleStripAcross = 728.0f;   // [px] - the Title row's strip across
+constexpr float TitleStripY = 728.0f;   // [px] - the Title row's strip across
 constexpr float TitleTileCentreY = 764.0f;   // [px] - 728 + 72/2
-constexpr float TitleRailLeast = 170.0f;     // [px] - the strip's clip rail along
+constexpr float TitleRailMinimum = 170.0f;     // [px] - the strip's clip rail along
 constexpr float TileStep = 132.0f;
 constexpr float TileHalf = 60.0f;
 constexpr float TitleRightArrowX = 1173.0f;  // [px] - the right arrow's centre
 
 float TileCentreX(std::uint32_t TileOrdinal, float Scroll)
 {
-    return TitleRailLeast + 4.0f + TileStep * static_cast<float>(TileOrdinal) - Scroll + TileHalf;
+    return TitleRailMinimum + 4.0f + TileStep * static_cast<float>(TileOrdinal) - Scroll + TileHalf;
 }
 
 bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
@@ -565,7 +565,7 @@ bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
         Driver.IO.MouseDelta = ImVec2(0.0f, 0.0f);
         Driver.IO.DeltaTime = 0.016f;
         ImGui::NewFrame();
-        Disregard(Driver.Surface.Adopt(RecordingSurface::ShellLayer::Beneath));
+        Discard(Driver.Surface.Adopt(RecordingSurface::ShellLayer::Beneath));
         {
             // Direct vendor text at 48px with the active font — isolates font state from the surface.
             ImFont* ActiveFont = Driver.Fonts.Face(Slate::FontWeight::Regular, Slate::FontSlant::Upright);
@@ -649,7 +649,7 @@ int main(int ArgumentCount, char** Arguments)
         return 1;
     if (IO.Fonts->Fonts.empty())
     {
-        std::fprintf(stderr, "refused: the atlas holds no faces\n");
+        std::fprintf(stderr, "rejected: the atlas holds no faces\n");
         return 1;
     }
     IO.FontDefault = IO.Fonts->Fonts[0];
@@ -675,7 +675,7 @@ int main(int ArgumentCount, char** Arguments)
     IO.Fonts->GetTexDataAsRGBA32(&AtlasPixels, &AtlasWidth, &AtlasHeight);
     if (AtlasPixels == nullptr || AtlasWidth <= 0 || AtlasHeight <= 0)
     {
-        std::fprintf(stderr, "refused: the atlas produced no texture\n");
+        std::fprintf(stderr, "rejected: the atlas produced no texture\n");
         return 1;
     }
 

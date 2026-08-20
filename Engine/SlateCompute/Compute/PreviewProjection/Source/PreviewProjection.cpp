@@ -76,7 +76,7 @@ Outcome<bool> PreviewProjection::OpenImpression(const StrokeDeclaration& Declari
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> PreviewProjection::AmendImpression(const StrokeArrival& Arriving)
+Outcome<bool> PreviewProjection::AmendImpression(const StrokeArrival& Incoming)
 {
     if (!ImpressionOpen)
     {
@@ -84,7 +84,7 @@ Outcome<bool> PreviewProjection::AmendImpression(const StrokeArrival& Arriving)
                                       "no brush preview stands; Open before amending"});
     }
 
-    // 📝 The accumulation is reclaimed **before** the arrival is admitted, so what stands after this is the
+    // 📝 The accumulation is reclaimed **before** the arrival is accepted, so what stands after this is the
     //    impression at the cursor rather than the trail of every position the cursor has passed through. A
     //    committed stroke accumulates because the trail is the stroke; a preview accumulating would answer a
     //    question about a stroke the artist has not made.
@@ -94,7 +94,7 @@ Outcome<bool> PreviewProjection::AmendImpression(const StrokeArrival& Arriving)
         return Reclaimed;
     }
 
-    return Previewing.Amend(Arriving);
+    return Previewing.Amend(Incoming);
 }
 
 Outcome<ResolvedRun> PreviewProjection::ResolveImpression(SurfaceTileSpace& Residency,
@@ -125,7 +125,7 @@ const StrokeSpace& PreviewProjection::ImpressionCoverage() const
     return Previewing.Accumulation();
 }
 
-bool PreviewProjection::ImpressionStanding() const
+bool PreviewProjection::ImpressionCurrent() const
 {
     return ImpressionOpen;
 }
@@ -136,8 +136,8 @@ bool PreviewProjection::ImpressionStanding() const
 
 Outcome<ResolvedSample> PreviewProjection::ProjectContentAt(const SurfaceLayerSequence&           Content,
                                                             const std::vector<ChannelPlacement>&  Placements,
-                                                            double                                PositionAlong,
-                                                            double                                PositionAcross,
+                                                            double                                PositionX,
+                                                            double                                PositionY,
                                                             std::uint32_t                         Level,
                                                             std::uint32_t                         ComponentCount) const
 {
@@ -158,8 +158,8 @@ Outcome<ResolvedSample> PreviewProjection::ProjectContentAt(const SurfaceLayerSe
     //    mutated to answer would be a preview that has to be undone.
     return Resolution->ResolveAt(Content,
                                  Placements,
-                                 PositionAlong,
-                                 PositionAcross,
+                                 PositionX,
+                                 PositionY,
                                  ToleranceAtLevel(Level),
                                  ComponentCount);
 }
@@ -170,8 +170,8 @@ Outcome<ResolvedSample> PreviewProjection::ProjectContentAt(const SurfaceLayerSe
 
 Outcome<ResolvedSample> PreviewProjection::ProjectPlacementAt(const SurfaceLayerSequence&           Content,
                                                               const std::vector<ChannelPlacement>&  Placements,
-                                                              double                                PositionAlong,
-                                                              double                                PositionAcross,
+                                                              double                                PositionX,
+                                                              double                                PositionY,
                                                               bool                                  CoarseDeclared,
                                                               std::uint32_t                         ComponentCount) const
 {
@@ -180,7 +180,7 @@ Outcome<ResolvedSample> PreviewProjection::ProjectPlacementAt(const SurfaceLayer
     //    and the drag would then settle onto an answer that disagrees with the one it was showing.
     const std::uint32_t Taken = CoarseDeclared ? CoarseDragLevel : FinestLevel;
 
-    return ProjectContentAt(Content, Placements, PositionAlong, PositionAcross, Taken, ComponentCount);
+    return ProjectContentAt(Content, Placements, PositionX, PositionY, Taken, ComponentCount);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -189,7 +189,7 @@ Outcome<ResolvedSample> PreviewProjection::ProjectPlacementAt(const SurfaceLayer
 
 Outcome<bool> PreviewProjection::AmendParameter(std::uint64_t RecordingOrdinal)
 {
-    if (!StandingExtent.ExtentStanding)
+    if (!CurrentExtent.ExtentHeld)
     {
         return Outcome<bool>::Refuse({RefusalReason::HostDenied,
                                       "no extent stands; declare one before amending a dragged parameter"});
@@ -199,7 +199,7 @@ Outcome<bool> PreviewProjection::AmendParameter(std::uint64_t RecordingOrdinal)
     //    the caller; the count exists so `86` can measure what one drag cost in re-resolutions and for no other
     //    reason. Nothing keys on it and no revision advances from it.
     ++AmendedCount;
-    StandingExtent.ResolvedAt = RecordingOrdinal;
+    CurrentExtent.ResolvedAt = RecordingOrdinal;
 
     return Outcome<bool>::Result(true);
 }
@@ -233,21 +233,21 @@ Outcome<bool> PreviewProjection::DeclareExtent(SpeculativeSubject Previewed,
     // 📝 `ResolvedLevel` opens equal to the requested one and is amended by whoever resolves. `20` may only ever
     //    answer coarser, so the two agreeing is the ordinary case and the difference is what `14` reads to know
     //    it is presenting something not yet at the extent that was asked for.
-    StandingExtent.Previewed      = Previewed;
-    StandingExtent.ResolvedAt     = RecordingOrdinal;
-    StandingExtent.SurfaceOrdinal = SurfaceOrdinal;
-    StandingExtent.ResolvedLevel  = RequestedLevel;
-    StandingExtent.RequestedLevel = RequestedLevel;
-    StandingExtent.ExtentStanding = true;
+    CurrentExtent.Previewed      = Previewed;
+    CurrentExtent.ResolvedAt     = RecordingOrdinal;
+    CurrentExtent.SurfaceOrdinal = SurfaceOrdinal;
+    CurrentExtent.ResolvedLevel  = RequestedLevel;
+    CurrentExtent.RequestedLevel = RequestedLevel;
+    CurrentExtent.ExtentHeld = true;
 
     AmendedCount = 0u;
 
     return Outcome<bool>::Result(true);
 }
 
-const SpeculativeExtent& PreviewProjection::Standing() const
+const SpeculativeExtent& PreviewProjection::Current() const
 {
-    return StandingExtent;
+    return CurrentExtent;
 }
 
 bool PreviewProjection::ExtentCurrent(std::uint64_t RecordingOrdinal) const
@@ -255,12 +255,12 @@ bool PreviewProjection::ExtentCurrent(std::uint64_t RecordingOrdinal) const
     // 🔴 `22` §4.1: a speculative extent is discarded and re-resolved each rotation. An extent carrying any other
     //    rotation is therefore not stale content to refresh — it is content that must not be presented at all,
     //    and answering false is what keeps that a state `14` cannot reach rather than a defect to diagnose.
-    return StandingExtent.ExtentStanding && StandingExtent.ResolvedAt == RecordingOrdinal;
+    return CurrentExtent.ExtentHeld && CurrentExtent.ResolvedAt == RecordingOrdinal;
 }
 
 void PreviewProjection::ReclaimExtent()
 {
-    StandingExtent = {};
+    CurrentExtent = {};
     AmendedCount   = 0u;
 }
 

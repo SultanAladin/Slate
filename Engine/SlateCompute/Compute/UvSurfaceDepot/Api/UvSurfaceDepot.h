@@ -30,8 +30,8 @@ namespace Slate
 /// tag   contract
 enum class CorrespondenceSubject : std::uint32_t
 {
-    LeastDeparture        = 0u,   // [-] - the nearest source surface, by distance alone
-    LeastAngularDeparture = 1u,   // [-] - the source surface most nearly along the working orientation
+    MinimumDeparture        = 0u,   // [-] - the nearest source surface, by distance alone
+    MinimumAngularDeparture = 1u,   // [-] - the source surface most nearly along the working orientation
     CorrespondenceCount   = 2u    // [-] - the closed count, never a rule
 };
 
@@ -51,7 +51,7 @@ enum class CorrespondenceSubject : std::uint32_t
 struct TransferSpecification
 {
     double                 SearchExtent         = 1.0;   // [mm] - the greatest distance searched; never exceeded
-    CorrespondenceSubject  Correspondence       = CorrespondenceSubject::LeastDeparture;
+    CorrespondenceSubject  Correspondence       = CorrespondenceSubject::MinimumDeparture;
     std::uint32_t          ChannelMask          = 0u;    // [-]  - one bit per `42` channel transferred
     std::uint32_t          DomainExtent         = 1024u; // [px] - the extent the result is written at
     double                 ConvergenceCriterion = 0.001; // [-]  - the sweep's residual below which it has converged
@@ -64,8 +64,8 @@ struct TransferSpecification
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Which source face one working position corresponds to, and how far away it stood.
-/// note  🔴 Delivered only where the extent test admitted it. There is no "nearest anyway" delivery: a miss is
-///        refused with ExtentExhausted and the caller records it as a miss, which is diagnosable — a fabricated
+/// note  🔴 Delivered only where the extent test accepted it. There is no "nearest anyway" delivery: a miss is
+///        rejected with ExtentExhausted and the caller records it as a miss, which is diagnosable — a fabricated
 ///        correspondence is not.
 /// tag   nonallocating, nonthrowing
 struct SourceCorrespondence
@@ -118,7 +118,7 @@ public:
     ///                           mask, a domain extent of nothing, a criterion outside the unit interval, an
     ///                           iteration ceiling of nothing, and a rule outside the closed count
     /// post  the specification stands and the key below carries its ordinal
-    /// note  🔴 An empty channel mask is refused rather than admitted as a transfer of nothing. Admitted, it
+    /// note  🔴 An empty channel mask is rejected rather than accepted as a transfer of nothing. Accepted, it
     ///        reports no miss and no resolution and reads as a transfer that succeeded.
     /// cost  ✔️
     /// tag   api, nonthrowing
@@ -148,7 +148,7 @@ public:
     /// note  🔴 The extent test is `IntersectionClassifier`'s volume overlap at Tier A — `24` §2 and §5's second
     ///        gate. A transfer that misclassifies which source surface corresponds produces seam artefacts
     ///        indistinguishable from unwrap defects, and the two then get debugged together for a long time.
-    /// note  📝 The classification admits or rejects; the rule below then chooses among what it admitted. The two
+    /// note  📝 The classification accepts or rejects; the rule below then chooses among what it accepted. The two
     ///        are apart because the admission is Exact and the choice is Bounded, and folding them would claim
     ///        the weaker guarantee for both.
     /// cost  🔴
@@ -176,18 +176,18 @@ public:
                                                const TopologyStructure&          Working,
                                                const std::vector<std::uint32_t>& SourceChannelMasks) const;
 
-    /// 🧩 Admits one transferred result into `20`'s depot, as derived content.
+    /// 🧩 Accepts one transferred result into `20`'s depot, as derived content.
     /// in    Depot            [-]  where derived artefacts live and are evicted from
     /// in    Keyed            [-]  as KeyOf produced it
     /// in    ByteExtent       [B]  what the result occupies
     /// in    RecordingOrdinal  [-]  the rotation it was derived on
-    /// out   Result          [-]  refuses with whatever the depot refused
+    /// out   Result          [-]  refuses with whatever the depot rejected
     /// note  🔴 Declared as an analytic resolution and therefore reconstructible and evictable — `24` §5's last
     ///        gate. Nothing painted is ever stored here: a transferred result that has been painted over is a
     ///        layer above it in `56`, and the two are addressed at their own levels rather than merged.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Admit(SurfaceDepot&     Depot,
+    Outcome<bool> Accept(SurfaceDepot&     Depot,
                         const ContentKey& Keyed,
                         std::uint64_t     ByteExtent,
                         std::uint64_t     RecordingOrdinal) const;
@@ -212,7 +212,7 @@ public:
 private:
 
     TransferSpecification  Transferring      = {};      // [-] - as Declare validated it
-    bool                   TransferStanding  = false;   // [-] - false until one declaration was admitted
+    bool                   TransferCurrent  = false;   // [-] - false until one declaration was accepted
 };
 
 // 📐 The extent classification is Exact and the departure arithmetic is Bounded; the sweep terminates against a

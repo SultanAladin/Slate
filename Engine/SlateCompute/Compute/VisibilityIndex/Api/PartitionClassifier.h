@@ -28,13 +28,13 @@ namespace Slate
 ///        change between the two phases — neither predicate reads depth — so re-testing them would walk the
 ///        same partitions to the same answer and pay for it twice.
 /// tag   contract
-enum class PartitionStanding : std::uint32_t
+enum class PartitionVerdict : std::uint32_t
 {
-    Admitted            = 0u,   // [-] - every predicate passed; the partition is drawn
+    Accepted            = 0u,   // [-] - every predicate passed; the partition is drawn
     FrustumExcluded     = 1u,   // [-] - wholly outside one bounding plane
     OrientationExcluded = 2u,   // [-] - every face of it turns away from the camera
     DepthOccluded       = 3u,   // [-] - nearer surfaces already stand where it projects
-    StandingCount       = 4u    // [-] - the closed count, never a standing
+    VerdictCount       = 4u    // [-] - the closed count, never a standing
 };
 
 /// 🧩 What one classified partition carries into the phase that draws it.
@@ -45,9 +45,9 @@ enum class PartitionStanding : std::uint32_t
 ///        from the span and the four texels are read at the origin; a test carrying the span alone knows how
 ///        coarse a level to read and not where in it to read, and reading at nought instead compares every
 ///        partition against the depth recorded in the display's first corner.
-/// note  🔴 `NearestDepth` is the partition's nearest reversed-depth ordinate — its **greatest**, since near is
+/// note  🔴 `NearestDepth` is the partition's nearest reversed-depth coordinate — its **greatest**, since near is
 ///        one and far is zero. The occlusion comparison is then `NearestDepth > ReducedDepth`, and reading the
-///        least ordinate here would reject a partition whose front face is in front of everything recorded.
+///        least coordinate here would reject a partition whose front face is in front of everything recorded.
 /// note  🔴 The **triangle run** is carried because the occlusion test compacts triangles and not partitions. An
 ///        indirect draw reads corners by a running ordinal, so three corners of a partition are three corners of
 ///        its first triangle and the other hundred-odd are unreachable; the survivor writes its own run out
@@ -55,15 +55,15 @@ enum class PartitionStanding : std::uint32_t
 /// tag   nonallocating, nonthrowing
 struct ClassifiedPartition
 {
-    std::uint32_t      PartitionOrdinal = 0u;                            // [-]    - within the enrolment
-    PartitionStanding  Standing         = PartitionStanding::Admitted;   // [-]
+    std::uint32_t      PartitionOrdinal = 0u;                            // [-]    - within the registration
+    PartitionVerdict  Current         = PartitionVerdict::Accepted;   // [-]
     std::uint32_t      FirstTriangle    = 0u;                            // [-]    - into the residency's fanned run
     std::uint32_t      TriangleCount    = 0u;                            // [-]    - triangles of that run it spans
-    std::uint32_t      OriginAlong      = 0u;                            // [px]   - the first texel it covers
-    std::uint32_t      OriginAcross     = 0u;                            // [px]
-    std::uint32_t      ProjectedAlong   = 0u;                            // [px]   - conservative outward
-    std::uint32_t      ProjectedAcross  = 0u;                            // [px]
-    float              NearestDepth     = 0.0f;                          // [-]    - reversed; the greatest ordinate
+    std::uint32_t      OriginX      = 0u;                            // [px]   - the first texel it covers
+    std::uint32_t      OriginY     = 0u;                            // [px]
+    std::uint32_t      ProjectedX   = 0u;                            // [px]   - conservative outward
+    std::uint32_t      ProjectedY  = 0u;                            // [px]
+    float              NearestDepth     = 0.0f;                          // [-]    - reversed; the greatest coordinate
 };
 
 // 📐 The width and the member count the device reads, asserted rather than commented. `TestedPartition` in
@@ -77,17 +77,17 @@ static_assert(sizeof(ClassifiedPartition) == 36u, "the device reads nine 32-bit 
 
 /// 🧩 Projects one object-space extent through a composed transform into the display texels it covers.
 /// in    Composed       [-]   the composition `ComposeVisibilityTransform` produced, column-major
-/// in    Bounded        [mm]  the partition's extent, in the occupant's own object space
-/// in    DisplayAlong   [px]  the extent this rotation is recorded against
-/// in    DisplayAcross  [px]
-/// out   Projected      [-]   the covered texels, where they begin, and the nearest ordinate; a wholly-behind
+/// in    Bounded        [mm]  the partition's extent, in the owner's own object space
+/// in    DisplayX   [px]  the extent this rotation is recorded against
+/// in    DisplayY  [px]
+/// out   Projected      [-]   the covered texels, where they begin, and the nearest coordinate; a wholly-behind
 ///                            extent projects to nothing and reports a zero extent, read as sub-pixel
 /// note  📐 All eight corners, not two. The extremal-corner shortcut `FrustumSpace::Classify` uses holds for a
 ///         plane, because a plane's normal picks the extreme corner in advance; a projective transform has no
 ///         such normal and the corner that lands furthest along the display is not the corner furthest along
 ///         any axis of object space.
 /// note  🔴 A corner behind the nearest plane is **skipped** rather than divided through. Its homogeneous
-///         ordinate is at or below zero, and dividing by it reflects the corner to the opposite side of the
+///         coordinate is at or below zero, and dividing by it reflects the corner to the opposite side of the
 ///         display — which produces an extent that spans the whole display and a cull that rejects nothing, or
 ///         one that spans nothing and rejects a partition the camera is looking straight at.
 /// note  ⚠️ An extent with any corner behind the plane reports the **whole display**. It is conservative and it
@@ -97,8 +97,8 @@ static_assert(sizeof(ClassifiedPartition) == 36u, "the device reads nine 32-bit 
 /// tag   api, nonallocating, nonthrowing
 ClassifiedPartition ProjectPartitionExtent(const ProjectedTransform&  Composed,
                                            const ConditionedExtent&   Bounded,
-                                           std::uint32_t              DisplayAlong,
-                                           std::uint32_t              DisplayAcross);
+                                           std::uint32_t              DisplayX,
+                                           std::uint32_t              DisplayY);
 
 // 📐 The projection is a product of Bounded transforms followed by a division and an outward rounding. The
 //    rounding only ever widens, so it introduces no standing the guarantee does not already admit.
@@ -120,7 +120,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 /// note  🔴 A camera inside the bounding sphere rejects nothing. The directions to the partition then span more
 ///         than a hemisphere and no cone excludes them, so `sin φ` is undefined rather than large — and the
 ///         formula, evaluated anyway, would report the partition back-facing from inside it.
-/// note  ⚠️ Object space and document space are taken as coincident here, which holds while every occupant is
+/// note  ⚠️ Object space and document space are taken as coincident here, which holds while every owner is
 ///         placed at the identity. 🚧 The cone is rotated by the placement when `56` supplies one.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
@@ -129,7 +129,7 @@ bool OrientationRejected(const OrientationCone&    Turned,
                          DocumentPosition          ViewOrigin);
 
 // 📐 One normalisation, one dot product and one square root, all Bounded. The predicate is conservative in the
-//    direction that admits — a lapse widens the admitted set and never narrows it.
+//    direction that accepts — a lapse widens the accepted set and never narrows it.
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -140,19 +140,19 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 /// in    Partitioned    [-]   the partition, as the derivation grew it
 /// in    Viewing        [-]   what `46` derived for this rotation
 /// in    Bounding       [-]   the frustum `46` extracted from the same projection
-/// in    Composed       [-]   the composition this occupant is drawn with
-/// in    PartitionOrdinal [-] the partition's position within the enrolment
+/// in    Composed       [-]   the composition this owner is drawn with
+/// in    PartitionOrdinal [-] the partition's position within the registration
 /// in    FirstTriangle  [-]   where this partition's run begins in the residency's fanned triangles
-/// in    DisplayAlong   [px]  the extent this rotation is recorded against
-/// in    DisplayAcross  [px]
-/// out   Classified     [-]   the standing and, when admitted, the projected extent the occlusion test reads
+/// in    DisplayX   [px]  the extent this rotation is recorded against
+/// in    DisplayY  [px]
+/// out   Classified     [-]   the standing and, when accepted, the projected extent the occlusion test reads
 /// note  🔴 The **depth** predicate is not here. `16` §2 tests it against a reduction that lives on the device
 ///         and nowhere else, so a host answer would need a readback the rotation cannot wait for. What this
 ///         produces is the candidate set that reaches that test, and `DepthOccluded` is written by it rather
 ///         than by anything in this file.
 /// note  🔴 `FirstTriangle` is supplied rather than read off the partition, because a partition carries
 ///         `FirstFace` and the fan is what the device draws. The two counts differ wherever a face has more than
-///         three corners — `10` admits any corner count — so the run's beginning is the prefix sum of the
+///         three corners — `10` accepts any corner count — so the run's beginning is the prefix sum of the
 ///         preceding partitions' triangle counts and the caller walking them in order is what holds it.
 /// note  🔴 The ordinal is **supplied and written here**, not left for the caller to fill afterwards. A field
 ///         the producer leaves blank is one a caller eventually forgets, and every survivor of that run then
@@ -168,8 +168,8 @@ ClassifiedPartition ClassifyPartition(const MicroSurfacePartition&  Partitioned,
                                       const ProjectedTransform&     Composed,
                                       std::uint32_t                 PartitionOrdinal,
                                       std::uint32_t                 FirstTriangle,
-                                      std::uint32_t                 DisplayAlong,
-                                      std::uint32_t                 DisplayAcross);
+                                      std::uint32_t                 DisplayX,
+                                      std::uint32_t                 DisplayY);
 
 // 📐 The weakest of the three predicates it folds. Every one of them is Bounded, and the standing it reports is
 //    a selection among them rather than an arithmetic of its own.

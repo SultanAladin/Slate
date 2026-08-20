@@ -106,7 +106,7 @@ void PromotionScheduler::DeclareOrdering(EvictionOrdering Declaring)
 
 Outcome<bool> PromotionScheduler::OpenRecording(std::uint64_t RecordingOrdinal)
 {
-    if (RecordingStanding && RecordingOrdinal <= RecordingOpened)
+    if (RecordingCurrent && RecordingOrdinal <= RecordingOpened)
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::HostDenied, "the rotation is not later than the one already open" });
@@ -114,7 +114,7 @@ Outcome<bool> PromotionScheduler::OpenRecording(std::uint64_t RecordingOrdinal)
 
     RemainingBudget  = DeclaredBudget;
     RecordingOpened   = RecordingOrdinal;
-    RecordingStanding = true;
+    RecordingCurrent = true;
     PromotedThis     = 0u;
     DeferredThis     = 0u;
 
@@ -125,7 +125,7 @@ Outcome<bool> PromotionScheduler::OpenRecording(std::uint64_t RecordingOrdinal)
 //                                                     THE BUDGET
 //------------------------------------------------------------------------------------------------------------------------
 
-bool PromotionScheduler::Admits(const PromotionCost& Costing) const
+bool PromotionScheduler::Accepts(const PromotionCost& Costing) const
 {
     // 🔴 Both, independently. A cost that fits the transfer budget and exceeds the evaluation budget does not
     //    fit, and the whole reason `20` §2.2 declares two measures is that one of them is silent about the
@@ -136,7 +136,7 @@ bool PromotionScheduler::Admits(const PromotionCost& Costing) const
 
 Outcome<bool> PromotionScheduler::Charge(const PromotionCost& Costing)
 {
-    if (!Admits(Costing))
+    if (!Accepts(Costing))
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the rotation's budget cannot admit it" });
 
     RemainingBudget.TransferBytes   -= Costing.TransferBytes;

@@ -69,7 +69,7 @@ struct GraphicsDeclaration
 
 /// 🧩 One compute program, as the dispatching document declares it.
 /// note  📝 The workgroup extent is not declared here. It is the entry point's own `[numthreads]`, or a
-///       specialised constant supplied through `Fixed` — `06` §2.1's reason for admitting specialisation at
+///       specialised constant supplied through `Fixed` — `06` §2.1's reason for accepting specialisation at
 ///       all, and either way it is the shader's declaration rather than a second one held beside it.
 /// tag   owning
 struct ComputeDeclaration
@@ -158,7 +158,7 @@ public:
     Outcome<std::uint32_t> DeclareCompute(const ComputeDeclaration& Declaring);
 
     /// 🧩 The program one ordinal names, for the recording that records against it.
-    /// in    ProgramOrdinal  [-]  an ordinal this component issued
+    /// in    ProgramOrdinal  [-]  an ordinal this component registered
     /// out   Result         [-]  refuses with ContentUnsupported for an ordinal naming no program
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing

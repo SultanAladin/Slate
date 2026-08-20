@@ -139,16 +139,16 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Projects one colour into a declared space, transfers and white point included.
-/// in    Arriving  [-]  the colour, carrying the space it is a coordinate in
+/// in    Incoming  [-]  the colour, carrying the space it is a coordinate in
 /// in    Target    [-]  the space to express it in
 /// out   Result   [-]  refuses with ContentUnsupported when either space is undeclared
-/// note  🔴 The whole conversion in one call: decode the arriving transfer, project the primaries, adapt the
+/// note  🔴 The whole conversion in one call: decode the incoming transfer, project the primaries, adapt the
 ///        white point, encode the target transfer. Exposing the four apart invites a caller to omit one, and the
 ///        omission that matters — the transfer — produces an image that is merely "a bit washed out".
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Outcome<ColourSpecification> Project(ColourSpecification             Arriving,
-                                    const ColourSpaceSpecification& ArrivingSpace,
+Outcome<ColourSpecification> Project(ColourSpecification             Incoming,
+                                    const ColourSpaceSpecification& IncomingSpace,
                                     const ColourSpaceSpecification& Target);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
@@ -191,13 +191,13 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 ///        shifts hue on every saturated colour, which is visible exactly where an artist notices it.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-void AdaptWhite(double ArrivingWhiteX, double ArrivingWhiteY,
+void AdaptWhite(double IncomingWhiteX, double IncomingWhiteY,
                 double TargetWhiteX,   double TargetWhiteY,
                 double& TristimulusX,  double& TristimulusY, double& TristimulusZ);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 /// 🧩 Derives a white point coordinate from a declared correlated colour temperature.
-/// in    Temperature  [K]  1667 to 25000; outside that the locus approximation is refused
+/// in    Temperature  [K]  1667 to 25000; outside that the locus approximation is rejected
 /// out   Result      [-]  refuses with ContentUnsupported outside the declared interval
 /// note  🔴 `36` §5: the temperature is retained as the authored value by whoever declared it. An artist who set
 ///        5600 expects to see 5600 when they return, and a coordinate cannot be inverted back to it exactly.

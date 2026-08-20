@@ -23,7 +23,7 @@ namespace Slate
 /// 🧩 Which polygon stream layout is being translated.
 /// note  ⚠️ Wavefront carries no signature, so it is identified from the origin's suffix and not from its
 ///        content — the one classification in the engine that reads a name. A stream whose suffix says one
-///        thing and whose content says another is refused by the translation, not by the classification.
+///        thing and whose content says another is rejected by the translation, not by the classification.
 /// note  🚧 `10` §5 leaves the shipped set open. A second layout is an entry here and a branch in the
 ///        translation; `DecodedTopology` does not change, because it is the handover shape for all of them.
 /// tag   contract
@@ -56,11 +56,11 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
 /// in    Stream      [-]  the whole stream, as `StorageExchange` drained it
 /// in    OriginPath  [-]  where it was read from; carried into the record and used to classify the layout
 /// out   Result     [-]  refuses with ContentUnsupported for an unrecognised layout or a stream the parser
-///                        declined, and with ExtentExhausted for a stream carrying no face at all
+///                        rejected, and with ExtentExhausted for a stream carrying no face at all
 /// err   never throws; the vendored parser's allocation is released on every path out
 /// cost  🔴
 /// note  🔴 `50` §2 ① and `38`'s non-mutation rule: nothing is welded, rewound, triangulated or dropped. A run
-///        of fewer than three corners is handed over as it arrived and refused by `TopologyStructure::DeclareFace`,
+///        of fewer than three corners is handed over as it arrived and rejected by `TopologyStructure::DeclareFace`,
 ///        which is where that refusal is declared to happen. A codec that dropped it would have produced a
 ///        specification that no longer describes the file the artist supplied.
 /// note  🔴 Perpendiculars survive only where the stream indexes them exactly as it indexes positions. Where a

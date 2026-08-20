@@ -37,7 +37,7 @@ namespace Slate
 /// out   BoundaryTouched [-]  set where the position lies exactly on this edge
 /// err   never refuses; every finite input contributes
 /// cost  🚩
-/// note  📐 The ray is taken along increasing abscissa, and the half-open ordinate test — first inclusive, second
+/// note  📐 The ray is taken along increasing abscissa, and the half-open coordinate test — first inclusive, second
 ///        exclusive — is what makes a position level with a shared vertex contribute exactly once. A closed test
 ///        counts it twice on one side and not at all on the other, and the artist sees a hole at every vertex.
 /// note  Exact — the classification agrees bit for bit between the host form and the device form.
@@ -55,12 +55,12 @@ SLATE_SHARED void AccumulateWinding(Real64 AlphaX, Real64 AlphaY,
     //    infinite line through the edge is collinear with it, and most of that line is nowhere near the outline.
     if (Orientation == 0)
     {
-        const Real64 LeastX    = AlphaX < BetaX ? AlphaX : BetaX;
-        const Real64 GreatestX = AlphaX < BetaX ? BetaX  : AlphaX;
-        const Real64 LeastY    = AlphaY < BetaY ? AlphaY : BetaY;
-        const Real64 GreatestY = AlphaY < BetaY ? BetaY  : AlphaY;
+        const Real64 MinimumX    = AlphaX < BetaX ? AlphaX : BetaX;
+        const Real64 MaximumX = AlphaX < BetaX ? BetaX  : AlphaX;
+        const Real64 MinimumY    = AlphaY < BetaY ? AlphaY : BetaY;
+        const Real64 MaximumY = AlphaY < BetaY ? BetaY  : AlphaY;
 
-        if (PointX >= LeastX && PointX <= GreatestX && PointY >= LeastY && PointY <= GreatestY)
+        if (PointX >= MinimumX && PointX <= MaximumX && PointY >= MinimumY && PointY <= MaximumY)
         {
             BoundaryTouched = 1;
             return;

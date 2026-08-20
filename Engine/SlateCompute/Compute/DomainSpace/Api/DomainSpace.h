@@ -50,11 +50,11 @@ struct ChartExtent
 /// tag   nonallocating, nonthrowing
 struct ChartPlacement
 {
-    double         LeastAlong   = 0.0;   // [-] - the domain's first axis
-    double         LeastAcross  = 0.0;   // [-] - its second
+    double         MinimumX   = 0.0;   // [-] - the domain's first axis
+    double         MinimumY  = 0.0;   // [-] - its second
     double         Scale        = 1.0;   // [-] - applied to the chart's own flattened units
     std::uint32_t  ChartOrdinal = 0u;    // [-] - as supplied
-    bool           Placed       = false; // [-] - the arrangement admitted it
+    bool           Placed       = false; // [-] - the arrangement accepted it
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -74,9 +74,9 @@ public:
 
     /// 🧩 Arranges every chart into the unit domain, disjoint and gapped.
     /// in    Extents      [-]  one entry per chart, in its own flattened units
-    /// in    CommonScale  [-]  true packs at one scale; false is `68` §10's open row and is refused
+    /// in    CommonScale  [-]  true packs at one scale; false is `68` §10's open row and is rejected
     /// out   Result      [-]  refuses with ContentUnsupported for a per-chart scale, and with ExtentExhausted
-    ///                         when no scale admits every chart
+    ///                         when no scale accepts every chart
     /// note  📐 The common scale is solved by bisection over a deterministic shelf packing: the ordering is by
     ///        unscaled height and then by ordinal, both scale-invariant, so the same charts arrange identically
     ///        on every machine and every run. A packing whose order depended on the scale would arrange

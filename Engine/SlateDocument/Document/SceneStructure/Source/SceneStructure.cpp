@@ -12,7 +12,7 @@ namespace Slate
 //                                                      RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-std::uint32_t SceneStructure::Resolved(OccupantIdentity Subject) const
+std::uint32_t SceneStructure::Resolved(OwnerIdentity Subject) const
 {
     if (!Subject.IdentityDeclared())
         return AbsentSlot;
@@ -26,9 +26,9 @@ std::uint32_t SceneStructure::Resolved(OccupantIdentity Subject) const
     return Subject.SlotOrdinal;
 }
 
-OccupantIdentity SceneStructure::OccupantAt(std::uint32_t SlotOrdinal) const
+OwnerIdentity SceneStructure::OwnerAt(std::uint32_t SlotOrdinal) const
 {
-    OccupantIdentity Occupying;
+    OwnerIdentity Occupying;
 
     if (SlotOrdinal >= SlotGenerations.size())
         return Occupying;
@@ -82,12 +82,12 @@ bool SceneStructure::RelabelOwed() const
 //                                               ADMISSION AND RETIREMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> SceneStructure::Admit(OccupantIdentity Arriving)
+Outcome<bool> SceneStructure::Accept(OwnerIdentity Incoming)
 {
-    if (!Arriving.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity names no occupant" });
+    if (!Incoming.IdentityDeclared())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity names no owner" });
 
-    const std::size_t Required = static_cast<std::size_t>(Arriving.SlotOrdinal) + 1u;
+    const std::size_t Required = static_cast<std::size_t>(Incoming.SlotOrdinal) + 1u;
 
     if (Required > SlotGenerations.size())
     {
@@ -98,33 +98,33 @@ Outcome<bool> SceneStructure::Admit(OccupantIdentity Arriving)
         CompoundedTransforms.resize(Required);
     }
 
-    const std::uint32_t SlotOrdinal = Arriving.SlotOrdinal;
+    const std::uint32_t SlotOrdinal = Incoming.SlotOrdinal;
 
     // 📝 The slot is reset rather than merged into. A slot reused after a withdrawal carries the previous
-    //    occupant's ordering links, and inheriting them would enclose the arrival where the departed sat.
-    SlotGenerations[SlotOrdinal]      = Arriving.SlotGeneration;
+    //    owner's ordering links, and inheriting them would enclose the arrival where the departed sat.
+    SlotGenerations[SlotOrdinal]      = Incoming.SlotGeneration;
     Enclosures[SlotOrdinal]           = EnclosureRecord{};
     Attachments[SlotOrdinal]          = AttachmentRecord{};
     AuthoredTransforms[SlotOrdinal]   = DecomposedTransform{};
     CompoundedTransforms[SlotOrdinal] = DecomposedTransform{};
 
     Link(SlotOrdinal, AbsentSlot, RootCount);
-    ++AdmittedCount;
+    ++AcceptedCount;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> SceneStructure::Retire(OccupantIdentity Departing)
+Outcome<bool> SceneStructure::Retire(OwnerIdentity Departing)
 {
     const std::uint32_t SlotOrdinal = Resolved(Departing);
 
     if (SlotOrdinal == AbsentSlot)
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the identity no longer resolves here" });
 
-    // 🔴 `12` §12: enclosed occupants are re-enclosed by the departing occupant's enclosure, not retired with
+    // 🔴 `12` §12: enclosed owners are re-enclosed by the departing owner's enclosure, not retired with
     //    it. Deleting a group deletes the group, not the work inside it. Each is placed immediately after the
-    //    departing occupant so the ordering the artist saw survives the retirement.
-    const OccupantIdentity RisingEnclosure = Enclosures[SlotOrdinal].EnclosingOccupant;
+    //    departing owner so the ordering the artist saw survives the retirement.
+    const OwnerIdentity RisingEnclosure = Enclosures[SlotOrdinal].EnclosingOwner;
     const std::uint32_t    RisingSlot      = Resolved(RisingEnclosure);
 
     std::uint32_t Insertion = 0u;
@@ -151,10 +151,10 @@ Outcome<bool> SceneStructure::Retire(OccupantIdentity Departing)
         Enclosed = Following;
     }
 
-    // 📝 Attached occupants retain the transform they were compounded to. Compounding the departing
-    //    occupant's authored transform into each of theirs and reattaching to its attachment reaches the same
+    // 📝 Attached owners retain the transform they were compounded to. Compounding the departing
+    //    owner's authored transform into each of theirs and reattaching to its attachment reaches the same
     //    compounded result without ever inverting a transform, because compounding is associative.
-    const OccupantIdentity RisingAttachment = Attachments[SlotOrdinal].AttachmentOccupant;
+    const OwnerIdentity RisingAttachment = Attachments[SlotOrdinal].AttachmentOwner;
 
     std::uint32_t Attached = Attachments[SlotOrdinal].FirstAttached;
 
@@ -164,7 +164,7 @@ Outcome<bool> SceneStructure::Retire(OccupantIdentity Departing)
 
         AuthoredTransforms[Attached] = Compound(AuthoredTransforms[SlotOrdinal], AuthoredTransforms[Attached]);
 
-        Attachments[Attached].AttachmentOccupant = RisingAttachment;
+        Attachments[Attached].AttachmentOwner = RisingAttachment;
         Attachments[Attached].NextAttached       = AbsentSlot;
 
         const std::uint32_t RisingAttachmentSlot = Resolved(RisingAttachment);
@@ -196,7 +196,7 @@ Outcome<bool> SceneStructure::Retire(OccupantIdentity Departing)
     SlotGenerations[SlotOrdinal] = 0u;
     Enclosures[SlotOrdinal]      = EnclosureRecord{};
     Attachments[SlotOrdinal]     = AttachmentRecord{};
-    --AdmittedCount;
+    --AcceptedCount;
 
     return Outcome<bool>::Result(true);
 }
@@ -209,7 +209,7 @@ void SceneStructure::Unlink(std::uint32_t SlotOrdinal)
 {
     EnclosureRecord& Departing = Enclosures[SlotOrdinal];
 
-    const std::uint32_t EnclosureSlot = Resolved(Departing.EnclosingOccupant);
+    const std::uint32_t EnclosureSlot = Resolved(Departing.EnclosingOwner);
 
     std::uint32_t* HeadLink = EnclosureSlot == AbsentSlot ? &RootFirstSlot : &Enclosures[EnclosureSlot].FirstEnclosed;
     std::uint32_t* TailLink = EnclosureSlot == AbsentSlot ? &RootLastSlot  : &Enclosures[EnclosureSlot].LastEnclosed;
@@ -230,12 +230,12 @@ void SceneStructure::Unlink(std::uint32_t SlotOrdinal)
 
     Departing.PriorInOrder      = AbsentSlot;
     Departing.NextInOrder       = AbsentSlot;
-    Departing.EnclosingOccupant = OccupantIdentity{};
+    Departing.EnclosingOwner = OwnerIdentity{};
 }
 
 void SceneStructure::Link(std::uint32_t SlotOrdinal, std::uint32_t EnclosureSlot, std::uint32_t OrderWithinEnclosure)
 {
-    EnclosureRecord& Arriving = Enclosures[SlotOrdinal];
+    EnclosureRecord& Incoming = Enclosures[SlotOrdinal];
 
     std::uint32_t* HeadLink = EnclosureSlot == AbsentSlot ? &RootFirstSlot : &Enclosures[EnclosureSlot].FirstEnclosed;
     std::uint32_t* TailLink = EnclosureSlot == AbsentSlot ? &RootLastSlot  : &Enclosures[EnclosureSlot].LastEnclosed;
@@ -250,10 +250,10 @@ void SceneStructure::Link(std::uint32_t SlotOrdinal, std::uint32_t EnclosureSlot
         Walking   = Enclosures[Walking].NextInOrder;
     }
 
-    Arriving.PriorInOrder      = Preceding;
-    Arriving.NextInOrder       = Walking;
-    Arriving.EnclosingOccupant = EnclosureSlot == AbsentSlot ? OccupantIdentity{} : OccupantAt(EnclosureSlot);
-    Arriving.EnclosureDepth    = EnclosureSlot == AbsentSlot ? 0u : Enclosures[EnclosureSlot].EnclosureDepth + 1u;
+    Incoming.PriorInOrder      = Preceding;
+    Incoming.NextInOrder       = Walking;
+    Incoming.EnclosingOwner = EnclosureSlot == AbsentSlot ? OwnerIdentity{} : OwnerAt(EnclosureSlot);
+    Incoming.EnclosureDepth    = EnclosureSlot == AbsentSlot ? 0u : Enclosures[EnclosureSlot].EnclosureDepth + 1u;
 
     if (Preceding != AbsentSlot)
         Enclosures[Preceding].NextInOrder = SlotOrdinal;
@@ -268,14 +268,14 @@ void SceneStructure::Link(std::uint32_t SlotOrdinal, std::uint32_t EnclosureSlot
     ++*Counting;
 }
 
-Outcome<bool> SceneStructure::Enclose(OccupantIdentity Subject,
-                                      OccupantIdentity ProposedEnclosure,
+Outcome<bool> SceneStructure::Enclose(OwnerIdentity Subject,
+                                      OwnerIdentity ProposedEnclosure,
                                       std::uint32_t    OrderWithinEnclosure)
 {
     const std::uint32_t SlotOrdinal = Resolved(Subject);
 
     if (SlotOrdinal == AbsentSlot)
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the enclosed occupant no longer resolves" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the enclosed owner no longer resolves" });
 
     std::uint32_t EnclosureSlot = AbsentSlot;
 
@@ -286,15 +286,15 @@ Outcome<bool> SceneStructure::Enclose(OccupantIdentity Subject,
         if (EnclosureSlot == AbsentSlot)
         {
             return Outcome<bool>::Refuse(
-                { RefusalReason::IdentityStale, "the enclosing occupant no longer resolves" });
+                { RefusalReason::IdentityStale, "the enclosing owner no longer resolves" });
         }
 
-        // 🔴 Rejected at commit and never applied. `12` §9 requires the refusal to name both occupants; both
+        // 🔴 Rejected at commit and never applied. `12` §9 requires the refusal to name both owners; both
         //    are the caller's own arguments, so it names them without this seam allocating a message.
         if (EnclosureCyclic(Subject, ProposedEnclosure))
         {
             return Outcome<bool>::Refuse(
-                { RefusalReason::RelationCyclic, "the occupant already encloses its proposed enclosure" });
+                { RefusalReason::RelationCyclic, "the owner already encloses its proposed enclosure" });
         }
 
         if (Enclosures[EnclosureSlot].EnclosureDepth + 1u >= EnclosureDepthCeiling)
@@ -307,7 +307,7 @@ Outcome<bool> SceneStructure::Enclose(OccupantIdentity Subject,
     Unlink(SlotOrdinal);
     Link(SlotOrdinal, EnclosureSlot, OrderWithinEnclosure);
 
-    // 📝 A leaf takes a label out of the gap between its neighbours and costs nothing further. An occupant
+    // 📝 A leaf takes a label out of the gap between its neighbours and costs nothing further. An owner
     //    that encloses others carries a whole span with it, so its interior is relabelled at ④ instead.
     if (Enclosures[SlotOrdinal].EnclosedCount != 0u || !LabelBetween(SlotOrdinal))
         DeclareExhausted(EnclosureSlot);
@@ -339,7 +339,7 @@ IntervalLabel SceneStructure::EnclosureInterval(std::uint32_t EnclosureSlot) con
 bool SceneStructure::LabelBetween(std::uint32_t SlotOrdinal)
 {
     const EnclosureRecord& Placed        = Enclosures[SlotOrdinal];
-    const std::uint32_t    EnclosureSlot = Resolved(Placed.EnclosingOccupant);
+    const std::uint32_t    EnclosureSlot = Resolved(Placed.EnclosingOwner);
 
     if (EnclosureSlot != AbsentSlot && Enclosures[EnclosureSlot].Label.LabelEnd == 0u)
         return false;
@@ -369,7 +369,7 @@ bool SceneStructure::LabelBetween(std::uint32_t SlotOrdinal)
         return false;
 
     // 📐 The free run is halved and centred rather than consumed whole, so that an insertion on either side of
-    //    this occupant still finds a gap. Taking the whole run makes the next insertion a relabel.
+    //    this owner still finds a gap. Taking the whole run makes the next insertion a relabel.
     const std::uint64_t FreeSpan = UpperBound - LowerBound + 1u;
     std::uint64_t       TakenSpan = FreeSpan / 2u;
 
@@ -445,7 +445,7 @@ Outcome<bool> SceneStructure::RepairLabels()
 {
     // 📝 Repair covers the exhausted span and escalates outward only while the span above it also refuses. A
     //    whole-population relabel is the last resort here rather than the first, which is the entire reason
-    //    labels are issued with gaps.
+    //    labels are registered with gaps.
     while (!ExhaustedEnclosures.empty())
     {
         std::uint32_t EnclosureSlot = ExhaustedEnclosures.back();
@@ -468,14 +468,14 @@ Outcome<bool> SceneStructure::RepairLabels()
                     { RefusalReason::ExtentExhausted, "the root span cannot hold the enclosure ordering" });
             }
 
-            EnclosureSlot = Resolved(Enclosures[EnclosureSlot].EnclosingOccupant);
+            EnclosureSlot = Resolved(Enclosures[EnclosureSlot].EnclosingOwner);
         }
     }
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<IntervalLabel> SceneStructure::Label(OccupantIdentity Subject) const
+Outcome<IntervalLabel> SceneStructure::Label(OwnerIdentity Subject) const
 {
     const std::uint32_t SlotOrdinal = Resolved(Subject);
 
@@ -492,12 +492,12 @@ Outcome<IntervalLabel> SceneStructure::Label(OccupantIdentity Subject) const
 //                                                ATTACHMENT COMPOUNDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> SceneStructure::Attach(OccupantIdentity Subject, OccupantIdentity ProposedAttachment)
+Outcome<bool> SceneStructure::Attach(OwnerIdentity Subject, OwnerIdentity ProposedAttachment)
 {
     const std::uint32_t SlotOrdinal = Resolved(Subject);
 
     if (SlotOrdinal == AbsentSlot)
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the following occupant no longer resolves" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the following owner no longer resolves" });
 
     std::uint32_t AttachmentSlot = AbsentSlot;
 
@@ -514,11 +514,11 @@ Outcome<bool> SceneStructure::Attach(OccupantIdentity Subject, OccupantIdentity 
         if (AttachmentCyclic(Subject, ProposedAttachment))
         {
             return Outcome<bool>::Refuse(
-                { RefusalReason::RelationCyclic, "the occupant is already followed by its proposed attachment" });
+                { RefusalReason::RelationCyclic, "the owner is already followed by its proposed attachment" });
         }
     }
 
-    const std::uint32_t PriorAttachment = Resolved(Attachments[SlotOrdinal].AttachmentOccupant);
+    const std::uint32_t PriorAttachment = Resolved(Attachments[SlotOrdinal].AttachmentOwner);
 
     if (PriorAttachment != AbsentSlot)
     {
@@ -531,8 +531,8 @@ Outcome<bool> SceneStructure::Attach(OccupantIdentity Subject, OccupantIdentity 
             *Linking = Attachments[SlotOrdinal].NextAttached;
     }
 
-    Attachments[SlotOrdinal].AttachmentOccupant = AttachmentSlot == AbsentSlot ? OccupantIdentity{}
-                                                                              : OccupantAt(AttachmentSlot);
+    Attachments[SlotOrdinal].AttachmentOwner = AttachmentSlot == AbsentSlot ? OwnerIdentity{}
+                                                                              : OwnerAt(AttachmentSlot);
     Attachments[SlotOrdinal].NextAttached       = AbsentSlot;
 
     if (AttachmentSlot != AbsentSlot)
@@ -544,7 +544,7 @@ Outcome<bool> SceneStructure::Attach(OccupantIdentity Subject, OccupantIdentity 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> SceneStructure::AuthorTransform(OccupantIdentity Subject, const DecomposedTransform& Authored)
+Outcome<bool> SceneStructure::AuthorTransform(OwnerIdentity Subject, const DecomposedTransform& Authored)
 {
     const std::uint32_t SlotOrdinal = Resolved(Subject);
 
@@ -565,7 +565,7 @@ Outcome<bool> SceneStructure::CompoundFrom(std::uint32_t SlotOrdinal, std::uint3
          Following != AbsentSlot;
          Following = Attachments[Following].NextAttached)
     {
-        // 📐 The attachment is the outer transform and the occupant's own is the inner one, so the compounded
+        // 📐 The attachment is the outer transform and the owner's own is the inner one, so the compounded
         //    result depends only on the path back to the attachment root — invariant 7, stated as arithmetic.
         CompoundedTransforms[Following]      = Compound(CompoundedTransforms[SlotOrdinal],
                                                        AuthoredTransforms[Following]);
@@ -587,11 +587,11 @@ Outcome<bool> SceneStructure::CompoundAttachments()
         if (SlotGenerations[SlotOrdinal] == 0u)
             continue;
 
-        if (Attachments[SlotOrdinal].AttachmentOccupant.IdentityDeclared())
+        if (Attachments[SlotOrdinal].AttachmentOwner.IdentityDeclared())
             continue;
 
         // 📝 An attachment root compounds to its authored transform unchanged. `12` §1: enclosure composes no
-        //    transform, so an occupant indented under another and attached to nothing moves alone.
+        //    transform, so an owner indented under another and attached to nothing moves alone.
         CompoundedTransforms[SlotOrdinal]        = AuthoredTransforms[SlotOrdinal];
         Attachments[SlotOrdinal].AttachmentDepth = 0u;
 
@@ -604,7 +604,7 @@ Outcome<bool> SceneStructure::CompoundAttachments()
     return Outcome<bool>::Result(true);
 }
 
-Outcome<DecomposedTransform> SceneStructure::CompoundedTransform(OccupantIdentity Subject) const
+Outcome<DecomposedTransform> SceneStructure::CompoundedTransform(OwnerIdentity Subject) const
 {
     const std::uint32_t SlotOrdinal = Resolved(Subject);
 
@@ -621,14 +621,14 @@ Outcome<DecomposedTransform> SceneStructure::CompoundedTransform(OccupantIdentit
 //                                                   CYCLE REJECTION
 //------------------------------------------------------------------------------------------------------------------------
 
-bool SceneStructure::EnclosureCyclic(OccupantIdentity Subject, OccupantIdentity ProposedEnclosure) const
+bool SceneStructure::EnclosureCyclic(OwnerIdentity Subject, OwnerIdentity ProposedEnclosure) const
 {
     const std::uint32_t SlotOrdinal = Resolved(Subject);
 
     if (SlotOrdinal == AbsentSlot)
         return false;
 
-    // 📝 Walked outward rather than compared against labels. A change arriving before ④ would otherwise be
+    // 📝 Walked outward rather than compared against labels. A change incoming before ④ would otherwise be
     //    gated against labels ④ has not yet repaired, and the gate would pass a cycle through.
     std::uint32_t Walking = Resolved(ProposedEnclosure);
 
@@ -637,13 +637,13 @@ bool SceneStructure::EnclosureCyclic(OccupantIdentity Subject, OccupantIdentity 
         if (Walking == SlotOrdinal)
             return true;
 
-        Walking = Resolved(Enclosures[Walking].EnclosingOccupant);
+        Walking = Resolved(Enclosures[Walking].EnclosingOwner);
     }
 
     return false;
 }
 
-bool SceneStructure::AttachmentCyclic(OccupantIdentity Subject, OccupantIdentity ProposedAttachment) const
+bool SceneStructure::AttachmentCyclic(OwnerIdentity Subject, OwnerIdentity ProposedAttachment) const
 {
     const std::uint32_t SlotOrdinal = Resolved(Subject);
 
@@ -657,7 +657,7 @@ bool SceneStructure::AttachmentCyclic(OccupantIdentity Subject, OccupantIdentity
         if (Walking == SlotOrdinal)
             return true;
 
-        Walking = Resolved(Attachments[Walking].AttachmentOccupant);
+        Walking = Resolved(Attachments[Walking].AttachmentOwner);
     }
 
     return false;
@@ -674,7 +674,7 @@ bool SceneStructure::RelationsAcyclic() const
         if (SlotGenerations[SlotOrdinal] == 0u)
             continue;
 
-        std::uint32_t Walking = Resolved(Enclosures[SlotOrdinal].EnclosingOccupant);
+        std::uint32_t Walking = Resolved(Enclosures[SlotOrdinal].EnclosingOwner);
         std::uint32_t Passed  = 0u;
 
         while (Walking != AbsentSlot)
@@ -682,10 +682,10 @@ bool SceneStructure::RelationsAcyclic() const
             if (Walking == SlotOrdinal || ++Passed > EnclosureDepthCeiling)
                 return false;
 
-            Walking = Resolved(Enclosures[Walking].EnclosingOccupant);
+            Walking = Resolved(Enclosures[Walking].EnclosingOwner);
         }
 
-        Walking = Resolved(Attachments[SlotOrdinal].AttachmentOccupant);
+        Walking = Resolved(Attachments[SlotOrdinal].AttachmentOwner);
         Passed  = 0u;
 
         while (Walking != AbsentSlot)
@@ -693,7 +693,7 @@ bool SceneStructure::RelationsAcyclic() const
             if (Walking == SlotOrdinal || ++Passed > EnclosureDepthCeiling)
                 return false;
 
-            Walking = Resolved(Attachments[Walking].AttachmentOccupant);
+            Walking = Resolved(Attachments[Walking].AttachmentOwner);
         }
     }
 
@@ -712,7 +712,7 @@ bool SceneStructure::LabelsNested() const
         if (Held.Label.LabelBegin == 0u || Held.Label.LabelEnd <= Held.Label.LabelBegin)
             return false;
 
-        const std::uint32_t EnclosureSlot = Resolved(Held.EnclosingOccupant);
+        const std::uint32_t EnclosureSlot = Resolved(Held.EnclosingOwner);
 
         if (EnclosureSlot != AbsentSlot && !EnclosureContains(Enclosures[EnclosureSlot].Label, Held.Label))
             return false;

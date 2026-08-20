@@ -30,18 +30,18 @@ bool TextAgrees(const char* Left, const char* Right)
     return std::strcmp(Left, Right) == 0;
 }
 
-// 🔴 `86` §6: coalescing is by origin, disposition and subject together, never by origin alone. Coalescing by
-//    origin would present twelve distinct refused constructs from one intake as one entry with a count of
+// 🔴 `86` §6: coalescing is by origin, verdict and subject together, never by origin alone. Coalescing by
+//    origin would present twelve distinct rejected constructs from one intake as one entry with a count of
 //    twelve, and `52` §2 promises the artist the construct and its position — which the count destroys.
-bool Coalesces(const ReportSpecification& Held, const ReportSpecification& Arriving)
+bool Coalesces(const ReportSpecification& Held, const ReportSpecification& Incoming)
 {
-    if (Held.Disposition != Arriving.Disposition)
+    if (Held.Verdict != Incoming.Verdict)
         return false;
 
-    if (Held.SubjectOrdinal != Arriving.SubjectOrdinal)
+    if (Held.SubjectOrdinal != Incoming.SubjectOrdinal)
         return false;
 
-    return TextAgrees(Held.Origin, Arriving.Origin) && TextAgrees(Held.Subject, Arriving.Subject);
+    return TextAgrees(Held.Origin, Incoming.Origin) && TextAgrees(Held.Subject, Incoming.Subject);
 }
 
 }   // namespace
@@ -50,7 +50,7 @@ bool Coalesces(const ReportSpecification& Held, const ReportSpecification& Arriv
 //                                                      APPENDING
 //------------------------------------------------------------------------------------------------------------------------
 
-void ReportSequence::Append(const ReportSpecification& Arriving)
+void ReportSequence::Append(const ReportSpecification& Incoming)
 {
     std::lock_guard<std::mutex> Holding(ReportGuard);
 
@@ -65,19 +65,19 @@ void ReportSequence::Append(const ReportSpecification& Arriving)
     {
         const std::uint32_t Ordinal = (OldestOrdinal + Passed) % RetainedCeiling;
 
-        if (!Coalesces(RetainedOrder[Ordinal], Arriving))
+        if (!Coalesces(RetainedOrder[Ordinal], Incoming))
             continue;
 
         ++RetainedOrder[Ordinal].OccurrenceCount;
-        RetainedOrder[Ordinal].Arrival = Arriving.Arrival;
-        RetainedOrder[Ordinal].Detail  = Arriving.Detail;
+        RetainedOrder[Ordinal].Arrival = Incoming.Arrival;
+        RetainedOrder[Ordinal].Detail  = Incoming.Detail;
 
         return;
     }
 
     const std::uint32_t WriteOrdinal = (OldestOrdinal + OccupiedCount) % RetainedCeiling;
 
-    RetainedOrder[WriteOrdinal]                 = Arriving;
+    RetainedOrder[WriteOrdinal]                 = Incoming;
     RetainedOrder[WriteOrdinal].OccurrenceCount = 1u;
 
     if (OccupiedCount == RetainedCeiling)
@@ -101,13 +101,13 @@ std::vector<ReportSpecification> ReportSequence::Retained() const
 {
     std::lock_guard<std::mutex> Holding(ReportGuard);
 
-    std::vector<ReportSpecification> Presented;
-    Presented.reserve(OccupiedCount);
+    std::vector<ReportSpecification> Current;
+    Current.reserve(OccupiedCount);
 
     for (std::uint32_t Passed = 0u; Passed < OccupiedCount; ++Passed)
-        Presented.push_back(RetainedOrder[(OldestOrdinal + Passed) % RetainedCeiling]);
+        Current.push_back(RetainedOrder[(OldestOrdinal + Passed) % RetainedCeiling]);
 
-    return Presented;
+    return Current;
 }
 
 std::uint32_t ReportSequence::RetainedCount() const

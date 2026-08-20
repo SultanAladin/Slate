@@ -21,7 +21,7 @@ namespace
 
 // 📝 Ordered by slot and then by generation, so the ordering is total over identities and stable across a slot
 //    being reused. `44` §6's determinism requirement is satisfied by the storage rather than by a sort at read.
-bool PrecedesInIdentity(OccupantIdentity Earlier, OccupantIdentity Later)
+bool PrecedesInIdentity(OwnerIdentity Earlier, OwnerIdentity Later)
 {
     if (Earlier.SlotOrdinal != Later.SlotOrdinal)
         return Earlier.SlotOrdinal < Later.SlotOrdinal;
@@ -57,7 +57,7 @@ void EmissionDirection(RotationQuaternion Rotation, double& OutX, double& OutY, 
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Declaring,
-                                             OccupantIdentity               Subject) const
+                                             OwnerIdentity               Subject) const
 {
     if (Declaring.ExtentReach <= 0.0)
     {
@@ -106,7 +106,7 @@ Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Decl
             return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such emission shape" });
     }
 
-    // 🔴 `36` §1: a colour without its space is refused rather than assumed to be in the working space. Where a
+    // 🔴 `36` §1: a colour without its space is rejected rather than assumed to be in the working space. Where a
     //    temperature is declared instead there is no coordinate yet, so nothing is compared.
     if (!Declaring.TemperatureDeclared && !Declaring.DeclaredColour.ColourDeclared())
     {
@@ -122,11 +122,11 @@ Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Decl
         if (!Declarations[Ordinal].AtmosphericSource)
             continue;
 
-        if (EnrolledOrder[Ordinal] == Subject)
+        if (RegisteredOrder[Ordinal] == Subject)
             continue;
 
         return Outcome<bool>::Refuse(
-            { RefusalReason::HostDenied, "the document already enrols an atmospheric source" });
+            { RefusalReason::HostDenied, "the document already registers an atmospheric source" });
     }
 
     return Outcome<bool>::Result(true);
@@ -136,16 +136,16 @@ Outcome<bool> IlluminantPopulation::Validate(const IlluminantSpecification& Decl
 //                                                    DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-std::size_t IlluminantPopulation::Located(OccupantIdentity Subject) const
+std::size_t IlluminantPopulation::Located(OwnerIdentity Subject) const
 {
     std::size_t Lower = 0u;
-    std::size_t Upper = EnrolledOrder.size();
+    std::size_t Upper = RegisteredOrder.size();
 
     while (Lower < Upper)
     {
         const std::size_t Middle = Lower + (Upper - Lower) / 2u;
 
-        if (PrecedesInIdentity(EnrolledOrder[Middle], Subject))
+        if (PrecedesInIdentity(RegisteredOrder[Middle], Subject))
             Lower = Middle + 1u;
         else
             Upper = Middle;
@@ -154,7 +154,7 @@ std::size_t IlluminantPopulation::Located(OccupantIdentity Subject) const
     return Lower;
 }
 
-Outcome<bool> IlluminantPopulation::Declare(OccupantIdentity Subject, const IlluminantSpecification& Declaring)
+Outcome<bool> IlluminantPopulation::Declare(OwnerIdentity Subject, const IlluminantSpecification& Declaring)
 {
     if (!Subject.IdentityDeclared())
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity lights nothing" });
@@ -166,13 +166,13 @@ Outcome<bool> IlluminantPopulation::Declare(OccupantIdentity Subject, const Illu
 
     const std::size_t Located_ = Located(Subject);
 
-    if (Located_ < EnrolledOrder.size() && EnrolledOrder[Located_] == Subject)
+    if (Located_ < RegisteredOrder.size() && RegisteredOrder[Located_] == Subject)
     {
         Declarations[Located_] = Declaring;
     }
     else
     {
-        EnrolledOrder.insert(EnrolledOrder.begin() + static_cast<std::ptrdiff_t>(Located_), Subject);
+        RegisteredOrder.insert(RegisteredOrder.begin() + static_cast<std::ptrdiff_t>(Located_), Subject);
         Declarations.insert(Declarations.begin() + static_cast<std::ptrdiff_t>(Located_), Declaring);
     }
 
@@ -181,12 +181,12 @@ Outcome<bool> IlluminantPopulation::Declare(OccupantIdentity Subject, const Illu
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> IlluminantPopulation::Amend(OccupantIdentity Subject, const IlluminantSpecification& Amending)
+Outcome<bool> IlluminantPopulation::Amend(OwnerIdentity Subject, const IlluminantSpecification& Amending)
 {
     const std::size_t Located_ = Located(Subject);
 
-    if (Located_ >= EnrolledOrder.size() || !(EnrolledOrder[Located_] == Subject))
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant declares no illuminant" });
+    if (Located_ >= RegisteredOrder.size() || !(RegisteredOrder[Located_] == Subject))
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the owner declares no illuminant" });
 
     const Outcome<bool> Validated = Validate(Amending, Subject);
 
@@ -199,14 +199,14 @@ Outcome<bool> IlluminantPopulation::Amend(OccupantIdentity Subject, const Illumi
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> IlluminantPopulation::Withdraw(OccupantIdentity Subject)
+Outcome<bool> IlluminantPopulation::Withdraw(OwnerIdentity Subject)
 {
     const std::size_t Located_ = Located(Subject);
 
-    if (Located_ >= EnrolledOrder.size() || !(EnrolledOrder[Located_] == Subject))
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant declares no illuminant" });
+    if (Located_ >= RegisteredOrder.size() || !(RegisteredOrder[Located_] == Subject))
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the owner declares no illuminant" });
 
-    EnrolledOrder.erase(EnrolledOrder.begin() + static_cast<std::ptrdiff_t>(Located_));
+    RegisteredOrder.erase(RegisteredOrder.begin() + static_cast<std::ptrdiff_t>(Located_));
     Declarations.erase(Declarations.begin() + static_cast<std::ptrdiff_t>(Located_));
 
     ++DeclaredRevision;
@@ -214,20 +214,20 @@ Outcome<bool> IlluminantPopulation::Withdraw(OccupantIdentity Subject)
     return Outcome<bool>::Result(true);
 }
 
-Outcome<IlluminantSpecification> IlluminantPopulation::Resolve(OccupantIdentity Subject) const
+Outcome<IlluminantSpecification> IlluminantPopulation::Resolve(OwnerIdentity Subject) const
 {
     const std::size_t Located_ = Located(Subject);
 
-    if (Located_ >= EnrolledOrder.size() || !(EnrolledOrder[Located_] == Subject))
+    if (Located_ >= RegisteredOrder.size() || !(RegisteredOrder[Located_] == Subject))
     {
         return Outcome<IlluminantSpecification>::Refuse(
-            { RefusalReason::IdentityStale, "the occupant declares no illuminant" });
+            { RefusalReason::IdentityStale, "the owner declares no illuminant" });
     }
 
     return Outcome<IlluminantSpecification>::Result(Declarations[Located_]);
 }
 
-Outcome<ColourSpecification> IlluminantPopulation::ResolveColour(OccupantIdentity                Subject,
+Outcome<ColourSpecification> IlluminantPopulation::ResolveColour(OwnerIdentity                Subject,
                                                                  const ColourSpaceSpecification& Working) const
 {
     const Outcome<IlluminantSpecification> Declared = Resolve(Subject);
@@ -243,32 +243,32 @@ Outcome<ColourSpecification> IlluminantPopulation::ResolveColour(OccupantIdentit
     if (Held.DeclaredColour.SpaceIdentity == Working.SpaceIdentity)
         return Outcome<ColourSpecification>::Result(Held.DeclaredColour);
 
-    // 📝 A colour declared in another space is projected rather than refused. `36` §1 requires the space to
+    // 📝 A colour declared in another space is projected rather than rejected. `36` §1 requires the space to
     //    travel with the coordinate, and the whole point of it travelling is that this conversion can happen.
-    ColourSpaceSpecification Arriving = Working;
-    Arriving.SpaceIdentity            = Held.DeclaredColour.SpaceIdentity;
+    ColourSpaceSpecification Incoming = Working;
+    Incoming.SpaceIdentity            = Held.DeclaredColour.SpaceIdentity;
 
-    return Project(Held.DeclaredColour, Arriving, Working);
+    return Project(Held.DeclaredColour, Incoming, Working);
 }
 
-Outcome<OccupantIdentity> IlluminantPopulation::AtmosphericSource() const
+Outcome<OwnerIdentity> IlluminantPopulation::AtmosphericSource() const
 {
     for (std::size_t Ordinal = 0u; Ordinal < Declarations.size(); ++Ordinal)
     {
         if (Declarations[Ordinal].AtmosphericSource)
-            return Outcome<OccupantIdentity>::Result(EnrolledOrder[Ordinal]);
+            return Outcome<OwnerIdentity>::Result(RegisteredOrder[Ordinal]);
     }
 
-    return Outcome<OccupantIdentity>::Refuse(
-        { RefusalReason::ExtentExhausted, "no illuminant is enrolled as the atmospheric source" });
+    return Outcome<OwnerIdentity>::Refuse(
+        { RefusalReason::ExtentExhausted, "no illuminant is registered as the atmospheric source" });
 }
 
-const std::vector<OccupantIdentity>& IlluminantPopulation::Enrolled() const { return EnrolledOrder; }
+const std::vector<OwnerIdentity>& IlluminantPopulation::Registered() const { return RegisteredOrder; }
 std::uint64_t                        IlluminantPopulation::Revision() const { return DeclaredRevision; }
 
-std::uint32_t IlluminantPopulation::EnrolledCount() const
+std::uint32_t IlluminantPopulation::RegisteredCount() const
 {
-    return static_cast<std::uint32_t>(EnrolledOrder.size());
+    return static_cast<std::uint32_t>(RegisteredOrder.size());
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -392,8 +392,8 @@ bool ReachesExtent(const IlluminantSpecification& Declared, PartitionExtent Exte
 
     return ClassifyVolumeOverlap(Position.PositionX - Reach, Position.PositionY - Reach, Position.PositionZ - Reach,
                                  Position.PositionX + Reach, Position.PositionY + Reach, Position.PositionZ + Reach,
-                                 Extent.Least.PositionX,     Extent.Least.PositionY,     Extent.Least.PositionZ,
-                                 Extent.Greatest.PositionX,  Extent.Greatest.PositionY,  Extent.Greatest.PositionZ) >= 0;
+                                 Extent.Minimum.PositionX,     Extent.Minimum.PositionY,     Extent.Minimum.PositionZ,
+                                 Extent.Maximum.PositionX,  Extent.Maximum.PositionY,  Extent.Maximum.PositionZ) >= 0;
 }
 
 }   // namespace
@@ -425,7 +425,7 @@ Outcome<bool> IlluminantIndex::DerivePartition(const IlluminantPopulation& Illum
     if (PartitionOrdinal >= ReachingSets.size())
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no such partition" });
 
-    std::vector<OccupantIdentity>& Reaching_ = ReachingSets[PartitionOrdinal];
+    std::vector<OwnerIdentity>& Reaching_ = ReachingSets[PartitionOrdinal];
 
     if (TruncatedAccumulated >= TruncatedCounts[PartitionOrdinal])
         TruncatedAccumulated -= TruncatedCounts[PartitionOrdinal];
@@ -435,7 +435,7 @@ Outcome<bool> IlluminantIndex::DerivePartition(const IlluminantPopulation& Illum
 
     // 📝 Walked in the population's own identity order, so the reaching set is in identity order without a sort.
     //    `44` §6 depends on it and `18` integrates in exactly this order.
-    for (const OccupantIdentity& Subject : Illuminants.Enrolled())
+    for (const OwnerIdentity& Subject : Illuminants.Registered())
     {
         const Outcome<IlluminantSpecification> Declared = Illuminants.Resolve(Subject);
 
@@ -466,12 +466,12 @@ std::uint32_t IlluminantIndex::ReachingCount(std::uint32_t PartitionOrdinal) con
     return static_cast<std::uint32_t>(ReachingSets[PartitionOrdinal].size());
 }
 
-Outcome<OccupantIdentity> IlluminantIndex::Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const
+Outcome<OwnerIdentity> IlluminantIndex::Reaching(std::uint32_t PartitionOrdinal, std::uint32_t ReachOrdinal) const
 {
     if (PartitionOrdinal >= ReachingSets.size() || ReachOrdinal >= ReachingSets[PartitionOrdinal].size())
-        return Outcome<OccupantIdentity>::Refuse({ RefusalReason::ExtentExhausted, "no such reaching illuminant" });
+        return Outcome<OwnerIdentity>::Refuse({ RefusalReason::ExtentExhausted, "no such reaching illuminant" });
 
-    return Outcome<OccupantIdentity>::Result(ReachingSets[PartitionOrdinal][ReachOrdinal]);
+    return Outcome<OwnerIdentity>::Result(ReachingSets[PartitionOrdinal][ReachOrdinal]);
 }
 
 std::uint32_t IlluminantIndex::TruncatedCount(std::uint32_t PartitionOrdinal) const

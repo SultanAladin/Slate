@@ -101,8 +101,8 @@ namespace
         if ((Reported.penMask & PEN_MASK_TILT_X) != 0u && (Reported.penMask & PEN_MASK_TILT_Y) != 0u)
         {
             Filling.Supplied.TiltReported = true;
-            Filling.TiltAlong             = static_cast<double>(Reported.tiltX);
-            Filling.TiltAcross            = static_cast<double>(Reported.tiltY);
+            Filling.TiltX             = static_cast<double>(Reported.tiltX);
+            Filling.TiltY            = static_cast<double>(Reported.tiltY);
         }
 
         if ((Reported.penMask & PEN_MASK_ROTATION) != 0u)
@@ -156,12 +156,12 @@ namespace
 //    surface. Routing it would take the window system's own mouse stream away from `14`'s interface, which
 //    reads the same device through the accumulated window condition — and it would gain nothing, because a
 //    mouse reports none of the three optional axes and arrives here with all three absent either way.
-LRESULT CALLBACK ReceivePointerMessage(HWND WindowSlot, UINT Message, WPARAM Arriving, LPARAM Detail)
+LRESULT CALLBACK ReceivePointerMessage(HWND WindowSlot, UINT Message, WPARAM Incoming, LPARAM Detail)
 {
     WindowAttachment* Attachment = ResolveAttachment(WindowSlot);
 
     if (Attachment == nullptr)
-        return DefWindowProcW(WindowSlot, Message, Arriving, Detail);
+        return DefWindowProcW(WindowSlot, Message, Incoming, Detail);
 
     InputExchange* Reporting = Attachment->ReportingInto;
 
@@ -171,7 +171,7 @@ LRESULT CALLBACK ReceivePointerMessage(HWND WindowSlot, UINT Message, WPARAM Arr
     case WM_POINTERUPDATE:
     case WM_POINTERUP:
     {
-        const std::uint32_t PointerOrdinal = GET_POINTERID_WPARAM(Arriving);
+        const std::uint32_t PointerOrdinal = GET_POINTERID_WPARAM(Incoming);
 
         POINTER_INPUT_TYPE ReportedDevice = PT_POINTER;
 
@@ -220,7 +220,7 @@ LRESULT CALLBACK ReceivePointerMessage(HWND WindowSlot, UINT Message, WPARAM Arr
         Filling.Arrival     = Reporting->ArrivalStamp();
         Filling.PositionX   = static_cast<double>(GET_X_LPARAM(Detail));
         Filling.PositionY   = static_cast<double>(GET_Y_LPARAM(Detail));
-        Filling.ContactMask = ProjectMouseContact(Arriving);
+        Filling.ContactMask = ProjectMouseContact(Incoming);
 
         // 🔴 Every optional axis stays absent. A mouse supplies none of the three, and `AxisPresence` default
         //    constructs to exactly that, so nothing is written here — the absence is the report.
@@ -232,7 +232,7 @@ LRESULT CALLBACK ReceivePointerMessage(HWND WindowSlot, UINT Message, WPARAM Arr
         break;
     }
 
-    return CallWindowProcW(Attachment->PrecedingReceiver, WindowSlot, Message, Arriving, Detail);
+    return CallWindowProcW(Attachment->PrecedingReceiver, WindowSlot, Message, Incoming, Detail);
 }
 
 #endif
@@ -273,7 +273,7 @@ Outcome<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& 
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no attachment slot is unoccupied" });
 
     // 🔴 The attachment is recorded **before** the procedure is exchanged. The exchange itself delivers
-    //    messages, and a message arriving between the two would find no attachment and be handed to the
+    //    messages, and a message incoming between the two would find no attachment and be handed to the
     //    default procedure — which is the window system's input silently going somewhere else for one message
     //    at bring-up, and a defect that reproduces on a loaded machine and nowhere else.
     Vacant->WindowSlot    = WindowSlot;
@@ -290,7 +290,7 @@ Outcome<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& 
         Vacant->WindowSlot    = nullptr;
         Vacant->ReportingInto = nullptr;
 
-        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the window declined the pointer attachment" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the window rejected the pointer attachment" });
     }
 
     Vacant->PrecedingReceiver = reinterpret_cast<WNDPROC>(Preceding);
@@ -389,10 +389,10 @@ TickPoint InputExchange::ArrivalStamp(std::uint64_t HostCount) const
 //                                                       ARRIVAL
 //------------------------------------------------------------------------------------------------------------------------
 
-void InputExchange::Record(const PointerSample& Arriving)
+void InputExchange::Record(const PointerSample& Incoming)
 {
     const std::uint32_t WriteOrdinal = (OldestOrdinal + OccupiedCount) % ArrivalCapacity;
-    ArrivalOrder[WriteOrdinal]       = Arriving;
+    ArrivalOrder[WriteOrdinal]       = Incoming;
 
     if (OccupiedCount == ArrivalCapacity)
     {

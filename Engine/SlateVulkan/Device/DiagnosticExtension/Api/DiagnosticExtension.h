@@ -45,7 +45,7 @@ public:
 
     /// 🧩 Resolves the capability's entry points and attaches the sink the driver writes its diagnostic text into.
     /// in    Exchange  [-]  the constructed instance; borrowed and outlives this component
-    /// in    Register  [-]  where arriving driver text is appended; borrowed and outlives this component
+    /// in    Register  [-]  where incoming driver text is appended; borrowed and outlives this component
     /// in    Timeline  [-]  stamps each arrival where it happened; borrowed and outlives this component
     /// out   Result   [-]  refuses with CapabilityAbsent when no instance stands or the loader does not
     ///                      declare the capability, and with HostDenied when the driver declines the sink
@@ -92,7 +92,7 @@ public:
     ///        own ordinal, and eight separate compositions is eight places where one of them formats the
     ///        ordinal differently and the driver's text stops sorting alongside the rest.
     /// note  ⚠️ Composed into an automatic extent and read by the driver before this returns, which is what
-    ///        the two-operand form's contract already admits — the driver copies the text and nothing is
+    ///        the two-operand form's contract already accepts — the driver copies the text and nothing is
     ///        retained here.
     /// cost  ✔️
     /// tag   api, nonthrowing
@@ -123,7 +123,7 @@ public:
 private:
 
     /// 🧩 The C-ABI arrival the driver calls, which forwards to the register the construction was given.
-    /// note  🔴 `86` §3.1 admits an append from any thread and this arrives on whichever thread the driver
+    /// note  🔴 `86` §3.1 accepts an append from any thread and this arrives on whichever thread the driver
     ///        was executing on. Nothing here allocates and nothing here takes a lock the driver does not
     ///        already hold — the register's own guard is the only one.
     /// note  🔴 Every arrival is appended as `Failed`, so the severity is read by nothing. `ReportSequence`
@@ -134,7 +134,7 @@ private:
     ///        has already been discarded.
     static VKAPI_ATTR VkBool32 VKAPI_CALL Arrival(VkDebugUtilsMessageSeverityFlagBitsEXT       Severity,
                                                   VkDebugUtilsMessageTypeFlagsEXT              Reported,
-                                                  const VkDebugUtilsMessengerCallbackDataEXT*  Arriving,
+                                                  const VkDebugUtilsMessengerCallbackDataEXT*  Incoming,
                                                   void*                                        Forwarding);
 
     // 📝 Forwarded to the C-ABI arrival through the driver's own user pointer, so the arrival reaches the

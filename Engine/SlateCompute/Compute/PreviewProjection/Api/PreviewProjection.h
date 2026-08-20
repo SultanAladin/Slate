@@ -68,21 +68,21 @@ enum class ThumbnailSubject : std::uint32_t
 ///        paid for once per row per rotation for as long as the row is presented.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-constexpr bool ThumbnailDeclared(ThumbnailSubject Presented)
+constexpr bool ThumbnailDeclared(ThumbnailSubject Current)
 {
-    return Presented == ThumbnailSubject::Imagery
-        || Presented == ThumbnailSubject::Tiling
-        || Presented == ThumbnailSubject::Brush
-        || Presented == ThumbnailSubject::Material;
+    return Current == ThumbnailSubject::Imagery
+        || Current == ThumbnailSubject::Tiling
+        || Current == ThumbnailSubject::Brush
+        || Current == ThumbnailSubject::Material;
 }
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 
 /// 🧩 Whether one content is presented by its source instead — the complement, stated rather than inferred.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-constexpr bool PresentedBySource(ThumbnailSubject Presented)
+constexpr bool CurrentBySource(ThumbnailSubject Current)
 {
-    return Presented != ThumbnailSubject::SubjectCount && !ThumbnailDeclared(Presented);
+    return Current != ThumbnailSubject::SubjectCount && !ThumbnailDeclared(Current);
 }
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 
@@ -93,8 +93,8 @@ static_assert(ThumbnailDeclared(ThumbnailSubject::Imagery),        "imagery carr
 static_assert(ThumbnailDeclared(ThumbnailSubject::Tiling),         "a tiling carries a thumbnail — `82` §3");
 static_assert(ThumbnailDeclared(ThumbnailSubject::Brush),          "a brush carries a thumbnail — `82` §3");
 static_assert(ThumbnailDeclared(ThumbnailSubject::Material),       "a material carries a thumbnail — `82` §3");
-static_assert(PresentedBySource(ThumbnailSubject::Text),           "text is presented by the text — `82` §3");
-static_assert(PresentedBySource(ThumbnailSubject::VectorContent),  "vector content by its name — `82` §3");
+static_assert(CurrentBySource(ThumbnailSubject::Text),           "text is presented by the text — `82` §3");
+static_assert(CurrentBySource(ThumbnailSubject::VectorContent),  "vector content by its name — `82` §3");
 
 // 🚧 The extent a thumbnail resolves at. Whether it is **stored** is `82` §7's first open row and it blocks `48`'s
 //    document size, so nothing here retains one: a thumbnail is re-resolved, exactly like every other preview, and
@@ -122,7 +122,7 @@ struct SpeculativeExtent
     std::uint32_t       SurfaceOrdinal   = 0u;    // [-]  - the surface it addresses
     std::uint32_t       ResolvedLevel    = 0u;    // [-]  - the level it actually resolved at; `20` may be coarser
     std::uint32_t       RequestedLevel   = 0u;    // [-]  - the level it asked for
-    bool                ExtentStanding   = false; // [-]  - false where nothing is previewed at all
+    bool                ExtentHeld   = false; // [-]  - false where nothing is previewed at all
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -171,7 +171,7 @@ public:
     /// 🧩 Opens the brush preview against a declared brush — `82` §2's first row.
     /// in    Declaring  [-]  the surface, the entry and the packing; Speculative is declared here, not by the caller
     /// in    Brushed    [-]  `58`'s declaration, resolved exactly as a committed stroke resolves it
-    /// out   Result    [-]  refuses with HostDenied when a preview is already open, and with whatever `22` refused
+    /// out   Result    [-]  refuses with HostDenied when a preview is already open, and with whatever `22` rejected
     /// post  🔴 the held stroke is speculative; it pins no tile and can never seal
     /// note  🔴 The preview shows the **resolved impression** — extent, coverage falloff, the combine specification
     ///        and the colour — and not an outline of the radius. `82` §6's fourth gate, and the reason it is a gate:
@@ -185,17 +185,17 @@ public:
     Outcome<bool> OpenImpression(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
 
     /// 🧩 Moves the previewed impression to where the cursor now stands.
-    /// in    Arriving  [-]  the pointer sample and the domain position `74` resolved it to
-    /// out   Result   [-]  refuses with HostDenied before Open, and with whatever `22` refused
-    /// note  📝 The accumulation is reclaimed before the arrival is admitted, so the preview shows the impression
+    /// in    Incoming  [-]  the pointer sample and the domain position `74` resolved it to
+    /// out   Result   [-]  refuses with HostDenied before Open, and with whatever `22` rejected
+    /// note  📝 The accumulation is reclaimed before the arrival is accepted, so the preview shows the impression
     ///        **at** the cursor rather than the trail of every position the cursor has passed through. A committed
     ///        stroke accumulates because the trail is the stroke; a preview accumulating would answer a question
     ///        about a stroke the artist has not made.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> AmendImpression(const StrokeArrival& Arriving);
+    Outcome<bool> AmendImpression(const StrokeArrival& Incoming);
 
-    /// 🧩 Resolves the previewed impression against whatever residency admits, demanding nothing it may pin.
+    /// 🧩 Resolves the previewed impression against whatever residency accepts, demanding nothing it may pin.
     /// in    Residency        [-]  the surface's cells and tiles
     /// in    Requesting       [-]  where a demand for a non-resident cell is recorded
     /// in    RecordingOrdinal  [-]  the rotation resolving
@@ -220,7 +220,7 @@ public:
     /// 🧩 Whether a brush preview is open.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool ImpressionStanding() const;
+    bool ImpressionCurrent() const;
 
     //--------------------------------------------------------------------------------------------------------------------
     //                                              THE CONTENT PREVIEW
@@ -229,12 +229,12 @@ public:
     /// 🧩 The surface's current content at one domain position — `82` §2's second row, and `82` §4's domain view.
     /// in    Content         [-]  the surface's layer sequence
     /// in    Placements      [-]  where each channel sits among the components
-    /// in    PositionAlong   [-]  the domain's first axis
-    /// in    PositionAcross  [-]  its second
+    /// in    PositionX   [-]  the domain's first axis
+    /// in    PositionY  [-]  its second
     /// in    Level           [-]  the reduction level the tolerance is taken at; zero is finest
     /// in    ComponentCount  [-]  components per texel
     /// out   Result         [-]  refuses with HostDenied before Construct, with ContentUnsupported outside the
-    ///                            level count, and with whatever `70` refused
+    ///                            level count, and with whatever `70` rejected
     /// post  🔴 nothing was mutated; no transaction exists and no revision advanced
     /// note  🔴 This is a **read**. `82` §2 is explicit that its value is comparison — the artist wants to see what
     ///        something looked like a moment ago, or what a hidden entry contains, without changing anything to
@@ -246,8 +246,8 @@ public:
     /// tag   api, nonthrowing
     Outcome<ResolvedSample> ProjectContentAt(const SurfaceLayerSequence&           Content,
                                              const std::vector<ChannelPlacement>&  Placements,
-                                             double                                PositionAlong,
-                                             double                                PositionAcross,
+                                             double                                PositionX,
+                                             double                                PositionY,
                                              std::uint32_t                         Level,
                                              std::uint32_t                         ComponentCount) const;
 
@@ -258,8 +258,8 @@ public:
     /// 🧩 A placement under the manipulator at one domain position — `82` §2's third row, `72` §3's drag seen.
     /// in    Content         [-]  the sequence carrying the placed entry, with the dragged transform already in it
     /// in    Placements      [-]  where each channel sits among the components
-    /// in    PositionAlong   [-]  the domain's first axis
-    /// in    PositionAcross  [-]  its second
+    /// in    PositionX   [-]  the domain's first axis
+    /// in    PositionY  [-]  its second
     /// in    CoarseDeclared  [-]  true resolves at the coarse level `70` §5 permits, for the drag itself
     /// in    ComponentCount  [-]  components per texel
     /// out   Result         [-]  refuses as `ProjectContentAt` does
@@ -274,8 +274,8 @@ public:
     /// tag   api, nonthrowing
     Outcome<ResolvedSample> ProjectPlacementAt(const SurfaceLayerSequence&           Content,
                                                const std::vector<ChannelPlacement>&  Placements,
-                                               double                                PositionAlong,
-                                               double                                PositionAcross,
+                                               double                                PositionX,
+                                               double                                PositionY,
                                                bool                                  CoarseDeclared,
                                                std::uint32_t                         ComponentCount) const;
 
@@ -319,7 +319,7 @@ public:
     /// 🧩 The extent as it stands.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const SpeculativeExtent& Standing() const;
+    const SpeculativeExtent& Current() const;
 
     /// 🧩 Whether the standing extent was resolved in the rotation asking.
     /// note  🔴 `22` §4.1: a speculative extent is discarded and re-resolved each rotation, so an extent from any
@@ -336,7 +336,7 @@ public:
 private:
 
     ImpressionSequence  Previewing;                     // [-] - the brush preview's own stroke, always speculative
-    SpeculativeExtent   StandingExtent   = {};          // [-] - what is previewed, and in which rotation
+    SpeculativeExtent   CurrentExtent   = {};          // [-] - what is previewed, and in which rotation
     const AnalyticProjection*  Resolution = nullptr;    // [-] - `70`, borrowed
     std::uint32_t       AmendedCount     = 0u;          // [-] - re-resolutions the standing parameter drag asked for
     bool                ImpressionOpen   = false;       // [-] - false until OpenImpression delivered

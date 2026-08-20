@@ -16,8 +16,8 @@ void StrokeSpace::Construct()
 {
     TileOfCell.assign(CellOrdinalSpan, AbsentTile);
 
-    ClaimedCells.clear();
-    Claimed.clear();
+    ReservedCells.clear();
+    Reserved.clear();
 
     TouchedTexels = 0u;
 }
@@ -26,7 +26,7 @@ void StrokeSpace::Construct()
 //                                                    CLAIM AND LOCATE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<std::uint32_t> StrokeSpace::Claim(std::uint32_t CellOrdinal)
+Outcome<std::uint32_t> StrokeSpace::Reserve(std::uint32_t CellOrdinal)
 {
     if (TileOfCell.empty())
         Construct();
@@ -37,18 +37,18 @@ Outcome<std::uint32_t> StrokeSpace::Claim(std::uint32_t CellOrdinal)
     if (TileOfCell[CellOrdinal] != AbsentTile)
         return Outcome<std::uint32_t>::Result(TileOfCell[CellOrdinal]);
 
-    if (Claimed.size() >= CoverageTileCeiling)
+    if (Reserved.size() >= CoverageTileCeiling)
     {
         return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the stroke touched more cells than the accumulation holds" });
     }
 
-    const std::uint32_t TileOrdinal = static_cast<std::uint32_t>(Claimed.size());
+    const std::uint32_t TileOrdinal = static_cast<std::uint32_t>(Reserved.size());
 
     // 📝 Zeroed on claim rather than on reclaim. A stroke that touches four cells and is abandoned pays for four
     //    tiles; zeroing at reclaim would pay for whatever the previous stroke touched as well.
-    Claimed.push_back(std::vector<float>(static_cast<std::size_t>(CoverageTileTexels) * CoverageTileTexels, 0.0f));
-    ClaimedCells.push_back(CellOrdinal);
+    Reserved.push_back(std::vector<float>(static_cast<std::size_t>(CoverageTileTexels) * CoverageTileTexels, 0.0f));
+    ReservedCells.push_back(CellOrdinal);
 
     TileOfCell[CellOrdinal] = TileOrdinal;
 
@@ -67,61 +67,61 @@ Outcome<std::uint32_t> StrokeSpace::Located(std::uint32_t CellOrdinal) const
 //                                                    ACCUMULATION
 //------------------------------------------------------------------------------------------------------------------------
 
-void StrokeSpace::Accumulate(std::uint32_t TileOrdinal, std::uint32_t Along, std::uint32_t Across, double Arriving)
+void StrokeSpace::Accumulate(std::uint32_t TileOrdinal, std::uint32_t X, std::uint32_t Y, double Incoming)
 {
-    if (TileOrdinal >= Claimed.size() || Along >= CoverageTileTexels || Across >= CoverageTileTexels)
+    if (TileOrdinal >= Reserved.size() || X >= CoverageTileTexels || Y >= CoverageTileTexels)
         return;
 
-    if (Arriving <= 0.0)
+    if (Incoming <= 0.0)
         return;
 
-    const std::size_t Writing = static_cast<std::size_t>(Across) * CoverageTileTexels + Along;
+    const std::size_t Writing = static_cast<std::size_t>(Y) * CoverageTileTexels + X;
 
-    const double Standing = static_cast<double>(Claimed[TileOrdinal][Writing]);
+    const double Current = static_cast<double>(Reserved[TileOrdinal][Writing]);
 
-    if (Standing <= 0.0)
+    if (Current <= 0.0)
         ++TouchedTexels;
 
     // 🔴 `22` §3's within-stroke rule, and the one line that decides it. `Over` saturates toward unity and is
     //    symmetric in its operands; addition neither saturates nor stays inside the interval the apply reads.
     const double Combined = CombineCoverage(CombineSpecification::Over,
-                                            Standing,
-                                            Arriving > 1.0 ? 1.0 : Arriving);
+                                            Current,
+                                            Incoming > 1.0 ? 1.0 : Incoming);
 
-    Claimed[TileOrdinal][Writing] = static_cast<float>(Combined > 1.0 ? 1.0 : Combined);
+    Reserved[TileOrdinal][Writing] = static_cast<float>(Combined > 1.0 ? 1.0 : Combined);
 }
 
-double StrokeSpace::Coverage(std::uint32_t TileOrdinal, std::uint32_t Along, std::uint32_t Across) const
+double StrokeSpace::Coverage(std::uint32_t TileOrdinal, std::uint32_t X, std::uint32_t Y) const
 {
-    if (TileOrdinal >= Claimed.size() || Along >= CoverageTileTexels || Across >= CoverageTileTexels)
+    if (TileOrdinal >= Reserved.size() || X >= CoverageTileTexels || Y >= CoverageTileTexels)
         return 0.0;
 
-    return static_cast<double>(Claimed[TileOrdinal][static_cast<std::size_t>(Across) * CoverageTileTexels + Along]);
+    return static_cast<double>(Reserved[TileOrdinal][static_cast<std::size_t>(Y) * CoverageTileTexels + X]);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-const std::vector<std::uint32_t>& StrokeSpace::TouchedCells() const { return ClaimedCells; }
+const std::vector<std::uint32_t>& StrokeSpace::TouchedCells() const { return ReservedCells; }
 
-std::uint32_t StrokeSpace::ClaimedCount() const
+std::uint32_t StrokeSpace::ReservedCount() const
 {
-    return static_cast<std::uint32_t>(Claimed.size());
+    return static_cast<std::uint32_t>(Reserved.size());
 }
 
 std::uint64_t StrokeSpace::TouchedTexelCount() const { return TouchedTexels; }
 
 void StrokeSpace::Reclaim()
 {
-    for (const std::uint32_t CellOrdinal : ClaimedCells)
+    for (const std::uint32_t CellOrdinal : ReservedCells)
     {
         if (CellOrdinal < TileOfCell.size())
             TileOfCell[CellOrdinal] = AbsentTile;
     }
 
-    ClaimedCells.clear();
-    Claimed.clear();
+    ReservedCells.clear();
+    Reserved.clear();
 
     TouchedTexels = 0u;
 }

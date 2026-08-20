@@ -19,8 +19,8 @@ std::size_t Located(const std::vector<SeamEdge>& Held, SeamEdge Sought)
 {
     for (std::size_t Ordinal = 0u; Ordinal < Held.size(); ++Ordinal)
     {
-        if (Held[Ordinal].LeastVertex == Sought.LeastVertex
-         && Held[Ordinal].GreatestVertex == Sought.GreatestVertex)
+        if (Held[Ordinal].MinimumVertex == Sought.MinimumVertex
+         && Held[Ordinal].MaximumVertex == Sought.MaximumVertex)
         {
             return Ordinal;
         }
@@ -51,7 +51,7 @@ Outcome<bool> SeamSpecification::DeclareAuthored(std::uint32_t FirstVertex, std:
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> SeamSpecification::WithdrawAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex)
+Outcome<bool> SeamSpecification::RemoveAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex)
 {
     const SeamEdge     Sought  = DeclareEdge(FirstVertex, SecondVertex);
     const std::size_t  Located_ = Located(AuthoredEdges, Sought);

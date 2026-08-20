@@ -46,9 +46,9 @@ Outcome<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& S
             { RefusalReason::HostDenied, "the lowered stream could not be read; was the shader stage run" });
     }
 
-    const std::vector<std::uint8_t>& Landed = Read.Resolve();
+    const std::vector<std::uint8_t>& ReadBack = Read.Resolve();
 
-    if (Landed.empty())
+    if (ReadBack.empty())
     {
         return Outcome<std::vector<std::uint32_t>>::Refuse(
             { RefusalReason::ContentUnsupported, "the lowered stream is empty" });
@@ -57,7 +57,7 @@ Outcome<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& S
     // 🔴 A whole word count or nothing. SPIR-V is a run of 32-bit words by definition, and a stream whose
     //    length is not a multiple of four was truncated — the vendor reads the partial word as an instruction
     //    and reports a malformed module, which names the driver rather than the truncated file.
-    if ((Landed.size() % sizeof(std::uint32_t)) != 0u)
+    if ((ReadBack.size() % sizeof(std::uint32_t)) != 0u)
     {
         return Outcome<std::vector<std::uint32_t>>::Refuse(
             { RefusalReason::ContentUnsupported, "the lowered stream is not a whole count of words" });
@@ -66,16 +66,16 @@ Outcome<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& S
     // 📝 Copied word by word rather than reinterpreted in place. The byte extent carries no alignment
     //    guarantee for a 32-bit read, and the vendor takes a word pointer — a cast would be undefined on
     //    every host and merely happen to work on the two that tolerate a misaligned load.
-    std::vector<std::uint32_t> Words(Landed.size() / sizeof(std::uint32_t), 0u);
+    std::vector<std::uint32_t> Words(ReadBack.size() / sizeof(std::uint32_t), 0u);
 
     for (std::size_t Ordinal = 0u; Ordinal < Words.size(); ++Ordinal)
     {
         const std::size_t Byte = Ordinal * sizeof(std::uint32_t);
 
-        Words[Ordinal] = static_cast<std::uint32_t>(Landed[Byte])
-                       | (static_cast<std::uint32_t>(Landed[Byte + 1u]) << 8)
-                       | (static_cast<std::uint32_t>(Landed[Byte + 2u]) << 16)
-                       | (static_cast<std::uint32_t>(Landed[Byte + 3u]) << 24);
+        Words[Ordinal] = static_cast<std::uint32_t>(ReadBack[Byte])
+                       | (static_cast<std::uint32_t>(ReadBack[Byte + 1u]) << 8)
+                       | (static_cast<std::uint32_t>(ReadBack[Byte + 2u]) << 16)
+                       | (static_cast<std::uint32_t>(ReadBack[Byte + 3u]) << 24);
     }
 
     if (Words[0] != SpirvStreamMarker)
@@ -122,18 +122,18 @@ Outcome<std::uint32_t> ShaderCodec::Resolve(const std::string& UnitName, const s
     ModuleDeclaration.codeSize                 = Stream.size() * sizeof(std::uint32_t);
     ModuleDeclaration.pCode                    = Stream.data();
 
-    HeldModule Arriving;
-    Arriving.UnitName   = UnitName;
-    Arriving.StreamStem = StreamStem;
+    HeldModule Incoming;
+    Incoming.UnitName   = UnitName;
+    Incoming.StreamStem = StreamStem;
 
-    if (vkCreateShaderModule(DeviceEdge->ActiveDevice(), &ModuleDeclaration, nullptr, &Arriving.Constructed)
+    if (vkCreateShaderModule(DeviceEdge->ActiveDevice(), &ModuleDeclaration, nullptr, &Incoming.Constructed)
         != VK_SUCCESS)
     {
         return Outcome<std::uint32_t>::Refuse(
-            { RefusalReason::ContentUnsupported, "the device declined the lowered stream as a module" });
+            { RefusalReason::ContentUnsupported, "the device rejected the lowered stream as a module" });
     }
 
-    Modules.push_back(Arriving);
+    Modules.push_back(Incoming);
 
     return Outcome<std::uint32_t>::Result(static_cast<std::uint32_t>(Modules.size() - 1u));
 }
@@ -182,14 +182,14 @@ Outcome<VkPipelineShaderStageCreateInfo> ShaderCodec::Stage(std::uint32_t       
 
     Specialisations.push_back(Held);
 
-    HeldSpecialisation& Standing = Specialisations.back();
+    HeldSpecialisation& Current = Specialisations.back();
 
-    Standing.Read.mapEntryCount = static_cast<std::uint32_t>(Standing.Declared.size());
-    Standing.Read.pMapEntries   = Standing.Declared.data();
-    Standing.Read.dataSize      = Standing.Fixed.size() * sizeof(std::uint32_t);
-    Standing.Read.pData         = Standing.Fixed.data();
+    Current.Read.mapEntryCount = static_cast<std::uint32_t>(Current.Declared.size());
+    Current.Read.pMapEntries   = Current.Declared.data();
+    Current.Read.dataSize      = Current.Fixed.size() * sizeof(std::uint32_t);
+    Current.Read.pData         = Current.Fixed.data();
 
-    StageDeclaration.pSpecializationInfo = &Standing.Read;
+    StageDeclaration.pSpecializationInfo = &Current.Read;
 
     return Outcome<VkPipelineShaderStageCreateInfo>::Result(StageDeclaration);
 }

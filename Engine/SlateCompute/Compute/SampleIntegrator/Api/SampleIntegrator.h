@@ -22,7 +22,7 @@ namespace Slate
 //                                                     THE REJECTIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Why one pixel's history was refused.
+/// 🧩 Why one pixel's history was rejected.
 /// note  🔴 On refusal the history is discarded and the count resets to one. It **resets rather than decays** —
 ///        `64` §4 — because a partial history of a surface that is no longer there is a coloured ghost, and a
 ///        ghost fading over ten rotations is more visible than one that is never drawn.
@@ -31,8 +31,8 @@ enum class RejectionSubject : std::uint32_t
 {
     Accepted        = 0u,   // [-] - the history describes the same surface
     OffExtent       = 1u,   // [-] - the reprojected position is off the extent
-    OccupantDiffers = 2u,   // [-] - a different surface resolved there — `16` §4.1
-    DepthDiffers    = 3u,   // [-] - the same occupant, a different part of it
+    OwnerDiffers = 2u,   // [-] - a different surface resolved there — `16` §4.1
+    DepthDiffers    = 3u,   // [-] - the same owner, a different part of it
     RejectionCount  = 4u    // [-] - the closed count, never a rejection
 };
 
@@ -66,8 +66,8 @@ struct AccumulatedSample
 /// tag   nonallocating, nonthrowing
 struct ConvergenceMetrics
 {
-    std::uint32_t  LeastSampleCount    = 0u;   // [-] - the least converged pixel of the rotation
-    std::uint32_t  GreatestSampleCount = 0u;   // [-] - the most converged
+    std::uint32_t  MinimumSampleCount    = 0u;   // [-] - the least converged pixel of the rotation
+    std::uint32_t  MaximumSampleCount = 0u;   // [-] - the most converged
     std::uint32_t  RejectedCount       = 0u;   // [-] - histories discarded this rotation
     std::uint32_t  AccumulatedCount    = 0u;   // [-] - pixels accumulated this rotation
 };
@@ -79,7 +79,7 @@ struct ConvergenceMetrics
 /// 🧩 `64` — the accumulation, the offset sequence it jitters by, and the invalidations that discard it whole.
 /// note  🔴 `64` §2: reprojection reads `MotionSurface` and is **never** derived from depth and the previous
 ///        camera. Depth reprojection is correct only for what did not move, and what did move is exactly the
-///        population this document has to handle. Motion covers the camera and the occupant together, so the
+///        population this document has to handle. Motion covers the camera and the owner together, so the
 ///        accumulation does not need to know which happened.
 /// note  🔴 `64` §5: accumulation happens **above** `08` §3 ⑧, on radiance. Accumulating display code averages
 ///        values that have been through a non-invertible tone projection, and the average of tone-mapped samples
@@ -95,14 +95,14 @@ public:
 
     static constexpr std::uint32_t AmendmentOrdinal = 40u;   // [-] - `08` §3 ⑦, after `30`
 
-    /// 🧩 Declares what a history is refused for.
+    /// 🧩 Declares what a history is rejected for.
     /// out   Result  [-]  refuses with ContentUnsupported for a non-positive depth bound or a ceiling of nothing
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Declare(const RejectionSpecification& Declaring);
 
     /// 🧩 Contributes `08` §3 ⑦'s recording.
-    /// out   Result  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule rejected
     /// note  📝 Produces `AccumulationSurface` and amends nothing. It reads its own previous cycle slot, which
     ///        the schedule cannot express as a dependency and does not need to: `06`'s rotation orders the two.
     /// cost  ✔️
@@ -123,31 +123,31 @@ public:
     void OffsetOf(std::uint64_t RecordingOrdinal, double& OffsetX, double& OffsetY) const;
 
     /// 🧩 Classifies whether one reprojected history may be accumulated into.
-    /// in    ReprojectedAlong  [-]  where the pixel was last rotation
-    /// in    ReprojectedAcross [-]
-    /// in    HeldOccupant     [-]  the occupant resolved there last rotation
-    /// in    ArrivingOccupant [-]  the occupant resolved there now
+    /// in    ReprojectedX  [-]  where the pixel was last rotation
+    /// in    ReprojectedY [-]
+    /// in    HeldOwner     [-]  the owner resolved there last rotation
+    /// in    IncomingOwner [-]  the owner resolved there now
     /// in    HeldDepth        [-]  reversed, as recorded last rotation
-    /// in    ArrivingDepth    [-]  reversed, as recorded now
+    /// in    IncomingDepth    [-]  reversed, as recorded now
     /// out   Subject          [-]  Accepted, or which of the three refusals applied
-    /// note  🔴 The identity test reads `16` §4.1's occupant resolution rather than the partition identity, so a
+    /// note  🔴 The identity test reads `16` §4.1's owner resolution rather than the partition identity, so a
     ///        re-partition does not discard every pixel's history for a change nobody can see.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    RejectionSubject Classify(double        ReprojectedAlong,
-                              double        ReprojectedAcross,
-                              std::uint32_t HeldOccupant,
-                              std::uint32_t ArrivingOccupant,
+    RejectionSubject Classify(double        ReprojectedX,
+                              double        ReprojectedY,
+                              std::uint32_t HeldOwner,
+                              std::uint32_t IncomingOwner,
                               double        HeldDepth,
-                              double        ArrivingDepth) const;
+                              double        IncomingDepth) const;
 
-    /// 🧩 Accumulates one arriving sample into one pixel's history.
+    /// 🧩 Accumulates one incoming sample into one pixel's history.
     /// in    Held      [-]  the reprojected history, amended in place
-    /// in    Arriving  [-]  this rotation's radiance at the pixel
-    /// in    Refused   [-]  what Classify answered
-    /// in    Least     [-]  the least of the arriving rotation's local neighbourhood, per component
-    /// in    Greatest  [-]  the greatest of it, per component
-    /// note  🔴 A refusal **resets** the count to one and writes the arriving sample whole. It does not decay —
+    /// in    Incoming  [-]  this rotation's radiance at the pixel
+    /// in    Rejected   [-]  what Classify answered
+    /// in    Minimum     [-]  the least of the incoming rotation's local neighbourhood, per component
+    /// in    Maximum  [-]  the greatest of it, per component
+    /// note  🔴 A refusal **resets** the count to one and writes the incoming sample whole. It does not decay —
     ///        `64` §4 — because a decaying ghost is more visible than an absent one.
     /// note  📝 The neighbourhood bound is applied before the accumulation and never after it. Applied after, the
     ///        bound would clamp a value the accumulation had already committed to and the count would then
@@ -155,10 +155,10 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Accumulate(AccumulatedSample& Held,
-                    const double       Arriving[3],
-                    RejectionSubject   Refused,
-                    const double       Least[3],
-                    const double       Greatest[3]) const;
+                    const double       Incoming[3],
+                    RejectionSubject   Rejected,
+                    const double       Minimum[3],
+                    const double       Maximum[3]) const;
 
     /// 🧩 Discards every history, because no previous result describes anything.
     /// note  🔴 `64` §6 and §8: no history is read on the first rotation after bring-up, after an extent change,
@@ -176,8 +176,8 @@ public:
     /// 🧩 Records what one rotation's accumulation found, for `86`.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void DeclareRotation(std::uint32_t LeastSampleCount,
-                         std::uint32_t GreatestSampleCount,
+    void DeclareRotation(std::uint32_t MinimumSampleCount,
+                         std::uint32_t MaximumSampleCount,
                          std::uint32_t RejectedCount,
                          std::uint32_t AccumulatedCount);
 
@@ -195,10 +195,10 @@ private:
 
     RejectionSpecification  Specification   = {};      // [-] - as Declare validated it
     ConvergenceMetrics      Reported        = {};      // [-] - what `86` presents
-    bool                    HistoryStanding = false;   // [-] - false until one rotation has accumulated
+    bool                    HistoryCurrent = false;   // [-] - false until one rotation has accumulated
 };
 
-// 📐 Occupant identity, the cycle slot, the offset index and the sample count are Exact; the reprojected
+// 📐 Owner identity, the cycle slot, the offset index and the sample count are Exact; the reprojected
 //    position and the accumulated radiance are Bounded and Perceptual respectively — `64` §7.
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Perceptual,
                          PrecisionGuarantee::Perceptual,

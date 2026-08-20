@@ -30,7 +30,7 @@ struct CapabilitySet
     bool           DynamicRecordingAvailable  = false;   // [-]  - a recording may open a rendering scope with
                                                          //         no attachment construct declared for it
     std::uint32_t  GraphicsFamilyOrdinal      = 0u;      // [-]  - the one queue family taken
-    std::uint64_t  LargestExtentClaim         = 0u;      // [B]  - largest single allocation the device allows
+    std::uint64_t  LargestExtentReservation         = 0u;      // [B]  - largest single allocation the device allows
     double         TimestampToMilliseconds    = 0.0;     // [ms] - carried by one timestamp increment
 };
 
@@ -65,7 +65,7 @@ public:
     /// pre   ConstructInstance delivered
     /// note  🔴 Dynamic recording is enabled here, not negotiated at a recording site. `SlateUI` declares
     ///       its recording against a rendering scope with no attachment construct, so a device that does
-    ///       not offer the capability is refused by name rather than surfacing later as a vendor error
+    ///       not offer the capability is rejected by name rather than surfacing later as a vendor error
     ///       inside the interface library.
     /// cost  🔴
     /// tag   api, nonthrowing

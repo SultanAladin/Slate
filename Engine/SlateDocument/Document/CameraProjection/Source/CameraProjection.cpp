@@ -157,7 +157,7 @@ Outcome<ViewProjection> Derive(const CameraSpecification& Declaring)
         }
 
         Projecting.Coefficient[0]  = Cotangent / Declaring.SensorProportion;
-        Projecting.Coefficient[5]  = Cotangent * ClipOrdinateSignum;
+        Projecting.Coefficient[5]  = Cotangent * ClipCoordinateSignum;
         Projecting.Coefficient[10] = Nearest / Interval;
         Projecting.Coefficient[11] = -1.0;
         Projecting.Coefficient[14] = Nearest * Furthest / Interval;
@@ -166,11 +166,11 @@ Outcome<ViewProjection> Derive(const CameraSpecification& Declaring)
     {
         // 📐 The parallel arrangement is the same two conditions over a depth that is linear in z rather than in
         //    its reciprocal: a = 1/Interval and b = Furthest/Interval.
-        const double HalfAcross = Declaring.ExtentParameter * 0.5;
-        const double HalfAlong  = HalfAcross * Declaring.SensorProportion;
+        const double HalfY = Declaring.ExtentParameter * 0.5;
+        const double HalfX  = HalfY * Declaring.SensorProportion;
 
-        Projecting.Coefficient[0]  = 1.0 / HalfAlong;
-        Projecting.Coefficient[5]  = ClipOrdinateSignum / HalfAcross;
+        Projecting.Coefficient[0]  = 1.0 / HalfX;
+        Projecting.Coefficient[5]  = ClipCoordinateSignum / HalfY;
         Projecting.Coefficient[10] = 1.0 / Interval;
         Projecting.Coefficient[14] = Furthest / Interval;
         Projecting.Coefficient[15] = 1.0;
@@ -249,20 +249,20 @@ void FrustumSpace::Construct(const ViewProjection& Projected)
     PlanesDerived = true;
 }
 
-std::int32_t FrustumSpace::Classify(DocumentPosition Least, DocumentPosition Greatest) const
+std::int32_t FrustumSpace::Classify(DocumentPosition Minimum, DocumentPosition Maximum) const
 {
     if (!PlanesDerived)
         return 0;
 
-    const DevicePosition RebasedLeast    = Rebase(Least,    RebasingOrigin);
-    const DevicePosition RebasedGreatest = Rebase(Greatest, RebasingOrigin);
+    const DevicePosition RebasedMinimum    = Rebase(Minimum,    RebasingOrigin);
+    const DevicePosition RebasedMaximum = Rebase(Maximum, RebasingOrigin);
 
-    const double LeastX    = static_cast<double>(RebasedLeast.PositionX);
-    const double LeastY    = static_cast<double>(RebasedLeast.PositionY);
-    const double LeastZ    = static_cast<double>(RebasedLeast.PositionZ);
-    const double GreatestX = static_cast<double>(RebasedGreatest.PositionX);
-    const double GreatestY = static_cast<double>(RebasedGreatest.PositionY);
-    const double GreatestZ = static_cast<double>(RebasedGreatest.PositionZ);
+    const double MinimumX    = static_cast<double>(RebasedMinimum.PositionX);
+    const double MinimumY    = static_cast<double>(RebasedMinimum.PositionY);
+    const double MinimumZ    = static_cast<double>(RebasedMinimum.PositionZ);
+    const double MaximumX = static_cast<double>(RebasedMaximum.PositionX);
+    const double MaximumY = static_cast<double>(RebasedMaximum.PositionY);
+    const double MaximumZ = static_cast<double>(RebasedMaximum.PositionZ);
 
     std::int32_t Resolved = 1;
 
@@ -270,24 +270,24 @@ std::int32_t FrustumSpace::Classify(DocumentPosition Least, DocumentPosition Gre
     {
         const FrustumPlane& Held = Planes[PlaneOrdinal];
 
-        const double GreatestAlongX = Held.NormalX >= 0.0 ? GreatestX : LeastX;
-        const double GreatestAlongY = Held.NormalY >= 0.0 ? GreatestY : LeastY;
-        const double GreatestAlongZ = Held.NormalZ >= 0.0 ? GreatestZ : LeastZ;
+        const double MaximumX = Held.NormalX >= 0.0 ? MaximumX : MinimumX;
+        const double MaximumY = Held.NormalY >= 0.0 ? MaximumY : MinimumY;
+        const double MaximumZ = Held.NormalZ >= 0.0 ? MaximumZ : MinimumZ;
 
-        const double LeastAlongX = Held.NormalX >= 0.0 ? LeastX : GreatestX;
-        const double LeastAlongY = Held.NormalY >= 0.0 ? LeastY : GreatestY;
-        const double LeastAlongZ = Held.NormalZ >= 0.0 ? LeastZ : GreatestZ;
+        const double MinimumX = Held.NormalX >= 0.0 ? MinimumX : MaximumX;
+        const double MinimumY = Held.NormalY >= 0.0 ? MinimumY : MaximumY;
+        const double MinimumZ = Held.NormalZ >= 0.0 ? MinimumZ : MaximumZ;
 
-        const double Furthest = Held.NormalX * GreatestAlongX
-                              + Held.NormalY * GreatestAlongY
-                              + Held.NormalZ * GreatestAlongZ + Held.Constant;
+        const double Furthest = Held.NormalX * MaximumX
+                              + Held.NormalY * MaximumY
+                              + Held.NormalZ * MaximumZ + Held.Constant;
 
         if (Furthest < 0.0)
             return -1;
 
-        const double Nearest = Held.NormalX * LeastAlongX
-                             + Held.NormalY * LeastAlongY
-                             + Held.NormalZ * LeastAlongZ + Held.Constant;
+        const double Nearest = Held.NormalX * MinimumX
+                             + Held.NormalY * MinimumY
+                             + Held.NormalZ * MinimumZ + Held.Constant;
 
         if (Nearest < 0.0)
             Resolved = 0;
@@ -310,20 +310,20 @@ const FrustumPlane& FrustumSpace::Plane(std::uint32_t PlaneOrdinal) const
 //                                                     NAVIGATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> NavigationSequence::Open(NavigationSubject Declaring_, const CameraSpecification& Standing)
+Outcome<bool> NavigationSequence::Open(NavigationSubject Declaring_, const CameraSpecification& Current)
 {
     if (OpenDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "a navigation gesture is already open" });
 
-    PriorCamera   = Standing;
-    AmendedCamera = Standing;
+    PriorCamera   = Current;
+    AmendedCamera = Current;
     Declaring     = Declaring_;
     OpenDeclared  = true;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double DisplacementAcross)
+Outcome<bool> NavigationSequence::Amend(double DisplacementX, double DisplacementY)
 {
     if (!OpenDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no navigation gesture is open" });
@@ -348,7 +348,7 @@ Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double Displac
             //    the yaw. Taking pitch about the axis before the yaw accumulates roll, and the horizon tilts a
             //    little more with every orbit until the artist cannot straighten it.
             const RotationQuaternion Yaw = RotationAbout(0.0, 1.0, 0.0,
-                                                         -DisplacementAlong * OrbitRadiansPerPixel);
+                                                         -DisplacementX * OrbitRadiansPerPixel);
 
             const RotationQuaternion Yawed = Compound(Yaw, Rotation);
 
@@ -358,7 +358,7 @@ Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double Displac
             RotateSpan(Yawed, 1.0, 0.0, 0.0, RightX, RightY, RightZ);
 
             const RotationQuaternion Pitch = RotationAbout(RightX, RightY, RightZ,
-                                                           -DisplacementAcross * OrbitRadiansPerPixel);
+                                                           -DisplacementY * OrbitRadiansPerPixel);
 
             AmendedCamera.Placement.Rotation = Compound(Pitch, Yawed);
 
@@ -383,18 +383,18 @@ Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double Displac
             RotateSpan(Rotation, 1.0, 0.0, 0.0, RightX,  RightY,  RightZ);
             RotateSpan(Rotation, 0.0, 1.0, 0.0, UpwardX, UpwardY, UpwardZ);
 
-            const double AlongScale  = -DisplacementAlong  * PanFractionPerPixel * FocusDistance;
-            const double AcrossScale =  DisplacementAcross * PanFractionPerPixel * FocusDistance;
+            const double RightScale  = -DisplacementX  * PanFractionPerPixel * FocusDistance;
+            const double UpwardScale =  DisplacementY * PanFractionPerPixel * FocusDistance;
 
-            Position.PositionX += RightX * AlongScale + UpwardX * AcrossScale;
-            Position.PositionY += RightY * AlongScale + UpwardY * AcrossScale;
-            Position.PositionZ += RightZ * AlongScale + UpwardZ * AcrossScale;
+            Position.PositionX += RightX * RightScale + UpwardX * UpwardScale;
+            Position.PositionY += RightY * RightScale + UpwardY * UpwardScale;
+            Position.PositionZ += RightZ * RightScale + UpwardZ * UpwardScale;
 
             // 📝 The focus travels with a pan, so a subsequent orbit turns about what the artist is now looking at
             //    rather than about the position they panned away from.
-            AmendedCamera.FocusPosition.PositionX += RightX * AlongScale + UpwardX * AcrossScale;
-            AmendedCamera.FocusPosition.PositionY += RightY * AlongScale + UpwardY * AcrossScale;
-            AmendedCamera.FocusPosition.PositionZ += RightZ * AlongScale + UpwardZ * AcrossScale;
+            AmendedCamera.FocusPosition.PositionX += RightX * RightScale + UpwardX * UpwardScale;
+            AmendedCamera.FocusPosition.PositionY += RightY * RightScale + UpwardY * UpwardScale;
+            AmendedCamera.FocusPosition.PositionZ += RightZ * RightScale + UpwardZ * UpwardScale;
 
             return Outcome<bool>::Result(true);
         }
@@ -404,7 +404,7 @@ Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double Displac
             double ForwardX = 0.0, ForwardY = 0.0, ForwardZ = 0.0;
             ViewDirection(Rotation, ForwardX, ForwardY, ForwardZ);
 
-            const double Advance = -DisplacementAcross * DollyFractionPerPixel * FocusDistance;
+            const double Advance = -DisplacementY * DollyFractionPerPixel * FocusDistance;
 
             Position.PositionX += ForwardX * Advance;
             Position.PositionY += ForwardY * Advance;
@@ -417,7 +417,7 @@ Outcome<bool> NavigationSequence::Amend(double DisplacementAlong, double Displac
         {
             // 📝 Multiplicative, so the same displacement produces the same proportional change at every field.
             //    An additive zoom crosses zero at the narrow end and inverts the projection.
-            const double Scale = 1.0 + DisplacementAcross * ZoomFractionPerPixel;
+            const double Scale = 1.0 + DisplacementY * ZoomFractionPerPixel;
 
             double Amending = AmendedCamera.ExtentParameter * (Scale > 0.0 ? Scale : 1.0);
 
@@ -470,47 +470,47 @@ bool                       NavigationSequence::GestureOpen() const { return Open
 //                                                      FRAMING
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<DecomposedTransform> Frame(const CameraSpecification& Standing,
-                                   DocumentPosition           Least,
-                                   DocumentPosition           Greatest)
+Outcome<DecomposedTransform> Frame(const CameraSpecification& Current,
+                                   DocumentPosition           Minimum,
+                                   DocumentPosition           Maximum)
 {
-    if (Greatest.PositionX < Least.PositionX
-     || Greatest.PositionY < Least.PositionY
-     || Greatest.PositionZ < Least.PositionZ)
+    if (Maximum.PositionX < Minimum.PositionX
+     || Maximum.PositionY < Minimum.PositionY
+     || Maximum.PositionZ < Minimum.PositionZ)
     {
         return Outcome<DecomposedTransform>::Refuse(
             { RefusalReason::ContentUnsupported, "the extent is inverted and contains nothing" });
     }
 
-    if (!Standing.Clipping.IntervalValid() || Standing.ExtentParameter <= 0.0 || Standing.SensorProportion <= 0.0)
+    if (!Current.Clipping.IntervalValid() || Current.ExtentParameter <= 0.0 || Current.SensorProportion <= 0.0)
     {
         return Outcome<DecomposedTransform>::Refuse(
             { RefusalReason::ContentUnsupported, "the camera declares no projection to frame against" });
     }
 
     DocumentPosition Centre;
-    Centre.PositionX = (Least.PositionX + Greatest.PositionX) * 0.5;
-    Centre.PositionY = (Least.PositionY + Greatest.PositionY) * 0.5;
-    Centre.PositionZ = (Least.PositionZ + Greatest.PositionZ) * 0.5;
+    Centre.PositionX = (Minimum.PositionX + Maximum.PositionX) * 0.5;
+    Centre.PositionY = (Minimum.PositionY + Maximum.PositionY) * 0.5;
+    Centre.PositionZ = (Minimum.PositionZ + Maximum.PositionZ) * 0.5;
 
-    const double HalfX = (Greatest.PositionX - Least.PositionX) * 0.5;
-    const double HalfY = (Greatest.PositionY - Least.PositionY) * 0.5;
-    const double HalfZ = (Greatest.PositionZ - Least.PositionZ) * 0.5;
+    const double HalfX = (Maximum.PositionX - Minimum.PositionX) * 0.5;
+    const double HalfY = (Maximum.PositionY - Minimum.PositionY) * 0.5;
+    const double HalfZ = (Maximum.PositionZ - Minimum.PositionZ) * 0.5;
 
     double Radius = std::sqrt(HalfX * HalfX + HalfY * HalfY + HalfZ * HalfZ);
 
     if (Radius <= 0.0)
-        Radius = Standing.Clipping.Nearest;
+        Radius = Current.Clipping.Nearest;
 
-    double Distance = Radius + Standing.Clipping.Nearest;
+    double Distance = Radius + Current.Clipping.Nearest;
 
-    if (Standing.Projected == ProjectionSubject::Perspective)
+    if (Current.Projected == ProjectionSubject::Perspective)
     {
         // 📐 The extent is contained on both axes, so the lesser of the two half-angles decides. Solving against
         //    the vertical alone frames correctly on a tall display and cuts the extent off on a wide one.
-        const double HalfAcross = Standing.ExtentParameter * 0.5 * Pi / 180.0;
-        const double HalfAlong  = std::atan(std::tan(HalfAcross) * Standing.SensorProportion);
-        const double HalfLesser = HalfAlong < HalfAcross ? HalfAlong : HalfAcross;
+        const double HalfY = Current.ExtentParameter * 0.5 * Pi / 180.0;
+        const double HalfX  = std::atan(std::tan(HalfY) * Current.SensorProportion);
+        const double HalfLesser = HalfX < HalfY ? HalfX : HalfY;
 
         const double Sine = std::sin(HalfLesser);
 
@@ -521,9 +521,9 @@ Outcome<DecomposedTransform> Frame(const CameraSpecification& Standing,
     double ForwardX = 0.0;
     double ForwardY = 0.0;
     double ForwardZ = 0.0;
-    ViewDirection(Standing.Placement.Rotation, ForwardX, ForwardY, ForwardZ);
+    ViewDirection(Current.Placement.Rotation, ForwardX, ForwardY, ForwardZ);
 
-    DecomposedTransform Framed = Standing.Placement;
+    DecomposedTransform Framed = Current.Placement;
 
     Framed.Translation.PositionX = Centre.PositionX - ForwardX * Distance;
     Framed.Translation.PositionY = Centre.PositionY - ForwardY * Distance;
@@ -536,12 +536,12 @@ Outcome<DecomposedTransform> Frame(const CameraSpecification& Standing,
 //                                                     THE CAMERA
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> CameraProjection::Declare(OccupantIdentity Subject, const CameraSpecification& Declaring)
+Outcome<bool> CameraProjection::Declare(OwnerIdentity Subject, const CameraSpecification& Declaring)
 {
     if (!Subject.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "a camera declares no occupant" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "a camera declares no owner" });
 
-    CameraOccupant = Subject;
+    CameraOwner = Subject;
     Specification  = Declaring;
     ReconcileOwed  = true;
 
@@ -550,7 +550,7 @@ Outcome<bool> CameraProjection::Declare(OccupantIdentity Subject, const CameraSp
 
 Outcome<bool> CameraProjection::Amend(const CameraSpecification& Amending)
 {
-    if (!CameraOccupant.IdentityDeclared())
+    if (!CameraOwner.IdentityDeclared())
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "no camera has been declared" });
 
     Specification = Amending;
@@ -588,7 +588,7 @@ Outcome<bool> CameraProjection::Reconcile()
 const CameraSpecification& CameraProjection::Declared() const   { return Specification;  }
 const ViewProjection&      CameraProjection::Projected() const  { return DerivedView;    }
 const FrustumSpace&        CameraProjection::Frustum() const    { return DerivedFrustum; }
-OccupantIdentity           CameraProjection::Occupant() const   { return CameraOccupant; }
+OwnerIdentity           CameraProjection::Owner() const   { return CameraOwner; }
 double                     CameraProjection::Exposure() const   { return Specification.Exposure; }
 bool                       CameraProjection::DerivationOwed() const { return ReconcileOwed; }
 

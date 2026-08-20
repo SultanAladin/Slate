@@ -18,8 +18,8 @@
 
 // 📝 The reflections are named as constants rather than as an enumeration because an enumeration declared on the
 //    host has no spelling the shader toolchain shares without a second declaration that must be kept identical.
-#define SlateReflectAlong  (1u)   // [-] - the first axis mirrors on alternate cells along it
-#define SlateReflectAcross (2u)   // [-] - the second axis mirrors on alternate cells across it
+#define SlateReflectX  (1u)   // [-] - the first axis mirrors on alternate cells along it
+#define SlateReflectY (2u)   // [-] - the second axis mirrors on alternate cells across it
 
 namespace Slate
 {
@@ -45,19 +45,19 @@ SLATE_SHARED Signed32 FlooredOrdinal(Real64 Coordinate)
 }
 
 /// 🧩 Classifies one domain position into its lattice cell and its position within that cell.
-/// in    PositionAlong            [-]  the domain's first axis
-/// in    PositionAcross           [-]  its second
-/// in    CellExtentAlong          [-]  the repeating unit, strictly positive — `54` §2
-/// in    CellExtentAcross         [-]  likewise
-/// in    OffsetProgressionAlong   [-]  row-to-row displacement, as a fraction of a cell
-/// in    OffsetProgressionAcross  [-]  column-to-column; never declared beside the above
-/// in    SkewAlong                [-]  shear for a diagonal repeat
-/// in    SkewAcross               [-]  likewise
-/// out   CellAlong                [-]  the cell ordinal along, signed
-/// out   CellAcross               [-]  the cell ordinal across, signed
-/// out   WithinAlong              [-]  in the half-open unit interval, before reflection and turning
-/// out   WithinAcross             [-]  likewise
-/// pre   the lattice validated — a vanishing extent or a unit skew product is refused at declaration
+/// in    PositionX            [-]  the domain's first axis
+/// in    PositionY           [-]  its second
+/// in    CellExtentX          [-]  the repeating unit, strictly positive — `54` §2
+/// in    CellExtentY         [-]  likewise
+/// in    OffsetProgressionX   [-]  row-to-row displacement, as a fraction of a cell
+/// in    OffsetProgressionY  [-]  column-to-column; never declared beside the above
+/// in    SkewX                [-]  shear for a diagonal repeat
+/// in    SkewY               [-]  likewise
+/// out   CellX                [-]  the cell ordinal along, signed
+/// out   CellY               [-]  the cell ordinal across, signed
+/// out   WithinX              [-]  in the half-open unit interval, before reflection and turning
+/// out   WithinY             [-]  likewise
+/// pre   the lattice validated — a vanishing extent or a unit skew product is rejected at declaration
 /// note  🔴 The two offset progressions are resolved in opposite orders and never both at once. A row
 ///        displacement depending on the column ordinal needs the column resolved first and a column displacement
 ///        depending on the row needs the row; declaring both leaves each waiting on the other, which is why
@@ -65,48 +65,48 @@ SLATE_SHARED Signed32 FlooredOrdinal(Real64 Coordinate)
 /// cost  ✔️
 /// note  Exact — the unskewing is one correctly-rounded division per axis and the flooring is integral.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED void ClassifyLatticeCell(Real64 PositionAlong,
-                                      Real64 PositionAcross,
-                                      Real64 CellExtentAlong,
-                                      Real64 CellExtentAcross,
-                                      Real64 OffsetProgressionAlong,
-                                      Real64 OffsetProgressionAcross,
-                                      Real64 SkewAlong,
-                                      Real64 SkewAcross,
-                                      SLATE_OUT(Signed32) CellAlong,
-                                      SLATE_OUT(Signed32) CellAcross,
-                                      SLATE_OUT(Real64)   WithinAlong,
-                                      SLATE_OUT(Real64)   WithinAcross)
+SLATE_SHARED void ClassifyLatticeCell(Real64 PositionX,
+                                      Real64 PositionY,
+                                      Real64 CellExtentX,
+                                      Real64 CellExtentY,
+                                      Real64 OffsetProgressionX,
+                                      Real64 OffsetProgressionY,
+                                      Real64 SkewX,
+                                      Real64 SkewY,
+                                      SLATE_OUT(Signed32) CellX,
+                                      SLATE_OUT(Signed32) CellY,
+                                      SLATE_OUT(Real64)   WithinX,
+                                      SLATE_OUT(Real64)   WithinY)
 {
     // 📐 The shear is inverted rather than applied. A position arrives in the domain and the lattice is what is
     //    sheared, so classifying it means carrying the position back through the shear the lattice declares.
-    const Real64 Determinant    = 1.0 - SkewAlong * SkewAcross;
-    const Real64 UnskewedAlong  = (PositionAlong  - SkewAlong  * PositionAcross) / Determinant;
-    const Real64 UnskewedAcross = (PositionAcross - SkewAcross * PositionAlong)  / Determinant;
+    const Real64 Determinant    = 1.0 - SkewX * SkewY;
+    const Real64 UnskewedX  = (PositionX  - SkewX  * PositionY) / Determinant;
+    const Real64 UnskewedY = (PositionY - SkewY * PositionX)  / Determinant;
 
-    const Real64 CoordinateAlong  = UnskewedAlong  / CellExtentAlong;
-    const Real64 CoordinateAcross = UnskewedAcross / CellExtentAcross;
+    const Real64 CoordinateX  = UnskewedX  / CellExtentX;
+    const Real64 CoordinateY = UnskewedY / CellExtentY;
 
-    if (OffsetProgressionAcross != 0.0)
+    if (OffsetProgressionY != 0.0)
     {
-        CellAlong   = FlooredOrdinal(CoordinateAlong);
-        WithinAlong = CoordinateAlong - Real64(CellAlong);
+        CellX   = FlooredOrdinal(CoordinateX);
+        WithinX = CoordinateX - Real64(CellX);
 
-        const Real64 DisplacedAcross = CoordinateAcross - OffsetProgressionAcross * Real64(CellAlong);
+        const Real64 DisplacedY = CoordinateY - OffsetProgressionY * Real64(CellX);
 
-        CellAcross   = FlooredOrdinal(DisplacedAcross);
-        WithinAcross = DisplacedAcross - Real64(CellAcross);
+        CellY   = FlooredOrdinal(DisplacedY);
+        WithinY = DisplacedY - Real64(CellY);
 
         return;
     }
 
-    CellAcross   = FlooredOrdinal(CoordinateAcross);
-    WithinAcross = CoordinateAcross - Real64(CellAcross);
+    CellY   = FlooredOrdinal(CoordinateY);
+    WithinY = CoordinateY - Real64(CellY);
 
-    const Real64 DisplacedAlong = CoordinateAlong - OffsetProgressionAlong * Real64(CellAcross);
+    const Real64 DisplacedX = CoordinateX - OffsetProgressionX * Real64(CellY);
 
-    CellAlong   = FlooredOrdinal(DisplacedAlong);
-    WithinAlong = DisplacedAlong - Real64(CellAlong);
+    CellX   = FlooredOrdinal(DisplacedX);
+    WithinX = DisplacedX - Real64(CellX);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -114,14 +114,14 @@ SLATE_SHARED void ClassifyLatticeCell(Real64 PositionAlong,
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Applies the declared reflections and quarter turns to a position within its cell.
-/// in    CellAlong          [-]  the cell ordinal along; its parity selects the reflection
-/// in    CellAcross         [-]  the cell ordinal across; likewise
-/// in    WithinAlong        [-]  in the unit interval, as classified
-/// in    WithinAcross       [-]  likewise
-/// in    ReflectionMask     [-]  SlateReflectAlong and SlateReflectAcross, composed
+/// in    CellX          [-]  the cell ordinal along; its parity selects the reflection
+/// in    CellY         [-]  the cell ordinal across; likewise
+/// in    WithinX        [-]  in the unit interval, as classified
+/// in    WithinY       [-]  likewise
+/// in    ReflectionMask     [-]  SlateReflectX and SlateReflectY, composed
 /// in    RotationIncrement  [-]  quarter turns per step of the cell schedule
-/// out   ProjectedAlong     [-]  in the unit interval, after reflection and turning
-/// out   ProjectedAcross    [-]  likewise
+/// out   ProjectedX     [-]  in the unit interval, after reflection and turning
+/// out   ProjectedY    [-]  likewise
 /// note  🔴 `54` §2: the five symmetries **compose** and none of them is a named pattern. Herringbone is one
 ///        reflection with a rotation increment and an offset progression, and twill is a skew with an offset
 ///        progression. A form that enumerated named patterns could express exactly the patterns already listed.
@@ -131,40 +131,40 @@ SLATE_SHARED void ClassifyLatticeCell(Real64 PositionAlong,
 /// cost  ✔️
 /// note  Exact — reflection is one subtraction from unity and a quarter turn exchanges two coordinates.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED void ProjectWithinCell(Signed32   CellAlong,
-                                    Signed32   CellAcross,
-                                    Real64     WithinAlong,
-                                    Real64     WithinAcross,
+SLATE_SHARED void ProjectWithinCell(Signed32   CellX,
+                                    Signed32   CellY,
+                                    Real64     WithinX,
+                                    Real64     WithinY,
                                     Unsigned32 ReflectionMask,
                                     Unsigned32 RotationIncrement,
-                                    SLATE_OUT(Real64) ProjectedAlong,
-                                    SLATE_OUT(Real64) ProjectedAcross)
+                                    SLATE_OUT(Real64) ProjectedX,
+                                    SLATE_OUT(Real64) ProjectedY)
 {
-    Real64 Along  = WithinAlong;
-    Real64 Across = WithinAcross;
+    Real64 X  = WithinX;
+    Real64 Y = WithinY;
 
-    if ((ReflectionMask & SlateReflectAlong) != 0u && (Unsigned32(CellAlong) & 1u) != 0u)
+    if ((ReflectionMask & SlateReflectX) != 0u && (Unsigned32(CellX) & 1u) != 0u)
     {
-        Along = 1.0 - Along;
+        X = 1.0 - X;
     }
 
-    if ((ReflectionMask & SlateReflectAcross) != 0u && (Unsigned32(CellAcross) & 1u) != 0u)
+    if ((ReflectionMask & SlateReflectY) != 0u && (Unsigned32(CellY) & 1u) != 0u)
     {
-        Across = 1.0 - Across;
+        Y = 1.0 - Y;
     }
 
-    const Unsigned32 Turns = (RotationIncrement * (Unsigned32(CellAlong) + Unsigned32(CellAcross))) & 3u;
+    const Unsigned32 Turns = (RotationIncrement * (Unsigned32(CellX) + Unsigned32(CellY))) & 3u;
 
     for (Unsigned32 TurnOrdinal = 0u; TurnOrdinal < Turns; ++TurnOrdinal)
     {
-        const Real64 Turned = Along;
+        const Real64 Turned = X;
 
-        Along  = Across;
-        Across = 1.0 - Turned;
+        X  = Y;
+        Y = 1.0 - Turned;
     }
 
-    ProjectedAlong  = Along;
-    ProjectedAcross = Across;
+    ProjectedX  = X;
+    ProjectedY = Y;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -185,8 +185,8 @@ SLATE_SHARED Unsigned32 ZigzagOrdinal(Signed32 Ordinal)
 }
 
 /// 🧩 Folds a cell's two ordinals into the one ordinal its variation is indexed by.
-/// in    CellAlong   [-]  the cell ordinal along, signed
-/// in    CellAcross  [-]  the cell ordinal across, signed
+/// in    CellX   [-]  the cell ordinal along, signed
+/// in    CellY  [-]  the cell ordinal across, signed
 /// out   Folded      [-]  the ordinal `54` §1's variation is a function of
 /// note  🔴 Variation is a function of **this ordinal and nothing else** — `54` §1. That is what makes a pattern
 ///        survive a reopen, agree between a coarse reduction level and the finer one that replaces it, and agree
@@ -198,9 +198,9 @@ SLATE_SHARED Unsigned32 ZigzagOrdinal(Signed32 Ordinal)
 /// cost  ✔️
 /// note  Exact — two products and one sum, all wrapping in 32 bits by construction.
 /// tag   shared, parity, nonallocating, nonthrowing
-SLATE_SHARED Unsigned32 FoldedCellOrdinal(Signed32 CellAlong, Signed32 CellAcross)
+SLATE_SHARED Unsigned32 FoldedCellOrdinal(Signed32 CellX, Signed32 CellY)
 {
-    return ZigzagOrdinal(CellAlong) * 0x9E3779B9u + ZigzagOrdinal(CellAcross) * 0x85EBCA6Bu;
+    return ZigzagOrdinal(CellX) * 0x9E3779B9u + ZigzagOrdinal(CellY) * 0x85EBCA6Bu;
 }
 
 }   // namespace Slate

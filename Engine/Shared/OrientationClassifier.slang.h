@@ -111,15 +111,15 @@ SLATE_SHARED void ProductExactly(Real64 LeftTerm, Real64 RightTerm,
 /// 🧩 Accumulates one term into an expansion, exactly, preserving the increasing-magnitude ordering.
 /// in    Expansion  [-]  the terms accumulated so far, in increasing magnitude
 /// in    TermCount  [-]  how many of them are occupied
-/// in    Arriving   [-]  the term to accumulate
+/// in    Incoming   [-]  the term to accumulate
 /// out   TermCount  [-]  the occupied count after accumulation
 /// cost  ✔️
 /// tag   shared, nonallocating, nonthrowing
 SLATE_SHARED void AccumulateExactly(SLATE_INOUT_SPAN(Real64, Expansion, SlateExpansionCapacity),
                                     SLATE_INOUT(Signed32) TermCount,
-                                    Real64                Arriving)
+                                    Real64                Incoming)
 {
-    Real64   Carried  = Arriving;
+    Real64   Carried  = Incoming;
     Signed32 Occupied = 0;
 
     for (Signed32 TermOrdinal = 0; TermOrdinal < TermCount; ++TermOrdinal)
@@ -171,11 +171,11 @@ SLATE_SHARED void AccumulateProduct(SLATE_INOUT_SPAN(Real64, Expansion, SlateExp
 
 /// 🧩 Classifies the turn direction of Alpha → Beta → Gamma. Positive is counter-clockwise.
 /// in    AlphaX       [-]  first position, abscissa
-/// in    AlphaY       [-]  first position, ordinate
+/// in    AlphaY       [-]  first position, coordinate
 /// in    BetaX        [-]  second position, abscissa
-/// in    BetaY        [-]  second position, ordinate
+/// in    BetaY        [-]  second position, coordinate
 /// in    GammaX       [-]  third position, abscissa
-/// in    GammaY       [-]  third position, ordinate
+/// in    GammaY       [-]  third position, coordinate
 /// out   Orientation  [-]  +1 counter-clockwise, −1 clockwise, 0 exactly collinear
 /// err   never refuses; the sign is total over every finite input
 /// cost  🚩

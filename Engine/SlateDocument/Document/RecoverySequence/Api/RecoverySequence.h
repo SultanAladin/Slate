@@ -38,13 +38,13 @@ struct JournalEntry
 
 /// 🧩 The four situations `48` §4 tabulates, decided on read and never inferred later.
 /// tag   contract
-enum class RecoveryStanding : std::uint32_t
+enum class RecoveryCurrent : std::uint32_t
 {
     NothingOffered = 0u,   // [-] - the journal is empty; the application exited cleanly
     Offered        = 1u,   // [-] - entries stand past the save and are offered, named
     PartlyOffered  = 2u,   // [-] - readable up to an entry; the rest is reported rather than guessed
     Unreadable     = 3u,   // [-] - nothing of the journal could be read; `86` reports and nothing is offered
-    StandingCount  = 4u    // [-] - the closed count, never a standing
+    CurrentCount  = 4u    // [-] - the closed count, never a standing
 };
 
 /// 🧩 What the artist is told before they decide — `48` §4's offer, stated rather than performed.
@@ -54,7 +54,7 @@ enum class RecoveryStanding : std::uint32_t
 /// tag   owning
 struct RecoveryOffer
 {
-    RecoveryStanding  Standing        = RecoveryStanding::NothingOffered;   // [-] - which of the four rows
+    RecoveryCurrent  Current        = RecoveryCurrent::NothingOffered;   // [-] - which of the four rows
     std::uint64_t     SavedAt         = 0u;   // [ns] - the saved document's own stamp
     std::uint64_t     JournalledAt    = 0u;   // [ns] - the last readable entry's stamp
     std::uint32_t     OfferedCount    = 0u;   // [-]  - transactions separating the two

@@ -43,15 +43,15 @@ namespace Slate
 /// 🧩 Accumulates one term into the incircle arena, exactly, preserving the increasing-magnitude ordering.
 /// in    Arena      [-]  the terms accumulated so far, in increasing magnitude
 /// in    TermCount  [-]  how many of them are occupied
-/// in    Arriving   [-]  the term to accumulate
+/// in    Incoming   [-]  the term to accumulate
 /// out   TermCount  [-]  the occupied count after accumulation
 /// cost  ✔️
 /// tag   shared, nonallocating, nonthrowing
 SLATE_SHARED void AccumulateIncircle(SLATE_INOUT_SPAN(Real64, Arena, SlateIncircleCapacity),
                                      SLATE_INOUT(Signed32) TermCount,
-                                     Real64                Arriving)
+                                     Real64                Incoming)
 {
-    Real64   Carried  = Arriving;
+    Real64   Carried  = Incoming;
     Signed32 Occupied = 0;
 
     for (Signed32 TermOrdinal = 0; TermOrdinal < TermCount; ++TermOrdinal)
@@ -114,13 +114,13 @@ SLATE_SHARED void AccumulateLifted(SLATE_INOUT_SPAN(Real64, Arena, SlateIncircle
 
 /// 🧩 Classifies Delta against the circle through Alpha, Beta and Gamma.
 /// in    AlphaX     [-]  first position of the triangle, abscissa
-/// in    AlphaY     [-]  first position of the triangle, ordinate
+/// in    AlphaY     [-]  first position of the triangle, coordinate
 /// in    BetaX      [-]  second position, abscissa
-/// in    BetaY      [-]  second position, ordinate
+/// in    BetaY      [-]  second position, coordinate
 /// in    GammaX     [-]  third position, abscissa
-/// in    GammaY     [-]  third position, ordinate
+/// in    GammaY     [-]  third position, coordinate
 /// in    DeltaX     [-]  the position being classified, abscissa
-/// in    DeltaY     [-]  the position being classified, ordinate
+/// in    DeltaY     [-]  the position being classified, coordinate
 /// out   Incircle   [-]  +1 inside, 0 exactly cocircular, −1 outside — for a counter-clockwise triangle
 /// err   never refuses; the sign is total over every finite input
 /// cost  🚩

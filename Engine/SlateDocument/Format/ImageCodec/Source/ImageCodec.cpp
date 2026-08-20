@@ -151,7 +151,7 @@ Outcome<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const s
         if (Decoded == nullptr)
         {
             return Outcome<DecodedImage>::Refuse(
-                { RefusalReason::ContentUnsupported, "the decoder declined the floating-point image stream" });
+                { RefusalReason::ContentUnsupported, "the decoder rejected the floating-point image stream" });
         }
 
         const std::size_t Occupied = static_cast<std::size_t>(DecodedWidth)
@@ -172,7 +172,7 @@ Outcome<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const s
         if (Decoded == nullptr)
         {
             return Outcome<DecodedImage>::Refuse(
-                { RefusalReason::ContentUnsupported, "the decoder declined the sixteen-bit image stream" });
+                { RefusalReason::ContentUnsupported, "the decoder rejected the sixteen-bit image stream" });
         }
 
         const std::size_t Occupied = static_cast<std::size_t>(DecodedWidth)
@@ -193,7 +193,7 @@ Outcome<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const s
         if (Decoded == nullptr)
         {
             return Outcome<DecodedImage>::Refuse(
-                { RefusalReason::ContentUnsupported, "the decoder declined the image stream" });
+                { RefusalReason::ContentUnsupported, "the decoder rejected the image stream" });
         }
 
         const std::size_t Occupied = static_cast<std::size_t>(DecodedWidth)

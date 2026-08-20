@@ -58,15 +58,15 @@ struct ImageShape
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 What a claimant is handed — the image, the whole-image view, and where it currently stands.
-/// note  🔴 `StandingLayout` is the component's record and not the caller's. It is amended by `Transition`
+/// note  🔴 `CurrentLayout` is the component's record and not the caller's. It is amended by `Transition`
 ///        alone, because a recording that issues its own barrier has made a claim the record cannot see and
 ///        the next transition then barriers from a layout the image is not in.
 /// tag   nonallocating, nonthrowing
-struct ImageClaim
+struct ImageReservation
 {
     VkImage        Extent         = VK_NULL_HANDLE;              // [-] - the vendor image
     VkImageView    WholeView      = VK_NULL_HANDLE;              // [-] - every level, every layer
-    VkImageLayout  StandingLayout = VK_IMAGE_LAYOUT_UNDEFINED;   // [-] - what the last transition left it in
+    VkImageLayout  CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;   // [-] - what the last transition left it in
     ImageShape     Shape          = {};                          // [-] - as claimed, never as re-queried
     std::uint32_t  ImageOrdinal   = AbsentImage;                 // [-] - which slot Release returns it to
 };
@@ -105,37 +105,37 @@ public:
                             ByteSpace&                 BackingSpace,
                             const DiagnosticExtension& Naming);
 
-    /// 🧩 Claims one image of the declared shape, slices its bytes, and constructs its whole-image view.
+    /// 🧩 Reservations one image of the declared shape, slices its bytes, and constructs its whole-image view.
     /// in    Declared  [-]  the shape; nothing about it is inferred from the format
     /// out   Result   [-]  refuses with ExtentExhausted when no bytes remain, ContentUnsupported for a
     ///                      zero extent or a format the device declines for the declared intent
     /// post  the image stands in VK_IMAGE_LAYOUT_UNDEFINED and is transitioned before first use
-    /// note  🔴 Refused in full. An image whose bytes were claimed and whose view was declined leaves a
+    /// note  🔴 Rejected in full. An image whose bytes were claimed and whose view was rejected leaves a
     ///        vendor allocation nothing holds a reference to, and it is reclaimed only at device teardown.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<ImageClaim> Claim(const ImageShape& Declared);
+    Outcome<ImageReservation> Reserve(const ImageShape& Declared);
 
     /// 🧩 Records the barrier that carries one image from where it stands to where it is next read.
     /// in    Recorded    [-]  the command being recorded into
     /// in    ImageOrdinal[-]  the claim's ordinal; the record is amended, not the caller's copy
-    /// in    Arriving    [-]  the layout the next recording requires
+    /// in    Incoming    [-]  the layout the next recording requires
     /// out   Result     [-]  refuses with ContentUnsupported for an unclaimed ordinal
-    /// post  the recorded layout is the arriving one; a repeat transition to the same layout is a no-op
+    /// post  the recorded layout is the incoming one; a repeat transition to the same layout is a no-op
     /// note  🔴 `08` §4: no contributing document issues a layout transition directly. The barrier is
     ///        derived from the declared reads and writes, and this is the one place it is recorded.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Arriving);
+    Outcome<bool> Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Incoming);
 
     /// 🧩 The current record for one claimed image, including the layout the last transition left it in.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<ImageClaim> Standing(std::uint32_t ImageOrdinal) const;
+    Outcome<ImageReservation> Current(std::uint32_t ImageOrdinal) const;
 
     /// 🧩 Constructs a view over one reduction level, for the chain `16` §2 walks a level at a time.
-    /// in    ImageOrdinal [-]  a claimed image whose LevelCount admits the level
+    /// in    ImageOrdinal [-]  a claimed image whose LevelCount accepts the level
     /// in    LevelOrdinal [-]  the level; zero is the full extent
     /// out   Result      [-]  refuses with ContentUnsupported outside the declared level count
     /// note  The view is owned here and reclaimed with the image. A caller destroying one leaves the ledger
@@ -156,8 +156,8 @@ public:
     /// tag   api, nonthrowing
     void Reclaim();
 
-    std::uint32_t ClaimedCount() const;
-    VkDeviceSize  ClaimedBytes() const;
+    std::uint32_t ReservedCount() const;
+    VkDeviceSize  ReservedBytes() const;
 
 private:
 
@@ -166,9 +166,9 @@ private:
         VkImage                   Extent         = VK_NULL_HANDLE;              // [-] - the vendor image
         VkImageView               WholeView      = VK_NULL_HANDLE;              // [-] - every level, every layer
         std::vector<VkImageView>  LevelViews     = {};                          // [-] - one per reduction level
-        ByteClaim                 Backing        = {};                          // [-] - the bytes it occupies
+        ByteReservation                 Backing        = {};                          // [-] - the bytes it occupies
         ImageShape                Shape          = {};                          // [-] - as claimed
-        VkImageLayout             StandingLayout = VK_IMAGE_LAYOUT_UNDEFINED;   // [-] - amended by Transition
+        VkImageLayout             CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;   // [-] - amended by Transition
         bool                      SlotOccupied   = false;                       // [-] - false once released
     };
 

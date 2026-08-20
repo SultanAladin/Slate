@@ -7,7 +7,7 @@
 
 #include "Contract/IdentityContract.h"
 #include "Contract/DeliveryContract.h"
-#include "SlateDocument/Document/EnrollmentIndex/Api/EnrollmentIndex.h"
+#include "SlateDocument/Document/RegistrationIndex/Api/RegistrationIndex.h"
 #include "SlateDocument/Document/PopulationIndex/Api/PopulationIndex.h"
 #include "SlateDocument/Document/RevisionSequence/Api/RevisionSequence.h"
 #include "SlateDocument/Document/RowSequence/Api/RowSequence.h"
@@ -33,33 +33,33 @@ namespace Slate
 /// tag   contract
 enum class OutlinerIntent : std::uint32_t
 {
-    Enclose           = 0u,   // [-] - place an occupant in an enclosure at a position in its ordering
-    Attach            = 1u,   // [-] - make an occupant follow another's motion
-    Rename            = 2u,   // [-] - declare an occupant's name; re-derives its search entries at ⑦
+    Enclose           = 0u,   // [-] - place an owner in an enclosure at a position in its ordering
+    Attach            = 1u,   // [-] - make an owner follow another's motion
+    Rename            = 2u,   // [-] - declare an owner's name; re-derives its search entries at ⑦
     Select            = 3u,   // [-] - recorded in SelectionSequence, session-scoped
     ExcludeVisibility = 4u,   // [-] - recorded in RevisionSequence, scrubbed by undo
     Isolate           = 5u,   // [-] - recorded in RevisionSequence, scrubbed by undo
     Lock              = 6u,   // [-] - recorded in RevisionSequence, scrubbed by undo
     Expand            = 7u,   // [-] - a count adjustment; presentation only, never a document mutation
-    Retire            = 8u,   // [-] - retire an occupant, whole cascade included
+    Retire            = 8u,   // [-] - retire an owner, whole cascade included
     Narrow            = 9u    // [-] - narrow the rows to what a name search confirmed; not a document mutation
 };
 
 /// 🧩 One declared intent, complete enough to apply without consulting whoever declared it.
 /// note  ⚠️ An intent carrying only "the selection" would apply against whatever the selection had become by
 ///        ①. Every operand is named here so that what is applied is what was meant.
-/// note  🔴 `Narrow` is the one intent that addresses no occupant. It carries its sought text and nothing
-///        else, and `Declare` admits it with an undeclared subject for exactly that reason.
+/// note  🔴 `Narrow` is the one intent that addresses no owner. It carries its sought text and nothing
+///        else, and `Declare` accepts it with an undeclared subject for exactly that reason.
 /// tag   owning
 struct DeclaredIntent
 {
     OutlinerIntent    Declared             = OutlinerIntent::Select;   // [-] - what was asked
-    OccupantIdentity  Subject              = {};                       // [-] - the occupant it addresses
-    OccupantIdentity  RelatedOccupant      = {};                       // [-] - the enclosure or the attachment
+    OwnerIdentity  Subject              = {};                       // [-] - the owner it addresses
+    OwnerIdentity  RelatedOwner      = {};                       // [-] - the enclosure or the attachment
     std::string       DeclaredName         = {};                       // [-] - supplied by Rename only
     std::string       SoughtText           = {};                       // [-] - supplied by Narrow only; empty widens
     std::uint32_t     OrderWithinEnclosure = 0u;                       // [-] - position in the enclosure ordering
-    bool              StandingEnabled      = true;                     // [-] - whether the subset holds it after
+    bool              CurrentEnabled      = true;                     // [-] - whether the subset holds it after
     bool              SelectionExtended    = false;                    // [-] - Select adds rather than replaces
 };
 
@@ -69,13 +69,13 @@ struct DeclaredIntent
 
 /// 🧩 One rejected intent, with both operands named — what `86` presents.
 /// note  🔴 `12` §9: a relation change that would create a cycle is rejected at commit, reported as a Refusal
-///        naming both occupants, and never applied. Both identities are held here rather than formatted into
+///        naming both owners, and never applied. Both identities are held here rather than formatted into
 ///        a message, so the reporting stays nonallocating and the presenter chooses the wording.
 /// tag   owning
 struct RejectedIntent
 {
-    DeclaredIntent  Refused    = {};   // [-] - the intent as it was declared, both operands included
-    Refusal         Declining  = {};   // [-] - why it was refused; Detail is static text
+    DeclaredIntent  Rejected    = {};   // [-] - the intent as it was declared, both operands included
+    Refusal         Declining  = {};   // [-] - why it was rejected; Detail is static text
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -85,7 +85,7 @@ struct RejectedIntent
 /// 🧩 Everything `12` owns, reconciled in the one order `12` §4 fixes.
 /// note  🔴 The tick order is ① apply committed intent · ② reconcile the population · ③ compound attachments
 ///        · ④ repair enclosure labels · ⑤ rebuild rows and adjust counts · ⑥ re-derive changed subsets ·
-///        ⑦ re-derive search entries for renamed occupants. Every one of those orderings is load-bearing:
+///        ⑦ re-derive search entries for renamed owners. Every one of those orderings is load-bearing:
 ///        ③ before ④ because transforms must be final before anything spatial is derived from them, and
 ///        ④ before ⑤ because rows rebuilt against stale labels are briefly wrong and are displayed.
 /// note  ⚠️ No linearisation is observed between ④ and ⑤ — invariant 10. `Rows()` reads the sequence the last
@@ -95,28 +95,28 @@ class OutlinerSequence
 {
 public:
 
-    /// 🧩 Enrols one occupant into the population and both relations, with a name.
+    /// 🧩 Registers one owner into the population and both relations, with a name.
     /// in    DeclaredName  [-]  what the artist called it; may be empty
     /// out   Result       [-]  refuses with ExtentExhausted at the population ceiling
-    /// post  the occupant sits last in the root ordering, attached to nothing, in no subset
+    /// post  the owner sits last in the root ordering, attached to nothing, in no subset
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<OccupantIdentity> Enrol(const std::string& DeclaredName);
+    Outcome<OwnerIdentity> Register(const std::string& DeclaredName);
 
     /// 🧩 Declares one intent, to be applied at the next tick's ①.
-    /// in    Arriving  [-]  the intent, every operand named
+    /// in    Incoming  [-]  the intent, every operand named
     /// out   Result   [-]  refuses with IdentityStale when the subject does not resolve now
     /// note  Declaring is not applying. An intent that arrives mid-tick is applied at the next ① rather than
     ///        against a linearisation that is halfway rebuilt.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<bool> Declare(const DeclaredIntent& Arriving);
+    Outcome<bool> Declare(const DeclaredIntent& Incoming);
 
     /// 🧩 Scrubs the document one transaction backwards, restoring the selection that transaction applied to.
     /// in    SealedAt  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
     /// out   Result   [-]   refuses with ExtentExhausted at the beginning of the revision sequence
     /// post  🔴 the document position and the standing selection moved together — `12` §11
-    /// note  🔴 This is the defect `12` §11 warns of, closed: move three occupants, undo, and the transforms
+    /// note  🔴 This is the defect `12` §11 warns of, closed: move three owners, undo, and the transforms
     ///        revert while the selection does not, so the next action applies to something other than what
     ///        the undo appeared to restore. Selection is not in the document's sequence and is not
     ///        unrevisioned either, and this is the seam where the two meet.
@@ -152,14 +152,14 @@ public:
     /// 🧩 The named subsets as the last tick left them.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const EnrollmentIndex& Enrollments() const;
+    const RegistrationIndex& Registrations() const;
 
     /// 🧩 The name search over the population.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     const TrigramIndex& Names() const;
 
-    /// 🧩 The two relations, for the interval predicate `16` and `26` ask per occupant.
+    /// 🧩 The two relations, for the interval predicate `16` and `26` ask per owner.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     const SceneStructure& Relations() const;
@@ -176,12 +176,12 @@ public:
 
     /// 🧩 The text the standing row narrowing was derived from, empty when no narrowing stands.
     /// note  Held so that ⑦ can re-derive the narrowing when a rename changes what it would confirm. A
-    ///        narrowing left standing across a rename retains occupants whose names no longer match it.
+    ///        narrowing left standing across a rename retains owners whose names no longer match it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     const std::string& Sought() const;
 
-    /// 🧩 Every intent refused since the last time the refusals were drained — what `86` presents.
+    /// 🧩 Every intent rejected since the last time the refusals were drained — what `86` presents.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     const std::vector<RejectedIntent>& Rejected() const;
@@ -203,22 +203,22 @@ private:
     Outcome<bool> ApplySubset(const DeclaredIntent& Applying, SubsetSubject Addressed, std::uint64_t SealedAt);
     Outcome<bool> ApplyNarrowing(const DeclaredIntent& Applying);
     Outcome<bool> DeriveNarrowing();
-    Outcome<bool> ApplySelection(const std::vector<OccupantIdentity>& Standing, std::uint64_t SealedAt);
-    Outcome<bool> EnrolSelection(const std::vector<OccupantIdentity>& Standing);
+    Outcome<bool> ApplySelection(const std::vector<OwnerIdentity>& Current, std::uint64_t SealedAt);
+    Outcome<bool> RegisterSelection(const std::vector<OwnerIdentity>& Current);
     Outcome<bool> RetireCascade(const DeclaredIntent& Applying, std::uint64_t SealedAt);
-    void          Reject(const DeclaredIntent& Refused, const Refusal& Declining);
+    void          Reject(const DeclaredIntent& Rejected, const Refusal& Declining);
 
     PopulationIndex                Population;                   // [-] - `10`'s slot ledger, reconciled at ②
     SceneStructure                 NestingRelations;             // [-] - both relations, reconciled at ③ and ④
     RowSequence                    Linearisation;                // [-] - rebuilt at ⑤
-    EnrollmentIndex                Subsets;                      // [-] - re-derived at ⑥
+    RegistrationIndex                Subsets;                      // [-] - re-derived at ⑥
     TrigramIndex                   NameSearch;                   // [-] - re-derived at ⑦
     RevisionSequence               Revised;                      // [-] - where document mutations are recorded
     SelectionSequence              Selected;                     // [-] - where selection is recorded
     std::vector<DeclaredIntent>    PendingDeclarations;          // [-] - declared, awaiting the next ①
-    std::vector<RejectedIntent>    RefusedDeclarations;          // [-] - refused, awaiting `86`
+    std::vector<RejectedIntent>    RejectedDeclarations;          // [-] - rejected, awaiting `86`
     std::vector<DeclaredIntent>    RenamedDeclarations;          // [-] - ⑦ re-derives exactly these, name included
-    std::vector<OccupantIdentity>  WithdrawnOccupants;           // [-] - ② withdraws exactly these
+    std::vector<OwnerIdentity>  RemovedOwners;           // [-] - ② withdraws exactly these
     std::vector<std::uint32_t>     LiveGenerations;              // [-] - per slot, for the invariant 6 check
     std::string                    NarrowingSought;              // [-] - the standing narrowing's text; empty widens
     bool                           NarrowingOwed = false;        // [-] - ⑦ must confirm the sought text again

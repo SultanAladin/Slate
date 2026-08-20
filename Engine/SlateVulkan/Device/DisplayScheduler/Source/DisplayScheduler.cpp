@@ -36,7 +36,7 @@ Outcome<VkSurfaceFormatKHR> DisplayScheduler::ScoreFormat(VkSurfaceKHR Surface) 
             return Outcome<VkSurfaceFormatKHR>::Result(Candidate);
     }
 
-    // 📝 A surface declaring only sRGB-encoded formats is served rather than refused. `66` reads the format it
+    // 📝 A surface declaring only sRGB-encoded formats is served rather than rejected. `66` reads the format it
     //    is claimed at, so the double encoding is a reported quality departure and not an absent image.
     return Outcome<VkSurfaceFormatKHR>::Result(Declared[0]);
 }
@@ -46,7 +46,7 @@ VkPresentModeKHR DisplayScheduler::ScorePacing(VkSurfaceKHR Surface, LatencyInte
     std::uint32_t DeclaredCount = 0u;
     vkGetPhysicalDeviceSurfacePresentModesKHR(DeviceEdge->ScoredDevice(), Surface, &DeclaredCount, nullptr);
 
-    // 🔴 Every surface admits FIFO by declaration, so it is the fallback for both intents and nothing here
+    // 🔴 Every surface accepts FIFO by declaration, so it is the fallback for both intents and nothing here
     //    refuses over an absent mode. `06` §2.1 gives this component the choice; a refusal would have made the
     //    choice the vendor's.
     if (DeclaredCount == 0u)
@@ -56,7 +56,7 @@ VkPresentModeKHR DisplayScheduler::ScorePacing(VkSurfaceKHR Surface, LatencyInte
     vkGetPhysicalDeviceSurfacePresentModesKHR(DeviceEdge->ScoredDevice(), Surface, &DeclaredCount, Declared.data());
 
     // 📝 Lowest latency takes the relaxed mode, which replaces a waiting image rather than queueing behind it —
-    //    the stroke reaches the display as early as the device admits, at the cost of a rotation whose work is
+    //    the stroke reaches the display as early as the device accepts, at the cost of a rotation whose work is
     //    discarded. Steady pacing stays on FIFO, where every image is shown for one interval.
     // ⚠️ `VK_PRESENT_MODE_IMMEDIATE_KHR` is offered by neither intent. It shows the artist a surface with a torn
     //    edge halfway down it, and the tear reads as a defect in the brush rather than as an absent wait.
@@ -133,41 +133,41 @@ Outcome<bool> DisplayScheduler::Establish()
     if (ChainWidth > DisplayExtentCeiling || ChainHeight > DisplayExtentCeiling)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the extent exceeds DisplayExtentCeiling" });
 
-    VkSurfaceCapabilitiesKHR Admitted = {};
+    VkSurfaceCapabilitiesKHR Accepted = {};
 
-    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(DeviceEdge->ScoredDevice(), DisplaySurface, &Admitted) != VK_SUCCESS)
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(DeviceEdge->ScoredDevice(), DisplaySurface, &Accepted) != VK_SUCCESS)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the surface declares no capability" });
 
-    // 📝 The extent is clamped into what the surface admits rather than refused against it. A window manager
+    // 📝 The extent is clamped into what the surface accepts rather than rejected against it. A window manager
     //    that reports an extent the surface will not carry is one Slate meets on a tiling desktop, and the image
     //    the artist wants is the clamped one rather than none.
     std::uint32_t EstablishedWidth  = ChainWidth;
     std::uint32_t EstablishedHeight = ChainHeight;
 
-    if (Admitted.currentExtent.width != 0xFFFFFFFFu)
+    if (Accepted.currentExtent.width != 0xFFFFFFFFu)
     {
-        EstablishedWidth  = Admitted.currentExtent.width;
-        EstablishedHeight = Admitted.currentExtent.height;
+        EstablishedWidth  = Accepted.currentExtent.width;
+        EstablishedHeight = Accepted.currentExtent.height;
     }
 
-    if (EstablishedWidth  < Admitted.minImageExtent.width)   EstablishedWidth  = Admitted.minImageExtent.width;
-    if (EstablishedHeight < Admitted.minImageExtent.height)  EstablishedHeight = Admitted.minImageExtent.height;
-    if (EstablishedWidth  > Admitted.maxImageExtent.width)   EstablishedWidth  = Admitted.maxImageExtent.width;
-    if (EstablishedHeight > Admitted.maxImageExtent.height)  EstablishedHeight = Admitted.maxImageExtent.height;
+    if (EstablishedWidth  < Accepted.minImageExtent.width)   EstablishedWidth  = Accepted.minImageExtent.width;
+    if (EstablishedHeight < Accepted.minImageExtent.height)  EstablishedHeight = Accepted.minImageExtent.height;
+    if (EstablishedWidth  > Accepted.maxImageExtent.width)   EstablishedWidth  = Accepted.maxImageExtent.width;
+    if (EstablishedHeight > Accepted.maxImageExtent.height)  EstablishedHeight = Accepted.maxImageExtent.height;
 
     if (EstablishedWidth == 0u || EstablishedHeight == 0u)
     {
         return Outcome<bool>::Refuse(
-            { RefusalReason::ContentUnsupported, "the surface admits no extent; the window carries none" });
+            { RefusalReason::ContentUnsupported, "the surface accepts no extent; the window carries none" });
     }
 
     // 🔴 One image beyond the minimum the surface declares. At exactly the minimum the display holds every
     //    image it owns, and the arrival then waits for one to be released before the recording may begin —
     //    which serialises the whole rotation on the display regardless of the pacing chosen.
-    std::uint32_t RequestedCount = Admitted.minImageCount + 1u;
+    std::uint32_t RequestedCount = Accepted.minImageCount + 1u;
 
-    if (Admitted.maxImageCount != 0u && RequestedCount > Admitted.maxImageCount)
-        RequestedCount = Admitted.maxImageCount;
+    if (Accepted.maxImageCount != 0u && RequestedCount > Accepted.maxImageCount)
+        RequestedCount = Accepted.maxImageCount;
 
     VkSwapchainCreateInfoKHR ChainDeclaration = {};
     ChainDeclaration.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -186,7 +186,7 @@ Outcome<bool> DisplayScheduler::Establish()
     // 📝 🔴 Exclusive by declaration, which `06` §2.1 already settled: one graphics queue, so no chain image is
     //    ever read by a second family. A concurrent declaration would name families that do not exist here.
     ChainDeclaration.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    ChainDeclaration.preTransform     = Admitted.currentTransform;
+    ChainDeclaration.preTransform     = Accepted.currentTransform;
     ChainDeclaration.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     ChainDeclaration.presentMode      = ChainPacing;
     ChainDeclaration.clipped          = VK_TRUE;
@@ -199,13 +199,13 @@ Outcome<bool> DisplayScheduler::Establish()
 
     if (vkCreateSwapchainKHR(DeviceEdge->ActiveDevice(), &ChainDeclaration, nullptr, &Established) != VK_SUCCESS)
     {
-        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the device declined the presentation chain" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the device rejected the presentation chain" });
     }
 
     // 📝 The retiring chain and its views are destroyed only once the new one stands. Destroying them first
     //    would leave the display with nothing to show for the duration of the construction above, and the
     //    `oldSwapchain` operand would name an object the vendor has already returned.
-    Surrender();
+    Return();
 
     DisplayChain = Established;
     ChainWidth   = EstablishedWidth;
@@ -217,15 +217,15 @@ Outcome<bool> DisplayScheduler::Establish()
     //    declared so that the first chain is the nought-th. The refusal is discarded for `ByteSpace`'s reason.
     const std::uint32_t ChainOrdinal = EstablishedCount++;
 
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_SWAPCHAIN_KHR,
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_SWAPCHAIN_KHR,
                         reinterpret_cast<std::uint64_t>(DisplayChain),
                         "DisplayScheduler presentation chain",
                         ChainOrdinal));
 
-    std::uint32_t ArrivedCount = 0u;
-    vkGetSwapchainImagesKHR(DeviceEdge->ActiveDevice(), DisplayChain, &ArrivedCount, nullptr);
+    std::uint32_t ImageCount = 0u;
+    vkGetSwapchainImagesKHR(DeviceEdge->ActiveDevice(), DisplayChain, &ImageCount, nullptr);
 
-    if (ArrivedCount < RequestedCount)
+    if (ImageCount < RequestedCount)
     {
         vkDestroySwapchainKHR(DeviceEdge->ActiveDevice(), DisplayChain, nullptr);
         DisplayChain = VK_NULL_HANDLE;
@@ -233,12 +233,12 @@ Outcome<bool> DisplayScheduler::Establish()
     }
 
     MinimumChainImages = RequestedCount;
-    ChainImages.assign(ArrivedCount, VK_NULL_HANDLE);
-    vkGetSwapchainImagesKHR(DeviceEdge->ActiveDevice(), DisplayChain, &ArrivedCount, ChainImages.data());
+    ChainImages.assign(ImageCount, VK_NULL_HANDLE);
+    vkGetSwapchainImagesKHR(DeviceEdge->ActiveDevice(), DisplayChain, &ImageCount, ChainImages.data());
 
-    ChainViews.assign(ArrivedCount, VK_NULL_HANDLE);
+    ChainViews.assign(ImageCount, VK_NULL_HANDLE);
 
-    for (std::uint32_t ImageOrdinal = 0u; ImageOrdinal < ArrivedCount; ++ImageOrdinal)
+    for (std::uint32_t ImageOrdinal = 0u; ImageOrdinal < ImageCount; ++ImageOrdinal)
     {
         VkImageViewCreateInfo ViewDeclaration = {};
         ViewDeclaration.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -252,28 +252,28 @@ Outcome<bool> DisplayScheduler::Establish()
         if (vkCreateImageView(DeviceEdge->ActiveDevice(), &ViewDeclaration, nullptr, &ChainViews[ImageOrdinal])
             != VK_SUCCESS)
         {
-            // 🔴 Refused in full. A chain half-viewed is one where `08` §3 ⑬ presents an image whose view the
+            // 🔴 Rejected in full. A chain half-viewed is one where `08` §3 ⑬ presents an image whose view the
             //    recording met as a null handle, and the vendor reports that at the draw rather than here.
-            Surrender();
-            return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the device declined a chain image view" });
+            Return();
+            return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the device rejected a chain image view" });
         }
 
         // 📝 🔴 `06` §7's gate reaches the view, which Slate constructs. Named by the chain and the image both,
         //    because the ordinal a display hands back is not the cycle slot — `Await` takes whichever image the
         //    display releases — so a name carrying only one of the two cannot say which chain a stale view came
         //    from after a resize.
-        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
+        Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
                             reinterpret_cast<std::uint64_t>(ChainViews[ImageOrdinal]),
                             "DisplayScheduler chain view",
-                            ChainOrdinal * ArrivedCount + ImageOrdinal));
+                            ChainOrdinal * ImageCount + ImageOrdinal));
 
         // 📝 The image is named although Slate did not create it, which is past what the gate asks. Every layout
         //    transition `08` §3 ⑬ records is reported against the image and never against the view, so an unnamed
         //    one leaves the single most frequent presentation error the one report that carries no name.
-        Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
+        Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
                             reinterpret_cast<std::uint64_t>(ChainImages[ImageOrdinal]),
                             "DisplayScheduler chain image",
-                            ChainOrdinal * ArrivedCount + ImageOrdinal));
+                            ChainOrdinal * ImageCount + ImageOrdinal));
     }
 
     TakenOrdinal     = AbsentDisplayImage;
@@ -287,32 +287,32 @@ Outcome<bool> DisplayScheduler::Establish()
 //                                                     THE ARRIVAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ArrivedImage> DisplayScheduler::Await(const CycleSlot& Standing, const TickSequence& Timeline)
+Outcome<AcquiredImage> DisplayScheduler::Await(const CycleSlot& Current, const TickSequence& Timeline)
 {
     if (DeviceEdge == nullptr || DisplayChain == VK_NULL_HANDLE)
-        return Outcome<ArrivedImage>::Refuse({ RefusalReason::CapabilityAbsent, "no chain is established" });
+        return Outcome<AcquiredImage>::Refuse({ RefusalReason::CapabilityAbsent, "no chain is established" });
 
     if (TakenOrdinal != AbsentDisplayImage)
     {
-        return Outcome<ArrivedImage>::Refuse(
+        return Outcome<AcquiredImage>::Refuse(
             { RefusalReason::RelationCyclic, "an image is already taken and has not been presented" });
     }
 
-    std::uint32_t Arrived = 0u;
+    std::uint32_t Sampled = 0u;
 
-    // 🔴 The arrival is ordered on the standing slot's `ImageArrived`, which the recording waits on before it
+    // 🔴 The arrival is ordered on the standing slot's `ImageAvailable`, which the recording waits on before it
     //    writes colour. `CycleScheduler` already owns that point; a second one constructed here would be one the
     //    rotation does not know it is waiting on, and the recording would write an image the display still reads.
     // 📝 The ceiling is finite for `CycleScheduler::Await`'s reason, restated: an indefinite wait against a lost
     //    device is a host that stops with no report, and `06` §7 requires the loss reported upward before
     //    anything is destroyed — which cannot happen from inside a wait that never returns. A timeout here is
-    //    refused as the display having neither delivered nor reported, which is what an unresponsive one is.
+    //    rejected as the display having neither delivered nor reported, which is what an unresponsive one is.
     const VkResult Reached = vkAcquireNextImageKHR(DeviceEdge->ActiveDevice(),
                                                   DisplayChain,
                                                   ArrivalCeilingNanoseconds,
-                                                  Standing.ImageArrived,
+                                                  Current.ImageAvailable,
                                                   VK_NULL_HANDLE,
-                                                  &Arrived);
+                                                  &Sampled);
 
     // ⚠️ `VK_ERROR_OUT_OF_DATE_KHR` delivers **no** image — nothing was taken, and the arrived ordinal names
     //    nothing. `VK_SUBOPTIMAL_KHR` delivers one that is usable this rotation. The two are reported through
@@ -320,9 +320,9 @@ Outcome<ArrivedImage> DisplayScheduler::Await(const CycleSlot& Standing, const T
     //    rotation may proceed — which is what `ImageOrdinal` says.
     if (Reached == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        ArrivedImage Outgrown;
+        AcquiredImage Outgrown;
         Outgrown.Reclaimed = true;
-        return Outcome<ArrivedImage>::Result(Outgrown);
+        return Outcome<AcquiredImage>::Result(Outgrown);
     }
 
     // 🔴 `06` §7: the loss is reported upward and the chain is left standing. Re-establishing it here would
@@ -330,48 +330,48 @@ Outcome<ArrivedImage> DisplayScheduler::Await(const CycleSlot& Standing, const T
     //    reclaims both in an order this component cannot know.
     if (Reached == VK_ERROR_DEVICE_LOST)
     {
-        return Outcome<ArrivedImage>::Refuse(
+        return Outcome<AcquiredImage>::Refuse(
             { RefusalReason::DeviceLost, "the device was lost awaiting a display image" });
     }
 
     if (Reached != VK_SUCCESS && Reached != VK_SUBOPTIMAL_KHR)
     {
-        return Outcome<ArrivedImage>::Refuse(
+        return Outcome<AcquiredImage>::Refuse(
             { RefusalReason::HostDenied, "the display neither delivered an image nor reported the chain outgrown" });
     }
 
-    if (Arrived >= static_cast<std::uint32_t>(ChainViews.size()))
+    if (Sampled >= static_cast<std::uint32_t>(ChainViews.size()))
     {
-        return Outcome<ArrivedImage>::Refuse(
+        return Outcome<AcquiredImage>::Refuse(
             { RefusalReason::ContentUnsupported, "the display named an image the chain does not hold" });
     }
 
-    const TickPoint ArrivedAt = Timeline.Advance();
+    const TickPoint AcquiredAt = Timeline.Advance();
 
     // 📝 Measured on the host between two arrivals, which is what the artist waited — the quantity the latency
     //    intent was chosen against. `HardwareMetrics` measures what the device spent, and the two answer
     //    different questions; a report carrying only the second one says a stalled display is running fast.
     if (LastArrival.Ordinal != 0u)
-        ArrivalInterval = TickSequence::Span(LastArrival, ArrivedAt);
+        ArrivalInterval = TickSequence::Span(LastArrival, AcquiredAt);
 
-    LastArrival  = ArrivedAt;
-    TakenOrdinal = Arrived;
+    LastArrival  = AcquiredAt;
+    TakenOrdinal = Sampled;
 
-    ArrivedImage Delivered;
-    Delivered.ImageOrdinal  = Arrived;
-    Delivered.Extent        = ChainImages[Arrived];
-    Delivered.WholeView     = ChainViews[Arrived];
+    AcquiredImage Delivered;
+    Delivered.ImageOrdinal  = Sampled;
+    Delivered.Extent        = ChainImages[Sampled];
+    Delivered.WholeView     = ChainViews[Sampled];
     Delivered.PacedInterval = ArrivalInterval;
     Delivered.Reclaimed     = (Reached == VK_SUBOPTIMAL_KHR);
 
-    return Outcome<ArrivedImage>::Result(Delivered);
+    return Outcome<AcquiredImage>::Result(Delivered);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE SURRENDER
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DisplayScheduler::Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal)
+Outcome<bool> DisplayScheduler::Present(const CycleSlot& Current, std::uint32_t ImageOrdinal)
 {
     if (DeviceEdge == nullptr || DisplayChain == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no chain is established" });
@@ -379,25 +379,25 @@ Outcome<bool> DisplayScheduler::Present(const CycleSlot& Standing, std::uint32_t
     if (ImageOrdinal == AbsentDisplayImage || ImageOrdinal != TakenOrdinal)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "that image was not the one taken" });
 
-    VkPresentInfoKHR SurrenderDeclaration = {};
-    SurrenderDeclaration.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    VkPresentInfoKHR ReturnDeclaration = {};
+    ReturnDeclaration.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
     // 🔴 Awaits `RecordingDone` and never the slot's completion. The completion is the host's fence, and waiting
     //    on it here would serialise the host against the device once per rotation — which is the whole purpose
     //    of the recording slot count, spent to order something a semaphore already orders on the device.
-    SurrenderDeclaration.waitSemaphoreCount = 1u;
-    SurrenderDeclaration.pWaitSemaphores    = &Standing.RecordingDone;
-    SurrenderDeclaration.swapchainCount     = 1u;
-    SurrenderDeclaration.pSwapchains        = &DisplayChain;
-    SurrenderDeclaration.pImageIndices      = &ImageOrdinal;
+    ReturnDeclaration.waitSemaphoreCount = 1u;
+    ReturnDeclaration.pWaitSemaphores    = &Current.RecordingDone;
+    ReturnDeclaration.swapchainCount     = 1u;
+    ReturnDeclaration.pSwapchains        = &DisplayChain;
+    ReturnDeclaration.pImageIndices      = &ImageOrdinal;
 
-    const VkResult Surrendered = vkQueuePresentKHR(DeviceEdge->GraphicsQueue(), &SurrenderDeclaration);
+    const VkResult PresentResult = vkQueuePresentKHR(DeviceEdge->GraphicsQueue(), &ReturnDeclaration);
 
     // 📝 The ordinal is released before the result is read. The display owns the image either way — an outgrown
     //    chain has still consumed it — and retaining the ordinal would make the next arrival refuse for a
     //    presentation that did in fact happen.
     TakenOrdinal = AbsentDisplayImage;
-    ++SurrenderedCount;
+    ++ReturnedCount;
 
     // ⚠️ An outgrown chain delivers rather than refuses. The image was presented, and refusing would make the
     //    caller treat a resize as a lost rotation.
@@ -405,18 +405,18 @@ Outcome<bool> DisplayScheduler::Present(const CycleSlot& Standing, std::uint32_t
     //    do not agree on that. Reporting all three as `true` made the caller's re-establishment unreachable:
     //    a resize was then rebuilt only by the next tick's extent test, one tick late, and a chain that
     //    reported outgrown without the window extent moving was never rebuilt at all.
-    if (Surrendered == VK_SUCCESS || Surrendered == VK_SUBOPTIMAL_KHR)
+    if (PresentResult == VK_SUCCESS || PresentResult == VK_SUBOPTIMAL_KHR)
         return Outcome<bool>::Result(true);
 
-    // 🔴 Presented, but the chain no longer matches. Delivered `false` so the caller re-establishes rather
+    // 🔴 Current, but the chain no longer matches. Delivered `false` so the caller re-establishes rather
     //    than treating the rotation as lost.
-    if (Surrendered == VK_ERROR_OUT_OF_DATE_KHR)
+    if (PresentResult == VK_ERROR_OUT_OF_DATE_KHR)
         return Outcome<bool>::Result(false);
 
-    if (Surrendered == VK_ERROR_DEVICE_LOST)
+    if (PresentResult == VK_ERROR_DEVICE_LOST)
         return Outcome<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost presenting an image" });
 
-    return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the display declined the image" });
+    return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the display rejected the image" });
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -424,10 +424,10 @@ Outcome<bool> DisplayScheduler::Present(const CycleSlot& Standing, std::uint32_t
 //------------------------------------------------------------------------------------------------------------------------
 
 VkFormat      DisplayScheduler::Carries() const        { return SurfaceCarries;   }
-std::uint32_t DisplayScheduler::StandingWidth() const  { return ChainWidth;       }
-std::uint32_t DisplayScheduler::StandingHeight() const { return ChainHeight;      }
+std::uint32_t DisplayScheduler::CurrentWidth() const  { return ChainWidth;       }
+std::uint32_t DisplayScheduler::CurrentHeight() const { return ChainHeight;      }
 double        DisplayScheduler::PacedInterval() const  { return ArrivalInterval;  }
-std::uint64_t DisplayScheduler::Presented() const      { return SurrenderedCount; }
+std::uint64_t DisplayScheduler::Current() const      { return ReturnedCount; }
 
 std::uint32_t DisplayScheduler::MinimumChainImageCount() const
 {
@@ -443,7 +443,7 @@ std::uint32_t DisplayScheduler::ChainImageCount() const
 //                                                     RECLAMATION
 //------------------------------------------------------------------------------------------------------------------------
 
-void DisplayScheduler::Surrender()
+void DisplayScheduler::Return()
 {
     if (DeviceEdge != nullptr && DeviceEdge->ActiveDevice() != VK_NULL_HANDLE)
     {
@@ -475,7 +475,7 @@ void DisplayScheduler::Surrender()
 
 DisplayScheduler::~DisplayScheduler()
 {
-    Surrender();
+    Return();
 }
 
 }   // namespace Slate

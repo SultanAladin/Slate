@@ -91,10 +91,10 @@ public:
     Outcome<bool> Construct(MotionIntegrator& Motion,
                             RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
-    void Advance(const PointerCondition& Arrived, double Elapsed);
+    void Advance(const PointerCondition& Sampled, double Elapsed);
     Outcome<bool> Record(const PlaneExtent& Extent,
                          PanelStructure& Partition,
-                         EditorPanelConfiguration& Ordinates,
+                         EditorPanelConfiguration& Configuration,
                          std::uint32_t PresentationOrdinal = 0u);
     bool PointerCaptured(std::uint32_t PresentationOrdinal) const;
     void WithdrawPresentation(std::uint32_t PresentationOrdinal);
@@ -133,18 +133,18 @@ private:
 
     std::uint32_t ControlOrdinal(std::uint32_t RecordOrdinal, ControlRole Role) const;
     bool Pressed(std::uint32_t ControlOrdinal, const PlaneExtent& Extent, bool PopupAction = false);
-    bool Disclosed(ControlIdentity Claimed) const;
-    void Disclose(ControlIdentity Claimed);
-    void WithdrawDisclosure();
+    bool Disclosed(ControlIdentity Target) const;
+    void Disclose(ControlIdentity Target);
+    void CloseDisclosure();
     void RecordBranch(std::uint32_t RecordOrdinal,
                       const PlaneExtent& Extent,
                       PanelStructure& Partition,
-                      EditorPanelConfiguration& Ordinates);
+                      EditorPanelConfiguration& Configuration);
     void RecordLeaf(std::uint32_t RecordOrdinal,
                     const PanelRecord& Declared,
                     const PlaneExtent& Extent,
                     PanelStructure& Partition,
-                    EditorPanelConfiguration& Ordinates);
+                    EditorPanelConfiguration& Configuration);
     void RecordHeader(std::uint32_t RecordOrdinal,
                       PanelSubject Subject,
                       const PlaneExtent& Extent,
@@ -152,11 +152,11 @@ private:
     void RecordFooter(std::uint32_t RecordOrdinal,
                       PanelSubject Subject,
                       const PlaneExtent& Extent,
-                      EditorPanelConfiguration& Ordinates);
+                      EditorPanelConfiguration& Configuration);
     void RecordVacant(std::uint32_t RecordOrdinal,
                       const PlaneExtent& Extent,
                       PanelStructure& Partition);
-    void RecordDeferred(PanelStructure& Partition, EditorPanelConfiguration& Ordinates);
+    void RecordDeferred(PanelStructure& Partition, EditorPanelConfiguration& Configuration);
     void RecordSubjectMenu(std::uint32_t RecordOrdinal,
                            const PlaneExtent& Anchor,
                            PanelStructure& Partition);
@@ -165,11 +165,11 @@ private:
                             PanelStructure& Partition);
     void RecordLatticeMenu(std::uint32_t RecordOrdinal,
                            const PlaneExtent& Anchor,
-                           EditorPanelConfiguration& Ordinates);
+                           EditorPanelConfiguration& Configuration);
     void RecordFooterMenu(std::uint32_t RecordOrdinal,
                           const PlaneExtent& Anchor,
                           ControlRole Role,
-                          EditorPanelConfiguration& Ordinates);
+                          EditorPanelConfiguration& Configuration);
     void Symbol(const PlaneExtent& Extent, ThemeToken Colour);
 
     MotionIntegrator* Motion = nullptr;

@@ -28,23 +28,23 @@ namespace Slate
 /// tag   contract, nonallocating, nonthrowing
 struct ContentBrowserMetric
 {
-    float  AsideAlong        = 240.0f;   // [px] - w-60, the sources column
-    float  InspectorAlong    = 320.0f;   // [px] - w-80, the inspector column
-    float  TopRailAcross     =  56.0f;   // [px] - h-14, the seek rail
-    float  BreadcrumbAcross  =  41.0f;   // [px] - p-4 pb-2 over a 12px run
-    float  SeekAcross        =  32.0f;   // [px] - h-8, the seek field and both actions
-    float  SeekAlong         = 448.0f;   // [px] - max-w-md
-    float  SourceRowAcross   =  30.0f;   // [px] - py-1.5 over a 12px run
-    float  SourceStepAlong   =  24.0f;   // [px] - pl-6, one nesting step
-    float  CaptionAcross     =  24.0f;   // [px] - the tracking-widest section caption
+    float  AsideX        = 240.0f;   // [px] - w-60, the sources column
+    float  InspectorX    = 320.0f;   // [px] - w-80, the inspector column
+    float  TopRailHeight     =  56.0f;   // [px] - h-14, the seek rail
+    float  BreadcrumbHeight  =  41.0f;   // [px] - p-4 pb-2 over a 12px run
+    float  SeekHeight        =  32.0f;   // [px] - h-8, the seek field and both actions
+    float  SeekX         = 448.0f;   // [px] - max-w-md
+    float  SourceRowHeight   =  30.0f;   // [px] - py-1.5 over a 12px run
+    float  SourceStepX   =  24.0f;   // [px] - pl-6, one nesting step
+    float  CaptionHeight     =  24.0f;   // [px] - the tracking-widest section caption
     float  CardGap           =  12.0f;   // [px] - gap-3
     float  CardPad           =  16.0f;   // [px] - p-4, the lattice's own inset
-    float  CardCaptionAcross =  46.0f;   // [px] - p-2.5 over two runs
-    float  PreviewAcross     = 192.0f;   // [px] - h-48, the inspector's preview
-    float  TongueAcross      =  48.0f;   // [px] - p-2 over an h-8 tongue
-    float  CrestAlong        =  40.0f;   // [px] - w-10 h-10, the inspector's crest
-    float  ChipAcross        =  20.0f;   // [px] - the extension chip and every tag
-    float  ImportAcross      =  36.0f;   // [px] - h-9, the inspector's import action
+    float  CardCaptionHeight =  46.0f;   // [px] - p-2.5 over two runs
+    float  PreviewHeight     = 192.0f;   // [px] - h-48, the inspector's preview
+    float  TongueY      =  48.0f;   // [px] - p-2 over an h-8 tongue
+    float  CrestX        =  40.0f;   // [px] - w-10 h-10, the inspector's crest
+    float  ChipHeight        =  20.0f;   // [px] - the extension chip and every tag
+    float  ImportY      =  36.0f;   // [px] - h-9, the inspector's import action
     float  RadiusCard        =  12.0f;   // [px] - rounded-xl
     float  RadiusPlate       =   8.0f;   // [px] - rounded-lg
     float  RadiusSoft        =   6.0f;   // [px] - rounded-md
@@ -85,13 +85,13 @@ struct ContentRecord
     ContentArchive  Archive     = ContentArchive::Topology;     // [-] - `cat`
 };
 
-/// 🧩 The seated library and what the artist has taken from it.
+/// 🧩 The applied library and what the artist has taken from it.
 /// note  🔴 `AbsentOrdinal` and not a signed ordinal. Every ordinal in this unit is unsigned, so an absent
 ///        take must be a stated sentinel rather than a negative that cannot be represented.
 /// tag   contract, nonallocating, nonthrowing
 struct ContentLibrary
 {
-    static constexpr std::uint32_t RecordCeiling  = 64u;          // [-] - seated records; never allocated
+    static constexpr std::uint32_t RecordCeiling  = 64u;          // [-] - applied records; never allocated
     static constexpr std::uint32_t AbsentOrdinal  = 0xFFFFFFFFu;  // [-] - nothing taken, nothing traversed
 
     ContentRecord   Records[RecordCeiling] = {};                  // [-] - the library in its declared order
@@ -101,11 +101,11 @@ struct ContentLibrary
     const char*     TraversedSubheading    = nullptr;             // [-] - `state.subcat`, borrowed
 };
 
-/// 🧩 Seats the reference's own `ASSETS` run into a library, so the panel presents what the prototype does.
-/// in    Seating  [-]  written whole; whatever stood in it is replaced
+/// 🧩 Applies the reference's own `ASSETS` run into a library, so the panel presents what the prototype does.
+/// in    Applying  [-]  written whole; whatever stood in it is replaced
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-void SeatReferenceContent(ContentLibrary& Seating);
+void ApplyReferenceContent(ContentLibrary& Applying);
 
 /// 🧩 What the archive is captioned and which symbol crests it, as `CAT_INFO` pairs them.
 /// in    Archive  [-]  a stated archive; ArchiveCount yields the placeholder pair
@@ -133,8 +133,8 @@ struct ContentBrowserConfiguration
     float          AsideSpan         = 0.0f;    // [px] - what the sources column measured last tick
     std::uint32_t  InspectorTongue   = 0u;      // [-] - 0 Details, 1 Create
     const char*    Tooltip           = nullptr; // [-] - borrowed; recorded in the deferred sweep
-    float          TooltipAlong      = 0.0f;    // [px]
-    float          TooltipAcross     = 0.0f;    // [px]
+    float          TooltipX      = 0.0f;    // [px]
+    float          TooltipHeight     = 0.0f;    // [px]
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -142,8 +142,8 @@ struct ContentBrowserConfiguration
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Records the content browser and arbitrates every contact it presents.
-/// note  🔴 The panel enrols into a ledger it does not own. The host that constructs it must weigh
-///        `EnrolmentDemand` against the ledger's remaining capacity before it constructs anything else.
+/// note  🔴 The panel registers into a ledger it does not own. The host that constructs it must weigh
+///        `RegistrationDemand` against the ledger's remaining capacity before it constructs anything else.
 /// tag   api, nonallocating, nonthrowing
 class ContentBrowserPanel
 {
@@ -155,51 +155,51 @@ public:
 
     /// 🔴 What this panel takes out of the shared ledger. The host's own static_assert weighs the page's
     ///    whole demand against the ledger's capacity; this constant is the panel's contribution to it.
-    static constexpr std::uint32_t EnrolmentDemand = SourceCeiling + LatticeCeiling + ChromeCeiling;
+    static constexpr std::uint32_t RegistrationDemand = SourceCeiling + LatticeCeiling + ChromeCeiling;
 
-    /// 🧩 Claims every identity the panel will ever arbitrate, once, before the first tick.
+    /// 🧩 Reservations every identity the panel will ever arbitrate, once, before the first tick.
     /// in    Interaction  [-]  borrowed; must outlive the panel
     /// in    Recording    [-]  borrowed; must outlive the panel
     /// out   Result      [-]  refuses with ContentUnsupported when a construction already stands, and
     ///                          carries the ledger's own refusal when a slot cannot be claimed
-    /// err   a refusal leaves nothing enrolled; the panel records nothing until Construct is delivered
+    /// err   a refusal leaves nothing registered; the panel records nothing until Construct is delivered
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     Outcome<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording);
 
     /// 🧩 Samples the tick's pointer before anything is recorded against it.
-    /// in    Arrived  [-]  this tick's pointer, as the host built it
+    /// in    Sampled  [-]  this tick's pointer, as the host built it
     /// in    Elapsed  [s]  since the previous tick
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Advance(const PointerCondition& Arrived, double Elapsed);
+    void Advance(const PointerCondition& Incoming, double Elapsed);
 
     /// 🧩 Records the whole browser — sources, seek rail, lattice and inspector — into one extent.
     /// in    Extent   [px] the page the browser occupies whole
     /// in    Library  [-]  amended in place as the artist takes and traverses
-    /// in    Seated   [-]  amended in place; carries the seek run and both offsets
+    /// in    Applied   [-]  amended in place; carries the seek run and both offsets
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    void RecordBrowser(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Seated);
+    void RecordBrowser(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Applied);
 
     /// 🧩 Records the tooltip above everything the tick has already recorded.
-    /// in    Seated  [-]  read for the tooltip the rouse seated, then cleared
+    /// in    Applied  [-]  read for the tooltip the hover applied, then cleared
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void RecordDeferred(ContentBrowserConfiguration& Seated);
+    void RecordDeferred(ContentBrowserConfiguration& Applied);
 
-    /// 🧩 Admits a typed octet into the seek run when the seek field holds the keyboard.
-    /// in    Arrived  [-]  the octet, as the interface reported it
-    /// in    Seated   [-]  amended in place
-    /// out   Admitted [-]  false when the field does not hold the keyboard
+    /// 🧩 Accepts a typed octet into the seek run when the seek field holds the keyboard.
+    /// in    Sampled  [-]  the octet, as the interface reported it
+    /// in    Applied   [-]  amended in place
+    /// out   Accepted [-]  false when the field does not hold the keyboard
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool AdmitTyped(char Arrived, ContentBrowserConfiguration& Seated);
+    bool AcceptTyped(char Incoming, ContentBrowserConfiguration& Applied);
 
     /// 🧩 Retires the last octet of the seek run when the seek field holds the keyboard.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool RetractTyped(ContentBrowserConfiguration& Seated);
+    bool RetractTyped(ContentBrowserConfiguration& Applied);
 
     /// 🧩 Withholds everything the browser arbitrated this tick from initiating a drawer drag.
     /// in    Drawers  [-]  amended in place; the exclusions are declared against Bearing
@@ -215,7 +215,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Exclude(DrawerSpace& Drawers, DrawerBearing Bearing) const;
 
-    /// 🧩 Returns the panel to its unconstructed condition, enrolling nothing.
+    /// 🧩 Returns the panel to its unconstructed condition, registering nothing.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Reset();
@@ -226,7 +226,7 @@ public:
     ///        Nothing is borrowed — the record is copied out, so the caller may let `Resolved` expire.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Reseat(const ThemeProfile& Resolved);
+    void Reapply(const ThemeProfile& Resolved);
 
     ContentBrowserColour     Colour;        // [-] - the reference's own token run
     ContentBrowserMetric  Measure;    // [-] - the reference's own lengths
@@ -235,20 +235,20 @@ private:
 
     void  RetainExclusion(const PlaneExtent& Extent);
 
-    bool  Roused(const PlaneExtent& Extent) const;
-    bool  Pressed(ControlIdentity Claimed, const PlaneExtent& Extent,
-                  ContentBrowserConfiguration& Seated, const char* Tooltip = nullptr);
+    bool  Hovered(const PlaneExtent& Extent) const;
+    bool  Pressed(ControlIdentity Target, const PlaneExtent& Extent,
+                  ContentBrowserConfiguration& Applied, const char* Tooltip = nullptr);
 
-    void  RecordSources(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Seated);
-    void  RecordSeekRail(const PlaneExtent& Extent, ContentBrowserConfiguration& Seated);
-    void  RecordLattice(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Seated);
-    void  RecordInspector(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Seated);
+    void  RecordSources(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Applied);
+    void  RecordSeekRail(const PlaneExtent& Extent, ContentBrowserConfiguration& Applied);
+    void  RecordLattice(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Applied);
+    void  RecordInspector(const PlaneExtent& Extent, ContentLibrary& Library, ContentBrowserConfiguration& Applied);
     void  RecordHatch(const PlaneExtent& Extent);
-    void  RecordScrollbar(const PlaneExtent& Extent, ControlIdentity Claimed, float Span, float& Offset);
+    void  RecordScrollbar(const PlaneExtent& Extent, ControlIdentity Target, float Span, float& Offset);
 
     /// 🔴 Whether a record survives the traversal and the seek run, exactly as `renderGrid` filters it.
     bool  Retained(const ContentRecord& Record, const ContentLibrary& Library,
-                   const ContentBrowserConfiguration& Seated) const;
+                   const ContentBrowserConfiguration& Applied) const;
 
     InteractionIndex*  Ledger  = nullptr;   // [-] - borrowed, never owned
     RecordingSurface*  Surface = nullptr;   // [-] - borrowed, never owned
@@ -260,8 +260,8 @@ private:
     PointerCondition  Sampled;                            // [-] - this tick's pointer
 
     /// 🔴 One extent per control the tick arbitrated, so a drawer can be told what not to drag by. The
-    ///    ceiling is the enrolment demand because that is the most controls one tick can record.
-    PlaneExtent    Exclusions[EnrolmentDemand] = {};      // [px] - display ordinates, this tick's
+    ///    ceiling is the registration demand because that is the most controls one tick can record.
+    PlaneExtent    Exclusions[RegistrationDemand] = {};      // [px] - display ordinates, this tick's
     std::uint32_t  ExclusionCount              = 0u;      // [-]  - cleared at the head of RecordBrowser
 };
 

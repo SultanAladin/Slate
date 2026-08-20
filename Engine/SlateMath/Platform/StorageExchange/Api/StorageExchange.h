@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                            STORAGEEXCHANGE.H
 //============================================================================================================================================
-// 🧩 Byte ranges arriving from the storage device, so a decode is driven by range arrival rather than by whole-stream completion.
+// 🧩 Byte ranges incoming from the storage device, so a decode is driven by range arrival rather than by whole-stream completion.
 
 #pragma once
 
@@ -27,7 +27,7 @@ struct RangeRequest
 };
 
 /// 🧩 How one declared range ended.
-/// note  ⚠️ Truncated is delivered and not refused. A range that reached the end of the stream carries fewer
+/// note  ⚠️ Truncated is delivered and not rejected. A range that reached the end of the stream carries fewer
 ///       bytes than were asked for and every one of them is good; a codec reading the last range of a stream
 ///       asks for its own read extent and is handed what remains.
 /// tag   contract
@@ -36,7 +36,7 @@ enum class RangeConclusion : std::uint32_t
     Pending   = 0u,   // [-] - declared; the storage device has not answered
     Delivered = 1u,   // [-] - the whole declared range landed
     Truncated = 2u,   // [-] - the stream ended inside the range; what landed is good
-    Declined  = 3u    // [-] - the storage device refused; nothing landed
+    Rejected  = 3u    // [-] - the storage device rejected; nothing landed
 };
 
 /// 🧩 One range as it came back, and how long the storage device took over it.
@@ -46,10 +46,10 @@ enum class RangeConclusion : std::uint32_t
 /// tag   owning
 struct RangeArrival
 {
-    std::uint32_t              Declared     = 0u;                        // [-]  - the ordinal Declare issued
-    RangeConclusion            Concluded    = RangeConclusion::Pending;  // [-]  - how it ended
+    std::uint32_t              Declared     = 0u;                        // [-]  - the ordinal Declare registered
+    RangeConclusion            Completed    = RangeConclusion::Pending;  // [-]  - how it ended
     std::uint64_t              Offset       = 0u;                        // [B]  - where the landed bytes begin
-    std::vector<std::uint8_t>  Landed       = {};                        // [-]  - what arrived; owned by the reader
+    std::vector<std::uint8_t>  Received       = {};                        // [-]  - what arrived; owned by the reader
     double                     LatencyMillis = 0.0;                      // [ms] - declaration to arrival
 };
 
@@ -92,7 +92,7 @@ public:
     /// in    Wanted   [-]  the offset and extent
     /// out   Result  [-]  the ordinal this range is drained under; refuses with HostDenied when no stream
     ///                     is open, and with ExtentExhausted when the offset lies beyond the stream
-    /// note  📝 Declaring is not reading. The ordinal is issued here and the bytes arrive at a later Drain,
+    /// note  📝 Declaring is not reading. The ordinal is registered here and the bytes arrive at a later Drain,
     ///        which is what lets a codec declare the next range while it decodes the one it has.
     /// cost  ✔️
     /// tag   api, nonthrowing
@@ -126,9 +126,9 @@ private:
 
     void*                      StreamSlot     = nullptr;   // [-] - opaque; the host spelling stays in the source
     std::uint64_t              StreamSpanned  = 0u;        // [B] - the whole extent, read once at Open
-    std::uint32_t              DeclaredCount  = 0u;        // [-] - ordinals issued over this stream's lifetime
+    std::uint32_t              DeclaredCount  = 0u;        // [-] - ordinals registered over this stream's lifetime
     std::vector<RangeRequest>  PendingOrder   = {};        // [-] - declared, undrained, in declaration order
-    std::vector<std::uint32_t> PendingOrdinal = {};        // [-] - the ordinal each pending range was issued
+    std::vector<std::uint32_t> PendingOrdinal = {};        // [-] - the ordinal each pending range was registered
     std::vector<RangeArrival>  DrainedRanges  = {};        // [-] - what the last Drain delivered
 };
 

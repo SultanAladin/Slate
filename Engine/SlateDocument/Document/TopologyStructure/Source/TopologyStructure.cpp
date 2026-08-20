@@ -13,11 +13,11 @@ namespace Slate
 namespace
 {
 
-// 🔴 Revisions are issued from one monotonic sequence for the whole process, never counted per topology. A
+// 🔴 Revisions are registered from one monotonic sequence for the whole process, never counted per topology. A
 //    per-topology count cannot discriminate: a topology is sealed exactly once and nothing unseals it, so every
 //    sealed topology would report revision one and every gate comparing two of them would compare one against
 //    one. Five gates read this — `38`'s conditioning, `40`'s subdivision, `68`'s partition, `16`'s enrollment and
-//    `24`'s content key — and each of them exists to refuse a description of a *different* topology. Issued from
+//    `24`'s content key — and each of them exists to refuse a description of a *different* topology. Registered from
 //    a shared sequence, two distinct seals never collide and each of those five refuses as its document says.
 // 🧵 Atomic because `34` conditions off the tick and two workers may seal two intakes at once. The ordering
 //    between two unrelated seals does not matter; that they receive different ordinals does.
@@ -34,12 +34,12 @@ std::uint64_t IssueRevision()
 //                                                  DECLARATIONS AND SEAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> TopologyStructure::DeclarePositions(const std::vector<DocumentPosition>& Arriving)
+Outcome<bool> TopologyStructure::DeclarePositions(const std::vector<DocumentPosition>& Incoming)
 {
     if (SealDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
-    VertexPositions = Arriving;
+    VertexPositions = Incoming;
 
     return Outcome<bool>::Result(true);
 }
@@ -66,7 +66,7 @@ Outcome<bool> TopologyStructure::DeclareFace(const std::vector<std::uint32_t>& C
     FaceFirstCorners.push_back(static_cast<std::uint32_t>(CornerVertexOrdinals.size()));
     FaceCornerCounts.push_back(static_cast<std::uint32_t>(CornerVertices.size()));
 
-    // 📝 A repeated ordinal within one run is admitted deliberately. `38` §3 enrolls it as degenerate and
+    // 📝 A repeated ordinal within one run is accepted deliberately. `38` §3 enrolls it as degenerate and
     //    excludes it downstream; refusing it here would repair the artist's file, which `50` §2 ① forbids.
     for (const std::uint32_t VertexOrdinal : CornerVertices)
     {
@@ -77,54 +77,54 @@ Outcome<bool> TopologyStructure::DeclareFace(const std::vector<std::uint32_t>& C
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> TopologyStructure::DeclareCoordinates(const std::vector<DomainCoordinate>& Arriving)
+Outcome<bool> TopologyStructure::DeclareCoordinates(const std::vector<DomainCoordinate>& Incoming)
 {
     if (SealDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
-    if (Arriving.size() != CornerVertexOrdinals.size())
+    if (Incoming.size() != CornerVertexOrdinals.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one coordinate per corner is required" });
 
-    CornerCoordinates = Arriving;
+    CornerCoordinates = Incoming;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> TopologyStructure::DeclarePerpendiculars(const std::vector<SurfaceDirection>& Arriving)
+Outcome<bool> TopologyStructure::DeclarePerpendiculars(const std::vector<SurfaceDirection>& Incoming)
 {
     if (SealDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
-    if (Arriving.size() != VertexPositions.size())
+    if (Incoming.size() != VertexPositions.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one perpendicular per vertex is required" });
 
-    VertexPerpendiculars = Arriving;
+    VertexPerpendiculars = Incoming;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> TopologyStructure::DeclareTangentBases(const std::vector<TangentBasis>& Arriving)
+Outcome<bool> TopologyStructure::DeclareTangentBases(const std::vector<TangentBasis>& Incoming)
 {
     if (SealDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
-    if (Arriving.size() != VertexPositions.size())
+    if (Incoming.size() != VertexPositions.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one basis per vertex is required" });
 
-    VertexTangentBases = Arriving;
+    VertexTangentBases = Incoming;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> TopologyStructure::DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving)
+Outcome<bool> TopologyStructure::DeclareMaterialRegistration(const std::vector<std::uint32_t>& Incoming)
 {
     if (SealDeclared)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the topology is sealed" });
 
-    if (Arriving.size() != FaceFirstCorners.size())
+    if (Incoming.size() != FaceFirstCorners.size())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "one enrollment per face is required" });
 
-    FaceMaterialOrdinals = Arriving;
+    FaceMaterialOrdinals = Incoming;
 
     return Outcome<bool>::Result(true);
 }
@@ -141,7 +141,7 @@ Outcome<bool> TopologyStructure::Seal()
     if (FaceFirstCorners.empty())
         return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "a topology with no face is not paintable" });
 
-    // 📝 One material for the whole occupant where the source declared none — `50` §3's last-resort row. It is a
+    // 📝 One material for the whole owner where the source declared none — `50` §3's last-resort row. It is a
     //    default rather than an assumption, so nothing is reported: the artist assigns materials afterwards.
     if (FaceMaterialOrdinals.empty())
         FaceMaterialOrdinals.assign(FaceFirstCorners.size(), 0u);
@@ -198,7 +198,7 @@ const std::vector<DocumentPosition>& TopologyStructure::Positions() const       
 const std::vector<DomainCoordinate>& TopologyStructure::Coordinates() const        { return CornerCoordinates;    }
 const std::vector<SurfaceDirection>& TopologyStructure::Perpendiculars() const     { return VertexPerpendiculars; }
 const std::vector<TangentBasis>&     TopologyStructure::TangentBases() const       { return VertexTangentBases;   }
-const std::vector<std::uint32_t>&    TopologyStructure::MaterialEnrollment() const { return FaceMaterialOrdinals; }
+const std::vector<std::uint32_t>&    TopologyStructure::MaterialRegistration() const { return FaceMaterialOrdinals; }
 
 bool TopologyStructure::CoordinatesSupplied() const    { return !CornerCoordinates.empty();    }
 bool TopologyStructure::PerpendicularsSupplied() const { return !VertexPerpendiculars.empty(); }

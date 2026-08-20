@@ -112,7 +112,7 @@ public:
     ///                       the unit interval, a metered exposure with no adaptation interval, an undeclared
     ///                       space, and a display space that is the working space
     /// post  the metered exposure stands at the declared one and the metering has not yet adapted
-    /// note  🔴 Refused in full and never in part. A half-admitted declaration leaves the projection crossing
+    /// note  🔴 Rejected in full and never in part. A half-accepted declaration leaves the projection crossing
     ///        one validated space and one that was rejected, which is indistinguishable from a colour-managed
     ///        path by looking at it.
     /// cost  ✔️
@@ -122,7 +122,7 @@ public:
                           const EncodeSpecification&   Encoding_);
 
     /// 🧩 Contributes `08` §3 ⑧'s recording.
-    /// out   Result  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule rejected
     /// note  🔴 Declared scene-referred although it produces display code. The flag orders a recording *after*
     ///        the tone line, and this recording **is** the tone line — declaring it display-referred would place
     ///        it among the amenders of its own output.
@@ -157,8 +157,8 @@ public:
     /// 🧩 Projects one accumulated radiance into display code — the four ordered operations, once each.
     /// in    Accumulated  [-]  scene-referred, in the working space, unbounded above
     /// out   Result      [-]  refuses with ContentUnsupported for an undeclared colour and for one that is not
-    ///                         a coordinate in the declared working space, and with whatever `36` refused
-    /// note  🔴 The arriving space is compared rather than assumed. A radiance that arrived in another space is
+    ///                         a coordinate in the declared working space, and with whatever `36` rejected
+    /// note  🔴 The incoming space is compared rather than assumed. A radiance that arrived in another space is
     ///        compressed against a white magnitude that means nothing in it, and the result is plausible.
     /// note  🔴 Where the presentation format carries its own transfer, the display space is linearised before
     ///        `36` is called, so ours is withheld rather than applied twice — `66` §4.
@@ -183,7 +183,7 @@ private:
     ToneSpecification      Toning           = {};      // [-]  - as Declare validated it
     EncodeSpecification    Encodings        = {};      // [-]  - the two spaces the projection crosses
     double                 MeteredExposure  = 0.0;     // [EV] - what the metering has adapted to
-    bool                   MeteringStanding = false;   // [-]  - false until one advance has measured
+    bool                   MeteringCurrent = false;   // [-]  - false until one advance has measured
 };
 
 // 📐 The space comparison and the exposure subject are Exact; the exposure scale, the compression and `36`'s

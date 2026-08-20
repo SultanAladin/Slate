@@ -19,7 +19,7 @@ void GestureSequence::Declare(const GestureTolerance& Declared)
     Tolerance = Declared;
 }
 
-const ContactTravel& GestureSequence::Standing() const
+const ContactTravel& GestureSequence::Current() const
 {
     return Reported;
 }
@@ -47,7 +47,7 @@ void GestureSequence::Reset()
 //                                                        THE TICK
 //------------------------------------------------------------------------------------------------------------------------
 
-const ContactTravel& GestureSequence::Advance(const PointerCondition& Arrived, double Elapsed)
+const ContactTravel& GestureSequence::Advance(const PointerCondition& Sampled, double Elapsed)
 {
     Reported.Phase         = ContactPhase::Absent;
     Reported.TapResolved   = false;
@@ -59,7 +59,7 @@ const ContactTravel& GestureSequence::Advance(const PointerCondition& Arrived, d
     {
         CancelDeferred = false;
 
-        if (Arrived.ContactHeld)
+        if (Sampled.ContactHeld)
             return Reported;
     }
 
@@ -76,17 +76,17 @@ const ContactTravel& GestureSequence::Advance(const PointerCondition& Arrived, d
     }
 
     // ③ Arrival — everything accumulated is discarded and the origin is stamped.
-    if (Arrived.ContactArrived && !ContactLive)
+    if (Sampled.ContactPressed && !ContactLive)
     {
         Reported                = {};
-        Reported.Phase          = ContactPhase::Arrived;
-        Reported.OriginAlong    = Arrived.PositionAlong;
-        Reported.OriginAcross   = Arrived.PositionAcross;
-        Reported.PositionAlong  = Arrived.PositionAlong;
-        Reported.PositionAcross = Arrived.PositionAcross;
+        Reported.Phase          = ContactPhase::Sampled;
+        Reported.OriginX    = Sampled.PositionX;
+        Reported.OriginY   = Sampled.PositionY;
+        Reported.PositionX  = Sampled.PositionX;
+        Reported.PositionY = Sampled.PositionY;
 
         ContactLive     = true;
-        ReleaseDeferred = Arrived.ContactReleased;
+        ReleaseDeferred = Sampled.ContactReleased;
 
         return Reported;
     }
@@ -95,38 +95,38 @@ const ContactTravel& GestureSequence::Advance(const PointerCondition& Arrived, d
         return Reported;
 
     // ④ Carriage — accumulate travel, integrate the smoothed rate, latch the travel ceiling.
-    Reported.PositionAlong  = Arrived.PositionAlong;
-    Reported.PositionAcross = Arrived.PositionAcross;
-    Reported.TravelAlong   += static_cast<double>(Arrived.TravelAlong);
-    Reported.TravelAcross  += static_cast<double>(Arrived.TravelAcross);
+    Reported.PositionX  = Sampled.PositionX;
+    Reported.PositionY = Sampled.PositionY;
+    Reported.TravelX   += static_cast<double>(Sampled.TravelX);
+    Reported.TravelY  += static_cast<double>(Sampled.TravelY);
     Reported.HeldDuration  += (Elapsed > 0.0) ? Elapsed : 0.0;
 
     if (Elapsed > 0.0)
     {
-        const double InstantAlong  = static_cast<double>(Arrived.TravelAlong)  * 1000.0 / Elapsed;
-        const double InstantAcross = static_cast<double>(Arrived.TravelAcross) * 1000.0 / Elapsed;
+        const double InstantX  = static_cast<double>(Sampled.TravelX)  * 1000.0 / Elapsed;
+        const double InstantY = static_cast<double>(Sampled.TravelY) * 1000.0 / Elapsed;
 
-        Reported.RateAlong  = Reported.RateAlong  * Tolerance.RateRetention
-                            + InstantAlong  * (1.0 - Tolerance.RateRetention);
-        Reported.RateAcross = Reported.RateAcross * Tolerance.RateRetention
-                            + InstantAcross * (1.0 - Tolerance.RateRetention);
+        Reported.RateX  = Reported.RateX  * Tolerance.RateRetention
+                            + InstantX  * (1.0 - Tolerance.RateRetention);
+        Reported.RateY = Reported.RateY * Tolerance.RateRetention
+                            + InstantY * (1.0 - Tolerance.RateRetention);
     }
 
     // 📐 The ceiling is measured on the displacement from the origin, not on the path length. A contact that
     //    wanders three pixels out and three back is a tap; one that travels ten and holds is not.
-    const double Reach = std::sqrt(Reported.TravelAlong  * Reported.TravelAlong
-                                 + Reported.TravelAcross * Reported.TravelAcross);
+    const double Reach = std::sqrt(Reported.TravelX  * Reported.TravelX
+                                 + Reported.TravelY * Reported.TravelY);
 
     if (Reach > static_cast<double>(Tolerance.TapTravelCeiling))
         Reported.TravelExceeded = true;
 
-    if (Arrived.ContactReleased || !Arrived.ContactHeld)
+    if (Sampled.ContactReleased || !Sampled.ContactHeld)
     {
         ContactLive            = false;
         Reported.Phase         = ContactPhase::Released;
         Reported.TapResolved   = !Reported.TravelExceeded
                                && Reported.HeldDuration <= Tolerance.TapDurationCeiling;
-        Reported.FlingResolved = std::fabs(Reported.RateAcross) > Tolerance.FlingRateFloor;
+        Reported.FlingResolved = std::fabs(Reported.RateY) > Tolerance.FlingRateFloor;
         return Reported;
     }
 

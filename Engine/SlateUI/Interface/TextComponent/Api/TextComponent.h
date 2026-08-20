@@ -69,8 +69,8 @@ public:
 
     static PlaneExtent Fit(const PlaneExtent& Origin,
                            const TypographyMetrics& Metrics,
-                           float PaddingAlong,
-                           float PaddingAcross);
+                           float PaddingX,
+                           float PaddingY);
 
     static void Draw(RecordingSurface& Surface,
                      const PlaneExtent& Bounds,

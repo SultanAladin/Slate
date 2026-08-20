@@ -56,7 +56,7 @@ struct DecodedTypeface
 /// 🧩 Translates one typeface stream into glyph outlines, in the typeface's own units.
 /// in    Stream        [-]  the whole stream, as `StorageExchange` drained it
 /// in    GlyphCeiling  [-]  how many glyph ordinals to translate; the typeface's own count where it is lower
-/// out   Result       [-]  refuses with ContentUnsupported for a stream the reader declined, and with
+/// out   Result       [-]  refuses with ContentUnsupported for a stream the reader rejected, and with
 ///                          ExtentExhausted for a typeface declaring no glyph at all
 /// err   never throws; every shape the reader allocated is released before returning, on refusal included
 /// cost  🔴

@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                       EDITORLEAFPANELS.CPP
 //============================================================================================================================================
-// 🧩 One skeletal leaf body, seated four ways, isolated from the shared editor chrome and partition.
+// 🧩 One skeletal leaf body, applied four ways, isolated from the shared editor chrome and partition.
 
 #include "SlateUI/Interface/EditorPanel/Api/EditorLeafPanels.h"
 
@@ -19,7 +19,7 @@ struct LeafAppearance
     float        TextSize = 0.0f;      // [px] - the caption's text size
 };
 
-/// 🧩 Reads the arriving leaf's three distinguishing ordinates out of the appearance declarations.
+/// 🧩 Reads the incoming leaf's three distinguishing ordinates out of the appearance declarations.
 /// in    Appearance  [-]  the appearance declarations
 /// in    Subject     [-]  which leaf is being presented
 /// out   LeafAppearance  [-]  the ground colour, caption and text size for that leaf
@@ -53,16 +53,16 @@ LeafAppearance AppearanceFor(const ThemeProfile& Appearance, LeafSubject Subject
 //                                                       LEAF TARGET
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> LeafPanel::Construct(RecordingSurface& ArrivingSurface,
-                                   const ThemeProfile& ArrivingAppearance,
-                                   LeafSubject ArrivingSubject)
+Outcome<bool> LeafPanel::Construct(RecordingSurface& IncomingSurface,
+                                   const ThemeProfile& IncomingAppearance,
+                                   LeafSubject IncomingSubject)
 {
     if (Surface != nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a leaf panel construction stands" });
 
-    Surface    = &ArrivingSurface;
-    Appearance = &ArrivingAppearance;
-    Subject    = ArrivingSubject;
+    Surface    = &IncomingSurface;
+    Appearance = &IncomingAppearance;
+    Subject    = IncomingSubject;
     return Outcome<bool>::Result(true);
 }
 
@@ -71,14 +71,14 @@ void LeafPanel::Record(const PlaneExtent& Extent)
     if (Surface == nullptr || Appearance == nullptr)
         return;
 
-    const LeafAppearance Seated = AppearanceFor(*Appearance, Subject);
+    const LeafAppearance Applied = AppearanceFor(*Appearance, Subject);
 
-    Surface->Ground(Extent, Seated.Ground);
-    Surface->TextRun(Extent.LeastAlong + Extent.SpanAlong() * 0.5f,
-                     Extent.LeastAcross + Extent.SpanAcross() * 0.5f,
+    Surface->Ground(Extent, Applied.Ground);
+    Surface->TextRun(Extent.MinimumX + Extent.Width() * 0.5f,
+                     Extent.MinimumY + Extent.Height() * 0.5f,
                      Appearance->EditorPanel.ColourGhost,
-                     Seated.Caption,
-                     Seated.TextSize,
+                     Applied.Caption,
+                     Applied.TextSize,
                      0.0f,
                      true);
 }

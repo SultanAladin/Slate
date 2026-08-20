@@ -3,7 +3,7 @@
 //============================================================================================================================================
 // 🧩 Interval merging, division, and the exclusion refusal that precedes every write.
 
-#include "SlateDocument/Document/EnrollmentIndex/Api/EnrollmentIndex.h"
+#include "SlateDocument/Document/RegistrationIndex/Api/RegistrationIndex.h"
 
 namespace Slate
 {
@@ -12,9 +12,9 @@ namespace Slate
 //                                                   INTERVAL SEARCH
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 The first run whose last ordinal is not below the subject. Every enrolment, withdrawal and test starts
+// 📝 The first run whose last ordinal is not below the subject. Every registration, withdrawal and test starts
 //    here, so it is one routine rather than three loops that must agree.
-static std::size_t LocateInterval(const std::vector<EnrolledInterval>& Runs, std::uint32_t SlotOrdinal)
+static std::size_t LocateInterval(const std::vector<RegisteredInterval>& Runs, std::uint32_t SlotOrdinal)
 {
     std::size_t Lower = 0u;
     std::size_t Upper = Runs.size();
@@ -36,9 +36,9 @@ static std::size_t LocateInterval(const std::vector<EnrolledInterval>& Runs, std
 //                                                 INTERVAL ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 The merging body Enrol used to hold inline, lifted out so that `38`'s degeneracy enrolment reads the same
+// 📝 The merging body Register used to hold inline, lifted out so that `38`'s degeneracy registration reads the same
 //    code rather than a second copy of the same reasoning.
-bool EnrolInterval(std::vector<EnrolledInterval>& Runs, std::uint32_t Ordinal)
+bool RegisterInterval(std::vector<RegisteredInterval>& Runs, std::uint32_t Ordinal)
 {
     const std::size_t Located = LocateInterval(Runs, Ordinal);
 
@@ -63,17 +63,17 @@ bool EnrolInterval(std::vector<EnrolledInterval>& Runs, std::uint32_t Ordinal)
     }
     else
     {
-        EnrolledInterval Arriving;
-        Arriving.FirstOrdinal = Ordinal;
-        Arriving.LastOrdinal  = Ordinal;
+        RegisteredInterval Incoming;
+        Incoming.FirstOrdinal = Ordinal;
+        Incoming.LastOrdinal  = Ordinal;
 
-        Runs.insert(Runs.begin() + static_cast<std::ptrdiff_t>(Located), Arriving);
+        Runs.insert(Runs.begin() + static_cast<std::ptrdiff_t>(Located), Incoming);
     }
 
     return true;
 }
 
-bool IntervalEnrolled(const std::vector<EnrolledInterval>& Runs, std::uint32_t Ordinal)
+bool IntervalRegistered(const std::vector<RegisteredInterval>& Runs, std::uint32_t Ordinal)
 {
     const std::size_t Located = LocateInterval(Runs, Ordinal);
 
@@ -84,30 +84,30 @@ bool IntervalEnrolled(const std::vector<EnrolledInterval>& Runs, std::uint32_t O
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> EnrollmentIndex::Enrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset)
+Outcome<bool> RegistrationIndex::Register(OwnerIdentity Subject, SubsetSubject RegisteredSubset)
 {
     if (!Subject.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity enrols in nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity registers in nothing" });
 
-    // 🔴 Decided before anything is written. A rejected enrolment leaves no partial state, which is what
+    // 🔴 Decided before anything is written. A rejected registration leaves no partial state, which is what
     //    lets the caller abandon its transaction rather than repair it.
     for (std::uint32_t Ordinal = 0u; Ordinal < static_cast<std::uint32_t>(SubsetSubject::SubsetCount); ++Ordinal)
     {
-        const SubsetSubject Standing = static_cast<SubsetSubject>(Ordinal);
+        const SubsetSubject Current = static_cast<SubsetSubject>(Ordinal);
 
-        if (SubsetsExclusive(EnrolledSubset, Standing) && Enrolled(Subject, Standing))
+        if (SubsetsExclusive(RegisteredSubset, Current) && Registered(Subject, Current))
         {
             return Outcome<bool>::Refuse(
-                { RefusalReason::ContentUnsupported, "a mutually exclusive subset already holds the occupant" });
+                { RefusalReason::ContentUnsupported, "a mutually exclusive subset already holds the owner" });
         }
     }
 
-    std::vector<EnrolledInterval>& Runs        = SubsetIntervals[static_cast<std::size_t>(EnrolledSubset)];
+    std::vector<RegisteredInterval>& Runs        = SubsetIntervals[static_cast<std::size_t>(RegisteredSubset)];
 
     // 📝 Extending an abutting run keeps the storage at one run per contiguous span. Two runs that touch
     //    carry no fact the merged run does not, and every later comparison pays for the extra entry.
-    if (EnrolInterval(Runs, Subject.SlotOrdinal))
-        ++SubsetCounts[static_cast<std::size_t>(EnrolledSubset)];
+    if (RegisterInterval(Runs, Subject.SlotOrdinal))
+        ++SubsetCounts[static_cast<std::size_t>(RegisteredSubset)];
 
     return Outcome<bool>::Result(true);
 }
@@ -116,19 +116,19 @@ Outcome<bool> EnrollmentIndex::Enrol(OccupantIdentity Subject, SubsetSubject Enr
 //                                                      WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> EnrollmentIndex::Unenrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset)
+Outcome<bool> RegistrationIndex::Unenrol(OwnerIdentity Subject, SubsetSubject RegisteredSubset)
 {
     if (!Subject.IdentityDeclared())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity enrols in nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity registers in nothing" });
 
-    std::vector<EnrolledInterval>& Runs        = SubsetIntervals[static_cast<std::size_t>(EnrolledSubset)];
+    std::vector<RegisteredInterval>& Runs        = SubsetIntervals[static_cast<std::size_t>(RegisteredSubset)];
     const std::uint32_t            SlotOrdinal = Subject.SlotOrdinal;
     const std::size_t              Located     = LocateInterval(Runs, SlotOrdinal);
 
     if (Located >= Runs.size() || Runs[Located].FirstOrdinal > SlotOrdinal)
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant was not enrolled here" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the owner was not registered here" });
 
-    const EnrolledInterval Held = Runs[Located];
+    const RegisteredInterval Held = Runs[Located];
 
     if (Held.FirstOrdinal == SlotOrdinal && Held.LastOrdinal == SlotOrdinal)
     {
@@ -148,57 +148,57 @@ Outcome<bool> EnrollmentIndex::Unenrol(OccupantIdentity Subject, SubsetSubject E
         //    the run count, and it grows it by exactly one.
         Runs[Located].LastOrdinal = SlotOrdinal - 1u;
 
-        EnrolledInterval Upper;
+        RegisteredInterval Upper;
         Upper.FirstOrdinal = SlotOrdinal + 1u;
         Upper.LastOrdinal  = Held.LastOrdinal;
 
         Runs.insert(Runs.begin() + static_cast<std::ptrdiff_t>(Located) + 1, Upper);
     }
 
-    --SubsetCounts[static_cast<std::size_t>(EnrolledSubset)];
+    --SubsetCounts[static_cast<std::size_t>(RegisteredSubset)];
 
     return Outcome<bool>::Result(true);
 }
 
-void EnrollmentIndex::UnenrolEverywhere(OccupantIdentity Subject)
+void RegistrationIndex::UnenrolEverywhere(OwnerIdentity Subject)
 {
     for (std::uint32_t Ordinal = 0u; Ordinal < static_cast<std::uint32_t>(SubsetSubject::SubsetCount); ++Ordinal)
-        Disregard(Unenrol(Subject, static_cast<SubsetSubject>(Ordinal)));
+        Discard(Unenrol(Subject, static_cast<SubsetSubject>(Ordinal)));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-bool EnrollmentIndex::Enrolled(OccupantIdentity Subject, SubsetSubject EnrolledSubset) const
+bool RegistrationIndex::Registered(OwnerIdentity Subject, SubsetSubject RegisteredSubset) const
 {
     if (!Subject.IdentityDeclared())
         return false;
 
-    return IntervalEnrolled(SubsetIntervals[static_cast<std::size_t>(EnrolledSubset)], Subject.SlotOrdinal);
+    return IntervalRegistered(SubsetIntervals[static_cast<std::size_t>(RegisteredSubset)], Subject.SlotOrdinal);
 }
 
-const std::vector<EnrolledInterval>& EnrollmentIndex::Intervals(SubsetSubject EnrolledSubset) const
+const std::vector<RegisteredInterval>& RegistrationIndex::Intervals(SubsetSubject RegisteredSubset) const
 {
-    return SubsetIntervals[static_cast<std::size_t>(EnrolledSubset)];
+    return SubsetIntervals[static_cast<std::size_t>(RegisteredSubset)];
 }
 
-std::uint32_t EnrollmentIndex::EnrolledCount(SubsetSubject EnrolledSubset) const
+std::uint32_t RegistrationIndex::RegisteredCount(SubsetSubject RegisteredSubset) const
 {
-    return SubsetCounts[static_cast<std::size_t>(EnrolledSubset)];
+    return SubsetCounts[static_cast<std::size_t>(RegisteredSubset)];
 }
 
-void EnrollmentIndex::Reclaim(SubsetSubject EnrolledSubset)
+void RegistrationIndex::Reclaim(SubsetSubject RegisteredSubset)
 {
-    SubsetIntervals[static_cast<std::size_t>(EnrolledSubset)].clear();
-    SubsetCounts[static_cast<std::size_t>(EnrolledSubset)] = 0u;
+    SubsetIntervals[static_cast<std::size_t>(RegisteredSubset)].clear();
+    SubsetCounts[static_cast<std::size_t>(RegisteredSubset)] = 0u;
 }
 
-bool EnrollmentIndex::EnrolmentsOccupied(const std::vector<std::uint32_t>& Generations) const
+bool RegistrationIndex::RegistrationsOccupied(const std::vector<std::uint32_t>& Generations) const
 {
     for (std::size_t Subset = 0u; Subset < SubsetSpan; ++Subset)
     {
-        for (const EnrolledInterval& Run : SubsetIntervals[Subset])
+        for (const RegisteredInterval& Run : SubsetIntervals[Subset])
         {
             for (std::uint32_t Ordinal = Run.FirstOrdinal; Ordinal <= Run.LastOrdinal; ++Ordinal)
             {

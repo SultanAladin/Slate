@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                        MATERIALSPECIFICATION.H
 //============================================================================================================================================
-// 🧩 What a surface's channels are, where each value comes from, and which partition resolves to which occupant.
+// 🧩 What a surface's channels are, where each value comes from, and which partition resolves to which owner.
 
 #pragma once
 
@@ -115,7 +115,7 @@ enum class ChannelMeasure : std::uint32_t
     Emission     = 1u,   // [-] - colour-carrying, unbounded above
     Scalar       = 2u,   // [-] - not colour; a declared interval
     Direction    = 3u,   // [-] - not colour; unit length
-    Enrolment    = 4u,   // [-] - not colour; an identity
+    Registration    = 4u,   // [-] - not colour; an identity
     MeasureCount = 5u    // [-] - the closed count, never a measure
 };
 
@@ -182,22 +182,22 @@ public:
     /// tag   api, nonthrowing
     Outcome<bool> DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring);
 
-    /// 🧩 Declares the coverage threshold a cutout occupant is resolved against.
+    /// 🧩 Declares the coverage threshold a cutout owner is resolved against.
     /// note  🔴 Per material, never global — `62` §2. A single threshold across a document makes one artist's
     ///        foliage disappear while another's grows a halo, and neither can correct it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void DeclareCutoutThreshold(double Threshold);
 
-    /// 🧩 Enrols the material as cutout, so `16` §3.1 resolves its coverage at visibility time.
+    /// 🧩 Registers the material as cutout, so `16` §3.1 resolves its coverage at visibility time.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void DeclareCutoutEnrolment(bool CutoutEnabled);
+    void DeclareCutoutRegistration(bool CutoutEnabled);
 
     ReflectanceSelection        Reflectance() const;
     const ChannelSpecification& Channel(ChannelSubject Subject) const;
     double                      CutoutThreshold() const;
-    bool                        CutoutEnrolled() const;
+    bool                        CutoutRegistered() const;
 
     /// 🧩 Whether one channel is both declared and consumed by the selected reflectance.
     /// note  🔴 This is what a dispatch asks. A channel that is declared but unconsumed is not sampled, and one
@@ -225,9 +225,9 @@ private:
 //                                                  THE MATERIAL INDEX
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Every material in the document, addressed by identity and shared by many occupants.
-/// note  🔴 `42` §6: editing a material changes every occupant enrolled in it, in one transaction. The `56` layer
-///        sequence beneath a layered channel belongs to the **surface** and not to the material — two occupants
+/// 🧩 Every material in the document, addressed by identity and shared by many owners.
+/// note  🔴 `42` §6: editing a material changes every owner registered in it, in one transaction. The `56` layer
+///        sequence beneath a layered channel belongs to the **surface** and not to the material — two owners
 ///        sharing a material and each painted differently is the ordinary case.
 /// tag   owning
 class MaterialIndex
@@ -269,22 +269,22 @@ private:
 //                                             PARTITION RESOLUTION — `00` §10 CONFLICT 15
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 What one partition identity resolves to — the occupant, its material, and the face range it covers.
-/// note  🔴 `16` §4.1: a partition identity is **not** an occupant identity. `26`'s enrolment test, `16` §5's
-///        classification and `74`'s picking all need the occupant and none of them can derive it from what `16`
+/// 🧩 What one partition identity resolves to — the owner, its material, and the face range it covers.
+/// note  🔴 `16` §4.1: a partition identity is **not** an owner identity. `26`'s registration test, `16` §5's
+///        classification and `74`'s picking all need the owner and none of them can derive it from what `16`
 ///        writes. This is the one resolution every consumer reads.
 /// tag   nonallocating, nonthrowing
 struct ResolvedPartition
 {
-    OccupantIdentity  Occupant        = {};   // [-] - `26` outlining, `18` transform
+    OwnerIdentity  Owner        = {};   // [-] - `26` outlining, `18` transform
     std::uint32_t     MaterialOrdinal = 0u;   // [-] - `18` reflectance and channel selection
     std::uint32_t     FirstFace       = 0u;   // [-] - domain reconstruction at the pixel
     std::uint32_t     FaceCount       = 0u;   // [-] - faces the partition covers
 };
 
-/// 🧩 Partition identity to occupant, material and face range — a derived projection, never authored.
+/// 🧩 Partition identity to owner, material and face range — a derived projection, never authored.
 /// note  🔴 `42` §4: rebuilt when the population changes and **never authored**. Two sources of truth about which
-///        occupant a partition belongs to would disagree exactly when an occupant was added, which is the moment
+///        owner a partition belongs to would disagree exactly when an owner was added, which is the moment
 ///        the artist is looking at it.
 /// note  🔴 It is a device-resident indexed lookup, never a search. Every consumer reads this one resolution
 ///        rather than deriving its own — `16` §6's gate.
@@ -299,8 +299,8 @@ public:
     void Reclaim();
 
     /// 🧩 Declares one partition's resolution, issuing its identity.
-    /// in    Resolving  [-]  the occupant, material and face range
-    /// out   Result    [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
+    /// in    Resolving  [-]  the owner, material and face range
+    /// out   Result    [-]  refuses with IdentityStale for an undeclared owner, and with ExtentExhausted at
     ///                       the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing

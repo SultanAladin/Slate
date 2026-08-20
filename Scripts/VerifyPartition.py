@@ -70,7 +70,7 @@ def ReadDeclaredUnits():
     return Declared
 
 
-# 🔴 A cycle is refused before anything else is checked. Every later question assumes the graph is acyclic.
+# 🔴 A cycle is rejected before anything else is checked. Every later question assumes the graph is acyclic.
 def TestAcyclic(Declared):
     Broken = []
 
@@ -79,15 +79,15 @@ def TestAcyclic(Declared):
         Stack = [UnitName]
 
         while Stack:
-            Standing = Stack.pop()
+            Current = Stack.pop()
 
-            for Required in Declared[Standing]['Requires']:
+            for Required in Declared[Current]['Requires']:
                 if Required not in Declared:
-                    Broken.append("{0} requires {1}, which declares no Module.toml".format(Standing, Required))
+                    Broken.append("{0} requires {1}, which declares no Module.toml".format(Current, Required))
                     continue
 
                 if Required == UnitName:
-                    Broken.append("{0} participates in a dependency cycle through {1}".format(UnitName, Standing))
+                    Broken.append("{0} participates in a dependency cycle through {1}".format(UnitName, Current))
                     continue
 
                 if Required not in Seen:

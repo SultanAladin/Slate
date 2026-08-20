@@ -69,7 +69,7 @@ struct HostDeclaration
 /// 🧩 Every device handle a layer above this one needs in order to attach to what was constructed.
 /// note  🔴 Declared here rather than reached for from `SlateUI`. `InterfaceAttachment` is the same set of
 ///        handles, but it lives one layer up, and a component in `SlateVulkan` that included it would
-///        invert the dependency partition — the compiler refused exactly that, which is the partition
+///        invert the dependency partition — the compiler rejected exactly that, which is the partition
 ///        working. A host copies the eight members across; the copy is the seam.
 /// note  ⚠️ The image counts are restated on every display recovery, so a reader that took a copy before a
 ///        resize holds two figures the chain no longer has.
@@ -91,14 +91,14 @@ struct DeviceOffering
 //                                                    WHAT ONE TICK CARRIES
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 What the vendor's diagnostic layers reported across the whole run, counted by disposition.
+/// 🧩 What the vendor's diagnostic layers reported across the whole run, counted by verdict.
 /// note  🔴 `86` §5 is the authority on which of the seven dispositions is a problem, and this states the
 ///        counts rather than a judgement. `Serious` is the one figure that carries a judgement, and it
-///        counts `Refused` and `Failed` alone — the two rows §5's table marks as problems outright.
+///        counts `Rejected` and `Failed` alone — the two rows §5's table marks as problems outright.
 /// note  ⚠️ `Terminated` is excluded from `Serious` deliberately. §5 marks it **sometimes** a problem and
 ///        requires it to be presented as ambiguous rather than resolved; folding it into a pass-or-fail
 ///        figure would resolve it here, one layer below where §5 declares that decision.
-/// note  ⚠️ `Arrived` and `Retained` differ by two mechanisms, and the difference is load-bearing.
+/// note  ⚠️ `Received` and `Retained` differ by two mechanisms, and the difference is load-bearing.
 ///        `ReportSequence` coalesces a recurrence into one entry with a count, and it discards the oldest
 ///        at `RetainedCeiling`. A reader that sees `Retained` alone cannot tell a clean run from one whose
 ///        first error was discarded four thousand arrivals ago, which is why `Discarded` is stated.
@@ -108,7 +108,7 @@ struct DeviceOffering
 struct DiagnosticVerdict
 {
     bool           Negotiated = false;   // [-] - the sink attached; without it every figure below is meaningless
-    std::uint64_t  Arrived    = 0u;      // [-] - raw arrivals at the sink, coalescing and discards included
+    std::uint64_t  Received    = 0u;      // [-] - raw arrivals at the sink, coalescing and discards included
     std::uint32_t  Retained   = 0u;      // [-] - entries standing in the register now
     std::uint64_t  Appended   = 0u;      // [-] - occurrences appended across the session
     std::uint64_t  Discarded  = 0u;      // [-] - retained entries the ceiling dropped
@@ -116,29 +116,29 @@ struct DiagnosticVerdict
 };
 
 /// 🧩 What `Await` decided about this tick before any content was built.
-/// note  🔴 A host reads `Standing` and nothing else to decide whether to record. `Withdrawn` is not an
+/// note  🔴 A host reads `Current` and nothing else to decide whether to record. `Idle` is not an
 ///        error — it is the ordinary answer on a minimised window, a resized chain, or a tick the vendor
-///        declined — and a host that treats it as one exits on the first resize.
+///        rejected — and a host that treats it as one exits on the first resize.
 /// tag   contract
-enum class TickStanding : std::uint32_t
+enum class TickCondition : std::uint32_t
 {
     Recording     = 0u,   // [-] - an image is acquired and a recording is open; the host must record
-    Withdrawn     = 1u,   // [-] - nothing was acquired; the host records nothing and asks again
+    Idle     = 1u,   // [-] - nothing was acquired; the host records nothing and asks again
     Closed        = 2u,   // [-] - the window was closed, or the device was lost beyond recovery
-    StandingCount = 3u    // [-] - the closed count, never a standing
+    ConditionCount = 3u    // [-] - the closed count, never a standing
 };
 
-/// 🧩 One tick's arrangement, valid only until `Surrender` or the next `Await`.
+/// 🧩 One tick's arrangement, valid only until `Complete` or the next `Await`.
 /// note  ⚠️ `Recording` is a vendor handle and is deliberately the only one that crosses. A host records
 ///        into it through the interface seam; nothing here hands out the device, the chain or the slots.
 /// tag   contract, nonallocating, nonthrowing
 struct TickPass
 {
-    TickStanding     Standing        = TickStanding::Withdrawn;   // [-]
+    TickCondition     Current        = TickCondition::Idle;   // [-]
     VkCommandBuffer  Recording       = VK_NULL_HANDLE;            // [-]  - inside a dynamic rendering scope
     double           ElapsedMilliseconds = 0.0;                   // [ms] - since the previous tick
-    std::uint32_t    ExtentAlong     = 0u;                        // [px] - the drawable extent this tick
-    std::uint32_t    ExtentAcross    = 0u;                        // [px]
+    std::uint32_t    Width     = 0u;                        // [px] - the drawable extent this tick
+    std::uint32_t    Height    = 0u;                        // [px]
     bool             DisplayAltered  = false;                     // [-]  - the chain was re-established
     bool             DeviceRetiring  = false;                     // [-]  - retire device resources THIS tick
 };
@@ -150,7 +150,7 @@ struct TickPass
 /// 🧩 Constructs the five lifetimes in `32` §1's order, recovers them, and unwinds them in the exact reverse.
 /// note  🔴 This component exists because three hosts had written the same bring-up, the same recovery and
 ///        the same teardown, and the three copies had drifted. `PaintHost` never tested `ExtentAltered`, so
-///        resizing did nothing until the vendor refused; it left the tick loop on a refused present rather
+///        resizing did nothing until the vendor rejected; it left the tick loop on a rejected present rather
 ///        than re-establishing the chain; and it opened its command recording **before** building the
 ///        interface tick, so five of its escape paths returned to the top of the loop with a command buffer
 ///        still recording and a display image still acquired. A second windowed host had none of those, and
@@ -174,7 +174,7 @@ public:
     // 🔴 A device lost more than twice in one session is a driver that is not coming back. Rebuilding
     //    without a ceiling presents the artist with a window that never draws, which is strictly worse
     //    than one that reports the loss and exits.
-    static constexpr std::uint32_t DeviceRecoveryCeiling = 2u;   // [-] - rebuilds admitted per session
+    static constexpr std::uint32_t DeviceRecoveryCeiling = 2u;   // [-] - rebuilds accepted per session
 
     HostLifecycle()                                = default;
     HostLifecycle(const HostLifecycle&)            = delete;
@@ -195,30 +195,30 @@ public:
     /// 🧩 Opens one tick — drains input, recovers the display if it moved, acquires an image, and opens a
     ///    recording inside a rendering scope over it.
     /// in    ClearInk  [-]  what the colour target is cleared to, as four unit ordinates
-    /// out   Pass      [-]  `Recording` when the host must record, `Withdrawn` when it must not, `Closed`
+    /// out   Pass      [-]  `Recording` when the host must record, `Idle` when it must not, `Closed`
     ///                      when the loop must end
     /// note  🔴 Every refusal is resolved **before** the image is acquired. That ordering is the whole of
     ///        the resize defect: nothing after the acquire can decline, so nothing after it can return.
-    /// note  ⚠️ A `Withdrawn` tick has acquired nothing and opened nothing. Calling `Surrender` after one
-    ///        is refused rather than submitting an empty recording.
+    /// note  ⚠️ A `Idle` tick has acquired nothing and opened nothing. Calling `Complete` after one
+    ///        is rejected rather than submitting an empty recording.
     /// cost  🚩
     /// tag   api, nonthrowing
     TickPass Await(const float ClearInk[4]);
 
     /// 🧩 Closes the rendering scope, submits the recording, presents, and advances the cycle.
-    /// out   Result  [-]  refuses when no tick stands recording; a refused present is recovered here and
+    /// out   Result  [-]  refuses when no tick stands recording; a rejected present is recovered here and
     ///                     is not reported as a refusal
-    /// note  🔴 A refused present re-establishes the chain rather than ending the loop. It is the ordinary
+    /// note  🔴 A rejected present re-establishes the chain rather than ending the loop. It is the ordinary
     ///        answer to a resize that arrived between the acquire and the present.
     /// post  no recording is open; the next Await may proceed
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Surrender();
+    Outcome<bool> Complete();
 
     /// 🧩 Whether the host should keep ticking.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    bool Standing() const;
+    bool Active() const;
 
     /// 🧩 Every device handle a layer above needs, filled from what was constructed.
     /// note  The image counts are restated on every display recovery, so a host that reads this after a
@@ -245,7 +245,7 @@ public:
     bool DisplayRecovered();
 
     /// 🧩 Asks for the device tier to be rebuilt at the start of the next tick.
-    /// note  🔴 Two-phase by necessity. The tick this is asked on returns `Withdrawn` with `DeviceRetiring`
+    /// note  🔴 Two-phase by necessity. The tick this is asked on returns `Idle` with `DeviceRetiring`
     ///        raised, so the host retires its device resources WHILE THE DEVICE STILL STANDS; the rebuild
     ///        happens next tick. Rebuilding at once destroyed the device before the host had been told,
     ///        and the host's own reclamation then idled a dead handle.
@@ -282,7 +282,7 @@ public:
     /// tag   api, nonallocating, nonthrowing
     bool DeviceRecovered();
 
-    /// 🧩 What the vendor's diagnostic layers reported across the run so far, counted by disposition.
+    /// 🧩 What the vendor's diagnostic layers reported across the run so far, counted by verdict.
     /// out   Verdict  [-]  zeroed with `Negotiated == false` where no sink attached
     /// use   A host states this once at teardown, so a run under the validation layers ends in a figure
     ///       rather than in a console a reader has to scroll back through.
@@ -315,7 +315,7 @@ private:
     Outcome<bool> EstablishDisplay(std::uint32_t Width, std::uint32_t Height);
     bool          RecoverDisplay();
 
-    /// 🧩 Retires an acquired image whose `ImageArrived` no submission is going to wait down.
+    /// 🧩 Retires an acquired image whose `ImageAvailable` no submission is going to wait down.
     /// note  🔴 Every path that returns between the acquire and the submission calls this. A binary
     ///        semaphore is unsignalled only by a wait, so one left signalled is signalled a second time by
     ///        the next acquire on that slot — and the chain it is pending against cannot be destroyed
@@ -334,17 +334,17 @@ private:
 
     VkSurfaceKHR         PresentationSurface = VK_NULL_HANDLE; // [-] - Host lifetime, after the instance
     TickPoint            PreviousTick      = {};               // [-]
-    ArrivedImage         AcquiredImage     = {};               // [-] - valid only while a tick records
+    AcquiredImage         TickImage         = {};               // [-] - valid only while a tick records
     std::uint32_t        SlotOrdinal       = 0u;               // [-] - the cycle slot this tick took
-    VkCommandBuffer      OpenRecording     = VK_NULL_HANDLE;   // [-] - non-null only between Await and Surrender
-    bool                 TickRecording     = false;            // [-] - a tick stands at TickStanding::Recording
+    VkCommandBuffer      OpenRecording     = VK_NULL_HANDLE;   // [-] - non-null only between Await and Complete
+    bool                 TickRecording     = false;            // [-] - a tick stands at TickCondition::Recording
     bool                 DisplayAltered    = false;            // [-] - a recovery the host has not adopted
     bool                 DeviceAltered     = false;            // [-] - a device rebuild the host has not adopted
     bool                 DeviceRebuildAsked= false;            // [-] - asked for; serviced next tick
     bool                 DeviceRetiring    = false;            // [-] - phase one done; the rebuild is next
     bool                 ResizeStorming    = false;            // [-] - re-establish every tick until released
     std::uint32_t        DeviceRecoveries  = 0u;               // [-] - rebuilds attempted; the retry is bounded
-    bool                 LoopStanding      = false;            // [-] - false once the window closed
+    bool                 LoopActive      = false;            // [-] - false once the window closed
     ResourceLifetime     Constructed       = ResourceLifetime::Host;   // [-] - how far bring-up reached
 };
 

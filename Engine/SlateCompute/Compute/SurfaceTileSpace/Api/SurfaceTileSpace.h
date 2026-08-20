@@ -84,8 +84,8 @@ inline constexpr std::uint32_t CellOrdinalSpan = LevelBaseOrdinal(ReductionLevel
 struct CellAddress
 {
     std::uint32_t  Level  = 0u;   // [-] - zero is finest
-    std::uint32_t  Along  = 0u;   // [-] - the domain's first axis
-    std::uint32_t  Across = 0u;   // [-] - its second
+    std::uint32_t  X  = 0u;   // [-] - the domain's first axis
+    std::uint32_t  Y = 0u;   // [-] - its second
 };
 
 /// 🧩 The single ordinal one address occupies.
@@ -101,15 +101,15 @@ Outcome<std::uint32_t> OrdinalOf(CellAddress Addressed);
 Outcome<CellAddress> AddressOf(std::uint32_t CellOrdinal);
 
 /// 🧩 The cell one domain position falls in, at a declared level.
-/// in    PositionAlong   [-]  the domain's first axis, in the unit square
-/// in    PositionAcross  [-]  its second
+/// in    PositionX   [-]  the domain's first axis, in the unit square
+/// in    PositionY  [-]  its second
 /// out   Result         [-]  refuses with ContentUnsupported outside the level count
-/// note  📝 A position outside the unit square is clamped rather than refused. `68` §5 packs every chart
+/// note  📝 A position outside the unit square is clamped rather than rejected. `68` §5 packs every chart
 ///        strictly inside the domain with a gap, so a position outside it is an apron read at the domain edge
 ///        and the edge cell is the right answer for it.
 /// cost  ✔️
 /// tag   api, nonthrowing
-Outcome<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionAlong, double PositionAcross);
+Outcome<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionX, double PositionY);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ONE CELL
@@ -238,8 +238,8 @@ public:
 
     /// 🧩 Resolves a domain position at a declared level, demanding what is not resident.
     /// in    Level            [-]  the level wanted; zero is finest
-    /// in    PositionAlong    [-]  the domain's first axis
-    /// in    PositionAcross   [-]  its second
+    /// in    PositionX    [-]  the domain's first axis
+    /// in    PositionY   [-]  its second
     /// in    RecordingOrdinal  [-]  the rotation sampling
     /// in    Requesting       [-]  where the demand is recorded
     /// out   Result          [-]  refuses with ContentUnsupported outside the level count, and with
@@ -251,8 +251,8 @@ public:
     /// cost  🚩
     /// tag   api, nonthrowing
     Outcome<SampledCell> Sample(std::uint32_t Level,
-                                double        PositionAlong,
-                                double        PositionAcross,
+                                double        PositionX,
+                                double        PositionY,
                                 std::uint64_t RecordingOrdinal,
                                 RequestQueue& Requesting);
 
@@ -263,7 +263,7 @@ public:
     ///        only what is guaranteed and demands nothing at all.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<SampledCell> SampleGuaranteed(double PositionAlong, double PositionAcross) const;
+    Outcome<SampledCell> SampleGuaranteed(double PositionX, double PositionY) const;
 
     /// 🧩 Declares whether one cell holds paint no transaction has sealed.
     /// out   Result  [-]  refuses with ContentUnsupported outside the span, and with HostDenied when a
@@ -288,15 +288,15 @@ public:
     ///                             before Construct has delivered
     /// post  a promoted or re-resolved cell owes its apron; the caller writes it and declares it
     /// note  🔴 `70` §2's comparison, discharged here: a resident cell whose recorded revision equals the
-    ///        arriving one is `AlreadyResident` and nothing is charged. The comparison is one integer test at
+    ///        incoming one is `AlreadyResident` and nothing is charged. The comparison is one integer test at
     ///        Exact, per tile, and its answer is almost always "no work" — a camera move advances no counter and
-    ///        a moved occupant advances no counter, because a placement's transform is stored relative to its
+    ///        a moved owner advances no counter, because a placement's transform is stored relative to its
     ///        surface.
     /// note  🔴 A budget refusal and an eviction refusal both resolve to `Deferred`, never to a failure. `20`
     ///        §2.2: deferral is normal operation, and `86` §5 keeps it a measure rather than a report.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<PromotionDisposition> Promote(std::uint32_t       CellOrdinal,
+    Outcome<PromotionVerdict> Promote(std::uint32_t       CellOrdinal,
                                           const PromotionCost& Costing,
                                           std::uint64_t        ContentRevision,
                                           PromotionScheduler&  Scheduling,
@@ -351,7 +351,7 @@ public:
 
 private:
 
-    Outcome<std::uint32_t> ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal);
+    Outcome<std::uint32_t> ReserveOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal);
 
     CellSpace      Cells_;                       // [-] - one record per cell of every level
     TileSpace      Tiles_;                       // [-] - the slot ledger behind them

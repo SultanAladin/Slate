@@ -62,14 +62,14 @@ Outcome<LayerIdentity> SurfaceLayerSequence::Append(const LayerSpecification& De
         }
     }
 
-    LayerSpecification Arriving = Declaring;
+    LayerSpecification Incoming = Declaring;
 
-    Arriving.Identity.SlotOrdinal    = static_cast<std::uint32_t>(Sequenced.size());
-    Arriving.Identity.SlotGeneration = IssuedGeneration;
+    Incoming.Identity.SlotOrdinal    = static_cast<std::uint32_t>(Sequenced.size());
+    Incoming.Identity.SlotGeneration = RegisteredGeneration;
 
-    Sequenced.push_back(Arriving);
+    Sequenced.push_back(Incoming);
 
-    return Outcome<LayerIdentity>::Result(Arriving.Identity);
+    return Outcome<LayerIdentity>::Result(Incoming.Identity);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -88,10 +88,10 @@ Outcome<std::uint32_t> SurfaceLayerSequence::Reorder(LayerIdentity Subject, std:
 
     Sequenced.erase(Sequenced.begin() + static_cast<std::ptrdiff_t>(Located_));
 
-    const std::size_t Arriving = Position >= Sequenced.size() ? Sequenced.size()
+    const std::size_t Incoming = Position >= Sequenced.size() ? Sequenced.size()
                                                               : static_cast<std::size_t>(Position);
 
-    Sequenced.insert(Sequenced.begin() + static_cast<std::ptrdiff_t>(Arriving), Held);
+    Sequenced.insert(Sequenced.begin() + static_cast<std::ptrdiff_t>(Incoming), Held);
 
     return Outcome<std::uint32_t>::Result(Prior);
 }
@@ -158,7 +158,7 @@ Outcome<LayerSpecification> SurfaceLayerSequence::Withdraw(LayerIdentity Subject
 
     // 📝 The generation advances on withdrawal, so an identity the caller still holds resolves to absent rather
     //    than to whichever entry later occupies the position — `10` §2.1's scheme, unchanged.
-    ++IssuedGeneration;
+    ++RegisteredGeneration;
 
     return Outcome<LayerSpecification>::Result(Departing);
 }
@@ -190,41 +190,41 @@ namespace
 //    would also shear every diagonal the artist painted; bilinear softens uniformly, which is the failure mode
 //    that reads as a resampling rather than as a defect.
 float SampleBilinear(const PaintedContent& Held,
-                     double                PositionAlong,
-                     double                PositionAcross,
+                     double                PositionX,
+                     double                PositionY,
                      std::uint32_t         Component)
 {
     const double Extent = static_cast<double>(Held.ExtentTexels);
 
-    double AlongTexel  = PositionAlong  * Extent - 0.5;
-    double AcrossTexel = PositionAcross * Extent - 0.5;
+    double XTexel  = PositionX  * Extent - 0.5;
+    double YTexel = PositionY * Extent - 0.5;
 
-    AlongTexel  = AlongTexel  < 0.0 ? 0.0 : (AlongTexel  > Extent - 1.0 ? Extent - 1.0 : AlongTexel);
-    AcrossTexel = AcrossTexel < 0.0 ? 0.0 : (AcrossTexel > Extent - 1.0 ? Extent - 1.0 : AcrossTexel);
+    XTexel  = XTexel  < 0.0 ? 0.0 : (XTexel  > Extent - 1.0 ? Extent - 1.0 : XTexel);
+    YTexel = YTexel < 0.0 ? 0.0 : (YTexel > Extent - 1.0 ? Extent - 1.0 : YTexel);
 
-    const std::uint32_t LeastAlong  = static_cast<std::uint32_t>(AlongTexel);
-    const std::uint32_t LeastAcross = static_cast<std::uint32_t>(AcrossTexel);
+    const std::uint32_t MinimumX  = static_cast<std::uint32_t>(XTexel);
+    const std::uint32_t MinimumY = static_cast<std::uint32_t>(YTexel);
 
-    const std::uint32_t NextAlong  = LeastAlong  + 1u < Held.ExtentTexels ? LeastAlong  + 1u : LeastAlong;
-    const std::uint32_t NextAcross = LeastAcross + 1u < Held.ExtentTexels ? LeastAcross + 1u : LeastAcross;
+    const std::uint32_t NextX  = MinimumX  + 1u < Held.ExtentTexels ? MinimumX  + 1u : MinimumX;
+    const std::uint32_t NextY = MinimumY + 1u < Held.ExtentTexels ? MinimumY + 1u : MinimumY;
 
-    const double FractionAlong  = AlongTexel  - static_cast<double>(LeastAlong);
-    const double FractionAcross = AcrossTexel - static_cast<double>(LeastAcross);
+    const double FractionX  = XTexel  - static_cast<double>(MinimumX);
+    const double FractionY = YTexel - static_cast<double>(MinimumY);
 
     const std::size_t Stride = static_cast<std::size_t>(Held.ComponentCount);
 
-    const std::size_t LowerLeft  = (static_cast<std::size_t>(LeastAcross) * Held.ExtentTexels + LeastAlong) * Stride;
-    const std::size_t LowerRight = (static_cast<std::size_t>(LeastAcross) * Held.ExtentTexels + NextAlong)  * Stride;
-    const std::size_t UpperLeft  = (static_cast<std::size_t>(NextAcross)  * Held.ExtentTexels + LeastAlong) * Stride;
-    const std::size_t UpperRight = (static_cast<std::size_t>(NextAcross)  * Held.ExtentTexels + NextAlong)  * Stride;
+    const std::size_t LowerLeft  = (static_cast<std::size_t>(MinimumY) * Held.ExtentTexels + MinimumX) * Stride;
+    const std::size_t LowerRight = (static_cast<std::size_t>(MinimumY) * Held.ExtentTexels + NextX)  * Stride;
+    const std::size_t UpperLeft  = (static_cast<std::size_t>(NextY)  * Held.ExtentTexels + MinimumX) * Stride;
+    const std::size_t UpperRight = (static_cast<std::size_t>(NextY)  * Held.ExtentTexels + NextX)  * Stride;
 
-    const double Lower = static_cast<double>(Held.Texels[LowerLeft + Component])  * (1.0 - FractionAlong)
-                       + static_cast<double>(Held.Texels[LowerRight + Component]) * FractionAlong;
+    const double Lower = static_cast<double>(Held.Texels[LowerLeft + Component])  * (1.0 - FractionX)
+                       + static_cast<double>(Held.Texels[LowerRight + Component]) * FractionX;
 
-    const double Upper = static_cast<double>(Held.Texels[UpperLeft + Component])  * (1.0 - FractionAlong)
-                       + static_cast<double>(Held.Texels[UpperRight + Component]) * FractionAlong;
+    const double Upper = static_cast<double>(Held.Texels[UpperLeft + Component])  * (1.0 - FractionX)
+                       + static_cast<double>(Held.Texels[UpperRight + Component]) * FractionX;
 
-    return static_cast<float>(Lower * (1.0 - FractionAcross) + Upper * FractionAcross);
+    return static_cast<float>(Lower * (1.0 - FractionY) + Upper * FractionY);
 }
 
 void ResampleContent(PaintedContent&                                               Held,
@@ -233,41 +233,41 @@ void ResampleContent(PaintedContent&                                            
     if (Held.ExtentTexels == 0u || Held.Texels.empty())
         return;
 
-    std::vector<float> Arriving(Held.Texels.size(), 0.0f);
+    std::vector<float> Incoming(Held.Texels.size(), 0.0f);
 
     const double Extent = static_cast<double>(Held.ExtentTexels);
 
-    for (std::uint32_t Across = 0u; Across < Held.ExtentTexels; ++Across)
+    for (std::uint32_t Y = 0u; Y < Held.ExtentTexels; ++Y)
     {
-        for (std::uint32_t Along = 0u; Along < Held.ExtentTexels; ++Along)
+        for (std::uint32_t X = 0u; X < Held.ExtentTexels; ++X)
         {
-            const double PositionAlong  = (static_cast<double>(Along)  + 0.5) / Extent;
-            const double PositionAcross = (static_cast<double>(Across) + 0.5) / Extent;
+            const double PositionX  = (static_cast<double>(X)  + 0.5) / Extent;
+            const double PositionY = (static_cast<double>(Y) + 0.5) / Extent;
 
-            double FormerAlong  = 0.0;
-            double FormerAcross = 0.0;
+            double FormerX  = 0.0;
+            double FormerY = 0.0;
 
             // 📝 A position the remapping cannot answer occupied no chart in the former domain, so it is left at
             //    zero rather than filled from the nearest thing. A fabricated value here is content the artist
             //    never painted, appearing exactly where a chart boundary moved.
-            if (!Remapping(PositionAlong, PositionAcross, FormerAlong, FormerAcross))
+            if (!Remapping(PositionX, PositionY, FormerX, FormerY))
                 continue;
 
-            const std::size_t Writing = (static_cast<std::size_t>(Across) * Held.ExtentTexels + Along)
+            const std::size_t Writing = (static_cast<std::size_t>(Y) * Held.ExtentTexels + X)
                                       * static_cast<std::size_t>(Held.ComponentCount);
 
             for (std::uint32_t Component = 0u; Component < Held.ComponentCount; ++Component)
-                Arriving[Writing + Component] = SampleBilinear(Held, FormerAlong, FormerAcross, Component);
+                Incoming[Writing + Component] = SampleBilinear(Held, FormerX, FormerY, Component);
         }
     }
 
-    Held.Texels.swap(Arriving);
+    Held.Texels.swap(Incoming);
 }
 
 }   // namespace
 
 Outcome<bool> SurfaceLayerSequence::Resample(
-    std::uint64_t                                                 ArrivingRevision,
+    std::uint64_t                                                 IncomingRevision,
     const std::function<bool(double, double, double&, double&)>&  Remapping,
     ReportSequence&                                               Reporting,
     TickPoint                                                     Sampled)
@@ -275,7 +275,7 @@ Outcome<bool> SurfaceLayerSequence::Resample(
     if (!Remapping)
         return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no domain remapping was supplied" });
 
-    if (ArrivingRevision == DescribedRevision)
+    if (IncomingRevision == DescribedRevision)
         return Outcome<bool>::Result(true);
 
     std::uint32_t ResampledCount = 0u;
@@ -299,13 +299,13 @@ Outcome<bool> SurfaceLayerSequence::Resample(
 
     for (SurfaceLayerSequence& Nesting : NestedSequences)
     {
-        const Outcome<bool> Nested = Nesting.Resample(ArrivingRevision, Remapping, Reporting, Sampled);
+        const Outcome<bool> Nested = Nesting.Resample(IncomingRevision, Remapping, Reporting, Sampled);
 
         if (!Nested.Resolved)
             return Nested;
     }
 
-    DescribedRevision = ArrivingRevision;
+    DescribedRevision = IncomingRevision;
 
     // 🔴 `86` §4's `56` §3.1 row, and the register's most consequential entry. It is the one operation in the
     //    engine that resamples authored content, and presenting it at the same weight as a residency total is a
@@ -316,8 +316,8 @@ Outcome<bool> SurfaceLayerSequence::Resample(
         Amended.Origin         = "56 §3.1 SurfaceLayerSequence";
         Amended.Subject        = "PaintedResampling";
         Amended.Detail         = "a re-partition moved the domain; painted texels were resampled into it";
-        Amended.SubjectOrdinal = ArrivingRevision;
-        Amended.Disposition    = ReportDisposition::Amended;
+        Amended.SubjectOrdinal = IncomingRevision;
+        Amended.Verdict    = ReportVerdict::Amended;
         Amended.Arrival        = Sampled;
 
         Reporting.Append(Amended);

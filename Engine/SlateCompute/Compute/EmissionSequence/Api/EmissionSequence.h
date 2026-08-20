@@ -24,7 +24,7 @@ namespace Slate
 
 // 🔴 The widest edge an emission may declare. Sixteen thousand per edge at four components is a gigabyte in
 //    single precision, which is the point past which an export is a decision the artist should have been asked
-//    about rather than a wait they are subjected to. Refused at Open, where the refusal costs nothing.
+//    about rather than a wait they are subjected to. Rejected at Open, where the refusal costs nothing.
 inline constexpr std::uint32_t EmissionExtentCeiling = 16384u;   // [px] - per edge, per emitted image
 
 // 📝 Rows one band resolves. `50` §5 runs an emission through `34` at `Background`, and a work item that
@@ -133,11 +133,11 @@ public:
 
     /// 🧩 Opens one image of a validated emission, ready for its first band.
     /// in    Declaring     [-]  the emission specification; validated here, again, and not assumed
-    /// in    Materials     [-]  the declared materials, so a channel no material declares is refused
+    /// in    Materials     [-]  the declared materials, so a channel no material declares is rejected
     /// in    ImageOrdinal  [-]  which of the specification's images this emission produces
     /// out   Result       [-]  refuses with HostDenied before Construct and while an emission stands, with
     ///                          ContentUnsupported outside the image count and above the extent ceiling, and
-    ///                          with whatever the specification's own validation refused
+    ///                          with whatever the specification's own validation rejected
     /// post  🔴 the texel run is allocated once, whole, so no band reallocates mid-emission
     /// note  🔴 `Validate` is asked here even though `AssetInterchange::DeclareEmission` asked it already. The
     ///        specification is handed in by value and the two calls are separated by however long the artist
@@ -152,12 +152,12 @@ public:
     /// 🧩 Resolves the next band of rows, and no more than that.
     /// in    Content   [-]  the sealed layer sequence the emission reads
     /// out   Result   [-]  refuses with HostDenied before Open, with ExtentExhausted once every row is
-    ///                      resolved, and with whatever `70` refused at the first position it refused at
+    ///                      resolved, and with whatever `70` rejected at the first position it rejected at
     /// post  the delivered count is rows resolved this call; zero is never delivered
     /// note  🔴 A refusal from `70` abandons the **whole** emission rather than leaving the band half-written.
     ///        `50` §2's rule for a partial intake is the same rule from the other direction: an image that is
     ///        resolved above a seam and zero below it is an asset the artist ships without noticing, whereas an
-    ///        export that refused is one they cannot miss.
+    ///        export that rejected is one they cannot miss.
     /// note  📝 Texels are sampled at their **centres** — (Row + ½)/Extent — and not at their corners. A corner
     ///        sample places the first texel exactly on the domain boundary, where a seam's two sides are equally
     ///        near and the resolution picks one arbitrarily.

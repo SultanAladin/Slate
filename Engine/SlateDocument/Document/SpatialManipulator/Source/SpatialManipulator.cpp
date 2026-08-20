@@ -273,40 +273,40 @@ bool IntersectCapsule(const DirectionSpan& RayOrigin,
 
     const double Denominator = RayOnRay * SegOnSegment - RayOnSegment * RayOnSegment;
 
-    double AlongRay     = 0.0;
-    double AlongSegment = 0.0;
+    double RayDistance     = 0.0;
+    double SegmentDistance = 0.0;
 
     if (std::fabs(Denominator) < ParallelEpsilon || SegOnSegment <= 0.0)
     {
-        AlongSegment = 0.0;
-        AlongRay     = -RayOnNear / RayOnRay;
+        SegmentDistance = 0.0;
+        RayDistance     = -RayOnNear / RayOnRay;
     }
     else
     {
-        AlongRay     = (RayOnSegment * SegOnNear - SegOnSegment * RayOnNear) / Denominator;
-        AlongSegment = (RayOnRay     * SegOnNear - RayOnSegment * RayOnNear) / Denominator;
+        RayDistance     = (RayOnSegment * SegOnNear - SegOnSegment * RayOnNear) / Denominator;
+        SegmentDistance = (RayOnRay     * SegOnNear - RayOnSegment * RayOnNear) / Denominator;
 
-        if (AlongSegment < 0.0)  AlongSegment = 0.0;
-        if (AlongSegment > 1.0)  AlongSegment = 1.0;
+        if (SegmentDistance < 0.0)  SegmentDistance = 0.0;
+        if (SegmentDistance > 1.0)  SegmentDistance = 1.0;
 
-        AlongRay = (RayOnSegment * AlongSegment - RayOnNear) / RayOnRay;
+        RayDistance = (RayOnSegment * SegmentDistance - RayOnNear) / RayOnRay;
     }
 
-    if (AlongRay < 0.0)
-        AlongRay = 0.0;
+    if (RayDistance < 0.0)
+        RayDistance = 0.0;
 
     DirectionSpan Separation;
-    Separation.SpanX = (RayOrigin.SpanX + RayDirection.SpanX * AlongRay)
-                     - (SpanNear.SpanX  + SegmentSpan.SpanX  * AlongSegment);
-    Separation.SpanY = (RayOrigin.SpanY + RayDirection.SpanY * AlongRay)
-                     - (SpanNear.SpanY  + SegmentSpan.SpanY  * AlongSegment);
-    Separation.SpanZ = (RayOrigin.SpanZ + RayDirection.SpanZ * AlongRay)
-                     - (SpanNear.SpanZ  + SegmentSpan.SpanZ  * AlongSegment);
+    Separation.SpanX = (RayOrigin.SpanX + RayDirection.SpanX * RayDistance)
+                     - (SpanNear.SpanX  + SegmentSpan.SpanX  * SegmentDistance);
+    Separation.SpanY = (RayOrigin.SpanY + RayDirection.SpanY * RayDistance)
+                     - (SpanNear.SpanY  + SegmentSpan.SpanY  * SegmentDistance);
+    Separation.SpanZ = (RayOrigin.SpanZ + RayDirection.SpanZ * RayDistance)
+                     - (SpanNear.SpanZ  + SegmentSpan.SpanZ  * SegmentDistance);
 
     if (SpanDot(Separation, Separation) > HalfExtent * HalfExtent)
         return false;
 
-    RayParameter = AlongRay;
+    RayParameter = RayDistance;
     return true;
 }
 
@@ -416,9 +416,9 @@ ManipulationGrip DeclareConeGrip(std::uint32_t        AxisOrdinal,
     Declaring.GripColour = AxisColour(AxisOrdinal);
 
     Declaring.Generated.Generated        = PrimitiveSubject::Cone;
-    Declaring.Generated.HalfExtentAlong  = GripConeRadius;
+    Declaring.Generated.HalfExtentX  = GripConeRadius;
     Declaring.Generated.HalfExtentUp     = GripConeLength * 0.5;
-    Declaring.Generated.HalfExtentAcross = GripConeRadius;
+    Declaring.Generated.HalfExtentY = GripConeRadius;
     Declaring.Generated.RadialCount      = 24u;
     Declaring.Generated.AxialCount       = 1u;
 
@@ -447,9 +447,9 @@ ManipulationGrip DeclareScaleGrip(std::uint32_t        AxisOrdinal,
     Declaring.GripColour = AxisColour(AxisOrdinal);
 
     Declaring.Generated.Generated        = PrimitiveSubject::Cylinder;
-    Declaring.Generated.HalfExtentAlong  = GripConeRadius;
+    Declaring.Generated.HalfExtentX  = GripConeRadius;
     Declaring.Generated.HalfExtentUp     = GripScaleLength * 0.5;
-    Declaring.Generated.HalfExtentAcross = GripConeRadius;
+    Declaring.Generated.HalfExtentY = GripConeRadius;
     Declaring.Generated.RadialCount      = 24u;
     Declaring.Generated.AxialCount       = 1u;
 
@@ -477,9 +477,9 @@ ManipulationGrip DeclarePlaneGrip(std::uint32_t        AxisOrdinal,
     Declaring.GripColour = PlaneColour(AxisOrdinal);
 
     Declaring.Generated.Generated        = PrimitiveSubject::Plane;
-    Declaring.Generated.HalfExtentAlong  = GripPlaneHalfExtent;
+    Declaring.Generated.HalfExtentX  = GripPlaneHalfExtent;
     Declaring.Generated.HalfExtentUp     = GripPlaneHalfExtent;
-    Declaring.Generated.HalfExtentAcross = GripPlaneHalfExtent;
+    Declaring.Generated.HalfExtentY = GripPlaneHalfExtent;
     Declaring.Generated.RadialCount      = 3u;
     Declaring.Generated.AxialCount       = 1u;
 
@@ -514,9 +514,9 @@ ManipulationGrip DeclareRotationGrip(std::uint32_t        AxisOrdinal,
     Declaring.GripColour = AxisColour(AxisOrdinal);
 
     Declaring.Generated.Generated        = PrimitiveSubject::AnnularSector;
-    Declaring.Generated.HalfExtentAlong  = GripArcRadius;
+    Declaring.Generated.HalfExtentX  = GripArcRadius;
     Declaring.Generated.HalfExtentUp     = GripArcBand;
-    Declaring.Generated.HalfExtentAcross = GripArcRadius;
+    Declaring.Generated.HalfExtentY = GripArcRadius;
     Declaring.Generated.MinorRadius      = GripArcBand;
     Declaring.Generated.SweepRadians     = GripArcSweep;
     Declaring.Generated.SweepOffset      = PiConstant * 0.25 - GripArcSweep * 0.5;
@@ -672,9 +672,9 @@ Outcome<bool> ManipulationLayout::Layout(DocumentPosition        Origin,
         Ring.GripColour = DeclareOverlayColour(255.0, 255.0, 255.0);
 
         Ring.Generated.Generated        = PrimitiveSubject::Torus;
-        Ring.Generated.HalfExtentAlong  = GripRingRadius;
+        Ring.Generated.HalfExtentX  = GripRingRadius;
         Ring.Generated.HalfExtentUp     = GripRingBand;
-        Ring.Generated.HalfExtentAcross = GripRingRadius;
+        Ring.Generated.HalfExtentY = GripRingRadius;
         Ring.Generated.MinorRadius      = GripRingBand;
         Ring.Generated.RadialCount      = 48u;
         Ring.Generated.AxialCount       = 12u;
@@ -717,10 +717,10 @@ Outcome<bool> ManipulationLayout::Layout(DocumentPosition        Origin,
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<std::uint32_t> ManipulationLayout::Grasp(const CameraProjection& Camera,
-                                                 double                  PointerAlong,
-                                                 double                  PointerAcross,
-                                                 std::uint32_t           DisplayAlong,
-                                                 std::uint32_t           DisplayAcross) const
+                                                 double                  PointerX,
+                                                 double                  PointerY,
+                                                 std::uint32_t           DisplayX,
+                                                 std::uint32_t           DisplayY) const
 {
     if (!LayoutDeclared)
     {
@@ -728,8 +728,8 @@ Outcome<std::uint32_t> ManipulationLayout::Grasp(const CameraProjection& Camera,
             { RefusalReason::ContentUnsupported, "no layout stands; there is nothing to grasp" });
     }
 
-    const Outcome<ProjectedRay> Cast = ProjectPointerRay(Camera, PointerAlong, PointerAcross,
-                                                         DisplayAlong, DisplayAcross);
+    const Outcome<ProjectedRay> Cast = ProjectPointerRay(Camera, PointerX, PointerY,
+                                                         DisplayX, DisplayY);
 
     if (!Cast.Resolved)
     {
@@ -821,7 +821,7 @@ double ManipulationLayout::UnitExtent() const
     return LaidUnitExtent;
 }
 
-bool ManipulationLayout::LayoutStanding() const
+bool ManipulationLayout::LayoutCurrent() const
 {
     return LayoutDeclared;
 }
@@ -843,10 +843,10 @@ void ManipulationLayout::Reclaim()
 Outcome<bool> ManipulationSequence::Open(const ManipulationGrip&   Grasping,
                                          const ManipulationLayout& Laid,
                                          const CameraProjection&   Camera,
-                                         double                    PointerAlong,
-                                         double                    PointerAcross,
-                                         std::uint32_t             DisplayAlong,
-                                         std::uint32_t             DisplayAcross)
+                                         double                    PointerX,
+                                         double                    PointerY,
+                                         std::uint32_t             DisplayX,
+                                         std::uint32_t             DisplayY)
 {
     if (OpenDeclared)
     {
@@ -854,14 +854,14 @@ Outcome<bool> ManipulationSequence::Open(const ManipulationGrip&   Grasping,
             { RefusalReason::HostDenied, "a manipulation is already open; seal or abandon it first" });
     }
 
-    if (!Grasping.GripDeclared || !Laid.LayoutStanding())
+    if (!Grasping.GripDeclared || !Laid.LayoutCurrent())
     {
         return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the grip is undeclared, or no layout stands behind it" });
     }
 
-    const Outcome<ProjectedRay> Cast = ProjectPointerRay(Camera, PointerAlong, PointerAcross,
-                                                         DisplayAlong, DisplayAcross);
+    const Outcome<ProjectedRay> Cast = ProjectPointerRay(Camera, PointerX, PointerY,
+                                                         DisplayX, DisplayY);
 
     if (!Cast.Resolved)
     {
@@ -936,24 +936,24 @@ Outcome<bool> ManipulationSequence::Open(const ManipulationGrip&   Grasping,
     }
 
     GraspedGrip     = Grasping;
-    Standing        = {};
-    Standing.Edited = Grasping.Edits;
+    Current        = {};
+    Current.Edited = Grasping.Edits;
 
     HeldCamera      = Camera;
     DragOrigin      = Laid.Origin();
     UnitExtent      = Laid.UnitExtent();
 
-    AxisAlongSpan   = AxisSpan.SpanX;
+    AxisXSpan   = AxisSpan.SpanX;
     AxisUpSpan      = AxisSpan.SpanY;
-    AxisAcrossSpan  = AxisSpan.SpanZ;
+    AxisYSpan  = AxisSpan.SpanZ;
 
-    PlaneAlongSpan  = FirstSpan.SpanX;
+    PlaneXSpan  = FirstSpan.SpanX;
     PlaneUpSpan     = FirstSpan.SpanY;
-    PlaneAcrossSpan = FirstSpan.SpanZ;
+    PlaneYSpan = FirstSpan.SpanZ;
 
-    ReferenceAlong  = SecondSpan.SpanX;
+    ReferenceX  = SecondSpan.SpanX;
     ReferenceUp     = SecondSpan.SpanY;
-    ReferenceAcross = SecondSpan.SpanZ;
+    ReferenceY = SecondSpan.SpanZ;
 
     OpenDeclared    = true;
 
@@ -964,10 +964,10 @@ Outcome<bool> ManipulationSequence::Open(const ManipulationGrip&   Grasping,
 //                                                     AMENDING A DRAG
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> ManipulationSequence::Amend(double        PointerAlong,
-                                          double        PointerAcross,
-                                          std::uint32_t DisplayAlong,
-                                          std::uint32_t DisplayAcross,
+Outcome<bool> ManipulationSequence::Amend(double        PointerX,
+                                          double        PointerY,
+                                          std::uint32_t DisplayX,
+                                          std::uint32_t DisplayY,
                                           bool          SnapDeclared)
 {
     if (!OpenDeclared)
@@ -979,8 +979,8 @@ Outcome<bool> ManipulationSequence::Amend(double        PointerAlong,
     // 🔴 The camera read at Open, not the one standing now. An artist who orbits mid-drag moves the display and
     //    not the plane the drag resolves against, which is `78` §2's whole rule — re-reading here would make the
     //    manipulated object jump by whatever the orbit changed, at the moment the artist was doing something else.
-    const Outcome<ProjectedRay> Cast = ProjectPointerRay(HeldCamera, PointerAlong, PointerAcross,
-                                                         DisplayAlong, DisplayAcross);
+    const Outcome<ProjectedRay> Cast = ProjectPointerRay(HeldCamera, PointerX, PointerY,
+                                                         DisplayX, DisplayY);
 
     if (!Cast.Resolved)
     {
@@ -993,9 +993,9 @@ Outcome<bool> ManipulationSequence::Amend(double        PointerAlong,
     const DirectionSpan RayDirection = { Pointing.DirectionX, Pointing.DirectionY, Pointing.DirectionZ };
     const DirectionSpan OriginSpan   = SpanOfPosition(DragOrigin);
 
-    const DirectionSpan AxisSpan   = { AxisAlongSpan,  AxisUpSpan,  AxisAcrossSpan  };
-    const DirectionSpan FirstSpan  = { PlaneAlongSpan, PlaneUpSpan, PlaneAcrossSpan };
-    const DirectionSpan SecondSpan = { ReferenceAlong, ReferenceUp, ReferenceAcross };
+    const DirectionSpan AxisSpan   = { AxisXSpan,  AxisUpSpan,  AxisYSpan  };
+    const DirectionSpan FirstSpan  = { PlaneXSpan, PlaneUpSpan, PlaneYSpan };
+    const DirectionSpan SecondSpan = { ReferenceX, ReferenceUp, ReferenceY };
 
     ManipulationAmendment Amending;
     Amending.Edited = GraspedGrip.Edits;
@@ -1047,10 +1047,10 @@ Outcome<bool> ManipulationSequence::Amend(double        PointerAlong,
         FromOrigin.SpanZ = Met.SpanZ - OriginSpan.SpanZ;
 
         const DirectionSpan Transverse  = SpanCross(AxisSpan, FirstSpan);
-        const double        StandingArc = std::atan2(SpanDot(FromOrigin, Transverse),
+        const double        CurrentArc = std::atan2(SpanDot(FromOrigin, Transverse),
                                                      SpanDot(FromOrigin, FirstSpan));
 
-        double Turned = StandingArc - OpenAngle;
+        double Turned = CurrentArc - OpenAngle;
 
         if (SnapDeclared)
             Turned = Quantise(Turned, SnapRotationStep);
@@ -1089,14 +1089,14 @@ Outcome<bool> ManipulationSequence::Amend(double        PointerAlong,
             // 🔴 Clamped above zero rather than allowed through it. A factor dragged through zero passes through a
             //    surface with no extent and comes out inverted, and the inversion is not visible as an inversion —
             //    it reads as the surface having turned inside out for no reason the artist can undo by dragging back.
-            if (Factor < ScaleFactorLeast)
-                Factor = ScaleFactorLeast;
+            if (Factor < ScaleFactorMinimum)
+                Factor = ScaleFactorMinimum;
 
             const std::uint32_t AxisOrdinal = static_cast<std::uint32_t>(GraspedGrip.Addressed);
 
-            if (AxisOrdinal == 0u)  Amending.ScaleAlong  = Factor;
+            if (AxisOrdinal == 0u)  Amending.ScaleX  = Factor;
             if (AxisOrdinal == 1u)  Amending.ScaleUp     = Factor;
-            if (AxisOrdinal == 2u)  Amending.ScaleAcross = Factor;
+            if (AxisOrdinal == 2u)  Amending.ScaleY = Factor;
         }
         else
         {
@@ -1109,7 +1109,7 @@ Outcome<bool> ManipulationSequence::Amend(double        PointerAlong,
         }
     }
 
-    Standing = Amending;
+    Current = Amending;
 
     return Outcome<bool>::Result(true);
 }
@@ -1133,7 +1133,7 @@ Outcome<ManipulationAmendment> ManipulationSequence::Abandon()
     Abandoned.Edited = GraspedGrip.Edits;
 
     GraspedGrip  = {};
-    Standing     = {};
+    Current     = {};
     OpenDeclared = false;
 
     return Outcome<ManipulationAmendment>::Result(Abandoned);
@@ -1147,10 +1147,10 @@ Outcome<ManipulationAmendment> ManipulationSequence::Seal()
             { RefusalReason::HostDenied, "no manipulation is open to seal" });
     }
 
-    const ManipulationAmendment Sealed = Standing;
+    const ManipulationAmendment Sealed = Current;
 
     GraspedGrip  = {};
-    Standing     = {};
+    Current     = {};
     OpenDeclared = false;
 
     return Outcome<ManipulationAmendment>::Result(Sealed);
@@ -1158,7 +1158,7 @@ Outcome<ManipulationAmendment> ManipulationSequence::Seal()
 
 const ManipulationAmendment& ManipulationSequence::Amended() const
 {
-    return Standing;
+    return Current;
 }
 
 bool ManipulationSequence::DragOpen() const

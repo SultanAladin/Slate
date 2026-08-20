@@ -64,7 +64,7 @@ function Read-DeclaredUnits
     return $Declared
 }
 
-# 🔴 A cycle is refused before anything else is checked. Every later question — what may this unit reach,
+# 🔴 A cycle is rejected before anything else is checked. Every later question — what may this unit reach,
 #    in what order are they translated — assumes the graph is acyclic, and answers nonsense when it is not.
 function Test-Acyclic([hashtable] $Declared)
 {
@@ -78,19 +78,19 @@ function Test-Acyclic([hashtable] $Declared)
 
         while ($Stack.Count -gt 0)
         {
-            $Standing = $Stack.Pop()
+            $Current = $Stack.Pop()
 
-            foreach ($Required in $Declared[$Standing].Requires)
+            foreach ($Required in $Declared[$Current].Requires)
             {
                 if (-not $Declared.ContainsKey($Required))
                 {
-                    $Broken += "$Standing requires $Required, which declares no Module.toml"
+                    $Broken += "$Current requires $Required, which declares no Module.toml"
                     continue
                 }
 
                 if ($Required -eq $UnitName)
                 {
-                    $Broken += "$UnitName participates in a dependency cycle through $Standing"
+                    $Broken += "$UnitName participates in a dependency cycle through $Current"
                     continue
                 }
 

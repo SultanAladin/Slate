@@ -173,14 +173,14 @@ double Decode(const ColourSpaceSpecification& Space, double StoredCode)
 //                                                  WHITE ADAPTATION
 //------------------------------------------------------------------------------------------------------------------------
 
-void AdaptWhite(double ArrivingWhiteX, double ArrivingWhiteY,
+void AdaptWhite(double IncomingWhiteX, double IncomingWhiteY,
                 double TargetWhiteX,   double TargetWhiteY,
                 double& TristimulusX,  double& TristimulusY, double& TristimulusZ)
 {
-    if (ArrivingWhiteY == 0.0 || TargetWhiteY == 0.0)
+    if (IncomingWhiteY == 0.0 || TargetWhiteY == 0.0)
         return;
 
-    if (ArrivingWhiteX == TargetWhiteX && ArrivingWhiteY == TargetWhiteY)
+    if (IncomingWhiteX == TargetWhiteX && IncomingWhiteY == TargetWhiteY)
         return;
 
     // 📐 Bradford cone response. The adaptation is a scale in cone space and not in tristimulus, because
@@ -211,16 +211,16 @@ void AdaptWhite(double ArrivingWhiteX, double ArrivingWhiteY,
 
     const double* ConeInverse = ConeInverted.Coefficient;
 
-    const double ArrivingX = ArrivingWhiteX / ArrivingWhiteY;
-    const double ArrivingZ = (1.0 - ArrivingWhiteX - ArrivingWhiteY) / ArrivingWhiteY;
+    const double IncomingX = IncomingWhiteX / IncomingWhiteY;
+    const double IncomingZ = (1.0 - IncomingWhiteX - IncomingWhiteY) / IncomingWhiteY;
     const double TargetX   = TargetWhiteX / TargetWhiteY;
     const double TargetZ   = (1.0 - TargetWhiteX - TargetWhiteY) / TargetWhiteY;
 
-    const double ArrivingCone[3] =
+    const double IncomingCone[3] =
     {
-        ConeForward[0] * ArrivingX + ConeForward[1] * 1.0 + ConeForward[2] * ArrivingZ,
-        ConeForward[3] * ArrivingX + ConeForward[4] * 1.0 + ConeForward[5] * ArrivingZ,
-        ConeForward[6] * ArrivingX + ConeForward[7] * 1.0 + ConeForward[8] * ArrivingZ
+        ConeForward[0] * IncomingX + ConeForward[1] * 1.0 + ConeForward[2] * IncomingZ,
+        ConeForward[3] * IncomingX + ConeForward[4] * 1.0 + ConeForward[5] * IncomingZ,
+        ConeForward[6] * IncomingX + ConeForward[7] * 1.0 + ConeForward[8] * IncomingZ
     };
 
     const double TargetCone[3] =
@@ -239,8 +239,8 @@ void AdaptWhite(double ArrivingWhiteX, double ArrivingWhiteY,
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
     {
-        if (ArrivingCone[Ordinal] != 0.0)
-            SubjectCone[Ordinal] *= TargetCone[Ordinal] / ArrivingCone[Ordinal];
+        if (IncomingCone[Ordinal] != 0.0)
+            SubjectCone[Ordinal] *= TargetCone[Ordinal] / IncomingCone[Ordinal];
     }
 
     TristimulusX = ConeInverse[0] * SubjectCone[0] + ConeInverse[1] * SubjectCone[1]
@@ -255,17 +255,17 @@ void AdaptWhite(double ArrivingWhiteX, double ArrivingWhiteY,
 //                                                   THE PROJECTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ColourSpecification> Project(ColourSpecification             Arriving,
-                                    const ColourSpaceSpecification& ArrivingSpace,
+Outcome<ColourSpecification> Project(ColourSpecification             Incoming,
+                                    const ColourSpaceSpecification& IncomingSpace,
                                     const ColourSpaceSpecification& Target)
 {
-    if (!Arriving.ColourDeclared() || !ArrivingSpace.SpaceDeclared() || !Target.SpaceDeclared())
+    if (!Incoming.ColourDeclared() || !IncomingSpace.SpaceDeclared() || !Target.SpaceDeclared())
     {
         return Outcome<ColourSpecification>::Refuse(
             { RefusalReason::ContentUnsupported, "a colour or a space was undeclared" });
     }
 
-    if (Arriving.SpaceIdentity != ArrivingSpace.SpaceIdentity)
+    if (Incoming.SpaceIdentity != IncomingSpace.SpaceIdentity)
     {
         return Outcome<ColourSpecification>::Refuse(
             { RefusalReason::ContentUnsupported, "the colour is not a coordinate in the supplied space" });
@@ -274,10 +274,10 @@ Outcome<ColourSpecification> Project(ColourSpecification             Arriving,
     // 📝 Identical spaces return the coordinate untouched rather than round-tripping it through tristimulus.
     //    `36` §3's re-conversion rule is the same instinct: a conversion that does nothing must cost nothing and
     //    must not perturb what it was given.
-    if (ArrivingSpace.SpaceIdentity == Target.SpaceIdentity)
-        return Outcome<ColourSpecification>::Result(Arriving);
+    if (IncomingSpace.SpaceIdentity == Target.SpaceIdentity)
+        return Outcome<ColourSpecification>::Result(Incoming);
 
-    const TristimulusProjection Forward = DeriveProjection(ArrivingSpace);
+    const TristimulusProjection Forward = DeriveProjection(IncomingSpace);
     const TristimulusProjection TargetForward = DeriveProjection(Target);
 
     TristimulusProjection TargetInverse;
@@ -288,9 +288,9 @@ Outcome<ColourSpecification> Project(ColourSpecification             Arriving,
             { RefusalReason::ContentUnsupported, "a space declared degenerate primaries" });
     }
 
-    const double LinearRed   = Decode(ArrivingSpace, Arriving.RedCoordinate);
-    const double LinearGreen = Decode(ArrivingSpace, Arriving.GreenCoordinate);
-    const double LinearBlue  = Decode(ArrivingSpace, Arriving.BlueCoordinate);
+    const double LinearRed   = Decode(IncomingSpace, Incoming.RedCoordinate);
+    const double LinearGreen = Decode(IncomingSpace, Incoming.GreenCoordinate);
+    const double LinearBlue  = Decode(IncomingSpace, Incoming.BlueCoordinate);
 
     double TristimulusX = 0.0;
     double TristimulusY = 0.0;
@@ -298,7 +298,7 @@ Outcome<ColourSpecification> Project(ColourSpecification             Arriving,
 
     Apply(Forward, LinearRed, LinearGreen, LinearBlue, TristimulusX, TristimulusY, TristimulusZ);
 
-    AdaptWhite(ArrivingSpace.WhiteX, ArrivingSpace.WhiteY,
+    AdaptWhite(IncomingSpace.WhiteX, IncomingSpace.WhiteY,
                Target.WhiteX,        Target.WhiteY,
                TristimulusX, TristimulusY, TristimulusZ);
 

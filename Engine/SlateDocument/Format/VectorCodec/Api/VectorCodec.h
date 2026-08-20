@@ -28,7 +28,7 @@ namespace Slate
 struct DecodedOutline
 {
     OutlineSpecification            Declared = {};   // [-] - the paths, in the source's own order
-    std::vector<RefusedConstruct>   Refused  = {};   // [-] - each named and positioned, per `52` §2
+    std::vector<RejectedConstruct>   Rejected  = {};   // [-] - each named and positioned, per `52` §2
 };
 
 //------------------------------------------------------------------------------------------------------------------------

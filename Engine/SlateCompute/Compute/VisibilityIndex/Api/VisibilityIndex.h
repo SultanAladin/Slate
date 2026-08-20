@@ -60,16 +60,16 @@ enum class RasterRoute : std::uint32_t
 inline constexpr std::uint32_t ProjectedExtentThreshold = 16u;   // [px] - per edge, below which the compute path runs
 
 /// 🧩 Which rasteriser one projected extent is routed to.
-/// in    ProjectedAlong   [px]  the extent the partition projects to, conservative outward
-/// in    ProjectedAcross  [px]
-/// out   Route            [-]   the compute path below the threshold on **either** ordinate
-/// note  📐 Either ordinate and not both. A partition projecting to two pixels by two hundred is a sliver, and a
+/// in    ProjectedX   [px]  the extent the partition projects to, conservative outward
+/// in    ProjectedY  [px]
+/// out   Route            [-]   the compute path below the threshold on **either** coordinate
+/// note  📐 Either coordinate and not both. A partition projecting to two pixels by two hundred is a sliver, and a
 ///        sliver is exactly the shape hardware rasterisation shades a whole quad per covered pixel for.
 /// cost  ✔️
 /// tag   api, constexpr, nonallocating, nonthrowing
-constexpr RasterRoute RouteOfExtent(std::uint32_t ProjectedAlong, std::uint32_t ProjectedAcross)
+constexpr RasterRoute RouteOfExtent(std::uint32_t ProjectedX, std::uint32_t ProjectedY)
 {
-    return ProjectedAlong < ProjectedExtentThreshold || ProjectedAcross < ProjectedExtentThreshold
+    return ProjectedX < ProjectedExtentThreshold || ProjectedY < ProjectedExtentThreshold
         ? RasterRoute::ComputeRaster
         : RasterRoute::HardwareRaster;
 }
@@ -78,7 +78,7 @@ constexpr RasterRoute RouteOfExtent(std::uint32_t ProjectedAlong, std::uint32_t 
 //                                                    THE MECHANISM
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Every enrolled topology's partitioning, the reduction the culling tests against, and the recording that
+/// 🧩 Every registered topology's partitioning, the reduction the culling tests against, and the recording that
 ///     writes the four targets `16` §4 declares.
 /// note  🔴 `VisibilityIndex` names both the mechanism and the target it writes. "Visibility buffer" is not
 ///        usable — `Buffer` is banned — and the two readings never collide because the target is reached through
@@ -100,44 +100,44 @@ public:
     VisibilityIndex& operator=(const VisibilityIndex&) = delete;
 
     /// 🧩 Derives the reduction chain for one display extent.
-    /// in    DisplayAlong   [px]  the display extent this rotation is recorded against
-    /// in    DisplayAcross  [px]
-    /// out   Result        [-]   refuses with whatever `DepthReduction` refused
-    /// post  the chain stands; the enrolled partitionings are untouched
+    /// in    DisplayX   [px]  the display extent this rotation is recorded against
+    /// in    DisplayY  [px]
+    /// out   Result        [-]   refuses with whatever `DepthReduction` rejected
+    /// post  the chain stands; the registered partitionings are untouched
     /// note  🔴 A display extent change re-derives the chain and re-derives **nothing else**. The partitionings
     ///        are in object space and `16` §1 forbids rebuilding them per rotation, let alone per resize.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Outcome<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Outcome<bool> Construct(std::uint32_t DisplayX, std::uint32_t DisplayY);
 
     /// 🧩 Contributes `08` §3 ②'s recording — the one that produces all four targets.
     /// in    Schedule  [-]  the schedule being assembled at bring-up
-    /// out   Result   [-]  refuses with whatever the schedule refused
+    /// out   Result   [-]  refuses with whatever the schedule rejected
     /// note  🔴 Four targets produced by one recording, because `16` §4.2 writes motion here for the reason it
     ///        writes depth here: the previous rotation's projection of this same triangle is in hand at exactly
     ///        this point and is recoverable nowhere downstream. A second recording deriving it from depth alone
-    ///        recovers camera motion and never occupant motion.
+    ///        recovers camera motion and never owner motion.
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Partitions one sealed topology, adopts the result, and declares it into `42`'s resolution.
-    /// in    Occupant     [-]  who the topology belongs to
+    /// in    Owner     [-]  who the topology belongs to
     /// in    Imported     [-]  the sealed topology
     /// in    Conditioned  [-]  its conditioning, at the same revision
-    /// in    Resolutions  [-]  the document's resolution; the identities are issued into it
-    /// out   Result      [-]  the enrolment ordinal, or whatever the derivation or the resolution refused
+    /// in    Resolutions  [-]  the document's resolution; the identities are registered into it
+    /// out   Result      [-]  the registration ordinal, or whatever the derivation or the resolution rejected
     /// post  the standing ordinals run contiguously and every one of them resolves
     /// note  🔴 `16` §1: called when the topology changes and at no other time. It is `34` `Background` work —
     ///        the derivation is the expensive half and it reads nothing but its arguments.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Outcome<std::uint32_t> Enroll(OccupantIdentity            Occupant,
+    Outcome<std::uint32_t> Register(OwnerIdentity            Owner,
                                   const TopologyStructure&    Imported,
                                   const TopologyConditioning& Conditioned,
                                   PartitionResolutionIndex&   Resolutions);
 
-    /// 🧩 What one pixel resolves to — the occupant, the material and the face range behind it.
+    /// 🧩 What one pixel resolves to — the owner, the material and the face range behind it.
     /// in    Written      [-]  the word read back from the target
     /// in    Resolutions  [-]  the document's resolution
     /// out   Result      [-]  refuses with ContentUnsupported for an unoccupied pixel or an ordinal outside the
@@ -150,32 +150,32 @@ public:
     Outcome<ResolvedPartition> Resolve(VisibilityWord                  Written,
                                        const PartitionResolutionIndex& Resolutions) const;
 
-    /// 🧩 One enrolled topology's standing partitioning.
-    /// out   Result  [-]  refuses with ContentUnsupported outside the enrolled count
+    /// 🧩 One registered topology's standing partitioning.
+    /// out   Result  [-]  refuses with ContentUnsupported outside the registered count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Outcome<const PartitionStructure*> Enrolled(std::uint32_t EnrolmentOrdinal) const;
+    Outcome<const PartitionStructure*> Registered(std::uint32_t RegistrationOrdinal) const;
 
     /// 🧩 The reduction chain the culling tests against.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     const DepthReduction& Reduction() const;
 
-    /// 🧩 Discards every enrolment and the chain with them.
+    /// 🧩 Discards every registration and the chain with them.
     /// cost  🚩
     /// tag   api, nonthrowing
     void Reclaim();
 
-    std::uint32_t EnrolledCount() const;
+    std::uint32_t RegisteredCount() const;
     std::uint32_t DeclaredPartitionCount() const;
     bool          ChainDerived() const;
 
 private:
 
     // 📝 Held by unique ownership rather than by value because `PartitionStructure` carries a whole partitioning
-    //    and the run is appended to as occupants arrive. A vector of values relocates on growth, and the standing
-    //    partitioning a caller is reading through `Enrolled` would move out from under it mid-enrolment.
-    std::vector<std::unique_ptr<PartitionStructure>>  Enrolments        = {};   // [-] - by enrolment ordinal
+    //    and the run is appended to as owners arrive. A vector of values relocates on growth, and the standing
+    //    partitioning a caller is reading through `Registered` would move out from under it mid-registration.
+    std::vector<std::unique_ptr<PartitionStructure>>  Registrations        = {};   // [-] - by registration ordinal
     std::vector<PartitionIdentity>                    DeclaredIdentity  = {};   // [-] - by document-wide ordinal
     DepthReduction                                    Reduced           = {};   // [-] - the level chain
     std::uint64_t                                     ResolvedRevision  = 0u;   // [-] - `42`'s at the last declaration

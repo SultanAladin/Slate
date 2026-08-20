@@ -95,7 +95,7 @@ Outcome<bool> MaterialSpecification::DeclareChannel(ChannelSubject Channel, cons
 
     if (MeasureCarriesColour(Declaring.Measured))
     {
-        // 🔴 `36` §1: a colour without its space is refused rather than assumed to be in the working space. An
+        // 🔴 `36` §1: a colour without its space is rejected rather than assumed to be in the working space. An
         //    assumed space is the defect `36` exists to prevent, placed where no report can name it.
         if (Declaring.Source == ChannelSource::Constant && !Declaring.ConstantColour.ColourDeclared())
         {
@@ -133,14 +133,14 @@ void MaterialSpecification::DeclareCutoutThreshold(double Threshold)
     CoverageThreshold = Threshold < 0.0 ? 0.0 : (Threshold > 1.0 ? 1.0 : Threshold);
 }
 
-void MaterialSpecification::DeclareCutoutEnrolment(bool CutoutEnabled)
+void MaterialSpecification::DeclareCutoutRegistration(bool CutoutEnabled)
 {
     CutoutDeclared = CutoutEnabled;
 }
 
 ReflectanceSelection MaterialSpecification::Reflectance() const     { return Selected;          }
 double               MaterialSpecification::CutoutThreshold() const { return CoverageThreshold; }
-bool                 MaterialSpecification::CutoutEnrolled() const  { return CutoutDeclared;    }
+bool                 MaterialSpecification::CutoutRegistered() const  { return CutoutDeclared;    }
 
 const ChannelSpecification& MaterialSpecification::Channel(ChannelSubject Subject) const
 {
@@ -232,16 +232,16 @@ void PartitionResolutionIndex::Reclaim()
 
     // 🔴 The revision advances on every rebuild, so a partition identity taken before it resolves stale rather
     //    than resolving to whatever partition later took the ordinal. `64` §4 depends on the opposite property
-    //    for its history — it tests the **occupant**, not the partition, so a re-partition does not discard it.
+    //    for its history — it tests the **owner**, not the partition, so a re-partition does not discard it.
     ++DerivedRevision;
 }
 
 Outcome<PartitionIdentity> PartitionResolutionIndex::Declare(const ResolvedPartition& Resolving)
 {
-    if (!Resolving.Occupant.IdentityDeclared())
+    if (!Resolving.Owner.IdentityDeclared())
     {
         return Outcome<PartitionIdentity>::Refuse(
-            { RefusalReason::IdentityStale, "a partition resolves to no occupant" });
+            { RefusalReason::IdentityStale, "a partition resolves to no owner" });
     }
 
     if (Resolutions.size() >= PartitionCeiling)
@@ -250,13 +250,13 @@ Outcome<PartitionIdentity> PartitionResolutionIndex::Declare(const ResolvedParti
             { RefusalReason::ExtentExhausted, "the partition ceiling was reached" });
     }
 
-    PartitionIdentity Issued;
-    Issued.SlotOrdinal    = static_cast<std::uint32_t>(Resolutions.size());
-    Issued.SlotGeneration = static_cast<std::uint32_t>(DerivedRevision);
+    PartitionIdentity Registered;
+    Registered.SlotOrdinal    = static_cast<std::uint32_t>(Resolutions.size());
+    Registered.SlotGeneration = static_cast<std::uint32_t>(DerivedRevision);
 
     Resolutions.push_back(Resolving);
 
-    return Outcome<PartitionIdentity>::Result(Issued);
+    return Outcome<PartitionIdentity>::Result(Registered);
 }
 
 Outcome<ResolvedPartition> PartitionResolutionIndex::Resolve(PartitionIdentity Subject) const

@@ -145,62 +145,62 @@ public:
     /// note  🔴 This does not advance the index; several panels share it and the tick owner advances it once.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Advance(const PointerCondition& Arrived, double Elapsed);
+    void Advance(const PointerCondition& Sampled, double Elapsed);
 
     /// 🧩 Presents the reference track-and-nub switch.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict SwitchToggle(ControlIdentity Claimed, const PlaneExtent& Extent,
+    ControlVerdict SwitchToggle(ControlIdentity Target, const PlaneExtent& Extent,
                                 const SwitchDeclaration& Declared, bool& Taken);
 
     /// 🧩 Presents one mutually exclusive sequence and writes the selected ordinal.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict SegmentedChoice(ControlIdentity Claimed, const PlaneExtent& Extent,
+    ControlVerdict SegmentedChoice(ControlIdentity Target, const PlaneExtent& Extent,
                                    const SegmentDeclaration& Declared, std::uint32_t& TakenOrdinal);
 
     /// 🧩 Presents one tab strip and writes the selected ordinal.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict TabStrip(ControlIdentity Claimed, const PlaneExtent& Extent,
+    ControlVerdict TabStrip(ControlIdentity Target, const PlaneExtent& Extent,
                             const TabDeclaration& Declared, std::uint32_t& TakenOrdinal);
 
     /// 🧩 Slides the leading and trailing inspector pages beneath their tab strip.
     /// note  The same identity is passed to TabStrip, so selection and page travel remain one interaction.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict CarouselPages(ControlIdentity Claimed, const PlaneExtent& Extent,
+    ControlVerdict CarouselPages(ControlIdentity Target, const PlaneExtent& Extent,
                                  const CarouselDeclaration& Declared, std::uint32_t TakenOrdinal);
 
     /// 🧩 Presents one folding card header and writes its expanded condition.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict CollapsibleCard(ControlIdentity Claimed, const PlaneExtent& Extent,
+    ControlVerdict CollapsibleCard(ControlIdentity Target, const PlaneExtent& Extent,
                                    const FoldDeclaration& Declared, bool& ExpansionEnabled);
 
     /// 🧩 Presents one selection field and an animated menu card beneath it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict DropdownCard(ControlIdentity Claimed, const PlaneExtent& Extent,
+    ControlVerdict DropdownCard(ControlIdentity Target, const PlaneExtent& Extent,
                                 const DropdownDeclaration& Declared, std::uint32_t& TakenOrdinal);
 
     /// 🧩 Presents the CAD reference's HSV colour field, disclosure and three draggable areas.
     /// cost  🔴
     /// tag   api, nonthrowing
-    ControlVerdict ColourPicker(ControlIdentity Claimed, const PlaneExtent& Extent,
+    ControlVerdict ColourPicker(ControlIdentity Target, const PlaneExtent& Extent,
                                 const ColourPickerDeclaration& Declared, PickerColour& Colour);
 
     /// 🧩 Advances one branch between collapsed and expanded presentation.
     /// out   Fraction  [-]  zero collapsed to one expanded; binary when animation is disabled
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    float OutlineExpansion(ControlIdentity Claimed, bool ExpansionEnabled, bool AnimationEnabled);
+    float OutlineExpansion(ControlIdentity Target, bool ExpansionEnabled, bool AnimationEnabled);
 
     /// 🧩 Presents one outline row with additive selection and a visibility action.
     /// note  SelectionExtended controls whether a row press toggles this row without clearing other rows.
     /// cost  🚩
     /// tag   api, nonthrowing
-    ControlVerdict OutlineRow(ControlIdentity Claimed, const PlaneExtent& Extent,
+    ControlVerdict OutlineRow(ControlIdentity Target, const PlaneExtent& Extent,
                               const OutlineDeclaration& Declared, bool SelectionExtended, float ExpansionFraction,
                               OutlineDropPlacement DropPlacement, bool& ExpansionEnabled,
                               bool& Selected, bool& PresenceEnabled);
@@ -217,12 +217,12 @@ public:
 
 private:
 
-    ControlVerdict ResolveTap(ControlIdentity Claimed, const PlaneExtent& Extent, bool& Altered);
+    ControlVerdict ResolveTap(ControlIdentity Target, const PlaneExtent& Extent, bool& Altered);
 
     InteractionIndex*              Interaction = nullptr;   // [-] - borrowed; never owned
     RecordingSurface*              Recording   = nullptr;   // [-] - borrowed; never owned
     const ThemeProfile* Appearance  = nullptr;   // [-] - borrowed; never owned
-    PointerCondition               Arrived     = {};        // [-] - current tick sample
+    PointerCondition               Sampled     = {};        // [-] - current tick sample
 };
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);

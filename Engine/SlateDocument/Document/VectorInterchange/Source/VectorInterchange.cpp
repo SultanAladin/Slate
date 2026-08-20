@@ -14,12 +14,12 @@ namespace Slate
 //                                                     DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> VectorInterchange::DeclareFromFile(const OutlineSpecification& Arriving, const std::string& OriginPath)
+Outcome<bool> VectorInterchange::DeclareFromFile(const OutlineSpecification& Incoming, const std::string& OriginPath)
 {
-    if (Arriving.Paths.empty())
+    if (Incoming.Paths.empty())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the source declared no path" });
 
-    DeclaredOutline            = Arriving;
+    DeclaredOutline            = Incoming;
     DeclaredOutline.OriginPath = OriginPath;
     DeclaredOutline.SourceText.clear();
     TextSourceDeclared         = false;
@@ -27,12 +27,12 @@ Outcome<bool> VectorInterchange::DeclareFromFile(const OutlineSpecification& Arr
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> VectorInterchange::DeclareFromText(const OutlineSpecification& Arriving, const std::string& SourceText)
+Outcome<bool> VectorInterchange::DeclareFromText(const OutlineSpecification& Incoming, const std::string& SourceText)
 {
-    if (Arriving.Paths.empty())
+    if (Incoming.Paths.empty())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the source declared no path" });
 
-    DeclaredOutline            = Arriving;
+    DeclaredOutline            = Incoming;
     DeclaredOutline.SourceText = SourceText;
     DeclaredOutline.OriginPath.clear();
     TextSourceDeclared         = true;
@@ -42,12 +42,12 @@ Outcome<bool> VectorInterchange::DeclareFromText(const OutlineSpecification& Arr
 
 void VectorInterchange::Refuse(const std::string& Construct, std::uint32_t SourceOrdinal, const Refusal& Declining)
 {
-    RefusedConstruct Refusing;
+    RejectedConstruct Refusing;
     Refusing.Construct     = Construct;
     Refusing.SourceOrdinal = SourceOrdinal;
     Refusing.Declining     = Declining;
 
-    RefusedConstructs.push_back(Refusing);
+    RejectedConstructs.push_back(Refusing);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -131,7 +131,7 @@ std::int32_t VectorInterchange::Classify(const std::vector<std::vector<PlanarPos
 }
 
 const OutlineSpecification&          VectorInterchange::Declared() const     { return DeclaredOutline;    }
-const std::vector<RefusedConstruct>& VectorInterchange::Refusals() const     { return RefusedConstructs;  }
+const std::vector<RejectedConstruct>& VectorInterchange::Refusals() const     { return RejectedConstructs;  }
 bool                                 VectorInterchange::TextRetained() const { return TextSourceDeclared; }
 
 //------------------------------------------------------------------------------------------------------------------------

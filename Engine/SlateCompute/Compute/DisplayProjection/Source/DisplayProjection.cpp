@@ -54,7 +54,7 @@ Outcome<bool> DisplayProjection::Declare(const ExposureSpecification& Exposing_,
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a space was undeclared" });
 
     // 🔴 `66` §4 and §8: the display space is queried or declared and **never assumed to be the working space**.
-    //    Admitting the two as one is the assumption defect itself — an image that is correct on the machine it
+    //    Accepting the two as one is the assumption defect itself — an image that is correct on the machine it
     //    was authored on and silently wrong everywhere else, and indistinguishable from a colour-managed path
     //    by looking at it.
     if (Encoding_.Working.SpaceIdentity == Encoding_.Display.SpaceIdentity)
@@ -67,7 +67,7 @@ Outcome<bool> DisplayProjection::Declare(const ExposureSpecification& Exposing_,
     Toning           = Toning_;
     Encodings        = Encoding_;
     MeteredExposure  = Exposing_.DeclaredExposure;
-    MeteringStanding = false;
+    MeteringCurrent = false;
 
     return Outcome<bool>::Result(true);
 }
@@ -124,13 +124,13 @@ Outcome<bool> DisplayProjection::AdvanceMetering(double ReducedLuminance, double
     const double Ceiling = Exposing.MeteredCeiling;
     const double Bounded = Target < -Ceiling ? -Ceiling : (Target > Ceiling ? Ceiling : Target);
 
-    if (!MeteringStanding)
+    if (!MeteringCurrent)
     {
         // 📝 The first advance arrives at its target rather than adapting toward it from the declared exposure.
         //    Adapting on the first rotation makes every document open at the wrong brightness and settle over
         //    a second, which reads as the application still loading.
         MeteredExposure  = Bounded;
-        MeteringStanding = true;
+        MeteringCurrent = true;
 
         return Outcome<bool>::Result(true);
     }
@@ -145,11 +145,11 @@ Outcome<bool> DisplayProjection::AdvanceMetering(double ReducedLuminance, double
 
 double DisplayProjection::ExposureScale() const
 {
-    const double Standing = Exposing.Source == ExposureSubject::Metered && MeteringStanding
+    const double Current = Exposing.Source == ExposureSubject::Metered && MeteringCurrent
                           ? MeteredExposure
                           : Exposing.DeclaredExposure;
 
-    return ProjectExposureScale(Standing);
+    return ProjectExposureScale(Current);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -217,7 +217,7 @@ Outcome<ColourSpecification> DisplayProjection::Project(const ColourSpecificatio
 void DisplayProjection::Report(MeasureIndex& Measured, TickPoint Sampled) const
 {
     Measured.DeclareMagnitude("66 §2 DisplayProjection", "Exposure",
-                              Exposing.Source == ExposureSubject::Metered && MeteringStanding
+                              Exposing.Source == ExposureSubject::Metered && MeteringCurrent
                                   ? MeteredExposure
                                   : Exposing.DeclaredExposure,
                               Sampled);

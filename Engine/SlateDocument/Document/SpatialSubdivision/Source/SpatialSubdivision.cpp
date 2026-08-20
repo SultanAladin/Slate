@@ -23,37 +23,37 @@ namespace
 ConditionedExtent EmptyExtent()
 {
     ConditionedExtent Empty;
-    Empty.Least.PositionX    =  HUGE_VAL;
-    Empty.Least.PositionY    =  HUGE_VAL;
-    Empty.Least.PositionZ    =  HUGE_VAL;
-    Empty.Greatest.PositionX = -HUGE_VAL;
-    Empty.Greatest.PositionY = -HUGE_VAL;
-    Empty.Greatest.PositionZ = -HUGE_VAL;
+    Empty.Minimum.PositionX    =  HUGE_VAL;
+    Empty.Minimum.PositionY    =  HUGE_VAL;
+    Empty.Minimum.PositionZ    =  HUGE_VAL;
+    Empty.Maximum.PositionX = -HUGE_VAL;
+    Empty.Maximum.PositionY = -HUGE_VAL;
+    Empty.Maximum.PositionZ = -HUGE_VAL;
 
     return Empty;
 }
 
-void Widen(ConditionedExtent& Widening, const ConditionedExtent& Arriving)
+void Widen(ConditionedExtent& Widening, const ConditionedExtent& Incoming)
 {
-    Widening.Least.PositionX    = Arriving.Least.PositionX    < Widening.Least.PositionX
-                                ? Arriving.Least.PositionX    : Widening.Least.PositionX;
-    Widening.Least.PositionY    = Arriving.Least.PositionY    < Widening.Least.PositionY
-                                ? Arriving.Least.PositionY    : Widening.Least.PositionY;
-    Widening.Least.PositionZ    = Arriving.Least.PositionZ    < Widening.Least.PositionZ
-                                ? Arriving.Least.PositionZ    : Widening.Least.PositionZ;
-    Widening.Greatest.PositionX = Arriving.Greatest.PositionX > Widening.Greatest.PositionX
-                                ? Arriving.Greatest.PositionX : Widening.Greatest.PositionX;
-    Widening.Greatest.PositionY = Arriving.Greatest.PositionY > Widening.Greatest.PositionY
-                                ? Arriving.Greatest.PositionY : Widening.Greatest.PositionY;
-    Widening.Greatest.PositionZ = Arriving.Greatest.PositionZ > Widening.Greatest.PositionZ
-                                ? Arriving.Greatest.PositionZ : Widening.Greatest.PositionZ;
+    Widening.Minimum.PositionX    = Incoming.Minimum.PositionX    < Widening.Minimum.PositionX
+                                ? Incoming.Minimum.PositionX    : Widening.Minimum.PositionX;
+    Widening.Minimum.PositionY    = Incoming.Minimum.PositionY    < Widening.Minimum.PositionY
+                                ? Incoming.Minimum.PositionY    : Widening.Minimum.PositionY;
+    Widening.Minimum.PositionZ    = Incoming.Minimum.PositionZ    < Widening.Minimum.PositionZ
+                                ? Incoming.Minimum.PositionZ    : Widening.Minimum.PositionZ;
+    Widening.Maximum.PositionX = Incoming.Maximum.PositionX > Widening.Maximum.PositionX
+                                ? Incoming.Maximum.PositionX : Widening.Maximum.PositionX;
+    Widening.Maximum.PositionY = Incoming.Maximum.PositionY > Widening.Maximum.PositionY
+                                ? Incoming.Maximum.PositionY : Widening.Maximum.PositionY;
+    Widening.Maximum.PositionZ = Incoming.Maximum.PositionZ > Widening.Maximum.PositionZ
+                                ? Incoming.Maximum.PositionZ : Widening.Maximum.PositionZ;
 }
 
 bool ExtentOccupied(const ConditionedExtent& Held)
 {
-    return Held.Greatest.PositionX >= Held.Least.PositionX
-        && Held.Greatest.PositionY >= Held.Least.PositionY
-        && Held.Greatest.PositionZ >= Held.Least.PositionZ;
+    return Held.Maximum.PositionX >= Held.Minimum.PositionX
+        && Held.Maximum.PositionY >= Held.Minimum.PositionY
+        && Held.Maximum.PositionZ >= Held.Minimum.PositionZ;
 }
 
 double ExtentVolume(const ConditionedExtent& Held)
@@ -61,27 +61,27 @@ double ExtentVolume(const ConditionedExtent& Held)
     if (!ExtentOccupied(Held))
         return 0.0;
 
-    return (Held.Greatest.PositionX - Held.Least.PositionX)
-         * (Held.Greatest.PositionY - Held.Least.PositionY)
-         * (Held.Greatest.PositionZ - Held.Least.PositionZ);
+    return (Held.Maximum.PositionX - Held.Minimum.PositionX)
+         * (Held.Maximum.PositionY - Held.Minimum.PositionY)
+         * (Held.Maximum.PositionZ - Held.Minimum.PositionZ);
 }
 
 bool ExtentsOverlap(const ConditionedExtent& Left, const ConditionedExtent& Right)
 {
-    return ClassifyVolumeOverlap(Left.Least.PositionX,     Left.Least.PositionY,     Left.Least.PositionZ,
-                                 Left.Greatest.PositionX,  Left.Greatest.PositionY,  Left.Greatest.PositionZ,
-                                 Right.Least.PositionX,    Right.Least.PositionY,    Right.Least.PositionZ,
-                                 Right.Greatest.PositionX, Right.Greatest.PositionY, Right.Greatest.PositionZ) >= 0;
+    return ClassifyVolumeOverlap(Left.Minimum.PositionX,     Left.Minimum.PositionY,     Left.Minimum.PositionZ,
+                                 Left.Maximum.PositionX,  Left.Maximum.PositionY,  Left.Maximum.PositionZ,
+                                 Right.Minimum.PositionX,    Right.Minimum.PositionY,    Right.Minimum.PositionZ,
+                                 Right.Maximum.PositionX, Right.Maximum.PositionY, Right.Maximum.PositionZ) >= 0;
 }
 
 bool ExtentContains(const ConditionedExtent& Outer, const ConditionedExtent& Inner)
 {
-    return Outer.Least.PositionX    <= Inner.Least.PositionX
-        && Outer.Least.PositionY    <= Inner.Least.PositionY
-        && Outer.Least.PositionZ    <= Inner.Least.PositionZ
-        && Outer.Greatest.PositionX >= Inner.Greatest.PositionX
-        && Outer.Greatest.PositionY >= Inner.Greatest.PositionY
-        && Outer.Greatest.PositionZ >= Inner.Greatest.PositionZ;
+    return Outer.Minimum.PositionX    <= Inner.Minimum.PositionX
+        && Outer.Minimum.PositionY    <= Inner.Minimum.PositionY
+        && Outer.Minimum.PositionZ    <= Inner.Minimum.PositionZ
+        && Outer.Maximum.PositionX >= Inner.Maximum.PositionX
+        && Outer.Maximum.PositionY >= Inner.Maximum.PositionY
+        && Outer.Maximum.PositionZ >= Inner.Maximum.PositionZ;
 }
 
 // 📐 The slab test, returning the interval the ray occupies inside the extent. A component of zero direction is
@@ -95,15 +95,15 @@ bool SlabInterval(const ConditionedExtent& Held,
     double Nearest  = 0.0;
     double Furthest = HUGE_VAL;
 
-    const double LeastAll[3]    = { Held.Least.PositionX,    Held.Least.PositionY,    Held.Least.PositionZ    };
-    const double GreatestAll[3] = { Held.Greatest.PositionX, Held.Greatest.PositionY, Held.Greatest.PositionZ };
+    const double MinimumAll[3]    = { Held.Minimum.PositionX,    Held.Minimum.PositionY,    Held.Minimum.PositionZ    };
+    const double MaximumAll[3] = { Held.Maximum.PositionX, Held.Maximum.PositionY, Held.Maximum.PositionZ };
     const double OriginAll[3]   = { Origin.PositionX,        Origin.PositionY,        Origin.PositionZ        };
     const double Reciprocals[3] = { ReciprocalX,             ReciprocalY,             ReciprocalZ             };
 
     for (std::uint32_t Axis = 0u; Axis < 3u; ++Axis)
     {
-        double Entry = (LeastAll[Axis]    - OriginAll[Axis]) * Reciprocals[Axis];
-        double Exit  = (GreatestAll[Axis] - OriginAll[Axis]) * Reciprocals[Axis];
+        double Entry = (MinimumAll[Axis]    - OriginAll[Axis]) * Reciprocals[Axis];
+        double Exit  = (MaximumAll[Axis] - OriginAll[Axis]) * Reciprocals[Axis];
 
         if (Entry > Exit)
         {
@@ -195,14 +195,14 @@ Outcome<bool> BoundingStructure::Construct(const TopologyStructure& Imported, co
     for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < Imported.CornerCount(); ++CornerOrdinal)
         CornerVertices[CornerOrdinal] = Imported.CornerVertex(CornerOrdinal);
 
-    // 📝 A face enrolled as zero-extent is excluded from the ordering rather than from the arrays. `38` §3
+    // 📝 A face registered as zero-extent is excluded from the ordering rather than from the arrays. `38` §3
     //    excludes and never renumbers, so the face ordinal a hit reports is still the artist's own.
     FaceOrder.clear();
     FaceOrder.reserve(FaceSpan);
 
     for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < FaceSpan; ++FaceOrdinal)
     {
-        if (Conditioned.FaceEnrolled(FaceOrdinal, DegeneracySubject::ZeroExtentFace))
+        if (Conditioned.FaceRegistered(FaceOrdinal, DegeneracySubject::ZeroExtentFace))
             continue;
 
         FaceOrder.push_back(FaceOrdinal);
@@ -240,9 +240,9 @@ void BoundingStructure::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
     const std::uint32_t     FirstFace = Records[RecordOrdinal].FirstFace;
     const std::uint32_t     FaceSpan  = Records[RecordOrdinal].FaceCount;
 
-    const double MiddleX = (Held.Least.PositionX + Held.Greatest.PositionX) * 0.5;
-    const double MiddleY = (Held.Least.PositionY + Held.Greatest.PositionY) * 0.5;
-    const double MiddleZ = (Held.Least.PositionZ + Held.Greatest.PositionZ) * 0.5;
+    const double MiddleX = (Held.Minimum.PositionX + Held.Maximum.PositionX) * 0.5;
+    const double MiddleY = (Held.Minimum.PositionY + Held.Maximum.PositionY) * 0.5;
+    const double MiddleZ = (Held.Minimum.PositionZ + Held.Maximum.PositionZ) * 0.5;
 
     // 📝 A face is assigned to the octant its own centre falls in, so every face lands in exactly one child and
     //    the ordering is a partition rather than a duplication. Assigning by overlap would put a face straddling
@@ -255,9 +255,9 @@ void BoundingStructure::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
     {
         const ConditionedExtent& Face = FaceExtents[FaceOrder[FirstFace + Passed]];
 
-        const double CentreX = (Face.Least.PositionX + Face.Greatest.PositionX) * 0.5;
-        const double CentreY = (Face.Least.PositionY + Face.Greatest.PositionY) * 0.5;
-        const double CentreZ = (Face.Least.PositionZ + Face.Greatest.PositionZ) * 0.5;
+        const double CentreX = (Face.Minimum.PositionX + Face.Maximum.PositionX) * 0.5;
+        const double CentreY = (Face.Minimum.PositionY + Face.Maximum.PositionY) * 0.5;
+        const double CentreZ = (Face.Minimum.PositionZ + Face.Maximum.PositionZ) * 0.5;
 
         const std::uint32_t Octant = (CentreX >= MiddleX ? 1u : 0u)
                                    | (CentreY >= MiddleY ? 2u : 0u)
@@ -416,7 +416,7 @@ bool ClassifyRayTriangle(DocumentPosition Alpha, DocumentPosition Beta, Document
     const Signed32 BetaSide  = ClassifyOrientation(GammaU, GammaV, AlphaU, AlphaV, MeetU, MeetV);
     const Signed32 GammaSide = ClassifyOrientation(AlphaU, AlphaV, BetaU,  BetaV,  MeetU, MeetV);
 
-    // 📝 A zero is on the edge and is admitted, so a ray meeting a shared edge hits one of the two faces rather
+    // 📝 A zero is on the edge and is accepted, so a ray meeting a shared edge hits one of the two faces rather
     //    than neither. The signs must otherwise agree; a mixed pair is outside.
     const bool NonNegative = AlphaSide >= 0 && BetaSide >= 0 && GammaSide >= 0;
     const bool NonPositive = AlphaSide <= 0 && BetaSide <= 0 && GammaSide <= 0;
@@ -610,63 +610,63 @@ bool          BoundingStructure::Constructed() const { return StructureBuilt; }
 //                                                THE OUTER SUBDIVISION
 //------------------------------------------------------------------------------------------------------------------------
 
-std::size_t OctantSpace::Located(OccupantIdentity Subject) const
+std::size_t OctantSpace::Located(OwnerIdentity Subject) const
 {
-    for (std::size_t Ordinal = 0u; Ordinal < Admitted.size(); ++Ordinal)
+    for (std::size_t Ordinal = 0u; Ordinal < Accepted.size(); ++Ordinal)
     {
-        if (Admitted[Ordinal].Occupant == Subject)
+        if (Accepted[Ordinal].Owner == Subject)
             return Ordinal;
     }
 
-    return Admitted.size();
+    return Accepted.size();
 }
 
-Outcome<bool> OctantSpace::Admit(const AdmittedOccupant& Arriving)
+Outcome<bool> OctantSpace::Accept(const AcceptedOwner& Incoming)
 {
-    if (!Arriving.Occupant.IdentityDeclared())
+    if (!Incoming.Owner.IdentityDeclared())
         return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity occupies nothing" });
 
-    const std::size_t Located_ = Located(Arriving.Occupant);
+    const std::size_t Located_ = Located(Incoming.Owner);
 
-    if (Located_ == Admitted.size())
-        Admitted.push_back(Arriving);
+    if (Located_ == Accepted.size())
+        Accepted.push_back(Incoming);
     else
-        Admitted[Located_] = Arriving;
+        Accepted[Located_] = Incoming;
 
     BuildOwed = true;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> OctantSpace::Withdraw(OccupantIdentity Subject)
+Outcome<bool> OctantSpace::Withdraw(OwnerIdentity Subject)
 {
     const std::size_t Located_ = Located(Subject);
 
-    if (Located_ == Admitted.size())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
+    if (Located_ == Accepted.size())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the owner is not accepted here" });
 
-    Admitted.erase(Admitted.begin() + static_cast<std::ptrdiff_t>(Located_));
+    Accepted.erase(Accepted.begin() + static_cast<std::ptrdiff_t>(Located_));
     BuildOwed = true;
 
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> OctantSpace::Refit(OccupantIdentity           Subject,
+Outcome<bool> OctantSpace::Refit(OwnerIdentity           Subject,
                                  const DecomposedTransform& Composed,
                                  ConditionedExtent          Extent)
 {
     const std::size_t Located_ = Located(Subject);
 
-    if (Located_ == Admitted.size())
-        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
+    if (Located_ == Accepted.size())
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the owner is not accepted here" });
 
-    Admitted[Located_].Composed = Composed;
-    Admitted[Located_].Extent   = Extent;
+    Accepted[Located_].Composed = Composed;
+    Accepted[Located_].Extent   = Extent;
 
     if (BuildOwed || Records.empty())
         return Outcome<bool>::Result(true);
 
-    // 🔴 Refit, not rebuild — `40` §4. Every record on the path to the occupant widens to hold the new extent and
+    // 🔴 Refit, not rebuild — `40` §4. Every record on the path to the owner widens to hold the new extent and
     //    the subdivision's shape is untouched. The widening is accumulated so `RebuildWorthwhile` can measure how
     //    far the shape has drifted from the extents it was built for.
     const double Before = ExtentVolume(Records[0].Extent);
@@ -698,23 +698,23 @@ Outcome<bool> OctantSpace::Refit(OccupantIdentity           Subject,
     return Outcome<bool>::Result(true);
 }
 
-Outcome<AdmittedOccupant> OctantSpace::Standing(OccupantIdentity Subject) const
+Outcome<AcceptedOwner> OctantSpace::Current(OwnerIdentity Subject) const
 {
     const std::size_t Located_ = Located(Subject);
 
-    if (Located_ == Admitted.size())
-        return Outcome<AdmittedOccupant>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
+    if (Located_ == Accepted.size())
+        return Outcome<AcceptedOwner>::Refuse({ RefusalReason::IdentityStale, "the owner is not accepted here" });
 
-    return Outcome<AdmittedOccupant>::Result(Admitted[Located_]);
+    return Outcome<AcceptedOwner>::Result(Accepted[Located_]);
 }
 
 Outcome<bool> OctantSpace::Construct()
 {
     Records.clear();
     EntryOrder.clear();
-    EntryOrder.reserve(Admitted.size());
+    EntryOrder.reserve(Accepted.size());
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < Admitted.size(); ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < Accepted.size(); ++Ordinal)
         EntryOrder.push_back(Ordinal);
 
     OctantRecord Root;
@@ -722,7 +722,7 @@ Outcome<bool> OctantSpace::Construct()
     Root.EntryCount = static_cast<std::uint32_t>(EntryOrder.size());
     Root.Extent     = EmptyExtent();
 
-    for (const AdmittedOccupant& Held : Admitted)
+    for (const AcceptedOwner& Held : Accepted)
         Widen(Root.Extent, Held.Extent);
 
     Records.push_back(Root);
@@ -746,20 +746,20 @@ void OctantSpace::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
     const std::uint32_t     FirstEntry = Records[RecordOrdinal].FirstEntry;
     const std::uint32_t     EntrySpan  = Records[RecordOrdinal].EntryCount;
 
-    const double MiddleX = (Held.Least.PositionX + Held.Greatest.PositionX) * 0.5;
-    const double MiddleY = (Held.Least.PositionY + Held.Greatest.PositionY) * 0.5;
-    const double MiddleZ = (Held.Least.PositionZ + Held.Greatest.PositionZ) * 0.5;
+    const double MiddleX = (Held.Minimum.PositionX + Held.Maximum.PositionX) * 0.5;
+    const double MiddleY = (Held.Minimum.PositionY + Held.Maximum.PositionY) * 0.5;
+    const double MiddleZ = (Held.Minimum.PositionZ + Held.Maximum.PositionZ) * 0.5;
 
     std::uint32_t              OctantCounts[8] = {};
     std::vector<std::uint32_t> Assignment(EntrySpan, 0u);
 
     for (std::uint32_t Passed = 0u; Passed < EntrySpan; ++Passed)
     {
-        const ConditionedExtent& Extent = Admitted[EntryOrder[FirstEntry + Passed]].Extent;
+        const ConditionedExtent& Extent = Accepted[EntryOrder[FirstEntry + Passed]].Extent;
 
-        const double CentreX = (Extent.Least.PositionX + Extent.Greatest.PositionX) * 0.5;
-        const double CentreY = (Extent.Least.PositionY + Extent.Greatest.PositionY) * 0.5;
-        const double CentreZ = (Extent.Least.PositionZ + Extent.Greatest.PositionZ) * 0.5;
+        const double CentreX = (Extent.Minimum.PositionX + Extent.Maximum.PositionX) * 0.5;
+        const double CentreY = (Extent.Minimum.PositionY + Extent.Maximum.PositionY) * 0.5;
+        const double CentreZ = (Extent.Minimum.PositionZ + Extent.Maximum.PositionZ) * 0.5;
 
         const std::uint32_t Octant = (CentreX >= MiddleX ? 1u : 0u)
                                    | (CentreY >= MiddleY ? 2u : 0u)
@@ -813,7 +813,7 @@ void OctantSpace::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
         Dividing.Extent     = EmptyExtent();
 
         for (std::uint32_t Passed = 0u; Passed < Dividing.EntryCount; ++Passed)
-            Widen(Dividing.Extent, Admitted[EntryOrder[Dividing.FirstEntry + Passed]].Extent);
+            Widen(Dividing.Extent, Accepted[EntryOrder[Dividing.FirstEntry + Passed]].Extent);
 
         Records.push_back(Dividing);
     }
@@ -834,12 +834,12 @@ void OctantSpace::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
 namespace
 {
 
-// 🔴 `40` §3: enrolment exclusion is tested before descent, so an excluded population costs nothing rather than
-//    costing a rejected intersection each. Locked occupants and visibility-excluded ones are both untouchable.
-bool Traversable(const EnrollmentIndex& Subsets, OccupantIdentity Subject)
+// 🔴 `40` §3: registration exclusion is tested before descent, so an excluded population costs nothing rather than
+//    costing a rejected intersection each. Locked owners and visibility-excluded ones are both untouchable.
+bool Traversable(const RegistrationIndex& Subsets, OwnerIdentity Subject)
 {
-    return !Subsets.Enrolled(Subject, SubsetSubject::Lock)
-        && !Subsets.Enrolled(Subject, SubsetSubject::VisibilityExclusion);
+    return !Subsets.Registered(Subject, SubsetSubject::Lock)
+        && !Subsets.Registered(Subject, SubsetSubject::VisibilityExclusion);
 }
 
 }   // namespace
@@ -849,7 +849,7 @@ void OctantSpace::Descend(std::uint32_t          RecordOrdinal,
                           double                 DirectionX,
                           double                 DirectionY,
                           double                 DirectionZ,
-                          const EnrollmentIndex& Subsets,
+                          const RegistrationIndex& Subsets,
                           ResolvedIntersection&  Nearest) const
 {
     const OctantRecord& Held = Records[RecordOrdinal];
@@ -871,25 +871,25 @@ void OctantSpace::Descend(std::uint32_t          RecordOrdinal,
     {
         for (std::uint32_t Passed = 0u; Passed < Held.EntryCount; ++Passed)
         {
-            const AdmittedOccupant& Occupying = Admitted[EntryOrder[Held.FirstEntry + Passed]];
+            const AcceptedOwner& Occupying = Accepted[EntryOrder[Held.FirstEntry + Passed]];
 
-            if (Occupying.Inner == nullptr || !Traversable(Subsets, Occupying.Occupant))
+            if (Occupying.Inner == nullptr || !Traversable(Subsets, Occupying.Owner))
                 continue;
 
-            double OccupantEntering = 0.0;
-            double OccupantLeaving  = 0.0;
+            double OwnerEntering = 0.0;
+            double OwnerLeaving  = 0.0;
 
             if (!SlabInterval(Occupying.Extent, Origin, ReciprocalX, ReciprocalY, ReciprocalZ,
-                              OccupantEntering, OccupantLeaving))
+                              OwnerEntering, OwnerLeaving))
             {
                 continue;
             }
 
-            if (Nearest.Resolved && OccupantEntering > Nearest.Distance)
+            if (Nearest.Resolved && OwnerEntering > Nearest.Distance)
                 continue;
 
             // 🔴 The ray is transformed into object space **once**, at entry, and traversed there — `40` §2. The
-            //    inner structure is object-space and invariant under occupant motion, which is the whole reason
+            //    inner structure is object-space and invariant under owner motion, which is the whole reason
             //    the two levels exist rather than one.
             const RotationQuaternion Inverse = Conjugated(Occupying.Composed.Rotation);
 
@@ -915,8 +915,8 @@ void OctantSpace::Descend(std::uint32_t          RecordOrdinal,
 
             // 📝 The direction is scaled and deliberately **not** renormalised, so the parameter the inner
             //    structure returns is still a document-space distance. Renormalising here would make a
-            //    non-uniformly scaled occupant report distances in its own units, and the nearest-first ordering
-            //    across occupants would compare two different measures.
+            //    non-uniformly scaled owner report distances in its own units, and the nearest-first ordering
+            //    across owners would compare two different measures.
             const double ObjectDirectionX = RotatedDirectionX / ScaleX;
             const double ObjectDirectionY = RotatedDirectionY / ScaleY;
             const double ObjectDirectionZ = RotatedDirectionZ / ScaleZ;
@@ -935,7 +935,7 @@ void OctantSpace::Descend(std::uint32_t          RecordOrdinal,
             if (Nearest.Resolved && Met.Distance >= Nearest.Distance)
                 continue;
 
-            Nearest.Occupant          = Occupying.Occupant;
+            Nearest.Owner          = Occupying.Owner;
             Nearest.FaceOrdinal       = Met.FaceOrdinal;
             Nearest.CornerOrdinals[0] = Met.CornerOrdinals[0];
             Nearest.CornerOrdinals[1] = Met.CornerOrdinals[1];
@@ -1005,7 +1005,7 @@ ResolvedIntersection OctantSpace::IntersectRay(DocumentPosition       Origin,
                                                double                 DirectionX,
                                                double                 DirectionY,
                                                double                 DirectionZ,
-                                               const EnrollmentIndex& Subsets) const
+                                               const RegistrationIndex& Subsets) const
 {
     ResolvedIntersection Nearest;
 
@@ -1017,17 +1017,17 @@ ResolvedIntersection OctantSpace::IntersectRay(DocumentPosition       Origin,
     return Nearest;
 }
 
-std::vector<OccupantIdentity> OctantSpace::IntersectExtent(ConditionedExtent      Extent,
+std::vector<OwnerIdentity> OctantSpace::IntersectExtent(ConditionedExtent      Extent,
                                                            bool                   Containment,
-                                                           const EnrollmentIndex& Subsets) const
+                                                           const RegistrationIndex& Subsets) const
 {
-    std::vector<OccupantIdentity> Enrolled;
+    std::vector<OwnerIdentity> Registered;
 
     if (Records.empty())
-        return Enrolled;
+        return Registered;
 
     // 🔴 One traversal over the extent, never one per position inside it — `74` §4. A marquee over a thousand
-    //    occupants is one descent, and the result is one enrolment transaction rather than a thousand.
+    //    owners is one descent, and the result is one registration transaction rather than a thousand.
     std::vector<std::uint32_t> Pending;
     Pending.push_back(0u);
 
@@ -1045,16 +1045,16 @@ std::vector<OccupantIdentity> OctantSpace::IntersectExtent(ConditionedExtent    
         {
             for (std::uint32_t Passed = 0u; Passed < Held.EntryCount; ++Passed)
             {
-                const AdmittedOccupant& Occupying = Admitted[EntryOrder[Held.FirstEntry + Passed]];
+                const AcceptedOwner& Occupying = Accepted[EntryOrder[Held.FirstEntry + Passed]];
 
-                if (!Traversable(Subsets, Occupying.Occupant))
+                if (!Traversable(Subsets, Occupying.Owner))
                     continue;
 
-                const bool Enrolls = Containment ? ExtentContains(Extent, Occupying.Extent)
+                const bool Registers = Containment ? ExtentContains(Extent, Occupying.Extent)
                                                  : ExtentsOverlap(Extent, Occupying.Extent);
 
-                if (Enrolls)
-                    Enrolled.push_back(Occupying.Occupant);
+                if (Registers)
+                    Registered.push_back(Occupying.Owner);
             }
 
             continue;
@@ -1067,7 +1067,7 @@ std::vector<OccupantIdentity> OctantSpace::IntersectExtent(ConditionedExtent    
         }
     }
 
-    return Enrolled;
+    return Registered;
 }
 
 bool OctantSpace::RebuildWorthwhile() const
@@ -1079,11 +1079,11 @@ bool OctantSpace::RebuildWorthwhile() const
         return false;
 
     // 📝 Measured as accumulated widening against the volume at the last build. A count-driven trigger would
-    //    rebuild for a thousand occupants that each moved a millimetre, and never for one that crossed the scene.
+    //    rebuild for a thousand owners that each moved a millimetre, and never for one that crossed the scene.
     return WidenedVolume > BuiltVolume;
 }
 
-std::uint32_t OctantSpace::AdmittedCount() const  { return static_cast<std::uint32_t>(Admitted.size()); }
+std::uint32_t OctantSpace::AcceptedCount() const  { return static_cast<std::uint32_t>(Accepted.size()); }
 std::uint32_t OctantSpace::RecordCount() const    { return static_cast<std::uint32_t>(Records.size());  }
 bool          OctantSpace::ConstructionOwed() const { return BuildOwed; }
 
@@ -1112,7 +1112,7 @@ Outcome<bool> AxisSpace::Refit(std::uint32_t PlacementOrdinal, DomainExtent Amen
     return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no placement carries that ordinal" });
 }
 
-Outcome<std::uint32_t> AxisSpace::Resolve(double PositionAlong, double PositionAcross) const
+Outcome<std::uint32_t> AxisSpace::Resolve(double PositionX, double PositionY) const
 {
     bool          Found    = false;
     std::uint32_t Resolved = 0u;
@@ -1120,8 +1120,8 @@ Outcome<std::uint32_t> AxisSpace::Resolve(double PositionAlong, double PositionA
 
     for (const DomainExtent& Held : Extents)
     {
-        if (PositionAlong  < Held.LeastAlong  || PositionAlong  > Held.GreatestAlong
-         || PositionAcross < Held.LeastAcross || PositionAcross > Held.GreatestAcross)
+        if (PositionX  < Held.MinimumX  || PositionX  > Held.MaximumX
+         || PositionY < Held.MinimumY || PositionY > Held.MaximumY)
         {
             continue;
         }
@@ -1149,10 +1149,10 @@ std::vector<std::uint32_t> AxisSpace::Overlapping(DomainExtent Extent) const
 
     for (const DomainExtent& Held : Extents)
     {
-        if (ClassifyExtentOverlap(Held.LeastAlong,    Held.LeastAcross,
-                                  Held.GreatestAlong, Held.GreatestAcross,
-                                  Extent.LeastAlong,    Extent.LeastAcross,
-                                  Extent.GreatestAlong, Extent.GreatestAcross) >= 0)
+        if (ClassifyExtentOverlap(Held.MinimumX,    Held.MinimumY,
+                                  Held.MaximumX, Held.MaximumY,
+                                  Extent.MinimumX,    Extent.MinimumY,
+                                  Extent.MaximumX, Extent.MaximumY) >= 0)
         {
             Overlapped.push_back(Held.PlacementOrdinal);
         }

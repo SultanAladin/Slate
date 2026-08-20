@@ -30,17 +30,17 @@ const char* const ReflectanceRecordingIdentity = "18-ReflectanceIntegrator";
 //    narrowing at every product — and the reconstruction differences positions, which is where the width matters.
 struct SpatialSpan
 {
-    double OrdinateX = 0.0;   // [-]
-    double OrdinateY = 0.0;   // [-]
-    double OrdinateZ = 0.0;   // [-]
+    double CoordinateX = 0.0;   // [-]
+    double CoordinateY = 0.0;   // [-]
+    double CoordinateZ = 0.0;   // [-]
 };
 
-SpatialSpan Spanned(double OrdinateX, double OrdinateY, double OrdinateZ)
+SpatialSpan Spanned(double CoordinateX, double CoordinateY, double CoordinateZ)
 {
     SpatialSpan Held;
-    Held.OrdinateX = OrdinateX;
-    Held.OrdinateY = OrdinateY;
-    Held.OrdinateZ = OrdinateZ;
+    Held.CoordinateX = CoordinateX;
+    Held.CoordinateY = CoordinateY;
+    Held.CoordinateZ = CoordinateZ;
 
     return Held;
 }
@@ -61,28 +61,28 @@ SpatialSpan Spanned(SurfaceDirection Held)
 
 double Agreement(SpatialSpan Left, SpatialSpan Right)
 {
-    return Left.OrdinateX * Right.OrdinateX
-         + Left.OrdinateY * Right.OrdinateY
-         + Left.OrdinateZ * Right.OrdinateZ;
+    return Left.CoordinateX * Right.CoordinateX
+         + Left.CoordinateY * Right.CoordinateY
+         + Left.CoordinateZ * Right.CoordinateZ;
 }
 
 SpatialSpan Perpendicular(SpatialSpan Left, SpatialSpan Right)
 {
-    return Spanned(Left.OrdinateY * Right.OrdinateZ - Left.OrdinateZ * Right.OrdinateY,
-                   Left.OrdinateZ * Right.OrdinateX - Left.OrdinateX * Right.OrdinateZ,
-                   Left.OrdinateX * Right.OrdinateY - Left.OrdinateY * Right.OrdinateX);
+    return Spanned(Left.CoordinateY * Right.CoordinateZ - Left.CoordinateZ * Right.CoordinateY,
+                   Left.CoordinateZ * Right.CoordinateX - Left.CoordinateX * Right.CoordinateZ,
+                   Left.CoordinateX * Right.CoordinateY - Left.CoordinateY * Right.CoordinateX);
 }
 
 SpatialSpan Accumulated(SpatialSpan Left, SpatialSpan Right)
 {
-    return Spanned(Left.OrdinateX + Right.OrdinateX,
-                   Left.OrdinateY + Right.OrdinateY,
-                   Left.OrdinateZ + Right.OrdinateZ);
+    return Spanned(Left.CoordinateX + Right.CoordinateX,
+                   Left.CoordinateY + Right.CoordinateY,
+                   Left.CoordinateZ + Right.CoordinateZ);
 }
 
 SpatialSpan Weighted(SpatialSpan Held, double Weight)
 {
-    return Spanned(Held.OrdinateX * Weight, Held.OrdinateY * Weight, Held.OrdinateZ * Weight);
+    return Spanned(Held.CoordinateX * Weight, Held.CoordinateY * Weight, Held.CoordinateZ * Weight);
 }
 
 SpatialSpan Unitised(SpatialSpan Held)
@@ -98,9 +98,9 @@ SpatialSpan Unitised(SpatialSpan Held)
 SurfaceDirection Narrowed(SpatialSpan Held)
 {
     SurfaceDirection Narrowing;
-    Narrowing.DirectionX = static_cast<float>(Held.OrdinateX);
-    Narrowing.DirectionY = static_cast<float>(Held.OrdinateY);
-    Narrowing.DirectionZ = static_cast<float>(Held.OrdinateZ);
+    Narrowing.DirectionX = static_cast<float>(Held.CoordinateX);
+    Narrowing.DirectionY = static_cast<float>(Held.CoordinateY);
+    Narrowing.DirectionZ = static_cast<float>(Held.CoordinateZ);
 
     return Narrowing;
 }
@@ -135,39 +135,39 @@ SpatialSpan TripleOf(const ResolvedChannelSet& Resolved, ChannelSubject Channel)
 //                                                THE ALBEDO LOOKUP STORAGE
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<bool> DirectionalAlbedoSurface::Construct(std::uint32_t ExtentAlong_, std::uint32_t ExtentAcross_)
+Outcome<bool> DirectionalAlbedoSurface::Construct(std::uint32_t Width_, std::uint32_t Height_)
 {
-    if (ExtentAlong_ == 0u || ExtentAcross_ == 0u)
+    if (Width_ == 0u || Height_ == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a lookup of no extent resolves nothing" });
 
-    SpannedAlong  = ExtentAlong_;
-    SpannedAcross = ExtentAcross_;
+    SpannedX  = Width_;
+    SpannedY = Height_;
 
-    Components.assign(static_cast<std::size_t>(SpannedAlong)
-                    * static_cast<std::size_t>(SpannedAcross)
+    Components.assign(static_cast<std::size_t>(SpannedX)
+                    * static_cast<std::size_t>(SpannedY)
                     * static_cast<std::size_t>(ComponentCount), 0.0f);
 
     return Outcome<bool>::Result(true);
 }
 
-void DirectionalAlbedoSurface::Declare(std::uint32_t Along,
-                                       std::uint32_t Across,
+void DirectionalAlbedoSurface::Declare(std::uint32_t X,
+                                       std::uint32_t Y,
                                        double        Scale,
                                        double        SingleScatter,
                                        double        Charlie)
 {
-    if (Along >= SpannedAlong || Across >= SpannedAcross)
+    if (X >= SpannedX || Y >= SpannedY)
         return;
 
-    const std::size_t Writing = (static_cast<std::size_t>(Across) * SpannedAlong + Along) * ComponentCount;
+    const std::size_t Writing = (static_cast<std::size_t>(Y) * SpannedX + X) * ComponentCount;
 
     Components[Writing]      = static_cast<float>(Scale);
     Components[Writing + 1u] = static_cast<float>(SingleScatter);
     Components[Writing + 2u] = static_cast<float>(Charlie);
 }
 
-void DirectionalAlbedoSurface::Sample(double  CoordinateAlong,
-                                      double  CoordinateAcross,
+void DirectionalAlbedoSurface::Sample(double  CoordinateX,
+                                      double  CoordinateY,
                                       double& Scale,
                                       double& SingleScatter,
                                       double& Charlie) const
@@ -179,40 +179,40 @@ void DirectionalAlbedoSurface::Sample(double  CoordinateAlong,
     if (Components.empty())
         return;
 
-    const double EdgeAlong  = static_cast<double>(SpannedAlong);
-    const double EdgeAcross = static_cast<double>(SpannedAcross);
+    const double EdgeX  = static_cast<double>(SpannedX);
+    const double EdgeY = static_cast<double>(SpannedY);
 
-    double AlongTexel  = Bounded(CoordinateAlong,  0.0, 1.0) * EdgeAlong  - 0.5;
-    double AcrossTexel = Bounded(CoordinateAcross, 0.0, 1.0) * EdgeAcross - 0.5;
+    double XTexel  = Bounded(CoordinateX,  0.0, 1.0) * EdgeX  - 0.5;
+    double YTexel = Bounded(CoordinateY, 0.0, 1.0) * EdgeY - 0.5;
 
-    AlongTexel  = Bounded(AlongTexel,  0.0, EdgeAlong  - 1.0);
-    AcrossTexel = Bounded(AcrossTexel, 0.0, EdgeAcross - 1.0);
+    XTexel  = Bounded(XTexel,  0.0, EdgeX  - 1.0);
+    YTexel = Bounded(YTexel, 0.0, EdgeY - 1.0);
 
-    const std::uint32_t LeastAlong  = static_cast<std::uint32_t>(AlongTexel);
-    const std::uint32_t LeastAcross = static_cast<std::uint32_t>(AcrossTexel);
+    const std::uint32_t MinimumX  = static_cast<std::uint32_t>(XTexel);
+    const std::uint32_t MinimumY = static_cast<std::uint32_t>(YTexel);
 
-    const std::uint32_t NextAlong  = LeastAlong  + 1u < SpannedAlong  ? LeastAlong  + 1u : LeastAlong;
-    const std::uint32_t NextAcross = LeastAcross + 1u < SpannedAcross ? LeastAcross + 1u : LeastAcross;
+    const std::uint32_t NextX  = MinimumX  + 1u < SpannedX  ? MinimumX  + 1u : MinimumX;
+    const std::uint32_t NextY = MinimumY + 1u < SpannedY ? MinimumY + 1u : MinimumY;
 
-    const double FractionAlong  = AlongTexel  - static_cast<double>(LeastAlong);
-    const double FractionAcross = AcrossTexel - static_cast<double>(LeastAcross);
+    const double FractionX  = XTexel  - static_cast<double>(MinimumX);
+    const double FractionY = YTexel - static_cast<double>(MinimumY);
 
-    const std::size_t LowerLeft  = (static_cast<std::size_t>(LeastAcross) * SpannedAlong + LeastAlong) * ComponentCount;
-    const std::size_t LowerRight = (static_cast<std::size_t>(LeastAcross) * SpannedAlong + NextAlong)  * ComponentCount;
-    const std::size_t UpperLeft  = (static_cast<std::size_t>(NextAcross)  * SpannedAlong + LeastAlong) * ComponentCount;
-    const std::size_t UpperRight = (static_cast<std::size_t>(NextAcross)  * SpannedAlong + NextAlong)  * ComponentCount;
+    const std::size_t LowerLeft  = (static_cast<std::size_t>(MinimumY) * SpannedX + MinimumX) * ComponentCount;
+    const std::size_t LowerRight = (static_cast<std::size_t>(MinimumY) * SpannedX + NextX)  * ComponentCount;
+    const std::size_t UpperLeft  = (static_cast<std::size_t>(NextY)  * SpannedX + MinimumX) * ComponentCount;
+    const std::size_t UpperRight = (static_cast<std::size_t>(NextY)  * SpannedX + NextX)  * ComponentCount;
 
     double Resolved[ComponentCount] = {};
 
     for (std::uint32_t Component = 0u; Component < ComponentCount; ++Component)
     {
-        const double Lower = static_cast<double>(Components[LowerLeft  + Component]) * (1.0 - FractionAlong)
-                           + static_cast<double>(Components[LowerRight + Component]) * FractionAlong;
+        const double Lower = static_cast<double>(Components[LowerLeft  + Component]) * (1.0 - FractionX)
+                           + static_cast<double>(Components[LowerRight + Component]) * FractionX;
 
-        const double Upper = static_cast<double>(Components[UpperLeft  + Component]) * (1.0 - FractionAlong)
-                           + static_cast<double>(Components[UpperRight + Component]) * FractionAlong;
+        const double Upper = static_cast<double>(Components[UpperLeft  + Component]) * (1.0 - FractionX)
+                           + static_cast<double>(Components[UpperRight + Component]) * FractionX;
 
-        Resolved[Component] = Lower * (1.0 - FractionAcross) + Upper * FractionAcross;
+        Resolved[Component] = Lower * (1.0 - FractionY) + Upper * FractionY;
     }
 
     Scale         = Resolved[0];
@@ -220,8 +220,8 @@ void DirectionalAlbedoSurface::Sample(double  CoordinateAlong,
     Charlie       = Resolved[2];
 }
 
-std::uint32_t DirectionalAlbedoSurface::ExtentAlong() const  { return SpannedAlong;  }
-std::uint32_t DirectionalAlbedoSurface::ExtentAcross() const { return SpannedAcross; }
+std::uint32_t DirectionalAlbedoSurface::Width() const  { return SpannedX;  }
+std::uint32_t DirectionalAlbedoSurface::Height() const { return SpannedY; }
 bool          DirectionalAlbedoSurface::Constructed() const  { return !Components.empty(); }
 
 std::uint64_t DirectionalAlbedoSurface::ResidentBytes() const
@@ -266,9 +266,9 @@ ReconstructedSurface ReconstructSurface(const ReconstructionTriangle& Triangle,
     //    which is the one projection that cannot collapse the triangle to a segment. Projecting onto a fixed
     //    plane collapses every triangle parallel to it, and the weights then divide by nothing at exactly the
     //    silhouettes where the artist is looking.
-    const double MagnitudeX = std::fabs(Facing.OrdinateX);
-    const double MagnitudeY = std::fabs(Facing.OrdinateY);
-    const double MagnitudeZ = std::fabs(Facing.OrdinateZ);
+    const double MagnitudeX = std::fabs(Facing.CoordinateX);
+    const double MagnitudeY = std::fabs(Facing.CoordinateY);
+    const double MagnitudeZ = std::fabs(Facing.CoordinateZ);
 
     std::uint32_t Dominant = 2u;
 
@@ -318,10 +318,10 @@ ReconstructedSurface ReconstructSurface(const ReconstructionTriangle& Triangle,
         Orienting = Accumulated(Orienting,
                                 Weighted(Spanned(Triangle.Orientation[Corner]), Reconstructed.Weights[Corner]));
 
-        Reconstructed.DomainAlong  += Reconstructed.Weights[Corner]
-                                    * static_cast<double>(Triangle.Domain[Corner].CoordinateAlong);
-        Reconstructed.DomainAcross += Reconstructed.Weights[Corner]
-                                    * static_cast<double>(Triangle.Domain[Corner].CoordinateAcross);
+        Reconstructed.DomainX  += Reconstructed.Weights[Corner]
+                                    * static_cast<double>(Triangle.Domain[Corner].CoordinateX);
+        Reconstructed.DomainY += Reconstructed.Weights[Corner]
+                                    * static_cast<double>(Triangle.Domain[Corner].CoordinateY);
     }
 
     SpatialSpan Oriented = Unitised(Orienting);
@@ -400,21 +400,21 @@ ReconstructedSurface ReconstructSurface(const ReconstructionTriangle& Triangle,
 
         if (Determinant != 0.0)
         {
-            const double AlphaAlong  = static_cast<double>(Triangle.Domain[1].CoordinateAlong)
-                                     - static_cast<double>(Triangle.Domain[0].CoordinateAlong);
-            const double AlphaAcross = static_cast<double>(Triangle.Domain[1].CoordinateAcross)
-                                     - static_cast<double>(Triangle.Domain[0].CoordinateAcross);
-            const double BetaAlong   = static_cast<double>(Triangle.Domain[2].CoordinateAlong)
-                                     - static_cast<double>(Triangle.Domain[0].CoordinateAlong);
-            const double BetaAcross  = static_cast<double>(Triangle.Domain[2].CoordinateAcross)
-                                     - static_cast<double>(Triangle.Domain[0].CoordinateAcross);
+            const double AlphaX  = static_cast<double>(Triangle.Domain[1].CoordinateX)
+                                     - static_cast<double>(Triangle.Domain[0].CoordinateX);
+            const double AlphaY = static_cast<double>(Triangle.Domain[1].CoordinateY)
+                                     - static_cast<double>(Triangle.Domain[0].CoordinateY);
+            const double BetaX   = static_cast<double>(Triangle.Domain[2].CoordinateX)
+                                     - static_cast<double>(Triangle.Domain[0].CoordinateX);
+            const double BetaY  = static_cast<double>(Triangle.Domain[2].CoordinateY)
+                                     - static_cast<double>(Triangle.Domain[0].CoordinateY);
 
             const double Reciprocal = 1.0 / Determinant;
 
-            Reconstructed.DomainGradient[0] = (AlphaAlong  * BetaV - BetaAlong  * AlphaV) * Reciprocal;
-            Reconstructed.DomainGradient[1] = (AlphaU * BetaAlong  - BetaU * AlphaAlong)  * Reciprocal;
-            Reconstructed.DomainGradient[2] = (AlphaAcross * BetaV - BetaAcross * AlphaV) * Reciprocal;
-            Reconstructed.DomainGradient[3] = (AlphaU * BetaAcross - BetaU * AlphaAcross) * Reciprocal;
+            Reconstructed.DomainGradient[0] = (AlphaX  * BetaV - BetaX  * AlphaV) * Reciprocal;
+            Reconstructed.DomainGradient[1] = (AlphaU * BetaX  - BetaU * AlphaX)  * Reciprocal;
+            Reconstructed.DomainGradient[2] = (AlphaY * BetaV - BetaY * AlphaV) * Reciprocal;
+            Reconstructed.DomainGradient[3] = (AlphaU * BetaY - BetaU * AlphaY) * Reciprocal;
         }
     }
 
@@ -462,21 +462,21 @@ Outcome<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRul
     if (!Rule.Derived())
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule has not been derived" });
 
-    const Outcome<bool> Constructed = AlbedoLookup.Construct(AlbedoExtentAlong, AlbedoExtentAcross);
+    const Outcome<bool> Constructed = AlbedoLookup.Construct(AlbedoExtentX, AlbedoExtentY);
 
     if (!Constructed.Resolved)
         return Constructed;
 
-    for (std::uint32_t Across = 0u; Across < AlbedoExtentAcross; ++Across)
+    for (std::uint32_t Y = 0u; Y < AlbedoExtentY; ++Y)
     {
-        for (std::uint32_t Along = 0u; Along < AlbedoExtentAlong; ++Along)
+        for (std::uint32_t X = 0u; X < AlbedoExtentX; ++X)
         {
-            const double CoordinateAlong  = (static_cast<double>(Along)  + 0.5) / AlbedoExtentAlong;
-            const double CoordinateAcross = (static_cast<double>(Across) + 0.5) / AlbedoExtentAcross;
+            const double CoordinateX  = (static_cast<double>(X)  + 0.5) / AlbedoExtentX;
+            const double CoordinateY = (static_cast<double>(Y) + 0.5) / AlbedoExtentY;
 
             double ViewCosine = 0.0;
             double Roughness  = 0.0;
-            ProjectAlbedoParameter(CoordinateAlong, CoordinateAcross, ViewCosine, Roughness);
+            ProjectAlbedoParameter(CoordinateX, CoordinateY, ViewCosine, Roughness);
 
             // 📝 The orientation is the third axis by construction, so the view direction is fixed by its cosine
             //    alone and the whole integral is rotationally symmetric about it. That symmetry is what makes the
@@ -516,14 +516,14 @@ Outcome<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRul
 
                 const SpatialSpan Incident = Accumulated(Weighted(Half, 2.0 * ViewHalf), Weighted(View, -1.0));
 
-                if (Incident.OrdinateZ <= 0.0 || HalfCosine <= 0.0 || ViewHalf <= 0.0)
+                if (Incident.CoordinateZ <= 0.0 || HalfCosine <= 0.0 || ViewHalf <= 0.0)
                     continue;
 
                 // 📐 The importance weight is 4·(V·H)·G_vis·(N·L)/(N·H), which is what remains once the sampling
                 //    density cancels against the distribution. `ProjectVisibilitySmith` has already folded the
                 //    four cosines in, so the four here is the only one that survives.
-                const double Visibility = ProjectVisibilitySmith(Parameter, ViewCosine, Incident.OrdinateZ);
-                const double Weight     = 4.0 * ViewHalf * Visibility * Incident.OrdinateZ / HalfCosine;
+                const double Visibility = ProjectVisibilitySmith(Parameter, ViewCosine, Incident.CoordinateZ);
+                const double Weight     = 4.0 * ViewHalf * Visibility * Incident.CoordinateZ / HalfCosine;
 
                 const double Departure = 1.0 - ViewHalf;
                 const double Squared   = Departure * Departure;
@@ -565,7 +565,7 @@ Outcome<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRul
 
                     const SpatialSpan Half = Unitised(Accumulated(Incident, View));
 
-                    const double Distribution = ProjectSheenDistributionCharlie(Roughness, Half.OrdinateZ);
+                    const double Distribution = ProjectSheenDistributionCharlie(Roughness, Half.CoordinateZ);
                     const double Visibility   = ProjectSheenVisibility(ViewCosine, IncidentCosine);
 
                     Fibre += Distribution * Visibility * IncidentCosine * CosineWeight * AzimuthWeight;
@@ -574,7 +574,7 @@ Outcome<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRul
 
             // 📝 `.y` is the scale and the bias together — the fraction of energy single-scatter GGX preserves at
             //    unit normal-incidence reflectance, which is exactly what `ProjectMultiScatterCompensation` reads.
-            AlbedoLookup.Declare(Along, Across, ScaleTerm, ScaleTerm + BiasTerm, Fibre);
+            AlbedoLookup.Declare(X, Y, ScaleTerm, ScaleTerm + BiasTerm, Fibre);
         }
     }
 
@@ -589,11 +589,11 @@ void ReflectanceIntegrator::SampleDirectionalAlbedo(double  ViewCosine,
                                                     double& SingleScatterAlbedo,
                                                     double& CharlieAlbedo) const
 {
-    double CoordinateAlong  = 0.0;
-    double CoordinateAcross = 0.0;
-    ProjectAlbedoCoordinate(ViewCosine, Roughness, CoordinateAlong, CoordinateAcross);
+    double CoordinateX  = 0.0;
+    double CoordinateY = 0.0;
+    ProjectAlbedoCoordinate(ViewCosine, Roughness, CoordinateX, CoordinateY);
 
-    AlbedoLookup.Sample(CoordinateAlong, CoordinateAcross, SplitSumScale, SingleScatterAlbedo, CharlieAlbedo);
+    AlbedoLookup.Sample(CoordinateX, CoordinateY, SplitSumScale, SingleScatterAlbedo, CharlieAlbedo);
 }
 
 const DirectionalAlbedoSurface& ReflectanceIntegrator::DirectionalAlbedo() const { return AlbedoLookup;  }
@@ -615,13 +615,13 @@ void DeclareDefault(ResolvedChannelSet& Resolved, ChannelSubject Channel, const 
 
     if (MeasureCarriesColour(Held.Measured))
     {
-        const ColourSpecification& Standing = Held.Source == ChannelSource::Constant
+        const ColourSpecification& Current = Held.Source == ChannelSource::Constant
                                             ? Held.ConstantColour
                                             : Held.DefaultColour;
 
-        Resolved.Component[Ordinal][0] = Standing.RedCoordinate;
-        Resolved.Component[Ordinal][1] = Standing.GreenCoordinate;
-        Resolved.Component[Ordinal][2] = Standing.BlueCoordinate;
+        Resolved.Component[Ordinal][0] = Current.RedCoordinate;
+        Resolved.Component[Ordinal][1] = Current.GreenCoordinate;
+        Resolved.Component[Ordinal][2] = Current.BlueCoordinate;
 
         return;
     }
@@ -708,17 +708,17 @@ Outcome<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
     //    this same routine, which is what `00` §11 gates the two against.
     const Outcome<ResolvedSample> Sampled = Resolving.ResolveAt(Content,
                                                                 Placements,
-                                                                Reconstructed.DomainAlong,
-                                                                Reconstructed.DomainAcross,
+                                                                Reconstructed.DomainX,
+                                                                Reconstructed.DomainY,
                                                                 Tolerance,
                                                                 ResolvedComponentCeiling);
 
     if (!Sampled.Resolved)
         return Outcome<ResolvedChannelSet>::Refuse(Sampled.Error);
 
-    const ResolvedSample& Standing = Sampled.Resolve();
+    const ResolvedSample& Current = Sampled.Resolve();
 
-    if (!Standing.SampleResolved)
+    if (!Current.SampleResolved)
         return Outcome<ResolvedChannelSet>::Result(Resolved);
 
     for (const ChannelPlacement& Placing : Placements)
@@ -738,7 +738,7 @@ Outcome<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
         const std::size_t Ordinal = ChannelOrdinal(Placing.Channel);
 
         for (std::uint32_t Component = 0u; Component < Placing.ComponentSpan && Component < 3u; ++Component)
-            Resolved.Component[Ordinal][Component] = Standing.Component[Placing.ComponentOrdinal + Component];
+            Resolved.Component[Ordinal][Component] = Current.Component[Placing.ComponentOrdinal + Component];
 
         // 📝 A one-component placement carrying a scalar fills all three, so a reader that takes the triple form
         //    of a scalar channel reads the scalar rather than two zeros beside it.
@@ -776,9 +776,9 @@ SpatialSpan Perturbed(const ResolvedChannelSet& Resolved, const ReconstructedSur
 
     const SpatialSpan Perturbing = TripleOf(Resolved, ChannelSubject::SurfaceOrientation);
 
-    const SpatialSpan Composed = Accumulated(Accumulated(Weighted(Tangential, Perturbing.OrdinateX),
-                                                         Weighted(Bitangent,  Perturbing.OrdinateY)),
-                                             Weighted(Oriented, Perturbing.OrdinateZ));
+    const SpatialSpan Composed = Accumulated(Accumulated(Weighted(Tangential, Perturbing.CoordinateX),
+                                                         Weighted(Bitangent,  Perturbing.CoordinateY)),
+                                             Weighted(Oriented, Perturbing.CoordinateZ));
 
     const SpatialSpan Unitary = Unitised(Composed);
 
@@ -796,9 +796,9 @@ SpatialSpan NormalIncidence(const ResolvedChannelSet& Resolved)
 
     const double Dielectric = 0.16 * Declared * Declared;
 
-    return Spanned(Dielectric * (1.0 - Metallic) + Albedo.OrdinateX * Metallic,
-                   Dielectric * (1.0 - Metallic) + Albedo.OrdinateY * Metallic,
-                   Dielectric * (1.0 - Metallic) + Albedo.OrdinateZ * Metallic);
+    return Spanned(Dielectric * (1.0 - Metallic) + Albedo.CoordinateX * Metallic,
+                   Dielectric * (1.0 - Metallic) + Albedo.CoordinateY * Metallic,
+                   Dielectric * (1.0 - Metallic) + Albedo.CoordinateZ * Metallic);
 }
 
 // 📐 The distribution parameter widened by the emission shape's own solid extent — `18` §4 integrates over it and
@@ -884,8 +884,8 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
     {
         const double Anisotropy = Bounded(ScalarOf(Resolved, ChannelSubject::Anisotropy), -1.0, 1.0);
 
-        const double RoughnessAlong  = Bounded(Parameter * (1.0 + Anisotropy), 0.0, 1.0);
-        const double RoughnessAcross = Bounded(Parameter * (1.0 - Anisotropy), 0.0, 1.0);
+        const double RoughnessX  = Bounded(Parameter * (1.0 + Anisotropy), 0.0, 1.0);
+        const double RoughnessY = Bounded(Parameter * (1.0 - Anisotropy), 0.0, 1.0);
 
         SpatialSpan Tangential = Reconstructed.BasisDeclared
                                ? Spanned(Reconstructed.Basis.Tangent)
@@ -897,14 +897,14 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
             const SpatialSpan Bitangent  = Weighted(Perpendicular(Oriented, Tangential),
                                                     static_cast<double>(Reconstructed.Basis.HandednessSignum));
 
-            Tangential = Unitised(Accumulated(Weighted(Tangential, Declared_.OrdinateX),
-                                              Weighted(Bitangent,  Declared_.OrdinateY)));
+            Tangential = Unitised(Accumulated(Weighted(Tangential, Declared_.CoordinateX),
+                                              Weighted(Bitangent,  Declared_.CoordinateY)));
         }
 
         const SpatialSpan Bitangent = Perpendicular(Oriented, Tangential);
 
-        Distribution = ProjectDistributionAnisotropic(RoughnessAlong,
-                                                      RoughnessAcross,
+        Distribution = ProjectDistributionAnisotropic(RoughnessX,
+                                                      RoughnessY,
                                                       Agreement(Half, Tangential),
                                                       Agreement(Half, Bitangent),
                                                       HalfCosine);
@@ -919,8 +919,8 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
     double DiffuseComponent[3]  = { 0.0, 0.0, 0.0 };
     double SpecularComponent[3] = { 0.0, 0.0, 0.0 };
 
-    const double AlbedoComponent[3]   = { Albedo.OrdinateX,    Albedo.OrdinateY,    Albedo.OrdinateZ    };
-    const double IncidenceComponent[3] = { Incident0.OrdinateX, Incident0.OrdinateY, Incident0.OrdinateZ };
+    const double AlbedoComponent[3]   = { Albedo.CoordinateX,    Albedo.CoordinateY,    Albedo.CoordinateZ    };
+    const double IncidenceComponent[3] = { Incident0.CoordinateX, Incident0.CoordinateY, Incident0.CoordinateZ };
 
     if (Selected == ReflectanceSelection::Cloth)
     {
@@ -930,7 +930,7 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
         const double SheenDistribution = ProjectSheenDistributionCharlie(SheenRoughness, HalfCosine);
         const double SheenVisibility   = ProjectSheenVisibility(ViewCosine, IncidentCosine);
 
-        const double SheenComponent[3] = { Sheen.OrdinateX, Sheen.OrdinateY, Sheen.OrdinateZ };
+        const double SheenComponent[3] = { Sheen.CoordinateX, Sheen.CoordinateY, Sheen.CoordinateZ };
 
         for (std::uint32_t Component = 0u; Component < 3u; ++Component)
         {
@@ -975,9 +975,9 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
                                                     static_cast<double>(Reconstructed.Basis.HandednessSignum));
             const SpatialSpan Declared_  = TripleOf(Resolved, ChannelSubject::ClearCoatOrientation);
 
-            const SpatialSpan Composed = Accumulated(Accumulated(Weighted(Tangential, Declared_.OrdinateX),
-                                                                 Weighted(Bitangent,  Declared_.OrdinateY)),
-                                                     Weighted(Oriented, Declared_.OrdinateZ));
+            const SpatialSpan Composed = Accumulated(Accumulated(Weighted(Tangential, Declared_.CoordinateX),
+                                                                 Weighted(Bitangent,  Declared_.CoordinateY)),
+                                                     Weighted(Oriented, Declared_.CoordinateZ));
 
             const SpatialSpan Unitary = Unitised(Composed);
 
@@ -1040,7 +1040,7 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
         const double Wrapped     = Bounded(-Agreement(Oriented, Incident), 0.0, 1.0);
         const double Attenuation = Thickness > 0.0 ? std::exp(-Thickness) : 1.0;
 
-        const double SubsurfaceComponent[3] = { Subsurface.OrdinateX, Subsurface.OrdinateY, Subsurface.OrdinateZ };
+        const double SubsurfaceComponent[3] = { Subsurface.CoordinateX, Subsurface.CoordinateY, Subsurface.CoordinateZ };
 
         for (std::uint32_t Component = 0u; Component < 3u; ++Component)
             DiffuseComponent[Component] += SubsurfaceComponent[Component] * Wrapped * Attenuation / Pi;
@@ -1086,9 +1086,9 @@ Outcome<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
     // 🔴 Emission is written **before** the attenuation is resolved and is never multiplied by it. A surface that
     //    emits does not emit less for standing in a corner, and an occlusion applied to it is the one occlusion
     //    defect the artist cannot correct by adjusting occlusion.
-    Contribution.EmissiveComponent[0] = Emission.OrdinateX;
-    Contribution.EmissiveComponent[1] = Emission.OrdinateY;
-    Contribution.EmissiveComponent[2] = Emission.OrdinateZ;
+    Contribution.EmissiveComponent[0] = Emission.CoordinateX;
+    Contribution.EmissiveComponent[1] = Emission.CoordinateY;
+    Contribution.EmissiveComponent[2] = Emission.CoordinateZ;
 
     if (Selected == ReflectanceSelection::EmissiveOnly)
         return Outcome<AmbientContribution>::Result(Contribution);
@@ -1099,9 +1099,9 @@ Outcome<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
     {
         // 📝 An unlit selection writes its albedo unattenuated. `18` §3 gives it channels 1 and 8 and nothing
         //    else, so there is no lobe to integrate and no occlusion that could apply to one.
-        Contribution.DiffuseComponent[0] = Albedo.OrdinateX;
-        Contribution.DiffuseComponent[1] = Albedo.OrdinateY;
-        Contribution.DiffuseComponent[2] = Albedo.OrdinateZ;
+        Contribution.DiffuseComponent[0] = Albedo.CoordinateX;
+        Contribution.DiffuseComponent[1] = Albedo.CoordinateY;
+        Contribution.DiffuseComponent[2] = Albedo.CoordinateZ;
 
         return Outcome<AmbientContribution>::Result(Contribution);
     }
@@ -1132,9 +1132,9 @@ Outcome<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
     double IrradianceGreen = 0.0;
     double IrradianceBlue  = 0.0;
 
-    Atmosphere.Irradiance().Evaluate(Oriented.OrdinateX,
-                                     Oriented.OrdinateY,
-                                     Oriented.OrdinateZ,
+    Atmosphere.Irradiance().Evaluate(Oriented.CoordinateX,
+                                     Oriented.CoordinateY,
+                                     Oriented.CoordinateZ,
                                      IrradianceRed,
                                      IrradianceGreen,
                                      IrradianceBlue);
@@ -1148,13 +1148,13 @@ Outcome<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
     double SkyGreen = 0.0;
     double SkyBlue  = 0.0;
 
-    Disregard(Atmosphere.SampleSkyView(Reflected.OrdinateX, Reflected.OrdinateY, Reflected.OrdinateZ,
+    Discard(Atmosphere.SampleSkyView(Reflected.CoordinateX, Reflected.CoordinateY, Reflected.CoordinateZ,
                              SkyRed, SkyGreen, SkyBlue));
 
     const SpatialSpan Incident0 = NormalIncidence(Resolved);
 
-    const double AlbedoComponent[3]    = { Albedo.OrdinateX,    Albedo.OrdinateY,    Albedo.OrdinateZ    };
-    const double IncidenceComponent[3] = { Incident0.OrdinateX, Incident0.OrdinateY, Incident0.OrdinateZ };
+    const double AlbedoComponent[3]    = { Albedo.CoordinateX,    Albedo.CoordinateY,    Albedo.CoordinateZ    };
+    const double IncidenceComponent[3] = { Incident0.CoordinateX, Incident0.CoordinateY, Incident0.CoordinateZ };
     const double IrradianceComponent[3] = { IrradianceRed, IrradianceGreen, IrradianceBlue };
     const double SkyComponent[3]        = { SkyRed, SkyGreen, SkyBlue };
 
@@ -1172,7 +1172,7 @@ Outcome<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
         if (Selected == ReflectanceSelection::Cloth)
         {
             const SpatialSpan Sheen           = TripleOf(Resolved, ChannelSubject::SheenColour);
-            const double      SheenComponent[3] = { Sheen.OrdinateX, Sheen.OrdinateY, Sheen.OrdinateZ };
+            const double      SheenComponent[3] = { Sheen.CoordinateX, Sheen.CoordinateY, Sheen.CoordinateZ };
 
             Contribution.SpecularComponent[Component] =
                 SkyComponent[Component] * SheenComponent[Component] * CharlieAlbedo;
@@ -1227,7 +1227,7 @@ Outcome<bool> ReflectanceIntegrator::IntegrateUnoccupied(const AtmosphereIntegra
     // ⚠️ Without this class nothing in the whole schedule writes the background: every other dispatch is per
     //    material over pixels that resolved to a surface, and an unoccupied pixel resolved to none. The image
     //    would carry a hole exactly where the sky belongs, filled with whatever the cycle slot held before.
-    Disregard(Atmosphere.SampleSkyView(View.OrdinateX, View.OrdinateY, View.OrdinateZ, Red, Green, Blue));
+    Discard(Atmosphere.SampleSkyView(View.CoordinateX, View.CoordinateY, View.CoordinateZ, Red, Green, Blue));
 
     return Outcome<bool>::Result(true);
 }

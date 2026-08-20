@@ -81,22 +81,22 @@ const char* ImageSpace::NameOf(ImageIntent Intent)
 //                                                      THE CLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ImageClaim> ImageSpace::Claim(const ImageShape& Declared)
+Outcome<ImageReservation> ImageSpace::Reserve(const ImageShape& Declared)
 {
     if (DeviceEdge == nullptr || BackingBytes == nullptr)
-        return Outcome<ImageClaim>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<ImageReservation>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     if (Declared.Width == 0u || Declared.Height == 0u)
-        return Outcome<ImageClaim>::Refuse({ RefusalReason::ContentUnsupported, "an image of zero extent" });
+        return Outcome<ImageReservation>::Refuse({ RefusalReason::ContentUnsupported, "an image of zero extent" });
 
     if (Declared.Format == VK_FORMAT_UNDEFINED)
-        return Outcome<ImageClaim>::Refuse({ RefusalReason::ContentUnsupported, "an image of no declared format" });
+        return Outcome<ImageReservation>::Refuse({ RefusalReason::ContentUnsupported, "an image of no declared format" });
 
     if (Declared.LayerCount == 0u || Declared.LevelCount == 0u)
-        return Outcome<ImageClaim>::Refuse({ RefusalReason::ContentUnsupported, "an image of no layer or no level" });
+        return Outcome<ImageReservation>::Refuse({ RefusalReason::ContentUnsupported, "an image of no layer or no level" });
 
     if (Declared.Intent == ImageIntent::IntentCount)
-        return Outcome<ImageClaim>::Refuse({ RefusalReason::ContentUnsupported, "no such intent" });
+        return Outcome<ImageReservation>::Refuse({ RefusalReason::ContentUnsupported, "no such intent" });
 
     const VkDevice Active = DeviceEdge->ActiveDevice();
 
@@ -107,7 +107,7 @@ Outcome<ImageClaim> ImageSpace::Claim(const ImageShape& Declared)
 
     if ((FormatDeclaration.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) == 0u)
     {
-        return Outcome<ImageClaim>::Refuse(
+        return Outcome<ImageReservation>::Refuse(
             { RefusalReason::ContentUnsupported, "the device declines the declared format for an optimal image" });
     }
 
@@ -126,43 +126,43 @@ Outcome<ImageClaim> ImageSpace::Claim(const ImageShape& Declared)
     ImageDeclaration.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
     ImageDeclaration.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    VkImage Arriving = VK_NULL_HANDLE;
+    VkImage Incoming = VK_NULL_HANDLE;
 
-    if (vkCreateImage(Active, &ImageDeclaration, nullptr, &Arriving) != VK_SUCCESS)
-        return Outcome<ImageClaim>::Refuse({ RefusalReason::ExtentExhausted, "the device declined the image" });
+    if (vkCreateImage(Active, &ImageDeclaration, nullptr, &Incoming) != VK_SUCCESS)
+        return Outcome<ImageReservation>::Refuse({ RefusalReason::ExtentExhausted, "the device rejected the image" });
 
     // 📝 The requirement is read from the created image and never computed from the shape. Tiling, alignment
     //    and the admissible residencies are the vendor's, and a computed figure is right on one driver.
     VkMemoryRequirements Required = {};
-    vkGetImageMemoryRequirements(Active, Arriving, &Required);
+    vkGetImageMemoryRequirements(Active, Incoming, &Required);
 
     // 🔴 `06` §7: a target is committed rather than discretionary. `08` §2's set is the working set for every
     //    recording in the ordering, and evicting one of them mid-ordering is a recording reading a released span.
-    const Outcome<ByteClaim> Backing = BackingBytes->Claim(Required.size,
+    const Outcome<ByteReservation> Backing = BackingBytes->Reserve(Required.size,
                                                            Required.alignment,
                                                            ExtentResidency::DeviceLocal,
-                                                           ClaimStanding::Committed);
+                                                           ReservationCondition::Committed);
 
     if (!Backing.Resolved)
     {
-        vkDestroyImage(Active, Arriving, nullptr);
-        return Outcome<ImageClaim>::Refuse(Backing.Error);
+        vkDestroyImage(Active, Incoming, nullptr);
+        return Outcome<ImageReservation>::Refuse(Backing.Error);
     }
 
-    const ByteClaim Sliced = Backing.Resolve();
+    const ByteReservation Sliced = Backing.Resolve();
 
-    if (vkBindImageMemory(Active, Arriving, Sliced.BackingExtent, Sliced.ByteOffset) != VK_SUCCESS)
+    if (vkBindImageMemory(Active, Incoming, Sliced.BackingExtent, Sliced.ByteOffset) != VK_SUCCESS)
     {
         BackingBytes->Release(Sliced);
-        vkDestroyImage(Active, Arriving, nullptr);
+        vkDestroyImage(Active, Incoming, nullptr);
 
-        return Outcome<ImageClaim>::Refuse(
-            { RefusalReason::ContentUnsupported, "the device declined to bind the claimed span to the image" });
+        return Outcome<ImageReservation>::Refuse(
+            { RefusalReason::ContentUnsupported, "the device failed to bind the claimed span to the image" });
     }
 
     VkImageViewCreateInfo ViewDeclaration            = {};
     ViewDeclaration.sType                            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    ViewDeclaration.image                            = Arriving;
+    ViewDeclaration.image                            = Incoming;
     ViewDeclaration.viewType                         = Declared.LayerCount > 1u ? VK_IMAGE_VIEW_TYPE_2D_ARRAY
                                                                                 : VK_IMAGE_VIEW_TYPE_2D;
     ViewDeclaration.format                           = Declared.Format;
@@ -176,19 +176,19 @@ Outcome<ImageClaim> ImageSpace::Claim(const ImageShape& Declared)
 
     if (vkCreateImageView(Active, &ViewDeclaration, nullptr, &Whole) != VK_SUCCESS)
     {
-        vkDestroyImage(Active, Arriving, nullptr);
+        vkDestroyImage(Active, Incoming, nullptr);
         BackingBytes->Release(Sliced);
 
-        return Outcome<ImageClaim>::Refuse({ RefusalReason::ContentUnsupported, "the device declined the image view" });
+        return Outcome<ImageReservation>::Refuse({ RefusalReason::ContentUnsupported, "the device rejected the image view" });
     }
 
     HeldImage Taken;
-    Taken.Extent         = Arriving;
+    Taken.Extent         = Incoming;
     Taken.WholeView      = Whole;
     Taken.LevelViews.assign(Declared.LevelCount, VK_NULL_HANDLE);
     Taken.Backing        = Sliced;
     Taken.Shape          = Declared;
-    Taken.StandingLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    Taken.CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     Taken.SlotOccupied   = true;
 
     // 📝 A released slot is reused rather than erased, so that an ordinal a contributing document recorded
@@ -214,24 +214,24 @@ Outcome<ImageClaim> ImageSpace::Claim(const ImageShape& Declared)
     // 📝 🔴 `06` §7's diagnostic-name gate. The image and its whole-image view are separate vendor objects and
     //    are named separately, both by the ordinal the claimant resolves them by. The refusals are discarded
     //    for `ByteSpace`'s reason — an unnamed image is still the image the claimant asked for.
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
-                        reinterpret_cast<std::uint64_t>(Arriving),
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE,
+                        reinterpret_cast<std::uint64_t>(Incoming),
                         NameOf(Declared.Intent),
                         Ordinal));
 
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
                         reinterpret_cast<std::uint64_t>(Whole),
                         "ImageSpace whole-image view",
                         Ordinal));
 
-    ImageClaim Handed;
-    Handed.Extent         = Arriving;
+    ImageReservation Handed;
+    Handed.Extent         = Incoming;
     Handed.WholeView      = Whole;
-    Handed.StandingLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    Handed.CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     Handed.Shape          = Declared;
     Handed.ImageOrdinal   = Ordinal;
 
-    return Outcome<ImageClaim>::Result(Handed);
+    return Outcome<ImageReservation>::Result(Handed);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -243,9 +243,9 @@ namespace
     // 📝 The stage and the access a layout is reached at, derived from the layout alone. A finer derivation
     //    would take the reading recording as well, and `08` §4 declares reads and writes per target rather
     //    than per recording — so the coarse pair is what the declaration can actually supply.
-    void ReachedAt(VkImageLayout Standing, VkPipelineStageFlags& Stage, VkAccessFlags& Access)
+    void ReachedAt(VkImageLayout Current, VkPipelineStageFlags& Stage, VkAccessFlags& Access)
     {
-        switch (Standing)
+        switch (Current)
         {
             case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
                 Stage  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -292,7 +292,7 @@ namespace
     }
 }
 
-Outcome<bool> ImageSpace::Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Arriving)
+Outcome<bool> ImageSpace::Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Incoming)
 {
     if (Recorded == VK_NULL_HANDLE)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no recording to record the barrier into" });
@@ -302,41 +302,41 @@ Outcome<bool> ImageSpace::Transition(VkCommandBuffer Recorded, std::uint32_t Ima
 
     HeldImage& Held = Images[ImageOrdinal];
 
-    // 📝 A repeat transition is delivered rather than refused. `08` §3's ordering has several recordings
+    // 📝 A repeat transition is delivered rather than rejected. `08` §3's ordering has several recordings
     //    declaring the same read of the same target, and refusing the second would make the contribution
     //    order a correctness condition the ordering does not promise.
-    if (Held.StandingLayout == Arriving)
+    if (Held.CurrentLayout == Incoming)
         return Outcome<bool>::Result(true);
 
     VkPipelineStageFlags DepartingStage  = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    VkPipelineStageFlags ArrivingStage   = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags IncomingStage   = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     VkAccessFlags        DepartingAccess = 0u;
-    VkAccessFlags        ArrivingAccess  = 0u;
+    VkAccessFlags        IncomingAccess  = 0u;
 
-    ReachedAt(Held.StandingLayout, DepartingStage, DepartingAccess);
-    ReachedAt(Arriving, ArrivingStage, ArrivingAccess);
+    ReachedAt(Held.CurrentLayout, DepartingStage, DepartingAccess);
+    ReachedAt(Incoming, IncomingStage, IncomingAccess);
 
     VkImageMemoryBarrier Carried                = {};
     Carried.sType                               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    Carried.oldLayout                           = Held.StandingLayout;
-    Carried.newLayout                           = Arriving;
+    Carried.oldLayout                           = Held.CurrentLayout;
+    Carried.newLayout                           = Incoming;
     Carried.srcQueueFamilyIndex                 = VK_QUEUE_FAMILY_IGNORED;
     Carried.dstQueueFamilyIndex                 = VK_QUEUE_FAMILY_IGNORED;
     Carried.image                               = Held.Extent;
     Carried.srcAccessMask                       = DepartingAccess;
-    Carried.dstAccessMask                       = ArrivingAccess;
+    Carried.dstAccessMask                       = IncomingAccess;
     Carried.subresourceRange.aspectMask         = AspectOf(Held.Shape.Intent);
     Carried.subresourceRange.baseMipLevel       = 0u;
     Carried.subresourceRange.levelCount         = Held.Shape.LevelCount;
     Carried.subresourceRange.baseArrayLayer     = 0u;
     Carried.subresourceRange.layerCount         = Held.Shape.LayerCount;
 
-    vkCmdPipelineBarrier(Recorded, DepartingStage, ArrivingStage, 0u, 0u, nullptr, 0u, nullptr, 1u, &Carried);
+    vkCmdPipelineBarrier(Recorded, DepartingStage, IncomingStage, 0u, 0u, nullptr, 0u, nullptr, 1u, &Carried);
 
     // 🔴 Amended at the recording and not at the submission. The ordering records every barrier before any of
     //    them executes, so a record amended at submission would derive every later barrier from the layout
     //    the image stood in one rotation ago.
-    Held.StandingLayout = Arriving;
+    Held.CurrentLayout = Incoming;
 
     return Outcome<bool>::Result(true);
 }
@@ -345,21 +345,21 @@ Outcome<bool> ImageSpace::Transition(VkCommandBuffer Recorded, std::uint32_t Ima
 //                                                   WHAT IS CLAIMED
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<ImageClaim> ImageSpace::Standing(std::uint32_t ImageOrdinal) const
+Outcome<ImageReservation> ImageSpace::Current(std::uint32_t ImageOrdinal) const
 {
     if (static_cast<std::size_t>(ImageOrdinal) >= Images.size() || !Images[ImageOrdinal].SlotOccupied)
-        return Outcome<ImageClaim>::Refuse({ RefusalReason::ContentUnsupported, "no image stands at that ordinal" });
+        return Outcome<ImageReservation>::Refuse({ RefusalReason::ContentUnsupported, "no image stands at that ordinal" });
 
     const HeldImage& Held = Images[ImageOrdinal];
 
-    ImageClaim Reported;
+    ImageReservation Reported;
     Reported.Extent         = Held.Extent;
     Reported.WholeView      = Held.WholeView;
-    Reported.StandingLayout = Held.StandingLayout;
+    Reported.CurrentLayout = Held.CurrentLayout;
     Reported.Shape          = Held.Shape;
     Reported.ImageOrdinal   = ImageOrdinal;
 
-    return Outcome<ImageClaim>::Result(Reported);
+    return Outcome<ImageReservation>::Result(Reported);
 }
 
 Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint32_t LevelOrdinal)
@@ -398,7 +398,7 @@ Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint
     if (vkCreateImageView(DeviceEdge->ActiveDevice(), &ViewDeclaration, nullptr, &Constructed) != VK_SUCCESS)
     {
         return Outcome<VkImageView>::Refuse(
-            { RefusalReason::ContentUnsupported, "the device declined a view over the declared level" });
+            { RefusalReason::ContentUnsupported, "the device rejected a view over the declared level" });
     }
 
     Held.LevelViews[LevelOrdinal] = Constructed;
@@ -407,7 +407,7 @@ Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint
     //    because the chain `16` §2 walks constructs one per level over a single image — an ordinal naming the
     //    image would give every view in the chain one name, and the driver's text could not say which level
     //    the error was raised against.
-    Disregard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
+    Discard(NamingEdge->Declare(VK_OBJECT_TYPE_IMAGE_VIEW,
                         reinterpret_cast<std::uint64_t>(Constructed),
                         "ImageSpace level view",
                         LevelOrdinal));
@@ -415,20 +415,20 @@ Outcome<VkImageView> ImageSpace::LevelView(std::uint32_t ImageOrdinal, std::uint
     return Outcome<VkImageView>::Result(Constructed);
 }
 
-std::uint32_t ImageSpace::ClaimedCount() const
+std::uint32_t ImageSpace::ReservedCount() const
 {
-    std::uint32_t Standing = 0u;
+    std::uint32_t Current = 0u;
 
     for (const HeldImage& Held : Images)
     {
         if (Held.SlotOccupied)
-            ++Standing;
+            ++Current;
     }
 
-    return Standing;
+    return Current;
 }
 
-VkDeviceSize ImageSpace::ClaimedBytes() const
+VkDeviceSize ImageSpace::ReservedBytes() const
 {
     VkDeviceSize Taken = 0u;
 

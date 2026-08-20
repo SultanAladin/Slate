@@ -47,7 +47,7 @@ function Write-Report([string] $Tag, [System.ConsoleColor] $Colour, [string] $Me
 
 function Write-Applied([string] $Message) { Write-Report 'ImGui'    Green    $Message }
 function Write-Skipped([string] $Message) { Write-Report 'SKIP'     Cyan     $Message }
-function Write-Refused([string] $Message) { Write-Report 'FAILED'   Red      $Message }
+function Write-Rejected([string] $Message) { Write-Report 'FAILED'   Red      $Message }
 function Write-Noted([string]   $Message) { Write-Report 'Patch'    DarkGray $Message }
 
 if (-not (Test-Path (Join-Path $ImGuiRoot 'imgui.cpp')))
@@ -61,11 +61,11 @@ try
 {
     # 📝 The pin is reported rather than enforced. A deliberate ImGui upgrade should reach a message
     #    naming both commits, not an assertion that reads as a broken checkout.
-    $Standing = (& git rev-parse HEAD).Trim()
+    $Current = (& git rev-parse HEAD).Trim()
 
-    if ($Standing -ne $ExpectedCommit)
+    if ($Current -ne $ExpectedCommit)
     {
-        $Short   = $Standing.Substring(0, 7)
+        $Short   = $Current.Substring(0, 7)
         $Against = $ExpectedCommit.Substring(0, 7)
         Write-Noted "submodule stands at $Short; patches were cut against $Against"
         Write-Noted 'if ImGui was upgraded deliberately, re-cut the patches against the new commit'
@@ -107,8 +107,8 @@ try
 
             if ($LASTEXITCODE -ne 0)
             {
-                Write-Refused "could not revert $PatchName"
-                throw "git apply --reverse refused $PatchName"
+                Write-Rejected "could not revert $PatchName"
+                throw "git apply --reverse rejected $PatchName"
             }
 
             Write-Applied "reverted $PatchName"
@@ -125,16 +125,16 @@ try
 
         if ($LASTEXITCODE -ne 0)
         {
-            Write-Refused "$PatchName does not apply to the standing ImGui tree"
-            throw "git apply --check refused $PatchName"
+            Write-Rejected "$PatchName does not apply to the standing ImGui tree"
+            throw "git apply --check rejected $PatchName"
         }
 
         & git apply $PatchPath
 
         if ($LASTEXITCODE -ne 0)
         {
-            Write-Refused "could not apply $PatchName"
-            throw "git apply refused $PatchName"
+            Write-Rejected "could not apply $PatchName"
+            throw "git apply rejected $PatchName"
         }
 
         Write-Applied "applied $PatchName"

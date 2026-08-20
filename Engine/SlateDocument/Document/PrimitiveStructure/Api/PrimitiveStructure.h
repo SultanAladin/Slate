@@ -55,9 +55,9 @@ enum class PrimitiveSubject : std::uint32_t
 struct PrimitiveSpecification
 {
     PrimitiveSubject  Generated        = PrimitiveSubject::Box;   // [-]  - which solid
-    double            HalfExtentAlong  = 1.0;                     // [mm] - the first axis; also the radius where one applies
+    double            HalfExtentX  = 1.0;                     // [mm] - the first axis; also the radius where one applies
     double            HalfExtentUp     = 1.0;                     // [mm] - the second axis; the height of a cylinder or cone
-    double            HalfExtentAcross = 1.0;                     // [mm] - the third axis
+    double            HalfExtentY = 1.0;                     // [mm] - the third axis
     double            MinorRadius      = 0.25;                    // [mm] - the torus tube, and the annular band's half-width
     double            SweepRadians     = 6.283185307179586;       // [rad] - the arc a sector sweeps; a full turn otherwise
     double            SweepOffset      = 0.0;                     // [rad] - where the sweep begins, about the second axis
@@ -68,8 +68,8 @@ struct PrimitiveSpecification
 
 // 📝 Bounds rather than an absence of them. A radial count of two closes no surface and a count in the millions
 //    exhausts the host while the artist is dragging a parameter slider that has no reason to reach it.
-inline constexpr std::uint32_t RadialCountLeast    = 3u;        // [-] - fewer closes no surface of revolution
-inline constexpr std::uint32_t AxialCountLeast     = 1u;        // [-] - one span is a single ring of faces
+inline constexpr std::uint32_t RadialCountMinimum    = 3u;        // [-] - fewer closes no surface of revolution
+inline constexpr std::uint32_t AxialCountMinimum     = 1u;        // [-] - one span is a single ring of faces
 inline constexpr std::uint32_t SubdivisionCeiling  = 4096u;     // [-] - on either count, per primitive
 
 /// 🧩 Whether a specification generates a surface at all.
@@ -81,13 +81,13 @@ inline constexpr std::uint32_t SubdivisionCeiling  = 4096u;     // [-] - on eith
 constexpr bool PrimitiveGenerable(const PrimitiveSpecification& Declaring)
 {
     return Declaring.Generated       != PrimitiveSubject::SubjectCount
-        && Declaring.RadialCount     >= RadialCountLeast
+        && Declaring.RadialCount     >= RadialCountMinimum
         && Declaring.RadialCount     <= SubdivisionCeiling
-        && Declaring.AxialCount      >= AxialCountLeast
+        && Declaring.AxialCount      >= AxialCountMinimum
         && Declaring.AxialCount      <= SubdivisionCeiling
-        && Declaring.HalfExtentAlong  > 0.0
+        && Declaring.HalfExtentX  > 0.0
         && Declaring.HalfExtentUp     > 0.0
-        && Declaring.HalfExtentAcross > 0.0;
+        && Declaring.HalfExtentY > 0.0;
 }
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 
@@ -118,16 +118,16 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 
 /// 🧩 The half-extents the generated solid actually occupies, before any transform places it.
 /// in    Declaring  [-]  the parameters
-/// out   Least      [mm] the lower corner in object space
-/// out   Greatest   [mm] its upper corner
+/// out   Minimum      [mm] the lower corner in object space
+/// out   Maximum   [mm] its upper corner
 /// note  📝 Derived from the parameters rather than measured from the generated positions, so a caller can size
 ///        a subdivision or frame a camera before generating anything. The torus is the only entry where the
 ///        answer is not the three half-extents, and it is the reason this exists rather than being assumed.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 void ProjectPrimitiveExtent(const PrimitiveSpecification& Declaring,
-                            DocumentPosition&             Least,
-                            DocumentPosition&             Greatest);
+                            DocumentPosition&             Minimum,
+                            DocumentPosition&             Maximum);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -139,8 +139,8 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 ///        raises is re-generated from the amended specification, and a stored topology would be a second
 ///        representation that the parameters no longer describe — `02` §3.1's rule about the decomposed
 ///        transform, applied to a surface.
-/// note  ⚠️ An occupant carrying a primitive declaration is still an occupant carrying a topology: `12` holds
-///        the generated surface and this holds what generated it. Retiring the occupant retires both, and the
+/// note  ⚠️ An owner carrying a primitive declaration is still an owner carrying a topology: `12` holds
+///        the generated surface and this holds what generated it. Retiring the owner retires both, and the
 ///        cascade in `12` §12 is what calls `Withdraw`.
 /// tag   owning
 class PrimitiveIndex
@@ -158,13 +158,13 @@ public:
     Outcome<std::uint32_t> Declare(const PrimitiveSpecification& Declaring);
 
     /// 🧩 Amends one primitive's parameters, advancing its revision where the generated surface would differ.
-    /// in    PrimitiveOrdinal  [-]  an ordinal this component issued
+    /// in    PrimitiveOrdinal  [-]  an ordinal this component registered
     /// in    Amending          [-]  the amended parameters
     /// out   Result           [-]  refuses with ContentUnsupported for an unclaimed ordinal or a specification
     ///                              `PrimitiveGenerable` rejects
     /// note  🔴 The revision advances only where the amendment changes the generated surface. Every member here
     ///        does, which is why the comparison is over the whole specification — but stating it that way is what
-    ///        keeps a later member that does *not* from silently forcing a re-generation of every occupant.
+    ///        keeps a later member that does *not* from silently forcing a re-generation of every owner.
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending);
@@ -178,7 +178,7 @@ public:
     /// 🧩 Withdraws one primitive, returning its slot for reuse.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// note  ⚠️ The slot is reused rather than erased, exactly as `72`'s placements are. Erasing would renumber
-    ///        every ordinal above it and every occupant naming one would name a different primitive.
+    ///        every ordinal above it and every owner naming one would name a different primitive.
     /// cost  ✔️
     /// tag   api, nonthrowing
     Outcome<bool> Withdraw(std::uint32_t PrimitiveOrdinal);
@@ -215,7 +215,7 @@ private:
 
     std::vector<HeldPrimitive>  Primitives;         // [-] - by primitive ordinal
     std::vector<std::uint32_t>  ReleasedOrdinals;   // [-] - withdrawn slots, reused before the span grows
-    std::uint64_t               RevisionIssued = 0u;// [-] - the last revision any primitive was advanced to
+    std::uint64_t               LatestRevision = 0u;// [-] - the last revision any primitive was advanced to
     std::uint32_t               OccupiedCount  = 0u;// [-] - primitives currently declared
 };
 

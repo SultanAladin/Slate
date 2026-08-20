@@ -34,10 +34,10 @@ double Bounded(double Magnitude, double Lower, double Upper)
 TransmissionBehaviour BehaviourOf(const MaterialSpecification& Declared)
 {
     // 🔴 The order of the two tests is load-bearing. A material may declare a transmissive reflectance **and**
-    //    a cutout enrolment, and `62` §2 resolves cutout at `16` — so the cutout test is asked first and the
-    //    occupant takes the cheap path. Reversed, a foliage material that an artist had also marked transmissive
+    //    a cutout registration, and `62` §2 resolves cutout at `16` — so the cutout test is asked first and the
+    //    owner takes the cheap path. Reversed, a foliage material that an artist had also marked transmissive
     //    would enter the sorted column and cost what glass costs.
-    if (Declared.CutoutEnrolled())
+    if (Declared.CutoutRegistered())
         return TransmissionBehaviour::Cutout;
 
     if (Declared.Reflectance() == ReflectanceSelection::Transmissive)
@@ -86,7 +86,7 @@ Outcome<bool> TransmissionSequence::ContributeCollection(RenderSchedule& Schedul
 
     // 🔴 `TransmissionIndex` is produced here and by nothing else. `62` §3 declares it because `VisibilityIndex`
     //    holds one identity and `DepthSurface` one depth: collecting a set of fragments needs a target that can
-    //    hold a set, and amending either of the two that cannot is what makes a transmissive occupant occlude
+    //    hold a set, and amending either of the two that cannot is what makes a transmissive owner occlude
     //    the surface it exists to reveal.
     Declared.Produces = { SharedTarget::TransmissionIndex };
     Declared.Reads    = { SharedTarget::DepthSurface };
@@ -109,7 +109,7 @@ Outcome<bool> TransmissionSequence::ContributeResolution(RenderSchedule& Schedul
     // 🔴 Amends `RadianceSurface` and produces nothing. `18` §6 produced it; `08` §2's amendment list is what
     //    makes a second write into it legal, and the amendment ordinal is what makes the list an ordering rather
     //    than a contribution accident — `30` §5 reads what this leaves, so a reflection of a transmissive
-    //    occupant shows that occupant.
+    //    owner shows that owner.
     Declared.Produces = {};
     Declared.Reads    = { SharedTarget::TransmissionIndex, SharedTarget::DepthSurface };
     Declared.Amends   = { SharedTarget::RadianceSurface };
@@ -128,13 +128,13 @@ Outcome<bool> TransmissionSequence::ContributeResolution(RenderSchedule& Schedul
 //------------------------------------------------------------------------------------------------------------------------
 
 bool TransmissionSequence::Insert(TransmissionColumn&         Column,
-                                  const TransmissionFragment& Arriving,
+                                  const TransmissionFragment& Incoming,
                                   double                      OpaqueDepth) const
 {
     // 🔴 `62` §3: a transmissive surface behind the opaque depth is discarded rather than collected. Under the
-    //    reversed convention "behind" is a **lesser** ordinate, so the comparison reads the way it does; written
+    //    reversed convention "behind" is a **lesser** coordinate, so the comparison reads the way it does; written
     //    the other way round the column fills with fragments nothing can see and the visible ones truncate out.
-    if (Arriving.Depth < OpaqueDepth)
+    if (Incoming.Depth < OpaqueDepth)
         return false;
 
     std::uint32_t HeldKey[TransmissionDepth]     = {};
@@ -149,8 +149,8 @@ bool TransmissionSequence::Insert(TransmissionColumn&         Column,
     const std::uint32_t Slot = ProjectTransmissionSlot(HeldKey,
                                                        HeldSurface,
                                                        Column.HeldCount,
-                                                       Arriving.DepthKey,
-                                                       Arriving.SurfaceWord);
+                                                       Incoming.DepthKey,
+                                                       Incoming.SurfaceWord);
 
     if (Slot == SlateTransmissionAbsent)
     {
@@ -171,7 +171,7 @@ bool TransmissionSequence::Insert(TransmissionColumn&         Column,
     for (std::uint32_t Ordinal = Last; Ordinal > Slot; --Ordinal)
         Column.Held[Ordinal] = Column.Held[Ordinal - 1u];
 
-    Column.Held[Slot] = Arriving;
+    Column.Held[Slot] = Incoming;
 
     if (Column.HeldCount < TransmissionDepth)
         ++Column.HeldCount;
@@ -190,7 +190,7 @@ void TransmissionSequence::AmendRadiance(const double                     Behind
                                          double                           Amended[3]) const
 {
     // 📐 The normal-incidence reflectance of a dielectric of the declared ratio, against the medium it sits in.
-    //    Air is taken as unity: an occupant nested inside another transmissive occupant carries its own ratio
+    //    Air is taken as unity: an owner nested inside another transmissive owner carries its own ratio
     //    and nothing here tracks a stack of them — `00` §5.1's third substitution point covers the absence.
     const double Ratio      = Declared.RefractionRatio > 0.0 ? Declared.RefractionRatio : 1.0;
     const double Departure  = (Ratio - 1.0) / (Ratio + 1.0);
@@ -216,7 +216,7 @@ void TransmissionSequence::Resolve(const TransmissionColumn&                    
                                    const std::vector<TransmissionSpecification>& Declared,
                                    const std::vector<std::array<double, 3>>&     Shaded,
                                    const std::vector<double>&                    ViewCosine,
-                                   double                                        Standing[3]) const
+                                   double                                        Current[3]) const
 {
     const std::size_t Spanned = Column.HeldCount;
 
@@ -227,14 +227,14 @@ void TransmissionSequence::Resolve(const TransmissionColumn&                    
     //    each fragment amends what every farther fragment has already left standing.
     for (std::size_t Passed = Spanned; Passed-- > 0u;)
     {
-        double Behind[3]  = { Standing[0], Standing[1], Standing[2] };
+        double Behind[3]  = { Current[0], Current[1], Current[2] };
         double Amended[3] = { 0.0, 0.0, 0.0 };
 
         AmendRadiance(Behind, Declared[Passed], Shaded[Passed].data(), ViewCosine[Passed], Amended);
 
-        Standing[0] = Amended[0];
-        Standing[1] = Amended[1];
-        Standing[2] = Amended[2];
+        Current[0] = Amended[0];
+        Current[1] = Amended[1];
+        Current[2] = Amended[2];
     }
 }
 
@@ -242,12 +242,12 @@ void TransmissionSequence::Resolve(const TransmissionColumn&                    
 //                                                     THE REPORTING
 //------------------------------------------------------------------------------------------------------------------------
 
-void TransmissionSequence::DeclareRotation(std::uint32_t OccupantCount,
-                                           std::uint32_t GreatestColumnDepth,
+void TransmissionSequence::DeclareRotation(std::uint32_t OwnerCount,
+                                           std::uint32_t MaximumColumnDepth,
                                            std::uint32_t TruncatedThisRecording)
 {
-    Reported.OccupantCount         = OccupantCount;
-    Reported.GreatestColumnDepth   = GreatestColumnDepth;
+    Reported.OwnerCount         = OwnerCount;
+    Reported.MaximumColumnDepth   = MaximumColumnDepth;
     Reported.TruncatedThisRecording = TruncatedThisRecording;
     Reported.TruncatedTotal       += TruncatedThisRecording;
 }
@@ -264,14 +264,14 @@ void TransmissionSequence::Report(ReportSequence& Reporting, MeasureIndex& Measu
         Truncated.Subject        = "ColumnCeiling";
         Truncated.Detail         = "transmissive layers beyond the per-pixel ceiling were discarded, farthest first";
         Truncated.SubjectOrdinal = TransmissionDepth;
-        Truncated.Disposition    = ReportDisposition::Truncated;
+        Truncated.Verdict    = ReportVerdict::Truncated;
         Truncated.Arrival        = Sampled;
 
         Reporting.Append(Truncated);
     }
 
-    Measured.DeclareCount("62 §3 TransmissionSequence", "Occupants", Reported.OccupantCount, Sampled);
-    Measured.DeclareCount("62 §3 TransmissionSequence", "GreatestColumnDepth", Reported.GreatestColumnDepth, Sampled);
+    Measured.DeclareCount("62 §3 TransmissionSequence", "Owners", Reported.OwnerCount, Sampled);
+    Measured.DeclareCount("62 §3 TransmissionSequence", "MaximumColumnDepth", Reported.MaximumColumnDepth, Sampled);
     Measured.DeclareCount("62 §3.1 TransmissionSequence", "Truncated", Reported.TruncatedTotal, Sampled);
 }
 

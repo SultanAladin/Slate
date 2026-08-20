@@ -22,10 +22,10 @@ namespace
 const char* const OcclusionRecordingIdentity = "60-OcclusionProjection";
 
 // 🔴 `08` §5's substitution, declared rather than branched. Where a device declines the projection extent, every
-//    enrolled illuminant falls back to one face at the coarsest extent the device did admit — coarser shadows
+//    registered illuminant falls back to one face at the coarsest extent the device did admit — coarser shadows
 //    everywhere and correct everywhere, rather than one illuminant silently casting none.
 const char* const OcclusionSubstitution =
-    "one face per illuminant at the coarsest admitted extent; the subdivision withdrawn";
+    "one face per illuminant at the coarsest accepted extent; the subdivision withdrawn";
 
 constexpr double RootHalf = 0.7071067811865476;   // [-] - sin and cos of a quarter turn's half-angle
 
@@ -98,9 +98,9 @@ void SliceBounding(const CameraSpecification& Camera,
                    DocumentPosition&          Centre,
                    double&                    Radius)
 {
-    const double HalfAcross = Camera.ExtentParameter * 0.5 * Pi / 180.0;
-    const double TangentAcross = std::tan(HalfAcross);
-    const double TangentAlong  = TangentAcross * Camera.SensorProportion;
+    const double HalfY = Camera.ExtentParameter * 0.5 * Pi / 180.0;
+    const double TangentY = std::tan(HalfY);
+    const double TangentX  = TangentY * Camera.SensorProportion;
 
     double AccumulatedX = 0.0;
     double AccumulatedY = 0.0;
@@ -121,8 +121,8 @@ void SliceBounding(const CameraSpecification& Camera,
         {
             const double Distance = Distances[Depth];
 
-            const double ViewX = Signums[Corner & 1u]        * TangentAlong  * Distance;
-            const double ViewY = Signums[(Corner >> 1) & 1u] * TangentAcross * Distance;
+            const double ViewX = Signums[Corner & 1u]        * TangentX  * Distance;
+            const double ViewY = Signums[(Corner >> 1) & 1u] * TangentY * Distance;
 
             double TurnedX = 0.0;
             double TurnedY = 0.0;
@@ -160,7 +160,7 @@ void SliceBounding(const CameraSpecification& Camera,
 }
 
 // 📐 🔴 The slice's radius and its centre are both snapped to whole texels of the projection. Without the snap
-//    the projection slides continuously as the camera moves and every recorded ordinate lands between two texels
+//    the projection slides continuously as the camera moves and every recorded coordinate lands between two texels
 //    of where it landed last rotation — which the artist meets as every shadow edge crawling while they orbit,
 //    and which no amount of filtering removes because the source itself is moving.
 void SnapSlice(DocumentPosition& Centre, double& Radius, RotationQuaternion Facing, std::uint32_t ExtentTexels)
@@ -205,12 +205,12 @@ void SnapSlice(DocumentPosition& Centre, double& Radius, RotationQuaternion Faci
 
 bool ExtentsOverlap(const PartitionExtent& Left, DocumentPosition Position, double Reach)
 {
-    return Left.Greatest.PositionX >= Position.PositionX - Reach
-        && Left.Least.PositionX    <= Position.PositionX + Reach
-        && Left.Greatest.PositionY >= Position.PositionY - Reach
-        && Left.Least.PositionY    <= Position.PositionY + Reach
-        && Left.Greatest.PositionZ >= Position.PositionZ - Reach
-        && Left.Least.PositionZ    <= Position.PositionZ + Reach;
+    return Left.Maximum.PositionX >= Position.PositionX - Reach
+        && Left.Minimum.PositionX    <= Position.PositionX + Reach
+        && Left.Maximum.PositionY >= Position.PositionY - Reach
+        && Left.Minimum.PositionY    <= Position.PositionY + Reach
+        && Left.Maximum.PositionZ >= Position.PositionZ - Reach
+        && Left.Minimum.PositionZ    <= Position.PositionZ + Reach;
 }
 
 }   // namespace
@@ -240,17 +240,17 @@ Outcome<bool> OcclusionIndex::Derive(const IlluminantIndex& Reaching, const Illu
         //    rotation and on every machine — and `18` unpacks by position without a second ordering to consult.
         for (std::uint32_t ReachOrdinal = 0u; ReachOrdinal < ReachingCount; ++ReachOrdinal)
         {
-            const Outcome<OccupantIdentity> Named = Reaching.Reaching(PartitionOrdinal, ReachOrdinal);
+            const Outcome<OwnerIdentity> Named = Reaching.Reaching(PartitionOrdinal, ReachOrdinal);
 
             if (!Named.Resolved)
                 continue;
 
             const Outcome<IlluminantSpecification> Declared = Illuminants.Resolve(Named.Resolve());
 
-            // 🔴 An illuminant not enrolled for occlusion occupies **no slot**. `44` §2 gives the artist the
+            // 🔴 An illuminant not registered for occlusion occupies **no slot**. `44` §2 gives the artist the
             //    switch and `60` §3 declares the unenrolled illuminant integrated unattenuated; a slot spent on
             //    one that casts nothing is a slot the next illuminant that does cast something cannot have.
-            if (!Declared.Resolved || !Declared.Resolve().OcclusionEnrolled)
+            if (!Declared.Resolved || !Declared.Resolve().OcclusionRegistered)
                 continue;
 
             const std::uint32_t Slot = ProjectOcclusionSlot(Packing.OccupiedCount);
@@ -270,7 +270,7 @@ Outcome<bool> OcclusionIndex::Derive(const IlluminantIndex& Reaching, const Illu
     return Outcome<bool>::Result(true);
 }
 
-Outcome<std::uint32_t> OcclusionIndex::SlotOf(std::uint32_t PartitionOrdinal, OccupantIdentity Illuminant) const
+Outcome<std::uint32_t> OcclusionIndex::SlotOf(std::uint32_t PartitionOrdinal, OwnerIdentity Illuminant) const
 {
     if (PartitionOrdinal >= Packed.size())
         return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such partition" });
@@ -296,12 +296,12 @@ Outcome<std::uint32_t> OcclusionIndex::SlotOf(std::uint32_t PartitionOrdinal, Oc
         { RefusalReason::ContentUnsupported, "the illuminant does not reach that partition" });
 }
 
-Outcome<OccupantIdentity> OcclusionIndex::IlluminantAt(std::uint32_t PartitionOrdinal, std::uint32_t Slot) const
+Outcome<OwnerIdentity> OcclusionIndex::IlluminantAt(std::uint32_t PartitionOrdinal, std::uint32_t Slot) const
 {
     if (PartitionOrdinal >= Packed.size() || Slot >= Packed[PartitionOrdinal].OccupiedCount)
-        return Outcome<OccupantIdentity>::Refuse({ RefusalReason::ExtentExhausted, "the slot carries nothing" });
+        return Outcome<OwnerIdentity>::Refuse({ RefusalReason::ExtentExhausted, "the slot carries nothing" });
 
-    return Outcome<OccupantIdentity>::Result(Packed[PartitionOrdinal].Occupying[Slot]);
+    return Outcome<OwnerIdentity>::Result(Packed[PartitionOrdinal].Occupying[Slot]);
 }
 
 std::uint32_t OcclusionIndex::TruncatedCount(std::uint32_t PartitionOrdinal) const
@@ -328,7 +328,7 @@ Outcome<bool> AmbientOcclusionSequence::Declare(const AmbientOcclusionSpecificat
     if (Declaring.SampleCount == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a term of no sample resolves nothing" });
 
-    // ⚠️ Refused above two rather than admitted as a quality setting. `08` §2 claims `OcclusionSurface` at half
+    // ⚠️ Rejected above two rather than accepted as a quality setting. `08` §2 claims `OcclusionSurface` at half
     //    extent and `Shared/`'s upsample reads exactly four taps against that claim; a third would need a
     //    different tap count, and the extent would then be declared in two places that disagree.
     if (Declaring.ExtentDivisor != 2u)
@@ -342,18 +342,18 @@ Outcome<bool> AmbientOcclusionSequence::Declare(const AmbientOcclusionSpecificat
     return Outcome<bool>::Result(true);
 }
 
-Outcome<bool> AmbientOcclusionSequence::Resolve(std::uint32_t  DisplayAlong,
-                                                std::uint32_t  DisplayAcross,
-                                                std::uint32_t& ResolvedAlong,
-                                                std::uint32_t& ResolvedAcross) const
+Outcome<bool> AmbientOcclusionSequence::Resolve(std::uint32_t  DisplayX,
+                                                std::uint32_t  DisplayY,
+                                                std::uint32_t& ResolvedX,
+                                                std::uint32_t& ResolvedY) const
 {
-    if (DisplayAlong == 0u || DisplayAcross == 0u)
+    if (DisplayX == 0u || DisplayY == 0u)
         return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of nothing" });
 
     // 📐 Rounded up on both ordinates, matching `RenderSchedule`'s own fraction-of-display claim exactly. The two
     //    rounding the same way is what makes the target this component resolves into the target `08` claimed.
-    ResolvedAlong  = (DisplayAlong  + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
-    ResolvedAcross = (DisplayAcross + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
+    ResolvedX  = (DisplayX  + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
+    ResolvedY = (DisplayY + Specification.ExtentDivisor - 1u) / Specification.ExtentDivisor;
 
     return Outcome<bool>::Result(true);
 }
@@ -398,34 +398,34 @@ Outcome<bool> OcclusionProjectionSpace::DeclareCamera(const CameraSpecification&
 
     if (CameraDeclared)
     {
-        const double SpanX = Declaring.Placement.Translation.PositionX - StandingCamera.Placement.Translation.PositionX;
-        const double SpanY = Declaring.Placement.Translation.PositionY - StandingCamera.Placement.Translation.PositionY;
-        const double SpanZ = Declaring.Placement.Translation.PositionZ - StandingCamera.Placement.Translation.PositionZ;
+        const double SpanX = Declaring.Placement.Translation.PositionX - ReferenceCamera.Placement.Translation.PositionX;
+        const double SpanY = Declaring.Placement.Translation.PositionY - ReferenceCamera.Placement.Translation.PositionY;
+        const double SpanZ = Declaring.Placement.Translation.PositionZ - ReferenceCamera.Placement.Translation.PositionZ;
 
         const double Moved = std::sqrt(SpanX * SpanX + SpanY * SpanY + SpanZ * SpanZ);
 
-        const bool RangeAmended = Declaring.Clipping.Nearest        != StandingCamera.Clipping.Nearest
-                               || Declaring.Clipping.Furthest       != StandingCamera.Clipping.Furthest
-                               || Declaring.ExtentParameter         != StandingCamera.ExtentParameter
-                               || Declaring.SensorProportion        != StandingCamera.SensorProportion;
+        const bool RangeAmended = Declaring.Clipping.Nearest        != ReferenceCamera.Clipping.Nearest
+                               || Declaring.Clipping.Furthest       != ReferenceCamera.Clipping.Furthest
+                               || Declaring.ExtentParameter         != ReferenceCamera.ExtentParameter
+                               || Declaring.SensorProportion        != ReferenceCamera.SensorProportion;
 
         const bool RotationAmended =
-            Declaring.Placement.Rotation.ImaginaryX != StandingCamera.Placement.Rotation.ImaginaryX ||
-            Declaring.Placement.Rotation.ImaginaryY != StandingCamera.Placement.Rotation.ImaginaryY ||
-            Declaring.Placement.Rotation.ImaginaryZ != StandingCamera.Placement.Rotation.ImaginaryZ ||
-            Declaring.Placement.Rotation.Real       != StandingCamera.Placement.Rotation.Real;
+            Declaring.Placement.Rotation.ImaginaryX != ReferenceCamera.Placement.Rotation.ImaginaryX ||
+            Declaring.Placement.Rotation.ImaginaryY != ReferenceCamera.Placement.Rotation.ImaginaryY ||
+            Declaring.Placement.Rotation.ImaginaryZ != ReferenceCamera.Placement.Rotation.ImaginaryZ ||
+            Declaring.Placement.Rotation.Real       != ReferenceCamera.Placement.Rotation.Real;
 
         // 📝 A camera that has barely moved owes nothing. The threshold is `Contract/`'s own altitude
         //    materiality reused, because both answer the same question — how far a viewer must move before a
         //    precomputed thing stops describing what it sees.
         if (Moved <= CameraAltitudeMateriality && !RangeAmended && !RotationAmended)
         {
-            StandingCamera = Declaring;
+            ReferenceCamera = Declaring;
             return Outcome<bool>::Result(true);
         }
     }
 
-    StandingCamera  = Declaring;
+    ReferenceCamera  = Declaring;
     CameraDeclared  = true;
     SubdivisionOwed = true;
 
@@ -433,10 +433,10 @@ Outcome<bool> OcclusionProjectionSpace::DeclareCamera(const CameraSpecification&
     //    spot and extended shapes are world-referred and see exactly what they saw before the camera moved; a
     //    projection set that rebuilt all four on a camera move is a workspace that stutters while the artist
     //    orbits, which is the thing they do most.
-    for (DerivedProjection& Standing : Projections)
+    for (DerivedProjection& Current : Projections)
     {
-        if (Standing.Shape == ProjectionShape::Subdivided)
-            Standing.RebuildOwed = true;
+        if (Current.Shape == ProjectionShape::Subdivided)
+            Current.RebuildOwed = true;
     }
 
     return Outcome<bool>::Result(true);
@@ -446,7 +446,7 @@ Outcome<bool> OcclusionProjectionSpace::DeclareCamera(const CameraSpecification&
 //                                                   THE INVALIDATION
 //------------------------------------------------------------------------------------------------------------------------
 
-std::size_t OcclusionProjectionSpace::Located(OccupantIdentity Illuminant) const
+std::size_t OcclusionProjectionSpace::Located(OwnerIdentity Illuminant) const
 {
     for (std::size_t Ordinal = 0u; Ordinal < Projections.size(); ++Ordinal)
     {
@@ -458,7 +458,7 @@ std::size_t OcclusionProjectionSpace::Located(OccupantIdentity Illuminant) const
 }
 
 Outcome<bool> OcclusionProjectionSpace::Invalidate(InvalidationSubject Declared,
-                                                   OccupantIdentity    Subject,
+                                                   OwnerIdentity    Subject,
                                                    PartitionExtent     Extent)
 {
     switch (Declared)
@@ -469,9 +469,9 @@ Outcome<bool> OcclusionProjectionSpace::Invalidate(InvalidationSubject Declared,
 
             if (Located_ == Projections.size())
             {
-                // 📝 An illuminant carrying no projection yet is admitted rather than refused. It is either
-                //    newly enrolled or newly declared, and `Rebuild` derives it on its next pass — refusing
-                //    would make the caller test enrolment before declaring a change it already made.
+                // 📝 An illuminant carrying no projection yet is accepted rather than rejected. It is either
+                //    newly registered or newly declared, and `Rebuild` derives it on its next pass — refusing
+                //    would make the caller test registration before declaring a change it already made.
                 return Outcome<bool>::Result(true);
             }
 
@@ -480,27 +480,27 @@ Outcome<bool> OcclusionProjectionSpace::Invalidate(InvalidationSubject Declared,
             return Outcome<bool>::Result(true);
         }
 
-        case InvalidationSubject::OccupantMoved:
+        case InvalidationSubject::OwnerMoved:
         case InvalidationSubject::CutoutCoverage:
         {
-            // 🔴 Every projection **whose extent reaches it** and no others — `60` §4. A moved occupant on the
+            // 🔴 Every projection **whose extent reaches it** and no others — `60` §4. A moved owner on the
             //    far side of a scene changes nothing about what a near illuminant sees, and rebuilding every
             //    projection for it is a scene where dragging one object costs what rebuilding the lighting does.
             // ⚠️ Cutout coverage takes the same row and is the exception `62` §2 declares: cutout coverage is
-            //    resolved at `16` §3.1, so a cutout occupant already occludes correctly here — and a change to
+            //    resolved at `16` §3.1, so a cutout owner already occludes correctly here — and a change to
             //    its coverage channel is therefore a change to what a projection sees, unlike every other paint.
-            for (DerivedProjection& Standing : Projections)
+            for (DerivedProjection& Current : Projections)
             {
-                if (Standing.Faces.empty())
+                if (Current.Faces.empty())
                 {
-                    Standing.RebuildOwed = true;
+                    Current.RebuildOwed = true;
                     continue;
                 }
 
-                const DocumentPosition Origin = Standing.Faces[0].Projected.ViewOrigin;
+                const DocumentPosition Origin = Current.Faces[0].Projected.ViewOrigin;
 
-                if (ExtentsOverlap(Extent, Origin, Standing.Faces[0].FurthestPlane))
-                    Standing.RebuildOwed = true;
+                if (ExtentsOverlap(Extent, Origin, Current.Faces[0].FurthestPlane))
+                    Current.RebuildOwed = true;
             }
 
             return Outcome<bool>::Result(true);
@@ -510,22 +510,22 @@ Outcome<bool> OcclusionProjectionSpace::Invalidate(InvalidationSubject Declared,
         {
             SubdivisionOwed = true;
 
-            for (DerivedProjection& Standing : Projections)
+            for (DerivedProjection& Current : Projections)
             {
-                if (Standing.Shape == ProjectionShape::Subdivided)
-                    Standing.RebuildOwed = true;
+                if (Current.Shape == ProjectionShape::Subdivided)
+                    Current.RebuildOwed = true;
             }
 
             return Outcome<bool>::Result(true);
         }
 
         case InvalidationSubject::RadiantIntensity:
-        case InvalidationSubject::OccupantPainted:
+        case InvalidationSubject::OwnerPainted:
         {
             // 🔴 Nothing. `44` §2's extent is **declared** rather than derived from the magnitude, so brightening
             //    an illuminant cannot enlarge what it reaches; and occlusion reads topology rather than channels,
             //    so a paint stroke changes nothing a projection can see. These are the two things the artist does
-            //    constantly, and both are admitted here so a caller may declare every change it makes without
+            //    constantly, and both are accepted here so a caller may declare every change it makes without
             //    knowing which ones matter — which is the only arrangement in which the ones that do not matter
             //    stay free.
             return Outcome<bool>::Result(true);
@@ -543,7 +543,7 @@ Outcome<bool> OcclusionProjectionSpace::Invalidate(InvalidationSubject Declared,
 //------------------------------------------------------------------------------------------------------------------------
 
 Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpecification& Declared,
-                                                            OccupantIdentity               Illuminant,
+                                                            OwnerIdentity               Illuminant,
                                                             std::uint64_t                  RecordingOrdinal) const
 {
     DerivedProjection Deriving;
@@ -699,8 +699,8 @@ Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpec
             //    stands from its occluder — which is what `ProjectPenumbraWidth` already reads.
             Deriving.EmissionSize = Declared.AngularSize * Pi / 180.0;
 
-            const double Nearest  = StandingCamera.Clipping.Nearest;
-            const double Furthest = StandingCamera.Clipping.Furthest;
+            const double Nearest  = ReferenceCamera.Clipping.Nearest;
+            const double Furthest = ReferenceCamera.Clipping.Furthest;
 
             for (std::uint32_t Slice = 0u; Slice < DirectionalSubdivisionCount; ++Slice)
             {
@@ -716,7 +716,7 @@ Outcome<DerivedProjection> OcclusionProjectionSpace::Derive(const IlluminantSpec
 
                 DocumentPosition Centre;
                 double           Radius = 0.0;
-                SliceBounding(StandingCamera, SliceNearest, SliceFurthest, Centre, Radius);
+                SliceBounding(ReferenceCamera, SliceNearest, SliceFurthest, Centre, Radius);
 
                 if (Radius <= 0.0)
                     continue;
@@ -780,10 +780,10 @@ Outcome<bool> OcclusionProjectionSpace::Rebuild(const IlluminantPopulation& Illu
     Reported.RebuiltThisRecording = 0u;
     Reported.UnenrolledCount     = 0u;
 
-    std::vector<DerivedProjection> Standing;
-    Standing.reserve(Projections.size());
+    std::vector<DerivedProjection> Current;
+    Current.reserve(Projections.size());
 
-    for (const OccupantIdentity& Illuminant : Illuminants.Enrolled())
+    for (const OwnerIdentity& Illuminant : Illuminants.Registered())
     {
         const Outcome<IlluminantSpecification> Declared = Illuminants.Resolve(Illuminant);
 
@@ -794,7 +794,7 @@ Outcome<bool> OcclusionProjectionSpace::Rebuild(const IlluminantPopulation& Illu
         //    integrated unattenuated and that this is a behaviour rather than a failure; counting it is what
         //    lets `86` present how many of a scene's illuminants cast nothing at all, which an artist who
         //    disabled occlusion on their key light six months ago has no other route to.
-        if (!Declared.Resolve().OcclusionEnrolled)
+        if (!Declared.Resolve().OcclusionRegistered)
         {
             ++Reported.UnenrolledCount;
             continue;
@@ -806,7 +806,7 @@ Outcome<bool> OcclusionProjectionSpace::Rebuild(const IlluminantPopulation& Illu
 
         if (!Owed)
         {
-            Standing.push_back(Projections[Located_]);
+            Current.push_back(Projections[Located_]);
             continue;
         }
 
@@ -815,13 +815,13 @@ Outcome<bool> OcclusionProjectionSpace::Rebuild(const IlluminantPopulation& Illu
         if (!Derived.Resolved)
             return Outcome<bool>::Refuse(Derived.Error);
 
-        Standing.push_back(Derived.Resolve());
+        Current.push_back(Derived.Resolve());
 
         ++Reported.RebuiltThisRecording;
         ++Reported.RebuiltTotal;
     }
 
-    Projections.swap(Standing);
+    Projections.swap(Current);
     SubdivisionOwed = false;
 
     Reported.ProjectionCount = static_cast<std::uint32_t>(Projections.size());
@@ -839,7 +839,7 @@ Outcome<bool> OcclusionProjectionSpace::Rebuild(const IlluminantPopulation& Illu
 //                                                     THE READS
 //------------------------------------------------------------------------------------------------------------------------
 
-Outcome<const DerivedProjection*> OcclusionProjectionSpace::Standing(OccupantIdentity Illuminant) const
+Outcome<const DerivedProjection*> OcclusionProjectionSpace::Current(OwnerIdentity Illuminant) const
 {
     const std::size_t Located_ = Located(Illuminant);
 
@@ -887,7 +887,7 @@ void OcclusionProjectionSpace::Report(ReportSequence& Reporting,
         Truncated.Subject        = "PackedCapacity";
         Truncated.Detail         = "illuminants beyond the packed word are integrated unattenuated, not dropped";
         Truncated.SubjectOrdinal = PartitionOrdinal;
-        Truncated.Disposition    = ReportDisposition::Truncated;
+        Truncated.Verdict    = ReportVerdict::Truncated;
         Truncated.Arrival        = Sampled;
 
         Reporting.Append(Truncated);

@@ -59,8 +59,8 @@ constexpr AccentDeclaration TranscribedAccents[AccentCeiling] = {
 // 🔴 One standing copy, seeded from the transcription and replaced whole by Adopt. Panels read through the
 //    accessors rather than reaching the run directly, so an adopted appearance reaches all of them at once
 //    and none of them can hold an colour the archive no longer contains.
-ThemeDeclaration  StandingThemes[ThemeCeiling]   = {};
-AccentDeclaration StandingAccents[AccentCeiling] = {};
+ThemeDeclaration  CurrentThemes[ThemeCeiling]   = {};
+AccentDeclaration CurrentAccents[AccentCeiling] = {};
 bool              Seeded                         = false;
 
 // 📝 Seeding is deferred to first read rather than done in a constructor. Static initialisation order across
@@ -72,12 +72,12 @@ void SeedOnce()
 
     for (std::uint32_t Ordinal = 0u; Ordinal < ThemeCeiling; ++Ordinal)
     {
-        StandingThemes[Ordinal] = TranscribedThemes[Ordinal];
+        CurrentThemes[Ordinal] = TranscribedThemes[Ordinal];
     }
 
     for (std::uint32_t Ordinal = 0u; Ordinal < AccentCeiling; ++Ordinal)
     {
-        StandingAccents[Ordinal] = TranscribedAccents[Ordinal];
+        CurrentAccents[Ordinal] = TranscribedAccents[Ordinal];
     }
 
     Seeded = true;
@@ -94,7 +94,7 @@ const ThemeDeclaration& ThemeSpecification::Theme(ThemeSubject Subject)
     SeedOnce();
 
     const std::uint32_t Ordinal = static_cast<std::uint32_t>(Subject);
-    return StandingThemes[(Ordinal < ThemeCeiling) ? Ordinal : 0u];
+    return CurrentThemes[(Ordinal < ThemeCeiling) ? Ordinal : 0u];
 }
 
 const AccentDeclaration& ThemeSpecification::Accent(AccentSubject Subject)
@@ -102,14 +102,14 @@ const AccentDeclaration& ThemeSpecification::Accent(AccentSubject Subject)
     SeedOnce();
 
     const std::uint32_t Ordinal = static_cast<std::uint32_t>(Subject);
-    return StandingAccents[(Ordinal < AccentCeiling) ? Ordinal : 0u];
+    return CurrentAccents[(Ordinal < AccentCeiling) ? Ordinal : 0u];
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                           REPLACING THE STANDING APPEARANCE
 //------------------------------------------------------------------------------------------------------------------------
 
-void ThemeSpecification::Adopt(const ThemeArchive& Arriving)
+void ThemeSpecification::Adopt(const ThemeArchive& Incoming)
 {
     // 📝 Seeded is raised before the copy rather than after. The copy writes every element of both runs, so
     //    the seed it would otherwise perform first is work whose result is immediately overwritten.
@@ -117,16 +117,16 @@ void ThemeSpecification::Adopt(const ThemeArchive& Arriving)
 
     for (std::uint32_t Ordinal = 0u; Ordinal < ThemeCeiling; ++Ordinal)
     {
-        StandingThemes[Ordinal] = Arriving.Themes[Ordinal];
+        CurrentThemes[Ordinal] = Incoming.Themes[Ordinal];
     }
 
     for (std::uint32_t Ordinal = 0u; Ordinal < AccentCeiling; ++Ordinal)
     {
-        StandingAccents[Ordinal] = Arriving.Accents[Ordinal];
+        CurrentAccents[Ordinal] = Incoming.Accents[Ordinal];
     }
 }
 
-ThemeArchive ThemeSpecification::Standing(const ThemeSelection& Selected)
+ThemeArchive ThemeSpecification::Current(const ThemeSelection& Selected)
 {
     SeedOnce();
 
@@ -135,12 +135,12 @@ ThemeArchive ThemeSpecification::Standing(const ThemeSelection& Selected)
 
     for (std::uint32_t Ordinal = 0u; Ordinal < ThemeCeiling; ++Ordinal)
     {
-        Produced.Themes[Ordinal] = StandingThemes[Ordinal];
+        Produced.Themes[Ordinal] = CurrentThemes[Ordinal];
     }
 
     for (std::uint32_t Ordinal = 0u; Ordinal < AccentCeiling; ++Ordinal)
     {
-        Produced.Accents[Ordinal] = StandingAccents[Ordinal];
+        Produced.Accents[Ordinal] = CurrentAccents[Ordinal];
     }
 
     return Produced;
@@ -221,11 +221,11 @@ ThemeLadder Ascending(const ThemeLadder& Read)
     return Produced;
 }
 
-constexpr std::uint8_t Bounded(float Ordinate)
+constexpr std::uint8_t Bounded(float Coordinate)
 {
-    return (Ordinate <= 0.0f)   ? static_cast<std::uint8_t>(0u)
-         : (Ordinate >= 255.0f) ? static_cast<std::uint8_t>(255u)
-                                : static_cast<std::uint8_t>(Ordinate + 0.5f);
+    return (Coordinate <= 0.0f)   ? static_cast<std::uint8_t>(0u)
+         : (Coordinate >= 255.0f) ? static_cast<std::uint8_t>(255u)
+                                : static_cast<std::uint8_t>(Coordinate + 0.5f);
 }
 
 // 🔴 The re-anchoring itself, and the one place the identity has to hold. An colour is located between two rungs
@@ -238,15 +238,15 @@ ThemeToken Reanchored(const ThemeToken& Colour, const ThemeLadder& Reference, co
     // 📝 A fully transparent colour draws nothing; re-anchoring it would only spend the arithmetic.
     if (Colour.Opacity == 0u) return Colour;
 
-    const float Standing = LuminanceOf(Colour);
+    const float Current = LuminanceOf(Colour);
 
     std::uint32_t Lower = 0u;
-    while (Lower + 2u < RungCeiling && Reference.Luminance[Lower + 1u] < Standing) ++Lower;
+    while (Lower + 2u < RungCeiling && Reference.Luminance[Lower + 1u] < Current) ++Lower;
 
     const std::uint32_t Upper = Lower + 1u;
 
     const float Span     = Reference.Luminance[Upper] - Reference.Luminance[Lower];
-    const float Fraction = (Standing - Reference.Luminance[Lower]) / Span;
+    const float Fraction = (Current - Reference.Luminance[Lower]) / Span;
 
     // 📝 Read on each component rather than on luminance alone, so a ladder that carries a hue carries it
     //    into the displacement. Extrapolates freely outside the ladder, which is what lets pure white and
@@ -282,7 +282,7 @@ ThemeToken Reanchored(const ThemeToken& Colour, const ThemeLadder& Reference, co
 
 // 🔴 Every colour record in the appearance is a run of `ThemeToken` and nothing else, which is what lets one
 //    pass re-anchor all of them without naming a single field. `Sweep` asserts that shape at compile time,
-//    so an colour record that later gains a length is a refused build rather than a silently skipped group.
+//    so an colour record that later gains a length is a rejected build rather than a silently skipped group.
 template <typename Recorded>
 void Sweep(Recorded& Group, const ThemeLadder& Reference, const ThemeLadder& Chosen)
 {
@@ -309,7 +309,7 @@ ThemeProfile Tinted(const ThemeProfile& Resolved, const ThemeSelection& Selected
     // 📝 `Oled` is the reference rung run because it is what every one of the three ports was transcribed
     //    against. Mapping it through itself is the identity, so the default selection changes nothing.
     const ThemeLadder Reference = Ascending(LadderOf(ThemeSpecification::Theme(ThemeSubject::Oled)));
-    const ThemeLadder Chosen    = LadderOf(ThemeSpecification::Theme(Selected.Presented));
+    const ThemeLadder Chosen    = LadderOf(ThemeSpecification::Theme(Selected.Current));
 
     Sweep(Produced.Colour,            Reference, Chosen);
     Sweep(Produced.Control,        Reference, Chosen);
@@ -319,9 +319,9 @@ ThemeProfile Tinted(const ThemeProfile& Resolved, const ThemeSelection& Selected
     Sweep(Produced.ContentBrowser, Reference, Chosen);
     Sweep(Produced.LayerStack,     Reference, Chosen);
 
-    // 🔴 The accents are deliberately NOT seated over the swept colours. An accent the artist chose is offered
+    // 🔴 The accents are deliberately NOT applied over the swept colours. An accent the artist chose is offered
     //    by the Control Centre, and displacing a ported reference's own emphasis with it would edit the port:
-    //    `LayerstackV1` states `--acc` as white, and seating a chosen blue there would silently redraw a
+    //    `LayerstackV1` states `--acc` as white, and applying a chosen blue there would silently redraw a
     //    reference this repository is required to carry exactly. The ladder tints those colours with everything
     //    else; which accent is chosen stays a question the Control Centre answers.
 
@@ -330,10 +330,10 @@ ThemeProfile Tinted(const ThemeProfile& Resolved, const ThemeSelection& Selected
 
 ThemeProfile ResolveTinted(double                DisplayScale,
                                       double                ArtistScale,
-                                      float                 ExtentAlong,
+                                      float                 Width,
                                       const ThemeSelection& Selected)
 {
-    return Tinted(Resolve(DisplayScale, ArtistScale, ExtentAlong), Selected);
+    return Tinted(Resolve(DisplayScale, ArtistScale, Width), Selected);
 }
 
 }   // namespace Slate

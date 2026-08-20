@@ -48,7 +48,7 @@ Outcome<bool> SampleIntegrator::Contribute(RenderSchedule& Schedule) const
     // 📝 `MotionSurface` is declared here and by `16` §4.2 as a production, which is what orders the two. The
     //    previous rotation's `AccumulationSurface` is read too and is deliberately **not** declared: it is last
     //    rotation's residue of a target this recording itself produces, and declaring it would close a cycle in
-    //    an ordering that has no notion of the rotation an ordinate came from.
+    //    an ordering that has no notion of the rotation an coordinate came from.
     Declared.Reads = { SharedTarget::RadianceSurface,
                        SharedTarget::MotionSurface,
                        SharedTarget::DepthSurface,
@@ -80,25 +80,25 @@ void SampleIntegrator::OffsetOf(std::uint64_t RecordingOrdinal, double& OffsetX,
 //                                                    THE CLASSIFICATION
 //------------------------------------------------------------------------------------------------------------------------
 
-RejectionSubject SampleIntegrator::Classify(double        ReprojectedAlong,
-                                            double        ReprojectedAcross,
-                                            std::uint32_t HeldOccupant,
-                                            std::uint32_t ArrivingOccupant,
+RejectionSubject SampleIntegrator::Classify(double        ReprojectedX,
+                                            double        ReprojectedY,
+                                            std::uint32_t HeldOwner,
+                                            std::uint32_t IncomingOwner,
                                             double        HeldDepth,
-                                            double        ArrivingDepth) const
+                                            double        IncomingDepth) const
 {
     // 📝 Asked cheapest first, and the extent test is the one that rejects most: a camera in motion moves the
     //    whole image and the leading edge has no history at all.
-    if (!HistoryStanding)
+    if (!HistoryCurrent)
         return RejectionSubject::OffExtent;
 
-    if (ReprojectionOffExtent(ReprojectedAlong, ReprojectedAcross))
+    if (ReprojectionOffExtent(ReprojectedX, ReprojectedY))
         return RejectionSubject::OffExtent;
 
-    if (!ReprojectionSameOccupant(HeldOccupant, ArrivingOccupant))
-        return RejectionSubject::OccupantDiffers;
+    if (!ReprojectionSameOwner(HeldOwner, IncomingOwner))
+        return RejectionSubject::OwnerDiffers;
 
-    if (ReprojectionDepthRefused(HeldDepth, ArrivingDepth, Specification.DepthBound))
+    if (ReprojectionDepthRejected(HeldDepth, IncomingDepth, Specification.DepthBound))
         return RejectionSubject::DepthDiffers;
 
     return RejectionSubject::Accepted;
@@ -109,17 +109,17 @@ RejectionSubject SampleIntegrator::Classify(double        ReprojectedAlong,
 //------------------------------------------------------------------------------------------------------------------------
 
 void SampleIntegrator::Accumulate(AccumulatedSample& Held,
-                                  const double       Arriving[3],
-                                  RejectionSubject   Refused,
-                                  const double       Least[3],
-                                  const double       Greatest[3]) const
+                                  const double       Incoming[3],
+                                  RejectionSubject   Rejected,
+                                  const double       Minimum[3],
+                                  const double       Maximum[3]) const
 {
-    // 🔴 A refusal writes the arriving sample whole and sets the count to one. Decaying instead leaves a coloured
-    //    ghost trailing every moving occupant, and the ghost is more visible than the absence would be.
-    if (Refused != RejectionSubject::Accepted)
+    // 🔴 A refusal writes the incoming sample whole and sets the count to one. Decaying instead leaves a coloured
+    //    ghost trailing every moving owner, and the ghost is more visible than the absence would be.
+    if (Rejected != RejectionSubject::Accepted)
     {
         for (std::uint32_t Component = 0u; Component < 3u; ++Component)
-            Held.Component[Component] = Arriving[Component];
+            Held.Component[Component] = Incoming[Component];
 
         Held.SampleCount = 1u;
 
@@ -134,15 +134,15 @@ void SampleIntegrator::Accumulate(AccumulatedSample& Held,
         //    is legitimately outside its neighbours' range — a specular highlight one pixel wide — is not clipped
         //    away every rotation. A bound applied at the neighbours' exact extremes removes exactly the features
         //    the accumulation exists to resolve.
-        const double Middle    = (Least[Component] + Greatest[Component]) * 0.5;
-        const double HalfSpan  = (Greatest[Component] - Least[Component]) * 0.5
+        const double Middle    = (Minimum[Component] + Maximum[Component]) * 0.5;
+        const double HalfSpan  = (Maximum[Component] - Minimum[Component]) * 0.5
                                * Specification.NeighbourhoodBound;
 
         const double Bounded = BoundNeighbourhood(Held.Component[Component],
                                                   Middle - HalfSpan,
                                                   Middle + HalfSpan);
 
-        Held.Component[Component] = Bounded + (Arriving[Component] - Bounded) * Weight;
+        Held.Component[Component] = Bounded + (Incoming[Component] - Bounded) * Weight;
     }
 
     Held.SampleCount = ProjectAccumulatedCount(Held.SampleCount, Specification.CountCeiling);
@@ -157,36 +157,36 @@ void SampleIntegrator::Invalidate()
     // 🔴 `64` §8's last gate, as one line. The three moments it covers — bring-up, an extent change and a device
     //    loss — have nothing in common except that no previous result describes anything, and reading one would
     //    reproject a history addressed in pixels that no longer exist.
-    HistoryStanding = false;
+    HistoryCurrent = false;
 }
 
-bool SampleIntegrator::HistoryReadable() const { return HistoryStanding; }
+bool SampleIntegrator::HistoryReadable() const { return HistoryCurrent; }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REPORTING
 //------------------------------------------------------------------------------------------------------------------------
 
-void SampleIntegrator::DeclareRotation(std::uint32_t LeastSampleCount,
-                                       std::uint32_t GreatestSampleCount,
+void SampleIntegrator::DeclareRotation(std::uint32_t MinimumSampleCount,
+                                       std::uint32_t MaximumSampleCount,
                                        std::uint32_t RejectedCount,
                                        std::uint32_t AccumulatedCount)
 {
-    Reported.LeastSampleCount    = LeastSampleCount;
-    Reported.GreatestSampleCount = GreatestSampleCount;
+    Reported.MinimumSampleCount    = MinimumSampleCount;
+    Reported.MaximumSampleCount = MaximumSampleCount;
     Reported.RejectedCount       = RejectedCount;
     Reported.AccumulatedCount    = AccumulatedCount;
 
     // 📝 A rotation that accumulated anything at all leaves a history the next one may read. Set here rather
-    //    than at Declare, so that a rotation which refused every pixel still leaves the flag standing — the
+    //    than at Declare, so that a rotation which rejected every pixel still leaves the flag standing — the
     //    histories exist, they were simply all rejected, which is a different fact from having none.
     if (AccumulatedCount != 0u)
-        HistoryStanding = true;
+        HistoryCurrent = true;
 }
 
 void SampleIntegrator::Report(MeasureIndex& Measured, TickPoint Sampled) const
 {
-    Measured.DeclareCount("64 §3 SampleIntegrator", "LeastSampleCount", Reported.LeastSampleCount, Sampled);
-    Measured.DeclareCount("64 §3 SampleIntegrator", "GreatestSampleCount", Reported.GreatestSampleCount, Sampled);
+    Measured.DeclareCount("64 §3 SampleIntegrator", "MinimumSampleCount", Reported.MinimumSampleCount, Sampled);
+    Measured.DeclareCount("64 §3 SampleIntegrator", "MaximumSampleCount", Reported.MaximumSampleCount, Sampled);
     Measured.DeclareCount("64 §4 SampleIntegrator", "Rejected", Reported.RejectedCount, Sampled);
     Measured.DeclareCount("64 §3 SampleIntegrator", "Accumulated", Reported.AccumulatedCount, Sampled);
 }
