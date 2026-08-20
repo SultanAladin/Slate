@@ -25,6 +25,7 @@ Outcome<bool> ViewportSequence::Construct(const InterfaceAttachment& Arriving,
     NorthDeclared = North;
     SouthDeclared = South;
     Resolved      = ResolveTinted(1.0, 1.0, 0.0f, Chosen);
+    RestateTypography(Resolved);
 
     return Outcome<bool>::Result(true);
 }
@@ -55,6 +56,7 @@ Outcome<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     // ③ Resolve the appearance against the arrived display scale.
     const DisplayCondition& Display = SurfaceOwned.Display();
     Resolved = ResolveTinted(static_cast<double>(Display.DisplayScale), 1.0, 0.0f, Chosen);
+    RestateTypography(Resolved);
 
     // ④ Construct the drawers on the first tick, when the display extent is known.
     if (!DrawersConstructed)
@@ -226,6 +228,23 @@ void ViewportSequence::Retint(const ThemeSelection& Selected)
     //    theme behind for as long as the artist does not change colour twice.
     //    The scale is read back off the record rather than re-derived, so a retint cannot move a length.
     Resolved = ResolveTinted(Resolved.Measure.DisplayScale, 1.0, 0.0f, Chosen);
+    RestateTypography(Resolved);
+}
+
+void ViewportSequence::ApplyTypographyWeights(const std::uint32_t (&Weights)[8])
+{
+    for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
+        RoleWeights[Ordinal] = Weights[Ordinal];
+
+    // 📝 Re-stated immediately rather than on the next tick. The strips write the weights every frame the
+    //    Fonts page is open, and a panel that read the previous tick's figures would lag the choice by one
+    //    frame for as long as the artist drags the strip.
+    RestateTypography(Resolved);
+}
+
+void ViewportSequence::RestateTypography(ThemeProfile& Profile) const
+{
+    ApplyFontWeights(Profile, RoleWeights);
 }
 
 MotionIntegrator& ViewportSequence::MotionSource()

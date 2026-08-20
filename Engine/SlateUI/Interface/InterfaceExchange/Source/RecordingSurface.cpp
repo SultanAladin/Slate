@@ -388,6 +388,25 @@ namespace
 //    rule holds inside an interaction, and no caption or asset name in the source approaches this.
 constexpr std::uint32_t StagingCapacity = 512u;
 
+// 📝 One face decision, made once and shared by the four run recorders. An override (the typeface strip's
+//    preview) wins; otherwise the loader resolves the requested weight and falls back to the regular face
+//    when the family lacks it, exactly as `FontLoader::Face` already promises; with no loader at all the
+//    vendor's own standing font is what an unadorned run always drew.
+ImFont* ResolveRunFace(FontLoader* Fonts, ImFont* Override, FontWeight Weight)
+{
+    if (Override != nullptr)
+        return Override;
+
+    if (Fonts != nullptr)
+    {
+        ImFont* Role = Fonts->Face(Weight, FontSlant::Upright);
+        if (Role != nullptr)
+            return Role;
+    }
+
+    return const_cast<ImFont*>(ImGui::GetFont());
+}
+
 void Capitalise(const char* Text, char* Staging)
 {
     std::uint32_t Ordinal = 0u;
@@ -428,13 +447,13 @@ void RecordingSurface::ApplyFontPreview(ImFont* Preview)
 }
 
 void RecordingSurface::TextRun(float Along, float Across, ThemeToken Colour, const char* Text,
-                               float PointSize, float Tracking, bool Emphatic)
+                               float PointSize, float Tracking, bool Emphatic, FontWeight Weight)
 {
     if (CommandSlot == nullptr || Text == nullptr || Text[0] == '\0' || Colour.Opacity == 0u)
         return;
 
     ImDrawList*   Target   = Commands(CommandSlot);
-    ImFont*       Typeface = FontOverride != nullptr ? FontOverride : ((Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont()));
+    ImFont*       Typeface = ResolveRunFace(Fonts, FontOverride, Weight);
     const ImU32   Vendored = Vendor(Colour);
     PointSize *= TypographyScale;
     const float   Added    = Tracking * PointSize;
@@ -491,7 +510,7 @@ void RecordingSurface::TextRun(float Along, float Across, ThemeToken Colour, con
 }
 
 void RecordingSurface::TextRunCapitalised(float Along, float Across, ThemeToken Colour, const char* Text,
-                                          float PointSize, float Tracking, bool Emphatic)
+                                          float PointSize, float Tracking, bool Emphatic, FontWeight Weight)
 {
     if (Text == nullptr)
         return;
@@ -499,22 +518,22 @@ void RecordingSurface::TextRunCapitalised(float Along, float Across, ThemeToken 
     char Staging[StagingCapacity];
     Capitalise(Text, Staging);
 
-    TextRun(Along, Across, Colour, Staging, PointSize, Tracking, Emphatic);
+    TextRun(Along, Across, Colour, Staging, PointSize, Tracking, Emphatic, Weight);
 }
 
 void RecordingSurface::TextRunTruncated(float Along, float Across, float CeilingAlong, ThemeToken Colour,
-                                        const char* Text, float PointSize, bool Emphatic)
+                                        const char* Text, float PointSize, bool Emphatic, FontWeight Weight)
 {
     if (CommandSlot == nullptr || Text == nullptr || Text[0] == '\0')
         return;
 
-    if (MeasureRun(Text, PointSize, 0.0f) <= CeilingAlong)
+    if (MeasureRun(Text, PointSize, 0.0f, Weight) <= CeilingAlong)
     {
-        TextRun(Along, Across, Colour, Text, PointSize, 0.0f, Emphatic);
+        TextRun(Along, Across, Colour, Text, PointSize, 0.0f, Emphatic, Weight);
         return;
     }
 
-    ImFont*       Typeface     = FontOverride != nullptr ? FontOverride : ((Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont()));
+    ImFont*       Typeface     = ResolveRunFace(Fonts, FontOverride, Weight);
     const float   EllipsisSpan = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, "...").x;
     const float   Admissible   = CeilingAlong - EllipsisSpan;
 
@@ -540,15 +559,15 @@ void RecordingSurface::TextRunTruncated(float Along, float Across, float Ceiling
     Staging[Kept + 2u] = '.';
     Staging[Kept + 3u] = '\0';
 
-    TextRun(Along, Across, Colour, Staging, PointSize, 0.0f, Emphatic);
+    TextRun(Along, Across, Colour, Staging, PointSize, 0.0f, Emphatic, Weight);
 }
 
-float RecordingSurface::MeasureRun(const char* Text, float PointSize, float Tracking) const
+float RecordingSurface::MeasureRun(const char* Text, float PointSize, float Tracking, FontWeight Weight) const
 {
     if (Text == nullptr || Text[0] == '\0' || ImGui::GetCurrentContext() == nullptr)
         return 0.0f;
 
-    ImFont*       Typeface = FontOverride != nullptr ? FontOverride : ((Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont()));
+    ImFont*       Typeface = ResolveRunFace(Fonts, FontOverride, Weight);
     PointSize *= TypographyScale;
     const float   Measured = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Text).x;
 

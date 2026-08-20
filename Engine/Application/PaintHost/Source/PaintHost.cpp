@@ -225,6 +225,10 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     Viewport.Surface().ApplyFontLoader(Fonts);
     Disregard(Fonts.Discover(FontRoot.c_str()));
+    // 📝 The family carousel's preview faces are added to the atlas BEFORE the first tick records. Added
+    //    during recording instead, the faces would land in an atlas the renderer had already uploaded and
+    //    the preview tiles would draw from stale texture data.
+    Disregard(Fonts.PreparePreviews(1.0f));
     Disregard(Fonts.Load(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f));
     ControlCentre.SetFontFamilies(Fonts);
 
@@ -474,6 +478,9 @@ int main(int ArgumentCount, char** ArgumentValues)
 
             const PlaneExtent ControlInterior = Viewport.Drawers().Interior(DrawerBearing::North);
             ControlCentre.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            // 📝 The artist's per-role weights are declared every tick so the workspace's panels read the
+            //    current choice; the viewport re-states them after each resolve.
+            Viewport.ApplyTypographyWeights(ControlCentreValues.TypographyWeight);
             Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Above));
             Disregard(ControlCentre.Record(ControlInterior, ControlCentreValues));
 

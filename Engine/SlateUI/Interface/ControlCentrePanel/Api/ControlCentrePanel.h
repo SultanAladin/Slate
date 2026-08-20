@@ -72,7 +72,11 @@ struct ControlCentreConfiguration
     std::uint32_t IconSize = 24u;
     std::uint32_t Radius = 24u;
     std::uint32_t TypographySize[8] = {24u, 20u, 16u, 14u, 12u, 10u, 14u, 14u};
-    std::uint32_t TypographyWeight[8] = {3u, 3u, 2u, 1u, 2u, 1u, 2u, 3u};
+    // 📝 FontWeight values (100..900), not ordinals. `ApplyFontWeights` casts them straight back to
+    //    `FontWeight`, and `FontLoader::Face` derives its slot from the 100-step — a small ordinal would
+    //    underflow the slot arithmetic and read past the face run. The eight are Title, Header, Subheader,
+    //    Body, Label, Caption, Warning, Alert, seated at the `FontProfile` defaults.
+    std::uint32_t TypographyWeight[8] = {600u, 600u, 500u, 400u, 500u, 400u, 500u, 600u};
     std::uint32_t PointerSpeed = 5u;
     std::uint32_t MonitorLevel = 67u;
     std::uint32_t TouchAction = 0u;
@@ -93,7 +97,11 @@ struct ControlCentreConfiguration
 class ControlCentrePanel
 {
 public:
-    static constexpr std::uint32_t ControlCapacity = 192u;
+    // 📝 192 seated every control the panel drew before the typography strips; each role row's family
+    //    carousel adds ten (two arrows and up to eight visible weight tiles), and a strip whose press
+    //    ordinals fell past the ceiling was drawn but could never be seized — the tiles looked selectable
+    //    and were not. 256 seats the eight strips with the rest of the panel's controls intact.
+    static constexpr std::uint32_t ControlCapacity = 256u;
 
     Outcome<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
@@ -144,6 +152,7 @@ private:
     std::uint32_t TabMotion = 0u;
     std::uint32_t ThemeMotion = 0u;
     std::uint32_t FontMotion = 0u;
+    std::uint32_t RoleFontMotion[8] = {};
     ThemeSubject PresentedTheme = ThemeSubject::Oled;
     ThemeSubject DepartedTheme = ThemeSubject::Oled;
     bool PageForward = true;
@@ -157,6 +166,9 @@ private:
     float FontScroll = 0.0f;
     float FontDeparted = 0.0f;
     float FontTarget = 0.0f;
+    float RoleFontScroll[8] = {};
+    float RoleFontDeparted[8] = {};
+    float RoleFontTarget[8] = {};
     std::uint32_t OpenPalette = 5u;
     bool InputPresetOpen = false;
 };

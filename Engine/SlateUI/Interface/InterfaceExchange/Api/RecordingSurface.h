@@ -298,32 +298,40 @@ public:
     /// 🧩 Records a run of text at a declared size and tracking.
     /// in    Tracking  [em] added to every advance; zero records the run in one command
     /// in    Emphatic  [-]  approximates a heavier weight by recording the run twice, offset by a third pixel
-    /// note  🚧 The default interface typeface carries one weight. The source declares 500, 600 and 700, so
-    ///        `Emphatic` stands in for all three until a typeface with real weights is intaken.
+    /// in    Weight    [-]  the face the run draws with; Regular is the standing active face, and a family
+    ///                      without the requested face falls back to its regular face exactly as `FontLoader`
+    ///                      resolves it. `Emphatic` and a real weight are alternatives: a run that names a
+    ///                      weight draws once, because the face itself is the emphasis.
     /// cost  🚩
     /// tag   api, nonthrowing
     void TextRun(float Along, float Across, ThemeToken Colour, const char* Text,
-                 float PointSize, float Tracking = 0.0f, bool Emphatic = false);
+                 float PointSize, float Tracking = 0.0f, bool Emphatic = false,
+                 FontWeight Weight = FontWeight::Regular);
 
     /// 🧩 Records a run in capitals, for the two small-capital captions the source declares.
     /// note  ⚠️ ASCII only. A capital of a codepoint outside ASCII is a locale question, not a formatting one.
     /// cost  🚩
     /// tag   api, nonthrowing
     void TextRunCapitalised(float Along, float Across, ThemeToken Colour, const char* Text,
-                            float PointSize, float Tracking = 0.0f, bool Emphatic = false);
+                            float PointSize, float Tracking = 0.0f, bool Emphatic = false,
+                            FontWeight Weight = FontWeight::Regular);
 
     /// 🧩 Records a run truncated to a stated extent, with a trailing ellipsis when it did not fit.
+    /// in    Weight  [-]  the face the run draws and measures with; see `TextRun`
     /// note  The ellipsis is three full stops rather than U+2026, which the default typeface does not carry.
     /// cost  🚩
     /// tag   api, nonthrowing
     void TextRunTruncated(float Along, float Across, float CeilingAlong, ThemeToken Colour,
-                          const char* Text, float PointSize, bool Emphatic = false);
+                          const char* Text, float PointSize, bool Emphatic = false,
+                          FontWeight Weight = FontWeight::Regular);
 
     /// 🧩 The extent a run would occupy, without recording it.
     /// out   ExtentAlong  [px] zero for empty text
+    /// in    Weight  [-]  the face the run is measured with; see `TextRun`
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    float MeasureRun(const char* Text, float PointSize, float Tracking = 0.0f) const;
+    float MeasureRun(const char* Text, float PointSize, float Tracking = 0.0f,
+                     FontWeight Weight = FontWeight::Regular) const;
 
     /// Sets the shared typography scale for all text measurement and drawing on this surface.
     void ApplyTypographyScale(float Scale);

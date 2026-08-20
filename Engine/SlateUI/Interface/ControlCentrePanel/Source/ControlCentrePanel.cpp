@@ -123,6 +123,32 @@ const char* PageCaption(ControlCentrePage Page)
     }
 }
 
+// 📝 The live per-role weight, read straight from the configuration the artist writes. The panel never
+//    reads `ThemeProfile::Fonts` for its own chrome, because that copy is refreshed by the host only when a
+//    display factor or the theme moves — the strip's choice must land on the same tick as the press.
+FontWeight RoleWeightOf(const std::uint32_t (&Weights)[8], std::uint32_t Role)
+{
+    return static_cast<FontWeight>(Weights[Role < 8u ? Role : 0u]);
+}
+
+// 📝 The weight faces every role strip offers, in ascending order. `FontLoader::Face` falls back to the
+//    regular face when the selected family lacks the requested weight, so a strip never offers a tile that
+//    cannot draw — the ones the family does not carry are skipped, exactly as the main family carousel
+//    skips nothing because every family carries a regular face.
+constexpr FontWeight CandidateFaces[] = {FontWeight::Thin,    FontWeight::ExtraLight, FontWeight::Light,
+                                         FontWeight::Regular, FontWeight::Medium,    FontWeight::Semibold,
+                                         FontWeight::Bold,    FontWeight::ExtraBold, FontWeight::Black};
+constexpr const char* FaceNames[] = {"Thin",  "ExtraLight", "Light",   "Regular", "Medium",
+                                     "Semibold", "Bold",    "ExtraBold", "Black"};
+
+// 📝 Control ordinals for the eight per-role family strips. Each strip owns ten: two arrows and up to eight
+//    pressable tile positions. They sit above the panel's historical ceiling of 192, which is why the
+//    ceiling is 256 — a press past the ceiling was drawn but never enrolled, and a tile that can never be
+//    seized is exactly the dead square this page previously presented.
+constexpr std::uint32_t RoleArrowBase = 192u;   // [role * 2 + 0] left arrow, [role * 2 + 1] right arrow
+constexpr std::uint32_t RoleTileBase = 208u;    // [role * 8 + visible position]
+constexpr std::uint32_t RoleTilePositions = 8u;
+
 } // namespace
 
 Outcome<bool> ControlCentrePanel::Construct(MotionIntegrator& ArrivingMotion, RecordingSurface& ArrivingSurface,
@@ -172,6 +198,15 @@ Outcome<bool> ControlCentrePanel::Construct(MotionIntegrator& ArrivingMotion, Re
             return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted,
                                           "the Control Centre scroll motion was refused"});
         ScrollMotion[Ordinal] = ScrollIssued.Resolve();
+    }
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
+    {
+        const Outcome<std::uint32_t> RoleIssued = ArrivingMotion.EnrolEased(1.0);
+        if (!RoleIssued.Resolved)
+            return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted,
+                                          "the typography strip motion was refused"});
+        RoleFontMotion[Ordinal] = RoleIssued.Resolve();
     }
 
     return Outcome<bool>::Result(true);
@@ -302,7 +337,10 @@ Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCen
     const PlaneExtent PageExtent = {Interior.LeastAlong + PagePad, Interior.LeastAcross + 88.0f,
                                     Interior.MostAlong - PagePad, Interior.MostAcross - 24.0f};
     const std::uint32_t PageOrdinal = static_cast<std::uint32_t>(PresentedPage);
-    const float ScrollCeiling[5] = {120.0f, 80.0f, 260.0f, 1200.0f, 520.0f};
+    // 📝 The Fonts page ceiling follows the page's own content: the eight role strips and the sections
+    //    below them stand about 1700px past the viewport, and a ceiling shorter than the content parks
+    //    the wheel short of the antialiasing section at the foot.
+    const float ScrollCeiling[5] = {120.0f, 80.0f, 260.0f, 1900.0f, 520.0f};
     const float ScrollFraction = static_cast<float>(Motion->Eased(ScrollMotion[PageOrdinal]).Standing());
     Scroll[PageOrdinal] = ScrollDeparted[PageOrdinal] +
                           (ScrollTarget[PageOrdinal] - ScrollDeparted[PageOrdinal]) * ScrollFraction;
@@ -492,7 +530,8 @@ void ControlCentrePanel::SettingsPage(const PlaneExtent& Extent, ControlCentreCo
         Ordinates.Page = ControlCentrePage::Dashboard;
         Navigate(Ordinates.Page);
     }
-    Surface->TextRun(Along + 58.0f, Extent.LeastAcross + 8.0f, Theme.Primary, "Settings", 24.0f, 0.0f, true);
+    Surface->TextRun(Along + 58.0f, Extent.LeastAcross + 8.0f, Theme.Primary, "Settings", 24.0f, 0.0f,
+                     false, RoleWeightOf(Ordinates.TypographyWeight, 0u));
 
     const PlaneExtent Card = Spanning(Along, Extent.LeastAcross + 74.0f, Width, 5.0f * RowAcross);
     Surface->Ground(Card, Theme.Card, static_cast<float>(Ordinates.Radius < 16u ? 16u : Ordinates.Radius), CornerAll);
@@ -539,7 +578,8 @@ void ControlCentrePanel::NotificationsPage(const PlaneExtent& Extent, ControlCen
 {
     const float Width = (Extent.SpanAlong() < 768.0f) ? Extent.SpanAlong() : 768.0f;
     const float Along = Extent.LeastAlong + (Extent.SpanAlong() - Width) * .5f;
-    Surface->TextRun(Along, Extent.LeastAcross, Theme.Primary, "Apps & Notifications", 29.0f, 0.0f, true);
+    Surface->TextRun(Along, Extent.LeastAcross, Theme.Primary, "Apps & Notifications", 29.0f, 0.0f,
+                     false, RoleWeightOf(Ordinates.TypographyWeight, 0u));
     const PlaneExtent Back = Spanning(Along + Width - 44.0f, Extent.LeastAcross, 40.0f, 40.0f);
     Surface->Ground(Back, Theme.Card, 20.0f, CornerAll);
     Surface->Edge(Back, Theme.Edge, 1.0f, 20.0f, CornerAll);
@@ -570,9 +610,11 @@ void ControlCentrePanel::NotificationsPage(const PlaneExtent& Extent, ControlCen
                *Conditions[Ordinal], Theme.Edge, Accent);
     }
 
-    Surface->TextRun(Along + 8.0f, Global.MostAcross + 36.0f, Theme.Primary, "App Permissions", 24.0f, 0.0f, true);
+    Surface->TextRun(Along + 8.0f, Global.MostAcross + 36.0f, Theme.Primary, "App Permissions", 24.0f, 0.0f,
+                     false, RoleWeightOf(Ordinates.TypographyWeight, 0u));
     Surface->TextRun(Along + 8.0f, Global.MostAcross + 68.0f, Theme.Secondary,
-                     "Choose which apps can send you notifications", 14.0f);
+                     "Choose which apps can send you notifications", 14.0f, 0.0f,
+                     false, RoleWeightOf(Ordinates.TypographyWeight, 5u));
     const PlaneExtent Apps = Spanning(Along, Global.MostAcross + 100.0f, Width, 4.0f * RowAcross);
     Surface->Ground(Apps, Theme.Card, static_cast<float>(Ordinates.Radius < 16u ? 16u : Ordinates.Radius), CornerAll);
     Surface->Edge(Apps, Theme.Edge, 1.0f, 20.0f, CornerAll);
@@ -606,9 +648,9 @@ void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreCon
         Navigate(Ordinates.Page);
     }
     Surface->TextRun(Extent.LeastAlong + 58.0f, Extent.LeastAcross + 3.0f, Theme.Primary, "Display Settings", 29.0f,
-                     0.0f, true);
+                     0.0f, false, RoleWeightOf(Ordinates.TypographyWeight, 0u));
     Surface->TextRun(Extent.LeastAlong + 58.0f, Extent.LeastAcross + 40.0f, Theme.Secondary, "Appearance & typography",
-                     14.0f);
+                     14.0f, 0.0f, false, RoleWeightOf(Ordinates.TypographyWeight, 5u));
 
     if (Ordinates.DisplayPage != PresentedTab)
     {
@@ -627,7 +669,7 @@ void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreCon
         Surface->TextRun(Tab.LeastAlong + 4.0f, Tab.LeastAcross + 4.0f,
                          Ordinates.DisplayPage == static_cast<DisplayPreferencePage>(Ordinal) ? Theme.Primary
                                                                                               : Theme.Secondary,
-                         Tabs[Ordinal], 24.0f, 0.0f, true);
+                         Tabs[Ordinal], 24.0f, 0.0f, false, RoleWeightOf(Ordinates.TypographyWeight, 2u));
         if (Ordinates.DisplayPage == static_cast<DisplayPreferencePage>(Ordinal))
             Surface->Ground(Spanning(Tab.LeastAlong, Tab.MostAcross - 3.0f, Tab.SpanAlong(), 3.0f), Accent, 1.5f,
                             CornerAll);
@@ -904,16 +946,35 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
              ? FontArchive->FamilyName(Ordinal)
              : DefaultFamily;
     };
-    const PlaneExtent Section = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 1700.0f);
     const float Inset = 28.0f;
     const float ContentLeast = Extent.LeastAlong + Inset;
     const float ContentMost = Extent.MostAlong - Inset;
+    const float SpecimenTop = Extent.LeastAcross + Inset + 230.0f;
+
+    // 📐 The section card is sized from its content rather than from a fixed figure, because every role row
+    //    now carries a family strip: the eight strips add a constant 40px each, and the tallest sample text
+    //    still decides the row. A card that ended mid-content would draw the icon and antialiasing sections
+    //    on the bare page ground.
+    const auto EntryHeightOf = [](std::uint32_t Size) -> float
+    {
+        const float Sample = static_cast<float>(Size);
+        return (Sample + 180.0f > 190.0f) ? Sample + 180.0f : 190.0f;
+    };
+    float ContentBottom = SpecimenTop + 176.0f + 30.0f;
+    for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
+        ContentBottom += EntryHeightOf(Ordinates.TypographySize[Ordinal]) + 12.0f;
+    ContentBottom += 340.0f;   // the icon style, icon font and antialiasing sections below the roles
+
+    const PlaneExtent Section = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(),
+                                         ContentBottom - Extent.LeastAcross + 24.0f);
     Surface->Ground(Section, WithOpacity(Theme.Card, .72f),
                     static_cast<float>(Ordinates.Radius < 24u ? 24u : Ordinates.Radius), CornerAll);
     Surface->Edge(Section, Theme.Edge, 1.0f,
                   static_cast<float>(Ordinates.Radius < 24u ? 24u : Ordinates.Radius), CornerAll);
-    Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset, Theme.Primary, "Typography", 24.0f, 0.0f, true);
-    Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset + 32.0f, Theme.Secondary, "Typeface & scale", 14.0f);
+    Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset, Theme.Primary, "Typography", 24.0f, 0.0f,
+                     false, RoleWeightOf(Ordinates.TypographyWeight, 0u));
+    Surface->TextRun(ContentLeast, Extent.LeastAcross + Inset + 32.0f, Theme.Secondary, "Typeface & scale",
+                     14.0f, 0.0f, false, RoleWeightOf(Ordinates.TypographyWeight, 5u));
     const float RailAcross = Extent.LeastAcross + Inset + 64.0f;
     const PlaneExtent Left = Spanning(ContentLeast, RailAcross + 46.0f, 44.0f, 44.0f);
     const PlaneExtent Right = Spanning(ContentMost - 44.0f, RailAcross + 46.0f, 44.0f, 44.0f);
@@ -943,7 +1004,8 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
             Tile.MostAlong < FontRail.MostAlong ? Tile.MostAlong : FontRail.MostAlong,
             Tile.MostAcross
         };
-        if (TileContact.MostAlong > TileContact.LeastAlong && Pressed(130u + Ordinal, TileContact))
+        if (TileContact.MostAlong > TileContact.LeastAlong && 130u + Ordinal < ControlCapacity &&
+            Pressed(130u + Ordinal, TileContact))
             Ordinates.Font = Ordinal;
     }
     Surface->Release();
@@ -974,13 +1036,12 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
         Motion->Eased(FontMotion).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
     }
 
-    const float SpecimenTop = Extent.LeastAcross + Inset + 230.0f;
     const PlaneExtent Specimen = Spanning(ContentLeast, SpecimenTop, ContentMost - ContentLeast, 176.0f);
     Surface->Ground(Specimen, Theme.Card, static_cast<float>(Ordinates.Radius < 24u ? 24u : Ordinates.Radius),
                     CornerAll);
     Surface->Edge(Specimen, Theme.Edge, 1.0f, 24.0f, CornerAll);
     Surface->TextRun(Specimen.LeastAlong + 32.0f, Specimen.LeastAcross + 25.0f, Theme.Secondary, "TYPEFACE & COLORS",
-                     12.0f, .12f);
+                     12.0f, .12f, false, RoleWeightOf(Ordinates.TypographyWeight, 5u));
     Surface->TextRun(Specimen.LeastAlong + 32.0f, Specimen.LeastAcross + 58.0f, Theme.Primary, FamilyAt(Ordinates.Font),
                      48.0f, 0.0f, true);
     Surface->TextRun(Specimen.MostAlong - 330.0f, Specimen.LeastAcross + 45.0f, Theme.Secondary,
@@ -996,54 +1057,121 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
     {
         const float PreviewText = static_cast<float>(Ordinates.TypographySize[Ordinal]);
-        const float RequiredHeight = PreviewText + 28.0f;
-        // Three lines: typeface options, size control, and live sample.
-        const float EntryHeight = (PreviewText + 132.0f > 150.0f) ? PreviewText + 132.0f : 150.0f;
+        const float EntryHeight = EntryHeightOf(Ordinates.TypographySize[Ordinal]);
         const PlaneExtent Entry = Spanning(ContentLeast, Cursor, ContentMost - ContentLeast, EntryHeight);
         Surface->Ground(Entry, Theme.Card, 16.0f, CornerAll);
         Surface->Edge(Entry, Theme.Edge, 1.0f, 16.0f, CornerAll);
-        Surface->TextRun(Entry.LeastAlong + 18.0f, Entry.LeastAcross + 12.0f, Theme.Primary,
-                         Roles[Ordinal], 16.0f, 0.0f, true);
-        const float FaceTop = Entry.LeastAcross + 38.0f;
-        const std::uint32_t FamilyCount = (FontArchive != nullptr && FontArchive->FamilyCount() > 0u)
-                                        ? FontArchive->FamilyCount() : 1u;
-        if (Pressed(1180u + Ordinal * 2u, Spanning(Entry.LeastAlong + 18.0f, FaceTop, 28.0f, 34.0f)) && Ordinates.Font > 0u)
-            --Ordinates.Font;
-        if (Pressed(1181u + Ordinal * 2u, Spanning(Entry.MostAlong - 46.0f, FaceTop, 28.0f, 34.0f)) && Ordinates.Font + 1u < FamilyCount)
-            ++Ordinates.Font;
-        const char* FamilyName = (FontArchive != nullptr) ? FontArchive->FamilyName(Ordinates.Font) : "Inter";
-        Surface->TextRun(Entry.LeastAlong + 52.0f, FaceTop + 8.0f, Theme.Secondary, FamilyName, 10.0f);
 
-        static constexpr FontWeight CandidateFaces[] = { FontWeight::Thin, FontWeight::ExtraLight,
-            FontWeight::Light, FontWeight::Regular, FontWeight::Medium, FontWeight::Semibold,
-            FontWeight::Bold, FontWeight::ExtraBold, FontWeight::Black };
-        static constexpr const char* FaceNames[] = { "Thin", "ExtraLight", "Light", "Regular", "Medium",
-            "Semibold", "Bold", "ExtraBold", "Black" };
+        // 📝 The role name is drawn in the role's own face, so the strip's choice is legible in the label
+        //    that owns it — a Title row whose strip seated Black names itself in Black.
+        const FontWeight RoleWeight = RoleWeightOf(Ordinates.TypographyWeight, Ordinal);
+        Surface->TextRun(Entry.LeastAlong + 18.0f, Entry.LeastAcross + 12.0f, Theme.Primary, Roles[Ordinal],
+                         16.0f, 0.0f, false, RoleWeight);
+        const float LabelWidth = Surface->MeasureRun(Roles[Ordinal], 16.0f, 0.0f, RoleWeight);
+        Surface->TextRun(Entry.LeastAlong + 18.0f + LabelWidth + 14.0f, Entry.LeastAcross + 17.0f,
+                         Theme.Secondary, FamilyAt(Ordinates.Font), 12.0f);
+
+        // 📝 The same carousel the family rail above presents, driven by the family the main rail seats:
+        //    one tile per available weight of that family, every tile drawing "Aa" in its own face. The
+        //    press seats the weight for the role and nothing else, and the strip scrolls like the main rail.
+        const float StripAcross = Entry.LeastAcross + 40.0f;
+        const PlaneExtent LeftArrow = Spanning(Entry.LeastAlong + 18.0f, StripAcross + 21.0f, 26.0f, 30.0f);
+        const PlaneExtent RightArrow = Spanning(Entry.MostAlong - 44.0f, StripAcross + 21.0f, 26.0f, 30.0f);
+        const PlaneExtent RoleRail = {LeftArrow.MostAlong + 8.0f, StripAcross,
+                                      RightArrow.LeastAlong - 8.0f, StripAcross + 72.0f};
+
+        const std::uint32_t WeightCount = [&]() -> std::uint32_t
+        {
+            std::uint32_t Count = 0u;
+            for (const FontWeight Candidate : CandidateFaces)
+            {
+                if (FontArchive != nullptr && !FontArchive->HasFace(Candidate, FontSlant::Upright))
+                    continue;
+                ++Count;
+            }
+            return Count;
+        }();
+        constexpr float TileStep = 132.0f;
+        constexpr float TileSpan = 120.0f;
+        const float RoleMaximum = (static_cast<float>(WeightCount) * TileStep > RoleRail.SpanAlong())
+                                ? static_cast<float>(WeightCount) * TileStep - RoleRail.SpanAlong() : 0.0f;
+
+        const float RoleFraction = static_cast<float>(Motion->Eased(RoleFontMotion[Ordinal]).Standing());
+        RoleFontScroll[Ordinal] = RoleFontDeparted[Ordinal] +
+                                  (RoleFontTarget[Ordinal] - RoleFontDeparted[Ordinal]) * RoleFraction;
+
+        if (Pressed(RoleArrowBase + Ordinal * 2u, LeftArrow) && RoleFontTarget[Ordinal] > 0.0f)
+        {
+            RoleFontDeparted[Ordinal] = RoleFontScroll[Ordinal];
+            RoleFontTarget[Ordinal] = RoleFontScroll[Ordinal] - TileStep;
+            if (RoleFontTarget[Ordinal] < 0.0f) RoleFontTarget[Ordinal] = 0.0f;
+            Motion->Eased(RoleFontMotion[Ordinal]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+        }
+        if (Pressed(RoleArrowBase + Ordinal * 2u + 1u, RightArrow) && RoleFontTarget[Ordinal] < RoleMaximum)
+        {
+            RoleFontDeparted[Ordinal] = RoleFontScroll[Ordinal];
+            RoleFontTarget[Ordinal] = RoleFontScroll[Ordinal] + TileStep;
+            if (RoleFontTarget[Ordinal] > RoleMaximum) RoleFontTarget[Ordinal] = RoleMaximum;
+            Motion->Eased(RoleFontMotion[Ordinal]).Depart(0.0, 1.0, 250.0, 0.0, EaseCurve::Carousel);
+        }
+
+        Surface->Ground(LeftArrow, Theme.Card, 15.0f, CornerAll);
+        Surface->Ground(RightArrow, Theme.Card, 15.0f, CornerAll);
+        Surface->Edge(LeftArrow, Theme.Edge, 1.0f, 15.0f, CornerAll);
+        Surface->Edge(RightArrow, Theme.Edge, 1.0f, 15.0f, CornerAll);
+        Surface->TextRun(CentreText(*Surface, LeftArrow, "<", 14.0f), CentredAcross(LeftArrow, 14.0f),
+                         Theme.Primary, "<", 14.0f, 0.0f, true);
+        Surface->TextRun(CentreText(*Surface, RightArrow, ">", 14.0f), CentredAcross(RightArrow, 14.0f),
+                         Theme.Primary, ">", 14.0f, 0.0f, true);
+
+        Surface->Confine(RoleRail);
         std::uint32_t FaceOrdinal = 0u;
         for (std::uint32_t Candidate = 0u; Candidate < 9u; ++Candidate)
         {
             if (FontArchive != nullptr && !FontArchive->HasFace(CandidateFaces[Candidate], FontSlant::Upright))
                 continue;
-            const float FaceAlong = Entry.LeastAlong + 58.0f + static_cast<float>(FaceOrdinal) * 112.0f;
-            const PlaneExtent FaceBox = Spanning(FaceAlong, FaceTop, 104.0f, 34.0f);
-            if (FontArchive != nullptr)
-                Surface->ApplyFontPreview(FontArchive->Face(CandidateFaces[Candidate], FontSlant::Upright));
-            Surface->Ground(FaceBox, Theme.Panel, 8.0f, CornerAll);
-            Surface->Edge(FaceBox, Theme.Edge, 1.0f, 8.0f, CornerAll);
-            Surface->TextRun(FaceBox.LeastAlong + 8.0f, FaceBox.LeastAcross + 5.0f, Theme.Primary, "Aa", 15.0f, 0.0f, true);
-            Surface->TextRun(FaceBox.LeastAlong + 34.0f, FaceBox.LeastAcross + 10.0f, Theme.Secondary, FaceNames[Candidate], 8.0f);
-            if (Pressed(1200u + Ordinal * 9u + FaceOrdinal, FaceBox))
-                Ordinates.TypographyWeight[Ordinal] = static_cast<std::uint32_t>(CandidateFaces[Candidate]);
+            const float FaceAlong = RoleRail.LeastAlong + 4.0f +
+                                    TileStep * static_cast<float>(FaceOrdinal) - RoleFontScroll[Ordinal];
+            const PlaneExtent Tile = Spanning(FaceAlong, StripAcross, TileSpan, 72.0f);
+            const bool Selected = Ordinates.TypographyWeight[Ordinal] ==
+                                  static_cast<std::uint32_t>(CandidateFaces[Candidate]);
+            const PlaneExtent TileContact = {
+                Tile.LeastAlong > RoleRail.LeastAlong ? Tile.LeastAlong : RoleRail.LeastAlong,
+                Tile.LeastAcross,
+                Tile.MostAlong < RoleRail.MostAlong ? Tile.MostAlong : RoleRail.MostAlong,
+                Tile.MostAcross
+            };
+            if (TileContact.MostAlong > TileContact.LeastAlong)
+            {
+                if (FontArchive != nullptr)
+                    Surface->ApplyFontPreview(FontArchive->Face(CandidateFaces[Candidate], FontSlant::Upright));
+                Surface->Ground(Tile, Selected ? Theme.Card : Theme.Panel, 10.0f, CornerAll);
+                Surface->Edge(Tile, Selected ? Theme.Edge : WithOpacity(Theme.Edge, 0.0f), 1.0f, 10.0f, CornerAll);
+                Surface->TextRun(Tile.LeastAlong + 10.0f, Tile.LeastAcross + 7.0f, Theme.Primary, "Aa", 22.0f);
+                Surface->TextRun(Tile.LeastAlong + 10.0f, Tile.LeastAcross + 38.0f, Theme.Primary,
+                                 FaceNames[Candidate], 10.5f, 0.0f, true);
+                Surface->TextRun(Tile.LeastAlong + 10.0f, Tile.LeastAcross + 54.0f, Theme.Secondary,
+                                 FamilyAt(Ordinates.Font), 9.5f);
+                // 📝 The ordinal is the tile's VISIBLE slot, not its index in the face run: the strip scrolls
+                //    a whole tile at a time, so slot arithmetic is exact, and a slot's identity must not move
+                //    when the run beneath it changes.
+                const std::uint32_t Slot = FaceOrdinal -
+                                           static_cast<std::uint32_t>(RoleFontScroll[Ordinal] / TileStep + 0.5f);
+                if (Slot < RoleTilePositions &&
+                    Pressed(RoleTileBase + Ordinal * RoleTilePositions + Slot, TileContact))
+                    Ordinates.TypographyWeight[Ordinal] = static_cast<std::uint32_t>(CandidateFaces[Candidate]);
+                Surface->ApplyFontPreview(nullptr);
+            }
             ++FaceOrdinal;
         }
-        Surface->ApplyFontPreview(nullptr);
+        Surface->Release();
 
         Slider(144u + Ordinal,
-               Spanning(Entry.LeastAlong + 18.0f, Entry.LeastAcross + 76.0f,
+               Spanning(Entry.LeastAlong + 18.0f, Entry.LeastAcross + 130.0f,
                         420.0f, 34.0f),
                Least[Ordinal], Most[Ordinal], Ordinates.TypographySize[Ordinal], "px", Theme.Edge, Accent);
 
-        const PlaneExtent PreviewClip = {Entry.LeastAlong + 18.0f, Entry.LeastAcross + 112.0f,
+        const PlaneExtent PreviewClip = {Entry.LeastAlong + 18.0f, Entry.LeastAcross + 170.0f,
                                          Entry.MostAlong - 18.0f, Entry.MostAcross - 10.0f};
         const float PreviewAcross = PreviewClip.LeastAcross +
                                     (PreviewClip.SpanAcross() - PreviewText) * 0.5f;
@@ -1055,7 +1183,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
                                   Ordinal == 4u   ? "METADATA · 10:42 AM · SYSTEM"
                                   : Ordinal == 5u ? "* This is a small caption text"
                                                   : "The quick brown fox jumps over the lazy dog",
-                                  PreviewText);
+                                  PreviewText, false, RoleWeight);
         Surface->Release();
         Cursor = Entry.MostAcross + 12.0f;
     }
@@ -1065,7 +1193,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     Surface->Ground(IconSection, Theme.Card, 20.0f, CornerAll);
     Surface->Edge(IconSection, Theme.Edge, 1.0f, 20.0f, CornerAll);
     Surface->TextRun(IconSection.LeastAlong + 20.0f, Cursor + 10.0f, Theme.Primary,
-                     "Icon Style", 24.0f, 0.0f, true);
+                     "Icon Style", 24.0f, 0.0f, false, RoleWeightOf(Ordinates.TypographyWeight, 1u));
     const char* Styles[3] = {"Monotone", "Duotone", "Coloured"};
     for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
     {
@@ -1079,7 +1207,8 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
         if (Pressed(160u + Ordinal, B)) Ordinates.Icons = static_cast<IconAppearance>(Ordinal);
     }
     Cursor += 118.0f;
-    Surface->TextRun(IconSection.LeastAlong + 20.0f, Cursor, Theme.Primary, "Icon Font", 24.0f, 0.0f, true);
+    Surface->TextRun(IconSection.LeastAlong + 20.0f, Cursor, Theme.Primary, "Icon Font", 24.0f, 0.0f,
+                     false, RoleWeightOf(Ordinates.TypographyWeight, 1u));
     Slider(164u, Spanning(IconSection.LeastAlong + 20.0f, Cursor + 40.0f, 420.0f, 40.0f), 16u, 48u,
            Ordinates.IconSize, "px", Theme.Edge, Accent);
     for (std::uint32_t Icon = 0u; Icon < 4u; ++Icon)
@@ -1092,7 +1221,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     Surface->Ground(AntialiasSection, Theme.Card, 20.0f, CornerAll);
     Surface->Edge(AntialiasSection, Theme.Edge, 1.0f, 20.0f, CornerAll);
     Surface->TextRun(AntialiasSection.LeastAlong + 20.0f, Cursor, Theme.Primary,
-                     "Font Antialiasing", 24.0f, 0.0f, true);
+                     "Font Antialiasing", 24.0f, 0.0f, false, RoleWeightOf(Ordinates.TypographyWeight, 1u));
     const char* Aa[3] = {"Subpixel (Auto)", "Grayscale", "None"};
     for (std::uint32_t Ordinal = 0u; Ordinal < 3u; ++Ordinal)
     {
@@ -1106,12 +1235,14 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     }
 }
 
+
 void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                    const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const float Width = (Extent.SpanAlong() < 768.0f) ? Extent.SpanAlong() : 768.0f;
     const float Along = Extent.LeastAlong + (Extent.SpanAlong() - Width) * .5f;
-    Surface->TextRun(Along, Extent.LeastAcross, Theme.Primary, "Input Devices", 29.0f, 0.0f, true);
+    Surface->TextRun(Along, Extent.LeastAcross, Theme.Primary, "Input Devices", 29.0f, 0.0f,
+                     false, RoleWeightOf(Ordinates.TypographyWeight, 0u));
     Surface->TextRun(Along, Extent.LeastAcross + 38.0f, Theme.Secondary, "Keyboard, mouse, and touch settings", 14.0f);
     const PlaneExtent Back = Spanning(Along + Width - 44.0f, Extent.LeastAcross, 40.0f, 40.0f);
     Surface->Ground(Back, Theme.Card, 20.0f, CornerAll);
@@ -1126,7 +1257,7 @@ void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfi
                     CornerAll);
     Surface->Edge(Hotkeys, Theme.Edge, 1.0f, 20.0f, CornerAll);
     Surface->TextRun(Hotkeys.LeastAlong + 28.0f, Hotkeys.LeastAcross + 24.0f, Theme.Primary, "Global Hotkeys", 24.0f,
-                     0.0f, true);
+                     0.0f, false, RoleWeightOf(Ordinates.TypographyWeight, 1u));
     const PlaneExtent Preset = Spanning(Hotkeys.MostAlong - 184.0f, Hotkeys.LeastAcross + 19.0f, 156.0f, 34.0f);
     Surface->Ground(Preset, QuietDark, 8.0f, CornerAll);
     Surface->TextRun(Preset.LeastAlong + 12.0f, CentredAcross(Preset, 12.0f), Theme.Primary,
@@ -1166,7 +1297,7 @@ void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfi
     const PlaneExtent Mouse = Spanning(Along, MouseTop, Width, 150.0f);
     Surface->Ground(Mouse, Theme.Card, 20.0f, CornerAll);
     Surface->TextRun(Mouse.LeastAlong + 28.0f, Mouse.LeastAcross + 24.0f, Theme.Primary, "Mouse Settings", 24.0f, 0.0f,
-                     true);
+                     false, RoleWeightOf(Ordinates.TypographyWeight, 1u));
     Surface->TextRun(Mouse.LeastAlong + 28.0f, Mouse.LeastAcross + 72.0f, Theme.Primary, "Invert Scroll Direction",
                      14.0f);
     Toggle(184u, Spanning(Mouse.MostAlong - 76.0f, Mouse.LeastAcross + 64.0f, 48.0f, 24.0f), Ordinates.InvertScroll,
@@ -1177,7 +1308,7 @@ void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreConfi
     const PlaneExtent Touch = Spanning(Along, Mouse.MostAcross + 24.0f, Width, 190.0f);
     Surface->Ground(Touch, Theme.Card, 20.0f, CornerAll);
     Surface->TextRun(Touch.LeastAlong + 28.0f, Touch.LeastAcross + 24.0f, Theme.Primary, "Touch & Stylus", 24.0f, 0.0f,
-                     true);
+                     false, RoleWeightOf(Ordinates.TypographyWeight, 1u));
     Surface->TextRun(Touch.LeastAlong + 28.0f, Touch.LeastAcross + 72.0f, Theme.Primary, "Enable Touch Gestures",
                      14.0f);
     Toggle(186u, Spanning(Touch.MostAlong - 76.0f, Touch.LeastAcross + 64.0f, 48.0f, 24.0f), Ordinates.TouchGestures,
@@ -1245,6 +1376,13 @@ void ControlCentrePanel::Reset()
     FontScroll = 0.0f;
     FontDeparted = 0.0f;
     FontTarget = 0.0f;
+    for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
+    {
+        RoleFontMotion[Ordinal] = 0u;
+        RoleFontScroll[Ordinal] = 0.0f;
+        RoleFontDeparted[Ordinal] = 0.0f;
+        RoleFontTarget[Ordinal] = 0.0f;
+    }
     OpenPalette = 5u;
     InputPresetOpen = false;
 }

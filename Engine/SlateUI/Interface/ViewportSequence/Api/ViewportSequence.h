@@ -131,6 +131,15 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Retint(const ThemeSelection& Selected);
 
+    /// 🧩 Declares the per-role typeface weights every later resolution folds into the appearance.
+    /// in    Weights  [-]  the eight `ControlCentreConfiguration::TypographyWeight` figures — Title, Header,
+    ///                     Subheader, Body, Label, Caption, Warning, Alert, as `FontWeight` values
+    /// note  📐 Applied after every `ResolveTinted` (construction, retint and each tick), so the artist's
+    ///        strip choice reaches every panel that reads `Appearance().Fonts` on the tick it was made.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    void ApplyTypographyWeights(const std::uint32_t (&Weights)[8]);
+
     /// 🧩 The shared motion integrator, for panels whose interaction contributes to viewport wakefulness.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -173,10 +182,14 @@ public:
 
 private:
 
+    /// 🧩 Applies the declared role weights to a freshly resolved appearance.
+    void RestateTypography(ThemeProfile& Profile) const;
+
     InterfaceExchange        Interface         = {};   // [-] - the interface context and ImGui
     MotionIntegrator         Motion            = {};   // [-] - spring physics
     ThemeProfile  Resolved          = {};   // [-] - colours and metrics at the display scale
     ThemeSelection           Chosen            = {};   // [-] - the theme every resolve is anchored onto
+    std::uint32_t RoleWeights[8] = {600u, 600u, 500u, 400u, 500u, 400u, 500u, 600u};   // [-] - the FontProfile defaults
     DrawerSpace              DrawersOwned      = {};   // [-] - the two drawers
     RedrawScheduler          MarksOwned        = {};   // [-] - per-panel redraw marks
     RecordingSurface         SurfaceOwned      = {};   // [-] - the drawing surface

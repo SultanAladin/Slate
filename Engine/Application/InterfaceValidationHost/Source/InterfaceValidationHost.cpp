@@ -543,6 +543,10 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
     Surface.ApplyCornerScale(Appearance.CornerScale);
     Surface.ApplyFontLoader(Fonts);
     Disregard(Fonts.Discover(FontArchivesPath));
+    // 📝 The family carousel's preview faces are added to the atlas BEFORE the first tick records. Added
+    //    during recording instead, the faces would land in an atlas the renderer had already uploaded and
+    //    the preview tiles would draw from stale texture data.
+    Disregard(Fonts.PreparePreviews(1.0f));
     ControlCentre.SetFontFamilies(Fonts);
     Disregard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
 
@@ -820,6 +824,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
     Disregard(Fonts.Discover(FontArchivesPath));
+    Disregard(Fonts.PreparePreviews(1.0f));
     ControlCentre.SetFontFamilies(Fonts);
     Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
             ResolvedAgainst = Display.ExtentAlong;
@@ -829,6 +834,11 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
             //    through the borrowed reference and needs no such call.
             ReferenceShell.Reseat(Appearance);
         }
+
+        // 📝 Re-stated every tick rather than only when the display or the theme moves: the per-role
+        //    weights change without either factor moving, and every panel reads the appearance through the
+        //    borrowed reference, so the strip's choice must land on the tick it was made.
+        ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
 
         Motion.Advance(ElapsedMs);
 
@@ -1365,6 +1375,7 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
     Disregard(Fonts.Discover(FontArchivesPath));
+    Disregard(Fonts.PreparePreviews(1.0f));
     ControlCentre.SetFontFamilies(Fonts);
     Fonts.RequestLoad(FontArchivesPath, Appearance.Fonts, 1.0f);
                 ContentBrowser.Reseat(Appearance);
