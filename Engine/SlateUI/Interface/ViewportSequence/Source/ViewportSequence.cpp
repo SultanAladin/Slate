@@ -24,7 +24,7 @@ Deliver<bool> ViewportSequence::Construct(const InterfaceAttachment& Arriving,
 
     NorthDeclared = North;
     SouthDeclared = South;
-    Resolved      = Resolve(1.0);
+    Resolved      = ResolveTinted(1.0, 1.0, 0.0f, Chosen);
 
     return Deliver<bool>::Deliver(true);
 }
@@ -54,7 +54,7 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
 
     // ③ Resolve the appearance against the arrived display scale.
     const DisplayCondition& Display = SurfaceOwned.Display();
-    Resolved = Resolve(static_cast<double>(Display.DisplayScale));
+    Resolved = ResolveTinted(static_cast<double>(Display.DisplayScale), 1.0, 0.0f, Chosen);
 
     // ④ Construct the drawers on the first tick, when the display extent is known.
     if (!DrawersConstructed)
@@ -214,6 +214,18 @@ const RecordingSurface& ViewportSequence::Surface() const
 const AppearanceSpecification& ViewportSequence::Appearance() const
 {
     return Resolved;
+}
+
+void ViewportSequence::Retint(const ThemeSelection& Selected)
+{
+    Chosen = Selected;
+
+    // 🔴 Re-resolved here and not left for the next tick. A host reseats its panels from Appearance() on the
+    //    line after it retints, and those panels COPY the inks — so an appearance that still held the old
+    //    theme would be copied into them and then never copied again, leaving the browser and the stack one
+    //    theme behind for as long as the artist does not change colour twice.
+    //    The scale is read back off the record rather than re-derived, so a retint cannot move a length.
+    Resolved = ResolveTinted(Resolved.Measure.DisplayScale, 1.0, 0.0f, Chosen);
 }
 
 MotionIntegrator& ViewportSequence::MotionSource()

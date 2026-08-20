@@ -4,7 +4,9 @@
 // 🧩 The combined editor — every workspace subject in one host, with every device concern held by HostLifecycle.
 
 #include "Contract/DeliveryContract.h"
+#include "SlateUI/Interface/ContentBrowserPanel/Api/ContentBrowserPanel.h"
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
+#include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
@@ -29,6 +31,52 @@ constexpr const char* HostName    = "EditorHost";
 
 // 📝 The workspace ground the interface is recorded over. Stated here because it is the one visual decision
 //    this host makes; everything else it presents belongs to a panel.
+//------------------------------------------------------------------------------------------------------------------------
+//                                                      THE THREE CEILINGS
+//------------------------------------------------------------------------------------------------------------------------
+
+// 🔴 Seating the content browser in the south drawer crossed all three of the budgets that have each, at
+//    least once, taken a host down with no window and no log line. They are asserted here so a fourth panel
+//    cannot repeat any of them silently.
+
+// ① EASED INTERPOLANTS. `InteractionIndex::Enrol` draws two fades per control, and the integrator's supply
+//    is shared by every ledger in the process — the browser's private ledger does not get its own pool.
+constexpr std::uint32_t EasesPerControl = 2u;
+constexpr std::uint32_t CentreControls  = ControlCentrePanel::ControlCapacity;
+constexpr std::uint32_t BrowserControls = ContentBrowserPanel::EnrolmentDemand;
+constexpr std::uint32_t EditorControls  = PanelStructure::RecordCeiling * EditorPanel::ControlsPerRecord;
+constexpr std::uint32_t BareEases       = 9u + 1u;   // [-] - the Control Centre's own motions
+
+constexpr std::uint32_t DemandedEases =
+    ((CentreControls + BrowserControls + EditorControls) * EasesPerControl) + BareEases;
+
+static_assert(DemandedEases <= MotionIntegrator::EaseCapacity,
+              "this host's panels demand more eased interpolants than the integrator holds — the panel "
+              "constructed last is refused mid-enrolment and the host exits before its first frame; raise "
+              "MotionIntegrator::EaseCapacity or reduce a panel's control count");
+
+// ② LEDGER SLOTS. Counted per ledger, not per host. The browser is the only occupant of its own
+//    `BrowserLedger`, so only its demand is weighed here; the Control Centre answers to its private index.
+static_assert(BrowserControls <= InteractionIndex::ControlCapacity,
+              "the content browser enrols more controls than one InteractionIndex holds — Construct is "
+              "refused with \"no further control slot\" and the south drawer opens onto blank ground");
+
+// ③ AUTOMATIC STORAGE. A Windows thread is given one megabyte and a refusal here is not a refusal at all:
+//    the guard page is touched in the prologue, so the process dies before a statement can report anything.
+//    Linux hands out eight megabytes, which is exactly why no gate here can catch it.
+constexpr std::size_t WindowsThreadStack = 1048576u;                  // [B] - the shipped linker default
+constexpr std::size_t AutomaticCeiling   = WindowsThreadStack / 4u;   // [B] - a quarter, leaving room to call
+
+static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPanel)
+              + (sizeof(PanelStructure)       * WorkspaceIndex::WorkspaceCeiling)
+              + (sizeof(EditorPanelOrdinates) * WorkspaceIndex::WorkspaceCeiling)
+              + sizeof(ControlCentrePanel)  + sizeof(ControlCentreOrdinates)
+              + sizeof(InteractionIndex)    + sizeof(ContentBrowserPanel)
+              + sizeof(ContentBrowserOrdinates) + sizeof(ContentLibrary) <= AutomaticCeiling,
+              "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
+              "prologue's stack probe will fault before main runs a statement and the host will exit with "
+              "no window and no log line; move the largest member to static storage");
+
 constexpr float WorkspaceGround[4] = { 0.06f, 0.06f, 0.08f, 1.0f };   // [-]
 
 /// 🧩 Copies the device handles across the layer seam into the attachment the interface declares.
@@ -58,7 +106,7 @@ InterfaceAttachment Attach(const DeviceOffering& Offered)
 //                                                            MAIN
 //------------------------------------------------------------------------------------------------------------------------
 
-int main()
+int main(int ArgumentCount, char** ArgumentValues)
 {
     using namespace Slate;
 
@@ -122,6 +170,49 @@ int main()
     ControlCentrePanel      ControlCentre;
     ControlCentreOrdinates  ControlCentreValues;
 
+    InteractionIndex         BrowserLedger;
+
+    // 📝 The south drawer's occupant. The library is the HOST's, not the panel's — `14` §1 forbids a panel
+    //    from holding what it displays, which is the same separation WorkspaceIndex and WorkspacePanel keep.
+    ContentBrowserPanel      ContentBrowser;
+    ContentBrowserOrdinates  ContentBrowserSeated;
+    ContentLibrary           ContentSeated;
+
+    // 📝 The appearance file sits beside the executable and is read once, before any panel is recorded. A
+    //    first run has no file yet, which is the ordinary case and not a fault — the build's own appearance
+    //    stands and the first colour the artist changes writes the file.
+    const char* const InvokedAs = (ArgumentCount > 0) ? ArgumentValues[0] : "";
+
+    {
+        ThemeSelection Recorded;
+
+        if (ThemeInterchange::AdoptBeside(InvokedAs, Recorded))
+        {
+            ControlCentreValues.Theme       = Recorded.Presented;
+            ControlCentreValues.Primary     = Recorded.Primary;
+            ControlCentreValues.Secondary   = Recorded.Secondary;
+            ControlCentreValues.Information = Recorded.Information;
+            ControlCentreValues.Warning     = Recorded.Warning;
+            ControlCentreValues.Alert       = Recorded.Alert;
+        }
+    }
+
+    // 🔴 What was last written, so the file is inscribed when a colour actually changes and not every tick.
+    //    A write per frame would rewrite the whole appearance sixty times a second for as long as the
+    //    Control Centre is open, which is a disk cost no artist asked for.
+    ThemeSelection InscribedSelection;
+    InscribedSelection.Presented   = ControlCentreValues.Theme;
+    InscribedSelection.Primary     = ControlCentreValues.Primary;
+    InscribedSelection.Secondary   = ControlCentreValues.Secondary;
+    InscribedSelection.Information = ControlCentreValues.Information;
+    InscribedSelection.Warning     = ControlCentreValues.Warning;
+    InscribedSelection.Alert       = ControlCentreValues.Alert;
+
+    // 🔴 Declared BEFORE any panel is constructed. Panels that copy their inks do so out of the appearance the
+    //    viewport hands them at Construct, so a selection declared afterwards would leave the first frames
+    //    drawn in the transcription's own theme and only correct itself on the artist's first colour change.
+    Viewport.Retint(InscribedSelection);
+
     // 📝 Which dock node the next enrolled workspace is seated into; zero means the main dock space.
     std::uint32_t  EnrolIntoNode = 0u;
 
@@ -142,6 +233,26 @@ int main()
         std::printf("%s \u2014 the Control Centre panel was refused\n", HostName);
         return 1;
     }
+
+    if (!BrowserLedger.Construct(Viewport.MotionSource()).ContentPresent)
+    {
+        std::printf("%s \u2014 the content browser ledger was refused\n", HostName);
+        return 1;
+    }
+
+    // 🔴 The browser carries its OWN ledger, as every panel here does, so its enrolment cannot exhaust the
+    //    Control Centre's. Read — an enrolment refusal is silent at the call site and a browser that was
+    //    refused records nothing at all, which reads as a drawer that opens onto blank ground.
+    if (!ContentBrowser.Construct(BrowserLedger, Viewport.Surface()).ContentPresent)
+    {
+        std::printf("%s \u2014 the content browser was refused\n", HostName);
+        return 1;
+    }
+
+    // 🔴 The browser takes no appearance at Construct — it is seated here, once the viewport has resolved one.
+    ContentBrowser.Reseat(Viewport.Appearance());
+
+    SeatReferenceContent(ContentSeated);
 
     // 📝 🔴 The editor opens a VACANT workspace, where the painting host opens a canvas. This is the one
     //    thing that distinguishes the two hosts, and it is the reason there are two: the editor carries
@@ -329,10 +440,64 @@ int main()
             Viewport.RecordDrawers();
             Viewport.DrawerPanels();
 
+            // ⑤ The south drawer's browser, recorded before the north drawer's Control Centre so the
+            //     Control Centre's own exclusions are the last thing declared and the two cannot disagree.
+            //     🔴 The interior is asked for every tick and not cached — the drawer is springing, so the
+            //     extent it offers is a different one on almost every tick of an open or a close.
+            const PlaneExtent BrowserInterior = Viewport.Drawers().Interior(DrawerBearing::South);
+
+            BrowserLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+            ContentBrowser.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+
+            if (BrowserInterior.SpanAlong() > 0.0f && BrowserInterior.SpanAcross() > 0.0f)
+            {
+                Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Above));
+                ContentBrowser.RecordBrowser(BrowserInterior, ContentSeated, ContentBrowserSeated);
+                ContentBrowser.RecordDeferred(ContentBrowserSeated);
+
+                // 🔴 Declared every tick or lost. Without it the drawer owns every contact inside its own
+                //    body, so taking a record or dragging the lattice slides the drawer instead.
+                ContentBrowser.Exclude(Viewport.Drawers(), DrawerBearing::South);
+                Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Beneath));
+            }
+
             const PlaneExtent ControlInterior = Viewport.Drawers().Interior(DrawerBearing::North);
             ControlCentre.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
             Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Above));
             Disregard(ControlCentre.Record(ControlInterior, ControlCentreValues));
+
+            // 📝 Compared rather than watched. The Control Centre writes the artist's choice straight into the
+            //    ordinates, so the change is visible here as a difference and needs no callback to report it.
+            {
+                ThemeSelection Chosen;
+                Chosen.Presented   = ControlCentreValues.Theme;
+                Chosen.Primary     = ControlCentreValues.Primary;
+                Chosen.Secondary   = ControlCentreValues.Secondary;
+                Chosen.Information = ControlCentreValues.Information;
+                Chosen.Warning     = ControlCentreValues.Warning;
+                Chosen.Alert       = ControlCentreValues.Alert;
+
+                const bool Altered = Chosen.Presented   != InscribedSelection.Presented
+                                  || Chosen.Primary     != InscribedSelection.Primary
+                                  || Chosen.Secondary   != InscribedSelection.Secondary
+                                  || Chosen.Information != InscribedSelection.Information
+                                  || Chosen.Warning     != InscribedSelection.Warning
+                                  || Chosen.Alert       != InscribedSelection.Alert;
+
+                // 🔴 The record is advanced whether the write was delivered or refused. A read-only folder would
+                //    otherwise have every later tick retry the same refused write for the life of the process.
+                if (Altered)
+                {
+                    Disregard(ThemeInterchange::RecordBeside(InvokedAs, Chosen));
+                    InscribedSelection = Chosen;
+
+                    // 🔴 Declared to the viewport, which re-anchors the whole appearance on the next tick, and
+                    //    then pushed into the two panels that keep their own copy of the inks. The shell reads
+                    //    the appearance through its own Reseat, which the viewport already calls.
+                    Viewport.Retint(Chosen);
+                    ContentBrowser.Reseat(Viewport.Appearance());
+                }
+            }
             ControlCentre.Exclude(Viewport.Drawers());
             Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Beneath));
 

@@ -177,10 +177,10 @@ private:
     const AppearanceSpecification* Appearance = nullptr;
     InteractionIndex Interaction = {};
     ComponentSpecification SharedControls = {};
-    ScenePanel ScenePresentation = {};
-    UvPanel UvPresentation = {};
-    OutlinerPanel OutlinerPresentation = {};
-    PropertyPanel PropertyPresentation = {};
+    LeafPanel ScenePresentation = {};
+    LeafPanel UvPresentation = {};
+    LeafPanel OutlinerPresentation = {};
+    LeafPanel PropertyPresentation = {};
     ControlIdentity Controls[ControlCapacity] = {};
     PointerCondition Pointer = {};
     PlaneExtent CurrentLeafExtent = {};

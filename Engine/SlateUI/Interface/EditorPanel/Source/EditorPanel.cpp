@@ -66,10 +66,10 @@ Deliver<bool> EditorPanel::Construct(MotionIntegrator& ArrivingMotion,
     if (!SharedControls.Construct(Interaction, ArrivingSurface, ArrivingAppearance).ContentPresent)
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "shared editor controls were refused" });
 
-    if (!ScenePresentation.Construct(ArrivingSurface, ArrivingAppearance).ContentPresent ||
-        !UvPresentation.Construct(ArrivingSurface, ArrivingAppearance).ContentPresent ||
-        !OutlinerPresentation.Construct(ArrivingSurface, ArrivingAppearance).ContentPresent ||
-        !PropertyPresentation.Construct(ArrivingSurface, ArrivingAppearance).ContentPresent)
+    if (!ScenePresentation.Construct(ArrivingSurface, ArrivingAppearance, LeafSubject::Scene).ContentPresent ||
+        !UvPresentation.Construct(ArrivingSurface, ArrivingAppearance, LeafSubject::Uv).ContentPresent ||
+        !OutlinerPresentation.Construct(ArrivingSurface, ArrivingAppearance, LeafSubject::Outliner).ContentPresent ||
+        !PropertyPresentation.Construct(ArrivingSurface, ArrivingAppearance, LeafSubject::Property).ContentPresent)
     {
         return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "an editor leaf panel was refused" });
     }

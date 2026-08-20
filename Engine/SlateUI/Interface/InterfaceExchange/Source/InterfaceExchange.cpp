@@ -703,4 +703,124 @@ bool InterfaceExchange::KeyboardCaptured() const
     return ImGui::GetIO().WantCaptureKeyboard;
 }
 
+bool InterfaceExchange::KeyArrived(KeySubject Subject) const
+{
+    if (ContextSlot == nullptr || !TickOpen)
+        return false;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    // 🔴 The reference's own guard, stated once here rather than at every call site: a Tab typed into a
+    //    filter field belongs to the field. `WantTextInput` and not `WantCaptureKeyboard` — the latter is
+    //    raised by any hovered window, which would swallow the summon over the whole shell.
+    if (ImGui::GetIO().WantTextInput)
+        return false;
+
+    ImGuiKey Arbitrated = ImGuiKey_None;
+
+    switch (Subject)
+    {
+        case KeySubject::Summon:   Arbitrated = ImGuiKey_Tab;       break;
+        case KeySubject::Withdraw: Arbitrated = ImGuiKey_Escape;    break;
+        case KeySubject::Retract:  Arbitrated = ImGuiKey_Backspace; break;
+
+        case KeySubject::DeclarePaint:      Arbitrated = ImGuiKey_P;          break;
+        case KeySubject::DeclareFill:       Arbitrated = ImGuiKey_F;          break;
+        case KeySubject::DeclareAdjustment: Arbitrated = ImGuiKey_A;          break;
+        case KeySubject::DeclareRetention:  Arbitrated = ImGuiKey_R;          break;
+        case KeySubject::DeclareDecal:      Arbitrated = ImGuiKey_D;          break;
+        case KeySubject::DeclarePattern:    Arbitrated = ImGuiKey_T;          break;
+        case KeySubject::DeclareFolder:     Arbitrated = ImGuiKey_G;          break;
+        case KeySubject::AttachMask:        Arbitrated = ImGuiKey_M;          break;
+        case KeySubject::Secure:            Arbitrated = ImGuiKey_L;          break;
+        case KeySubject::Solo:              Arbitrated = ImGuiKey_S;          break;
+        case KeySubject::Conceal:           Arbitrated = ImGuiKey_H;          break;
+        case KeySubject::Seek:              Arbitrated = ImGuiKey_Slash;      break;
+        case KeySubject::Rename:            Arbitrated = ImGuiKey_F2;         break;
+        case KeySubject::Unfold:            Arbitrated = ImGuiKey_Space;      break;
+        case KeySubject::Retire:            Arbitrated = ImGuiKey_Delete;     break;
+        case KeySubject::StepPrior:         Arbitrated = ImGuiKey_UpArrow;    break;
+        case KeySubject::StepNext:          Arbitrated = ImGuiKey_DownArrow;  break;
+        case KeySubject::Disclose:          Arbitrated = ImGuiKey_RightArrow; break;
+        case KeySubject::Withhold:          Arbitrated = ImGuiKey_LeftArrow;  break;
+        case KeySubject::Revert:            Arbitrated = ImGuiKey_Z;          break;
+
+        default:                   return false;
+    }
+
+    // 📝 Backspace alone repeats. Holding it to clear a filter is what an artist expects; holding Tab to
+    //    flap the inspector is not, so the two are asked for on different terms.
+    // 📐 The four arrows repeat on the same grounds: holding one walks the arrangement, which is what the
+    //    reference's own `ArrowUp`/`ArrowDown` branch does under the window system's own repeat.
+    if (Subject == KeySubject::Retract   || Subject == KeySubject::StepPrior ||
+        Subject == KeySubject::StepNext  || Subject == KeySubject::Disclose  ||
+        Subject == KeySubject::Withhold)
+    {
+        return ImGui::IsKeyPressed(Arbitrated, true);
+    }
+
+    // 📝 Unrepeated. The vendor's default repeat would carry the inspector back and forth for as long as
+    //    the artist rested a finger on Tab.
+    return ImGui::IsKeyPressed(Arbitrated, false);
+}
+
+ModifierCondition InterfaceExchange::Modifiers() const
+{
+    ModifierCondition Standing;
+
+    if (ContextSlot == nullptr || !TickOpen)
+        return Standing;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    const ImGuiIO& Arrived = ImGui::GetIO();
+
+    // 📐 `e.metaKey||e.ctrlKey`, exactly as the reference folds the two. The vendor already resolves
+    //    Command on macOS and Control elsewhere into `KeyCtrl`, so the fold is one reading here.
+    Standing.Commanded = Arrived.KeyCtrl || Arrived.KeySuper;
+    Standing.Shifted   = Arrived.KeyShift;
+    Standing.Alternate = Arrived.KeyAlt;
+
+    return Standing;
+}
+
+bool InterfaceExchange::AdmitTyped(char* Intake, std::uint32_t Ceiling) const
+{
+    if (ContextSlot == nullptr || !TickOpen || Intake == nullptr || Ceiling == 0u)
+        return false;
+
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
+
+    const ImGuiIO& Arrived = ImGui::GetIO();
+
+    // 📝 The run's standing extent, found rather than carried, so a caller may seed the field with a
+    //    literal and never has to keep a length beside it.
+    std::uint32_t Occupied = 0u;
+
+    while (Occupied + 1u < Ceiling && Intake[Occupied] != '\0')
+        ++Occupied;
+
+    bool Admitted = false;
+
+    for (int Ordinal = 0; Ordinal < Arrived.InputQueueCharacters.Size; ++Ordinal)
+    {
+        const ImWchar Typed = Arrived.InputQueueCharacters[Ordinal];
+
+        // 🔴 Printable ASCII only, and the terminator's byte is reserved before the test — a run written
+        //    to its very last byte with no room for the terminator is the classic off-by-one this avoids.
+        if (Typed < 0x20 || Typed > 0x7E)
+            continue;
+
+        if (Occupied + 1u >= Ceiling)
+            break;
+
+        Intake[Occupied++] = static_cast<char>(Typed);
+        Admitted           = true;
+    }
+
+    Intake[Occupied] = '\0';
+
+    return Admitted;
+}
+
 }   // namespace Slate

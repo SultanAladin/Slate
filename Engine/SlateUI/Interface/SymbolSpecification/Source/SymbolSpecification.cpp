@@ -138,6 +138,216 @@ constexpr StrokeStep BulbSteps[] =
     {  StrokeCommand::Segment, 14.0f,      22.0f }
 };
 
+// 📝 lucide `eye` — the lid is two mirrored cubics meeting at the leading and trailing canthus, and the iris
+//    is the concentric disc. The control ordinates are Lucide's own, not a re-fitted approximation.
+constexpr StrokeStep EyeOpenSteps[] =
+{
+    {  StrokeCommand::Origin,   2.0f, 12.0f },
+    {  StrokeCommand::Curve,   22.0f, 12.0f,  5.0f,  5.0f, 19.0f,  5.0f },
+    {  StrokeCommand::Curve,    2.0f, 12.0f, 19.0f, 19.0f,  5.0f, 19.0f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Disc,    12.0f, 12.0f,  3.0f }
+};
+
+// 📝 lucide `eye-off` — the same lid opened at both ends so the strike-through reads through the gap, plus
+//    the cancelling diagonal. Drawn as three open outlines rather than one, which is how Lucide states it.
+constexpr StrokeStep EyeClosedSteps[] =
+{
+    {  StrokeCommand::Origin,  10.7f,  5.1f },
+    {  StrokeCommand::Curve,   22.0f, 12.0f, 11.1f,  5.0f, 18.4f,  6.9f },
+    {  StrokeCommand::Origin,   6.6f,  6.6f },
+    {  StrokeCommand::Curve,    2.0f, 12.0f,  4.5f,  8.0f,  3.0f, 10.0f },
+    {  StrokeCommand::Curve,   17.1f, 17.1f,  5.0f, 15.0f, 10.0f, 19.0f },
+    {  StrokeCommand::Origin,   9.9f,  9.9f },
+    {  StrokeCommand::Curve,   14.1f, 14.1f,  9.1f, 10.7f,  9.1f, 13.3f },
+    {  StrokeCommand::Origin,   2.0f,  2.0f },
+    {  StrokeCommand::Segment, 22.0f, 22.0f }
+};
+
+// 📝 lucide `plus` — the two centred bars.
+constexpr StrokeStep PlusCrossSteps[] =
+{
+    {  StrokeCommand::Origin,   5.0f, 12.0f },
+    {  StrokeCommand::Segment, 19.0f, 12.0f },
+    {  StrokeCommand::Origin,  12.0f,  5.0f },
+    {  StrokeCommand::Segment, 12.0f, 19.0f }
+};
+
+// 📝 lucide `trash-2` — lid bar, handle, body outline and the two interior staves.
+constexpr StrokeStep TrashBinSteps[] =
+{
+    {  StrokeCommand::Origin,   3.0f,  6.0f },
+    {  StrokeCommand::Segment, 21.0f,  6.0f },
+    {  StrokeCommand::Origin,   8.0f,  6.0f },
+    {  StrokeCommand::Segment,  8.0f,  4.0f },
+    {  StrokeCommand::Segment, 16.0f,  4.0f },
+    {  StrokeCommand::Segment, 16.0f,  6.0f },
+    {  StrokeCommand::Origin,   5.0f,  6.0f },
+    {  StrokeCommand::Segment,  6.0f, 20.0f },
+    {  StrokeCommand::Segment, 18.0f, 20.0f },
+    {  StrokeCommand::Segment, 19.0f,  6.0f },
+    {  StrokeCommand::Origin,  10.0f, 11.0f },
+    {  StrokeCommand::Segment, 10.0f, 17.0f },
+    {  StrokeCommand::Origin,  14.0f, 11.0f },
+    {  StrokeCommand::Segment, 14.0f, 17.0f }
+};
+
+// 📝 lucide `settings` — the twelve-toothed cog reduced to an octagonal rosette plus the hub disc. The full
+//    Lucide path carries twenty-four segments; eight teeth resolve identically at the 14 px this is drawn at.
+constexpr StrokeStep GearCogSteps[] =
+{
+    {  StrokeCommand::Origin,  10.3f,  2.5f },
+    {  StrokeCommand::Segment, 13.7f,  2.5f },
+    {  StrokeCommand::Segment, 14.3f,  5.4f },
+    {  StrokeCommand::Segment, 17.0f,  6.5f },
+    {  StrokeCommand::Segment, 19.5f,  5.0f },
+    {  StrokeCommand::Segment, 21.5f,  8.5f },
+    {  StrokeCommand::Segment, 19.4f, 10.5f },
+    {  StrokeCommand::Segment, 19.4f, 13.5f },
+    {  StrokeCommand::Segment, 21.5f, 15.5f },
+    {  StrokeCommand::Segment, 19.5f, 19.0f },
+    {  StrokeCommand::Segment, 17.0f, 17.5f },
+    {  StrokeCommand::Segment, 14.3f, 18.6f },
+    {  StrokeCommand::Segment, 13.7f, 21.5f },
+    {  StrokeCommand::Segment, 10.3f, 21.5f },
+    {  StrokeCommand::Segment,  9.7f, 18.6f },
+    {  StrokeCommand::Segment,  7.0f, 17.5f },
+    {  StrokeCommand::Segment,  4.5f, 19.0f },
+    {  StrokeCommand::Segment,  2.5f, 15.5f },
+    {  StrokeCommand::Segment,  4.6f, 13.5f },
+    {  StrokeCommand::Segment,  4.6f, 10.5f },
+    {  StrokeCommand::Segment,  2.5f,  8.5f },
+    {  StrokeCommand::Segment,  4.5f,  5.0f },
+    {  StrokeCommand::Segment,  7.0f,  6.5f },
+    {  StrokeCommand::Segment,  9.7f,  5.4f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Disc,    12.0f, 12.0f,  3.0f }
+};
+
+// 📝 lucide `volume-2` — the driver wedge and the two radiating arcs.
+constexpr StrokeStep SpeakerConeSteps[] =
+{
+    {  StrokeCommand::Origin,  11.0f,  5.0f },
+    {  StrokeCommand::Segment,  6.0f,  9.0f },
+    {  StrokeCommand::Segment,  2.0f,  9.0f },
+    {  StrokeCommand::Segment,  2.0f, 15.0f },
+    {  StrokeCommand::Segment,  6.0f, 15.0f },
+    {  StrokeCommand::Segment, 11.0f, 19.0f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Origin,  15.5f,  8.5f },
+    {  StrokeCommand::Curve,   15.5f, 15.5f, 17.4f, 10.4f, 17.4f, 13.6f },
+    {  StrokeCommand::Origin,  19.1f,  5.0f },
+    {  StrokeCommand::Curve,   19.1f, 19.0f, 22.9f,  8.8f, 22.9f, 15.2f }
+};
+
+// 📝 lucide `sparkles` — the principal four-point star plus the two smaller ones, each stated as four cubics
+//    into the star's waist. The waist control is κ at the inner radius, which is what gives the concave arm.
+constexpr StrokeStep ParticleEmitSteps[] =
+{
+    {  StrokeCommand::Origin,   9.9f,  3.0f },
+    {  StrokeCommand::Curve,   16.0f,  9.1f, 10.9f,  7.3f, 11.7f,  8.1f },
+    {  StrokeCommand::Curve,    9.9f, 15.2f, 11.7f, 10.1f, 10.9f, 10.9f },
+    {  StrokeCommand::Curve,    3.8f,  9.1f,  8.1f, 10.9f,  7.3f, 10.1f },
+    {  StrokeCommand::Curve,    9.9f,  3.0f,  7.3f,  8.1f,  8.1f,  7.3f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Origin,  18.0f,  3.0f },
+    {  StrokeCommand::Segment, 19.0f,  6.0f },
+    {  StrokeCommand::Segment, 22.0f,  7.0f },
+    {  StrokeCommand::Segment, 19.0f,  8.0f },
+    {  StrokeCommand::Segment, 18.0f, 11.0f },
+    {  StrokeCommand::Segment, 17.0f,  8.0f },
+    {  StrokeCommand::Segment, 14.0f,  7.0f },
+    {  StrokeCommand::Segment, 17.0f,  6.0f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Origin,  18.0f, 15.0f },
+    {  StrokeCommand::Segment, 18.8f, 17.2f },
+    {  StrokeCommand::Segment, 21.0f, 18.0f },
+    {  StrokeCommand::Segment, 18.8f, 18.8f },
+    {  StrokeCommand::Segment, 18.0f, 21.0f },
+    {  StrokeCommand::Segment, 17.2f, 18.8f },
+    {  StrokeCommand::Segment, 15.0f, 18.0f },
+    {  StrokeCommand::Segment, 17.2f, 17.2f },
+    {  StrokeCommand::Close,    0.0f,  0.0f }
+};
+
+// 📝 lucide `code` — the two angle brackets.
+constexpr StrokeStep CodeBracketsSteps[] =
+{
+    {  StrokeCommand::Origin,  16.0f, 18.0f },
+    {  StrokeCommand::Segment, 22.0f, 12.0f },
+    {  StrokeCommand::Segment, 16.0f,  6.0f },
+    {  StrokeCommand::Origin,   8.0f,  6.0f },
+    {  StrokeCommand::Segment,  2.0f, 12.0f },
+    {  StrokeCommand::Segment,  8.0f, 18.0f }
+};
+
+// 📝 lucide `crosshair` — the bounding disc and the four axis ticks that cross it.
+constexpr StrokeStep CrosshairCentreSteps[] =
+{
+    {  StrokeCommand::Disc,    12.0f, 12.0f, 10.0f },
+    {  StrokeCommand::Origin,  22.0f, 12.0f },
+    {  StrokeCommand::Segment, 18.0f, 12.0f },
+    {  StrokeCommand::Origin,   6.0f, 12.0f },
+    {  StrokeCommand::Segment,  2.0f, 12.0f },
+    {  StrokeCommand::Origin,  12.0f,  6.0f },
+    {  StrokeCommand::Segment, 12.0f,  2.0f },
+    {  StrokeCommand::Origin,  12.0f, 22.0f },
+    {  StrokeCommand::Segment, 12.0f, 18.0f }
+};
+
+// 📝 lucide `box` — the isometric cube: the upper rhombus and the two falling edges from its near corner.
+constexpr StrokeStep CubeSolidSteps[] =
+{
+    {  StrokeCommand::Origin,  21.0f,  8.0f },
+    {  StrokeCommand::Segment, 12.0f,  3.0f },
+    {  StrokeCommand::Segment,  3.0f,  8.0f },
+    {  StrokeCommand::Segment,  3.0f, 16.0f },
+    {  StrokeCommand::Segment, 12.0f, 21.0f },
+    {  StrokeCommand::Segment, 21.0f, 16.0f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Origin,   3.0f,  8.0f },
+    {  StrokeCommand::Segment, 12.0f, 13.0f },
+    {  StrokeCommand::Segment, 21.0f,  8.0f },
+    {  StrokeCommand::Origin,  12.0f, 13.0f },
+    {  StrokeCommand::Segment, 12.0f, 21.0f }
+};
+
+// 📝 lucide `camera` — the body with its raised shutter hood, and the lens disc.
+constexpr StrokeStep CameraApertureSteps[] =
+{
+    {  StrokeCommand::Origin,   9.0f,  6.0f },
+    {  StrokeCommand::Segment, 10.5f,  3.5f },
+    {  StrokeCommand::Segment, 13.5f,  3.5f },
+    {  StrokeCommand::Segment, 15.0f,  6.0f },
+    {  StrokeCommand::Segment, 20.0f,  6.0f },
+    {  StrokeCommand::Segment, 22.0f,  8.0f },
+    {  StrokeCommand::Segment, 22.0f, 18.0f },
+    {  StrokeCommand::Segment, 20.0f, 20.0f },
+    {  StrokeCommand::Segment,  4.0f, 20.0f },
+    {  StrokeCommand::Segment,  2.0f, 18.0f },
+    {  StrokeCommand::Segment,  2.0f,  8.0f },
+    {  StrokeCommand::Segment,  4.0f,  6.0f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Disc,    12.0f, 13.0f,  4.0f }
+};
+
+// 📝 lucide `layers` — the three stacked lozenges, the upper one closed and the two beneath stated as the
+//    visible lower chevron only, exactly as the source draws them.
+constexpr StrokeStep LayerMergeSteps[] =
+{
+    {  StrokeCommand::Origin,  12.0f,  2.0f },
+    {  StrokeCommand::Segment, 22.0f,  7.0f },
+    {  StrokeCommand::Segment, 12.0f, 12.0f },
+    {  StrokeCommand::Segment,  2.0f,  7.0f },
+    {  StrokeCommand::Close,    0.0f,  0.0f },
+    {  StrokeCommand::Origin,   2.0f, 12.0f },
+    {  StrokeCommand::Segment, 12.0f, 17.0f },
+    {  StrokeCommand::Segment, 22.0f, 12.0f },
+    {  StrokeCommand::Origin,   2.0f, 17.0f },
+    {  StrokeCommand::Segment, 12.0f, 22.0f },
+    {  StrokeCommand::Segment, 22.0f, 17.0f }
+};
+
 // 📝 The one approved placeholder icon — the Lucide image SVG reduced to the engine's stroke stream. Every
 //    unresolved application symbol uses it until the discipline-specific icon sets are supplied.
 constexpr StrokeStep PlaceholderSteps[] =
@@ -174,12 +384,19 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* PanelSplit          */ Unresolved(SymbolDiscipline::Workspace),
     /* PersistDisc         */ Unresolved(SymbolDiscipline::Workspace),
     /* BulbFilament        */ { BulbSteps,       11u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
+    /* EyeOpen             */ { EyeOpenSteps,     5u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
+    /* EyeClosed           */ { EyeClosedSteps,   9u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
+    /* PlusCross           */ { PlusCrossSteps,   4u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
+    /* TrashBin            */ { TrashBinSteps,   14u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
+    /* GearCog             */ { GearCogSteps,    26u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
+    /* SpeakerCone         */ { SpeakerConeSteps,11u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
+    /* CodeBrackets        */ { CodeBracketsSteps,6u, SymbolDiscipline::Workspace,   DeclaredWeight, true  },
 
     /* ChevronDown         */ { ChevronDownSteps, 3u, SymbolDiscipline::Navigation,  DeclaredWeight, true  },
     /* ChevronRight        */ { ChevronRightSteps,3u, SymbolDiscipline::Navigation,  DeclaredWeight, true  },
     /* MagnifierLens       */ { MagnifierSteps,   3u, SymbolDiscipline::Navigation,  DeclaredWeight, true  },
     /* ArrowReturn         */ Unresolved(SymbolDiscipline::Navigation),
-    /* CrosshairCentre     */ Unresolved(SymbolDiscipline::Navigation),
+    /* CrosshairCentre     */ { CrosshairCentreSteps, 9u, SymbolDiscipline::Navigation, DeclaredWeight, true },
 
     /* VertexPoint         */ Unresolved(SymbolDiscipline::Geometry),
     /* EdgeSegment         */ Unresolved(SymbolDiscipline::Geometry),
@@ -189,6 +406,7 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* BevelChamfer        */ Unresolved(SymbolDiscipline::Geometry),
     /* BooleanUnion        */ Unresolved(SymbolDiscipline::Geometry),
     /* MirrorAxis          */ Unresolved(SymbolDiscipline::Geometry),
+    /* CubeSolid           */ { CubeSolidSteps,  12u, SymbolDiscipline::Geometry,    DeclaredWeight, true  },
 
     /* SketchPlane         */ Unresolved(SymbolDiscipline::ComputerAidedDesign),
     /* ConstraintDimension */ Unresolved(SymbolDiscipline::ComputerAidedDesign),
@@ -213,7 +431,7 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* AreaEmitter         */ Unresolved(SymbolDiscipline::Illumination),
     /* SkyDome             */ Unresolved(SymbolDiscipline::Illumination),
 
-    /* CameraAperture      */ Unresolved(SymbolDiscipline::Rendering),
+    /* CameraAperture      */ { CameraApertureSteps, 14u, SymbolDiscipline::Rendering, DeclaredWeight, true },
     /* SampleConverge      */ Unresolved(SymbolDiscipline::Rendering),
     /* DenoiseSweep        */ Unresolved(SymbolDiscipline::Rendering),
     /* ExposureOrdinate    */ Unresolved(SymbolDiscipline::Rendering),
@@ -226,9 +444,9 @@ constexpr SymbolFigure Roster[static_cast<std::uint32_t>(SymbolSubject::SubjectC
     /* ClothDrape          */ Unresolved(SymbolDiscipline::Simulation),
     /* FluidStream         */ Unresolved(SymbolDiscipline::Simulation),
     /* RigidCollide        */ Unresolved(SymbolDiscipline::Simulation),
-    /* ParticleEmit        */ Unresolved(SymbolDiscipline::Simulation),
+    /* ParticleEmit        */ { ParticleEmitSteps, 24u, SymbolDiscipline::Simulation, DeclaredWeight, true },
 
-    /* LayerMerge          */ Unresolved(SymbolDiscipline::Assembly),
+    /* LayerMerge          */ { LayerMergeSteps, 11u, SymbolDiscipline::Assembly,     DeclaredWeight, true  },
     /* AlphaMask           */ Unresolved(SymbolDiscipline::Assembly),
     /* ColourWheel         */ Unresolved(SymbolDiscipline::Assembly),
     /* GraphJunction       */ Unresolved(SymbolDiscipline::Assembly),
@@ -248,12 +466,14 @@ constexpr SymbolSubject DisciplineOrder[] =
 {
     SymbolSubject::FolderClosed,        SymbolSubject::LatticeArrangement,  SymbolSubject::ColumnArrangement,
     SymbolSubject::PanelSplit,          SymbolSubject::PersistDisc,
-    SymbolSubject::BulbFilament,
+    SymbolSubject::BulbFilament,        SymbolSubject::EyeOpen,             SymbolSubject::EyeClosed,
+    SymbolSubject::PlusCross,           SymbolSubject::TrashBin,            SymbolSubject::GearCog,
+    SymbolSubject::SpeakerCone,         SymbolSubject::CodeBrackets,
     SymbolSubject::ChevronDown,         SymbolSubject::ChevronRight,        SymbolSubject::MagnifierLens,
     SymbolSubject::ArrowReturn,         SymbolSubject::CrosshairCentre,
     SymbolSubject::VertexPoint,         SymbolSubject::EdgeSegment,         SymbolSubject::FacePlanar,
     SymbolSubject::SubdivisionStep,     SymbolSubject::ExtrudeSpan,         SymbolSubject::BevelChamfer,
-    SymbolSubject::BooleanUnion,        SymbolSubject::MirrorAxis,
+    SymbolSubject::BooleanUnion,        SymbolSubject::MirrorAxis,          SymbolSubject::CubeSolid,
     SymbolSubject::SketchPlane,         SymbolSubject::ConstraintDimension, SymbolSubject::FilletRadius,
     SymbolSubject::RevolveAxis,         SymbolSubject::LoftProfile,
     SymbolSubject::BristleTip,          SymbolSubject::InflatePush,         SymbolSubject::SmoothRelax,
@@ -276,13 +496,13 @@ constexpr SymbolSubject DisciplineOrder[] =
 
 constexpr std::uint32_t DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount) + 1u] =
 {
-    0u, 6u, 11u, 19u, 24u, 29u, 34u, 38u, 42u, 46u, 50u, 54u, 58u
+    0u, 13u, 18u, 27u, 32u, 37u, 42u, 46u, 50u, 54u, 58u, 62u, 66u
 };
 
-static_assert(sizeof(DisciplineOrder) / sizeof(SymbolSubject) == 58u,
+static_assert(sizeof(DisciplineOrder) / sizeof(SymbolSubject) == 66u,
               "The discipline ordering must enrol every subject except the placeholder mark.");
 
-static_assert(DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount)] == 58u,
+static_assert(DisciplineFirst[static_cast<std::uint32_t>(SymbolDiscipline::DisciplineCount)] == 66u,
               "The final enrolment boundary must reach the end of the discipline ordering.");
 
 }   // namespace

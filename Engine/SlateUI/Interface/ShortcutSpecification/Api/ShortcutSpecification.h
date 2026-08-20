@@ -21,7 +21,7 @@ enum class ShortcutPreset : std::uint32_t
 
 struct ShortcutChord
 {
-    const char *Key = "";        // [-]
+    const char* Key = "";        // [-]
     bool ControlEnabled = false; // [-]
     bool ShiftEnabled = false;   // [-]
     bool AltEnabled = false;     // [-]
@@ -29,16 +29,16 @@ struct ShortcutChord
 
 struct ShortcutDeclaration
 {
-    const char *Action = "";   // [-]
-    const char *Grouping = ""; // [-]
+    const char* Action = "";   // [-]
+    const char* Grouping = ""; // [-]
     ShortcutChord Chord = {};
 };
 
 class ShortcutSpecification
 {
 public:
-    static const char *Caption(ShortcutPreset Preset);
-    static const ShortcutDeclaration *Shortcuts(ShortcutPreset Preset, std::uint32_t &Count);
+    static const char* Caption(ShortcutPreset Preset);
+    static const ShortcutDeclaration* Shortcuts(ShortcutPreset Preset, std::uint32_t& Count);
 };
 
 } // namespace Slate

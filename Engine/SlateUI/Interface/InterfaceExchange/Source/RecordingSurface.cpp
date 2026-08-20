@@ -428,17 +428,37 @@ void RecordingSurface::TextRun(float Along, float Across, InkOrdinate Ink, const
         // 📝 🔴 Tracking is applied per glyph because the vendor has no letter-spacing. The source declares
         //    0.2em on the LIBRARY caption and 0.05em on two more, and a run recorded without it is thirty per
         //    cent narrower than the source's — which moves everything to its right.
+        // 🔴 The step is one CODEPOINT and not one byte. Stepping by bytes handed the vendor the halves of
+        //    every multi-byte sequence separately, and each half rasterised as the replacement mark — so a
+        //    tracked run carrying U+00B7 drew `??` where the same run drew correctly untracked. The defect
+        //    was invisible in ASCII captions, which is every caption but the ones that separate readings.
         float       Pen      = StartAlong;
         const char* Sweeping = Text;
 
         while (*Sweeping != '\0')
         {
-            const char Glyph[2] = { *Sweeping, '\0' };
+            const auto    Leading  = static_cast<unsigned char>(*Sweeping);
+            std::uint32_t Occupied = 1u;
 
-            Target->AddText(Typeface, PointSize, ImVec2(Pen, StartAcross), Vendored, Glyph, Glyph + 1);
+            if      ((Leading & 0xF8u) == 0xF0u) Occupied = 4u;
+            else if ((Leading & 0xF0u) == 0xE0u) Occupied = 3u;
+            else if ((Leading & 0xE0u) == 0xC0u) Occupied = 2u;
 
-            Pen += Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Glyph, Glyph + 1).x + Added;
-            ++Sweeping;
+            // 📝 A truncated sequence at the run's end is stepped one byte at a time rather than read past
+            //    its terminator, which is what a malformed run must never be allowed to do.
+            for (std::uint32_t Walk = 1u; Walk < Occupied; ++Walk)
+                if (Sweeping[Walk] == '\0')
+                {
+                    Occupied = Walk;
+                    break;
+                }
+
+            const char* const Ending = Sweeping + Occupied;
+
+            Target->AddText(Typeface, PointSize, ImVec2(Pen, StartAcross), Vendored, Sweeping, Ending);
+
+            Pen += Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Sweeping, Ending).x + Added;
+            Sweeping = Ending;
         }
     };
 

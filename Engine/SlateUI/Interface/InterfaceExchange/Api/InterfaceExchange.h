@@ -1,4 +1,4 @@
-﻿//============================================================================================================================================
+//============================================================================================================================================
 //                                                           INTERFACEEXCHANGE.H
 //============================================================================================================================================
 // 🧩 The one seam the interface library crosses — device handles in, recorded commands out, no ImGui spelling.
@@ -215,6 +215,42 @@ public:
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     bool KeyboardCaptured() const;
+
+    /// 🧩 Whether one arbitrated key went down during this tick and no text entry stands over it.
+    /// in    Subject  [-]  which of the closed roster to ask about
+    /// out   Arrived  [-]  true exactly once per press; false while the key is held and while a field has focus
+    /// note  🔴 The text-entry test is inside this call and not at the call site. The reference states it once
+    ///        — `if (document.activeElement?.tagName === 'INPUT') return;` — ahead of its whole key map, so a
+    ///        seam that returned the raw press would make every caller re-derive the same guard and one of
+    ///        them would forget, which is a Tab that summons while the artist is renaming a record.
+    /// note  ⚠️ Valid only between `Advance` and `Seal`. Outside that window the vendor's key condition
+    ///        belongs to no tick and the call reports false.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool KeyArrived(KeySubject Subject) const;
+
+    /// 🧩 Which modifiers stood down during this tick.
+    /// note  ⚠️ Valid only between `Advance` and `Seal`, on the same terms as `KeyArrived`. Read at the same
+    ///       moment as the arrival it qualifies — a modifier sampled a tick later is a different press.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    ModifierCondition Modifiers() const;
+
+    /// 🧩 Appends this tick's typed characters to a caller-owned run, and reports whether any arrived.
+    /// in    Intake     [-]  the run written into; always left terminated
+    /// in    Ceiling    [-]  the run's full extent in bytes, terminator included
+    /// out   Admitted   [-]  true when at least one character was appended
+    /// note  🔴 The filter fields are recorded as PRIMITIVES and not as vendor widgets. A vendor `InputText`
+    ///        opens its own window draw list, which composites above every shell layer — that is precisely
+    ///        the defect that left the reference's panels legible and pressable through a ground painted
+    ///        over the whole display. Taking the characters here and stroking the run through
+    ///        `RecordingSurface` keeps the whole panel inside one list, in one order.
+    /// note  ⚠️ ASCII printable only. A codepoint above 0x7E is dropped rather than truncated mid-sequence,
+    ///        because the interface typeface carries no glyph for it and a half-written sequence would be
+    ///        stroked as replacement marks.
+    /// cost  ✔️
+    /// tag   api, nonallocating, nonthrowing
+    bool AdmitTyped(char* Intake, std::uint32_t Ceiling) const;
 
 private:
 
