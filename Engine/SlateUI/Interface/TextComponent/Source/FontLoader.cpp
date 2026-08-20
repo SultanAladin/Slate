@@ -86,6 +86,13 @@ ImFont* FontLoader::Preview(const char* Family, float DisplayScale)
         if (Entry.is_regular_file() && Name.find("regular") != std::string::npos && Name.find("italic") == std::string::npos)
             return ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
     }
+    for (const auto& Entry : std::filesystem::directory_iterator(Directory))
+    {
+        const std::string Name = Lower(Entry.path().filename().string());
+        if (Entry.is_regular_file() && Name.find("italic") == std::string::npos &&
+            (Name.ends_with(".ttf") || Name.ends_with(".otf")))
+            return ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
+    }
     return nullptr;
 }
 
@@ -123,8 +130,30 @@ Outcome<bool> FontLoader::Load(const char* FontRoot, const FontProfile& Profile,
         }
     }
 
+    // Variable fonts often publish one upright file instead of a file named Regular.
+    // Use that file as the regular face rather than falling back to ImGui.
     if (Face(FontWeight::Regular, FontSlant::Upright) == nullptr)
-        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "selected font family has no regular face" });
+    {
+        for (const auto& Entry : std::filesystem::directory_iterator(Root))
+        {
+            const std::string Name = Lower(Entry.path().filename().string());
+            if (!Entry.is_regular_file() || Name.find("italic") != std::string::npos)
+                continue;
+            if (Name.ends_with(".ttf") || Name.ends_with(".otf"))
+            {
+                ImFont* Loaded = ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
+                if (Loaded != nullptr)
+                {
+                    Faces[Slot(FontWeight::Regular, FontSlant::Upright)] = Loaded;
+                    ++LoadedCount;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (Face(FontWeight::Regular, FontSlant::Upright) == nullptr)
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "selected font family has no usable upright face" });
 
     ImGui::GetIO().Fonts->Build();
     std::fprintf(stderr, "[Fonts] loaded %u faces for %s\n",
