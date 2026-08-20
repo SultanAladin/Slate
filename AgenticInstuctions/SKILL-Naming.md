@@ -159,7 +159,11 @@ Directory, Vault, Arena, Inventory, Ledger, Plan, Filter, Grid, Array, Dispatche
 Pipeline, Flow, Composite, Compose, Composition, Allocation, Shell, Tier, Nesting, Stratum, Mip,
 Messenger, Probe, Blend, History, Bake, Stamp.
 
-Banned addendum words — Cadence, Binding, Submission, Footprint, Region, Tree, Vacancy.
+Banned addendum words — Cadence, Binding, Submission, Footprint, Region, Tree, Vacancy, Ordinates.
+
+`Ordinates` is banned because it means a mathematical coordinate, not a general UI state or value set. Use the
+mechanism-specific name instead: `TypographyValues`, `CornerValues`, `ThemeValues`, `ControlValues`,
+`InteractionState`, `PanelState`, `TextMetrics`, `LayoutValues`, or `SelectionValues`.
 
 ## Mathematical Vocabulary Exemption
 
