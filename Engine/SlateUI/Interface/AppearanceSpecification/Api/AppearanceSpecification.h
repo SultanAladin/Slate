@@ -807,6 +807,32 @@ struct LayerStackColour
 //------------------------------------------------------------------------------------------------------------------------
 
 /// Semantic text sizes shared by every panel. Values are resolved before recording.
+enum class FontWeight : std::uint32_t
+{
+    Thin = 100u, ExtraLight = 200u, Light = 300u, Regular = 400u,
+    Medium = 500u, Semibold = 600u, Bold = 700u, ExtraBold = 800u, Black = 900u
+};
+
+enum class FontSlant : std::uint32_t
+{
+    Upright = 0u,
+    Italic = 1u
+};
+
+struct FontProfile
+{
+    std::uint32_t Family = 0u;
+    FontWeight Display = FontWeight::Bold;
+    FontWeight Title = FontWeight::Semibold;
+    FontWeight Heading = FontWeight::Semibold;
+    FontWeight Body = FontWeight::Regular;
+    FontWeight Label = FontWeight::Medium;
+    FontWeight Caption = FontWeight::Regular;
+    FontWeight Small = FontWeight::Regular;
+    FontWeight Tab = FontWeight::Medium;
+    FontSlant Slant = FontSlant::Upright;
+};
+
 struct TypographyProfile
 {
     float Display = 24.0f;
@@ -843,6 +869,7 @@ struct LayoutProfile
 struct ThemeProfile
 {
     TypographyProfile Typography = {};
+    FontProfile Fonts = {};
     CornerProfile Corners = {};
     LayoutProfile Layout = {};
     float TextScale = 1.0f;

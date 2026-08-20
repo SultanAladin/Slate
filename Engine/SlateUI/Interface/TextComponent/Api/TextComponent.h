@@ -6,20 +6,13 @@
 namespace Slate
 {
 
-enum class TextWeight : std::uint32_t
-{
-    Regular = 0u,
-    Medium = 1u,
-    Semibold = 2u,
-    Bold = 3u
-};
-
 struct TextStyle
 {
     float Size = 14.0f;
     float Tracking = 0.0f;
     float LineHeight = 0.0f;
-    TextWeight Weight = TextWeight::Regular;
+    FontWeight Weight = FontWeight::Regular;
+    FontSlant Slant = FontSlant::Upright;
 };
 
 struct TypographyMetrics
