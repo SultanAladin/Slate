@@ -75,7 +75,7 @@ constexpr std::uint32_t ColourBindingCount = static_cast<std::uint32_t>(sizeof(C
 // 📝 The section stem each appearance and accent is written under. Stable spellings — renaming one would
 //    orphan every file already on disk — so they are declared here rather than derived from the caption.
 constexpr const char* ThemeStems[ThemeCeiling] = {"oled", "dark", "clean-white", "desert-sand",
-                                                  "purple", "blue"};
+                                                  "lavender", "blue"};
 
 constexpr const char* AccentStems[AccentCeiling] = {"blue", "cyan", "teal", "emerald",
                                                     "amber", "orange", "rose", "violet"};

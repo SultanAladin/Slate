@@ -37,17 +37,17 @@ constexpr ThemeDeclaration TranscribedThemes[ThemeCeiling] = {
      Covering(0xCFAE7Eu), Covering(0xFAEED9u), Covering(0xDCB679u), Covering(0xF4E4C4u),
      Covering(0xE8D5B5u), Covering(0xE3C99Du), Covering(0xE1C291u),
      Covering(0xEAD2A6u), Covering(0xE6C897u)},
-    {"Purple", Covering(0x0F0A1Cu), Partial(0x17102Bu, .95), Covering(0xF3E8FFu), Covering(0xC084FCu),
+    {"Lavender", Covering(0x0F0A1Cu), Partial(0x17102Bu, .95), Covering(0xF3E8FFu), Covering(0xC084FCu),
      Partial(0x581C87u, .50), Covering(0x1D1438u), Covering(0x1F163Du), Covering(0x2D2054u),
      Covering(0x23174Au), Covering(0x47366Eu), Covering(0x6B5692u),
      Covering(0x4F3E76u), Covering(0x715B98u)},
-    {"Blue", Covering(0x09111Cu), Partial(0x0F1B2Du, .95), Covering(0xDBEAFEu), Covering(0x60A5FAu),
+    {"Nord", Covering(0x09111Cu), Partial(0x0F1B2Du, .95), Covering(0xDBEAFEu), Covering(0x60A5FAu),
      Partial(0x1E3A8Au, .50), Covering(0x15253Du), Covering(0x1A2D4Au), Covering(0x264066u),
      Covering(0x1C3152u), Covering(0x344F74u), Covering(0x4C6C96u),
      Covering(0x3C5B84u), Covering(0x5275A2u)}};
 
 constexpr AccentDeclaration TranscribedAccents[AccentCeiling] = {
-    {"Blue", Covering(0x3B82F6u)},  {"Cyan", Covering(0x06B6D4u)},
+    {"Nord", Covering(0x3B82F6u)},  {"Cyan", Covering(0x06B6D4u)},
     {"Teal", Covering(0x14B8A6u)},  {"Emerald", Covering(0x10B981u)},
     {"Amber", Covering(0xF59E0Bu)}, {"Orange", Covering(0xF97316u)},
     {"Rose", Covering(0xF43F5Eu)},  {"Violet", Covering(0x8B5CF6u)}};

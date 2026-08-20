@@ -24,8 +24,8 @@ enum class ThemeSubject : std::uint32_t
     Dark         = 1u,   // [-]
     CleanWhite   = 2u,   // [-] - the one light appearance; several panels invert against it
     DesertSand   = 3u,   // [-]
-    Purple     = 4u,   // [-]
-    Blue       = 5u,   // [-]
+    Lavender   = 4u,   // [-]
+    Nord       = 5u,   // [-]
     SubjectCount = 6u    // [-] - never selected; bounds every table keyed by this enumeration
 };
 

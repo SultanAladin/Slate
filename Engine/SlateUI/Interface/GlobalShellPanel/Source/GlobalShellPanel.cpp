@@ -1237,7 +1237,7 @@ namespace
 {
 
 // 📐 The six hues `handleSetColor` offers, from `remix-notch-ui`'s own Tailwind run — red, orange, yellow,
-//    green, blue and purple at the 500 step, which is what `.replace('400','500')` selects.
+//    green, blue and lavender at the 500 step, which is what `.replace('400','500')` selects.
 constexpr std::uint32_t ContextTintRun[6] =
 {
     0xEF4444u, 0xF97316u, 0xEAB308u, 0x22C55Eu, 0x3B82F6u, 0xA855F7u
