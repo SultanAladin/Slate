@@ -340,6 +340,24 @@ Outcome<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measu
     Seated.TabCloseButtonMinWidthSelected   = -1.0f;
     Seated.TabCloseButtonMinWidthUnselected = -1.0f;
 
+    // Docked windows retain a copy of these colours. Refresh that copy so existing tabs follow
+    // every theme change, not only tabs created after the change.
+    for (ImGuiWindow* Window : ImGui::GetCurrentContext()->Windows)
+    {
+        if (Window == nullptr)
+            continue;
+
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_Text]                     = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_Text]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabHovered]               = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabHovered]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabFocused]               = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_Tab]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabSelected]              = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabSelected]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabSelectedOverline]      = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabSelectedOverline]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabDimmed]                = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabDimmed]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabDimmedSelected]       = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabDimmedSelected]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_TabDimmedSelectedOverline] = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_TabDimmedSelectedOverline]);
+        Window->DockStyle.Colors[ImGuiWindowDockStyleCol_UnsavedMarker]            = ImGui::ColorConvertFloat4ToU32(Seated.Colors[ImGuiCol_UnsavedMarker]);
+    }
+
     // 🔴 A disc rather than a slab, for the close mark and the strip's `+` both — `Patches/`'s PatchC.
     //    Stated as a fraction of the control's own extent, so `ScaleAllSizes` must not scale it and does
     //    not. Left unseated the member defaults to 0.0f, at which PatchC's branch never runs and both
