@@ -1004,24 +1004,31 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
         Surface->Edge(Entry, Theme.Edge, 1.0f, 16.0f, CornerAll);
         Surface->TextRun(Entry.LeastAlong + 18.0f, Entry.LeastAcross + 12.0f, Theme.Primary,
                          Roles[Ordinal], 16.0f, 0.0f, true);
-        static constexpr FontWeight Faces[4] = { FontWeight::Regular, FontWeight::Medium,
-                                                   FontWeight::Semibold, FontWeight::Bold };
-        static constexpr const char* FaceNames[4] = { "Regular", "Medium", "Semibold", "Bold" };
+        static constexpr FontWeight CandidateFaces[] = { FontWeight::Thin, FontWeight::ExtraLight,
+            FontWeight::Light, FontWeight::Regular, FontWeight::Medium, FontWeight::Semibold,
+            FontWeight::Bold, FontWeight::ExtraBold, FontWeight::Black };
+        static constexpr const char* FaceNames[] = { "Thin", "ExtraLight", "Light", "Regular", "Medium",
+            "Semibold", "Bold", "ExtraBold", "Black" };
         const float FaceTop = Entry.LeastAcross + 38.0f;
-        for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < 4u; ++FaceOrdinal)
+        std::uint32_t FaceOrdinal = 0u;
+        for (std::uint32_t Candidate = 0u; Candidate < 9u; ++Candidate)
         {
+            if (FontArchive != nullptr && !FontArchive->HasFace(CandidateFaces[Candidate], FontSlant::Upright))
+                continue;
+            const FontWeight Face = CandidateFaces[Candidate];
             const float FaceAlong = Entry.LeastAlong + 18.0f + static_cast<float>(FaceOrdinal) * 112.0f;
             const PlaneExtent FaceBox = Spanning(FaceAlong, FaceTop, 104.0f, 34.0f);
             Surface->Ground(FaceBox, Theme.Panel, 8.0f, CornerAll);
             Surface->Edge(FaceBox, Theme.Edge, 1.0f, 8.0f, CornerAll);
             if (FontArchive != nullptr)
-                Surface->ApplyFontPreview(FontArchive->Face(Faces[FaceOrdinal], FontSlant::Upright));
+                Surface->ApplyFontPreview(FontArchive->Face(Face, FontSlant::Upright));
             Surface->TextRun(FaceBox.LeastAlong + 8.0f, FaceBox.LeastAcross + 6.0f,
                              Theme.Primary, "Aa", 16.0f, 0.0f, true);
             Surface->TextRun(FaceBox.LeastAlong + 38.0f, FaceBox.LeastAcross + 10.0f,
-                             Theme.Secondary, FaceNames[FaceOrdinal], 9.0f);
+                             Theme.Secondary, FaceNames[Candidate], 9.0f);
             if (Pressed(1200u + Ordinal * 4u + FaceOrdinal, FaceBox))
-                Ordinates.TypographyWeight[Ordinal] = static_cast<std::uint32_t>(Faces[FaceOrdinal]);
+                Ordinates.TypographyWeight[Ordinal] = static_cast<std::uint32_t>(Face);
+            ++FaceOrdinal;
         }
         Surface->ApplyFontPreview(nullptr);
 

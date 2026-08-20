@@ -65,6 +65,11 @@ const char* FontLoader::FamilyName(std::uint32_t Ordinal) const
     return Ordinal < Families.size() ? Families[Ordinal].c_str() : nullptr;
 }
 
+bool FontLoader::HasFace(FontWeight Weight, FontSlant Slant) const
+{
+    return Faces[Slot(Weight, Slant)] != nullptr;
+}
+
 ImFont* FontLoader::Face(FontWeight Weight, FontSlant Slant) const
 {
     ImFont* Loaded = Faces[Slot(Weight, Slant)];
