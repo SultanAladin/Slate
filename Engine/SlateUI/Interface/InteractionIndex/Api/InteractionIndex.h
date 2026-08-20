@@ -95,7 +95,18 @@ class InteractionIndex
 {
 public:
 
-    static constexpr std::uint32_t ControlCapacity = 256u;   // [-] - enrolled controls; never allocated, never grown
+    // 🔴 One ledger is SHARED by every panel a host constructs, so this ceiling is a whole-host budget and
+    //    not a per-panel one. At 256 the validation host enrolled 31 sheet controls and 128 shell controls
+    //    and then refused the layer stack's 240 outright — `Construct` returned "no further control slot",
+    //    the host reported it and exited 1 before its first frame. The layer stack's own static_assert
+    //    could not catch that: it weighed 240 against 256 in isolation, knowing nothing of the 159 already
+    //    claimed. 512 seated every panel the hosts built until the content browser was added, whose lattice
+    //    and sources take a further 100 and carried the shared total to 519 — one refusal past the ceiling.
+    //    640 then seated every panel until the shell's Scene Directory card grew its two tab strips, its
+    //    metadata actions, its per-row kebabs and its folding property cards: 618 of 640 claimed, twenty-two
+    //    spare, which is fewer than one outline row's worth. 768 restores the margin. Each slot costs two
+    //    eased interpolants against MotionIntegrator::EaseCapacity, which is 2560.
+    static constexpr std::uint32_t ControlCapacity = 768u;   // [-] - enrolled controls; never allocated, never grown
 
     InteractionIndex()                                   = default;
     InteractionIndex(const InteractionIndex&)            = delete;
