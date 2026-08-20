@@ -373,6 +373,16 @@ void ApplyUserScale(ThemeProfile& Profile, float TextScale, float CornerScale)
     Profile.Corners.Large *= Corners;
 }
 
+void ApplyFontWeights(ThemeProfile& Profile, const std::uint32_t (&Weights)[8])
+{
+    Profile.Fonts.Title = static_cast<FontWeight>(Weights[0]);
+    Profile.Fonts.Heading = static_cast<FontWeight>(Weights[1]);
+    Profile.Fonts.Body = static_cast<FontWeight>(Weights[3]);
+    Profile.Fonts.Label = static_cast<FontWeight>(Weights[4]);
+    Profile.Fonts.Caption = static_cast<FontWeight>(Weights[5]);
+    Profile.Fonts.Tab = static_cast<FontWeight>(Weights[2]);
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    RESPONSIVE ARRANGEMENT
 //------------------------------------------------------------------------------------------------------------------------

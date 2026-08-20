@@ -537,6 +537,7 @@ std::strncpy(Appearance.Fonts.Family, Selected.FontFamily, sizeof(Appearance.Fon
 ApplyUserScale(Appearance,
                static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
                static_cast<float>(ControlCentreValues.Radius) / 24.0f);
+ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
     Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
@@ -814,6 +815,7 @@ ApplyUserScale(Appearance,
             ApplyUserScale(Appearance,
                            static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
                            static_cast<float>(ControlCentreValues.Radius) / 24.0f);
+ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
             Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
@@ -1358,6 +1360,7 @@ ApplyUserScale(Appearance,
                 ApplyUserScale(Appearance,
                                static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
                                static_cast<float>(ControlCentreValues.Radius) / 24.0f);
+ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
                 Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);

@@ -27,7 +27,13 @@ public:
 
 private:
     std::array<ImFont*, 18u> Faces{};
+    struct PreviewFace
+    {
+        std::string Family;
+        ImFont* Face = nullptr;
+    };
     std::vector<std::string> Families;
+    std::vector<PreviewFace> PreviewFaces;
     std::string Root;
 };
 

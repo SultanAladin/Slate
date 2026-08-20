@@ -46,6 +46,7 @@ Outcome<bool> FontLoader::Discover(const char* FontRoot)
 {
     Root = FontRoot != nullptr ? FontRoot : "";
     Families.clear();
+    PreviewFaces.clear();
     if (FontRoot == nullptr || !std::filesystem::exists(FontRoot))
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "font archive directory is unavailable" });
 
@@ -82,6 +83,11 @@ ImFont* FontLoader::Preview(const char* Family, float DisplayScale)
 {
     if (Family == nullptr || Root.empty() || ImGui::GetCurrentContext() == nullptr)
         return nullptr;
+    for (const PreviewFace& Cached : PreviewFaces)
+        if (Cached.Family == Family)
+            return Cached.Face;
+    if (ImGui::GetCurrentContext() == nullptr)
+        return nullptr;
     const std::filesystem::path Directory = std::filesystem::path(Root) / Family;
     if (!std::filesystem::exists(Directory)) return nullptr;
     const float Size = 16.0f * ((DisplayScale > 0.0f) ? DisplayScale : 1.0f);
@@ -89,14 +95,22 @@ ImFont* FontLoader::Preview(const char* Family, float DisplayScale)
     {
         const std::string Name = Lower(Entry.path().filename().string());
         if (Entry.is_regular_file() && Name.find("regular") != std::string::npos && Name.find("italic") == std::string::npos)
-            return ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
+        {
+            ImFont* Loaded = ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
+            PreviewFaces.push_back({ Family, Loaded });
+            return Loaded;
+        }
     }
     for (const auto& Entry : std::filesystem::directory_iterator(Directory))
     {
         const std::string Name = Lower(Entry.path().filename().string());
         if (Entry.is_regular_file() && Name.find("italic") == std::string::npos &&
             (Name.ends_with(".ttf") || Name.ends_with(".otf")))
-            return ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
+        {
+            ImFont* Loaded = ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
+            PreviewFaces.push_back({ Family, Loaded });
+            return Loaded;
+        }
     }
     return nullptr;
 }

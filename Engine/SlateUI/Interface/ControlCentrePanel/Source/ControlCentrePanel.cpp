@@ -998,7 +998,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
         const float PreviewText = static_cast<float>(Ordinates.TypographySize[Ordinal]);
         const float RequiredHeight = PreviewText + 28.0f;
         // Three lines: typeface options, size control, and live sample.
-        const float EntryHeight = RequiredHeight > 150.0f ? RequiredHeight : 150.0f;
+        const float EntryHeight = (PreviewText + 132.0f > 150.0f) ? PreviewText + 132.0f : 150.0f;
         const PlaneExtent Entry = Spanning(ContentLeast, Cursor, ContentMost - ContentLeast, EntryHeight);
         Surface->Ground(Entry, Theme.Card, 16.0f, CornerAll);
         Surface->Edge(Entry, Theme.Edge, 1.0f, 16.0f, CornerAll);

@@ -927,6 +927,7 @@ ThemeProfile Resolve(double DisplayScale, double ArtistScale = 1.0, float Extent
 
 /// Applies user text and corner preferences to the resolved shared profile.
 void ApplyUserScale(ThemeProfile& Profile, float TextScale, float CornerScale);
+void ApplyFontWeights(ThemeProfile& Profile, const std::uint32_t (&Weights)[8]);
 
 /// 🧩 How many lattice columns the content extent admits, from the source's four breakpoints.
 /// in    ContentAlong  [px] the extent the lattice is arranged inside
