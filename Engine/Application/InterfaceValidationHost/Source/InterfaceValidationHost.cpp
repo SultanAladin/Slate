@@ -332,7 +332,7 @@ public:
     void Record(RecordingSurface& Surface, const ThemeProfile& Appearance,
                 double ArtistScale, float ExtentAlong, std::uint32_t Disagreeing) const
     {
-        const ControlColour&    Ink     = Appearance.Control;
+        const ControlColour&    Colours = Appearance.Control;
         const ControlMetric& Measure = Appearance.ControlMeasure;
 
         for (std::uint32_t Ordinal = 0u; Ordinal < MeasuredCount; ++Ordinal)
@@ -341,7 +341,7 @@ public:
             const float           Apart = Held.Where.SpanAcross() - Held.Claimed;
             const bool            Agreed = (Apart < 0.5f && Apart > -0.5f);
 
-            Surface.Edge(Held.Where, Agreed ? Ink.RulerPointer : Ink.StopTaken, 1.0f, 0.0f, CornerNone);
+            Surface.Edge(Held.Where, Agreed ? Colours.RulerPointer : Colours.StopTaken, 1.0f, 0.0f, CornerNone);
         }
 
         // 📝 The header states every factor separately, so a wrong extent is attributable to which multiplier
@@ -357,7 +357,7 @@ public:
                       static_cast<unsigned>(MeasuredCount),
                       static_cast<unsigned>(Disagreeing));
 
-        Surface.TextRun(12.0f, 12.0f, Ink.RulerPointer, Reading, Measure.RowText, 0.0f, true);
+        Surface.TextRun(12.0f, 12.0f, Colours.RulerPointer, Reading, Measure.RowText, 0.0f, true);
     }
 
     /// 🧩 How many retained extents disagree with the figure the sheet declares for them.
@@ -926,13 +926,13 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
         Overlay.Discard();
 #endif
 
-        const ControlColour&    Ink     = Appearance.Control;
+        const ControlColour&    Colours = Appearance.Control;
         const ControlMetric& Measure = Appearance.ControlMeasure;
 
         // ③ The page ground, then the sheet's own column, centred.
         const PlaneExtent Page = Spanning(0.0f, 0.0f, Display.ExtentAlong, Display.ExtentAcross);
 
-        Surface.Ground(Page, Ink.PageGround, 0.0f, CornerNone);
+        Surface.Ground(Page, Colours.PageGround, 0.0f, CornerNone);
 
         const float ColumnAlong  = (Measure.ColumnAlong < Display.ExtentAlong - Measure.PagePad * 2.0f)
                                  ? Measure.ColumnAlong
@@ -994,8 +994,8 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
         const CardArrangement TooltipCard = AdvanceCard(TooltipRows, 1u);
         const PlaneExtent     TooltipWell = RowAt(TooltipCard, TooltipRows, 0u);
 
-        Surface.Ground(TooltipWell, Ink.WellGround, Measure.TooltipWellRadius, CornerAll);
-        Surface.Edge(TooltipWell, Ink.CardEdge, Measure.CardEdgeWeight, Measure.TooltipWellRadius, CornerAll);
+        Surface.Ground(TooltipWell, Colours.WellGround, Measure.TooltipWellRadius, CornerAll);
+        Surface.Edge(TooltipWell, Colours.CardEdge, Measure.CardEdgeWeight, Measure.TooltipWellRadius, CornerAll);
 
         // 📐 The sheet places its two triggers `items-end` with a gap of 32 units between them, and lifts each
         //    by `ml-8`. Both are seated against the well's lower padding, which is what items-end states.
@@ -1024,8 +1024,8 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
         const CardArrangement ToggleCard = AdvanceCard(ToggleRows, 1u);
         const PlaneExtent     ToggleWell = RowAt(ToggleCard, ToggleRows, 0u);
 
-        Surface.Ground(ToggleWell, Ink.WellGround, Measure.WellRadius, CornerAll);
-        Surface.Edge(ToggleWell, Ink.CardEdge, Measure.CardEdgeWeight, Measure.WellRadius, CornerAll);
+        Surface.Ground(ToggleWell, Colours.WellGround, Measure.WellRadius, CornerAll);
+        Surface.Edge(ToggleWell, Colours.CardEdge, Measure.CardEdgeWeight, Measure.WellRadius, CornerAll);
 
         const auto WellRow = [&](const PlaneExtent& Well, float RowAcross, std::uint32_t Ordinal) -> PlaneExtent
         {
@@ -1049,8 +1049,8 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
         const CardArrangement SubsetCard = AdvanceCard(SubsetRows, 1u);
         const PlaneExtent     SubsetWell = RowAt(SubsetCard, SubsetRows, 0u);
 
-        Surface.Ground(SubsetWell, Ink.WellGround, Measure.WellRadius, CornerAll);
-        Surface.Edge(SubsetWell, Ink.CardEdge, Measure.CardEdgeWeight, Measure.WellRadius, CornerAll);
+        Surface.Ground(SubsetWell, Colours.WellGround, Measure.WellRadius, CornerAll);
+        Surface.Edge(SubsetWell, Colours.CardEdge, Measure.CardEdgeWeight, Measure.WellRadius, CornerAll);
 
         Panel.SubsetRow(Claimed.EntryOne,   WellRow(SubsetWell, Measure.SubsetRowAcross, 0u),
                         EntryOne,   Seated.EntryOne);
