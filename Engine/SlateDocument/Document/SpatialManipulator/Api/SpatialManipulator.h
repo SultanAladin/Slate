@@ -175,7 +175,7 @@ public:
     /// in    Orientation  [-]   the reference orientation's rotation, already resolved by the caller
     /// in    Camera       [-]   the camera the extent is held constant against; its derivation must not be owed
     /// in    Addressing   [-]   which of `78` §1's targets is being manipulated
-    /// out   Deliver      [-]   refuses with ContentUnsupported for the closed target count and for a camera whose
+    /// out   Result      [-]   refuses with ContentUnsupported for the closed target count and for a camera whose
     ///                          derivation is owed
     /// post  every grip this target offers is declared; the rest stand undeclared and are never intersected
     /// note  🔴 A camera owing a reconciliation refuses rather than laying out against the standing derivation.
@@ -185,7 +185,7 @@ public:
     ///        because `46` has no scale to edit, and a caller deciding that would be a second place the rule lives.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Layout(DocumentPosition          Origin,
+    Result<bool> Layout(DocumentPosition          Origin,
                          RotationQuaternion        Orientation,
                          const CameraProjection&   Camera,
                          ManipulatedSubject        Addressing);
@@ -196,7 +196,7 @@ public:
     /// in    PointerAcross  [px]  its second, zero at the top edge
     /// in    DisplayAlong   [px]  the drawable extent the position was reported against
     /// in    DisplayAcross  [px]  ?
-    /// out   Deliver        [-]   the grip ordinal grasped; refuses with ContentUnsupported when the pointer
+    /// out   Result        [-]   the grip ordinal grasped; refuses with ContentUnsupported when the pointer
     ///                            grasps no grip, and when no layout stands
     /// note  🔴 `78` §4: this is a **separate** screen-space test against the grips' own geometry, at precedence 2
     ///        in `14` §4.2, and it runs **before** `74` is consulted at all. The manipulator writes no
@@ -207,17 +207,17 @@ public:
     ///        the cone — which is the smaller target and therefore the one that was aimed at.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Grasp(const CameraProjection& Camera,
+    Result<std::uint32_t> Grasp(const CameraProjection& Camera,
                                  double                  PointerAlong,
                                  double                  PointerAcross,
                                  std::uint32_t           DisplayAlong,
                                  std::uint32_t           DisplayAcross) const;
 
     /// 🧩 One laid-out grip.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the laid-out count and for an undeclared grip
+    /// out   Result  [-]  refuses with ContentUnsupported outside the laid-out count and for an undeclared grip
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<const ManipulationGrip*> Resolve(std::uint32_t GripOrdinal) const;
+    Result<const ManipulationGrip*> Resolve(std::uint32_t GripOrdinal) const;
 
     /// 🧩 Every laid-out grip, for whoever records them.
     /// note  📝 Recorded in `08` §3 ⑪ — the depth-free overlay recording `80` already declares, at
@@ -304,14 +304,14 @@ public:
     /// in    PointerAcross  [px]  ?
     /// in    DisplayAlong   [px]  the drawable extent
     /// in    DisplayAcross  [px]  ?
-    /// out   Deliver        [-]   refuses with HostDenied when a drag is already open, and with ContentUnsupported
+    /// out   Result        [-]   refuses with HostDenied when a drag is already open, and with ContentUnsupported
     ///                            for an undeclared grip or a pointer that resolves no position on the fixed plane
     /// post  🔴 the drag axis or plane is fixed; nothing is recorded until Seal
     /// note  🔴 The camera is read **here and once**. `78` §2's rule is about the plane, and a plane fixed from a
     ///        camera that is re-read each sample is a plane that moves whenever the artist orbits mid-drag.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Open(const ManipulationGrip&   Grasped,
+    Result<bool> Open(const ManipulationGrip&   Grasped,
                        const ManipulationLayout& Laid,
                        const CameraProjection&   Camera,
                        double                    PointerAlong,
@@ -325,7 +325,7 @@ public:
     /// in    DisplayAlong    [px]  the drawable extent
     /// in    DisplayAcross   [px]  ?
     /// in    SnapDeclared    [-]   true snaps the amendment to the declared increment
-    /// out   Deliver         [-]   refuses with HostDenied when no drag is open, and with ContentUnsupported for a
+    /// out   Result         [-]   refuses with HostDenied when no drag is open, and with ContentUnsupported for a
     ///                             pointer that resolves no position against the fixed plane
     /// post  nothing is recorded; the amendment is readable and the target is unamended until Seal
     /// note  📝 The pointer's position is taken rather than its displacement since the last sample. Accumulating
@@ -333,24 +333,24 @@ public:
     ///        increment over a long gesture — which reads as the snapping having been switched off.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Amend(double        PointerAlong,
+    Result<bool> Amend(double        PointerAlong,
                         double        PointerAcross,
                         std::uint32_t DisplayAlong,
                         std::uint32_t DisplayAcross,
                         bool          SnapDeclared);
 
     /// 🧩 Ends the drag with no effect. The caller restores what stood at Open.
-    /// out   Deliver  [-]  refuses with HostDenied when no drag is open
+    /// out   Result  [-]  refuses with HostDenied when no drag is open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<ManipulationAmendment> Abandon();
+    Result<ManipulationAmendment> Abandon();
 
     /// 🧩 Ends the drag, returning the amendment the caller commits as **one** transaction.
-    /// out   Deliver  [-]  refuses with HostDenied when no drag is open
+    /// out   Result  [-]  refuses with HostDenied when no drag is open
     /// post  🔴 exactly one transaction enters `RevisionSequence`, sealed by the caller — `78` §2 and §5
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<ManipulationAmendment> Seal();
+    Result<ManipulationAmendment> Seal();
 
     /// 🧩 The amendment as the drag stands, for the workspace to present while it is open.
     /// cost  ✔️

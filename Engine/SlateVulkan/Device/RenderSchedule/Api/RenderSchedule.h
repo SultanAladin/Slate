@@ -85,14 +85,14 @@ public:
     /// in    DisplayWidth  [px] the display extent this claim is relative to
     /// in    DisplayHeight [px] the display extent this claim is relative to
     /// in    DisplayFormat [-]  what the display surface itself carries; the vendor spelling
-    /// out   Deliver       [-]  refuses with ContentUnsupported for a zero or excessive extent, and with
+    /// out   Result       [-]  refuses with ContentUnsupported for a zero or excessive extent, and with
     ///                          whatever `ImageSpace` refused when a target could not be claimed
     /// post  every target carries an image ordinal, or nothing does — refused in full
     /// note  🔴 Refused in full. A half-claimed target set is one where `08` §3's ordering reads a target that
     ///        was never claimed, and the recording site meets it as a null view rather than as this refusal.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Claim(ImageSpace&    Images,
+    Result<bool> Claim(ImageSpace&    Images,
                         std::uint32_t  DisplayWidth,
                         std::uint32_t  DisplayHeight,
                         VkFormat       DisplayFormat);
@@ -100,26 +100,26 @@ public:
     /// 🧩 Re-claims every display-relative and fraction-of-display target against a new display extent.
     /// in    DisplayWidth  [px] the arrived extent; an intermediate drag extent is the caller's to discard
     /// in    DisplayHeight [px]
-    /// out   Deliver       [-]  refuses as Claim does; the absolute targets stand untouched either way
+    /// out   Result       [-]  refuses as Claim does; the absolute targets stand untouched either way
     /// pre   🔴 the device is idle — every rotation that reads the old targets has completed
     /// note  🔴 `06` §7's fourth gate, verbatim: **every** display-relative target is recreated and no
     ///        persistent extent is carried across. Re-claiming a subset is how one target keeps the previous
     ///        extent and reads as a shifted image nobody attributes to the resize.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
+    Result<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
     /// 🧩 The image one declared target was claimed as.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when the target is unclaimed
+    /// out   Result  [-]  refuses with ContentUnsupported when the target is unclaimed
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<ImageClaim> Resolve(SharedTarget Target) const;
+    Result<ImageClaim> Resolve(SharedTarget Target) const;
 
     /// 🧩 The image ordinal one target was claimed as, for the transition `ImageSpace` records.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when the target is unclaimed
+    /// out   Result  [-]  refuses with ContentUnsupported when the target is unclaimed
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<std::uint32_t> OrdinalOf(SharedTarget Target) const;
+    Result<std::uint32_t> OrdinalOf(SharedTarget Target) const;
 
     /// 🧩 Releases every claimed target and forgets the display extent they were claimed against.
     /// pre   the device is idle
@@ -130,8 +130,8 @@ public:
 private:
 
     /// 🧩 The shape one target is claimed at, derived from its relation and the standing display extent.
-    /// out   Deliver  [-]  refuses with ContentUnsupported for an extent of zero or above the ceiling
-    Deliver<ImageShape> ShapeOf(SharedTarget Target) const;
+    /// out   Result  [-]  refuses with ContentUnsupported for an extent of zero or above the ceiling
+    Result<ImageShape> ShapeOf(SharedTarget Target) const;
 
     ImageSpace*    ImageEdge      = nullptr;                // [-] - borrowed; never owned
     std::uint32_t  ClaimedFor[static_cast<std::size_t>(SharedTarget::TargetCount)] = {};
@@ -194,19 +194,19 @@ public:
 
     /// 🧩 Contributes one recording to the schedule.
     /// in    Arriving [-]  the declaration the contributing document authored
-    /// out   Deliver  [-]  refuses when a capability is required with no substitution, or when the
+    /// out   Result  [-]  refuses when a capability is required with no substitution, or when the
     ///                     contribution produces a target another recording already produces
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Contribute(const DeclaredRecording& Arriving);
+    Result<bool> Contribute(const DeclaredRecording& Arriving);
 
     /// 🧩 Fixes the ordering. Derived from the declared reads and writes, never hand-written.
-    /// out   Deliver  [-]  refuses when a target is read by a recording ordered before its producer, or
+    /// out   Result  [-]  refuses when a target is read by a recording ordered before its producer, or
     ///                     when anything scene-referred is ordered after the display-referred line
     /// post  the ordering is immutable until the next bring-up
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Fix();
+    Result<bool> Fix();
 
     /// 🧩 The recordings, in the order Fix derived.
     /// pre   Fix delivered

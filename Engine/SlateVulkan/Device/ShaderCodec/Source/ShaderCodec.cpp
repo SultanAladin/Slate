@@ -13,10 +13,10 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> ShaderCodec::Construct(const VulkanExchange& Exchange, const std::string& StreamDirectory)
+Result<bool> ShaderCodec::Construct(const VulkanExchange& Exchange, const std::string& StreamDirectory)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge = &Exchange;
     StreamRoot = StreamDirectory;
@@ -26,23 +26,23 @@ Deliver<bool> ShaderCodec::Construct(const VulkanExchange& Exchange, const std::
     if (!StreamRoot.empty() && StreamRoot.back() != '\\' && StreamRoot.back() != '/')
         StreamRoot.push_back('\\');
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE READ
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& StreamPath) const
+Result<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& StreamPath) const
 {
     // 📝 Read through `04` §1's `FileInterchange`, which is the one stream surface over three file systems.
     //    A whole-file read of a build product is exactly what that surface delivers, and reading around it
     //    here would put a fourth spelling of "open a file" in the unit furthest from the file system.
-    const Deliver<std::vector<std::uint8_t>> Read = FileInterchange::ReadStream(StreamPath);
+    const Result<std::vector<std::uint8_t>> Read = FileInterchange::ReadStream(StreamPath);
 
-    if (!Read.ContentPresent)
+    if (!Read.Resolved)
     {
-        return Deliver<std::vector<std::uint32_t>>::Refuse(
+        return Result<std::vector<std::uint32_t>>::Refuse(
             { RefusalReason::HostDenied, "the lowered stream could not be read; was the shader stage run" });
     }
 
@@ -50,7 +50,7 @@ Deliver<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& S
 
     if (Landed.empty())
     {
-        return Deliver<std::vector<std::uint32_t>>::Refuse(
+        return Result<std::vector<std::uint32_t>>::Refuse(
             { RefusalReason::ContentUnsupported, "the lowered stream is empty" });
     }
 
@@ -59,7 +59,7 @@ Deliver<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& S
     //    and reports a malformed module, which names the driver rather than the truncated file.
     if ((Landed.size() % sizeof(std::uint32_t)) != 0u)
     {
-        return Deliver<std::vector<std::uint32_t>>::Refuse(
+        return Result<std::vector<std::uint32_t>>::Refuse(
             { RefusalReason::ContentUnsupported, "the lowered stream is not a whole count of words" });
     }
 
@@ -80,24 +80,24 @@ Deliver<std::vector<std::uint32_t>> ShaderCodec::ReadStream(const std::string& S
 
     if (Words[0] != SpirvStreamMarker)
     {
-        return Deliver<std::vector<std::uint32_t>>::Refuse(
+        return Result<std::vector<std::uint32_t>>::Refuse(
             { RefusalReason::ContentUnsupported, "the stream carries no SPIR-V marker" });
     }
 
-    return Deliver<std::vector<std::uint32_t>>::Deliver(Words);
+    return Result<std::vector<std::uint32_t>>::Result(Words);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> ShaderCodec::Resolve(const std::string& UnitName, const std::string& StreamStem)
+Result<std::uint32_t> ShaderCodec::Resolve(const std::string& UnitName, const std::string& StreamStem)
 {
     if (DeviceEdge == nullptr)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     if (UnitName.empty() || StreamStem.empty())
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a stream naming no unit or no stem" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a stream naming no unit or no stem" });
 
     // 📝 A stream already read is delivered rather than read again. Several programs are constructed against
     //    one module — `16`'s two raster paths share their entry point — and reading it per program would
@@ -105,15 +105,15 @@ Deliver<std::uint32_t> ShaderCodec::Resolve(const std::string& UnitName, const s
     for (std::size_t Ordinal = 0u; Ordinal < Modules.size(); ++Ordinal)
     {
         if (Modules[Ordinal].UnitName == UnitName && Modules[Ordinal].StreamStem == StreamStem)
-            return Deliver<std::uint32_t>::Deliver(static_cast<std::uint32_t>(Ordinal));
+            return Result<std::uint32_t>::Result(static_cast<std::uint32_t>(Ordinal));
     }
 
     const std::string StreamPath = StreamRoot + UnitName + "\\" + StreamStem + ".spv";
 
-    const Deliver<std::vector<std::uint32_t>> Words = ReadStream(StreamPath);
+    const Result<std::vector<std::uint32_t>> Words = ReadStream(StreamPath);
 
-    if (!Words.ContentPresent)
-        return Deliver<std::uint32_t>::Refuse(Words.Declined);
+    if (!Words.Resolved)
+        return Result<std::uint32_t>::Refuse(Words.Error);
 
     const std::vector<std::uint32_t> Stream = Words.Resolve();
 
@@ -129,26 +129,26 @@ Deliver<std::uint32_t> ShaderCodec::Resolve(const std::string& UnitName, const s
     if (vkCreateShaderModule(DeviceEdge->ActiveDevice(), &ModuleDeclaration, nullptr, &Arriving.Constructed)
         != VK_SUCCESS)
     {
-        return Deliver<std::uint32_t>::Refuse(
+        return Result<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "the device declined the lowered stream as a module" });
     }
 
     Modules.push_back(Arriving);
 
-    return Deliver<std::uint32_t>::Deliver(static_cast<std::uint32_t>(Modules.size() - 1u));
+    return Result<std::uint32_t>::Result(static_cast<std::uint32_t>(Modules.size() - 1u));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE STAGE
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<VkPipelineShaderStageCreateInfo> ShaderCodec::Stage(std::uint32_t                            ModuleOrdinal,
+Result<VkPipelineShaderStageCreateInfo> ShaderCodec::Stage(std::uint32_t                            ModuleOrdinal,
                                                             VkShaderStageFlagBits                    Reading,
                                                             const std::vector<SpecialisedConstant>&  Fixed)
 {
     if (static_cast<std::size_t>(ModuleOrdinal) >= Modules.size())
     {
-        return Deliver<VkPipelineShaderStageCreateInfo>::Refuse(
+        return Result<VkPipelineShaderStageCreateInfo>::Refuse(
             { RefusalReason::ContentUnsupported, "no module stands at that ordinal" });
     }
 
@@ -163,7 +163,7 @@ Deliver<VkPipelineShaderStageCreateInfo> ShaderCodec::Stage(std::uint32_t       
     StageDeclaration.pName = "main";
 
     if (Fixed.empty())
-        return Deliver<VkPipelineShaderStageCreateInfo>::Deliver(StageDeclaration);
+        return Result<VkPipelineShaderStageCreateInfo>::Result(StageDeclaration);
 
     HeldSpecialisation Held;
     Held.Declared.reserve(Fixed.size());
@@ -191,7 +191,7 @@ Deliver<VkPipelineShaderStageCreateInfo> ShaderCodec::Stage(std::uint32_t       
 
     StageDeclaration.pSpecializationInfo = &Standing.Read;
 
-    return Deliver<VkPipelineShaderStageCreateInfo>::Deliver(StageDeclaration);
+    return Result<VkPipelineShaderStageCreateInfo>::Result(StageDeclaration);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

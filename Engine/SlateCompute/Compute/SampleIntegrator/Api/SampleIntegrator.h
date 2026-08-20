@@ -96,18 +96,18 @@ public:
     static constexpr std::uint32_t AmendmentOrdinal = 40u;   // [-] - `08` §3 ⑦, after `30`
 
     /// 🧩 Declares what a history is refused for.
-    /// out   Deliver  [-]  refuses with ContentUnsupported for a non-positive depth bound or a ceiling of nothing
+    /// out   Result  [-]  refuses with ContentUnsupported for a non-positive depth bound or a ceiling of nothing
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(const RejectionSpecification& Declaring);
+    Result<bool> Declare(const RejectionSpecification& Declaring);
 
     /// 🧩 Contributes `08` §3 ⑦'s recording.
-    /// out   Deliver  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule refused
     /// note  📝 Produces `AccumulationSurface` and amends nothing. It reads its own previous cycle slot, which
     ///        the schedule cannot express as a dependency and does not need to: `06`'s rotation orders the two.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Contribute(RenderSchedule& Schedule) const;
+    Result<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 The sub-pixel offset one rotation carries, from `02` §6's sequence.
     /// in    RecordingOrdinal  [-]  the rotation, counted from bring-up

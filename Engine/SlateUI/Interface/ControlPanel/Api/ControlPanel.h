@@ -134,12 +134,12 @@ class ControlPanel
 public:
 
     /// 🧩 Borrows the interaction index, recording surface and resolved appearance.
-    /// out   Deliver  [-]  refuses when a construction already stands
+    /// out   Result  [-]  refuses when a construction already stands
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Construct(InteractionIndex&              Interaction,
+    Result<bool> Construct(InteractionIndex&              Interaction,
                             RecordingSurface&              Recording,
-                            const AppearanceSpecification& Appearance);
+                            const ThemeProfile& Appearance);
 
     /// 🧩 Samples the contact after the tick owner has advanced the shared interaction index once.
     /// note  🔴 This does not advance the index; several panels share it and the tick owner advances it once.
@@ -221,7 +221,7 @@ private:
 
     InteractionIndex*              Interaction = nullptr;   // [-] - borrowed; never owned
     RecordingSurface*              Recording   = nullptr;   // [-] - borrowed; never owned
-    const AppearanceSpecification* Appearance  = nullptr;   // [-] - borrowed; never owned
+    const ThemeProfile* Appearance  = nullptr;   // [-] - borrowed; never owned
     PointerCondition               Arrived     = {};        // [-] - current tick sample
 };
 

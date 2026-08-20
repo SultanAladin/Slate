@@ -23,7 +23,7 @@ namespace Slate
 
 /// 🧩 Every device handle the interface library needs, supplied once at bring-up.
 /// note  🔴 Vendor spellings are verbatim here because this is the vendor surface. Nothing in this struct
-///       is an ImGui spelling: the whole point of the seam is that a host including this header links the
+///       is an ImGui spelling: the whole point of the seam is that a host including this header lcolours the
 ///       interface without acquiring ImGui's declarations. `00` §2.2 makes a host that includes `imgui.h`
 ///       a defect, and a defect that cannot be spelled cannot be committed.
 /// tag   nonallocating, nonthrowing
@@ -61,14 +61,14 @@ public:
 
     /// 🧩 Constructs the interface context over the supplied device handles.
     /// in    Arriving [-]  the device handles and the window the interface reads from
-    /// out   Deliver  [-]  refuses with CapabilityAbsent when any required handle is absent, and with
+    /// out   Result  [-]  refuses with CapabilityAbsent when any required handle is absent, and with
     ///                     HostDenied when the vendor attachment declines
     /// note  🚧 Recording is declared against dynamic rendering, so `06`'s bring-up must negotiate
     ///       `VK_KHR_dynamic_rendering` or a device at Vulkan 1.3. Construct refuses rather than
     ///       recording into a target the device never agreed to.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const InterfaceAttachment& Arriving);
+    Result<bool> Construct(const InterfaceAttachment& Arriving);
 
     /// 🧩 Destroys the interface context and both vendor attachments.
     /// cost  🚩
@@ -76,40 +76,40 @@ public:
     void Reclaim();
 
     /// 🧩 Opens one interface tick and reads the window system's accumulated condition.
-    /// out   Deliver  [-]  refuses when no context is constructed, or when a tick is already open
+    /// out   Result  [-]  refuses when no context is constructed, or when a tick is already open
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Advance();
+    Result<bool> Advance();
 
     /// 🧩 Closes the open tick and assembles its command content, ready to record.
-    /// out   Deliver  [-]  refuses when no tick is open
+    /// out   Result  [-]  refuses when no tick is open
     /// post  the assembled content stays valid until the next Advance
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Seal();
+    Result<bool> Seal();
 
     /// 🧩 Closes an open tick without assembling it, so that nothing downstream may record it.
-    /// out   Deliver  [-]  delivers true when no tick was open; abandoning nothing is not a defect
+    /// out   Result  [-]  delivers true when no tick was open; abandoning nothing is not a defect
     /// post  no tick is open and Record refuses until the next Advance and Seal
     /// note  🔴 The escape a host takes when anything between Advance and Seal declines. A tick left open
     ///       makes every subsequent Advance refuse with "a tick is already open" for the life of the
     ///       process, and the interface stops responding with no error anywhere.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Abandon();
+    Result<bool> Abandon();
 
     /// 🧩 Restates the display image counts after a presentation chain was re-established.
     /// in    MinimumImageCount  [-]  minimum image count requested when the chain was created
     /// in    ImageCount         [-]  actual image count the vendor returned
-    /// out   Deliver            [-]  refuses when no context stands or either count is inconsistent
+    /// out   Result            [-]  refuses when no context stands or either count is inconsistent
     /// note  🔴 These are properties of the presentation chain, never `RecordingSlotCount`. Dear ImGui's
     ///       Vulkan attachment sizes against display images independently of Slate's reusable command slots.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
+    Result<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
 
     /// 🧩 Seats the sheet's tab figures into the vendor's style, including the four `Patches/` adds.
-    /// out   Deliver  [-]  refuses with CapabilityAbsent before Construct
+    /// out   Result  [-]  refuses with CapabilityAbsent before Construct
     /// note  🔴 The four patched members default to 0.0f, at which a patched build rasterises exactly as an
     ///        unpatched one. Seating them is what turns the trapezoid on — a build that never called this
     ///        drew stock rectangular tabs and read as though the patches had failed to apply.
@@ -121,7 +121,7 @@ public:
     ///        vendor context, which starts at the vendor's own defaults and is then overwritten by
     ///        `StyleColorsDark` — so a style seated once at bring-up was silently lost on every rebuild
     ///        and the trapezoidal tabs reverted to stock rectangles with nothing reporting it.
-    Deliver<bool> SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceInk& Tinted);
+    Result<bool> SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted);
 
     /// 🧩 Opens the dock space the workspace body is docked into, filling the declared extent.
     /// note  🔴 One dock space per host, over the body alone. `DockingEnable` makes panels dockable; a dock
@@ -190,11 +190,11 @@ public:
 
     /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope over DisplaySurface
-    /// out   Deliver          [-]  refuses when nothing has been sealed since the last Advance
+    /// out   Result          [-]  refuses when nothing has been sealed since the last Advance
     /// pre   Seal delivered
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Record(VkCommandBuffer CommandRecording);
+    Result<bool> Record(VkCommandBuffer CommandRecording);
 
     /// 🧩 Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
     /// cost  ✔️
@@ -265,7 +265,7 @@ private:
     bool                 StyleSeated       = false;            // [-] - a workspace style was seated once
     bool                 WorkspaceEntered  = false;            // [-] - between workspace entry and leave
     WorkspaceMetric      SeatedMeasure     = {};               // [-] - retained, so Construct re-applies it
-    WorkspaceInk         SeatedInk         = {};               // [-] - retained, so Construct re-applies it
+    WorkspaceColour         SeatedColour         = {};               // [-] - retained, so Construct re-applies it
 };
 
 }   // namespace Slate

@@ -12,49 +12,49 @@ namespace Slate
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> InteractionIndex::Construct(MotionIntegrator& Arriving)
+Result<bool> InteractionIndex::Construct(MotionIntegrator& Arriving)
 {
     if (Motion != nullptr)
     {
-        return Deliver<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
+        return Result<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
                                                    "InteractionIndex is already constructed" });
     }
 
     Motion = &Arriving;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<ControlIdentity> InteractionIndex::Enrol()
+Result<ControlIdentity> InteractionIndex::Enrol()
 {
     if (Motion == nullptr)
     {
-        return Deliver<ControlIdentity>::Refuse(Refusal{ RefusalReason::CapabilityAbsent,
+        return Result<ControlIdentity>::Refuse(Refusal{ RefusalReason::CapabilityAbsent,
                                                           "InteractionIndex was not constructed" });
     }
 
     if (EnrolledSlots >= ControlCapacity)
     {
-        return Deliver<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
+        return Result<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
                                                           "InteractionIndex holds no further control slot" });
     }
 
     // 📝 🔴 Both fades are enrolled before the slot is claimed. Claiming first and refusing second would leave
     //    a slot enrolled against an interpolant that does not exist, and every later read of it would return
     //    the ordinal zero — which is another control's fade.
-    const Deliver<std::uint32_t> RouseEnrolled = Motion->EnrolEased(0.0);
+    const Result<std::uint32_t> RouseEnrolled = Motion->EnrolEased(0.0);
 
-    if (!RouseEnrolled.ContentPresent)
+    if (!RouseEnrolled.Resolved)
     {
-        return Deliver<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
+        return Result<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
                                                           "the integrator declined a rouse fade" });
     }
 
-    const Deliver<std::uint32_t> TakeEnrolled = Motion->EnrolEased(0.0);
+    const Result<std::uint32_t> TakeEnrolled = Motion->EnrolEased(0.0);
 
-    if (!TakeEnrolled.ContentPresent)
+    if (!TakeEnrolled.Resolved)
     {
-        return Deliver<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
+        return Result<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
                                                           "the integrator declined a take fade" });
     }
 
@@ -69,7 +69,7 @@ Deliver<ControlIdentity> InteractionIndex::Enrol()
     Poses[Claimed].TakeOrdinal  = TakeEnrolled.Resolve();
     Poses[Claimed].Enrolled     = true;
 
-    return Deliver<ControlIdentity>::Deliver(ControlIdentity{ Claimed, Generations[Claimed] });
+    return Result<ControlIdentity>::Result(ControlIdentity{ Claimed, Generations[Claimed] });
 }
 
 std::uint32_t InteractionIndex::Slot(ControlIdentity Claimed) const
@@ -175,15 +175,15 @@ bool InteractionIndex::DepartFrom(ControlIdentity Claimed, float Ordinate)
     return true;
 }
 
-Deliver<float> InteractionIndex::DepartedOrdinate(ControlIdentity Claimed) const
+Result<float> InteractionIndex::DepartedOrdinate(ControlIdentity Claimed) const
 {
     if (!Holding(Claimed) || !DepartedRecorded)
     {
-        return Deliver<float>::Refuse(Refusal{ RefusalReason::IdentityStale,
+        return Result<float>::Refuse(Refusal{ RefusalReason::IdentityStale,
                                                        "this control holds no seizure to depart from" });
     }
 
-    return Deliver<float>::Deliver(SeizedDeparted);
+    return Result<float>::Result(SeizedDeparted);
 }
 
 float InteractionIndex::OriginAlong() const

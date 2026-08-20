@@ -26,7 +26,7 @@ constexpr float Between(float Departed, float Arriving, float Fraction)
     return Departed + (Arriving - Departed) * Fraction;
 }
 
-/// 🧩 Blends two inks by a fraction, component by component, in the display-referred encoding they are in.
+/// 🧩 Blends two colours by a fraction, component by component, in the display-referred encoding they are in.
 /// note  ⚠️ Blended where they are declared — display-referred — and not in a linear space. `08` §3.1 places
 ///       the interface after the tone projection, and a fade that linearised would disagree with the browser
 ///       the sheet was measured in, which interpolates sRGB ordinates exactly as this does.
@@ -37,23 +37,23 @@ constexpr std::uint8_t BlendOrdinate(std::uint8_t Departed, std::uint8_t Arrivin
         Between(static_cast<float>(Departed), static_cast<float>(Arriving), Fraction) + 0.5f);
 }
 
-constexpr InkOrdinate Blend(InkOrdinate Departed, InkOrdinate Arriving, float Fraction)
+constexpr ThemeToken Blend(ThemeToken Departed, ThemeToken Arriving, float Fraction)
 {
     const float Held = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
 
-    return InkOrdinate{ BlendOrdinate(Departed.Red,     Arriving.Red,     Held),
+    return ThemeToken{ BlendOrdinate(Departed.Red,     Arriving.Red,     Held),
                         BlendOrdinate(Departed.Green,   Arriving.Green,   Held),
                         BlendOrdinate(Departed.Blue,    Arriving.Blue,    Held),
                         BlendOrdinate(Departed.Opacity, Arriving.Opacity, Held) };
 }
 
-/// 🧩 Restates an ink at a fraction of its own coverage — what a fading tooltip records with.
+/// 🧩 Restates an colour at a fraction of its own coverage — what a fading tooltip records with.
 /// cost  ✔️
-constexpr InkOrdinate Faded(InkOrdinate Declared, float Fraction)
+constexpr ThemeToken Faded(ThemeToken Declared, float Fraction)
 {
     const float Held = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
 
-    InkOrdinate Restated = Declared;
+    ThemeToken Restated = Declared;
     Restated.Opacity     = static_cast<std::uint8_t>(static_cast<float>(Declared.Opacity) * Held + 0.5f);
 
     return Restated;
@@ -142,13 +142,13 @@ double RotationDegrees(double Departed, double TravelAlong, double DegreesPerPix
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> ComponentSpecification::Construct(InteractionIndex&              ArrivingLedger,
+Result<bool> ComponentSpecification::Construct(InteractionIndex&              ArrivingLedger,
                                       RecordingSurface&              ArrivingSurface,
-                                      const AppearanceSpecification& ArrivingAppearance)
+                                      const ThemeProfile& ArrivingAppearance)
 {
     if (Ledger != nullptr)
     {
-        return Deliver<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
+        return Result<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
                                               "ComponentSpecification is already constructed" });
     }
 
@@ -156,7 +156,7 @@ Deliver<bool> ComponentSpecification::Construct(InteractionIndex&              A
     Surface    = &ArrivingSurface;
     Appearance = &ArrivingAppearance;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void ComponentSpecification::Advance(const PointerCondition& Arriving, double Elapsed)
@@ -243,11 +243,11 @@ void ComponentSpecification::RecordCard(const CardArrangement& Arranged)
     if (Surface == nullptr || Appearance == nullptr)
         return;
 
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
-    Surface->Ground(Arranged.Enclosure, Ink.CardGround, Measure.CardRadius, CornerAll);
-    Surface->Edge(Arranged.Enclosure, Ink.CardEdge, Measure.CardEdgeWeight, Measure.CardRadius, CornerAll);
+    Surface->Ground(Arranged.Enclosure, Colour.CardGround, Measure.CardRadius, CornerAll);
+    Surface->Edge(Arranged.Enclosure, Colour.CardEdge, Measure.CardEdgeWeight, Measure.CardRadius, CornerAll);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -262,7 +262,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
     if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
         return Reported;
 
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     // ① The row divides into a leading label and the field that fills what remains.
@@ -336,15 +336,15 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
     const float Roused    = Ledger->RousedFraction(Claimed);
 
     // ③ The label, then the field's two grounds.
-    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Ink.LabelQuiet,
+    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
     const float Radius = Field.SpanAcross() * 0.5f;
 
-    Surface->Ground(Field, Ink.FieldGround, Radius, CornerAll);
-    Surface->Ground(Cell, Blend(Ink.CellGround, Ink.CellGroundRoused, Roused), Radius,
+    Surface->Ground(Field, Colour.FieldGround, Radius, CornerAll);
+    Surface->Ground(Cell, Blend(Colour.CellGround, Colour.CellGroundRoused, Roused), Radius,
                     CornerTrailingUpper | CornerTrailingLower);
-    Surface->Edge(Field, Ink.CardEdge, Measure.CardEdgeWeight, Radius, CornerAll);
+    Surface->Edge(Field, Colour.CardEdge, Measure.CardEdgeWeight, Radius, CornerAll);
 
     // ④ The taken option's caption, inside the black field.
     const char* Presented = (Declared.Options != nullptr && TakenOrdinal < Declared.OptionCount)
@@ -354,7 +354,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
     Surface->TextRunTruncated(Field.LeastAlong + Measure.FieldPadAlong,
                               CentredAcross(Field, Measure.RowText),
                               Cell.LeastAlong - Field.LeastAlong - Measure.FieldPadAlong * 2.0f,
-                              Ink.FieldInk, Presented, Measure.RowText, false);
+                              Colour.FieldColour, Presented, Measure.RowText, false);
 
     // ⑤ The chevron, turned a half turn while the menu stands open. The sheet rotates it; the figure roster
     //    holds one chevron, so the turned pose is recorded as the upward figure rather than as a rotation
@@ -363,7 +363,7 @@ ControlVerdict ComponentSpecification::SelectionField(ControlIdentity Claimed, c
                                          Cell.LeastAcross + (Cell.SpanAcross() - Measure.ChevronSymbol) * 0.5f,
                                          Measure.ChevronSymbol, Measure.ChevronSymbol);
 
-    Surface->Stroke(SymbolSubject::ChevronDown, Chevron, Ink.CellInk);
+    Surface->Stroke(SymbolSubject::ChevronDown, Chevron, Colour.CellColour);
 
     // ⑥ The menu is deferred so that it records above every row beneath it.
     if (Disclosed && Declared.OptionCount > 0u && DeferredCount < DeferredCeiling)
@@ -437,7 +437,7 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
     if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
         return Reported;
 
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     // ① The row is a label, a readout pill, and a slider — the sheet spaces them with one gap each.
@@ -511,15 +511,15 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
 
     // ③ The label, absent when the readout trails a full-width slider.
     if (!ReadoutTrailing)
-        Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Ink.LabelQuiet,
+        Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Colour.LabelQuiet,
                          Declared.Caption, Measure.LabelText, 0.0f, false);
 
     // ④ The readout pill — a black value cell and a raised unit cell, rounded at the ends only.
     const float PillRadius = Readout.SpanAcross() * 0.5f;
 
-    Surface->Ground(Readout, Ink.FieldGround, PillRadius, CornerAll);
-    Surface->Ground(UnitCell, Ink.CellGround, PillRadius, CornerTrailingUpper | CornerTrailingLower);
-    Surface->Edge(Readout, Ink.CardEdge, Measure.CardEdgeWeight, PillRadius, CornerAll);
+    Surface->Ground(Readout, Colour.FieldGround, PillRadius, CornerAll);
+    Surface->Ground(UnitCell, Colour.CellGround, PillRadius, CornerTrailingUpper | CornerTrailingLower);
+    Surface->Edge(Readout, Colour.CardEdge, Measure.CardEdgeWeight, PillRadius, CornerAll);
 
     char Reading[24] = {};
     IntegralRun(Reading, 24u, static_cast<long long>(Ordinate + (Ordinate < 0.0 ? -0.5 : 0.5)));
@@ -530,29 +530,29 @@ ControlVerdict ComponentSpecification::MagnitudeRow(ControlIdentity Claimed, con
 
     Surface->TextRun(ValueAlong + (ValueSpan - ReadingRun) * 0.5f,
                      CentredAcross(Readout, Measure.ReadoutText),
-                     Ink.FieldInk, Reading, Measure.ReadoutText, Measure.ReadoutTracking, true);
+                     Colour.FieldColour, Reading, Measure.ReadoutText, Measure.ReadoutTracking, true);
 
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
     Surface->TextRun(UnitCell.LeastAlong + (UnitCell.SpanAlong() - UnitRun) * 0.5f,
                      CentredAcross(UnitCell, Measure.UnitText),
-                     Ink.UnitInk, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
+                     Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
     // ⑤ The track — taken below the fraction, quiet above it, and the thumb centred on the division.
     const float TrackRadius = Track.SpanAcross() * 0.5f;
     const float Division    = TravelLeast + TravelSpan * static_cast<float>(Fraction);
 
-    Surface->Ground(Track, Ink.TrackQuiet, TrackRadius, CornerAll);
+    Surface->Ground(Track, Colour.TrackQuiet, TrackRadius, CornerAll);
 
     if (Division > Track.LeastAlong)
     {
         const PlaneExtent Taken = PlaneExtent{ Track.LeastAlong, Track.LeastAcross,
                                                Division, Track.MostAcross };
-        Surface->Ground(Taken, Ink.TrackTaken, TrackRadius, CornerLeadingUpper | CornerLeadingLower);
+        Surface->Ground(Taken, Colour.TrackTaken, TrackRadius, CornerLeadingUpper | CornerLeadingLower);
     }
 
-    Surface->Edge(Track, Ink.TrackEdge, Measure.CardEdgeWeight, TrackRadius, CornerAll);
-    Surface->Medallion(Division, Track.LeastAcross + Track.SpanAcross() * 0.5f, Radius, Ink.ThumbGround);
+    Surface->Edge(Track, Colour.TrackEdge, Measure.CardEdgeWeight, TrackRadius, CornerAll);
+    Surface->Medallion(Division, Track.LeastAcross + Track.SpanAcross() * 0.5f, Radius, Colour.ThumbGround);
 
     Reported.ContactTaken = Ledger->Holding(Claimed);
     Reported.Mark         = Standing;
@@ -572,7 +572,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
     if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
         return Reported;
 
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     // ① The ruler stacks: a label and readout above, the tick strip beneath them.
@@ -600,9 +600,9 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
 
     if (Ledger->Holding(Claimed) && Ledger->HeldPart(Claimed) == ControlPart::Strip)
     {
-        const Deliver<float> Departed = Ledger->DepartedOrdinate(Claimed);
+        const Result<float> Departed = Ledger->DepartedOrdinate(Claimed);
 
-        if (Departed.ContentPresent)
+        if (Departed.Resolved)
         {
             const double Travel   = static_cast<double>(Arrived.PositionAlong) -
                                     static_cast<double>(Ledger->OriginAlong());
@@ -619,14 +619,14 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
     }
 
     // ③ The label and the readout pill.
-    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Ink.LabelQuiet,
+    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
     const float PillRadius = Readout.SpanAcross() * 0.5f;
 
-    Surface->Ground(Readout, Ink.FieldGround, PillRadius, CornerAll);
-    Surface->Ground(UnitCell, Ink.CellGround, PillRadius, CornerTrailingUpper | CornerTrailingLower);
-    Surface->Edge(Readout, Ink.CardEdge, Measure.CardEdgeWeight, PillRadius, CornerAll);
+    Surface->Ground(Readout, Colour.FieldGround, PillRadius, CornerAll);
+    Surface->Ground(UnitCell, Colour.CellGround, PillRadius, CornerTrailingUpper | CornerTrailingLower);
+    Surface->Edge(Readout, Colour.CardEdge, Measure.CardEdgeWeight, PillRadius, CornerAll);
 
     const long long Rounded = static_cast<long long>(Degrees + (Degrees < 0.0 ? -0.5 : 0.5));
 
@@ -638,17 +638,17 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
 
     Surface->TextRun(Readout.LeastAlong + (ValueSpan - ReadingRun) * 0.5f,
                      CentredAcross(Readout, Measure.ReadoutText),
-                     Ink.FieldInk, Reading, Measure.ReadoutText, Measure.ReadoutTracking, true);
+                     Colour.FieldColour, Reading, Measure.ReadoutText, Measure.ReadoutTracking, true);
 
     const float UnitRun = Surface->MeasureRun(Declared.UnitGlyph, Measure.UnitText, 0.0f);
 
     Surface->TextRun(UnitCell.LeastAlong + (UnitCell.SpanAlong() - UnitRun) * 0.5f,
                      CentredAcross(UnitCell, Measure.UnitText),
-                     Ink.UnitInk, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
+                     Colour.UnitColour, Declared.UnitGlyph, Measure.UnitText, 0.0f, false);
 
     // ④ The strip's ground, and every tick inside it, confined so nothing escapes the rounded extent.
-    Surface->Ground(Strip, Ink.RulerGround, Measure.RulerRadius, CornerAll);
-    Surface->Edge(Strip, Ink.CardEdge, Measure.CardEdgeWeight, Measure.RulerRadius, CornerAll);
+    Surface->Ground(Strip, Colour.RulerGround, Measure.RulerRadius, CornerAll);
+    Surface->Edge(Strip, Colour.CardEdge, Measure.CardEdgeWeight, Measure.RulerRadius, CornerAll);
     Surface->Confine(Strip);
 
     const float CentreAlong  = Strip.LeastAlong + Strip.SpanAlong() * 0.5f;
@@ -675,13 +675,13 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
         const float       TickAcross = Major ? Measure.TickMajorAcross
                                      : Medium ? Measure.TickMediumAcross
                                               : Measure.TickMinorAcross;
-        const InkOrdinate TickInk    = Major ? Ink.TickMajor : Medium ? Ink.TickMedium : Ink.TickMinor;
+        const ThemeToken TickColour    = Major ? Colour.TickMajor : Medium ? Colour.TickMedium : Colour.TickMinor;
 
         const PlaneExtent Mark = Spanning(TickAlong - Measure.TickWeight * 0.5f,
                                           CentreAcross - TickAcross * 0.5f,
                                           Measure.TickWeight, TickAcross);
 
-        Surface->Ground(Mark, TickInk, Measure.TickWeight * 0.5f, CornerAll);
+        Surface->Ground(Mark, TickColour, Measure.TickWeight * 0.5f, CornerAll);
 
         if (!Major)
             continue;
@@ -700,13 +700,13 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
         const float CaptionRun = Surface->MeasureRun(Caption, Measure.TickCaptionText, 0.0f);
 
         Surface->TextRun(TickAlong - CaptionRun * 0.5f, CentreAcross + Measure.TickCaptionLift,
-                         Ink.TickCaption, Caption, Measure.TickCaptionText, 0.0f, true);
+                         Colour.TickCaption, Caption, Measure.TickCaptionText, 0.0f, true);
     }
 
     // ⑤ The sheet's mask — transparent, opaque at a fifth, opaque to four fifths, transparent. Two Along
     //    scrims over the ruler's own ground reproduce it; the middle three fifths need nothing recorded.
-    const InkOrdinate Opaque      = Ink.CardGround;
-    const InkOrdinate Transparent = Faded(Ink.CardGround, 0.0f);
+    const ThemeToken Opaque      = Colour.CardGround;
+    const ThemeToken Transparent = Faded(Colour.CardGround, 0.0f);
     const float       FadeAlong   = Strip.SpanAlong() * 0.2f;
 
     Surface->Scrim(PlaneExtent{ Strip.LeastAlong, Strip.LeastAcross,
@@ -722,9 +722,9 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
                                          CentreAcross - Measure.PointerAcross * 0.5f,
                                          Measure.PointerWeight, Measure.PointerAcross);
 
-    Surface->Ground(Pointer, Ink.RulerPointer, Measure.PointerWeight * 0.5f, CornerAll);
+    Surface->Ground(Pointer, Colour.RulerPointer, Measure.PointerWeight * 0.5f, CornerAll);
     Surface->Medallion(CentreAlong, Strip.LeastAcross + Measure.PointerDotLift,
-                       Measure.PointerDot * 0.5f, Ink.RulerPointer);
+                       Measure.PointerDot * 0.5f, Colour.RulerPointer);
 
     Surface->Release();
 
@@ -746,7 +746,7 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Claimed, const 
     if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
         return Reported;
 
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     const bool OverRow = Row.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
@@ -778,10 +778,10 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Claimed, const 
                                       Row.LeastAcross + (Row.SpanAcross() - Measure.RingExtent) * 0.5f,
                                       Measure.RingExtent, Measure.RingExtent);
 
-    const InkOrdinate Quiet   = Blend(Ink.RingQuiet, Ink.RingRoused, Roused);
-    const InkOrdinate RingInk = Blend(Quiet, Ink.RingTaken, Held);
+    const ThemeToken Quiet   = Blend(Colour.RingQuiet, Colour.RingRoused, Roused);
+    const ThemeToken RingColour = Blend(Quiet, Colour.RingTaken, Held);
 
-    Surface->Edge(Ring, RingInk, Measure.RingWeight, Measure.RingExtent * 0.5f, CornerAll);
+    Surface->Edge(Ring, RingColour, Measure.RingWeight, Measure.RingExtent * 0.5f, CornerAll);
 
     // ② The dot scales from nothing to its full extent, which is what `scale-0` to `scale-100` states.
     const float DotRadius = Measure.RingDotExtent * 0.5f * Held;
@@ -790,15 +790,15 @@ ControlVerdict ComponentSpecification::ToggleRow(ControlIdentity Claimed, const 
     {
         Surface->Medallion(Ring.LeastAlong + Ring.SpanAlong() * 0.5f,
                            Ring.LeastAcross + Ring.SpanAcross() * 0.5f,
-                           DotRadius, Ink.RingDot);
+                           DotRadius, Colour.RingDot);
     }
 
-    // ③ The label, fading between its three declared inks.
-    const InkOrdinate QuietLabel = Blend(Ink.LabelQuiet, Ink.LabelRoused, Roused);
-    const InkOrdinate LabelInk   = Blend(QuietLabel, Ink.LabelTaken, Held);
+    // ③ The label, fading between its three declared colours.
+    const ThemeToken QuietLabel = Blend(Colour.LabelQuiet, Colour.LabelRoused, Roused);
+    const ThemeToken LabelColour   = Blend(QuietLabel, Colour.LabelTaken, Held);
 
     Surface->TextRun(Ring.MostAlong + Measure.ToggleGapAlong, CentredAcross(Row, Measure.RowText),
-                     LabelInk, Declared.Caption, Measure.RowText, 0.0f, false);
+                     LabelColour, Declared.Caption, Measure.RowText, 0.0f, false);
 
     Reported.ContactTaken = Ledger->Holding(Claimed);
     Reported.Mark         = Standing;
@@ -818,7 +818,7 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Claimed, const 
     if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
         return Reported;
 
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     const bool OverRow = Row.Encloses(Arrived.PositionAlong, Arrived.PositionAcross);
@@ -847,8 +847,8 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Claimed, const 
 
     // ① The ground. The sheet gives a quiet row no ground at all, a roused one #222222, and a taken one
     //    #2a2a2a — and the taken ground wins over the roused one, which is why it is blended last.
-    const InkOrdinate QuietGround = Blend(Ink.RowGroundQuiet, Ink.RowGroundRoused, Roused);
-    const InkOrdinate RowGround   = Blend(QuietGround, Ink.RowGroundTaken, Held);
+    const ThemeToken QuietGround = Blend(Colour.RowGroundQuiet, Colour.RowGroundRoused, Roused);
+    const ThemeToken RowGround   = Blend(QuietGround, Colour.RowGroundTaken, Held);
 
     // 🔴 Square corners. The sheet states `rounded-none` on this row and rounds every other control; a
     //    radius here would be the one place the transcription quietly improved on the source.
@@ -857,13 +857,13 @@ ControlVerdict ComponentSpecification::SubsetRow(ControlIdentity Claimed, const 
     // ② The rail, which the sheet grows from nothing along the row's whole extent across.
     const PlaneExtent Rail = Spanning(Row.LeastAlong, Row.LeastAcross, Measure.SubsetRailAlong, Row.SpanAcross());
 
-    Surface->Ground(Rail, Blend(Ink.RowRailQuiet, Ink.RowRailTaken, Held), 0.0f, CornerNone);
+    Surface->Ground(Rail, Blend(Colour.RowRailQuiet, Colour.RowRailTaken, Held), 0.0f, CornerNone);
 
     // ③ The label.
-    const InkOrdinate LabelInk = Blend(Ink.LabelQuiet, Ink.LabelTaken, Held);
+    const ThemeToken LabelColour = Blend(Colour.LabelQuiet, Colour.LabelTaken, Held);
 
     Surface->TextRun(Row.LeastAlong + Measure.SubsetRowPadAlong, CentredAcross(Row, Measure.RowText),
-                     LabelInk, Declared.Caption, Measure.RowText, 0.0f, false);
+                     LabelColour, Declared.Caption, Measure.RowText, 0.0f, false);
 
     Reported.ContactTaken = Ledger->Holding(Claimed);
     Reported.Mark         = Standing;
@@ -886,7 +886,7 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, c
     if (Declared.StopCount < 2u || Declared.StopCount > StopCeiling || Declared.Stops == nullptr)
         return Reported;
 
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     const PlaneExtent Label = Spanning(Row.LeastAlong, Row.LeastAcross, Measure.LabelAlong, Row.SpanAcross());
@@ -900,7 +900,7 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, c
     //    why the declaration refuses a count below two rather than dividing by zero here.
     const float Division = StripSpan / static_cast<float>(Declared.StopCount - 1u);
 
-    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Ink.LabelQuiet,
+    Surface->TextRun(Label.LeastAlong, CentredAcross(Label, Measure.LabelText), Colour.LabelQuiet,
                      Declared.Caption, Measure.LabelText, 0.0f, false);
 
     std::uint32_t RousedOrdinal = Declared.StopCount;
@@ -944,11 +944,11 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, c
         const bool  TakenStop = Ordinal == TakenOrdinal;
         const float Extent    = TakenStop ? Measure.StopTakenExtent : Measure.StopQuietExtent;
 
-        const InkOrdinate Quiet = (Ordinal == RousedOrdinal) ? Blend(Ink.StopQuiet, Ink.StopRoused, Roused)
-                                                             : Ink.StopQuiet;
-        const InkOrdinate StopInk = TakenStop ? Ink.StopTaken : Quiet;
+        const ThemeToken Quiet = (Ordinal == RousedOrdinal) ? Blend(Colour.StopQuiet, Colour.StopRoused, Roused)
+                                                             : Colour.StopQuiet;
+        const ThemeToken StopColour = TakenStop ? Colour.StopTaken : Quiet;
 
-        Surface->Medallion(StopAlong, CentreAcross, Extent * 0.5f, StopInk);
+        Surface->Medallion(StopAlong, CentreAcross, Extent * 0.5f, StopColour);
 
         if (!TakenStop)
             continue;
@@ -961,7 +961,7 @@ ControlVerdict ComponentSpecification::MagnitudeStops(ControlIdentity Claimed, c
         const float LetterRun = Surface->MeasureRun(Letter, Measure.RowText, 0.0f);
 
         Surface->TextRun(StopAlong - LetterRun * 0.5f, CentreAcross - Measure.RowText * 0.5f,
-                         Ink.StopTakenInk, Letter, Measure.RowText, 0.0f, true);
+                         Colour.StopTakenColour, Letter, Measure.RowText, 0.0f, true);
     }
 
     Reported.ContactTaken = Ledger->Holding(Claimed);
@@ -982,7 +982,7 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, c
     if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr || !Ledger->Resolves(Claimed))
         return Reported;
 
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     const bool Light   = Declared.Appearance == TooltipAppearance::Light;
@@ -1014,14 +1014,14 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, c
     const PlaneExtent Grown = PlaneExtent{ Trigger.LeastAlong  + Inset, Trigger.LeastAcross + Inset,
                                            Trigger.MostAlong   - Inset, Trigger.MostAcross  - Inset };
 
-    Surface->Ground(Grown, Light ? Ink.TriggerLightGround : Ink.TriggerDarkGround,
+    Surface->Ground(Grown, Light ? Colour.TriggerLightGround : Colour.TriggerDarkGround,
                     Measure.TriggerRadius, CornerAll);
 
     const PlaneExtent Figure = Spanning(Grown.LeastAlong + (Grown.SpanAlong() - Measure.TriggerSymbol) * 0.5f,
                                         Grown.LeastAcross + (Grown.SpanAcross() - Measure.TriggerSymbol) * 0.5f,
                                         Measure.TriggerSymbol, Measure.TriggerSymbol);
 
-    Surface->Stroke(Declared.Figure, Figure, Light ? Ink.TriggerLightInk : Ink.TriggerDarkInk);
+    Surface->Stroke(Declared.Figure, Figure, Light ? Colour.TriggerLightColour : Colour.TriggerDarkColour);
 
     // ② The card is deferred while any of it is visible, so it records above every later control.
     if (Disclosed > 0.0f && DeferredCount < DeferredCeiling)
@@ -1048,13 +1048,13 @@ ControlVerdict ComponentSpecification::TooltipTrigger(ControlIdentity Claimed, c
 
 void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
 {
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     const PlaneExtent Menu = MenuEnclosure(Holding.Anchor, Holding.OptionCount);
 
-    Surface->Ground(Menu, Ink.MenuGround, Measure.MenuRadius, CornerAll);
-    Surface->Edge(Menu, Ink.MenuEdge, Measure.CardEdgeWeight, Measure.MenuRadius, CornerAll);
+    Surface->Ground(Menu, Colour.MenuGround, Measure.MenuRadius, CornerAll);
+    Surface->Edge(Menu, Colour.MenuEdge, Measure.CardEdgeWeight, Measure.MenuRadius, CornerAll);
 
     const float OptionAcross = Measure.RowText * 1.5f + Measure.OptionPadAcross * 2.0f;
     float       Cursor       = Menu.LeastAcross + Measure.MenuPad;
@@ -1071,7 +1071,7 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
         //    the threshold at which the absence of a fade reads as a defect rather than as immediacy.
         if (Over)
         {
-            Surface->Ground(Option, Ink.OptionGroundRoused, Option.SpanAcross() * 0.5f, CornerAll);
+            Surface->Ground(Option, Colour.OptionGroundRoused, Option.SpanAcross() * 0.5f, CornerAll);
         }
 
         const char* Caption = (Holding.Options != nullptr) ? Holding.Options[Ordinal] : "";
@@ -1080,7 +1080,7 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
         Surface->TextRunTruncated(Option.LeastAlong + Measure.OptionPadAlong,
                                   CentredAcross(Option, Measure.RowText),
                                   Option.SpanAlong() - Measure.OptionPadAlong * 2.0f,
-                                  (Over || Taken) ? Ink.OptionInkRoused : Ink.OptionInk,
+                                  (Over || Taken) ? Colour.OptionColourRoused : Colour.OptionColour,
                                   Caption, Measure.RowText, false);
 
         Cursor += OptionAcross + Measure.MenuGapAcross;
@@ -1089,7 +1089,7 @@ void ComponentSpecification::RecordMenu(const DeferredRecording& Holding)
 
 void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
 {
-    const ControlInk&    Ink     = Appearance->Control;
+    const ControlColour&    Colour     = Appearance->Control;
     const ControlMetric& Measure = Appearance->ControlMeasure;
 
     const float Disclosed = Ledger->TakenFraction(Holding.Claimed);
@@ -1099,9 +1099,9 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
 
     const bool Light = Holding.Appearance == TooltipAppearance::Light;
 
-    const InkOrdinate Ground = Faded(Light ? Ink.TooltipLightGround : Ink.TooltipDarkGround, Disclosed);
-    const InkOrdinate Title  = Faded(Light ? Ink.TooltipLightTitle  : Ink.TooltipDarkTitle,  Disclosed);
-    const InkOrdinate Body   = Faded(Light ? Ink.TooltipLightBody   : Ink.TooltipDarkBody,   Disclosed);
+    const ThemeToken Ground = Faded(Light ? Colour.TooltipLightGround : Colour.TooltipDarkGround, Disclosed);
+    const ThemeToken Title  = Faded(Light ? Colour.TooltipLightTitle  : Colour.TooltipDarkTitle,  Disclosed);
+    const ThemeToken Body   = Faded(Light ? Colour.TooltipLightBody   : Colour.TooltipDarkBody,   Disclosed);
 
     // ① The body is wrapped first, because the card's extent across follows from how many lines it took.
     const float Interior = Measure.TooltipAlong - Measure.TooltipPad * 2.0f;
@@ -1165,7 +1165,7 @@ void ComponentSpecification::RecordTooltip(const DeferredRecording& Holding)
     //    sheet's own arrow is a rotated div whose rounded corners are hidden behind the card regardless.
     const float ArrowReach  = Measure.TooltipArrowExtent * 0.5f;
     const float ArrowCentre = Card.LeastAlong + Measure.TooltipArrowAlong;
-    const float ArrowAcross = Card.MostAcross - Measure.TooltipArrowSink;
+    const float ArrowAcross = Card.MostAcross - Measure.TooltipArrowScolour;
 
     const float Corners[8] = { ArrowCentre,              ArrowAcross - ArrowReach,
                                ArrowCentre + ArrowReach, ArrowAcross,

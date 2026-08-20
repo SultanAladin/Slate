@@ -183,14 +183,14 @@ public:
 
     /// 🧩 Constructs Host, Device, Display and Recording in `32` §1's declared order.
     /// in    Declared  [-]  what the host states once; the naming is retained for every report
-    /// out   Deliver   [-]  refuses at the first stage that declines, naming it, having reclaimed whatever
+    /// out   Result   [-]  refuses at the first stage that declines, naming it, having reclaimed whatever
     ///                      earlier stages had already constructed
     /// note  🔴 A partial construction is never delivered. Every refusal path unwinds what it built, so a
     ///        host that checks the delivery and returns leaks nothing.
     /// post  on delivery, `Interface` carries every handle the interface seam needs
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const HostDeclaration& Declared);
+    Result<bool> Construct(const HostDeclaration& Declared);
 
     /// 🧩 Opens one tick — drains input, recovers the display if it moved, acquires an image, and opens a
     ///    recording inside a rendering scope over it.
@@ -206,14 +206,14 @@ public:
     TickPass Await(const float ClearInk[4]);
 
     /// 🧩 Closes the rendering scope, submits the recording, presents, and advances the cycle.
-    /// out   Deliver  [-]  refuses when no tick stands recording; a refused present is recovered here and
+    /// out   Result  [-]  refuses when no tick stands recording; a refused present is recovered here and
     ///                     is not reported as a refusal
     /// note  🔴 A refused present re-establishes the chain rather than ending the loop. It is the ordinary
     ///        answer to a resize that arrived between the acquire and the present.
     /// post  no recording is open; the next Await may proceed
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Surrender();
+    Result<bool> Surrender();
 
     /// 🧩 Whether the host should keep ticking.
     /// cost  ✔️
@@ -260,10 +260,10 @@ public:
     ///        closed the host on the third press, which reads as the rebuild having crashed it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> RebuildDevice();
+    Result<bool> RebuildDevice();
 
     /// 🧩 Retires the device tier and rebuilds it, leaving the window, instance and surface standing.
-    /// out   Deliver  [-]  refuses when the rebuild declines, having left nothing half-constructed
+    /// out   Result  [-]  refuses when the rebuild declines, having left nothing half-constructed
     /// use   Called on a reported device loss, and by the diagnostic key that exercises this path.
     /// note  🔴 🚧 Every device resource a HOST owns is invalid once this returns — its pipelines, its
     ///        descriptor sets, the interface's font atlas. `DeviceRecovered` reports that, and a host that
@@ -272,7 +272,7 @@ public:
     ///        again to recover would stand a second window in front of the artist.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> RecoverDevice();
+    Result<bool> RecoverDevice();
 
     /// 🧩 Whether the device tier was rebuilt since the host last asked, and clears the record of it.
     /// use   A host calls this to rebuild every device resource it owns, exactly once per recovery.
@@ -312,7 +312,7 @@ public:
 
 private:
 
-    Deliver<bool> EstablishDisplay(std::uint32_t Width, std::uint32_t Height);
+    Result<bool> EstablishDisplay(std::uint32_t Width, std::uint32_t Height);
     bool          RecoverDisplay();
 
     /// 🧩 Retires an acquired image whose `ImageArrived` no submission is going to wait down.

@@ -29,7 +29,7 @@ namespace Slate
 
 /// 🧩 Which reduction level a declared working extent paints at.
 /// in    WorkingExtent  [px] texels per edge of the surface's authored content
-/// out   Deliver        [-]  refuses with ContentUnsupported when no level has that extent
+/// out   Result        [-]  refuses with ContentUnsupported when no level has that extent
 /// note  🔴 `22` §2: paint is authored content and lands at **one** level — the level whose texel grid is the
 ///        working extent. Resolving a stroke against a coarser level is not a lower-quality stroke, it is a
 ///        stroke recorded at a resolution the artist did not choose, and no later promotion recovers it.
@@ -38,7 +38,7 @@ namespace Slate
 ///        that is not one of the seven is refused rather than rounded to the nearest.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Deliver<std::uint32_t> PaintingLevelOf(std::uint32_t WorkingExtent);
+Result<std::uint32_t> PaintingLevelOf(std::uint32_t WorkingExtent);
 
 // 📝 `ChannelPlacement` is `56`'s, declared beside `PaintedContent` because it describes that content's layout
 //    and `70` reads the same declaration from below. It arrives through `SurfaceLayerSequence.h`.
@@ -145,14 +145,14 @@ struct SealedStroke
 /// 🧩 Replays one sealed stroke's inverse, returning the touched extents to what stood before it.
 /// in    Sealed   [-]  as `Seal` produced it
 /// in    Content  [-]  the sequence the stroke wrote into
-/// out   Deliver  [-]  refuses with IdentityStale when the entry no longer resolves, and with
+/// out   Result  [-]  refuses with IdentityStale when the entry no longer resolves, and with
 ///                     ContentUnsupported when its extent no longer matches the recorded one
 /// note  🔴 This is the operation `RevisionSequence` replays at a backward scrub. It is not a second forward
 ///        path with the values negated — a combination like `Multiply` has no negation, and `Erase` has no
 ///        inverse expressible as an erase.
 /// cost  🔴
 /// tag   api, nonthrowing
-Deliver<bool> Restore(const SealedStroke& Sealed, SurfaceLayerSequence& Content);
+Result<bool> Restore(const SealedStroke& Sealed, SurfaceLayerSequence& Content);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE STROKE
@@ -179,7 +179,7 @@ public:
     /// 🧩 Opens a stroke against a declared brush.
     /// in    Declaring  [-]  the surface, the entry, the packing and the seed
     /// in    Brushed    [-]  `58`'s declaration; its parameters are recorded, not referenced — `58` §7
-    /// out   Deliver    [-]  refuses with HostDenied when a stroke is already open, with ContentUnsupported for
+    /// out   Result    [-]  refuses with HostDenied when a stroke is already open, with ContentUnsupported for
     ///                       a working extent that is no reduction level, for a channel placement outside the
     ///                       entry's components, and for a shape source that is not yet resolvable
     /// post  nothing is recorded; the accumulation is empty and the path has not begun
@@ -188,11 +188,11 @@ public:
     ///        promises the preview and the committed impression share one shape.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Open(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
+    Result<bool> Open(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
 
     /// 🧩 Admits one arrival, resampling the path and emitting whatever impressions it reached.
     /// in    Arriving  [-]  the pointer sample, its arrival stamp, and `74`'s domain position
-    /// out   Deliver   [-]  refuses with HostDenied before Open, and with ExtentExhausted at the ceiling
+    /// out   Result   [-]  refuses with HostDenied before Open, and with ExtentExhausted at the ceiling
     /// post  the path advanced; zero or more impressions were appended, each owed resolution
     /// note  🔴 Resampling is in the **domain** at the brush's own spacing, so a stroke drawn slowly and one
     ///        drawn quickly place the same impressions. `58` §5 makes spacing relative to the extent, so a
@@ -205,13 +205,13 @@ public:
     ///        last impression on the residue of the additions rather than on the path the artist drew.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Amend(const StrokeArrival& Arriving);
+    Result<bool> Amend(const StrokeArrival& Arriving);
 
     /// 🧩 Resolves whatever impressions the residency now admits, demanding what it does not.
     /// in    Residency        [-]  the surface's cells and tiles
     /// in    Requesting       [-]  where a demand for a non-resident cell is recorded
     /// in    RecordingOrdinal  [-]  the rotation resolving
-    /// out   Deliver          [-]  refuses with HostDenied before Open
+    /// out   Result          [-]  refuses with HostDenied before Open
     /// post  🔴 a deferred impression stays owed; nothing is dropped and nothing resolves coarse
     /// note  🔴 `22` §2: an impression touching a non-resident cell **demands and defers**. It is not resolved
     ///        against the coarse level, because paint applied at the wrong resolution is authored content that
@@ -225,7 +225,7 @@ public:
     ///        have — and the artist sees most of a stroke immediately instead of none of it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<ResolvedRun> Resolve(SurfaceTileSpace& Residency,
+    Result<ResolvedRun> Resolve(SurfaceTileSpace& Residency,
                                  RequestQueue&     Requesting,
                                  std::uint64_t     RecordingOrdinal);
 
@@ -240,7 +240,7 @@ public:
     /// in    Revised    [-]  where the transaction is recorded
     /// in    Residency  [-]  the tiles pinned by the stroke, released here
     /// in    SealedAt   [ns] the arrival stamp the transaction carries
-    /// out   Deliver    [-]  refuses with HostDenied before Open and for a speculative stroke, with
+    /// out   Result    [-]  refuses with HostDenied before Open and for a speculative stroke, with
     ///                       IdentityStale for an entry that no longer resolves, and with ContentUnsupported
     ///                       when the entry's extent no longer matches the stroke's
     /// post  🔴 the accumulated coverage was applied **once**; every touched cell is committed again
@@ -251,7 +251,7 @@ public:
     ///        quietly succeeded for one would put a preview in the revision sequence.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<SealedStroke> Seal(SurfaceLayerSequence& Content,
+    Result<SealedStroke> Seal(SurfaceLayerSequence& Content,
                                RevisionSequence&     Revised,
                                SurfaceTileSpace&     Residency,
                                std::uint64_t         SealedAt);
@@ -259,10 +259,10 @@ public:
     /// 🧩 Discards the accumulation without ending the stroke — a speculative extent's per-slot reclaim.
     /// note  🔴 `22` §4.1: a speculative extent is discarded and re-resolved each rotation. Refuses for a
     ///        committed stroke, whose accumulation is the only record of what has been painted so far.
-    /// out   Deliver  [-]  refuses with HostDenied for a committed stroke
+    /// out   Result  [-]  refuses with HostDenied for a committed stroke
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> ReclaimSpeculative();
+    Result<bool> ReclaimSpeculative();
 
     const std::vector<ImpressionSample>& Impressions() const;
     const StrokeSpace&                   Accumulation() const;
@@ -282,7 +282,7 @@ private:
     ResolvedAxes  ProjectAxes(const PointerSample& Arriving,
                               double TangentAlong, double TangentAcross,
                               double Speed, double PathDistance) const;
-    Deliver<bool> ResolveOne(ImpressionSample& Impressing,
+    Result<bool> ResolveOne(ImpressionSample& Impressing,
                              SurfaceTileSpace& Residency,
                              RequestQueue&     Requesting,
                              std::uint64_t     RecordingOrdinal);

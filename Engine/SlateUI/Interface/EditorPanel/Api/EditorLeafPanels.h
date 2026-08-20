@@ -16,8 +16,8 @@ namespace Slate
 //                                                    CONTENT PRESENTATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Names which leaf a `LeafPanel` presents. The ordinal selects the leaf's ground ink, caption and text
-///     size out of `AppearanceSpecification`; it carries no other meaning.
+/// 🧩 Names which leaf a `LeafPanel` presents. The ordinal selects the leaf's ground colour, caption and text
+///     size out of `ThemeProfile`; it carries no other meaning.
 /// note  🔴 Adding a leaf is adding an enumerator and a row in `LeafAppearance`, never a new class. The four
 ///       leaves differed only in those three ordinates, so four classes were four copies of one body.
 enum class LeafSubject : std::uint32_t
@@ -32,19 +32,19 @@ enum class LeafSubject : std::uint32_t
 /// 🧩 Presents one skeletal render target beneath shared editor chrome, chosen by `LeafSubject`.
 /// tag   owning, nonallocating, nonthrowing
 /// note  This replaced `ScenePanel`, `UvPanel`, `OutlinerPanel` and `PropertyPanel`, which shared a body and
-///       differed only in the ground ink, the caption and the text size. `Slate::OutlinerPanel` also collided
+///       differed only in the ground colour, the caption and the text size. `Slate::OutlinerPanel` also collided
 ///       by name with a second panel class of the same spelling; that collision is gone with the class.
 class LeafPanel
 {
 public:
     /// 🧩 Seats the recording surface, the appearance declarations and the leaf this instance presents.
     /// in    ArrivingSurface     [-]  the surface every recording is made against
-    /// in    ArrivingAppearance  [-]  the appearance declarations the ground ink is read from
+    /// in    ArrivingAppearance  [-]  the appearance declarations the ground colour is read from
     /// in    ArrivingSubject     [-]  which leaf this instance presents
-    /// out   Deliver<bool>       [-]  refuses when a construction already stands
+    /// out   Result<bool>       [-]  refuses when a construction already stands
     /// cost  ✔️
-    Deliver<bool> Construct(RecordingSurface& ArrivingSurface,
-                            const AppearanceSpecification& ArrivingAppearance,
+    Result<bool> Construct(RecordingSurface& ArrivingSurface,
+                            const ThemeProfile& ArrivingAppearance,
                             LeafSubject ArrivingSubject);
 
     /// 🧩 Records the leaf's ground and its centred caption across the arriving extent.
@@ -58,7 +58,7 @@ public:
 
 private:
     RecordingSurface* Surface = nullptr;
-    const AppearanceSpecification* Appearance = nullptr;
+    const ThemeProfile* Appearance = nullptr;
     LeafSubject Subject = LeafSubject::Scene;
 };
 

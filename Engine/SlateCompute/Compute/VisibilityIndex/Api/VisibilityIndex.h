@@ -102,37 +102,37 @@ public:
     /// 🧩 Derives the reduction chain for one display extent.
     /// in    DisplayAlong   [px]  the display extent this rotation is recorded against
     /// in    DisplayAcross  [px]
-    /// out   Deliver        [-]   refuses with whatever `DepthReduction` refused
+    /// out   Result        [-]   refuses with whatever `DepthReduction` refused
     /// post  the chain stands; the enrolled partitionings are untouched
     /// note  🔴 A display extent change re-derives the chain and re-derives **nothing else**. The partitionings
     ///        are in object space and `16` §1 forbids rebuilding them per rotation, let alone per resize.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Result<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
 
     /// 🧩 Contributes `08` §3 ②'s recording — the one that produces all four targets.
     /// in    Schedule  [-]  the schedule being assembled at bring-up
-    /// out   Deliver   [-]  refuses with whatever the schedule refused
+    /// out   Result   [-]  refuses with whatever the schedule refused
     /// note  🔴 Four targets produced by one recording, because `16` §4.2 writes motion here for the reason it
     ///        writes depth here: the previous rotation's projection of this same triangle is in hand at exactly
     ///        this point and is recoverable nowhere downstream. A second recording deriving it from depth alone
     ///        recovers camera motion and never occupant motion.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Contribute(RenderSchedule& Schedule) const;
+    Result<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Partitions one sealed topology, adopts the result, and declares it into `42`'s resolution.
     /// in    Occupant     [-]  who the topology belongs to
     /// in    Imported     [-]  the sealed topology
     /// in    Conditioned  [-]  its conditioning, at the same revision
     /// in    Resolutions  [-]  the document's resolution; the identities are issued into it
-    /// out   Deliver      [-]  the enrolment ordinal, or whatever the derivation or the resolution refused
+    /// out   Result      [-]  the enrolment ordinal, or whatever the derivation or the resolution refused
     /// post  the standing ordinals run contiguously and every one of them resolves
     /// note  🔴 `16` §1: called when the topology changes and at no other time. It is `34` `Background` work —
     ///        the derivation is the expensive half and it reads nothing but its arguments.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Enroll(OccupantIdentity            Occupant,
+    Result<std::uint32_t> Enroll(OccupantIdentity            Occupant,
                                   const TopologyStructure&    Imported,
                                   const TopologyConditioning& Conditioned,
                                   PartitionResolutionIndex&   Resolutions);
@@ -140,21 +140,21 @@ public:
     /// 🧩 What one pixel resolves to — the occupant, the material and the face range behind it.
     /// in    Written      [-]  the word read back from the target
     /// in    Resolutions  [-]  the document's resolution
-    /// out   Deliver      [-]  refuses with ContentUnsupported for an unoccupied pixel or an ordinal outside the
+    /// out   Result      [-]  refuses with ContentUnsupported for an unoccupied pixel or an ordinal outside the
     ///                         declared count, and with IdentityStale when the resolution was rebuilt since
     /// note  🔴 Two indexed lookups and no search — the ordinal indexes the identities this component declared,
     ///        and the identity indexes `42`'s resolution. `16` §6's gate is that every consumer reads that one
     ///        resolution rather than deriving its own.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<ResolvedPartition> Resolve(VisibilityWord                  Written,
+    Result<ResolvedPartition> Resolve(VisibilityWord                  Written,
                                        const PartitionResolutionIndex& Resolutions) const;
 
     /// 🧩 One enrolled topology's standing partitioning.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the enrolled count
+    /// out   Result  [-]  refuses with ContentUnsupported outside the enrolled count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<const PartitionStructure*> Enrolled(std::uint32_t EnrolmentOrdinal) const;
+    Result<const PartitionStructure*> Enrolled(std::uint32_t EnrolmentOrdinal) const;
 
     /// 🧩 The reduction chain the culling tests against.
     /// cost  ✔️

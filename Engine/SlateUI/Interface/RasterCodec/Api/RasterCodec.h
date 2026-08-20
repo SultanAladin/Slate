@@ -57,7 +57,7 @@ public:
     /// 🧩 Resolves the vendored typeface atlas identity against the atlas the context holds.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> SeatAtlas(void* Identity);
+    Result<bool> SeatAtlas(void* Identity);
 
     /// 🧩 Translates one tick's recorded draw data into the seated pixel extent.
     /// in    RecordedDrawData  [-]  borrowed; the vendor draw data of the tick
@@ -68,14 +68,14 @@ public:
     /// 🧩 Writes the pixel extent as one marked raw dump, for the proof encoder.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> WriteRawDump(const PixelSpace& Extent, const char* Path);
+    Result<bool> WriteRawDump(const PixelSpace& Extent, const char* Path);
 
     /// 🧩 Writes the pixel extent as one portable network graphic — stored-deflate, no dependency.
     /// note  The directories along the path are created when absent, so a host may write beside itself
     ///       from any working directory.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> WritePortableNetworkGraphic(const PixelSpace& Extent, const char* Path);
+    Result<bool> WritePortableNetworkGraphic(const PixelSpace& Extent, const char* Path);
 
 private:
 

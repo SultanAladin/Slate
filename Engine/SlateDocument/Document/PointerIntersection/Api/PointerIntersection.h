@@ -45,7 +45,7 @@ struct ProjectedRay
 /// in    PointerAcross   [px]  its second, zero at the top edge
 /// in    DisplayAlong    [px]  the drawable extent this pointer position was reported against
 /// in    DisplayAcross   [px]
-/// out   Deliver         [-]   refuses with ContentUnsupported for a zero display extent or a projection with no
+/// out   Result         [-]   refuses with ContentUnsupported for a zero display extent or a projection with no
 ///                             interior, and with HostDenied while the camera owes a reconciliation
 /// note  🔴 The projection's own coefficients are read rather than a second unprojection being derived. `46` §3
 ///        applies `ClipOrdinateSignum` in its second row, so the display's downward-increasing ordinate is
@@ -57,7 +57,7 @@ struct ProjectedRay
 ///        at where the artist was looking before they moved.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Deliver<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
+Result<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
                                         double                  PointerAlong,
                                         double                  PointerAcross,
                                         std::uint32_t           DisplayAlong,
@@ -133,26 +133,26 @@ class PointerIntersection
 public:
 
     /// 🧩 Admits one occupant's surface sources, or amends the ones already admitted at that identity.
-    /// out   Deliver  [-]  refuses with IdentityStale for an undeclared identity, and with ContentUnsupported
+    /// out   Result  [-]  refuses with IdentityStale for an undeclared identity, and with ContentUnsupported
     ///                     when a coordinate run disagrees with the topology's corner count
     /// note  📝 The coordinate count is confirmed here rather than at the hit. A run that is one corner short
     ///        reads past its end at whichever triangle happens to touch the last corner, which is a pick that is
     ///        correct almost everywhere.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Admit(const AdmittedSurface& Arriving);
+    Result<bool> Admit(const AdmittedSurface& Arriving);
 
     /// 🧩 Withdraws one occupant's surface sources.
-    /// out   Deliver  [-]  refuses with IdentityStale when the occupant is not admitted
+    /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Withdraw(OccupantIdentity Subject);
+    Result<bool> Withdraw(OccupantIdentity Subject);
 
     /// 🧩 One admitted occupant's sources.
-    /// out   Deliver  [-]  refuses with IdentityStale when the occupant is not admitted
+    /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<const AdmittedSurface*> Standing(OccupantIdentity Subject) const;
+    Result<const AdmittedSurface*> Standing(OccupantIdentity Subject) const;
 
     /// 🧩 Resolves one ray to the whole tuple.
     /// in    Projected     [-]  the ray, from `ProjectPointerRay`

@@ -62,20 +62,20 @@ std::wstring Widen(const std::string& Narrow)
 //                                                    OPEN AND RECLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> StorageExchange::Open(const std::string& Path)
+Result<bool> StorageExchange::Open(const std::string& Path)
 {
     if (StreamSlot != nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "this exchange already holds a stream" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "this exchange already holds a stream" });
 
     if (Path.empty())
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
 
 #if defined(_WIN32)
 
     const std::wstring Widened = Widen(Path);
 
     if (Widened.empty())
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the path is not representable" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the path is not representable" });
 
     // 📝 FILE_FLAG_RANDOM_ACCESS tells the host not to read ahead sequentially. A codec declaring ranges is
     //    exactly the reader whose next range is not the one after this one, and the read-ahead would spend
@@ -89,14 +89,14 @@ Deliver<bool> StorageExchange::Open(const std::string& Path)
                                       nullptr);
 
     if (Stream == INVALID_HANDLE_VALUE)
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the stream could not be opened" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the stream could not be opened" });
 
     LARGE_INTEGER Spanned = {};
 
     if (GetFileSizeEx(Stream, &Spanned) == FALSE)
     {
         CloseHandle(Stream);
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the storage device declined the extent" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the storage device declined the extent" });
     }
 
     StreamSlot    = Stream;
@@ -107,7 +107,7 @@ Deliver<bool> StorageExchange::Open(const std::string& Path)
     std::FILE* Stream = std::fopen(Path.c_str(), "rb");
 
     if (Stream == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the stream could not be opened" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the stream could not be opened" });
 
     std::fseek(Stream, 0, SEEK_END);
 
@@ -116,7 +116,7 @@ Deliver<bool> StorageExchange::Open(const std::string& Path)
     if (Spanned < 0)
     {
         std::fclose(Stream);
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the storage device declined the extent" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the storage device declined the extent" });
     }
 
     StreamSlot    = Stream;
@@ -129,7 +129,7 @@ Deliver<bool> StorageExchange::Open(const std::string& Path)
     PendingOrdinal.clear();
     DrainedRanges.clear();
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void StorageExchange::Reclaim()
@@ -160,23 +160,23 @@ StorageExchange::~StorageExchange()
 //                                                    DECLARED RANGES
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> StorageExchange::Declare(RangeRequest Wanted)
+Result<std::uint32_t> StorageExchange::Declare(RangeRequest Wanted)
 {
     if (StreamSlot == nullptr)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::HostDenied, "no stream is open" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::HostDenied, "no stream is open" });
 
     if (Wanted.SpannedBytes == 0u)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::HostDenied, "an empty range asks for nothing" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::HostDenied, "an empty range asks for nothing" });
 
     if (Wanted.SpannedBytes > RangeCeiling)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted,
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted,
                                                 "the range spans beyond the declared ceiling" });
 
     // 🔴 An offset **at** the extent is beyond the stream and refuses; a range that merely reaches past the end
     //    is truncated on arrival and delivers what is there. The two are different facts — the first is a
     //    reader that has lost track of the stream, the second is one reading its last range.
     if (Wanted.Offset >= StreamSpanned)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted,
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted,
                                                 "the offset lies beyond the stream" });
 
     const std::uint32_t Issued = DeclaredCount;
@@ -186,7 +186,7 @@ Deliver<std::uint32_t> StorageExchange::Declare(RangeRequest Wanted)
     PendingOrder.push_back(Wanted);
     PendingOrdinal.push_back(Issued);
 
-    return Deliver<std::uint32_t>::Deliver(Issued);
+    return Result<std::uint32_t>::Result(Issued);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

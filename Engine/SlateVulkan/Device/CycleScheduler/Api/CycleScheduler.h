@@ -57,7 +57,7 @@ public:
     /// 🧩 Constructs the ordering points for every cycle slot.
     /// in    Exchange  [-]  the created device; borrowed and outlives this component
     /// in    Naming    [-]  names every ordering point; borrowed and outlives this component
-    /// out   Deliver   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
+    /// out   Result   [-]  refuses with CapabilityAbsent when no device is active, ExtentExhausted when the
     ///                      device declines an ordering point; refused in full, with nothing half-constructed
     /// post  the standing ordinal is zero and every completion is signalled
     /// note  🔴 `06` §7's diagnostic-name gate. Each of the three points is named by its slot **and** by what it
@@ -65,10 +65,10 @@ public:
     ///        by address — an unnamed cycle makes every deadlock report the same sentence.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Result<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Waits until the slot the standing ordinal names is no longer read, and makes it writable again.
-    /// out   Deliver  [-]  refuses with HostDenied when the device does not complete within the ceiling, and
+    /// out   Result  [-]  refuses with HostDenied when the device does not complete within the ceiling, and
     ///                     with DeviceLost when the device was lost; nothing is destroyed either way
     /// post  every resource the slot holds may be amended
     /// note  🔴 The ceiling is finite rather than indefinite. An indefinite wait against a lost device is a
@@ -76,14 +76,14 @@ public:
     ///        anything is destroyed — which cannot happen from inside a wait that never returns.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Await();
+    Result<bool> Await();
 
     /// 🧩 Clears the completion of the standing slot, immediately before the submission that signals it.
-    /// out   Deliver  [-]  refuses with HostDenied when the device declines
+    /// out   Result  [-]  refuses with HostDenied when the device declines
     /// pre   Await delivered for this slot
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Arm();
+    Result<bool> Arm();
 
     /// 🧩 Carries the standing ordinal to the next slot in the cycle.
     /// post  the ordinal is the previous one raised by one, modulo the slot count
@@ -92,10 +92,10 @@ public:
     void Advance();
 
     /// 🧩 The slot the standing ordinal names, for the recording and the display that read it.
-    /// out   Deliver  [-]  refuses with CapabilityAbsent before Construct delivered
+    /// out   Result  [-]  refuses with CapabilityAbsent before Construct delivered
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<CycleSlot> Standing() const;
+    Result<CycleSlot> Standing() const;
 
     /// 🧩 Which slot in the cycle is standing — what every per-slot claim is addressed by.
     /// cost  ✔️

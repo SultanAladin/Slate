@@ -17,10 +17,10 @@ namespace Slate
 namespace
 {
 
-constexpr InkOrdinate White = Covering(0xFFFFFFu);
-constexpr InkOrdinate Black = Covering(0x000000u);
-constexpr InkOrdinate QuietDark = Partial(0xFFFFFFu, .08);
-constexpr InkOrdinate QuietLight = Partial(0x000000u, .08);
+constexpr ThemeToken White = Covering(0xFFFFFFu);
+constexpr ThemeToken Black = Covering(0x000000u);
+constexpr ThemeToken QuietDark = Partial(0xFFFFFFu, .08);
+constexpr ThemeToken QuietLight = Partial(0x000000u, .08);
 constexpr float PagePad = 32.0f;
 constexpr float HeaderAcross = 64.0f;
 constexpr float CardGap = 16.0f;
@@ -38,7 +38,7 @@ float CentredAcross(const PlaneExtent& Extent, float Size)
     return Extent.LeastAcross + (Extent.SpanAcross() - Size) * 0.5f;
 }
 
-std::uint32_t WrappedText(RecordingSurface& Surface, const PlaneExtent& Extent, InkOrdinate Ink,
+std::uint32_t WrappedText(RecordingSurface& Surface, const PlaneExtent& Extent, ThemeToken Colour,
                           const char* Text, float Size, bool Record)
 {
     char Line[256] = {};
@@ -68,7 +68,7 @@ std::uint32_t WrappedText(RecordingSurface& Surface, const PlaneExtent& Extent, 
             if (Record)
                 Surface.TextRunTruncated(Extent.LeastAlong,
                                          Extent.LeastAcross + static_cast<float>(LineCount) * (Size + 4.0f),
-                                         Extent.MostAlong, Ink, Line, Size);
+                                         Extent.MostAlong, Colour, Line, Size);
             ++LineCount;
             LineLength = 0u;
         }
@@ -84,19 +84,19 @@ std::uint32_t WrappedText(RecordingSurface& Surface, const PlaneExtent& Extent, 
         if (Record)
             Surface.TextRunTruncated(Extent.LeastAlong,
                                      Extent.LeastAcross + static_cast<float>(LineCount) * (Size + 4.0f),
-                                     Extent.MostAlong, Ink, Line, Size);
+                                     Extent.MostAlong, Colour, Line, Size);
         ++LineCount;
     }
     return LineCount;
 }
 
-InkOrdinate WithOpacity(InkOrdinate Ink, float Fraction)
+ThemeToken WithOpacity(ThemeToken Colour, float Fraction)
 {
-    Ink.Opacity = static_cast<std::uint8_t>(static_cast<float>(Ink.Opacity) * Fraction + .5f);
-    return Ink;
+    Colour.Opacity = static_cast<std::uint8_t>(static_cast<float>(Colour.Opacity) * Fraction + .5f);
+    return Colour;
 }
 
-InkOrdinate Between(InkOrdinate From, InkOrdinate To, float Fraction)
+ThemeToken Between(ThemeToken From, ThemeToken To, float Fraction)
 {
     const auto Mix = [Fraction](std::uint8_t First, std::uint8_t Second)
     {
@@ -125,39 +125,39 @@ const char* PageCaption(ControlCentrePage Page)
 
 } // namespace
 
-Deliver<bool> ControlCentrePanel::Construct(MotionIntegrator& ArrivingMotion, RecordingSurface& ArrivingSurface,
-                                            const AppearanceSpecification& ArrivingAppearance)
+Result<bool> ControlCentrePanel::Construct(MotionIntegrator& ArrivingMotion, RecordingSurface& ArrivingSurface,
+                                            const ThemeProfile& ArrivingAppearance)
 {
     if (Motion != nullptr)
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             {RefusalReason::ContentUnsupported, "a Control Centre construction already stands"});
 
     Motion = &ArrivingMotion;
     Surface = &ArrivingSurface;
     Appearance = &ArrivingAppearance;
 
-    if (!Interaction.Construct(ArrivingMotion).ContentPresent)
-        return Deliver<bool>::Refuse(
+    if (!Interaction.Construct(ArrivingMotion).Resolved)
+        return Result<bool>::Refuse(
             {RefusalReason::ExtentExhausted, "the Control Centre interaction index was refused"});
 
-    if (!SharedControls.Construct(Interaction, ArrivingSurface, ArrivingAppearance).ContentPresent)
-        return Deliver<bool>::Refuse(
+    if (!SharedControls.Construct(Interaction, ArrivingSurface, ArrivingAppearance).Resolved)
+        return Result<bool>::Refuse(
             {RefusalReason::ContentUnsupported, "the shared Control Centre controls were refused"});
 
     for (std::uint32_t Ordinal = 0u; Ordinal < ControlCapacity; ++Ordinal)
     {
-        const Deliver<ControlIdentity> Issued = Interaction.Enrol();
-        if (!Issued.ContentPresent) return Deliver<bool>::Refuse(Issued.Declined);
+        const Result<ControlIdentity> Issued = Interaction.Enrol();
+        if (!Issued.Resolved) return Result<bool>::Refuse(Issued.Error);
         Controls[Ordinal] = Issued.Resolve();
     }
 
-    const Deliver<std::uint32_t> PageIssued = ArrivingMotion.EnrolEased(1.0);
-    const Deliver<std::uint32_t> TabIssued = ArrivingMotion.EnrolEased(1.0);
-    const Deliver<std::uint32_t> ThemeIssued = ArrivingMotion.EnrolEased(1.0);
-    const Deliver<std::uint32_t> FontIssued = ArrivingMotion.EnrolEased(1.0);
-    if (!PageIssued.ContentPresent || !TabIssued.ContentPresent || !ThemeIssued.ContentPresent ||
-        !FontIssued.ContentPresent)
-        return Deliver<bool>::Refuse({RefusalReason::ExtentExhausted, "the Control Centre carousel was refused"});
+    const Result<std::uint32_t> PageIssued = ArrivingMotion.EnrolEased(1.0);
+    const Result<std::uint32_t> TabIssued = ArrivingMotion.EnrolEased(1.0);
+    const Result<std::uint32_t> ThemeIssued = ArrivingMotion.EnrolEased(1.0);
+    const Result<std::uint32_t> FontIssued = ArrivingMotion.EnrolEased(1.0);
+    if (!PageIssued.Resolved || !TabIssued.Resolved || !ThemeIssued.Resolved ||
+        !FontIssued.Resolved)
+        return Result<bool>::Refuse({RefusalReason::ExtentExhausted, "the Control Centre carousel was refused"});
 
     PageMotion = PageIssued.Resolve();
     TabMotion = TabIssued.Resolve();
@@ -167,14 +167,14 @@ Deliver<bool> ControlCentrePanel::Construct(MotionIntegrator& ArrivingMotion, Re
     for (std::uint32_t Ordinal = 0u;
          Ordinal < static_cast<std::uint32_t>(ControlCentrePage::PageCount); ++Ordinal)
     {
-        const Deliver<std::uint32_t> ScrollIssued = ArrivingMotion.EnrolEased(1.0);
-        if (!ScrollIssued.ContentPresent)
-            return Deliver<bool>::Refuse({RefusalReason::ExtentExhausted,
+        const Result<std::uint32_t> ScrollIssued = ArrivingMotion.EnrolEased(1.0);
+        if (!ScrollIssued.Resolved)
+            return Result<bool>::Refuse({RefusalReason::ExtentExhausted,
                                           "the Control Centre scroll motion was refused"});
         ScrollMotion[Ordinal] = ScrollIssued.Resolve();
     }
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void ControlCentrePanel::Advance(const PointerCondition& Arrived, double Elapsed)
@@ -212,7 +212,7 @@ bool ControlCentrePanel::Pressed(std::uint32_t Ordinal, const PlaneExtent& Exten
 
 bool ControlCentrePanel::Slider(std::uint32_t Ordinal, const PlaneExtent& Extent, std::uint32_t Least,
                                 std::uint32_t Most, std::uint32_t& Reading, const char* UnitGlyph,
-                                InkOrdinate Rail, InkOrdinate Accent)
+                                ThemeToken Rail, ThemeToken Accent)
 {
     if (Ordinal >= ControlCapacity || Most <= Least) return false;
 
@@ -231,8 +231,8 @@ bool ControlCentrePanel::Slider(std::uint32_t Ordinal, const PlaneExtent& Extent
     return Verdict.OrdinateAltered;
 }
 
-void ControlCentrePanel::Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, InkOrdinate Quiet,
-                                InkOrdinate Accent)
+void ControlCentrePanel::Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet,
+                                ThemeToken Accent)
 {
     if (Pressed(Ordinal, Extent)) Enabled = !Enabled;
 
@@ -243,9 +243,9 @@ void ControlCentrePanel::Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent
                        Extent.LeastAcross + Extent.SpanAcross() * .5f, 8.0f, White);
 }
 
-void ControlCentrePanel::Symbol(const PlaneExtent& Extent, InkOrdinate Ink)
+void ControlCentrePanel::Symbol(const PlaneExtent& Extent, ThemeToken Colour)
 {
-    Surface->Stroke(SymbolSubject::PlaceholderMark, Extent, Ink);
+    Surface->Stroke(SymbolSubject::PlaceholderMark, Extent, Colour);
 }
 
 void ControlCentrePanel::Navigate(ControlCentrePage Arriving)
@@ -257,12 +257,12 @@ void ControlCentrePanel::Navigate(ControlCentrePage Arriving)
     Motion->Eased(PageMotion).Depart(0.0, 1.0, DragDuration, 0.0, EaseCurve::Carousel);
 }
 
-Deliver<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates)
+Result<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates)
 {
     if (Surface == nullptr || Motion == nullptr)
-        return Deliver<bool>::Refuse({RefusalReason::CapabilityAbsent, "no Control Centre construction stands"});
+        return Result<bool>::Refuse({RefusalReason::CapabilityAbsent, "no Control Centre construction stands"});
 
-    if (Interior.SpanAlong() <= 0.0f || Interior.SpanAcross() <= 0.0f) return Deliver<bool>::Deliver(true);
+    if (Interior.SpanAlong() <= 0.0f || Interior.SpanAcross() <= 0.0f) return Result<bool>::Result(true);
 
     ExclusionCount = 0u;
     if (Ordinates.Page != PresentedPage) Navigate(Ordinates.Page);
@@ -284,7 +284,7 @@ Deliver<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCen
     Theme.Secondary = Between(FromTheme.Secondary, ToTheme.Secondary, ThemeFraction);
     Theme.Edge = Between(FromTheme.Edge, ToTheme.Edge, ThemeFraction);
     Theme.Card = Between(FromTheme.Card, ToTheme.Card, ThemeFraction);
-    const InkOrdinate Accent = ThemeSpecification::Accent(Ordinates.Primary).Ink;
+    const ThemeToken Accent = ThemeSpecification::Accent(Ordinates.Primary).Colour;
     Surface->Ground(Interior, Theme.Panel, 0.0f, CornerNone);
 
     const PlaneExtent SettingsButton = Spanning(Interior.MostAlong - 68.0f, Interior.LeastAcross + 24.0f, 44.0f, 44.0f);
@@ -364,11 +364,11 @@ Deliver<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCen
         RenderPage(PresentedPage, PageExtent);
     }
     Surface->Release();
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
-                                       const ThemeDeclaration& Theme, InkOrdinate Accent)
+                                       const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const float ContentAlong = (Extent.SpanAlong() < 1024.0f) ? Extent.SpanAlong() : 1024.0f;
     const float Start = Extent.LeastAlong + (Extent.SpanAlong() - ContentAlong) * .5f;
@@ -480,7 +480,7 @@ void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreO
 }
 
 void ControlCentrePanel::SettingsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
-                                      const ThemeDeclaration& Theme, InkOrdinate Accent)
+                                      const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const float Width = (Extent.SpanAlong() < 672.0f) ? Extent.SpanAlong() : 672.0f;
     const float Along = Extent.LeastAlong + (Extent.SpanAlong() - Width) * .5f;
@@ -534,7 +534,7 @@ void ControlCentrePanel::SettingsPage(const PlaneExtent& Extent, ControlCentreOr
 }
 
 void ControlCentrePanel::NotificationsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
-                                           const ThemeDeclaration& Theme, InkOrdinate Accent)
+                                           const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const float Width = (Extent.SpanAlong() < 768.0f) ? Extent.SpanAlong() : 768.0f;
     const float Along = Extent.LeastAlong + (Extent.SpanAlong() - Width) * .5f;
@@ -593,7 +593,7 @@ void ControlCentrePanel::NotificationsPage(const PlaneExtent& Extent, ControlCen
 }
 
 void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
-                                     const ThemeDeclaration& Theme, InkOrdinate Accent)
+                                     const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const PlaneExtent Back = Spanning(Extent.LeastAlong, Extent.LeastAcross, 42.0f, 42.0f);
     Surface->Ground(Back, Theme.Card, 21.0f, CornerAll);
@@ -670,7 +670,7 @@ void ControlCentrePanel::DisplayPage(const PlaneExtent& Extent, ControlCentreOrd
 }
 
 void ControlCentrePanel::DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
-                                             const ThemeDeclaration& Theme, InkOrdinate Accent)
+                                             const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const PlaneExtent Card = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 440.0f);
     Surface->Ground(Card, Theme.Card, static_cast<float>(Ordinates.Radius < 16u ? 16u : Ordinates.Radius), CornerAll);
@@ -715,7 +715,7 @@ void ControlCentrePanel::DisplayHardwarePage(const PlaneExtent& Extent, ControlC
 }
 
 void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
-                                   const ThemeDeclaration& Theme, InkOrdinate Accent)
+                                   const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const PlaneExtent Section = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 1340.0f);
     Surface->Ground(Section, WithOpacity(Theme.Card, .72f), static_cast<float>(Ordinates.Radius < 24u ? 24u : Ordinates.Radius), CornerAll);
@@ -730,17 +730,17 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreOrdin
     const float TileHeight = TileWidth * (250.0f / 300.0f);
     const float GridWidth = TileWidth * 3.0f + 40.0f;
     const float GridLeast = ContentLeast + (ContentMost - ContentLeast - GridWidth) * 0.5f;
-    const InkOrdinate SelectionInk = Covering(0x7B42F6u);
+    const ThemeToken SelectionColour = Covering(0x7B42F6u);
 
     for (std::uint32_t Ordinal = 0u; Ordinal < 6u; ++Ordinal)
     {
         const ThemeSubject PreviewSubject = static_cast<ThemeSubject>(Ordinal);
         const ThemeDeclaration& Preview = ThemeSpecification::Theme(PreviewSubject);
         const bool WhitePreview = PreviewSubject == ThemeSubject::CleanWhite;
-        const InkOrdinate SidebarQuiet = WhitePreview ? Covering(0xDADAE0u) : Preview.PreviewSidebarQuiet;
-        const InkOrdinate SidebarStrong = WhitePreview ? Covering(0xC8C8CEu) : Preview.PreviewSidebarStrong;
-        const InkOrdinate MainQuiet = WhitePreview ? Covering(0xF0F0F0u) : Preview.PreviewQuiet;
-        const InkOrdinate MainStrong = WhitePreview ? Covering(0xE0E0E0u) : Preview.PreviewStrong;
+        const ThemeToken SidebarQuiet = WhitePreview ? Covering(0xDADAE0u) : Preview.PreviewSidebarQuiet;
+        const ThemeToken SidebarStrong = WhitePreview ? Covering(0xC8C8CEu) : Preview.PreviewSidebarStrong;
+        const ThemeToken MainQuiet = WhitePreview ? Covering(0xF0F0F0u) : Preview.PreviewQuiet;
+        const ThemeToken MainStrong = WhitePreview ? Covering(0xE0E0E0u) : Preview.PreviewStrong;
         const float Column = static_cast<float>(Ordinal % 3u);
         const float Row = static_cast<float>(Ordinal / 3u);
         const PlaneExtent Tile = Spanning(GridLeast + Column * (TileWidth + 20.0f),
@@ -755,10 +755,10 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreOrdin
                                            270.0f * AlongScale, 195.0f * AcrossScale);
 
         if (Selected)
-            Surface->Edge(Outer, WithOpacity(SelectionInk, .25f), 4.0f * AlongScale,
+            Surface->Edge(Outer, WithOpacity(SelectionColour, .25f), 4.0f * AlongScale,
                           OuterRadius, CornerAll);
         Surface->Ground(Outer, Preview.PreviewGround, OuterRadius, CornerAll);
-        Surface->Edge(Outer, Selected ? SelectionInk : Preview.Edge,
+        Surface->Edge(Outer, Selected ? SelectionColour : Preview.Edge,
                       (Selected ? 1.5f : 1.0f) * AlongScale, OuterRadius, CornerAll);
 
         const PlaneExtent Window = Spanning(Tile.LeastAlong + 45.0f * AlongScale,
@@ -855,7 +855,7 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreOrdin
         Surface->TextRun(Header.LeastAlong + 20.0f, Header.LeastAcross + 20.0f, Theme.Primary, Names[Ordinal],
                          14.0f, 0.0f, true);
         Surface->Medallion(Header.MostAlong - 48.0f, Header.LeastAcross + 28.0f, 10.0f,
-                           ThemeSpecification::Accent(Ordinates.SemanticColours[Ordinal]).Ink);
+                           ThemeSpecification::Accent(Ordinates.SemanticColours[Ordinal]).Colour);
         Symbol(Spanning(Header.MostAlong - 26.0f, Header.LeastAcross + 20.0f, 16.0f, 16.0f), Theme.Secondary);
 
         if (Disclosure > 0.0f)
@@ -869,7 +869,7 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreOrdin
             {
                 const PlaneExtent Swatch = Spanning(Row.LeastAlong + 22.0f + 44.0f * static_cast<float>(Colour),
                                                     Header.MostAcross + 26.0f, 32.0f, 32.0f);
-                Surface->Ground(Swatch, ThemeSpecification::Accent(static_cast<AccentSubject>(Colour)).Ink,
+                Surface->Ground(Swatch, ThemeSpecification::Accent(static_cast<AccentSubject>(Colour)).Colour,
                                 16.0f, CornerAll);
                 if (Ordinates.SemanticColours[Ordinal] == static_cast<AccentSubject>(Colour))
                     Surface->Edge(Spanning(Swatch.LeastAlong - 3.0f, Swatch.LeastAcross - 3.0f, 38.0f, 38.0f),
@@ -887,7 +887,7 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreOrdin
 }
 
 void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
-                                   const ThemeDeclaration& Theme, InkOrdinate Accent)
+                                   const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     static const char* Fonts[12] = {"Inter",        "General Sans", "JetBrains Mono", "Playfair",
                                     "Merriweather", "Fira Code",    "Roboto",         "Lato",
@@ -1000,8 +1000,8 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreOrdin
                                     (PreviewClip.SpanAcross() - PreviewText) * 0.5f;
         Surface->Confine(PreviewClip);
         Surface->TextRunTruncated(PreviewClip.LeastAlong, PreviewAcross, PreviewClip.MostAlong,
-                                  Ordinal == 6u   ? ThemeSpecification::Accent(Ordinates.Warning).Ink
-                                  : Ordinal == 7u ? ThemeSpecification::Accent(Ordinates.Alert).Ink
+                                  Ordinal == 6u   ? ThemeSpecification::Accent(Ordinates.Warning).Colour
+                                  : Ordinal == 7u ? ThemeSpecification::Accent(Ordinates.Alert).Colour
                                                   : Theme.Primary,
                                   Ordinal == 4u   ? "METADATA · 10:42 AM · SYSTEM"
                                   : Ordinal == 5u ? "* This is a small caption text"
@@ -1058,7 +1058,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreOrdin
 }
 
 void ControlCentrePanel::InputPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
-                                   const ThemeDeclaration& Theme, InkOrdinate Accent)
+                                   const ThemeDeclaration& Theme, ThemeToken Accent)
 {
     const float Width = (Extent.SpanAlong() < 768.0f) ? Extent.SpanAlong() : 768.0f;
     const float Along = Extent.LeastAlong + (Extent.SpanAlong() - Width) * .5f;

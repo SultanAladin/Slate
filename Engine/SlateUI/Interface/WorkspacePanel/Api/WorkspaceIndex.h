@@ -55,24 +55,24 @@ public:
 
     /// 🧩 Opens one workspace of the declared subject and makes it the active one.
     /// in    Subject  [-]  what the workspace is for; decides its title stem
-    /// out   Deliver  [-]  the ordinal it was enrolled at; refuses with ExtentExhausted at the ceiling
+    /// out   Result  [-]  the ordinal it was enrolled at; refuses with ExtentExhausted at the ceiling
     /// post  the enrolled workspace is active; its title is composed and will not be composed again
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<std::uint32_t> Enrol(WorkspaceSubject Subject);
+    Result<std::uint32_t> Enrol(WorkspaceSubject Subject);
 
     /// 🧩 Closes the workspace at one ordinal, preserving the order of the rest.
-    /// out   Deliver  [-]  refuses with IdentityStale when the ordinal names no workspace
+    /// out   Result  [-]  refuses with IdentityStale when the ordinal names no workspace
     /// note  ⚠️ The active ordinal moves to the preceding workspace, or to none when the last one closed.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Withdraw(std::uint32_t Ordinal);
+    Result<bool> Withdraw(std::uint32_t Ordinal);
 
     /// 🧩 Makes the workspace at one ordinal the active one.
-    /// out   Deliver  [-]  refuses with IdentityStale when the ordinal names no workspace
+    /// out   Result  [-]  refuses with IdentityStale when the ordinal names no workspace
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Present(std::uint32_t Ordinal);
+    Result<bool> Present(std::uint32_t Ordinal);
 
     /// 🧩 How many workspaces stand open.
     /// cost  ✔️
@@ -102,10 +102,10 @@ public:
     void Seat(std::uint32_t Ordinal);
 
     /// 🧩 The workspace at one ordinal.
-    /// out   Deliver  [-]  refuses with IdentityStale when the ordinal names no workspace
+    /// out   Result  [-]  refuses with IdentityStale when the ordinal names no workspace
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<WorkspaceEntry> Standing(std::uint32_t Ordinal) const;
+    Result<WorkspaceEntry> Standing(std::uint32_t Ordinal) const;
 
     /// 🧩 Which workspace is active, as an ordinal into the open set.
     /// out   Ordinal  [-]  AbsentWorkspace when none is open

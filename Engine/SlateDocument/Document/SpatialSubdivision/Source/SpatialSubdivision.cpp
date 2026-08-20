@@ -159,11 +159,11 @@ void RotateSpan(RotationQuaternion Rotation,
 //                                                THE INNER SUBDIVISION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> BoundingStructure::Construct(const TopologyStructure& Imported, const TopologyConditioning& Conditioned)
+Result<bool> BoundingStructure::Construct(const TopologyStructure& Imported, const TopologyConditioning& Conditioned)
 {
     if (!Imported.Sealed())
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::HostDenied, "an unsealed topology is not immutable for the run" });
     }
 
@@ -171,7 +171,7 @@ Deliver<bool> BoundingStructure::Construct(const TopologyStructure& Imported, co
     //    moved, and every intersection resolved against them is confidently wrong rather than merely absent.
     if (Conditioned.ConditionedRevision() != Imported.Revision())
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ExtentExhausted, "the conditioning describes a different topology revision" });
     }
 
@@ -225,7 +225,7 @@ Deliver<bool> BoundingStructure::Construct(const TopologyStructure& Imported, co
 
     StructureBuilt = true;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void BoundingStructure::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
@@ -621,10 +621,10 @@ std::size_t OctantSpace::Located(OccupantIdentity Subject) const
     return Admitted.size();
 }
 
-Deliver<bool> OctantSpace::Admit(const AdmittedOccupant& Arriving)
+Result<bool> OctantSpace::Admit(const AdmittedOccupant& Arriving)
 {
     if (!Arriving.Occupant.IdentityDeclared())
-        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity occupies nothing" });
+        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity occupies nothing" });
 
     const std::size_t Located_ = Located(Arriving.Occupant);
 
@@ -635,36 +635,36 @@ Deliver<bool> OctantSpace::Admit(const AdmittedOccupant& Arriving)
 
     BuildOwed = true;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> OctantSpace::Withdraw(OccupantIdentity Subject)
+Result<bool> OctantSpace::Withdraw(OccupantIdentity Subject)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Admitted.size())
-        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
+        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
 
     Admitted.erase(Admitted.begin() + static_cast<std::ptrdiff_t>(Located_));
     BuildOwed = true;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> OctantSpace::Refit(OccupantIdentity           Subject,
+Result<bool> OctantSpace::Refit(OccupantIdentity           Subject,
                                  const DecomposedTransform& Composed,
                                  ConditionedExtent          Extent)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Admitted.size())
-        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
+        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
 
     Admitted[Located_].Composed = Composed;
     Admitted[Located_].Extent   = Extent;
 
     if (BuildOwed || Records.empty())
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
 
     // 🔴 Refit, not rebuild — `40` §4. Every record on the path to the occupant widens to hold the new extent and
     //    the subdivision's shape is untouched. The widening is accumulated so `RebuildWorthwhile` can measure how
@@ -695,20 +695,20 @@ Deliver<bool> OctantSpace::Refit(OccupantIdentity           Subject,
     if (After > Before)
         WidenedVolume += After - Before;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<AdmittedOccupant> OctantSpace::Standing(OccupantIdentity Subject) const
+Result<AdmittedOccupant> OctantSpace::Standing(OccupantIdentity Subject) const
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Admitted.size())
-        return Deliver<AdmittedOccupant>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
+        return Result<AdmittedOccupant>::Refuse({ RefusalReason::IdentityStale, "the occupant is not admitted here" });
 
-    return Deliver<AdmittedOccupant>::Deliver(Admitted[Located_]);
+    return Result<AdmittedOccupant>::Result(Admitted[Located_]);
 }
 
-Deliver<bool> OctantSpace::Construct()
+Result<bool> OctantSpace::Construct()
 {
     Records.clear();
     EntryOrder.clear();
@@ -734,7 +734,7 @@ Deliver<bool> OctantSpace::Construct()
     WidenedVolume = 0.0;
     BuildOwed     = false;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void OctantSpace::Divide(std::uint32_t RecordOrdinal, std::uint32_t Depth)
@@ -1096,7 +1096,7 @@ void AxisSpace::Construct(const std::vector<DomainExtent>& Declaring)
     Extents = Declaring;
 }
 
-Deliver<bool> AxisSpace::Refit(std::uint32_t PlacementOrdinal, DomainExtent Amending)
+Result<bool> AxisSpace::Refit(std::uint32_t PlacementOrdinal, DomainExtent Amending)
 {
     for (DomainExtent& Held : Extents)
     {
@@ -1106,13 +1106,13 @@ Deliver<bool> AxisSpace::Refit(std::uint32_t PlacementOrdinal, DomainExtent Amen
         Held = Amending;
         Held.PlacementOrdinal = PlacementOrdinal;
 
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
     }
 
-    return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "no placement carries that ordinal" });
+    return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no placement carries that ordinal" });
 }
 
-Deliver<std::uint32_t> AxisSpace::Resolve(double PositionAlong, double PositionAcross) const
+Result<std::uint32_t> AxisSpace::Resolve(double PositionAlong, double PositionAcross) const
 {
     bool          Found    = false;
     std::uint32_t Resolved = 0u;
@@ -1138,9 +1138,9 @@ Deliver<std::uint32_t> AxisSpace::Resolve(double PositionAlong, double PositionA
     }
 
     if (!Found)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no placement contains the position" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no placement contains the position" });
 
-    return Deliver<std::uint32_t>::Deliver(Resolved);
+    return Result<std::uint32_t>::Result(Resolved);
 }
 
 std::vector<std::uint32_t> AxisSpace::Overlapping(DomainExtent Extent) const

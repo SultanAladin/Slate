@@ -105,16 +105,16 @@ public:
     ~MotionIntegrator()                                  = default;
 
     /// 🧩 Enrols a spring and delivers the ordinal the caller advances it by.
-    /// out   Deliver  [-]  refuses with ExtentExhausted when the capacity is full
+    /// out   Result  [-]  refuses with ExtentExhausted when the capacity is full
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<std::uint32_t> EnrolSpring(const MotionScale& Motion, double Seated);
+    Result<std::uint32_t> EnrolSpring(const MotionScale& Motion, double Seated);
 
     /// 🧩 Enrols an eased traverse and delivers its ordinal.
-    /// out   Deliver  [-]  refuses with ExtentExhausted when the capacity is full
+    /// out   Result  [-]  refuses with ExtentExhausted when the capacity is full
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<std::uint32_t> EnrolEased(double Seated);
+    Result<std::uint32_t> EnrolEased(double Seated);
 
     /// 🧩 The enrolled spring at one ordinal, for the caller to read and re-target.
     /// pre   the ordinal was delivered by EnrolSpring

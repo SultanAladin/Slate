@@ -107,17 +107,17 @@ ImageContentSubject ClassifyContent(const std::vector<std::uint8_t>& Leading)
 //                                                   THE TRANSLATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath)
+Result<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath)
 {
     if (Stream.empty())
     {
-        return Deliver<DecodedImage>::Refuse(
+        return Result<DecodedImage>::Refuse(
             { RefusalReason::ContentUnsupported, "an image stream of no bytes carries no image" });
     }
 
     if (Stream.size() > static_cast<std::size_t>(0x7FFFFFFF))
     {
-        return Deliver<DecodedImage>::Refuse(
+        return Result<DecodedImage>::Refuse(
             { RefusalReason::ExtentExhausted, "the image stream is longer than the decoder can address" });
     }
 
@@ -128,7 +128,7 @@ Deliver<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const s
 
     if (Classified == ImageContentSubject::Unrecognised)
     {
-        return Deliver<DecodedImage>::Refuse(
+        return Result<DecodedImage>::Refuse(
             { RefusalReason::ContentUnsupported, "the stream's leading bytes name no accepted image layout — `10` §1" });
     }
 
@@ -150,7 +150,7 @@ Deliver<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const s
 
         if (Decoded == nullptr)
         {
-            return Deliver<DecodedImage>::Refuse(
+            return Result<DecodedImage>::Refuse(
                 { RefusalReason::ContentUnsupported, "the decoder declined the floating-point image stream" });
         }
 
@@ -171,7 +171,7 @@ Deliver<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const s
 
         if (Decoded == nullptr)
         {
-            return Deliver<DecodedImage>::Refuse(
+            return Result<DecodedImage>::Refuse(
                 { RefusalReason::ContentUnsupported, "the decoder declined the sixteen-bit image stream" });
         }
 
@@ -192,7 +192,7 @@ Deliver<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const s
 
         if (Decoded == nullptr)
         {
-            return Deliver<DecodedImage>::Refuse(
+            return Result<DecodedImage>::Refuse(
                 { RefusalReason::ContentUnsupported, "the decoder declined the image stream" });
         }
 
@@ -209,7 +209,7 @@ Deliver<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const s
 
     if (DecodedWidth <= 0 || DecodedHeight <= 0 || DecodedComponents <= 0)
     {
-        return Deliver<DecodedImage>::Refuse(
+        return Result<DecodedImage>::Refuse(
             { RefusalReason::ContentUnsupported, "the decoded image carries no extent or no component" });
     }
 
@@ -225,7 +225,7 @@ Deliver<DecodedImage> Translate(const std::vector<std::uint8_t>& Stream, const s
     Produced.SpaceIdentity  = 0u;
     Produced.SpaceDeclared  = false;
 
-    return Deliver<DecodedImage>::Deliver(Produced);
+    return Result<DecodedImage>::Result(Produced);
 }
 
 }   // namespace Slate

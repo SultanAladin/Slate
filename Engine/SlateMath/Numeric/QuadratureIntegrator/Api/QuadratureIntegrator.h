@@ -44,14 +44,14 @@ public:
 
     /// 🧩 Derives the rule of a declared abscissa count.
     /// in    Requested  [-]  abscissae; a rule of n integrates a polynomial of degree 2n−1 exactly
-    /// out   Deliver    [-]  refuses with ContentUnsupported for zero, and with ExtentExhausted above the ceiling
+    /// out   Result    [-]  refuses with ContentUnsupported for zero, and with ExtentExhausted above the ceiling
     /// post  the abscissae are in ascending order and the weights sum to the reference interval's width
     /// note  📐 Only half the roots are solved for. The Legendre polynomials are even or odd, so the roots are
     ///        symmetric about the origin and the weights with them — solving both halves would be solving the
     ///        same equation twice and would let the two halves disagree in their last bit.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Derive(std::uint32_t Requested);
+    Result<bool> Derive(std::uint32_t Requested);
 
     /// 🧩 One abscissa of the reference interval, in ascending order.
     /// pre   Ordinal is below DeclaredCount
@@ -70,14 +70,14 @@ public:
     /// in    Upper     [-]  its upper bound
     /// out   Position  [-]  where the abscissa lands
     /// out   Weighting [-]  the weight scaled to the interval
-    /// out   Deliver   [-]  refuses with ExtentExhausted outside the declared count, and with ContentUnsupported
+    /// out   Result   [-]  refuses with ExtentExhausted outside the declared count, and with ContentUnsupported
     ///                      before the rule is derived
     /// note  📝 Exposed so that a caller integrating several components at once accumulates them side by side in
     ///        one walk, in ordinal order. `28` integrates three extinction components along one ray, and three
     ///        separate scalar integrations would evaluate the same density profile three times.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Project(std::uint32_t Ordinal,
+    Result<bool> Project(std::uint32_t Ordinal,
                           double        Lower,
                           double        Upper,
                           double&       Position,

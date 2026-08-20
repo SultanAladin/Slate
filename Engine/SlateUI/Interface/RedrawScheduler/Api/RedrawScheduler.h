@@ -26,7 +26,7 @@ namespace Slate
 enum class RedrawMark : std::uint32_t
 {
     Quiet     = 0u,   // [-] - nothing changed; the recorded content of the previous tick still stands
-    Recolour  = 1u,   // [-] - rewrite inks only — a rouse fade, an appearance fade, a selection moving
+    Recolour  = 1u,   // [-] - rewrite colours only — a rouse fade, an appearance fade, a selection moving
     Rerecord  = 2u,   // [-] - re-record this panel — text changed, an arrangement toggled, a subject set changed
     Rearrange = 3u,   // [-] - re-solve extents, then record — a resize, a breakpoint crossed, a disclosure opening
     MarkCount = 4u    // [-] - the closed count, never a mark
@@ -79,14 +79,14 @@ public:
 
     /// 🧩 Enrols one panel and delivers the ordinal it is marked by thereafter.
     /// in    Naming   [-]  static text naming the panel; presented by the diagnostic overlay only
-    /// out   Deliver  [-]  refuses with ExtentExhausted when the capacity is full
+    /// out   Result  [-]  refuses with ExtentExhausted when the capacity is full
     /// post  the enrolled panel stands at Rearrange — nothing has ever been solved for it
     /// note  🔴 A panel arrives marked at the dearest mark rather than quiet. The alternative is a panel
     ///        that enrols during a quiet tick and is never recorded at all, which reads as a panel that
     ///        failed to open rather than as a mark that was never raised.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<std::uint32_t> Enrol(const char* Naming);
+    Result<std::uint32_t> Enrol(const char* Naming);
 
     /// 🧩 Raises one panel's mark to the dearer of what it carries and what is declared.
     /// in    PanelOrdinal  [-]  what Enrol delivered; an unenrolled ordinal marks nothing

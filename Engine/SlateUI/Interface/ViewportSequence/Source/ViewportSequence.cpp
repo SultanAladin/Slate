@@ -14,35 +14,35 @@ namespace Slate
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> ViewportSequence::Construct(const InterfaceAttachment& Arriving,
+Result<bool> ViewportSequence::Construct(const InterfaceAttachment& Arriving,
                                           const DrawerDeclaration&   North,
                                           const DrawerDeclaration&   South)
 {
-    const Deliver<bool> InterfaceBuilt = Interface.Construct(Arriving);
-    if (!InterfaceBuilt.ContentPresent)
+    const Result<bool> InterfaceBuilt = Interface.Construct(Arriving);
+    if (!InterfaceBuilt.Resolved)
         return InterfaceBuilt;
 
     NorthDeclared = North;
     SouthDeclared = South;
     Resolved      = ResolveTinted(1.0, 1.0, 0.0f, Chosen);
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        THE TICK
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
+Result<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
 {
     // ① Open the ImGui frame.
-    const Deliver<bool> TickOpened = Interface.Advance();
-    if (!TickOpened.ContentPresent)
+    const Result<bool> TickOpened = Interface.Advance();
+    if (!TickOpened.Resolved)
         return TickOpened;
 
     // ② Adopt the surface — reads pointer and display from ImGui IO.
-    const Deliver<bool> SurfaceAdopted = SurfaceOwned.Adopt();
-    if (!SurfaceAdopted.ContentPresent)
+    const Result<bool> SurfaceAdopted = SurfaceOwned.Adopt();
+    if (!SurfaceAdopted.Resolved)
     {
         // 📝 Retired although the adopt refused and there is nothing to retire. `Retire` is idempotent, and
         //    a reader following this path should not have to prove it safe before moving on.
@@ -59,10 +59,10 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     // ④ Construct the drawers on the first tick, when the display extent is known.
     if (!DrawersConstructed)
     {
-        const Deliver<bool> DrawersBuilt =
+        const Result<bool> DrawersBuilt =
             DrawersOwned.Construct(Motion, Resolved, NorthDeclared, SouthDeclared, Display);
 
-        if (!DrawersBuilt.ContentPresent)
+        if (!DrawersBuilt.Resolved)
         {
             // 🔴 The surface is retired before the internal abandon, for the same reason `SealPanels`
             //    retires it: an adopt that SUCCEEDED against a tick this component is now abandoning must
@@ -121,7 +121,7 @@ Deliver<bool> ViewportSequence::Advance(double ElapsedMilliseconds)
     Motion.Advance(ElapsedMilliseconds > 0.0 ? ElapsedMilliseconds : Display.Elapsed);
 
     PanelsOpen = false;
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 InterfaceExchange& ViewportSequence::Seam()
@@ -154,7 +154,7 @@ void ViewportSequence::DrawerPanels()
     PanelsOpen = true;
 }
 
-Deliver<bool> ViewportSequence::SealPanels()
+Result<bool> ViewportSequence::SealPanels()
 {
     PanelsOpen = false;
 
@@ -166,7 +166,7 @@ Deliver<bool> ViewportSequence::SealPanels()
     return Interface.Seal();
 }
 
-Deliver<bool> ViewportSequence::Abandon()
+Result<bool> ViewportSequence::Abandon()
 {
     PanelsOpen = false;
 
@@ -177,12 +177,12 @@ Deliver<bool> ViewportSequence::Abandon()
     return Interface.Abandon();
 }
 
-Deliver<bool> ViewportSequence::Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount)
+Result<bool> ViewportSequence::Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount)
 {
     return Interface.Renegotiate(MinimumImageCount, ImageCount);
 }
 
-Deliver<bool> ViewportSequence::Record(VkCommandBuffer CommandRecording)
+Result<bool> ViewportSequence::Record(VkCommandBuffer CommandRecording)
 {
     return Interface.Record(CommandRecording);
 }
@@ -211,7 +211,7 @@ const RecordingSurface& ViewportSequence::Surface() const
     return SurfaceOwned;
 }
 
-const AppearanceSpecification& ViewportSequence::Appearance() const
+const ThemeProfile& ViewportSequence::Appearance() const
 {
     return Resolved;
 }
@@ -221,7 +221,7 @@ void ViewportSequence::Retint(const ThemeSelection& Selected)
     Chosen = Selected;
 
     // 🔴 Re-resolved here and not left for the next tick. A host reseats its panels from Appearance() on the
-    //    line after it retints, and those panels COPY the inks — so an appearance that still held the old
+    //    line after it retints, and those panels COPY the colours — so an appearance that still held the old
     //    theme would be copied into them and then never copied again, leaving the browser and the stack one
     //    theme behind for as long as the artist does not change colour twice.
     //    The scale is read back off the record rather than re-derived, so a retint cannot move a length.
@@ -279,7 +279,7 @@ void ViewportSequence::Reclaim()
     MarksOwned.~RedrawScheduler();
     ::new (&MarksOwned) RedrawScheduler{};
 
-    Resolved = AppearanceSpecification{};
+    Resolved = ThemeProfile{};
 
     DrawersConstructed = false;
     PanelsOpen         = false;

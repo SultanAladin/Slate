@@ -95,10 +95,10 @@ class ControlCentrePanel
 public:
     static constexpr std::uint32_t ControlCapacity = 192u;
 
-    Deliver<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
-                            const AppearanceSpecification& Appearance);
+    Result<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
+                            const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Arrived, double Elapsed);
-    Deliver<bool> Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates);
+    Result<bool> Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates);
     void Exclude(DrawerSpace& Drawers) const;
     void Reset();
 
@@ -106,30 +106,30 @@ private:
     void RetainExclusion(const PlaneExtent& Extent);
     bool Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent);
     bool Slider(std::uint32_t Ordinal, const PlaneExtent& Extent, std::uint32_t Least, std::uint32_t Most,
-                std::uint32_t& Reading, const char* UnitGlyph, InkOrdinate Rail, InkOrdinate Accent);
-    void Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, InkOrdinate Quiet, InkOrdinate Accent);
-    void Symbol(const PlaneExtent& Extent, InkOrdinate Ink);
+                std::uint32_t& Reading, const char* UnitGlyph, ThemeToken Rail, ThemeToken Accent);
+    void Toggle(std::uint32_t Ordinal, const PlaneExtent& Extent, bool& Enabled, ThemeToken Quiet, ThemeToken Accent);
+    void Symbol(const PlaneExtent& Extent, ThemeToken Colour);
     void DashboardPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
-                       InkOrdinate Accent);
+                       ThemeToken Accent);
     void SettingsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
-                      InkOrdinate Accent);
+                      ThemeToken Accent);
     void NotificationsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
-                           InkOrdinate Accent);
+                           ThemeToken Accent);
     void DisplayPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
-                     InkOrdinate Accent);
+                     ThemeToken Accent);
     void InputPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
-                   InkOrdinate Accent);
+                   ThemeToken Accent);
     void ThemePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
-                   InkOrdinate Accent);
+                   ThemeToken Accent);
     void FontsPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates, const ThemeDeclaration& Theme,
-                   InkOrdinate Accent);
+                   ThemeToken Accent);
     void DisplayHardwarePage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,
-                             const ThemeDeclaration& Theme, InkOrdinate Accent);
+                             const ThemeDeclaration& Theme, ThemeToken Accent);
     void Navigate(ControlCentrePage Arriving);
 
     MotionIntegrator* Motion = nullptr;
     RecordingSurface* Surface = nullptr;
-    const AppearanceSpecification* Appearance = nullptr;
+    const ThemeProfile* Appearance = nullptr;
     InteractionIndex Interaction = {};
     ComponentSpecification SharedControls = {};
     ControlIdentity Controls[ControlCapacity] = {};

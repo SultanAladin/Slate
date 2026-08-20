@@ -12,24 +12,24 @@ namespace Slate
 //                                                    CELL ADDRESSING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> OrdinalOf(CellAddress Addressed)
+Result<std::uint32_t> OrdinalOf(CellAddress Addressed)
 {
     if (Addressed.Level >= ReductionLevelCount)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such reduction level" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such reduction level" });
 
     const std::uint32_t Span = CellsPerEdgeAt(Addressed.Level);
 
     if (Addressed.Along >= Span || Addressed.Across >= Span)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such cell at that level" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such cell at that level" });
 
-    return Deliver<std::uint32_t>::Deliver(LevelBaseOrdinal(Addressed.Level) + Addressed.Across * Span
+    return Result<std::uint32_t>::Result(LevelBaseOrdinal(Addressed.Level) + Addressed.Across * Span
                                          + Addressed.Along);
 }
 
-Deliver<CellAddress> AddressOf(std::uint32_t CellOrdinal)
+Result<CellAddress> AddressOf(std::uint32_t CellOrdinal)
 {
     if (CellOrdinal >= CellOrdinalSpan)
-        return Deliver<CellAddress>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
+        return Result<CellAddress>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
 
     for (std::uint32_t Level = 0u; Level < ReductionLevelCount; ++Level)
     {
@@ -44,16 +44,16 @@ Deliver<CellAddress> AddressOf(std::uint32_t CellOrdinal)
         Addressed.Along  = (CellOrdinal - Base) % Span;
         Addressed.Across = (CellOrdinal - Base) / Span;
 
-        return Deliver<CellAddress>::Deliver(Addressed);
+        return Result<CellAddress>::Result(Addressed);
     }
 
-    return Deliver<CellAddress>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
+    return Result<CellAddress>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
 }
 
-Deliver<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionAlong, double PositionAcross)
+Result<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionAlong, double PositionAcross)
 {
     if (Level >= ReductionLevelCount)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such reduction level" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such reduction level" });
 
     const std::uint32_t Span = CellsPerEdgeAt(Level);
     const double        Edge = static_cast<double>(Span);
@@ -98,20 +98,20 @@ void CellSpace::Construct()
     }
 }
 
-Deliver<const CellRecord*> CellSpace::Held(std::uint32_t CellOrdinal) const
+Result<const CellRecord*> CellSpace::Held(std::uint32_t CellOrdinal) const
 {
     if (CellOrdinal >= CellRecords.size())
-        return Deliver<const CellRecord*>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
+        return Result<const CellRecord*>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
 
-    return Deliver<const CellRecord*>::Deliver(&CellRecords[CellOrdinal]);
+    return Result<const CellRecord*>::Result(&CellRecords[CellOrdinal]);
 }
 
-Deliver<CellRecord*> CellSpace::Amend(std::uint32_t CellOrdinal)
+Result<CellRecord*> CellSpace::Amend(std::uint32_t CellOrdinal)
 {
     if (CellOrdinal >= CellRecords.size())
-        return Deliver<CellRecord*>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
+        return Result<CellRecord*>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
 
-    return Deliver<CellRecord*>::Deliver(&CellRecords[CellOrdinal]);
+    return Result<CellRecord*>::Result(&CellRecords[CellOrdinal]);
 }
 
 const std::vector<CellRecord>& CellSpace::Records() const { return CellRecords; }
@@ -149,7 +149,7 @@ void CellSpace::DeclareAbsent(std::uint32_t CellOrdinal)
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> SurfaceTileSpace::Construct(std::uint32_t SurfaceOrdinal_,
+Result<bool> SurfaceTileSpace::Construct(std::uint32_t SurfaceOrdinal_,
                                           std::uint32_t BytesPerTexel,
                                           std::uint32_t SlotCeiling)
 {
@@ -165,20 +165,20 @@ Deliver<bool> SurfaceTileSpace::Construct(std::uint32_t SurfaceOrdinal_,
 
     if (SlotCeiling < PermanentCells)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ExtentExhausted, "the backing cannot hold the permanently resident levels" });
     }
 
-    const Deliver<bool> Ledger = Tiles_.Construct(SlotCeiling, BytesPerTexel);
+    const Result<bool> Ledger = Tiles_.Construct(SlotCeiling, BytesPerTexel);
 
-    if (!Ledger.ContentPresent)
+    if (!Ledger.Resolved)
         return Ledger;
 
     // 🚧 The depot's ceiling is the backing extent again, which is a placeholder for the discretionary claim
     //    `06` §3 will report. It is declared rather than derived so nothing here consults a device.
-    const Deliver<bool> Depoted = Depot_.Construct(Tiles_.BackingBytes());
+    const Result<bool> Depoted = Depot_.Construct(Tiles_.BackingBytes());
 
-    if (!Depoted.ContentPresent)
+    if (!Depoted.Resolved)
         return Depoted;
 
     Cells_.Construct();
@@ -194,32 +194,32 @@ Deliver<bool> SurfaceTileSpace::Construct(std::uint32_t SurfaceOrdinal_,
         if (!Cells_.Records()[CellOrdinal].Permanent)
             continue;
 
-        const Deliver<std::uint32_t> Claimed = Tiles_.Claim();
+        const Result<std::uint32_t> Claimed = Tiles_.Claim();
 
-        if (!Claimed.ContentPresent)
-            return Deliver<bool>::Refuse(Claimed.Declined);
+        if (!Claimed.Resolved)
+            return Result<bool>::Refuse(Claimed.Error);
 
         Cells_.DeclareResident(CellOrdinal, Claimed.Resolve(), 0u);
     }
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      SAMPLING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
+Result<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
                                               double        PositionAlong,
                                               double        PositionAcross,
                                               std::uint64_t RecordingOrdinal,
                                               RequestQueue& Requesting)
 {
     if (!Constructed)
-        return Deliver<SampledCell>::Refuse({ RefusalReason::HostDenied, "the residency is not constructed" });
+        return Result<SampledCell>::Refuse({ RefusalReason::HostDenied, "the residency is not constructed" });
 
     if (Level >= ReductionLevelCount)
-        return Deliver<SampledCell>::Refuse({ RefusalReason::ContentUnsupported, "no such reduction level" });
+        return Result<SampledCell>::Refuse({ RefusalReason::ContentUnsupported, "no such reduction level" });
 
     SampledCell Resolved;
     Resolved.RequestedLevel = Level;
@@ -228,9 +228,9 @@ Deliver<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
     //    levels are permanently resident, so the loop cannot fall off the end of the chain.
     for (std::uint32_t Walking = Level; Walking < ReductionLevelCount; ++Walking)
     {
-        const Deliver<std::uint32_t> Located = OrdinalAt(Walking, PositionAlong, PositionAcross);
+        const Result<std::uint32_t> Located = OrdinalAt(Walking, PositionAlong, PositionAcross);
 
-        if (!Located.ContentPresent)
+        if (!Located.Resolved)
             continue;
 
         const std::uint32_t CellOrdinal = Located.Resolve();
@@ -261,33 +261,33 @@ Deliver<SampledCell> SurfaceTileSpace::Sample(std::uint32_t Level,
         Resolved.SlotOrdinal   = Held_.SlotOrdinal;
         Resolved.ResolvedLevel = Walking;
 
-        return Deliver<SampledCell>::Deliver(Resolved);
+        return Result<SampledCell>::Result(Resolved);
     }
 
     // 📝 Unreachable while the permanent levels stand, and stated as a refusal rather than as an assumption so
     //    that a future amendment to `PermanentLevelCount` is caught here rather than by an artist.
-    return Deliver<SampledCell>::Refuse(
+    return Result<SampledCell>::Refuse(
         { RefusalReason::ExtentExhausted, "no resident level answered; the permanence guarantee is broken" });
 }
 
-Deliver<SampledCell> SurfaceTileSpace::SampleGuaranteed(double PositionAlong, double PositionAcross) const
+Result<SampledCell> SurfaceTileSpace::SampleGuaranteed(double PositionAlong, double PositionAcross) const
 {
     if (!Constructed)
-        return Deliver<SampledCell>::Refuse({ RefusalReason::HostDenied, "the residency is not constructed" });
+        return Result<SampledCell>::Refuse({ RefusalReason::HostDenied, "the residency is not constructed" });
 
     // 🔴 `16` §3.1 ③: the coarsest **guaranteed-resident** level, and never a demand. This walks only the
     //    permanent levels, so it cannot resolve to a tile that a later eviction could take away — and it cannot
     //    record a demand that would put a visibility recording on the promotion path.
     for (std::uint32_t Walking = ReductionLevelCount - PermanentLevelCount; Walking < ReductionLevelCount; ++Walking)
     {
-        const Deliver<std::uint32_t> Located = OrdinalAt(Walking, PositionAlong, PositionAcross);
+        const Result<std::uint32_t> Located = OrdinalAt(Walking, PositionAlong, PositionAcross);
 
-        if (!Located.ContentPresent)
+        if (!Located.Resolved)
             continue;
 
-        const Deliver<const CellRecord*> Held_ = Cells_.Held(Located.Resolve());
+        const Result<const CellRecord*> Held_ = Cells_.Held(Located.Resolve());
 
-        if (!Held_.ContentPresent || !Held_.Resolve()->Resident)
+        if (!Held_.Resolved || !Held_.Resolve()->Resident)
             continue;
 
         SampledCell Resolved;
@@ -296,10 +296,10 @@ Deliver<SampledCell> SurfaceTileSpace::SampleGuaranteed(double PositionAlong, do
         Resolved.ResolvedLevel  = Walking;
         Resolved.RequestedLevel = Walking;
 
-        return Deliver<SampledCell>::Deliver(Resolved);
+        return Result<SampledCell>::Result(Resolved);
     }
 
-    return Deliver<SampledCell>::Refuse(
+    return Result<SampledCell>::Refuse(
         { RefusalReason::ExtentExhausted, "no guaranteed level is resident" });
 }
 
@@ -307,23 +307,23 @@ Deliver<SampledCell> SurfaceTileSpace::SampleGuaranteed(double PositionAlong, do
 //                                                  UNCOMMITTED PAINT
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> SurfaceTileSpace::DeclareUncommitted(std::uint32_t CellOrdinal, bool UncommittedDeclared)
+Result<bool> SurfaceTileSpace::DeclareUncommitted(std::uint32_t CellOrdinal, bool UncommittedDeclared)
 {
-    const Deliver<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
+    const Result<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
 
-    if (!Amending.ContentPresent)
-        return Deliver<bool>::Refuse(Amending.Declined);
+    if (!Amending.Resolved)
+        return Result<bool>::Refuse(Amending.Error);
 
     CellRecord& Held_ = *Amending.Resolve();
 
     if (UncommittedDeclared && !Held_.Resident)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::HostDenied, "a cell with no tile cannot hold uncommitted paint" });
     }
 
     if (Held_.Uncommitted == UncommittedDeclared)
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
 
     Held_.Uncommitted = UncommittedDeclared;
 
@@ -332,18 +332,18 @@ Deliver<bool> SurfaceTileSpace::DeclareUncommitted(std::uint32_t CellOrdinal, bo
     else if (Cells_.UncommittedCells != 0u)
         --Cells_.UncommittedCells;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      PROMOTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal)
+Result<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal)
 {
-    const Deliver<std::uint32_t> Claimed = Tiles_.Claim();
+    const Result<std::uint32_t> Claimed = Tiles_.Claim();
 
-    if (Claimed.ContentPresent)
+    if (Claimed.Resolved)
         return Claimed;
 
     // 📝 The whole span is walked once. It is 5461 entries at the declared subdivision, which is a scan the
@@ -367,11 +367,11 @@ Deliver<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Schedu
         if (Held_.PromotedAt == RecordingOrdinal)
             continue;
 
-        const Deliver<CellAddress> Addressed = AddressOf(CellOrdinal);
+        const Result<CellAddress> Addressed = AddressOf(CellOrdinal);
 
         EvictionCandidate Candidate;
         Candidate.CellOrdinal = CellOrdinal;
-        Candidate.Level       = Addressed.ContentPresent ? Addressed.Resolve().Level : 0u;
+        Candidate.Level       = Addressed.Resolved ? Addressed.Resolve().Level : 0u;
         Candidate.DemandedAt  = Held_.DemandedAt;
         Candidate.PromotedAt  = Held_.PromotedAt;
 
@@ -384,14 +384,14 @@ Deliver<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Schedu
 
     if (!Found)
     {
-        return Deliver<std::uint32_t>::Refuse(
+        return Result<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "every resident tile is permanent, uncommitted or newly promoted" });
     }
 
-    const Deliver<bool> Evicted = Evict(Preferred.CellOrdinal, RecordingOrdinal);
+    const Result<bool> Evicted = Evict(Preferred.CellOrdinal, RecordingOrdinal);
 
-    if (!Evicted.ContentPresent)
-        return Deliver<std::uint32_t>::Refuse(Evicted.Declined);
+    if (!Evicted.Resolved)
+        return Result<std::uint32_t>::Refuse(Evicted.Error);
 
     // 🔴 The evicted slot is quarantined, not freed, so the claim below still refuses. Reclaiming it here would
     //    be reclaiming inside the recording slot count, which is the one thing `20` §5 forbids — so the promotion
@@ -399,7 +399,7 @@ Deliver<std::uint32_t> SurfaceTileSpace::ClaimOrEvict(PromotionScheduler& Schedu
     return Tiles_.Claim();
 }
 
-Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        CellOrdinal,
+Result<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        CellOrdinal,
                                                         const PromotionCost& Costing,
                                                         std::uint64_t        ContentRevision,
                                                         PromotionScheduler&  Scheduling,
@@ -407,14 +407,14 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
 {
     if (!Constructed)
     {
-        return Deliver<PromotionDisposition>::Refuse(
+        return Result<PromotionDisposition>::Refuse(
             { RefusalReason::HostDenied, "the residency is not constructed" });
     }
 
-    const Deliver<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
+    const Result<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
 
-    if (!Amending.ContentPresent)
-        return Deliver<PromotionDisposition>::Refuse(Amending.Declined);
+    if (!Amending.Resolved)
+        return Result<PromotionDisposition>::Refuse(Amending.Error);
 
     CellRecord& Held_ = *Amending.Resolve();
 
@@ -422,12 +422,12 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
     //    tile, whose answer is almost always "no work": a camera move advances no counter, and an occupant that
     //    moved advances none either, because a placement's transform is stored relative to its surface.
     if (Held_.Resident && Held_.ResolvedRevision == ContentRevision)
-        return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::AlreadyResident);
+        return Result<PromotionDisposition>::Result(PromotionDisposition::AlreadyResident);
 
     if (!Scheduling.Admits(Costing))
     {
         Scheduling.DeferOne();
-        return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::Deferred);
+        return Result<PromotionDisposition>::Result(PromotionDisposition::Deferred);
     }
 
     // 📝 A resident cell at a stale revision keeps its own slot and is resolved into again. Releasing and
@@ -435,12 +435,12 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
     //    so an edited layer would make its own surface go coarse for two rotations at every stroke.
     if (Held_.Resident)
     {
-        const Deliver<bool> Charged = Scheduling.Charge(Costing);
+        const Result<bool> Charged = Scheduling.Charge(Costing);
 
-        if (!Charged.ContentPresent)
+        if (!Charged.Resolved)
         {
             Scheduling.DeferOne();
-            return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::Deferred);
+            return Result<PromotionDisposition>::Result(PromotionDisposition::Deferred);
         }
 
         Held_.ResolvedRevision = ContentRevision;
@@ -449,20 +449,20 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
 
         Scheduling.PromoteOne();
 
-        return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::ReResolved);
+        return Result<PromotionDisposition>::Result(PromotionDisposition::ReResolved);
     }
 
-    const Deliver<std::uint32_t> Claimed = ClaimOrEvict(Scheduling, RecordingOrdinal);
+    const Result<std::uint32_t> Claimed = ClaimOrEvict(Scheduling, RecordingOrdinal);
 
-    if (!Claimed.ContentPresent)
+    if (!Claimed.Resolved)
     {
         Scheduling.DeferOne();
-        return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::Deferred);
+        return Result<PromotionDisposition>::Result(PromotionDisposition::Deferred);
     }
 
-    const Deliver<bool> Charged = Scheduling.Charge(Costing);
+    const Result<bool> Charged = Scheduling.Charge(Costing);
 
-    if (!Charged.ContentPresent)
+    if (!Charged.Resolved)
     {
         // 📝 The slot is handed straight back rather than held for a promotion that did not happen. It goes into
         //    quarantine like any release, which is correct: nothing was written into it, and the depth costs one
@@ -471,7 +471,7 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
         Disregard(Tiles_.Release(Claimed.Resolve(), RecordingOrdinal));
 
         Scheduling.DeferOne();
-        return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::Deferred);
+        return Result<PromotionDisposition>::Result(PromotionDisposition::Deferred);
     }
 
     Cells_.DeclareResident(CellOrdinal, Claimed.Resolve(), RecordingOrdinal);
@@ -479,49 +479,49 @@ Deliver<PromotionDisposition> SurfaceTileSpace::Promote(std::uint32_t        Cel
 
     Scheduling.PromoteOne();
 
-    return Deliver<PromotionDisposition>::Deliver(PromotionDisposition::Promoted);
+    return Result<PromotionDisposition>::Result(PromotionDisposition::Promoted);
 }
 
-Deliver<bool> SurfaceTileSpace::DeclareApronWritten(std::uint32_t CellOrdinal)
+Result<bool> SurfaceTileSpace::DeclareApronWritten(std::uint32_t CellOrdinal)
 {
-    const Deliver<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
+    const Result<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
 
-    if (!Amending.ContentPresent)
-        return Deliver<bool>::Refuse(Amending.Declined);
+    if (!Amending.Resolved)
+        return Result<bool>::Refuse(Amending.Error);
 
     if (!Amending.Resolve()->Resident)
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the cell holds no tile to apron" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the cell holds no tile to apron" });
 
     Amending.Resolve()->ApronWritten = true;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  EVICTION AND RECLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> SurfaceTileSpace::Evict(std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal)
+Result<bool> SurfaceTileSpace::Evict(std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal)
 {
-    const Deliver<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
+    const Result<CellRecord*> Amending = Cells_.Amend(CellOrdinal);
 
-    if (!Amending.ContentPresent)
-        return Deliver<bool>::Refuse(Amending.Declined);
+    if (!Amending.Resolved)
+        return Result<bool>::Refuse(Amending.Error);
 
     CellRecord& Held_ = *Amending.Resolve();
 
     if (!Held_.Resident)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the cell holds no tile" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the cell holds no tile" });
 
     if (Held_.Permanent)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a permanently resident level is never evicted" });
     }
 
     if (Held_.Uncommitted)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the tile holds paint no transaction has sealed" });
     }
 

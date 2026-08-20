@@ -12,10 +12,10 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
+Result<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge = &Exchange;
     NamingEdge = &Naming;
@@ -50,7 +50,7 @@ Deliver<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const Di
         if (!Constructed)
         {
             Reclaim();
-            return Deliver<bool>::Refuse(
+            return Result<bool>::Refuse(
                 { RefusalReason::ExtentExhausted, "the device declined an ordering point of the cycle" });
         }
 
@@ -78,17 +78,17 @@ Deliver<bool> CycleScheduler::Construct(const VulkanExchange& Exchange, const Di
     SlotStanding = 0u;
     CompletedCount = 0u;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE WAIT
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> CycleScheduler::Await()
+Result<bool> CycleScheduler::Await()
 {
     if (DeviceEdge == nullptr || Slots.empty())
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
 
     const VkResult Reached = vkWaitForFences(DeviceEdge->ActiveDevice(),
                                              1u,
@@ -98,7 +98,7 @@ Deliver<bool> CycleScheduler::Await()
 
     if (Reached == VK_TIMEOUT)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::HostDenied, "the slot did not complete within the ceiling; the device is unresponsive" });
     }
 
@@ -106,26 +106,26 @@ Deliver<bool> CycleScheduler::Await()
     //    rather than acted on, because what to destroy and in what order is `06` §4.2's recovery and not this
     //    component's — a wait that tore down its own device would remove the operand the recovery re-scores.
     if (Reached == VK_ERROR_DEVICE_LOST)
-        return Deliver<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost awaiting the standing slot" });
+        return Result<bool>::Refuse({ RefusalReason::DeviceLost, "the device was lost awaiting the standing slot" });
 
     if (Reached != VK_SUCCESS)
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the device declined the wait" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the device declined the wait" });
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> CycleScheduler::Arm()
+Result<bool> CycleScheduler::Arm()
 {
     if (DeviceEdge == nullptr || Slots.empty())
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
 
     // 📝 Cleared immediately before the submission that signals it, never immediately after the wait. A slot
     //    cleared early and then refused before submitting is a slot no submission will ever signal, and the
     //    next recording to reach it waits the whole ceiling out for nothing.
     if (vkResetFences(DeviceEdge->ActiveDevice(), 1u, &Slots[SlotStanding].Completion) != VK_SUCCESS)
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the device declined to clear the completion" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the device declined to clear the completion" });
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -141,12 +141,12 @@ void CycleScheduler::Advance()
     ++CompletedCount;
 }
 
-Deliver<CycleSlot> CycleScheduler::Standing() const
+Result<CycleSlot> CycleScheduler::Standing() const
 {
     if (Slots.empty())
-        return Deliver<CycleSlot>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
+        return Result<CycleSlot>::Refuse({ RefusalReason::CapabilityAbsent, "no cycle is constructed" });
 
-    return Deliver<CycleSlot>::Deliver(Slots[SlotStanding]);
+    return Result<CycleSlot>::Result(Slots[SlotStanding]);
 }
 
 std::uint32_t CycleScheduler::StandingOrdinal() const

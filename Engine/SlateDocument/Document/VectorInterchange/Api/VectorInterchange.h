@@ -101,18 +101,18 @@ public:
     /// 🧩 Declares a decoded outline arriving from a file.
     /// in    Arriving    [-]  the decoded specification
     /// in    OriginPath  [-]  where it was read from
-    /// out   Deliver     [-]  refuses with ContentUnsupported when no path was declared
+    /// out   Result     [-]  refuses with ContentUnsupported when no path was declared
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareFromFile(const OutlineSpecification& Arriving, const std::string& OriginPath);
+    Result<bool> DeclareFromFile(const OutlineSpecification& Arriving, const std::string& OriginPath);
 
     /// 🧩 Declares a decoded outline arriving as supplied source text.
     /// in    Arriving    [-]  the decoded specification
     /// in    SourceText  [-]  retained, because there is no file to re-read
-    /// out   Deliver     [-]  refuses with ContentUnsupported when no path was declared
+    /// out   Result     [-]  refuses with ContentUnsupported when no path was declared
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareFromText(const OutlineSpecification& Arriving, const std::string& SourceText);
+    Result<bool> DeclareFromText(const OutlineSpecification& Arriving, const std::string& SourceText);
 
     /// 🧩 Records one refused construct, to be reported through `86`.
     /// cost  🚩
@@ -193,10 +193,10 @@ public:
     void DeclareTypeface(std::uint32_t TypefaceIdentity, double UnitsPerEm);
 
     /// 🧩 Declares one glyph.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when a glyph of that identity is already declared
+    /// out   Result  [-]  refuses with ContentUnsupported when a glyph of that identity is already declared
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareGlyph(const GlyphSpecification& Declaring);
+    Result<bool> DeclareGlyph(const GlyphSpecification& Declaring);
 
     /// 🧩 Declares one pair adjustment between two adjacent glyphs.
     /// cost  🚩
@@ -204,10 +204,10 @@ public:
     void DeclareAdjustment(std::uint32_t EarlierGlyph, std::uint32_t LaterGlyph, double Adjustment);
 
     /// 🧩 Resolves one glyph, by its identity rather than by a character.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when the typeface declares no such glyph
+    /// out   Result  [-]  refuses with ContentUnsupported when the typeface declares no such glyph
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<const GlyphSpecification*> ResolveGlyph(std::uint32_t GlyphIdentity) const;
+    Result<const GlyphSpecification*> ResolveGlyph(std::uint32_t GlyphIdentity) const;
 
     /// 🧩 The pair adjustment between two adjacent glyphs; zero where none is declared.
     /// cost  🚩

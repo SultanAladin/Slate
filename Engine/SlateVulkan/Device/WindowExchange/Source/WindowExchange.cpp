@@ -17,10 +17,10 @@ namespace Slate
 //                                                      CONVERSION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<VkSurfaceKHR> Convert(VkInstance Instance, void* NativeHandle)
+Result<VkSurfaceKHR> Convert(VkInstance Instance, void* NativeHandle)
 {
     if (Instance == VK_NULL_HANDLE || NativeHandle == nullptr)
-        return Deliver<VkSurfaceKHR>::Refuse({ RefusalReason::HostDenied, "no instance or no window" });
+        return Result<VkSurfaceKHR>::Refuse({ RefusalReason::HostDenied, "no instance or no window" });
 
     VkSurfaceKHR PresentationSurface = VK_NULL_HANDLE;
 
@@ -30,9 +30,9 @@ Deliver<VkSurfaceKHR> Convert(VkInstance Instance, void* NativeHandle)
                                                         &PresentationSurface);
 
     if (Conversion != VK_SUCCESS)
-        return Deliver<VkSurfaceKHR>::Refuse({ RefusalReason::HostDenied, "the window system declined a surface" });
+        return Result<VkSurfaceKHR>::Refuse({ RefusalReason::HostDenied, "the window system declined a surface" });
 
-    return Deliver<VkSurfaceKHR>::Deliver(PresentationSurface);
+    return Result<VkSurfaceKHR>::Result(PresentationSurface);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

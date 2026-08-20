@@ -46,22 +46,22 @@ public:
     /// in    Arriving [-]  the device handles and the window the interface reads from
     /// in    North    [-]  what the upper drawer's tongue carries
     /// in    South    [-]  what the lower drawer's tongue carries
-    /// out   Deliver  [-]  refuses with CapabilityAbsent when no interface context is current, and with
+    /// out   Result  [-]  refuses with CapabilityAbsent when no interface context is current, and with
     ///                     ExtentExhausted when the integrator declines a drawer spring
     /// post  both drawers stand Closed and settled; nothing moves until a pointer arrives
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const InterfaceAttachment& Arriving,
+    Result<bool> Construct(const InterfaceAttachment& Arriving,
                             const DrawerDeclaration&   North,
                             const DrawerDeclaration&   South);
 
     /// 🧩 Opens one interface tick, resolves the appearance, and drives the spring physics.
     /// in    ElapsedMilliseconds  [-]  what `TickSequence::Span` measured between this tick and the last
-    /// out   Deliver              [-]  refuses when no context is constructed, or when a tick is already open
+    /// out   Result              [-]  refuses when no context is constructed, or when a tick is already open
     /// post  the drawers have advanced; the surface is ready to record into
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Advance(double ElapsedMilliseconds);
+    Result<bool> Advance(double ElapsedMilliseconds);
 
     /// 🧩 Records the drawer chrome — bodies, edges, grips and tongues.
     /// note  Panels must not record before this call. The drawer bodies define the clipping extents
@@ -77,32 +77,32 @@ public:
     void DrawerPanels();
 
     /// 🧩 Closes the panel recording window and seals the interface tick.
-    /// out   Deliver  [-]  refuses when no tick is open
+    /// out   Result  [-]  refuses when no tick is open
     /// post  the assembled content is ready for Record
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> SealPanels();
+    Result<bool> SealPanels();
 
     /// 🧩 Closes an open tick without assembling it — the escape from any refusal after Advance.
-    /// out   Deliver  [-]  delivers true when no tick was open
+    /// out   Result  [-]  delivers true when no tick was open
     /// note  🔴 A host that returns to the top of its loop after Advance declined must call this. A tick
     ///       left open refuses every subsequent Advance for the life of the process.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Abandon();
+    Result<bool> Abandon();
 
     /// 🧩 Restates the minimum and actual image counts after a presentation chain was re-established.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
+    Result<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
 
     /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope
-    /// out   Deliver          [-]  refuses when nothing has been sealed since the last Advance
+    /// out   Result          [-]  refuses when nothing has been sealed since the last Advance
     /// pre   SealPanels delivered
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Record(VkCommandBuffer CommandRecording);
+    Result<bool> Record(VkCommandBuffer CommandRecording);
 
     /// 🧩 The two drawers, for the host to query pose and extent.
     /// cost  ✔️
@@ -116,17 +116,17 @@ public:
     RecordingSurface&        Surface();
     const RecordingSurface&  Surface() const;
 
-    /// 🧩 The resolved appearance, for panels to read inks and metrics.
+    /// 🧩 The resolved appearance, for panels to read colours and metrics.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    const AppearanceSpecification& Appearance() const;
+    const ThemeProfile& Appearance() const;
 
     /// 🧩 Declares the theme and accents every later tick resolves the appearance against.
     /// in    Selected  [-]  the artist's choice, as the Control Centre reports it
     /// note  📐 Held rather than applied at once. The appearance is resolved fresh each tick against the
     ///        arrived display scale, so the selection has to outlive the call that declares it; the very
     ///        next tick draws in the new theme.
-    /// post  Appearance() reports inks re-anchored onto the chosen theme's ladder
+    /// post  Appearance() reports colours re-anchored onto the chosen theme's ladder
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
     void Retint(const ThemeSelection& Selected);
@@ -175,7 +175,7 @@ private:
 
     InterfaceExchange        Interface         = {};   // [-] - the interface context and ImGui
     MotionIntegrator         Motion            = {};   // [-] - spring physics
-    AppearanceSpecification  Resolved          = {};   // [-] - inks and metrics at the display scale
+    ThemeProfile  Resolved          = {};   // [-] - colours and metrics at the display scale
     ThemeSelection           Chosen            = {};   // [-] - the theme every resolve is anchored onto
     DrawerSpace              DrawersOwned      = {};   // [-] - the two drawers
     RedrawScheduler          MarksOwned        = {};   // [-] - per-panel redraw marks

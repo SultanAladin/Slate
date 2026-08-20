@@ -22,7 +22,7 @@ namespace Slate
 //                                                       THE SEATED INKS
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 `LayerStackInk` now lives in `AppearanceSpecification.h`, beside every other ink the interface draws
+// 📝 `LayerStackColour` now lives in `ThemeProfile.h`, beside every other colour the interface draws
 //    with. It moved so the appearance file can reach it: a token run declared in a panel header is one the
 //    Control Centre cannot theme. The spellings are unchanged.
 
@@ -305,17 +305,17 @@ public:
     /// in    Recording    [-]  borrowed; must outlive the panel
     /// in    Appearance   [-]  borrowed; the resolved appearance the card's controls are drawn from, and
     ///                         which must outlive the panel — the host's own, not a temporary
-    /// out   Deliver      [-]  refuses with ContentUnsupported when a construction already stands, and
+    /// out   Result      [-]  refuses with ContentUnsupported when a construction already stands, and
     ///                         with whatever the ledger declined when an enrolment was refused
     /// note  🔴 Enrolment happens HERE and never inside a tick. A control enrolled mid-tick receives a
     ///        fresh fade and reads as though the pointer had only just arrived over it, every tick.
     /// note  ⚠️ The appearance is BORROWED and read on every tick the card records, so a host must pass the
-    ///        member it re-resolves in place and never a temporary. `Reseat` restates the panel's own inks;
+    ///        member it re-resolves in place and never a temporary. `Reseat` restates the panel's own colours;
     ///        the component reads this reference directly and sees the host's re-resolution without one.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
-                            const AppearanceSpecification& Appearance);
+    Result<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
+                            const ThemeProfile& Appearance);
 
     /// 🧩 Samples this tick's contact, before any extent is recorded against it.
     /// in    Contact  [-]  what `RecordingSurface::Pointer` reported
@@ -387,18 +387,18 @@ public:
     void RecordDeferred(LayerArrangement& Arrangement, LayerStackOrdinates& Seated,
                         RevisionSequence& Revisions);
 
-    /// 🧩 The seated inks, so a host may state them in a proof.
+    /// 🧩 The seated colours, so a host may state them in a proof.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    /// 🧩 Restates the panel's inks from a resolved appearance, so a theme change reaches it.
+    /// 🧩 Restates the panel's colours from a resolved appearance, so a theme change reaches it.
     /// in    Resolved  [-]  the appearance the host resolved for the chosen theme
     /// note  📐 Colours only. The lengths are the reference's own and a theme must not move one.
-    ///        Nothing is borrowed — the inks are copied out, so the caller may let `Resolved` expire.
+    ///        Nothing is borrowed — the colours are copied out, so the caller may let `Resolved` expire.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Reseat(const AppearanceSpecification& Resolved);
+    void Reseat(const ThemeProfile& Resolved);
 
-    const LayerStackInk& Inked() const { return Tinted; }
+    const LayerStackColour& Coloured() const { return Tinted; }
 
     /// 🧩 The seated lengths.
     /// cost  ✔️
@@ -531,9 +531,9 @@ private:
 
     float RecordReadingRow(const PlaneExtent& Extent, const char* Caption, const char* Reading);
 
-    void RecordMeter(const PlaneExtent& Extent, std::uint32_t Reading, InkOrdinate Ink);
+    void RecordMeter(const PlaneExtent& Extent, std::uint32_t Reading, ThemeToken Colour);
 
-    void RecordChip(const PlaneExtent& Extent, const char* Caption, InkOrdinate Ink, bool Solid);
+    void RecordChip(const PlaneExtent& Extent, const char* Caption, ThemeToken Colour, bool Solid);
 
     /// 🧩 Records the drop marker one carried entry would land against — a rule, or a ring around a folder.
     void RecordDropMark(const PlaneExtent& Extent, DropIntent Intent);
@@ -547,7 +547,7 @@ private:
 
     RecordingSurface*  Surface = nullptr;   // [-] - borrowed
     InteractionIndex*  Ledger  = nullptr;   // [-] - borrowed; never owned
-    LayerStackInk      Tinted;              // [-] - the seated inks
+    LayerStackColour      Tinted;              // [-] - the seated colours
     LayerStackMetric   Scaled;              // [-] - the seated lengths
     PointerCondition   Sampled = {};        // [-] - this tick's contact, taken at Advance
 

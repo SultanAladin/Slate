@@ -183,7 +183,7 @@ void ScaleControlLengths(ControlMetric& Measure, float AppliedScale)
     Measure.TooltipArrowExtent   *= AppliedScale;
     Measure.TooltipArrowRadius   *= AppliedScale;
     Measure.TooltipArrowAlong    *= AppliedScale;
-    Measure.TooltipArrowSink     *= AppliedScale;
+    Measure.TooltipArrowScolour     *= AppliedScale;
     Measure.TriggerExtent        *= AppliedScale;
     Measure.TriggerRadius        *= AppliedScale;
     Measure.TriggerLeadAlong     *= AppliedScale;
@@ -305,9 +305,9 @@ ComfortDensity ClassifyDensity(const MetricScale& Measure, float ExtentAlong)
     return ComfortDensity::Compact;
 }
 
-AppearanceSpecification Resolve(double DisplayScale, double ArtistScale, float ExtentAlong)
+ThemeProfile Resolve(double DisplayScale, double ArtistScale, float ExtentAlong)
 {
-    AppearanceSpecification Resolved;
+    ThemeProfile Resolved;
 
     const float AppliedScale = (DisplayScale > 0.0) ? static_cast<float>(DisplayScale) : 1.0f;
 

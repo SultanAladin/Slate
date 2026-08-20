@@ -100,21 +100,21 @@ public:
     /// 🧩 Enrols one occupant in a subset.
     /// in    Subject         [-]  the occupant
     /// in    EnrolledSubset  [-]  which subset
-    /// out   Deliver         [-]  refuses with IdentityStale for an undeclared identity, and with
+    /// out   Result         [-]  refuses with IdentityStale for an undeclared identity, and with
     ///                            ContentUnsupported when a mutually exclusive subset already holds it
     /// note  🔴 The exclusion refusal is decided before anything is written, so a rejected enrolment leaves
     ///        no partial state behind. `12` §10 rejects at commit and resolves nothing silently.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Enrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
+    Result<bool> Enrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
 
     /// 🧩 Withdraws one occupant from a subset, dividing the run it sat inside.
     /// in    Subject         [-]  the occupant
     /// in    EnrolledSubset  [-]  which subset
-    /// out   Deliver         [-]  refuses with IdentityStale when the occupant was not enrolled
+    /// out   Result         [-]  refuses with IdentityStale when the occupant was not enrolled
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Unenrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
+    Result<bool> Unenrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
 
     /// 🧩 Withdraws one occupant from every subset — the subset half of invariant 8.
     /// in    Subject  [-]  the occupant being retired

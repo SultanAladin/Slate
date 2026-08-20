@@ -23,7 +23,7 @@ namespace Slate
 //                                                     THE REFERENCE INKS
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 `ShellInk` now lives in `AppearanceSpecification.h`, beside every other ink the interface draws
+// 📝 `ShellColour` now lives in `ThemeProfile.h`, beside every other colour the interface draws
 //    with. It moved so the appearance file can reach it: a token run declared in a panel header is one the
 //    Control Centre cannot theme. The spellings are unchanged.
 
@@ -115,7 +115,7 @@ struct ShellMetric
 inline constexpr double CarouselTravelOver = 300.0;   // [ms] - duration-300 on the inspector strip
 
 /// 🧩 Applies the resolved display and artist factors to every extent the reference declares.
-/// in    Factor  [-]  the same product `AppearanceSpecification` applies to its own interface lengths
+/// in    Factor  [-]  the same product `ThemeProfile` applies to its own interface lengths
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 ShellMetric ScaleShellLengths(float Factor);
@@ -162,7 +162,7 @@ SymbolSubject EntityGlyph(EntitySubject Subject);
 /// 🧩 The hue one entity subject carries, from the reference's own `COLORS` record.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-InkOrdinate EntityHue(EntitySubject Subject);
+ThemeToken EntityHue(EntitySubject Subject);
 
 /// 🧩 The run naming one entity subject, as the reference's `capitalize` rule presents it.
 /// cost  ✔️
@@ -193,7 +193,7 @@ enum class LayerTarget : std::uint32_t
 /// 🧩 The tint one classification carries, from the reference's own `KINDS` record.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-InkOrdinate ClassificationTint(LayerClassification Classified);
+ThemeToken ClassificationTint(LayerClassification Classified);
 
 /// 🧩 The run naming one classification, as the reference presents it.
 /// cost  ✔️
@@ -276,7 +276,7 @@ enum class RevisionSubject : std::uint32_t
 /// 🧩 The hue one revision subject carries, from the reference's own `REVISION_HUE` record.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-InkOrdinate RevisionHue(RevisionSubject Classified);
+ThemeToken RevisionHue(RevisionSubject Classified);
 
 /// 🧩 The run naming one revision subject, from the reference's own `REVISION_CLASS` record.
 /// cost  ✔️
@@ -412,14 +412,14 @@ public:
     ~GlobalShellPanel()                                  = default;
 
     /// 🧩 Borrows the recording facilities and enrols every identity and interpolant the shell needs.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when a construction already stands, and with
+    /// out   Result  [-]  refuses with ContentUnsupported when a construction already stands, and with
     ///                     ExtentExhausted when the ledger or the integrator declines an enrolment
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(InteractionIndex&              Interaction,
+    Result<bool> Construct(InteractionIndex&              Interaction,
                             MotionIntegrator&              Integrator,
                             RecordingSurface&              Surface,
-                            const AppearanceSpecification& Resolved);
+                            const ThemeProfile& Resolved);
 
     /// 🧩 Samples the contact for this tick, after the tick owner has advanced the shared ledger once.
     /// note  🔴 This does not advance the ledger; several panels share it and the tick owner advances it once.
@@ -430,7 +430,7 @@ public:
     /// 🧩 Re-seats every scaled extent after the appearance was resolved against a new display extent.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Reseat(const AppearanceSpecification& Resolved);
+    void Reseat(const ThemeProfile& Resolved);
 
     /// 🧩 Applies the reference's Tab and Escape rules to the summoning conditions the host owns.
     /// in    Summoned   [-]  Tab arrived this tick and no text field held it
@@ -452,12 +452,12 @@ public:
     /// in    RowCount    [-]  how many of them; clamped to the seated ceiling
     /// in    Layers      [-]  the Layer Stack's rows, borrowed for the tick; absent presents an empty stack
     /// in    LayerCount  [-]  how many of them; clamped to the seated ceiling
-    /// out   Deliver     [-]  refuses with CapabilityAbsent when no construction stands or no tick is adopted
+    /// out   Result     [-]  refuses with CapabilityAbsent when no construction stands or no tick is adopted
     /// note  📐 Which pair of panes the inspector presents is decided by `Seated.Mode`, exactly as the
     ///       reference's two ternaries in `app/page.tsx` decide it for each of its two slides.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Record(const PlaneExtent&     Extent,
+    Result<bool> Record(const PlaneExtent&     Extent,
                          ShellOrdinates&        Seated,
                          const EntityRow*       Rows,
                          std::uint32_t          RowCount,
@@ -533,12 +533,12 @@ private:
 
     /// 🧩 One inline action row — a glyph cell, a run, and an optional trailing chord.
     /// in    Claimed   [-]  the identity the row was enrolled under
-    /// in    Ink       [-]  the run's own ink; the reference states `--ink` for four rows and its alert hue
-    ///                      for the fifth, and the rouse wash is that same ink at a twelfth of its coverage
-    /// in    GlyphInk  [-]  the leading cell's ink, which is `--muted` wherever the run is not alerting
+    /// in    Colour       [-]  the run's own colour; the reference states `--colour` for four rows and its alert hue
+    ///                      for the fifth, and the rouse wash is that same colour at a twelfth of its coverage
+    /// in    GlyphColour  [-]  the leading cell's colour, which is `--muted` wherever the run is not alerting
     /// out   Taken     [-]  true on the tick the row resolves a tap
     bool RecordActionRow(const PlaneExtent& Extent, ControlIdentity Claimed, SymbolSubject Glyph,
-                         const char* Caption, const char* Chord, InkOrdinate Ink, InkOrdinate GlyphInk);
+                         const char* Caption, const char* Chord, ThemeToken Colour, ThemeToken GlyphColour);
 
     /// 🧩 Slide one in Texture Paint — the reference's `LayersPane`, header, toolbar, stack and footer.
     void RecordLayerStack(const PlaneExtent& Extent, ShellOrdinates& Seated,
@@ -553,8 +553,8 @@ private:
     void RecordLayerInspector(const PlaneExtent& Extent, const ShellOrdinates& Seated,
                               const LayerRow* Layers, std::uint32_t LayerCount);
     void RecordRetentionField(const PlaneExtent& Extent, ShellOrdinates& Seated);
-    void RecordPaneHeader(const PlaneExtent& Extent, SymbolSubject Glyph, InkOrdinate GlyphInk,
-                          InkOrdinate MedallionInk, const char* Title, const char* Secondary);
+    void RecordPaneHeader(const PlaneExtent& Extent, SymbolSubject Glyph, ThemeToken GlyphColour,
+                          ThemeToken MedallionColour, const char* Title, const char* Secondary);
 
     /// 🧩 Whether a row is presented, given the filter and every enclosure's disclosure.
     bool RowPresented(const ShellOrdinates& Seated, const EntityRow* Rows,
@@ -563,10 +563,10 @@ private:
     InteractionIndex*              Ledger     = nullptr;   // [-] - borrowed; never owned
     MotionIntegrator*              Motion     = nullptr;   // [-] - borrowed; never owned
     RecordingSurface*              Surface    = nullptr;   // [-] - borrowed; never owned
-    const AppearanceSpecification* Appearance = nullptr;   // [-] - borrowed; never owned
+    const ThemeProfile* Appearance = nullptr;   // [-] - borrowed; never owned
     ControlPanel                   Controls   = {};        // [-] - the shared inspector controls
 
-    ShellInk     Tinted  = {};   // [-] - seated once at construction
+    ShellColour     Tinted  = {};   // [-] - seated once at construction
     ShellMetric  Scaled  = {};   // [-] - re-seated whenever the appearance is resolved again
 
     PointerCondition  Sampled       = {};      // [-] - this tick's contact

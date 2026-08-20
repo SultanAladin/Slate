@@ -21,7 +21,7 @@ namespace Slate
 /// 🧩 What the file system reports a path currently names.
 /// note  🔴 Absent is one of the four rather than a refusal, because "no file is there" is an answer the
 ///       caller asked for and acts on. A refusal names a file system that declined to answer at all, which
-///       is a different fact and is reported through `Deliver` instead.
+///       is a different fact and is reported through `Result` instead.
 /// tag   contract
 enum class PathContent : std::uint32_t
 {
@@ -58,27 +58,27 @@ public:
 
     /// 🧩 What a path currently names.
     /// in    Path     [-]  UTF-8
-    /// out   Deliver  [-]  refuses with HostDenied when the file system declined to answer
+    /// out   Result  [-]  refuses with HostDenied when the file system declined to answer
     /// note  📝 An absent path is delivered as Absent rather than refused. Refusing would make the ordinary
     ///        question "is this here" indistinguishable from a file system that failed to answer it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    static Deliver<PathReport> Resolve(const std::string& Path);
+    static Result<PathReport> Resolve(const std::string& Path);
 
     /// 🧩 Reads a whole stream into an extent the caller then owns.
     /// in    Path     [-]  UTF-8
-    /// out   Deliver  [-]  refuses with HostDenied when the stream cannot be opened, and with
+    /// out   Result  [-]  refuses with HostDenied when the stream cannot be opened, and with
     ///                     ExtentExhausted when it spans more than the declared ceiling
     /// note  ⚠️ Whole-stream. `StorageExchange` is the surface for a stream read by range, and a codec driven
     ///        by range arrival reads through that one rather than through this.
     /// cost  🔴
     /// tag   api, nonthrowing
-    static Deliver<std::vector<std::uint8_t>> ReadStream(const std::string& Path);
+    static Result<std::vector<std::uint8_t>> ReadStream(const std::string& Path);
 
     /// 🧩 Writes a whole stream, verifies what landed, and only then replaces what was there.
     /// in    Path      [-]  UTF-8; what the caller wants to end up holding the content
     /// in    Content   [-]  the bytes to write
-    /// out   Deliver   [-]  refuses with HostDenied when the file system declined, and with
+    /// out   Result   [-]  refuses with HostDenied when the file system declined, and with
     ///                      ExtentExhausted when what landed does not match what was written
     /// note  🔴 `48` §3's sequence, and the reason this is one routine rather than three. The content is
     ///        written beside the target, read back and compared, and only a verified stream replaces the
@@ -90,22 +90,22 @@ public:
     ///        in a temporary directory that may sit on another volume.
     /// cost  🔴
     /// tag   api, nonthrowing
-    static Deliver<bool> WriteStream(const std::string& Path, const std::vector<std::uint8_t>& Content);
+    static Result<bool> WriteStream(const std::string& Path, const std::vector<std::uint8_t>& Content);
 
     /// 🧩 Creates a directory and every absent directory above it.
     /// in    Path     [-]  UTF-8
-    /// out   Deliver  [-]  refuses with HostDenied when the file system declined
+    /// out   Result  [-]  refuses with HostDenied when the file system declined
     /// note  📝 A directory that already exists is delivered rather than refused — the caller asked for it to
     ///        be there, and it is.
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Deliver<bool> DeclareDirectory(const std::string& Path);
+    static Result<bool> DeclareDirectory(const std::string& Path);
 
     /// 🧩 Removes what a path names, when it names a stream.
-    /// out   Deliver  [-]  refuses with HostDenied when the file system declined; delivers for an absent path
+    /// out   Result  [-]  refuses with HostDenied when the file system declined; delivers for an absent path
     /// cost  ✔️
     /// tag   api, nonthrowing
-    static Deliver<bool> Reclaim(const std::string& Path);
+    static Result<bool> Reclaim(const std::string& Path);
 
     /// 🧩 Appends one path component to another, with exactly one separator between them.
     /// in    Leading   [-]  UTF-8; a trailing separator is neither required nor doubled

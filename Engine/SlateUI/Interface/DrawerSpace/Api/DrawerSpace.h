@@ -94,14 +94,14 @@ public:
     /// in    North       [-]  what the upper drawer's tongue carries
     /// in    South       [-]  what the lower drawer's tongue carries
     /// in    Arrived     [-]  the display extent this tick reported
-    /// out   Deliver     [-]  refuses with ContentUnsupported for a display extent at or below zero, and
+    /// out   Result     [-]  refuses with ContentUnsupported for a display extent at or below zero, and
     ///                        with ExtentExhausted when the integrator declines a spring
     /// err   refused in full; a partial enrolment would leave one drawer driving the other's ordinate
     /// post  both drawers stand Closed and settled; nothing moves until a contact arrives
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Construct(MotionIntegrator&              Motion,
-                            const AppearanceSpecification& Appearance,
+    Result<bool> Construct(MotionIntegrator&              Motion,
+                            const ThemeProfile& Appearance,
                             const DrawerDeclaration&       North,
                             const DrawerDeclaration&       South,
                             const DisplayCondition&        Arrived);
@@ -286,7 +286,7 @@ private:
     void RecordOne(RecordingSurface& Surface, DrawerBearing Bearing) const;
 
     MotionIntegrator*              Motion       = nullptr;   // [-]  - borrowed; never owned
-    const AppearanceSpecification* Appearance   = nullptr;   // [-]  - borrowed; never owned
+    const ThemeProfile* Appearance   = nullptr;   // [-]  - borrowed; never owned
     GestureSequence                Contacts     = {};        // [-]  - one contact, resolved per tick
     DrawerSlot                     Slots[2]     = {};        // [-]  - north, then south
     float                          ExtentAlong  = 0.0f;      // [px] - the display's drawable extent

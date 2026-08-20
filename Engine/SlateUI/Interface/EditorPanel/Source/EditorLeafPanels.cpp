@@ -14,7 +14,7 @@ namespace
 /// 🧩 The three ordinates a leaf differs by. Everything else about a leaf is shared.
 struct LeafAppearance
 {
-    InkOrdinate  Ground   = {};        // [-]  - the ground ink the body is filled with
+    ThemeToken  Ground   = {};        // [-]  - the ground colour the body is filled with
     const char*  Caption  = nullptr;   // [-]  - the centred caption, never owned
     float        TextSize = 0.0f;      // [px] - the caption's text size
 };
@@ -22,9 +22,9 @@ struct LeafAppearance
 /// 🧩 Reads the arriving leaf's three distinguishing ordinates out of the appearance declarations.
 /// in    Appearance  [-]  the appearance declarations
 /// in    Subject     [-]  which leaf is being presented
-/// out   LeafAppearance  [-]  the ground ink, caption and text size for that leaf
+/// out   LeafAppearance  [-]  the ground colour, caption and text size for that leaf
 /// cost  ✔️
-LeafAppearance AppearanceFor(const AppearanceSpecification& Appearance, LeafSubject Subject)
+LeafAppearance AppearanceFor(const ThemeProfile& Appearance, LeafSubject Subject)
 {
     switch (Subject)
     {
@@ -53,17 +53,17 @@ LeafAppearance AppearanceFor(const AppearanceSpecification& Appearance, LeafSubj
 //                                                       LEAF TARGET
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> LeafPanel::Construct(RecordingSurface& ArrivingSurface,
-                                   const AppearanceSpecification& ArrivingAppearance,
+Result<bool> LeafPanel::Construct(RecordingSurface& ArrivingSurface,
+                                   const ThemeProfile& ArrivingAppearance,
                                    LeafSubject ArrivingSubject)
 {
     if (Surface != nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a leaf panel construction stands" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a leaf panel construction stands" });
 
     Surface    = &ArrivingSurface;
     Appearance = &ArrivingAppearance;
     Subject    = ArrivingSubject;
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void LeafPanel::Record(const PlaneExtent& Extent)
@@ -76,7 +76,7 @@ void LeafPanel::Record(const PlaneExtent& Extent)
     Surface->Ground(Extent, Seated.Ground);
     Surface->TextRun(Extent.LeastAlong + Extent.SpanAlong() * 0.5f,
                      Extent.LeastAcross + Extent.SpanAcross() * 0.5f,
-                     Appearance->EditorPanel.InkGhost,
+                     Appearance->EditorPanel.ColourGhost,
                      Seated.Caption,
                      Seated.TextSize,
                      0.0f,

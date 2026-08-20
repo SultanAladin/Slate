@@ -107,7 +107,7 @@ constexpr bool PlacementWritesChannel(const PlacementSpecification& Placed, std:
 /// in    SequenceOrdinal   [-]   the placement's position in `56`'s sequence — `00` §10.1 ③'s one ordinal
 /// in    Imported          [-]   the sealed topology the surface carries
 /// in    CornerCoordinates [-]   one domain coordinate per imported corner
-/// out   Deliver           [-]   refuses with ContentUnsupported for an unsealed topology, a coordinate run
+/// out   Result           [-]   refuses with ContentUnsupported for an unsealed topology, a coordinate run
 ///                               disagreeing with the corner count, and a placement reaching no corner at all
 /// note  🔴 The two modes derive their extent by different routes and neither is the other's special case. A
 ///        **domain** placement covers the transformed unit square directly, because that is where it was
@@ -125,7 +125,7 @@ constexpr bool PlacementWritesChannel(const PlacementSpecification& Placed, std:
 ///        a shoulder should not also appear on the far side of the arm — and it is what the default declares.
 /// cost  🔴
 /// tag   api, nonthrowing
-Deliver<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&         Placed,
+Result<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&         Placed,
                                              std::uint32_t                         PlacementOrdinal,
                                              std::uint32_t                         SequenceOrdinal,
                                              const TopologyStructure&              Imported,
@@ -177,30 +177,30 @@ class PlacementIndex
 public:
 
     /// 🧩 Declares one placement and issues the ordinal `56` refers to it by.
-    /// out   Deliver  [-]  refuses with IdentityStale for an undeclared occupant, with ContentUnsupported for a
+    /// out   Result  [-]  refuses with IdentityStale for an undeclared occupant, with ContentUnsupported for a
     ///                     source outside the declared set or a projected volume of no extent, and with
     ///                     ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Declare(const PlacementSpecification& Declaring);
+    Result<std::uint32_t> Declare(const PlacementSpecification& Declaring);
 
     /// 🧩 Amends one placement, advancing its revision only where `00` §10.1 ② requires it.
     /// in    PlacementOrdinal  [-]  an ordinal this component issued
     /// in    Amending          [-]  the amended specification
-    /// out   Deliver           [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    /// out   Result           [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// note  🔴 The revision advances when the placing transform, the source or the channel mask changed, and
     ///        **not** when the combination or the back-facing rule did. `70` §2's comparison is what re-resolves
     ///        a tile, and re-resolving on a combination change would re-resolve a value the combination is
     ///        applied to afterwards.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Amend(std::uint32_t PlacementOrdinal, const PlacementSpecification& Amending);
+    Result<bool> Amend(std::uint32_t PlacementOrdinal, const PlacementSpecification& Amending);
 
     /// 🧩 One declared placement.
-    /// out   Deliver  [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<const PlacementSpecification*> Resolve(std::uint32_t PlacementOrdinal) const;
+    Result<const PlacementSpecification*> Resolve(std::uint32_t PlacementOrdinal) const;
 
     /// 🧩 Withdraws one placement, returning its slot for reuse.
     /// note  🔴 Called from `12` §12's retirement cascade, inside that cascade's single transaction. A placement
@@ -208,7 +208,7 @@ public:
     ///        rather than surviving it as an orphaned reference `56` still names.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Withdraw(std::uint32_t PlacementOrdinal);
+    Result<bool> Withdraw(std::uint32_t PlacementOrdinal);
 
     /// 🧩 One placement's revision, for `70` §2's per-tile comparison.
     /// out   Revision  [-]  zero for an unclaimed ordinal, which no resolved tile ever recorded
@@ -262,30 +262,30 @@ public:
     /// in    PlacementOrdinal  [-]  the placement being positioned
     /// in    Standing          [-]  its specification as it stands; restored by Abandon
     /// in    CameraFollowed    [-]  true for the screen gesture, false for a domain or projected drag
-    /// out   Deliver           [-]  refuses with HostDenied when a drag is already open
+    /// out   Result           [-]  refuses with HostDenied when a drag is already open
     /// post  nothing is recorded; the placement stands unamended until Seal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Open(std::uint32_t PlacementOrdinal, const PlacementSpecification& Standing, bool CameraFollowed);
+    Result<bool> Open(std::uint32_t PlacementOrdinal, const PlacementSpecification& Standing, bool CameraFollowed);
 
     /// 🧩 Amends the open drag's placing transform.
-    /// out   Deliver  [-]  refuses with HostDenied when no drag is open
+    /// out   Result  [-]  refuses with HostDenied when no drag is open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Amend(const DecomposedTransform& Amending);
+    Result<bool> Amend(const DecomposedTransform& Amending);
 
     /// 🧩 Ends the drag with no effect, returning the specification that stood at Open.
-    /// out   Deliver  [-]  refuses with HostDenied when no drag is open
+    /// out   Result  [-]  refuses with HostDenied when no drag is open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<PlacementSpecification> Abandon();
+    Result<PlacementSpecification> Abandon();
 
     /// 🧩 Ends the drag, returning the specification the caller commits as one transaction.
-    /// out   Deliver  [-]  refuses with HostDenied when no drag is open
+    /// out   Result  [-]  refuses with HostDenied when no drag is open
     /// post  🔴 the returned specification carries an advanced revision; `70` re-resolves against it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<PlacementSpecification> Seal();
+    Result<PlacementSpecification> Seal();
 
     /// 🧩 The placement as the drag has amended it, for `82`'s speculative resolution.
     /// cost  ✔️

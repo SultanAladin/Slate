@@ -35,7 +35,7 @@ const char* const* ChannelNaming()
     return SeatedChannels;
 }
 
-InkOrdinate ChannelTint(std::uint32_t Ordinal)
+ThemeToken ChannelTint(std::uint32_t Ordinal)
 {
     const std::uint32_t Resolved = (Ordinal < LayerStackCeiling::Channels) ? Ordinal : 0u;
     return Covering(SeatedChannelTints[Resolved]);
@@ -90,7 +90,7 @@ const char* const* BlendNaming(std::uint32_t ChannelOrdinal, std::uint32_t& Coun
 //                                                    WHAT ONE ENTRY IS
 //------------------------------------------------------------------------------------------------------------------------
 
-InkOrdinate ContentTint(LayerContent Content)
+ThemeToken ContentTint(LayerContent Content)
 {
     switch (Content)
     {
@@ -351,7 +351,7 @@ static void SeatPatternPlacement(LayerArrangement& Arrangement, LayerEntry& Entr
     Run->ParameterCount = 15u;
 }
 
-Deliver<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
+Result<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
 {
     // 📐 The reference's own `tree`, laid outermost-first with everything a folder encloses immediately
     //    after it. Thirteen entries stand, well inside the ceiling — the guard states the invariant anyway
@@ -359,7 +359,7 @@ Deliver<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
     static constexpr std::uint32_t Declared = 13u;
 
     if (Declared > LayerStackCeiling::Entries)
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted,
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted,
                                        "the declared arrangement exceeds the entry ceiling" });
 
     Arrangement = LayerArrangement{};
@@ -494,7 +494,7 @@ Deliver<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
     Arrangement.TakenHalf = LayerTaken::Layer;
     Arrangement.Entries[5].Unfolded = true;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void SeatReferenceRevisions(const RevisionOrdinate*& Revisions, std::uint32_t& Count)

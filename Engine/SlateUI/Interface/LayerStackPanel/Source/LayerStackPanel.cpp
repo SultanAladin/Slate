@@ -56,17 +56,17 @@ static constexpr float RevisionSpineAlong = 39.0f;   // [px] - 32 + 15/2, the sp
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-void LayerStackPanel::Reseat(const AppearanceSpecification& Resolved)
+void LayerStackPanel::Reseat(const ThemeProfile& Resolved)
 {
     Tinted = Resolved.LayerStack;
 }
 
-Deliver<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
-                                        const AppearanceSpecification& Appearance)
+Result<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
+                                        const ThemeProfile& Appearance)
 {
     if (Ledger != nullptr)
     {
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported,
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the layer stack panel is already constructed" });
     }
 
@@ -75,49 +75,49 @@ Deliver<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, Recordin
 
     // 🔴 Every identity claimed here and none inside a tick. The three runs are claimed in one pass so a
     //    refusal partway through retires the whole construction rather than leaving half a panel enrolled.
-    const auto Claim = [&](ControlIdentity* Written, std::uint32_t Count) -> Deliver<bool>
+    const auto Claim = [&](ControlIdentity* Written, std::uint32_t Count) -> Result<bool>
     {
         for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
         {
-            const Deliver<ControlIdentity> Issued = Interaction.Enrol();
+            const Result<ControlIdentity> Issued = Interaction.Enrol();
 
-            if (!Issued.ContentPresent)
+            if (!Issued.Resolved)
             {
                 Reset();
-                return Deliver<bool>::Refuse(Issued.Declined);
+                return Result<bool>::Refuse(Issued.Error);
             }
 
             Written[Ordinal] = Issued.Resolve();
         }
 
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
     };
 
-    if (const auto Verdict = Claim(RowCells, RowCeiling * CellsPerRow); !Verdict.ContentPresent)
+    if (const auto Verdict = Claim(RowCells, RowCeiling * CellsPerRow); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Claim(ChromeCells, ChromeCeiling); !Verdict.ContentPresent)
+    if (const auto Verdict = Claim(ChromeCells, ChromeCeiling); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Claim(PopupEntries, PopupEntryCeiling); !Verdict.ContentPresent)
+    if (const auto Verdict = Claim(PopupEntries, PopupEntryCeiling); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Claim(RevisionCells, RevisionCellCeiling); !Verdict.ContentPresent)
+    if (const auto Verdict = Claim(RevisionCells, RevisionCellCeiling); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Claim(CardControls, CardControlCeiling); !Verdict.ContentPresent)
+    if (const auto Verdict = Claim(CardControls, CardControlCeiling); !Verdict.Resolved)
         return Verdict;
 
     // 🔴 Constructed AFTER the claims above, so a refusal partway through the runs retires the whole panel
     //    before a component is bound to a ledger it will outlive.
     if (const auto Verdict = CardComponents.Construct(Interaction, Recording, Appearance);
-        !Verdict.ContentPresent)
+        !Verdict.Resolved)
     {
         Reset();
-        return Deliver<bool>::Refuse(Verdict.Declined);
+        return Result<bool>::Refuse(Verdict.Error);
     }
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void LayerStackPanel::Advance(const PointerCondition& Contact, double)
@@ -241,7 +241,7 @@ bool LayerStackPanel::Dragged(ControlIdentity Claimed, const PlaneExtent& Extent
 //                                                      SHARED FRAGMENTS
 //------------------------------------------------------------------------------------------------------------------------
 
-void LayerStackPanel::RecordMeter(const PlaneExtent& Extent, std::uint32_t Reading, InkOrdinate Ink)
+void LayerStackPanel::RecordMeter(const PlaneExtent& Extent, std::uint32_t Reading, ThemeToken Colour)
 {
     // 📐 `.mini` — a 4px trough at .12 coverage with the reading filled over it and rounded to a pill.
     Surface->Ground(Extent, Partial(0xFFFFFFu, 0.12), Scaled.MiniAcross * 0.5f);
@@ -252,18 +252,18 @@ void LayerStackPanel::RecordMeter(const PlaneExtent& Extent, std::uint32_t Readi
     {
         PlaneExtent Filled = Extent;
         Filled.MostAlong   = Extent.LeastAlong + Extent.SpanAlong() * Fraction;
-        Surface->Ground(Filled, Ink, Scaled.MiniAcross * 0.5f);
+        Surface->Ground(Filled, Colour, Scaled.MiniAcross * 0.5f);
     }
 }
 
-void LayerStackPanel::RecordChip(const PlaneExtent& Extent, const char* Caption, InkOrdinate Ink, bool Solid)
+void LayerStackPanel::RecordChip(const PlaneExtent& Extent, const char* Caption, ThemeToken Colour, bool Solid)
 {
     // 📐 `.chip` — an 18px pill, either a .07-coverage ground with a stroke or a solid tint carrying black text.
     const float Radius = Extent.SpanAcross() * 0.5f;
 
     if (Solid)
     {
-        Surface->Ground(Extent, Ink, Radius);
+        Surface->Ground(Extent, Colour, Radius);
     }
     else
     {
@@ -271,7 +271,7 @@ void LayerStackPanel::RecordChip(const PlaneExtent& Extent, const char* Caption,
         Surface->Edge(Extent, Tinted.Stroke, 1.0f, Radius);
     }
 
-    const InkOrdinate Written = Solid ? Covering(0x000000u) : Ink;
+    const ThemeToken Written = Solid ? Covering(0x000000u) : Colour;
     const float       Along   = Extent.LeastAlong + (Extent.SpanAlong() -
                                 Surface->MeasureRun(Caption, Scaled.RunFine, 0.04f)) * 0.5f;
 
@@ -332,7 +332,7 @@ static constexpr float CardActionRow   = 28.0f;   // [px] - a `.frow` of `.dbtn`
 float LayerStackPanel::CardOpening(EasedInterpolant& Fold, bool Unfolded, bool Staged, double Elapsed) const
 {
     // 🔴 The staged tick renders CLOSED and departs nothing, which is the whole of `pendingOpen`: a card
-    //    that appeared already open would have nothing to travel from and would simply blink into place.
+    //    that appeared already open would have nothing to travel from and would simply blcolour into place.
     const double Heading = (Unfolded && !Staged) ? 1.0 : 0.0;
 
     if (Fold.Arriving != Heading)
@@ -563,12 +563,12 @@ float LayerStackPanel::RecordParameterRun(const PlaneExtent& Extent, float Acros
 bool LayerStackPanel::RecordCardAction(const PlaneExtent& Extent, const char* Caption, bool Marked,
                                        bool Dangerous, LayerStackOrdinates& Seated)
 {
-    const InkOrdinate Ground = Marked ? Partial(0xFFFFFFu, 0.14) : Partial(0xFFFFFFu, 0.05);
+    const ThemeToken Ground = Marked ? Partial(0xFFFFFFu, 0.14) : Partial(0xFFFFFFu, 0.05);
 
     Surface->Ground(Extent, Roused(Extent) ? Partial(0xFFFFFFu, 0.10) : Ground, Scaled.RadiusSmall);
     Surface->Edge(Extent, Tinted.Stroke, 1.0f, Scaled.RadiusSmall);
 
-    const InkOrdinate Written = Dangerous ? Tinted.Danger : (Marked ? Tinted.Primary : Tinted.Secondary);
+    const ThemeToken Written = Dangerous ? Tinted.Danger : (Marked ? Tinted.Primary : Tinted.Secondary);
     const float       Along   = Extent.LeastAlong + (Extent.SpanAlong() -
                                 Surface->MeasureRun(Caption, Scaled.RunFine)) * 0.5f;
 
@@ -1365,7 +1365,7 @@ void LayerStackPanel::RecordEntryRow(const PlaneExtent& Extent, const LayerArran
 
     // ① The ground, which the reference tints by taken, then hovered, then standing.
     // 📐 `/* ── ROW (square) ── */` — the entry row carries no radius at all.
-    const InkOrdinate Ground = Taken ? Tinted.RowTaken : (Hovered ? Tinted.RowHovered : Tinted.Row);
+    const ThemeToken Ground = Taken ? Tinted.RowTaken : (Hovered ? Tinted.RowHovered : Tinted.Row);
     Surface->Ground(Extent, Ground, 0.0f);
 
     if (Taken)
@@ -1413,16 +1413,16 @@ void LayerStackPanel::RecordEntryRow(const PlaneExtent& Extent, const LayerArran
     Along += Scaled.ThumbExtent + Scaled.RowGapAlong;
 
     // ⑥ `.chips` — measured before the meta, because `.meta{flex:1}` yields to whatever the chips take.
-    struct ChipDeclaration { char Caption[16]; InkOrdinate Ink; bool Solid; };
+    struct ChipDeclaration { char Caption[16]; ThemeToken Colour; bool Solid; };
     ChipDeclaration Declared[5] = {};
     std::uint32_t   ChipCount   = 0u;
 
-    const auto Declare = [&](const char* Caption, InkOrdinate Ink, bool Solid)
+    const auto Declare = [&](const char* Caption, ThemeToken Colour, bool Solid)
     {
         if (ChipCount >= 5u)
             return;
         std::snprintf(Declared[ChipCount].Caption, sizeof Declared[ChipCount].Caption, "%s", Caption);
-        Declared[ChipCount].Ink   = Ink;
+        Declared[ChipCount].Colour   = Colour;
         Declared[ChipCount].Solid = Solid;
         ++ChipCount;
     };
@@ -1519,7 +1519,7 @@ void LayerStackPanel::RecordEntryRow(const PlaneExtent& Extent, const LayerArran
     {
         const float ChipAlong = Surface->MeasureRun(Declared[Chip].Caption, Scaled.RunFine, 0.04f) + 14.0f;
         RecordChip(Spanning(ChipSeat, Middle - Scaled.ChipAcross * 0.5f, ChipAlong, Scaled.ChipAcross),
-                   Declared[Chip].Caption, Declared[Chip].Ink, Declared[Chip].Solid);
+                   Declared[Chip].Caption, Declared[Chip].Colour, Declared[Chip].Solid);
         ChipSeat += ChipAlong + 3.0f;
     }
 
@@ -1538,7 +1538,7 @@ void LayerStackPanel::RecordMaskRow(const PlaneExtent& Extent, const LayerEntry&
     const MaskOrdinate& Mask = Entry.Mask;
     const float      Middle = (Extent.LeastAcross + Extent.MostAcross) * 0.5f;
 
-    const InkOrdinate Ground = Taken ? Tinted.RowTaken : (Hovered ? Tinted.RowHovered : Tinted.Detail);
+    const ThemeToken Ground = Taken ? Tinted.RowTaken : (Hovered ? Tinted.RowHovered : Tinted.Detail);
     Surface->Ground(Extent, Ground, 0.0f);
     Surface->Edge(Extent, Taken ? Tinted.StrokeStrong : Tinted.Stroke, 1.0f, 0.0f);
 
@@ -2090,14 +2090,14 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
                                              Scaled.ButtonExtent * 0.5f, ActionMiddle, Scaled.ButtonExtent);
 
     const auto Action = [&](ChromeCell Cell, const PlaneExtent& Seat, SymbolSubject Figure,
-                            const char* Tooltip, InkOrdinate Ink) -> bool
+                            const char* Tooltip, ThemeToken Colour) -> bool
     {
         const bool Taken = Pressed(ChromeCells[static_cast<std::uint32_t>(Cell)], Seat, Seated, Tooltip);
 
         if (Roused(Seat))
             Surface->Ground(Seat, Partial(0xFFFFFFu, 0.07), Scaled.RadiusSmall);
 
-        Surface->Stroke(Figure, Inset(Seat, 6.5f, 6.5f), Ink);
+        Surface->Stroke(Figure, Inset(Seat, 6.5f, 6.5f), Colour);
         return Taken;
     };
 
@@ -2467,9 +2467,9 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
         //    is scaled by their ratio rather than applied to the offset directly.
         if (Ledger->Holding(Claimed) && Travel > 0.0f)
         {
-            const Deliver<float> Departed = Ledger->DepartedOrdinate(Claimed);
+            const Result<float> Departed = Ledger->DepartedOrdinate(Claimed);
 
-            if (Departed.ContentPresent)
+            if (Departed.Resolved)
             {
                 const float Moved = Sampled.PositionAcross - Ledger->OriginAcross();
                 Seated.StackOffset = Departed.Resolve() + Moved * (Ceiling / Travel);
@@ -3465,9 +3465,9 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
 
         if (Ledger->Holding(Claimed) && Travel > 0.0f)
         {
-            const Deliver<float> Departed = Ledger->DepartedOrdinate(Claimed);
+            const Result<float> Departed = Ledger->DepartedOrdinate(Claimed);
 
-            if (Departed.ContentPresent)
+            if (Departed.Resolved)
             {
                 const float Moved  = Sampled.PositionAcross - Ledger->OriginAcross();
                 Seated.RevisionOffset = Departed.Resolve() + Moved * (Ceiling / Travel);

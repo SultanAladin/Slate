@@ -94,39 +94,39 @@ public:
     /// in    Exchange      [-]  the created device; borrowed, never owned, and outlives this component
     /// in    BackingSpace  [-]  where span bytes come from; borrowed and outlives this component
     /// in    Naming        [-]  names every claimed span; borrowed and outlives this component
-    /// out   Deliver       [-]  refuses with CapabilityAbsent when no device is active
+    /// out   Result       [-]  refuses with CapabilityAbsent when no device is active
     /// note  🔴 `06` §7's diagnostic-name gate. Each span is named by its intent and its ordinal, which is
     ///        what a claimant resolves it by — a name carrying only the intent would be shared by every
     ///        storage span the engine holds, and the driver's text would then name a set rather than a span.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const VulkanExchange&      Exchange,
+    Result<bool> Construct(const VulkanExchange&      Exchange,
                             ByteSpace&                 BackingSpace,
                             const DiagnosticExtension& Naming);
 
     /// 🧩 Claims one span of the declared shape and binds the bytes it occupies.
     /// in    Declared  [-]  the shape; nothing about it is inferred from the intent but its permitted reads
-    /// out   Deliver   [-]  refuses with ExtentExhausted when no bytes remain, and with ContentUnsupported for
+    /// out   Result   [-]  refuses with ExtentExhausted when no bytes remain, and with ContentUnsupported for
     ///                      a zero span or an intent outside the declared set
     /// post  the span stands and is written by a transfer, or through its host address where it carries one
     /// note  🔴 Refused in full. A span whose bytes were claimed and whose binding was declined leaves a vendor
     ///        allocation nothing holds a reference to, reclaimed only at device teardown.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<SpanClaim> Claim(const SpanShape& Declared);
+    Result<SpanClaim> Claim(const SpanShape& Declared);
 
     /// 🧩 Writes host-supplied bytes into one host-writable span.
     /// in    SpanOrdinal    [-]  a claim this component issued
     /// in    Arriving       [-]  what is written; read for ArrivingBytes and never retained
     /// in    ArrivingBytes  [B]  how far the write runs
     /// in    ByteOffset     [B]  where in the span the write begins
-    /// out   Deliver        [-]  refuses with ContentUnsupported for an unclaimed ordinal or a device-local
+    /// out   Result        [-]  refuses with ContentUnsupported for an unclaimed ordinal or a device-local
     ///                           span, and with ExtentExhausted when the write would run past the claim
     /// note  🔴 The span is host-coherent, so nothing is flushed here. `ByteSpace` claims the host-writable
     ///        extent as coherent precisely so that a caller cannot forget the flush at one of its write sites.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Amend(std::uint32_t  SpanOrdinal,
+    Result<bool> Amend(std::uint32_t  SpanOrdinal,
                         const void*    Arriving,
                         VkDeviceSize   ArrivingBytes,
                         VkDeviceSize   ByteOffset);
@@ -136,24 +136,24 @@ public:
     /// in    SourceOrdinal [-]  a claim this component issued, declared as a transfer source
     /// in    TargetOrdinal [-]  a claim this component issued
     /// in    TransferBytes [B]  how far the transfer runs; zero reads as the whole of the source
-    /// out   Deliver       [-]  refuses with ContentUnsupported for an unclaimed ordinal and with
+    /// out   Result       [-]  refuses with ContentUnsupported for an unclaimed ordinal and with
     ///                          ExtentExhausted when the transfer would run past either span
     /// note  ⚠️ The barrier that makes the transferred bytes readable is the caller's, because only the caller
     ///        knows which stage reads them. A transfer recorded without one is read by the device at whatever
     ///        moment its scheduling reaches it, which is a partitioning that is correct on one driver.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Transfer(VkCommandBuffer  Recorded,
+    Result<bool> Transfer(VkCommandBuffer  Recorded,
                            std::uint32_t    SourceOrdinal,
                            std::uint32_t    TargetOrdinal,
                            VkDeviceSize     TransferBytes);
 
     /// 🧩 The current record for one claimed span.
     /// in    SpanOrdinal  [-]  a claim this component issued
-    /// out   Deliver      [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    /// out   Result      [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<SpanClaim> Standing(std::uint32_t SpanOrdinal) const;
+    Result<SpanClaim> Standing(std::uint32_t SpanOrdinal) const;
 
     /// 🧩 Destroys one span and returns its bytes.
     /// in    SpanOrdinal  [-]  a claim this component issued; an unclaimed ordinal is a no-op

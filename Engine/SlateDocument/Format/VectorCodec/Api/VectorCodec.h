@@ -38,7 +38,7 @@ struct DecodedOutline
 /// 🧩 Translates one vector stream into paths, refusing every construct outside `52` §2's subset by name.
 /// in    Stream      [-]  the whole stream, as `StorageExchange` drained it
 /// in    OriginPath  [-]  where it was read from; occupied on the file route only
-/// out   Deliver     [-]  refuses with ContentUnsupported for a stream carrying no path at all
+/// out   Result     [-]  refuses with ContentUnsupported for a stream carrying no path at all
 /// err   never throws
 /// cost  🔴
 /// note  🔴 `52` §2 converts strokes at **intake** and stores no width — and intake is above this line, not on
@@ -51,7 +51,7 @@ struct DecodedOutline
 /// note  📝 The file route and the supplied-text route produce the identical specification — `52` §1 — so this
 ///        translation is the file route's half and nothing downstream can tell which route was taken.
 /// tag   api, nonthrowing
-Deliver<DecodedOutline> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath);
+Result<DecodedOutline> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded,
                          PrecisionGuarantee::Bounded,
@@ -59,12 +59,12 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded,
 
 /// 🧩 Translates one vector source supplied as text rather than read from a file, retaining the text.
 /// in    SourceText  [-]  retained on the specification, because there is no file to re-read
-/// out   Deliver     [-]  refuses with ContentUnsupported for a source carrying no path at all
+/// out   Result     [-]  refuses with ContentUnsupported for a source carrying no path at all
 /// cost  🔴
 /// note  🔴 The text is retained. A source whose only copy was a clipboard is unrecoverable after a reopen, and
 ///        the artist reads that as the document having lost their work — `52` §1.
 /// tag   api, nonthrowing
-Deliver<DecodedOutline> TranslateText(const std::string& SourceText);
+Result<DecodedOutline> TranslateText(const std::string& SourceText);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded,
                          PrecisionGuarantee::Bounded,

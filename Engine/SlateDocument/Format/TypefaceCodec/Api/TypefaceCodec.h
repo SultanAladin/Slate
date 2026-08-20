@@ -56,7 +56,7 @@ struct DecodedTypeface
 /// 🧩 Translates one typeface stream into glyph outlines, in the typeface's own units.
 /// in    Stream        [-]  the whole stream, as `StorageExchange` drained it
 /// in    GlyphCeiling  [-]  how many glyph ordinals to translate; the typeface's own count where it is lower
-/// out   Deliver       [-]  refuses with ContentUnsupported for a stream the reader declined, and with
+/// out   Result       [-]  refuses with ContentUnsupported for a stream the reader declined, and with
 ///                          ExtentExhausted for a typeface declaring no glyph at all
 /// err   never throws; every shape the reader allocated is released before returning, on refusal included
 /// cost  🔴
@@ -69,7 +69,7 @@ struct DecodedTypeface
 /// note  ⚠️ An empty glyph — a space, most often — decodes to a glyph carrying no path and is retained. Dropping
 ///        it would renumber every ordinal after it, and the glyph sequence `52` §3 stores indexes those ordinals.
 /// tag   api, nonthrowing
-Deliver<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::uint32_t GlyphCeiling);
+Result<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::uint32_t GlyphCeiling);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
                          PrecisionGuarantee::Exact);
@@ -77,13 +77,13 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
 /// 🧩 Resolves one codepoint to the glyph ordinal the typeface holds it under.
 /// in    Stream     [-]  the same stream the translation was taken from
 /// in    Codepoint  [-]  one Unicode scalar value
-/// out   Deliver    [-]  refuses with ContentUnsupported when the typeface maps that codepoint to nothing
+/// out   Result    [-]  refuses with ContentUnsupported when the typeface maps that codepoint to nothing
 /// cost  🚩
 /// note  🔴 Separate from the translation because substitution belongs at intake — `52` §3. Text is resolved to a
 ///        glyph sequence once and that sequence is what is stored; resolving at every use would mean replacing a
 ///        typeface silently reshapes text the artist has already positioned.
 /// tag   api, nonthrowing
-Deliver<std::uint32_t> ResolveCodepoint(const std::vector<std::uint8_t>& Stream, std::uint32_t Codepoint);
+Result<std::uint32_t> ResolveCodepoint(const std::vector<std::uint8_t>& Stream, std::uint32_t Codepoint);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact,
                          PrecisionGuarantee::Exact);

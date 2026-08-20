@@ -19,7 +19,7 @@ namespace Slate
 
 /// 🧩 Every ceiling the stack is bounded by, stated once so no recorder invents its own.
 /// note  📝 The arrangement is nested, so it is held as one flat run of records carrying an enclosing
-///        ordinal rather than as linked storage. Nothing in the stack allocates: the whole schema is one
+///        ordinal rather than as lcoloured storage. Nothing in the stack allocates: the whole schema is one
 ///        fixed extent the host owns, which is what keeps a tick free of `new`.
 /// tag   contract
 struct LayerStackCeiling
@@ -247,12 +247,12 @@ const char* const* ChannelNaming();
 /// in    Ordinal  [-]  0…LayerStackCeiling::Channels-1; out of range resolves to the first
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-InkOrdinate ChannelTint(std::uint32_t Ordinal);
+ThemeToken ChannelTint(std::uint32_t Ordinal);
 
 /// 🧩 The tint one content carries, from `LayerstackV1`'s own `TYPE` record.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-InkOrdinate ContentTint(LayerContent Content);
+ThemeToken ContentTint(LayerContent Content);
 
 /// 🧩 The run naming one content, as the reference presents it.
 /// cost  ✔️
@@ -299,10 +299,10 @@ std::uint32_t EnclosedCount(const LayerArrangement& Arrangement, std::uint32_t O
 std::uint32_t ChannelsEnabled(const LayerEntry& Entry);
 
 /// 🧩 Seats the arrangement the reference's own `tree` declares, so every host opens on one reading.
-/// out   Deliver  [-]  refuses with ExtentExhausted when the declared run exceeds the ceiling
+/// out   Result  [-]  refuses with ExtentExhausted when the declared run exceeds the ceiling
 /// cost  🚩
 /// tag   api, nonallocating, nonthrowing
-Deliver<bool> SeatReferenceArrangement(LayerArrangement& Arrangement);
+Result<bool> SeatReferenceArrangement(LayerArrangement& Arrangement);
 
 /// 🧩 Seats the revision run the inspector's second pane presents.
 /// out   Count  [-]  how many revisions were seated

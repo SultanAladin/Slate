@@ -96,7 +96,7 @@ public:
     /// in    DisplayWidth   [px] the extent the window reports now
     /// in    DisplayHeight  [px] the extent the window reports now
     /// in    Intent         [-]  what the artist is optimising for
-    /// out   Deliver        [-]  refuses with CapabilityAbsent when no device is active or the surface declares
+    /// out   Result        [-]  refuses with CapabilityAbsent when no device is active or the surface declares
     ///                           no format, ContentUnsupported for a zero or excessive extent, and
     ///                           ExtentExhausted when the device declines the chain
     /// post  `Carries` names the format every display-relative target is claimed at; the chain holds no image
@@ -109,7 +109,7 @@ public:
     ///        the arriving one is constructed — and a report against either would otherwise read alike.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const VulkanExchange&       Exchange,
+    Result<bool> Construct(const VulkanExchange&       Exchange,
                             const DiagnosticExtension&  Naming,
                             VkSurfaceKHR                Surface,
                             std::uint32_t               DisplayWidth,
@@ -119,7 +119,7 @@ public:
     /// 🧩 Re-establishes the chain at a new extent, retaining the format the targets were claimed at.
     /// in    DisplayWidth   [px] the arrived extent; an intermediate drag extent is the caller's to discard
     /// in    DisplayHeight  [px]
-    /// out   Deliver        [-]  refuses as Construct does
+    /// out   Result        [-]  refuses as Construct does
     /// pre   🔴 the device is idle — every rotation that reads the old chain has completed
     /// note  🔴 `06` §7's extent gate is discharged by the **caller**, in one order: re-establish the chain
     ///        here, then `TargetSpace::Reclaim` at the same extent, then `AttachmentIndex::Derive` over the
@@ -130,12 +130,12 @@ public:
     ///        stops rotating instead of establishing a chain no image can be claimed from.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
+    Result<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
     /// 🧩 Takes the next display image, ordering its arrival against the standing cycle slot.
     /// in    Standing  [-]  the cycle slot this image is recorded into; its `ImageArrived` is signalled
     /// in    Timeline  [-]  measures the interval between this arrival and the last
-    /// out   Deliver   [-]  refuses with CapabilityAbsent when no chain stands, RelationCyclic when an image is
+    /// out   Result   [-]  refuses with CapabilityAbsent when no chain stands, RelationCyclic when an image is
     ///                      already taken, HostDenied when the display neither delivers an image nor reports
     ///                      the chain outgrown within the arrival ceiling, and DeviceLost when the device was
     ///                      lost; the chain is left standing for the recovery to reclaim
@@ -150,29 +150,29 @@ public:
     ///        caller reading `Reclaimed` alone would record into a null view on the second of the two.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<ArrivedImage> Await(const CycleSlot& Standing, const TickSequence& Timeline);
+    Result<ArrivedImage> Await(const CycleSlot& Standing, const TickSequence& Timeline);
 
     /// 🧩 Surrenders one taken image back to the display, ordered behind the recording that wrote it.
     /// in    Standing      [-]  the same slot `Await` was given; its `RecordingDone` is awaited
     /// in    ImageOrdinal  [-]  what `Await` delivered
-    /// out   Deliver       [-]  refuses with ContentUnsupported for an ordinal `Await` did not deliver, with
+    /// out   Result       [-]  refuses with ContentUnsupported for an ordinal `Await` did not deliver, with
     ///                          HostDenied when the display declines it, and with DeviceLost when the device
     ///                          was lost; the ordinal is released to the display either way
     /// post  the ordinal is the display's again; `Presented` is raised
     /// note  🔴 Awaits `RecordingDone` and never the completion. The completion is the host's fence and waiting
     ///        on it here would serialise the host against the device once per rotation — which is the whole
     ///        purpose of the recording slot count, spent.
-    /// out   Deliver  [-]  delivers `true` when the chain still matches the display, `false` when the image
+    /// out   Result  [-]  delivers `true` when the chain still matches the display, `false` when the image
     ///                     was presented against a chain the display has outgrown; refuses only when nothing
     ///                     was presented at all
     /// note  🔴 ⚠️ The delivered VALUE is the re-establishment signal and a caller that reads only
-    ///        `ContentPresent` will never rebuild. `VK_ERROR_OUT_OF_DATE_KHR` is a successful presentation
+    ///        `Resolved` will never rebuild. `VK_ERROR_OUT_OF_DATE_KHR` is a successful presentation
     ///        against a stale chain: refusing it would make a resize look like a lost rotation, and
     ///        delivering `true` for it — which this did — made the caller's re-establishment branch
     ///        unreachable, so a resize was rebuilt one tick late by the extent test or not at all.
     /// cost  🚩
     /// tag   api, nonthrowing
-    [[nodiscard]] Deliver<bool> Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal);
+    [[nodiscard]] Result<bool> Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal);
 
     /// 🧩 What the surface carries, which is the format every display-relative target is claimed at.
     /// out   Format  [-]  VK_FORMAT_UNDEFINED before Construct delivered
@@ -233,7 +233,7 @@ private:
     ///        `08` §3 ⑧ is exposure, tone map and OETF in one recording — and a sRGB surface would apply it a
     ///        second time in hardware, which the artist reads as a washed-out surface rather than as a double
     ///        encoding.
-    Deliver<VkSurfaceFormatKHR> ScoreFormat(VkSurfaceKHR Surface) const;
+    Result<VkSurfaceFormatKHR> ScoreFormat(VkSurfaceKHR Surface) const;
 
     /// 🧩 The vendor pacing one declared latency intent resolves to, from what the surface admits.
     /// note  🔴 Every surface admits `VK_PRESENT_MODE_FIFO_KHR` by declaration, so it is the fallback for both
@@ -241,7 +241,7 @@ private:
     VkPresentModeKHR ScorePacing(VkSurfaceKHR Surface, LatencyIntent Intent) const;
 
     /// 🧩 Establishes the chain and its views at the standing extent, retiring whatever stood before.
-    Deliver<bool> Establish();
+    Result<bool> Establish();
 
     const VulkanExchange*      DeviceEdge       = nullptr;              // [-]  - borrowed; never owned
     const DiagnosticExtension* NamingEdge       = nullptr;              // [-]  - borrowed; never owned

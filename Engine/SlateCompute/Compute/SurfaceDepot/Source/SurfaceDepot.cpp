@@ -12,23 +12,23 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> SurfaceDepot::Construct(std::uint64_t ByteCeiling_)
+Result<bool> SurfaceDepot::Construct(std::uint64_t ByteCeiling_)
 {
     if (ByteCeiling_ == 0u)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a depot of no extent holds nothing" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a depot of no extent holds nothing" });
 
     Held.clear();
     Ceiling  = ByteCeiling_;
     Occupied = 0u;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ADMISSION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
+Result<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
                                     LayerContentSource Source,
                                     std::uint64_t      ByteExtent,
                                     std::uint64_t      RecordingOrdinal)
@@ -38,16 +38,16 @@ Deliver<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
     //    can only see texels.
     if (!SourceReconstructible(Source))
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "painted texels are authored content and are never evictable" });
     }
 
     if (ByteExtent == 0u)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "an artefact of no extent" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "an artefact of no extent" });
 
     if (ByteExtent > Ceiling)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ExtentExhausted, "the artefact alone exceeds the whole depot" });
     }
 
@@ -75,14 +75,14 @@ Deliver<bool> SurfaceDepot::Declare(const ContentKey&  Keyed,
     Held.push_back(Admitting);
     Occupied += ByteExtent;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal)
+Result<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal)
 {
     for (DepotArtefact& Standing : Held)
     {
@@ -95,10 +95,10 @@ Deliver<DepotArtefact> SurfaceDepot::Resolve(const ContentKey& Keyed, std::uint6
         Standing.ResolvedAt = RecordingOrdinal;
         ++ResolvedTotal;
 
-        return Deliver<DepotArtefact>::Deliver(Standing);
+        return Result<DepotArtefact>::Result(Standing);
     }
 
-    return Deliver<DepotArtefact>::Refuse({ RefusalReason::ExtentExhausted, "nothing is held under that key" });
+    return Result<DepotArtefact>::Refuse({ RefusalReason::ExtentExhausted, "nothing is held under that key" });
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -241,13 +241,13 @@ LRESULT CALLBACK ReceivePointerMessage(HWND WindowSlot, UINT Message, WPARAM Arr
 //                                                     ATTACHMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& HostTimeline)
+Result<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& HostTimeline)
 {
     if (AttachedWindowSlot != nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "this exchange is already attached" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "this exchange is already attached" });
 
     if (NativeWindowSlot == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "no window was surrendered to attach to" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "no window was surrendered to attach to" });
 
 #if defined(_WIN32)
 
@@ -256,21 +256,21 @@ Deliver<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& 
     HWND WindowSlot = glfwGetWin32Window(static_cast<GLFWwindow*>(NativeWindowSlot));
 
     if (IsWindow(WindowSlot) == FALSE)
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the surrendered handle names no window" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the surrendered handle names no window" });
 
     WindowAttachment* Vacant = nullptr;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < AttachmentCapacity; ++Ordinal)
     {
         if (Attached[Ordinal].WindowSlot == WindowSlot)
-            return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the window is already read from" });
+            return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the window is already read from" });
 
         if (Vacant == nullptr && Attached[Ordinal].WindowSlot == nullptr)
             Vacant = &Attached[Ordinal];
     }
 
     if (Vacant == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "no attachment slot is unoccupied" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no attachment slot is unoccupied" });
 
     // 🔴 The attachment is recorded **before** the procedure is exchanged. The exchange itself delivers
     //    messages, and a message arriving between the two would find no attachment and be handed to the
@@ -290,7 +290,7 @@ Deliver<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& 
         Vacant->WindowSlot    = nullptr;
         Vacant->ReportingInto = nullptr;
 
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the window declined the pointer attachment" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the window declined the pointer attachment" });
     }
 
     Vacant->PrecedingReceiver = reinterpret_cast<WNDPROC>(Preceding);
@@ -302,7 +302,7 @@ Deliver<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& 
     PrecedingReceiver  = reinterpret_cast<void*>(Preceding);
     Timeline           = &HostTimeline;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 
 #else
 
@@ -311,7 +311,7 @@ Deliver<bool> InputExchange::Attach(void* NativeWindowSlot, const TickSequence& 
     //    no axes at all — which is indistinguishable from a device that has none.
     static_cast<void>(HostTimeline);
 
-    return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent,
+    return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent,
                                    "the host's pointer surface is not yet translated" });
 
 #endif

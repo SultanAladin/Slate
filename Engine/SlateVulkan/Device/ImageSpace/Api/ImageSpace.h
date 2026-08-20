@@ -95,54 +95,54 @@ public:
     /// in    Exchange     [-]  the created device; borrowed and outlives this component
     /// in    BackingSpace [-]  where image bytes come from; borrowed and outlives this component
     /// in    Naming       [-]  names every claimed image and every view over it; borrowed and outlives this
-    /// out   Deliver      [-]  refuses with CapabilityAbsent when no device is active
+    /// out   Result      [-]  refuses with CapabilityAbsent when no device is active
     /// note  🔴 `06` §7's diagnostic-name gate. The image and its views are named separately because they are
     ///        separate vendor objects, and the driver reports a view's error against the view — an unnamed
     ///        view under a named image reports as an address beside a name, which reads as two objects.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const VulkanExchange&      Exchange,
+    Result<bool> Construct(const VulkanExchange&      Exchange,
                             ByteSpace&                 BackingSpace,
                             const DiagnosticExtension& Naming);
 
     /// 🧩 Claims one image of the declared shape, slices its bytes, and constructs its whole-image view.
     /// in    Declared  [-]  the shape; nothing about it is inferred from the format
-    /// out   Deliver   [-]  refuses with ExtentExhausted when no bytes remain, ContentUnsupported for a
+    /// out   Result   [-]  refuses with ExtentExhausted when no bytes remain, ContentUnsupported for a
     ///                      zero extent or a format the device declines for the declared intent
     /// post  the image stands in VK_IMAGE_LAYOUT_UNDEFINED and is transitioned before first use
     /// note  🔴 Refused in full. An image whose bytes were claimed and whose view was declined leaves a
     ///        vendor allocation nothing holds a reference to, and it is reclaimed only at device teardown.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<ImageClaim> Claim(const ImageShape& Declared);
+    Result<ImageClaim> Claim(const ImageShape& Declared);
 
     /// 🧩 Records the barrier that carries one image from where it stands to where it is next read.
     /// in    Recorded    [-]  the command being recorded into
     /// in    ImageOrdinal[-]  the claim's ordinal; the record is amended, not the caller's copy
     /// in    Arriving    [-]  the layout the next recording requires
-    /// out   Deliver     [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    /// out   Result     [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// post  the recorded layout is the arriving one; a repeat transition to the same layout is a no-op
     /// note  🔴 `08` §4: no contributing document issues a layout transition directly. The barrier is
     ///        derived from the declared reads and writes, and this is the one place it is recorded.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Arriving);
+    Result<bool> Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Arriving);
 
     /// 🧩 The current record for one claimed image, including the layout the last transition left it in.
-    /// out   Deliver  [-]  refuses with ContentUnsupported for an unclaimed ordinal
+    /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<ImageClaim> Standing(std::uint32_t ImageOrdinal) const;
+    Result<ImageClaim> Standing(std::uint32_t ImageOrdinal) const;
 
     /// 🧩 Constructs a view over one reduction level, for the chain `16` §2 walks a level at a time.
     /// in    ImageOrdinal [-]  a claimed image whose LevelCount admits the level
     /// in    LevelOrdinal [-]  the level; zero is the full extent
-    /// out   Deliver      [-]  refuses with ContentUnsupported outside the declared level count
+    /// out   Result      [-]  refuses with ContentUnsupported outside the declared level count
     /// note  The view is owned here and reclaimed with the image. A caller destroying one leaves the ledger
     ///        holding a handle the vendor has already reused.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<VkImageView> LevelView(std::uint32_t ImageOrdinal, std::uint32_t LevelOrdinal);
+    Result<VkImageView> LevelView(std::uint32_t ImageOrdinal, std::uint32_t LevelOrdinal);
 
     /// 🧩 Destroys one image, every view over it, and returns its bytes.
     /// pre   the device is idle, or no recording still in the rotation reads it

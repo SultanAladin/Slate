@@ -115,21 +115,21 @@ public:
 
     /// 🧩 Borrows the integrator every enrolled control's fades are enrolled into.
     /// in    Motion   [-]  borrowed; outlives this component
-    /// out   Deliver  [-]  refuses with ContentUnsupported when a construction already stands
+    /// out   Result  [-]  refuses with ContentUnsupported when a construction already stands
     /// post  the ledger is empty and Enrol may be called
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Construct(MotionIntegrator& Motion);
+    Result<bool> Construct(MotionIntegrator& Motion);
 
     /// 🧩 Claims one slot and delivers the identity the caller holds for the life of the interface.
-    /// out   Deliver  [-]  refuses with CapabilityAbsent before Construct, and with ExtentExhausted when the
+    /// out   Result  [-]  refuses with CapabilityAbsent before Construct, and with ExtentExhausted when the
     ///                     ledger is full or the integrator declines either fade
     /// note  🔴 Called at bring-up and never per tick. An identity claimed inside the tick loop exhausts the
     ///        ledger in a few seconds and reports it as a refusal at a call site that looks correct.
     /// post  the delivered identity carries a generation of at least one and resolves until Reset
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<ControlIdentity> Enrol();
+    Result<ControlIdentity> Enrol();
 
     /// 🧩 Whether one identity still names the slot it was issued for.
     /// out   Resolved  [-]  false for a default-constructed identity and for one issued before a Reset
@@ -185,7 +185,7 @@ public:
     ///       which drifts by a pixel for every tick the pointer was outside the extent.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<float> DepartedOrdinate(ControlIdentity Claimed) const;
+    Result<float> DepartedOrdinate(ControlIdentity Claimed) const;
 
     /// 🧩 Records the datum the seizing control departed from, once, at seizure.
     /// out   Recorded  [-]  false when this control holds no seizure

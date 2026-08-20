@@ -30,17 +30,17 @@ namespace
 //                                                      RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> ResolveMigration(const StreamHeading& Heading)
+Result<std::uint32_t> ResolveMigration(const StreamHeading& Heading)
 {
     if (Heading.Signature != DeclaredSignature)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "not a Slate document stream" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "not a Slate document stream" });
 
     if (Heading.StreamVersion == CurrentStreamVersion)
-        return Deliver<std::uint32_t>::Deliver(0u);
+        return Result<std::uint32_t>::Result(0u);
 
     if (Heading.StreamVersion > CurrentStreamVersion)
     {
-        return Deliver<std::uint32_t>::Refuse(
+        return Result<std::uint32_t>::Refuse(
             { RefusalReason::VersionUnmigratable, "the stream was written by a later build" });
     }
 
@@ -66,11 +66,11 @@ Deliver<std::uint32_t> ResolveMigration(const StreamHeading& Heading)
 
     if (Reached != CurrentStreamVersion)
     {
-        return Deliver<std::uint32_t>::Refuse(
+        return Result<std::uint32_t>::Refuse(
             { RefusalReason::VersionUnmigratable, "no declared migration chain reaches this build" });
     }
 
-    return Deliver<std::uint32_t>::Deliver(StepCount);
+    return Result<std::uint32_t>::Result(StepCount);
 }
 
 }   // namespace Slate

@@ -20,7 +20,7 @@ namespace Slate
 //                                                       THE SEATED INKS
 //------------------------------------------------------------------------------------------------------------------------
 
-// 📝 `ContentBrowserInk` now lives in `AppearanceSpecification.h`, beside every other ink the interface draws
+// 📝 `ContentBrowserColour` now lives in `ThemeProfile.h`, beside every other colour the interface draws
 //    with. It moved so the appearance file can reach it: a token run declared in a panel header is one the
 //    Control Centre cannot theme. The spellings are unchanged.
 
@@ -160,12 +160,12 @@ public:
     /// 🧩 Claims every identity the panel will ever arbitrate, once, before the first tick.
     /// in    Interaction  [-]  borrowed; must outlive the panel
     /// in    Recording    [-]  borrowed; must outlive the panel
-    /// out   Deliver      [-]  refuses with ContentUnsupported when a construction already stands, and
+    /// out   Result      [-]  refuses with ContentUnsupported when a construction already stands, and
     ///                          carries the ledger's own refusal when a slot cannot be claimed
     /// err   a refusal leaves nothing enrolled; the panel records nothing until Construct is delivered
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording);
+    Result<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording);
 
     /// 🧩 Samples the tick's pointer before anything is recorded against it.
     /// in    Arrived  [-]  this tick's pointer, as the host built it
@@ -220,15 +220,15 @@ public:
     /// tag   api, nonallocating, nonthrowing
     void Reset();
 
-    /// 🧩 Restates the panel's inks and lengths from a resolved appearance, so a theme change reaches it.
+    /// 🧩 Restates the panel's colours and lengths from a resolved appearance, so a theme change reaches it.
     /// in    Resolved  [-]  the appearance the host resolved for the chosen theme
     /// note  📐 Cheap enough to call every tick, though a host need only call it when the selection moves.
     ///        Nothing is borrowed — the record is copied out, so the caller may let `Resolved` expire.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Reseat(const AppearanceSpecification& Resolved);
+    void Reseat(const ThemeProfile& Resolved);
 
-    ContentBrowserInk     Ink;        // [-] - the reference's own token run
+    ContentBrowserColour     Colour;        // [-] - the reference's own token run
     ContentBrowserMetric  Measure;    // [-] - the reference's own lengths
 
 private:

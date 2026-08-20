@@ -71,7 +71,7 @@ inline void ReportResolvedRefusal(const Refusal& Declining)
 #endif
 
 /// 🧩 Delivered content, or a refusal naming why it is absent. Used wherever a document reports a refusal.
-/// note  ⚠️ Delivered is default-constructed when ContentPresent is false. Read it only through Resolve.
+/// note  ⚠️ Delivered is default-constructed when Resolved is false. Read it only through Resolve.
 /// note  🔴 `[[nodiscard]]`. A refusal nobody read is a refusal that did not happen: the caller carries on
 ///        against state the callee declined to produce, and the defect surfaces later at a call that is
 ///        correct. Applying it found `HostLifecycle` discarding the delivery from a presentation-chain
@@ -82,47 +82,47 @@ inline void ReportResolvedRefusal(const Refusal& Declining)
 template <typename Content>
 struct [[nodiscard]] ContentDelivery
 {
-    Content  Delivered      = Content{};   // [-] - meaningful only while ContentPresent holds
-    Refusal  Declined       = {};          // [-] - meaningful only while ContentPresent is false
-    bool     ContentPresent = false;       // [-] - the discriminant, and the only thing read first
+    Content  Delivered      = Content{};   // [-] - meaningful only while Resolved holds
+    Refusal  Error          = {};          // [-] - meaningful only while Resolved is false
+    bool     Resolved = false;       // [-] - the discriminant, and the only thing read first
 
     /// 🧩 Constructs a delivered result around content the computation produced.
     /// in    Produced   [-]  the content to deliver
-    /// out   Deliver    [-]  ContentPresent holds
+    /// out   Result    [-]  Resolved holds
     /// cost  ✔️
-    static constexpr ContentDelivery Deliver(const Content& Produced)
+    static constexpr ContentDelivery Result(const Content& Produced)
     {
         ContentDelivery Constructed;
         Constructed.Delivered      = Produced;
-        Constructed.ContentPresent = true;
+        Constructed.Resolved = true;
         return Constructed;
     }
 
     /// 🧩 Constructs a refused result carrying the reason the content is absent.
     /// in    Declining  [-]  the reason and the operand it applies to
-    /// out   Deliver    [-]  ContentPresent is false
+    /// out   Result    [-]  Resolved is false
     /// cost  ✔️
     static constexpr ContentDelivery Refuse(const Refusal& Declining)
     {
         ContentDelivery Constructed;
-        Constructed.Declined       = Declining;
-        Constructed.ContentPresent = false;
+        Constructed.Error       = Declining;
+        Constructed.Resolved = false;
         return Constructed;
     }
 
     /// 🧩 Whether content was delivered, for a caller that wants the discriminant in a condition.
     /// use   `if (const auto Opened = Commands.Open(Slot); Opened) { … }`
     /// note  Explicit, so a delivery cannot be compared against an integer or silently narrowed. It reads
-    ///       the same discriminant `ContentPresent` does and exists only to make the condition shorter.
+    ///       the same discriminant `Resolved` does and exists only to make the condition shorter.
     /// cost  ✔️
     constexpr explicit operator bool() const
     {
-        return ContentPresent;
+        return Resolved;
     }
 
     /// 🧩 Reads the delivered content.
     /// out   Content    [-]  the produced content
-    /// pre   ContentPresent holds
+    /// pre   Resolved holds
     /// note  🔴 🔍 Under SLATE_DEBUG a read of refused content reports here, at the call that did it.
     ///        Without the check it returns a default-constructed Content — a zero handle, an empty span, an
     ///        identity of generation zero — and the defect surfaces wherever that value is finally used,
@@ -131,9 +131,9 @@ struct [[nodiscard]] ContentDelivery
     constexpr const Content& Resolve() const
     {
 #ifdef SLATE_DEBUG
-        if (!ContentPresent)
+        if (!Resolved)
         {
-            ReportResolvedRefusal(Declined);
+            ReportResolvedRefusal(Error);
         }
 #endif
         return Delivered;
@@ -157,11 +157,11 @@ constexpr void Disregard(const ContentDelivery<Content>& Delivered)
 }
 
 /// 🧩 Public spelling for content delivered or refused across one fallible call.
-/// note  An alias permits `Deliver<Content>::Deliver(Produced)`: a class named Deliver cannot declare a static
+/// note  An alias permits `Result<Content>::Result(Produced)`: a class named Result cannot declare a static
 ///       function carrying its own name because C++ reserves that spelling for its constructor.
 /// tag   contract, nonallocating, nonthrowing
 template <typename Content>
-using Deliver = ContentDelivery<Content>;
+using Result = ContentDelivery<Content>;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  CONVERGENT RESULT

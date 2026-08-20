@@ -17,24 +17,24 @@
 
 namespace Slate
 {
-Deliver<bool> RasterCodec::SeatAtlas(void* Identity)
+Result<bool> RasterCodec::SeatAtlas(void* Identity)
 {
     ImGuiIO& VendorIO = ImGui::GetIO();
     if (VendorIO.Fonts == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no font atlas stands constructed" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no font atlas stands constructed" });
 
     unsigned char* Ordinates = nullptr;
     int Along = 0, Across = 0;
     VendorIO.Fonts->GetTexDataAsRGBA32(&Ordinates, &Along, &Across);
     if (Ordinates == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the atlas resolved to no ordinates" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the atlas resolved to no ordinates" });
 
     AtlasSeat         = Identity;
     AtlasAlongExtent  = static_cast<std::uint32_t>(Along);
     AtlasAcrossExtent = static_cast<std::uint32_t>(Across);
     AtlasOrdinates.assign(Ordinates, Ordinates + static_cast<std::size_t>(Along) * Across * 4u);
     VendorIO.Fonts->SetTexID(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(Identity)));
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 namespace
@@ -238,18 +238,18 @@ void RasterCodec::Rasterize(const void* RecordedDrawData, PixelSpace& Extent)
     }
 }
 
-Deliver<bool> RasterCodec::WriteRawDump(const PixelSpace& Extent, const char* Path)
+Result<bool> RasterCodec::WriteRawDump(const PixelSpace& Extent, const char* Path)
 {
     std::FILE* Stream = std::fopen(Path, "wb");
     if (Stream == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the raw dump path refused to open" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the raw dump path refused to open" });
 
     std::fwrite("RIFTRAW1", 1u, 8u, Stream);
     const std::uint32_t Header[2] = { Extent.AlongExtent, Extent.AcrossExtent };
     std::fwrite(Header, sizeof(std::uint32_t), 2u, Stream);
     std::fwrite(Extent.Ordinates.data(), 1u, Extent.Ordinates.size(), Stream);
     std::fclose(Stream);
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 namespace
@@ -303,7 +303,7 @@ void WriteBigEndian(std::FILE* Stream, std::uint32_t Ordinate)
 
 }   // namespace
 
-Deliver<bool> RasterCodec::WritePortableNetworkGraphic(const PixelSpace& Extent, const char* Path)
+Result<bool> RasterCodec::WritePortableNetworkGraphic(const PixelSpace& Extent, const char* Path)
 {
     // ① The directories along the path are created when absent.
     std::filesystem::path Declared(Path);
@@ -315,7 +315,7 @@ Deliver<bool> RasterCodec::WritePortableNetworkGraphic(const PixelSpace& Extent,
 
     std::FILE* Stream = std::fopen(Path, "wb");
     if (Stream == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the proof path refused to open" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the proof path refused to open" });
 
     // ② Scanlines — filter 0, one stride each.
     const std::size_t Stride = static_cast<std::size_t>(Extent.AlongExtent) * 4u;
@@ -377,7 +377,7 @@ Deliver<bool> RasterCodec::WritePortableNetworkGraphic(const PixelSpace& Extent,
     PresentChunk(reinterpret_cast<const std::uint8_t*>("IEND"), {});
 
     std::fclose(Stream);
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 }   // namespace Slate

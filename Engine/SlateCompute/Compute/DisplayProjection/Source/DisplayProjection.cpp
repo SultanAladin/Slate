@@ -26,19 +26,19 @@ constexpr double MiddleGreyLuminance = 0.18;   // [-] - the reduction the meteri
 
 }   // namespace
 
-Deliver<bool> DisplayProjection::Declare(const ExposureSpecification& Exposing_,
+Result<bool> DisplayProjection::Declare(const ExposureSpecification& Exposing_,
                                          const ToneSpecification&     Toning_,
                                          const EncodeSpecification&   Encoding_)
 {
     if (!(Toning_.WhiteMagnitude > 0.0))
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a white magnitude of nothing compresses everything to nothing" });
     }
 
     if (Toning_.PreservationBlend < 0.0 || Toning_.PreservationBlend > 1.0)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the hue preservation blend lies outside the unit interval" });
     }
 
@@ -46,12 +46,12 @@ Deliver<bool> DisplayProjection::Declare(const ExposureSpecification& Exposing_,
     //    a stroke against a value that has already changed.
     if (Exposing_.Source == ExposureSubject::Metered && !(Exposing_.AdaptationSeconds > 0.0))
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a metered exposure declares no adaptation interval" });
     }
 
     if (!Encoding_.Working.SpaceDeclared() || !Encoding_.Display.SpaceDeclared())
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a space was undeclared" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a space was undeclared" });
 
     // 🔴 `66` §4 and §8: the display space is queried or declared and **never assumed to be the working space**.
     //    Admitting the two as one is the assumption defect itself — an image that is correct on the machine it
@@ -59,7 +59,7 @@ Deliver<bool> DisplayProjection::Declare(const ExposureSpecification& Exposing_,
     //    by looking at it.
     if (Encoding_.Working.SpaceIdentity == Encoding_.Display.SpaceIdentity)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the display space may not be the working space — `36` §9" });
     }
 
@@ -69,14 +69,14 @@ Deliver<bool> DisplayProjection::Declare(const ExposureSpecification& Exposing_,
     MeteredExposure  = Exposing_.DeclaredExposure;
     MeteringStanding = false;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> DisplayProjection::Contribute(RenderSchedule& Schedule) const
+Result<bool> DisplayProjection::Contribute(RenderSchedule& Schedule) const
 {
     DeclaredRecording Declared;
     Declared.Identity = DisplayRecordingIdentity;
@@ -102,17 +102,17 @@ Deliver<bool> DisplayProjection::Contribute(RenderSchedule& Schedule) const
 //                                                     THE METERING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> DisplayProjection::AdvanceMetering(double ReducedLuminance, double ElapsedSeconds)
+Result<bool> DisplayProjection::AdvanceMetering(double ReducedLuminance, double ElapsedSeconds)
 {
     if (Exposing.Source != ExposureSubject::Metered)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the exposure is declared rather than metered" });
     }
 
     if (!(ReducedLuminance > 0.0))
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a reduction of nothing names no exposure" });
     }
 
@@ -132,7 +132,7 @@ Deliver<bool> DisplayProjection::AdvanceMetering(double ReducedLuminance, double
         MeteredExposure  = Bounded;
         MeteringStanding = true;
 
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
     }
 
     const double Interval = Exposing.AdaptationSeconds;
@@ -140,7 +140,7 @@ Deliver<bool> DisplayProjection::AdvanceMetering(double ReducedLuminance, double
 
     MeteredExposure += (Bounded - MeteredExposure) * Fraction;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 double DisplayProjection::ExposureScale() const
@@ -156,17 +156,17 @@ double DisplayProjection::ExposureScale() const
 //                                                     THE PROJECTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<ColourSpecification> DisplayProjection::Project(const ColourSpecification& Accumulated) const
+Result<ColourSpecification> DisplayProjection::Project(const ColourSpecification& Accumulated) const
 {
     if (!Accumulated.ColourDeclared())
     {
-        return Deliver<ColourSpecification>::Refuse(
+        return Result<ColourSpecification>::Refuse(
             { RefusalReason::ContentUnsupported, "the accumulated radiance declares no space" });
     }
 
     if (Accumulated.SpaceIdentity != Encodings.Working.SpaceIdentity)
     {
-        return Deliver<ColourSpecification>::Refuse(
+        return Result<ColourSpecification>::Refuse(
             { RefusalReason::ContentUnsupported, "the radiance is not a coordinate in the working space" });
     }
 

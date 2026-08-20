@@ -33,10 +33,10 @@ void SelectionSequence::Seal(const std::vector<OccupantIdentity>& Selected, std:
 //                                                      TRAVERSAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> SelectionSequence::Retreat()
+Result<bool> SelectionSequence::Retreat()
 {
     if (TraversalOrdinal == 0u)
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the traversal is at the beginning" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the traversal is at the beginning" });
 
     --TraversalOrdinal;
 
@@ -45,21 +45,21 @@ Deliver<bool> SelectionSequence::Retreat()
     else
         StandingSelection = CommittedOrder[static_cast<std::size_t>(TraversalOrdinal) - 1u].SelectedOccupants;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> SelectionSequence::Advance()
+Result<bool> SelectionSequence::Advance()
 {
     if (TraversalOrdinal >= CommittedOrder.size())
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the traversal is at the end" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the traversal is at the end" });
 
     StandingSelection = CommittedOrder[static_cast<std::size_t>(TraversalOrdinal)].SelectedOccupants;
     ++TraversalOrdinal;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> SelectionSequence::RestoreAt(std::uint64_t RevisionOrdinal)
+Result<bool> SelectionSequence::RestoreAt(std::uint64_t RevisionOrdinal)
 {
     // 📝 The most recent selection sealed at or before the arrived-at revision. Searched backwards because a
     //    scrub arrives at a revision the artist selected against several times, and the last one is theirs.
@@ -71,10 +71,10 @@ Deliver<bool> SelectionSequence::RestoreAt(std::uint64_t RevisionOrdinal)
         StandingSelection = CommittedOrder[Ordinal].SelectedOccupants;
         TraversalOrdinal  = Ordinal + 1u;
 
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
     }
 
-    return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "no selection was sealed at that revision" });
+    return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no selection was sealed at that revision" });
 }
 
 //------------------------------------------------------------------------------------------------------------------------

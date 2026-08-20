@@ -105,33 +105,33 @@ public:
 
     /// 🧩 Declares one external dependency and issues the ordinal that addresses it.
     /// in    Arriving  [-]  the reference; Retention is honoured as given
-    /// out   Deliver   [-]  refuses with ContentUnsupported for a Referenced entry naming no path
+    /// out   Result   [-]  refuses with ContentUnsupported for a Referenced entry naming no path
     /// note  📝 A Referenced entry with no path cannot be looked for, so it could only ever stand Unresolved.
     ///        Admitting it would put a permanent unknown into the document with nothing able to settle it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Declare(const DeclaredReference& Arriving);
+    Result<std::uint32_t> Declare(const DeclaredReference& Arriving);
 
     /// 🧩 Declares one reference embedded or referenced, per the document's own answer.
-    /// out   Deliver  [-]  refuses with ExtentExhausted outside the declared count
+    /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareRetention(std::uint32_t ReferenceOrdinal, ReferenceRetention Declaring);
+    Result<bool> DeclareRetention(std::uint32_t ReferenceOrdinal, ReferenceRetention Declaring);
 
     /// 🧩 Declares one reference found, with the extent it spans.
-    /// out   Deliver  [-]  refuses with ExtentExhausted outside the declared count
+    /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareResolved(std::uint32_t ReferenceOrdinal, std::uint64_t SpannedBytes);
+    Result<bool> DeclareResolved(std::uint32_t ReferenceOrdinal, std::uint64_t SpannedBytes);
 
     /// 🧩 Declares one reference missing — enrolled, reported, and never replaced.
-    /// out   Deliver  [-]  refuses with ExtentExhausted outside the declared count
+    /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
     /// post  the occupant stays enrolled and the origin path stays exactly as the document wrote it
     /// note  🔴 The path is retained rather than cleared. It is the only thing that tells the artist which file
     ///        to go and find, and clearing it turns a recoverable absence into a permanent one.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareAbsent(std::uint32_t ReferenceOrdinal);
+    Result<bool> DeclareAbsent(std::uint32_t ReferenceOrdinal);
 
     /// 🧩 Appends every unreported absence to the register — `48` §5 and `86` §4.
     /// in    Reporting  [-]  where the absence rows land
@@ -150,10 +150,10 @@ public:
     const std::vector<DeclaredReference>& Declared() const;
 
     /// 🧩 The most recently declared reference naming one origin path.
-    /// out   Deliver  [-]  refuses with ExtentExhausted when nothing declares that path
+    /// out   Result  [-]  refuses with ExtentExhausted when nothing declares that path
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<DeclaredReference> Resolve(const std::string& OriginPath) const;
+    Result<DeclaredReference> Resolve(const std::string& OriginPath) const;
 
     /// 🧩 Declares whether this document embeds its typeface outlines or refers to them.
     /// note  ⚠️ `00` §12 leaves the licensing question open and `48` §5 does not close it. What is fixed here is

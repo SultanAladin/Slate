@@ -1,7 +1,7 @@
 //============================================================================================================================================
 //                                                        APPEARANCESPECIFICATION.H
 //============================================================================================================================================
-// 🧩 Every ink and every measured extent the interface draws with — resolved once against the display scale, then read.
+// 🧩 Every colour and every measured extent the interface draws with — resolved once against the display scale, then read.
 
 #pragma once
 
@@ -14,11 +14,11 @@ namespace Slate
 //                                                          INK
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 One display-referred ink, packed at eight bits per component.
+/// 🧩 One display-referred colour, packed at eight bits per component.
 /// note  ⚠️ Display-referred. `08` §3.1 places the interface after the tone projection, so nothing declared
 ///       here is ever tone-mapped a second time.
 /// tag   contract, nonallocating, nonthrowing
-struct InkOrdinate
+struct ThemeToken
 {
     std::uint8_t  Red     = 0u;     // [-] - sRGB-encoded, never linear
     std::uint8_t  Green   = 0u;     // [-]
@@ -26,23 +26,23 @@ struct InkOrdinate
     std::uint8_t  Opacity = 255u;   // [-] - 255 is fully covering
 };
 
-/// 🧩 Constructs a fully covering ink from a packed 0xRRGGBB literal.
+/// 🧩 Constructs a fully covering colour from a packed 0xRRGGBB literal.
 /// cost  ✔️
-constexpr InkOrdinate Covering(std::uint32_t Packed)
+constexpr ThemeToken Covering(std::uint32_t Packed)
 {
-    return InkOrdinate{ static_cast<std::uint8_t>((Packed >> 16) & 0xFFu),
+    return ThemeToken{ static_cast<std::uint8_t>((Packed >> 16) & 0xFFu),
                         static_cast<std::uint8_t>((Packed >>  8) & 0xFFu),
                         static_cast<std::uint8_t>( Packed        & 0xFFu),
                         255u };
 }
 
-/// 🧩 Constructs an ink at a declared coverage, matching CSS `color-mix(… n%, transparent)`.
+/// 🧩 Constructs an colour at a declared coverage, matching CSS `color-mix(… n%, transparent)`.
 /// in    Packed    [-]  0xRRGGBB
 /// in    Coverage  [-]  zero is invisible, one is fully covering
 /// cost  ✔️
-constexpr InkOrdinate Partial(std::uint32_t Packed, double Coverage)
+constexpr ThemeToken Partial(std::uint32_t Packed, double Coverage)
 {
-    InkOrdinate Constructed = Covering(Packed);
+    ThemeToken Constructed = Covering(Packed);
     Constructed.Opacity     = static_cast<std::uint8_t>(Coverage * 255.0 + 0.5);
     return Constructed;
 }
@@ -74,48 +74,48 @@ inline constexpr std::uint32_t AbsoluteBlack        = 0x000000u;   // [-] - --co
 //                                                    THE RESOLVED INKS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Every ink the interface draws with, named by the responsibility it carries rather than by its ladder rung.
+/// 🧩 Every colour the interface draws with, named by the responsibility it carries rather than by its ladder rung.
 /// note  A second appearance is a second filled instance of this record and nothing else — no call site names
 ///       a ladder rung directly, so no call site has to be revisited to add one.
 /// tag   contract, nonallocating, nonthrowing
-struct SurfaceInk
+struct SurfaceColour
 {
-    InkOrdinate  SurfaceGround       = Covering(NeutralNineFifty);        // [-] - workspace ground, preview rail
-    InkOrdinate  SurfaceStanding     = Covering(NeutralNineHundred);      // [-] - drawer body, preview box
-    InkOrdinate  SurfaceSunken       = Covering(AbsoluteBlack);           // [-] - library rail, tab tongue
-    InkOrdinate  SurfaceRaised       = Covering(NeutralEightHundred);     // [-] - text entry, active toggle, bar
-    InkOrdinate  SurfaceLifted       = Covering(NeutralFiveHundred);      // [-] - roused medallion
+    ThemeToken  SurfaceGround       = Covering(NeutralNineFifty);        // [-] - workspace ground, preview rail
+    ThemeToken  SurfaceStanding     = Covering(NeutralNineHundred);      // [-] - drawer body, preview box
+    ThemeToken  SurfaceSunken       = Covering(AbsoluteBlack);           // [-] - library rail, tab tongue
+    ThemeToken  SurfaceRaised       = Covering(NeutralEightHundred);     // [-] - text entry, active toggle, bar
+    ThemeToken  SurfaceLifted       = Covering(NeutralFiveHundred);      // [-] - roused medallion
 
-    InkOrdinate  CardGround          = Partial(NeutralEightHundred, 0.40);// [-] - bg-neutral-800/40
-    InkOrdinate  CardGroundRoused    = Partial(NeutralSevenHundred, 0.60);// [-] - hover:bg-neutral-700/60
-    InkOrdinate  CardEdge            = Partial(NeutralSevenHundred, 0.50);// [-] - border-neutral-700/50
-    InkOrdinate  CardEdgeRoused      = Covering(NeutralFiveHundred);      // [-] - hover:border-neutral-500
-    InkOrdinate  MedallionGround     = Partial(NeutralSevenHundred, 0.50);// [-] - the 32 px and 40 px discs
-    InkOrdinate  MedallionRoused     = Covering(NeutralFiveHundred);      // [-] - group-hover:bg-neutral-500
+    ThemeToken  CardGround          = Partial(NeutralEightHundred, 0.40);// [-] - bg-neutral-800/40
+    ThemeToken  CardGroundRoused    = Partial(NeutralSevenHundred, 0.60);// [-] - hover:bg-neutral-700/60
+    ThemeToken  CardEdge            = Partial(NeutralSevenHundred, 0.50);// [-] - border-neutral-700/50
+    ThemeToken  CardEdgeRoused      = Covering(NeutralFiveHundred);      // [-] - hover:border-neutral-500
+    ThemeToken  MedallionGround     = Partial(NeutralSevenHundred, 0.50);// [-] - the 32 px and 40 px discs
+    ThemeToken  MedallionRoused     = Covering(NeutralFiveHundred);      // [-] - group-hover:bg-neutral-500
 
-    InkOrdinate  GroupGroundTaken    = Partial(NeutralNineHundred, 0.40); // [-] - bg-neutral-900/40
-    InkOrdinate  GroupGroundRoused   = Partial(NeutralNineHundred, 0.20); // [-] - hover:bg-neutral-900/20
-    InkOrdinate  SubjectGroundTint   = Partial(NeutralNineHundred, 0.10); // [-] - bg-neutral-900/10
-    InkOrdinate  SubjectGroundTaken  = Partial(NeutralNineHundred, 0.60); // [-] - bg-neutral-900/60
+    ThemeToken  GroupGroundTaken    = Partial(NeutralNineHundred, 0.40); // [-] - bg-neutral-900/40
+    ThemeToken  GroupGroundRoused   = Partial(NeutralNineHundred, 0.20); // [-] - hover:bg-neutral-900/20
+    ThemeToken  SubjectGroundTint   = Partial(NeutralNineHundred, 0.10); // [-] - bg-neutral-900/10
+    ThemeToken  SubjectGroundTaken  = Partial(NeutralNineHundred, 0.60); // [-] - bg-neutral-900/60
 
-    InkOrdinate  EdgeQuiet           = Covering(NeutralEightHundred);     // [-] - every 1 px divider
-    InkOrdinate  EdgeFaint           = Partial(NeutralEightHundred, 0.50);// [-] - border-neutral-800/50
-    InkOrdinate  GripPill            = Covering(NeutralSixHundred);       // [-] - the 48 × 6 pill
-    InkOrdinate  MeterDot            = Covering(NeutralSevenHundred);     // [-] - the 4 px meta separator
+    ThemeToken  EdgeQuiet           = Covering(NeutralEightHundred);     // [-] - every 1 px divider
+    ThemeToken  EdgeFaint           = Partial(NeutralEightHundred, 0.50);// [-] - border-neutral-800/50
+    ThemeToken  GripPill            = Covering(NeutralSixHundred);       // [-] - the 48 × 6 pill
+    ThemeToken  MeterDot            = Covering(NeutralSevenHundred);     // [-] - the 4 px meta separator
 
-    InkOrdinate  InkPrimary          = Covering(NeutralOneHundred);       // [-] - titles, taken rows
-    InkOrdinate  InkRoused           = Covering(NeutralTwoHundred);       // [-] - hovered group row
-    InkOrdinate  InkTertiary         = Covering(NeutralThreeHundred);     // [-] - card caption, hovered subject
-    InkOrdinate  InkMuted            = Covering(NeutralFourHundred);      // [-] - quiet group row, quiet toggle
-    InkOrdinate  InkFaint            = Covering(NeutralFiveHundred);      // [-] - quiet subject, meta, captions
-    InkOrdinate  InkGhost            = Covering(NeutralSixHundred);       // [-] - the LIBRARY caption
+    ThemeToken  ColourPrimary          = Covering(NeutralOneHundred);       // [-] - titles, taken rows
+    ThemeToken  ColourRoused           = Covering(NeutralTwoHundred);       // [-] - hovered group row
+    ThemeToken  ColourTertiary         = Covering(NeutralThreeHundred);     // [-] - card caption, hovered subject
+    ThemeToken  ColourMuted            = Covering(NeutralFourHundred);      // [-] - quiet group row, quiet toggle
+    ThemeToken  ColourFaint            = Covering(NeutralFiveHundred);      // [-] - quiet subject, meta, captions
+    ThemeToken  ColourGhost            = Covering(NeutralSixHundred);       // [-] - the LIBRARY caption
 
-    InkOrdinate  RailTaken           = Covering(NeutralOneHundred);       // [-] - the 3 px selection rail
-    InkOrdinate  RailQuiet           = Partial(AbsoluteBlack, 0.00);      // [-] - bg-transparent
+    ThemeToken  RailTaken           = Covering(NeutralOneHundred);       // [-] - the 3 px selection rail
+    ThemeToken  RailQuiet           = Partial(AbsoluteBlack, 0.00);      // [-] - bg-transparent
 
-    InkOrdinate  ScrimTop            = Partial(NeutralNineHundred, 0.80); // [-] - from-neutral-900/80
-    InkOrdinate  ScrimBottom         = Partial(NeutralNineHundred, 0.00); // [-] - to-transparent
-    InkOrdinate  FocusRing           = Covering(NeutralFiveHundred);      // [-] - focus:ring-1 ring-neutral-500
+    ThemeToken  ScrimTop            = Partial(NeutralNineHundred, 0.80); // [-] - from-neutral-900/80
+    ThemeToken  ScrimBottom         = Partial(NeutralNineHundred, 0.00); // [-] - to-transparent
+    ThemeToken  FocusRing           = Covering(NeutralFiveHundred);      // [-] - focus:ring-1 ring-neutral-500
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -139,92 +139,92 @@ inline constexpr std::uint32_t ControlRowTaken      = 0x2A2A2Au;   // [-] - the 
 inline constexpr std::uint32_t ControlStopQuiet     = 0x333333u;   // [-] - the 16 px unselected stop
 inline constexpr std::uint32_t ControlTickMinor     = 0x444444u;   // [-] - the minor tick, and the quiet toggle ring
 inline constexpr std::uint32_t ControlStopRoused    = 0x555555u;   // [-] - hover:bg-[#555555]
-inline constexpr std::uint32_t ControlUnitInk       = 0x666666u;   // [-] - the unit glyph, and the tick caption
+inline constexpr std::uint32_t ControlUnitColour       = 0x666666u;   // [-] - the unit glyph, and the tick caption
 inline constexpr std::uint32_t ControlTrackTaken    = 0x7A7A7Au;   // [-] - the slider track below the fraction
-inline constexpr std::uint32_t ControlQuietInk      = 0x888888u;   // [-] - every quiet label and the dark tooltip body
-inline constexpr std::uint32_t ControlRousedInk     = 0xAAAAAAu;   // [-] - group-hover:text-[#aaaaaa]
-inline constexpr std::uint32_t ControlPrimaryInk    = 0xF0F0F0u;   // [-] - every taken label, ring, dot and rail
+inline constexpr std::uint32_t ControlQuietColour      = 0x888888u;   // [-] - every quiet label and the dark tooltip body
+inline constexpr std::uint32_t ControlRousedColour     = 0xAAAAAAu;   // [-] - group-hover:text-[#aaaaaa]
+inline constexpr std::uint32_t ControlPrimaryColour    = 0xF0F0F0u;   // [-] - every taken label, ring, dot and rail
 inline constexpr std::uint32_t ControlThumbGround   = 0xE0E0E0u;   // [-] - the 44 px slider thumb
 inline constexpr std::uint32_t ControlStopTaken     = 0xE8E8E8u;   // [-] - the 52 px selected stop
 inline constexpr std::uint32_t ControlLightGround   = 0xFFFFFFu;   // [-] - the light tooltip and its trigger
 inline constexpr std::uint32_t ControlDarkGround    = 0x151515u;   // [-] - the dark tooltip and its trigger
-inline constexpr std::uint32_t ControlDarkInk       = 0x111111u;   // [-] - ink on a light ground
+inline constexpr std::uint32_t ControlDarkColour       = 0x111111u;   // [-] - colour on a light ground
 inline constexpr std::uint32_t ControlTooltipBody   = 0x777777u;   // [-] - the light tooltip's body run
-inline constexpr std::uint32_t ControlPointerInk    = 0x6C77FFu;   // [-] - the ruler's centre line and dot
+inline constexpr std::uint32_t ControlPointerColour    = 0x6C77FFu;   // [-] - the ruler's centre line and dot
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE CONTROL INKS
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Every ink the eight declared controls draw with, named by the responsibility it carries.
+/// 🧩 Every colour the eight declared controls draw with, named by the responsibility it carries.
 /// note  🔴 No recording site names a hexadecimal literal. A second control appearance is a second filled
 ///       instance of this record, which is why the sheet's twenty figures resolve into named members here and
 ///       are never transcribed at a call site.
 /// note  The source's shadows are absent by declaration and not by omission — no halo, glow, inner shadow or
 ///       shadow ordinate is named anywhere in this record. Depth is carried by ground and edge alone.
 /// tag   contract, nonallocating, nonthrowing
-struct ControlInk
+struct ControlColour
 {
-    InkOrdinate  PageGround         = Covering(ControlPageGround);        // [-] - behind every card
-    InkOrdinate  CardGround         = Covering(ControlCardGround);        // [-] - the panel card
-    InkOrdinate  CardEdge           = Partial(ControlLightGround, 0.05);  // [-] - border-white/5
-    InkOrdinate  WellGround         = Covering(ControlWellGround);        // [-] - the toggle and subset wells
+    ThemeToken  PageGround         = Covering(ControlPageGround);        // [-] - behind every card
+    ThemeToken  CardGround         = Covering(ControlCardGround);        // [-] - the panel card
+    ThemeToken  CardEdge           = Partial(ControlLightGround, 0.05);  // [-] - border-white/5
+    ThemeToken  WellGround         = Covering(ControlWellGround);        // [-] - the toggle and subset wells
 
-    InkOrdinate  FieldGround        = Covering(AbsoluteBlack);            // [-] - the selection field, the readout
-    InkOrdinate  FieldInk           = Covering(ControlPrimaryInk);        // [-] - the run inside it
-    InkOrdinate  CellGround         = Covering(ControlWellGround);        // [-] - the chevron cell, the unit cell
-    InkOrdinate  CellGroundRoused   = Covering(ControlWellRoused);        // [-] - hover:bg-[#222222]
-    InkOrdinate  CellInk            = Covering(ControlQuietInk);          // [-] - the chevron
-    InkOrdinate  UnitInk            = Covering(ControlUnitInk);           // [-] - the degree, percent and pixel glyphs
+    ThemeToken  FieldGround        = Covering(AbsoluteBlack);            // [-] - the selection field, the readout
+    ThemeToken  FieldColour           = Covering(ControlPrimaryColour);        // [-] - the run inside it
+    ThemeToken  CellGround         = Covering(ControlWellGround);        // [-] - the chevron cell, the unit cell
+    ThemeToken  CellGroundRoused   = Covering(ControlWellRoused);        // [-] - hover:bg-[#222222]
+    ThemeToken  CellColour            = Covering(ControlQuietColour);          // [-] - the chevron
+    ThemeToken  UnitColour            = Covering(ControlUnitColour);           // [-] - the degree, percent and pixel glyphs
 
-    InkOrdinate  MenuGround         = Covering(AbsoluteBlack);            // [-] - the open selection menu
-    InkOrdinate  MenuEdge           = Covering(ControlWellRoused);        // [-] - border-[#222222]
-    InkOrdinate  OptionInk          = Covering(ControlQuietInk);          // [-] - a quiet option
-    InkOrdinate  OptionGroundRoused = Covering(0x111111u);                // [-] - hover:bg-[#111111]
-    InkOrdinate  OptionInkRoused    = Covering(ControlPrimaryInk);        // [-] - hover:text-[#f0f0f0]
+    ThemeToken  MenuGround         = Covering(AbsoluteBlack);            // [-] - the open selection menu
+    ThemeToken  MenuEdge           = Covering(ControlWellRoused);        // [-] - border-[#222222]
+    ThemeToken  OptionColour          = Covering(ControlQuietColour);          // [-] - a quiet option
+    ThemeToken  OptionGroundRoused = Covering(0x111111u);                // [-] - hover:bg-[#111111]
+    ThemeToken  OptionColourRoused    = Covering(ControlPrimaryColour);        // [-] - hover:text-[#f0f0f0]
 
-    InkOrdinate  TrackQuiet         = Covering(ControlWellRoused);        // [-] - the track beyond the fraction
-    InkOrdinate  TrackTaken         = Covering(ControlTrackTaken);        // [-] - the track below the fraction
-    InkOrdinate  TrackEdge          = Partial(AbsoluteBlack, 0.20);       // [-] - border-black/20
-    InkOrdinate  ThumbGround        = Covering(ControlThumbGround);       // [-] - the 44 px disc
+    ThemeToken  TrackQuiet         = Covering(ControlWellRoused);        // [-] - the track beyond the fraction
+    ThemeToken  TrackTaken         = Covering(ControlTrackTaken);        // [-] - the track below the fraction
+    ThemeToken  TrackEdge          = Partial(AbsoluteBlack, 0.20);       // [-] - border-black/20
+    ThemeToken  ThumbGround        = Covering(ControlThumbGround);       // [-] - the 44 px disc
 
-    InkOrdinate  RulerGround        = Covering(ControlWellRoused);        // [-] - the tick strip's ground
-    InkOrdinate  TickMajor          = Covering(ControlPrimaryInk);        // [-] - every tenth tick
-    InkOrdinate  TickMedium         = Covering(ControlQuietInk);          // [-] - every fifth tick
-    InkOrdinate  TickMinor          = Covering(ControlTickMinor);         // [-] - every other tick
-    InkOrdinate  TickCaption        = Covering(ControlUnitInk);           // [-] - the degree run under a major tick
-    InkOrdinate  RulerPointer       = Covering(ControlPointerInk);        // [-] - the centre line and its dot
+    ThemeToken  RulerGround        = Covering(ControlWellRoused);        // [-] - the tick strip's ground
+    ThemeToken  TickMajor          = Covering(ControlPrimaryColour);        // [-] - every tenth tick
+    ThemeToken  TickMedium         = Covering(ControlQuietColour);          // [-] - every fifth tick
+    ThemeToken  TickMinor          = Covering(ControlTickMinor);         // [-] - every other tick
+    ThemeToken  TickCaption        = Covering(ControlUnitColour);           // [-] - the degree run under a major tick
+    ThemeToken  RulerPointer       = Covering(ControlPointerColour);        // [-] - the centre line and its dot
 
-    InkOrdinate  RingTaken          = Covering(ControlPrimaryInk);        // [-] - border-[#f0f0f0]
-    InkOrdinate  RingQuiet          = Covering(ControlTickMinor);         // [-] - border-[#444444]
-    InkOrdinate  RingRoused         = Covering(ControlUnitInk);           // [-] - group-hover:border-[#666666]
-    InkOrdinate  RingDot            = Covering(ControlPrimaryInk);        // [-] - the 16 px dot
+    ThemeToken  RingTaken          = Covering(ControlPrimaryColour);        // [-] - border-[#f0f0f0]
+    ThemeToken  RingQuiet          = Covering(ControlTickMinor);         // [-] - border-[#444444]
+    ThemeToken  RingRoused         = Covering(ControlUnitColour);           // [-] - group-hover:border-[#666666]
+    ThemeToken  RingDot            = Covering(ControlPrimaryColour);        // [-] - the 16 px dot
 
-    InkOrdinate  LabelTaken         = Covering(ControlPrimaryInk);        // [-] - text-[#f0f0f0]
-    InkOrdinate  LabelQuiet         = Covering(ControlQuietInk);          // [-] - text-[#888888]
-    InkOrdinate  LabelRoused        = Covering(ControlRousedInk);         // [-] - group-hover:text-[#aaaaaa]
+    ThemeToken  LabelTaken         = Covering(ControlPrimaryColour);        // [-] - text-[#f0f0f0]
+    ThemeToken  LabelQuiet         = Covering(ControlQuietColour);          // [-] - text-[#888888]
+    ThemeToken  LabelRoused        = Covering(ControlRousedColour);         // [-] - group-hover:text-[#aaaaaa]
 
-    InkOrdinate  RowGroundTaken     = Covering(ControlRowTaken);          // [-] - bg-[#2a2a2a]
-    InkOrdinate  RowGroundRoused    = Covering(ControlWellRoused);        // [-] - hover:bg-[#222222]
-    InkOrdinate  RowGroundQuiet     = Partial(AbsoluteBlack, 0.00);       // [-] - bg-transparent
-    InkOrdinate  RowRailTaken       = Covering(ControlPrimaryInk);        // [-] - the 4 px rail
-    InkOrdinate  RowRailQuiet       = Partial(AbsoluteBlack, 0.00);       // [-] - bg-transparent
+    ThemeToken  RowGroundTaken     = Covering(ControlRowTaken);          // [-] - bg-[#2a2a2a]
+    ThemeToken  RowGroundRoused    = Covering(ControlWellRoused);        // [-] - hover:bg-[#222222]
+    ThemeToken  RowGroundQuiet     = Partial(AbsoluteBlack, 0.00);       // [-] - bg-transparent
+    ThemeToken  RowRailTaken       = Covering(ControlPrimaryColour);        // [-] - the 4 px rail
+    ThemeToken  RowRailQuiet       = Partial(AbsoluteBlack, 0.00);       // [-] - bg-transparent
 
-    InkOrdinate  StopQuiet          = Covering(ControlStopQuiet);         // [-] - bg-[#333333]
-    InkOrdinate  StopRoused         = Covering(ControlStopRoused);        // [-] - hover:bg-[#555555]
-    InkOrdinate  StopTaken          = Covering(ControlStopTaken);         // [-] - bg-[#e8e8e8]
-    InkOrdinate  StopTakenInk       = Covering(ControlDarkInk);           // [-] - the letter inside it
+    ThemeToken  StopQuiet          = Covering(ControlStopQuiet);         // [-] - bg-[#333333]
+    ThemeToken  StopRoused         = Covering(ControlStopRoused);        // [-] - hover:bg-[#555555]
+    ThemeToken  StopTaken          = Covering(ControlStopTaken);         // [-] - bg-[#e8e8e8]
+    ThemeToken  StopTakenColour       = Covering(ControlDarkColour);           // [-] - the letter inside it
 
-    InkOrdinate  TooltipLightGround = Covering(ControlLightGround);       // [-] - bg-[#ffffff]
-    InkOrdinate  TooltipLightTitle  = Covering(ControlDarkInk);           // [-] - text-[#111111]
-    InkOrdinate  TooltipLightBody   = Covering(ControlTooltipBody);       // [-] - text-[#777777]
-    InkOrdinate  TooltipDarkGround  = Covering(ControlDarkGround);        // [-] - bg-[#151515]
-    InkOrdinate  TooltipDarkTitle   = Covering(ControlLightGround);       // [-] - text-white
-    InkOrdinate  TooltipDarkBody    = Covering(ControlQuietInk);          // [-] - text-[#888888]
-    InkOrdinate  TriggerLightGround = Covering(ControlLightGround);       // [-] - the light 64 px trigger
-    InkOrdinate  TriggerLightInk    = Covering(ControlDarkInk);           // [-] - the figure inside it
-    InkOrdinate  TriggerDarkGround  = Covering(ControlDarkGround);        // [-] - the dark 64 px trigger
-    InkOrdinate  TriggerDarkInk     = Covering(ControlLightGround);       // [-] - the figure inside it
+    ThemeToken  TooltipLightGround = Covering(ControlLightGround);       // [-] - bg-[#ffffff]
+    ThemeToken  TooltipLightTitle  = Covering(ControlDarkColour);           // [-] - text-[#111111]
+    ThemeToken  TooltipLightBody   = Covering(ControlTooltipBody);       // [-] - text-[#777777]
+    ThemeToken  TooltipDarkGround  = Covering(ControlDarkGround);        // [-] - bg-[#151515]
+    ThemeToken  TooltipDarkTitle   = Covering(ControlLightGround);       // [-] - text-white
+    ThemeToken  TooltipDarkBody    = Covering(ControlQuietColour);          // [-] - text-[#888888]
+    ThemeToken  TriggerLightGround = Covering(ControlLightGround);       // [-] - the light 64 px trigger
+    ThemeToken  TriggerLightColour    = Covering(ControlDarkColour);           // [-] - the figure inside it
+    ThemeToken  TriggerDarkGround  = Covering(ControlDarkGround);        // [-] - the dark 64 px trigger
+    ThemeToken  TriggerDarkColour     = Covering(ControlLightGround);       // [-] - the figure inside it
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -359,7 +359,7 @@ inline constexpr float AuthoredReduction = 0.5f;   // [-] - the sheet's authored
 
 // 📐 Halving puts the tooltip body at 7.5 px and the ruler's degree captions at 6 px, and neither is legible
 //    at any display scale. The floor applies to point sizes only — never to an extent, because a row that
-//    refused to shrink while its run did would break the arrangement the run sits in.
+//    refused to shrcolour while its run did would break the arrangement the run sits in.
 inline constexpr float TextLegibilityFloor = 11.0f;   // [px] - no run is ever recorded below this
 
 /// 🧩 How generous the arrangement is, classified from the extent the display actually offers.
@@ -497,7 +497,7 @@ struct ControlMetric
     float  TooltipArrowExtent   =  32.0f;   // [px] - w-8 h-8, rotated a quarter turn
     float  TooltipArrowRadius   =   6.0f;   // [px] - rounded-[6px]
     float  TooltipArrowAlong    =  48.0f;   // [px] - left-[48px]
-    float  TooltipArrowSink     =   8.0f;   // [px] - -bottom-[8px]
+    float  TooltipArrowScolour     =   8.0f;   // [px] - -bottom-[8px]
     float  TriggerExtent        =  64.0f;   // [px] - w-16 h-16
     float  TriggerRadius        =  24.0f;   // [px] - rounded-[24px]
     float  TriggerLeadAlong     =  32.0f;   // [px] - ml-8
@@ -524,12 +524,12 @@ inline constexpr std::uint32_t WorkspaceStrip        = 0x18181Cu;   // [-] - --s
 inline constexpr std::uint32_t WorkspaceTabQuiet     = 0x26262Cu;   // [-] - --tab-inactive
 inline constexpr std::uint32_t WorkspaceTabRoused    = 0x32323Au;   // [-] - --tab-hover
 inline constexpr std::uint32_t WorkspaceTabTaken     = 0x000000u;   // [-] - --tab-active
-inline constexpr std::uint32_t WorkspaceTabInkQuiet  = 0x9BA1ADu;   // [-] - --tab-inactive-text
-inline constexpr std::uint32_t WorkspaceTabInkTaken  = 0xFFFFFFu;   // [-] - --tab-active-text
+inline constexpr std::uint32_t WorkspaceTabColourQuiet  = 0x9BA1ADu;   // [-] - --tab-inactive-text
+inline constexpr std::uint32_t WorkspaceTabColourTaken  = 0xFFFFFFu;   // [-] - --tab-active-text
 inline constexpr std::uint32_t WorkspaceFooterEdge   = 0x222228u;   // [-] - --panel-footer-border, --border
-inline constexpr std::uint32_t WorkspaceVacantInk    = 0x33333Du;   // [-] - .empty colour
+inline constexpr std::uint32_t WorkspaceVacantColour    = 0x33333Du;   // [-] - .empty colour
 
-/// 🧩 Every extent and ink the workspace tab strip is drawn with, stated at the sheet's authored density.
+/// 🧩 Every extent and colour the workspace tab strip is drawn with, stated at the sheet's authored density.
 /// note  🔴 These are read by whatever seats the interface library's style, and by the footer strip Slate
 ///       records itself. The tab geometry is the vendor's — `Patches/` states how — but the figures it is
 ///       driven by are declared here so the sheet can be compared against them line by line.
@@ -555,23 +555,23 @@ struct WorkspaceMetric
     float  VacantTracking   =   0.22f;  // [em] - .empty letter-spacing, against the text size
 };
 
-/// 🧩 The inks the workspace tab strip and its footer are drawn with.
+/// 🧩 The colours the workspace tab strip and its footer are drawn with.
 /// tag   contract, nonallocating, nonthrowing
-struct WorkspaceInk
+struct WorkspaceColour
 {
-    InkOrdinate  StripGround   = Covering(WorkspaceStrip);         // [-] - behind the tabs
-    InkOrdinate  TabQuiet      = Covering(WorkspaceTabQuiet);      // [-] - an unselected tab
-    InkOrdinate  TabRoused     = Covering(WorkspaceTabRoused);     // [-] - hovered
-    InkOrdinate  TabTaken      = Covering(WorkspaceTabTaken);      // [-] - selected
-    InkOrdinate  TabInkQuiet   = Covering(WorkspaceTabInkQuiet);   // [-] - an unselected run
-    InkOrdinate  TabInkTaken   = Covering(WorkspaceTabInkTaken);   // [-] - the selected run
-    InkOrdinate  TabEdge       = Partial(AbsoluteBlack, 0.45);     // [-] - stroke rgba(0,0,0,.45)
-    InkOrdinate  TabEdgeRoused = Partial(0xFFFFFFu, 0.08);         // [-] - stroke rgba(255,255,255,.08)
-    InkOrdinate  FooterGround  = Covering(WorkspaceStrip);         // [-] - --panel-footer-bg
-    InkOrdinate  FooterEdge    = Covering(WorkspaceFooterEdge);    // [-] - --panel-footer-border
-    InkOrdinate  WorkspaceVoid = Covering(AbsoluteBlack);          // [-] - the OLED ground behind everything
-    InkOrdinate  BodyGround    = Covering(AbsoluteBlack);          // [-] - --panel, .panelbody and .content
-    InkOrdinate  VacantInk     = Covering(WorkspaceVacantInk);     // [-] - .empty, the placeholder run
+    ThemeToken  StripGround   = Covering(WorkspaceStrip);         // [-] - behind the tabs
+    ThemeToken  TabQuiet      = Covering(WorkspaceTabQuiet);      // [-] - an unselected tab
+    ThemeToken  TabRoused     = Covering(WorkspaceTabRoused);     // [-] - hovered
+    ThemeToken  TabTaken      = Covering(WorkspaceTabTaken);      // [-] - selected
+    ThemeToken  TabColourQuiet   = Covering(WorkspaceTabColourQuiet);   // [-] - an unselected run
+    ThemeToken  TabColourTaken   = Covering(WorkspaceTabColourTaken);   // [-] - the selected run
+    ThemeToken  TabEdge       = Partial(AbsoluteBlack, 0.45);     // [-] - stroke rgba(0,0,0,.45)
+    ThemeToken  TabEdgeRoused = Partial(0xFFFFFFu, 0.08);         // [-] - stroke rgba(255,255,255,.08)
+    ThemeToken  FooterGround  = Covering(WorkspaceStrip);         // [-] - --panel-footer-bg
+    ThemeToken  FooterEdge    = Covering(WorkspaceFooterEdge);    // [-] - --panel-footer-border
+    ThemeToken  WorkspaceVoid = Covering(AbsoluteBlack);          // [-] - the OLED ground behind everything
+    ThemeToken  BodyGround    = Covering(AbsoluteBlack);          // [-] - --panel, .panelbody and .content
+    ThemeToken  VacantColour     = Covering(WorkspaceVacantColour);     // [-] - .empty, the placeholder run
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -587,33 +587,33 @@ inline constexpr std::uint32_t EditorViewportGround = 0x1A1A1Fu;   // [-] - view
 inline constexpr std::uint32_t EditorChromeGround   = 0x1E1E24u;   // [-] - panel header and footer
 inline constexpr std::uint32_t EditorEdge           = 0x2A2A30u;   // [-] - chrome borders and split rails
 inline constexpr std::uint32_t EditorRoused          = 0x3A3A40u;   // [-] - roused and selected controls
-inline constexpr std::uint32_t EditorInkPrimary      = 0xF3F4F6u;   // [-] - gray-100
-inline constexpr std::uint32_t EditorInkSecondary    = 0xD1D5DBu;   // [-] - gray-300
-inline constexpr std::uint32_t EditorInkQuiet        = 0x9CA3AFu;   // [-] - gray-400
-inline constexpr std::uint32_t EditorInkFaint        = 0x6B7280u;   // [-] - gray-500
-inline constexpr std::uint32_t EditorInkGhost        = 0x4B5563u;   // [-] - gray-600
+inline constexpr std::uint32_t EditorColourPrimary      = 0xF3F4F6u;   // [-] - gray-100
+inline constexpr std::uint32_t EditorColourSecondary    = 0xD1D5DBu;   // [-] - gray-300
+inline constexpr std::uint32_t EditorColourQuiet        = 0x9CA3AFu;   // [-] - gray-400
+inline constexpr std::uint32_t EditorColourFaint        = 0x6B7280u;   // [-] - gray-500
+inline constexpr std::uint32_t EditorColourGhost        = 0x4B5563u;   // [-] - gray-600
 inline constexpr std::uint32_t EditorAccent          = 0x3B82F6u;   // [-] - blue-500
 inline constexpr std::uint32_t EditorPositive        = 0x22C55Eu;   // [-] - green-500
 inline constexpr std::uint32_t EditorNegative        = 0xF87171u;   // [-] - red-400
 
-/// 🧩 Semantic inks shared by every editor panel and its split controls.
+/// 🧩 Semantic colours shared by every editor panel and its split controls.
 /// tag   contract, nonallocating, nonthrowing
-struct EditorPanelInk
+struct EditorPanelColour
 {
-    InkOrdinate  WindowGround   = Covering(EditorWindowGround);   // [-] - outside and vacant ground
-    InkOrdinate  BodyGround     = Covering(EditorBodyGround);     // [-] - outliner and property body
-    InkOrdinate  ViewGround     = Covering(EditorViewportGround); // [-] - viewport and UV render target
-    InkOrdinate  ChromeGround   = Covering(EditorChromeGround);   // [-] - header and footer
-    InkOrdinate  Edge           = Covering(EditorEdge);           // [-] - borders and split rail
-    InkOrdinate  Roused         = Covering(EditorRoused);         // [-] - selected and hovered control
-    InkOrdinate  InkPrimary     = Covering(EditorInkPrimary);     // [-] - selected runs
-    InkOrdinate  InkSecondary   = Covering(EditorInkSecondary);   // [-] - panel title
-    InkOrdinate  InkQuiet       = Covering(EditorInkQuiet);       // [-] - controls
-    InkOrdinate  InkFaint       = Covering(EditorInkFaint);       // [-] - inactive runs
-    InkOrdinate  InkGhost       = Covering(EditorInkGhost);       // [-] - empty body run
-    InkOrdinate  Accent         = Covering(EditorAccent);         // [-] - split and selection accent
-    InkOrdinate  Positive       = Covering(EditorPositive);       // [-] - active overlays
-    InkOrdinate  Negative       = Covering(EditorNegative);       // [-] - withdrawal action
+    ThemeToken  WindowGround   = Covering(EditorWindowGround);   // [-] - outside and vacant ground
+    ThemeToken  BodyGround     = Covering(EditorBodyGround);     // [-] - outliner and property body
+    ThemeToken  ViewGround     = Covering(EditorViewportGround); // [-] - viewport and UV render target
+    ThemeToken  ChromeGround   = Covering(EditorChromeGround);   // [-] - header and footer
+    ThemeToken  Edge           = Covering(EditorEdge);           // [-] - borders and split rail
+    ThemeToken  Roused         = Covering(EditorRoused);         // [-] - selected and hovered control
+    ThemeToken  ColourPrimary     = Covering(EditorColourPrimary);     // [-] - selected runs
+    ThemeToken  ColourSecondary   = Covering(EditorColourSecondary);   // [-] - panel title
+    ThemeToken  ColourQuiet       = Covering(EditorColourQuiet);       // [-] - controls
+    ThemeToken  ColourFaint       = Covering(EditorColourFaint);       // [-] - inactive runs
+    ThemeToken  ColourGhost       = Covering(EditorColourGhost);       // [-] - empty body run
+    ThemeToken  Accent         = Covering(EditorAccent);         // [-] - split and selection accent
+    ThemeToken  Positive       = Covering(EditorPositive);       // [-] - active overlays
+    ThemeToken  Negative       = Covering(EditorNegative);       // [-] - withdrawal action
 };
 
 /// 🧩 Exact editor-panel extents from `References/Panels`, resolved once against the display scale.
@@ -687,8 +687,8 @@ struct MotionScale
 //------------------------------------------------------------------------------------------------------------------------
 
 // 📝 🔴 The three ported references each declare their own token run, and each ran here from the panel header
-//    that used to hold it. A panel holding its own inks cannot be themed — the appearance file reaches this
-//    one record and nothing else, so an ink declared outside it is an ink no artist can change. Every
+//    that used to hold it. A panel holding its own colours cannot be themed — the appearance file reaches this
+//    one record and nothing else, so an colour declared outside it is an colour no artist can change. Every
 //    spelling is unchanged, so each existing call site reads exactly as it did.
 
 // 📐 The custom properties `app/globals.css` declares, transcribed as packed literals. Each is named for the
@@ -701,105 +701,105 @@ inline constexpr std::uint32_t ShellRailTaken    = 0x232327u;   // [-] - --rail-
 inline constexpr std::uint32_t ShellTile         = 0x1D1D21u;   // [-] - --tile
 inline constexpr std::uint32_t ShellTileRoused   = 0x26262Bu;   // [-] - --tile-hi
 inline constexpr std::uint32_t ShellAccent       = 0x4A90E2u;   // [-] - --accent
-inline constexpr std::uint32_t ShellInkPrimary   = 0xECECF0u;   // [-] - --ink
-inline constexpr std::uint32_t ShellInkMuted     = 0x7B7B82u;   // [-] - --muted
-inline constexpr std::uint32_t ShellInkFaint     = 0x55555Du;   // [-] - --faint
+inline constexpr std::uint32_t ShellColourPrimary   = 0xECECF0u;   // [-] - --colour
+inline constexpr std::uint32_t ShellColourMuted     = 0x7B7B82u;   // [-] - --muted
+inline constexpr std::uint32_t ShellColourFaint     = 0x55555Du;   // [-] - --faint
 inline constexpr std::uint32_t ShellValueUnit    = 0x33333Au;   // [-] - --value-unit
 inline constexpr std::uint32_t ShellHairline     = 0xFFFFFFu;   // [-] - --hair and --hair-strong, by coverage
 inline constexpr std::uint32_t ShellEntityAccent = 0x3B82F6u;   // [-] - the outliner's own rail, bg-[#3b82f6]
 inline constexpr std::uint32_t ShellEntityTaken  = 0x1E40AFu;   // [-] - bg-[#1e40af33]
 
-/// 🧩 Every ink the shell records with, seated once beside the rest of the appearance.
+/// 🧩 Every colour the shell records with, seated once beside the rest of the appearance.
 /// note  🔴 A record and not forty call-site literals. The reference states each colour once as a custom
 ///        property and every rule reads it; a port spelling `Covering(0x17171Au)` at each of the sites it
 ///        appears could not be compared against the sheet, and one of them would drift unnoticed.
 /// tag   contract, nonallocating, nonthrowing
-struct ShellInk
+struct ShellColour
 {
-    InkOrdinate  Desk         = Covering(ShellDesk);            // [-] - the viewport ground
-    InkOrdinate  Menu         = Covering(ShellMenu);            // [-] - the outliner and the summoned card
-    InkOrdinate  MenuLower    = Covering(ShellMenuLower);       // [-] - the top bar, the rail, the inspector
-    InkOrdinate  Tile         = Covering(ShellTile);            // [-] - a quiet mode button
-    InkOrdinate  TileRoused   = Covering(ShellTileRoused);      // [-] - hover:bg-[var(--tile-hi)]
-    InkOrdinate  RowTaken     = Covering(ShellRailTaken);       // [-] - bg-[var(--row-sel)]
-    InkOrdinate  RowRoused    = Partial(ShellHairline, 0.045);  // [-] - --row-hover
-    InkOrdinate  Hairline     = Partial(ShellHairline, 0.06);   // [-] - --hair
-    InkOrdinate  HairlineFirm = Partial(ShellHairline, 0.10);   // [-] - --hair-strong
-    InkOrdinate  Accent       = Covering(ShellAccent);          // [-] - --accent
-    InkOrdinate  AccentSoft   = Partial(ShellAccent, 0.13);     // [-] - --accent-soft
-    InkOrdinate  EntityAccent = Covering(ShellEntityAccent);    // [-] - the outliner's selection rail
-    InkOrdinate  EntityTaken  = Partial(ShellEntityTaken, 0.20);// [-] - bg-[#1e40af33]
-    InkOrdinate  Primary      = Covering(ShellInkPrimary);      // [-] - --ink
-    InkOrdinate  Muted        = Covering(ShellInkMuted);        // [-] - --muted
-    InkOrdinate  Faint        = Covering(ShellInkFaint);        // [-] - --faint
-    InkOrdinate  Unit         = Covering(ShellValueUnit);       // [-] - --value-unit, the status separators
-    InkOrdinate  Veil         = Partial(0x000000u, 0.30);       // [-] - the summon veil, bg-black/30
-    InkOrdinate  WeaveFine    = Partial(ShellHairline, 0.028);  // [-] - the 28 px weave
-    InkOrdinate  WeaveCoarse  = Partial(ShellHairline, 0.055);  // [-] - the 140 px weave
-    InkOrdinate  Vignette     = Partial(0x000000u, 0.55);       // [-] - the viewport's radial fall-off
-    InkOrdinate  Absent       = Partial(0x000000u, 0.00);       // [-] - a quiet ground records nothing
+    ThemeToken  Desk         = Covering(ShellDesk);            // [-] - the viewport ground
+    ThemeToken  Menu         = Covering(ShellMenu);            // [-] - the outliner and the summoned card
+    ThemeToken  MenuLower    = Covering(ShellMenuLower);       // [-] - the top bar, the rail, the inspector
+    ThemeToken  Tile         = Covering(ShellTile);            // [-] - a quiet mode button
+    ThemeToken  TileRoused   = Covering(ShellTileRoused);      // [-] - hover:bg-[var(--tile-hi)]
+    ThemeToken  RowTaken     = Covering(ShellRailTaken);       // [-] - bg-[var(--row-sel)]
+    ThemeToken  RowRoused    = Partial(ShellHairline, 0.045);  // [-] - --row-hover
+    ThemeToken  Hairline     = Partial(ShellHairline, 0.06);   // [-] - --hair
+    ThemeToken  HairlineFirm = Partial(ShellHairline, 0.10);   // [-] - --hair-strong
+    ThemeToken  Accent       = Covering(ShellAccent);          // [-] - --accent
+    ThemeToken  AccentSoft   = Partial(ShellAccent, 0.13);     // [-] - --accent-soft
+    ThemeToken  EntityAccent = Covering(ShellEntityAccent);    // [-] - the outliner's selection rail
+    ThemeToken  EntityTaken  = Partial(ShellEntityTaken, 0.20);// [-] - bg-[#1e40af33]
+    ThemeToken  Primary      = Covering(ShellColourPrimary);      // [-] - --colour
+    ThemeToken  Muted        = Covering(ShellColourMuted);        // [-] - --muted
+    ThemeToken  Faint        = Covering(ShellColourFaint);        // [-] - --faint
+    ThemeToken  Unit         = Covering(ShellValueUnit);       // [-] - --value-unit, the status separators
+    ThemeToken  Veil         = Partial(0x000000u, 0.30);       // [-] - the summon veil, bg-black/30
+    ThemeToken  WeaveFine    = Partial(ShellHairline, 0.028);  // [-] - the 28 px weave
+    ThemeToken  WeaveCoarse  = Partial(ShellHairline, 0.055);  // [-] - the 140 px weave
+    ThemeToken  Vignette     = Partial(0x000000u, 0.55);       // [-] - the viewport's radial fall-off
+    ThemeToken  Absent       = Partial(0x000000u, 0.00);       // [-] - a quiet ground records nothing
 };
 
-/// 🧩 Every ink `AsstbrowsrBasic` states, named rather than repeated.
+/// 🧩 Every colour `AsstbrowsrBasic` states, named rather than repeated.
 /// note  📐 The reference reaches for Tailwind's neutral run and a handful of literal hexes. Each field
 ///        carries the class or the hex it transcribes, so the sheet can be checked line by line.
 /// tag   contract, nonallocating, nonthrowing
-struct ContentBrowserInk
+struct ContentBrowserColour
 {
-    InkOrdinate  Ground        = Covering(0x000000u);         // [-] - bg-black, the lattice ground
-    InkOrdinate  Aside         = Covering(0x0A0A0Au);         // [-] - bg-[#0a0a0a], sources and inspector
-    InkOrdinate  Rail          = Covering(0x0C0C0Eu);         // [-] - bg-[#0c0c0e], the breadcrumb and tongues
-    InkOrdinate  Stroke        = Covering(0x1F1F1Fu);         // [-] - border-[#1f1f1f]
-    InkOrdinate  CardUpper     = Covering(0x131316u);         // [-] - from-[#131316]
-    InkOrdinate  CardLower     = Covering(0x0F0F12u);         // [-] - to-[#0f0f12]
-    InkOrdinate  Plate         = Covering(0x1A1A1Eu);         // [-] - bg-[#1a1a1e], the record's own plate
-    InkOrdinate  Medallion     = Covering(0x17171Bu);         // [-] - bg-[#17171b], the inspector's crest
-    InkOrdinate  Field         = Covering(0x111111u);         // [-] - bg-[#111], the seek field
-    InkOrdinate  Primary       = Covering(0xFFFFFFu);         // [-] - text-white
-    InkOrdinate  Secondary     = Covering(0xA3A3A3u);         // [-] - text-neutral-400
-    InkOrdinate  Faint         = Covering(0x737373u);         // [-] - text-neutral-500
-    InkOrdinate  Faintest      = Covering(0x525252u);         // [-] - text-neutral-600
-    InkOrdinate  Roused        = Partial(0xFFFFFFu, 0.05);    // [-] - hover:bg-white/5
-    InkOrdinate  Taken         = Partial(0xFFFFFFu, 0.10);    // [-] - bg-white/10
-    InkOrdinate  EdgeRoused    = Partial(0xFFFFFFu, 0.30);    // [-] - hover:border-white/30
-    InkOrdinate  EdgeTaken     = Partial(0xFFFFFFu, 0.60);    // [-] - border-white/60
-    InkOrdinate  Hatch         = Partial(0xFFFFFFu, 0.02);    // [-] - the 45° repeating-linear-gradient
+    ThemeToken  Ground        = Covering(0x000000u);         // [-] - bg-black, the lattice ground
+    ThemeToken  Aside         = Covering(0x0A0A0Au);         // [-] - bg-[#0a0a0a], sources and inspector
+    ThemeToken  Rail          = Covering(0x0C0C0Eu);         // [-] - bg-[#0c0c0e], the breadcrumb and tongues
+    ThemeToken  Stroke        = Covering(0x1F1F1Fu);         // [-] - border-[#1f1f1f]
+    ThemeToken  CardUpper     = Covering(0x131316u);         // [-] - from-[#131316]
+    ThemeToken  CardLower     = Covering(0x0F0F12u);         // [-] - to-[#0f0f12]
+    ThemeToken  Plate         = Covering(0x1A1A1Eu);         // [-] - bg-[#1a1a1e], the record's own plate
+    ThemeToken  Medallion     = Covering(0x17171Bu);         // [-] - bg-[#17171b], the inspector's crest
+    ThemeToken  Field         = Covering(0x111111u);         // [-] - bg-[#111], the seek field
+    ThemeToken  Primary       = Covering(0xFFFFFFu);         // [-] - text-white
+    ThemeToken  Secondary     = Covering(0xA3A3A3u);         // [-] - text-neutral-400
+    ThemeToken  Faint         = Covering(0x737373u);         // [-] - text-neutral-500
+    ThemeToken  Faintest      = Covering(0x525252u);         // [-] - text-neutral-600
+    ThemeToken  Roused        = Partial(0xFFFFFFu, 0.05);    // [-] - hover:bg-white/5
+    ThemeToken  Taken         = Partial(0xFFFFFFu, 0.10);    // [-] - bg-white/10
+    ThemeToken  EdgeRoused    = Partial(0xFFFFFFu, 0.30);    // [-] - hover:border-white/30
+    ThemeToken  EdgeTaken     = Partial(0xFFFFFFu, 0.60);    // [-] - border-white/60
+    ThemeToken  Hatch         = Partial(0xFFFFFFu, 0.02);    // [-] - the 45° repeating-linear-gradient
 
     // 📝 Below are the reference's remaining tokens, which were written as literals at their draw sites and so
-    //    stood outside every theme. They are stated here for one reason: an ink named in this record is swept
-    //    onto the chosen theme's ladder, and an ink written at its draw site is not. Each keeps the exact
+    //    stood outside every theme. They are stated here for one reason: an colour named in this record is swept
+    //    onto the chosen theme's ladder, and an colour written at its draw site is not. Each keeps the exact
     //    literal the reference states, so `Oled` still renders the transcription byte for byte.
-    InkOrdinate  Emphatic      = Covering(0xFFFFFFu);         // [-] - bg-white, the Import pill
-    InkOrdinate  EmphaticRoused= Covering(0xE5E5E5u);         // [-] - hover:bg-neutral-200
-    InkOrdinate  EmphaticRun   = Covering(0x000000u);         // [-] - text-black, the run ON that pill
-    InkOrdinate  ChipGround    = Partial(0x000000u, 0.70);    // [-] - bg-black/70, the extension chip
-    InkOrdinate  EdgeHolding   = Partial(0xFFFFFFu, 0.40);    // [-] - focus:border-white/40
-    InkOrdinate  MeterQuiet    = Partial(0xFFFFFFu, 0.20);    // [-] - the meter's second stop
-    InkOrdinate  GripQuiet     = Partial(0xFFFFFFu, 0.15);    // [-] - the scrollbar thumb at rest
+    ThemeToken  Emphatic      = Covering(0xFFFFFFu);         // [-] - bg-white, the Import pill
+    ThemeToken  EmphaticRoused= Covering(0xE5E5E5u);         // [-] - hover:bg-neutral-200
+    ThemeToken  EmphaticRun   = Covering(0x000000u);         // [-] - text-black, the run ON that pill
+    ThemeToken  ChipGround    = Partial(0x000000u, 0.70);    // [-] - bg-black/70, the extension chip
+    ThemeToken  EdgeHolding   = Partial(0xFFFFFFu, 0.40);    // [-] - focus:border-white/40
+    ThemeToken  MeterQuiet    = Partial(0xFFFFFFu, 0.20);    // [-] - the meter's second stop
+    ThemeToken  GripQuiet     = Partial(0xFFFFFFu, 0.15);    // [-] - the scrollbar thumb at rest
 };
 
-/// 🧩 Every ink `LayerstackV1` declares in its `:root`, named rather than repeated.
+/// 🧩 Every colour `LayerstackV1` declares in its `:root`, named rather than repeated.
 /// note  📐 The reference's own OLED-neutral token run. Each field carries the custom property it
 ///        transcribes, so the sheet can be checked line by line.
 /// tag   contract, nonallocating, nonthrowing
-struct LayerStackInk
+struct LayerStackColour
 {
-    InkOrdinate  Ground        = Covering(0x000000u);        // [-] - --bg
-    InkOrdinate  Panel         = Covering(0x050505u);        // [-] - --panel
-    InkOrdinate  PanelRaised   = Covering(0x0A0A0Au);        // [-] - --panel-2
-    InkOrdinate  Row           = Covering(0x0D0D0Du);        // [-] - --row
-    InkOrdinate  RowHovered    = Covering(0x161616u);        // [-] - --row-h
-    InkOrdinate  RowTaken      = Covering(0x202020u);        // [-] - --row-a
-    InkOrdinate  Detail        = Covering(0x080808u);        // [-] - --detail
-    InkOrdinate  Stroke        = Partial(0xFFFFFFu, 0.075);   // [-] - --stroke, .075 coverage
-    InkOrdinate  StrokeStrong  = Partial(0xFFFFFFu, 0.18) ;   // [-] - --stroke-2, .18 coverage
-    InkOrdinate  Primary       = Covering(0xEFEFEFu);        // [-] - --tx
-    InkOrdinate  Secondary     = Covering(0x9A9A9Au);        // [-] - --tx-2
-    InkOrdinate  Faint         = Covering(0x5E5E5Eu);        // [-] - --tx-3
-    InkOrdinate  Accent        = Covering(0xFFFFFFu);        // [-] - --acc
-    InkOrdinate  Danger        = Covering(0xFF6B63u);        // [-] - --danger
-    InkOrdinate  Affirm        = Covering(0x59D499u);        // [-] - --ok
-    InkOrdinate  Caution       = Covering(0xFFD24Au);        // [-] - --warn
+    ThemeToken  Ground        = Covering(0x000000u);        // [-] - --bg
+    ThemeToken  Panel         = Covering(0x050505u);        // [-] - --panel
+    ThemeToken  PanelRaised   = Covering(0x0A0A0Au);        // [-] - --panel-2
+    ThemeToken  Row           = Covering(0x0D0D0Du);        // [-] - --row
+    ThemeToken  RowHovered    = Covering(0x161616u);        // [-] - --row-h
+    ThemeToken  RowTaken      = Covering(0x202020u);        // [-] - --row-a
+    ThemeToken  Detail        = Covering(0x080808u);        // [-] - --detail
+    ThemeToken  Stroke        = Partial(0xFFFFFFu, 0.075);   // [-] - --stroke, .075 coverage
+    ThemeToken  StrokeStrong  = Partial(0xFFFFFFu, 0.18) ;   // [-] - --stroke-2, .18 coverage
+    ThemeToken  Primary       = Covering(0xEFEFEFu);        // [-] - --tx
+    ThemeToken  Secondary     = Covering(0x9A9A9Au);        // [-] - --tx-2
+    ThemeToken  Faint         = Covering(0x5E5E5Eu);        // [-] - --tx-3
+    ThemeToken  Accent        = Covering(0xFFFFFFu);        // [-] - --acc
+    ThemeToken  Danger        = Covering(0xFF6B63u);        // [-] - --danger
+    ThemeToken  Affirm        = Covering(0x59D499u);        // [-] - --ok
+    ThemeToken  Caution       = Covering(0xFFD24Au);        // [-] - --warn
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -808,22 +808,22 @@ struct LayerStackInk
 
 /// 🧩 The one record every panel reads. Resolved at bring-up and again only when the display scale changes.
 /// tag   contract, nonallocating, nonthrowing
-struct AppearanceSpecification
+struct ThemeProfile
 {
-    SurfaceInk     Ink            = {};
+    SurfaceColour     Colour            = {};
     MetricScale    Measure        = {};
     MotionScale    Motion         = {};
-    ControlInk       Control          = {};
+    ControlColour       Control          = {};
     ControlMetric    ControlMeasure   = {};
-    WorkspaceInk      Workspace         = {};
+    WorkspaceColour      Workspace         = {};
     WorkspaceMetric   WorkspaceMeasure  = {};
-    EditorPanelInk     EditorPanel        = {};
+    EditorPanelColour     EditorPanel        = {};
     EditorPanelMetric  EditorPanelMeasure = {};
 
     // 📝 The three ported references, themed through the same record as everything above them.
-    ShellInk           Shell              = {};
-    ContentBrowserInk  ContentBrowser     = {};
-    LayerStackInk      LayerStack         = {};
+    ShellColour           Shell              = {};
+    ContentBrowserColour  ContentBrowser     = {};
+    LayerStackColour      LayerStack         = {};
 };
 
 /// 🧩 The bounds the artist's own preference is admitted within.
@@ -857,7 +857,7 @@ ComfortDensity ClassifyDensity(const MetricScale& Measure, float ExtentAlong);
 /// post  Measure.DisplayScale, ControlMeasure.AppliedFactor and ControlMeasure.Density record what was applied
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-AppearanceSpecification Resolve(double DisplayScale, double ArtistScale = 1.0, float ExtentAlong = 0.0f);
+ThemeProfile Resolve(double DisplayScale, double ArtistScale = 1.0, float ExtentAlong = 0.0f);
 
 /// 🧩 How many lattice columns the content extent admits, from the source's four breakpoints.
 /// in    ContentAlong  [px] the extent the lattice is arranged inside

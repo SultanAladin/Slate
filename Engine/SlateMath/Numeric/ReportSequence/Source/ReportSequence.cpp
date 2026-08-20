@@ -202,17 +202,17 @@ const std::vector<SampledMeasure>& MeasureIndex::Measures() const
     return SampledMeasures;
 }
 
-Deliver<SampledMeasure> MeasureIndex::Resolve(const char* Origin, const char* Measured) const
+Result<SampledMeasure> MeasureIndex::Resolve(const char* Origin, const char* Measured) const
 {
     const std::size_t Located_ = Located(Origin, Measured);
 
     if (Located_ == SampledMeasures.size())
     {
-        return Deliver<SampledMeasure>::Refuse(
+        return Result<SampledMeasure>::Refuse(
             { RefusalReason::ExtentExhausted, "nothing has declared that measure this session" });
     }
 
-    return Deliver<SampledMeasure>::Deliver(SampledMeasures[Located_]);
+    return Result<SampledMeasure>::Result(SampledMeasures[Located_]);
 }
 
 void MeasureIndex::Reclaim()

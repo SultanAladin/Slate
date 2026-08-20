@@ -254,10 +254,10 @@ struct ValidationIdentities
 };
 
 /// 🧩 Claims every identity the sheet needs, refusing in full rather than in part.
-/// out   Deliver  [-]  refuses with ExtentExhausted when the ledger declines any requested identity
+/// out   Result  [-]  refuses with ExtentExhausted when the ledger declines any requested identity
 /// note  🔴 A partial enrolment would leave one control reading another's fade, which draws correctly on the
 ///       first tick and diverges on the second — the hardest possible shape of defect to attribute.
-Deliver<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
+Result<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
 {
     ValidationIdentities  Claimed;
     ControlIdentity*      Every[] = {
@@ -275,17 +275,17 @@ Deliver<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
 
     for (ControlIdentity* Claiming : Every)
     {
-        const Deliver<ControlIdentity> Issued = Ledger.Enrol();
+        const Result<ControlIdentity> Issued = Ledger.Enrol();
 
-        if (!Issued.ContentPresent)
+        if (!Issued.Resolved)
         {
-            return Deliver<ValidationIdentities>::Refuse(Issued.Declined);
+            return Result<ValidationIdentities>::Refuse(Issued.Error);
         }
 
         *Claiming = Issued.Resolve();
     }
 
-    return Deliver<ValidationIdentities>::Deliver(Claimed);
+    return Result<ValidationIdentities>::Result(Claimed);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -329,7 +329,7 @@ public:
     }
 
     /// 🧩 Strokes every retained extent and reports the four factors the appearance was resolved by.
-    void Record(RecordingSurface& Surface, const AppearanceSpecification& Appearance,
+    void Record(RecordingSurface& Surface, const ThemeProfile& Appearance,
                 double ArtistScale, float ExtentAlong, std::uint32_t Disagreeing) const
     {
         const ControlInk&    Ink     = Appearance.Control;
@@ -409,7 +409,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     HostLifecycle Lifetime;
 
-    if (!Lifetime.Construct(Declared).ContentPresent)
+    if (!Lifetime.Construct(Declared).Resolved)
         return 1;
 
     // ② 🔴 The interface, the integrator, the ledger and the panel — **not** `ViewportSequence`. The sheet
@@ -417,7 +417,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    chrome nothing in the reference has, which is the opposite of what a validation host is for.
     InterfaceExchange Interface;
 
-    if (!Interface.Construct(Attach(Lifetime.Offering())).ContentPresent)
+    if (!Interface.Construct(Attach(Lifetime.Offering())).Resolved)
     {
         std::printf("%s \u2014 the interface context was refused\n", HostName);
         return 1;
@@ -491,18 +491,18 @@ int main(int ArgumentCount, char** ArgumentValues)
     static LayerArrangement  LayerArranged;
     static RevisionSequence  LayerRevisions;
 
-    if (const auto Verdict = Ledger.Construct(Motion); !Verdict.ContentPresent)
+    if (const auto Verdict = Ledger.Construct(Motion); !Verdict.Resolved)
     {
-        std::printf("%s \u2014 the interaction ledger was refused: %s\n", HostName, Verdict.Declined.Detail);
+        std::printf("%s \u2014 the interaction ledger was refused: %s\n", HostName, Verdict.Error.Detail);
         std::fflush(stdout);
         return 1;
     }
 
-    const Deliver<ValidationIdentities> Enrolled = EnrolEvery(Ledger);
+    const Result<ValidationIdentities> Enrolled = EnrolEvery(Ledger);
 
-    if (!Enrolled.ContentPresent)
+    if (!Enrolled.Resolved)
     {
-        std::printf("%s \u2014 the ledger declined an enrolment: %s\n", HostName, Enrolled.Declined.Detail);
+        std::printf("%s \u2014 the ledger declined an enrolment: %s\n", HostName, Enrolled.Error.Detail);
         std::fflush(stdout);
         return 1;
     }
@@ -512,7 +512,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 🔴 Seeded from what was transcribed beside the executable, so gate ⑱ and every sheet above it come up in
 //    the recorded theme rather than in the transcription's own and correcting themselves a tick later.
 ThemeSelection          Selected   = InscribedSelection;
-AppearanceSpecification Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
+ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
 
     // 🔴 Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
     //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
@@ -525,39 +525,39 @@ AppearanceSpecification Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, 
         return 1;
     };
 
-    if (const auto Verdict = Panel.Construct(Ledger, Surface, Appearance); !Verdict.ContentPresent)
-        return Refused("the control panel", Verdict.Declined);
+    if (const auto Verdict = Panel.Construct(Ledger, Surface, Appearance); !Verdict.Resolved)
+        return Refused("the control panel", Verdict.Error);
 
-    if (const auto Verdict = ReferenceControls.Construct(Ledger, Surface, Appearance); !Verdict.ContentPresent)
-        return Refused("the reference controls", Verdict.Declined);
+    if (const auto Verdict = ReferenceControls.Construct(Ledger, Surface, Appearance); !Verdict.Resolved)
+        return Refused("the reference controls", Verdict.Error);
 
-    if (const auto Verdict = Facets.Construct(Motion, Surface, Appearance); !Verdict.ContentPresent)
-        return Refused("the facet panel", Verdict.Declined);
+    if (const auto Verdict = Facets.Construct(Motion, Surface, Appearance); !Verdict.Resolved)
+        return Refused("the facet panel", Verdict.Error);
 
-    if (const auto Verdict = EditorPanels.Construct(Motion, Surface, Appearance); !Verdict.ContentPresent)
-        return Refused("the editor panels", Verdict.Declined);
+    if (const auto Verdict = EditorPanels.Construct(Motion, Surface, Appearance); !Verdict.Resolved)
+        return Refused("the editor panels", Verdict.Error);
 
     EditorPartition.Construct(PanelSubject::Viewport);
 
-    if (const auto Verdict = ControlCentre.Construct(Motion, Surface, Appearance); !Verdict.ContentPresent)
-        return Refused("the Control Centre panel", Verdict.Declined);
+    if (const auto Verdict = ControlCentre.Construct(Motion, Surface, Appearance); !Verdict.Resolved)
+        return Refused("the Control Centre panel", Verdict.Error);
 
     // 🔴 The reference shell is constructed LAST and recorded FIRST. It occupies the whole display, and the
     //    validation sheet is the page that scrolls beneath it — so its enrolments are claimed after every
     //    other panel's, and nothing below it can take a contact the shell's own chrome stands over.
     // 🔴 Being last also makes it the first to starve: every earlier panel draws two eased interpolants per
     //    enrolled control from the ONE integrator, so a ceiling that fits the others exactly refuses here.
-    if (const auto Verdict = ReferenceShell.Construct(Ledger, Motion, Surface, Appearance); !Verdict.ContentPresent)
-        return Refused("the reference shell", Verdict.Declined);
+    if (const auto Verdict = ReferenceShell.Construct(Ledger, Motion, Surface, Appearance); !Verdict.Resolved)
+        return Refused("the reference shell", Verdict.Error);
 
     // 📝 The layer stack carries its own inks and lengths from `LayerstackV1` rather than from
-    //    AppearanceSpecification, because the reference states them absolutely — but it shares the one
+    //    ThemeProfile, because the reference states them absolutely — but it shares the one
     //    interaction ledger, so its enrolments are counted in the interpolant budget above.
-    if (const auto Verdict = LayerStack.Construct(Ledger, Surface, Appearance); !Verdict.ContentPresent)
-        return Refused("the layer stack", Verdict.Declined);
+    if (const auto Verdict = LayerStack.Construct(Ledger, Surface, Appearance); !Verdict.Resolved)
+        return Refused("the layer stack", Verdict.Error);
 
-    if (const auto Verdict = ContentBrowser.Construct(Ledger, Surface); !Verdict.ContentPresent)
-        return Refused("the content browser", Verdict.Declined);
+    if (const auto Verdict = ContentBrowser.Construct(Ledger, Surface); !Verdict.Resolved)
+        return Refused("the content browser", Verdict.Error);
 
     // 📝 The reference's own `ASSETS` run, seated once. The panel amends what the artist takes; it never
     //    amends the run itself, so this is the only write the library ever receives.
@@ -565,8 +565,8 @@ AppearanceSpecification Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, 
 
     // 🔴 The seat is read rather than dropped. A refused seat leaves the arrangement empty, and an empty
     //    stack draws as a bare pane — indistinguishable from a panel that recorded nothing.
-    if (const auto Verdict = SeatReferenceArrangement(LayerArranged); !Verdict.ContentPresent)
-        return Refused("the layer arrangement", Verdict.Declined);
+    if (const auto Verdict = SeatReferenceArrangement(LayerArranged); !Verdict.Resolved)
+        return Refused("the layer arrangement", Verdict.Error);
 
     // What the sheet seats, and the runs it presents — the sole owner of every datum below.
     ValidationOrdinates Seated;
@@ -665,7 +665,7 @@ AppearanceSpecification Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, 
         "Ambient Occlusion", "Anisotropy", "Anisotropy Angle", "Clearcoat", "Refraction Index",
         "Sheen", "Subsurface"
     };
-    const InkOrdinate FacetInks[14] = {
+    const ThemeToken FacetInks[14] = {
         Covering(0xB87333u), Covering(0x8B5CF6u), Covering(0x3B82F6u), Covering(0x8A8A8Au),
         Covering(0x10B981u), Covering(0x94A3B8u), Covering(0xF59E0Bu), Covering(0x6B7280u),
         Covering(0x22D3EEu), Covering(0x0EA5E9u), Covering(0xE2E8F0u), Covering(0xA78BFAu),
@@ -728,7 +728,7 @@ AppearanceSpecification Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, 
         {
             Interface.Reclaim();
 
-            if (!Interface.Construct(Attach(Lifetime.Offering())).ContentPresent)
+            if (!Interface.Construct(Attach(Lifetime.Offering())).Resolved)
             {
                 std::printf("%s \u2014 the interface could not be rebuilt on the recovered device\n", HostName);
                 break;
@@ -760,9 +760,9 @@ AppearanceSpecification Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, 
         // ① Open the interface tick and adopt the surface. 🔴 A refusal here must NOT return to the top
         //    of the loop: Await has already acquired an image and opened a recording, and only Surrender
         //    closes them. The tick records nothing and the cleared ground is presented instead.
-        bool ContentBuilt = Interface.Advance().ContentPresent;
+        bool ContentBuilt = Interface.Advance().Resolved;
 
-        if (ContentBuilt && !Surface.Adopt().ContentPresent)
+        if (ContentBuilt && !Surface.Adopt().Resolved)
         {
             Disregard(Interface.Abandon());
             ContentBuilt = false;
@@ -1453,7 +1453,7 @@ AppearanceSpecification Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, 
             //    through ViewportSequence, so it performs the retirement ViewportSequence would.
             Surface.Retire();
 
-            if (Interface.Seal().ContentPresent)
+            if (Interface.Seal().Resolved)
             {
                 // 🔴 Read. A refused Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
@@ -1470,7 +1470,7 @@ AppearanceSpecification Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, 
 
         // ⑬ Close the scope, submit, present, advance. A refused present re-establishes the chain rather
         //    than ending the loop, and a tick whose content declined still presents the cleared ground.
-        if (!Lifetime.Surrender().ContentPresent)
+        if (!Lifetime.Surrender().Resolved)
             break;
     }
 

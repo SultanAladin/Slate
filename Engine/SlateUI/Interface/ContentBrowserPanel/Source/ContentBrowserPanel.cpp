@@ -151,18 +151,18 @@ void SeatReferenceContent(ContentLibrary& Seating)
 //                                                      BRING-UP AND SAMPLING
 //------------------------------------------------------------------------------------------------------------------------
 
-void ContentBrowserPanel::Reseat(const AppearanceSpecification& Resolved)
+void ContentBrowserPanel::Reseat(const ThemeProfile& Resolved)
 {
-    // 📝 Only the inks are restated. The browser's lengths are its own reference's, not the shared metric
+    // 📝 Only the colours are restated. The browser's lengths are its own reference's, not the shared metric
     //    run, and a theme is a colour choice — it must not move a single length.
-    Ink = Resolved.ContentBrowser;
+    Colour = Resolved.ContentBrowser;
 }
 
-Deliver<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording)
+Result<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording)
 {
     if (Ledger != nullptr)
     {
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported,
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the content browser panel is already constructed" });
     }
 
@@ -171,34 +171,34 @@ Deliver<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, Reco
 
     // 🔴 Every identity claimed here and none inside a tick. A refusal partway through retires the whole
     //    construction rather than leaving half a panel enrolled against a ledger it cannot fill.
-    const auto Claim = [&](ControlIdentity* Written, std::uint32_t Count) -> Deliver<bool>
+    const auto Claim = [&](ControlIdentity* Written, std::uint32_t Count) -> Result<bool>
     {
         for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
         {
-            const Deliver<ControlIdentity> Issued = Interaction.Enrol();
+            const Result<ControlIdentity> Issued = Interaction.Enrol();
 
-            if (!Issued.ContentPresent)
+            if (!Issued.Resolved)
             {
                 Reset();
-                return Deliver<bool>::Refuse(Issued.Declined);
+                return Result<bool>::Refuse(Issued.Error);
             }
 
             Written[Ordinal] = Issued.Resolve();
         }
 
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
     };
 
-    if (const auto Verdict = Claim(SourceRows, SourceCeiling); !Verdict.ContentPresent)
+    if (const auto Verdict = Claim(SourceRows, SourceCeiling); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Claim(LatticeCards, LatticeCeiling); !Verdict.ContentPresent)
+    if (const auto Verdict = Claim(LatticeCards, LatticeCeiling); !Verdict.Resolved)
         return Verdict;
 
-    if (const auto Verdict = Claim(ChromeCells, ChromeCeiling); !Verdict.ContentPresent)
+    if (const auto Verdict = Claim(ChromeCells, ChromeCeiling); !Verdict.Resolved)
         return Verdict;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void ContentBrowserPanel::Advance(const PointerCondition& Arrived, double Elapsed)
@@ -367,7 +367,7 @@ void ContentBrowserPanel::RecordHatch(const PlaneExtent& Extent)
             Lower,        Extent.MostAcross
         };
 
-        Surface->Tongue(Corners, 4u, Ink.Hatch);
+        Surface->Tongue(Corners, 4u, Colour.Hatch);
     }
 
     Surface->Release();
@@ -411,9 +411,9 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
 
     if (Holding && Travel > 0.0f)
     {
-        const Deliver<float> Departed = Ledger->DepartedOrdinate(Claimed);
+        const Result<float> Departed = Ledger->DepartedOrdinate(Claimed);
 
-        if (Departed.ContentPresent)
+        if (Departed.Resolved)
         {
             const float Moved = Sampled.PositionAcross - Ledger->OriginAcross();
             Offset = Departed.Resolve() + Moved * (Ceiling / Travel);
@@ -428,7 +428,7 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
     const float ThumbSeat = Extent.LeastAcross + (Ceiling > 0.0f ? (Offset / Ceiling) * Travel : 0.0f);
 
     Surface->Ground(Spanning(Extent.MostAlong - 6.0f + 3.0f, ThumbSeat, 3.0f, ThumbAcross),
-                    Holding ? Ink.EdgeRoused : Ink.GripQuiet, 2.0f);
+                    Holding ? Colour.EdgeRoused : Colour.GripQuiet, 2.0f);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -438,13 +438,13 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
 void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrary& Library,
                                         ContentBrowserOrdinates& Seated)
 {
-    Surface->Ground(Extent, Ink.Aside);
+    Surface->Ground(Extent, Colour.Aside);
     Surface->Ground(Spanning(Extent.MostAlong - 1.0f, Extent.LeastAcross, 1.0f, Extent.SpanAcross()),
-                    Ink.Stroke);
+                    Colour.Stroke);
 
     // 📐 `p-4 pb-2` over a `text-[10px] tracking-widest uppercase` caption.
     Surface->TextRunCapitalised(Extent.LeastAlong + 16.0f, Extent.LeastAcross + 16.0f,
-                                Ink.Faint, "Sources", Measure.RunCaption, 1.6f, true);
+                                Colour.Faint, "Sources", Measure.RunCaption, 1.6f, true);
 
     // 📐 The library cache foot is pinned to the lower edge, so the traversable run is what remains.
     constexpr float FootAcross = 69.0f;   // [px] - border-t p-4 over two runs and a 4px meter
@@ -471,11 +471,11 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
         const bool Taken = Pressed(SourceRows[Claimed], Row, Seated);
 
         if (Standing)
-            Surface->Ground(Row, Ink.Taken, Measure.RadiusSoft);
+            Surface->Ground(Row, Colour.Taken, Measure.RadiusSoft);
         else if (Over)
-            Surface->Ground(Row, Ink.Roused, Measure.RadiusSoft);
+            Surface->Ground(Row, Colour.Roused, Measure.RadiusSoft);
 
-        const InkOrdinate Run = (Standing || Over) ? Ink.Primary : Ink.Secondary;
+        const ThemeToken Run = (Standing || Over) ? Colour.Primary : Colour.Secondary;
 
         float Along = Row.LeastAlong + 8.0f;
 
@@ -508,7 +508,7 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
 
     // 📐 `Project` — the section caption above the library row.
     Surface->TextRunCapitalised(Extent.LeastAlong + 16.0f, Cursor + 4.0f,
-                                Ink.Faint, "Project", Measure.RunCaption, 1.6f, true);
+                                Colour.Faint, "Project", Measure.RunCaption, 1.6f, true);
     Cursor += Measure.CaptionAcross;
 
     // 📐 `Project Library` — standing whenever no archive is traversed, as `!state.cat` decides it.
@@ -634,29 +634,29 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
     const PlaneExtent Foot = Spanning(Extent.LeastAlong, Extent.MostAcross - FootAcross,
                                       Extent.SpanAlong(), FootAcross);
 
-    Surface->Ground(Spanning(Foot.LeastAlong, Foot.LeastAcross, Foot.SpanAlong(), 1.0f), Ink.Stroke);
+    Surface->Ground(Spanning(Foot.LeastAlong, Foot.LeastAcross, Foot.SpanAlong(), 1.0f), Colour.Stroke);
 
     Surface->TextRun(Foot.LeastAlong + 16.0f, Foot.LeastAcross + 16.0f,
-                     Ink.Faint, "Library cache", Measure.RunCaption);
+                     Colour.Faint, "Library cache", Measure.RunCaption);
 
     const float RetainedAlong = Surface->MeasureRun("12.4 GB", Measure.RunCaption);
 
     Surface->TextRun(Foot.MostAlong - 16.0f - RetainedAlong, Foot.LeastAcross + 16.0f,
-                     Ink.Primary, "12.4 GB", Measure.RunCaption);
+                     Colour.Primary, "12.4 GB", Measure.RunCaption);
 
     const PlaneExtent Meter = Spanning(Foot.LeastAlong + 16.0f, Foot.LeastAcross + 38.0f,
                                        Foot.SpanAlong() - 32.0f, 4.0f);
 
-    Surface->Ground(Meter, Ink.Taken, 2.0f);
+    Surface->Ground(Meter, Colour.Taken, 2.0f);
 
     const float MeterSpan = Meter.SpanAlong();
 
     Surface->Ground(Spanning(Meter.LeastAlong, Meter.LeastAcross, MeterSpan * 0.38f, 4.0f),
-                    Ink.Primary, 2.0f);
+                    Colour.Primary, 2.0f);
     Surface->Ground(Spanning(Meter.LeastAlong + MeterSpan * 0.38f, Meter.LeastAcross,
-                             MeterSpan * 0.24f, 4.0f), Ink.Faint);
+                             MeterSpan * 0.24f, 4.0f), Colour.Faint);
     Surface->Ground(Spanning(Meter.LeastAlong + MeterSpan * 0.62f, Meter.LeastAcross,
-                             MeterSpan * 0.12f, 4.0f), Ink.MeterQuiet);
+                             MeterSpan * 0.12f, 4.0f), Colour.MeterQuiet);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -665,9 +665,9 @@ void ContentBrowserPanel::RecordSources(const PlaneExtent& Extent, ContentLibrar
 
 void ContentBrowserPanel::RecordSeekRail(const PlaneExtent& Extent, ContentBrowserOrdinates& Seated)
 {
-    Surface->Ground(Extent, Ink.Aside);
+    Surface->Ground(Extent, Colour.Aside);
     Surface->Ground(Spanning(Extent.LeastAlong, Extent.MostAcross - 1.0f, Extent.SpanAlong(), 1.0f),
-                    Ink.Stroke);
+                    Colour.Stroke);
 
     // 📐 `flex-1 max-w-md h-8 ... rounded-full` — the seek field, pinned to the leading edge.
     const float FieldAlong = (Extent.SpanAlong() - 32.0f - 200.0f < Measure.SeekAlong)
@@ -686,19 +686,19 @@ void ContentBrowserPanel::RecordSeekRail(const PlaneExtent& Extent, ContentBrows
     else if (Sampled.ContactArrived && !Roused(SeekField))
         Seated.SeekHolding = false;
 
-    Surface->Ground(SeekField, Ink.Field, Measure.SeekAcross * 0.5f);
-    Surface->Edge(SeekField, Seated.SeekHolding ? Ink.EdgeHolding : Ink.Stroke,
+    Surface->Ground(SeekField, Colour.Field, Measure.SeekAcross * 0.5f);
+    Surface->Edge(SeekField, Seated.SeekHolding ? Colour.EdgeHolding : Colour.Stroke,
                   1.0f, Measure.SeekAcross * 0.5f);
 
     Surface->Stroke(SymbolSubject::MagnifierLens,
                     Spanning(SeekField.LeastAlong + 12.0f, SeekField.LeastAcross + 9.0f, 14.0f, 14.0f),
-                    Ink.Faint);
+                    Colour.Faint);
 
     const bool Sought = Seated.Seek[0] != '\0';
 
     Surface->TextRunTruncated(SeekField.LeastAlong + 34.0f, SeekField.LeastAcross + 10.0f,
                               SeekField.SpanAlong() - 70.0f,
-                              Sought ? Ink.Primary : Ink.Faintest,
+                              Sought ? Colour.Primary : Colour.Faintest,
                               Sought ? Seated.Seek : "Search assets, formats, tags...",
                               Measure.RunBody);
 
@@ -708,16 +708,16 @@ void ContentBrowserPanel::RecordSeekRail(const PlaneExtent& Extent, ContentBrows
         const float Caret = SeekField.LeastAlong + 34.0f +
                             Surface->MeasureRun(Seated.Seek, Measure.RunBody);
 
-        Surface->Ground(Spanning(Caret, SeekField.LeastAcross + 8.0f, 1.0f, 16.0f), Ink.Primary);
+        Surface->Ground(Spanning(Caret, SeekField.LeastAcross + 8.0f, 1.0f, 16.0f), Colour.Primary);
     }
 
     // 📐 The `/` chip — the reference's own keyboard hint, at the field's trailing edge.
     const PlaneExtent Hint = Spanning(SeekField.MostAlong - 26.0f, SeekField.LeastAcross + 8.0f,
                                       18.0f, 16.0f);
 
-    Surface->Ground(Hint, Ink.Roused, 4.0f);
-    Surface->Edge(Hint, Ink.Stroke, 1.0f, 4.0f);
-    Surface->TextRun(Hint.LeastAlong + 6.0f, Hint.LeastAcross + 2.0f, Ink.Faint, "/", Measure.RunCaption);
+    Surface->Ground(Hint, Colour.Roused, 4.0f);
+    Surface->Edge(Hint, Colour.Stroke, 1.0f, 4.0f);
+    Surface->TextRun(Hint.LeastAlong + 6.0f, Hint.LeastAcross + 2.0f, Colour.Faint, "/", Measure.RunCaption);
 
     // 📐 `Create` and `Import`, pinned to the trailing edge with `ml-auto`. Import is the filled action.
     const float ImportAlong = 84.0f;
@@ -734,24 +734,24 @@ void ContentBrowserPanel::RecordSeekRail(const PlaneExtent& Extent, ContentBrows
 
     const bool CreateOver = Roused(Create);
 
-    Surface->Ground(Create, CreateOver ? Ink.Taken : Ink.Roused,
+    Surface->Ground(Create, CreateOver ? Colour.Taken : Colour.Roused,
                     Measure.SeekAcross * 0.5f);
-    Surface->Edge(Create, Ink.Stroke, 1.0f, Measure.SeekAcross * 0.5f);
+    Surface->Edge(Create, Colour.Stroke, 1.0f, Measure.SeekAcross * 0.5f);
     Surface->Stroke(SymbolSubject::PlusCross,
                     Spanning(Create.LeastAlong + 12.0f, Create.LeastAcross + 9.0f, 14.0f, 14.0f),
-                    CreateOver ? Ink.Primary : Ink.Secondary);
+                    CreateOver ? Colour.Primary : Colour.Secondary);
     Surface->TextRun(Create.LeastAlong + 32.0f, Create.LeastAcross + 10.0f,
-                     CreateOver ? Ink.Primary : Ink.Secondary, "Create", Measure.RunBody);
+                     CreateOver ? Colour.Primary : Colour.Secondary, "Create", Measure.RunBody);
 
     const bool ImportOver = Roused(Import);
 
-    Surface->Ground(Import, ImportOver ? Ink.EmphaticRoused : Ink.Emphatic,
+    Surface->Ground(Import, ImportOver ? Colour.EmphaticRoused : Colour.Emphatic,
                     Measure.SeekAcross * 0.5f);
     Surface->Stroke(SymbolSubject::PersistDisc,
                     Spanning(Import.LeastAlong + 12.0f, Import.LeastAcross + 9.0f, 14.0f, 14.0f),
-                    Ink.EmphaticRun);
+                    Colour.EmphaticRun);
     Surface->TextRun(Import.LeastAlong + 32.0f, Import.LeastAcross + 10.0f,
-                     Ink.EmphaticRun, "Import", Measure.RunBody, 0.0f, true);
+                     Colour.EmphaticRun, "Import", Measure.RunBody, 0.0f, true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -761,25 +761,25 @@ void ContentBrowserPanel::RecordSeekRail(const PlaneExtent& Extent, ContentBrows
 void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrary& Library,
                                         ContentBrowserOrdinates& Seated)
 {
-    Surface->Ground(Extent, Ink.Ground);
+    Surface->Ground(Extent, Colour.Ground);
 
     // 📐 The breadcrumb rail — `sticky top-0`, so it is recorded before the run and never scrolls with it.
     const PlaneExtent Rail = Spanning(Extent.LeastAlong, Extent.LeastAcross,
                                       Extent.SpanAlong(), Measure.BreadcrumbAcross);
 
-    Surface->Ground(Rail, Ink.Rail);
-    Surface->Ground(Spanning(Rail.LeastAlong, Rail.MostAcross - 1.0f, Rail.SpanAlong(), 1.0f), Ink.Stroke);
+    Surface->Ground(Rail, Colour.Rail);
+    Surface->Ground(Spanning(Rail.LeastAlong, Rail.MostAcross - 1.0f, Rail.SpanAlong(), 1.0f), Colour.Stroke);
 
     float Crumb = Rail.LeastAlong + 16.0f;
 
-    Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Ink.Faint, "Harbor", Measure.RunBody);
+    Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Colour.Faint, "Harbor", Measure.RunBody);
     Crumb += Surface->MeasureRun("Harbor", Measure.RunBody) + 8.0f;
-    Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Ink.Faint, "/", Measure.RunBody);
+    Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Colour.Faint, "/", Measure.RunBody);
     Crumb += Surface->MeasureRun("/", Measure.RunBody) + 8.0f;
 
     if (Library.TraversedArchive == ContentLibrary::AbsentOrdinal)
     {
-        Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Ink.Primary, "Project Library",
+        Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Colour.Primary, "Project Library",
                          Measure.RunBody, 0.0f, true);
     }
     else
@@ -788,16 +788,16 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
 
         if (Library.TraversedSubheading == nullptr)
         {
-            Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Ink.Primary, Naming,
+            Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Colour.Primary, Naming,
                              Measure.RunBody, 0.0f, true);
         }
         else
         {
-            Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Ink.Faint, Naming, Measure.RunBody);
+            Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Colour.Faint, Naming, Measure.RunBody);
             Crumb += Surface->MeasureRun(Naming, Measure.RunBody) + 8.0f;
-            Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Ink.Faint, "/", Measure.RunBody);
+            Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Colour.Faint, "/", Measure.RunBody);
             Crumb += Surface->MeasureRun("/", Measure.RunBody) + 8.0f;
-            Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Ink.Primary,
+            Surface->TextRun(Crumb, Rail.LeastAcross + 14.0f, Colour.Primary,
                              Library.TraversedSubheading, Measure.RunBody, 0.0f, true);
         }
     }
@@ -853,18 +853,18 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
 
         // 📐 `bg-gradient-to-b from-[#131316] to-[#0f0f12] rounded-xl` — Scrim carries no radius of its
         //    own, so the corners are cut back to the page ground after it, which is what MaskCorners is for.
-        Surface->Scrim(Lifted, Ink.CardUpper, Ink.CardLower);
-        Surface->MaskCorners(Lifted, Ink.Ground, Measure.RadiusCard);
+        Surface->Scrim(Lifted, Colour.CardUpper, Colour.CardLower);
+        Surface->MaskCorners(Lifted, Colour.Ground, Measure.RadiusCard);
 
         // 📐 The plate — the hatched square the crest stands on, clipped to the card's upper corners.
         const PlaneExtent Plate = Spanning(Lifted.LeastAlong, Lifted.LeastAcross, CardAlong, PlateAcross);
 
-        Surface->Ground(Plate, Ink.Plate, Measure.RadiusCard,
+        Surface->Ground(Plate, Colour.Plate, Measure.RadiusCard,
                         CornerLeadingUpper | CornerTrailingUpper);
 
         RecordHatch(Plate);
 
-        Surface->Ground(Spanning(Plate.LeastAlong, Plate.MostAcross - 1.0f, CardAlong, 1.0f), Ink.Stroke);
+        Surface->Ground(Spanning(Plate.LeastAlong, Plate.MostAcross - 1.0f, CardAlong, 1.0f), Colour.Stroke);
 
         const float CrestSpan = Over ? 34.0f : 32.0f;
 
@@ -872,7 +872,7 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
                         Spanning(Plate.LeastAlong + (CardAlong - CrestSpan) * 0.5f,
                                  Plate.LeastAcross + (PlateAcross - CrestSpan) * 0.5f,
                                  CrestSpan, CrestSpan),
-                        Over ? Ink.Secondary : Ink.Faintest);
+                        Over ? Colour.Secondary : Colour.Faintest);
 
         // 📐 The extension chip — `absolute left-2 bottom-2`, a medallion and the run beside it.
         char Extension[16] = {};
@@ -890,32 +890,32 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
                                           Plate.MostAcross - 8.0f - Measure.ChipAcross,
                                           ChipAlong, Measure.ChipAcross);
 
-        Surface->Ground(Chip, Ink.ChipGround, Measure.RadiusSoft);
-        Surface->Edge(Chip, Ink.Stroke, 1.0f, Measure.RadiusSoft);
+        Surface->Ground(Chip, Colour.ChipGround, Measure.RadiusSoft);
+        Surface->Edge(Chip, Colour.Stroke, 1.0f, Measure.RadiusSoft);
         Surface->Medallion(Chip.LeastAlong + 9.0f, Chip.LeastAcross + Measure.ChipAcross * 0.5f,
-                           3.0f, Ink.Secondary);
+                           3.0f, Colour.Secondary);
         Surface->TextRun(Chip.LeastAlong + 16.0f, Chip.LeastAcross + 5.0f,
-                         Ink.Secondary, Extension, 9.0f, 0.6f);
+                         Colour.Secondary, Extension, 9.0f, 0.6f);
 
         // 📐 The caption pair — `name.ext` truncated, and the size beneath it.
         char Titled[96] = {};
         std::snprintf(Titled, sizeof(Titled), "%s.%s", Record.Naming, Record.Extension);
 
         Surface->TextRunTruncated(Lifted.LeastAlong + 10.0f, Plate.MostAcross + 8.0f,
-                                  CardAlong - 20.0f, Ink.Primary, Titled, Measure.RunBody, true);
+                                  CardAlong - 20.0f, Colour.Primary, Titled, Measure.RunBody, true);
 
         char Sized[32] = {};
         std::snprintf(Sized, sizeof(Sized), "%.1f MB", Record.Octets / OctetsPerMegaOctet);
 
         Surface->TextRun(Lifted.LeastAlong + 10.0f, Plate.MostAcross + 26.0f,
-                         Ink.Faint, Sized, Measure.RunCaption);
+                         Colour.Faint, Sized, Measure.RunCaption);
 
         // 📐 `border ... overflow-hidden` — the border box clips its children, so the edge is in FRONT of
         //    everything the card holds. Recorded last for that reason.
         // 🔴 Recorded before the plate it reads over, the taken card's white/60 edge was overpainted along
         //    its whole upper run by the plate's own ground, and a taken card was then indistinguishable
         //    from an untaken one down the three sides the caption did not cover.
-        Surface->Edge(Lifted, Standing ? Ink.EdgeTaken : (Over ? Ink.EdgeRoused : Ink.Stroke),
+        Surface->Edge(Lifted, Standing ? Colour.EdgeTaken : (Over ? Colour.EdgeRoused : Colour.Stroke),
                       1.0f, Measure.RadiusCard);
 
         ++Seat;
@@ -932,7 +932,7 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
     if (Seat == 0u)
     {
         Surface->TextRun(Run.LeastAlong + Measure.CardPad, Run.LeastAcross + Measure.CardPad + 8.0f,
-                         Ink.Faint, "No record answers this search.", Measure.RunBody);
+                         Colour.Faint, "No record answers this search.", Measure.RunBody);
     }
 
     Surface->Release();
@@ -947,16 +947,16 @@ void ContentBrowserPanel::RecordLattice(const PlaneExtent& Extent, ContentLibrar
 void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibrary& Library,
                                           ContentBrowserOrdinates& Seated)
 {
-    Surface->Ground(Extent, Ink.Aside);
-    Surface->Ground(Spanning(Extent.LeastAlong, Extent.LeastAcross, 1.0f, Extent.SpanAcross()), Ink.Stroke);
+    Surface->Ground(Extent, Colour.Aside);
+    Surface->Ground(Spanning(Extent.LeastAlong, Extent.LeastAcross, 1.0f, Extent.SpanAcross()), Colour.Stroke);
 
     // 📐 The tongue pair — `Details` and `Create`, `p-2` over an `h-8` each.
     const PlaneExtent Tongues = Spanning(Extent.LeastAlong, Extent.LeastAcross,
                                          Extent.SpanAlong(), Measure.TongueAcross);
 
-    Surface->Ground(Tongues, Ink.Rail);
+    Surface->Ground(Tongues, Colour.Rail);
     Surface->Ground(Spanning(Tongues.LeastAlong, Tongues.MostAcross - 1.0f, Tongues.SpanAlong(), 1.0f),
-                    Ink.Stroke);
+                    Colour.Stroke);
 
     const float TongueAlong = (Tongues.SpanAlong() - 12.0f) * 0.5f;
 
@@ -975,10 +975,10 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
         const bool Standing = Seated.InspectorTongue == Ordinal;
 
         if (Standing)
-            Surface->Ground(Tongue, Ink.Taken, Measure.RadiusSoft);
+            Surface->Ground(Tongue, Colour.Taken, Measure.RadiusSoft);
 
-        const InkOrdinate Run = Standing ? Ink.Primary
-                                         : (Roused(Tongue) ? Ink.Secondary : Ink.Faint);
+        const ThemeToken Run = Standing ? Colour.Primary
+                                         : (Roused(Tongue) ? Colour.Secondary : Colour.Faint);
 
         const float Titled = Surface->MeasureRun(TongueNaming[Ordinal], Measure.RunBody);
         const float Origin = Tongue.LeastAlong + (TongueAlong - Titled - 20.0f) * 0.5f;
@@ -993,9 +993,9 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
     const PlaneExtent Preview = Spanning(Extent.LeastAlong, Tongues.MostAcross,
                                          Extent.SpanAlong(), Measure.PreviewAcross);
 
-    Surface->Ground(Preview, Ink.Ground);
+    Surface->Ground(Preview, Colour.Ground);
     Surface->Ground(Spanning(Preview.LeastAlong, Preview.MostAcross - 1.0f, Preview.SpanAlong(), 1.0f),
-                    Ink.Stroke);
+                    Colour.Stroke);
 
     const bool Taken = Library.Taken != ContentLibrary::AbsentOrdinal &&
                        Library.Taken < Library.RecordCount;
@@ -1006,17 +1006,17 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
 
         Surface->TextRun(Preview.LeastAlong + (Preview.SpanAlong() - Titled) * 0.5f,
                          Preview.LeastAcross + Measure.PreviewAcross * 0.5f - 8.0f,
-                         Ink.Faintest, "No preview available", Measure.RunBody);
+                         Colour.Faintest, "No preview available", Measure.RunBody);
 
         const float Nothing = Surface->MeasureRun("Nothing selected", Measure.RunBody);
 
         Surface->TextRun(Extent.LeastAlong + (Extent.SpanAlong() - Nothing) * 0.5f,
-                         Preview.MostAcross + 32.0f, Ink.Primary, "Nothing selected",
+                         Preview.MostAcross + 32.0f, Colour.Primary, "Nothing selected",
                          Measure.RunBody, 0.0f, true);
 
-        Surface->TextRun(Extent.LeastAlong + 24.0f, Preview.MostAcross + 54.0f, Ink.Faint,
+        Surface->TextRun(Extent.LeastAlong + 24.0f, Preview.MostAcross + 54.0f, Colour.Faint,
                          "Select an asset to inspect its", Measure.RunBody);
-        Surface->TextRun(Extent.LeastAlong + 24.0f, Preview.MostAcross + 72.0f, Ink.Faint,
+        Surface->TextRun(Extent.LeastAlong + 24.0f, Preview.MostAcross + 72.0f, Colour.Faint,
                          "metadata and import options.", Measure.RunBody);
         return;
     }
@@ -1031,42 +1031,42 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
     Surface->Stroke(ArchiveCrest(Record.Archive),
                     Spanning(Preview.LeastAlong + Preview.SpanAlong() * 0.5f - 28.0f,
                              Preview.LeastAcross + Measure.PreviewAcross * 0.5f - 34.0f, 56.0f, 56.0f),
-                    Ink.Faintest);
+                    Colour.Faintest);
 
     Surface->TextRunCapitalised(Preview.LeastAlong + 8.0f, Preview.LeastAcross + 8.0f,
-                                Ink.Faint, "2d preview", 9.0f, 1.2f);
+                                Colour.Faint, "2d preview", 9.0f, 1.2f);
 
     const float Extension = Surface->MeasureRun(Record.Extension, 9.0f);
 
     Surface->TextRunCapitalised(Preview.MostAlong - 8.0f - Extension, Preview.LeastAcross + 8.0f,
-                                Ink.Faint, Record.Extension, 9.0f, 1.2f);
+                                Colour.Faint, Record.Extension, 9.0f, 1.2f);
 
     const float Awaiting = Surface->MeasureRun("dimensional preview withheld", Measure.RunCaption);
 
     Surface->TextRun(Preview.LeastAlong + (Preview.SpanAlong() - Awaiting) * 0.5f,
-                     Preview.MostAcross - 24.0f, Ink.Faintest,
+                     Preview.MostAcross - 24.0f, Colour.Faintest,
                      "dimensional preview withheld", Measure.RunCaption);
 
     // 📐 The crest row — a 40px medallion, the naming beside it and its tags beneath.
     const PlaneExtent Crest = Spanning(Extent.LeastAlong, Preview.MostAcross, Extent.SpanAlong(), 68.0f);
 
     Surface->Ground(Spanning(Crest.LeastAlong, Crest.MostAcross - 1.0f, Crest.SpanAlong(), 1.0f),
-                    Ink.Stroke);
+                    Colour.Stroke);
 
     const PlaneExtent Plate = Spanning(Crest.LeastAlong + 12.0f, Crest.LeastAcross + 12.0f,
                                        Measure.CrestAlong, Measure.CrestAlong);
 
-    Surface->Ground(Plate, Ink.Medallion, Measure.RadiusPlate);
-    Surface->Edge(Plate, Ink.Stroke, 1.0f, Measure.RadiusPlate);
+    Surface->Ground(Plate, Colour.Medallion, Measure.RadiusPlate);
+    Surface->Edge(Plate, Colour.Stroke, 1.0f, Measure.RadiusPlate);
     Surface->Stroke(ArchiveCrest(Record.Archive),
                     Spanning(Plate.LeastAlong + 10.0f, Plate.LeastAcross + 10.0f, 20.0f, 20.0f),
-                    Ink.Secondary);
+                    Colour.Secondary);
 
     char Titled[96] = {};
     std::snprintf(Titled, sizeof(Titled), "%s.%s", Record.Naming, Record.Extension);
 
     Surface->TextRunTruncated(Plate.MostAlong + 12.0f, Crest.LeastAcross + 12.0f,
-                              Crest.MostAlong - Plate.MostAlong - 24.0f, Ink.Primary,
+                              Crest.MostAlong - Plate.MostAlong - 24.0f, Colour.Primary,
                               Titled, Measure.RunCrest, true);
 
     float TagAlong = Plate.MostAlong + 12.0f;
@@ -1077,9 +1077,9 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
 
         const PlaneExtent Tag = Spanning(TagAlong, Crest.LeastAcross + 34.0f, Span, Measure.ChipAcross);
 
-        Surface->Ground(Tag, Ink.Hatch, 4.0f);
-        Surface->Edge(Tag, Ink.Stroke, 1.0f, 4.0f);
-        Surface->TextRun(Tag.LeastAlong + 6.0f, Tag.LeastAcross + 5.0f, Ink.Secondary,
+        Surface->Ground(Tag, Colour.Hatch, 4.0f);
+        Surface->Edge(Tag, Colour.Stroke, 1.0f, 4.0f);
+        Surface->TextRun(Tag.LeastAlong + 6.0f, Tag.LeastAcross + 5.0f, Colour.Secondary,
                          Record.Tags[Ordinal], Measure.RunCaption);
 
         TagAlong += Span + 4.0f;
@@ -1090,20 +1090,20 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
                                             Extent.SpanAlong(), 118.0f);
 
     Surface->Ground(Spanning(Properties.LeastAlong, Properties.MostAcross - 1.0f,
-                             Properties.SpanAlong(), 1.0f), Ink.Stroke);
+                             Properties.SpanAlong(), 1.0f), Colour.Stroke);
 
     Surface->TextRunCapitalised(Properties.LeastAlong + 12.0f, Properties.LeastAcross + 12.0f,
-                                Ink.Faint, "Properties", Measure.RunCaption, 1.6f, true);
+                                Colour.Faint, "Properties", Measure.RunCaption, 1.6f, true);
 
     float Pair = Properties.LeastAcross + 36.0f;
 
     const auto RecordPair = [&](const char* Naming, const char* Reading)
     {
-        Surface->TextRun(Properties.LeastAlong + 12.0f, Pair, Ink.Faint, Naming, Measure.RunBody);
+        Surface->TextRun(Properties.LeastAlong + 12.0f, Pair, Colour.Faint, Naming, Measure.RunBody);
 
         const float Span = Surface->MeasureRun(Reading, Measure.RunBody);
 
-        Surface->TextRun(Properties.MostAlong - 12.0f - Span, Pair, Ink.Primary,
+        Surface->TextRun(Properties.MostAlong - 12.0f - Span, Pair, Colour.Primary,
                          Reading, Measure.RunBody);
 
         Pair += 20.0f;
@@ -1138,17 +1138,17 @@ void ContentBrowserPanel::RecordInspector(const PlaneExtent& Extent, ContentLibr
 
     const bool ImportOver = Roused(Import);
 
-    Surface->Ground(Import, ImportOver ? Ink.EmphaticRoused : Ink.Emphatic, Measure.RadiusSoft);
+    Surface->Ground(Import, ImportOver ? Colour.EmphaticRoused : Colour.Emphatic, Measure.RadiusSoft);
 
     const float Span = Surface->MeasureRun("Import", Measure.RunBody);
 
     Surface->Stroke(SymbolSubject::PersistDisc,
                     Spanning(Import.LeastAlong + (Import.SpanAlong() - Span - 20.0f) * 0.5f,
                              Import.LeastAcross + 11.0f, 14.0f, 14.0f),
-                    Ink.EmphaticRun);
+                    Colour.EmphaticRun);
 
     Surface->TextRun(Import.LeastAlong + (Import.SpanAlong() - Span - 20.0f) * 0.5f + 20.0f,
-                     Import.LeastAcross + 12.0f, Ink.EmphaticRun, "Import",
+                     Import.LeastAcross + 12.0f, Colour.EmphaticRun, "Import",
                      Measure.RunBody, 0.0f, true);
 }
 
@@ -1166,7 +1166,7 @@ void ContentBrowserPanel::RecordBrowser(const PlaneExtent& Extent, ContentLibrar
     //    reads exactly what this tick arbitrated.
     ExclusionCount = 0u;
 
-    Surface->Ground(Extent, Ink.Ground);
+    Surface->Ground(Extent, Colour.Ground);
 
     // 📐 `h-screen w-full flex` — the sources aside, then the main column, then the inspector aside. Both
     //    asides are `flex-none`, so the lattice takes whatever the two of them leave.
@@ -1201,9 +1201,9 @@ void ContentBrowserPanel::RecordDeferred(ContentBrowserOrdinates& Seated)
     const PlaneExtent Card = Spanning(Seated.TooltipAlong - (Span + 16.0f) * 0.5f,
                                       Seated.TooltipAcross - 30.0f, Span + 16.0f, 24.0f);
 
-    Surface->Ground(Card, Ink.Medallion, Measure.RadiusSoft);
-    Surface->Edge(Card, Ink.Stroke, 1.0f, Measure.RadiusSoft);
-    Surface->TextRun(Card.LeastAlong + 8.0f, Card.LeastAcross + 6.0f, Ink.Secondary,
+    Surface->Ground(Card, Colour.Medallion, Measure.RadiusSoft);
+    Surface->Edge(Card, Colour.Stroke, 1.0f, Measure.RadiusSoft);
+    Surface->TextRun(Card.LeastAlong + 8.0f, Card.LeastAcross + 6.0f, Colour.Secondary,
                      Seated.Tooltip, Measure.RunCaption);
 
     Seated.Tooltip = nullptr;

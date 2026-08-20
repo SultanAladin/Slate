@@ -68,32 +68,32 @@ public:
 
     /// 🧩 Declares the vertex positions, in the source's own ordering.
     /// in    Arriving  [-]  positions in object space at 64-bit
-    /// out   Deliver   [-]  refuses with HostDenied once the topology is sealed
+    /// out   Result   [-]  refuses with HostDenied once the topology is sealed
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclarePositions(const std::vector<DocumentPosition>& Arriving);
+    Result<bool> DeclarePositions(const std::vector<DocumentPosition>& Arriving);
 
     /// 🧩 Declares one face as a run of vertex ordinals, in the source's own winding.
     /// in    CornerVertices  [-]  vertex ordinals, in traversal order
-    /// out   Deliver         [-]  refuses with HostDenied once sealed, with ExtentExhausted for a run of fewer
+    /// out   Result         [-]  refuses with HostDenied once sealed, with ExtentExhausted for a run of fewer
     ///                            than three corners, and with ContentUnsupported for an out-of-range ordinal
     /// note  📝 A run of fewer than three corners is refused rather than enrolled as degenerate, because it is
     ///        not a face at all and `38` §3's enrollment is over faces. `50` §3 refuses the intake instead.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareFace(const std::vector<std::uint32_t>& CornerVertices);
+    Result<bool> DeclareFace(const std::vector<std::uint32_t>& CornerVertices);
 
     /// 🧩 Declares one domain coordinate per corner, in corner order.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when the count does not equal the corner count
+    /// out   Result  [-]  refuses with ContentUnsupported when the count does not equal the corner count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareCoordinates(const std::vector<DomainCoordinate>& Arriving);
+    Result<bool> DeclareCoordinates(const std::vector<DomainCoordinate>& Arriving);
 
     /// 🧩 Declares one perpendicular per vertex, as the source supplied it.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when the count does not equal the vertex count
+    /// out   Result  [-]  refuses with ContentUnsupported when the count does not equal the vertex count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclarePerpendiculars(const std::vector<SurfaceDirection>& Arriving);
+    Result<bool> DeclarePerpendiculars(const std::vector<SurfaceDirection>& Arriving);
 
     /// 🧩 Declares one tangent basis per vertex, as the source supplied it.
     /// note  🔴 A supplied basis is retained and `38` §4 does not override it with a derived one. An imported
@@ -101,16 +101,16 @@ public:
     ///        their appearance requires reproducing it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareTangentBases(const std::vector<TangentBasis>& Arriving);
+    Result<bool> DeclareTangentBases(const std::vector<TangentBasis>& Arriving);
 
     /// 🧩 Declares one material enrollment per face.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when the count does not equal the face count
+    /// out   Result  [-]  refuses with ContentUnsupported when the count does not equal the face count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving);
+    Result<bool> DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving);
 
     /// 🧩 Seals the topology, issuing its revision. Nothing may be declared afterwards.
-    /// out   Deliver  [-]  refuses with ExtentExhausted when no face was declared
+    /// out   Result  [-]  refuses with ExtentExhausted when no face was declared
     /// post  🔴 every read below is stable, and `38` may condition against it off the tick
     /// post  🔴 the revision is distinct from that of every other topology sealed in this process
     /// note  📝 Idempotent — a second call delivers and does **not** issue a second revision. The seal is the
@@ -118,7 +118,7 @@ public:
     ///        already describes the same content.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Seal();
+    Result<bool> Seal();
 
     /// 🧩 Whether the topology is sealed and therefore readable.
     /// cost  ✔️

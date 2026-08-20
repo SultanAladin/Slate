@@ -18,23 +18,23 @@ namespace Slate
 namespace
 {
 
-constexpr InkOrdinate PanelGround     = Covering(0x101012u);
-constexpr InkOrdinate FieldGround     = Covering(0x0A0A0Bu);
-constexpr InkOrdinate ValueGround     = Covering(0x232326u);
-constexpr InkOrdinate NumberGround    = Covering(0x131315u);
-constexpr InkOrdinate UnitGround      = Covering(0x33333Au);
-constexpr InkOrdinate TileGround      = Covering(0x1D1D21u);
-constexpr InkOrdinate TileRoused      = Covering(0x26262Bu);
-constexpr InkOrdinate HairInk         = Partial(0xFFFFFFu, 0.06);
-constexpr InkOrdinate StrongHairInk   = Partial(0xFFFFFFu, 0.10);
-constexpr InkOrdinate AccentInk       = Covering(0x4A90E2u);
-constexpr InkOrdinate AccentSoftInk   = Partial(0xFFFFFFu, 0.12);
-constexpr InkOrdinate TrackTakenInk   = Covering(0x8A8A8Eu);
-constexpr InkOrdinate PrimaryInk      = Covering(0xECECF0u);
-constexpr InkOrdinate MutedInk        = Covering(0x7B7B82u);
-constexpr InkOrdinate FaintInk        = Covering(0x55555Du);
-constexpr InkOrdinate WhiteInk        = Covering(0xFFFFFFu);
-constexpr InkOrdinate AbsentInk       = Covering(0x303036u);
+constexpr ThemeToken PanelGround     = Covering(0x101012u);
+constexpr ThemeToken FieldGround     = Covering(0x0A0A0Bu);
+constexpr ThemeToken ValueGround     = Covering(0x232326u);
+constexpr ThemeToken NumberGround    = Covering(0x131315u);
+constexpr ThemeToken UnitGround      = Covering(0x33333Au);
+constexpr ThemeToken TileGround      = Covering(0x1D1D21u);
+constexpr ThemeToken TileRoused      = Covering(0x26262Bu);
+constexpr ThemeToken HairColour         = Partial(0xFFFFFFu, 0.06);
+constexpr ThemeToken StrongHairColour   = Partial(0xFFFFFFu, 0.10);
+constexpr ThemeToken AccentColour       = Covering(0x4A90E2u);
+constexpr ThemeToken AccentSoftColour   = Partial(0xFFFFFFu, 0.12);
+constexpr ThemeToken TrackTakenColour   = Covering(0x8A8A8Eu);
+constexpr ThemeToken PrimaryColour      = Covering(0xECECF0u);
+constexpr ThemeToken MutedColour        = Covering(0x7B7B82u);
+constexpr ThemeToken FaintColour        = Covering(0x55555Du);
+constexpr ThemeToken WhiteColour        = Covering(0xFFFFFFu);
+constexpr ThemeToken AbsentColour       = Covering(0x303036u);
 
 constexpr float ReferenceText         = 12.0f;   // [px] - default ImGui typeface presentation size
 constexpr float SmallText             = 10.5f;   // [px] - metadata and counts
@@ -70,17 +70,17 @@ constexpr std::uint8_t BlendOrdinate(std::uint8_t Departed, std::uint8_t Arrivin
                                               static_cast<float>(Arriving), Fraction) + 0.5f);
 }
 
-constexpr InkOrdinate Blend(InkOrdinate Departed, InkOrdinate Arriving, float Fraction)
+constexpr ThemeToken Blend(ThemeToken Departed, ThemeToken Arriving, float Fraction)
 {
     const float HeldFraction = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
 
-    return InkOrdinate{ BlendOrdinate(Departed.Red,     Arriving.Red,     HeldFraction),
+    return ThemeToken{ BlendOrdinate(Departed.Red,     Arriving.Red,     HeldFraction),
                         BlendOrdinate(Departed.Green,   Arriving.Green,   HeldFraction),
                         BlendOrdinate(Departed.Blue,    Arriving.Blue,    HeldFraction),
                         BlendOrdinate(Departed.Opacity, Arriving.Opacity, HeldFraction) };
 }
 
-constexpr InkOrdinate Faded(InkOrdinate Declared, float Fraction)
+constexpr ThemeToken Faded(ThemeToken Declared, float Fraction)
 {
     const float HeldFraction = (Fraction < 0.0f) ? 0.0f : (Fraction > 1.0f) ? 1.0f : Fraction;
     Declared.Opacity = static_cast<std::uint8_t>(static_cast<float>(Declared.Opacity) * HeldFraction + 0.5f);
@@ -178,18 +178,18 @@ void UnsignedRun(char* Delivered, std::uint32_t Extent, std::uint32_t Reading)
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> ControlPanel::Construct(InteractionIndex&              ArrivingInteraction,
+Result<bool> ControlPanel::Construct(InteractionIndex&              ArrivingInteraction,
                                       RecordingSurface&              ArrivingRecording,
-                                      const AppearanceSpecification& ArrivingAppearance)
+                                      const ThemeProfile& ArrivingAppearance)
 {
     if (Interaction != nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a control panel construction already stands" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a control panel construction already stands" });
 
     Interaction = &ArrivingInteraction;
     Recording   = &ArrivingRecording;
     Appearance  = &ArrivingAppearance;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void ControlPanel::Advance(const PointerCondition& Arriving, double Elapsed)
@@ -253,13 +253,13 @@ ControlVerdict ControlPanel::SwitchToggle(ControlIdentity Claimed, const PlaneEx
     const PlaneExtent Track   = Spanning(TrackAlong, Extent.LeastAcross, 50.0f, 32.0f);
 
     Recording->TextRun(CaptionAlong, CentredAcross(Extent, ReferenceText),
-                       Blend(MutedInk, PrimaryInk, RouseFraction), Declared.Caption, ReferenceText);
-    Recording->Ground(Track, Blend(FieldGround, TrackTakenInk, TakenFraction), 16.0f, CornerAll);
-    Recording->Edge(Track, Blend(HairInk, StrongHairInk, RouseFraction), 1.0f, 16.0f, CornerAll);
+                       Blend(MutedColour, PrimaryColour, RouseFraction), Declared.Caption, ReferenceText);
+    Recording->Ground(Track, Blend(FieldGround, TrackTakenColour, TakenFraction), 16.0f, CornerAll);
+    Recording->Edge(Track, Blend(HairColour, StrongHairColour, RouseFraction), 1.0f, 16.0f, CornerAll);
 
     const float NubAlong = Between(Track.LeastAlong + 16.0f, Track.MostAlong - 16.0f, TakenFraction);
     const float NubRadius = Between(11.0f, 12.0f, RouseFraction);
-    Recording->Medallion(NubAlong, Track.LeastAcross + 16.0f, NubRadius, WhiteInk);
+    Recording->Medallion(NubAlong, Track.LeastAcross + 16.0f, NubRadius, WhiteColour);
 
     return Verdict;
 }
@@ -309,7 +309,7 @@ ControlVerdict ControlPanel::SegmentedChoice(ControlIdentity Claimed, const Plan
     const float RouseFraction = Interaction->RousedFraction(Claimed);
 
     Recording->Ground(Extent, FieldGround, ControlRadius, CornerAll);
-    Recording->Edge(Extent, HairInk, 1.0f, ControlRadius, CornerAll);
+    Recording->Edge(Extent, HairColour, 1.0f, ControlRadius, CornerAll);
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Declared.CaptionCount; ++Ordinal)
     {
@@ -324,13 +324,13 @@ ControlVerdict ControlPanel::SegmentedChoice(ControlIdentity Claimed, const Plan
 
         if (Taken)
         {
-            Recording->Ground(Inset, AccentSoftInk, 6.0f, CornerAll);
-            Recording->Edge(Inset, Blend(StrongHairInk, AccentInk, 0.65f), 1.0f, 6.0f, CornerAll);
+            Recording->Ground(Inset, AccentSoftColour, 6.0f, CornerAll);
+            Recording->Edge(Inset, Blend(StrongHairColour, AccentColour, 0.65f), 1.0f, 6.0f, CornerAll);
         }
 
         const float RunAlong = Recording->MeasureRun(Declared.Captions[Ordinal], ReferenceText);
         Recording->TextRun(Segment.LeastAlong + (Segment.SpanAlong() - RunAlong) * 0.5f,
-                           CentredAcross(Segment, ReferenceText), Taken ? PrimaryInk : MutedInk,
+                           CentredAcross(Segment, ReferenceText), Taken ? PrimaryColour : MutedColour,
                            Declared.Captions[Ordinal], ReferenceText, 0.0f, Taken);
     }
 
@@ -379,7 +379,7 @@ ControlVerdict ControlPanel::TabStrip(ControlIdentity Claimed, const PlaneExtent
     const float RouseFraction = Interaction->RousedFraction(Claimed);
 
     Recording->Ground(Extent, PanelGround, 0.0f, CornerNone);
-    Recording->Ground(Spanning(Extent.LeastAlong, Extent.MostAcross - 1.0f, Extent.SpanAlong(), 1.0f), HairInk, 0.0f, CornerNone);
+    Recording->Ground(Spanning(Extent.LeastAlong, Extent.MostAcross - 1.0f, Extent.SpanAlong(), 1.0f), HairColour, 0.0f, CornerNone);
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Declared.CaptionCount; ++Ordinal)
     {
@@ -393,7 +393,7 @@ ControlVerdict ControlPanel::TabStrip(ControlIdentity Claimed, const PlaneExtent
 
         Recording->TextRun(Tab.LeastAlong + (Tab.SpanAlong() - RunAlong) * 0.5f,
                            CentredAcross(Tab, ReferenceText),
-                           Taken ? PrimaryInk : Blend(MutedInk, PrimaryInk,
+                           Taken ? PrimaryColour : Blend(MutedColour, PrimaryColour,
                                                       (Ordinal == RousedOrdinal) ? RouseFraction : 0.0f),
                            Declared.Captions[Ordinal], ReferenceText, 0.0f, Taken);
 
@@ -401,7 +401,7 @@ ControlVerdict ControlPanel::TabStrip(ControlIdentity Claimed, const PlaneExtent
         {
             const float UnderlineAlong = Tab.SpanAlong() - 12.0f;
             Recording->Ground(Spanning(Tab.LeastAlong + 6.0f, Tab.MostAcross - 2.0f,
-                                       UnderlineAlong, 2.0f), AccentInk, 0.0f, CornerNone);
+                                       UnderlineAlong, 2.0f), AccentColour, 0.0f, CornerNone);
         }
     }
 
@@ -432,14 +432,14 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Claimed, const PlaneE
     const float TrailingAlong = Extent.LeastAlong + PageAlong * (1.0f - Travel);
 
     Recording->Ground(Extent, FieldGround, ControlRadius, CornerAll);
-    Recording->Edge(Extent, HairInk, 1.0f, ControlRadius, CornerAll);
+    Recording->Edge(Extent, HairColour, 1.0f, ControlRadius, CornerAll);
     Recording->Confine(Extent);
 
     const auto RecordLeading = [&](float Along)
     {
         const PlaneExtent Page = Spanning(Along, Extent.LeastAcross, PageAlong, Extent.SpanAcross());
         Recording->TextRunCapitalised(Page.LeastAlong + 10.0f, Page.LeastAcross + 9.0f,
-                                      FaintInk, "Property cards", SmallText, 0.08f, true);
+                                      FaintColour, "Property cards", SmallText, 0.08f, true);
 
         if (Declared.LeadingRuns == nullptr)
             return;
@@ -450,11 +450,11 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Claimed, const PlaneE
                                               Page.LeastAcross + 30.0f + 38.0f * static_cast<float>(Ordinal),
                                               Page.SpanAlong() - 16.0f, 32.0f);
             Recording->Ground(Card, PanelGround, 7.0f, CornerAll);
-            Recording->Edge(Card, HairInk, 1.0f, 7.0f, CornerAll);
+            Recording->Edge(Card, HairColour, 1.0f, 7.0f, CornerAll);
             Recording->Stroke(SymbolSubject::ChevronRight,
-                              Spanning(Card.LeastAlong + 8.0f, Card.LeastAcross + 9.0f, 13.0f, 13.0f), FaintInk);
+                              Spanning(Card.LeastAlong + 8.0f, Card.LeastAcross + 9.0f, 13.0f, 13.0f), FaintColour);
             Recording->TextRunTruncated(Card.LeastAlong + 29.0f, CentredAcross(Card, ReferenceText),
-                                        Card.MostAlong - 10.0f, PrimaryInk,
+                                        Card.MostAlong - 10.0f, PrimaryColour,
                                         Declared.LeadingRuns[Ordinal], ReferenceText, true);
         }
     };
@@ -463,28 +463,28 @@ ControlVerdict ControlPanel::CarouselPages(ControlIdentity Claimed, const PlaneE
     {
         const PlaneExtent Page = Spanning(Along, Extent.LeastAcross, PageAlong, Extent.SpanAcross());
         Recording->TextRunCapitalised(Page.LeastAlong + 10.0f, Page.LeastAcross + 9.0f,
-                                      FaintInk, "Revision sequence", SmallText, 0.08f, true);
+                                      FaintColour, "Revision sequence", SmallText, 0.08f, true);
 
         if (Declared.TrailingRuns == nullptr)
             return;
 
         const float MarkerAlong = Page.LeastAlong + 18.0f;
         Recording->Ground(Spanning(MarkerAlong - 0.5f, Page.LeastAcross + 30.0f, 1.0f,
-                                   38.0f * static_cast<float>(Declared.TrailingCount)), HairInk,
+                                   38.0f * static_cast<float>(Declared.TrailingCount)), HairColour,
                           0.0f, CornerNone);
 
         for (std::uint32_t Ordinal = 0u; Ordinal < Declared.TrailingCount; ++Ordinal)
         {
             const float Across = Page.LeastAcross + 30.0f + 38.0f * static_cast<float>(Ordinal);
             Recording->Medallion(MarkerAlong, Across + 16.0f, Ordinal == 0u ? 4.0f : 3.0f,
-                                 Ordinal == 0u ? AccentInk : FaintInk);
+                                 Ordinal == 0u ? AccentColour : FaintColour);
 
             const PlaneExtent Card = Spanning(Page.LeastAlong + 31.0f, Across,
                                               Page.SpanAlong() - 39.0f, 32.0f);
-            Recording->Ground(Card, Ordinal == 0u ? AccentSoftInk : PanelGround, 7.0f, CornerAll);
-            Recording->Edge(Card, Ordinal == 0u ? AccentInk : HairInk, 1.0f, 7.0f, CornerAll);
+            Recording->Ground(Card, Ordinal == 0u ? AccentSoftColour : PanelGround, 7.0f, CornerAll);
+            Recording->Edge(Card, Ordinal == 0u ? AccentColour : HairColour, 1.0f, 7.0f, CornerAll);
             Recording->TextRunTruncated(Card.LeastAlong + 9.0f, CentredAcross(Card, ReferenceText),
-                                        Card.MostAlong - 9.0f, PrimaryInk,
+                                        Card.MostAlong - 9.0f, PrimaryColour,
                                         Declared.TrailingRuns[Ordinal], ReferenceText, Ordinal == 0u);
         }
     };
@@ -524,21 +524,21 @@ ControlVerdict ControlPanel::CollapsibleCard(ControlIdentity Claimed, const Plan
                                     Extent.LeastAcross + PresentedAcross };
 
     Recording->Ground(Presented, PanelGround, ControlRadius, CornerAll);
-    Recording->Edge(Presented, HairInk, 1.0f, ControlRadius, CornerAll);
+    Recording->Edge(Presented, HairColour, 1.0f, ControlRadius, CornerAll);
     Recording->Ground(Spanning(Header.LeastAlong, Header.MostAcross - 1.0f, Header.SpanAlong(),
-                               Disclosure), HairInk, 0.0f, CornerNone);
+                               Disclosure), HairColour, 0.0f, CornerNone);
 
     const PlaneExtent SymbolExtent = Spanning(Header.LeastAlong + 8.0f, Header.LeastAcross + 8.0f, 14.0f, 14.0f);
     Recording->Stroke((Disclosure > 0.5f) ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
-                      SymbolExtent, Blend(FaintInk, PrimaryInk, Interaction->RousedFraction(Claimed)));
-    Recording->TextRun(Header.LeastAlong + 30.0f, CentredAcross(Header, SmallText), MutedInk,
+                      SymbolExtent, Blend(FaintColour, PrimaryColour, Interaction->RousedFraction(Claimed)));
+    Recording->TextRun(Header.LeastAlong + 30.0f, CentredAcross(Header, SmallText), MutedColour,
                        Declared.Caption, SmallText, 0.08f, true);
 
     char CountRun[12] = {};
     UnsignedRun(CountRun, 12u, Declared.BodyCount);
     const float CountAlong = Recording->MeasureRun(CountRun, SmallText);
     Recording->TextRun(Header.MostAlong - CountAlong - 10.0f, CentredAcross(Header, SmallText),
-                       FaintInk, CountRun, SmallText);
+                       FaintColour, CountRun, SmallText);
 
     if (Disclosure > 0.0f && Declared.BodyRuns != nullptr)
     {
@@ -552,9 +552,9 @@ ControlVerdict ControlPanel::CollapsibleCard(ControlIdentity Claimed, const Plan
                                              Header.MostAcross + 4.0f + FoldRowAcross * static_cast<float>(Ordinal),
                                              Extent.SpanAlong() - 16.0f, FoldRowAcross - 4.0f);
             Recording->Ground(Row, FieldGround, 7.0f, CornerAll);
-            Recording->TextRun(Row.LeastAlong + 10.0f, CentredAcross(Row, ReferenceText), MutedInk,
+            Recording->TextRun(Row.LeastAlong + 10.0f, CentredAcross(Row, ReferenceText), MutedColour,
                                Declared.BodyRuns[Ordinal], ReferenceText);
-            Recording->TextRun(Row.MostAlong - 52.0f, CentredAcross(Row, ReferenceText), PrimaryInk,
+            Recording->TextRun(Row.MostAlong - 52.0f, CentredAcross(Row, ReferenceText), PrimaryColour,
                                (Ordinal == 0u) ? "0.00" : (Ordinal == 1u) ? "0.0" : "1.00", ReferenceText);
         }
 
@@ -629,15 +629,15 @@ ControlVerdict ControlPanel::DropdownCard(ControlIdentity Claimed, const PlaneEx
     const PlaneExtent Field = { Head.LeastAlong + CaptionAlong, Head.LeastAcross, Head.MostAlong, Head.MostAcross };
 
     Recording->TextRun(Head.LeastAlong, CentredAcross(Head, ReferenceText),
-                       Blend(MutedInk, PrimaryInk, HeadRoused ? RouseFraction : 0.0f),
+                       Blend(MutedColour, PrimaryColour, HeadRoused ? RouseFraction : 0.0f),
                        Declared.Caption, ReferenceText);
     Recording->Ground(Field, FieldGround, 16.0f, CornerAll);
-    Recording->Edge(Field, Blend(HairInk, StrongHairInk, RouseFraction), 1.0f, 16.0f, CornerAll);
+    Recording->Edge(Field, Blend(HairColour, StrongHairColour, RouseFraction), 1.0f, 16.0f, CornerAll);
     Recording->TextRunTruncated(Field.LeastAlong + 12.0f, CentredAcross(Field, ReferenceText),
-                                Field.MostAlong - 35.0f, PrimaryInk,
+                                Field.MostAlong - 35.0f, PrimaryColour,
                                 Declared.Options[TakenOrdinal], ReferenceText);
     Recording->Stroke(Disclosure > 0.5f ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
-                      Spanning(Field.MostAlong - 25.0f, Field.LeastAcross + 9.0f, 13.0f, 13.0f), MutedInk);
+                      Spanning(Field.MostAlong - 25.0f, Field.LeastAcross + 9.0f, 13.0f, 13.0f), MutedColour);
 
     if (Disclosure > 0.0f)
     {
@@ -645,7 +645,7 @@ ControlVerdict ControlPanel::DropdownCard(ControlIdentity Claimed, const PlaneEx
         const PlaneExtent Menu = { Field.LeastAlong, MenuLeast, Field.MostAlong,
                                    MenuLeast + MenuAcross * Disclosure };
         Recording->Ground(Menu, PanelGround, 9.0f, CornerAll);
-        Recording->Edge(Menu, StrongHairInk, 1.0f, 9.0f, CornerAll);
+        Recording->Edge(Menu, StrongHairColour, 1.0f, 9.0f, CornerAll);
         Recording->Confine(Menu);
 
         for (std::uint32_t Ordinal = 0u; Ordinal < Declared.OptionCount; ++Ordinal)
@@ -660,15 +660,15 @@ ControlVerdict ControlPanel::DropdownCard(ControlIdentity Claimed, const PlaneEx
             {
                 Recording->Ground(Option, TileRoused, 5.0f, CornerAll);
                 Recording->Ground(Spanning(Option.LeastAlong, Option.LeastAcross, 3.0f, Option.SpanAcross()),
-                                  AccentInk, 1.0f, CornerAll);
+                                  AccentColour, 1.0f, CornerAll);
             }
 
             Recording->TextRunTruncated(Option.LeastAlong + 10.0f, CentredAcross(Option, SmallText),
-                                        Option.MostAlong - 26.0f, Taken ? PrimaryInk : MutedInk,
+                                        Option.MostAlong - 26.0f, Taken ? PrimaryColour : MutedColour,
                                         Declared.Options[Ordinal], SmallText, Taken);
             Recording->Medallion(Option.MostAlong - 11.0f,
                                  Option.LeastAcross + Option.SpanAcross() * 0.5f,
-                                 Taken ? 4.0f : 3.0f, Taken ? AccentInk : FaintInk);
+                                 Taken ? 4.0f : 3.0f, Taken ? AccentColour : FaintColour);
         }
 
         Recording->Release();
@@ -768,24 +768,24 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneEx
     Hsv = ToHsv(Colour);
 
     Recording->TextRun(Extent.LeastAlong, Extent.LeastAcross,
-                       Blend(MutedInk, PrimaryInk, RouseFraction), Declared.Caption, ReferenceText);
+                       Blend(MutedColour, PrimaryColour, RouseFraction), Declared.Caption, ReferenceText);
     Recording->Ground(Head, FieldGround, 20.0f, CornerAll);
     Recording->Ground(Caret, Blend(UnitGround, TileRoused, RouseFraction), 20.0f,
                       CornerTrailingUpper | CornerTrailingLower);
 
-    InkOrdinate CurrentInk{ Colour.Red, Colour.Green, Colour.Blue, Colour.Opacity };
-    Recording->Medallion(Head.LeastAlong + 24.0f, Head.LeastAcross + 20.0f, 12.0f, CurrentInk);
+    ThemeToken CurrentColour{ Colour.Red, Colour.Green, Colour.Blue, Colour.Opacity };
+    Recording->Medallion(Head.LeastAlong + 24.0f, Head.LeastAcross + 20.0f, 12.0f, CurrentColour);
     Recording->Edge(Spanning(Head.LeastAlong + 12.0f, Head.LeastAcross + 8.0f, 24.0f, 24.0f),
-                    StrongHairInk, 1.0f, 12.0f, CornerAll);
+                    StrongHairColour, 1.0f, 12.0f, CornerAll);
 
     char RgbaRun[64] = {};
     std::snprintf(RgbaRun, sizeof(RgbaRun), "rgba(%u, %u, %u, %.2f)",
                   static_cast<unsigned>(Colour.Red), static_cast<unsigned>(Colour.Green),
                   static_cast<unsigned>(Colour.Blue), static_cast<double>(Colour.Opacity) / 255.0);
     Recording->TextRunTruncated(Head.LeastAlong + 47.0f, CentredAcross(Head, ReferenceText),
-                                Caret.LeastAlong - 8.0f, PrimaryInk, RgbaRun, ReferenceText);
+                                Caret.LeastAlong - 8.0f, PrimaryColour, RgbaRun, ReferenceText);
     Recording->Stroke(Disclosure > 0.5f ? SymbolSubject::ChevronDown : SymbolSubject::ChevronRight,
-                      Spanning(Caret.LeastAlong + 13.0f, Caret.LeastAcross + 13.0f, 14.0f, 14.0f), MutedInk);
+                      Spanning(Caret.LeastAlong + 13.0f, Caret.LeastAcross + 13.0f, 14.0f, 14.0f), MutedColour);
 
     if (Disclosure > 0.0f)
     {
@@ -797,16 +797,16 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneEx
         HsvOrdinate HueOnly{ Hsv.Hue, 1.0f, 1.0f };
         const PickerColour HueColour = FromHsv(HueOnly, 255u);
         Recording->Ground(Saturation, { HueColour.Red, HueColour.Green, HueColour.Blue, 255u }, 10.0f, CornerAll);
-        Recording->Scrim(Saturation, WhiteInk, { 255u, 255u, 255u, 0u }, ScrimAxis::Along);
+        Recording->Scrim(Saturation, WhiteColour, { 255u, 255u, 255u, 0u }, ScrimAxis::Along);
         Recording->Scrim(Saturation, { 0u, 0u, 0u, 0u }, { 0u, 0u, 0u, 255u }, ScrimAxis::Across);
         Recording->MaskCorners(Saturation, ValueGround, 10.0f);
 
         const float SaturationAlong = Saturation.LeastAlong + Saturation.SpanAlong() * Hsv.Saturation;
         const float BrightnessAcross = Saturation.LeastAcross + Saturation.SpanAcross() * (1.0f - Hsv.Brightness);
-        Recording->Medallion(SaturationAlong, BrightnessAcross, 9.0f, WhiteInk);
-        Recording->Medallion(SaturationAlong, BrightnessAcross, 6.0f, CurrentInk);
+        Recording->Medallion(SaturationAlong, BrightnessAcross, 9.0f, WhiteColour);
+        Recording->Medallion(SaturationAlong, BrightnessAcross, 6.0f, CurrentColour);
 
-        constexpr InkOrdinate HueStops[7] = {
+        constexpr ThemeToken HueStops[7] = {
             Covering(0xFF0000u), Covering(0xFFFF00u), Covering(0x00FF00u), Covering(0x00FFFFu),
             Covering(0x0000FFu), Covering(0xFF00FFu), Covering(0xFF0000u)
         };
@@ -822,7 +822,7 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneEx
 
         const float HueAlong = HueRail.LeastAlong + HueRail.SpanAlong() * (Hsv.Hue / 360.0f);
         Recording->Medallion(HueAlong, HueRail.LeastAcross + 8.0f, 10.0f, Covering(0x1B1B1Eu));
-        Recording->Medallion(HueAlong, HueRail.LeastAcross + 8.0f, 8.0f, WhiteInk);
+        Recording->Medallion(HueAlong, HueRail.LeastAcross + 8.0f, 8.0f, WhiteColour);
 
         constexpr float CheckExtent = 10.0f;
         const std::uint32_t AlongCount = static_cast<std::uint32_t>(
@@ -835,11 +835,11 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneEx
         {
             for (std::uint32_t AlongOrdinal = 0u; AlongOrdinal < AlongCount; ++AlongOrdinal)
             {
-                const InkOrdinate CheckInk = ((AlongOrdinal + AcrossOrdinal) % 2u == 0u)
+                const ThemeToken CheckColour = ((AlongOrdinal + AcrossOrdinal) % 2u == 0u)
                                             ? Covering(0x808080u) : Covering(0xC0C0C0u);
                 Recording->Ground(Spanning(OpacityRail.LeastAlong + CheckExtent * static_cast<float>(AlongOrdinal),
                                            OpacityRail.LeastAcross + CheckExtent * static_cast<float>(AcrossOrdinal),
-                                           CheckExtent, CheckExtent), CheckInk, 0.0f, CornerNone);
+                                           CheckExtent, CheckExtent), CheckColour, 0.0f, CornerNone);
             }
         }
 
@@ -850,7 +850,7 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneEx
         const float OpacityAlong = OpacityRail.LeastAlong + OpacityRail.SpanAlong() *
                                   (static_cast<float>(Colour.Opacity) / 255.0f);
         Recording->Medallion(OpacityAlong, OpacityRail.LeastAcross + 8.0f, 10.0f, Covering(0x1B1B1Eu));
-        Recording->Medallion(OpacityAlong, OpacityRail.LeastAcross + 8.0f, 8.0f, WhiteInk);
+        Recording->Medallion(OpacityAlong, OpacityRail.LeastAcross + 8.0f, 8.0f, WhiteColour);
 
         const PlaneExtent HexField = Spanning(Picker.LeastAlong + 13.0f, OpacityRail.MostAcross + 12.0f,
                                               108.0f, 36.0f);
@@ -860,14 +860,14 @@ ControlVerdict ControlPanel::ColourPicker(ControlIdentity Claimed, const PlaneEx
                       static_cast<unsigned>(Colour.Red), static_cast<unsigned>(Colour.Green),
                       static_cast<unsigned>(Colour.Blue));
         Recording->TextRun(HexField.LeastAlong + 10.0f, CentredAcross(HexField, 14.0f),
-                           PrimaryInk, HexRun, 14.0f);
+                           PrimaryColour, HexRun, 14.0f);
 
         char AlphaRun[16] = {};
         std::snprintf(AlphaRun, sizeof(AlphaRun), "A %u%%",
                       static_cast<unsigned>(std::round(static_cast<double>(Colour.Opacity) / 255.0 * 100.0)));
         const float AlphaAlong = Recording->MeasureRun(AlphaRun, ReferenceText);
         Recording->TextRun(Picker.MostAlong - AlphaAlong - 13.0f, CentredAcross(HexField, ReferenceText),
-                           MutedInk, AlphaRun, ReferenceText);
+                           MutedColour, AlphaRun, ReferenceText);
         Recording->Release();
     }
 
@@ -954,9 +954,9 @@ ControlVerdict ControlPanel::OutlineRow(ControlIdentity Claimed, const PlaneExte
 
     if (SelectionFraction > 0.0f)
     {
-        Recording->Ground(Extent, Blend(TileGround, AccentSoftInk, SelectionFraction), 5.0f, CornerAll);
+        Recording->Ground(Extent, Blend(TileGround, AccentSoftColour, SelectionFraction), 5.0f, CornerAll);
         Recording->Ground(Spanning(Extent.LeastAlong, Extent.LeastAcross,
-                                   Between(0.0f, 2.0f, SelectionFraction), Extent.SpanAcross()), AccentInk,
+                                   Between(0.0f, 2.0f, SelectionFraction), Extent.SpanAcross()), AccentColour,
                           1.0f, CornerAll);
     }
     else if (RouseFraction > 0.0f)
@@ -967,21 +967,21 @@ ControlVerdict ControlPanel::OutlineRow(ControlIdentity Claimed, const PlaneExte
     if (DropPlacement == OutlineDropPlacement::Before)
     {
         Recording->Ground(Spanning(Extent.LeastAlong, Extent.LeastAcross,
-                                   Extent.SpanAlong(), 2.0f), AccentInk, 1.0f, CornerAll);
+                                   Extent.SpanAlong(), 2.0f), AccentColour, 1.0f, CornerAll);
     }
     else if (DropPlacement == OutlineDropPlacement::After)
     {
         Recording->Ground(Spanning(Extent.LeastAlong, Extent.MostAcross - 2.0f,
-                                   Extent.SpanAlong(), 2.0f), AccentInk, 1.0f, CornerAll);
+                                   Extent.SpanAlong(), 2.0f), AccentColour, 1.0f, CornerAll);
     }
     else if (DropPlacement == OutlineDropPlacement::Enclosed)
     {
-        Recording->Ground(Extent, AccentSoftInk, 5.0f, CornerAll);
-        Recording->Edge(Extent, AccentInk, 1.0f, 5.0f, CornerAll);
+        Recording->Ground(Extent, AccentSoftColour, 5.0f, CornerAll);
+        Recording->Edge(Extent, AccentColour, 1.0f, 5.0f, CornerAll);
     }
 
     if (Dragged)
-        Recording->Edge(Extent, StrongHairInk, 1.0f, 5.0f, CornerAll);
+        Recording->Edge(Extent, StrongHairColour, 1.0f, 5.0f, CornerAll);
 
     if (Declared.EnclosedCount > 0u)
     {
@@ -989,20 +989,20 @@ ControlVerdict ControlPanel::OutlineRow(ControlIdentity Claimed, const PlaneExte
         const float Turn = -(1.0f - ExpansionFraction) * QuarterTurn;
         Recording->Stroke(SymbolSubject::ChevronDown,
                           Spanning(Extent.LeastAlong + Indent, Extent.LeastAcross + 7.0f, 12.0f, 12.0f),
-                          FaintInk, Turn);
+                          FaintColour, Turn);
     }
 
     Recording->Stroke(SymbolSubject::PlaceholderMark,
                       Spanning(Extent.LeastAlong + Indent + 17.0f, Extent.LeastAcross + 5.0f, 16.0f, 16.0f),
-                      PresenceEnabled ? AccentInk : FaintInk);
+                      PresenceEnabled ? AccentColour : FaintColour);
     Recording->TextRunTruncated(Extent.LeastAlong + Indent + 39.0f, CentredAcross(Extent, ReferenceText),
-                                Extent.MostAlong - 34.0f, PresenceEnabled ? PrimaryInk : FaintInk,
+                                Extent.MostAlong - 34.0f, PresenceEnabled ? PrimaryColour : FaintColour,
                                 Declared.Caption, ReferenceText, Selected);
 
-    Recording->Edge(PresenceExtent, PresenceRoused ? StrongHairInk : HairInk, 1.0f, 5.0f, CornerAll);
+    Recording->Edge(PresenceExtent, PresenceRoused ? StrongHairColour : HairColour, 1.0f, 5.0f, CornerAll);
     Recording->Medallion(PresenceExtent.LeastAlong + 11.0f, PresenceExtent.LeastAcross + 11.0f,
                          PresenceEnabled ? 3.0f : 1.5f,
-                         PresenceEnabled ? MutedInk : AbsentInk);
+                         PresenceEnabled ? MutedColour : AbsentColour);
 
     Verdict.ContactTaken = Interaction->Holding(Claimed);
     Verdict.Mark         = RowRoused ? RedrawMark::Recolour : RedrawMark::Quiet;
@@ -1020,23 +1020,23 @@ void ControlPanel::RevisionRow(const PlaneExtent& Extent, const RevisionDeclarat
         return;
 
     const float MarkerAlong = Extent.LeastAlong + 12.0f;
-    Recording->Ground(Spanning(MarkerAlong - 0.5f, Extent.LeastAcross, 1.0f, Extent.SpanAcross()), HairInk,
+    Recording->Ground(Spanning(MarkerAlong - 0.5f, Extent.LeastAcross, 1.0f, Extent.SpanAcross()), HairColour,
                       0.0f, CornerNone);
     Recording->Medallion(MarkerAlong, Extent.LeastAcross + Extent.SpanAcross() * 0.5f, Taken ? 5.0f : 4.0f,
-                         Taken ? AccentInk : FaintInk);
+                         Taken ? AccentColour : FaintColour);
 
     const PlaneExtent Card = { Extent.LeastAlong + 28.0f, Extent.LeastAcross + 3.0f,
                                Extent.MostAlong, Extent.MostAcross - 3.0f };
-    Recording->Ground(Card, Taken ? AccentSoftInk : TileGround, 7.0f, CornerAll);
-    Recording->Edge(Card, Taken ? AccentInk : HairInk, 1.0f, 7.0f, CornerAll);
+    Recording->Ground(Card, Taken ? AccentSoftColour : TileGround, 7.0f, CornerAll);
+    Recording->Edge(Card, Taken ? AccentColour : HairColour, 1.0f, 7.0f, CornerAll);
     Recording->TextRunTruncated(Card.LeastAlong + 9.0f, Card.LeastAcross + 7.0f, Card.MostAlong - 58.0f,
-                                PrimaryInk, Declared.Description, ReferenceText, true);
+                                PrimaryColour, Declared.Description, ReferenceText, true);
     Recording->TextRunTruncated(Card.LeastAlong + 9.0f, Card.LeastAcross + 24.0f, Card.MostAlong - 58.0f,
-                                MutedInk, Declared.Secondary, SmallText);
+                                MutedColour, Declared.Secondary, SmallText);
 
     const float TimeAlong = Recording->MeasureRun(Declared.TimeRun, SmallText);
     Recording->TextRun(Card.MostAlong - TimeAlong - 8.0f, Card.LeastAcross + 7.0f,
-                       FaintInk, Declared.TimeRun, SmallText);
+                       FaintColour, Declared.TimeRun, SmallText);
 }
 
 void ControlPanel::Reset()

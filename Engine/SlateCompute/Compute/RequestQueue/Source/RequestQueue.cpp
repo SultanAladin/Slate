@@ -91,19 +91,19 @@ std::uint64_t RequestQueue::DiscardedCount() const
 //                                                     THE READBACK
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<const PageQueue*> ReturnIndex::Drain(RequestQueue& Requesting, std::uint64_t RecordingOrdinal)
+Result<const PageQueue*> ReturnIndex::Drain(RequestQueue& Requesting, std::uint64_t RecordingOrdinal)
 {
     // 📝 The first rotations of a session have nothing recorded a depth ago. Refusing is honest: the caller
     //    promotes nothing, and the coarsest levels are permanently resident so every sample still resolves.
     if (RecordingOrdinal < RecordingSlotCount)
     {
-        return Deliver<const PageQueue*>::Refuse(
+        return Result<const PageQueue*>::Refuse(
             { RefusalReason::ExtentExhausted, "the readback latency has not yet elapsed" });
     }
 
     if (DrainStanding && RecordingOrdinal <= LastDrained)
     {
-        return Deliver<const PageQueue*>::Refuse(
+        return Result<const PageQueue*>::Refuse(
             { RefusalReason::HostDenied, "this rotation has already been drained" });
     }
 
@@ -116,7 +116,7 @@ Deliver<const PageQueue*> ReturnIndex::Drain(RequestQueue& Requesting, std::uint
     DrainStanding = true;
     ++DrainCount;
 
-    return Deliver<const PageQueue*>::Deliver(&Drained);
+    return Result<const PageQueue*>::Result(&Drained);
 }
 
 std::uint64_t ReturnIndex::DrainedRecording() const { return LastDrained; }

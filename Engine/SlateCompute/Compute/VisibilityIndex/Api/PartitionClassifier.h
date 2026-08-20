@@ -21,7 +21,7 @@ namespace Slate
 //------------------------------------------------------------------------------------------------------------------------
 
 /// 🧩 Why one partition is drawn or is not, at the granularity the two phases distinguish.
-/// note  🔴 A rejection is an **answer**, not a refusal. `Deliver` carries absence with a reason and this
+/// note  🔴 A rejection is an **answer**, not a refusal. `Result` carries absence with a reason and this
 ///        carries presence with a reason; a partition outside the frustum is the cull working rather than
 ///        anything declining, and spelling it as a `Refusal` would put the ordinary case on the error path.
 /// note  ⚠️ `DepthOccluded` is the only standing `16` §2 ③ re-tests. Frustum and orientation rejections do not

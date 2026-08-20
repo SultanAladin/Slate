@@ -84,10 +84,10 @@ public:
     const std::vector<IntakeRecord>& Records() const;
 
     /// 🧩 The most recent intake of one origin.
-    /// out   Deliver  [-]  refuses with ExtentExhausted when nothing arrived from there
+    /// out   Result  [-]  refuses with ExtentExhausted when nothing arrived from there
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<IntakeRecord> Resolve(const std::string& OriginPath) const;
+    Result<IntakeRecord> Resolve(const std::string& OriginPath) const;
 
     /// 🧩 How many intakes carried an assumption.
     /// cost  ✔️

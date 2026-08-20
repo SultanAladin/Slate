@@ -88,11 +88,11 @@ public:
     static constexpr std::uint32_t ControlsPerRecord = 22u;
     static constexpr std::uint32_t ControlCapacity = PanelStructure::RecordCeiling * ControlsPerRecord;
 
-    Deliver<bool> Construct(MotionIntegrator& Motion,
+    Result<bool> Construct(MotionIntegrator& Motion,
                             RecordingSurface& Surface,
-                            const AppearanceSpecification& Appearance);
+                            const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Arrived, double Elapsed);
-    Deliver<bool> Record(const PlaneExtent& Extent,
+    Result<bool> Record(const PlaneExtent& Extent,
                          PanelStructure& Partition,
                          EditorPanelOrdinates& Ordinates,
                          std::uint32_t PresentationOrdinal = 0u);
@@ -170,11 +170,11 @@ private:
                           const PlaneExtent& Anchor,
                           ControlRole Role,
                           EditorPanelOrdinates& Ordinates);
-    void Symbol(const PlaneExtent& Extent, InkOrdinate Ink);
+    void Symbol(const PlaneExtent& Extent, ThemeToken Colour);
 
     MotionIntegrator* Motion = nullptr;
     RecordingSurface* Surface = nullptr;
-    const AppearanceSpecification* Appearance = nullptr;
+    const ThemeProfile* Appearance = nullptr;
     InteractionIndex Interaction = {};
     ComponentSpecification SharedControls = {};
     LeafPanel ScenePresentation = {};

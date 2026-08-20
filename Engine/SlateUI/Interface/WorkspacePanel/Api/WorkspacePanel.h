@@ -62,21 +62,21 @@ public:
     /// 🧩 Borrows the surface every extent is recorded into and the appearance it is measured against.
     /// in    Recording   [-]  borrowed; outlives this panel
     /// in    Appearance  [-]  borrowed; outlives this panel
-    /// out   Deliver     [-]  refuses with ContentUnsupported when a construction already stands
+    /// out   Result     [-]  refuses with ContentUnsupported when a construction already stands
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Construct(RecordingSurface& Recording, const AppearanceSpecification& Appearance);
+    Result<bool> Construct(RecordingSurface& Recording, const ThemeProfile& Appearance);
 
     /// 🧩 Records one workspace panel — strip ground, body, footer, and the vacant run when it carries none.
     /// in    Extent      [px]  the whole panel, strip and footer included
     /// in    Titled      [-]   the active workspace's title, or nullptr when the panel carries none
-    /// out   Deliver     [-]   refuses with CapabilityAbsent before Construct
+    /// out   Result     [-]   refuses with CapabilityAbsent before Construct
     /// note  🔴 The body is recorded BEFORE the footer and the footer draws its edge on top. The sheet gives
     ///        `.panelfooter` a `border-top` and `z-index: 2`, so a body that painted over it would lose the
     ///        one line separating the workspace from the strip below it.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Record(const PlaneExtent& Extent, const char* Titled);
+    Result<bool> Record(const PlaneExtent& Extent, const char* Titled);
 
     /// 🧩 The body extent the last `Record` left, for a caller drawing content inside the workspace.
     /// note  ⚠️ Valid only until the next `Record`. It is the strip and footer subtracted from the extent
@@ -99,7 +99,7 @@ public:
 private:
 
     RecordingSurface*              Surface     = nullptr;   // [-] - borrowed; never owned
-    const AppearanceSpecification* Appearance  = nullptr;   // [-] - borrowed; never owned
+    const ThemeProfile* Appearance  = nullptr;   // [-] - borrowed; never owned
     PlaneExtent                    BodyExtent  = {};        // [px] - what the last Record left
     PlaneExtent                    StripExtent = {};        // [px] - where the vendor's tab bar is seated
 };

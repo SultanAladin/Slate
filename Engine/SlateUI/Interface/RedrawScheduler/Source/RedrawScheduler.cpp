@@ -12,15 +12,15 @@ namespace Slate
 //                                                      THE ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> RedrawScheduler::Enrol(const char* Naming)
+Result<std::uint32_t> RedrawScheduler::Enrol(const char* Naming)
 {
     if (Enrolled >= PanelCapacity)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no panel slot remains" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no panel slot remains" });
 
     Marks[Enrolled]   = RedrawMark::Rearrange;
     Namings[Enrolled] = (Naming != nullptr) ? Naming : "";
 
-    return Deliver<std::uint32_t>::Deliver(Enrolled++);
+    return Result<std::uint32_t>::Result(Enrolled++);
 }
 
 void RedrawScheduler::Mark(std::uint32_t PanelOrdinal, RedrawMark Declared)

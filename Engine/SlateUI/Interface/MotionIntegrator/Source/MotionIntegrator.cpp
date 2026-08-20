@@ -213,10 +213,10 @@ void EasedInterpolant::Seat(double Ordinate)
 //                                                      THE ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> MotionIntegrator::EnrolSpring(const MotionScale& Motion, double Seated)
+Result<std::uint32_t> MotionIntegrator::EnrolSpring(const MotionScale& Motion, double Seated)
 {
     if (SpringCount >= SpringCapacity)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no spring slot remains" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no spring slot remains" });
 
     SpringInterpolant& Enrolled = Springs[SpringCount];
 
@@ -225,20 +225,20 @@ Deliver<std::uint32_t> MotionIntegrator::EnrolSpring(const MotionScale& Motion, 
     Enrolled.Damping    = Motion.DrawerDamping;
     Enrolled.Seat(Seated);
 
-    return Deliver<std::uint32_t>::Deliver(SpringCount++);
+    return Result<std::uint32_t>::Result(SpringCount++);
 }
 
-Deliver<std::uint32_t> MotionIntegrator::EnrolEased(double Seated)
+Result<std::uint32_t> MotionIntegrator::EnrolEased(double Seated)
 {
     if (EaseCount >= EaseCapacity)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no eased slot remains" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no eased slot remains" });
 
     EasedInterpolant& Enrolled = Eases[EaseCount];
 
     Enrolled = {};
     Enrolled.Seat(Seated);
 
-    return Deliver<std::uint32_t>::Deliver(EaseCount++);
+    return Result<std::uint32_t>::Result(EaseCount++);
 }
 
 SpringInterpolant& MotionIntegrator::Spring(std::uint32_t Ordinal)

@@ -114,7 +114,7 @@ public:
 
     /// 🧩 Declares the transfer parameters as one admission.
     /// in    Transferring_  [-]  the extent, the rule, the channels, the domain extent and the two Tier C figures
-    /// out   Deliver        [-]  refuses with ContentUnsupported for a search extent of nothing, an empty channel
+    /// out   Result        [-]  refuses with ContentUnsupported for a search extent of nothing, an empty channel
     ///                           mask, a domain extent of nothing, a criterion outside the unit interval, an
     ///                           iteration ceiling of nothing, and a rule outside the closed count
     /// post  the specification stands and the key below carries its ordinal
@@ -122,20 +122,20 @@ public:
     ///        reports no miss and no resolution and reads as a transfer that succeeded.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(const TransferSpecification& Transferring_);
+    Result<bool> Declare(const TransferSpecification& Transferring_);
 
     /// 🧩 The content key one transferred result is held under — `24` §3's five fields, closed.
     /// in    Source        [-]  the dense origin; its seal revision is the first field
     /// in    Working       [-]  the sparse destination carrying the domain
     /// in    Partitioning  [-]  `68`'s standing partition, whose revision moves every domain position
-    /// out   Deliver       [-]  refuses with ContentUnsupported before Declare, for an unsealed topology, and
+    /// out   Result       [-]  refuses with ContentUnsupported before Declare, for an unsealed topology, and
     ///                          while no partition stands
     /// note  🔴 The partition revision is the field most easily left out and leaving it out is the defect that
     ///        matters. A result keyed without it survives a re-unwrap and is then read at positions that mean
     ///        something else, which presents as attributes subtly wrong everywhere rather than as a failure.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<ContentKey> KeyOf(const TopologyStructure& Source,
+    Result<ContentKey> KeyOf(const TopologyStructure& Source,
                               const TopologyStructure& Working,
                               const ChartPartition&    Partitioning) const;
 
@@ -143,7 +143,7 @@ public:
     /// in    WorkingPosition     [mm] the reconstructed position on the working topology
     /// in    WorkingOrientation  [-]  its orientation, along which the angular rule measures
     /// in    Source              [-]  the dense topology searched
-    /// out   Deliver             [-]  refuses with ExtentExhausted where nothing stands within the extent, and
+    /// out   Result             [-]  refuses with ExtentExhausted where nothing stands within the extent, and
     ///                                with ContentUnsupported before Declare
     /// note  🔴 The extent test is `IntersectionClassifier`'s volume overlap at Tier A — `24` §2 and §5's second
     ///        gate. A transfer that misclassifies which source surface corresponds produces seam artefacts
@@ -153,7 +153,7 @@ public:
     ///        the weaker guarantee for both.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<SourceCorrespondence> Correspond(DocumentPosition         WorkingPosition,
+    Result<SourceCorrespondence> Correspond(DocumentPosition         WorkingPosition,
                                              SurfaceDirection         WorkingOrientation,
                                              const TopologyStructure& Source) const;
 
@@ -181,13 +181,13 @@ public:
     /// in    Keyed            [-]  as KeyOf produced it
     /// in    ByteExtent       [B]  what the result occupies
     /// in    RecordingOrdinal  [-]  the rotation it was derived on
-    /// out   Deliver          [-]  refuses with whatever the depot refused
+    /// out   Result          [-]  refuses with whatever the depot refused
     /// note  🔴 Declared as an analytic resolution and therefore reconstructible and evictable — `24` §5's last
     ///        gate. Nothing painted is ever stored here: a transferred result that has been painted over is a
     ///        layer above it in `56`, and the two are addressed at their own levels rather than merged.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Admit(SurfaceDepot&     Depot,
+    Result<bool> Admit(SurfaceDepot&     Depot,
                         const ContentKey& Keyed,
                         std::uint64_t     ByteExtent,
                         std::uint64_t     RecordingOrdinal) const;

@@ -55,7 +55,7 @@ std::uint32_t OccupancyIndex::SpannedCount() const
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<OccupantIdentity> PopulationIndex::Enrol()
+Result<OccupantIdentity> PopulationIndex::Enrol()
 {
     std::uint32_t SlotOrdinal = 0u;
 
@@ -70,7 +70,7 @@ Deliver<OccupantIdentity> PopulationIndex::Enrol()
     {
         if (SlotGenerations.size() >= PopulationCeiling)
         {
-            return Deliver<OccupantIdentity>::Refuse(
+            return Result<OccupantIdentity>::Refuse(
                 { RefusalReason::ExtentExhausted, "the population reached its declared ceiling" });
         }
 
@@ -85,17 +85,17 @@ Deliver<OccupantIdentity> PopulationIndex::Enrol()
     Issued.SlotOrdinal    = SlotOrdinal;
     Issued.SlotGeneration = SlotGenerations[SlotOrdinal];
 
-    return Deliver<OccupantIdentity>::Deliver(Issued);
+    return Result<OccupantIdentity>::Result(Issued);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
+Result<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
 {
     if (!Resolve(Subject))
-        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the identity no longer resolves" });
+        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "the identity no longer resolves" });
 
     Occupancy.Release(Subject.SlotOrdinal);
 
@@ -106,7 +106,7 @@ Deliver<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
     ReleasedOrdinals.push_back(Subject.SlotOrdinal);
     --OccupiedCount;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -25,23 +25,23 @@ constexpr double DistinctColourDeparture = 0.15;   // [-] - summed over the thre
 
 }   // namespace
 
-Deliver<bool> IntersectionOutline::Declare(const OutlineSpecification& Outlining_)
+Result<bool> IntersectionOutline::Declare(const OutlineSpecification& Outlining_)
 {
     if (!(Outlining_.OutlineWidth > 0.0))
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "an outline width of nothing covers no pixel at any silhouette" });
     }
 
     if (Outlining_.OccludedDashExtent < 0.0)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a negative dash extent names no run" });
     }
 
     if (!Outlining_.VisibleColour.ColourDeclared() || !Outlining_.OccludedColour.ColourDeclared())
     {
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "an outline colour declares no space" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "an outline colour declares no space" });
     }
 
     // 🔴 The recording is display-referred and nothing between here and the display surface compresses. A colour
@@ -50,7 +50,7 @@ Deliver<bool> IntersectionOutline::Declare(const OutlineSpecification& Outlining
     if (Outlining_.VisibleColour.SpaceIdentity  != DisplaySpaceIdentity
      || Outlining_.OccludedColour.SpaceIdentity != DisplaySpaceIdentity)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "an outline colour is not a coordinate in the display space" });
     }
 
@@ -64,25 +64,25 @@ Deliver<bool> IntersectionOutline::Declare(const OutlineSpecification& Outlining
     //    stands behind something, and the artist meets that as a selection that looks whole when it is not.
     if (ColourDeparture < DistinctColourDeparture && !(Outlining_.OccludedDashExtent > 0.0))
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the occluded outline is distinct in neither colour nor dash — `26` §2" });
     }
 
     Outlining       = Outlining_;
     OutlineStanding = true;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> IntersectionOutline::Contribute(RenderSchedule& Schedule) const
+Result<bool> IntersectionOutline::Contribute(RenderSchedule& Schedule) const
 {
     if (!OutlineStanding)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "no outline was declared to record" });
     }
 
@@ -112,25 +112,25 @@ Deliver<bool> IntersectionOutline::Contribute(RenderSchedule& Schedule) const
 //                                                    THE ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> IntersectionOutline::ClassifyEnrolment(VisibilityWord                  Written,
+Result<bool> IntersectionOutline::ClassifyEnrolment(VisibilityWord                  Written,
                                                      const VisibilityIndex&          Visibility,
                                                      const PartitionResolutionIndex& Resolutions,
                                                      const EnrollmentIndex&          Enrollments) const
 {
     // ① The pixel resolves through `16`, which performs the two indexed lookups and refuses an unoccupied pixel.
     //    Nothing here reconstructs an occupant from a partition ordinal — that relation exists only in `42`.
-    const Deliver<ResolvedPartition> Resolved = Visibility.Resolve(Written, Resolutions);
+    const Result<ResolvedPartition> Resolved = Visibility.Resolve(Written, Resolutions);
 
-    if (!Resolved.ContentPresent)
+    if (!Resolved.Resolved)
     {
-        return Deliver<bool>::Refuse(Resolved.Declined);
+        return Result<bool>::Refuse(Resolved.Error);
     }
 
     // ② Enrolment, answered by `12`'s interval comparison over its compressed runs. Held as a call rather than as
     //    a structure beside it, so the outline and the document cannot disagree about what is selected.
     const bool Enrolled = Enrollments.Enrolled(Resolved.Resolve().Occupant, SubsetSubject::Selection);
 
-    return Deliver<bool>::Deliver(Enrolled);
+    return Result<bool>::Result(Enrolled);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -172,17 +172,17 @@ bool IntersectionOutline::DashStanding(double AlongOrdinate, double AcrossOrdina
 //                                                      THE COLOUR
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<ColourSpecification> IntersectionOutline::OutlineColour(bool Occluded) const
+Result<ColourSpecification> IntersectionOutline::OutlineColour(bool Occluded) const
 {
     if (!OutlineStanding)
     {
-        return Deliver<ColourSpecification>::Refuse(
+        return Result<ColourSpecification>::Refuse(
             { RefusalReason::ContentUnsupported, "no outline was declared to draw in" });
     }
 
     // ⑤ Delivered in the display space and recorded as it stands. `26` §6: never tone-mapped, never reflected,
     //    never accumulated — the whole reason the recording is ordered after `66` rather than among its inputs.
-    return Deliver<ColourSpecification>::Deliver(Occluded ? Outlining.OccludedColour : Outlining.VisibleColour);
+    return Result<ColourSpecification>::Result(Occluded ? Outlining.OccludedColour : Outlining.VisibleColour);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

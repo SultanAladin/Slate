@@ -35,34 +35,34 @@ std::size_t Located(const std::vector<SeamEdge>& Held, SeamEdge Sought)
 //                                                   AUTHORED SEAMS
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> SeamSpecification::DeclareAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex)
+Result<bool> SeamSpecification::DeclareAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex)
 {
     if (FirstVertex == SecondVertex)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "one vertex is not an edge" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "one vertex is not an edge" });
 
     const SeamEdge Declaring = DeclareEdge(FirstVertex, SecondVertex);
 
     if (Located(AuthoredEdges, Declaring) != AuthoredEdges.size())
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
 
     AuthoredEdges.push_back(Declaring);
     ++AuthoredRevision;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> SeamSpecification::WithdrawAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex)
+Result<bool> SeamSpecification::WithdrawAuthored(std::uint32_t FirstVertex, std::uint32_t SecondVertex)
 {
     const SeamEdge     Sought  = DeclareEdge(FirstVertex, SecondVertex);
     const std::size_t  Located_ = Located(AuthoredEdges, Sought);
 
     if (Located_ == AuthoredEdges.size())
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no authored seam runs there" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no authored seam runs there" });
 
     AuthoredEdges.erase(AuthoredEdges.begin() + static_cast<std::ptrdiff_t>(Located_));
     ++AuthoredRevision;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

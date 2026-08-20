@@ -75,11 +75,11 @@ std::uint32_t RankIndex::CountedBefore(std::uint32_t RowOrdinal) const
     return Counted;
 }
 
-Deliver<std::uint32_t> RankIndex::RowAtVisible(std::uint32_t VisibleOrdinal) const
+Result<std::uint32_t> RankIndex::RowAtVisible(std::uint32_t VisibleOrdinal) const
 {
     if (VisibleOrdinal >= CountedRows)
     {
-        return Deliver<std::uint32_t>::Refuse(
+        return Result<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the visible position lies past the last counted row" });
     }
 
@@ -103,21 +103,21 @@ Deliver<std::uint32_t> RankIndex::RowAtVisible(std::uint32_t VisibleOrdinal) con
         }
     }
 
-    return Deliver<std::uint32_t>::Deliver(Located);
+    return Result<std::uint32_t>::Result(Located);
 }
 
-Deliver<std::uint32_t> RankIndex::VisibleOfRow(std::uint32_t RowOrdinal) const
+Result<std::uint32_t> RankIndex::VisibleOfRow(std::uint32_t RowOrdinal) const
 {
     if (RowOrdinal >= SpannedRows)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the row lies outside the span" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the row lies outside the span" });
 
     if (!RowCounted[RowOrdinal])
     {
-        return Deliver<std::uint32_t>::Refuse(
+        return Result<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the row is collapsed or narrowed out of the count" });
     }
 
-    return Deliver<std::uint32_t>::Deliver(CountedBefore(RowOrdinal));
+    return Result<std::uint32_t>::Result(CountedBefore(RowOrdinal));
 }
 
 std::uint32_t RankIndex::CountedTotal() const
@@ -160,13 +160,13 @@ void AppendReversed(std::vector<std::uint32_t>& Pending,
 
 }   // namespace
 
-Deliver<bool> RowSequence::Linearize(const SceneStructure& Relations)
+Result<bool> RowSequence::Linearize(const SceneStructure& Relations)
 {
     // 🔴 `12` §4 puts ④ before ⑤. Linearising against labels a relabel is still owed on produces an order
     //    that is briefly wrong, and briefly wrong here means displayed.
     if (Relations.RelabelOwed())
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ExtentExhausted, "a label repair is owed before the sequence may be taken" });
     }
 
@@ -229,7 +229,7 @@ Deliver<bool> RowSequence::Linearize(const SceneStructure& Relations)
 
     Recount();
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -275,12 +275,12 @@ void RowSequence::Recount()
     }
 }
 
-Deliver<bool> RowSequence::DeclareExpansion(OccupantIdentity Subject, bool ExpansionEnabled)
+Result<bool> RowSequence::DeclareExpansion(OccupantIdentity Subject, bool ExpansionEnabled)
 {
-    const Deliver<std::uint32_t> Located = RowOf(Subject);
+    const Result<std::uint32_t> Located = RowOf(Subject);
 
-    if (!Located.ContentPresent)
-        return Deliver<bool>::Refuse(Located.Declined);
+    if (!Located.Resolved)
+        return Result<bool>::Refuse(Located.Error);
 
     // 🔴 Declared against the slot as well as the row. The row is rebuilt at every ⑤ and the slot is not, so
     //    holding it on the row alone would reopen the enclosure on the tick after the artist collapsed it.
@@ -289,10 +289,10 @@ Deliver<bool> RowSequence::DeclareExpansion(OccupantIdentity Subject, bool Expan
 
     Recount();
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> RowSequence::DeclareNarrowing(const std::vector<OccupantIdentity>& Retained, bool NarrowingDeclared)
+Result<bool> RowSequence::DeclareNarrowing(const std::vector<OccupantIdentity>& Retained, bool NarrowingDeclared)
 {
     // 📝 Withdrawing the narrowing ignores what was retained rather than requiring the whole population to be
     //    handed back. Every row returns to the count, which is the one thing an empty search text means.
@@ -304,16 +304,16 @@ Deliver<bool> RowSequence::DeclareNarrowing(const std::vector<OccupantIdentity>&
 
         Recount();
 
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
     }
 
     // 📝 Confirmed against the rows before anything is written, so a stale identity refuses the whole
     //    narrowing rather than leaving a subset that retains part of what the search found.
     for (const OccupantIdentity& Confirming : Retained)
     {
-        if (!RowOf(Confirming).ContentPresent)
+        if (!RowOf(Confirming).Resolved)
         {
-            return Deliver<bool>::Refuse(
+            return Result<bool>::Refuse(
                 { RefusalReason::IdentityStale, "a retained occupant holds no row in this sequence" });
         }
     }
@@ -327,7 +327,7 @@ Deliver<bool> RowSequence::DeclareNarrowing(const std::vector<OccupantIdentity>&
 
     Recount();
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -344,17 +344,17 @@ const RankIndex& RowSequence::Counted() const
     return VisibleOrdering;
 }
 
-Deliver<std::uint32_t> RowSequence::RowOf(OccupantIdentity Subject) const
+Result<std::uint32_t> RowSequence::RowOf(OccupantIdentity Subject) const
 {
     if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= RowOfSlot.size())
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the occupant holds no row" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the occupant holds no row" });
 
     const std::uint32_t RowOrdinal = RowOfSlot[Subject.SlotOrdinal];
 
     if (RowOrdinal == AbsentSlot || SequencedRows[RowOrdinal].Occupant != Subject)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the occupant holds no row" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the occupant holds no row" });
 
-    return Deliver<std::uint32_t>::Deliver(RowOrdinal);
+    return Result<std::uint32_t>::Result(RowOrdinal);
 }
 
 bool RowSequence::NarrowingStanding() const
@@ -382,9 +382,9 @@ bool RowSequence::CountsAgree() const
         if (!SequencedRows[Ordinal].VisibleInCount)
             continue;
 
-        const Deliver<std::uint32_t> Located = VisibleOrdering.RowAtVisible(Walking);
+        const Result<std::uint32_t> Located = VisibleOrdering.RowAtVisible(Walking);
 
-        if (!Located.ContentPresent || Located.Resolve() != static_cast<std::uint32_t>(Ordinal))
+        if (!Located.Resolved || Located.Resolve() != static_cast<std::uint32_t>(Ordinal))
             return false;
 
         ++Walking;

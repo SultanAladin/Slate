@@ -23,9 +23,9 @@ namespace
 constexpr std::uint32_t ConfineCeiling  = 16u;   // [-] - nesting depth a scroll extent may reach
 constexpr float         EmphaticOffset  = 0.34f; // [px] - the second recording's displacement
 
-ImU32 Vendor(InkOrdinate Ink)
+ImU32 Vendor(ThemeToken Colour)
 {
-    return IM_COL32(Ink.Red, Ink.Green, Ink.Blue, Ink.Opacity);
+    return IM_COL32(Colour.Red, Colour.Green, Colour.Blue, Colour.Opacity);
 }
 
 ImDrawFlags VendorCorners(std::uint32_t Corners)
@@ -57,10 +57,10 @@ ImDrawList* Commands(void* Slot)
 //                                                        THE ADOPTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> RecordingSurface::Adopt(ShellLayer Layer)
+Result<bool> RecordingSurface::Adopt(ShellLayer Layer)
 {
     if (ImGui::GetCurrentContext() == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
 
     // 📝 A shell list rather than a window's. The shell covers the whole drawable extent and owns no
     //    window, so a window's list would clip the drawers to a region the source does not have.
@@ -72,7 +72,7 @@ Deliver<bool> RecordingSurface::Adopt(ShellLayer Layer)
                 : static_cast<void*>(ImGui::GetBackgroundDrawList());
 
     if (CommandSlot == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no command list is open" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no command list is open" });
 
     const ImGuiIO& Arrived = ImGui::GetIO();
 
@@ -98,18 +98,18 @@ Deliver<bool> RecordingSurface::Adopt(ShellLayer Layer)
     // 🔴 Cleared last, so a refusal above leaves the surface unadopted rather than half-open.
     ConfineDepth = 0u;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> RecordingSurface::Relayer(ShellLayer Layer)
+Result<bool> RecordingSurface::Relayer(ShellLayer Layer)
 {
     // 🔴 Refuses rather than adopting. A layer change on an unadopted surface would otherwise open a tick
     //    nothing had asked for, and the caller would record into a list no seal is going to assemble.
     if (CommandSlot == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no tick stands adopted" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no tick stands adopted" });
 
     if (ImGui::GetCurrentContext() == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
 
     // 📝 The destination list and nothing else. The pointer, the display condition, the confine depth and
     //    the tick ordinal all belong to the adoption and are left exactly as the tick found them.
@@ -118,21 +118,21 @@ Deliver<bool> RecordingSurface::Relayer(ShellLayer Layer)
                 : static_cast<void*>(ImGui::GetBackgroundDrawList());
 
     if (CommandSlot == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no command list is open" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no command list is open" });
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> RecordingSurface::RelayerWindow()
+Result<bool> RecordingSurface::RelayerWindow()
 {
     if (CommandSlot == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no tick stands adopted" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no tick stands adopted" });
 
     if (ImGui::GetCurrentContext() == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context is current" });
 
     CommandSlot = static_cast<void*>(ImGui::GetWindowDrawList());
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void RecordingSurface::Retire()
@@ -173,20 +173,20 @@ const DisplayCondition& RecordingSurface::Display() const
 //                                                    GROUNDS AND EDGES
 //------------------------------------------------------------------------------------------------------------------------
 
-void RecordingSurface::Ground(const PlaneExtent& Extent, InkOrdinate Ink, float Radius, std::uint32_t Corners)
+void RecordingSurface::Ground(const PlaneExtent& Extent, ThemeToken Colour, float Radius, std::uint32_t Corners)
 {
-    if (CommandSlot == nullptr || Ink.Opacity == 0u)
+    if (CommandSlot == nullptr || Colour.Opacity == 0u)
         return;
 
     Commands(CommandSlot)->AddRectFilled(ImVec2(Extent.LeastAlong,  Extent.LeastAcross),
                                          ImVec2(Extent.MostAlong,   Extent.MostAcross),
-                                         Vendor(Ink), Radius, VendorCorners(Corners));
+                                         Vendor(Colour), Radius, VendorCorners(Corners));
 }
 
-void RecordingSurface::Edge(const PlaneExtent& Extent, InkOrdinate Ink, float Weight,
+void RecordingSurface::Edge(const PlaneExtent& Extent, ThemeToken Colour, float Weight,
                             float Radius, std::uint32_t Corners)
 {
-    if (CommandSlot == nullptr || Ink.Opacity == 0u)
+    if (CommandSlot == nullptr || Colour.Opacity == 0u)
         return;
 
     // 📝 🔴 Inset by half the weight. The vendor centres a stroke on the extent it is given; the source's
@@ -196,20 +196,20 @@ void RecordingSurface::Edge(const PlaneExtent& Extent, InkOrdinate Ink, float We
 
     Commands(CommandSlot)->AddRect(ImVec2(Extent.LeastAlong  + Inset, Extent.LeastAcross + Inset),
                                    ImVec2(Extent.MostAlong   - Inset, Extent.MostAcross  - Inset),
-                                   Vendor(Ink), Radius, VendorCorners(Corners), Weight);
+                                   Vendor(Colour), Radius, VendorCorners(Corners), Weight);
 }
 
-void RecordingSurface::Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, InkOrdinate LowerInk,
+void RecordingSurface::Scrim(const PlaneExtent& Extent, ThemeToken UpperColour, ThemeToken LowerColour,
                              ScrimAxis Axis)
 {
     if (CommandSlot == nullptr)
         return;
 
-    const ImU32 Upper = Vendor(UpperInk);
-    const ImU32 Lower = Vendor(LowerInk);
+    const ImU32 Upper = Vendor(UpperColour);
+    const ImU32 Lower = Vendor(LowerColour);
 
-    // 📝 The vendor takes its four inks in winding order from the leading upper corner. An Across ramp
-    //    therefore repeats each ink across the pair that shares an ordinate, and an Along ramp across the
+    // 📝 The vendor takes its four colours in winding order from the leading upper corner. An Across ramp
+    //    therefore repeats each colour across the pair that shares an ordinate, and an Along ramp across the
     //    pair that shares an abscissa — the same call with two corners exchanged.
     const ImU32 LeadingUpper  = Upper;
     const ImU32 TrailingUpper = (Axis == ScrimAxis::Along) ? Lower : Upper;
@@ -221,9 +221,9 @@ void RecordingSurface::Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, In
                                                    LeadingUpper, TrailingUpper, TrailingLower, LeadingLower);
 }
 
-void RecordingSurface::MaskCorners(const PlaneExtent& Extent, InkOrdinate OutsideInk, float Radius)
+void RecordingSurface::MaskCorners(const PlaneExtent& Extent, ThemeToken OutsideColour, float Radius)
 {
-    if (CommandSlot == nullptr || OutsideInk.Opacity == 0u || Radius <= 0.0f)
+    if (CommandSlot == nullptr || OutsideColour.Opacity == 0u || Radius <= 0.0f)
         return;
 
     const float HeldRadius = std::fmin(Radius, std::fmin(Extent.SpanAlong(), Extent.SpanAcross()) * 0.5f);
@@ -244,7 +244,7 @@ void RecordingSurface::MaskCorners(const PlaneExtent& Extent, InkOrdinate Outsid
     const float Start[4] = { -QuarterTurn, -QuarterTurn, 0.0f, QuarterTurn };
     const float Travel[4] = { -QuarterTurn, QuarterTurn, QuarterTurn, QuarterTurn };
     ImDrawList* Target = Commands(CommandSlot);
-    const ImU32 CoveringInk = Vendor(OutsideInk);
+    const ImU32 CoveringColour = Vendor(OutsideColour);
 
     for (std::uint32_t CornerOrdinal = 0u; CornerOrdinal < 4u; ++CornerOrdinal)
     {
@@ -258,20 +258,20 @@ void RecordingSurface::MaskCorners(const PlaneExtent& Extent, InkOrdinate Outsid
                                    Centre[CornerOrdinal].y + std::sin(FirstAngle) * HeldRadius };
             const ImVec2 Second = { Centre[CornerOrdinal].x + std::cos(SecondAngle) * HeldRadius,
                                     Centre[CornerOrdinal].y + std::sin(SecondAngle) * HeldRadius };
-            Target->AddTriangleFilled(Outer[CornerOrdinal], First, Second, CoveringInk);
+            Target->AddTriangleFilled(Outer[CornerOrdinal], First, Second, CoveringColour);
         }
     }
 }
 
-void RecordingSurface::Medallion(float CentreAlong, float CentreAcross, float Radius, InkOrdinate Ink)
+void RecordingSurface::Medallion(float CentreAlong, float CentreAcross, float Radius, ThemeToken Colour)
 {
-    if (CommandSlot == nullptr || Ink.Opacity == 0u || Radius <= 0.0f)
+    if (CommandSlot == nullptr || Colour.Opacity == 0u || Radius <= 0.0f)
         return;
 
-    Commands(CommandSlot)->AddCircleFilled(ImVec2(CentreAlong, CentreAcross), Radius, Vendor(Ink), 0);
+    Commands(CommandSlot)->AddCircleFilled(ImVec2(CentreAlong, CentreAcross), Radius, Vendor(Colour), 0);
 }
 
-void RecordingSurface::Tongue(const float* Corners, std::uint32_t CornerCount, InkOrdinate Ink)
+void RecordingSurface::Tongue(const float* Corners, std::uint32_t CornerCount, ThemeToken Colour)
 {
     if (CommandSlot == nullptr || Corners == nullptr || CornerCount < 3u || CornerCount > 8u)
         return;
@@ -283,17 +283,17 @@ void RecordingSurface::Tongue(const float* Corners, std::uint32_t CornerCount, I
         Outline[CornerOrdinal] = ImVec2(Corners[CornerOrdinal * 2u], Corners[CornerOrdinal * 2u + 1u]);
     }
 
-    Commands(CommandSlot)->AddConvexPolyFilled(Outline, static_cast<int>(CornerCount), Vendor(Ink));
+    Commands(CommandSlot)->AddConvexPolyFilled(Outline, static_cast<int>(CornerCount), Vendor(Colour));
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        SYMBOLS
 //------------------------------------------------------------------------------------------------------------------------
 
-void RecordingSurface::Stroke(SymbolSubject Subject, const PlaneExtent& SquareExtent, InkOrdinate Ink,
+void RecordingSurface::Stroke(SymbolSubject Subject, const PlaneExtent& SquareExtent, ThemeToken Colour,
                               float TurnRadians)
 {
-    if (CommandSlot == nullptr || Ink.Opacity == 0u)
+    if (CommandSlot == nullptr || Colour.Opacity == 0u)
         return;
 
     const SymbolFigure& Declared = Figure(Subject);
@@ -307,7 +307,7 @@ void RecordingSurface::Stroke(SymbolSubject Subject, const PlaneExtent& SquareEx
     const float Weight       = Declared.Weight * Scale;
     const float TurnCosine   = std::cos(TurnRadians);
     const float TurnSine     = std::sin(TurnRadians);
-    const ImU32 Vendored     = Vendor(Ink);
+    const ImU32 Vendored     = Vendor(Colour);
 
     ImDrawList* Target      = Commands(CommandSlot);
     bool        OutlineOpen = false;
@@ -406,15 +406,15 @@ void Capitalise(const char* Text, char* Staging)
 
 }   // namespace
 
-void RecordingSurface::TextRun(float Along, float Across, InkOrdinate Ink, const char* Text,
+void RecordingSurface::TextRun(float Along, float Across, ThemeToken Colour, const char* Text,
                                float PointSize, float Tracking, bool Emphatic)
 {
-    if (CommandSlot == nullptr || Text == nullptr || Text[0] == '\0' || Ink.Opacity == 0u)
+    if (CommandSlot == nullptr || Text == nullptr || Text[0] == '\0' || Colour.Opacity == 0u)
         return;
 
     ImDrawList*   Target   = Commands(CommandSlot);
     ImFont*       Typeface = const_cast<ImFont*>(ImGui::GetFont());
-    const ImU32   Vendored = Vendor(Ink);
+    const ImU32   Vendored = Vendor(Colour);
     const float   Added    = Tracking * PointSize;
 
     const auto Emit = [&](float StartAlong, float StartAcross)
@@ -468,7 +468,7 @@ void RecordingSurface::TextRun(float Along, float Across, InkOrdinate Ink, const
         Emit(Along + EmphaticOffset, Across);
 }
 
-void RecordingSurface::TextRunCapitalised(float Along, float Across, InkOrdinate Ink, const char* Text,
+void RecordingSurface::TextRunCapitalised(float Along, float Across, ThemeToken Colour, const char* Text,
                                           float PointSize, float Tracking, bool Emphatic)
 {
     if (Text == nullptr)
@@ -477,10 +477,10 @@ void RecordingSurface::TextRunCapitalised(float Along, float Across, InkOrdinate
     char Staging[StagingCapacity];
     Capitalise(Text, Staging);
 
-    TextRun(Along, Across, Ink, Staging, PointSize, Tracking, Emphatic);
+    TextRun(Along, Across, Colour, Staging, PointSize, Tracking, Emphatic);
 }
 
-void RecordingSurface::TextRunTruncated(float Along, float Across, float CeilingAlong, InkOrdinate Ink,
+void RecordingSurface::TextRunTruncated(float Along, float Across, float CeilingAlong, ThemeToken Colour,
                                         const char* Text, float PointSize, bool Emphatic)
 {
     if (CommandSlot == nullptr || Text == nullptr || Text[0] == '\0')
@@ -488,7 +488,7 @@ void RecordingSurface::TextRunTruncated(float Along, float Across, float Ceiling
 
     if (MeasureRun(Text, PointSize, 0.0f) <= CeilingAlong)
     {
-        TextRun(Along, Across, Ink, Text, PointSize, 0.0f, Emphatic);
+        TextRun(Along, Across, Colour, Text, PointSize, 0.0f, Emphatic);
         return;
     }
 
@@ -518,7 +518,7 @@ void RecordingSurface::TextRunTruncated(float Along, float Across, float Ceiling
     Staging[Kept + 2u] = '.';
     Staging[Kept + 3u] = '\0';
 
-    TextRun(Along, Across, Ink, Staging, PointSize, 0.0f, Emphatic);
+    TextRun(Along, Across, Colour, Staging, PointSize, 0.0f, Emphatic);
 }
 
 float RecordingSurface::MeasureRun(const char* Text, float PointSize, float Tracking) const

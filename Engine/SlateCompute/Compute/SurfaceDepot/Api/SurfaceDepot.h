@@ -85,36 +85,36 @@ class SurfaceDepot
 public:
 
     /// 🧩 Sizes the depot to a byte ceiling.
-    /// out   Deliver  [-]  refuses with ContentUnsupported for a ceiling of zero
+    /// out   Result  [-]  refuses with ContentUnsupported for a ceiling of zero
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(std::uint64_t ByteCeiling);
+    Result<bool> Construct(std::uint64_t ByteCeiling);
 
     /// 🧩 Admits one derived artefact, evicting to make room for it.
     /// in    Keyed       [-]  what it was derived from
     /// in    Source      [-]  which of `56` §3's four sources produced it
     /// in    ByteExtent  [B]  what it occupies
     /// in    RecordingOrdinal [-]  the rotation it was derived on
-    /// out   Deliver     [-]  refuses with ContentUnsupported for an unreconstructible source, and with
+    /// out   Result     [-]  refuses with ContentUnsupported for an unreconstructible source, and with
     ///                        ExtentExhausted when the artefact alone exceeds the whole ceiling
     /// note  🔴 A painted source is refused. `20` §4: painted texels are authored content and live in `56`'s
     ///        layer sequence; admitting them here would make the artist's work evictable, and it would be
     ///        evicted under exactly the memory pressure a long painting session produces.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(const ContentKey&  Keyed,
+    Result<bool> Declare(const ContentKey&  Keyed,
                           LayerContentSource Source,
                           std::uint64_t      ByteExtent,
                           std::uint64_t      RecordingOrdinal);
 
     /// 🧩 Resolves one artefact by its content key, marking it recently read.
-    /// out   Deliver  [-]  refuses with ExtentExhausted when nothing matching is held
+    /// out   Result  [-]  refuses with ExtentExhausted when nothing matching is held
     /// note  🔴 A key that differs in any field resolves to nothing rather than to the nearest artefact. That
     ///        refusal is `20` §2.1's second reconstruction source declining, and the promotion then falls
     ///        through to the third — which is correct, and slower, and visible only as one deferred tile.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<DepotArtefact> Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal);
+    Result<DepotArtefact> Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal);
 
     /// 🧩 Evicts least-recently-resolved artefacts until the declared extent is free.
     /// out   Evicted  [-]  how many artefacts left

@@ -58,14 +58,14 @@ constexpr AccentDeclaration TranscribedAccents[AccentCeiling] = {
 
 // 🔴 One standing copy, seeded from the transcription and replaced whole by Adopt. Panels read through the
 //    accessors rather than reaching the run directly, so an adopted appearance reaches all of them at once
-//    and none of them can hold an ink the archive no longer contains.
+//    and none of them can hold an colour the archive no longer contains.
 ThemeDeclaration  StandingThemes[ThemeCeiling]   = {};
 AccentDeclaration StandingAccents[AccentCeiling] = {};
 bool              Seeded                         = false;
 
 // 📝 Seeding is deferred to first read rather than done in a constructor. Static initialisation order across
 //    translation units is not ordered, and a panel constructed during static initialisation would otherwise
-//    read a run of zeroes — every ink fully transparent, which presents as an interface that did not draw.
+//    read a run of zeroes — every colour fully transparent, which presents as an interface that did not draw.
 void SeedOnce()
 {
     if (Seeded) return;
@@ -160,29 +160,29 @@ namespace
 {
 
 // 📐 🔴 Rec. 709 luminance, on the sRGB-encoded ordinates rather than on linearised ones, and deliberately.
-//    The ladder this weight feeds is a *perceptual* ordering — which ink reads as darker than which — and
+//    The ladder this weight feeds is a *perceptual* ordering — which colour reads as darker than which — and
 //    the encoded ordinates are already close to perceptually uniform. Linearising first would crush the
 //    nine dark rungs every one of these appearances is built from into the bottom eighth of the range,
 //    and the six panel grounds an OLED theme separates would land on top of one another.
-constexpr float LuminanceOf(const InkOrdinate& Ink)
+constexpr float LuminanceOf(const ThemeToken& Colour)
 {
-    return 0.2126f * static_cast<float>(Ink.Red)
-         + 0.7152f * static_cast<float>(Ink.Green)
-         + 0.0722f * static_cast<float>(Ink.Blue);
+    return 0.2126f * static_cast<float>(Colour.Red)
+         + 0.7152f * static_cast<float>(Colour.Green)
+         + 0.0722f * static_cast<float>(Colour.Blue);
 }
 
 // 📝 The rungs a theme is read as. Six is what `ThemeDeclaration` states without deriving anything: the two
-//    grounds it draws behind everything, the card it raises, the edge between them, and its two text inks.
+//    grounds it draws behind everything, the card it raises, the edge between them, and its two text colours.
 inline constexpr std::uint32_t RungCeiling = 6u;
 
 struct ThemeLadder
 {
     float        Luminance[RungCeiling] = {};   // [-] - ascending; equal rungs are separated on assembly
-    InkOrdinate  Ink[RungCeiling]       = {};   // [-] - the ink each rung was read from
+    ThemeToken  Colour[RungCeiling]       = {};   // [-] - the colour each rung was read from
 };
 
 // 🔴 Read in role order and never sorted, which is the whole correctness of the mapping. The rungs are a
-//    *depth* ordering — ground, the panel over it, the card over that, its edge, then the two text inks — and
+//    *depth* ordering — ground, the panel over it, the card over that, its edge, then the two text colours — and
 //    that ordering is what a theme shares with every other theme. Luminance is not: a light appearance states
 //    its ground bright and its text dark, so sorting by luminance makes rung zero the text on `Clean White`
 //    and the ground on `Oled`. Black would then map to the darkest thing the light theme owns and the asset
@@ -191,19 +191,19 @@ ThemeLadder LadderOf(const ThemeDeclaration& Declared)
 {
     ThemeLadder Assembled;
 
-    const InkOrdinate Read[RungCeiling] = { Declared.Ground, Declared.Panel,     Declared.Card,
+    const ThemeToken Read[RungCeiling] = { Declared.Ground, Declared.Panel,     Declared.Card,
                                             Declared.Edge,   Declared.Secondary, Declared.Primary };
 
     for (std::uint32_t Ordinal = 0u; Ordinal < RungCeiling; ++Ordinal)
     {
-        Assembled.Ink[Ordinal]       = Read[Ordinal];
+        Assembled.Colour[Ordinal]       = Read[Ordinal];
         Assembled.Luminance[Ordinal] = LuminanceOf(Read[Ordinal]);
     }
 
     return Assembled;
 }
 
-// 🔴 Only the reference ladder is walked to locate an ink, and locating needs it strictly ascending — both to
+// 🔴 Only the reference ladder is walked to locate an colour, and locating needs it strictly ascending — both to
 //    find a span and to divide by one. `Oled` is already ascending as transcribed; an appearance file may
 //    state otherwise, and a rewritten `[theme.oled]` must not be able to divide by zero here.
 ThemeLadder Ascending(const ThemeLadder& Read)
@@ -228,17 +228,17 @@ constexpr std::uint8_t Bounded(float Ordinate)
                                 : static_cast<std::uint8_t>(Ordinate + 0.5f);
 }
 
-// 🔴 The re-anchoring itself, and the one place the identity has to hold. An ink is located between two rungs
+// 🔴 The re-anchoring itself, and the one place the identity has to hold. An colour is located between two rungs
 //    of the reference ladder, the same fraction is read off the chosen ladder, and the difference between the
-//    two ladders' inks at that position is applied to the ink as a displacement. The displacement — rather
-//    than the ladder ink outright — is what preserves the ink's own hue: an amber caution stays amber, and
+//    two ladders' colours at that position is applied to the colour as a displacement. The displacement — rather
+//    than the ladder colour outright — is what preserves the colour's own hue: an amber caution stays amber, and
 //    only the ground it is read against moves.
-InkOrdinate Reanchored(const InkOrdinate& Ink, const ThemeLadder& Reference, const ThemeLadder& Chosen)
+ThemeToken Reanchored(const ThemeToken& Colour, const ThemeLadder& Reference, const ThemeLadder& Chosen)
 {
-    // 📝 A fully transparent ink draws nothing; re-anchoring it would only spend the arithmetic.
-    if (Ink.Opacity == 0u) return Ink;
+    // 📝 A fully transparent colour draws nothing; re-anchoring it would only spend the arithmetic.
+    if (Colour.Opacity == 0u) return Colour;
 
-    const float Standing = LuminanceOf(Ink);
+    const float Standing = LuminanceOf(Colour);
 
     std::uint32_t Lower = 0u;
     while (Lower + 2u < RungCeiling && Reference.Luminance[Lower + 1u] < Standing) ++Lower;
@@ -251,48 +251,48 @@ InkOrdinate Reanchored(const InkOrdinate& Ink, const ThemeLadder& Reference, con
     // 📝 Read on each component rather than on luminance alone, so a ladder that carries a hue carries it
     //    into the displacement. Extrapolates freely outside the ladder, which is what lets pure white and
     //    pure black — neither of which is a rung — travel with the theme instead of pinning.
-    const float ReferenceRed   = static_cast<float>(Reference.Ink[Lower].Red)
-                               + Fraction * (static_cast<float>(Reference.Ink[Upper].Red)
-                                           - static_cast<float>(Reference.Ink[Lower].Red));
-    const float ReferenceGreen = static_cast<float>(Reference.Ink[Lower].Green)
-                               + Fraction * (static_cast<float>(Reference.Ink[Upper].Green)
-                                           - static_cast<float>(Reference.Ink[Lower].Green));
-    const float ReferenceBlue  = static_cast<float>(Reference.Ink[Lower].Blue)
-                               + Fraction * (static_cast<float>(Reference.Ink[Upper].Blue)
-                                           - static_cast<float>(Reference.Ink[Lower].Blue));
+    const float ReferenceRed   = static_cast<float>(Reference.Colour[Lower].Red)
+                               + Fraction * (static_cast<float>(Reference.Colour[Upper].Red)
+                                           - static_cast<float>(Reference.Colour[Lower].Red));
+    const float ReferenceGreen = static_cast<float>(Reference.Colour[Lower].Green)
+                               + Fraction * (static_cast<float>(Reference.Colour[Upper].Green)
+                                           - static_cast<float>(Reference.Colour[Lower].Green));
+    const float ReferenceBlue  = static_cast<float>(Reference.Colour[Lower].Blue)
+                               + Fraction * (static_cast<float>(Reference.Colour[Upper].Blue)
+                                           - static_cast<float>(Reference.Colour[Lower].Blue));
 
-    const float ChosenRed   = static_cast<float>(Chosen.Ink[Lower].Red)
-                            + Fraction * (static_cast<float>(Chosen.Ink[Upper].Red)
-                                        - static_cast<float>(Chosen.Ink[Lower].Red));
-    const float ChosenGreen = static_cast<float>(Chosen.Ink[Lower].Green)
-                            + Fraction * (static_cast<float>(Chosen.Ink[Upper].Green)
-                                        - static_cast<float>(Chosen.Ink[Lower].Green));
-    const float ChosenBlue  = static_cast<float>(Chosen.Ink[Lower].Blue)
-                            + Fraction * (static_cast<float>(Chosen.Ink[Upper].Blue)
-                                        - static_cast<float>(Chosen.Ink[Lower].Blue));
+    const float ChosenRed   = static_cast<float>(Chosen.Colour[Lower].Red)
+                            + Fraction * (static_cast<float>(Chosen.Colour[Upper].Red)
+                                        - static_cast<float>(Chosen.Colour[Lower].Red));
+    const float ChosenGreen = static_cast<float>(Chosen.Colour[Lower].Green)
+                            + Fraction * (static_cast<float>(Chosen.Colour[Upper].Green)
+                                        - static_cast<float>(Chosen.Colour[Lower].Green));
+    const float ChosenBlue  = static_cast<float>(Chosen.Colour[Lower].Blue)
+                            + Fraction * (static_cast<float>(Chosen.Colour[Upper].Blue)
+                                        - static_cast<float>(Chosen.Colour[Lower].Blue));
 
-    InkOrdinate Produced;
-    Produced.Red     = Bounded(static_cast<float>(Ink.Red)   + (ChosenRed   - ReferenceRed));
-    Produced.Green   = Bounded(static_cast<float>(Ink.Green) + (ChosenGreen - ReferenceGreen));
-    Produced.Blue    = Bounded(static_cast<float>(Ink.Blue)  + (ChosenBlue  - ReferenceBlue));
-    Produced.Opacity = Ink.Opacity;   // 🔴 carried, never re-anchored
+    ThemeToken Produced;
+    Produced.Red     = Bounded(static_cast<float>(Colour.Red)   + (ChosenRed   - ReferenceRed));
+    Produced.Green   = Bounded(static_cast<float>(Colour.Green) + (ChosenGreen - ReferenceGreen));
+    Produced.Blue    = Bounded(static_cast<float>(Colour.Blue)  + (ChosenBlue  - ReferenceBlue));
+    Produced.Opacity = Colour.Opacity;   // 🔴 carried, never re-anchored
 
     return Produced;
 }
 
-// 🔴 Every ink record in the appearance is a run of `InkOrdinate` and nothing else, which is what lets one
+// 🔴 Every colour record in the appearance is a run of `ThemeToken` and nothing else, which is what lets one
 //    pass re-anchor all of them without naming a single field. `Sweep` asserts that shape at compile time,
-//    so an ink record that later gains a length is a refused build rather than a silently skipped group.
+//    so an colour record that later gains a length is a refused build rather than a silently skipped group.
 template <typename Recorded>
 void Sweep(Recorded& Group, const ThemeLadder& Reference, const ThemeLadder& Chosen)
 {
-    static_assert(sizeof(Recorded) % sizeof(InkOrdinate) == 0,
-                  "an ink record must be a whole run of InkOrdinate");
-    static_assert(alignof(Recorded) == alignof(InkOrdinate),
-                  "an ink record must carry no padding");
+    static_assert(sizeof(Recorded) % sizeof(ThemeToken) == 0,
+                  "an colour record must be a whole run of ThemeToken");
+    static_assert(alignof(Recorded) == alignof(ThemeToken),
+                  "an colour record must carry no padding");
 
-    InkOrdinate* const  Reading = reinterpret_cast<InkOrdinate*>(&Group);
-    const std::uint32_t Tallied = static_cast<std::uint32_t>(sizeof(Recorded) / sizeof(InkOrdinate));
+    ThemeToken* const  Reading = reinterpret_cast<ThemeToken*>(&Group);
+    const std::uint32_t Tallied = static_cast<std::uint32_t>(sizeof(Recorded) / sizeof(ThemeToken));
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Tallied; ++Ordinal)
     {
@@ -302,16 +302,16 @@ void Sweep(Recorded& Group, const ThemeLadder& Reference, const ThemeLadder& Cho
 
 }   // namespace
 
-AppearanceSpecification Tinted(const AppearanceSpecification& Resolved, const ThemeSelection& Selected)
+ThemeProfile Tinted(const ThemeProfile& Resolved, const ThemeSelection& Selected)
 {
-    AppearanceSpecification Produced = Resolved;
+    ThemeProfile Produced = Resolved;
 
     // 📝 `Oled` is the reference rung run because it is what every one of the three ports was transcribed
     //    against. Mapping it through itself is the identity, so the default selection changes nothing.
     const ThemeLadder Reference = Ascending(LadderOf(ThemeSpecification::Theme(ThemeSubject::Oled)));
     const ThemeLadder Chosen    = LadderOf(ThemeSpecification::Theme(Selected.Presented));
 
-    Sweep(Produced.Ink,            Reference, Chosen);
+    Sweep(Produced.Colour,            Reference, Chosen);
     Sweep(Produced.Control,        Reference, Chosen);
     Sweep(Produced.Workspace,      Reference, Chosen);
     Sweep(Produced.EditorPanel,    Reference, Chosen);
@@ -319,16 +319,16 @@ AppearanceSpecification Tinted(const AppearanceSpecification& Resolved, const Th
     Sweep(Produced.ContentBrowser, Reference, Chosen);
     Sweep(Produced.LayerStack,     Reference, Chosen);
 
-    // 🔴 The accents are deliberately NOT seated over the swept inks. An accent the artist chose is offered
+    // 🔴 The accents are deliberately NOT seated over the swept colours. An accent the artist chose is offered
     //    by the Control Centre, and displacing a ported reference's own emphasis with it would edit the port:
     //    `LayerstackV1` states `--acc` as white, and seating a chosen blue there would silently redraw a
-    //    reference this repository is required to carry exactly. The ladder tints those inks with everything
+    //    reference this repository is required to carry exactly. The ladder tints those colours with everything
     //    else; which accent is chosen stays a question the Control Centre answers.
 
     return Produced;
 }
 
-AppearanceSpecification ResolveTinted(double                DisplayScale,
+ThemeProfile ResolveTinted(double                DisplayScale,
                                       double                ArtistScale,
                                       float                 ExtentAlong,
                                       const ThemeSelection& Selected)

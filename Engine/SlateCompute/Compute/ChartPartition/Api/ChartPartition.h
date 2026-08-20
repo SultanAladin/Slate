@@ -107,7 +107,7 @@ struct DerivedPartition
 /// in    Declaring    [-]  the parameters
 /// in    Cancellation [-]  read between charts — `34` §5's cooperative points
 /// in    Progressed   [-]  charts resolved out of charts spanned
-/// out   Deliver      [-]  refuses with HostDenied for an unsealed topology or a withdrawn declaration, and with
+/// out   Result      [-]  refuses with HostDenied for an unsealed topology or a withdrawn declaration, and with
 ///                         ExtentExhausted when the conditioning describes another revision or no scale packs
 /// note  🔴 Reads nothing but its arguments and mutates none of them, which is exactly `34` §2's requirement.
 ///        The `SeamSpecification` is taken by const reference and its derived set is returned in the result
@@ -120,7 +120,7 @@ struct DerivedPartition
 ///        `68` §7 puts this on `34`'s `Background` class; called on the tick it would stall a stroke.
 /// cost  🔴
 /// tag   api, nonthrowing
-Deliver<DerivedPartition> Derive(const TopologyStructure&      Imported,
+Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
                                  const TopologyConditioning&   Conditioned,
                                  const SeamSpecification&      Seams,
                                  const PartitionSpecification& Declaring,
@@ -146,11 +146,11 @@ public:
 
     /// 🧩 Adopts a derived partition on the tick, advancing the revision.
     /// in    Arriving  [-]  as `Derive` produced it
-    /// out   Deliver   [-]  refuses with ContentUnsupported for a partition carrying no chart
+    /// out   Result   [-]  refuses with ContentUnsupported for a partition carrying no chart
     /// post  the revision advanced; every artefact keyed on the prior one is discoverably stale
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Adopt(const DerivedPartition& Arriving);
+    Result<bool> Adopt(const DerivedPartition& Arriving);
 
     /// 🧩 The standing partition.
     /// pre   PartitionStanding holds
@@ -159,11 +159,11 @@ public:
     const DerivedPartition& Standing() const;
 
     /// 🧩 One imported corner's domain coordinate.
-    /// out   Deliver  [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
+    /// out   Result  [-]  refuses with ExtentExhausted outside the corner span, and with ContentUnsupported
     ///                     while no partition stands
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<DomainCoordinate> Coordinate(std::uint32_t CornerOrdinal) const;
+    Result<DomainCoordinate> Coordinate(std::uint32_t CornerOrdinal) const;
 
     /// 🧩 Whether a partition stands at all.
     /// cost  ✔️

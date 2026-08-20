@@ -28,13 +28,13 @@ bool PersistenceSequence::VerifyIdentical(const std::vector<std::uint8_t>& Writt
 //                                                       THE SEQUENCE
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent& Sealed)
+Result<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent& Sealed)
 {
     Reached = PersistenceStep::Unbegun;
 
     if (Sealed.TargetPath.empty())
     {
-        return Deliver<PersistenceConclusion>::Refuse(
+        return Result<PersistenceConclusion>::Refuse(
             { RefusalReason::ContentUnsupported, "a save names where it is to land — `48` §3" });
     }
 
@@ -43,7 +43,7 @@ Deliver<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent&
         // 🔴 An empty stream is refused rather than written. Writing it would replace a good document with a
         //    file carrying no heading at all, and `48` §3's whole sequence exists to stop a save from being
         //    the thing that destroys the artist's previous save.
-        return Deliver<PersistenceConclusion>::Refuse(
+        return Result<PersistenceConclusion>::Refuse(
             { RefusalReason::ContentUnsupported, "a document stream of no bytes is not a document — `48` §3" });
     }
 
@@ -51,18 +51,18 @@ Deliver<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent&
     //    reads it back, compares it, and only then renames — and the rename is atomic within one file system.
     //    Splitting them here would put the staged stream's path in two places, and a host that died between
     //    two of the calls would leave the artist a directory with two documents and no way to tell which.
-    const Deliver<bool> Landed = FileInterchange::WriteStream(Sealed.TargetPath, Sealed.Content);
+    const Result<bool> Landed = FileInterchange::WriteStream(Sealed.TargetPath, Sealed.Content);
 
-    if (!Landed.ContentPresent)
+    if (!Landed.Resolved)
     {
         // 📝 Which step the surface refused at is carried in its own reason: ExtentExhausted is ② failing the
         //    comparison, and HostDenied is ① or ③. Either way the existing file stands, which is the fact the
         //    artist needs and the reason nothing is amended here before returning.
-        Reached = Landed.Declined.DeclaredReason == RefusalReason::ExtentExhausted
+        Reached = Landed.Error.DeclaredReason == RefusalReason::ExtentExhausted
                 ? PersistenceStep::Written
                 : PersistenceStep::Unbegun;
 
-        return Deliver<PersistenceConclusion>::Refuse(Landed.Declined);
+        return Result<PersistenceConclusion>::Refuse(Landed.Error);
     }
 
     Reached = PersistenceStep::Replaced;
@@ -77,7 +77,7 @@ Deliver<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent&
     // 📝 ④ — retiring the journal entries this save subsumes — is the caller's, on the tick. The journal belongs
     //    to the session and this runs off it, and `48` §3 ④ makes an unretired entry merely redundant on replay
     //    rather than wrong. Retiring it from here would be the one step of the four that could lose work.
-    return Deliver<PersistenceConclusion>::Deliver(Concluded);
+    return Result<PersistenceConclusion>::Result(Concluded);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

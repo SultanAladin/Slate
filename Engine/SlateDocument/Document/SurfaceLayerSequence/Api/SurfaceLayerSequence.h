@@ -165,51 +165,51 @@ public:
 
     /// 🧩 Appends one entry at the end of the sequence, issuing its identity.
     /// in    Declaring  [-]  every one of §2's four fields
-    /// out   Deliver    [-]  refuses with ContentUnsupported for a nested entry beyond the declared depth, for
+    /// out   Result    [-]  refuses with ContentUnsupported for a nested entry beyond the declared depth, for
     ///                       painted content whose span does not match its declared extent, and with
     ///                       ExtentExhausted at the entry ceiling
     /// post  the entry sits last, which is topmost
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<LayerIdentity> Append(const LayerSpecification& Declaring);
+    Result<LayerIdentity> Append(const LayerSpecification& Declaring);
 
     /// 🧩 Moves one entry to a declared sequence position.
     /// in    Subject   [-]  the entry
     /// in    Position  [-]  where it should sit; clamped to the end
-    /// out   Deliver   [-]  refuses with IdentityStale when the entry no longer resolves, and carries the prior
+    /// out   Result   [-]  refuses with IdentityStale when the entry no longer resolves, and carries the prior
     ///                      position so the caller's inverse is one ordinal rather than a whole ordering
     /// note  🔴 One transaction against two sequence positions — `56` §6. The inverse is the prior position and
     ///        nothing else, which is what makes reordering affordable in `RevisionSequence`.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Reorder(LayerIdentity Subject, std::uint32_t Position);
+    Result<std::uint32_t> Reorder(LayerIdentity Subject, std::uint32_t Position);
 
     /// 🧩 Presents or hides one entry.
-    /// out   Deliver  [-]  refuses with IdentityStale; carries the prior standing as the inverse
+    /// out   Result  [-]  refuses with IdentityStale; carries the prior standing as the inverse
     /// note  ⚠️ A recorded amendment, per `56` §6. An artist who hides a layer, saves, reopens and finds it
     ///        presented has been told the document does not hold what they see.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclarePresence(LayerIdentity Subject, bool PresenceEnabled);
+    Result<bool> DeclarePresence(LayerIdentity Subject, bool PresenceEnabled);
 
     /// 🧩 Amends one entry's combination.
-    /// out   Deliver  [-]  refuses with IdentityStale; carries the prior combination
+    /// out   Result  [-]  refuses with IdentityStale; carries the prior combination
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<CombineSpecification> DeclareCombination(LayerIdentity Subject, CombineSpecification Declaring);
+    Result<CombineSpecification> DeclareCombination(LayerIdentity Subject, CombineSpecification Declaring);
 
     /// 🧩 Removes one entry, retaining its description and never its resolved texels.
-    /// out   Deliver  [-]  refuses with IdentityStale
+    /// out   Result  [-]  refuses with IdentityStale
     /// note  🔴 `56` §6: removing an entry that stores a description retains the **description**. Texels resolved
     ///        from a description live in `SurfaceDepot` under `20` §4 and are reconstructible by definition, so
     ///        recording them in an inverse would store a derivation inside the document to undo a change that
     ///        does not need it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<LayerSpecification> Withdraw(LayerIdentity Subject);
+    Result<LayerSpecification> Withdraw(LayerIdentity Subject);
 
     /// 🧩 Nests one sequence inside this one as a single entry.
-    /// out   Deliver  [-]  the issued ordinal, into this surface's own nested sequences; refuses with
+    /// out   Result  [-]  the issued ordinal, into this surface's own nested sequences; refuses with
     ///                     ExtentExhausted beyond `LayerNestingCeiling`
     /// note  🔴 §4.1: the nested content combines **internally first**, and the enclosing entry's combination and
     ///        coverage are each applied **once**, to the nested result. Applying the enclosing coverage per entry
@@ -218,7 +218,7 @@ public:
     ///        different scale.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Nest();
+    Result<std::uint32_t> Nest();
 
     /// 🧩 Resamples every painted entry into a re-partitioned domain, on the tick.
     /// in    ArrivingRevision  [-]  the partition revision `68` advanced to
@@ -226,7 +226,7 @@ public:
     ///                              position it occupied in the old one
     /// in    Reporting         [-]  where `86` §4's `56` §3.1 row lands
     /// in    Sampled           [ns] the tick's own reading
-    /// out   Deliver           [-]  refuses with HostDenied when no remapping is supplied
+    /// out   Result           [-]  refuses with HostDenied when no remapping is supplied
     /// note  🔴 `00` §10 conflict 40, discharged from this side. `68` advances the revision and derives the
     ///        unwrap; **this** resamples the authored texels, because `68` is in `SlateCompute` and cannot reach
     ///        the document content at all. The remapping crosses as a callable so that nothing here names `68`.
@@ -237,19 +237,19 @@ public:
     ///        not a defect in it; what would be a defect is performing it without saying so.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Resample(std::uint64_t                                                       ArrivingRevision,
+    Result<bool> Resample(std::uint64_t                                                       ArrivingRevision,
                            const std::function<bool(double, double, double&, double&)>&        Remapping,
                            ReportSequence&                                                     Reporting,
                            TickPoint                                                           Sampled);
 
     /// 🧩 One entry, by identity.
-    /// out   Deliver  [-]  refuses with IdentityStale
+    /// out   Result  [-]  refuses with IdentityStale
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<const LayerSpecification*> Resolve(LayerIdentity Subject) const;
+    Result<const LayerSpecification*> Resolve(LayerIdentity Subject) const;
 
     /// 🧩 One entry's painted texels, for the one mechanism permitted to amend them.
-    /// out   Deliver  [-]  refuses with IdentityStale when the entry no longer resolves, and with
+    /// out   Result  [-]  refuses with IdentityStale when the entry no longer resolves, and with
     ///                     ContentUnsupported when its source is not PaintedImpressions
     /// note  🔴 `22` is the only caller. Painted texels are the one content this sequence stores rather than
     ///        describes — §3 — so this is the one route by which authored content is written at all, and every
@@ -259,7 +259,7 @@ public:
     ///        would then evict the artist's edit at the first memory pressure.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<PaintedContent*> AmendPainted(LayerIdentity Subject);
+    Result<PaintedContent*> AmendPainted(LayerIdentity Subject);
 
     /// 🧩 The entries, in sequence order — bottom first.
     /// cost  ✔️
@@ -267,22 +267,22 @@ public:
     const std::vector<LayerSpecification>& Entries() const;
 
     /// 🧩 One nested sequence, by ordinal.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the nested count
+    /// out   Result  [-]  refuses with ContentUnsupported outside the nested count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<const SurfaceLayerSequence*> Nested(std::uint32_t NestedOrdinal) const;
+    Result<const SurfaceLayerSequence*> Nested(std::uint32_t NestedOrdinal) const;
 
     /// 🧩 One nested sequence, for amending.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the nested count
+    /// out   Result  [-]  refuses with ContentUnsupported outside the nested count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<SurfaceLayerSequence*> AmendNested(std::uint32_t NestedOrdinal);
+    Result<SurfaceLayerSequence*> AmendNested(std::uint32_t NestedOrdinal);
 
     /// 🧩 Which sequence position one entry sits at.
-    /// out   Deliver  [-]  refuses with IdentityStale
+    /// out   Result  [-]  refuses with IdentityStale
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> PositionOf(LayerIdentity Subject) const;
+    Result<std::uint32_t> PositionOf(LayerIdentity Subject) const;
 
     /// 🧩 The union of channels every presented entry writes — what `42`'s layered channels resolve against.
     /// cost  🚩
@@ -343,10 +343,10 @@ public:
     /// 🧩 Locates one entry anywhere in a sequence, including inside its nested sequences.
     /// in    Sequence  [-]  the surface's own sequence
     /// in    Subject   [-]  the entry
-    /// out   Deliver   [-]  refuses with IdentityStale when nothing in the whole nesting holds it
+    /// out   Result   [-]  refuses with IdentityStale when nothing in the whole nesting holds it
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Deliver<const LayerSpecification*> Locate(const SurfaceLayerSequence& Sequence, LayerIdentity Subject);
+    static Result<const LayerSpecification*> Locate(const SurfaceLayerSequence& Sequence, LayerIdentity Subject);
 
     /// 🧩 How many entries the whole nesting holds.
     /// cost  🚩

@@ -64,32 +64,32 @@ public:
     /// 🧩 Takes the device and the directory the build lowered its streams into.
     /// in    Exchange    [-]  the created device; borrowed and outlives this component
     /// in    StreamDirectory [-]  where `<Unit>/<Stem>.spv` is found; the build's output, never a source directory
-    /// out   Deliver         [-]  refuses with CapabilityAbsent when no device is active
+    /// out   Result         [-]  refuses with CapabilityAbsent when no device is active
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const VulkanExchange& Exchange, const std::string& StreamDirectory);
+    Result<bool> Construct(const VulkanExchange& Exchange, const std::string& StreamDirectory);
 
     /// 🧩 Reads one lowered stream, verifies it, and constructs the vendor module from it.
     /// in    UnitName    [-]  the unit the stream was lowered under, for example "SlateVulkan"
     /// in    StreamStem  [-]  the source's stem without its extension, for example "VisibilitySurface"
-    /// out   Deliver     [-]  the module ordinal; refuses with HostDenied when the stream cannot be read,
+    /// out   Result     [-]  the module ordinal; refuses with HostDenied when the stream cannot be read,
     ///                        ContentUnsupported when it is not SPIR-V or its length is not a whole word count
     /// note  A stream already read is not read twice; the standing ordinal is delivered instead.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Resolve(const std::string& UnitName, const std::string& StreamStem);
+    Result<std::uint32_t> Resolve(const std::string& UnitName, const std::string& StreamStem);
 
     /// 🧩 The stage declaration one module supplies to a program, with its specialisation folded in.
     /// in    ModuleOrdinal [-]  a module this component resolved
     /// in    Reading       [-]  which stage the module is read as
     /// in    Fixed         [-]  the constants; empty declares no specialisation
-    /// out   Deliver       [-]  refuses with ContentUnsupported for an unresolved ordinal
+    /// out   Result       [-]  refuses with ContentUnsupported for an unresolved ordinal
     /// note  🔴 The specialisation declaration is held **here** and not returned by value. The vendor reads it
     ///       at the program's construction, and a declaration returned by value is read after the call that
     ///       produced it has already surrendered its stack.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<VkPipelineShaderStageCreateInfo> Stage(std::uint32_t                             ModuleOrdinal,
+    Result<VkPipelineShaderStageCreateInfo> Stage(std::uint32_t                             ModuleOrdinal,
                                                    VkShaderStageFlagBits                     Reading,
                                                    const std::vector<SpecialisedConstant>&   Fixed);
 
@@ -118,8 +118,8 @@ private:
     };
 
     /// 🧩 Reads one whole file into a word run, refusing rather than truncating.
-    /// out   Deliver  [-]  refuses with HostDenied when it cannot be opened or read whole
-    Deliver<std::vector<std::uint32_t>> ReadStream(const std::string& StreamPath) const;
+    /// out   Result  [-]  refuses with HostDenied when it cannot be opened or read whole
+    Result<std::vector<std::uint32_t>> ReadStream(const std::string& StreamPath) const;
 
     // 📝 🔴 The specialisations sit in a run whose entries never move rather than beside their module. The
     //    vendor reads each declaration by address at the program's construction, and an entry that a later

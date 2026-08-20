@@ -97,27 +97,27 @@ public:
     /// 🧩 Takes the device and reads the vendor declaration every later claim is scored against.
     /// in    Exchange  [-]  the created device; borrowed, never owned, and outlives this component
     /// in    Naming    [-]  names every vendor allocation taken; borrowed and outlives this component
-    /// out   Deliver   [-]  refuses with CapabilityAbsent when no device is active
+    /// out   Result   [-]  refuses with CapabilityAbsent when no device is active
     /// post  no extent is claimed; the first Claim takes the first one
     /// note  🔴 `06` §7's diagnostic-name gate is discharged here rather than by the caller. A name declared
     ///        by whoever happened to call `ConstructExtent` would be absent for the extents this component
     ///        takes on its own, which is every extent after the first of each residency.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Result<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Slices one span of the requested residency, taking a further extent when none can satisfy it.
     /// in    RequestedBytes  [B]  how far the span must run
     /// in    ByteAlignment   [B]  the alignment the vendor declared for what occupies it; zero reads as one
     /// in    Residency       [-]  device-local or host-writable
     /// in    Standing        [-]  what exhaustion means for this claimant
-    /// out   Deliver         [-]  refuses with ExtentExhausted, in full, with nothing partially claimed
+    /// out   Result         [-]  refuses with ExtentExhausted, in full, with nothing partially claimed
     /// err   refuses with ContentUnsupported for a zero span or an alignment that is not a power of two
     /// note  🔴 The refusal is whole. A claim that half-succeeded would leave the caller holding a span it
     ///       cannot use and cannot release, and the release path is the one nobody exercises.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<ByteClaim> Claim(VkDeviceSize    RequestedBytes,
+    Result<ByteClaim> Claim(VkDeviceSize    RequestedBytes,
                              VkDeviceSize    ByteAlignment,
                              ExtentResidency Residency,
                              ClaimStanding   Standing);
@@ -167,12 +167,12 @@ private:
     };
 
     /// 🧩 Scores what the device declares for the one entry that satisfies a residency.
-    /// out   Deliver  [-]  refuses with CapabilityAbsent when nothing declared carries the properties
-    Deliver<std::uint32_t> ClassifyResidency(ExtentResidency Residency) const;
+    /// out   Result  [-]  refuses with CapabilityAbsent when nothing declared carries the properties
+    Result<std::uint32_t> ClassifyResidency(ExtentResidency Residency) const;
 
     /// 🧩 Takes one further vendor allocation, at least as large as the span that could not be satisfied.
-    /// out   Deliver  [-]  refuses with ExtentExhausted when the vendor declines the allocation
-    Deliver<std::uint32_t> ConstructExtent(ExtentResidency Residency, VkDeviceSize LeastBytes);
+    /// out   Result  [-]  refuses with ExtentExhausted when the vendor declines the allocation
+    Result<std::uint32_t> ConstructExtent(ExtentResidency Residency, VkDeviceSize LeastBytes);
 
     const VulkanExchange*             DeviceEdge      = nullptr;   // [-] - borrowed; never owned
     const DiagnosticExtension*        NamingEdge      = nullptr;   // [-] - borrowed; never owned

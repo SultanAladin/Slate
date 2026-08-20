@@ -174,13 +174,13 @@ public:
     /// 🧩 Declares one channel.
     /// in    Channel    [-]  which of the twenty
     /// in    Declaring  [-]  its source, measure, default and interval
-    /// out   Deliver    [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour default
+    /// out   Result    [-]  refuses with ContentUnsupported for an out-of-range channel, for a colour default
     ///                       carrying no space, and for a default outside the declared interval
     /// note  🔴 The default is validated against its own interval here, for `10` §2.2's reason: a default outside
     ///        its bounds is an invalid value presented on every surface that never overrode it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring);
+    Result<bool> DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring);
 
     /// 🧩 Declares the coverage threshold a cutout occupant is resolved against.
     /// note  🔴 Per material, never global — `62` §2. A single threshold across a document makes one artist's
@@ -236,22 +236,22 @@ public:
 
     /// 🧩 Declares one material and issues its identity.
     /// in    Named    [-]  what the artist calls it; may be empty
-    /// out   Deliver  [-]  refuses with ExtentExhausted at the declared ceiling
+    /// out   Result  [-]  refuses with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Declare(const std::string& Named);
+    Result<std::uint32_t> Declare(const std::string& Named);
 
     /// 🧩 One declared material, for reading.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the declared count
+    /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<const MaterialSpecification*> Resolve(std::uint32_t MaterialOrdinal) const;
+    Result<const MaterialSpecification*> Resolve(std::uint32_t MaterialOrdinal) const;
 
     /// 🧩 One declared material, for amending.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the declared count
+    /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<MaterialSpecification*> Amend(std::uint32_t MaterialOrdinal);
+    Result<MaterialSpecification*> Amend(std::uint32_t MaterialOrdinal);
 
     const std::string& DeclaredName(std::uint32_t MaterialOrdinal) const;
     std::uint32_t      DeclaredCount() const;
@@ -300,18 +300,18 @@ public:
 
     /// 🧩 Declares one partition's resolution, issuing its identity.
     /// in    Resolving  [-]  the occupant, material and face range
-    /// out   Deliver    [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
+    /// out   Result    [-]  refuses with IdentityStale for an undeclared occupant, and with ExtentExhausted at
     ///                       the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<PartitionIdentity> Declare(const ResolvedPartition& Resolving);
+    Result<PartitionIdentity> Declare(const ResolvedPartition& Resolving);
 
     /// 🧩 Resolves one partition identity.
-    /// out   Deliver  [-]  refuses with IdentityStale when the generation no longer matches — which is what a
+    /// out   Result  [-]  refuses with IdentityStale when the generation no longer matches — which is what a
     ///                     re-partition since the identity was taken looks like
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<ResolvedPartition> Resolve(PartitionIdentity Subject) const;
+    Result<ResolvedPartition> Resolve(PartitionIdentity Subject) const;
 
     /// 🧩 The revision the last rebuild advanced to; `70` §2 compares counters against it.
     /// cost  ✔️

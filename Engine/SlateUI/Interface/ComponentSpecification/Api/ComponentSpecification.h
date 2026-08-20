@@ -149,12 +149,12 @@ public:
     /// in    Ledger      [-]  the interaction ledger; borrowed and outlives this component
     /// in    Surface     [-]  the recording surface; borrowed and outlives this component
     /// in    Appearance  [-]  already resolved against the display scale; borrowed and outlives this
-    /// out   Deliver     [-]  refuses with ContentUnsupported when a construction already stands
+    /// out   Result     [-]  refuses with ContentUnsupported when a construction already stands
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Construct(InteractionIndex&              Ledger,
+    Result<bool> Construct(InteractionIndex&              Ledger,
                             RecordingSurface&              Surface,
-                            const AppearanceSpecification& Appearance);
+                            const ThemeProfile& Appearance);
 
     /// 🧩 Advances one tick of arbitration — samples the contact and clears the deferred sweep.
     /// in    Arrived  [-]   what `RecordingSurface::Pointer` sampled this tick
@@ -315,7 +315,7 @@ private:
 
     InteractionIndex*               Ledger                          = nullptr;   // [-] - borrowed
     RecordingSurface*               Surface                         = nullptr;   // [-] - borrowed
-    const AppearanceSpecification*  Appearance                      = nullptr;   // [-] - borrowed
+    const ThemeProfile*  Appearance                      = nullptr;   // [-] - borrowed
     PointerCondition                Arrived                         = {};        // [-] - this tick's pointer
     DeferredRecording               Deferred[DeferredCeiling]       = {};        // [-] - never allocated
     std::uint32_t                   DeferredCount                   = 0u;        // [-]

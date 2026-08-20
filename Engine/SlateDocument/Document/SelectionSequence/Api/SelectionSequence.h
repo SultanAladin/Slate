@@ -54,25 +54,25 @@ public:
     void Seal(const std::vector<OccupantIdentity>& Selected, std::uint64_t RevisionOrdinal);
 
     /// 🧩 Traverses one selection backwards.
-    /// out   Deliver  [-]  refuses with ExtentExhausted at the beginning of the sequence
+    /// out   Result  [-]  refuses with ExtentExhausted at the beginning of the sequence
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Retreat();
+    Result<bool> Retreat();
 
     /// 🧩 Traverses one selection forwards.
-    /// out   Deliver  [-]  refuses with ExtentExhausted at the end of the sequence
+    /// out   Result  [-]  refuses with ExtentExhausted at the end of the sequence
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Advance();
+    Result<bool> Advance();
 
     /// 🧩 Restores the selection that stood at a declared document revision.
     /// in    RevisionOrdinal  [-]  the document revision a scrub has arrived at
-    /// out   Deliver          [-]  refuses with ExtentExhausted when no selection was ever sealed there
+    /// out   Result          [-]  refuses with ExtentExhausted when no selection was ever sealed there
     /// note  This is what pairs a document scrub with the selection its transaction applied to. The pairing
     ///        holds within the session where the scrub happens, which is all `12` §11 requires of it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> RestoreAt(std::uint64_t RevisionOrdinal);
+    Result<bool> RestoreAt(std::uint64_t RevisionOrdinal);
 
     /// 🧩 The selection standing now.
     /// cost  ✔️

@@ -110,10 +110,10 @@ public:
     static constexpr std::uint32_t ComponentCount = 3u;   // [-] - scale, single-scatter albedo, Charlie albedo
 
     /// 🧩 Sizes the lookup and clears it.
-    /// out   Deliver  [-]  refuses with ContentUnsupported for an extent of nothing on either axis
+    /// out   Result  [-]  refuses with ContentUnsupported for an extent of nothing on either axis
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross);
+    Result<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross);
 
     /// 🧩 Writes one texel's three components.
     /// cost  ✔️
@@ -229,14 +229,14 @@ class ReflectanceIntegrator
 public:
 
     /// 🧩 Contributes `08` §3 ④'s recording.
-    /// out   Deliver  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule refused
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Contribute(RenderSchedule& Schedule) const;
+    Result<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Derives `18` §4.1's directional-albedo lookup, once.
     /// in    Rule     [-]  a derived quadrature rule; the hemisphere integrals are taken against it
-    /// out   Deliver  [-]  refuses with ContentUnsupported before the rule is derived
+    /// out   Result  [-]  refuses with ContentUnsupported before the rule is derived
     /// post  the lookup stands and is sampled by every specular and cloth evaluation thereafter
     /// note  🔴 One resident lookup, parameterised by view angle and roughness, whose three components are the
     ///        split-sum scale, the single-scatter directional albedo that drives §4's compensation, and the
@@ -248,7 +248,7 @@ public:
     ///        for the reason `28`'s three surface parameterisations do.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> DeriveDirectionalAlbedo(const QuadratureRule& Rule);
+    Result<bool> DeriveDirectionalAlbedo(const QuadratureRule& Rule);
 
     /// 🧩 Resolves the channel set one material declares at one domain position.
     /// in    Declared    [-]  the material, from `42`
@@ -257,7 +257,7 @@ public:
     /// in    Placements  [-]  where each channel sits among the resolved components
     /// in    Reconstructed [-] the pixel's reconstructed attributes
     /// in    Tolerance   [-]  the flattening tolerance for the level being shaded
-    /// out   Deliver     [-]  carries whatever the resolution refused
+    /// out   Result     [-]  carries whatever the resolution refused
     /// note  🔴 `18` §9's fifth gate: each selection declares its channels and **unread channels are not
     ///        sampled**. The mask is consulted before the sample and not after it, so an unread channel costs
     ///        nothing rather than costing a sample that is then discarded.
@@ -267,7 +267,7 @@ public:
     ///        default is declared rather than assumed.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<ResolvedChannelSet> ResolveChannels(const MaterialSpecification&          Declared,
+    Result<ResolvedChannelSet> ResolveChannels(const MaterialSpecification&          Declared,
                                                 const AnalyticProjection&             Resolving,
                                                 const SurfaceLayerSequence&           Content,
                                                 const std::vector<ChannelPlacement>&  Placements,
@@ -309,7 +309,7 @@ public:
     /// 🧩 Integrates the ambient contribution at one pixel.
     /// in    Atmosphere       [-]  `28`; delivers sky-view radiance, or the constant floor where disabled
     /// in    ResolvedOcclusion[-]  `60`'s ambient term at this pixel, already upsampled
-    /// out   Deliver          [-]  carries `28`'s refusal where the atmosphere stands and no surface does
+    /// out   Result          [-]  carries `28`'s refusal where the atmosphere stands and no surface does
     /// note  🔴 The diffuse ambient reads `28`'s **cosine-convolved irradiance** rather than integrating the
     ///        hemisphere here. `28` §5 derives the convolution when the sky-view surface rebuilds and never per
     ///        pixel; a hemisphere integral evaluated per shaded pixel is the thing the whole precomputation
@@ -318,7 +318,7 @@ public:
     /// note  🔴 Channel 6 and `60`'s resolved term **multiply** — `18` §5 and `60` §2, from both sides.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<AmbientContribution> IntegrateAmbient(ReflectanceSelection        Selected,
+    Result<AmbientContribution> IntegrateAmbient(ReflectanceSelection        Selected,
                                                   const ResolvedChannelSet&   Resolved,
                                                   const ReconstructedSurface& Reconstructed,
                                                   const AtmosphereIntegrator& Atmosphere,
@@ -332,12 +332,12 @@ public:
     /// in    ViewX       [-]  the view direction, unit, in the atmosphere-local frame
     /// in    ViewY       [-]
     /// in    ViewZ       [-]
-    /// out   Deliver     [-]  carries `28`'s refusal
+    /// out   Result     [-]  carries `28`'s refusal
     /// note  🔴 Reconstructs **no attribute** and reads **no material**. It samples one source and writes it,
     ///        and it exists because every other dispatch is per material over pixels that resolved to a surface.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> IntegrateUnoccupied(const AtmosphereIntegrator& Atmosphere,
+    Result<bool> IntegrateUnoccupied(const AtmosphereIntegrator& Atmosphere,
                                       double ViewX, double ViewY, double ViewZ,
                                       double& Red, double& Green, double& Blue) const;
 

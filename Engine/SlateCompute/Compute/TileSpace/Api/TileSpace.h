@@ -49,32 +49,32 @@ public:
     /// 🧩 Sizes the ledger to a slot ceiling and a declared texel width.
     /// in    SlotCeiling   [-]  tiles the surface's backing extent holds
     /// in    BytesPerTexel [B]  the surface's channel set, as a width
-    /// out   Deliver       [-]  refuses with ContentUnsupported for a ceiling or width of zero
+    /// out   Result       [-]  refuses with ContentUnsupported for a ceiling or width of zero
     /// post  every slot is free; nothing is quarantined
     /// note  📝 The ceiling is the caller's, because it follows from how much extent `06` claimed and `06` §3
     ///        refuses a reserved claim rather than granting a smaller one. Deriving it here would mean deriving
     ///        it from a device this component is forbidden to name.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(std::uint32_t SlotCeiling, std::uint32_t BytesPerTexel);
+    Result<bool> Construct(std::uint32_t SlotCeiling, std::uint32_t BytesPerTexel);
 
     /// 🧩 Claims one free slot.
-    /// out   Deliver  [-]  refuses with ExtentExhausted when every slot is claimed or quarantined
+    /// out   Result  [-]  refuses with ExtentExhausted when every slot is claimed or quarantined
     /// note  🔴 A refusal is **not** a failure — `20` §2.2 and `86` §5. Every slot claimed means the promotion
     ///        must evict first, and exhaustion during ordinary painting is residency policy operating as
     ///        designed. Reporting it would mean the register is never quiet.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Claim();
+    Result<std::uint32_t> Claim();
 
     /// 🧩 Releases one claimed slot into quarantine.
     /// in    SlotOrdinal      [-]  the slot
     /// in    RecordingOrdinal  [-]  the rotation the release happened on
-    /// out   Deliver          [-]  refuses with ContentUnsupported for an unclaimed or out-of-range slot
+    /// out   Result          [-]  refuses with ContentUnsupported for an unclaimed or out-of-range slot
     /// post  the slot is unusable until `RecordingSlotCount` rotations have passed
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal);
+    Result<bool> Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal);
 
     /// 🧩 Returns quarantined slots whose release is older than the recording slot count.
     /// in    RecordingOrdinal  [-]  the rotation now being recorded
@@ -87,12 +87,12 @@ public:
     std::uint32_t Reclaim(std::uint64_t RecordingOrdinal);
 
     /// 🧩 Where one slot sits inside the surface's backing extent.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the ceiling
+    /// out   Result  [-]  refuses with ContentUnsupported outside the ceiling
     /// note  A byte offset rather than an address, because the extent it indexes is `06`'s and this component
     ///        may not name it. `06` adds the base; nothing here knows one exists.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<std::uint64_t> ByteOffsetOf(std::uint32_t SlotOrdinal) const;
+    Result<std::uint64_t> ByteOffsetOf(std::uint32_t SlotOrdinal) const;
 
     /// 🧩 What one tile occupies, apron included.
     /// cost  ✔️

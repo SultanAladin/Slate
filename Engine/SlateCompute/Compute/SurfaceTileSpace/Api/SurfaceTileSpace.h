@@ -89,27 +89,27 @@ struct CellAddress
 };
 
 /// 🧩 The single ordinal one address occupies.
-/// out   Deliver  [-]  refuses with ContentUnsupported outside the level or its cell span
+/// out   Result  [-]  refuses with ContentUnsupported outside the level or its cell span
 /// cost  ✔️
 /// tag   api, nonthrowing
-Deliver<std::uint32_t> OrdinalOf(CellAddress Addressed);
+Result<std::uint32_t> OrdinalOf(CellAddress Addressed);
 
 /// 🧩 The address one ordinal names.
-/// out   Deliver  [-]  refuses with ContentUnsupported outside the span
+/// out   Result  [-]  refuses with ContentUnsupported outside the span
 /// cost  ✔️
 /// tag   api, nonthrowing
-Deliver<CellAddress> AddressOf(std::uint32_t CellOrdinal);
+Result<CellAddress> AddressOf(std::uint32_t CellOrdinal);
 
 /// 🧩 The cell one domain position falls in, at a declared level.
 /// in    PositionAlong   [-]  the domain's first axis, in the unit square
 /// in    PositionAcross  [-]  its second
-/// out   Deliver         [-]  refuses with ContentUnsupported outside the level count
+/// out   Result         [-]  refuses with ContentUnsupported outside the level count
 /// note  📝 A position outside the unit square is clamped rather than refused. `68` §5 packs every chart
 ///        strictly inside the domain with a gap, so a position outside it is an apron read at the domain edge
 ///        and the edge cell is the right answer for it.
 /// cost  ✔️
 /// tag   api, nonthrowing
-Deliver<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionAlong, double PositionAcross);
+Result<std::uint32_t> OrdinalAt(std::uint32_t Level, double PositionAlong, double PositionAcross);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     ONE CELL
@@ -148,16 +148,16 @@ public:
     void Construct();
 
     /// 🧩 One record, for reading.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the span
+    /// out   Result  [-]  refuses with ContentUnsupported outside the span
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<const CellRecord*> Held(std::uint32_t CellOrdinal) const;
+    Result<const CellRecord*> Held(std::uint32_t CellOrdinal) const;
 
     /// 🧩 One record, for amending.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the span
+    /// out   Result  [-]  refuses with ContentUnsupported outside the span
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<CellRecord*> Amend(std::uint32_t CellOrdinal);
+    Result<CellRecord*> Amend(std::uint32_t CellOrdinal);
 
     /// 🧩 Every record, in ordinal order.
     /// cost  ✔️
@@ -226,7 +226,7 @@ public:
     /// in    SurfaceOrdinal  [-]  which surface demands name
     /// in    BytesPerTexel   [B]  the channel set this surface writes, as a width
     /// in    SlotCeiling     [-]  tiles the backing extent holds
-    /// out   Deliver         [-]  refuses with ContentUnsupported for a width of zero, and with ExtentExhausted
+    /// out   Result         [-]  refuses with ContentUnsupported for a width of zero, and with ExtentExhausted
     ///                            when the ceiling cannot hold the permanently resident levels
     /// post  the permanent levels are resident and their aprons are owed
     /// note  🔴 The ceiling is checked against the permanent levels before anything is claimed. A surface whose
@@ -234,7 +234,7 @@ public:
     ///        is the only place that failure can still be attributed to its cause.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(std::uint32_t SurfaceOrdinal, std::uint32_t BytesPerTexel, std::uint32_t SlotCeiling);
+    Result<bool> Construct(std::uint32_t SurfaceOrdinal, std::uint32_t BytesPerTexel, std::uint32_t SlotCeiling);
 
     /// 🧩 Resolves a domain position at a declared level, demanding what is not resident.
     /// in    Level            [-]  the level wanted; zero is finest
@@ -242,7 +242,7 @@ public:
     /// in    PositionAcross   [-]  its second
     /// in    RecordingOrdinal  [-]  the rotation sampling
     /// in    Requesting       [-]  where the demand is recorded
-    /// out   Deliver          [-]  refuses with ContentUnsupported outside the level count, and with
+    /// out   Result          [-]  refuses with ContentUnsupported outside the level count, and with
     ///                             HostDenied before Construct has delivered
     /// post  🔴 a resident cell is always resolved; the permanent levels guarantee it
     /// note  🔴 `20` §5: this never stalls. It walks from the requested level toward coarser until a resident
@@ -250,23 +250,23 @@ public:
     ///        waited for a promotion would make every camera cut a hitch.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<SampledCell> Sample(std::uint32_t Level,
+    Result<SampledCell> Sample(std::uint32_t Level,
                                 double        PositionAlong,
                                 double        PositionAcross,
                                 std::uint64_t RecordingOrdinal,
                                 RequestQueue& Requesting);
 
     /// 🧩 Resolves a domain position from the permanently resident levels alone, demanding nothing.
-    /// out   Deliver  [-]  refuses with HostDenied before Construct has delivered
+    /// out   Result  [-]  refuses with HostDenied before Construct has delivered
     /// note  🔴 `16` §3.1 ③'s read, and the reason it is a separate routine. A visibility recording that could
     ///        stall on residency has made the whole image wait for a leaf, so the cutout coverage test reads
     ///        only what is guaranteed and demands nothing at all.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<SampledCell> SampleGuaranteed(double PositionAlong, double PositionAcross) const;
+    Result<SampledCell> SampleGuaranteed(double PositionAlong, double PositionAcross) const;
 
     /// 🧩 Declares whether one cell holds paint no transaction has sealed.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the span, and with HostDenied when a
+    /// out   Result  [-]  refuses with ContentUnsupported outside the span, and with HostDenied when a
     ///                     non-resident cell is declared uncommitted
     /// note  🔴 `20` §5 and `22` §4: no tile holding uncommitted paint is evicted. `22` declares it at the
     ///        stroke's Open and withdraws it at Seal, at which point the paint is in `56` and the tile is a
@@ -276,7 +276,7 @@ public:
     ///        there being exactly one door and `82` not walking through it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareUncommitted(std::uint32_t CellOrdinal, bool UncommittedDeclared);
+    Result<bool> DeclareUncommitted(std::uint32_t CellOrdinal, bool UncommittedDeclared);
 
     /// 🧩 Considers one demanded cell for promotion, against the rotation's budget.
     /// in    CellOrdinal      [-]  the cell
@@ -284,7 +284,7 @@ public:
     /// in    ContentRevision  [-]  the revision the tile would be resolved from
     /// in    Scheduling       [-]  the rotation's budget and eviction ordering
     /// in    RecordingOrdinal  [-]  the rotation promoting
-    /// out   Deliver          [-]  refuses with ContentUnsupported outside the span, and with HostDenied
+    /// out   Result          [-]  refuses with ContentUnsupported outside the span, and with HostDenied
     ///                             before Construct has delivered
     /// post  a promoted or re-resolved cell owes its apron; the caller writes it and declares it
     /// note  🔴 `70` §2's comparison, discharged here: a resident cell whose recorded revision equals the
@@ -296,27 +296,27 @@ public:
     ///        §2.2: deferral is normal operation, and `86` §5 keeps it a measure rather than a report.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<PromotionDisposition> Promote(std::uint32_t       CellOrdinal,
+    Result<PromotionDisposition> Promote(std::uint32_t       CellOrdinal,
                                           const PromotionCost& Costing,
                                           std::uint64_t        ContentRevision,
                                           PromotionScheduler&  Scheduling,
                                           std::uint64_t        RecordingOrdinal);
 
     /// 🧩 Declares one promoted cell's apron written.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the span, and with HostDenied for a
+    /// out   Result  [-]  refuses with ContentUnsupported outside the span, and with HostDenied for a
     ///                     non-resident cell
     /// note  🔴 `20` §5: every resident tile carries a written apron. Declared rather than assumed, so a
     ///        promotion path that forgot to write one is caught by `ResidencyValid` rather than by an artist
     ///        finding a seam in a painted result.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> DeclareApronWritten(std::uint32_t CellOrdinal);
+    Result<bool> DeclareApronWritten(std::uint32_t CellOrdinal);
 
     /// 🧩 Evicts one resident cell, releasing its slot into quarantine.
-    /// out   Deliver  [-]  refuses with ContentUnsupported for a permanent, uncommitted or absent cell
+    /// out   Result  [-]  refuses with ContentUnsupported for a permanent, uncommitted or absent cell
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Evict(std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal);
+    Result<bool> Evict(std::uint32_t CellOrdinal, std::uint64_t RecordingOrdinal);
 
     /// 🧩 Reclaims quarantined slots whose release is older than the recording slot count.
     /// out   Reclaimed  [-]  how many slots became free
@@ -351,7 +351,7 @@ public:
 
 private:
 
-    Deliver<std::uint32_t> ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal);
+    Result<std::uint32_t> ClaimOrEvict(PromotionScheduler& Scheduling, std::uint64_t RecordingOrdinal);
 
     CellSpace      Cells_;                       // [-] - one record per cell of every level
     TileSpace      Tiles_;                       // [-] - the slot ledger behind them

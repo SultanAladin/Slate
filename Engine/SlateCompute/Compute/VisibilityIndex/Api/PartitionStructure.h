@@ -108,7 +108,7 @@ struct DerivedPartitioning
 /// 🧩 Grows one sealed topology into partitions across its own adjacency.
 /// in    Imported     [-]  the sealed topology; immutable for the whole run
 /// in    Conditioned  [-]  its conditioning, at the same revision
-/// out   Deliver      [-]  refuses with HostDenied for an unsealed topology, with ContentUnsupported when the
+/// out   Result      [-]  refuses with HostDenied for an unsealed topology, with ContentUnsupported when the
 ///                         conditioning describes another revision, and with ExtentExhausted where the partition
 ///                         count would reach `AbsentPartition` and stop being an ordinal
 /// note  ⚠️ `42`'s own resolution ceiling is refused by `42`, at `PartitionStructure::Declare`. It is not
@@ -125,7 +125,7 @@ struct DerivedPartitioning
 ///        nothing.
 /// cost  🔴
 /// tag   api, nonthrowing
-Deliver<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Imported,
+Result<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Imported,
                                                 const TopologyConditioning& Conditioned);
 
 // 📐 The extents and the cone are Bounded; the adjacency traversal, the face counting and the material comparison
@@ -147,23 +147,23 @@ public:
 
     /// 🧩 Adopts a derived partitioning on the tick, advancing the revision.
     /// in    Arriving  [-]  as DerivePartitioning produced it
-    /// out   Deliver   [-]  refuses with ContentUnsupported for a partitioning carrying no partition
+    /// out   Result   [-]  refuses with ContentUnsupported for a partitioning carrying no partition
     /// post  the revision advanced; every identity issued against the prior one is discoverably stale
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Adopt(const DerivedPartitioning& Arriving);
+    Result<bool> Adopt(const DerivedPartitioning& Arriving);
 
     /// 🧩 Declares every standing partition into `42`'s resolution, retaining the identities it issues.
     /// in    Resolutions  [-]  the document's resolution; rebuilt by `42` and written here
     /// in    Occupant     [-]  who the standing partitioning belongs to
-    /// out   Deliver      [-]  refuses with whatever the resolution refused, having declared nothing further
+    /// out   Result      [-]  refuses with whatever the resolution refused, having declared nothing further
     /// post  Identities carries one identity per standing partition, in partition ordinal order
     /// note  🔴 `16` §4.1 and `00` §10's conflict 15: the occupant is supplied here and written into the
     ///        resolution, because a partition identity is not an occupant identity and nothing downstream can
     ///        recover one from the other. This declaration is the only place the two are related.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant);
+    Result<bool> Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant);
 
     /// 🧩 The standing partitioning.
     /// pre   PartitioningStanding holds
@@ -172,11 +172,11 @@ public:
     const DerivedPartitioning& Standing() const;
 
     /// 🧩 The identity `42` issued for one standing partition.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the standing partition count, and with
+    /// out   Result  [-]  refuses with ContentUnsupported outside the standing partition count, and with
     ///                     IdentityStale when nothing has been declared since the last adoption
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<PartitionIdentity> IdentityOf(std::uint32_t PartitionOrdinal) const;
+    Result<PartitionIdentity> IdentityOf(std::uint32_t PartitionOrdinal) const;
 
     /// 🧩 Discards the standing partitioning and every identity taken against it.
     /// cost  🚩

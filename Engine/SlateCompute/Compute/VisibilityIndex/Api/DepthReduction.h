@@ -65,23 +65,23 @@ public:
     /// 🧩 Derives the level chain for one display extent.
     /// in    DisplayAlong   [px]  the display extent this reduction covers
     /// in    DisplayAcross  [px]
-    /// out   Deliver        [-]   refuses with ContentUnsupported for an extent of zero and with ExtentExhausted
+    /// out   Result        [-]   refuses with ContentUnsupported for an extent of zero and with ExtentExhausted
     ///                            above `DisplayExtentCeiling` or beyond `ReductionLevelCeiling` levels
     /// post  the chain runs from the display extent down to a single texel
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Result<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
 
     /// 🧩 One level's extent.
-    /// out   Deliver  [-]  refuses with ContentUnsupported outside the derived level count
+    /// out   Result  [-]  refuses with ContentUnsupported outside the derived level count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<ReductionLevel> Level(std::uint32_t LevelOrdinal) const;
+    Result<ReductionLevel> Level(std::uint32_t LevelOrdinal) const;
 
     /// 🧩 The coarsest level at which one projected extent is covered by a two-by-two reading.
     /// in    ProjectedAlong   [px]  the extent the partition projects to, conservative outward
     /// in    ProjectedAcross  [px]
-    /// out   Deliver          [-]   refuses with ContentUnsupported while no chain is derived
+    /// out   Result          [-]   refuses with ContentUnsupported while no chain is derived
     /// note  📐 The occlusion test reads four texels and no more, whatever the partition's projected extent. The
     ///        level is chosen so that a two-by-two reading spans the whole extent, which is what makes the test
     ///        one constant-cost comparison per partition rather than a walk proportional to what it covers.
@@ -89,7 +89,7 @@ public:
     ///        projects to nothing is sub-pixel and `16` §3 routes it to the compute path; it is not an error.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> LevelOfExtent(std::uint32_t ProjectedAlong, std::uint32_t ProjectedAcross) const;
+    Result<std::uint32_t> LevelOfExtent(std::uint32_t ProjectedAlong, std::uint32_t ProjectedAcross) const;
 
     /// 🧩 Texels the whole chain spans — what `06` claims for it.
     /// cost  ✔️

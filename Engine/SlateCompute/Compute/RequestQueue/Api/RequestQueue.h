@@ -142,7 +142,7 @@ public:
     /// 🧩 Reads back the demands recorded a recording slot count ago.
     /// in    Requesting       [-]  the queue those demands were written into
     /// in    RecordingOrdinal  [-]  the rotation now being recorded
-    /// out   Deliver          [-]  refuses with ExtentExhausted before the depth has elapsed, and with
+    /// out   Result          [-]  refuses with ExtentExhausted before the depth has elapsed, and with
     ///                             HostDenied when this rotation has already been drained
     /// post  the drained slot is emptied and is the slot the caller may write next
     /// note  🔴 Refusing a second drain of one rotation is not fussiness. A promotion pass that ran twice would
@@ -150,7 +150,7 @@ public:
     ///        budget being half what it was declared to be.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<const PageQueue*> Drain(RequestQueue& Requesting, std::uint64_t RecordingOrdinal);
+    Result<const PageQueue*> Drain(RequestQueue& Requesting, std::uint64_t RecordingOrdinal);
 
     /// 🧩 The rotation last drained; zero before anything has been.
     /// cost  ✔️

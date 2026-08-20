@@ -48,11 +48,11 @@ const RecoverySequence& DocumentSession::Journal() const
 //                                                     THE LOCATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> DocumentSession::DeclareStorage(const std::string& DeclaredPath, const std::string& JournalPath)
+Result<bool> DocumentSession::DeclareStorage(const std::string& DeclaredPath, const std::string& JournalPath)
 {
-    const Deliver<bool> Paired = Recovery.DeclareDocument(DeclaredPath, JournalPath);
+    const Result<bool> Paired = Recovery.DeclareDocument(DeclaredPath, JournalPath);
 
-    if (!Paired.ContentPresent)
+    if (!Paired.Resolved)
     {
         return Paired;
     }
@@ -60,18 +60,18 @@ Deliver<bool> DocumentSession::DeclareStorage(const std::string& DeclaredPath, c
     StoragePath     = DeclaredPath;
     StorageDeclared = StorageStanding::Declared;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE SEALING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<SealedContent> DocumentSession::Seal(const std::vector<std::uint8_t>& Encoded, std::uint64_t SealedAt) const
+Result<SealedContent> DocumentSession::Seal(const std::vector<std::uint8_t>& Encoded, std::uint64_t SealedAt) const
 {
     if (StorageDeclared != StorageStanding::Declared)
     {
-        return Deliver<SealedContent>::Refuse(
+        return Result<SealedContent>::Refuse(
             { RefusalReason::ContentUnsupported, "this session has no storage location to save to — `48` §2" });
     }
 
@@ -80,7 +80,7 @@ Deliver<SealedContent> DocumentSession::Seal(const std::vector<std::uint8_t>& En
     //    puts an edit they had not decided on into `RevisionSequence` where they meet it only afterwards.
     if (Population.Revisions().TransactionOpen())
     {
-        return Deliver<SealedContent>::Refuse(
+        return Result<SealedContent>::Refuse(
             { RefusalReason::ExtentExhausted, "a transaction is open; a save reads sealed state only — `48` §3" });
     }
 
@@ -94,7 +94,7 @@ Deliver<SealedContent> DocumentSession::Seal(const std::vector<std::uint8_t>& En
     // 📝 The revision ordinal is the **scrub position** and not the committed count. An artist who undoes three
     //    transactions and saves has saved the document they are looking at, and a journal retired against the
     //    committed count would discard the three the file does not carry.
-    return Deliver<SealedContent>::Deliver(Capturing);
+    return Result<SealedContent>::Result(Capturing);
 }
 
 void DocumentSession::DeclareSaved(const PersistenceConclusion& Concluded)
@@ -178,7 +178,7 @@ std::uint32_t DocumentSession::ReadVersion() const
 //                                                   EVERY OPEN SESSION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> SessionIndex::Open()
+Result<std::uint32_t> SessionIndex::Open()
 {
     // 📝 A closed slot is reused before the span grows, so a session opened and closed repeatedly does not walk
     //    the ordinal upward until it meets the ceiling.
@@ -194,12 +194,12 @@ Deliver<std::uint32_t> SessionIndex::Open()
             PresentedSession = static_cast<std::uint32_t>(Ordinal);
         }
 
-        return Deliver<std::uint32_t>::Deliver(static_cast<std::uint32_t>(Ordinal));
+        return Result<std::uint32_t>::Result(static_cast<std::uint32_t>(Ordinal));
     }
 
     if (Sessions.size() >= static_cast<std::size_t>(SessionCeiling))
     {
-        return Deliver<std::uint32_t>::Refuse(
+        return Result<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the declared session ceiling is reached — `48` §6" });
     }
 
@@ -213,14 +213,14 @@ Deliver<std::uint32_t> SessionIndex::Open()
         PresentedSession = Issued;
     }
 
-    return Deliver<std::uint32_t>::Deliver(Issued);
+    return Result<std::uint32_t>::Result(Issued);
 }
 
-Deliver<bool> SessionIndex::Close(std::uint32_t SessionOrdinal)
+Result<bool> SessionIndex::Close(std::uint32_t SessionOrdinal)
 {
     if (SessionOrdinal >= Sessions.size() || Sessions[SessionOrdinal] == nullptr)
     {
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "no session is open at that ordinal" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no session is open at that ordinal" });
     }
 
     Sessions[SessionOrdinal].reset();
@@ -228,7 +228,7 @@ Deliver<bool> SessionIndex::Close(std::uint32_t SessionOrdinal)
 
     if (PresentedSession != SessionOrdinal)
     {
-        return Deliver<bool>::Deliver(true);
+        return Result<bool>::Result(true);
     }
 
     // 📝 The presentation moves to the first session still open rather than to none. Closing one of two open
@@ -243,47 +243,47 @@ Deliver<bool> SessionIndex::Close(std::uint32_t SessionOrdinal)
         break;
     }
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<DocumentSession*> SessionIndex::Resolve(std::uint32_t SessionOrdinal)
+Result<DocumentSession*> SessionIndex::Resolve(std::uint32_t SessionOrdinal)
 {
     if (SessionOrdinal >= Sessions.size() || Sessions[SessionOrdinal] == nullptr)
     {
-        return Deliver<DocumentSession*>::Refuse({ RefusalReason::ExtentExhausted, "no session is open at that ordinal" });
+        return Result<DocumentSession*>::Refuse({ RefusalReason::ExtentExhausted, "no session is open at that ordinal" });
     }
 
-    return Deliver<DocumentSession*>::Deliver(Sessions[SessionOrdinal].get());
+    return Result<DocumentSession*>::Result(Sessions[SessionOrdinal].get());
 }
 
-Deliver<const DocumentSession*> SessionIndex::Resolve(std::uint32_t SessionOrdinal) const
+Result<const DocumentSession*> SessionIndex::Resolve(std::uint32_t SessionOrdinal) const
 {
     if (SessionOrdinal >= Sessions.size() || Sessions[SessionOrdinal] == nullptr)
     {
-        return Deliver<const DocumentSession*>::Refuse({ RefusalReason::ExtentExhausted, "no session is open at that ordinal" });
+        return Result<const DocumentSession*>::Refuse({ RefusalReason::ExtentExhausted, "no session is open at that ordinal" });
     }
 
-    return Deliver<const DocumentSession*>::Deliver(Sessions[SessionOrdinal].get());
+    return Result<const DocumentSession*>::Result(Sessions[SessionOrdinal].get());
 }
 
-Deliver<bool> SessionIndex::DeclarePresented(std::uint32_t SessionOrdinal)
+Result<bool> SessionIndex::DeclarePresented(std::uint32_t SessionOrdinal)
 {
     if (SessionOrdinal >= Sessions.size() || Sessions[SessionOrdinal] == nullptr)
     {
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "no session is open at that ordinal" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no session is open at that ordinal" });
     }
 
     PresentedSession = SessionOrdinal;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<DocumentSession*> SessionIndex::Presenting()
+Result<DocumentSession*> SessionIndex::Presenting()
 {
     return Resolve(PresentedSession);
 }
 
-Deliver<const DocumentSession*> SessionIndex::Presenting() const
+Result<const DocumentSession*> SessionIndex::Presenting() const
 {
     return Resolve(PresentedSession);
 }
@@ -293,7 +293,7 @@ std::uint32_t SessionIndex::PresentedOrdinal() const
     return PresentedSession;
 }
 
-Deliver<std::uint32_t> SessionIndex::Located(const std::string& StoragePath) const
+Result<std::uint32_t> SessionIndex::Located(const std::string& StoragePath) const
 {
     for (std::size_t Remaining = Sessions.size(); Remaining > 0u; --Remaining)
     {
@@ -302,10 +302,10 @@ Deliver<std::uint32_t> SessionIndex::Located(const std::string& StoragePath) con
         if (Sessions[Ordinal] == nullptr)                             { continue; }
         if (Sessions[Ordinal]->StorageOrigin() != StoragePath)        { continue; }
 
-        return Deliver<std::uint32_t>::Deliver(static_cast<std::uint32_t>(Ordinal));
+        return Result<std::uint32_t>::Result(static_cast<std::uint32_t>(Ordinal));
     }
 
-    return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no open session holds that location" });
+    return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "no open session holds that location" });
 }
 
 std::uint32_t SessionIndex::OpenCount() const

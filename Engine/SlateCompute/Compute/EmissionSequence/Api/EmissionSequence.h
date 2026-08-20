@@ -126,16 +126,16 @@ public:
 
     /// 🧩 Takes the resolver every band reads.
     /// in    Supplied  [-]  borrowed; outlives this component
-    /// out   Deliver   [-]  refuses with ContentUnsupported for an absent resolver
+    /// out   Result   [-]  refuses with ContentUnsupported for an absent resolver
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Construct(const EmissionSources& Supplied);
+    Result<bool> Construct(const EmissionSources& Supplied);
 
     /// 🧩 Opens one image of a validated emission, ready for its first band.
     /// in    Declaring     [-]  the emission specification; validated here, again, and not assumed
     /// in    Materials     [-]  the declared materials, so a channel no material declares is refused
     /// in    ImageOrdinal  [-]  which of the specification's images this emission produces
-    /// out   Deliver       [-]  refuses with HostDenied before Construct and while an emission stands, with
+    /// out   Result       [-]  refuses with HostDenied before Construct and while an emission stands, with
     ///                          ContentUnsupported outside the image count and above the extent ceiling, and
     ///                          with whatever the specification's own validation refused
     /// post  🔴 the texel run is allocated once, whole, so no band reallocates mid-emission
@@ -145,13 +145,13 @@ public:
     ///        trusting a copy, and `50` §5.1's wrong arrangement is exactly what that copy would carry.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<bool> Open(const EmissionSpecification& Declaring,
+    Result<bool> Open(const EmissionSpecification& Declaring,
                        const MaterialIndex&         Materials,
                        std::uint32_t                ImageOrdinal);
 
     /// 🧩 Resolves the next band of rows, and no more than that.
     /// in    Content   [-]  the sealed layer sequence the emission reads
-    /// out   Deliver   [-]  refuses with HostDenied before Open, with ExtentExhausted once every row is
+    /// out   Result   [-]  refuses with HostDenied before Open, with ExtentExhausted once every row is
     ///                      resolved, and with whatever `70` refused at the first position it refused at
     /// post  the delivered count is rows resolved this call; zero is never delivered
     /// note  🔴 A refusal from `70` abandons the **whole** emission rather than leaving the band half-written.
@@ -163,7 +163,7 @@ public:
     ///        near and the resolution picks one arbitrarily.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> ResolveBand(const SurfaceLayerSequence& Content);
+    Result<std::uint32_t> ResolveBand(const SurfaceLayerSequence& Content);
 
     /// 🧩 Whether rows remain to be resolved.
     /// cost  ✔️
@@ -176,13 +176,13 @@ public:
     std::uint32_t ResolvedRows() const;
 
     /// 🧩 Hands over the completed image and closes the emission.
-    /// out   Deliver  [-]  refuses with HostDenied before Open and with ExtentExhausted while rows remain
+    /// out   Result  [-]  refuses with HostDenied before Open and with ExtentExhausted while rows remain
     /// post  🔴 the emission is closed; the texels are moved out and this holds none
     /// note  🔴 Refuses while rows remain rather than delivering what stands. A partially resolved image handed
     ///        to a codec is a file that opens, looks approximately right, and is wrong along one edge.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<EmittedTexels> Seal();
+    Result<EmittedTexels> Seal();
 
     /// 🧩 Abandons the standing emission and reclaims its texels.
     /// cost  🚩

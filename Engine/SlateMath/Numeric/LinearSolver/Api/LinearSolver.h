@@ -87,7 +87,7 @@ struct SolvedSystem
 
 /// 🧩 Factorises a dense square system with partial pivoting and solves every ordinate run against it.
 /// in    Declaring  [-]  the coefficients in row order, the ordinates, and the order of both
-/// out   Deliver    [-]  refuses with ContentUnsupported for an order of zero or a supply whose extent is not
+/// out   Result    [-]  refuses with ContentUnsupported for an order of zero or a supply whose extent is not
 ///                       the order squared, and with ExtentExhausted when a pivot falls below the declared floor
 /// note  🔴 Bounded, per `02` §5. The bound is the one partial pivoting carries — growth in the eliminated
 ///        coefficients is bounded by two to the order — and it is claimed only because every consumed operation
@@ -101,7 +101,7 @@ struct SolvedSystem
 ///        the coefficients are already of one magnitude. The pivot ratio reports when that assumption failed.
 /// cost  🔴
 /// tag   api, nonthrowing
-Deliver<SolvedSystem> Solve(const DenseSystem& Declaring);
+Result<SolvedSystem> Solve(const DenseSystem& Declaring);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -110,7 +110,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 
 /// 🧩 Factorises a sparse square system and solves its single ordinate run against it.
 /// in    Declaring  [-]  the coefficients that are not zero, the ordinates, and whether definite symmetry holds
-/// out   Deliver    [-]  refuses with ContentUnsupported for an order of zero, a coefficient addressing no row or
+/// out   Result    [-]  refuses with ContentUnsupported for an order of zero, a coefficient addressing no row or
 ///                       column, an ordinate run that is not the order, or a declared symmetry the supply
 ///                       contradicts; refuses with ExtentExhausted when a pivot falls below the declared floor
 /// note  🔴 The factorisation is performed against a filled square of the declared order rather than against a
@@ -124,7 +124,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 ///        rewrite this declaration is placed here to avoid.
 /// cost  🔴
 /// tag   api, nonthrowing
-Deliver<SolvedSystem> Solve(const SparseSystem& Declaring);
+Result<SolvedSystem> Solve(const SparseSystem& Declaring);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------

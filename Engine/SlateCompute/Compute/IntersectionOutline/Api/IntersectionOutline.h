@@ -67,7 +67,7 @@ public:
 
     /// 🧩 Declares the width and the two renderings as one admission.
     /// in    Outlining_  [-]  the display-pixel width, the dash extent, and the two display-space colours
-    /// out   Deliver     [-]  refuses with ContentUnsupported for a width of nothing, a negative dash extent, an
+    /// out   Result     [-]  refuses with ContentUnsupported for a width of nothing, a negative dash extent, an
     ///                        undeclared colour, a colour that is not a coordinate in the display space, and two
     ///                        renderings that differ in neither colour nor dash
     /// post  the specification stands and every consumer below reads it
@@ -78,10 +78,10 @@ public:
     ///        a validated colour and what stands behind in one that was rejected.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(const OutlineSpecification& Outlining_);
+    Result<bool> Declare(const OutlineSpecification& Outlining_);
 
     /// 🧩 Contributes `08` §3 ⑨'s recording — coverage into `OutlineSurface`, the outline over `DisplaySurface`.
-    /// out   Deliver  [-]  refuses with whatever the schedule refused, and with ContentUnsupported before Declare
+    /// out   Result  [-]  refuses with whatever the schedule refused, and with ContentUnsupported before Declare
     /// note  🔴 Declared **display-referred**, unlike `66`. The recording amends the display surface after the
     ///        tone line, so an outline colour is display code already and the compression must never reach it.
     ///        Declared scene-referred it would be ordered among `66`'s own inputs and compressed with them, and
@@ -91,14 +91,14 @@ public:
     ///        downstream may resolve a pixel to it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Contribute(RenderSchedule& Schedule) const;
+    Result<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Whether the occupant behind one pixel is enrolled in the selection subset.
     /// in    Written      [-]  the word read back from `16`'s target
     /// in    Visibility   [-]  where the partition ordinal is resolved to a partition identity
     /// in    Resolutions  [-]  `42`'s resolution; the only place a partition becomes an occupant
     /// in    Enrollments  [-]  `12`'s compressed enrolment
-    /// out   Deliver      [-]  refuses with whatever `16` refused for an unoccupied pixel or a stale resolution
+    /// out   Result      [-]  refuses with whatever `16` refused for an unoccupied pixel or a stale resolution
     /// note  🔴 Two indexed lookups and one interval comparison — no search anywhere on this line. It runs once
     ///        per pixel of the display extent, and a member test that walked a selection would make the outline
     ///        grow in expense with the size of the selection rather than with the size of the display.
@@ -107,7 +107,7 @@ public:
     ///        edge between rotations that resolved the same geometry.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> ClassifyEnrolment(VisibilityWord                  Written,
+    Result<bool> ClassifyEnrolment(VisibilityWord                  Written,
                                     const VisibilityIndex&          Visibility,
                                     const PartitionResolutionIndex& Resolutions,
                                     const EnrollmentIndex&          Enrollments) const;
@@ -150,13 +150,13 @@ public:
 
     /// 🧩 The colour one outline pixel is recorded in.
     /// in    Occluded  [-]  as ClassifyOcclusion answered it
-    /// out   Deliver   [-]  refuses with ContentUnsupported before Declare
+    /// out   Result   [-]  refuses with ContentUnsupported before Declare
     /// note  🔴 Delivered in the display space and recorded as it stands. Nothing between here and the display
     ///        surface tone-maps, reflects or accumulates it — `26` §6's gate, and the whole reason the recording
     ///        is ordered after `66`.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<ColourSpecification> OutlineColour(bool Occluded) const;
+    Result<ColourSpecification> OutlineColour(bool Occluded) const;
 
     /// 🧩 Declares every measure; appends nothing.
     /// note  🔴 `26` appears in no row of `86` §4's register. A selection that is outlined is the component

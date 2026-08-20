@@ -51,15 +51,15 @@ namespace
 //    an inscribed file guaranteed to transcribe back into the archive it came from.
 // 🔴 The order matches ThemeDeclaration's declaration order, and the offsets are taken from the struct
 //    rather than counted by hand — a member reordered in the header cannot desynchronise this table.
-struct InkBinding
+struct ColourBinding
 {
     const char*  Key;      // [-] - the spelling in the file
-    std::size_t  Displacement;   // [B] - byte offset of the ink within ThemeDeclaration
+    std::size_t  Displacement;   // [B] - byte offset of the colour within ThemeDeclaration
 };
 
 #define SLATE_INK_BINDING(Member) { #Member, offsetof(ThemeDeclaration, Member) }
 
-constexpr InkBinding InkBindings[] = {
+constexpr ColourBinding ColourBindings[] = {
     SLATE_INK_BINDING(Ground),               SLATE_INK_BINDING(Panel),
     SLATE_INK_BINDING(Primary),              SLATE_INK_BINDING(Secondary),
     SLATE_INK_BINDING(Edge),                 SLATE_INK_BINDING(Card),
@@ -70,7 +70,7 @@ constexpr InkBinding InkBindings[] = {
 
 #undef SLATE_INK_BINDING
 
-constexpr std::uint32_t InkBindingCount = static_cast<std::uint32_t>(sizeof(InkBindings) / sizeof(InkBindings[0]));
+constexpr std::uint32_t ColourBindingCount = static_cast<std::uint32_t>(sizeof(ColourBindings) / sizeof(ColourBindings[0]));
 
 // 📝 The section stem each appearance and accent is written under. Stable spellings — renaming one would
 //    orphan every file already on disk — so they are declared here rather than derived from the caption.
@@ -113,9 +113,9 @@ std::uint32_t HexPlace(char Letter)
 }
 
 /// 📝 Reads `"#RRGGBB"` and `"#RRGGBBAA"`, quoted or bare. The eight-place form carries opacity, which is how
-///    a Partial ink survives the round trip — writing only six would silently make every translucent
+///    a Partial colour survives the round trip — writing only six would silently make every translucent
 ///    appearance opaque, and the OLED and Purplish panels are translucent by declaration.
-bool ReadInk(const char* Text, InkOrdinate& Produced)
+bool ReadColour(const char* Text, ThemeToken& Produced)
 {
     if (*Text == '"' || *Text == '\'') ++Text;
     if (*Text == '#') ++Text;
@@ -144,7 +144,7 @@ bool ReadInk(const char* Text, InkOrdinate& Produced)
 }
 
 // 📝 Quotes are stripped rather than required. A caption written bare is unambiguous in this form, and
-//    refusing it would fail a file a reader had every reason to think was correct.
+//    refusing it would fail a file a reader had every reason to thcolour was correct.
 void ReadCaption(const char* Text, char* Produced, std::uint32_t Ceiling)
 {
     std::uint32_t Written = 0u;
@@ -168,10 +168,10 @@ char Lowered(char Letter)
     return (Letter >= 'A' && Letter <= 'Z') ? static_cast<char>(Letter - 'A' + 'a') : Letter;
 }
 
-// 🔴 Every key comparison folds case, and that is a correctness property rather than a courtesy. The ink keys
+// 🔴 Every key comparison folds case, and that is a correctness property rather than a courtesy. The colour keys
 //    are written from the member spellings in `ThemeDeclaration`, which are PascalCase, while every other key
 //    in the form is lower case. A reader who evens them out by hand — the obvious thing to do to a file that
-//    presents both — would otherwise have each corrected line refused as an ink this build does not declare.
+//    presents both — would otherwise have each corrected line refused as an colour this build does not declare.
 bool Matched(const char* Named, const char* Against)
 {
     while (*Named != '\0' && *Against != '\0')
@@ -230,22 +230,22 @@ enum class SectionSubject : std::uint32_t
 //                                                      TRANSCRIBING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
+Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 {
     if (Path == nullptr || *Path == '\0')
     {
-        return Deliver<ThemeArchive>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
+        return Result<ThemeArchive>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
     }
 
     std::FILE* Stream = OpenStream(Path, "rb");
 
     if (Stream == nullptr)
     {
-        return Deliver<ThemeArchive>::Refuse({RefusalReason::HostDenied, "the appearance file could not be opened"});
+        return Result<ThemeArchive>::Refuse({RefusalReason::HostDenied, "the appearance file could not be opened"});
     }
 
     // 🔴 Seeded from the standing appearance, not from zero. A file that names only the selection leaves every
-    //    ink to the build, and a reader who deletes one line gets the compiled-in colour back rather than a
+    //    colour to the build, and a reader who deletes one line gets the compiled-in colour back rather than a
     //    transparent panel.
     ThemeArchive Produced = ThemeSpecification::Standing(ThemeSelection{});
 
@@ -258,7 +258,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
     if (!Whole)
     {
-        return Deliver<ThemeArchive>::Refuse(
+        return Result<ThemeArchive>::Refuse(
             {RefusalReason::ContentUnsupported, "the appearance file exceeded ArchiveCeiling or could not be read whole"});
     }
 
@@ -291,7 +291,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Closing == nullptr)
             {
-                return Deliver<ThemeArchive>::Refuse(
+                return Result<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "a section heading in the appearance file is unclosed"});
             }
 
@@ -310,7 +310,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Stem == nullptr)
             {
-                return Deliver<ThemeArchive>::Refuse(
+                return Result<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "a section in the appearance file names neither a theme nor an accent"});
             }
 
@@ -323,7 +323,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
                 if (Subject >= ThemeCeiling)
                 {
-                    return Deliver<ThemeArchive>::Refuse(
+                    return Result<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "the appearance file names a theme this build does not declare"});
                 }
 
@@ -337,7 +337,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
                 if (Subject >= AccentCeiling)
                 {
-                    return Deliver<ThemeArchive>::Refuse(
+                    return Result<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "the appearance file names an accent this build does not declare"});
                 }
 
@@ -345,7 +345,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
                 continue;
             }
 
-            return Deliver<ThemeArchive>::Refuse(
+            return Result<ThemeArchive>::Refuse(
                 {RefusalReason::ContentUnsupported, "the appearance file names an unreadable section"});
         }
 
@@ -353,7 +353,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
         if (Divider == nullptr)
         {
-            return Deliver<ThemeArchive>::Refuse(
+            return Result<ThemeArchive>::Refuse(
                 {RefusalReason::ContentUnsupported, "a line in the appearance file is neither a section nor an assignment"});
         }
 
@@ -364,7 +364,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
         if (Section == SectionSubject::Nowhere)
         {
-            return Deliver<ThemeArchive>::Refuse(
+            return Result<ThemeArchive>::Refuse(
                 {RefusalReason::ContentUnsupported, "the appearance file assigns a key outside every section"});
         }
 
@@ -379,7 +379,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
                 if (Ordinal >= ThemeCeiling)
                 {
-                    return Deliver<ThemeArchive>::Refuse(
+                    return Result<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "the selected theme is not one this build declares"});
                 }
 
@@ -391,7 +391,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Ordinal >= AccentCeiling)
             {
-                return Deliver<ThemeArchive>::Refuse(
+                return Result<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "a selected accent is not one this build declares"});
             }
 
@@ -404,7 +404,7 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
             else if (Matched(Key, "alert")) Produced.Selected.Alert       = Chosen;
             else
             {
-                return Deliver<ThemeArchive>::Refuse(
+                return Result<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "the selection section names a key this build does not read"});
             }
 
@@ -421,18 +421,18 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
                 continue;
             }
 
-            if (Matched(Key, "ink"))
+            if (Matched(Key, "colour"))
             {
-                if (!ReadInk(Reading, Declared.Ink))
+                if (!ReadColour(Reading, Declared.Colour))
                 {
-                    return Deliver<ThemeArchive>::Refuse(
-                        {RefusalReason::ContentUnsupported, "an accent ink is not #RRGGBB or #RRGGBBAA"});
+                    return Result<ThemeArchive>::Refuse(
+                        {RefusalReason::ContentUnsupported, "an accent colour is not #RRGGBB or #RRGGBBAA"});
                 }
 
                 continue;
             }
 
-            return Deliver<ThemeArchive>::Refuse(
+            return Result<ThemeArchive>::Refuse(
                 {RefusalReason::ContentUnsupported, "an accent section names a key this build does not read"});
         }
 
@@ -446,19 +446,19 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
         bool Bound = false;
 
-        for (std::uint32_t Ordinal = 0u; Ordinal < InkBindingCount && !Bound; ++Ordinal)
+        for (std::uint32_t Ordinal = 0u; Ordinal < ColourBindingCount && !Bound; ++Ordinal)
         {
-            if (!Matched(InkBindings[Ordinal].Key, Key)) continue;
+            if (!Matched(ColourBindings[Ordinal].Key, Key)) continue;
 
             // 📝 The offset comes from offsetof on the struct itself, so the write lands on the named member
             //    whatever order the header declares them in.
-            InkOrdinate* Placed = reinterpret_cast<InkOrdinate*>(
-                reinterpret_cast<char*>(&Declared) + InkBindings[Ordinal].Displacement);
+            ThemeToken* Placed = reinterpret_cast<ThemeToken*>(
+                reinterpret_cast<char*>(&Declared) + ColourBindings[Ordinal].Displacement);
 
-            if (!ReadInk(Reading, *Placed))
+            if (!ReadColour(Reading, *Placed))
             {
-                return Deliver<ThemeArchive>::Refuse(
-                    {RefusalReason::ContentUnsupported, "a theme ink is not #RRGGBB or #RRGGBBAA"});
+                return Result<ThemeArchive>::Refuse(
+                    {RefusalReason::ContentUnsupported, "a theme colour is not #RRGGBB or #RRGGBBAA"});
             }
 
             Bound = true;
@@ -466,23 +466,23 @@ Deliver<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
         if (!Bound)
         {
-            return Deliver<ThemeArchive>::Refuse(
-                {RefusalReason::ContentUnsupported, "a theme section names an ink this build does not declare"});
+            return Result<ThemeArchive>::Refuse(
+                {RefusalReason::ContentUnsupported, "a theme section names an colour this build does not declare"});
         }
     }
 
-    return Deliver<ThemeArchive>::Deliver(Produced);
+    return Result<ThemeArchive>::Result(Produced);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       INSCRIBING
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& Recorded)
+Result<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& Recorded)
 {
     if (Path == nullptr || *Path == '\0')
     {
-        return Deliver<bool>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
+        return Result<bool>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
     }
 
     char Staged[PathCeiling] = {};
@@ -491,7 +491,7 @@ Deliver<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
 
     if (Spanned + 5u >= PathCeiling)
     {
-        return Deliver<bool>::Refuse({RefusalReason::ExtentExhausted, "the appearance path exceeds PathCeiling"});
+        return Result<bool>::Refuse({RefusalReason::ExtentExhausted, "the appearance path exceeds PathCeiling"});
     }
 
     std::memcpy(Staged, Path, Spanned);
@@ -501,7 +501,7 @@ Deliver<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
 
     if (Stream == nullptr)
     {
-        return Deliver<bool>::Refuse({RefusalReason::HostDenied, "the staged appearance file could not be opened"});
+        return Result<bool>::Refuse({RefusalReason::HostDenied, "the staged appearance file could not be opened"});
     }
 
     std::fprintf(Stream, "# Slate \u2014 the standing appearance.\n");
@@ -529,16 +529,16 @@ Deliver<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
         std::fprintf(Stream, "\n[theme.%s]\n", ThemeStems[Ordinal]);
         std::fprintf(Stream, "caption               = \"%s\"\n", Declared.Caption);
 
-        for (std::uint32_t Bound = 0u; Bound < InkBindingCount; ++Bound)
+        for (std::uint32_t Bound = 0u; Bound < ColourBindingCount; ++Bound)
         {
-            const InkOrdinate* Placed = reinterpret_cast<const InkOrdinate*>(
-                reinterpret_cast<const char*>(&Declared) + InkBindings[Bound].Displacement);
+            const ThemeToken* Placed = reinterpret_cast<const ThemeToken*>(
+                reinterpret_cast<const char*>(&Declared) + ColourBindings[Bound].Displacement);
 
-            // 📝 The opacity place is written only when the ink is not fully covering. Six places is the form
+            // 📝 The opacity place is written only when the colour is not fully covering. Six places is the form
             //    a reader expects, and printing `FF` on every opaque colour would bury the handful that
             //    genuinely carry coverage.
             char Named[CaptionCeiling] = {};
-            LowerInto(InkBindings[Bound].Key, Named, CaptionCeiling);
+            LowerInto(ColourBindings[Bound].Key, Named, CaptionCeiling);
 
             if (Placed->Opacity == 255u)
             {
@@ -560,15 +560,15 @@ Deliver<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
         std::fprintf(Stream, "\n[accent.%s]\n", AccentStems[Ordinal]);
         std::fprintf(Stream, "caption = \"%s\"\n", Declared.Caption);
 
-        if (Declared.Ink.Opacity == 255u)
+        if (Declared.Colour.Opacity == 255u)
         {
-            std::fprintf(Stream, "ink     = \"#%02X%02X%02X\"\n",
-                         Declared.Ink.Red, Declared.Ink.Green, Declared.Ink.Blue);
+            std::fprintf(Stream, "colour     = \"#%02X%02X%02X\"\n",
+                         Declared.Colour.Red, Declared.Colour.Green, Declared.Colour.Blue);
         }
         else
         {
-            std::fprintf(Stream, "ink     = \"#%02X%02X%02X%02X\"\n",
-                         Declared.Ink.Red, Declared.Ink.Green, Declared.Ink.Blue, Declared.Ink.Opacity);
+            std::fprintf(Stream, "colour     = \"#%02X%02X%02X%02X\"\n",
+                         Declared.Colour.Red, Declared.Colour.Green, Declared.Colour.Blue, Declared.Colour.Opacity);
         }
     }
 
@@ -579,7 +579,7 @@ Deliver<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
     if (std::fclose(Stream) != 0 || Faulted)
     {
         std::remove(Staged);
-        return Deliver<bool>::Refuse({RefusalReason::HostDenied, "the staged appearance file could not be written whole"});
+        return Result<bool>::Refuse({RefusalReason::HostDenied, "the staged appearance file could not be written whole"});
     }
 
     // 📝 rename refuses across an existing file on Windows, so the destination is removed first. The window
@@ -589,24 +589,24 @@ Deliver<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
     if (std::rename(Staged, Path) != 0)
     {
         std::remove(Staged);
-        return Deliver<bool>::Refuse({RefusalReason::HostDenied, "the appearance file could not be moved into place"});
+        return Result<bool>::Refuse({RefusalReason::HostDenied, "the appearance file could not be moved into place"});
     }
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  WHERE THE FILE SITS
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> ThemeInterchange::Beside(const char*   ExecutablePath,
+Result<bool> ThemeInterchange::Beside(const char*   ExecutablePath,
                                        const char*   Leaf,
                                        char*         Produced,
                                        std::uint32_t Ceiling)
 {
     if (Produced == nullptr || Ceiling == 0u || Leaf == nullptr)
     {
-        return Deliver<bool>::Refuse({RefusalReason::ExtentExhausted, "no extent was offered for the resolved path"});
+        return Result<bool>::Refuse({RefusalReason::ExtentExhausted, "no extent was offered for the resolved path"});
     }
 
     Produced[0] = '\0';
@@ -635,14 +635,14 @@ Deliver<bool> ThemeInterchange::Beside(const char*   ExecutablePath,
 
     if (Folder + Named + 1u > static_cast<std::size_t>(Ceiling))
     {
-        return Deliver<bool>::Refuse({RefusalReason::ExtentExhausted, "the resolved appearance path exceeds the offered extent"});
+        return Result<bool>::Refuse({RefusalReason::ExtentExhausted, "the resolved appearance path exceeds the offered extent"});
     }
 
     if (Folder > 0u) std::memcpy(Produced, ExecutablePath, Folder);
 
     std::memcpy(Produced + Folder, Leaf, Named + 1u);
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 const char* ThemeInterchange::StandingLeaf()
@@ -650,29 +650,29 @@ const char* ThemeInterchange::StandingLeaf()
     return "SlateAppearance.toml";
 }
 
-Deliver<bool> ThemeInterchange::AdoptBeside(const char* ExecutablePath, ThemeSelection& Produced)
+Result<bool> ThemeInterchange::AdoptBeside(const char* ExecutablePath, ThemeSelection& Produced)
 {
     char Path[PathCeiling] = {};
 
-    const Deliver<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
+    const Result<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
 
     if (!Resolved) return Resolved;
 
-    const Deliver<ThemeArchive> Read = Transcribe(Path);
+    const Result<ThemeArchive> Read = Transcribe(Path);
 
-    if (!Read) return Deliver<bool>::Refuse(Read.Declined);
+    if (!Read) return Result<bool>::Refuse(Read.Error);
 
     ThemeSpecification::Adopt(Read.Resolve());
     Produced = Read.Resolve().Selected;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> ThemeInterchange::RecordBeside(const char* ExecutablePath, const ThemeSelection& Selected)
+Result<bool> ThemeInterchange::RecordBeside(const char* ExecutablePath, const ThemeSelection& Selected)
 {
     char Path[PathCeiling] = {};
 
-    const Deliver<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
+    const Result<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
 
     if (!Resolved) return Resolved;
 

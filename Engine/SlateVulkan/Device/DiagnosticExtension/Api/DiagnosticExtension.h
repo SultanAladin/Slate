@@ -47,7 +47,7 @@ public:
     /// in    Exchange  [-]  the constructed instance; borrowed and outlives this component
     /// in    Register  [-]  where arriving driver text is appended; borrowed and outlives this component
     /// in    Timeline  [-]  stamps each arrival where it happened; borrowed and outlives this component
-    /// out   Deliver   [-]  refuses with CapabilityAbsent when no instance stands or the loader does not
+    /// out   Result   [-]  refuses with CapabilityAbsent when no instance stands or the loader does not
     ///                      declare the capability, and with HostDenied when the driver declines the sink
     /// pre   `VulkanExchange::ConstructInstance` delivered with the diagnostic requested
     /// post  driver text arrives at `Register` until Reclaim
@@ -56,13 +56,13 @@ public:
     ///        loader does not carry it — and a link-time reference makes the whole executable unloadable there.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Construct(const VulkanExchange& Exchange, ReportSequence& Register, const TickSequence& Timeline);
+    Result<bool> Construct(const VulkanExchange& Exchange, ReportSequence& Register, const TickSequence& Timeline);
 
     /// 🧩 Names one vendor object, so the driver's text names the object rather than an address.
     /// in    Subject       [-]  which vendor structure the handle names, as the vendor spells it
     /// in    VendorHandle  [-]  the object, widened to the vendor's own naming width
     /// in    DeclaredName  [-]  static text; the driver copies it and nothing here retains it
-    /// out   Deliver       [-]  refuses with CapabilityAbsent when no device stands, and with HostDenied when
+    /// out   Result       [-]  refuses with CapabilityAbsent when no device stands, and with HostDenied when
     ///                          the driver declines the name
     /// note  🔴 `06` §7's gate — every device object Slate creates carries a diagnostic name in Debug — is
     ///        discharged at each **claim site**, not here. This is the one mechanism that can name an object;
@@ -79,14 +79,14 @@ public:
     ///        component hold a mutable reference to a capability it only reads.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(VkObjectType Subject, std::uint64_t VendorHandle, const char* DeclaredName) const;
+    Result<bool> Declare(VkObjectType Subject, std::uint64_t VendorHandle, const char* DeclaredName) const;
 
     /// 🧩 Names one vendor object by a static prefix and the ordinal its owning component holds it at.
     /// in    Subject        [-]  which vendor structure the handle names, as the vendor spells it
     /// in    VendorHandle   [-]  the object, widened to the vendor's own naming width
     /// in    DeclaredPrefix [-]  static text naming what the object is; the ordinal is appended to it
     /// in    Ordinal        [-]  the slot the owning component resolves the object by
-    /// out   Deliver        [-]  refuses as the two-operand form does, and with ContentUnsupported when the
+    /// out   Result        [-]  refuses as the two-operand form does, and with ContentUnsupported when the
     ///                           composed text does not fit the extent it is composed in
     /// note  🔴 The composition is here rather than at each claim site. Eight components name objects by their
     ///        own ordinal, and eight separate compositions is eight places where one of them formats the
@@ -96,7 +96,7 @@ public:
     ///        retained here.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(VkObjectType   Subject,
+    Result<bool> Declare(VkObjectType   Subject,
                           std::uint64_t  VendorHandle,
                           const char*    DeclaredPrefix,
                           std::uint32_t  Ordinal) const;

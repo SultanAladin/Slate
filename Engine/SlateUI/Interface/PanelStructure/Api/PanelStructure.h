@@ -78,35 +78,35 @@ public:
     void Construct(PanelSubject InitialSubject = PanelSubject::Viewport);
 
     /// 🧩 Replaces one leaf by an equal binary division and seats a vacant leaf on the requested side.
-    /// out   Deliver  [-]  refuses for a stale or divided ordinal, or when two slots are unavailable
+    /// out   Result  [-]  refuses for a stale or divided ordinal, or when two slots are unavailable
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Divide(std::uint32_t LeafOrdinal,
+    Result<bool> Divide(std::uint32_t LeafOrdinal,
                          PanelDivisionAxis Axis,
                          PanelDivisionSide VacantSide);
 
     /// 🧩 Removes one leaf and promotes the opposite side into its enclosing slot.
-    /// out   Deliver  [-]  refuses for a stale ordinal and for the sole root leaf
+    /// out   Result  [-]  refuses for a stale ordinal and for the sole root leaf
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Withdraw(std::uint32_t LeafOrdinal);
+    Result<bool> Withdraw(std::uint32_t LeafOrdinal);
 
     /// 🧩 Changes what one leaf presents.
-    /// out   Deliver  [-]  refuses for a stale or divided ordinal and an unsupported subject
+    /// out   Result  [-]  refuses for a stale or divided ordinal and an unsupported subject
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Assign(std::uint32_t LeafOrdinal, PanelSubject Subject);
+    Result<bool> Assign(std::uint32_t LeafOrdinal, PanelSubject Subject);
 
     /// 🧩 Changes one division's least-side fraction, clamped to the reference's five-percent limits.
-    /// out   Deliver  [-]  refuses for a stale leaf ordinal
+    /// out   Result  [-]  refuses for a stale leaf ordinal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Proportion(std::uint32_t DivisionOrdinal, float LeastFraction);
+    Result<bool> Proportion(std::uint32_t DivisionOrdinal, float LeastFraction);
 
     /// 🧩 Reads one occupied record; an unoccupied ordinal refuses as stale.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<PanelRecord> Standing(std::uint32_t Ordinal) const;
+    Result<PanelRecord> Standing(std::uint32_t Ordinal) const;
 
     /// 🧩 Whether the partition contains more than its sole root leaf.
     /// cost  ✔️

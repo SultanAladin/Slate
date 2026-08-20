@@ -161,19 +161,19 @@ public:
     static constexpr std::uint32_t ResolveAmendmentOrdinal = 20u;   // [-] - ⑤·ii amends `RadianceSurface`
 
     /// 🧩 Contributes ⑤·i — the collection that writes `TransmissionIndex` and no depth.
-    /// out   Deliver  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule refused
     /// note  🔴 Produces `TransmissionIndex` and amends nothing. Every fragment is inserted with an atomic
     ///        sorted insertion, so no depth write is performed and the opaque resolution `16` produced stands
     ///        untouched.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> ContributeCollection(RenderSchedule& Schedule) const;
+    Result<bool> ContributeCollection(RenderSchedule& Schedule) const;
 
     /// 🧩 Contributes ⑤·ii — the resolution that amends `RadianceSurface` back to front.
-    /// out   Deliver  [-]  refuses with whatever the schedule refused
+    /// out   Result  [-]  refuses with whatever the schedule refused
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> ContributeResolution(RenderSchedule& Schedule) const;
+    Result<bool> ContributeResolution(RenderSchedule& Schedule) const;
 
     /// 🧩 Inserts one fragment into one pixel's column, in depth order.
     /// in    Column        [-]  the column, amended in place

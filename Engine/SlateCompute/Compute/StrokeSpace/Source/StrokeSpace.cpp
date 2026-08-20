@@ -26,20 +26,20 @@ void StrokeSpace::Construct()
 //                                                    CLAIM AND LOCATE
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<std::uint32_t> StrokeSpace::Claim(std::uint32_t CellOrdinal)
+Result<std::uint32_t> StrokeSpace::Claim(std::uint32_t CellOrdinal)
 {
     if (TileOfCell.empty())
         Construct();
 
     if (CellOrdinal >= CellOrdinalSpan)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such cell" });
 
     if (TileOfCell[CellOrdinal] != AbsentTile)
-        return Deliver<std::uint32_t>::Deliver(TileOfCell[CellOrdinal]);
+        return Result<std::uint32_t>::Result(TileOfCell[CellOrdinal]);
 
     if (Claimed.size() >= CoverageTileCeiling)
     {
-        return Deliver<std::uint32_t>::Refuse(
+        return Result<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the stroke touched more cells than the accumulation holds" });
     }
 
@@ -52,15 +52,15 @@ Deliver<std::uint32_t> StrokeSpace::Claim(std::uint32_t CellOrdinal)
 
     TileOfCell[CellOrdinal] = TileOrdinal;
 
-    return Deliver<std::uint32_t>::Deliver(TileOrdinal);
+    return Result<std::uint32_t>::Result(TileOrdinal);
 }
 
-Deliver<std::uint32_t> StrokeSpace::Located(std::uint32_t CellOrdinal) const
+Result<std::uint32_t> StrokeSpace::Located(std::uint32_t CellOrdinal) const
 {
     if (CellOrdinal >= TileOfCell.size() || TileOfCell[CellOrdinal] == AbsentTile)
-        return Deliver<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the stroke has not touched it" });
+        return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the stroke has not touched it" });
 
-    return Deliver<std::uint32_t>::Deliver(TileOfCell[CellOrdinal]);
+    return Result<std::uint32_t>::Result(TileOfCell[CellOrdinal]);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

@@ -66,10 +66,10 @@ public:
     /// 🧩 Opens a transaction. Nothing enters the sequence until it is sealed.
     /// in    Description   [-]  what `84` presents; empty defers to OperationName
     /// in    OperationName [-]  the mechanism's spelling, always supplied
-    /// out   Deliver       [-]  refuses when a transaction is already open
+    /// out   Result       [-]  refuses when a transaction is already open
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Open(const std::string& Description, const std::string& OperationName);
+    Result<bool> Open(const std::string& Description, const std::string& OperationName);
 
     /// 🧩 Ends the open transaction with no effect. The prior content is restored by the caller.
     /// cost  ✔️
@@ -79,23 +79,23 @@ public:
     /// 🧩 Ends the open transaction and enters exactly one transaction into the sequence.
     /// in    SealedAt      [ns]  the arrival stamp at which the edit ended
     /// in    MergeDeclared [-]   whether this operation declares itself mergeable — never inferred
-    /// out   Deliver       [-]   refuses when no transaction is open
+    /// out   Result       [-]   refuses when no transaction is open
     /// post  the scrub position is the end of the sequence
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Seal(std::uint64_t SealedAt, bool MergeDeclared);
+    Result<bool> Seal(std::uint64_t SealedAt, bool MergeDeclared);
 
     /// 🧩 Scrubs one transaction backwards, replaying its inverse.
-    /// out   Deliver  [-]  refuses when the scrub position is already at the beginning
+    /// out   Result  [-]  refuses when the scrub position is already at the beginning
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Retreat();
+    Result<bool> Retreat();
 
     /// 🧩 Scrubs one transaction forwards, replaying its forward operation.
-    /// out   Deliver  [-]  refuses when the scrub position is already at the end
+    /// out   Result  [-]  refuses when the scrub position is already at the end
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Advance();
+    Result<bool> Advance();
 
     /// 🧩 The committed transactions, in order, for `84` to present.
     /// cost  ✔️

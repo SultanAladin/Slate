@@ -54,7 +54,7 @@ inline constexpr std::uint32_t CaptionCeiling = 32u;   // [-] - longest caption 
 //                                                ONE DECLARED APPEARANCE
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 One appearance — the caption a reader picks it by, and every ink a panel draws it with.
+/// 🧩 One appearance — the caption a reader picks it by, and every colour a panel draws it with.
 /// note  🔴 The caption is stored inline rather than pointed at. A declaration read from a stream owns no
 ///        literal for a pointer to name, and a caption pointing into the record that carried it dangles
 ///        the moment that record is copied. Inline storage makes the whole declaration copyable, which is
@@ -64,27 +64,27 @@ inline constexpr std::uint32_t CaptionCeiling = 32u;   // [-] - longest caption 
 struct ThemeDeclaration
 {
     char         Caption[CaptionCeiling] = {};   // [-] - NUL-terminated; presented verbatim
-    InkOrdinate  Ground                  = {};   // [-] - the appearance behind everything
-    InkOrdinate  Panel                   = {};   // [-] - the standing panel body
-    InkOrdinate  Primary                 = {};   // [-] - text that carries meaning
-    InkOrdinate  Secondary               = {};   // [-] - text that qualifies it
-    InkOrdinate  Edge                    = {};   // [-] - the hairline between surfaces
-    InkOrdinate  Card                    = {};   // [-] - a raised tile on the panel
-    InkOrdinate  PreviewGround           = {};   // [-] - the appearance tile's own ground
-    InkOrdinate  PreviewWindow           = {};   // [-] - the window drawn inside that tile
-    InkOrdinate  PreviewSidebar          = {};   // [-] - the rail drawn inside that window
-    InkOrdinate  PreviewSidebarQuiet     = {};   // [-] - a resting row on that rail
-    InkOrdinate  PreviewSidebarStrong    = {};   // [-] - the selected row on that rail
-    InkOrdinate  PreviewQuiet            = {};   // [-] - a resting row in the window body
-    InkOrdinate  PreviewStrong           = {};   // [-] - the selected row in the window body
+    ThemeToken  Ground                  = {};   // [-] - the appearance behind everything
+    ThemeToken  Panel                   = {};   // [-] - the standing panel body
+    ThemeToken  Primary                 = {};   // [-] - text that carries meaning
+    ThemeToken  Secondary               = {};   // [-] - text that qualifies it
+    ThemeToken  Edge                    = {};   // [-] - the hairline between surfaces
+    ThemeToken  Card                    = {};   // [-] - a raised tile on the panel
+    ThemeToken  PreviewGround           = {};   // [-] - the appearance tile's own ground
+    ThemeToken  PreviewWindow           = {};   // [-] - the window drawn inside that tile
+    ThemeToken  PreviewSidebar          = {};   // [-] - the rail drawn inside that window
+    ThemeToken  PreviewSidebarQuiet     = {};   // [-] - a resting row on that rail
+    ThemeToken  PreviewSidebarStrong    = {};   // [-] - the selected row on that rail
+    ThemeToken  PreviewQuiet            = {};   // [-] - a resting row in the window body
+    ThemeToken  PreviewStrong           = {};   // [-] - the selected row in the window body
 };
 
-/// 🧩 One semantic accent — the caption a reader picks it by, and the single ink it contributes.
+/// 🧩 One semantic accent — the caption a reader picks it by, and the single colour it contributes.
 /// tag   contract, nonallocating, nonthrowing
 struct AccentDeclaration
 {
     char         Caption[CaptionCeiling] = {};   // [-] - NUL-terminated; presented verbatim
-    InkOrdinate  Ink                     = {};   // [-] - fully covering in every declared accent
+    ThemeToken  Colour                     = {};   // [-] - fully covering in every declared accent
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -107,8 +107,8 @@ struct ThemeSelection
 
 /// 🧩 The whole standing appearance as one value — what the selection is, and what the selected things are.
 /// note  🔴 Both halves travel together on purpose. Persisting the selection alone would name an appearance
-///        whose inks a later build had silently redefined, and the artist's chosen colours would change
-///        without the file that records them changing. Persisting the inks alone would forget which of
+///        whose colours a later build had silently redefined, and the artist's chosen colours would change
+///        without the file that records them changing. Persisting the colours alone would forget which of
 ///        them was chosen. The pair is the smallest thing that reproduces what was on screen.
 /// note  Copyable and free of pointers, so it crosses the stream edge and the unit seam by value.
 /// tag   contract, nonallocating, nonthrowing
@@ -123,7 +123,7 @@ struct ThemeArchive
 //                                                THE STANDING APPEARANCE
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The one appearance the whole interface reads. Every panel resolves its inks through here rather than
+/// 🧩 The one appearance the whole interface reads. Every panel resolves its colours through here rather than
 ///    carrying its own, so an appearance adopted from a stream reaches every panel on the next tick.
 /// note  🔴 Static rather than instanced, and deliberately. A second instance would be a second appearance,
 ///        and the defect it produces is two panels drawn from different themes in the same window — which
@@ -150,7 +150,7 @@ public:
     ///                      appearance is the one outcome no panel can present honestly
     /// post  every later Theme and Accent call reads the adopted declarations
     /// note  ⚠️ References previously returned by Theme or Accent remain valid — the storage is static and is
-    ///        overwritten in place — but the inks behind them change. Nothing should retain one across a tick.
+    ///        overwritten in place — but the colours behind them change. Nothing should retain one across a tick.
     /// cost  ✔️
     static void Adopt(const ThemeArchive& Arriving);
 
@@ -175,25 +175,25 @@ public:
 /// 🧩 Restates a resolved appearance in the chosen theme, so every panel draws the artist's colours.
 /// in    Resolved  [-]  the appearance as `Resolve` produced it — every extent already multiplied
 /// in    Selected  [-]  the theme and the accents the artist chose
-/// out   Appearance  [-]  the same record with every ink re-anchored; not one length is touched
-/// note  🔴 The mapping is a re-anchoring, not a replacement. Each ink is read for its luminance, that
+/// out   Appearance  [-]  the same record with every colour re-anchored; not one length is touched
+/// note  🔴 The mapping is a re-anchoring, not a replacement. Each colour is read for its luminance, that
 ///        luminance is located on the reference theme's own ladder, and the same position is read back off
-///        the chosen theme's ladder. Two properties follow, and both are load-bearing. An ink keeps its
+///        the chosen theme's ladder. Two properties follow, and both are load-bearing. An colour keeps its
 ///        standing among its neighbours, so a row that was one step above its ground stays one step above
 ///        it in every theme. And mapping a ladder through itself is the identity — under `Oled`, which is
-///        what the references were transcribed against, every ink resolves to the literal it was ported as.
+///        what the references were transcribed against, every colour resolves to the literal it was ported as.
 ///        `ThemeSpecificationHeldIdentity` asserts exactly that, so a drift in this arithmetic is a refused
 ///        build rather than six themes that each look slightly wrong.
 /// note  ⚠️ Coverage is carried through untouched. A hairline at four per cent of white is a hairline at four
 ///        per cent in every theme; re-anchoring its opacity would erase the hairline on a light appearance.
 /// note  📐 A theme's own hue rides along in its ladder, so `Purplish` and `Bluish` tint every panel without
-///        naming a single panel ink — which is the whole reason the ladder is read from the theme rather
+///        naming a single panel colour — which is the whole reason the ladder is read from the theme rather
 ///        than from a fixed grey run.
 /// use   Called by a host at bring-up and again whenever the Control Centre reports a different selection.
-/// note  📐 Roughly two hundred inks re-anchored; once a theme change, never per tick.
+/// note  📐 Roughly two hundred colours re-anchored; once a theme change, never per tick.
 /// cost  🚩
 /// tag   api, nonallocating, nonthrowing
-AppearanceSpecification Tinted(const AppearanceSpecification& Resolved, const ThemeSelection& Selected);
+ThemeProfile Tinted(const ThemeProfile& Resolved, const ThemeSelection& Selected);
 
 /// 🧩 Resolves the appearance against the display and then restates it in the standing theme, in one call.
 /// in    DisplayScale  [-]  what the window system reports; values at or below zero resolve at one
@@ -204,7 +204,7 @@ AppearanceSpecification Tinted(const AppearanceSpecification& Resolved, const Th
 /// use   The one call a host makes; it replaces a bare `Resolve` at every host that has a theme to honour.
 /// cost  🚩
 /// tag   api, nonallocating, nonthrowing
-AppearanceSpecification ResolveTinted(double                DisplayScale,
+ThemeProfile ResolveTinted(double                DisplayScale,
                                       double                ArtistScale,
                                       float                 ExtentAlong,
                                       const ThemeSelection& Selected);

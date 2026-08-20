@@ -84,10 +84,10 @@ bool IntervalEnrolled(const std::vector<EnrolledInterval>& Runs, std::uint32_t O
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> EnrollmentIndex::Enrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset)
+Result<bool> EnrollmentIndex::Enrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset)
 {
     if (!Subject.IdentityDeclared())
-        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity enrols in nothing" });
+        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity enrols in nothing" });
 
     // 🔴 Decided before anything is written. A rejected enrolment leaves no partial state, which is what
     //    lets the caller abandon its transaction rather than repair it.
@@ -97,7 +97,7 @@ Deliver<bool> EnrollmentIndex::Enrol(OccupantIdentity Subject, SubsetSubject Enr
 
         if (SubsetsExclusive(EnrolledSubset, Standing) && Enrolled(Subject, Standing))
         {
-            return Deliver<bool>::Refuse(
+            return Result<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "a mutually exclusive subset already holds the occupant" });
         }
     }
@@ -109,24 +109,24 @@ Deliver<bool> EnrollmentIndex::Enrol(OccupantIdentity Subject, SubsetSubject Enr
     if (EnrolInterval(Runs, Subject.SlotOrdinal))
         ++SubsetCounts[static_cast<std::size_t>(EnrolledSubset)];
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> EnrollmentIndex::Unenrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset)
+Result<bool> EnrollmentIndex::Unenrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset)
 {
     if (!Subject.IdentityDeclared())
-        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity enrols in nothing" });
+        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "an undeclared identity enrols in nothing" });
 
     std::vector<EnrolledInterval>& Runs        = SubsetIntervals[static_cast<std::size_t>(EnrolledSubset)];
     const std::uint32_t            SlotOrdinal = Subject.SlotOrdinal;
     const std::size_t              Located     = LocateInterval(Runs, SlotOrdinal);
 
     if (Located >= Runs.size() || Runs[Located].FirstOrdinal > SlotOrdinal)
-        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant was not enrolled here" });
+        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant was not enrolled here" });
 
     const EnrolledInterval Held = Runs[Located];
 
@@ -157,7 +157,7 @@ Deliver<bool> EnrollmentIndex::Unenrol(OccupantIdentity Subject, SubsetSubject E
 
     --SubsetCounts[static_cast<std::size_t>(EnrolledSubset)];
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void EnrollmentIndex::UnenrolEverywhere(OccupantIdentity Subject)

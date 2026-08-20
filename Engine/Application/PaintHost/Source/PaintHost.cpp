@@ -124,7 +124,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     HostLifecycle Lifetime;
 
-    if (!Lifetime.Construct(Declared).ContentPresent)
+    if (!Lifetime.Construct(Declared).Resolved)
         return 1;
 
     // ② The viewport sequence — springs, drawers, and the assembled recording.
@@ -140,7 +140,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     SouthDrawer.TongueSubject = SymbolSubject::FolderClosed;
     SouthDrawer.PoseCount     = 3u;
 
-    if (!Viewport.Construct(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).ContentPresent)
+    if (!Viewport.Construct(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
     {
         std::printf("%s \u2014 the viewport sequence was refused\n", HostName);
         return 1;
@@ -216,25 +216,25 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 📝 Which dock node the next enrolled workspace is seated into; zero means the main dock space.
     std::uint32_t  EnrolIntoNode = 0u;
 
-    if (!Workspace.Construct(Viewport.Surface(), Viewport.Appearance()).ContentPresent)
+    if (!Workspace.Construct(Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the workspace panel was refused\n", HostName);
         return 1;
     }
 
-    if (!WorkspacePanels.Construct(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).ContentPresent)
+    if (!WorkspacePanels.Construct(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the editor panels were refused\n", HostName);
         return 1;
     }
 
-    if (!ControlCentre.Construct(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).ContentPresent)
+    if (!ControlCentre.Construct(Viewport.MotionSource(), Viewport.Surface(), Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the Control Centre panel was refused\n", HostName);
         return 1;
     }
 
-    if (!BrowserLedger.Construct(Viewport.MotionSource()).ContentPresent)
+    if (!BrowserLedger.Construct(Viewport.MotionSource()).Resolved)
     {
         std::printf("%s \u2014 the content browser ledger was refused\n", HostName);
         return 1;
@@ -243,7 +243,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     // 🔴 The browser carries its OWN ledger, as every panel here does, so its enrolment cannot exhaust the
     //    Control Centre's. Read — an enrolment refusal is silent at the call site and a browser that was
     //    refused records nothing at all, which reads as a drawer that opens onto blank ground.
-    if (!ContentBrowser.Construct(BrowserLedger, Viewport.Surface()).ContentPresent)
+    if (!ContentBrowser.Construct(BrowserLedger, Viewport.Surface()).Resolved)
     {
         std::printf("%s \u2014 the content browser was refused\n", HostName);
         return 1;
@@ -256,8 +256,8 @@ int main(int ArgumentCount, char** ArgumentValues)
 
     // 📝 One workspace open by default, of the subject this host is for. A host that opened none would show
     //    the vacant run on first launch, which reads as a failure rather than as a fresh start.
-    const Deliver<std::uint32_t> DefaultWorkspace = Workspaces.Enrol(DefaultSubject);
-    if (!DefaultWorkspace.ContentPresent)
+    const Result<std::uint32_t> DefaultWorkspace = Workspaces.Enrol(DefaultSubject);
+    if (!DefaultWorkspace.Resolved)
     {
         std::printf("%s \u2014 the default workspace could not be opened\n", HostName);
         return 1;
@@ -268,7 +268,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    default to 0.0f, at which a patched build draws stock rectangular tabs — so this call is what
     //    turns the trapezoid on.
     if (!Viewport.Seam().SeatWorkspaceStyle(Viewport.Appearance().WorkspaceMeasure,
-                                                 Viewport.Appearance().Workspace).ContentPresent)
+                                                 Viewport.Appearance().Workspace).Resolved)
     {
         std::printf("%s \u2014 the workspace style was not seated\n", HostName);
     }
@@ -300,7 +300,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         if (Lifetime.DeviceRecovered())
         {
             // 📝 Not reclaimed here: the retiring tick above already did it, while the device lived.
-            if (!Viewport.Construct(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).ContentPresent)
+            if (!Viewport.Construct(Attach(Lifetime.Offering()), NorthDrawer, SouthDrawer).Resolved)
             {
                 std::printf("%s \u2014 the interface could not be rebuilt on the recovered device\n", HostName);
                 break;
@@ -331,7 +331,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         // ④ Build the interface tick. A refusal here abandons the tick's content, and the recording is
         //    still surrendered — an empty rendering scope presents the cleared ground, which is correct
         //    and is what the artist sees for one tick.
-        if (Viewport.Advance(Pass.ElapsedMilliseconds).ContentPresent)
+        if (Viewport.Advance(Pass.ElapsedMilliseconds).Resolved)
         {
             // 🔴 The workspace is recorded FIRST and the drawers over it. One background draw list, so
             //    the order of recording IS the z-order — and the previous arrangement recorded the
@@ -419,8 +419,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                 //    recorded until then. Seating it against the main space instead is what put a new
                 //    workspace in the wrong window.
                 EnrolIntoNode = AskingNode;
-                const Deliver<std::uint32_t> EnrolledWorkspace = Workspaces.Enrol(DefaultSubject);
-                if (EnrolledWorkspace.ContentPresent)
+                const Result<std::uint32_t> EnrolledWorkspace = Workspaces.Enrol(DefaultSubject);
+                if (EnrolledWorkspace.Resolved)
                     PanelPartitions[EnrolledWorkspace.Resolve()].Construct(PanelSubject::Viewport);
             }
 
@@ -429,8 +429,8 @@ int main(int ArgumentCount, char** ArgumentValues)
             //    on that ground enrols one, which is the way out of a state that otherwise has none.
             if (OpenCount == 0u && Viewport.Seam().VacantPressed(Whole))
             {
-                const Deliver<std::uint32_t> EnrolledWorkspace = Workspaces.Enrol(DefaultSubject);
-                if (EnrolledWorkspace.ContentPresent)
+                const Result<std::uint32_t> EnrolledWorkspace = Workspaces.Enrol(DefaultSubject);
+                if (EnrolledWorkspace.Resolved)
                     PanelPartitions[EnrolledWorkspace.Resolve()].Construct(PanelSubject::Viewport);
             }
 
@@ -499,7 +499,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             ControlCentre.Exclude(Viewport.Drawers());
             Disregard(Viewport.Surface().Relayer(RecordingSurface::ShellLayer::Beneath));
 
-            if (Viewport.SealPanels().ContentPresent)
+            if (Viewport.SealPanels().Resolved)
             {
                 // 🔴 Read. A refused Record presents the cleared ground with nothing on it, which is
                 //    indistinguishable from a panel that drew nothing, so the refusal is named here.
@@ -520,7 +520,7 @@ int main(int ArgumentCount, char** ArgumentValues)
 
         // ⑤ Close the scope, submit, present, advance. A refused present re-establishes the chain rather
         //    than ending the loop.
-        if (!Lifetime.Surrender().ContentPresent)
+        if (!Lifetime.Surrender().Resolved)
             break;
     }
 

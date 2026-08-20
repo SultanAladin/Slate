@@ -139,18 +139,18 @@ OrientationCone CloseCone(double SummedX, double SummedY, double SummedZ, double
 //                                                    THE DERIVATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Imported,
+Result<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Imported,
                                                 const TopologyConditioning& Conditioned)
 {
     if (!Imported.Sealed())
     {
-        return Deliver<DerivedPartitioning>::Refuse(
+        return Result<DerivedPartitioning>::Refuse(
             { RefusalReason::HostDenied, "an unsealed topology may still be declared into" });
     }
 
     if (Conditioned.ConditionedRevision() != Imported.Revision())
     {
-        return Deliver<DerivedPartitioning>::Refuse(
+        return Result<DerivedPartitioning>::Refuse(
             { RefusalReason::ContentUnsupported, "the conditioning describes another revision of this topology" });
     }
 
@@ -158,7 +158,7 @@ Deliver<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
     if (FaceCeiling == 0u)
     {
-        return Deliver<DerivedPartitioning>::Refuse(
+        return Result<DerivedPartitioning>::Refuse(
             { RefusalReason::ContentUnsupported, "a topology of no face partitions into nothing" });
     }
 
@@ -166,7 +166,7 @@ Deliver<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
     if (static_cast<std::uint32_t>(FaceExtents.size()) != FaceCeiling)
     {
-        return Deliver<DerivedPartitioning>::Refuse(
+        return Result<DerivedPartitioning>::Refuse(
             { RefusalReason::ContentUnsupported, "the conditioning carries an extent count the topology does not" });
     }
 
@@ -204,7 +204,7 @@ Deliver<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
         if (static_cast<std::uint64_t>(Derived.Partitions.size()) + 1u >= static_cast<std::uint64_t>(AbsentPartition))
         {
-            return Deliver<DerivedPartitioning>::Refuse(
+            return Result<DerivedPartitioning>::Refuse(
                 { RefusalReason::ExtentExhausted, "the partition count would reach the ordinal reserved for absence" });
         }
 
@@ -264,13 +264,13 @@ Deliver<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
             for (std::uint32_t Step = 0u; Step < CornerRun; ++Step)
             {
-                const Deliver<std::uint32_t> Across = Conditioned.AdjacentCorner(FirstCorner + Step);
+                const Result<std::uint32_t> Across = Conditioned.AdjacentCorner(FirstCorner + Step);
 
                 // 📝 🔴 A refusal is where the surface stops, not where the derivation failed. `38` refuses at a
                 //    boundary edge and at a non-manifold one rather than choosing among several faces, so the
                 //    front simply does not cross here and the count is what `86` reads the partitioning's
                 //    fragmentation from.
-                if (!Across.ContentPresent)
+                if (!Across.Resolved)
                 {
                     ++Derived.Metrics.BoundaryRefusalCount;
                     continue;
@@ -350,21 +350,21 @@ Deliver<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Impo
 
     if (Derived.Partitions.empty())
     {
-        return Deliver<DerivedPartitioning>::Refuse(
+        return Result<DerivedPartitioning>::Refuse(
             { RefusalReason::ContentUnsupported, "every face of the topology is enrolled as zero-extent" });
     }
 
-    return Deliver<DerivedPartitioning>::Deliver(Derived);
+    return Result<DerivedPartitioning>::Result(Derived);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                               ADOPTION AND DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> PartitionStructure::Adopt(const DerivedPartitioning& Arriving)
+Result<bool> PartitionStructure::Adopt(const DerivedPartitioning& Arriving)
 {
     if (Arriving.Partitions.empty())
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "a partitioning of no partition stands for nothing" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a partitioning of no partition stands for nothing" });
 
     StandingPartitioning = Arriving;
 
@@ -376,16 +376,16 @@ Deliver<bool> PartitionStructure::Adopt(const DerivedPartitioning& Arriving)
     ++AdoptedRevision;
     PartitioningAdopted = true;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
-Deliver<bool> PartitionStructure::Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant)
+Result<bool> PartitionStructure::Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant)
 {
     if (!PartitioningAdopted)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "no partitioning stands to declare" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no partitioning stands to declare" });
 
     if (!Occupant.IdentityDeclared())
-        return Deliver<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant identity names no slot" });
+        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "the occupant identity names no slot" });
 
     Identities.clear();
     Identities.reserve(StandingPartitioning.Partitions.size());
@@ -398,22 +398,22 @@ Deliver<bool> PartitionStructure::Declare(PartitionResolutionIndex& Resolutions,
         Resolving.FirstFace       = Standing.FirstFace;
         Resolving.FaceCount       = Standing.FaceCount;
 
-        const Deliver<PartitionIdentity> Issued = Resolutions.Declare(Resolving);
+        const Result<PartitionIdentity> Issued = Resolutions.Declare(Resolving);
 
-        if (!Issued.ContentPresent)
+        if (!Issued.Resolved)
         {
             // 📝 The retained identities are dropped on a partial declaration. Half a partitioning declared is
             //    one where `IdentityOf` answers for the low ordinals and refuses for the high ones, and the
             //    caller reads that as a partitioning with a hole rather than as this refusal.
             Identities.clear();
 
-            return Deliver<bool>::Refuse(Issued.Declined);
+            return Result<bool>::Refuse(Issued.Error);
         }
 
         Identities.push_back(Issued.Resolve());
     }
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void PartitionStructure::Reclaim()
@@ -433,18 +433,18 @@ const DerivedPartitioning& PartitionStructure::Standing() const
     return StandingPartitioning;
 }
 
-Deliver<PartitionIdentity> PartitionStructure::IdentityOf(std::uint32_t PartitionOrdinal) const
+Result<PartitionIdentity> PartitionStructure::IdentityOf(std::uint32_t PartitionOrdinal) const
 {
     if (PartitionOrdinal >= static_cast<std::uint32_t>(StandingPartitioning.Partitions.size()))
-        return Deliver<PartitionIdentity>::Refuse({ RefusalReason::ContentUnsupported, "no such partition" });
+        return Result<PartitionIdentity>::Refuse({ RefusalReason::ContentUnsupported, "no such partition" });
 
     if (Identities.size() != StandingPartitioning.Partitions.size())
     {
-        return Deliver<PartitionIdentity>::Refuse(
+        return Result<PartitionIdentity>::Refuse(
             { RefusalReason::IdentityStale, "nothing has been declared since the partitioning was adopted" });
     }
 
-    return Deliver<PartitionIdentity>::Deliver(Identities[PartitionOrdinal]);
+    return Result<PartitionIdentity>::Result(Identities[PartitionOrdinal]);
 }
 
 bool PartitionStructure::PartitioningStanding() const

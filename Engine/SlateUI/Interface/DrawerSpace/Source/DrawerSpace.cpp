@@ -48,30 +48,30 @@ PlaneExtent Reach(const PlaneExtent& Exact)
 //                                                      CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> DrawerSpace::Construct(MotionIntegrator&              Integrator,
-                                     const AppearanceSpecification& Resolved,
+Result<bool> DrawerSpace::Construct(MotionIntegrator&              Integrator,
+                                     const ThemeProfile& Resolved,
                                      const DrawerDeclaration&       North,
                                      const DrawerDeclaration&       South,
                                      const DisplayCondition&        Arrived)
 {
     if (Arrived.ExtentAlong <= 0.0f || Arrived.ExtentAcross <= 0.0f)
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display extent is not positive" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display extent is not positive" });
 
     if (Motion != nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::HostDenied, "the arrangement already stands" });
+        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the arrangement already stands" });
 
     // 📝 🔴 All four enrolments are attempted before any ordinal is retained. An integrator that declines
     //    the third delivers slot zero for it, and the south tongue would then drive the north drawer's
     //    across ordinate — a defect with no operand and no error.
-    const Deliver<std::uint32_t> NorthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
-    const Deliver<std::uint32_t> NorthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
-    const Deliver<std::uint32_t> SouthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
-    const Deliver<std::uint32_t> SouthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
+    const Result<std::uint32_t> NorthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
+    const Result<std::uint32_t> NorthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
+    const Result<std::uint32_t> SouthAcross = Integrator.EnrolSpring(Resolved.Motion, 0.0);
+    const Result<std::uint32_t> SouthTongue = Integrator.EnrolSpring(Resolved.Motion, 0.0);
 
-    if (!NorthAcross.ContentPresent || !NorthTongue.ContentPresent ||
-        !SouthAcross.ContentPresent || !SouthTongue.ContentPresent)
+    if (!NorthAcross.Resolved || !NorthTongue.Resolved ||
+        !SouthAcross.Resolved || !SouthTongue.Resolved)
     {
-        return Deliver<bool>::Refuse({ RefusalReason::ExtentExhausted, "the integrator declined a drawer spring" });
+        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the integrator declined a drawer spring" });
     }
 
     Motion       = &Integrator;
@@ -94,7 +94,7 @@ Deliver<bool> DrawerSpace::Construct(MotionIntegrator&              Integrator,
     Seat(DrawerBearing::North, DrawerPose::Closed);
     Seat(DrawerBearing::South, DrawerPose::Closed);
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void DrawerSpace::Reset()
@@ -761,7 +761,7 @@ void DrawerSpace::Record(RecordingSurface& Surface, DrawerBearing Bearing) const
 
 void DrawerSpace::RecordOne(RecordingSurface& Surface, DrawerBearing Bearing) const
 {
-    const SurfaceInk&  Ink      = Appearance->Ink;
+    const SurfaceColour&  Colour      = Appearance->Colour;
     const MetricScale& Measure  = Appearance->Measure;
     const DrawerSlot&  Standing = Slot(Bearing);
     const PlaneExtent  Occupied = Body(Bearing);
@@ -772,17 +772,17 @@ void DrawerSpace::RecordOne(RecordingSurface& Surface, DrawerBearing Bearing) co
     if (Visible)
     {
         // ① The drawer body.
-        Surface.Ground(Occupied, Ink.SurfaceStanding, 0.0f, CornerNone);
+        Surface.Ground(Occupied, Colour.SurfaceStanding, 0.0f, CornerNone);
 
         // ② The one edge the source declares — a rule on the travelling side only.
         const float EdgeAcross = Northern ? Occupied.MostAcross : Occupied.LeastAcross;
 
         Surface.Ground(PlaneExtent{ Occupied.LeastAlong, EdgeAcross - (Northern ? 1.0f : 0.0f),
                                     Occupied.MostAlong,  EdgeAcross + (Northern ? 0.0f : 1.0f) },
-                       Ink.EdgeQuiet, 0.0f, CornerNone);
+                       Colour.EdgeQuiet, 0.0f, CornerNone);
 
         // ③ The grip pill, centred along, lifted from the travelling edge.
-        Surface.Ground(Grip(Bearing), Ink.GripPill, Measure.GripAcross * 0.5f, CornerAll);
+        Surface.Ground(Grip(Bearing), Colour.GripPill, Measure.GripAcross * 0.5f, CornerAll);
     }
 
     // ④ The tongue's clipped outline — always drawn so the notch is reachable when closed.
@@ -797,7 +797,7 @@ void DrawerSpace::RecordOne(RecordingSurface& Surface, DrawerBearing Bearing) co
     const float SouthOutline[8] = { Least + Inset, Upper, Most - Inset,  Upper,
                                     Most,          Lower, Least,         Lower };
 
-    Surface.Tongue(Northern ? NorthOutline : SouthOutline, 4u, Ink.SurfaceSunken);
+    Surface.Tongue(Northern ? NorthOutline : SouthOutline, 4u, Colour.SurfaceSunken);
 
     // ⑤ The tongue's figure and its run, measured together and centred inside the pad.
     const char* Caption = Standing.Declared.Caption;
@@ -809,11 +809,11 @@ void DrawerSpace::RecordOne(RecordingSurface& Surface, DrawerBearing Bearing) co
     Surface.Stroke(Standing.Declared.TongueSubject,
                    Spanning(Origin, Middle - Measure.SymbolTongue * 0.5f,
                             Measure.SymbolTongue, Measure.SymbolTongue),
-                   Ink.InkPrimary);
+                   Colour.ColourPrimary);
 
     Surface.TextRunCapitalised(Origin + Measure.SymbolTongue + Measure.TongueGapAlong,
                                Middle - Measure.TextSmall * 0.5f,
-                               Ink.InkPrimary, Caption, Measure.TextSmall, Measure.TrackingWide, true);
+                               Colour.ColourPrimary, Caption, Measure.TextSmall, Measure.TrackingWide, true);
 }
 
 }   // namespace Slate

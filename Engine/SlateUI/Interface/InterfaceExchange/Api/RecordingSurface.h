@@ -45,7 +45,7 @@ constexpr PlaneExtent Spanning(float Along, float Across, float ExtentAlong, flo
     return PlaneExtent{ Along, Across, Along + ExtentAlong, Across + ExtentAcross };
 }
 
-/// 🧩 Which axis a scrim's ink varies along.
+/// 🧩 Which axis a scrim's colour varies along.
 /// note  The ordinate axis is declared first and carries the ordinal zero, so the enumeration's default and
 ///       the scrim's default are the same statement rather than two that must be kept agreeing.
 /// tag   contract
@@ -96,7 +96,7 @@ struct DisplayCondition
     float   ExtentAlong  = 0.0f;   // [px] - the drawable extent
     float   ExtentAcross = 0.0f;   // [px]
     double  Elapsed      = 0.0;    // [ms] - since the previous tick; what every interpolant is advanced by
-    double  DisplayScale = 1.0;    // [-]  - what AppearanceSpecification was resolved against
+    double  DisplayScale = 1.0;    // [-]  - what ThemeProfile was resolved against
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -177,7 +177,7 @@ public:
     ~RecordingSurface()                                  = default;
 
     /// 🧩 Binds this surface to the open interface tick and samples the arrived condition.
-    /// out   Deliver  [-]  refuses with CapabilityAbsent when no interface context is current
+    /// out   Result  [-]  refuses with CapabilityAbsent when no interface context is current
     /// post  Pointer and Display report this tick; every recording method is valid until Seal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -198,7 +198,7 @@ public:
     /// in    Layer    [-]  which side of the window stack this tick's content is laid on
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Adopt(ShellLayer Layer = ShellLayer::Beneath);
+    Result<bool> Adopt(ShellLayer Layer = ShellLayer::Beneath);
 
     /// 🧩 Moves the standing tick's recordings to the other shell layer, without re-adopting it.
     /// in    Layer    [-]  which side of the window stack subsequent recordings land on
@@ -209,15 +209,15 @@ public:
     /// note  ⚠️ Refuses when no tick stands adopted, so a layer change cannot open one by accident.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> Relayer(ShellLayer Layer);
+    Result<bool> Relayer(ShellLayer Layer);
 
     /// 🧩 Moves subsequent primitives into the currently open workspace window's command list.
-    /// out   Deliver  [-]  refuses when no tick or no workspace window stands open
+    /// out   Result  [-]  refuses when no tick or no workspace window stands open
     /// note  Used only between `InterfaceExchange::EnterWorkspaceWindow` and `LeaveWorkspaceWindow` so panel
     ///       content clips and orders with its own dockable window instead of the global shell layers.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Deliver<bool> RelayerWindow();
+    Result<bool> RelayerWindow();
 
     /// 🧩 What the pointer did this tick.
     /// cost  ✔️
@@ -236,18 +236,18 @@ public:
     /// 🧩 Fills an extent, optionally rounding the named corners.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    void Ground(const PlaneExtent& Extent, InkOrdinate Ink, float Radius = 0.0f, std::uint32_t Corners = CornerAll);
+    void Ground(const PlaneExtent& Extent, ThemeToken Colour, float Radius = 0.0f, std::uint32_t Corners = CornerAll);
 
     /// 🧩 Strokes an extent's edge inward from its stated corners.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    void Edge(const PlaneExtent& Extent, InkOrdinate Ink, float Weight = 1.0f,
+    void Edge(const PlaneExtent& Extent, ThemeToken Colour, float Weight = 1.0f,
               float Radius = 0.0f, std::uint32_t Corners = CornerAll);
 
-    /// 🧩 Fills an extent with a linearly varying ink — the card's caption scrim, and the ruler's fade.
-    /// in    UpperInk  [-]  at LeastAcross, or at LeastAlong when the axis is Along
-    /// in    LowerInk  [-]  at MostAcross, or at MostAlong when the axis is Along
-    /// in    Axis      [-]  which axis the ink varies along; the default is what every existing caller means
+    /// 🧩 Fills an extent with a linearly varying colour — the card's caption scrim, and the ruler's fade.
+    /// in    UpperColour  [-]  at LeastAcross, or at LeastAlong when the axis is Along
+    /// in    LowerColour  [-]  at MostAcross, or at MostAlong when the axis is Along
+    /// in    Axis      [-]  which axis the colour varies along; the default is what every existing caller means
     /// note  📐 A four-stop ramp is two of these. `Controls.html` masks its ruler with
     ///       `linear-gradient(to right, transparent, black 20%, black 80%, transparent)`, which records as one
     ///       Along scrim over the leading fifth and a second, reversed, over the trailing fifth. Declaring a
@@ -255,27 +255,27 @@ public:
     ///       where the sheet that states them could never be compared against them.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    void Scrim(const PlaneExtent& Extent, InkOrdinate UpperInk, InkOrdinate LowerInk,
+    void Scrim(const PlaneExtent& Extent, ThemeToken UpperColour, ThemeToken LowerColour,
                ScrimAxis Axis = ScrimAxis::Across);
 
     /// 🧩 Covers the four areas outside a rounded extent after rectangular gradients were recorded into it.
-    /// in    OutsideInk  [-]  the surrounding ground restored at each corner
+    /// in    OutsideColour  [-]  the surrounding ground restored at each corner
     /// in    Radius      [px] the rounded corner radius
     /// cost  🚩
     /// tag   api, nonthrowing
-    void MaskCorners(const PlaneExtent& Extent, InkOrdinate OutsideInk, float Radius);
+    void MaskCorners(const PlaneExtent& Extent, ThemeToken OutsideColour, float Radius);
 
     /// 🧩 Fills a disc — every medallion and the meta separator.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    void Medallion(float CentreAlong, float CentreAcross, float Radius, InkOrdinate Ink);
+    void Medallion(float CentreAlong, float CentreAcross, float Radius, ThemeToken Colour);
 
     /// 🧩 Fills a convex outline of up to eight corners — the drawer tongue's clip polygon.
     /// in    Corners      [px] alternating along and across ordinates, in winding order
     /// in    CornerCount  [-]  three to eight; anything else records nothing
     /// cost  ✔️
     /// tag   api, nonthrowing
-    void Tongue(const float* Corners, std::uint32_t CornerCount, InkOrdinate Ink);
+    void Tongue(const float* Corners, std::uint32_t CornerCount, ThemeToken Colour);
 
     //--------------------------------------------------------------------------------------------------------
     //                                                 SYMBOLS
@@ -287,7 +287,7 @@ public:
     /// in    TurnRadians   [rad] rotation about the declared square's centre; zero preserves the figure
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Stroke(SymbolSubject Subject, const PlaneExtent& SquareExtent, InkOrdinate Ink,
+    void Stroke(SymbolSubject Subject, const PlaneExtent& SquareExtent, ThemeToken Colour,
                 float TurnRadians = 0.0f);
 
     //--------------------------------------------------------------------------------------------------------
@@ -301,21 +301,21 @@ public:
     ///        `Emphatic` stands in for all three until a typeface with real weights is intaken.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void TextRun(float Along, float Across, InkOrdinate Ink, const char* Text,
+    void TextRun(float Along, float Across, ThemeToken Colour, const char* Text,
                  float PointSize, float Tracking = 0.0f, bool Emphatic = false);
 
     /// 🧩 Records a run in capitals, for the two small-capital captions the source declares.
     /// note  ⚠️ ASCII only. A capital of a codepoint outside ASCII is a locale question, not a formatting one.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void TextRunCapitalised(float Along, float Across, InkOrdinate Ink, const char* Text,
+    void TextRunCapitalised(float Along, float Across, ThemeToken Colour, const char* Text,
                             float PointSize, float Tracking = 0.0f, bool Emphatic = false);
 
     /// 🧩 Records a run truncated to a stated extent, with a trailing ellipsis when it did not fit.
     /// note  The ellipsis is three full stops rather than U+2026, which the default typeface does not carry.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void TextRunTruncated(float Along, float Across, float CeilingAlong, InkOrdinate Ink,
+    void TextRunTruncated(float Along, float Across, float CeilingAlong, ThemeToken Colour,
                           const char* Text, float PointSize, bool Emphatic = false);
 
     /// 🧩 The extent a run would occupy, without recording it.

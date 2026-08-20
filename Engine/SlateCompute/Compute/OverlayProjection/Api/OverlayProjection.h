@@ -102,7 +102,7 @@ public:
     /// 🧩 Declares how one overlay is drawn.
     /// in    Presented  [-]  which of `80` §3's seven overlays
     /// in    Declaring  [-]  its display-space colour, its display-pixel extent, and its depth offset
-    /// out   Deliver    [-]  refuses with ContentUnsupported for the closed count, an undeclared colour, a colour
+    /// out   Result    [-]  refuses with ContentUnsupported for the closed count, an undeclared colour, a colour
     ///                       that is not a coordinate in the display space, an extent of nothing, and a depth offset
     ///                       declared on an overlay whose recording tests no depth
     /// post  the overlay is declared and its recording draws it wherever `76` says it is present
@@ -113,11 +113,11 @@ public:
     ///        as an offset that had no effect, and the caller then raises it until something else breaks.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(OverlaySubject Presented, const OverlaySpecification& Declaring);
+    Result<bool> Declare(OverlaySubject Presented, const OverlaySpecification& Declaring);
 
     /// 🧩 Contributes both of `08` §3's overlay recordings — ⑩ depth-tested, ⑪ depth-free.
     /// in    Schedule  [-]  where the two declarations land
-    /// out   Deliver   [-]  refuses with whatever the schedule refused, and with ContentUnsupported before any
+    /// out   Result   [-]  refuses with whatever the schedule refused, and with ContentUnsupported before any
     ///                      overlay has been declared
     /// note  🔴 **Two** declarations, never one. `08` §3.2 and `80` §5's first gate: a single recording carrying both
     ///        behaviours would have to switch depth state per primitive, which is the merge both documents refuse.
@@ -127,7 +127,7 @@ public:
     ///        inputs and compressed with the radiance, which is §2's failure exactly.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Contribute(RenderSchedule& Schedule) const;
+    Result<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Whether one overlay is presented this rotation, as `76` holds it.
     /// in    Tooling    [-]  `76`, the one owner of overlay presence
@@ -153,10 +153,10 @@ public:
 
     /// 🧩 How one declared overlay is drawn.
     /// in    Presented  [-]  which overlay
-    /// out   Deliver    [-]  refuses with ContentUnsupported for the closed count and for an overlay never declared
+    /// out   Result    [-]  refuses with ContentUnsupported for the closed count and for an overlay never declared
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<const OverlaySpecification*> Specification(OverlaySubject Presented) const;
+    Result<const OverlaySpecification*> Specification(OverlaySubject Presented) const;
 
     /// 🧩 Declares how many overlays each recording drew; appends nothing.
     /// in    Tooling   [-]  `76`, read for presence

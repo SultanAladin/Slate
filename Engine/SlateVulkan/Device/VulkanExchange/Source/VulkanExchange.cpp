@@ -18,7 +18,7 @@ namespace Slate
 //                                                       INSTANCE
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> VulkanExchange::ConstructInstance(bool DiagnosticRequested)
+Result<bool> VulkanExchange::ConstructInstance(bool DiagnosticRequested)
 {
     VkApplicationInfo ApplicationDeclaration = {};
     ApplicationDeclaration.sType             = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -118,24 +118,24 @@ Deliver<bool> VulkanExchange::ConstructInstance(bool DiagnosticRequested)
     if (vkCreateInstance(&InstanceDeclaration, nullptr, &InstanceSlot) != VK_SUCCESS)
     {
         InstanceSlot = VK_NULL_HANDLE;
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no Vulkan instance was created" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no Vulkan instance was created" });
     }
 
     DiagnosticEnabled = DiagnosticRequested;
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                        DEVICE
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
+Result<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
 {
     std::uint32_t CandidateCount = 0u;
     vkEnumeratePhysicalDevices(InstanceSlot, &CandidateCount, nullptr);
 
     if (CandidateCount == 0u)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device was enumerated" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device was enumerated" });
 
     std::vector<VkPhysicalDevice> Candidates(CandidateCount);
     vkEnumeratePhysicalDevices(InstanceSlot, &CandidateCount, Candidates.data());
@@ -151,14 +151,14 @@ Deliver<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
     }
 
     if (Winner.Ranking == 0u)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device both draws and presents" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device both draws and presents" });
 
     // 📝 🔴 `SlateUI` declares its recording against a rendering scope carrying its own attachment
     //    declaration, so a device without dynamic recording is refused here, by the name of the capability
     //    it lacks. Creating the device anyway would surface the same absence later as an opaque vendor
     //    error at the first interface recording, with nothing naming what was missing.
     if (!Winner.Scored.DynamicRecordingAvailable)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the scored device offers no dynamic recording" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the scored device offers no dynamic recording" });
 
     const float QueuePriority = 1.0f;
 
@@ -188,7 +188,7 @@ Deliver<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
     if (vkCreateDevice(Winner.Candidate, &DeviceDeclaration, nullptr, &ActiveDeviceSlot) != VK_SUCCESS)
     {
         ActiveDeviceSlot = VK_NULL_HANDLE;
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the scored device declined creation" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the scored device declined creation" });
     }
 
     // 📝 🔴 The capability set is fixed here and consulted thereafter. Recovery re-scores rather than
@@ -199,7 +199,7 @@ Deliver<bool> VulkanExchange::ConstructDevice(VkSurfaceKHR PresentationSurface)
 
     vkGetDeviceQueue(ActiveDeviceSlot, ScoredCapability.GraphicsFamilyOrdinal, 0u, &GraphicsQueueSlot);
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

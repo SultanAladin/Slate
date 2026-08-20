@@ -141,13 +141,13 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 /// 🧩 Projects one colour into a declared space, transfers and white point included.
 /// in    Arriving  [-]  the colour, carrying the space it is a coordinate in
 /// in    Target    [-]  the space to express it in
-/// out   Deliver   [-]  refuses with ContentUnsupported when either space is undeclared
+/// out   Result   [-]  refuses with ContentUnsupported when either space is undeclared
 /// note  🔴 The whole conversion in one call: decode the arriving transfer, project the primaries, adapt the
 ///        white point, encode the target transfer. Exposing the four apart invites a caller to omit one, and the
 ///        omission that matters — the transfer — produces an image that is merely "a bit washed out".
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Deliver<ColourSpecification> Project(ColourSpecification             Arriving,
+Result<ColourSpecification> Project(ColourSpecification             Arriving,
                                     const ColourSpaceSpecification& ArrivingSpace,
                                     const ColourSpaceSpecification& Target);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
@@ -157,7 +157,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 /// in    TristimulusY  [-]
 /// in    TristimulusZ  [-]
 /// in    Target        [-]  the space to express it in
-/// out   Deliver       [-]  refuses with ContentUnsupported for an undeclared or degenerate target space
+/// out   Result       [-]  refuses with ContentUnsupported for an undeclared or degenerate target space
 /// note  🔴 No white adaptation is applied. A tristimulus coordinate is absolute and carries no white of its
 ///        own; whether it needs adapting is a fact about the spectrum that produced it, which this routine
 ///        cannot see. `ProjectTemperature` adapts before calling here, because a locus coordinate **is** a
@@ -167,7 +167,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 ///        nothing new is exposed by it.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Deliver<ColourSpecification> ProjectTristimulus(double                          TristimulusX,
+Result<ColourSpecification> ProjectTristimulus(double                          TristimulusX,
                                                 double                          TristimulusY,
                                                 double                          TristimulusZ,
                                                 const ColourSpaceSpecification& Target);
@@ -198,12 +198,12 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 
 /// 🧩 Derives a white point coordinate from a declared correlated colour temperature.
 /// in    Temperature  [K]  1667 to 25000; outside that the locus approximation is refused
-/// out   Deliver      [-]  refuses with ContentUnsupported outside the declared interval
+/// out   Result      [-]  refuses with ContentUnsupported outside the declared interval
 /// note  🔴 `36` §5: the temperature is retained as the authored value by whoever declared it. An artist who set
 ///        5600 expects to see 5600 when they return, and a coordinate cannot be inverted back to it exactly.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Deliver<ColourSpecification> ProjectTemperature(double                          Temperature,
+Result<ColourSpecification> ProjectTemperature(double                          Temperature,
                                                const ColourSpaceSpecification& Target);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 

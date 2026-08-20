@@ -189,12 +189,12 @@ public:
     /// 🧩 One measure's current reading.
     /// in    Origin    [-]  static text naming document and section
     /// in    Measured  [-]  static text naming the quantity
-    /// out   Deliver   [-]  refuses with ExtentExhausted when nothing has declared it
+    /// out   Result   [-]  refuses with ExtentExhausted when nothing has declared it
     /// note  An undeclared measure refuses rather than reading zero. `08` §5 rules the same for an unmeasurable
     ///        capability: a metric that reports zero when it could not be measured is confidently wrong.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<SampledMeasure> Resolve(const char* Origin, const char* Measured) const;
+    Result<SampledMeasure> Resolve(const char* Origin, const char* Measured) const;
 
     /// 🧩 Discards every held measure.
     /// cost  ✔️

@@ -26,17 +26,17 @@ constexpr bool OverlayDeclarable(OverlaySubject Presented)
 
 }   // namespace
 
-Deliver<bool> OverlayProjection::Declare(OverlaySubject Presented, const OverlaySpecification& Declaring)
+Result<bool> OverlayProjection::Declare(OverlaySubject Presented, const OverlaySpecification& Declaring)
 {
     if (!OverlayDeclarable(Presented))
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the closed count is not an overlay" });
     }
 
     if (!Declaring.OverlayColour.ColourDeclared())
     {
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported, "an overlay colour declares no space" });
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "an overlay colour declares no space" });
     }
 
     // 🔴 `80` §2: both recordings run after `66` and nothing between here and the display surface compresses. A
@@ -44,13 +44,13 @@ Deliver<bool> OverlayProjection::Declare(OverlaySubject Presented, const Overlay
     //    reads as an overlay in a plausible but wrong hue rather than as a mistake.
     if (Declaring.OverlayColour.SpaceIdentity != DisplaySpaceIdentity)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "an overlay colour is not a coordinate in the display space" });
     }
 
     if (!(Declaring.LineExtent > 0.0))
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a line extent of nothing draws the overlay at no pixel" });
     }
 
@@ -59,7 +59,7 @@ Deliver<bool> OverlayProjection::Declare(OverlaySubject Presented, const Overlay
     //    until something the offset does reach breaks instead.
     if (DepthOfOverlay(Presented) == DepthSubject::DepthFree && Declaring.DepthOffset != 0.0)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a depth-free overlay tests no depth to offset — `80` §1" });
     }
 
@@ -69,18 +69,18 @@ Deliver<bool> OverlayProjection::Declare(OverlaySubject Presented, const Overlay
     DeclarationStanding[Ordinal] = true;
     OverlayDeclared              = true;
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE RECORDINGS
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> OverlayProjection::Contribute(RenderSchedule& Schedule) const
+Result<bool> OverlayProjection::Contribute(RenderSchedule& Schedule) const
 {
     if (!OverlayDeclared)
     {
-        return Deliver<bool>::Refuse(
+        return Result<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "no overlay was declared to record" });
     }
 
@@ -101,9 +101,9 @@ Deliver<bool> OverlayProjection::Contribute(RenderSchedule& Schedule) const
     Tested.DisplayReferred    = true;
     Tested.AmendmentOrdinal   = DepthTestedOrdinal;
 
-    const Deliver<bool> TestedContributed = Schedule.Contribute(Tested);
+    const Result<bool> TestedContributed = Schedule.Contribute(Tested);
 
-    if (!TestedContributed.ContentPresent)
+    if (!TestedContributed.Resolved)
     {
         return TestedContributed;
     }
@@ -160,11 +160,11 @@ bool OverlayProjection::RecordingOccupied(const ToolSequence& Tooling, DepthSubj
     return false;
 }
 
-Deliver<const OverlaySpecification*> OverlayProjection::Specification(OverlaySubject Presented) const
+Result<const OverlaySpecification*> OverlayProjection::Specification(OverlaySubject Presented) const
 {
     if (!OverlayDeclarable(Presented))
     {
-        return Deliver<const OverlaySpecification*>::Refuse(
+        return Result<const OverlaySpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "the closed count is not an overlay" });
     }
 
@@ -172,11 +172,11 @@ Deliver<const OverlaySpecification*> OverlayProjection::Specification(OverlaySub
 
     if (!DeclarationStanding[Ordinal])
     {
-        return Deliver<const OverlaySpecification*>::Refuse(
+        return Result<const OverlaySpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "that overlay was never declared" });
     }
 
-    return Deliver<const OverlaySpecification*>::Deliver(&Declared[Ordinal]);
+    return Result<const OverlaySpecification*>::Result(&Declared[Ordinal]);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

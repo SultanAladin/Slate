@@ -21,14 +21,14 @@ namespace Slate
 //                                                      FACET CONTRACT
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 Names every available facet and optionally gives each one a classification ink.
-/// note  Options, inks and enabled ordinates remain owned by the caller. The panel borrows them for one tick.
+/// 🧩 Names every available facet and optionally gives each one a classification colour.
+/// note  Options, colours and enabled ordinates remain owned by the caller. The panel borrows them for one tick.
 /// tag   contract, nonallocating, nonthrowing
 struct FacetDeclaration
 {
     const char*         Caption       = "Filters";             // [-] - card heading
     const char* const*  Options       = nullptr;               // [-] - all available facet captions
-    const InkOrdinate*  Inks          = nullptr;               // [-] - optional classification inks
+    const ThemeToken*  Colours          = nullptr;               // [-] - optional classification colours
     std::uint32_t       OptionCount   = 0u;                    // [-] - options and enabled ordinates
     std::uint32_t       LockedOrdinal = 0xFFFFFFFFu;           // [-] - active facet that cannot be removed
 };
@@ -46,14 +46,14 @@ public:
     static constexpr std::uint32_t FacetCapacity = 24u;   // [-] - bounded available facets
     static constexpr std::uint32_t AbsentFacet   = 0xFFFFFFFFu;
 
-    Deliver<bool> Construct(MotionIntegrator& Motion,
+    Result<bool> Construct(MotionIntegrator& Motion,
                             RecordingSurface& Surface,
-                            const AppearanceSpecification& Appearance);
+                            const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Arrived, double Elapsed);
     float MeasureAcross(float ExtentAlong,
                         const FacetDeclaration& Declared,
                         const bool* Enabled) const;
-    Deliver<bool> Record(const PlaneExtent& Extent,
+    Result<bool> Record(const PlaneExtent& Extent,
                          const FacetDeclaration& Declared,
                          bool* Enabled);
     void RecordDeferred();
@@ -75,11 +75,11 @@ private:
                         const FacetDeclaration& Declared,
                         const bool* Enabled) const;
     bool Pressed(std::uint32_t Ordinal, const PlaneExtent& Extent);
-    InkOrdinate FacetInk(const FacetDeclaration& Declared, std::uint32_t Ordinal) const;
+    ThemeToken FacetColour(const FacetDeclaration& Declared, std::uint32_t Ordinal) const;
 
     MotionIntegrator* Motion = nullptr;
     RecordingSurface* Surface = nullptr;
-    const AppearanceSpecification* Appearance = nullptr;
+    const ThemeProfile* Appearance = nullptr;
     InteractionIndex Interaction = {};
     ComponentSpecification SharedControls = {};
     ControlIdentity Controls[FacetCapacity + 2u] = {};

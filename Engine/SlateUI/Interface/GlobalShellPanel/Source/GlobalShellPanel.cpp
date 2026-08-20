@@ -35,8 +35,8 @@ constexpr float Between(float Departed, float Arriving, float Fraction)
     return Departed + (Arriving - Departed) * Fraction;
 }
 
-/// 🧩 The same ink at a declared fraction of its own coverage.
-constexpr InkOrdinate Faded(InkOrdinate Declared, float Fraction)
+/// 🧩 The same colour at a declared fraction of its own coverage.
+constexpr ThemeToken Faded(ThemeToken Declared, float Fraction)
 {
     const float Bounded = Held(Fraction, 0.0f, 1.0f);
     Declared.Opacity    = static_cast<std::uint8_t>(static_cast<float>(Declared.Opacity) * Bounded + 0.5f);
@@ -95,7 +95,7 @@ SymbolSubject EntityGlyph(EntitySubject Subject)
     }
 }
 
-InkOrdinate EntityHue(EntitySubject Subject)
+ThemeToken EntityHue(EntitySubject Subject)
 {
     // 📐 The reference's `COLORS` record, transcribed verbatim from `components/GameOutliner.tsx`.
     switch (Subject)
@@ -130,7 +130,7 @@ const char* EntityText(EntitySubject Subject)
     }
 }
 
-InkOrdinate RevisionHue(RevisionSubject Classified)
+ThemeToken RevisionHue(RevisionSubject Classified)
 {
     // 📐 The reference's `REVISION_HUE` record, transcribed verbatim from `components/Inspector.tsx`.
     switch (Classified)
@@ -166,7 +166,7 @@ const char* RevisionText(RevisionSubject Classified)
     }
 }
 
-InkOrdinate ClassificationTint(LayerClassification Classified)
+ThemeToken ClassificationTint(LayerClassification Classified)
 {
     // 📐 The reference's `KINDS` record, transcribed verbatim from `components/TexturePaint.tsx`.
     switch (Classified)
@@ -209,14 +209,14 @@ ShellMetric ScaleShellLengths(float Factor)
 //                                                       BRING-UP
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> GlobalShellPanel::Construct(InteractionIndex&              Interaction,
+Result<bool> GlobalShellPanel::Construct(InteractionIndex&              Interaction,
                                           MotionIntegrator&              Integrator,
                                           RecordingSurface&              Surface,
-                                          const AppearanceSpecification& Resolved)
+                                          const ThemeProfile& Resolved)
 {
     if (Ledger != nullptr)
     {
-        return Deliver<bool>::Refuse({ RefusalReason::ContentUnsupported,
+        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the shell panel is already constructed" });
     }
 
@@ -225,10 +225,10 @@ Deliver<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
     this->Surface = &Surface;
     Appearance = &Resolved;
 
-    if (!Controls.Construct(Interaction, Surface, Resolved).ContentPresent)
+    if (!Controls.Construct(Interaction, Surface, Resolved).Resolved)
     {
         Reset();
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent,
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent,
                                        "the shared inspector controls were refused" });
     }
 
@@ -248,12 +248,12 @@ Deliver<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
 
     for (ControlIdentity* Claiming : Every)
     {
-        const Deliver<ControlIdentity> Issued = Interaction.Enrol();
+        const Result<ControlIdentity> Issued = Interaction.Enrol();
 
-        if (!Issued.ContentPresent)
+        if (!Issued.Resolved)
         {
             Reset();
-            return Deliver<bool>::Refuse(Issued.Declined);
+            return Result<bool>::Refuse(Issued.Error);
         }
 
         *Claiming = Issued.Resolve();
@@ -269,12 +269,12 @@ Deliver<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
 
         for (ControlIdentity* Claiming : PerRow)
         {
-            const Deliver<ControlIdentity> Issued = Interaction.Enrol();
+            const Result<ControlIdentity> Issued = Interaction.Enrol();
 
-            if (!Issued.ContentPresent)
+            if (!Issued.Resolved)
             {
                 Reset();
-                return Deliver<bool>::Refuse(Issued.Declined);
+                return Result<bool>::Refuse(Issued.Error);
             }
 
             *Claiming = Issued.Resolve();
@@ -293,12 +293,12 @@ Deliver<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
 
         for (ControlIdentity* Claiming : PerLayer)
         {
-            const Deliver<ControlIdentity> Issued = Interaction.Enrol();
+            const Result<ControlIdentity> Issued = Interaction.Enrol();
 
-            if (!Issued.ContentPresent)
+            if (!Issued.Resolved)
             {
                 Reset();
-                return Deliver<bool>::Refuse(Issued.Declined);
+                return Result<bool>::Refuse(Issued.Error);
             }
 
             *Claiming = Issued.Resolve();
@@ -307,19 +307,19 @@ Deliver<bool> GlobalShellPanel::Construct(InteractionIndex&              Interac
 
     // 📐 The two-slide strip. The reference translates it by `-translate-x-1/2` over 300 ms on
     //    cubic-bezier(.5,.05,.2,1), which `EaseCurve::Carousel` already names exactly.
-    const Deliver<std::uint32_t> Enrolled = Integrator.EnrolEased(0.0);
+    const Result<std::uint32_t> Enrolled = Integrator.EnrolEased(0.0);
 
-    if (!Enrolled.ContentPresent)
+    if (!Enrolled.Resolved)
     {
         Reset();
-        return Deliver<bool>::Refuse(Enrolled.Declined);
+        return Result<bool>::Refuse(Enrolled.Error);
     }
 
     CarouselSlide = Enrolled.Resolve();
 
     Reseat(Resolved);
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 void GlobalShellPanel::Advance(const PointerCondition& Contact, double Elapsed)
@@ -328,11 +328,11 @@ void GlobalShellPanel::Advance(const PointerCondition& Contact, double Elapsed)
     Controls.Advance(Contact, Elapsed);
 }
 
-void GlobalShellPanel::Reseat(const AppearanceSpecification& Resolved)
+void GlobalShellPanel::Reseat(const ThemeProfile& Resolved)
 {
     Appearance = &Resolved;
 
-    // 🔴 The inks are taken from the appearance rather than left at their compiled-in declarations, which is
+    // 🔴 The colours are taken from the appearance rather than left at their compiled-in declarations, which is
     //    what carries a theme into the shell. `Reseat` is already called at construction and again on every
     //    display change, so the one line below is also the whole of the shell's theme response.
     Tinted = Resolved.Shell;
@@ -496,8 +496,8 @@ bool GlobalShellPanel::AdvanceSummoning(ShellOrdinates& Seated, bool Summoned, b
 //                                                    THE SHARED CHROME
 //------------------------------------------------------------------------------------------------------------------------
 
-void GlobalShellPanel::RecordPaneHeader(const PlaneExtent& Extent, SymbolSubject Glyph, InkOrdinate GlyphInk,
-                                        InkOrdinate MedallionInk, const char* Title, const char* Secondary)
+void GlobalShellPanel::RecordPaneHeader(const PlaneExtent& Extent, SymbolSubject Glyph, ThemeToken GlyphColour,
+                                        ThemeToken MedallionColour, const char* Title, const char* Secondary)
 {
     Surface->Ground(Extent, Tinted.MenuLower, 0.0f, CornerNone);
 
@@ -513,14 +513,14 @@ void GlobalShellPanel::RecordPaneHeader(const PlaneExtent& Extent, SymbolSubject
     const PlaneExtent Seat = Spanning(Extent.LeastAlong + Scaled.HeaderPadAlong, Centred,
                                       Medallion, Medallion);
 
-    Surface->Ground(Seat, MedallionInk, MedallionEdge, CornerAll);
+    Surface->Ground(Seat, MedallionColour, MedallionEdge, CornerAll);
 
     // 📐 The figure sits in a 14 px square inside a 24 px medallion, centred on both axes.
     const float FigureExtent = Medallion * (14.0f / 24.0f);
     const float FigureLead   = Seat.LeastAlong  + (Medallion - FigureExtent) * 0.5f;
     const float FigureAcross = Seat.LeastAcross + (Medallion - FigureExtent) * 0.5f;
 
-    Surface->Stroke(Glyph, Spanning(FigureLead, FigureAcross, FigureExtent, FigureExtent), GlyphInk);
+    Surface->Stroke(Glyph, Spanning(FigureLead, FigureAcross, FigureExtent, FigureExtent), GlyphColour);
 
     const float RunLead = Seat.MostAlong + Scaled.HeaderPadAlong * 0.8f;
 
@@ -764,7 +764,7 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellOrdi
     // 📐 Two lattices, exactly as the reference declares: 28 px at 0.028 coverage, then 140 px at 0.055.
     //    Each is one-pixel rules, which is what a `linear-gradient(… 1px, transparent 1px)` produces.
     const float Steps[2]        = { Scaled.WeaveFineStep, Scaled.WeaveCoarseStep };
-    const InkOrdinate Inks[2]   = { Tinted.WeaveFine, Tinted.WeaveCoarse };
+    const ThemeToken Colours[2]   = { Tinted.WeaveFine, Tinted.WeaveCoarse };
 
     for (std::uint32_t Pass = 0u; Pass < 2u; ++Pass)
     {
@@ -776,13 +776,13 @@ void GlobalShellPanel::RecordViewport(const PlaneExtent& Extent, const ShellOrdi
         for (float Along = Extent.LeastAlong; Along < Extent.MostAlong; Along += Step)
         {
             Surface->Ground(Spanning(Along, Extent.LeastAcross, 1.0f, Extent.SpanAcross()),
-                            Inks[Pass], 0.0f, CornerNone);
+                            Colours[Pass], 0.0f, CornerNone);
         }
 
         for (float Across = Extent.LeastAcross; Across < Extent.MostAcross; Across += Step)
         {
             Surface->Ground(Spanning(Extent.LeastAlong, Across, Extent.SpanAlong(), 1.0f),
-                            Inks[Pass], 0.0f, CornerNone);
+                            Colours[Pass], 0.0f, CornerNone);
         }
     }
 
@@ -1121,7 +1121,7 @@ void GlobalShellPanel::RecordOutliner(const PlaneExtent& Extent, ShellOrdinates&
 
         Ledger->DeclareRoused(RowContacts[Ordinal], Roused, RouseOver);
 
-        // ③ The row ground, then its rail. `opacity-50` for a withheld row is applied to every ink it draws.
+        // ③ The row ground, then its rail. `opacity-50` for a withheld row is applied to every colour it draws.
         const float Coverage = Absent ? 0.5f : 1.0f;
 
         if (Taken)
@@ -1482,7 +1482,7 @@ float GlobalShellPanel::RecordStatRow(const PlaneExtent& Extent, const char* Cap
 
 bool GlobalShellPanel::RecordActionRow(const PlaneExtent& Extent, ControlIdentity Claimed,
                                        SymbolSubject Glyph, const char* Caption, const char* Chord,
-                                       InkOrdinate Ink, InkOrdinate GlyphInk)
+                                       ThemeToken Colour, ThemeToken GlyphColour)
 {
     const bool Roused = Extent.Encloses(Sampled.PositionAlong, Sampled.PositionAcross);
 
@@ -1495,15 +1495,15 @@ bool GlobalShellPanel::RecordActionRow(const PlaneExtent& Extent, ControlIdentit
 
     // 📐 `hover:bg-[var(--tile-hi)]`, save for Delete which rouses to its own alert wash instead.
     if (Roused)
-        Surface->Ground(Extent, Faded(Ink, 0.12f), Scaled.LayerRadius, CornerAll);
+        Surface->Ground(Extent, Faded(Colour, 0.12f), Scaled.LayerRadius, CornerAll);
 
     const float GlyphCell  = Scaled.ActionGlyph;
     const float GlyphSeat  = Extent.LeastAcross + (Extent.SpanAcross() - GlyphCell) * 0.5f;
     const PlaneExtent Cell = Spanning(Extent.LeastAlong + Scaled.PanePad, GlyphSeat, GlyphCell, GlyphCell);
 
-    // 📝 The reference draws the glyph at `--muted` and the alerting action at its own hue, so both inks
+    // 📝 The reference draws the glyph at `--muted` and the alerting action at its own hue, so both colours
     //    are handed in rather than one derived from the other — Delete is where the two agree.
-    Surface->Stroke(Glyph, Cell, GlyphInk);
+    Surface->Stroke(Glyph, Cell, GlyphColour);
 
     const float Run     = Scaled.RunSecondary;
     const float RunSeat = Extent.LeastAcross + (Extent.SpanAcross() - Run) * 0.5f;
@@ -1523,7 +1523,7 @@ bool GlobalShellPanel::RecordActionRow(const PlaneExtent& Extent, ControlIdentit
         RunCeiling = ChordLead - Scaled.PanePad;
     }
 
-    Surface->TextRunTruncated(RunLead, RunSeat, RunCeiling, Ink, Caption, Run);
+    Surface->TextRunTruncated(RunLead, RunSeat, RunCeiling, Colour, Caption, Run);
 
     return Taken;
 }
@@ -1578,7 +1578,7 @@ void GlobalShellPanel::RecordMetadata(const PlaneExtent& Extent, ShellOrdinates&
     const std::uint32_t Ordinal   = Seated.EntityTaken;
     const EntityRow&    Presented = Rows[Ordinal];
     const EntityProfile& Profiled = Seated.EntityProfiles[Ordinal];
-    const InkOrdinate   Hue       = EntityHue(Presented.Subject);
+    const ThemeToken   Hue       = EntityHue(Presented.Subject);
     const bool          Absent    = !Seated.EntityPresent[Ordinal];
 
     // 📐 The reference mints `g_NN`; the ordinal is that identity here, so the two read side by side.
@@ -2160,7 +2160,7 @@ void GlobalShellPanel::RecordRevisionSpine(const PlaneExtent& Extent, ShellOrdin
             continue;
 
         const EntityRow&  Grouped = Rows[Against];
-        const InkOrdinate Hue     = EntityHue(Grouped.Subject);
+        const ThemeToken Hue     = EntityHue(Grouped.Subject);
 
         // ① The group header, `h-[32px] px-[12px]`, which folds the whole group.
         const PlaneExtent GroupHead = Spanning(Extent.LeastAlong + Pad, Cursor,
@@ -2326,7 +2326,7 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellOrdinate
     else
     {
         const EntityRow&  Presented = Rows[Seated.EntityTaken];
-        const InkOrdinate Hue       = EntityHue(Presented.Subject);
+        const ThemeToken Hue       = EntityHue(Presented.Subject);
 
         char Classified[48] = {};
         std::snprintf(Classified, sizeof(Classified), "%s Entity", EntityText(Presented.Subject));
@@ -2334,7 +2334,7 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellOrdinate
         RecordPaneHeader(Header, EntityGlyph(Presented.Subject), Hue, Covering(0x111111u),
                          Presented.Naming, Classified);
 
-        // 📝 The header's secondary run carries the entity hue rather than the shared faint ink, so it
+        // 📝 The header's secondary run carries the entity hue rather than the shared faint colour, so it
         //    is recorded again over the shared header's own.
         const float SecondaryRun = Scaled.RunFine;
         const float PairAcross   = Scaled.RunPrimary * RunLeading + SecondaryRun * RunLeading;
@@ -2435,7 +2435,7 @@ void GlobalShellPanel::RecordComponents(const PlaneExtent& Extent, ShellOrdinate
 
     if (Selected)
     {
-        const InkOrdinate Hue       = EntityHue(Rows[Seated.EntityTaken].Subject);
+        const ThemeToken Hue       = EntityHue(Rows[Seated.EntityTaken].Subject);
         const float       FooterRun = Scaled.RunFine;
         const float       FooterTop = Footer.LeastAcross + (Footer.SpanAcross() - FooterRun) * 0.5f;
         const float       ChipSeat  = Footer.LeastAcross
@@ -3110,7 +3110,7 @@ void GlobalShellPanel::RecordLayerInspector(const PlaneExtent& Extent, const She
     float Cursor = Header.MostAcross + Pad;
 
     // 📝 One card per stated property, on the same terms as the component inspector's cards.
-    const auto RecordCard = [&](const char* Caption, const char* Reading, InkOrdinate Marker)
+    const auto RecordCard = [&](const char* Caption, const char* Reading, ThemeToken Marker)
     {
         const PlaneExtent Card = Spanning(Extent.LeastAlong + Pad, Cursor,
                                           Extent.SpanAlong() - Pad * 2.0f, Scaled.ComponentAcross);
@@ -3304,7 +3304,7 @@ void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellOrdinates
 //                                                      THE WHOLE SHELL
 //------------------------------------------------------------------------------------------------------------------------
 
-Deliver<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
+Result<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
                                        ShellOrdinates&        Seated,
                                        const EntityRow*       Rows,
                                        std::uint32_t          RowCount,
@@ -3314,10 +3314,10 @@ Deliver<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
                                        std::uint32_t          RevisionCount)
 {
     if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr)
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the shell panel is unconstructed" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the shell panel is unconstructed" });
 
     if (!Surface->Recording())
-        return Deliver<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no tick stands adopted" });
+        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no tick stands adopted" });
 
     if (Rows == nullptr)
         RowCount = 0u;
@@ -3452,7 +3452,7 @@ Deliver<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
     //    `z-[101]`, which is one above the overlay that dismisses it, and therefore above everything here.
     RecordContextOverlay(Extent, Seated, Rows, RowCount);
 
-    return Deliver<bool>::Deliver(true);
+    return Result<bool>::Result(true);
 }
 
 bool GlobalShellPanel::Occluding(float Along, float Across) const

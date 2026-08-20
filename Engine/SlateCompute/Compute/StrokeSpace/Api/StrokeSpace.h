@@ -62,20 +62,20 @@ public:
 
     /// 🧩 Claims the coverage tile backing one cell, or resolves the one already claimed.
     /// in    CellOrdinal  [-]  into `20` §1's single ordinal span
-    /// out   Deliver      [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
+    /// out   Result      [-]  refuses with ContentUnsupported outside the span, and with ExtentExhausted at
     ///                         the declared tile ceiling
     /// note  📝 Exhaustion is structurally unreachable at the finest level, where the ceiling equals the cell
     ///        count. It is a guard against a coarser level being painted at with a miscomputed ordinal, and it
     ///        refuses rather than growing so that a defect there is a refusal instead of an allocation storm.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Claim(std::uint32_t CellOrdinal);
+    Result<std::uint32_t> Claim(std::uint32_t CellOrdinal);
 
     /// 🧩 The tile backing one cell, if one is claimed.
-    /// out   Deliver  [-]  refuses with ExtentExhausted when the cell is untouched
+    /// out   Result  [-]  refuses with ExtentExhausted when the cell is untouched
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<std::uint32_t> Located(std::uint32_t CellOrdinal) const;
+    Result<std::uint32_t> Located(std::uint32_t CellOrdinal) const;
 
     /// 🧩 Accumulates one impression's coverage at one texel of one claimed tile.
     /// in    TileOrdinal  [-]  as `Claim` delivered it

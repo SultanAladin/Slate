@@ -72,11 +72,11 @@ public:
     /// 🧩 Declares one occupant's name, replacing whatever it held before.
     /// in    Subject   [-]  the occupant
     /// in    Declared  [-]  the name the artist gave it
-    /// out   Deliver   [-]  refuses with IdentityStale for an undeclared identity
+    /// out   Result   [-]  refuses with IdentityStale for an undeclared identity
     /// post  every trigram run mentioning this occupant describes the new name only
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(OccupantIdentity Subject, const std::string& Declared);
+    Result<bool> Declare(OccupantIdentity Subject, const std::string& Declared);
 
     /// 🧩 Withdraws one occupant's name and every trigram entry that reached it.
     /// in    Subject  [-]  the occupant being retired or renamed

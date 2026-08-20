@@ -58,10 +58,10 @@ public:
 
     /// 🧩 Registers one `Shared/` entry point for comparison.
     /// in    Arriving [-]  the entry point and the guarantee it claims
-    /// out   Deliver  [-]  refuses when the entry point is already registered
+    /// out   Result  [-]  refuses when the entry point is already registered
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Deliver<bool> Register(const ParityRegistration& Arriving);
+    Result<bool> Register(const ParityRegistration& Arriving);
 
     /// 🧩 Compares every registered entry point and reports each one.
     /// out   Reports  [-]  one report per registration, in registration order

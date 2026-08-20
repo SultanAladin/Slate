@@ -97,24 +97,24 @@ struct PropertyDeclaration
 /// 🧩 Whether one value satisfies one declaration.
 /// in    Declared  [-]  the declaration, bounds included
 /// in    Offered   [-]  the value a caller wishes to write
-/// out   Deliver   [-]  refuses with ContentUnsupported when the measures disagree or a bound is exceeded, and
+/// out   Result   [-]  refuses with ContentUnsupported when the measures disagree or a bound is exceeded, and
 ///                      with IdentityStale when an occupant reference is undeclared
 /// note  🔴 A refusal names which bound was exceeded, in static text. `86` §4's register presents that text
 ///        verbatim, so a refusal reading "invalid" sends the artist to guess.
 /// cost  ✔️
 /// tag   api, nonthrowing
-Deliver<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue& Offered);
+Result<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue& Offered);
 
 /// 🧩 Brings one value inside a declaration's bounds where the measure admits it.
 /// in    Declared  [-]  the declaration
 /// in    Offered   [-]  the value; returned bounded at Magnitude, Signed and Ordinal
-/// out   Deliver   [-]  refuses when the measures disagree, because no bounding can reconcile that
+/// out   Result   [-]  refuses when the measures disagree, because no bounding can reconcile that
 /// note  🔴 Offered as a **separate** call rather than folded into the write. `10` §2.2 requires the write to
 ///        refuse, so a write that bounded silently would accept a value the artist can neither see nor correct.
 ///        Whoever is presenting a slider bounds first and then writes.
 /// cost  ✔️
 /// tag   api, nonthrowing
-Deliver<PropertyValue> Bounded(const PropertyDeclaration& Declared, const PropertyValue& Offered);
+Result<PropertyValue> Bounded(const PropertyDeclaration& Declared, const PropertyValue& Offered);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE DECLARATIONS
@@ -130,35 +130,35 @@ public:
 
     /// 🧩 Declares one property, replacing a declaration of the same identity.
     /// in    Declaring  [-]  the declaration
-    /// out   Deliver    [-]  refuses with ContentUnsupported for an empty identity, and when the declaration's
+    /// out   Result    [-]  refuses with ContentUnsupported for an empty identity, and when the declaration's
     ///                       own default does not satisfy it
     /// note  🔴 The default is validated against its own declaration here. A declaration whose default is out of
     ///        bounds presents an invalid value on every occupant that never wrote it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Declare(const PropertyDeclaration& Declaring);
+    Result<bool> Declare(const PropertyDeclaration& Declaring);
 
     /// 🧩 Writes one property's value, validated first.
     /// in    Identity  [-]  the declaration's spelling
     /// in    Offered   [-]  the value
-    /// out   Deliver   [-]  refuses with ContentUnsupported when nothing declares that identity, and carries
+    /// out   Result   [-]  refuses with ContentUnsupported when nothing declares that identity, and carries
     ///                      Validate's refusal otherwise
     /// post  a refused write leaves the prior value standing
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Write(const std::string& Identity, const PropertyValue& Offered);
+    Result<bool> Write(const std::string& Identity, const PropertyValue& Offered);
 
     /// 🧩 Reads one property's value, or its declared default where nothing has written it.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when nothing declares that identity
+    /// out   Result  [-]  refuses with ContentUnsupported when nothing declares that identity
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<PropertyValue> Resolve(const std::string& Identity) const;
+    Result<PropertyValue> Resolve(const std::string& Identity) const;
 
     /// 🧩 One property's declaration, for whoever is presenting it.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when nothing declares that identity
+    /// out   Result  [-]  refuses with ContentUnsupported when nothing declares that identity
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<PropertyDeclaration> Declared(const std::string& Identity) const;
+    Result<PropertyDeclaration> Declared(const std::string& Identity) const;
 
     /// 🧩 Every declaration, in declaration order.
     /// cost  ✔️
@@ -171,10 +171,10 @@ public:
     bool ValueWritten(const std::string& Identity) const;
 
     /// 🧩 Returns one property to its declared default.
-    /// out   Deliver  [-]  refuses with ContentUnsupported when nothing declares that identity
+    /// out   Result  [-]  refuses with ContentUnsupported when nothing declares that identity
     /// cost  🚩
     /// tag   api, nonthrowing
-    Deliver<bool> Reclaim(const std::string& Identity);
+    Result<bool> Reclaim(const std::string& Identity);
 
     /// 🧩 🔍 Whether every held value satisfies its own declaration.
     /// note  Structurally true, because Write is the only writer and validates first. Checked so that a future

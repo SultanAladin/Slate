@@ -102,7 +102,7 @@ std::vector<PlanarPosition> Flatten(PlanarPosition                  Origin,
 /// in    Traversed   [-]  the flattened polyline, in traversal order
 /// in    HalfWidth   [-]  half the stroke width, in the path's own space
 /// in    ClosedRun   [-]  whether the polyline closes back on its origin
-/// out   Deliver     [-]  refuses with ContentUnsupported for a non-positive half-width, and with
+/// out   Result     [-]  refuses with ContentUnsupported for a non-positive half-width, and with
 ///                        ExtentExhausted for a polyline of fewer than two positions
 /// note  🔴 `52` §2 converts strokes at **intake** rather than storing a width. A stroke width is a distance in
 ///        the source's own space and a placement scales that space, so a stored width thins when the placement
@@ -111,7 +111,7 @@ std::vector<PlanarPosition> Flatten(PlanarPosition                  Origin,
 ///        so declaring one here would be inventing an authored property the artist cannot see.
 /// cost  🚩
 /// tag   api, nonthrowing
-Deliver<std::vector<PlanarPosition>> OffsetOutline(const std::vector<PlanarPosition>& Traversed,
+Result<std::vector<PlanarPosition>> OffsetOutline(const std::vector<PlanarPosition>& Traversed,
                                                    double                             HalfWidth,
                                                    bool                               ClosedRun);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);

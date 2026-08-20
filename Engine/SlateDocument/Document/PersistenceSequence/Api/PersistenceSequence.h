@@ -85,7 +85,7 @@ public:
 
     /// 🧩 Runs `48` §3's four steps over one sealed state.
     /// in    Sealed  [-]  the captured content and where it is to land
-    /// out   Deliver [-]  refuses with ContentUnsupported for an empty target path or empty content, and carries
+    /// out   Result [-]  refuses with ContentUnsupported for an empty target path or empty content, and carries
     ///                    the file surface's own refusal otherwise
     /// post  🔴 on any refusal the existing file is exactly as it was — `48` §3
     /// note  🔴 This is what `34` resolves at Interactive. Nothing in it reads the document, so it satisfies
@@ -94,7 +94,7 @@ public:
     ///        session and this routine runs off it. `Reached` is what tells the caller ③ actually landed.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Deliver<PersistenceConclusion> Persist(const SealedContent& Sealed);
+    Result<PersistenceConclusion> Persist(const SealedContent& Sealed);
 
     /// 🧩 Whether two streams are identical, byte for byte — `48` §3 ② and `48` §8's exact tier.
     /// in    Written  [-]  what the save handed to the file surface

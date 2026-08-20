@@ -63,7 +63,7 @@ struct DistortionMeasure
 
 /// 🧩 Flattens one chart, boundary first, and reports which condition terminated it.
 /// in    Declaring  [-]  the chart, its triangulation and its boundary loop
-/// out   Deliver    [-]  refuses with ContentUnsupported for a triangulation that is not a multiple of three,
+/// out   Result    [-]  refuses with ContentUnsupported for a triangulation that is not a multiple of three,
 ///                       an out-of-range corner, a boundary loop shorter than three, or a boundary of no extent
 /// note  🔴 Convergent, per `02` §5. The result carries its residual, its iteration count and its termination
 ///        cause, because a solver that returns its last iterate at the ceiling is indistinguishable from one
@@ -77,7 +77,7 @@ struct DistortionMeasure
 ///        `68` §4.1 tests for them anyway. Construction narrows the failure; it does not remove it.
 /// cost  🔴
 /// tag   api, nonthrowing
-Deliver<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecification& Declaring);
+Result<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecification& Declaring);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Convergent, PrecisionGuarantee::Convergent);
 
 /// 🧩 Measures the area and angle distortion of a flattening against the topology it came from.
