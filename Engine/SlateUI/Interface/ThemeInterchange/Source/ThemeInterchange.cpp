@@ -387,6 +387,13 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
                 continue;
             }
 
+            if (Matched(Key, "font"))
+            {
+                std::strncpy(Produced.Selected.FontFamily, Named, sizeof(Produced.Selected.FontFamily) - 1u);
+                Produced.Selected.FontFamily[sizeof(Produced.Selected.FontFamily) - 1u] = '\0';
+                continue;
+            }
+
             const std::uint32_t Ordinal = StemOrdinal(AccentStems, AccentCeiling, Named);
 
             if (Ordinal >= AccentCeiling)
@@ -402,6 +409,11 @@ Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
             else if (Matched(Key, "information")) Produced.Selected.Information = Chosen;
             else if (Matched(Key, "warning")) Produced.Selected.Warning     = Chosen;
             else if (Matched(Key, "alert")) Produced.Selected.Alert       = Chosen;
+            else if (Matched(Key, "font"))
+            {
+                std::strncpy(Produced.Selected.FontFamily, Named, sizeof(Produced.Selected.FontFamily) - 1u);
+                Produced.Selected.FontFamily[sizeof(Produced.Selected.FontFamily) - 1u] = '\0';
+            }
             else
             {
                 return Outcome<ThemeArchive>::Refuse(
@@ -521,6 +533,7 @@ Outcome<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& R
                  AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Warning) % AccentCeiling]);
     std::fprintf(Stream, "alert       = \"%s\"\n",
                  AccentStems[static_cast<std::uint32_t>(Recorded.Selected.Alert) % AccentCeiling]);
+    std::fprintf(Stream, "font        = \"%s\"\n", Recorded.Selected.FontFamily);
 
     for (std::uint32_t Ordinal = 0u; Ordinal < ThemeCeiling; ++Ordinal)
     {

@@ -103,6 +103,7 @@ struct ThemeSelection
     AccentSubject  Information = AccentSubject::Cyan;     // [-] - advisory emphasis
     AccentSubject  Warning     = AccentSubject::Amber;    // [-] - recoverable emphasis
     AccentSubject  Alert       = AccentSubject::Rose;     // [-] - refusing emphasis
+    char           FontFamily[64] = "Inter";              // [-] - FontArchives folder name
 };
 
 /// 🧩 The whole standing appearance as one value — what the selection is, and what the selected things are.
