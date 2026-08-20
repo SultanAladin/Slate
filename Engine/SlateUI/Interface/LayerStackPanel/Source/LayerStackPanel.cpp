@@ -2851,6 +2851,17 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
     const PlaneExtent Body = PlaneExtent{ Extent.LeastAlong + Scaled.CardPadAlong, Across,
                                           Extent.MostAlong  - Scaled.CardPadAlong, Across + Scaled.FieldAcross };
 
+    // Source, density, and blend are live controls rather than display-only rows.
+    const PlaneExtent SourceControl = PlaneExtent{ Body.LeastAlong + 96.0f, Body.LeastAcross,
+                                                   Body.MostAlong, Body.LeastAcross + Scaled.FieldAcross };
+    if (Pressed(RowCells[static_cast<std::uint32_t>(RowCell::MaskBody)], SourceControl, Seated,
+                "Change mask source"))
+    {
+        Revisions.Record(Arrangement, "Mask source amended");
+        const std::uint32_t Next = (static_cast<std::uint32_t>(Mask.Source) + 1u)
+                                 % static_cast<std::uint32_t>(MaskSource::SourceCount);
+        Mask.Source = static_cast<MaskSource>(Next);
+    }
     Across = RecordReadingRow(Body, "Source", SourceNaming(Mask.Source));
 
     if (Mask.Generator != nullptr)
@@ -2863,6 +2874,17 @@ void LayerStackPanel::RecordMaskProperties(const PlaneExtent& Extent, LayerArran
                                            Across + Scaled.FieldAcross }, "Density", Density);
     Across = RecordReadingRow(PlaneExtent{ Body.LeastAlong, Across, Body.MostAlong,
                                            Across + Scaled.FieldAcross }, "Blend", Mask.Blend);
+
+    const PlaneExtent DensityRow = PlaneExtent{ Body.LeastAlong, Across, Body.MostAlong,
+                                                Across + Scaled.FieldAcross };
+    Surface->TextRun(Body.LeastAlong, Across + 8.0f, Tinted.Faint, "Density", Scaled.RunSub);
+    const PlaneExtent DensityTrack = PlaneExtent{ Body.LeastAlong + 96.0f, Across + 4.0f,
+                                                  Body.MostAlong - 44.0f, Across + Scaled.FieldAcross - 4.0f };
+    if (Roused(DensityTrack) && Sampled.ContactArrived && !Ledger->AnyDisclosed())
+        Revisions.Record(Arrangement, "Mask density amended");
+    Dragged(RowCells[static_cast<std::uint32_t>(RowCell::Opacity)], DensityTrack, Mask.Density);
+    RecordMeter(DensityTrack, Mask.Density, Tinted.Accent);
+    Across += Scaled.FieldAcross;
 
     // 📐 The invert switch — a 26×14 pill whose knob sits on whichever side the reading names.
     {
