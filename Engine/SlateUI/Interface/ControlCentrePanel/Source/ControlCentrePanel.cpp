@@ -887,12 +887,23 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreConfi
     }
 }
 
+void ControlCentrePanel::SetFontFamilies(const FontLoader& Loader)
+{
+    FontArchive = &Loader;
+}
+
 void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfiguration& Ordinates,
                                    const ThemeDeclaration& Theme, ThemeToken Accent)
 {
-    static const char* Fonts[12] = {"Inter",        "General Sans", "JetBrains Mono", "Playfair",
-                                    "Merriweather", "Fira Code",    "Roboto",         "Lato",
-                                    "Montserrat",   "Nunito",       "Oswald",         "Source Code"};
+    const char* DefaultFamily = "Inter";
+    const std::uint32_t FontCount = (FontArchive != nullptr && FontArchive->FamilyCount() > 0u)
+                                  ? FontArchive->FamilyCount() : 1u;
+    const auto FamilyAt = [&](std::uint32_t Ordinal) -> const char*
+    {
+        return (FontArchive != nullptr && FontArchive->FamilyCount() > 0u)
+             ? FontArchive->FamilyName(Ordinal)
+             : DefaultFamily;
+    };
     const PlaneExtent Section = Spanning(Extent.LeastAlong, Extent.LeastAcross, Extent.SpanAlong(), 1700.0f);
     const float Inset = 28.0f;
     const float ContentLeast = Extent.LeastAlong + Inset;
@@ -912,7 +923,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     const float FontFraction = static_cast<float>(Motion->Eased(FontMotion).Standing());
     FontScroll = FontDeparted + (FontTarget - FontDeparted) * FontFraction;
     Surface->Confine(FontRail);
-    for (std::uint32_t Ordinal = 0u; Ordinal < 12u; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < FontCount; ++Ordinal)
     {
         const PlaneExtent Tile = Spanning(FontRail.LeastAlong + 4.0f +
                                               208.0f * static_cast<float>(Ordinal) - FontScroll,
@@ -921,7 +932,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
         Surface->Edge(Tile, Ordinates.Font == Ordinal ? Theme.Edge : WithOpacity(Theme.Edge, 0.0f), 1.0f,
                       16.0f, CornerAll);
         Surface->TextRun(Tile.LeastAlong + 18.0f, Tile.LeastAcross + 18.0f, Theme.Primary, "Aa", 30.0f);
-        Surface->TextRun(Tile.LeastAlong + 18.0f, Tile.LeastAcross + 66.0f, Theme.Primary, Fonts[Ordinal],
+        Surface->TextRun(Tile.LeastAlong + 18.0f, Tile.LeastAcross + 66.0f, Theme.Primary, FamilyAt(Ordinal),
                          14.0f, 0.0f, true);
         Surface->TextRun(Tile.LeastAlong + 18.0f, Tile.LeastAcross + 92.0f, Theme.Secondary,
                          "The quick brown fox", 12.0f);
@@ -945,7 +956,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     Surface->TextRun(CentreText(*Surface, Right, ">", 20.0f), CentredAcross(Right, 20.0f),
                      Theme.Primary, ">", 20.0f, 0.0f, true);
 
-    const float FontMaximum = 12.0f * 208.0f - FontRail.SpanAlong();
+    const float FontMaximum = static_cast<float>(FontCount) * 208.0f - FontRail.SpanAlong();
     if (Pressed(142u, Left))
     {
         FontDeparted = FontScroll;
@@ -968,7 +979,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     Surface->Edge(Specimen, Theme.Edge, 1.0f, 24.0f, CornerAll);
     Surface->TextRun(Specimen.LeastAlong + 32.0f, Specimen.LeastAcross + 25.0f, Theme.Secondary, "TYPEFACE & COLORS",
                      12.0f, .12f);
-    Surface->TextRun(Specimen.LeastAlong + 32.0f, Specimen.LeastAcross + 58.0f, Theme.Primary, Fonts[Ordinates.Font],
+    Surface->TextRun(Specimen.LeastAlong + 32.0f, Specimen.LeastAcross + 58.0f, Theme.Primary, FamilyAt(Ordinates.Font),
                      48.0f, 0.0f, true);
     Surface->TextRun(Specimen.MostAlong - 330.0f, Specimen.LeastAcross + 45.0f, Theme.Secondary,
                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 13.0f);
