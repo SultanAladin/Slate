@@ -442,6 +442,24 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    stands and the first colour the artist changes writes the file.
     const char* const InvokedAs = (ArgumentCount > 0) ? ArgumentValues[0] : "";
 
+    // 🔴 Resolve font archives relative to the executable, not the working directory.  Slate is not
+    //    always launched from the repository root, so a relative path silently falls back to the ImGui
+    //    default font.
+    constexpr std::uint32_t FontPathCeiling = 512u;
+    char FontArchivesPath[FontPathCeiling] = {};
+    {
+        const std::size_t Spanned = std::strlen(InvokedAs);
+        std::size_t Folder = 0u;
+        for (std::size_t Place = Spanned; Place > 0u; --Place)
+        {
+            const char Letter = InvokedAs[Place - 1u];
+            if (Letter == '\\' || Letter == '/') { Folder = Place; break; }
+        }
+        if (Folder > 0u) std::memcpy(FontArchivesPath, InvokedAs, Folder);
+        const char Leaf[] = "EngineContent/FontArchives";
+        std::memcpy(FontArchivesPath + Folder, Leaf, sizeof(Leaf));
+    }
+
     {
         ThemeSelection Recorded;
 
@@ -523,9 +541,9 @@ ApplyUserScale(Appearance,
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
     Surface.ApplyFontLoader(Fonts);
-    Disregard(Fonts.Discover("EngineContent/FontArchives"));
+    Disregard(Fonts.Discover(FontArchivesPath));
     ControlCentre.SetFontFamilies(Fonts);
-    Disregard(Fonts.Load("EngineContent/FontArchives", Appearance.Fonts, 1.0f));
+    Disregard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
 
     // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
     //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
@@ -799,9 +817,9 @@ ApplyUserScale(Appearance,
             Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
-    Disregard(Fonts.Discover("EngineContent/FontArchives"));
+    Disregard(Fonts.Discover(FontArchivesPath));
     ControlCentre.SetFontFamilies(Fonts);
-    Disregard(Fonts.Load("EngineContent/FontArchives", Appearance.Fonts, 1.0f));
+    Disregard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
             ResolvedAgainst = Display.ExtentAlong;
 
             // 🔴 The shell holds its own scaled extents, so a resolve it is not told about leaves it
@@ -1340,9 +1358,9 @@ ApplyUserScale(Appearance,
                 Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
-    Disregard(Fonts.Discover("EngineContent/FontArchives"));
+    Disregard(Fonts.Discover(FontArchivesPath));
     ControlCentre.SetFontFamilies(Fonts);
-    Disregard(Fonts.Load("EngineContent/FontArchives", Appearance.Fonts, 1.0f));
+    Disregard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
                 ContentBrowser.Reseat(Appearance);
                 LayerStack.Reseat(Appearance);
             }
