@@ -887,7 +887,7 @@ void ControlCentrePanel::ThemePage(const PlaneExtent& Extent, ControlCentreConfi
     }
 }
 
-void ControlCentrePanel::SetFontFamilies(const FontLoader& Loader)
+void ControlCentrePanel::SetFontFamilies(FontLoader& Loader)
 {
     FontArchive = &Loader;
 }
@@ -928,6 +928,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
         const PlaneExtent Tile = Spanning(FontRail.LeastAlong + 4.0f +
                                               208.0f * static_cast<float>(Ordinal) - FontScroll,
                                           RailAcross, 192.0f, 132.0f);
+        Surface->ApplyFontPreview(FontArchive != nullptr ? FontArchive->Preview(FamilyAt(Ordinal), 1.0f) : nullptr);
         Surface->Ground(Tile, Ordinates.Font == Ordinal ? Theme.Card : Theme.Panel, 16.0f, CornerAll);
         Surface->Edge(Tile, Ordinates.Font == Ordinal ? Theme.Edge : WithOpacity(Theme.Edge, 0.0f), 1.0f,
                       16.0f, CornerAll);
@@ -946,6 +947,7 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
             Ordinates.Font = Ordinal;
     }
     Surface->Release();
+    Surface->ApplyFontPreview(nullptr);
 
     Surface->Ground(Left, Theme.Card, 22.0f, CornerAll);
     Surface->Ground(Right, Theme.Card, 22.0f, CornerAll);

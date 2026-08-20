@@ -329,6 +329,7 @@ public:
     void ApplyTypographyScale(float Scale);
     void ApplyCornerScale(float Scale);
     void ApplyFontLoader(FontLoader& Loader);
+    void ApplyFontPreview(ImFont* Preview);
 
     /// 🧩 The baseline-to-baseline extent at one point size.
     /// cost  ✔️
@@ -393,6 +394,7 @@ private:
     float             TypographyScale = 1.0f;    // [-] - shared text scale
     float             CornerScale = 1.0f;        // [-] - shared corner scale
     FontLoader*       Fonts = nullptr;           // [-] - borrowed active font loader
+    ImFont*           FontOverride = nullptr;    // [-] - one preview face for the current card
     std::uint32_t     ConfineDepth   = 0u;       // [-] - how many Confines stand unmatched
 };
 

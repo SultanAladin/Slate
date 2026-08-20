@@ -101,7 +101,7 @@ public:
     Outcome<bool> Record(const PlaneExtent& Interior, ControlCentreConfiguration& Ordinates);
     void Exclude(DrawerSpace& Drawers) const;
     void Reset();
-    void SetFontFamilies(const FontLoader& Loader);
+    void SetFontFamilies(FontLoader& Loader);
 
 private:
     void RetainExclusion(const PlaneExtent& Extent);
@@ -131,7 +131,7 @@ private:
     MotionIntegrator* Motion = nullptr;
     RecordingSurface* Surface = nullptr;
     const ThemeProfile* Appearance = nullptr;
-    const FontLoader* FontArchive = nullptr;
+    FontLoader* FontArchive = nullptr;
     InteractionIndex Interaction = {};
     ComponentSpecification SharedControls = {};
     ControlIdentity Controls[ControlCapacity] = {};

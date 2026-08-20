@@ -22,10 +22,12 @@ public:
     const char* FamilyName(std::uint32_t Ordinal) const;
     ImFont* Active() const { return Face(FontWeight::Regular, FontSlant::Upright); }
     ImFont* Face(FontWeight Weight, FontSlant Slant) const;
+    ImFont* Preview(const char* Family, float DisplayScale);
 
 private:
     std::array<ImFont*, 18u> Faces{};
     std::vector<std::string> Families;
+    std::string Root;
 };
 
 } // namespace Slate

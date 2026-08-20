@@ -419,6 +419,12 @@ void RecordingSurface::ApplyCornerScale(float Scale)
 void RecordingSurface::ApplyFontLoader(FontLoader& Loader)
 {
     Fonts = &Loader;
+    FontOverride = nullptr;
+}
+
+void RecordingSurface::ApplyFontPreview(ImFont* Preview)
+{
+    FontOverride = Preview;
 }
 
 void RecordingSurface::TextRun(float Along, float Across, ThemeToken Colour, const char* Text,
@@ -428,7 +434,7 @@ void RecordingSurface::TextRun(float Along, float Across, ThemeToken Colour, con
         return;
 
     ImDrawList*   Target   = Commands(CommandSlot);
-    ImFont*       Typeface = (Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont());
+    ImFont*       Typeface = FontOverride != nullptr ? FontOverride : ((Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont()));
     const ImU32   Vendored = Vendor(Colour);
     PointSize *= TypographyScale;
     const float   Added    = Tracking * PointSize;
@@ -508,7 +514,7 @@ void RecordingSurface::TextRunTruncated(float Along, float Across, float Ceiling
         return;
     }
 
-    ImFont*       Typeface     = (Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont());
+    ImFont*       Typeface     = FontOverride != nullptr ? FontOverride : ((Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont()));
     const float   EllipsisSpan = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, "...").x;
     const float   Admissible   = CeilingAlong - EllipsisSpan;
 
@@ -542,7 +548,7 @@ float RecordingSurface::MeasureRun(const char* Text, float PointSize, float Trac
     if (Text == nullptr || Text[0] == '\0' || ImGui::GetCurrentContext() == nullptr)
         return 0.0f;
 
-    ImFont*       Typeface = (Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont());
+    ImFont*       Typeface = FontOverride != nullptr ? FontOverride : ((Fonts != nullptr && Fonts->Active() != nullptr) ? Fonts->Active() : const_cast<ImFont*>(ImGui::GetFont()));
     PointSize *= TypographyScale;
     const float   Measured = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Text).x;
 

@@ -44,6 +44,7 @@ bool Matches(const std::string& Name, FontWeight Weight, FontSlant Slant)
 
 Outcome<bool> FontLoader::Discover(const char* FontRoot)
 {
+    Root = FontRoot != nullptr ? FontRoot : "";
     Families.clear();
     if (FontRoot == nullptr || !std::filesystem::exists(FontRoot))
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "font archive directory is unavailable" });
@@ -70,6 +71,22 @@ ImFont* FontLoader::Face(FontWeight Weight, FontSlant Slant) const
     if (Loaded != nullptr)
         return Loaded;
     return Faces[Slot(FontWeight::Regular, FontSlant::Upright)];
+}
+
+ImFont* FontLoader::Preview(const char* Family, float DisplayScale)
+{
+    if (Family == nullptr || Root.empty() || ImGui::GetCurrentContext() == nullptr)
+        return nullptr;
+    const std::filesystem::path Directory = std::filesystem::path(Root) / Family;
+    if (!std::filesystem::exists(Directory)) return nullptr;
+    const float Size = 16.0f * ((DisplayScale > 0.0f) ? DisplayScale : 1.0f);
+    for (const auto& Entry : std::filesystem::directory_iterator(Directory))
+    {
+        const std::string Name = Lower(Entry.path().filename().string());
+        if (Entry.is_regular_file() && Name.find("regular") != std::string::npos && Name.find("italic") == std::string::npos)
+            return ImGui::GetIO().Fonts->AddFontFromFileTTF(Entry.path().string().c_str(), Size);
+    }
+    return nullptr;
 }
 
 Outcome<bool> FontLoader::Load(const char* FontRoot, const FontProfile& Profile, float DisplayScale)
