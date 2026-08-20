@@ -351,6 +351,28 @@ ThemeProfile Resolve(double DisplayScale, double ArtistScale, float ExtentAlong)
     return Resolved;
 }
 
+void ApplyUserScale(ThemeProfile& Profile, float TextScale, float CornerScale)
+{
+    const float Text = (TextScale < 0.75f) ? 0.75f : ((TextScale > 1.50f) ? 1.50f : TextScale);
+    const float Corners = (CornerScale < 0.50f) ? 0.50f : ((CornerScale > 1.50f) ? 1.50f : CornerScale);
+
+    Profile.TextScale = Text;
+    Profile.CornerScale = Corners;
+
+    Profile.Typography.Display *= Text;
+    Profile.Typography.Title *= Text;
+    Profile.Typography.Heading *= Text;
+    Profile.Typography.Body *= Text;
+    Profile.Typography.Label *= Text;
+    Profile.Typography.Caption *= Text;
+    Profile.Typography.Small *= Text;
+    Profile.Typography.Tab *= Text;
+
+    Profile.Corners.Small *= Corners;
+    Profile.Corners.Medium *= Corners;
+    Profile.Corners.Large *= Corners;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    RESPONSIVE ARRANGEMENT
 //------------------------------------------------------------------------------------------------------------------------

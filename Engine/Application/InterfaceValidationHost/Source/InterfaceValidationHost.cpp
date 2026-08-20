@@ -513,6 +513,9 @@ int main(int ArgumentCount, char** ArgumentValues)
 //    the recorded theme rather than in the transcription's own and correcting themselves a tick later.
 ThemeSelection          Selected   = InscribedSelection;
 ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
+ApplyUserScale(Appearance,
+               static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
+               static_cast<float>(ControlCentreValues.Radius) / 24.0f);
     Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
 
     // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
@@ -780,6 +783,9 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
         if (Display.ExtentAlong != ResolvedAgainst)
         {
             Appearance      = ResolveTinted(Display.DisplayScale, ArtistScale, Display.ExtentAlong, Selected);
+            ApplyUserScale(Appearance,
+                           static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
+                           static_cast<float>(ControlCentreValues.Radius) / 24.0f);
             Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
             ResolvedAgainst = Display.ExtentAlong;
 
@@ -1312,6 +1318,9 @@ ThemeProfile Appearance = ResolveTinted(1.0, SheetColumnScale, 0.0f, Selected);
                 //    inks are reseated from the appearance this tick already holds.
                 Selected = Chosen;
                 Appearance = ResolveTinted(Display.DisplayScale, ArtistScale, Display.ExtentAlong, Selected);
+                ApplyUserScale(Appearance,
+                               static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
+                               static_cast<float>(ControlCentreValues.Radius) / 24.0f);
                 Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
                 ContentBrowser.Reseat(Appearance);
                 LayerStack.Reseat(Appearance);

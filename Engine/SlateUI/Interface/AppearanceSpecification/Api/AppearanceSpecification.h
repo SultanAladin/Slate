@@ -803,13 +803,42 @@ struct LayerStackColour
 };
 
 //------------------------------------------------------------------------------------------------------------------------
+//                                                  SHARED UI SCALE
+//------------------------------------------------------------------------------------------------------------------------
+
+/// Semantic text sizes shared by every panel. Values are resolved before recording.
+struct TypographyProfile
+{
+    float Display = 24.0f;
+    float Title = 20.0f;
+    float Heading = 16.0f;
+    float Body = 14.0f;
+    float Label = 12.0f;
+    float Caption = 10.0f;
+    float Small = 10.0f;
+    float Tab = 10.0f;
+};
+
+struct CornerProfile
+{
+    float Small = 4.0f;
+    float Medium = 8.0f;
+    float Large = 12.0f;
+    float Pill = 999.0f;
+};
+
 //                                                  THE RESOLVED RECORD
 //------------------------------------------------------------------------------------------------------------------------
 
-/// 🧩 The one record every panel reads. Resolved at bring-up and again only when the display scale changes.
+/// The one record every panel reads. Resolved at bring-up and again only when the display scale changes.
 /// tag   contract, nonallocating, nonthrowing
 struct ThemeProfile
 {
+    TypographyProfile Typography = {};
+    CornerProfile Corners = {};
+    float TextScale = 1.0f;
+    float CornerScale = 1.0f;
+
     SurfaceColour     Colour            = {};
     MetricScale    Measure        = {};
     MotionScale    Motion         = {};
@@ -858,6 +887,9 @@ ComfortDensity ClassifyDensity(const MetricScale& Measure, float ExtentAlong);
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
 ThemeProfile Resolve(double DisplayScale, double ArtistScale = 1.0, float ExtentAlong = 0.0f);
+
+/// Applies user text and corner preferences to the resolved shared profile.
+void ApplyUserScale(ThemeProfile& Profile, float TextScale, float CornerScale);
 
 /// 🧩 How many lattice columns the content extent admits, from the source's four breakpoints.
 /// in    ContentAlong  [px] the extent the lattice is arranged inside
