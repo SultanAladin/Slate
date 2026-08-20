@@ -493,6 +493,9 @@ int main(int ArgumentCount, char** ArgumentValues)
                     //    then pushed into the two panels that keep their own copy of the inks. The shell reads
                     //    the appearance through its own Reseat, which the viewport already calls.
                     Viewport.Retint(Chosen);
+                    Disregard(Viewport.Seam().SeatWorkspaceStyle(
+                        Viewport.Appearance().WorkspaceMeasure,
+                        Viewport.Appearance().Workspace));
                     ContentBrowser.Reseat(Viewport.Appearance());
                 }
             }
