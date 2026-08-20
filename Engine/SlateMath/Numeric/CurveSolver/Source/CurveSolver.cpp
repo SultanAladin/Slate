@@ -263,19 +263,19 @@ std::vector<PlanarPosition> Flatten(PlanarPosition                  Origin,
 //                                                     OFFSETTING
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::vector<PlanarPosition>> OffsetOutline(const std::vector<PlanarPosition>& Traversed,
+Outcome<std::vector<PlanarPosition>> OffsetOutline(const std::vector<PlanarPosition>& Traversed,
                                                    double                             HalfWidth,
                                                    bool                               ClosedRun)
 {
     if (HalfWidth <= 0.0)
     {
-        return Result<std::vector<PlanarPosition>>::Refuse(
+        return Outcome<std::vector<PlanarPosition>>::Refuse(
             { RefusalReason::ContentUnsupported, "a stroke of no width encloses nothing" });
     }
 
     if (Traversed.size() < 2u)
     {
-        return Result<std::vector<PlanarPosition>>::Refuse(
+        return Outcome<std::vector<PlanarPosition>>::Refuse(
             { RefusalReason::ExtentExhausted, "a stroke needs two positions to have a direction" });
     }
 
@@ -315,7 +315,7 @@ Result<std::vector<PlanarPosition>> OffsetOutline(const std::vector<PlanarPositi
         }
     }
 
-    return Result<std::vector<PlanarPosition>>::Result(Outlined);
+    return Outcome<std::vector<PlanarPosition>>::Result(Outlined);
 }
 
 }   // namespace Slate

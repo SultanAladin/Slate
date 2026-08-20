@@ -143,7 +143,7 @@ bool ProjectIntoSource(const PlacementSpecification& Placed,
 //                                                    THE DERIVED EXTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&         Placed,
+Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&         Placed,
                                              std::uint32_t                         PlacementOrdinal,
                                              std::uint32_t                         SequenceOrdinal,
                                              const TopologyStructure&              Imported,
@@ -151,13 +151,13 @@ Result<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&       
 {
     if (!Imported.Sealed())
     {
-        return Result<DomainExtent>::Refuse(
+        return Outcome<DomainExtent>::Refuse(
             { RefusalReason::HostDenied, "an unsealed topology may still be declared into" });
     }
 
     if (static_cast<std::uint32_t>(CornerCoordinates.size()) != Imported.CornerCount())
     {
-        return Result<DomainExtent>::Refuse(
+        return Outcome<DomainExtent>::Refuse(
             { RefusalReason::ContentUnsupported, "the coordinate run carries a corner count the topology does not" });
     }
 
@@ -186,7 +186,7 @@ Result<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&       
 
         WidenOutward(Derived);
 
-        return Result<DomainExtent>::Result(Derived);
+        return Outcome<DomainExtent>::Result(Derived);
     }
 
     // 🔴 A projected placement covers whatever its volume reaches, which is a question about the topology rather
@@ -265,41 +265,41 @@ Result<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&       
     //    and `12` can never present as missing — the artist sees a row that does nothing at all.
     if (FirstAdmission)
     {
-        return Result<DomainExtent>::Refuse(
+        return Outcome<DomainExtent>::Refuse(
             { RefusalReason::ExtentExhausted, "the projecting volume reaches no corner of the topology" });
     }
 
     WidenOutward(Derived);
 
-    return Result<DomainExtent>::Result(Derived);
+    return Outcome<DomainExtent>::Result(Derived);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE PLACEMENTS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> PlacementIndex::Declare(const PlacementSpecification& Declaring)
+Outcome<std::uint32_t> PlacementIndex::Declare(const PlacementSpecification& Declaring)
 {
     if (!Declaring.Occupant.IdentityDeclared())
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::IdentityStale, "a placement attaches to no occupant" });
     }
 
     if (Declaring.Source == PlacedSource::SourceCount || Declaring.Mode == PlacementMode::ModeCount)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such source or mode" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such source or mode" });
 
     if (Declaring.Mode == PlacementMode::ProjectedPlaced
      && (Declaring.ProjectedHalfAlong <= 0.0 || Declaring.ProjectedHalfAcross <= 0.0
       || Declaring.ProjectedReach     <= 0.0))
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "a projecting volume of no extent reaches nothing" });
     }
 
     if (Declaring.PlacingTransform.ScaleX == 0.0 || Declaring.PlacingTransform.ScaleY == 0.0)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "a placement scaled to nothing covers nothing" });
     }
 
@@ -314,7 +314,7 @@ Result<std::uint32_t> PlacementIndex::Declare(const PlacementSpecification& Decl
     {
         if (Placements.size() >= PlacementCeiling)
         {
-            return Result<std::uint32_t>::Refuse(
+            return Outcome<std::uint32_t>::Refuse(
                 { RefusalReason::ExtentExhausted, "the document reached its placement ceiling" });
         }
 
@@ -335,13 +335,13 @@ Result<std::uint32_t> PlacementIndex::Declare(const PlacementSpecification& Decl
 
     ++OccupiedCount;
 
-    return Result<std::uint32_t>::Result(PlacementOrdinal);
+    return Outcome<std::uint32_t>::Result(PlacementOrdinal);
 }
 
-Result<bool> PlacementIndex::Amend(std::uint32_t PlacementOrdinal, const PlacementSpecification& Amending)
+Outcome<bool> PlacementIndex::Amend(std::uint32_t PlacementOrdinal, const PlacementSpecification& Amending)
 {
     if (PlacementOrdinal >= Placements.size() || !Placements[PlacementOrdinal].SlotOccupied)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no placement stands at that ordinal" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no placement stands at that ordinal" });
 
     HeldPlacement& Held = Placements[PlacementOrdinal];
 
@@ -378,24 +378,24 @@ Result<bool> PlacementIndex::Amend(std::uint32_t PlacementOrdinal, const Placeme
     Held.Declared                 = Amending;
     Held.Declared.RevisionCounter = SourceMoved ? Standing + 1u : Standing;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<const PlacementSpecification*> PlacementIndex::Resolve(std::uint32_t PlacementOrdinal) const
+Outcome<const PlacementSpecification*> PlacementIndex::Resolve(std::uint32_t PlacementOrdinal) const
 {
     if (PlacementOrdinal >= Placements.size() || !Placements[PlacementOrdinal].SlotOccupied)
     {
-        return Result<const PlacementSpecification*>::Refuse(
+        return Outcome<const PlacementSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no placement stands at that ordinal" });
     }
 
-    return Result<const PlacementSpecification*>::Result(&Placements[PlacementOrdinal].Declared);
+    return Outcome<const PlacementSpecification*>::Result(&Placements[PlacementOrdinal].Declared);
 }
 
-Result<bool> PlacementIndex::Withdraw(std::uint32_t PlacementOrdinal)
+Outcome<bool> PlacementIndex::Withdraw(std::uint32_t PlacementOrdinal)
 {
     if (PlacementOrdinal >= Placements.size() || !Placements[PlacementOrdinal].SlotOccupied)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no placement stands at that ordinal" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no placement stands at that ordinal" });
 
     Placements[PlacementOrdinal].SlotOccupied = false;
 
@@ -407,7 +407,7 @@ Result<bool> PlacementIndex::Withdraw(std::uint32_t PlacementOrdinal)
     if (OccupiedCount != 0u)
         --OccupiedCount;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 std::uint64_t PlacementIndex::Revision(std::uint32_t PlacementOrdinal) const
@@ -427,12 +427,12 @@ std::uint32_t PlacementIndex::DeclaredCount() const
 //                                                   THE POSITIONING DRAG
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> PlacementSequence::Open(std::uint32_t                 PlacementOrdinal,
+Outcome<bool> PlacementSequence::Open(std::uint32_t                 PlacementOrdinal,
                                       const PlacementSpecification& Standing,
                                       bool                          CameraFollowed_)
 {
     if (OpenDeclared)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "a positioning drag is already open" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "a positioning drag is already open" });
 
     PriorPlacement   = Standing;
     AmendedPlacement = Standing;
@@ -440,24 +440,24 @@ Result<bool> PlacementSequence::Open(std::uint32_t                 PlacementOrdi
     CameraFollowed   = CameraFollowed_;
     OpenDeclared     = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> PlacementSequence::Amend(const DecomposedTransform& Amending)
+Outcome<bool> PlacementSequence::Amend(const DecomposedTransform& Amending)
 {
     if (!OpenDeclared)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "no positioning drag is open" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no positioning drag is open" });
 
     AmendedPlacement.PlacingTransform = Amending;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<PlacementSpecification> PlacementSequence::Abandon()
+Outcome<PlacementSpecification> PlacementSequence::Abandon()
 {
     if (!OpenDeclared)
     {
-        return Result<PlacementSpecification>::Refuse(
+        return Outcome<PlacementSpecification>::Refuse(
             { RefusalReason::HostDenied, "no positioning drag is open" });
     }
 
@@ -468,14 +468,14 @@ Result<PlacementSpecification> PlacementSequence::Abandon()
     OpenDeclared     = false;
     CameraFollowed   = false;
 
-    return Result<PlacementSpecification>::Result(Restored);
+    return Outcome<PlacementSpecification>::Result(Restored);
 }
 
-Result<PlacementSpecification> PlacementSequence::Seal()
+Outcome<PlacementSpecification> PlacementSequence::Seal()
 {
     if (!OpenDeclared)
     {
-        return Result<PlacementSpecification>::Refuse(
+        return Outcome<PlacementSpecification>::Refuse(
             { RefusalReason::HostDenied, "no positioning drag is open" });
     }
 
@@ -492,7 +492,7 @@ Result<PlacementSpecification> PlacementSequence::Seal()
     OpenDeclared   = false;
     CameraFollowed = false;
 
-    return Result<PlacementSpecification>::Result(Sealed);
+    return Outcome<PlacementSpecification>::Result(Sealed);
 }
 
 const PlacementSpecification& PlacementSequence::Amended() const  { return AmendedPlacement; }

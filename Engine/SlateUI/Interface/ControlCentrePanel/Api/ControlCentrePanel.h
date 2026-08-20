@@ -95,10 +95,10 @@ class ControlCentrePanel
 public:
     static constexpr std::uint32_t ControlCapacity = 192u;
 
-    Result<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
+    Outcome<bool> Construct(MotionIntegrator& Motion, RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Arrived, double Elapsed);
-    Result<bool> Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates);
+    Outcome<bool> Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates);
     void Exclude(DrawerSpace& Drawers) const;
     void Reset();
 

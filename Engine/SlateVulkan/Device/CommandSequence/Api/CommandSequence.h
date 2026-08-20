@@ -68,7 +68,7 @@ public:
     ///        being written from the one the device is still executing, and that pair is the whole rotation.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Resets one cycle slot's recording extent and opens its recording for writing.
     /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
@@ -78,13 +78,13 @@ public:
     /// post  the slot is open; Surrender closes it
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<VkCommandBuffer> Open(std::uint32_t SlotOrdinal);
+    Outcome<VkCommandBuffer> Open(std::uint32_t SlotOrdinal);
 
     /// 🧩 The recording one cycle slot holds, for a document contributing commands to an open slot.
     /// out   Result  [-]  refuses with ContentUnsupported for an excessive slot or a slot that is not open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<VkCommandBuffer> Recording(std::uint32_t SlotOrdinal) const;
+    Outcome<VkCommandBuffer> Recording(std::uint32_t SlotOrdinal) const;
 
     /// 🧩 Closes one cycle slot's recording and surrenders it to the one graphics queue.
     /// in    SlotOrdinal [-]  below `RecordingSlotCount`
@@ -98,7 +98,7 @@ public:
     ///        moment for every other reader of it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Surrender(std::uint32_t SlotOrdinal, const SurrenderOrdering& Ordering);
+    Outcome<bool> Surrender(std::uint32_t SlotOrdinal, const SurrenderOrdering& Ordering);
 
     /// 🧩 Opens a recording outside the rotation, for the one-off transfers bring-up records.
     /// out   Result  [-]  refuses with ExtentExhausted when the device declines the recording
@@ -106,7 +106,7 @@ public:
     ///        a rotation's — an immediate wait inside a rotation is the whole device serialised on the host.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<VkCommandBuffer> OpenImmediate();
+    Outcome<VkCommandBuffer> OpenImmediate();
 
     /// 🧩 Closes an immediate recording, surrenders it, waits for it, and returns it.
     /// in    Recorded [-]  a recording OpenImmediate delivered
@@ -114,7 +114,7 @@ public:
     ///                     DeviceLost when the device was lost; the recording is returned either way
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> SurrenderImmediate(VkCommandBuffer Recorded);
+    Outcome<bool> SurrenderImmediate(VkCommandBuffer Recorded);
 
     /// 🧩 Destroys every recording and every extent.
     /// pre   the device is idle

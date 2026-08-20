@@ -102,47 +102,47 @@ float DecodeHalf(std::uint16_t Encoded)
 //                                                  MEDIUM VALIDATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> MediumSpecification::Validate() const
+Outcome<bool> MediumSpecification::Validate() const
 {
     if (PlanetRadius <= 0.0 || AtmosphereThickness <= 0.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the planet or its atmosphere has no extent" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the planet or its atmosphere has no extent" });
 
     if (RayleighScaleHeight <= 0.0 || MieScaleHeight <= 0.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a scale height of zero has no profile" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a scale height of zero has no profile" });
 
     if (OzoneHalfWidth <= 0.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the ozone tent has no width" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the ozone tent has no width" });
 
     if (MieAsymmetry <= -1.0 || MieAsymmetry >= 1.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the asymmetry collapses the phase lobe" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the asymmetry collapses the phase lobe" });
 
     if (MieExtinction < MieScattering)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a component cannot scatter more than it extinguishes" });
     }
 
     if (MolecularConcentration <= 0.0 || RefractiveIndex <= 1.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the medium is not a refracting gas" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the medium is not a refracting gas" });
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                              THE SPECTRAL COEFFICIENTS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
+Outcome<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
                                    const ColourSpaceSpecification& Working,
                                    const QuadratureRule&           Rule)
 {
-    const Result<bool> Validated = Declared.Validate();
+    const Outcome<bool> Validated = Declared.Validate();
 
     if (!Validated.Resolved)
-        return Result<MediumCoefficient>::Refuse(Validated.Error);
+        return Outcome<MediumCoefficient>::Refuse(Validated.Error);
 
     if (!Rule.Derived())
-        return Result<MediumCoefficient>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
+        return Outcome<MediumCoefficient>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
 
     // 📐 β(λ) = 8π³(n²−1)² / (3Nλ⁴) × (6+3p)/(6−7p). The King correction factor on the right accounts for the
     //    molecules not being spherically symmetric; omitting it understates the coefficient by about six percent,
@@ -151,7 +151,7 @@ Result<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
     const double KingFactor = (6.0 + 3.0 * Declared.Depolarisation) / (6.0 - 7.0 * Declared.Depolarisation);
     const double Numerator  = 8.0 * Pi * Pi * Pi * IndexTerm * IndexTerm * KingFactor;
 
-    const Result<TristimulusCoordinate> Rayleigh = ProjectSpectrum(
+    const Outcome<TristimulusCoordinate> Rayleigh = ProjectSpectrum(
         Rule,
         [&](double Wavelength)
         {
@@ -162,12 +162,12 @@ Result<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
         });
 
     if (!Rayleigh.Resolved)
-        return Result<MediumCoefficient>::Refuse(Rayleigh.Error);
+        return Outcome<MediumCoefficient>::Refuse(Rayleigh.Error);
 
     // 📐 The Chappuis band, as a two-lobe fit peaking near six hundred nanometres. 🔴 This is a fit to measured
     //    absorption and not a derivation: ozone's cross-section has no closed form, and the note on `Resolve`
     //    exists so that nobody later reads it as having the same standing as the Rayleigh expression above.
-    const Result<TristimulusCoordinate> Ozone = ProjectSpectrum(
+    const Outcome<TristimulusCoordinate> Ozone = ProjectSpectrum(
         Rule,
         [&](double Wavelength)
         {
@@ -181,7 +181,7 @@ Result<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
         });
 
     if (!Ozone.Resolved)
-        return Result<MediumCoefficient>::Refuse(Ozone.Error);
+        return Outcome<MediumCoefficient>::Refuse(Ozone.Error);
 
     TristimulusCoordinate RayleighTristimulus = Rayleigh.Resolve();
 
@@ -205,12 +205,12 @@ Result<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
             return Rate * LobeValue;
         });
 
-    const Result<double> Normalisation = LuminanceNormalisation(Rule);
+    const Outcome<double> Normalisation = LuminanceNormalisation(Rule);
 
     if (Normalisation.Resolved && Normalisation.Resolve() > 0.0)
         RayleighTristimulus.MagnitudeX -= SecondaryBlueIntegral / Normalisation.Resolve();
 
-    const Result<ColourSpecification> RayleighWorking =
+    const Outcome<ColourSpecification> RayleighWorking =
         ProjectTristimulus(RayleighTristimulus.MagnitudeX,
                            RayleighTristimulus.MagnitudeY,
                            RayleighTristimulus.MagnitudeZ,
@@ -264,17 +264,17 @@ Result<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
         OzoneTristimulus.MagnitudeZ = UnscaledZ * (AreaZ / AreaY);
     }
 
-    const Result<ColourSpecification> OzoneWorking =
+    const Outcome<ColourSpecification> OzoneWorking =
         ProjectTristimulus(OzoneTristimulus.MagnitudeX,
                            OzoneTristimulus.MagnitudeY,
                            OzoneTristimulus.MagnitudeZ,
                            Working);
 
     if (!RayleighWorking.Resolved)
-        return Result<MediumCoefficient>::Refuse(RayleighWorking.Error);
+        return Outcome<MediumCoefficient>::Refuse(RayleighWorking.Error);
 
     if (!OzoneWorking.Resolved)
-        return Result<MediumCoefficient>::Refuse(OzoneWorking.Error);
+        return Outcome<MediumCoefficient>::Refuse(OzoneWorking.Error);
 
     MediumCoefficient Resolved;
 
@@ -299,19 +299,19 @@ Result<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
     Resolved.MieExtinction       = Declared.MieExtinction;
     Resolved.CoefficientResolved = true;
 
-    return Result<MediumCoefficient>::Result(Resolved);
+    return Outcome<MediumCoefficient>::Result(Resolved);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 ONE RESIDENT SURFACE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ResidentSurface::Construct(std::uint32_t ExtentAlong_,
+Outcome<bool> ResidentSurface::Construct(std::uint32_t ExtentAlong_,
                                          std::uint32_t ExtentAcross_,
                                          bool          WrapAlongDeclared)
 {
     if (ExtentAlong_ == 0u || ExtentAcross_ == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a surface of no extent" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a surface of no extent" });
 
     SpannedAlong  = ExtentAlong_;
     SpannedAcross = ExtentAcross_;
@@ -319,7 +319,7 @@ Result<bool> ResidentSurface::Construct(std::uint32_t ExtentAlong_,
 
     Encoded.assign(static_cast<std::size_t>(ExtentAlong_) * ExtentAcross_ * AtmosphereComponentCount, 0u);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void ResidentSurface::Write(std::uint32_t Along, std::uint32_t Across, double Red, double Green, double Blue)
@@ -463,9 +463,9 @@ void IrradianceProjection::Evaluate(double DirectionX, double DirectionY, double
 //                                                    DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> AtmosphereIntegrator::DeclareMedium(const MediumSpecification& Declaring)
+Outcome<bool> AtmosphereIntegrator::DeclareMedium(const MediumSpecification& Declaring)
 {
-    const Result<bool> Validated = Declaring.Validate();
+    const Outcome<bool> Validated = Declaring.Validate();
 
     if (!Validated.Resolved)
         return Validated;
@@ -478,15 +478,15 @@ Result<bool> AtmosphereIntegrator::DeclareMedium(const MediumSpecification& Decl
     MediumOwed  = true;
     SkyViewOwed = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> AtmosphereIntegrator::DeclareSun(double DirectionX, double DirectionY, double DirectionZ)
+Outcome<bool> AtmosphereIntegrator::DeclareSun(double DirectionX, double DirectionY, double DirectionZ)
 {
     const double Length = std::sqrt(DirectionX * DirectionX + DirectionY * DirectionY + DirectionZ * DirectionZ);
 
     if (Length <= 0.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a direction of no length" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a direction of no length" });
 
     SunDirectionX = DirectionX / Length;
     SunDirectionY = DirectionY / Length;
@@ -502,17 +502,17 @@ Result<bool> AtmosphereIntegrator::DeclareSun(double DirectionX, double Directio
     if (std::acos(Alignment) > SunDirectionMateriality)
         SkyViewOwed = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> AtmosphereIntegrator::DeclareCameraAltitude(double Altitude)
+Outcome<bool> AtmosphereIntegrator::DeclareCameraAltitude(double Altitude)
 {
     if (!MediumDeclared)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no medium is declared" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no medium is declared" });
 
     if (Altitude < 0.0 || Altitude > DeclaredMedium.AtmosphereThickness)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the altitude lies outside the declared atmosphere" });
     }
 
@@ -521,7 +521,7 @@ Result<bool> AtmosphereIntegrator::DeclareCameraAltitude(double Altitude)
     if (BuiltAltitude < 0.0 || std::fabs(CameraAltitude - BuiltAltitude) > CameraAltitudeMateriality)
         SkyViewOwed = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void AtmosphereIntegrator::DeclareAtmospherePresence(bool PresenceEnabled)
@@ -529,15 +529,15 @@ void AtmosphereIntegrator::DeclareAtmospherePresence(bool PresenceEnabled)
     PresenceDeclared = PresenceEnabled;
 }
 
-Result<bool> AtmosphereIntegrator::DeclareConstantFloor(const ColourSpecification& Declaring)
+Outcome<bool> AtmosphereIntegrator::DeclareConstantFloor(const ColourSpecification& Declaring)
 {
     if (!Declaring.ColourDeclared())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the floor declares no colour space" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the floor declares no colour space" });
 
     ConstantFloor = Declaring;
     FloorDeclared = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -584,12 +584,12 @@ namespace
 
 }   // namespace
 
-Result<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rule)
+Outcome<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rule)
 {
     if (!Rule.Derived())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
 
-    const Result<bool> Claimed =
+    const Outcome<bool> Claimed =
         TransmittanceSurface.Construct(TransmittanceExtentAlong, TransmittanceExtentAcross, false);
 
     if (!Claimed.Resolved)
@@ -666,7 +666,7 @@ Result<bool> AtmosphereIntegrator::BuildTransmittance(const QuadratureRule& Rule
         }
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void AtmosphereIntegrator::TransmittanceAt(double Radius, double ZenithCosine,
@@ -694,12 +694,12 @@ void AtmosphereIntegrator::MultiScatterAt(double Radius, double SunZenithCosine,
     MultiScatterSurface.Sample(CoordinateAlong, CoordinateAcross, Red, Green, Blue);
 }
 
-Result<bool> AtmosphereIntegrator::BuildMultiScatter()
+Outcome<bool> AtmosphereIntegrator::BuildMultiScatter()
 {
     if (!TransmittanceSurface.SurfaceConstructed())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the transmittance surface does not stand" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the transmittance surface does not stand" });
 
-    const Result<bool> Claimed =
+    const Outcome<bool> Claimed =
         MultiScatterSurface.Construct(MultiScatterExtentAlong, MultiScatterExtentAcross, false);
 
     if (!Claimed.Resolved)
@@ -831,7 +831,7 @@ Result<bool> AtmosphereIntegrator::BuildMultiScatter()
         }
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -847,13 +847,13 @@ namespace
 
 }   // namespace
 
-Result<bool> AtmosphereIntegrator::BuildSkyView()
+Outcome<bool> AtmosphereIntegrator::BuildSkyView()
 {
     if (!TransmittanceSurface.SurfaceConstructed() || !MultiScatterSurface.SurfaceConstructed())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "① or ② does not stand" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "① or ② does not stand" });
 
     // 🔴 The azimuth is the one periodic axis in the whole component — finding ② above.
-    const Result<bool> Claimed = SkyViewSurface.Construct(SkyViewExtentAlong, SkyViewExtentAcross, true);
+    const Outcome<bool> Claimed = SkyViewSurface.Construct(SkyViewExtentAlong, SkyViewExtentAcross, true);
 
     if (!Claimed.Resolved)
         return Claimed;
@@ -955,7 +955,7 @@ Result<bool> AtmosphereIntegrator::BuildSkyView()
         }
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1024,35 +1024,35 @@ void AtmosphereIntegrator::DeriveIrradiance()
 //                                                     THE REBUILD
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> AtmosphereIntegrator::Rebuild(const ColourSpaceSpecification& Working, const QuadratureRule& Rule)
+Outcome<bool> AtmosphereIntegrator::Rebuild(const ColourSpaceSpecification& Working, const QuadratureRule& Rule)
 {
     if (!MediumDeclared)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no medium is declared" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no medium is declared" });
 
     if (!Rule.Derived())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
 
     // 🔴 `28` §4: with nothing owed, nothing is rebuilt and nothing is recorded. The delivery is not a rebuild of
     //    zero surfaces reported as success — it is the schedule's contributor being told there is no work.
     if (!MediumOwed && !SkyViewOwed)
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
 
     if (MediumOwed)
     {
-        const Result<MediumCoefficient> Resolved = Resolve(DeclaredMedium, Working, Rule);
+        const Outcome<MediumCoefficient> Resolved = Resolve(DeclaredMedium, Working, Rule);
 
         if (!Resolved.Resolved)
-            return Result<bool>::Refuse(Resolved.Error);
+            return Outcome<bool>::Refuse(Resolved.Error);
 
         ResolvedCoefficient = Resolved.Resolve();
         ShapeProfile();
 
-        const Result<bool> First = BuildTransmittance(Rule);
+        const Outcome<bool> First = BuildTransmittance(Rule);
 
         if (!First.Resolved)
             return First;
 
-        const Result<bool> Second = BuildMultiScatter();
+        const Outcome<bool> Second = BuildMultiScatter();
 
         if (!Second.Resolved)
             return Second;
@@ -1068,7 +1068,7 @@ Result<bool> AtmosphereIntegrator::Rebuild(const ColourSpaceSpecification& Worki
         //    and the two that move without the medium moving with them.
         ShapeProfile();
 
-        const Result<bool> Third = BuildSkyView();
+        const Outcome<bool> Third = BuildSkyView();
 
         if (!Third.Resolved)
             return Third;
@@ -1083,7 +1083,7 @@ Result<bool> AtmosphereIntegrator::Rebuild(const ColourSpaceSpecification& Worki
         ++SkyViewRebuilds;
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 bool AtmosphereIntegrator::RebuildOwed() const
@@ -1095,7 +1095,7 @@ bool AtmosphereIntegrator::RebuildOwed() const
 //                                                 THE SAMPLED RESULTS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> AtmosphereIntegrator::SampleSkyView(double DirectionX, double DirectionY, double DirectionZ,
+Outcome<bool> AtmosphereIntegrator::SampleSkyView(double DirectionX, double DirectionY, double DirectionZ,
                                                   double& Red, double& Green, double& Blue) const
 {
     // 🔴 The disabled atmosphere delivers the floor rather than refusing — `18` §5 and `30` §3 both reach their
@@ -1106,16 +1106,16 @@ Result<bool> AtmosphereIntegrator::SampleSkyView(double DirectionX, double Direc
         Green = FloorDeclared ? ConstantFloor.GreenCoordinate : 0.0;
         Blue  = FloorDeclared ? ConstantFloor.BlueCoordinate  : 0.0;
 
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
     }
 
     if (!SkyViewSurface.SurfaceConstructed())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no sky-view surface stands" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no sky-view surface stands" });
 
     const double Length = std::sqrt(DirectionX * DirectionX + DirectionY * DirectionY + DirectionZ * DirectionZ);
 
     if (Length <= 0.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a direction of no length" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a direction of no length" });
 
     double CoordinateAlong  = 0.0;
     double CoordinateAcross = 0.0;
@@ -1124,22 +1124,22 @@ Result<bool> AtmosphereIntegrator::SampleSkyView(double DirectionX, double Direc
 
     SkyViewSurface.Sample(CoordinateAlong, CoordinateAcross, Red, Green, Blue);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> AtmosphereIntegrator::SampleTransmittance(double Altitude, double ZenithCosine,
+Outcome<bool> AtmosphereIntegrator::SampleTransmittance(double Altitude, double ZenithCosine,
                                                         double& Red, double& Green, double& Blue) const
 {
     if (!TransmittanceSurface.SurfaceConstructed())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no transmittance surface stands" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no transmittance surface stands" });
 
     TransmittanceAt(DeclaredMedium.PlanetRadius + Altitude, BoundedMagnitude(ZenithCosine, -1.0, 1.0),
                     Red, Green, Blue);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> AtmosphereIntegrator::AerialTransmittance(double Altitude,
+Outcome<bool> AtmosphereIntegrator::AerialTransmittance(double Altitude,
                                                         double DirectionX, double DirectionY, double DirectionZ,
                                                         double Distance,
                                                         const QuadratureRule& Rule,
@@ -1150,18 +1150,18 @@ Result<bool> AtmosphereIntegrator::AerialTransmittance(double Altitude,
     Blue  = 1.0;
 
     if (!MediumDeclared || !ResolvedCoefficient.CoefficientResolved)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no medium is resolved" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no medium is resolved" });
 
     if (!Rule.Derived())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule is not derived" });
 
     const double Length = std::sqrt(DirectionX * DirectionX + DirectionY * DirectionY + DirectionZ * DirectionZ);
 
     if (Length <= 0.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a direction of no length" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a direction of no length" });
 
     if (Distance <= 0.0)
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
 
     const double Radius       = DeclaredMedium.PlanetRadius + Altitude;
     const double ZenithCosine = BoundedMagnitude(DirectionY / Length, -1.0, 1.0);
@@ -1195,7 +1195,7 @@ Result<bool> AtmosphereIntegrator::AerialTransmittance(double Altitude,
     Green = std::exp(-DepthGreen);
     Blue  = std::exp(-DepthBlue);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

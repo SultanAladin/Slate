@@ -155,7 +155,7 @@ ChartLocality BuildLocality(const TopologyStructure&           Imported,
 
             if (!BoundaryHere)
             {
-                const Result<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerOrdinal);
+                const Outcome<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerOrdinal);
 
                 if (!Adjacent.Resolved)
                     BoundaryHere = true;
@@ -386,7 +386,7 @@ void Subdivide(const TopologyStructure&           Imported,
 //                                                     THE DERIVATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
+Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
                                  const TopologyConditioning&   Conditioned,
                                  const SeamSpecification&      Seams,
                                  const PartitionSpecification& Declaring,
@@ -395,13 +395,13 @@ Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
 {
     if (!Imported.Sealed())
     {
-        return Result<DerivedPartition>::Refuse(
+        return Outcome<DerivedPartition>::Refuse(
             { RefusalReason::HostDenied, "an unsealed topology is not immutable for the run" });
     }
 
     if (Conditioned.ConditionedRevision() != Imported.Revision())
     {
-        return Result<DerivedPartition>::Refuse(
+        return Outcome<DerivedPartition>::Refuse(
             { RefusalReason::ExtentExhausted, "the conditioning describes another topology revision" });
     }
 
@@ -415,8 +415,8 @@ Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
 
     for (const SeamEdge& Authored : Seams.Authored())
     {
-        const Result<std::uint32_t> LeastWelded    = Conditioned.WeldedPosition(Authored.LeastVertex);
-        const Result<std::uint32_t> GreatestWelded = Conditioned.WeldedPosition(Authored.GreatestVertex);
+        const Outcome<std::uint32_t> LeastWelded    = Conditioned.WeldedPosition(Authored.LeastVertex);
+        const Outcome<std::uint32_t> GreatestWelded = Conditioned.WeldedPosition(Authored.GreatestVertex);
 
         if (LeastWelded.Resolved && GreatestWelded.Resolved)
             SeamKeys.push_back(EdgeKey(LeastWelded.Resolve(), GreatestWelded.Resolve()));
@@ -427,7 +427,7 @@ Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
     const std::uint32_t FaceSpan = Imported.FaceCount();
 
     if (FaceSpan == 0u)
-        return Result<DerivedPartition>::Refuse({ RefusalReason::ExtentExhausted, "the topology carries no face" });
+        return Outcome<DerivedPartition>::Refuse({ RefusalReason::ExtentExhausted, "the topology carries no face" });
 
     std::vector<std::uint32_t> ChartOfFace(FaceSpan, AbsentFace);
     std::vector<PendingChart>  Pending;
@@ -468,7 +468,7 @@ Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
                 if (KeyHeld(SeamKeys, EdgeKey(OpeningWelded, ClosingWelded)))
                     continue;
 
-                const Result<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerOrdinal);
+                const Outcome<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerOrdinal);
 
                 if (!Adjacent.Resolved)
                     continue;
@@ -503,7 +503,7 @@ Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
         // 🔴 `34` §5's cooperative point. A cancelled derivation runs to here and releases; a worker simply
         //    never joined leaks its inputs, proportional to how often the artist changes their mind about a seam.
         if (Cancellation.WithdrawalDeclared())
-            return Result<DerivedPartition>::Refuse({ RefusalReason::HostDenied, "the derivation was withdrawn" });
+            return Outcome<DerivedPartition>::Refuse({ RefusalReason::HostDenied, "the derivation was withdrawn" });
 
         PendingChart Considering = Pending.back();
         Pending.pop_back();
@@ -553,12 +553,12 @@ Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
         Solving.ConvergenceCriterion = Declaring.ConvergenceCriterion;
         Solving.IterationCeiling     = Declaring.IterationCeiling;
 
-        const Result<ConvergentResult<std::vector<PlanarPosition>>> Solved = Solve(Solving);
+        const Outcome<ConvergentOutcome<std::vector<PlanarPosition>>> Solved = Solve(Solving);
 
         if (!Solved.Resolved)
         {
             if (!SubdivisionReachable)
-                return Result<DerivedPartition>::Refuse(Solved.Error);
+                return Outcome<DerivedPartition>::Refuse(Solved.Error);
 
             std::vector<std::uint32_t> FirstHalf;
             std::vector<std::uint32_t> SecondHalf;
@@ -621,7 +621,7 @@ Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
             const std::uint32_t CornerOrdinal = FirstCorner + Passed;
             const std::uint32_t Following     = FirstCorner + (Passed + 1u) % CornerSpan;
 
-            const Result<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerOrdinal);
+            const Outcome<std::uint32_t> Adjacent = Conditioned.AdjacentCorner(CornerOrdinal);
 
             if (!Adjacent.Resolved)
                 continue;
@@ -689,10 +689,10 @@ Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
 
     DomainSpace Arranged;
 
-    const Result<bool> Packed = Arranged.Arrange(Extents, Declaring.CommonScaleDeclared);
+    const Outcome<bool> Packed = Arranged.Arrange(Extents, Declaring.CommonScaleDeclared);
 
     if (!Packed.Resolved)
-        return Result<DerivedPartition>::Refuse(Packed.Error);
+        return Outcome<DerivedPartition>::Refuse(Packed.Error);
 
     for (std::size_t Ordinal = 0u; Ordinal < Accepted.size(); ++Ordinal)
     {
@@ -730,17 +730,17 @@ Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
 
     Progressed.DeclareCount(Resolved, Resolved);
 
-    return Result<DerivedPartition>::Result(Produced);
+    return Outcome<DerivedPartition>::Result(Produced);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                 THE STANDING PARTITION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ChartPartition::Adopt(const DerivedPartition& Arriving)
+Outcome<bool> ChartPartition::Adopt(const DerivedPartition& Arriving)
 {
     if (Arriving.Charts.empty())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a partition carrying no chart" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a partition carrying no chart" });
 
     StandingPartition = Arriving;
 
@@ -749,23 +749,23 @@ Result<bool> ChartPartition::Adopt(const DerivedPartition& Arriving)
     //    invalidate artefacts addressed in a domain nothing had yet replaced.
     ++PartitionRevision;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 const DerivedPartition& ChartPartition::Standing() const { return StandingPartition; }
 
-Result<DomainCoordinate> ChartPartition::Coordinate(std::uint32_t CornerOrdinal) const
+Outcome<DomainCoordinate> ChartPartition::Coordinate(std::uint32_t CornerOrdinal) const
 {
     if (PartitionRevision == 0u)
     {
-        return Result<DomainCoordinate>::Refuse(
+        return Outcome<DomainCoordinate>::Refuse(
             { RefusalReason::ContentUnsupported, "no partition stands for this surface" });
     }
 
     if (CornerOrdinal >= StandingPartition.CornerCoordinates.size())
-        return Result<DomainCoordinate>::Refuse({ RefusalReason::ExtentExhausted, "no such corner" });
+        return Outcome<DomainCoordinate>::Refuse({ RefusalReason::ExtentExhausted, "no such corner" });
 
-    return Result<DomainCoordinate>::Result(StandingPartition.CornerCoordinates[CornerOrdinal]);
+    return Outcome<DomainCoordinate>::Result(StandingPartition.CornerCoordinates[CornerOrdinal]);
 }
 
 bool          ChartPartition::PartitionStanding() const { return PartitionRevision != 0u; }

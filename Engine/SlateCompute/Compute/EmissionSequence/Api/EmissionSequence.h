@@ -129,7 +129,7 @@ public:
     /// out   Result   [-]  refuses with ContentUnsupported for an absent resolver
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Construct(const EmissionSources& Supplied);
+    Outcome<bool> Construct(const EmissionSources& Supplied);
 
     /// 🧩 Opens one image of a validated emission, ready for its first band.
     /// in    Declaring     [-]  the emission specification; validated here, again, and not assumed
@@ -145,7 +145,7 @@ public:
     ///        trusting a copy, and `50` §5.1's wrong arrangement is exactly what that copy would carry.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Open(const EmissionSpecification& Declaring,
+    Outcome<bool> Open(const EmissionSpecification& Declaring,
                        const MaterialIndex&         Materials,
                        std::uint32_t                ImageOrdinal);
 
@@ -163,7 +163,7 @@ public:
     ///        near and the resolution picks one arbitrarily.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<std::uint32_t> ResolveBand(const SurfaceLayerSequence& Content);
+    Outcome<std::uint32_t> ResolveBand(const SurfaceLayerSequence& Content);
 
     /// 🧩 Whether rows remain to be resolved.
     /// cost  ✔️
@@ -182,7 +182,7 @@ public:
     ///        to a codec is a file that opens, looks approximately right, and is wrong along one edge.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<EmittedTexels> Seal();
+    Outcome<EmittedTexels> Seal();
 
     /// 🧩 Abandons the standing emission and reclaims its texels.
     /// cost  🚩

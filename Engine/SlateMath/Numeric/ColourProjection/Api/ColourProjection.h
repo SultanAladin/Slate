@@ -147,7 +147,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 ///        omission that matters — the transfer — produces an image that is merely "a bit washed out".
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Result<ColourSpecification> Project(ColourSpecification             Arriving,
+Outcome<ColourSpecification> Project(ColourSpecification             Arriving,
                                     const ColourSpaceSpecification& ArrivingSpace,
                                     const ColourSpaceSpecification& Target);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
@@ -167,7 +167,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 ///        nothing new is exposed by it.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Result<ColourSpecification> ProjectTristimulus(double                          TristimulusX,
+Outcome<ColourSpecification> ProjectTristimulus(double                          TristimulusX,
                                                 double                          TristimulusY,
                                                 double                          TristimulusZ,
                                                 const ColourSpaceSpecification& Target);
@@ -203,7 +203,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 ///        5600 expects to see 5600 when they return, and a coordinate cannot be inverted back to it exactly.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Result<ColourSpecification> ProjectTemperature(double                          Temperature,
+Outcome<ColourSpecification> ProjectTemperature(double                          Temperature,
                                                const ColourSpaceSpecification& Target);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 

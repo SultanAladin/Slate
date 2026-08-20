@@ -92,7 +92,7 @@ public:
     ///        was never claimed, and the recording site meets it as a null view rather than as this refusal.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Claim(ImageSpace&    Images,
+    Outcome<bool> Claim(ImageSpace&    Images,
                         std::uint32_t  DisplayWidth,
                         std::uint32_t  DisplayHeight,
                         VkFormat       DisplayFormat);
@@ -107,19 +107,19 @@ public:
     ///        extent and reads as a shifted image nobody attributes to the resize.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
+    Outcome<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
     /// 🧩 The image one declared target was claimed as.
     /// out   Result  [-]  refuses with ContentUnsupported when the target is unclaimed
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<ImageClaim> Resolve(SharedTarget Target) const;
+    Outcome<ImageClaim> Resolve(SharedTarget Target) const;
 
     /// 🧩 The image ordinal one target was claimed as, for the transition `ImageSpace` records.
     /// out   Result  [-]  refuses with ContentUnsupported when the target is unclaimed
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<std::uint32_t> OrdinalOf(SharedTarget Target) const;
+    Outcome<std::uint32_t> OrdinalOf(SharedTarget Target) const;
 
     /// 🧩 Releases every claimed target and forgets the display extent they were claimed against.
     /// pre   the device is idle
@@ -131,7 +131,7 @@ private:
 
     /// 🧩 The shape one target is claimed at, derived from its relation and the standing display extent.
     /// out   Result  [-]  refuses with ContentUnsupported for an extent of zero or above the ceiling
-    Result<ImageShape> ShapeOf(SharedTarget Target) const;
+    Outcome<ImageShape> ShapeOf(SharedTarget Target) const;
 
     ImageSpace*    ImageEdge      = nullptr;                // [-] - borrowed; never owned
     std::uint32_t  ClaimedFor[static_cast<std::size_t>(SharedTarget::TargetCount)] = {};
@@ -198,7 +198,7 @@ public:
     ///                     contribution produces a target another recording already produces
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Contribute(const DeclaredRecording& Arriving);
+    Outcome<bool> Contribute(const DeclaredRecording& Arriving);
 
     /// 🧩 Fixes the ordering. Derived from the declared reads and writes, never hand-written.
     /// out   Result  [-]  refuses when a target is read by a recording ordered before its producer, or
@@ -206,7 +206,7 @@ public:
     /// post  the ordering is immutable until the next bring-up
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Fix();
+    Outcome<bool> Fix();
 
     /// 🧩 The recordings, in the order Fix derived.
     /// pre   Fix delivered

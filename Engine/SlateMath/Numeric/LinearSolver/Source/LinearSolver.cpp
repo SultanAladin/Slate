@@ -24,7 +24,7 @@ namespace
 // 🔴 Both runs are worked in place. The caller's supply is never touched — each form copies before it reaches
 //    here — because a solve that consumed the system it was handed could not be followed by a residual measured
 //    against that system, and the residual is the only check the caller has.
-Result<SolvedSystem> Eliminate(std::vector<double>&  Working,
+Outcome<SolvedSystem> Eliminate(std::vector<double>&  Working,
                                 std::vector<double>&  Standing,
                                 std::uint32_t         Order,
                                 std::uint32_t         OrdinateRuns)
@@ -44,7 +44,7 @@ Result<SolvedSystem> Eliminate(std::vector<double>&  Working,
 
     if (GreatestSupplied <= 0.0)
     {
-        return Result<SolvedSystem>::Refuse(
+        return Outcome<SolvedSystem>::Refuse(
             { RefusalReason::ExtentExhausted, "every coefficient of the system is zero" });
     }
 
@@ -76,7 +76,7 @@ Result<SolvedSystem> Eliminate(std::vector<double>&  Working,
 
         if (ChosenExtent < PivotFloor)
         {
-            return Result<SolvedSystem>::Refuse(
+            return Outcome<SolvedSystem>::Refuse(
                 { RefusalReason::ExtentExhausted, "a pivot fell below the declared floor; the system is singular" });
         }
 
@@ -148,7 +148,7 @@ Result<SolvedSystem> Eliminate(std::vector<double>&  Working,
 
     Produced.PivotRatio = GreatestPivot > 0.0 ? LeastPivot / GreatestPivot : 0.0;
 
-    return Result<SolvedSystem>::Result(Produced);
+    return Outcome<SolvedSystem>::Result(Produced);
 }
 
 }   // namespace
@@ -157,26 +157,26 @@ Result<SolvedSystem> Eliminate(std::vector<double>&  Working,
 //                                                    THE DENSE FORM
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<SolvedSystem> Solve(const DenseSystem& Declaring)
+Outcome<SolvedSystem> Solve(const DenseSystem& Declaring)
 {
     if (Declaring.Order == 0u)
-        return Result<SolvedSystem>::Refuse({ RefusalReason::ContentUnsupported, "a system of no order" });
+        return Outcome<SolvedSystem>::Refuse({ RefusalReason::ContentUnsupported, "a system of no order" });
 
     if (Declaring.OrdinateRuns == 0u)
-        return Result<SolvedSystem>::Refuse({ RefusalReason::ContentUnsupported, "a system solved against nothing" });
+        return Outcome<SolvedSystem>::Refuse({ RefusalReason::ContentUnsupported, "a system solved against nothing" });
 
     const std::size_t SquaredExtent  = static_cast<std::size_t>(Declaring.Order) * Declaring.Order;
     const std::size_t OrdinateExtent = static_cast<std::size_t>(Declaring.Order) * Declaring.OrdinateRuns;
 
     if (Declaring.Coefficients.size() != SquaredExtent)
     {
-        return Result<SolvedSystem>::Refuse(
+        return Outcome<SolvedSystem>::Refuse(
             { RefusalReason::ContentUnsupported, "the coefficient extent is not the order squared" });
     }
 
     if (Declaring.Ordinates.size() != OrdinateExtent)
     {
-        return Result<SolvedSystem>::Refuse(
+        return Outcome<SolvedSystem>::Refuse(
             { RefusalReason::ContentUnsupported, "the ordinate extent is not the order by the run count" });
     }
 
@@ -190,14 +190,14 @@ Result<SolvedSystem> Solve(const DenseSystem& Declaring)
 //                                                   THE SPARSE FORM
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<SolvedSystem> Solve(const SparseSystem& Declaring)
+Outcome<SolvedSystem> Solve(const SparseSystem& Declaring)
 {
     if (Declaring.Order == 0u)
-        return Result<SolvedSystem>::Refuse({ RefusalReason::ContentUnsupported, "a system of no order" });
+        return Outcome<SolvedSystem>::Refuse({ RefusalReason::ContentUnsupported, "a system of no order" });
 
     if (Declaring.Ordinates.size() != static_cast<std::size_t>(Declaring.Order))
     {
-        return Result<SolvedSystem>::Refuse(
+        return Outcome<SolvedSystem>::Refuse(
             { RefusalReason::ContentUnsupported, "the ordinate extent is not the declared order" });
     }
 
@@ -207,7 +207,7 @@ Result<SolvedSystem> Solve(const SparseSystem& Declaring)
     {
         if (Supplied.Row >= Declaring.Order || Supplied.Column >= Declaring.Order)
         {
-            return Result<SolvedSystem>::Refuse(
+            return Outcome<SolvedSystem>::Refuse(
                 { RefusalReason::ContentUnsupported, "a coefficient addresses no row or no column" });
         }
 
@@ -236,7 +236,7 @@ Result<SolvedSystem> Solve(const SparseSystem& Declaring)
 
                 if (std::fabs(Above - Below) > FactorisationPivotFloor * Extent)
                 {
-                    return Result<SolvedSystem>::Refuse(
+                    return Outcome<SolvedSystem>::Refuse(
                         { RefusalReason::ContentUnsupported, "the supply contradicts its declared symmetry" });
                 }
             }

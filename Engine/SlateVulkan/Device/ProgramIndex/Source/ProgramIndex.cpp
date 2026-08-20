@@ -12,27 +12,27 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ProgramIndex::Construct(const VulkanExchange&      Exchange,
+Outcome<bool> ProgramIndex::Construct(const VulkanExchange&      Exchange,
                                       ShaderCodec&               Modules,
                                       const DescriptorIndex&     Descriptors,
                                       const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge     = &Exchange;
     ModuleEdge     = &Modules;
     DescriptorEdge = &Descriptors;
     NamingEdge     = &Naming;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE REACH
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<VkPipelineLayout> ProgramIndex::ReachLayout(const std::vector<std::uint32_t>&  LayoutOrdinals,
+Outcome<VkPipelineLayout> ProgramIndex::ReachLayout(const std::vector<std::uint32_t>&  LayoutOrdinals,
                                                     std::uint32_t                     ConstantBytes,
                                                     VkShaderStageFlags                ReachingStages)
 {
@@ -44,10 +44,10 @@ Result<VkPipelineLayout> ProgramIndex::ReachLayout(const std::vector<std::uint32
     //    position from where the shader reads it, which the vendor reports as a set that was never written.
     for (const std::uint32_t LayoutOrdinal : LayoutOrdinals)
     {
-        const Result<VkDescriptorSetLayout> Declared = DescriptorEdge->Layout(LayoutOrdinal);
+        const Outcome<VkDescriptorSetLayout> Declared = DescriptorEdge->Layout(LayoutOrdinal);
 
         if (!Declared.Resolved)
-            return Result<VkPipelineLayout>::Refuse(Declared.Error);
+            return Outcome<VkPipelineLayout>::Refuse(Declared.Error);
 
         Reached.push_back(Declared.Resolve());
     }
@@ -67,47 +67,47 @@ Result<VkPipelineLayout> ProgramIndex::ReachLayout(const std::vector<std::uint32
     VkPipelineLayout Constructed = VK_NULL_HANDLE;
 
     if (vkCreatePipelineLayout(DeviceEdge->ActiveDevice(), &Declaration, nullptr, &Constructed) != VK_SUCCESS)
-        return Result<VkPipelineLayout>::Refuse({ RefusalReason::HostDenied, "the device declined the program layout" });
+        return Outcome<VkPipelineLayout>::Refuse({ RefusalReason::HostDenied, "the device declined the program layout" });
 
-    return Result<VkPipelineLayout>::Result(Constructed);
+    return Outcome<VkPipelineLayout>::Result(Constructed);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE GRAPHICS ROUTE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& Declaring)
+Outcome<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& Declaring)
 {
     if (DeviceEdge == nullptr)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device was taken" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device was taken" });
 
     if (Declaring.RenderConstruct == VK_NULL_HANDLE)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "a graphics program names no render construct" });
     }
 
-    const Result<VkPipelineShaderStageCreateInfo> VertexRead =
+    const Outcome<VkPipelineShaderStageCreateInfo> VertexRead =
         ModuleEdge->Stage(Declaring.VertexModule, VK_SHADER_STAGE_VERTEX_BIT, Declaring.VertexFixed);
 
     if (!VertexRead.Resolved)
-        return Result<std::uint32_t>::Refuse(VertexRead.Error);
+        return Outcome<std::uint32_t>::Refuse(VertexRead.Error);
 
-    const Result<VkPipelineShaderStageCreateInfo> FragmentRead =
+    const Outcome<VkPipelineShaderStageCreateInfo> FragmentRead =
         ModuleEdge->Stage(Declaring.FragmentModule, VK_SHADER_STAGE_FRAGMENT_BIT, Declaring.FragmentFixed);
 
     if (!FragmentRead.Resolved)
-        return Result<std::uint32_t>::Refuse(FragmentRead.Error);
+        return Outcome<std::uint32_t>::Refuse(FragmentRead.Error);
 
     const VkPipelineShaderStageCreateInfo Reading[2] = { VertexRead.Resolve(), FragmentRead.Resolve() };
 
-    const Result<VkPipelineLayout> Reached =
+    const Outcome<VkPipelineLayout> Reached =
         ReachLayout(Declaring.LayoutOrdinals,
                     Declaring.ConstantBytes,
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
     if (!Reached.Resolved)
-        return Result<std::uint32_t>::Refuse(Reached.Error);
+        return Outcome<std::uint32_t>::Refuse(Reached.Error);
 
     const VkPipelineLayout ReachedLayout = Reached.Resolve();
 
@@ -206,7 +206,7 @@ Result<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& D
         //    layout per declined program — and a declined program is exactly the case a caller retries.
         vkDestroyPipelineLayout(DeviceEdge->ActiveDevice(), ReachedLayout, nullptr);
 
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::HostDenied, "the device declined the graphics program" });
     }
 
@@ -232,29 +232,29 @@ Result<std::uint32_t> ProgramIndex::DeclareGraphics(const GraphicsDeclaration& D
                         "ProgramIndex graphics reach",
                         ProgramOrdinal));
 
-    return Result<std::uint32_t>::Result(ProgramOrdinal);
+    return Outcome<std::uint32_t>::Result(ProgramOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE COMPUTE ROUTE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& Declaring)
+Outcome<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& Declaring)
 {
     if (DeviceEdge == nullptr)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device was taken" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device was taken" });
 
-    const Result<VkPipelineShaderStageCreateInfo> Reading =
+    const Outcome<VkPipelineShaderStageCreateInfo> Reading =
         ModuleEdge->Stage(Declaring.ModuleOrdinal, VK_SHADER_STAGE_COMPUTE_BIT, Declaring.Fixed);
 
     if (!Reading.Resolved)
-        return Result<std::uint32_t>::Refuse(Reading.Error);
+        return Outcome<std::uint32_t>::Refuse(Reading.Error);
 
-    const Result<VkPipelineLayout> Reached =
+    const Outcome<VkPipelineLayout> Reached =
         ReachLayout(Declaring.LayoutOrdinals, Declaring.ConstantBytes, VK_SHADER_STAGE_COMPUTE_BIT);
 
     if (!Reached.Resolved)
-        return Result<std::uint32_t>::Refuse(Reached.Error);
+        return Outcome<std::uint32_t>::Refuse(Reached.Error);
 
     const VkPipelineLayout ReachedLayout = Reached.Resolve();
 
@@ -270,7 +270,7 @@ Result<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& Dec
     {
         vkDestroyPipelineLayout(DeviceEdge->ActiveDevice(), ReachedLayout, nullptr);
 
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::HostDenied, "the device declined the compute program" });
     }
 
@@ -295,18 +295,18 @@ Result<std::uint32_t> ProgramIndex::DeclareCompute(const ComputeDeclaration& Dec
                         "ProgramIndex compute reach",
                         ProgramOrdinal));
 
-    return Result<std::uint32_t>::Result(ProgramOrdinal);
+    return Outcome<std::uint32_t>::Result(ProgramOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<ConstructedProgram> ProgramIndex::Resolve(std::uint32_t ProgramOrdinal) const
+Outcome<ConstructedProgram> ProgramIndex::Resolve(std::uint32_t ProgramOrdinal) const
 {
     if (static_cast<std::size_t>(ProgramOrdinal) >= Programs.size())
     {
-        return Result<ConstructedProgram>::Refuse(
+        return Outcome<ConstructedProgram>::Refuse(
             { RefusalReason::ContentUnsupported, "no program stands at that ordinal" });
     }
 
@@ -317,7 +317,7 @@ Result<ConstructedProgram> ProgramIndex::Resolve(std::uint32_t ProgramOrdinal) c
     Resolved.ReachedLayout = Held.ReachedLayout;
     Resolved.RecordedAs    = Held.RecordedAs;
 
-    return Result<ConstructedProgram>::Result(Resolved);
+    return Outcome<ConstructedProgram>::Result(Resolved);
 }
 
 std::uint32_t ProgramIndex::DeclaredCount() const

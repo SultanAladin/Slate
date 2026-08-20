@@ -110,19 +110,19 @@ public:
     ///        Admitting it would put a permanent unknown into the document with nothing able to settle it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Declare(const DeclaredReference& Arriving);
+    Outcome<std::uint32_t> Declare(const DeclaredReference& Arriving);
 
     /// 🧩 Declares one reference embedded or referenced, per the document's own answer.
     /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareRetention(std::uint32_t ReferenceOrdinal, ReferenceRetention Declaring);
+    Outcome<bool> DeclareRetention(std::uint32_t ReferenceOrdinal, ReferenceRetention Declaring);
 
     /// 🧩 Declares one reference found, with the extent it spans.
     /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareResolved(std::uint32_t ReferenceOrdinal, std::uint64_t SpannedBytes);
+    Outcome<bool> DeclareResolved(std::uint32_t ReferenceOrdinal, std::uint64_t SpannedBytes);
 
     /// 🧩 Declares one reference missing — enrolled, reported, and never replaced.
     /// out   Result  [-]  refuses with ExtentExhausted outside the declared count
@@ -131,7 +131,7 @@ public:
     ///        to go and find, and clearing it turns a recoverable absence into a permanent one.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareAbsent(std::uint32_t ReferenceOrdinal);
+    Outcome<bool> DeclareAbsent(std::uint32_t ReferenceOrdinal);
 
     /// 🧩 Appends every unreported absence to the register — `48` §5 and `86` §4.
     /// in    Reporting  [-]  where the absence rows land
@@ -153,7 +153,7 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted when nothing declares that path
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<DeclaredReference> Resolve(const std::string& OriginPath) const;
+    Outcome<DeclaredReference> Resolve(const std::string& OriginPath) const;
 
     /// 🧩 Declares whether this document embeds its typeface outlines or refers to them.
     /// note  ⚠️ `00` §12 leaves the licensing question open and `48` §5 does not close it. What is fixed here is

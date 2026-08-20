@@ -28,13 +28,13 @@ bool PersistenceSequence::VerifyIdentical(const std::vector<std::uint8_t>& Writt
 //                                                       THE SEQUENCE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent& Sealed)
+Outcome<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent& Sealed)
 {
     Reached = PersistenceStep::Unbegun;
 
     if (Sealed.TargetPath.empty())
     {
-        return Result<PersistenceConclusion>::Refuse(
+        return Outcome<PersistenceConclusion>::Refuse(
             { RefusalReason::ContentUnsupported, "a save names where it is to land — `48` §3" });
     }
 
@@ -43,7 +43,7 @@ Result<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent& 
         // 🔴 An empty stream is refused rather than written. Writing it would replace a good document with a
         //    file carrying no heading at all, and `48` §3's whole sequence exists to stop a save from being
         //    the thing that destroys the artist's previous save.
-        return Result<PersistenceConclusion>::Refuse(
+        return Outcome<PersistenceConclusion>::Refuse(
             { RefusalReason::ContentUnsupported, "a document stream of no bytes is not a document — `48` §3" });
     }
 
@@ -51,7 +51,7 @@ Result<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent& 
     //    reads it back, compares it, and only then renames — and the rename is atomic within one file system.
     //    Splitting them here would put the staged stream's path in two places, and a host that died between
     //    two of the calls would leave the artist a directory with two documents and no way to tell which.
-    const Result<bool> Landed = FileInterchange::WriteStream(Sealed.TargetPath, Sealed.Content);
+    const Outcome<bool> Landed = FileInterchange::WriteStream(Sealed.TargetPath, Sealed.Content);
 
     if (!Landed.Resolved)
     {
@@ -62,7 +62,7 @@ Result<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent& 
                 ? PersistenceStep::Written
                 : PersistenceStep::Unbegun;
 
-        return Result<PersistenceConclusion>::Refuse(Landed.Error);
+        return Outcome<PersistenceConclusion>::Refuse(Landed.Error);
     }
 
     Reached = PersistenceStep::Replaced;
@@ -77,7 +77,7 @@ Result<PersistenceConclusion> PersistenceSequence::Persist(const SealedContent& 
     // 📝 ④ — retiring the journal entries this save subsumes — is the caller's, on the tick. The journal belongs
     //    to the session and this runs off it, and `48` §3 ④ makes an unretired entry merely redundant on replay
     //    rather than wrong. Retiring it from here would be the one step of the four that could lose work.
-    return Result<PersistenceConclusion>::Result(Concluded);
+    return Outcome<PersistenceConclusion>::Result(Concluded);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

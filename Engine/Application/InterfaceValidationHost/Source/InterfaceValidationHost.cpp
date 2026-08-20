@@ -257,7 +257,7 @@ struct ValidationIdentities
 /// out   Result  [-]  refuses with ExtentExhausted when the ledger declines any requested identity
 /// note  🔴 A partial enrolment would leave one control reading another's fade, which draws correctly on the
 ///       first tick and diverges on the second — the hardest possible shape of defect to attribute.
-Result<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
+Outcome<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
 {
     ValidationIdentities  Claimed;
     ControlIdentity*      Every[] = {
@@ -275,17 +275,17 @@ Result<ValidationIdentities> EnrolEvery(InteractionIndex& Ledger)
 
     for (ControlIdentity* Claiming : Every)
     {
-        const Result<ControlIdentity> Issued = Ledger.Enrol();
+        const Outcome<ControlIdentity> Issued = Ledger.Enrol();
 
         if (!Issued.Resolved)
         {
-            return Result<ValidationIdentities>::Refuse(Issued.Error);
+            return Outcome<ValidationIdentities>::Refuse(Issued.Error);
         }
 
         *Claiming = Issued.Resolve();
     }
 
-    return Result<ValidationIdentities>::Result(Claimed);
+    return Outcome<ValidationIdentities>::Result(Claimed);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -498,7 +498,7 @@ int main(int ArgumentCount, char** ArgumentValues)
         return 1;
     }
 
-    const Result<ValidationIdentities> Enrolled = EnrolEvery(Ledger);
+    const Outcome<ValidationIdentities> Enrolled = EnrolEvery(Ledger);
 
     if (!Enrolled.Resolved)
     {

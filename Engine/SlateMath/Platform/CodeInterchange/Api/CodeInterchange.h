@@ -115,7 +115,7 @@ public:
     ///        and stayed resident has already run its own initialisation inside this process.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Acquire(const std::string& ModulePath, ForeignRequirement Required);
+    Outcome<std::uint32_t> Acquire(const std::string& ModulePath, ForeignRequirement Required);
 
     /// 🧩 The verified entry table of a standing module.
     /// in    ModuleOrdinal [-]  a module this component acquired
@@ -125,14 +125,14 @@ public:
     ///        every interface any consumer ever loads.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<const void*> EntryTable(std::uint32_t ModuleOrdinal) const;
+    Outcome<const void*> EntryTable(std::uint32_t ModuleOrdinal) const;
 
     /// 🧩 What a standing module reported about itself.
     /// in    ModuleOrdinal [-]  a module this component acquired
     /// out   Result       [-]  refuses with IdentityStale for an ordinal no module stands at
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<const SlateModuleReport*> Report(std::uint32_t ModuleOrdinal) const;
+    Outcome<const SlateModuleReport*> Report(std::uint32_t ModuleOrdinal) const;
 
     /// 🧩 Releases one standing module.
     /// in    ModuleOrdinal [-]  a module this component acquired

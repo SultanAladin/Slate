@@ -46,10 +46,10 @@ InterfaceExchange::~InterfaceExchange()
     Reclaim();
 }
 
-Result<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
+Outcome<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
 {
     if (ContextSlot != nullptr)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the interface context already exists" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the interface context already exists" });
 
     if (Arriving.Instance         == VK_NULL_HANDLE ||
         Arriving.ScoredDevice     == VK_NULL_HANDLE ||
@@ -57,20 +57,20 @@ Result<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
         Arriving.GraphicsQueue    == VK_NULL_HANDLE ||
         Arriving.NativeWindowSlot == nullptr)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::CapabilityAbsent, "a required device or window handle was absent" });
     }
 
     if (Arriving.ColourTargetFormat == VK_FORMAT_UNDEFINED)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::CapabilityAbsent, "no colour target format was declared" });
     }
 
     if (Arriving.MinimumDisplayImageCount < 2u ||
         Arriving.DisplayImageCount < Arriving.MinimumDisplayImageCount)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the display image counts are inconsistent" });
     }
 
@@ -95,7 +95,7 @@ Result<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (vkCreateDescriptorPool(Attached.ActiveDevice, &DescriptorDeclaration, nullptr, &DescriptorSlot) != VK_SUCCESS)
     {
         Attached = {};
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface descriptor extent was refused" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface descriptor extent was refused" });
     }
 
     IMGUI_CHECKVERSION();
@@ -106,7 +106,7 @@ Result<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
         vkDestroyDescriptorPool(Attached.ActiveDevice, DescriptorSlot, nullptr);
         DescriptorSlot = VK_NULL_HANDLE;
         Attached       = {};
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface context was not constructed" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the interface context was not constructed" });
     }
 
     ContextSlot = static_cast<void*>(ConstructedContext);
@@ -127,7 +127,7 @@ Result<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (!ImGui_ImplGlfw_InitForVulkan(static_cast<GLFWwindow*>(Attached.NativeWindowSlot), true))
     {
         Reclaim();
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the window system attachment declined" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the window system attachment declined" });
     }
 
     WindowAttached = true;
@@ -155,7 +155,7 @@ Result<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (!ImGui_ImplVulkan_Init(&VendorAttachment))
     {
         Reclaim();
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the vendor attachment declined" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the vendor attachment declined" });
     }
 
     VendorAttached = true;
@@ -166,7 +166,7 @@ Result<bool> InterfaceExchange::Construct(const InterfaceAttachment& Arriving)
     if (StyleSeated)
         Disregard(SeatWorkspaceStyle(SeatedMeasure, SeatedColour));
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void InterfaceExchange::Reclaim()
@@ -209,13 +209,13 @@ void InterfaceExchange::Reclaim()
 //                                                       THE TICK
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> InterfaceExchange::Advance()
+Outcome<bool> InterfaceExchange::Advance()
 {
     if (ContextSlot == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "no interface context is constructed" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no interface context is constructed" });
 
     if (TickOpen)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "a tick is already open" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "a tick is already open" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
@@ -227,13 +227,13 @@ Result<bool> InterfaceExchange::Advance()
     ContentAssembled = false;
     WorkspaceEntered = false;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> InterfaceExchange::Seal()
+Outcome<bool> InterfaceExchange::Seal()
 {
     if (!TickOpen)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "no tick is open" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no tick is open" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
     LeaveWorkspaceWindow();
@@ -242,13 +242,13 @@ Result<bool> InterfaceExchange::Seal()
     TickOpen         = false;
     ContentAssembled = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> InterfaceExchange::Abandon()
+Outcome<bool> InterfaceExchange::Abandon()
 {
     if (!TickOpen)
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
     LeaveWorkspaceWindow();
@@ -257,7 +257,7 @@ Result<bool> InterfaceExchange::Abandon()
     TickOpen         = false;
     ContentAssembled = false;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -279,7 +279,7 @@ ImVec4 Vendor(ThemeToken Colour)
 
 }   // namespace
 
-Result<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted)
+Outcome<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted)
 {
     // 🔴 Retained BEFORE the context is tested, so a seat asked for while no context stands is applied by
     //    the next Construct rather than silently dropped.
@@ -288,7 +288,7 @@ Result<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measur
     StyleSeated   = true;
 
     if (ContextSlot == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context stands" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no interface context stands" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
@@ -351,7 +351,7 @@ Result<bool> InterfaceExchange::SeatWorkspaceStyle(const WorkspaceMetric& Measur
     //    because it governs the docking system as a whole.
     ImGui::GetIO().ConfigDockingAlwaysTabBar = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 bool InterfaceExchange::RecordWorkspaceAddition(const PlaneExtent&  Extent,
@@ -576,13 +576,13 @@ bool InterfaceExchange::WorkspacePresented(const char* Titled) const
     return (Context->NavWindow == Window);
 }
 
-Result<bool> InterfaceExchange::Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount)
+Outcome<bool> InterfaceExchange::Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount)
 {
     if (ContextSlot == nullptr || !VendorAttached)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "no vendor attachment stands" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no vendor attachment stands" });
 
     if (MinimumImageCount < 2u || ImageCount < MinimumImageCount)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display image counts are inconsistent" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display image counts are inconsistent" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
@@ -593,27 +593,27 @@ Result<bool> InterfaceExchange::Renegotiate(std::uint32_t MinimumImageCount, std
     Attached.MinimumDisplayImageCount = MinimumImageCount;
     Attached.DisplayImageCount        = ImageCount;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording)
+Outcome<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording)
 {
     if (!ContentAssembled)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "nothing has been sealed for recording" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "nothing has been sealed for recording" });
 
     if (CommandRecording == VK_NULL_HANDLE)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "no command recording was supplied" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no command recording was supplied" });
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ContextSlot));
 
     ImDrawData* AssembledContent = ImGui::GetDrawData();
 
     if (AssembledContent == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the sealed content was not assembled" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the sealed content was not assembled" });
 
     // 📝 A display extent of zero — a minimised window — assembles content that covers nothing. Recording it
     //    is legal and costs a recorded nothing; skipping it here keeps the recording out of the rotation's
@@ -621,13 +621,13 @@ Result<bool> InterfaceExchange::Record(VkCommandBuffer CommandRecording)
     if (AssembledContent->DisplaySize.x <= 0.0f || AssembledContent->DisplaySize.y <= 0.0f)
     {
         ContentAssembled = false;
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
     }
 
     ImGui_ImplVulkan_RenderDrawData(AssembledContent, CommandRecording);
     ContentAssembled = false;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

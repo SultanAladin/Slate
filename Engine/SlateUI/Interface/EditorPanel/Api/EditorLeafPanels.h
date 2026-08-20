@@ -41,9 +41,9 @@ public:
     /// in    ArrivingSurface     [-]  the surface every recording is made against
     /// in    ArrivingAppearance  [-]  the appearance declarations the ground colour is read from
     /// in    ArrivingSubject     [-]  which leaf this instance presents
-    /// out   Result<bool>       [-]  refuses when a construction already stands
+    /// out   Outcome<bool>       [-]  refuses when a construction already stands
     /// cost  ✔️
-    Result<bool> Construct(RecordingSurface& ArrivingSurface,
+    Outcome<bool> Construct(RecordingSurface& ArrivingSurface,
                             const ThemeProfile& ArrivingAppearance,
                             LeafSubject ArrivingSubject);
 

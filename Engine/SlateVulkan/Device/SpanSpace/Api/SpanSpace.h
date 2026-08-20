@@ -100,7 +100,7 @@ public:
     ///        storage span the engine holds, and the driver's text would then name a set rather than a span.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Construct(const VulkanExchange&      Exchange,
+    Outcome<bool> Construct(const VulkanExchange&      Exchange,
                             ByteSpace&                 BackingSpace,
                             const DiagnosticExtension& Naming);
 
@@ -113,7 +113,7 @@ public:
     ///        allocation nothing holds a reference to, reclaimed only at device teardown.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<SpanClaim> Claim(const SpanShape& Declared);
+    Outcome<SpanClaim> Claim(const SpanShape& Declared);
 
     /// 🧩 Writes host-supplied bytes into one host-writable span.
     /// in    SpanOrdinal    [-]  a claim this component issued
@@ -126,7 +126,7 @@ public:
     ///        extent as coherent precisely so that a caller cannot forget the flush at one of its write sites.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Amend(std::uint32_t  SpanOrdinal,
+    Outcome<bool> Amend(std::uint32_t  SpanOrdinal,
                         const void*    Arriving,
                         VkDeviceSize   ArrivingBytes,
                         VkDeviceSize   ByteOffset);
@@ -143,7 +143,7 @@ public:
     ///        moment its scheduling reaches it, which is a partitioning that is correct on one driver.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Transfer(VkCommandBuffer  Recorded,
+    Outcome<bool> Transfer(VkCommandBuffer  Recorded,
                            std::uint32_t    SourceOrdinal,
                            std::uint32_t    TargetOrdinal,
                            VkDeviceSize     TransferBytes);
@@ -153,7 +153,7 @@ public:
     /// out   Result      [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<SpanClaim> Standing(std::uint32_t SpanOrdinal) const;
+    Outcome<SpanClaim> Standing(std::uint32_t SpanOrdinal) const;
 
     /// 🧩 Destroys one span and returns its bytes.
     /// in    SpanOrdinal  [-]  a claim this component issued; an unclaimed ordinal is a no-op

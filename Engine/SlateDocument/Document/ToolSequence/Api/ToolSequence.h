@@ -125,16 +125,16 @@ public:
     ///                     and with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Declare(const ToolSpecification& Declaring);
+    Outcome<std::uint32_t> Declare(const ToolSpecification& Declaring);
 
-    Result<const ToolSpecification*> Resolve(std::uint32_t ToolOrdinal) const;
-    Result<ToolSpecification*>       Amend(std::uint32_t ToolOrdinal);
+    Outcome<const ToolSpecification*> Resolve(std::uint32_t ToolOrdinal) const;
+    Outcome<ToolSpecification*>       Amend(std::uint32_t ToolOrdinal);
 
     /// 🧩 The ordinal one identity was declared at.
     /// out   Result  [-]  refuses with ContentUnsupported when nothing declares that identity
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Located(const std::string& Identity) const;
+    Outcome<std::uint32_t> Located(const std::string& Identity) const;
 
     std::uint32_t DeclaredCount() const;
 
@@ -201,13 +201,13 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared tool count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareTool(std::uint32_t ToolOrdinal);
+    Outcome<bool> DeclareTool(std::uint32_t ToolOrdinal);
 
     /// 🧩 Activates one declared brush.
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared brush count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareBrush(std::uint32_t BrushOrdinal);
+    Outcome<bool> DeclareBrush(std::uint32_t BrushOrdinal);
 
     /// 🧩 Declares the active colour.
     /// out   Result  [-]  refuses with ContentUnsupported for a colour declaring no space
@@ -218,25 +218,25 @@ public:
     ///        that says so.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareColour(const ColourSpecification& Declaring);
+    Outcome<bool> DeclareColour(const ColourSpecification& Declaring);
 
     /// 🧩 Declares how the workspace presents the shaded result.
     /// out   Result  [-]  refuses with ContentUnsupported for a mode outside the declared set
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareDisplay(DisplaySubject Declaring);
+    Outcome<bool> DeclareDisplay(DisplaySubject Declaring);
 
     /// 🧩 Declares which of `42`'s channels is presented alone at `ChannelIsolated`.
     /// out   Result  [-]  refuses with ContentUnsupported for a channel outside `42`'s twenty
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareChannel(ChannelSubject Declaring);
+    Outcome<bool> DeclareChannel(ChannelSubject Declaring);
 
     /// 🧩 Declares whether one of `80`'s overlays is presented.
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared set
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareOverlay(OverlaySubject Declaring, bool PresenceEnabled);
+    Outcome<bool> DeclareOverlay(OverlaySubject Declaring, bool PresenceEnabled);
 
     /// 🧩 Takes the pointer at a declared precedence, recording the pick it was taken against.
     /// in    Claiming  [-]  which level is claiming it
@@ -247,14 +247,14 @@ public:
     ///        moment the cursor crosses a floating panel. Arbitration happens before capture is taken, once.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> OpenCapture(PointerPrecedence Claiming, const ResolvedPointer& Opened);
+    Outcome<bool> OpenCapture(PointerPrecedence Claiming, const ResolvedPointer& Opened);
 
     /// 🧩 Releases the standing capture.
     /// out   Result  [-]  refuses with HostDenied when no capture stands
     /// note  🔴 Releasing is an explicit event and never a consequence of the pointer moving elsewhere.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> ReleaseCapture();
+    Outcome<bool> ReleaseCapture();
 
     /// 🧩 Which precedence would take the pointer, given what is open and where the pointer is.
     /// in    InterfaceReported  [-]  the interface reports the pointer over itself — `14` §4.2's level 1
@@ -274,13 +274,13 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported before a tool is declared active
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const ToolSpecification*> ActiveTool() const;
+    Outcome<const ToolSpecification*> ActiveTool() const;
 
     /// 🧩 The active brush, refusing where none has been activated.
     /// out   Result  [-]  refuses with ContentUnsupported before a brush is declared active
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const BrushSpecification*> ActiveBrush() const;
+    Outcome<const BrushSpecification*> ActiveBrush() const;
 
     std::uint32_t   ActiveToolOrdinal() const;
     std::uint32_t   ActiveBrushOrdinal() const;

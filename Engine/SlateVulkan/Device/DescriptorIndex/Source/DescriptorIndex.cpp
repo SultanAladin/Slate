@@ -12,47 +12,47 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> DescriptorIndex::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
+Outcome<bool> DescriptorIndex::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge = &Exchange;
     NamingEdge = &Naming;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> DescriptorIndex::Declare(const std::vector<DescriptorSlot>& Declared)
+Outcome<std::uint32_t> DescriptorIndex::Declare(const std::vector<DescriptorSlot>& Declared)
 {
     if (DeviceEdge == nullptr)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     // 🔴 `06` §7's first gate. A layout constructed after the extent was sized is one the extent was not sized
     //    for, and the recording that asked for it is the recording that stalls on the vendor constructing it.
     if (DeclarationFixed)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::RelationCyclic, "the declaration is closed; no layout is constructed after it" });
     }
 
     if (Declared.empty())
-        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a layout declaring no slot" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a layout declaring no slot" });
 
     for (std::size_t Ordinal = 0u; Ordinal < Declared.size(); ++Ordinal)
     {
         if (Declared[Ordinal].CarriedCount == 0u)
-            return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a slot carrying nothing" });
+            return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a slot carrying nothing" });
 
         for (std::size_t Against = Ordinal + 1u; Against < Declared.size(); ++Against)
         {
             if (Declared[Ordinal].SlotOrdinal == Declared[Against].SlotOrdinal)
             {
-                return Result<std::uint32_t>::Refuse(
+                return Outcome<std::uint32_t>::Refuse(
                     { RefusalReason::ContentUnsupported, "two slots declare the same ordinal" });
             }
         }
@@ -84,7 +84,7 @@ Result<std::uint32_t> DescriptorIndex::Declare(const std::vector<DescriptorSlot>
     if (vkCreateDescriptorSetLayout(DeviceEdge->ActiveDevice(), &LayoutDeclaration, nullptr, &Arriving.Constructed)
         != VK_SUCCESS)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "the device declined the declared layout" });
     }
 
@@ -99,26 +99,26 @@ Result<std::uint32_t> DescriptorIndex::Declare(const std::vector<DescriptorSlot>
                         "DescriptorIndex layout",
                         LayoutOrdinal));
 
-    return Result<std::uint32_t>::Result(LayoutOrdinal);
+    return Outcome<std::uint32_t>::Result(LayoutOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE ONE EXTENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
+Outcome<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
 {
     if (DeviceEdge == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     if (DeclarationFixed)
-        return Result<bool>::Refuse({ RefusalReason::RelationCyclic, "the declaration is already closed" });
+        return Outcome<bool>::Refuse({ RefusalReason::RelationCyclic, "the declaration is already closed" });
 
     if (Layouts.empty())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no layout was declared" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no layout was declared" });
 
     if (ConcurrentSets == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "an extent admitting no set" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "an extent admitting no set" });
 
     // 📝 Every declared slot of every declared layout is counted once per admitted set, so the extent is sized
     //    for the worst arrangement of claims across the layouts rather than for one assumed distribution.
@@ -163,7 +163,7 @@ Result<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
     if (vkCreateDescriptorPool(DeviceEdge->ActiveDevice(), &ExtentDeclaration, nullptr, &DescriptorExtent)
         != VK_SUCCESS)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ExtentExhausted, "the device declined the descriptor extent the declaration was sized to" });
     }
 
@@ -175,20 +175,20 @@ Result<bool> DescriptorIndex::Fix(std::uint32_t ConcurrentSets)
                         reinterpret_cast<std::uint64_t>(DescriptorExtent),
                         "DescriptorIndex descriptor extent"));
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE CLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
+Outcome<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
 {
     if (DeviceEdge == nullptr || !DeclarationFixed || DescriptorExtent == VK_NULL_HANDLE)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "the declaration is not yet closed" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "the declaration is not yet closed" });
 
     if (static_cast<std::size_t>(LayoutOrdinal) >= Layouts.size())
-        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no layout stands at that ordinal" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no layout stands at that ordinal" });
 
     // 📝 🔴 `06` §2.1: one set per cycle slot, claimed together. Claiming them apart admits a claim that
     //    half-succeeds, and the recording then writes rotation one against a set that was never sliced.
@@ -207,7 +207,7 @@ Result<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
     if (vkAllocateDescriptorSets(DeviceEdge->ActiveDevice(), &SetDeclaration, Arriving.PerSlot.data())
         != VK_SUCCESS)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the descriptor extent admits no further set" });
     }
 
@@ -228,7 +228,7 @@ Result<std::uint32_t> DescriptorIndex::Claim(std::uint32_t LayoutOrdinal)
                             ClaimOrdinal * RecordingSlotCount + SlotOrdinal));
     }
 
-    return Result<std::uint32_t>::Result(ClaimOrdinal);
+    return Outcome<std::uint32_t>::Result(ClaimOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -246,21 +246,21 @@ const DescriptorSlot* DescriptorIndex::SlotOf(const DeclaredLayout& Holding, std
     return nullptr;
 }
 
-Result<bool> DescriptorIndex::Amend(std::uint32_t                          ClaimOrdinal,
+Outcome<bool> DescriptorIndex::Amend(std::uint32_t                          ClaimOrdinal,
                                      std::uint32_t                          SlotOrdinal,
                                      const std::vector<DescriptorContent>&  Amended)
 {
     if (DeviceEdge == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     if (static_cast<std::size_t>(ClaimOrdinal) >= Claimed.size())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no claim stands at that ordinal" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no claim stands at that ordinal" });
 
     if (SlotOrdinal >= RecordingSlotCount)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
 
     if (Amended.empty())
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
 
     const ClaimedSet&     Standing = Claimed[ClaimOrdinal];
     const DeclaredLayout& Holding  = Layouts[Standing.LayoutOrdinal];
@@ -283,7 +283,7 @@ Result<bool> DescriptorIndex::Amend(std::uint32_t                          Claim
         const DescriptorSlot* Declared = SlotOf(Holding, Content.SlotOrdinal);
 
         if (Declared == nullptr)
-            return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the layout declares no such slot" });
+            return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the layout declares no such slot" });
 
         VkWriteDescriptorSet Written = {};
         Written.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -302,7 +302,7 @@ Result<bool> DescriptorIndex::Amend(std::uint32_t                          Claim
             {
                 if (Content.SpanExtent == VK_NULL_HANDLE)
                 {
-                    return Result<bool>::Refuse(
+                    return Outcome<bool>::Refuse(
                         { RefusalReason::ContentUnsupported, "a span slot written with no span" });
                 }
 
@@ -317,7 +317,7 @@ Result<bool> DescriptorIndex::Amend(std::uint32_t                          Claim
             {
                 if (Content.ImageView == VK_NULL_HANDLE)
                 {
-                    return Result<bool>::Refuse(
+                    return Outcome<bool>::Refuse(
                         { RefusalReason::ContentUnsupported, "an image slot written with no view" });
                 }
 
@@ -338,36 +338,36 @@ Result<bool> DescriptorIndex::Amend(std::uint32_t                          Claim
                            0u,
                            nullptr);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   WHAT IS DECLARED
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<VkDescriptorSet> DescriptorIndex::Resolve(std::uint32_t ClaimOrdinal, std::uint32_t SlotOrdinal) const
+Outcome<VkDescriptorSet> DescriptorIndex::Resolve(std::uint32_t ClaimOrdinal, std::uint32_t SlotOrdinal) const
 {
     if (static_cast<std::size_t>(ClaimOrdinal) >= Claimed.size())
-        return Result<VkDescriptorSet>::Refuse({ RefusalReason::ContentUnsupported, "no claim stands at that ordinal" });
+        return Outcome<VkDescriptorSet>::Refuse({ RefusalReason::ContentUnsupported, "no claim stands at that ordinal" });
 
     if (SlotOrdinal >= RecordingSlotCount)
     {
-        return Result<VkDescriptorSet>::Refuse(
+        return Outcome<VkDescriptorSet>::Refuse(
             { RefusalReason::ContentUnsupported, "the cycle slot is outside the depth" });
     }
 
-    return Result<VkDescriptorSet>::Result(Claimed[ClaimOrdinal].PerSlot[SlotOrdinal]);
+    return Outcome<VkDescriptorSet>::Result(Claimed[ClaimOrdinal].PerSlot[SlotOrdinal]);
 }
 
-Result<VkDescriptorSetLayout> DescriptorIndex::Layout(std::uint32_t LayoutOrdinal) const
+Outcome<VkDescriptorSetLayout> DescriptorIndex::Layout(std::uint32_t LayoutOrdinal) const
 {
     if (static_cast<std::size_t>(LayoutOrdinal) >= Layouts.size())
     {
-        return Result<VkDescriptorSetLayout>::Refuse(
+        return Outcome<VkDescriptorSetLayout>::Refuse(
             { RefusalReason::ContentUnsupported, "no layout stands at that ordinal" });
     }
 
-    return Result<VkDescriptorSetLayout>::Result(Layouts[LayoutOrdinal].Constructed);
+    return Outcome<VkDescriptorSetLayout>::Result(Layouts[LayoutOrdinal].Constructed);
 }
 
 std::uint32_t DescriptorIndex::DeclaredCount() const

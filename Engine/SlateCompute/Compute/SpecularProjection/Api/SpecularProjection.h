@@ -92,7 +92,7 @@ public:
     ///        a third would declare the extent in two places that could disagree.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Declare(const ReflectionSpecification& Declaring);
+    Outcome<bool> Declare(const ReflectionSpecification& Declaring);
 
     /// 🧩 Contributes `08` §3 ⑥'s recording.
     /// out   Result  [-]  refuses with whatever the schedule refused
@@ -101,7 +101,7 @@ public:
     ///        all — a target carrying the trace result instead would leave nothing to subtract.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Contribute(RenderSchedule& Schedule) const;
+    Outcome<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 The extent the trace is resolved at, from one display extent.
     /// out   Result  [-]  refuses with ContentUnsupported for a display extent of nothing
@@ -109,7 +109,7 @@ public:
     ///        Rounding down leaves the display's last column with no coarse texel above it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Resolve(std::uint32_t  DisplayAlong,
+    Outcome<bool> Resolve(std::uint32_t  DisplayAlong,
                           std::uint32_t  DisplayAcross,
                           std::uint32_t& ResolvedAlong,
                           std::uint32_t& ResolvedAcross) const;

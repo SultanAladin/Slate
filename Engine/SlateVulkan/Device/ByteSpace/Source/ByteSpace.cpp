@@ -32,10 +32,10 @@ namespace
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ByteSpace::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
+Outcome<bool> ByteSpace::Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE || Exchange.ScoredDevice() == VK_NULL_HANDLE)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge = &Exchange;
     NamingEdge = &Naming;
@@ -53,14 +53,14 @@ Result<bool> ByteSpace::Construct(const VulkanExchange& Exchange, const Diagnost
     if (NonCoherentAtom == 0u)
         NonCoherentAtom = 1u;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  RESIDENCY SCORING
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> ByteSpace::ClassifyResidency(ExtentResidency Residency) const
+Outcome<std::uint32_t> ByteSpace::ClassifyResidency(ExtentResidency Residency) const
 {
     VkMemoryPropertyFlags Required = 0u;
 
@@ -83,10 +83,10 @@ Result<std::uint32_t> ByteSpace::ClassifyResidency(ExtentResidency Residency) co
         const VkMemoryPropertyFlags Carried = VendorDeclared.memoryTypes[Ordinal].propertyFlags;
 
         if ((Carried & Required) == Required)
-            return Result<std::uint32_t>::Result(Ordinal);
+            return Outcome<std::uint32_t>::Result(Ordinal);
     }
 
-    return Result<std::uint32_t>::Refuse(
+    return Outcome<std::uint32_t>::Refuse(
         { RefusalReason::CapabilityAbsent, "no declared entry carries the residency the claim asked for" });
 }
 
@@ -94,12 +94,12 @@ Result<std::uint32_t> ByteSpace::ClassifyResidency(ExtentResidency Residency) co
 //                                                  EXTENT ACQUISITION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkDeviceSize LeastBytes)
+Outcome<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkDeviceSize LeastBytes)
 {
-    const Result<std::uint32_t> VendorOrdinal = ClassifyResidency(Residency);
+    const Outcome<std::uint32_t> VendorOrdinal = ClassifyResidency(Residency);
 
     if (!VendorOrdinal.Resolved)
-        return Result<std::uint32_t>::Refuse(VendorOrdinal.Error);
+        return Outcome<std::uint32_t>::Refuse(VendorOrdinal.Error);
 
     VkDeviceSize ExtentBytes = Residency == ExtentResidency::DeviceLocal
                                  ? DeviceLocalExtentBytes
@@ -118,7 +118,7 @@ Result<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkDe
 
     if (LargestClaim != 0u && static_cast<std::uint64_t>(ExtentBytes) > LargestClaim)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the span exceeds the largest allocation the device admits" });
     }
 
@@ -134,7 +134,7 @@ Result<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkDe
 
     if (vkAllocateMemory(DeviceEdge->ActiveDevice(), &ExtentDeclaration, nullptr, &Arriving.DeviceExtent) != VK_SUCCESS)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the device declined a further byte extent" });
     }
 
@@ -147,7 +147,7 @@ Result<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkDe
                         &Arriving.HostAddress) != VK_SUCCESS)
         {
             vkFreeMemory(DeviceEdge->ActiveDevice(), Arriving.DeviceExtent, nullptr);
-            return Result<std::uint32_t>::Refuse(
+            return Outcome<std::uint32_t>::Refuse(
                 { RefusalReason::ExtentExhausted, "the device declined to map a host-writable extent" });
         }
     }
@@ -167,31 +167,31 @@ Result<std::uint32_t> ByteSpace::ConstructExtent(ExtentResidency Residency, VkDe
                                                                   : "ByteSpace host-writable extent",
                         ExtentOrdinal));
 
-    return Result<std::uint32_t>::Result(ExtentOrdinal);
+    return Outcome<std::uint32_t>::Result(ExtentOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE SLICE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
+Outcome<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
                                     VkDeviceSize    ByteAlignment,
                                     ExtentResidency Residency,
                                     ClaimStanding   Standing)
 {
     if (DeviceEdge == nullptr)
-        return Result<ByteClaim>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<ByteClaim>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     if (RequestedBytes == 0u)
-        return Result<ByteClaim>::Refuse({ RefusalReason::ContentUnsupported, "a claim of zero bytes" });
+        return Outcome<ByteClaim>::Refuse({ RefusalReason::ContentUnsupported, "a claim of zero bytes" });
 
     if (Residency == ExtentResidency::ResidencyCount)
-        return Result<ByteClaim>::Refuse({ RefusalReason::ContentUnsupported, "no such residency" });
+        return Outcome<ByteClaim>::Refuse({ RefusalReason::ContentUnsupported, "no such residency" });
 
     VkDeviceSize Alignment = ByteAlignment == 0u ? 1u : ByteAlignment;
 
     if (!PowerOfTwo(Alignment))
-        return Result<ByteClaim>::Refuse({ RefusalReason::ContentUnsupported, "the alignment is not a power of two" });
+        return Outcome<ByteClaim>::Refuse({ RefusalReason::ContentUnsupported, "the alignment is not a power of two" });
 
     if (Residency == ExtentResidency::HostWritable && Alignment < NonCoherentAtom)
         Alignment = NonCoherentAtom;
@@ -251,13 +251,13 @@ Result<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
                                          ? nullptr
                                          : static_cast<void*>(static_cast<unsigned char*>(Candidate.HostAddress) + Raised);
 
-                return Result<ByteClaim>::Result(Sliced);
+                return Outcome<ByteClaim>::Result(Sliced);
             }
         }
 
         if (Attempt == 0)
         {
-            const Result<std::uint32_t> Further = ConstructExtent(Residency, RaiseToAlignment(RequestedBytes, Alignment));
+            const Outcome<std::uint32_t> Further = ConstructExtent(Residency, RaiseToAlignment(RequestedBytes, Alignment));
 
             if (!Further.Resolved)
                 break;
@@ -269,11 +269,11 @@ Result<ByteClaim> ByteSpace::Claim(VkDeviceSize    RequestedBytes,
     //    claimant reports it through `86`. Neither branch is decided here.
     if (Standing == ClaimStanding::Discretionary)
     {
-        return Result<ByteClaim>::Refuse(
+        return Outcome<ByteClaim>::Refuse(
             { RefusalReason::ExtentExhausted, "a discretionary claim found no span; eviction is the caller's" });
     }
 
-    return Result<ByteClaim>::Refuse(
+    return Outcome<ByteClaim>::Refuse(
         { RefusalReason::ExtentExhausted, "no byte extent satisfies the claim, and no further one was granted" });
 }
 

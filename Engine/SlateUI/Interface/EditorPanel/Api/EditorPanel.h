@@ -88,11 +88,11 @@ public:
     static constexpr std::uint32_t ControlsPerRecord = 22u;
     static constexpr std::uint32_t ControlCapacity = PanelStructure::RecordCeiling * ControlsPerRecord;
 
-    Result<bool> Construct(MotionIntegrator& Motion,
+    Outcome<bool> Construct(MotionIntegrator& Motion,
                             RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Arrived, double Elapsed);
-    Result<bool> Record(const PlaneExtent& Extent,
+    Outcome<bool> Record(const PlaneExtent& Extent,
                          PanelStructure& Partition,
                          EditorPanelOrdinates& Ordinates,
                          std::uint32_t PresentationOrdinal = 0u);

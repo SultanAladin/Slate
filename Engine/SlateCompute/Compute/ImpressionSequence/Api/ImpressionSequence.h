@@ -38,7 +38,7 @@ namespace Slate
 ///        that is not one of the seven is refused rather than rounded to the nearest.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Result<std::uint32_t> PaintingLevelOf(std::uint32_t WorkingExtent);
+Outcome<std::uint32_t> PaintingLevelOf(std::uint32_t WorkingExtent);
 
 // 📝 `ChannelPlacement` is `56`'s, declared beside `PaintedContent` because it describes that content's layout
 //    and `70` reads the same declaration from below. It arrives through `SurfaceLayerSequence.h`.
@@ -152,7 +152,7 @@ struct SealedStroke
 ///        inverse expressible as an erase.
 /// cost  🔴
 /// tag   api, nonthrowing
-Result<bool> Restore(const SealedStroke& Sealed, SurfaceLayerSequence& Content);
+Outcome<bool> Restore(const SealedStroke& Sealed, SurfaceLayerSequence& Content);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE STROKE
@@ -188,7 +188,7 @@ public:
     ///        promises the preview and the committed impression share one shape.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Open(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
+    Outcome<bool> Open(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
 
     /// 🧩 Admits one arrival, resampling the path and emitting whatever impressions it reached.
     /// in    Arriving  [-]  the pointer sample, its arrival stamp, and `74`'s domain position
@@ -205,7 +205,7 @@ public:
     ///        last impression on the residue of the additions rather than on the path the artist drew.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Amend(const StrokeArrival& Arriving);
+    Outcome<bool> Amend(const StrokeArrival& Arriving);
 
     /// 🧩 Resolves whatever impressions the residency now admits, demanding what it does not.
     /// in    Residency        [-]  the surface's cells and tiles
@@ -225,7 +225,7 @@ public:
     ///        have — and the artist sees most of a stroke immediately instead of none of it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<ResolvedRun> Resolve(SurfaceTileSpace& Residency,
+    Outcome<ResolvedRun> Resolve(SurfaceTileSpace& Residency,
                                  RequestQueue&     Requesting,
                                  std::uint64_t     RecordingOrdinal);
 
@@ -251,7 +251,7 @@ public:
     ///        quietly succeeded for one would put a preview in the revision sequence.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<SealedStroke> Seal(SurfaceLayerSequence& Content,
+    Outcome<SealedStroke> Seal(SurfaceLayerSequence& Content,
                                RevisionSequence&     Revised,
                                SurfaceTileSpace&     Residency,
                                std::uint64_t         SealedAt);
@@ -262,7 +262,7 @@ public:
     /// out   Result  [-]  refuses with HostDenied for a committed stroke
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> ReclaimSpeculative();
+    Outcome<bool> ReclaimSpeculative();
 
     const std::vector<ImpressionSample>& Impressions() const;
     const StrokeSpace&                   Accumulation() const;
@@ -282,7 +282,7 @@ private:
     ResolvedAxes  ProjectAxes(const PointerSample& Arriving,
                               double TangentAlong, double TangentAcross,
                               double Speed, double PathDistance) const;
-    Result<bool> ResolveOne(ImpressionSample& Impressing,
+    Outcome<bool> ResolveOne(ImpressionSample& Impressing,
                              SurfaceTileSpace& Residency,
                              RequestQueue&     Requesting,
                              std::uint64_t     RecordingOrdinal);

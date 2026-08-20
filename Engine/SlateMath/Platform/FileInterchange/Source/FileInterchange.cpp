@@ -83,10 +83,10 @@ std::string StagedPath(const std::string& Path)
 //                                                     WHAT A PATH NAMES
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<PathReport> FileInterchange::Resolve(const std::string& Path)
+Outcome<PathReport> FileInterchange::Resolve(const std::string& Path)
 {
     if (Path.empty())
-        return Result<PathReport>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
+        return Outcome<PathReport>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
 
     PathReport Reading;
 
@@ -95,7 +95,7 @@ Result<PathReport> FileInterchange::Resolve(const std::string& Path)
     const std::wstring Widened = Widen(Path);
 
     if (Widened.empty())
-        return Result<PathReport>::Refuse({ RefusalReason::HostDenied, "the path is not representable" });
+        return Outcome<PathReport>::Refuse({ RefusalReason::HostDenied, "the path is not representable" });
 
     WIN32_FILE_ATTRIBUTE_DATA Reported = {};
 
@@ -106,9 +106,9 @@ Result<PathReport> FileInterchange::Resolve(const std::string& Path)
         // 📝 Absent is delivered, not refused. Every other reason the host declines is a refusal, because the
         //    caller asked whether a file is there and got no answer rather than the answer "no".
         if (Declined == ERROR_FILE_NOT_FOUND || Declined == ERROR_PATH_NOT_FOUND)
-            return Result<PathReport>::Result(Reading);
+            return Outcome<PathReport>::Result(Reading);
 
-        return Result<PathReport>::Refuse({ RefusalReason::HostDenied, "the file system declined the path" });
+        return Outcome<PathReport>::Refuse({ RefusalReason::HostDenied, "the file system declined the path" });
     }
 
     Reading.Revised = ProjectRevision(Reported.ftLastWriteTime);
@@ -116,7 +116,7 @@ Result<PathReport> FileInterchange::Resolve(const std::string& Path)
     if ((Reported.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0u)
     {
         Reading.Content = PathContent::Directory;
-        return Result<PathReport>::Result(Reading);
+        return Outcome<PathReport>::Result(Reading);
     }
 
     // 📝 A reparse point is reported as Foreign rather than followed. Following one is a decision about trust
@@ -125,7 +125,7 @@ Result<PathReport> FileInterchange::Resolve(const std::string& Path)
     if ((Reported.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0u)
     {
         Reading.Content = PathContent::Foreign;
-        return Result<PathReport>::Result(Reading);
+        return Outcome<PathReport>::Result(Reading);
     }
 
     Reading.Content      = PathContent::Stream;
@@ -137,7 +137,7 @@ Result<PathReport> FileInterchange::Resolve(const std::string& Path)
     struct stat Reported = {};
 
     if (lstat(Path.c_str(), &Reported) != 0)
-        return Result<PathReport>::Result(Reading);
+        return Outcome<PathReport>::Result(Reading);
 
     Reading.Revised = static_cast<std::uint64_t>(Reported.st_mtime) * 1000000000ull;
 
@@ -157,18 +157,18 @@ Result<PathReport> FileInterchange::Resolve(const std::string& Path)
 
 #endif
 
-    return Result<PathReport>::Result(Reading);
+    return Outcome<PathReport>::Result(Reading);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       THE READ
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::vector<std::uint8_t>> FileInterchange::ReadStream(const std::string& Path)
+Outcome<std::vector<std::uint8_t>> FileInterchange::ReadStream(const std::string& Path)
 {
-    using StreamDelivery = Result<std::vector<std::uint8_t>>;
+    using StreamDelivery = Outcome<std::vector<std::uint8_t>>;
 
-    const Result<PathReport> Located = Resolve(Path);
+    const Outcome<PathReport> Located = Resolve(Path);
 
     if (!Located.Resolved)
         return StreamDelivery::Refuse(Located.Error);
@@ -248,10 +248,10 @@ Result<std::vector<std::uint8_t>> FileInterchange::ReadStream(const std::string&
 //                                              WRITE, VERIFY, THEN REPLACE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> FileInterchange::WriteStream(const std::string& Path, const std::vector<std::uint8_t>& Content)
+Outcome<bool> FileInterchange::WriteStream(const std::string& Path, const std::vector<std::uint8_t>& Content)
 {
     if (Path.empty())
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
 
     const std::string Staged = StagedPath(Path);
 
@@ -261,7 +261,7 @@ Result<bool> FileInterchange::WriteStream(const std::string& Path, const std::ve
     const std::wstring WidenedStaged = Widen(Staged);
 
     if (WidenedStaged.empty())
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the path is not representable" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the path is not representable" });
 
     const HANDLE Stream = CreateFileW(WidenedStaged.c_str(),
                                       GENERIC_WRITE,
@@ -272,7 +272,7 @@ Result<bool> FileInterchange::WriteStream(const std::string& Path, const std::ve
                                       nullptr);
 
     if (Stream == INVALID_HANDLE_VALUE)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream could not be opened" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream could not be opened" });
 
     std::uint64_t Written = 0u;
 
@@ -288,7 +288,7 @@ Result<bool> FileInterchange::WriteStream(const std::string& Path, const std::ve
         {
             CloseHandle(Stream);
             Disregard(Reclaim(Staged));
-            return Result<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream declined the write" });
+            return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream declined the write" });
         }
 
         Written += Landed;
@@ -305,7 +305,7 @@ Result<bool> FileInterchange::WriteStream(const std::string& Path, const std::ve
     std::FILE* Stream = std::fopen(Staged.c_str(), "wb");
 
     if (Stream == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream could not be opened" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream could not be opened" });
 
     const std::size_t Landed = Content.empty()
                              ? 0u
@@ -317,24 +317,24 @@ Result<bool> FileInterchange::WriteStream(const std::string& Path, const std::ve
     if (Landed != Content.size())
     {
         Disregard(Reclaim(Staged));
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream declined the write" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the staged stream declined the write" });
     }
 
 #endif
 
     // ② Read back what landed and compare it against what was written.
-    const Result<std::vector<std::uint8_t>> Verified = ReadStream(Staged);
+    const Outcome<std::vector<std::uint8_t>> Verified = ReadStream(Staged);
 
     if (!Verified.Resolved)
     {
         Disregard(Reclaim(Staged));
-        return Result<bool>::Refuse(Verified.Error);
+        return Outcome<bool>::Refuse(Verified.Error);
     }
 
     if (Verified.Resolve() != Content)
     {
         Disregard(Reclaim(Staged));
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted,
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted,
                                        "what landed differs from what was written; the original stands" });
     }
 
@@ -347,7 +347,7 @@ Result<bool> FileInterchange::WriteStream(const std::string& Path, const std::ve
                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == FALSE)
     {
         Disregard(Reclaim(Staged));
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the verified stream could not replace the target" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the verified stream could not replace the target" });
     }
 
 #else
@@ -355,22 +355,22 @@ Result<bool> FileInterchange::WriteStream(const std::string& Path, const std::ve
     if (std::rename(Staged.c_str(), Path.c_str()) != 0)
     {
         Disregard(Reclaim(Staged));
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the verified stream could not replace the target" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the verified stream could not replace the target" });
     }
 
 #endif
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     DIRECTORIES
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> FileInterchange::DeclareDirectory(const std::string& Path)
+Outcome<bool> FileInterchange::DeclareDirectory(const std::string& Path)
 {
     if (Path.empty())
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
 
     // 📝 Every absent directory above the leaf is created in turn. Creating only the leaf refuses on the first
     //    run of an installation whose retained directory does not exist yet, which is the run that matters.
@@ -385,20 +385,20 @@ Result<bool> FileInterchange::DeclareDirectory(const std::string& Path)
 
         const std::string Leading = Path.substr(0u, Ordinal);
 
-        const Result<PathReport> Located = Resolve(Leading);
+        const Outcome<PathReport> Located = Resolve(Leading);
 
         if (Located.Resolved && Located.Resolve().Content == PathContent::Directory)
             continue;
 
         if (Located.Resolved && Located.Resolve().Content != PathContent::Absent)
-            return Result<bool>::Refuse({ RefusalReason::HostDenied, "a stream stands where a directory is wanted" });
+            return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "a stream stands where a directory is wanted" });
 
 #if defined(_WIN32)
 
         const std::wstring Widened = Widen(Leading);
 
         if (CreateDirectoryW(Widened.c_str(), nullptr) == FALSE && GetLastError() != ERROR_ALREADY_EXISTS)
-            return Result<bool>::Refuse({ RefusalReason::HostDenied, "the file system declined the directory" });
+            return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the file system declined the directory" });
 
 #else
 
@@ -407,19 +407,19 @@ Result<bool> FileInterchange::DeclareDirectory(const std::string& Path)
             struct stat Existing = {};
 
             if (stat(Leading.c_str(), &Existing) != 0 || !S_ISDIR(Existing.st_mode))
-                return Result<bool>::Refuse({ RefusalReason::HostDenied, "the file system declined the directory" });
+                return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the file system declined the directory" });
         }
 
 #endif
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> FileInterchange::Reclaim(const std::string& Path)
+Outcome<bool> FileInterchange::Reclaim(const std::string& Path)
 {
     if (Path.empty())
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "an empty path names nothing" });
 
 #if defined(_WIN32)
 
@@ -431,17 +431,17 @@ Result<bool> FileInterchange::Reclaim(const std::string& Path)
 
         // 📝 An absent path is delivered. The caller asked for the stream not to be there, and it is not.
         if (Declined != ERROR_FILE_NOT_FOUND && Declined != ERROR_PATH_NOT_FOUND)
-            return Result<bool>::Refuse({ RefusalReason::HostDenied, "the file system declined the removal" });
+            return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the file system declined the removal" });
     }
 
 #else
 
     if (unlink(Path.c_str()) != 0 && errno != ENOENT)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the file system declined the removal" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the file system declined the removal" });
 
 #endif
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

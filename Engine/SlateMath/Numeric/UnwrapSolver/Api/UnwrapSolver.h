@@ -77,7 +77,7 @@ struct DistortionMeasure
 ///        `68` §4.1 tests for them anyway. Construction narrows the failure; it does not remove it.
 /// cost  🔴
 /// tag   api, nonthrowing
-Result<ConvergentResult<std::vector<PlanarPosition>>> Solve(const UnwrapSpecification& Declaring);
+Outcome<ConvergentOutcome<std::vector<PlanarPosition>>> Solve(const UnwrapSpecification& Declaring);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Convergent, PrecisionGuarantee::Convergent);
 
 /// 🧩 Measures the area and angle distortion of a flattening against the topology it came from.

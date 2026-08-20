@@ -65,7 +65,7 @@ public:
     /// out   Result     [-]  refuses with ContentUnsupported when a construction already stands
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Construct(RecordingSurface& Recording, const ThemeProfile& Appearance);
+    Outcome<bool> Construct(RecordingSurface& Recording, const ThemeProfile& Appearance);
 
     /// 🧩 Records one workspace panel — strip ground, body, footer, and the vacant run when it carries none.
     /// in    Extent      [px]  the whole panel, strip and footer included
@@ -76,7 +76,7 @@ public:
     ///        one line separating the workspace from the strip below it.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Record(const PlaneExtent& Extent, const char* Titled);
+    Outcome<bool> Record(const PlaneExtent& Extent, const char* Titled);
 
     /// 🧩 The body extent the last `Record` left, for a caller drawing content inside the workspace.
     /// note  ⚠️ Valid only until the next `Record`. It is the strip and footer subtracted from the extent

@@ -56,7 +56,7 @@ public:
     /// out   Result             [-]  refuses with CapabilityAbsent when no loader or no instance
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> ConstructInstance(bool DiagnosticRequested);
+    Outcome<bool> ConstructInstance(bool DiagnosticRequested);
 
     /// 🧩 Enumerates devices, scores them, and creates one with its capability set fixed at creation.
     /// in    PresentationSurface [-]  the surface the device must be able to present to
@@ -69,7 +69,7 @@ public:
     ///       inside the interface library.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> ConstructDevice(VkSurfaceKHR PresentationSurface);
+    Outcome<bool> ConstructDevice(VkSurfaceKHR PresentationSurface);
 
     /// 🧩 Destroys every device object and retains the instance, for the recovery in `06` §4.2 ③.
     /// cost  🚩

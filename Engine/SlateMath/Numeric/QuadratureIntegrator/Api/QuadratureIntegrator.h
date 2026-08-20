@@ -51,7 +51,7 @@ public:
     ///        same equation twice and would let the two halves disagree in their last bit.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Derive(std::uint32_t Requested);
+    Outcome<bool> Derive(std::uint32_t Requested);
 
     /// 🧩 One abscissa of the reference interval, in ascending order.
     /// pre   Ordinal is below DeclaredCount
@@ -77,7 +77,7 @@ public:
     ///        separate scalar integrations would evaluate the same density profile three times.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Project(std::uint32_t Ordinal,
+    Outcome<bool> Project(std::uint32_t Ordinal,
                           double        Lower,
                           double        Upper,
                           double&       Position,

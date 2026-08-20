@@ -104,7 +104,7 @@ public:
     ///        takes on its own, which is every extent after the first of each residency.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
+    Outcome<bool> Construct(const VulkanExchange& Exchange, const DiagnosticExtension& Naming);
 
     /// 🧩 Slices one span of the requested residency, taking a further extent when none can satisfy it.
     /// in    RequestedBytes  [B]  how far the span must run
@@ -117,7 +117,7 @@ public:
     ///       cannot use and cannot release, and the release path is the one nobody exercises.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<ByteClaim> Claim(VkDeviceSize    RequestedBytes,
+    Outcome<ByteClaim> Claim(VkDeviceSize    RequestedBytes,
                              VkDeviceSize    ByteAlignment,
                              ExtentResidency Residency,
                              ClaimStanding   Standing);
@@ -168,11 +168,11 @@ private:
 
     /// 🧩 Scores what the device declares for the one entry that satisfies a residency.
     /// out   Result  [-]  refuses with CapabilityAbsent when nothing declared carries the properties
-    Result<std::uint32_t> ClassifyResidency(ExtentResidency Residency) const;
+    Outcome<std::uint32_t> ClassifyResidency(ExtentResidency Residency) const;
 
     /// 🧩 Takes one further vendor allocation, at least as large as the span that could not be satisfied.
     /// out   Result  [-]  refuses with ExtentExhausted when the vendor declines the allocation
-    Result<std::uint32_t> ConstructExtent(ExtentResidency Residency, VkDeviceSize LeastBytes);
+    Outcome<std::uint32_t> ConstructExtent(ExtentResidency Residency, VkDeviceSize LeastBytes);
 
     const VulkanExchange*             DeviceEdge      = nullptr;   // [-] - borrowed; never owned
     const DiagnosticExtension*        NamingEdge      = nullptr;   // [-] - borrowed; never owned

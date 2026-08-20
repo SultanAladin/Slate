@@ -76,7 +76,7 @@ public:
     /// post  every trigram run mentioning this occupant describes the new name only
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Declare(OccupantIdentity Subject, const std::string& Declared);
+    Outcome<bool> Declare(OccupantIdentity Subject, const std::string& Declared);
 
     /// 🧩 Withdraws one occupant's name and every trigram entry that reached it.
     /// in    Subject  [-]  the occupant being retired or renamed

@@ -46,14 +46,14 @@ public:
     static constexpr std::uint32_t FacetCapacity = 24u;   // [-] - bounded available facets
     static constexpr std::uint32_t AbsentFacet   = 0xFFFFFFFFu;
 
-    Result<bool> Construct(MotionIntegrator& Motion,
+    Outcome<bool> Construct(MotionIntegrator& Motion,
                             RecordingSurface& Surface,
                             const ThemeProfile& Appearance);
     void Advance(const PointerCondition& Arrived, double Elapsed);
     float MeasureAcross(float ExtentAlong,
                         const FacetDeclaration& Declared,
                         const bool* Enabled) const;
-    Result<bool> Record(const PlaneExtent& Extent,
+    Outcome<bool> Record(const PlaneExtent& Extent,
                          const FacetDeclaration& Declared,
                          bool* Enabled);
     void RecordDeferred();

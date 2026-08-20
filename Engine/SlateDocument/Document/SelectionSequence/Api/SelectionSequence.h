@@ -57,13 +57,13 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted at the beginning of the sequence
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Retreat();
+    Outcome<bool> Retreat();
 
     /// 🧩 Traverses one selection forwards.
     /// out   Result  [-]  refuses with ExtentExhausted at the end of the sequence
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Advance();
+    Outcome<bool> Advance();
 
     /// 🧩 Restores the selection that stood at a declared document revision.
     /// in    RevisionOrdinal  [-]  the document revision a scrub has arrived at
@@ -72,7 +72,7 @@ public:
     ///        holds within the session where the scrub happens, which is all `12` §11 requires of it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> RestoreAt(std::uint64_t RevisionOrdinal);
+    Outcome<bool> RestoreAt(std::uint64_t RevisionOrdinal);
 
     /// 🧩 The selection standing now.
     /// cost  ✔️

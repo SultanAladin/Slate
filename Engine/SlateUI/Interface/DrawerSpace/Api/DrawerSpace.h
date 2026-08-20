@@ -100,7 +100,7 @@ public:
     /// post  both drawers stand Closed and settled; nothing moves until a contact arrives
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Construct(MotionIntegrator&              Motion,
+    Outcome<bool> Construct(MotionIntegrator&              Motion,
                             const ThemeProfile& Appearance,
                             const DrawerDeclaration&       North,
                             const DrawerDeclaration&       South,

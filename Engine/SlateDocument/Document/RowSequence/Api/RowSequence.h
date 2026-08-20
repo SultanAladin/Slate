@@ -74,14 +74,14 @@ public:
     /// out   Result         [-]  refuses with ExtentExhausted past the last counted row
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<std::uint32_t> RowAtVisible(std::uint32_t VisibleOrdinal) const;
+    Outcome<std::uint32_t> RowAtVisible(std::uint32_t VisibleOrdinal) const;
 
     /// 🧩 What visible position a row sits at — the second scroll question.
     /// in    RowOrdinal  [-]  the row
     /// out   Result     [-]  refuses with ExtentExhausted for an uncounted or out-of-span row
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<std::uint32_t> VisibleOfRow(std::uint32_t RowOrdinal) const;
+    Outcome<std::uint32_t> VisibleOfRow(std::uint32_t RowOrdinal) const;
 
     /// 🧩 How many rows are counted in total.
     /// cost  ✔️
@@ -114,7 +114,7 @@ public:
     /// post  row order is fully determined by the enclosure relation and its ordering — invariant 9
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Linearize(const SceneStructure& Relations);
+    Outcome<bool> Linearize(const SceneStructure& Relations);
 
     /// 🧩 Declares one occupant's enclosed rows counted or uncounted, and re-derives the counts below it.
     /// in    Subject           [-]  the enclosing occupant
@@ -126,7 +126,7 @@ public:
     ///        enclosure would reopen on the following tick without the artist touching it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareExpansion(OccupantIdentity Subject, bool ExpansionEnabled);
+    Outcome<bool> DeclareExpansion(OccupantIdentity Subject, bool ExpansionEnabled);
 
     /// 🧩 Declares which occupants a standing narrowing retains, or withdraws the narrowing entirely.
     /// in    Retained           [-]  the occupants a narrowing confirmed, read only while one is declared
@@ -138,7 +138,7 @@ public:
     /// note  A narrowed row leaves the count and stays in the sequence, exactly as a collapsed one does.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareNarrowing(const std::vector<OccupantIdentity>& Retained, bool NarrowingDeclared);
+    Outcome<bool> DeclareNarrowing(const std::vector<OccupantIdentity>& Retained, bool NarrowingDeclared);
 
     /// 🧩 The rows, in linearised order, including the uncounted ones.
     /// cost  ✔️
@@ -155,7 +155,7 @@ public:
     /// out   Result  [-]  refuses with IdentityStale when the occupant holds no row
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<std::uint32_t> RowOf(OccupantIdentity Subject) const;
+    Outcome<std::uint32_t> RowOf(OccupantIdentity Subject) const;
 
     /// 🧩 Whether a narrowing stands over the rows.
     /// cost  ✔️

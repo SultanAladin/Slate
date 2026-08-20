@@ -48,7 +48,7 @@ struct LatticeSpecification
     ///        what `70` does at every promotion.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Validate() const;
+    Outcome<bool> Validate() const;
 };
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -149,7 +149,7 @@ public:
     /// out   Result  [-]  carries the lattice's own refusal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareLattice(const LatticeSpecification& Declaring);
+    Outcome<bool> DeclareLattice(const LatticeSpecification& Declaring);
 
     /// 🧩 Appends one content element to the cell, at the end of the ordering.
     /// out   Result  [-]  refuses with ContentUnsupported for a non-positive scale, for a colour declaring no
@@ -159,14 +159,14 @@ public:
     ///        `20` §2.2's evaluation-cost budget cannot bound what it cannot predict.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareContent(const CellContent& Declaring);
+    Outcome<bool> DeclareContent(const CellContent& Declaring);
 
     /// 🧩 Declares how cells differ.
     /// out   Result  [-]  refuses with ContentUnsupported for a declared span of zero, and for an inverted
     ///                     variation interval
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareVariation(const VariationSpecification& Declaring);
+    Outcome<bool> DeclareVariation(const VariationSpecification& Declaring);
 
     /// 🧩 Declares this tiling as nested inside another, which bars it from nesting one itself.
     /// note  Recorded here rather than checked by the holder, so that a tiling admitted into a cell can refuse a
@@ -184,7 +184,7 @@ public:
     ///        cell a position falls in, and two implementations of one boundary are two that will disagree.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<ClassifiedCell> Classify(double PositionAlong, double PositionAcross) const;
+    Outcome<ClassifiedCell> Classify(double PositionAlong, double PositionAcross) const;
 
     const LatticeSpecification&     Lattice() const;
     const std::vector<CellContent>& Content() const;
@@ -226,19 +226,19 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Declare();
+    Outcome<std::uint32_t> Declare();
 
     /// 🧩 One declared tiling, for reading.
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const TilingSpecification*> Resolve(std::uint32_t TilingOrdinal) const;
+    Outcome<const TilingSpecification*> Resolve(std::uint32_t TilingOrdinal) const;
 
     /// 🧩 One declared tiling, for amending.
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<TilingSpecification*> Amend(std::uint32_t TilingOrdinal);
+    Outcome<TilingSpecification*> Amend(std::uint32_t TilingOrdinal);
 
     /// 🧩 Nests one tiling inside a cell of another, at the declared bound.
     /// in    EnclosingOrdinal  [-]  the tiling whose cell carries it
@@ -248,7 +248,7 @@ public:
     /// post  the nested tiling refuses a nested element of its own from this point
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Nest(std::uint32_t EnclosingOrdinal, std::uint32_t NestedOrdinal);
+    Outcome<bool> Nest(std::uint32_t EnclosingOrdinal, std::uint32_t NestedOrdinal);
 
     std::uint32_t DeclaredCount() const;
 

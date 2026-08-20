@@ -133,7 +133,7 @@ public:
     ///        after the other — and the errors the two raise read alike until the objects are told apart.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Construct(const VulkanExchange&      Exchange,
+    Outcome<bool> Construct(const VulkanExchange&      Exchange,
                             ShaderCodec&               Modules,
                             const DescriptorIndex&     Descriptors,
                             const DiagnosticExtension& Naming);
@@ -147,7 +147,7 @@ public:
     ///       specialisation the vendor reads at construction is held where its addresses stay put.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<std::uint32_t> DeclareGraphics(const GraphicsDeclaration& Declaring);
+    Outcome<std::uint32_t> DeclareGraphics(const GraphicsDeclaration& Declaring);
 
     /// 🧩 Constructs one compute program, returning the ordinal every later resolution names it by.
     /// in    Declaring  [-]  the module, the layouts and the constant run
@@ -155,14 +155,14 @@ public:
     /// post  nothing is retained on a refusal
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<std::uint32_t> DeclareCompute(const ComputeDeclaration& Declaring);
+    Outcome<std::uint32_t> DeclareCompute(const ComputeDeclaration& Declaring);
 
     /// 🧩 The program one ordinal names, for the recording that records against it.
     /// in    ProgramOrdinal  [-]  an ordinal this component issued
     /// out   Result         [-]  refuses with ContentUnsupported for an ordinal naming no program
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<ConstructedProgram> Resolve(std::uint32_t ProgramOrdinal) const;
+    Outcome<ConstructedProgram> Resolve(std::uint32_t ProgramOrdinal) const;
 
     /// 🧩 Destroys every program and every layout constructed for one.
     /// pre   the device is idle and no recording that reads them is still executing
@@ -186,7 +186,7 @@ private:
     /// in    ConstantBytes   [B]  the recorded constant run; nought declares none
     /// in    ReachingStages  [-]  which stages read the constant run, as the vendor spells them
     /// out   Result         [-]  refuses with ContentUnsupported for an undeclared layout ordinal
-    Result<VkPipelineLayout> ReachLayout(const std::vector<std::uint32_t>&  LayoutOrdinals,
+    Outcome<VkPipelineLayout> ReachLayout(const std::vector<std::uint32_t>&  LayoutOrdinals,
                                           std::uint32_t                     ConstantBytes,
                                           VkShaderStageFlags                ReachingStages);
 

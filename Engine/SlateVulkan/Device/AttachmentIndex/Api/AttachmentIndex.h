@@ -94,7 +94,7 @@ public:
     /// post  no construct is declared
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Construct(const VulkanExchange& Exchange, const TargetSpace& Claimed);
+    Outcome<bool> Construct(const VulkanExchange& Exchange, const TargetSpace& Claimed);
 
     /// 🧩 Declares one render construct, returning the ordinal every later resolution names it by.
     /// in    Declaring  [-]  the colour targets in output order, and the depth target or its absence
@@ -106,7 +106,7 @@ public:
     ///       and a claim come to disagree about one target's format with nothing comparing them.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Declare(const ConstructDeclaration& Declaring);
+    Outcome<std::uint32_t> Declare(const ConstructDeclaration& Declaring);
 
     /// 🧩 Covers every declared construct's targets at one display extent, replacing whatever stood before.
     /// in    DisplayWidth   [px] the extent the targets were last claimed against
@@ -120,7 +120,7 @@ public:
     ///       construct "looked unaffected" is exactly such an extent.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Derive(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
+    Outcome<bool> Derive(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
     /// 🧩 The construct and the span one ordinal names, for the recording that opens it.
     /// in    ConstructOrdinal  [-]  an ordinal this component issued
@@ -128,7 +128,7 @@ public:
     ///                              with ExtentExhausted before Derive has covered it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<ConstructedSpan> Resolve(std::uint32_t ConstructOrdinal) const;
+    Outcome<ConstructedSpan> Resolve(std::uint32_t ConstructOrdinal) const;
 
     /// 🧩 The construct alone, for `ProgramIndex` constructing a program before any span is derived.
     /// out   Result  [-]  refuses with ContentUnsupported for an ordinal naming no construct
@@ -137,7 +137,7 @@ public:
     ///       program would order the two the wrong way round.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<VkRenderPass> ConstructOf(std::uint32_t ConstructOrdinal) const;
+    Outcome<VkRenderPass> ConstructOf(std::uint32_t ConstructOrdinal) const;
 
     /// 🧩 Destroys every span and leaves the constructs standing, ahead of a re-claim at a new extent.
     /// pre   the device is idle

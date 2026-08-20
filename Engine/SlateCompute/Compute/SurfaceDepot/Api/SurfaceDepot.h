@@ -88,7 +88,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported for a ceiling of zero
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Construct(std::uint64_t ByteCeiling);
+    Outcome<bool> Construct(std::uint64_t ByteCeiling);
 
     /// 🧩 Admits one derived artefact, evicting to make room for it.
     /// in    Keyed       [-]  what it was derived from
@@ -102,7 +102,7 @@ public:
     ///        evicted under exactly the memory pressure a long painting session produces.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Declare(const ContentKey&  Keyed,
+    Outcome<bool> Declare(const ContentKey&  Keyed,
                           LayerContentSource Source,
                           std::uint64_t      ByteExtent,
                           std::uint64_t      RecordingOrdinal);
@@ -114,7 +114,7 @@ public:
     ///        through to the third — which is correct, and slower, and visible only as one deferred tile.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<DepotArtefact> Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal);
+    Outcome<DepotArtefact> Resolve(const ContentKey& Keyed, std::uint64_t RecordingOrdinal);
 
     /// 🧩 Evicts least-recently-resolved artefacts until the declared extent is free.
     /// out   Evicted  [-]  how many artefacts left

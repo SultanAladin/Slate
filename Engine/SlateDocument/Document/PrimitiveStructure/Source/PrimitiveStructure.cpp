@@ -473,17 +473,17 @@ void GenerateAnnularSector(const PrimitiveSpecification& Declaring, GeneratedSur
 //                                                     THE GENERATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, TopologyStructure& Generated)
+Outcome<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, TopologyStructure& Generated)
 {
     if (!PrimitiveGenerable(Declaring))
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the declared parameters generate no surface" });
     }
 
     if (Generated.Sealed())
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::HostDenied, "the topology is sealed and admits no declaration" });
     }
 
@@ -500,11 +500,11 @@ Result<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, Topology
         case PrimitiveSubject::AnnularSector: GenerateAnnularSector(Declaring, Generating);    break;
 
         default:
-            return Result<bool>::Refuse(
+            return Outcome<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "the declared subject names no generation" });
     }
 
-    const Result<bool> Placed = Generated.DeclarePositions(Generating.Positions);
+    const Outcome<bool> Placed = Generated.DeclarePositions(Generating.Positions);
 
     if (!Placed.Resolved)
     {
@@ -513,7 +513,7 @@ Result<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, Topology
 
     for (const std::vector<std::uint32_t>& Declared : Generating.Faces)
     {
-        const Result<bool> Faced = Generated.DeclareFace(Declared);
+        const Outcome<bool> Faced = Generated.DeclareFace(Declared);
 
         if (!Faced.Resolved)
         {
@@ -533,14 +533,14 @@ Result<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, Topology
         PerCorner.push_back(Generating.Coordinates[Generated.CornerVertex(CornerOrdinal)]);
     }
 
-    const Result<bool> Addressed = Generated.DeclareCoordinates(PerCorner);
+    const Outcome<bool> Addressed = Generated.DeclareCoordinates(PerCorner);
 
     if (!Addressed.Resolved)
     {
         return Addressed;
     }
 
-    const Result<bool> Faced = Generated.DeclarePerpendiculars(Generating.Perpendiculars);
+    const Outcome<bool> Faced = Generated.DeclarePerpendiculars(Generating.Perpendiculars);
 
     if (!Faced.Resolved)
     {
@@ -595,11 +595,11 @@ void ProjectPrimitiveExtent(const PrimitiveSpecification& Declaring,
 //                                                    THE DECLARATIONS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> PrimitiveIndex::Declare(const PrimitiveSpecification& Declaring)
+Outcome<std::uint32_t> PrimitiveIndex::Declare(const PrimitiveSpecification& Declaring)
 {
     if (!PrimitiveGenerable(Declaring))
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "the declared parameters generate no surface" });
     }
 
@@ -618,12 +618,12 @@ Result<std::uint32_t> PrimitiveIndex::Declare(const PrimitiveSpecification& Decl
         Primitives[Reused] = Holding;
         ++OccupiedCount;
 
-        return Result<std::uint32_t>::Result(Reused);
+        return Outcome<std::uint32_t>::Result(Reused);
     }
 
     if (Primitives.size() >= static_cast<std::size_t>(PrimitiveCeiling))
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the declared primitive ceiling is reached" });
     }
 
@@ -632,19 +632,19 @@ Result<std::uint32_t> PrimitiveIndex::Declare(const PrimitiveSpecification& Decl
     Primitives.push_back(Holding);
     ++OccupiedCount;
 
-    return Result<std::uint32_t>::Result(Issued);
+    return Outcome<std::uint32_t>::Result(Issued);
 }
 
-Result<bool> PrimitiveIndex::Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending)
+Outcome<bool> PrimitiveIndex::Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending)
 {
     if (PrimitiveOrdinal >= Primitives.size() || !Primitives[PrimitiveOrdinal].SlotOccupied)
     {
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no primitive is declared at that ordinal" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no primitive is declared at that ordinal" });
     }
 
     if (!PrimitiveGenerable(Amending))
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the amended parameters generate no surface" });
     }
 
@@ -670,25 +670,25 @@ Result<bool> PrimitiveIndex::Amend(std::uint32_t PrimitiveOrdinal, const Primiti
         Holding.DeclaredRevision = RevisionIssued;
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<const PrimitiveSpecification*> PrimitiveIndex::Resolve(std::uint32_t PrimitiveOrdinal) const
+Outcome<const PrimitiveSpecification*> PrimitiveIndex::Resolve(std::uint32_t PrimitiveOrdinal) const
 {
     if (PrimitiveOrdinal >= Primitives.size() || !Primitives[PrimitiveOrdinal].SlotOccupied)
     {
-        return Result<const PrimitiveSpecification*>::Refuse(
+        return Outcome<const PrimitiveSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no primitive is declared at that ordinal" });
     }
 
-    return Result<const PrimitiveSpecification*>::Result(&Primitives[PrimitiveOrdinal].Declared);
+    return Outcome<const PrimitiveSpecification*>::Result(&Primitives[PrimitiveOrdinal].Declared);
 }
 
-Result<bool> PrimitiveIndex::Withdraw(std::uint32_t PrimitiveOrdinal)
+Outcome<bool> PrimitiveIndex::Withdraw(std::uint32_t PrimitiveOrdinal)
 {
     if (PrimitiveOrdinal >= Primitives.size() || !Primitives[PrimitiveOrdinal].SlotOccupied)
     {
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no primitive is declared at that ordinal" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no primitive is declared at that ordinal" });
     }
 
     Primitives[PrimitiveOrdinal].SlotOccupied     = false;
@@ -697,7 +697,7 @@ Result<bool> PrimitiveIndex::Withdraw(std::uint32_t PrimitiveOrdinal)
     ReleasedOrdinals.push_back(PrimitiveOrdinal);
     --OccupiedCount;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 std::uint64_t PrimitiveIndex::Revision(std::uint32_t PrimitiveOrdinal) const

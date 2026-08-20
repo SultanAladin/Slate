@@ -30,7 +30,7 @@ const char* const RecordingSubstitution = "hardware rasterisation for every part
 
 }   // namespace
 
-Result<bool> VisibilityIndex::Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross)
+Outcome<bool> VisibilityIndex::Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross)
 {
     // 📝 Forwarded whole. The chain's refusals already name the extent that was refused and restating them here
     //    would give one condition two spellings, which is the case `00` §2 makes against a number read twice.
@@ -51,7 +51,7 @@ void VisibilityIndex::Reclaim()
 //                                                    THE RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> VisibilityIndex::Contribute(RenderSchedule& Schedule) const
+Outcome<bool> VisibilityIndex::Contribute(RenderSchedule& Schedule) const
 {
     DeclaredRecording Declared;
     Declared.Identity = VisibilityRecordingIdentity;
@@ -82,25 +82,25 @@ Result<bool> VisibilityIndex::Contribute(RenderSchedule& Schedule) const
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> VisibilityIndex::Enroll(OccupantIdentity            Occupant,
+Outcome<std::uint32_t> VisibilityIndex::Enroll(OccupantIdentity            Occupant,
                                                const TopologyStructure&    Imported,
                                                const TopologyConditioning& Conditioned,
                                                PartitionResolutionIndex&   Resolutions)
 {
     if (!Occupant.IdentityDeclared())
-        return Result<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the occupant identity names no slot" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the occupant identity names no slot" });
 
-    const Result<DerivedPartitioning> Derived = DerivePartitioning(Imported, Conditioned);
+    const Outcome<DerivedPartitioning> Derived = DerivePartitioning(Imported, Conditioned);
 
     if (!Derived.Resolved)
-        return Result<std::uint32_t>::Refuse(Derived.Error);
+        return Outcome<std::uint32_t>::Refuse(Derived.Error);
 
     const DerivedPartitioning& Partitioning = Derived.Resolve();
 
     if (static_cast<std::uint64_t>(DeclaredIdentity.size()) + Partitioning.Partitions.size()
         >= static_cast<std::uint64_t>(AbsentPartition))
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the document-wide ordinal would reach the one reserved for absence" });
     }
 
@@ -109,25 +109,25 @@ Result<std::uint32_t> VisibilityIndex::Enroll(OccupantIdentity            Occupa
     //    part of the way through leaves the run exactly as long as it was rather than one entry short of itself.
     std::unique_ptr<PartitionStructure> Standing = std::make_unique<PartitionStructure>();
 
-    const Result<bool> Adopted = Standing->Adopt(Partitioning);
+    const Outcome<bool> Adopted = Standing->Adopt(Partitioning);
 
     if (!Adopted.Resolved)
-        return Result<std::uint32_t>::Refuse(Adopted.Error);
+        return Outcome<std::uint32_t>::Refuse(Adopted.Error);
 
-    const Result<bool> Issued = Standing->Declare(Resolutions, Occupant);
+    const Outcome<bool> Issued = Standing->Declare(Resolutions, Occupant);
 
     if (!Issued.Resolved)
-        return Result<std::uint32_t>::Refuse(Issued.Error);
+        return Outcome<std::uint32_t>::Refuse(Issued.Error);
 
     std::vector<PartitionIdentity> Arriving;
     Arriving.reserve(Standing->PartitionCount());
 
     for (std::uint32_t PartitionOrdinal = 0u; PartitionOrdinal < Standing->PartitionCount(); ++PartitionOrdinal)
     {
-        const Result<PartitionIdentity> Named = Standing->IdentityOf(PartitionOrdinal);
+        const Outcome<PartitionIdentity> Named = Standing->IdentityOf(PartitionOrdinal);
 
         if (!Named.Resolved)
-            return Result<std::uint32_t>::Refuse(Named.Error);
+            return Outcome<std::uint32_t>::Refuse(Named.Error);
 
         Arriving.push_back(Named.Resolve());
     }
@@ -145,33 +145,33 @@ Result<std::uint32_t> VisibilityIndex::Enroll(OccupantIdentity            Occupa
     //    ahead of the issuing is one `Resolve` compares against and refuses every identity this enrolment holds.
     ResolvedRevision = Resolutions.Revision();
 
-    return Result<std::uint32_t>::Result(EnrolmentOrdinal);
+    return Outcome<std::uint32_t>::Result(EnrolmentOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<ResolvedPartition> VisibilityIndex::Resolve(VisibilityWord                  Written,
+Outcome<ResolvedPartition> VisibilityIndex::Resolve(VisibilityWord                  Written,
                                                     const PartitionResolutionIndex& Resolutions) const
 {
     // 📝 An unoccupied pixel is refused rather than delivered empty. `16` §5 dispatches it as a class of its own
     //    and every consumer that reaches here instead has read a pixel it already classified as carrying nothing.
     if (Written.PartitionOrdinal == AbsentPartition)
     {
-        return Result<ResolvedPartition>::Refuse(
+        return Outcome<ResolvedPartition>::Refuse(
             { RefusalReason::ContentUnsupported, "an unoccupied pixel names no partition" });
     }
 
     if (Written.PartitionOrdinal >= static_cast<std::uint32_t>(DeclaredIdentity.size()))
-        return Result<ResolvedPartition>::Refuse({ RefusalReason::ContentUnsupported, "no such declared partition" });
+        return Outcome<ResolvedPartition>::Refuse({ RefusalReason::ContentUnsupported, "no such declared partition" });
 
     // 🔴 The revision comparison is what makes a pixel written before a rebuild discoverably stale. `42` reuses
     //    its slots, so an identity taken against the previous resolution still indexes something — it indexes
     //    another occupant's surface, and the artist meets that as one object shading as a different one.
     if (Resolutions.Revision() != ResolvedRevision)
     {
-        return Result<ResolvedPartition>::Refuse(
+        return Outcome<ResolvedPartition>::Refuse(
             { RefusalReason::IdentityStale, "the resolution was rebuilt since these partitions were declared" });
     }
 
@@ -182,12 +182,12 @@ Result<ResolvedPartition> VisibilityIndex::Resolve(VisibilityWord               
 //                                                      THE READS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<const PartitionStructure*> VisibilityIndex::Enrolled(std::uint32_t EnrolmentOrdinal) const
+Outcome<const PartitionStructure*> VisibilityIndex::Enrolled(std::uint32_t EnrolmentOrdinal) const
 {
     if (EnrolmentOrdinal >= static_cast<std::uint32_t>(Enrolments.size()))
-        return Result<const PartitionStructure*>::Refuse({ RefusalReason::ContentUnsupported, "no such enrolment" });
+        return Outcome<const PartitionStructure*>::Refuse({ RefusalReason::ContentUnsupported, "no such enrolment" });
 
-    return Result<const PartitionStructure*>::Result(Enrolments[EnrolmentOrdinal].get());
+    return Outcome<const PartitionStructure*>::Result(Enrolments[EnrolmentOrdinal].get());
 }
 
 const DepthReduction& VisibilityIndex::Reduction() const

@@ -101,7 +101,7 @@ struct SolvedSystem
 ///        the coefficients are already of one magnitude. The pivot ratio reports when that assumption failed.
 /// cost  🔴
 /// tag   api, nonthrowing
-Result<SolvedSystem> Solve(const DenseSystem& Declaring);
+Outcome<SolvedSystem> Solve(const DenseSystem& Declaring);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -124,7 +124,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 ///        rewrite this declaration is placed here to avoid.
 /// cost  🔴
 /// tag   api, nonthrowing
-Result<SolvedSystem> Solve(const SparseSystem& Declaring);
+Outcome<SolvedSystem> Solve(const SparseSystem& Declaring);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------

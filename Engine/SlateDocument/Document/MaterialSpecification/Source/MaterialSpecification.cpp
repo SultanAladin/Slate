@@ -86,12 +86,12 @@ void MaterialSpecification::DeclareReflectance(ReflectanceSelection Selecting)
     Selected = Selecting;
 }
 
-Result<bool> MaterialSpecification::DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring)
+Outcome<bool> MaterialSpecification::DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring)
 {
     const std::size_t Ordinal = static_cast<std::size_t>(Channel);
 
     if (Ordinal >= ChannelSpan)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such channel" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such channel" });
 
     if (MeasureCarriesColour(Declaring.Measured))
     {
@@ -99,25 +99,25 @@ Result<bool> MaterialSpecification::DeclareChannel(ChannelSubject Channel, const
         //    assumed space is the defect `36` exists to prevent, placed where no report can name it.
         if (Declaring.Source == ChannelSource::Constant && !Declaring.ConstantColour.ColourDeclared())
         {
-            return Result<bool>::Refuse(
+            return Outcome<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "a constant colour declares no space" });
         }
 
         if (!Declaring.DefaultColour.ColourDeclared())
         {
-            return Result<bool>::Refuse(
+            return Outcome<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "a colour channel's default declares no space" });
         }
     }
     else if (Declaring.Measured == ChannelMeasure::Scalar)
     {
         if (std::isnan(Declaring.DefaultScalar))
-            return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the default is not a number" });
+            return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the default is not a number" });
 
         if (Declaring.DefaultScalar < Declaring.LowerMagnitude
          || Declaring.DefaultScalar > Declaring.UpperMagnitude)
         {
-            return Result<bool>::Refuse(
+            return Outcome<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "the declared default lies outside its own interval" });
         }
     }
@@ -125,7 +125,7 @@ Result<bool> MaterialSpecification::DeclareChannel(ChannelSubject Channel, const
     Declarations[Ordinal]                 = Declaring;
     Declarations[Ordinal].ChannelDeclared = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void MaterialSpecification::DeclareCutoutThreshold(double Threshold)
@@ -177,11 +177,11 @@ bool MaterialSpecification::ChannelConverted(ChannelSubject Subject) const
 //                                                   THE MATERIALS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> MaterialIndex::Declare(const std::string& Named)
+Outcome<std::uint32_t> MaterialIndex::Declare(const std::string& Named)
 {
     if (Declared.size() >= MaterialCeiling)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the document reached its material ceiling" });
     }
 
@@ -190,26 +190,26 @@ Result<std::uint32_t> MaterialIndex::Declare(const std::string& Named)
     Declared.push_back(MaterialSpecification{});
     DeclaredNames.push_back(Named);
 
-    return Result<std::uint32_t>::Result(MaterialOrdinal);
+    return Outcome<std::uint32_t>::Result(MaterialOrdinal);
 }
 
-Result<const MaterialSpecification*> MaterialIndex::Resolve(std::uint32_t MaterialOrdinal) const
+Outcome<const MaterialSpecification*> MaterialIndex::Resolve(std::uint32_t MaterialOrdinal) const
 {
     if (MaterialOrdinal >= Declared.size())
     {
-        return Result<const MaterialSpecification*>::Refuse(
+        return Outcome<const MaterialSpecification*>::Refuse(
             { RefusalReason::ContentUnsupported, "no such material" });
     }
 
-    return Result<const MaterialSpecification*>::Result(&Declared[MaterialOrdinal]);
+    return Outcome<const MaterialSpecification*>::Result(&Declared[MaterialOrdinal]);
 }
 
-Result<MaterialSpecification*> MaterialIndex::Amend(std::uint32_t MaterialOrdinal)
+Outcome<MaterialSpecification*> MaterialIndex::Amend(std::uint32_t MaterialOrdinal)
 {
     if (MaterialOrdinal >= Declared.size())
-        return Result<MaterialSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such material" });
+        return Outcome<MaterialSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such material" });
 
-    return Result<MaterialSpecification*>::Result(&Declared[MaterialOrdinal]);
+    return Outcome<MaterialSpecification*>::Result(&Declared[MaterialOrdinal]);
 }
 
 const std::string& MaterialIndex::DeclaredName(std::uint32_t MaterialOrdinal) const
@@ -236,17 +236,17 @@ void PartitionResolutionIndex::Reclaim()
     ++DerivedRevision;
 }
 
-Result<PartitionIdentity> PartitionResolutionIndex::Declare(const ResolvedPartition& Resolving)
+Outcome<PartitionIdentity> PartitionResolutionIndex::Declare(const ResolvedPartition& Resolving)
 {
     if (!Resolving.Occupant.IdentityDeclared())
     {
-        return Result<PartitionIdentity>::Refuse(
+        return Outcome<PartitionIdentity>::Refuse(
             { RefusalReason::IdentityStale, "a partition resolves to no occupant" });
     }
 
     if (Resolutions.size() >= PartitionCeiling)
     {
-        return Result<PartitionIdentity>::Refuse(
+        return Outcome<PartitionIdentity>::Refuse(
             { RefusalReason::ExtentExhausted, "the partition ceiling was reached" });
     }
 
@@ -256,21 +256,21 @@ Result<PartitionIdentity> PartitionResolutionIndex::Declare(const ResolvedPartit
 
     Resolutions.push_back(Resolving);
 
-    return Result<PartitionIdentity>::Result(Issued);
+    return Outcome<PartitionIdentity>::Result(Issued);
 }
 
-Result<ResolvedPartition> PartitionResolutionIndex::Resolve(PartitionIdentity Subject) const
+Outcome<ResolvedPartition> PartitionResolutionIndex::Resolve(PartitionIdentity Subject) const
 {
     if (!Subject.IdentityDeclared() || Subject.SlotOrdinal >= Resolutions.size())
-        return Result<ResolvedPartition>::Refuse({ RefusalReason::IdentityStale, "no such partition" });
+        return Outcome<ResolvedPartition>::Refuse({ RefusalReason::IdentityStale, "no such partition" });
 
     if (Subject.SlotGeneration != static_cast<std::uint32_t>(DerivedRevision))
     {
-        return Result<ResolvedPartition>::Refuse(
+        return Outcome<ResolvedPartition>::Refuse(
             { RefusalReason::IdentityStale, "the partitioning was derived again since the identity was taken" });
     }
 
-    return Result<ResolvedPartition>::Result(Resolutions[Subject.SlotOrdinal]);
+    return Outcome<ResolvedPartition>::Result(Resolutions[Subject.SlotOrdinal]);
 }
 
 std::uint64_t PartitionResolutionIndex::Revision() const      { return DerivedRevision; }

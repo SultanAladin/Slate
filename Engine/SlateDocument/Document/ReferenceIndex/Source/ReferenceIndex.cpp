@@ -36,11 +36,11 @@ const char* SubjectSpelling(ReferenceSubject Subject)
 //                                                    THE DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> ReferenceIndex::Declare(const DeclaredReference& Arriving)
+Outcome<std::uint32_t> ReferenceIndex::Declare(const DeclaredReference& Arriving)
 {
     if (Arriving.Retention == ReferenceRetention::Referenced && Arriving.OriginPath.empty())
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "a referenced dependency naming no path can never be resolved — `48` §5" });
     }
 
@@ -51,38 +51,38 @@ Result<std::uint32_t> ReferenceIndex::Declare(const DeclaredReference& Arriving)
 
     if (Arriving.Standing == ReferenceStanding::Absent) { ++AbsentTotal; }
 
-    return Result<std::uint32_t>::Result(Issued);
+    return Outcome<std::uint32_t>::Result(Issued);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE STANDINGS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ReferenceIndex::DeclareRetention(std::uint32_t ReferenceOrdinal, ReferenceRetention Declaring)
+Outcome<bool> ReferenceIndex::DeclareRetention(std::uint32_t ReferenceOrdinal, ReferenceRetention Declaring)
 {
     if (ReferenceOrdinal >= Declarations.size())
     {
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no reference is declared at that ordinal" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no reference is declared at that ordinal" });
     }
 
     DeclaredReference& Amending = Declarations[ReferenceOrdinal];
 
     if (Declaring == ReferenceRetention::Referenced && Amending.OriginPath.empty())
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a referenced dependency naming no path can never be resolved — `48` §5" });
     }
 
     Amending.Retention = Declaring;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> ReferenceIndex::DeclareResolved(std::uint32_t ReferenceOrdinal, std::uint64_t SpannedBytes)
+Outcome<bool> ReferenceIndex::DeclareResolved(std::uint32_t ReferenceOrdinal, std::uint64_t SpannedBytes)
 {
     if (ReferenceOrdinal >= Declarations.size())
     {
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no reference is declared at that ordinal" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no reference is declared at that ordinal" });
     }
 
     DeclaredReference& Amending = Declarations[ReferenceOrdinal];
@@ -94,14 +94,14 @@ Result<bool> ReferenceIndex::DeclareResolved(std::uint32_t ReferenceOrdinal, std
     Amending.Standing     = ReferenceStanding::Resolved;
     Amending.SpannedBytes = SpannedBytes;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> ReferenceIndex::DeclareAbsent(std::uint32_t ReferenceOrdinal)
+Outcome<bool> ReferenceIndex::DeclareAbsent(std::uint32_t ReferenceOrdinal)
 {
     if (ReferenceOrdinal >= Declarations.size())
     {
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no reference is declared at that ordinal" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no reference is declared at that ordinal" });
     }
 
     DeclaredReference& Amending = Declarations[ReferenceOrdinal];
@@ -113,7 +113,7 @@ Result<bool> ReferenceIndex::DeclareAbsent(std::uint32_t ReferenceOrdinal)
     Amending.Standing     = ReferenceStanding::Absent;
     Amending.SpannedBytes = 0u;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -150,7 +150,7 @@ const std::vector<DeclaredReference>& ReferenceIndex::Declared() const
     return Declarations;
 }
 
-Result<DeclaredReference> ReferenceIndex::Resolve(const std::string& OriginPath) const
+Outcome<DeclaredReference> ReferenceIndex::Resolve(const std::string& OriginPath) const
 {
     // 📝 Walked backwards so the most recent declaration of one path is the one delivered. A path declared
     //    twice is two dependencies, and the later one is what the document last said about it.
@@ -160,11 +160,11 @@ Result<DeclaredReference> ReferenceIndex::Resolve(const std::string& OriginPath)
 
         if (Reading.OriginPath == OriginPath)
         {
-            return Result<DeclaredReference>::Result(Reading);
+            return Outcome<DeclaredReference>::Result(Reading);
         }
     }
 
-    return Result<DeclaredReference>::Refuse({ RefusalReason::ExtentExhausted, "no reference names that path" });
+    return Outcome<DeclaredReference>::Refuse({ RefusalReason::ExtentExhausted, "no reference names that path" });
 }
 
 void ReferenceIndex::DeclareTypefaceRetention(ReferenceRetention Declaring)

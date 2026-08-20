@@ -68,7 +68,7 @@ public:
     ///       recording into a target the device never agreed to.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Construct(const InterfaceAttachment& Arriving);
+    Outcome<bool> Construct(const InterfaceAttachment& Arriving);
 
     /// 🧩 Destroys the interface context and both vendor attachments.
     /// cost  🚩
@@ -79,14 +79,14 @@ public:
     /// out   Result  [-]  refuses when no context is constructed, or when a tick is already open
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Advance();
+    Outcome<bool> Advance();
 
     /// 🧩 Closes the open tick and assembles its command content, ready to record.
     /// out   Result  [-]  refuses when no tick is open
     /// post  the assembled content stays valid until the next Advance
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Seal();
+    Outcome<bool> Seal();
 
     /// 🧩 Closes an open tick without assembling it, so that nothing downstream may record it.
     /// out   Result  [-]  delivers true when no tick was open; abandoning nothing is not a defect
@@ -96,7 +96,7 @@ public:
     ///       process, and the interface stops responding with no error anywhere.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Abandon();
+    Outcome<bool> Abandon();
 
     /// 🧩 Restates the display image counts after a presentation chain was re-established.
     /// in    MinimumImageCount  [-]  minimum image count requested when the chain was created
@@ -106,7 +106,7 @@ public:
     ///       Vulkan attachment sizes against display images independently of Slate's reusable command slots.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
+    Outcome<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
 
     /// 🧩 Seats the sheet's tab figures into the vendor's style, including the four `Patches/` adds.
     /// out   Result  [-]  refuses with CapabilityAbsent before Construct
@@ -121,7 +121,7 @@ public:
     ///        vendor context, which starts at the vendor's own defaults and is then overwritten by
     ///        `StyleColorsDark` — so a style seated once at bring-up was silently lost on every rebuild
     ///        and the trapezoidal tabs reverted to stock rectangles with nothing reporting it.
-    Result<bool> SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted);
+    Outcome<bool> SeatWorkspaceStyle(const WorkspaceMetric& Measure, const WorkspaceColour& Tinted);
 
     /// 🧩 Opens the dock space the workspace body is docked into, filling the declared extent.
     /// note  🔴 One dock space per host, over the body alone. `DockingEnable` makes panels dockable; a dock
@@ -194,7 +194,7 @@ public:
     /// pre   Seal delivered
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Record(VkCommandBuffer CommandRecording);
+    Outcome<bool> Record(VkCommandBuffer CommandRecording);
 
     /// 🧩 Whether the interface has taken the pointer, so that `22` must not treat it as a canvas stroke.
     /// cost  ✔️

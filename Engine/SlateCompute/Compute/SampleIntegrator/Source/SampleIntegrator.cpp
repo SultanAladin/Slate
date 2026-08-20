@@ -19,26 +19,26 @@ const char* const AccumulationRecordingIdentity = "64-SampleIntegrator";
 
 }   // namespace
 
-Result<bool> SampleIntegrator::Declare(const RejectionSpecification& Declaring)
+Outcome<bool> SampleIntegrator::Declare(const RejectionSpecification& Declaring)
 {
     if (!(Declaring.DepthBound > 0.0))
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a depth bound of nothing refuses every history" });
     }
 
     if (Declaring.CountCeiling == 0u)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a ceiling of nothing accumulates nothing" });
     }
 
     Specification = Declaring;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> SampleIntegrator::Contribute(RenderSchedule& Schedule) const
+Outcome<bool> SampleIntegrator::Contribute(RenderSchedule& Schedule) const
 {
     DeclaredRecording Declared;
     Declared.Identity = AccumulationRecordingIdentity;

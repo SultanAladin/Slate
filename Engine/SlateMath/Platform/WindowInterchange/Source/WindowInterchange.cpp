@@ -47,13 +47,13 @@ namespace
 //                                                    OPEN AND CLOSE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> WindowInterchange::Open(DisplayExtent RequestedExtent, const char* WindowTitle)
+Outcome<bool> WindowInterchange::Open(DisplayExtent RequestedExtent, const char* WindowTitle)
 {
     if (WindowSlot != nullptr)
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
 
     if (!AcquireWindowSystem())
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the window system declined to start" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the window system declined to start" });
 
     // 📝 No client API is created. The drawable is surrendered to `06`, which owns everything device-side.
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -67,14 +67,14 @@ Result<bool> WindowInterchange::Open(DisplayExtent RequestedExtent, const char* 
     if (OpenedWindow == nullptr)
     {
         ReleaseWindowSystem();
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the window system declined the window" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the window system declined the window" });
     }
 
     WindowSlot = OpenedWindow;
     Drain();
     AdoptExtent();
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 WindowInterchange::~WindowInterchange()

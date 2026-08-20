@@ -50,7 +50,7 @@ public:
     /// out   Result         [-]   refuses with HostDenied when the window system declines
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Open(DisplayExtent RequestedExtent, const char* WindowTitle);
+    Outcome<bool> Open(DisplayExtent RequestedExtent, const char* WindowTitle);
 
     /// 🧩 Drains the window system's pending messages into this window's recorded condition.
     /// cost  ✔️

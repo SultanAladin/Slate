@@ -71,7 +71,7 @@ public:
     /// out   Result   [-]  refuses with HostDenied once the topology is sealed
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclarePositions(const std::vector<DocumentPosition>& Arriving);
+    Outcome<bool> DeclarePositions(const std::vector<DocumentPosition>& Arriving);
 
     /// 🧩 Declares one face as a run of vertex ordinals, in the source's own winding.
     /// in    CornerVertices  [-]  vertex ordinals, in traversal order
@@ -81,19 +81,19 @@ public:
     ///        not a face at all and `38` §3's enrollment is over faces. `50` §3 refuses the intake instead.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareFace(const std::vector<std::uint32_t>& CornerVertices);
+    Outcome<bool> DeclareFace(const std::vector<std::uint32_t>& CornerVertices);
 
     /// 🧩 Declares one domain coordinate per corner, in corner order.
     /// out   Result  [-]  refuses with ContentUnsupported when the count does not equal the corner count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareCoordinates(const std::vector<DomainCoordinate>& Arriving);
+    Outcome<bool> DeclareCoordinates(const std::vector<DomainCoordinate>& Arriving);
 
     /// 🧩 Declares one perpendicular per vertex, as the source supplied it.
     /// out   Result  [-]  refuses with ContentUnsupported when the count does not equal the vertex count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclarePerpendiculars(const std::vector<SurfaceDirection>& Arriving);
+    Outcome<bool> DeclarePerpendiculars(const std::vector<SurfaceDirection>& Arriving);
 
     /// 🧩 Declares one tangent basis per vertex, as the source supplied it.
     /// note  🔴 A supplied basis is retained and `38` §4 does not override it with a derived one. An imported
@@ -101,13 +101,13 @@ public:
     ///        their appearance requires reproducing it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareTangentBases(const std::vector<TangentBasis>& Arriving);
+    Outcome<bool> DeclareTangentBases(const std::vector<TangentBasis>& Arriving);
 
     /// 🧩 Declares one material enrollment per face.
     /// out   Result  [-]  refuses with ContentUnsupported when the count does not equal the face count
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving);
+    Outcome<bool> DeclareMaterialEnrollment(const std::vector<std::uint32_t>& Arriving);
 
     /// 🧩 Seals the topology, issuing its revision. Nothing may be declared afterwards.
     /// out   Result  [-]  refuses with ExtentExhausted when no face was declared
@@ -118,7 +118,7 @@ public:
     ///        already describes the same content.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Seal();
+    Outcome<bool> Seal();
 
     /// 🧩 Whether the topology is sealed and therefore readable.
     /// cost  ✔️

@@ -131,7 +131,7 @@ public:
     /// out   Result   [-]  delivers unconditionally; an absent library refuses only where a layer names it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Construct(const AnalyticSources& Supplied);
+    Outcome<bool> Construct(const AnalyticSources& Supplied);
 
     /// 🧩 The content revision one sequence currently stands at.
     /// in    Content  [-]  the surface's layer sequence
@@ -165,7 +165,7 @@ public:
     ///        a promotion calls; this one is for a single position and says so.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<ResolvedSample> ResolveAt(const SurfaceLayerSequence&           Content,
+    Outcome<ResolvedSample> ResolveAt(const SurfaceLayerSequence&           Content,
                                       const std::vector<ChannelPlacement>&  Placements,
                                       double                                PositionAlong,
                                       double                                PositionAcross,
@@ -188,7 +188,7 @@ public:
     ///        not vary across it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<ResolvedTile> ResolveTile(const SurfaceLayerSequence&           Content,
+    Outcome<ResolvedTile> ResolveTile(const SurfaceLayerSequence&           Content,
                                       const std::vector<ChannelPlacement>&  Placements,
                                       CellAddress                           Addressed,
                                       std::uint32_t                         ComponentCount) const;
@@ -203,29 +203,29 @@ public:
 
 private:
 
-    Result<ResolvedSample> ResolveEntryAt(const LayerSpecification&  Held,
+    Outcome<ResolvedSample> ResolveEntryAt(const LayerSpecification&  Held,
                                            double                     PositionAlong,
                                            double                     PositionAcross,
                                            double                     Tolerance,
                                            std::uint32_t              ComponentCount) const;
 
-    Result<ResolvedSample> ResolveOutlineAt(std::uint32_t  SourceOrdinal,
+    Outcome<ResolvedSample> ResolveOutlineAt(std::uint32_t  SourceOrdinal,
                                              double         SourceAlong,
                                              double         SourceAcross,
                                              double         Tolerance) const;
 
-    Result<ResolvedSample> ResolveTextAt(std::uint32_t  SourceOrdinal,
+    Outcome<ResolvedSample> ResolveTextAt(std::uint32_t  SourceOrdinal,
                                           double         SourceAlong,
                                           double         SourceAcross,
                                           double         Tolerance) const;
 
-    Result<ResolvedSample> ResolveTilingAt(std::uint32_t  TilingOrdinal,
+    Outcome<ResolvedSample> ResolveTilingAt(std::uint32_t  TilingOrdinal,
                                             double         SourceAlong,
                                             double         SourceAcross,
                                             double         Tolerance,
                                             std::uint32_t  NestingDepth) const;
 
-    Result<ResolvedSample> ResolvePlacedAt(std::uint32_t  PlacementOrdinal,
+    Outcome<ResolvedSample> ResolvePlacedAt(std::uint32_t  PlacementOrdinal,
                                             double         PositionAlong,
                                             double         PositionAcross,
                                             double         Tolerance) const;

@@ -351,7 +351,7 @@ static void SeatPatternPlacement(LayerArrangement& Arrangement, LayerEntry& Entr
     Run->ParameterCount = 15u;
 }
 
-Result<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
+Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
 {
     // 📐 The reference's own `tree`, laid outermost-first with everything a folder encloses immediately
     //    after it. Thirteen entries stand, well inside the ceiling — the guard states the invariant anyway
@@ -359,7 +359,7 @@ Result<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
     static constexpr std::uint32_t Declared = 13u;
 
     if (Declared > LayerStackCeiling::Entries)
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted,
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted,
                                        "the declared arrangement exceeds the entry ceiling" });
 
     Arrangement = LayerArrangement{};
@@ -494,7 +494,7 @@ Result<bool> SeatReferenceArrangement(LayerArrangement& Arrangement)
     Arrangement.TakenHalf = LayerTaken::Layer;
     Arrangement.Entries[5].Unfolded = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void SeatReferenceRevisions(const RevisionOrdinate*& Revisions, std::uint32_t& Count)

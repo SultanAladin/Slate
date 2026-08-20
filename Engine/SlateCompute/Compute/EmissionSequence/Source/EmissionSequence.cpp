@@ -47,47 +47,47 @@ std::vector<ChannelPlacement> ProjectPlacements(const EmittedImage& Arranged)
 //                                                     WHAT IT READS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> EmissionSequence::Construct(const EmissionSources& Supplied)
+Outcome<bool> EmissionSequence::Construct(const EmissionSources& Supplied)
 {
     // 🔴 The same `70` a promotion reads and `82` previews through. An absent resolver is not an export that
     //    degrades to something simpler — it is an export that would have to invent a second implementation, and
     //    the asset it shipped would disagree with what the artist was shown while painting it.
     if (Supplied.Resolution == nullptr)
     {
-        return Result<bool>::Refuse({RefusalReason::ContentUnsupported,
+        return Outcome<bool>::Refuse({RefusalReason::ContentUnsupported,
                                       "an emission has no resolver; `70` is the only path `50` §5 permits"});
     }
 
     Resolution      = Supplied.Resolution;
     SourcesDeclared = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     OPENING ONE IMAGE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> EmissionSequence::Open(const EmissionSpecification& Declaring,
+Outcome<bool> EmissionSequence::Open(const EmissionSpecification& Declaring,
                                      const MaterialIndex&         Materials,
                                      std::uint32_t                ImageOrdinal)
 {
     if (!SourcesDeclared)
     {
-        return Result<bool>::Refuse({RefusalReason::HostDenied,
+        return Outcome<bool>::Refuse({RefusalReason::HostDenied,
                                       "no resolver was declared; Construct before opening an emission"});
     }
 
     if (EmissionOpen)
     {
-        return Result<bool>::Refuse({RefusalReason::HostDenied,
+        return Outcome<bool>::Refuse({RefusalReason::HostDenied,
                                       "an emission already stands; Seal or Reclaim it before opening another"});
     }
 
     // 🔴 Validated here and not assumed validated. The specification arrived by value and however long the
     //    artist spent between declaring the export and starting it sits between the two calls; trusting the
     //    earlier validation is trusting a copy, and `50` §5.1's wrong arrangement is what that copy carries.
-    const Result<bool> Validated = Declaring.Validate(Materials);
+    const Outcome<bool> Validated = Declaring.Validate(Materials);
     if (!Validated.Resolved)
     {
         return Validated;
@@ -95,7 +95,7 @@ Result<bool> EmissionSequence::Open(const EmissionSpecification& Declaring,
 
     if (ImageOrdinal >= Declaring.Images.size())
     {
-        return Result<bool>::Refuse({RefusalReason::ContentUnsupported,
+        return Outcome<bool>::Refuse({RefusalReason::ContentUnsupported,
                                       "no such image in the emission specification"});
     }
 
@@ -103,7 +103,7 @@ Result<bool> EmissionSequence::Open(const EmissionSpecification& Declaring,
 
     if (Arranged.ExtentTexels > EmissionExtentCeiling)
     {
-        return Result<bool>::Refuse({RefusalReason::ContentUnsupported,
+        return Outcome<bool>::Refuse({RefusalReason::ContentUnsupported,
                                       "the declared extent exceeds what one emission may produce"});
     }
 
@@ -121,24 +121,24 @@ Result<bool> EmissionSequence::Open(const EmissionSpecification& Declaring,
     RowsNext     = 0u;
     EmissionOpen = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      ONE BAND OF ROWS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> EmissionSequence::ResolveBand(const SurfaceLayerSequence& Content)
+Outcome<std::uint32_t> EmissionSequence::ResolveBand(const SurfaceLayerSequence& Content)
 {
     if (!EmissionOpen)
     {
-        return Result<std::uint32_t>::Refuse({RefusalReason::HostDenied,
+        return Outcome<std::uint32_t>::Refuse({RefusalReason::HostDenied,
                                                "no emission stands; Open before resolving a band"});
     }
 
     if (RowsNext >= Producing.ExtentTexels)
     {
-        return Result<std::uint32_t>::Refuse({RefusalReason::ExtentExhausted,
+        return Outcome<std::uint32_t>::Refuse({RefusalReason::ExtentExhausted,
                                                "every row is resolved; Seal the emission"});
     }
 
@@ -165,7 +165,7 @@ Result<std::uint32_t> EmissionSequence::ResolveBand(const SurfaceLayerSequence& 
         {
             const double PositionAlong = (static_cast<double>(Column) + 0.5) * Reciprocal;
 
-            const Result<ResolvedSample> Resolved = Resolution->ResolveAt(Content,
+            const Outcome<ResolvedSample> Resolved = Resolution->ResolveAt(Content,
                                                                            Arrangement,
                                                                            PositionAlong,
                                                                            PositionAcross,
@@ -179,7 +179,7 @@ Result<std::uint32_t> EmissionSequence::ResolveBand(const SurfaceLayerSequence& 
             {
                 const Refusal Declining = Resolved.Error;
                 Reclaim();
-                return Result<std::uint32_t>::Refuse(Declining);
+                return Outcome<std::uint32_t>::Refuse(Declining);
             }
 
             const ResolvedSample& Sampled = Resolved.Resolve();
@@ -212,7 +212,7 @@ Result<std::uint32_t> EmissionSequence::ResolveBand(const SurfaceLayerSequence& 
     const std::uint32_t Walked = RowsLast - RowsNext;
     RowsNext = RowsLast;
 
-    return Result<std::uint32_t>::Result(Walked);
+    return Outcome<std::uint32_t>::Result(Walked);
 }
 
 bool EmissionSequence::ResolutionOwed() const
@@ -229,11 +229,11 @@ std::uint32_t EmissionSequence::ResolvedRows() const
 //                                                     HANDING IT OVER
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<EmittedTexels> EmissionSequence::Seal()
+Outcome<EmittedTexels> EmissionSequence::Seal()
 {
     if (!EmissionOpen)
     {
-        return Result<EmittedTexels>::Refuse({RefusalReason::HostDenied,
+        return Outcome<EmittedTexels>::Refuse({RefusalReason::HostDenied,
                                                "no emission stands; Open before sealing one"});
     }
 
@@ -241,7 +241,7 @@ Result<EmittedTexels> EmissionSequence::Seal()
     //    codec is a file that opens, looks approximately right, and is wrong along one edge.
     if (RowsNext < Producing.ExtentTexels)
     {
-        return Result<EmittedTexels>::Refuse({RefusalReason::ExtentExhausted,
+        return Outcome<EmittedTexels>::Refuse({RefusalReason::ExtentExhausted,
                                                "rows remain unresolved; the emission is not complete"});
     }
 
@@ -249,7 +249,7 @@ Result<EmittedTexels> EmissionSequence::Seal()
 
     Reclaim();
 
-    return Result<EmittedTexels>::Result(Sealed);
+    return Outcome<EmittedTexels>::Result(Sealed);
 }
 
 void EmissionSequence::Reclaim()

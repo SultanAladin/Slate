@@ -78,7 +78,7 @@ public:
     ///        a validated colour and what stands behind in one that was rejected.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Declare(const OutlineSpecification& Outlining_);
+    Outcome<bool> Declare(const OutlineSpecification& Outlining_);
 
     /// 🧩 Contributes `08` §3 ⑨'s recording — coverage into `OutlineSurface`, the outline over `DisplaySurface`.
     /// out   Result  [-]  refuses with whatever the schedule refused, and with ContentUnsupported before Declare
@@ -91,7 +91,7 @@ public:
     ///        downstream may resolve a pixel to it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Contribute(RenderSchedule& Schedule) const;
+    Outcome<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Whether the occupant behind one pixel is enrolled in the selection subset.
     /// in    Written      [-]  the word read back from `16`'s target
@@ -107,7 +107,7 @@ public:
     ///        edge between rotations that resolved the same geometry.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> ClassifyEnrolment(VisibilityWord                  Written,
+    Outcome<bool> ClassifyEnrolment(VisibilityWord                  Written,
                                     const VisibilityIndex&          Visibility,
                                     const PartitionResolutionIndex& Resolutions,
                                     const EnrollmentIndex&          Enrollments) const;
@@ -156,7 +156,7 @@ public:
     ///        is ordered after `66`.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<ColourSpecification> OutlineColour(bool Occluded) const;
+    Outcome<ColourSpecification> OutlineColour(bool Occluded) const;
 
     /// 🧩 Declares every measure; appends nothing.
     /// note  🔴 `26` appears in no row of `86` §4's register. A selection that is outlined is the component

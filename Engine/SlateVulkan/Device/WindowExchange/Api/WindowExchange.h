@@ -24,7 +24,7 @@ namespace Slate
 ///       The split is what keeps `SlateMath` free of a Vulkan header.
 /// cost  🚩
 /// tag   api, nonthrowing
-Result<VkSurfaceKHR> Convert(VkInstance Instance, void* NativeHandle);
+Outcome<VkSurfaceKHR> Convert(VkInstance Instance, void* NativeHandle);
 
 /// 🧩 Destroys a surface previously converted.
 /// cost  ✔️

@@ -83,7 +83,7 @@ public:
     ///        replacement here would take that stream away from it silently.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Attach(void* NativeWindowSlot, const TickSequence& HostTimeline);
+    Outcome<bool> Attach(void* NativeWindowSlot, const TickSequence& HostTimeline);
 
     /// 🧩 Returns the pointer stream to whoever held it before this attachment.
     /// note  Called by the destructor as well, so an exchange that outlives its window releases nothing twice.

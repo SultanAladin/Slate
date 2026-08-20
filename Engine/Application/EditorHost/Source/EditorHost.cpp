@@ -258,7 +258,7 @@ int main(int ArgumentCount, char** ArgumentValues)
     //    thing that distinguishes the two hosts, and it is the reason there are two: the editor carries
     //    every subject and cannot presume which the artist wants, so it presents a blank one and lets them
     //    say. A host that guessed would open a canvas for someone who came to sketch.
-    const Result<std::uint32_t> DefaultWorkspace = Workspaces.Enrol(DefaultSubject);
+    const Outcome<std::uint32_t> DefaultWorkspace = Workspaces.Enrol(DefaultSubject);
     if (!DefaultWorkspace.Resolved)
     {
         std::printf("%s \u2014 the default workspace could not be opened\n", HostName);
@@ -421,7 +421,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                 //    recorded until then. Seating it against the main space instead is what put a new
                 //    workspace in the wrong window.
                 EnrolIntoNode = AskingNode;
-                const Result<std::uint32_t> EnrolledWorkspace = Workspaces.Enrol(DefaultSubject);
+                const Outcome<std::uint32_t> EnrolledWorkspace = Workspaces.Enrol(DefaultSubject);
                 if (EnrolledWorkspace.Resolved)
                     PanelPartitions[EnrolledWorkspace.Resolve()].Construct(PanelSubject::Viewport);
             }
@@ -431,7 +431,7 @@ int main(int ArgumentCount, char** ArgumentValues)
             //    on that ground enrols one, which is the way out of a state that otherwise has none.
             if (OpenCount == 0u && Viewport.Seam().VacantPressed(Whole))
             {
-                const Result<std::uint32_t> EnrolledWorkspace = Workspaces.Enrol(DefaultSubject);
+                const Outcome<std::uint32_t> EnrolledWorkspace = Workspaces.Enrol(DefaultSubject);
                 if (EnrolledWorkspace.Resolved)
                     PanelPartitions[EnrolledWorkspace.Resolve()].Construct(PanelSubject::Viewport);
             }

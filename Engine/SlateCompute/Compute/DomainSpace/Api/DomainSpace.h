@@ -83,7 +83,7 @@ public:
     ///        differently at each bisection step and the search would not converge to anything reproducible.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Arrange(const std::vector<ChartExtent>& Extents, bool CommonScale);
+    Outcome<bool> Arrange(const std::vector<ChartExtent>& Extents, bool CommonScale);
 
     /// 🧩 The placements, in the order the extents were supplied.
     /// cost  ✔️

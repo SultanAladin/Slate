@@ -120,7 +120,7 @@ struct DerivedPartition
 ///        `68` §7 puts this on `34`'s `Background` class; called on the tick it would stall a stroke.
 /// cost  🔴
 /// tag   api, nonthrowing
-Result<DerivedPartition> Derive(const TopologyStructure&      Imported,
+Outcome<DerivedPartition> Derive(const TopologyStructure&      Imported,
                                  const TopologyConditioning&   Conditioned,
                                  const SeamSpecification&      Seams,
                                  const PartitionSpecification& Declaring,
@@ -150,7 +150,7 @@ public:
     /// post  the revision advanced; every artefact keyed on the prior one is discoverably stale
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Adopt(const DerivedPartition& Arriving);
+    Outcome<bool> Adopt(const DerivedPartition& Arriving);
 
     /// 🧩 The standing partition.
     /// pre   PartitionStanding holds
@@ -163,7 +163,7 @@ public:
     ///                     while no partition stands
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<DomainCoordinate> Coordinate(std::uint32_t CornerOrdinal) const;
+    Outcome<DomainCoordinate> Coordinate(std::uint32_t CornerOrdinal) const;
 
     /// 🧩 Whether a partition stands at all.
     /// cost  ✔️

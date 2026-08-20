@@ -194,7 +194,7 @@ public:
     ///        capability: a metric that reports zero when it could not be measured is confidently wrong.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<SampledMeasure> Resolve(const char* Origin, const char* Measured) const;
+    Outcome<SampledMeasure> Resolve(const char* Origin, const char* Measured) const;
 
     /// 🧩 Discards every held measure.
     /// cost  ✔️

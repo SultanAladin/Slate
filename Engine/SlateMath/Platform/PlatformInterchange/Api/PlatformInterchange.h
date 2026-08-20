@@ -49,7 +49,7 @@ public:
     /// post  Report returns the same reading for the rest of the run
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Resolve();
+    Outcome<bool> Resolve();
 
     /// 🧩 The host report as read at bring-up.
     /// out   HostReport  [-]  every reading is zero until Resolve has delivered
@@ -72,7 +72,7 @@ public:
     ///        the defect every debugger's default working directory reproduces on the first run.
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Result<std::string> ExecutableDirectory();
+    static Outcome<std::string> ExecutableDirectory();
 
     /// 🧩 The directory the host sets aside for this application's own retained content.
     /// in    ApplicationName  [-]  the leaf directory; created when it does not yet exist
@@ -82,7 +82,7 @@ public:
     ///        first on the machine that installed the application properly.
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Result<std::string> RetainedDirectory(const char* ApplicationName);
+    static Outcome<std::string> RetainedDirectory(const char* ApplicationName);
 
 private:
 

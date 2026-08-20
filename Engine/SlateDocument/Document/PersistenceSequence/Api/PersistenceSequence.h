@@ -94,7 +94,7 @@ public:
     ///        session and this routine runs off it. `Reached` is what tells the caller ③ actually landed.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<PersistenceConclusion> Persist(const SealedContent& Sealed);
+    Outcome<PersistenceConclusion> Persist(const SealedContent& Sealed);
 
     /// 🧩 Whether two streams are identical, byte for byte — `48` §3 ② and `48` §8's exact tier.
     /// in    Written  [-]  what the save handed to the file surface

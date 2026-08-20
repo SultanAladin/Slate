@@ -178,18 +178,18 @@ void UnsignedRun(char* Delivered, std::uint32_t Extent, std::uint32_t Reading)
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ControlPanel::Construct(InteractionIndex&              ArrivingInteraction,
+Outcome<bool> ControlPanel::Construct(InteractionIndex&              ArrivingInteraction,
                                       RecordingSurface&              ArrivingRecording,
                                       const ThemeProfile& ArrivingAppearance)
 {
     if (Interaction != nullptr)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a control panel construction already stands" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a control panel construction already stands" });
 
     Interaction = &ArrivingInteraction;
     Recording   = &ArrivingRecording;
     Appearance  = &ArrivingAppearance;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void ControlPanel::Advance(const PointerCondition& Arriving, double Elapsed)

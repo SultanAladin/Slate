@@ -66,7 +66,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 ///        functions and drifts from them the moment the fit is amended.
 /// cost  🚩
 /// tag   api, nonthrowing
-Result<double> LuminanceNormalisation(const QuadratureRule& Rule);
+Outcome<double> LuminanceNormalisation(const QuadratureRule& Rule);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -89,22 +89,22 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounde
 /// cost  🔴
 /// tag   api, nonthrowing
 template <typename Spectrum>
-Result<TristimulusCoordinate> ProjectSpectrum(const QuadratureRule& Rule, Spectrum Evaluate)
+Outcome<TristimulusCoordinate> ProjectSpectrum(const QuadratureRule& Rule, Spectrum Evaluate)
 {
     if (!Rule.Derived())
     {
-        return Result<TristimulusCoordinate>::Refuse(
+        return Outcome<TristimulusCoordinate>::Refuse(
             { RefusalReason::ContentUnsupported, "the rule has not been derived" });
     }
 
-    const Result<double> Normalisation = LuminanceNormalisation(Rule);
+    const Outcome<double> Normalisation = LuminanceNormalisation(Rule);
 
     if (!Normalisation.Resolved)
-        return Result<TristimulusCoordinate>::Refuse(Normalisation.Error);
+        return Outcome<TristimulusCoordinate>::Refuse(Normalisation.Error);
 
     if (Normalisation.Resolve() <= 0.0)
     {
-        return Result<TristimulusCoordinate>::Refuse(
+        return Outcome<TristimulusCoordinate>::Refuse(
             { RefusalReason::ContentUnsupported, "the luminance response integrates to nothing" });
     }
 
@@ -135,7 +135,7 @@ Result<TristimulusCoordinate> ProjectSpectrum(const QuadratureRule& Rule, Spectr
     Projected.MagnitudeY *= Reciprocal;
     Projected.MagnitudeZ *= Reciprocal;
 
-    return Result<TristimulusCoordinate>::Result(Projected);
+    return Outcome<TristimulusCoordinate>::Result(Projected);
 }
 
 }   // namespace Slate

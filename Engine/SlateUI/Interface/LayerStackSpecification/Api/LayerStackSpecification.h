@@ -302,7 +302,7 @@ std::uint32_t ChannelsEnabled(const LayerEntry& Entry);
 /// out   Result  [-]  refuses with ExtentExhausted when the declared run exceeds the ceiling
 /// cost  🚩
 /// tag   api, nonallocating, nonthrowing
-Result<bool> SeatReferenceArrangement(LayerArrangement& Arrangement);
+Outcome<bool> SeatReferenceArrangement(LayerArrangement& Arrangement);
 
 /// 🧩 Seats the revision run the inspector's second pane presents.
 /// out   Count  [-]  how many revisions were seated

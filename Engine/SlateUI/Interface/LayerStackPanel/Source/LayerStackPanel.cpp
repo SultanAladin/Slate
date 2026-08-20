@@ -61,12 +61,12 @@ void LayerStackPanel::Reseat(const ThemeProfile& Resolved)
     Tinted = Resolved.LayerStack;
 }
 
-Result<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
+Outcome<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
                                         const ThemeProfile& Appearance)
 {
     if (Ledger != nullptr)
     {
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported,
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the layer stack panel is already constructed" });
     }
 
@@ -75,22 +75,22 @@ Result<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, Recording
 
     // 🔴 Every identity claimed here and none inside a tick. The three runs are claimed in one pass so a
     //    refusal partway through retires the whole construction rather than leaving half a panel enrolled.
-    const auto Claim = [&](ControlIdentity* Written, std::uint32_t Count) -> Result<bool>
+    const auto Claim = [&](ControlIdentity* Written, std::uint32_t Count) -> Outcome<bool>
     {
         for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
         {
-            const Result<ControlIdentity> Issued = Interaction.Enrol();
+            const Outcome<ControlIdentity> Issued = Interaction.Enrol();
 
             if (!Issued.Resolved)
             {
                 Reset();
-                return Result<bool>::Refuse(Issued.Error);
+                return Outcome<bool>::Refuse(Issued.Error);
             }
 
             Written[Ordinal] = Issued.Resolve();
         }
 
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
     };
 
     if (const auto Verdict = Claim(RowCells, RowCeiling * CellsPerRow); !Verdict.Resolved)
@@ -114,10 +114,10 @@ Result<bool> LayerStackPanel::Construct(InteractionIndex& Interaction, Recording
         !Verdict.Resolved)
     {
         Reset();
-        return Result<bool>::Refuse(Verdict.Error);
+        return Outcome<bool>::Refuse(Verdict.Error);
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void LayerStackPanel::Advance(const PointerCondition& Contact, double)
@@ -2467,7 +2467,7 @@ void LayerStackPanel::RecordStack(const PlaneExtent& Extent, LayerArrangement& A
         //    is scaled by their ratio rather than applied to the offset directly.
         if (Ledger->Holding(Claimed) && Travel > 0.0f)
         {
-            const Result<float> Departed = Ledger->DepartedOrdinate(Claimed);
+            const Outcome<float> Departed = Ledger->DepartedOrdinate(Claimed);
 
             if (Departed.Resolved)
             {
@@ -3465,7 +3465,7 @@ void LayerStackPanel::RecordRevisions(const PlaneExtent& Extent, LayerArrangemen
 
         if (Ledger->Holding(Claimed) && Travel > 0.0f)
         {
-            const Result<float> Departed = Ledger->DepartedOrdinate(Claimed);
+            const Outcome<float> Departed = Ledger->DepartedOrdinate(Claimed);
 
             if (Departed.Resolved)
             {

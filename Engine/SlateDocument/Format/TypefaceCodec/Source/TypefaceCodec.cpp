@@ -113,11 +113,11 @@ void TranslateShape(const stbtt_vertex* Contours, int ContourCount, std::vector<
 //                                                   THE TRANSLATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::uint32_t GlyphCeiling)
+Outcome<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::uint32_t GlyphCeiling)
 {
     if (Stream.empty())
     {
-        return Result<DecodedTypeface>::Refuse(
+        return Outcome<DecodedTypeface>::Refuse(
             { RefusalReason::ContentUnsupported, "a typeface stream of no bytes carries no typeface" });
     }
 
@@ -127,7 +127,7 @@ Result<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::
 
     if (Offset < 0 || stbtt_InitFont(&Reading, Stream.data(), Offset) == 0)
     {
-        return Result<DecodedTypeface>::Refuse(
+        return Outcome<DecodedTypeface>::Refuse(
             { RefusalReason::ContentUnsupported, "the reader declined the typeface stream" });
     }
 
@@ -135,7 +135,7 @@ Result<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::
 
     if (DeclaredGlyphCount <= 0)
     {
-        return Result<DecodedTypeface>::Refuse(
+        return Outcome<DecodedTypeface>::Refuse(
             { RefusalReason::ExtentExhausted, "the typeface declares no glyph — `10` §1" });
     }
 
@@ -203,18 +203,18 @@ Result<DecodedTypeface> Translate(const std::vector<std::uint8_t>& Stream, std::
         }
     }
 
-    return Result<DecodedTypeface>::Result(Produced);
+    return Outcome<DecodedTypeface>::Result(Produced);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE SUBSTITUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> ResolveCodepoint(const std::vector<std::uint8_t>& Stream, std::uint32_t Codepoint)
+Outcome<std::uint32_t> ResolveCodepoint(const std::vector<std::uint8_t>& Stream, std::uint32_t Codepoint)
 {
     if (Stream.empty())
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "a typeface stream of no bytes maps no codepoint" });
     }
 
@@ -224,7 +224,7 @@ Result<std::uint32_t> ResolveCodepoint(const std::vector<std::uint8_t>& Stream, 
 
     if (Offset < 0 || stbtt_InitFont(&Reading, Stream.data(), Offset) == 0)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "the reader declined the typeface stream" });
     }
 
@@ -235,11 +235,11 @@ Result<std::uint32_t> ResolveCodepoint(const std::vector<std::uint8_t>& Stream, 
     //    sequence — so the artist's text would carry the substitute permanently, with nothing recording why.
     if (Resolved <= 0)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "the typeface maps that codepoint to no glyph — `52` §3" });
     }
 
-    return Result<std::uint32_t>::Result(static_cast<std::uint32_t>(Resolved));
+    return Outcome<std::uint32_t>::Result(static_cast<std::uint32_t>(Resolved));
 }
 
 }   // namespace Slate

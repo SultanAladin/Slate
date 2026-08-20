@@ -198,7 +198,7 @@ public:
     /// in    Layer    [-]  which side of the window stack this tick's content is laid on
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Adopt(ShellLayer Layer = ShellLayer::Beneath);
+    Outcome<bool> Adopt(ShellLayer Layer = ShellLayer::Beneath);
 
     /// 🧩 Moves the standing tick's recordings to the other shell layer, without re-adopting it.
     /// in    Layer    [-]  which side of the window stack subsequent recordings land on
@@ -209,7 +209,7 @@ public:
     /// note  ⚠️ Refuses when no tick stands adopted, so a layer change cannot open one by accident.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Relayer(ShellLayer Layer);
+    Outcome<bool> Relayer(ShellLayer Layer);
 
     /// 🧩 Moves subsequent primitives into the currently open workspace window's command list.
     /// out   Result  [-]  refuses when no tick or no workspace window stands open
@@ -217,7 +217,7 @@ public:
     ///       content clips and orders with its own dockable window instead of the global shell layers.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> RelayerWindow();
+    Outcome<bool> RelayerWindow();
 
     /// 🧩 What the pointer did this tick.
     /// cost  ✔️

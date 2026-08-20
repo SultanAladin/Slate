@@ -63,7 +63,7 @@ public:
     ///        question "is this here" indistinguishable from a file system that failed to answer it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    static Result<PathReport> Resolve(const std::string& Path);
+    static Outcome<PathReport> Resolve(const std::string& Path);
 
     /// 🧩 Reads a whole stream into an extent the caller then owns.
     /// in    Path     [-]  UTF-8
@@ -73,7 +73,7 @@ public:
     ///        by range arrival reads through that one rather than through this.
     /// cost  🔴
     /// tag   api, nonthrowing
-    static Result<std::vector<std::uint8_t>> ReadStream(const std::string& Path);
+    static Outcome<std::vector<std::uint8_t>> ReadStream(const std::string& Path);
 
     /// 🧩 Writes a whole stream, verifies what landed, and only then replaces what was there.
     /// in    Path      [-]  UTF-8; what the caller wants to end up holding the content
@@ -90,7 +90,7 @@ public:
     ///        in a temporary directory that may sit on another volume.
     /// cost  🔴
     /// tag   api, nonthrowing
-    static Result<bool> WriteStream(const std::string& Path, const std::vector<std::uint8_t>& Content);
+    static Outcome<bool> WriteStream(const std::string& Path, const std::vector<std::uint8_t>& Content);
 
     /// 🧩 Creates a directory and every absent directory above it.
     /// in    Path     [-]  UTF-8
@@ -99,13 +99,13 @@ public:
     ///        be there, and it is.
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Result<bool> DeclareDirectory(const std::string& Path);
+    static Outcome<bool> DeclareDirectory(const std::string& Path);
 
     /// 🧩 Removes what a path names, when it names a stream.
     /// out   Result  [-]  refuses with HostDenied when the file system declined; delivers for an absent path
     /// cost  ✔️
     /// tag   api, nonthrowing
-    static Result<bool> Reclaim(const std::string& Path);
+    static Outcome<bool> Reclaim(const std::string& Path);
 
     /// 🧩 Appends one path component to another, with exactly one separator between them.
     /// in    Leading   [-]  UTF-8; a trailing separator is neither required nor doubled

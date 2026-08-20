@@ -54,6 +54,6 @@ struct DeclaredMigration
 ///       not decide whether the result is fit to use.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Result<std::uint32_t> ResolveMigration(const StreamHeading& Heading);
+Outcome<std::uint32_t> ResolveMigration(const StreamHeading& Heading);
 
 }   // namespace Slate

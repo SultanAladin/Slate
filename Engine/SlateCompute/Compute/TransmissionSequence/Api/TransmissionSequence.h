@@ -167,13 +167,13 @@ public:
     ///        untouched.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> ContributeCollection(RenderSchedule& Schedule) const;
+    Outcome<bool> ContributeCollection(RenderSchedule& Schedule) const;
 
     /// 🧩 Contributes ⑤·ii — the resolution that amends `RadianceSurface` back to front.
     /// out   Result  [-]  refuses with whatever the schedule refused
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> ContributeResolution(RenderSchedule& Schedule) const;
+    Outcome<bool> ContributeResolution(RenderSchedule& Schedule) const;
 
     /// 🧩 Inserts one fragment into one pixel's column, in depth order.
     /// in    Column        [-]  the column, amended in place

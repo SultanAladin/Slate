@@ -67,7 +67,7 @@ public:
     /// out   Result         [-]  refuses with CapabilityAbsent when no device is active
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Construct(const VulkanExchange& Exchange, const std::string& StreamDirectory);
+    Outcome<bool> Construct(const VulkanExchange& Exchange, const std::string& StreamDirectory);
 
     /// 🧩 Reads one lowered stream, verifies it, and constructs the vendor module from it.
     /// in    UnitName    [-]  the unit the stream was lowered under, for example "SlateVulkan"
@@ -77,7 +77,7 @@ public:
     /// note  A stream already read is not read twice; the standing ordinal is delivered instead.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Resolve(const std::string& UnitName, const std::string& StreamStem);
+    Outcome<std::uint32_t> Resolve(const std::string& UnitName, const std::string& StreamStem);
 
     /// 🧩 The stage declaration one module supplies to a program, with its specialisation folded in.
     /// in    ModuleOrdinal [-]  a module this component resolved
@@ -89,7 +89,7 @@ public:
     ///       produced it has already surrendered its stack.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<VkPipelineShaderStageCreateInfo> Stage(std::uint32_t                             ModuleOrdinal,
+    Outcome<VkPipelineShaderStageCreateInfo> Stage(std::uint32_t                             ModuleOrdinal,
                                                    VkShaderStageFlagBits                     Reading,
                                                    const std::vector<SpecialisedConstant>&   Fixed);
 
@@ -119,7 +119,7 @@ private:
 
     /// 🧩 Reads one whole file into a word run, refusing rather than truncating.
     /// out   Result  [-]  refuses with HostDenied when it cannot be opened or read whole
-    Result<std::vector<std::uint32_t>> ReadStream(const std::string& StreamPath) const;
+    Outcome<std::vector<std::uint32_t>> ReadStream(const std::string& StreamPath) const;
 
     // 📝 🔴 The specialisations sit in a run whose entries never move rather than beside their module. The
     //    vendor reads each declaration by address at the program's construction, and an entry that a later

@@ -108,7 +108,7 @@ public:
     ///        are in object space and `16` §1 forbids rebuilding them per rotation, let alone per resize.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Outcome<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
 
     /// 🧩 Contributes `08` §3 ②'s recording — the one that produces all four targets.
     /// in    Schedule  [-]  the schedule being assembled at bring-up
@@ -119,7 +119,7 @@ public:
     ///        recovers camera motion and never occupant motion.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Contribute(RenderSchedule& Schedule) const;
+    Outcome<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Partitions one sealed topology, adopts the result, and declares it into `42`'s resolution.
     /// in    Occupant     [-]  who the topology belongs to
@@ -132,7 +132,7 @@ public:
     ///        the derivation is the expensive half and it reads nothing but its arguments.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Enroll(OccupantIdentity            Occupant,
+    Outcome<std::uint32_t> Enroll(OccupantIdentity            Occupant,
                                   const TopologyStructure&    Imported,
                                   const TopologyConditioning& Conditioned,
                                   PartitionResolutionIndex&   Resolutions);
@@ -147,14 +147,14 @@ public:
     ///        resolution rather than deriving its own.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<ResolvedPartition> Resolve(VisibilityWord                  Written,
+    Outcome<ResolvedPartition> Resolve(VisibilityWord                  Written,
                                        const PartitionResolutionIndex& Resolutions) const;
 
     /// 🧩 One enrolled topology's standing partitioning.
     /// out   Result  [-]  refuses with ContentUnsupported outside the enrolled count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const PartitionStructure*> Enrolled(std::uint32_t EnrolmentOrdinal) const;
+    Outcome<const PartitionStructure*> Enrolled(std::uint32_t EnrolmentOrdinal) const;
 
     /// 🧩 The reduction chain the culling tests against.
     /// cost  ✔️

@@ -69,7 +69,7 @@ public:
     /// err   refuses with ExtentExhausted when the population reaches its declared ceiling
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<OccupantIdentity> Enrol();
+    Outcome<OccupantIdentity> Enrol();
 
     /// 🧩 Withdraws one occupant and advances the slot's generation.
     /// in    Subject  [-]  the identity to withdraw
@@ -77,7 +77,7 @@ public:
     /// post  every reference carrying the prior generation resolves to absent
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Withdraw(OccupantIdentity Subject);
+    Outcome<bool> Withdraw(OccupantIdentity Subject);
 
     /// 🧩 Whether an identity still names the occupant it was issued for.
     /// in    Subject  [-]  the identity to resolve

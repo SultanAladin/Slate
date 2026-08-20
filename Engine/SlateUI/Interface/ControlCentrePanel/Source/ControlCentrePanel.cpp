@@ -125,11 +125,11 @@ const char* PageCaption(ControlCentrePage Page)
 
 } // namespace
 
-Result<bool> ControlCentrePanel::Construct(MotionIntegrator& ArrivingMotion, RecordingSurface& ArrivingSurface,
+Outcome<bool> ControlCentrePanel::Construct(MotionIntegrator& ArrivingMotion, RecordingSurface& ArrivingSurface,
                                             const ThemeProfile& ArrivingAppearance)
 {
     if (Motion != nullptr)
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             {RefusalReason::ContentUnsupported, "a Control Centre construction already stands"});
 
     Motion = &ArrivingMotion;
@@ -137,27 +137,27 @@ Result<bool> ControlCentrePanel::Construct(MotionIntegrator& ArrivingMotion, Rec
     Appearance = &ArrivingAppearance;
 
     if (!Interaction.Construct(ArrivingMotion).Resolved)
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             {RefusalReason::ExtentExhausted, "the Control Centre interaction index was refused"});
 
     if (!SharedControls.Construct(Interaction, ArrivingSurface, ArrivingAppearance).Resolved)
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             {RefusalReason::ContentUnsupported, "the shared Control Centre controls were refused"});
 
     for (std::uint32_t Ordinal = 0u; Ordinal < ControlCapacity; ++Ordinal)
     {
-        const Result<ControlIdentity> Issued = Interaction.Enrol();
-        if (!Issued.Resolved) return Result<bool>::Refuse(Issued.Error);
+        const Outcome<ControlIdentity> Issued = Interaction.Enrol();
+        if (!Issued.Resolved) return Outcome<bool>::Refuse(Issued.Error);
         Controls[Ordinal] = Issued.Resolve();
     }
 
-    const Result<std::uint32_t> PageIssued = ArrivingMotion.EnrolEased(1.0);
-    const Result<std::uint32_t> TabIssued = ArrivingMotion.EnrolEased(1.0);
-    const Result<std::uint32_t> ThemeIssued = ArrivingMotion.EnrolEased(1.0);
-    const Result<std::uint32_t> FontIssued = ArrivingMotion.EnrolEased(1.0);
+    const Outcome<std::uint32_t> PageIssued = ArrivingMotion.EnrolEased(1.0);
+    const Outcome<std::uint32_t> TabIssued = ArrivingMotion.EnrolEased(1.0);
+    const Outcome<std::uint32_t> ThemeIssued = ArrivingMotion.EnrolEased(1.0);
+    const Outcome<std::uint32_t> FontIssued = ArrivingMotion.EnrolEased(1.0);
     if (!PageIssued.Resolved || !TabIssued.Resolved || !ThemeIssued.Resolved ||
         !FontIssued.Resolved)
-        return Result<bool>::Refuse({RefusalReason::ExtentExhausted, "the Control Centre carousel was refused"});
+        return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted, "the Control Centre carousel was refused"});
 
     PageMotion = PageIssued.Resolve();
     TabMotion = TabIssued.Resolve();
@@ -167,14 +167,14 @@ Result<bool> ControlCentrePanel::Construct(MotionIntegrator& ArrivingMotion, Rec
     for (std::uint32_t Ordinal = 0u;
          Ordinal < static_cast<std::uint32_t>(ControlCentrePage::PageCount); ++Ordinal)
     {
-        const Result<std::uint32_t> ScrollIssued = ArrivingMotion.EnrolEased(1.0);
+        const Outcome<std::uint32_t> ScrollIssued = ArrivingMotion.EnrolEased(1.0);
         if (!ScrollIssued.Resolved)
-            return Result<bool>::Refuse({RefusalReason::ExtentExhausted,
+            return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted,
                                           "the Control Centre scroll motion was refused"});
         ScrollMotion[Ordinal] = ScrollIssued.Resolve();
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void ControlCentrePanel::Advance(const PointerCondition& Arrived, double Elapsed)
@@ -257,12 +257,12 @@ void ControlCentrePanel::Navigate(ControlCentrePage Arriving)
     Motion->Eased(PageMotion).Depart(0.0, 1.0, DragDuration, 0.0, EaseCurve::Carousel);
 }
 
-Result<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates)
+Outcome<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCentreOrdinates& Ordinates)
 {
     if (Surface == nullptr || Motion == nullptr)
-        return Result<bool>::Refuse({RefusalReason::CapabilityAbsent, "no Control Centre construction stands"});
+        return Outcome<bool>::Refuse({RefusalReason::CapabilityAbsent, "no Control Centre construction stands"});
 
-    if (Interior.SpanAlong() <= 0.0f || Interior.SpanAcross() <= 0.0f) return Result<bool>::Result(true);
+    if (Interior.SpanAlong() <= 0.0f || Interior.SpanAcross() <= 0.0f) return Outcome<bool>::Result(true);
 
     ExclusionCount = 0u;
     if (Ordinates.Page != PresentedPage) Navigate(Ordinates.Page);
@@ -364,7 +364,7 @@ Result<bool> ControlCentrePanel::Record(const PlaneExtent& Interior, ControlCent
         RenderPage(PresentedPage, PageExtent);
     }
     Surface->Release();
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void ControlCentrePanel::DashboardPage(const PlaneExtent& Extent, ControlCentreOrdinates& Ordinates,

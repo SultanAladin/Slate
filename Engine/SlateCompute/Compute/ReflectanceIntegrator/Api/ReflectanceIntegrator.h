@@ -113,7 +113,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported for an extent of nothing on either axis
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross);
+    Outcome<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross);
 
     /// 🧩 Writes one texel's three components.
     /// cost  ✔️
@@ -232,7 +232,7 @@ public:
     /// out   Result  [-]  refuses with whatever the schedule refused
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Contribute(RenderSchedule& Schedule) const;
+    Outcome<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Derives `18` §4.1's directional-albedo lookup, once.
     /// in    Rule     [-]  a derived quadrature rule; the hemisphere integrals are taken against it
@@ -248,7 +248,7 @@ public:
     ///        for the reason `28`'s three surface parameterisations do.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> DeriveDirectionalAlbedo(const QuadratureRule& Rule);
+    Outcome<bool> DeriveDirectionalAlbedo(const QuadratureRule& Rule);
 
     /// 🧩 Resolves the channel set one material declares at one domain position.
     /// in    Declared    [-]  the material, from `42`
@@ -267,7 +267,7 @@ public:
     ///        default is declared rather than assumed.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<ResolvedChannelSet> ResolveChannels(const MaterialSpecification&          Declared,
+    Outcome<ResolvedChannelSet> ResolveChannels(const MaterialSpecification&          Declared,
                                                 const AnalyticProjection&             Resolving,
                                                 const SurfaceLayerSequence&           Content,
                                                 const std::vector<ChannelPlacement>&  Placements,
@@ -318,7 +318,7 @@ public:
     /// note  🔴 Channel 6 and `60`'s resolved term **multiply** — `18` §5 and `60` §2, from both sides.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<AmbientContribution> IntegrateAmbient(ReflectanceSelection        Selected,
+    Outcome<AmbientContribution> IntegrateAmbient(ReflectanceSelection        Selected,
                                                   const ResolvedChannelSet&   Resolved,
                                                   const ReconstructedSurface& Reconstructed,
                                                   const AtmosphereIntegrator& Atmosphere,
@@ -337,7 +337,7 @@ public:
     ///        and it exists because every other dispatch is per material over pixels that resolved to a surface.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> IntegrateUnoccupied(const AtmosphereIntegrator& Atmosphere,
+    Outcome<bool> IntegrateUnoccupied(const AtmosphereIntegrator& Atmosphere,
                                       double ViewX, double ViewY, double ViewZ,
                                       double& Red, double& Green, double& Blue) const;
 

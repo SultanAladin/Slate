@@ -170,7 +170,7 @@ struct WorkDeclaration
     bool          ProgressReported = false;                     // [-] - whether the resolution declares progress
 
     // 📝 The captured inputs live inside this callable, which is why they are the requester's to make immutable.
-    std::function<Result<bool>(const WorkCancellation&, WorkProgress&)>  Resolve;   // [-] - the whole of the work
+    std::function<Outcome<bool>(const WorkCancellation&, WorkProgress&)>  Resolve;   // [-] - the whole of the work
 };
 
 /// 🧩 One concluded declaration, crossing back to the tick.
@@ -206,7 +206,7 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted when nothing is pending
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<std::uint32_t> Claim();
+    Outcome<std::uint32_t> Claim();
 
     /// 🧩 Strikes one record ordinal from the order without claiming it.
     /// cost  ✔️
@@ -258,7 +258,7 @@ public:
     ///        reading this only asks for.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Construct(std::uint32_t RequestedWorkers, const TickSequence& HostTimeline, ReportSequence& Reporting);
+    Outcome<bool> Construct(std::uint32_t RequestedWorkers, const TickSequence& HostTimeline, ReportSequence& Reporting);
 
     /// 🧩 Declares one unit of work, to be resolved by a worker.
     /// in    Arriving  [-]  the declaration, its inputs already captured
@@ -268,7 +268,7 @@ public:
     ///        claims it; nothing about the calling thread decides when.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<WorkIdentity> Declare(const WorkDeclaration& Arriving);
+    Outcome<WorkIdentity> Declare(const WorkDeclaration& Arriving);
 
     /// 🧩 Withdraws one declaration, because the requester no longer wants it.
     /// in    Subject  [-]  the identity Declare issued
@@ -276,7 +276,7 @@ public:
     /// post  the declaration concludes as Withdrawn and produces no result — `34` §5
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Withdraw(WorkIdentity Subject);
+    Outcome<bool> Withdraw(WorkIdentity Subject);
 
     /// 🧩 Withdraws one declaration because a newer one replaces it.
     /// out   Result  [-]  refuses with IdentityStale when the declaration has already concluded
@@ -284,7 +284,7 @@ public:
     ///        superseded cancellation ordinary operation, so nothing is appended to the register for it.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Supersede(WorkIdentity Subject);
+    Outcome<bool> Supersede(WorkIdentity Subject);
 
     /// 🧩 Delivers every conclusion recorded since the last drain, in declaration order.
     /// out   Completions  [-]  ordered by declaration ordinal within the drain, never by finishing order
@@ -306,13 +306,13 @@ public:
     /// out   Result  [-]  refuses with IdentityStale once the declaration has concluded
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<double> Progress(WorkIdentity Subject) const;
+    Outcome<double> Progress(WorkIdentity Subject) const;
 
     /// 🧩 One declaration's resolved count.
     /// out   Result  [-]  refuses with IdentityStale once the declaration has concluded
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<std::uint64_t> ProgressCount(WorkIdentity Subject) const;
+    Outcome<std::uint64_t> ProgressCount(WorkIdentity Subject) const;
 
     /// 🧩 How many workers stand.
     /// cost  ✔️
@@ -345,8 +345,8 @@ private:
     void          Serve(std::uint32_t WorkerOrdinal);
     bool          Claimable(std::uint32_t WorkerOrdinal) const;
     std::uint32_t Claim(std::uint32_t WorkerOrdinal);
-    void          Seal(std::uint32_t RecordOrdinal, const Result<bool>& Resolved);
-    Result<bool> Cancel(WorkIdentity Subject, bool SupersessionPosed);
+    void          Seal(std::uint32_t RecordOrdinal, const Outcome<bool>& Resolved);
+    Outcome<bool> Cancel(WorkIdentity Subject, bool SupersessionPosed);
     std::uint32_t Resolved(WorkIdentity Subject) const;
 
     std::vector<std::thread>                   Workers;                     // [-] - fixed at Construct

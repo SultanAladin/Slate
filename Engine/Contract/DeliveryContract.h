@@ -157,11 +157,11 @@ constexpr void Disregard(const ContentDelivery<Content>& Delivered)
 }
 
 /// 🧩 Public spelling for content delivered or refused across one fallible call.
-/// note  An alias permits `Result<Content>::Result(Produced)`: a class named Result cannot declare a static
+/// note  An alias permits `Outcome<Content>::Result(Produced)`: a class named Result cannot declare a static
 ///       function carrying its own name because C++ reserves that spelling for its constructor.
 /// tag   contract, nonallocating, nonthrowing
 template <typename Content>
-using Result = ContentDelivery<Content>;
+using Outcome = ContentDelivery<Content>;
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  CONVERGENT RESULT

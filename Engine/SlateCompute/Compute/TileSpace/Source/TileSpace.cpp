@@ -12,13 +12,13 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> TileSpace::Construct(std::uint32_t SlotCeiling_, std::uint32_t BytesPerTexel)
+Outcome<bool> TileSpace::Construct(std::uint32_t SlotCeiling_, std::uint32_t BytesPerTexel)
 {
     if (SlotCeiling_ == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a ledger of no slot backs nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a ledger of no slot backs nothing" });
 
     if (BytesPerTexel == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a texel of no width stores nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a texel of no width stores nothing" });
 
     Ceiling = SlotCeiling_;
 
@@ -43,18 +43,18 @@ Result<bool> TileSpace::Construct(std::uint32_t SlotCeiling_, std::uint32_t Byte
     ClaimedSlots     = 0u;
     QuarantinedSlots = 0u;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    CLAIM AND RELEASE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> TileSpace::Claim()
+Outcome<std::uint32_t> TileSpace::Claim()
 {
     if (FreeOrdinals.empty())
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "every slot is claimed or quarantined" });
     }
 
@@ -64,16 +64,16 @@ Result<std::uint32_t> TileSpace::Claim()
     Standing[Claimed] = SlotStanding::Claimed;
     ++ClaimedSlots;
 
-    return Result<std::uint32_t>::Result(Claimed);
+    return Outcome<std::uint32_t>::Result(Claimed);
 }
 
-Result<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal)
+Outcome<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal)
 {
     if (SlotOrdinal >= Ceiling)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such slot" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such slot" });
 
     if (Standing[SlotOrdinal] != SlotStanding::Claimed)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the slot is not claimed" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the slot is not claimed" });
 
     Standing[SlotOrdinal]   = SlotStanding::Quarantined;
     ReleasedAt[SlotOrdinal] = RecordingOrdinal;
@@ -81,7 +81,7 @@ Result<bool> TileSpace::Release(std::uint32_t SlotOrdinal, std::uint64_t Recordi
     --ClaimedSlots;
     ++QuarantinedSlots;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 std::uint32_t TileSpace::Reclaim(std::uint64_t RecordingOrdinal)
@@ -119,12 +119,12 @@ std::uint32_t TileSpace::Reclaim(std::uint64_t RecordingOrdinal)
 //                                                     WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint64_t> TileSpace::ByteOffsetOf(std::uint32_t SlotOrdinal) const
+Outcome<std::uint64_t> TileSpace::ByteOffsetOf(std::uint32_t SlotOrdinal) const
 {
     if (SlotOrdinal >= Ceiling)
-        return Result<std::uint64_t>::Refuse({ RefusalReason::ContentUnsupported, "no such slot" });
+        return Outcome<std::uint64_t>::Refuse({ RefusalReason::ContentUnsupported, "no such slot" });
 
-    return Result<std::uint64_t>::Result(static_cast<std::uint64_t>(SlotOrdinal) * TileBytes);
+    return Outcome<std::uint64_t>::Result(static_cast<std::uint64_t>(SlotOrdinal) * TileBytes);
 }
 
 std::uint64_t TileSpace::StoredBytesPerTile() const { return TileBytes; }

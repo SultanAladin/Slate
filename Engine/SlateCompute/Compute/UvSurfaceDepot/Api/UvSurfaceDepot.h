@@ -122,7 +122,7 @@ public:
     ///        reports no miss and no resolution and reads as a transfer that succeeded.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Declare(const TransferSpecification& Transferring_);
+    Outcome<bool> Declare(const TransferSpecification& Transferring_);
 
     /// 🧩 The content key one transferred result is held under — `24` §3's five fields, closed.
     /// in    Source        [-]  the dense origin; its seal revision is the first field
@@ -135,7 +135,7 @@ public:
     ///        something else, which presents as attributes subtly wrong everywhere rather than as a failure.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<ContentKey> KeyOf(const TopologyStructure& Source,
+    Outcome<ContentKey> KeyOf(const TopologyStructure& Source,
                               const TopologyStructure& Working,
                               const ChartPartition&    Partitioning) const;
 
@@ -153,7 +153,7 @@ public:
     ///        the weaker guarantee for both.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<SourceCorrespondence> Correspond(DocumentPosition         WorkingPosition,
+    Outcome<SourceCorrespondence> Correspond(DocumentPosition         WorkingPosition,
                                              SurfaceDirection         WorkingOrientation,
                                              const TopologyStructure& Source) const;
 
@@ -172,7 +172,7 @@ public:
     ///        nearest value found beyond the extent, and nothing is filled with zero.
     /// cost  🔴
     /// tag   api, nonthrowing
-    ConvergentResult<TransferMetrics> Transfer(const TopologyStructure&          Source,
+    ConvergentOutcome<TransferMetrics> Transfer(const TopologyStructure&          Source,
                                                const TopologyStructure&          Working,
                                                const std::vector<std::uint32_t>& SourceChannelMasks) const;
 
@@ -187,7 +187,7 @@ public:
     ///        layer above it in `56`, and the two are addressed at their own levels rather than merged.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Admit(SurfaceDepot&     Depot,
+    Outcome<bool> Admit(SurfaceDepot&     Depot,
                         const ContentKey& Keyed,
                         std::uint64_t     ByteExtent,
                         std::uint64_t     RecordingOrdinal) const;
@@ -202,7 +202,7 @@ public:
     ///        `86` §2, and `68`'s reporting draws the same line.
     /// cost  🚩
     /// tag   api, nonthrowing
-    void Report(const ConvergentResult<TransferMetrics>& Produced,
+    void Report(const ConvergentOutcome<TransferMetrics>& Produced,
                 ReportSequence&                          Reporting,
                 MeasureIndex&                            Measured,
                 TickPoint                                Sampled) const;

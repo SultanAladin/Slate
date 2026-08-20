@@ -209,14 +209,14 @@ ShellMetric ScaleShellLengths(float Factor)
 //                                                       BRING-UP
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> GlobalShellPanel::Construct(InteractionIndex&              Interaction,
+Outcome<bool> GlobalShellPanel::Construct(InteractionIndex&              Interaction,
                                           MotionIntegrator&              Integrator,
                                           RecordingSurface&              Surface,
                                           const ThemeProfile& Resolved)
 {
     if (Ledger != nullptr)
     {
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported,
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the shell panel is already constructed" });
     }
 
@@ -228,7 +228,7 @@ Result<bool> GlobalShellPanel::Construct(InteractionIndex&              Interact
     if (!Controls.Construct(Interaction, Surface, Resolved).Resolved)
     {
         Reset();
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent,
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent,
                                        "the shared inspector controls were refused" });
     }
 
@@ -248,12 +248,12 @@ Result<bool> GlobalShellPanel::Construct(InteractionIndex&              Interact
 
     for (ControlIdentity* Claiming : Every)
     {
-        const Result<ControlIdentity> Issued = Interaction.Enrol();
+        const Outcome<ControlIdentity> Issued = Interaction.Enrol();
 
         if (!Issued.Resolved)
         {
             Reset();
-            return Result<bool>::Refuse(Issued.Error);
+            return Outcome<bool>::Refuse(Issued.Error);
         }
 
         *Claiming = Issued.Resolve();
@@ -269,12 +269,12 @@ Result<bool> GlobalShellPanel::Construct(InteractionIndex&              Interact
 
         for (ControlIdentity* Claiming : PerRow)
         {
-            const Result<ControlIdentity> Issued = Interaction.Enrol();
+            const Outcome<ControlIdentity> Issued = Interaction.Enrol();
 
             if (!Issued.Resolved)
             {
                 Reset();
-                return Result<bool>::Refuse(Issued.Error);
+                return Outcome<bool>::Refuse(Issued.Error);
             }
 
             *Claiming = Issued.Resolve();
@@ -293,12 +293,12 @@ Result<bool> GlobalShellPanel::Construct(InteractionIndex&              Interact
 
         for (ControlIdentity* Claiming : PerLayer)
         {
-            const Result<ControlIdentity> Issued = Interaction.Enrol();
+            const Outcome<ControlIdentity> Issued = Interaction.Enrol();
 
             if (!Issued.Resolved)
             {
                 Reset();
-                return Result<bool>::Refuse(Issued.Error);
+                return Outcome<bool>::Refuse(Issued.Error);
             }
 
             *Claiming = Issued.Resolve();
@@ -307,19 +307,19 @@ Result<bool> GlobalShellPanel::Construct(InteractionIndex&              Interact
 
     // 📐 The two-slide strip. The reference translates it by `-translate-x-1/2` over 300 ms on
     //    cubic-bezier(.5,.05,.2,1), which `EaseCurve::Carousel` already names exactly.
-    const Result<std::uint32_t> Enrolled = Integrator.EnrolEased(0.0);
+    const Outcome<std::uint32_t> Enrolled = Integrator.EnrolEased(0.0);
 
     if (!Enrolled.Resolved)
     {
         Reset();
-        return Result<bool>::Refuse(Enrolled.Error);
+        return Outcome<bool>::Refuse(Enrolled.Error);
     }
 
     CarouselSlide = Enrolled.Resolve();
 
     Reseat(Resolved);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void GlobalShellPanel::Advance(const PointerCondition& Contact, double Elapsed)
@@ -3304,7 +3304,7 @@ void GlobalShellPanel::RecordInspector(const PlaneExtent& Extent, ShellOrdinates
 //                                                      THE WHOLE SHELL
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
+Outcome<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
                                        ShellOrdinates&        Seated,
                                        const EntityRow*       Rows,
                                        std::uint32_t          RowCount,
@@ -3314,10 +3314,10 @@ Result<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
                                        std::uint32_t          RevisionCount)
 {
     if (Ledger == nullptr || Surface == nullptr || Appearance == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the shell panel is unconstructed" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "the shell panel is unconstructed" });
 
     if (!Surface->Recording())
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no tick stands adopted" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no tick stands adopted" });
 
     if (Rows == nullptr)
         RowCount = 0u;
@@ -3452,7 +3452,7 @@ Result<bool> GlobalShellPanel::Record(const PlaneExtent&     Extent,
     //    `z-[101]`, which is one above the overlay that dismisses it, and therefore above everything here.
     RecordContextOverlay(Extent, Seated, Rows, RowCount);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 bool GlobalShellPanel::Occluding(float Along, float Across) const

@@ -27,16 +27,16 @@ namespace Slate
 //                                                     REGISTRATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ParityRunner::Register(const ParityRegistration& Arriving)
+Outcome<bool> ParityRunner::Register(const ParityRegistration& Arriving)
 {
     for (const ParityRegistration& Held : Registered)
     {
         if (std::strcmp(Held.EntryName, Arriving.EntryName) == 0)
-            return Result<bool>::Refuse({ RefusalReason::HostDenied, "the entry point is already registered" });
+            return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the entry point is already registered" });
     }
 
     Registered.push_back(Arriving);
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

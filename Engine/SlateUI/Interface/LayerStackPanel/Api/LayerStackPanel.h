@@ -314,7 +314,7 @@ public:
     ///        the component reads this reference directly and sees the host's re-resolution without one.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
+    Outcome<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording,
                             const ThemeProfile& Appearance);
 
     /// 🧩 Samples this tick's contact, before any extent is recorded against it.

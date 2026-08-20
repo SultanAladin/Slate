@@ -186,7 +186,7 @@ public:
     /// post  the program stands and the residency is claimable
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Construct(SpanSpace&        Spans,
+    Outcome<bool> Construct(SpanSpace&        Spans,
                             ShaderCodec&      Modules,
                             DescriptorIndex&  Descriptors,
                             ProgramIndex&     Programs,
@@ -219,7 +219,7 @@ public:
     ///        extent a recorded transfer still names. `Surrender` below is what releases them.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Resolve(const PartitionStructure&  Enrolled,
+    Outcome<std::uint32_t> Resolve(const PartitionStructure&  Enrolled,
                                    const TopologyStructure&   Imported,
                                    std::uint32_t              EnrolmentBase,
                                    const OcclusionScheduler*  Culling,
@@ -242,7 +242,7 @@ public:
     /// pre   🔴 the device is idle — every rotation reading the previous spans has completed
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Outcome<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
 
     /// 🧩 Records the raster for one cycle slot — the construct, the program, and one draw per residency.
     /// in    Recorded      [-]  the open recording of this cycle slot
@@ -258,7 +258,7 @@ public:
     ///        the placements and the composition already admits one — 🚧 the argument arrives with it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Record(VkCommandBuffer        Recorded,
+    Outcome<bool> Record(VkCommandBuffer        Recorded,
                          std::uint32_t          SlotOrdinal,
                          const ViewProjection&  Viewing);
 
@@ -278,7 +278,7 @@ public:
     ///        read, so nothing further is issued here.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> RecordIndirect(VkCommandBuffer           Recorded,
+    Outcome<bool> RecordIndirect(VkCommandBuffer           Recorded,
                                  std::uint32_t             SlotOrdinal,
                                  const ViewProjection&     Viewing,
                                  const OcclusionScheduler& Culling,
@@ -298,11 +298,11 @@ private:
 
     /// 🧩 Opens the render construct, sets the extent, binds the program, and hands back the covering span.
     /// out   Result  [-]  refuses with whatever the span or the program resolution refused
-    Result<ConstructedSpan> Open(VkCommandBuffer Recorded, ConstructedProgram& Constructed);
+    Outcome<ConstructedSpan> Open(VkCommandBuffer Recorded, ConstructedProgram& Constructed);
 
     /// 🧩 Writes one residency's uniform for one cycle slot.
     /// in    SurvivingResolved [-]  non-zero routes the corner through the surviving run
-    Result<bool> Project(const ResidentPartitioning& Standing,
+    Outcome<bool> Project(const ResidentPartitioning& Standing,
                           std::uint32_t               SlotOrdinal,
                           const ViewProjection&       Viewing,
                           const ConstructedSpan&      Covering,
@@ -313,7 +313,7 @@ private:
     /// in    Imported      [-]  the sealed topology
     /// in    EnrolmentBase [-]  the document-wide ordinal the partitions begin at
     /// out   Result       [-]  the fanned run; refuses with ContentUnsupported when the two disagree on a face
-    Result<std::vector<UploadedTriangle>> Fan(const PartitionStructure&  Enrolled,
+    Outcome<std::vector<UploadedTriangle>> Fan(const PartitionStructure&  Enrolled,
                                                const TopologyStructure&   Imported,
                                                std::uint32_t              EnrolmentBase) const;
 
@@ -323,7 +323,7 @@ private:
     /// in    Intent         [-]  what the device is permitted to read the resident span as
     /// in    Recorded       [-]  the immediate recording the transfer is written into
     /// out   Result        [-]  the resident span's ordinal; refuses with whatever the claim refused
-    Result<std::uint32_t> Stage(const void*      Arriving,
+    Outcome<std::uint32_t> Stage(const void*      Arriving,
                                  VkDeviceSize     ArrivingBytes,
                                  SpanIntent       Intent,
                                  VkCommandBuffer  Recorded);

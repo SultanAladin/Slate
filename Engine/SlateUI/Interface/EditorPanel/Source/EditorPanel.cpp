@@ -49,41 +49,41 @@ const char* GizmoTitle(PanelGizmo Gizmo)
 //                                                       CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> EditorPanel::Construct(MotionIntegrator& ArrivingMotion,
+Outcome<bool> EditorPanel::Construct(MotionIntegrator& ArrivingMotion,
                                      RecordingSurface& ArrivingSurface,
                                      const ThemeProfile& ArrivingAppearance)
 {
     if (Motion != nullptr)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "an editor panel construction stands" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "an editor panel construction stands" });
 
     Motion     = &ArrivingMotion;
     Surface    = &ArrivingSurface;
     Appearance = &ArrivingAppearance;
 
     if (!Interaction.Construct(ArrivingMotion).Resolved)
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "editor panel interaction was refused" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "editor panel interaction was refused" });
 
     if (!SharedControls.Construct(Interaction, ArrivingSurface, ArrivingAppearance).Resolved)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "shared editor controls were refused" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "shared editor controls were refused" });
 
     if (!ScenePresentation.Construct(ArrivingSurface, ArrivingAppearance, LeafSubject::Scene).Resolved ||
         !UvPresentation.Construct(ArrivingSurface, ArrivingAppearance, LeafSubject::Uv).Resolved ||
         !OutlinerPresentation.Construct(ArrivingSurface, ArrivingAppearance, LeafSubject::Outliner).Resolved ||
         !PropertyPresentation.Construct(ArrivingSurface, ArrivingAppearance, LeafSubject::Property).Resolved)
     {
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "an editor leaf panel was refused" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "an editor leaf panel was refused" });
     }
 
     for (std::uint32_t Ordinal = 0u; Ordinal < ControlCapacity; ++Ordinal)
     {
-        const Result<ControlIdentity> Issued = Interaction.Enrol();
+        const Outcome<ControlIdentity> Issued = Interaction.Enrol();
         if (!Issued.Resolved)
-            return Result<bool>::Refuse(Issued.Error);
+            return Outcome<bool>::Refuse(Issued.Error);
 
         Controls[Ordinal] = Issued.Resolve();
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void EditorPanel::Advance(const PointerCondition& Arrived, double Elapsed)
@@ -147,13 +147,13 @@ void EditorPanel::Symbol(const PlaneExtent& Extent, ThemeToken Colour)
 //                                                     PARTITION RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> EditorPanel::Record(const PlaneExtent& Extent,
+Outcome<bool> EditorPanel::Record(const PlaneExtent& Extent,
                                   PanelStructure& Partition,
                                   EditorPanelOrdinates& Ordinates,
                                   std::uint32_t PresentationOrdinal)
 {
     if (Surface == nullptr || Appearance == nullptr || Motion == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no editor panel construction stands" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no editor panel construction stands" });
 
     if (!Partition.Standing(PanelStructure::RootOrdinal).Resolved)
         Partition.Construct();
@@ -168,7 +168,7 @@ Result<bool> EditorPanel::Record(const PlaneExtent& Extent,
     RecordBranch(PanelStructure::RootOrdinal, Extent, Partition, Ordinates);
     RecordDeferred(Partition, Ordinates);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 bool EditorPanel::PointerCaptured(std::uint32_t PresentationOrdinal) const
@@ -204,7 +204,7 @@ void EditorPanel::RecordBranch(std::uint32_t RecordOrdinal,
                                PanelStructure& Partition,
                                EditorPanelOrdinates& Ordinates)
 {
-    const Result<PanelRecord> Delivered = Partition.Standing(RecordOrdinal);
+    const Outcome<PanelRecord> Delivered = Partition.Standing(RecordOrdinal);
     if (!Delivered.Resolved)
         return;
 

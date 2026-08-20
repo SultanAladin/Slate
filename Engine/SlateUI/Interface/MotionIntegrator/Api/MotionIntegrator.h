@@ -108,13 +108,13 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted when the capacity is full
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<std::uint32_t> EnrolSpring(const MotionScale& Motion, double Seated);
+    Outcome<std::uint32_t> EnrolSpring(const MotionScale& Motion, double Seated);
 
     /// 🧩 Enrols an eased traverse and delivers its ordinal.
     /// out   Result  [-]  refuses with ExtentExhausted when the capacity is full
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<std::uint32_t> EnrolEased(double Seated);
+    Outcome<std::uint32_t> EnrolEased(double Seated);
 
     /// 🧩 The enrolled spring at one ordinal, for the caller to read and re-target.
     /// pre   the ordinal was delivered by EnrolSpring

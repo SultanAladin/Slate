@@ -64,15 +64,15 @@ void IntakeIndex::Report(ReportSequence& Reporting, TickPoint Sampled)
 
 const std::vector<IntakeRecord>& IntakeIndex::Records() const { return Recorded; }
 
-Result<IntakeRecord> IntakeIndex::Resolve(const std::string& OriginPath) const
+Outcome<IntakeRecord> IntakeIndex::Resolve(const std::string& OriginPath) const
 {
     for (std::size_t Ordinal = Recorded.size(); Ordinal-- > 0u;)
     {
         if (Recorded[Ordinal].OriginPath == OriginPath)
-            return Result<IntakeRecord>::Result(Recorded[Ordinal]);
+            return Outcome<IntakeRecord>::Result(Recorded[Ordinal]);
     }
 
-    return Result<IntakeRecord>::Refuse({ RefusalReason::ExtentExhausted, "nothing arrived from that origin" });
+    return Outcome<IntakeRecord>::Refuse({ RefusalReason::ExtentExhausted, "nothing arrived from that origin" });
 }
 
 std::uint32_t IntakeIndex::AssumptionCount() const { return AssumedTotal; }

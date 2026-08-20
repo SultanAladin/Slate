@@ -158,11 +158,11 @@ void ContentBrowserPanel::Reseat(const ThemeProfile& Resolved)
     Colour = Resolved.ContentBrowser;
 }
 
-Result<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording)
+Outcome<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, RecordingSurface& Recording)
 {
     if (Ledger != nullptr)
     {
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported,
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported,
                                        "the content browser panel is already constructed" });
     }
 
@@ -171,22 +171,22 @@ Result<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, Recor
 
     // 🔴 Every identity claimed here and none inside a tick. A refusal partway through retires the whole
     //    construction rather than leaving half a panel enrolled against a ledger it cannot fill.
-    const auto Claim = [&](ControlIdentity* Written, std::uint32_t Count) -> Result<bool>
+    const auto Claim = [&](ControlIdentity* Written, std::uint32_t Count) -> Outcome<bool>
     {
         for (std::uint32_t Ordinal = 0u; Ordinal < Count; ++Ordinal)
         {
-            const Result<ControlIdentity> Issued = Interaction.Enrol();
+            const Outcome<ControlIdentity> Issued = Interaction.Enrol();
 
             if (!Issued.Resolved)
             {
                 Reset();
-                return Result<bool>::Refuse(Issued.Error);
+                return Outcome<bool>::Refuse(Issued.Error);
             }
 
             Written[Ordinal] = Issued.Resolve();
         }
 
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
     };
 
     if (const auto Verdict = Claim(SourceRows, SourceCeiling); !Verdict.Resolved)
@@ -198,7 +198,7 @@ Result<bool> ContentBrowserPanel::Construct(InteractionIndex& Interaction, Recor
     if (const auto Verdict = Claim(ChromeCells, ChromeCeiling); !Verdict.Resolved)
         return Verdict;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void ContentBrowserPanel::Advance(const PointerCondition& Arrived, double Elapsed)
@@ -411,7 +411,7 @@ void ContentBrowserPanel::RecordScrollbar(const PlaneExtent& Extent, ControlIden
 
     if (Holding && Travel > 0.0f)
     {
-        const Result<float> Departed = Ledger->DepartedOrdinate(Claimed);
+        const Outcome<float> Departed = Ledger->DepartedOrdinate(Claimed);
 
         if (Departed.Resolved)
         {

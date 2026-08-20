@@ -12,49 +12,49 @@ namespace Slate
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> InteractionIndex::Construct(MotionIntegrator& Arriving)
+Outcome<bool> InteractionIndex::Construct(MotionIntegrator& Arriving)
 {
     if (Motion != nullptr)
     {
-        return Result<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
                                                    "InteractionIndex is already constructed" });
     }
 
     Motion = &Arriving;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<ControlIdentity> InteractionIndex::Enrol()
+Outcome<ControlIdentity> InteractionIndex::Enrol()
 {
     if (Motion == nullptr)
     {
-        return Result<ControlIdentity>::Refuse(Refusal{ RefusalReason::CapabilityAbsent,
+        return Outcome<ControlIdentity>::Refuse(Refusal{ RefusalReason::CapabilityAbsent,
                                                           "InteractionIndex was not constructed" });
     }
 
     if (EnrolledSlots >= ControlCapacity)
     {
-        return Result<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
+        return Outcome<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
                                                           "InteractionIndex holds no further control slot" });
     }
 
     // 📝 🔴 Both fades are enrolled before the slot is claimed. Claiming first and refusing second would leave
     //    a slot enrolled against an interpolant that does not exist, and every later read of it would return
     //    the ordinal zero — which is another control's fade.
-    const Result<std::uint32_t> RouseEnrolled = Motion->EnrolEased(0.0);
+    const Outcome<std::uint32_t> RouseEnrolled = Motion->EnrolEased(0.0);
 
     if (!RouseEnrolled.Resolved)
     {
-        return Result<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
+        return Outcome<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
                                                           "the integrator declined a rouse fade" });
     }
 
-    const Result<std::uint32_t> TakeEnrolled = Motion->EnrolEased(0.0);
+    const Outcome<std::uint32_t> TakeEnrolled = Motion->EnrolEased(0.0);
 
     if (!TakeEnrolled.Resolved)
     {
-        return Result<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
+        return Outcome<ControlIdentity>::Refuse(Refusal{ RefusalReason::ExtentExhausted,
                                                           "the integrator declined a take fade" });
     }
 
@@ -69,7 +69,7 @@ Result<ControlIdentity> InteractionIndex::Enrol()
     Poses[Claimed].TakeOrdinal  = TakeEnrolled.Resolve();
     Poses[Claimed].Enrolled     = true;
 
-    return Result<ControlIdentity>::Result(ControlIdentity{ Claimed, Generations[Claimed] });
+    return Outcome<ControlIdentity>::Result(ControlIdentity{ Claimed, Generations[Claimed] });
 }
 
 std::uint32_t InteractionIndex::Slot(ControlIdentity Claimed) const
@@ -175,15 +175,15 @@ bool InteractionIndex::DepartFrom(ControlIdentity Claimed, float Ordinate)
     return true;
 }
 
-Result<float> InteractionIndex::DepartedOrdinate(ControlIdentity Claimed) const
+Outcome<float> InteractionIndex::DepartedOrdinate(ControlIdentity Claimed) const
 {
     if (!Holding(Claimed) || !DepartedRecorded)
     {
-        return Result<float>::Refuse(Refusal{ RefusalReason::IdentityStale,
+        return Outcome<float>::Refuse(Refusal{ RefusalReason::IdentityStale,
                                                        "this control holds no seizure to depart from" });
     }
 
-    return Result<float>::Result(SeizedDeparted);
+    return Outcome<float>::Result(SeizedDeparted);
 }
 
 float InteractionIndex::OriginAlong() const

@@ -18,29 +18,29 @@ VkImageLayout AttachmentIndex::LayoutOf(bool DepthAspect)
                        : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
-Result<bool> AttachmentIndex::Construct(const VulkanExchange& Exchange, const TargetSpace& Claimed)
+Outcome<bool> AttachmentIndex::Construct(const VulkanExchange& Exchange, const TargetSpace& Claimed)
 {
     if (Exchange.ActiveDevice() == VK_NULL_HANDLE)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device is active" });
 
     DeviceEdge = &Exchange;
     TargetEdge = &Claimed;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> AttachmentIndex::Declare(const ConstructDeclaration& Declaring)
+Outcome<std::uint32_t> AttachmentIndex::Declare(const ConstructDeclaration& Declaring)
 {
     if (DeviceEdge == nullptr)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device was taken" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::CapabilityAbsent, "no device was taken" });
 
     if (Declaring.ColourTargets.empty() && Declaring.DepthTarget == DepthTargetAbsent)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "a render construct spanning no target at all" });
     }
 
@@ -56,10 +56,10 @@ Result<std::uint32_t> AttachmentIndex::Declare(const ConstructDeclaration& Decla
     //    the pixels this rotation resolved nothing at, and they would shade as though still visible.
     for (const SharedTarget Colour : Declaring.ColourTargets)
     {
-        const Result<ImageClaim> Standing = TargetEdge->Resolve(Colour);
+        const Outcome<ImageClaim> Standing = TargetEdge->Resolve(Colour);
 
         if (!Standing.Resolved)
-            return Result<std::uint32_t>::Refuse(Standing.Error);
+            return Outcome<std::uint32_t>::Refuse(Standing.Error);
 
         VkAttachmentDescription Description = {};
         Description.format                  = Standing.Resolve().Shape.Format;
@@ -84,11 +84,11 @@ Result<std::uint32_t> AttachmentIndex::Declare(const ConstructDeclaration& Decla
 
     if (DepthDeclared)
     {
-        const Result<ImageClaim> Standing =
+        const Outcome<ImageClaim> Standing =
             TargetEdge->Resolve(static_cast<SharedTarget>(Declaring.DepthTarget));
 
         if (!Standing.Resolved)
-            return Result<std::uint32_t>::Refuse(Standing.Error);
+            return Outcome<std::uint32_t>::Refuse(Standing.Error);
 
         // 📝 Cleared to `FarPlaneDepth` by the recording that opens the construct, not by a magnitude declared
         //    here. The construct states that a clear happens; what it clears to is the reversed-depth
@@ -129,7 +129,7 @@ Result<std::uint32_t> AttachmentIndex::Declare(const ConstructDeclaration& Decla
 
     if (vkCreateRenderPass(DeviceEdge->ActiveDevice(), &Declaration, nullptr, &Constructed) != VK_SUCCESS)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::HostDenied, "the device declined the render construct" });
     }
 
@@ -147,20 +147,20 @@ Result<std::uint32_t> AttachmentIndex::Declare(const ConstructDeclaration& Decla
     //    construct rather than a span covering every construct but the newest.
     SpanStanding = false;
 
-    return Result<std::uint32_t>::Result(ConstructOrdinal);
+    return Outcome<std::uint32_t>::Result(ConstructOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE DERIVATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> AttachmentIndex::Derive(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight)
+Outcome<bool> AttachmentIndex::Derive(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight)
 {
     if (DeviceEdge == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device was taken" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device was taken" });
 
     if (DisplayWidth == 0u || DisplayHeight == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of no interior" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of no interior" });
 
     // 🔴 Derived whole into a standing run before anything replaces what stands. A span constructed part of
     //    the way through and then refused would leave half the constructs covering this extent and half
@@ -178,7 +178,7 @@ Result<bool> AttachmentIndex::Derive(std::uint32_t DisplayWidth, std::uint32_t D
 
         for (const SharedTarget Colour : Held.ColourTargets)
         {
-            const Result<ImageClaim> Standing = TargetEdge->Resolve(Colour);
+            const Outcome<ImageClaim> Standing = TargetEdge->Resolve(Colour);
 
             if (!Standing.Resolved)
             {
@@ -191,7 +191,7 @@ Result<bool> AttachmentIndex::Derive(std::uint32_t DisplayWidth, std::uint32_t D
 
         if (!Declined && Held.DepthTarget != DepthTargetAbsent)
         {
-            const Result<ImageClaim> Standing =
+            const Outcome<ImageClaim> Standing =
                 TargetEdge->Resolve(static_cast<SharedTarget>(Held.DepthTarget));
 
             if (!Standing.Resolved)
@@ -222,7 +222,7 @@ Result<bool> AttachmentIndex::Derive(std::uint32_t DisplayWidth, std::uint32_t D
             for (const VkFramebuffer Reclaimed : Arriving)
                 vkDestroyFramebuffer(DeviceEdge->ActiveDevice(), Reclaimed, nullptr);
 
-            return Result<bool>::Refuse(
+            return Outcome<bool>::Refuse(
                 { RefusalReason::HostDenied, "a render construct could not be covered at this extent" });
         }
 
@@ -238,24 +238,24 @@ Result<bool> AttachmentIndex::Derive(std::uint32_t DisplayWidth, std::uint32_t D
     DerivedHeight = DisplayHeight;
     SpanStanding  = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                    THE RESOLUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<ConstructedSpan> AttachmentIndex::Resolve(std::uint32_t ConstructOrdinal) const
+Outcome<ConstructedSpan> AttachmentIndex::Resolve(std::uint32_t ConstructOrdinal) const
 {
     if (static_cast<std::size_t>(ConstructOrdinal) >= Constructs.size())
     {
-        return Result<ConstructedSpan>::Refuse(
+        return Outcome<ConstructedSpan>::Refuse(
             { RefusalReason::ContentUnsupported, "no render construct stands at that ordinal" });
     }
 
     if (!SpanStanding)
     {
-        return Result<ConstructedSpan>::Refuse(
+        return Outcome<ConstructedSpan>::Refuse(
             { RefusalReason::ExtentExhausted, "no span has been derived at any display extent" });
     }
 
@@ -267,18 +267,18 @@ Result<ConstructedSpan> AttachmentIndex::Resolve(std::uint32_t ConstructOrdinal)
     Resolved.SpannedWidth    = DerivedWidth;
     Resolved.SpannedHeight   = DerivedHeight;
 
-    return Result<ConstructedSpan>::Result(Resolved);
+    return Outcome<ConstructedSpan>::Result(Resolved);
 }
 
-Result<VkRenderPass> AttachmentIndex::ConstructOf(std::uint32_t ConstructOrdinal) const
+Outcome<VkRenderPass> AttachmentIndex::ConstructOf(std::uint32_t ConstructOrdinal) const
 {
     if (static_cast<std::size_t>(ConstructOrdinal) >= Constructs.size())
     {
-        return Result<VkRenderPass>::Refuse(
+        return Outcome<VkRenderPass>::Refuse(
             { RefusalReason::ContentUnsupported, "no render construct stands at that ordinal" });
     }
 
-    return Result<VkRenderPass>::Result(Constructs[ConstructOrdinal].RenderConstruct);
+    return Outcome<VkRenderPass>::Result(Constructs[ConstructOrdinal].RenderConstruct);
 }
 
 std::uint32_t AttachmentIndex::DeclaredCount() const

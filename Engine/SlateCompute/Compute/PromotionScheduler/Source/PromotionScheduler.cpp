@@ -84,18 +84,18 @@ PromotionCost Estimate(const SurfaceLayerSequence& Sequence, std::uint64_t TileB
 //                                                     DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> PromotionScheduler::DeclareBudget(const PromotionBudget& Declaring)
+Outcome<bool> PromotionScheduler::DeclareBudget(const PromotionBudget& Declaring)
 {
     if (Declaring.TransferBytes == 0u && Declaring.EvaluationUnits == 0u)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a budget of nothing promotes nothing, ever" });
     }
 
     DeclaredBudget  = Declaring;
     RemainingBudget = Declaring;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void PromotionScheduler::DeclareOrdering(EvictionOrdering Declaring)
@@ -104,11 +104,11 @@ void PromotionScheduler::DeclareOrdering(EvictionOrdering Declaring)
         DeclaredOrder = Declaring;
 }
 
-Result<bool> PromotionScheduler::OpenRecording(std::uint64_t RecordingOrdinal)
+Outcome<bool> PromotionScheduler::OpenRecording(std::uint64_t RecordingOrdinal)
 {
     if (RecordingStanding && RecordingOrdinal <= RecordingOpened)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::HostDenied, "the rotation is not later than the one already open" });
     }
 
@@ -118,7 +118,7 @@ Result<bool> PromotionScheduler::OpenRecording(std::uint64_t RecordingOrdinal)
     PromotedThis     = 0u;
     DeferredThis     = 0u;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -134,15 +134,15 @@ bool PromotionScheduler::Admits(const PromotionCost& Costing) const
         && Costing.EvaluationUnits <= RemainingBudget.EvaluationUnits;
 }
 
-Result<bool> PromotionScheduler::Charge(const PromotionCost& Costing)
+Outcome<bool> PromotionScheduler::Charge(const PromotionCost& Costing)
 {
     if (!Admits(Costing))
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the rotation's budget cannot admit it" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the rotation's budget cannot admit it" });
 
     RemainingBudget.TransferBytes   -= Costing.TransferBytes;
     RemainingBudget.EvaluationUnits -= Costing.EvaluationUnits;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void PromotionScheduler::DeferOne()

@@ -59,20 +59,20 @@ public:
     /// post  the enrolled workspace is active; its title is composed and will not be composed again
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<std::uint32_t> Enrol(WorkspaceSubject Subject);
+    Outcome<std::uint32_t> Enrol(WorkspaceSubject Subject);
 
     /// 🧩 Closes the workspace at one ordinal, preserving the order of the rest.
     /// out   Result  [-]  refuses with IdentityStale when the ordinal names no workspace
     /// note  ⚠️ The active ordinal moves to the preceding workspace, or to none when the last one closed.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Withdraw(std::uint32_t Ordinal);
+    Outcome<bool> Withdraw(std::uint32_t Ordinal);
 
     /// 🧩 Makes the workspace at one ordinal the active one.
     /// out   Result  [-]  refuses with IdentityStale when the ordinal names no workspace
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Present(std::uint32_t Ordinal);
+    Outcome<bool> Present(std::uint32_t Ordinal);
 
     /// 🧩 How many workspaces stand open.
     /// cost  ✔️
@@ -105,7 +105,7 @@ public:
     /// out   Result  [-]  refuses with IdentityStale when the ordinal names no workspace
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<WorkspaceEntry> Standing(std::uint32_t Ordinal) const;
+    Outcome<WorkspaceEntry> Standing(std::uint32_t Ordinal) const;
 
     /// 🧩 Which workspace is active, as an ordinal into the open set.
     /// out   Ordinal  [-]  AbsentWorkspace when none is open

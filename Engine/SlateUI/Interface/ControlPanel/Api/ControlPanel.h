@@ -137,7 +137,7 @@ public:
     /// out   Result  [-]  refuses when a construction already stands
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Construct(InteractionIndex&              Interaction,
+    Outcome<bool> Construct(InteractionIndex&              Interaction,
                             RecordingSurface&              Recording,
                             const ThemeProfile& Appearance);
 

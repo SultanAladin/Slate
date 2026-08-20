@@ -162,7 +162,7 @@ public:
     /// out   Result   [-]  refuses with ContentUnsupported for an absent resolver
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Construct(const PreviewSources& Supplied);
+    Outcome<bool> Construct(const PreviewSources& Supplied);
 
     //--------------------------------------------------------------------------------------------------------------------
     //                                                  THE BRUSH PREVIEW
@@ -182,7 +182,7 @@ public:
     ///        `22`'s Seal rather than from the component whose whole subject is that it never commits.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> OpenImpression(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
+    Outcome<bool> OpenImpression(const StrokeDeclaration& Declaring, const BrushSpecification& Brushed);
 
     /// 🧩 Moves the previewed impression to where the cursor now stands.
     /// in    Arriving  [-]  the pointer sample and the domain position `74` resolved it to
@@ -193,7 +193,7 @@ public:
     ///        about a stroke the artist has not made.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> AmendImpression(const StrokeArrival& Arriving);
+    Outcome<bool> AmendImpression(const StrokeArrival& Arriving);
 
     /// 🧩 Resolves the previewed impression against whatever residency admits, demanding nothing it may pin.
     /// in    Residency        [-]  the surface's cells and tiles
@@ -203,7 +203,7 @@ public:
     /// post  🔴 nothing was pinned; `DeclareUncommitted` was not called and cannot have been
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<ResolvedRun> ResolveImpression(SurfaceTileSpace& Residency,
+    Outcome<ResolvedRun> ResolveImpression(SurfaceTileSpace& Residency,
                                            RequestQueue&     Requesting,
                                            std::uint64_t     RecordingOrdinal);
 
@@ -244,7 +244,7 @@ public:
     ///        mean two different things depending on who was asking.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<ResolvedSample> ProjectContentAt(const SurfaceLayerSequence&           Content,
+    Outcome<ResolvedSample> ProjectContentAt(const SurfaceLayerSequence&           Content,
                                              const std::vector<ChannelPlacement>&  Placements,
                                              double                                PositionAlong,
                                              double                                PositionAcross,
@@ -272,7 +272,7 @@ public:
     ///        the other three.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<ResolvedSample> ProjectPlacementAt(const SurfaceLayerSequence&           Content,
+    Outcome<ResolvedSample> ProjectPlacementAt(const SurfaceLayerSequence&           Content,
                                                const std::vector<ChannelPlacement>&  Placements,
                                                double                                PositionAlong,
                                                double                                PositionAcross,
@@ -292,7 +292,7 @@ public:
     ///        other reason — it is not a revision and nothing keys on it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> AmendParameter(std::uint64_t RecordingOrdinal);
+    Outcome<bool> AmendParameter(std::uint64_t RecordingOrdinal);
 
     /// 🧩 How many re-resolutions the standing parameter drag has asked for.
     /// cost  ✔️
@@ -311,7 +311,7 @@ public:
     /// out   Result          [-]  refuses with ContentUnsupported for the closed count and outside the level count
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> DeclareExtent(SpeculativeSubject Previewed,
+    Outcome<bool> DeclareExtent(SpeculativeSubject Previewed,
                                 std::uint32_t      SurfaceOrdinal,
                                 std::uint32_t      RequestedLevel,
                                 std::uint64_t      RecordingOrdinal);

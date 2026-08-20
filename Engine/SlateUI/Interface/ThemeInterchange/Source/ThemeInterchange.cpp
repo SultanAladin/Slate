@@ -230,18 +230,18 @@ enum class SectionSubject : std::uint32_t
 //                                                      TRANSCRIBING
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
+Outcome<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 {
     if (Path == nullptr || *Path == '\0')
     {
-        return Result<ThemeArchive>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
+        return Outcome<ThemeArchive>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
     }
 
     std::FILE* Stream = OpenStream(Path, "rb");
 
     if (Stream == nullptr)
     {
-        return Result<ThemeArchive>::Refuse({RefusalReason::HostDenied, "the appearance file could not be opened"});
+        return Outcome<ThemeArchive>::Refuse({RefusalReason::HostDenied, "the appearance file could not be opened"});
     }
 
     // 🔴 Seeded from the standing appearance, not from zero. A file that names only the selection leaves every
@@ -258,7 +258,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
     if (!Whole)
     {
-        return Result<ThemeArchive>::Refuse(
+        return Outcome<ThemeArchive>::Refuse(
             {RefusalReason::ContentUnsupported, "the appearance file exceeded ArchiveCeiling or could not be read whole"});
     }
 
@@ -291,7 +291,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Closing == nullptr)
             {
-                return Result<ThemeArchive>::Refuse(
+                return Outcome<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "a section heading in the appearance file is unclosed"});
             }
 
@@ -310,7 +310,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Stem == nullptr)
             {
-                return Result<ThemeArchive>::Refuse(
+                return Outcome<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "a section in the appearance file names neither a theme nor an accent"});
             }
 
@@ -323,7 +323,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
                 if (Subject >= ThemeCeiling)
                 {
-                    return Result<ThemeArchive>::Refuse(
+                    return Outcome<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "the appearance file names a theme this build does not declare"});
                 }
 
@@ -337,7 +337,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
                 if (Subject >= AccentCeiling)
                 {
-                    return Result<ThemeArchive>::Refuse(
+                    return Outcome<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "the appearance file names an accent this build does not declare"});
                 }
 
@@ -345,7 +345,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
                 continue;
             }
 
-            return Result<ThemeArchive>::Refuse(
+            return Outcome<ThemeArchive>::Refuse(
                 {RefusalReason::ContentUnsupported, "the appearance file names an unreadable section"});
         }
 
@@ -353,7 +353,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
         if (Divider == nullptr)
         {
-            return Result<ThemeArchive>::Refuse(
+            return Outcome<ThemeArchive>::Refuse(
                 {RefusalReason::ContentUnsupported, "a line in the appearance file is neither a section nor an assignment"});
         }
 
@@ -364,7 +364,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
         if (Section == SectionSubject::Nowhere)
         {
-            return Result<ThemeArchive>::Refuse(
+            return Outcome<ThemeArchive>::Refuse(
                 {RefusalReason::ContentUnsupported, "the appearance file assigns a key outside every section"});
         }
 
@@ -379,7 +379,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
                 if (Ordinal >= ThemeCeiling)
                 {
-                    return Result<ThemeArchive>::Refuse(
+                    return Outcome<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "the selected theme is not one this build declares"});
                 }
 
@@ -391,7 +391,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (Ordinal >= AccentCeiling)
             {
-                return Result<ThemeArchive>::Refuse(
+                return Outcome<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "a selected accent is not one this build declares"});
             }
 
@@ -404,7 +404,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
             else if (Matched(Key, "alert")) Produced.Selected.Alert       = Chosen;
             else
             {
-                return Result<ThemeArchive>::Refuse(
+                return Outcome<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "the selection section names a key this build does not read"});
             }
 
@@ -425,14 +425,14 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
             {
                 if (!ReadColour(Reading, Declared.Colour))
                 {
-                    return Result<ThemeArchive>::Refuse(
+                    return Outcome<ThemeArchive>::Refuse(
                         {RefusalReason::ContentUnsupported, "an accent colour is not #RRGGBB or #RRGGBBAA"});
                 }
 
                 continue;
             }
 
-            return Result<ThemeArchive>::Refuse(
+            return Outcome<ThemeArchive>::Refuse(
                 {RefusalReason::ContentUnsupported, "an accent section names a key this build does not read"});
         }
 
@@ -457,7 +457,7 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
             if (!ReadColour(Reading, *Placed))
             {
-                return Result<ThemeArchive>::Refuse(
+                return Outcome<ThemeArchive>::Refuse(
                     {RefusalReason::ContentUnsupported, "a theme colour is not #RRGGBB or #RRGGBBAA"});
             }
 
@@ -466,23 +466,23 @@ Result<ThemeArchive> ThemeInterchange::Transcribe(const char* Path)
 
         if (!Bound)
         {
-            return Result<ThemeArchive>::Refuse(
+            return Outcome<ThemeArchive>::Refuse(
                 {RefusalReason::ContentUnsupported, "a theme section names an colour this build does not declare"});
         }
     }
 
-    return Result<ThemeArchive>::Result(Produced);
+    return Outcome<ThemeArchive>::Result(Produced);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       INSCRIBING
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& Recorded)
+Outcome<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& Recorded)
 {
     if (Path == nullptr || *Path == '\0')
     {
-        return Result<bool>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
+        return Outcome<bool>::Refuse({RefusalReason::HostDenied, "the appearance path is empty"});
     }
 
     char Staged[PathCeiling] = {};
@@ -491,7 +491,7 @@ Result<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& Re
 
     if (Spanned + 5u >= PathCeiling)
     {
-        return Result<bool>::Refuse({RefusalReason::ExtentExhausted, "the appearance path exceeds PathCeiling"});
+        return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted, "the appearance path exceeds PathCeiling"});
     }
 
     std::memcpy(Staged, Path, Spanned);
@@ -501,7 +501,7 @@ Result<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& Re
 
     if (Stream == nullptr)
     {
-        return Result<bool>::Refuse({RefusalReason::HostDenied, "the staged appearance file could not be opened"});
+        return Outcome<bool>::Refuse({RefusalReason::HostDenied, "the staged appearance file could not be opened"});
     }
 
     std::fprintf(Stream, "# Slate \u2014 the standing appearance.\n");
@@ -579,7 +579,7 @@ Result<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& Re
     if (std::fclose(Stream) != 0 || Faulted)
     {
         std::remove(Staged);
-        return Result<bool>::Refuse({RefusalReason::HostDenied, "the staged appearance file could not be written whole"});
+        return Outcome<bool>::Refuse({RefusalReason::HostDenied, "the staged appearance file could not be written whole"});
     }
 
     // 📝 rename refuses across an existing file on Windows, so the destination is removed first. The window
@@ -589,24 +589,24 @@ Result<bool> ThemeInterchange::Inscribe(const char* Path, const ThemeArchive& Re
     if (std::rename(Staged, Path) != 0)
     {
         std::remove(Staged);
-        return Result<bool>::Refuse({RefusalReason::HostDenied, "the appearance file could not be moved into place"});
+        return Outcome<bool>::Refuse({RefusalReason::HostDenied, "the appearance file could not be moved into place"});
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  WHERE THE FILE SITS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ThemeInterchange::Beside(const char*   ExecutablePath,
+Outcome<bool> ThemeInterchange::Beside(const char*   ExecutablePath,
                                        const char*   Leaf,
                                        char*         Produced,
                                        std::uint32_t Ceiling)
 {
     if (Produced == nullptr || Ceiling == 0u || Leaf == nullptr)
     {
-        return Result<bool>::Refuse({RefusalReason::ExtentExhausted, "no extent was offered for the resolved path"});
+        return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted, "no extent was offered for the resolved path"});
     }
 
     Produced[0] = '\0';
@@ -635,14 +635,14 @@ Result<bool> ThemeInterchange::Beside(const char*   ExecutablePath,
 
     if (Folder + Named + 1u > static_cast<std::size_t>(Ceiling))
     {
-        return Result<bool>::Refuse({RefusalReason::ExtentExhausted, "the resolved appearance path exceeds the offered extent"});
+        return Outcome<bool>::Refuse({RefusalReason::ExtentExhausted, "the resolved appearance path exceeds the offered extent"});
     }
 
     if (Folder > 0u) std::memcpy(Produced, ExecutablePath, Folder);
 
     std::memcpy(Produced + Folder, Leaf, Named + 1u);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 const char* ThemeInterchange::StandingLeaf()
@@ -650,29 +650,29 @@ const char* ThemeInterchange::StandingLeaf()
     return "SlateAppearance.toml";
 }
 
-Result<bool> ThemeInterchange::AdoptBeside(const char* ExecutablePath, ThemeSelection& Produced)
+Outcome<bool> ThemeInterchange::AdoptBeside(const char* ExecutablePath, ThemeSelection& Produced)
 {
     char Path[PathCeiling] = {};
 
-    const Result<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
+    const Outcome<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
 
     if (!Resolved) return Resolved;
 
-    const Result<ThemeArchive> Read = Transcribe(Path);
+    const Outcome<ThemeArchive> Read = Transcribe(Path);
 
-    if (!Read) return Result<bool>::Refuse(Read.Error);
+    if (!Read) return Outcome<bool>::Refuse(Read.Error);
 
     ThemeSpecification::Adopt(Read.Resolve());
     Produced = Read.Resolve().Selected;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> ThemeInterchange::RecordBeside(const char* ExecutablePath, const ThemeSelection& Selected)
+Outcome<bool> ThemeInterchange::RecordBeside(const char* ExecutablePath, const ThemeSelection& Selected)
 {
     char Path[PathCeiling] = {};
 
-    const Result<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
+    const Outcome<bool> Resolved = Beside(ExecutablePath, StandingLeaf(), Path, PathCeiling);
 
     if (!Resolved) return Resolved;
 

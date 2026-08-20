@@ -31,18 +31,18 @@ const char* WorkspaceStem(WorkspaceSubject Subject)
 //                                                      THE ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> WorkspaceIndex::Enrol(WorkspaceSubject Subject)
+Outcome<std::uint32_t> WorkspaceIndex::Enrol(WorkspaceSubject Subject)
 {
     if (OpenOccupancy >= WorkspaceCeiling)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "no more workspaces may be opened at once" });
     }
 
     const std::uint32_t SubjectOrdinal = static_cast<std::uint32_t>(Subject);
 
     if (SubjectOrdinal >= static_cast<std::uint32_t>(WorkspaceSubject::SubjectCount))
-        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such workspace subject" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such workspace subject" });
 
     WorkspaceEntry& Enrolled = Open[OpenOccupancy];
 
@@ -62,17 +62,17 @@ Result<std::uint32_t> WorkspaceIndex::Enrol(WorkspaceSubject Subject)
     Active = OpenOccupancy;
     ++OpenOccupancy;
 
-    return Result<std::uint32_t>::Result(Active);
+    return Outcome<std::uint32_t>::Result(Active);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     THE WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> WorkspaceIndex::Withdraw(std::uint32_t Ordinal)
+Outcome<bool> WorkspaceIndex::Withdraw(std::uint32_t Ordinal)
 {
     if (Ordinal >= OpenOccupancy)
-        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no open workspace" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no open workspace" });
 
     // 📝 The order is preserved rather than the last entry being swapped in. The sheet presents its tabs in
     //    the order they were opened, and a swap would move an unrelated tab under the artist's pointer.
@@ -93,17 +93,17 @@ Result<bool> WorkspaceIndex::Withdraw(std::uint32_t Ordinal)
         Active = (Active == 0u) ? 0u : Active - 1u;
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> WorkspaceIndex::Present(std::uint32_t Ordinal)
+Outcome<bool> WorkspaceIndex::Present(std::uint32_t Ordinal)
 {
     if (Ordinal >= OpenOccupancy)
-        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no open workspace" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "that ordinal names no open workspace" });
 
     Active = Ordinal;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -115,15 +115,15 @@ std::uint32_t WorkspaceIndex::OpenCount() const
     return OpenOccupancy;
 }
 
-Result<WorkspaceEntry> WorkspaceIndex::Standing(std::uint32_t Ordinal) const
+Outcome<WorkspaceEntry> WorkspaceIndex::Standing(std::uint32_t Ordinal) const
 {
     if (Ordinal >= OpenOccupancy)
     {
-        return Result<WorkspaceEntry>::Refuse(
+        return Outcome<WorkspaceEntry>::Refuse(
             { RefusalReason::IdentityStale, "that ordinal names no open workspace" });
     }
 
-    return Result<WorkspaceEntry>::Result(Open[Ordinal]);
+    return Outcome<WorkspaceEntry>::Result(Open[Ordinal]);
 }
 
 bool WorkspaceIndex::Seated(std::uint32_t Ordinal) const

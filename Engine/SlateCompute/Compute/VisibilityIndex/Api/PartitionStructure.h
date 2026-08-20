@@ -125,7 +125,7 @@ struct DerivedPartitioning
 ///        nothing.
 /// cost  🔴
 /// tag   api, nonthrowing
-Result<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Imported,
+Outcome<DerivedPartitioning> DerivePartitioning(const TopologyStructure&    Imported,
                                                 const TopologyConditioning& Conditioned);
 
 // 📐 The extents and the cone are Bounded; the adjacency traversal, the face counting and the material comparison
@@ -151,7 +151,7 @@ public:
     /// post  the revision advanced; every identity issued against the prior one is discoverably stale
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Adopt(const DerivedPartitioning& Arriving);
+    Outcome<bool> Adopt(const DerivedPartitioning& Arriving);
 
     /// 🧩 Declares every standing partition into `42`'s resolution, retaining the identities it issues.
     /// in    Resolutions  [-]  the document's resolution; rebuilt by `42` and written here
@@ -163,7 +163,7 @@ public:
     ///        recover one from the other. This declaration is the only place the two are related.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant);
+    Outcome<bool> Declare(PartitionResolutionIndex& Resolutions, OccupantIdentity Occupant);
 
     /// 🧩 The standing partitioning.
     /// pre   PartitioningStanding holds
@@ -176,7 +176,7 @@ public:
     ///                     IdentityStale when nothing has been declared since the last adoption
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<PartitionIdentity> IdentityOf(std::uint32_t PartitionOrdinal) const;
+    Outcome<PartitionIdentity> IdentityOf(std::uint32_t PartitionOrdinal) const;
 
     /// 🧩 Discards the standing partitioning and every identity taken against it.
     /// cost  🚩

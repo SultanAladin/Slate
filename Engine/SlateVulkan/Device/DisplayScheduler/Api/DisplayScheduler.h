@@ -109,7 +109,7 @@ public:
     ///        the arriving one is constructed — and a report against either would otherwise read alike.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Construct(const VulkanExchange&       Exchange,
+    Outcome<bool> Construct(const VulkanExchange&       Exchange,
                             const DiagnosticExtension&  Naming,
                             VkSurfaceKHR                Surface,
                             std::uint32_t               DisplayWidth,
@@ -130,7 +130,7 @@ public:
     ///        stops rotating instead of establishing a chain no image can be claimed from.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
+    Outcome<bool> Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight);
 
     /// 🧩 Takes the next display image, ordering its arrival against the standing cycle slot.
     /// in    Standing  [-]  the cycle slot this image is recorded into; its `ImageArrived` is signalled
@@ -150,7 +150,7 @@ public:
     ///        caller reading `Reclaimed` alone would record into a null view on the second of the two.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<ArrivedImage> Await(const CycleSlot& Standing, const TickSequence& Timeline);
+    Outcome<ArrivedImage> Await(const CycleSlot& Standing, const TickSequence& Timeline);
 
     /// 🧩 Surrenders one taken image back to the display, ordered behind the recording that wrote it.
     /// in    Standing      [-]  the same slot `Await` was given; its `RecordingDone` is awaited
@@ -172,7 +172,7 @@ public:
     ///        unreachable, so a resize was rebuilt one tick late by the extent test or not at all.
     /// cost  🚩
     /// tag   api, nonthrowing
-    [[nodiscard]] Result<bool> Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal);
+    [[nodiscard]] Outcome<bool> Present(const CycleSlot& Standing, std::uint32_t ImageOrdinal);
 
     /// 🧩 What the surface carries, which is the format every display-relative target is claimed at.
     /// out   Format  [-]  VK_FORMAT_UNDEFINED before Construct delivered
@@ -233,7 +233,7 @@ private:
     ///        `08` §3 ⑧ is exposure, tone map and OETF in one recording — and a sRGB surface would apply it a
     ///        second time in hardware, which the artist reads as a washed-out surface rather than as a double
     ///        encoding.
-    Result<VkSurfaceFormatKHR> ScoreFormat(VkSurfaceKHR Surface) const;
+    Outcome<VkSurfaceFormatKHR> ScoreFormat(VkSurfaceKHR Surface) const;
 
     /// 🧩 The vendor pacing one declared latency intent resolves to, from what the surface admits.
     /// note  🔴 Every surface admits `VK_PRESENT_MODE_FIFO_KHR` by declaration, so it is the fallback for both
@@ -241,7 +241,7 @@ private:
     VkPresentModeKHR ScorePacing(VkSurfaceKHR Surface, LatencyIntent Intent) const;
 
     /// 🧩 Establishes the chain and its views at the standing extent, retiring whatever stood before.
-    Result<bool> Establish();
+    Outcome<bool> Establish();
 
     const VulkanExchange*      DeviceEdge       = nullptr;              // [-]  - borrowed; never owned
     const DiagnosticExtension* NamingEdge       = nullptr;              // [-]  - borrowed; never owned

@@ -119,10 +119,10 @@ SlateAcquireModuleEntry ResolveAcquisition(void* HostToken)
 //                                                     THE ACQUISITION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, ForeignRequirement Required)
+Outcome<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, ForeignRequirement Required)
 {
     if (ModulePath.empty())
-        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a module naming no path" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "a module naming no path" });
 
     std::uint32_t Vacant = AbsentForeignModule;
 
@@ -137,14 +137,14 @@ Result<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, Fo
 
     if (Vacant == AbsentForeignModule)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "every module slot is occupied" });
     }
 
     void* const HostToken = LoadModule(ModulePath);
 
     if (HostToken == nullptr)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::HostDenied, "the host declined to load the module" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::HostDenied, "the host declined to load the module" });
 
     const SlateAcquireModuleEntry Acquiring = ResolveAcquisition(HostToken);
 
@@ -152,7 +152,7 @@ Result<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, Fo
     {
         UnloadModule(HostToken);
 
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::HostDenied, "the module exports no acquisition entry" });
     }
 
@@ -162,7 +162,7 @@ Result<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, Fo
     {
         UnloadModule(HostToken);
 
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::VersionUnmigratable, "the module declined the requested interface" });
     }
 
@@ -174,7 +174,7 @@ Result<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, Fo
     {
         UnloadModule(HostToken);
 
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::VersionUnmigratable, "the module reports a different interface major" });
     }
 
@@ -184,7 +184,7 @@ Result<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, Fo
     {
         UnloadModule(HostToken);
 
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "the module reports a different interface hash" });
     }
 
@@ -192,7 +192,7 @@ Result<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, Fo
     {
         UnloadModule(HostToken);
 
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "the module reports no entry table" });
     }
 
@@ -203,37 +203,37 @@ Result<std::uint32_t> CodeInterchange::Acquire(const std::string& ModulePath, Fo
     {
         UnloadModule(HostToken);
 
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ContentUnsupported, "the module reports no extent exchange" });
     }
 
     Standing[Vacant].HostToken = HostToken;
     Standing[Vacant].Reported  = Reported;
 
-    return Result<std::uint32_t>::Result(Vacant);
+    return Outcome<std::uint32_t>::Result(Vacant);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<const void*> CodeInterchange::EntryTable(std::uint32_t ModuleOrdinal) const
+Outcome<const void*> CodeInterchange::EntryTable(std::uint32_t ModuleOrdinal) const
 {
     if (ModuleOrdinal >= ModuleCapacity || Standing[ModuleOrdinal].HostToken == nullptr)
-        return Result<const void*>::Refuse({ RefusalReason::IdentityStale, "no module stands at that ordinal" });
+        return Outcome<const void*>::Refuse({ RefusalReason::IdentityStale, "no module stands at that ordinal" });
 
-    return Result<const void*>::Result(Standing[ModuleOrdinal].Reported->EntryTable);
+    return Outcome<const void*>::Result(Standing[ModuleOrdinal].Reported->EntryTable);
 }
 
-Result<const SlateModuleReport*> CodeInterchange::Report(std::uint32_t ModuleOrdinal) const
+Outcome<const SlateModuleReport*> CodeInterchange::Report(std::uint32_t ModuleOrdinal) const
 {
     if (ModuleOrdinal >= ModuleCapacity || Standing[ModuleOrdinal].HostToken == nullptr)
     {
-        return Result<const SlateModuleReport*>::Refuse(
+        return Outcome<const SlateModuleReport*>::Refuse(
             { RefusalReason::IdentityStale, "no module stands at that ordinal" });
     }
 
-    return Result<const SlateModuleReport*>::Result(Standing[ModuleOrdinal].Reported);
+    return Outcome<const SlateModuleReport*>::Result(Standing[ModuleOrdinal].Reported);
 }
 
 std::uint32_t CodeInterchange::StandingCount() const

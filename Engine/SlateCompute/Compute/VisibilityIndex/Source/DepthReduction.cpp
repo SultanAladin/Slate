@@ -12,13 +12,13 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> DepthReduction::Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross)
+Outcome<bool> DepthReduction::Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross)
 {
     if (DisplayAlong == 0u || DisplayAcross == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero reduces nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero reduces nothing" });
 
     if (DisplayAlong > DisplayExtentCeiling || DisplayAcross > DisplayExtentCeiling)
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the display extent is above the declared ceiling" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the display extent is above the declared ceiling" });
 
     // 📝 Reclaimed first rather than appended to, so a second Construct against a different extent cannot leave the
     //    previous chain's levels behind the new ones. A chain that grew instead of being replaced reports a level
@@ -34,7 +34,7 @@ Result<bool> DepthReduction::Construct(std::uint32_t DisplayAlong, std::uint32_t
         {
             Reclaim();
 
-            return Result<bool>::Refuse(
+            return Outcome<bool>::Refuse(
                 { RefusalReason::ExtentExhausted, "the chain would carry more levels than the declared ceiling" });
         }
 
@@ -57,7 +57,7 @@ Result<bool> DepthReduction::Construct(std::uint32_t DisplayAlong, std::uint32_t
     DerivedAcross = DisplayAcross;
     ChainStanding = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void DepthReduction::Reclaim()
@@ -73,18 +73,18 @@ void DepthReduction::Reclaim()
 //                                                   LEVEL SELECTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<ReductionLevel> DepthReduction::Level(std::uint32_t LevelOrdinal) const
+Outcome<ReductionLevel> DepthReduction::Level(std::uint32_t LevelOrdinal) const
 {
     if (LevelOrdinal >= static_cast<std::uint32_t>(Levels.size()))
-        return Result<ReductionLevel>::Refuse({ RefusalReason::ContentUnsupported, "no such level" });
+        return Outcome<ReductionLevel>::Refuse({ RefusalReason::ContentUnsupported, "no such level" });
 
-    return Result<ReductionLevel>::Result(Levels[LevelOrdinal]);
+    return Outcome<ReductionLevel>::Result(Levels[LevelOrdinal]);
 }
 
-Result<std::uint32_t> DepthReduction::LevelOfExtent(std::uint32_t ProjectedAlong, std::uint32_t ProjectedAcross) const
+Outcome<std::uint32_t> DepthReduction::LevelOfExtent(std::uint32_t ProjectedAlong, std::uint32_t ProjectedAcross) const
 {
     if (!ChainStanding)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no chain is derived" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no chain is derived" });
 
     // 📐 The same halving Construct performed, run over the projected extent instead of the display extent. Both
     //    round up, so the count arrived at here is exactly how many texels of that level the extent spans — which
@@ -102,7 +102,7 @@ Result<std::uint32_t> DepthReduction::LevelOfExtent(std::uint32_t ProjectedAlong
         ++Selected;
     }
 
-    return Result<std::uint32_t>::Result(Selected);
+    return Outcome<std::uint32_t>::Result(Selected);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

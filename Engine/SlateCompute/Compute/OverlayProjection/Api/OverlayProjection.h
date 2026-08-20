@@ -113,7 +113,7 @@ public:
     ///        as an offset that had no effect, and the caller then raises it until something else breaks.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Declare(OverlaySubject Presented, const OverlaySpecification& Declaring);
+    Outcome<bool> Declare(OverlaySubject Presented, const OverlaySpecification& Declaring);
 
     /// 🧩 Contributes both of `08` §3's overlay recordings — ⑩ depth-tested, ⑪ depth-free.
     /// in    Schedule  [-]  where the two declarations land
@@ -127,7 +127,7 @@ public:
     ///        inputs and compressed with the radiance, which is §2's failure exactly.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Contribute(RenderSchedule& Schedule) const;
+    Outcome<bool> Contribute(RenderSchedule& Schedule) const;
 
     /// 🧩 Whether one overlay is presented this rotation, as `76` holds it.
     /// in    Tooling    [-]  `76`, the one owner of overlay presence
@@ -156,7 +156,7 @@ public:
     /// out   Result    [-]  refuses with ContentUnsupported for the closed count and for an overlay never declared
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const OverlaySpecification*> Specification(OverlaySubject Presented) const;
+    Outcome<const OverlaySpecification*> Specification(OverlaySubject Presented) const;
 
     /// 🧩 Declares how many overlays each recording drew; appends nothing.
     /// in    Tooling   [-]  `76`, read for presence

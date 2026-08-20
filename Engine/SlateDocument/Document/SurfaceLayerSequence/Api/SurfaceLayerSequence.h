@@ -171,7 +171,7 @@ public:
     /// post  the entry sits last, which is topmost
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<LayerIdentity> Append(const LayerSpecification& Declaring);
+    Outcome<LayerIdentity> Append(const LayerSpecification& Declaring);
 
     /// 🧩 Moves one entry to a declared sequence position.
     /// in    Subject   [-]  the entry
@@ -182,7 +182,7 @@ public:
     ///        nothing else, which is what makes reordering affordable in `RevisionSequence`.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Reorder(LayerIdentity Subject, std::uint32_t Position);
+    Outcome<std::uint32_t> Reorder(LayerIdentity Subject, std::uint32_t Position);
 
     /// 🧩 Presents or hides one entry.
     /// out   Result  [-]  refuses with IdentityStale; carries the prior standing as the inverse
@@ -190,13 +190,13 @@ public:
     ///        presented has been told the document does not hold what they see.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclarePresence(LayerIdentity Subject, bool PresenceEnabled);
+    Outcome<bool> DeclarePresence(LayerIdentity Subject, bool PresenceEnabled);
 
     /// 🧩 Amends one entry's combination.
     /// out   Result  [-]  refuses with IdentityStale; carries the prior combination
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<CombineSpecification> DeclareCombination(LayerIdentity Subject, CombineSpecification Declaring);
+    Outcome<CombineSpecification> DeclareCombination(LayerIdentity Subject, CombineSpecification Declaring);
 
     /// 🧩 Removes one entry, retaining its description and never its resolved texels.
     /// out   Result  [-]  refuses with IdentityStale
@@ -206,7 +206,7 @@ public:
     ///        does not need it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<LayerSpecification> Withdraw(LayerIdentity Subject);
+    Outcome<LayerSpecification> Withdraw(LayerIdentity Subject);
 
     /// 🧩 Nests one sequence inside this one as a single entry.
     /// out   Result  [-]  the issued ordinal, into this surface's own nested sequences; refuses with
@@ -218,7 +218,7 @@ public:
     ///        different scale.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Nest();
+    Outcome<std::uint32_t> Nest();
 
     /// 🧩 Resamples every painted entry into a re-partitioned domain, on the tick.
     /// in    ArrivingRevision  [-]  the partition revision `68` advanced to
@@ -237,7 +237,7 @@ public:
     ///        not a defect in it; what would be a defect is performing it without saying so.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Resample(std::uint64_t                                                       ArrivingRevision,
+    Outcome<bool> Resample(std::uint64_t                                                       ArrivingRevision,
                            const std::function<bool(double, double, double&, double&)>&        Remapping,
                            ReportSequence&                                                     Reporting,
                            TickPoint                                                           Sampled);
@@ -246,7 +246,7 @@ public:
     /// out   Result  [-]  refuses with IdentityStale
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const LayerSpecification*> Resolve(LayerIdentity Subject) const;
+    Outcome<const LayerSpecification*> Resolve(LayerIdentity Subject) const;
 
     /// 🧩 One entry's painted texels, for the one mechanism permitted to amend them.
     /// out   Result  [-]  refuses with IdentityStale when the entry no longer resolves, and with
@@ -259,7 +259,7 @@ public:
     ///        would then evict the artist's edit at the first memory pressure.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<PaintedContent*> AmendPainted(LayerIdentity Subject);
+    Outcome<PaintedContent*> AmendPainted(LayerIdentity Subject);
 
     /// 🧩 The entries, in sequence order — bottom first.
     /// cost  ✔️
@@ -270,19 +270,19 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported outside the nested count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const SurfaceLayerSequence*> Nested(std::uint32_t NestedOrdinal) const;
+    Outcome<const SurfaceLayerSequence*> Nested(std::uint32_t NestedOrdinal) const;
 
     /// 🧩 One nested sequence, for amending.
     /// out   Result  [-]  refuses with ContentUnsupported outside the nested count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<SurfaceLayerSequence*> AmendNested(std::uint32_t NestedOrdinal);
+    Outcome<SurfaceLayerSequence*> AmendNested(std::uint32_t NestedOrdinal);
 
     /// 🧩 Which sequence position one entry sits at.
     /// out   Result  [-]  refuses with IdentityStale
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<std::uint32_t> PositionOf(LayerIdentity Subject) const;
+    Outcome<std::uint32_t> PositionOf(LayerIdentity Subject) const;
 
     /// 🧩 The union of channels every presented entry writes — what `42`'s layered channels resolve against.
     /// cost  🚩
@@ -346,7 +346,7 @@ public:
     /// out   Result   [-]  refuses with IdentityStale when nothing in the whole nesting holds it
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Result<const LayerSpecification*> Locate(const SurfaceLayerSequence& Sequence, LayerIdentity Subject);
+    static Outcome<const LayerSpecification*> Locate(const SurfaceLayerSequence& Sequence, LayerIdentity Subject);
 
     /// 🧩 How many entries the whole nesting holds.
     /// cost  🚩

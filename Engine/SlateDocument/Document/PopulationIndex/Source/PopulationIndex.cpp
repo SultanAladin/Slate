@@ -55,7 +55,7 @@ std::uint32_t OccupancyIndex::SpannedCount() const
 //                                                      ENROLMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<OccupantIdentity> PopulationIndex::Enrol()
+Outcome<OccupantIdentity> PopulationIndex::Enrol()
 {
     std::uint32_t SlotOrdinal = 0u;
 
@@ -70,7 +70,7 @@ Result<OccupantIdentity> PopulationIndex::Enrol()
     {
         if (SlotGenerations.size() >= PopulationCeiling)
         {
-            return Result<OccupantIdentity>::Refuse(
+            return Outcome<OccupantIdentity>::Refuse(
                 { RefusalReason::ExtentExhausted, "the population reached its declared ceiling" });
         }
 
@@ -85,17 +85,17 @@ Result<OccupantIdentity> PopulationIndex::Enrol()
     Issued.SlotOrdinal    = SlotOrdinal;
     Issued.SlotGeneration = SlotGenerations[SlotOrdinal];
 
-    return Result<OccupantIdentity>::Result(Issued);
+    return Outcome<OccupantIdentity>::Result(Issued);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      WITHDRAWAL
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
+Outcome<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
 {
     if (!Resolve(Subject))
-        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "the identity no longer resolves" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the identity no longer resolves" });
 
     Occupancy.Release(Subject.SlotOrdinal);
 
@@ -106,7 +106,7 @@ Result<bool> PopulationIndex::Withdraw(OccupantIdentity Subject)
     ReleasedOrdinals.push_back(Subject.SlotOrdinal);
     --OccupiedCount;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

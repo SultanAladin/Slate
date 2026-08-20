@@ -70,13 +70,13 @@ public:
     /// post  the chain runs from the display extent down to a single texel
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Outcome<bool> Construct(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
 
     /// 🧩 One level's extent.
     /// out   Result  [-]  refuses with ContentUnsupported outside the derived level count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<ReductionLevel> Level(std::uint32_t LevelOrdinal) const;
+    Outcome<ReductionLevel> Level(std::uint32_t LevelOrdinal) const;
 
     /// 🧩 The coarsest level at which one projected extent is covered by a two-by-two reading.
     /// in    ProjectedAlong   [px]  the extent the partition projects to, conservative outward
@@ -89,7 +89,7 @@ public:
     ///        projects to nothing is sub-pixel and `16` §3 routes it to the compute path; it is not an error.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<std::uint32_t> LevelOfExtent(std::uint32_t ProjectedAlong, std::uint32_t ProjectedAcross) const;
+    Outcome<std::uint32_t> LevelOfExtent(std::uint32_t ProjectedAlong, std::uint32_t ProjectedAcross) const;
 
     /// 🧩 Texels the whole chain spans — what `06` claims for it.
     /// cost  ✔️

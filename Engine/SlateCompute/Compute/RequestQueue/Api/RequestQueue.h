@@ -150,7 +150,7 @@ public:
     ///        budget being half what it was declared to be.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<const PageQueue*> Drain(RequestQueue& Requesting, std::uint64_t RecordingOrdinal);
+    Outcome<const PageQueue*> Drain(RequestQueue& Requesting, std::uint64_t RecordingOrdinal);
 
     /// 🧩 The rotation last drained; zero before anything has been.
     /// cost  ✔️

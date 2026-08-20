@@ -53,7 +53,7 @@ struct MediumSpecification
     ///        extent, and the phase magnitude diverges along it.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Validate() const;
+    Outcome<bool> Validate() const;
 };
 
 /// 🧩 The medium's coefficients resolved into the working space, per component.
@@ -84,7 +84,7 @@ struct MediumCoefficient
 ///        the same first-principles standing for both.
 /// cost  🔴
 /// tag   api, nonthrowing
-Result<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
+Outcome<MediumCoefficient> Resolve(const MediumSpecification&      Declared,
                                    const ColourSpaceSpecification& Working,
                                    const QuadratureRule&           Rule);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
@@ -113,7 +113,7 @@ public:
     ///        horizon while standing at the pole, which appears as a bright ring directly overhead.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross, bool WrapAlongDeclared);
+    Outcome<bool> Construct(std::uint32_t ExtentAlong, std::uint32_t ExtentAcross, bool WrapAlongDeclared);
 
     /// 🧩 Writes one texel's three components; the fourth is written as unity.
     /// note  📝 The fourth component is claimed and unused. `08` §2 declares the format RGBA16F and a
@@ -220,7 +220,7 @@ public:
     /// out   Result  [-]  carries the medium's own refusal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareMedium(const MediumSpecification& Declaring);
+    Outcome<bool> DeclareMedium(const MediumSpecification& Declaring);
 
     /// 🧩 Declares the direction toward the atmospheric source, as `44`'s enrolled illuminant reports it.
     /// in    DirectionX  [-]  toward the sun; normalised here, so an unnormalised direction is admitted
@@ -230,14 +230,14 @@ public:
     /// post  🔴 the sky-view surface is owed a rebuild only when the direction moved **materially** — `28` §4
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareSun(double DirectionX, double DirectionY, double DirectionZ);
+    Outcome<bool> DeclareSun(double DirectionX, double DirectionY, double DirectionZ);
 
     /// 🧩 Declares the camera's altitude above the planet surface.
     /// out   Result  [-]  refuses with ContentUnsupported for an altitude outside the declared atmosphere
     /// post  the sky-view surface is owed a rebuild only when the altitude changed materially
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareCameraAltitude(double Altitude);
+    Outcome<bool> DeclareCameraAltitude(double Altitude);
 
     /// 🧩 Declares whether the atmosphere is present at all.
     /// note  🔴 `28` §7's last gate: with the atmosphere disabled, `18` falls back to the constant floor and `30`
@@ -253,7 +253,7 @@ public:
     ///        structural. It is declared by the caller here rather than chosen, which is what keeps the row open.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> DeclareConstantFloor(const ColourSpecification& Declaring);
+    Outcome<bool> DeclareConstantFloor(const ColourSpecification& Declaring);
 
     /// 🧩 Rebuilds whatever the declared conditions owe, in construction order, and nothing else.
     /// in    Working  [-]  the space the radiance is expressed in
@@ -266,7 +266,7 @@ public:
     ///        the medium being re-integrated.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Rebuild(const ColourSpaceSpecification& Working, const QuadratureRule& Rule);
+    Outcome<bool> Rebuild(const ColourSpaceSpecification& Working, const QuadratureRule& Rule);
 
     /// 🧩 Whether anything is owed a rebuild.
     /// note  🔴 `28` §4: `28` is conditional in `08` §3. When nothing changed, it records nothing — and this is
@@ -287,14 +287,14 @@ public:
     ///        each of them write the fallback again.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> SampleSkyView(double DirectionX, double DirectionY, double DirectionZ,
+    Outcome<bool> SampleSkyView(double DirectionX, double DirectionY, double DirectionZ,
                                 double& Red, double& Green, double& Blue) const;
 
     /// 🧩 Samples transmittance from a declared altitude along a declared zenith cosine, to the atmosphere boundary.
     /// out   Result  [-]  refuses with ContentUnsupported before ① stands
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> SampleTransmittance(double Altitude, double ZenithCosine,
+    Outcome<bool> SampleTransmittance(double Altitude, double ZenithCosine,
                                       double& Red, double& Green, double& Blue) const;
 
     /// 🧩 Transmittance over a bounded distance along a view ray — `28` §6's aerial perspective.
@@ -310,7 +310,7 @@ public:
     ///        as unnaturally crisp against a correct sky — `28` §6.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> AerialTransmittance(double Altitude,
+    Outcome<bool> AerialTransmittance(double Altitude,
                                       double DirectionX, double DirectionY, double DirectionZ,
                                       double Distance,
                                       const QuadratureRule& Rule,
@@ -345,9 +345,9 @@ public:
 private:
 
     void          ShapeProfile();
-    Result<bool> BuildTransmittance(const QuadratureRule& Rule);
-    Result<bool> BuildMultiScatter();
-    Result<bool> BuildSkyView();
+    Outcome<bool> BuildTransmittance(const QuadratureRule& Rule);
+    Outcome<bool> BuildMultiScatter();
+    Outcome<bool> BuildSkyView();
     void          DeriveIrradiance();
 
     void          TransmittanceAt(double Radius, double ZenithCosine,

@@ -86,7 +86,7 @@ public:
     ///        failed to open rather than as a mark that was never raised.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<std::uint32_t> Enrol(const char* Naming);
+    Outcome<std::uint32_t> Enrol(const char* Naming);
 
     /// 🧩 Raises one panel's mark to the dearer of what it carries and what is declared.
     /// in    PanelOrdinal  [-]  what Enrol delivered; an unenrolled ordinal marks nothing

@@ -51,7 +51,7 @@ public:
     /// post  both drawers stand Closed and settled; nothing moves until a pointer arrives
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Construct(const InterfaceAttachment& Arriving,
+    Outcome<bool> Construct(const InterfaceAttachment& Arriving,
                             const DrawerDeclaration&   North,
                             const DrawerDeclaration&   South);
 
@@ -61,7 +61,7 @@ public:
     /// post  the drawers have advanced; the surface is ready to record into
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Advance(double ElapsedMilliseconds);
+    Outcome<bool> Advance(double ElapsedMilliseconds);
 
     /// 🧩 Records the drawer chrome — bodies, edges, grips and tongues.
     /// note  Panels must not record before this call. The drawer bodies define the clipping extents
@@ -81,7 +81,7 @@ public:
     /// post  the assembled content is ready for Record
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> SealPanels();
+    Outcome<bool> SealPanels();
 
     /// 🧩 Closes an open tick without assembling it — the escape from any refusal after Advance.
     /// out   Result  [-]  delivers true when no tick was open
@@ -89,12 +89,12 @@ public:
     ///       left open refuses every subsequent Advance for the life of the process.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Abandon();
+    Outcome<bool> Abandon();
 
     /// 🧩 Restates the minimum and actual image counts after a presentation chain was re-established.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
+    Outcome<bool> Renegotiate(std::uint32_t MinimumImageCount, std::uint32_t ImageCount);
 
     /// 🧩 Records the assembled content into a command recording of the current cycle slot.
     /// in    CommandRecording [-]  a recording already inside a dynamic rendering scope
@@ -102,7 +102,7 @@ public:
     /// pre   SealPanels delivered
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Record(VkCommandBuffer CommandRecording);
+    Outcome<bool> Record(VkCommandBuffer CommandRecording);
 
     /// 🧩 The two drawers, for the host to query pose and extent.
     /// cost  ✔️

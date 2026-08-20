@@ -101,7 +101,7 @@ public:
     /// post  the occupant sits last in the root ordering, attached to nothing, in no subset
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<OccupantIdentity> Enrol(const std::string& DeclaredName);
+    Outcome<OccupantIdentity> Enrol(const std::string& DeclaredName);
 
     /// 🧩 Declares one intent, to be applied at the next tick's ①.
     /// in    Arriving  [-]  the intent, every operand named
@@ -110,7 +110,7 @@ public:
     ///        against a linearisation that is halfway rebuilt.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Declare(const DeclaredIntent& Arriving);
+    Outcome<bool> Declare(const DeclaredIntent& Arriving);
 
     /// 🧩 Scrubs the document one transaction backwards, restoring the selection that transaction applied to.
     /// in    SealedAt  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
@@ -124,7 +124,7 @@ public:
     ///        clearing it. The artist selected nothing there, so there is nothing to restore.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Retreat(std::uint64_t SealedAt);
+    Outcome<bool> Retreat(std::uint64_t SealedAt);
 
     /// 🧩 Scrubs the document one transaction forwards, restoring the selection that transaction applied to.
     /// in    SealedAt  [ns]  accepted for symmetry with the tick; the restoration seals nothing — `84` §3
@@ -132,7 +132,7 @@ public:
     /// post  the document position and the standing selection moved together
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Advance(std::uint64_t SealedAt);
+    Outcome<bool> Advance(std::uint64_t SealedAt);
 
     /// 🧩 Runs one whole tick in the fixed order ①–⑦.
     /// in    SealedAt  [ns]  the arrival stamp transactions sealed this tick carry
@@ -142,7 +142,7 @@ public:
     ///        are checked as each transaction seals.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Reconcile(std::uint64_t SealedAt);
+    Outcome<bool> Reconcile(std::uint64_t SealedAt);
 
     /// 🧩 The rows the last completed tick linearised.
     /// cost  ✔️
@@ -199,13 +199,13 @@ public:
 
 private:
 
-    Result<bool> ApplyIntent(const DeclaredIntent& Applying, std::uint64_t SealedAt);
-    Result<bool> ApplySubset(const DeclaredIntent& Applying, SubsetSubject Addressed, std::uint64_t SealedAt);
-    Result<bool> ApplyNarrowing(const DeclaredIntent& Applying);
-    Result<bool> DeriveNarrowing();
-    Result<bool> ApplySelection(const std::vector<OccupantIdentity>& Standing, std::uint64_t SealedAt);
-    Result<bool> EnrolSelection(const std::vector<OccupantIdentity>& Standing);
-    Result<bool> RetireCascade(const DeclaredIntent& Applying, std::uint64_t SealedAt);
+    Outcome<bool> ApplyIntent(const DeclaredIntent& Applying, std::uint64_t SealedAt);
+    Outcome<bool> ApplySubset(const DeclaredIntent& Applying, SubsetSubject Addressed, std::uint64_t SealedAt);
+    Outcome<bool> ApplyNarrowing(const DeclaredIntent& Applying);
+    Outcome<bool> DeriveNarrowing();
+    Outcome<bool> ApplySelection(const std::vector<OccupantIdentity>& Standing, std::uint64_t SealedAt);
+    Outcome<bool> EnrolSelection(const std::vector<OccupantIdentity>& Standing);
+    Outcome<bool> RetireCascade(const DeclaredIntent& Applying, std::uint64_t SealedAt);
     void          Reject(const DeclaredIntent& Refused, const Refusal& Declining);
 
     PopulationIndex                Population;                   // [-] - `10`'s slot ledger, reconciled at ②

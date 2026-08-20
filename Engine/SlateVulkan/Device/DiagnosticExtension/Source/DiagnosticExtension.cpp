@@ -14,12 +14,12 @@ namespace Slate
 //                                                     CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> DiagnosticExtension::Construct(const VulkanExchange&  Exchange,
+Outcome<bool> DiagnosticExtension::Construct(const VulkanExchange&  Exchange,
                                              ReportSequence&        Register,
                                              const TickSequence&    Timeline)
 {
     if (Exchange.Instance() == VK_NULL_HANDLE)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no instance stands to attach a sink to" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no instance stands to attach a sink to" });
 
     InstanceEdge = &Exchange;
 
@@ -42,7 +42,7 @@ Result<bool> DiagnosticExtension::Construct(const VulkanExchange&  Exchange,
     if (SinkConstruction == nullptr || SinkReclamation == nullptr)
     {
         Reclaim();
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::CapabilityAbsent, "the loader does not declare VK_EXT_debug_utils" });
     }
 
@@ -70,12 +70,12 @@ Result<bool> DiagnosticExtension::Construct(const VulkanExchange&  Exchange,
     {
         DiagnosticSink = VK_NULL_HANDLE;
         Reclaim();
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the driver declined the diagnostic sink" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the driver declined the diagnostic sink" });
     }
 
     CapabilityHeld = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -134,19 +134,19 @@ VkBool32 DiagnosticExtension::Arrival(VkDebugUtilsMessageSeverityFlagBitsEXT    
 //                                                   THE OBJECT NAME
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> DiagnosticExtension::Declare(VkObjectType Subject, std::uint64_t VendorHandle, const char* DeclaredName) const
+Outcome<bool> DiagnosticExtension::Declare(VkObjectType Subject, std::uint64_t VendorHandle, const char* DeclaredName) const
 {
     // 📝 Delivered rather than refused when nothing negotiated the capability. Every claim site names its
     //    objects unconditionally, and a refusal here would make each of them branch on the configuration to
     //    discard a refusal it already expected.
     if (!CapabilityHeld || NameDeclaration == nullptr)
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
 
     if (InstanceEdge == nullptr || InstanceEdge->ActiveDevice() == VK_NULL_HANDLE)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device stands to name an object on" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no device stands to name an object on" });
 
     if (VendorHandle == 0u || DeclaredName == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no object or no name was declared" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no object or no name was declared" });
 
     VkDebugUtilsObjectNameInfoEXT NameArriving = {};
     NameArriving.sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -155,12 +155,12 @@ Result<bool> DiagnosticExtension::Declare(VkObjectType Subject, std::uint64_t Ve
     NameArriving.pObjectName  = DeclaredName;
 
     if (NameDeclaration(InstanceEdge->ActiveDevice(), &NameArriving) != VK_SUCCESS)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the driver declined the object name" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the driver declined the object name" });
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> DiagnosticExtension::Declare(VkObjectType   Subject,
+Outcome<bool> DiagnosticExtension::Declare(VkObjectType   Subject,
                                            std::uint64_t  VendorHandle,
                                            const char*    DeclaredPrefix,
                                            std::uint32_t  Ordinal) const
@@ -168,10 +168,10 @@ Result<bool> DiagnosticExtension::Declare(VkObjectType   Subject,
     // 📝 Left before the composition rather than after it. A configuration that negotiated nothing composes
     //    no text at all, so the whole ordinal path costs a claim site nothing where it cannot be read.
     if (!CapabilityHeld || NameDeclaration == nullptr)
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
 
     if (DeclaredPrefix == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no prefix was declared" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no prefix was declared" });
 
     // 📝 Ample for every prefix a claim site declares and a ten-digit ordinal. Composed in an automatic
     //    extent because the driver copies the text inside the call below and nothing outlives it.
@@ -183,7 +183,7 @@ Result<bool> DiagnosticExtension::Declare(VkObjectType   Subject,
     //    hundred and twenty-seven characters would carry one name between them, and the driver's text would
     //    then attribute one object's error to the other — which is worse than no name at all.
     if (Composed < 0 || static_cast<std::size_t>(Composed) >= sizeof(ComposedName))
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the composed object name does not fit" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the composed object name does not fit" });
 
     return Declare(Subject, VendorHandle, ComposedName);
 }

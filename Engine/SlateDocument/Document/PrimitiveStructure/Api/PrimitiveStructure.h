@@ -113,7 +113,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Exact, PrecisionGuarantee::Exact);
 ///        read as an edge.
 /// cost  🔴
 /// tag   api, nonthrowing
-Result<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, TopologyStructure& Generated);
+Outcome<bool> GeneratePrimitive(const PrimitiveSpecification& Declaring, TopologyStructure& Generated);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);
 
 /// 🧩 The half-extents the generated solid actually occupies, before any transform places it.
@@ -155,7 +155,7 @@ public:
     ///                       and with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Declare(const PrimitiveSpecification& Declaring);
+    Outcome<std::uint32_t> Declare(const PrimitiveSpecification& Declaring);
 
     /// 🧩 Amends one primitive's parameters, advancing its revision where the generated surface would differ.
     /// in    PrimitiveOrdinal  [-]  an ordinal this component issued
@@ -167,13 +167,13 @@ public:
     ///        keeps a later member that does *not* from silently forcing a re-generation of every occupant.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending);
+    Outcome<bool> Amend(std::uint32_t PrimitiveOrdinal, const PrimitiveSpecification& Amending);
 
     /// 🧩 One declared primitive's parameters.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const PrimitiveSpecification*> Resolve(std::uint32_t PrimitiveOrdinal) const;
+    Outcome<const PrimitiveSpecification*> Resolve(std::uint32_t PrimitiveOrdinal) const;
 
     /// 🧩 Withdraws one primitive, returning its slot for reuse.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
@@ -181,7 +181,7 @@ public:
     ///        every ordinal above it and every occupant naming one would name a different primitive.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Withdraw(std::uint32_t PrimitiveOrdinal);
+    Outcome<bool> Withdraw(std::uint32_t PrimitiveOrdinal);
 
     /// 🧩 One primitive's revision, so a consumer knows whether its generated surface is still current.
     /// out   Revision  [-]  zero for an unclaimed ordinal, which no generated surface ever recorded

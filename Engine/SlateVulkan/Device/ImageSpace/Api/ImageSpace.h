@@ -101,7 +101,7 @@ public:
     ///        view under a named image reports as an address beside a name, which reads as two objects.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Construct(const VulkanExchange&      Exchange,
+    Outcome<bool> Construct(const VulkanExchange&      Exchange,
                             ByteSpace&                 BackingSpace,
                             const DiagnosticExtension& Naming);
 
@@ -114,7 +114,7 @@ public:
     ///        vendor allocation nothing holds a reference to, and it is reclaimed only at device teardown.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<ImageClaim> Claim(const ImageShape& Declared);
+    Outcome<ImageClaim> Claim(const ImageShape& Declared);
 
     /// 🧩 Records the barrier that carries one image from where it stands to where it is next read.
     /// in    Recorded    [-]  the command being recorded into
@@ -126,13 +126,13 @@ public:
     ///        derived from the declared reads and writes, and this is the one place it is recorded.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Arriving);
+    Outcome<bool> Transition(VkCommandBuffer Recorded, std::uint32_t ImageOrdinal, VkImageLayout Arriving);
 
     /// 🧩 The current record for one claimed image, including the layout the last transition left it in.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<ImageClaim> Standing(std::uint32_t ImageOrdinal) const;
+    Outcome<ImageClaim> Standing(std::uint32_t ImageOrdinal) const;
 
     /// 🧩 Constructs a view over one reduction level, for the chain `16` §2 walks a level at a time.
     /// in    ImageOrdinal [-]  a claimed image whose LevelCount admits the level
@@ -142,7 +142,7 @@ public:
     ///        holding a handle the vendor has already reused.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<VkImageView> LevelView(std::uint32_t ImageOrdinal, std::uint32_t LevelOrdinal);
+    Outcome<VkImageView> LevelView(std::uint32_t ImageOrdinal, std::uint32_t LevelOrdinal);
 
     /// 🧩 Destroys one image, every view over it, and returns its bytes.
     /// pre   the device is idle, or no recording still in the rotation reads it

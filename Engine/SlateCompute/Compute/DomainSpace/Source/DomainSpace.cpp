@@ -78,21 +78,21 @@ bool DomainSpace::Feasible(const std::vector<std::uint32_t>&  Ordering,
 //                                                   THE ARRANGEMENT
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> DomainSpace::Arrange(const std::vector<ChartExtent>& Extents, bool CommonScale)
+Outcome<bool> DomainSpace::Arrange(const std::vector<ChartExtent>& Extents, bool CommonScale)
 {
     Placed.assign(Extents.size(), ChartPlacement{});
     Covered = 0.0;
     Settled = 0.0;
 
     if (Extents.empty())
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
 
     // 🚧 `68` §10 carries the per-chart scale as an open row and `68` §5's default stands regardless. Refused
     //    rather than approximated, because a packing that silently chose its own per-chart scales would answer
     //    the open question by accident and nobody would know which answer shipped.
     if (!CommonScale)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a per-chart scale is `68` §10's open row and is not decided" });
     }
 
@@ -101,13 +101,13 @@ Result<bool> DomainSpace::Arrange(const std::vector<ChartExtent>& Extents, bool 
     for (const ChartExtent& Held : Extents)
     {
         if (Held.Width <= 0.0 || Held.Height <= 0.0)
-            return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a chart of no extent" });
+            return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a chart of no extent" });
 
         AccumulatedArea += Held.Width * Held.Height;
     }
 
     if (AccumulatedArea <= 0.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the charts cover no area" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the charts cover no area" });
 
     // 📝 🔴 Ordered by unscaled height and then by ordinal. Both keys are scale-invariant, so the packing order
     //    is fixed before the bisection begins — a shelf order that changed with the scale would make each
@@ -163,12 +163,12 @@ Result<bool> DomainSpace::Arrange(const std::vector<ChartExtent>& Extents, bool 
     }
 
     if (LowerScale <= 0.0 || !Feasible(Ordering, Extents, LowerScale, &Placed))
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no scale admits every chart" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no scale admits every chart" });
 
     Settled = LowerScale;
     Covered = AccumulatedArea * LowerScale * LowerScale;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

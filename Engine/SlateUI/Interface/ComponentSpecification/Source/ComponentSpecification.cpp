@@ -142,13 +142,13 @@ double RotationDegrees(double Departed, double TravelAlong, double DegreesPerPix
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ComponentSpecification::Construct(InteractionIndex&              ArrivingLedger,
+Outcome<bool> ComponentSpecification::Construct(InteractionIndex&              ArrivingLedger,
                                       RecordingSurface&              ArrivingSurface,
                                       const ThemeProfile& ArrivingAppearance)
 {
     if (Ledger != nullptr)
     {
-        return Result<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
                                               "ComponentSpecification is already constructed" });
     }
 
@@ -156,7 +156,7 @@ Result<bool> ComponentSpecification::Construct(InteractionIndex&              Ar
     Surface    = &ArrivingSurface;
     Appearance = &ArrivingAppearance;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void ComponentSpecification::Advance(const PointerCondition& Arriving, double Elapsed)
@@ -600,7 +600,7 @@ ControlVerdict ComponentSpecification::RotationRuler(ControlIdentity Claimed, co
 
     if (Ledger->Holding(Claimed) && Ledger->HeldPart(Claimed) == ControlPart::Strip)
     {
-        const Result<float> Departed = Ledger->DepartedOrdinate(Claimed);
+        const Outcome<float> Departed = Ledger->DepartedOrdinate(Claimed);
 
         if (Departed.Resolved)
         {

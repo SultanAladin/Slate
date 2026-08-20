@@ -14,10 +14,10 @@ namespace Slate
 //                                                   LATTICE VALIDATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> LatticeSpecification::Validate() const
+Outcome<bool> LatticeSpecification::Validate() const
 {
     if (CellExtentAlong <= 0.0 || CellExtentAcross <= 0.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a cell of no extent repeats nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a cell of no extent repeats nothing" });
 
     // 📝 A cell finer than one texel of the maximum working extent can never be resolved distinctly at any level
     //    `20` will promote, so it is refused where it is declared rather than discovered as a grey smear.
@@ -25,7 +25,7 @@ Result<bool> LatticeSpecification::Validate() const
 
     if (CellExtentAlong < FinestExtent || CellExtentAcross < FinestExtent)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a cell finer than one texel of the maximum working extent" });
     }
 
@@ -34,25 +34,25 @@ Result<bool> LatticeSpecification::Validate() const
     //    in the result.
     if (OffsetProgressionAlong != 0.0 && OffsetProgressionAcross != 0.0)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "two offset progressions at once cannot be inverted" });
     }
 
     // 📐 A skew product reaching unity collapses the lattice onto a line, and the unskewing above then divides
     //    by a vanishing determinant.
     if (SkewAlong * SkewAcross >= 1.0 || SkewAlong * SkewAcross <= -1.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the declared skew collapses the lattice" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the declared skew collapses the lattice" });
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> TilingSpecification::DeclareLattice(const LatticeSpecification& Declaring)
+Outcome<bool> TilingSpecification::DeclareLattice(const LatticeSpecification& Declaring)
 {
-    const Result<bool> Validated = Declaring.Validate();
+    const Outcome<bool> Validated = Declaring.Validate();
 
     if (!Validated.Resolved)
         return Validated;
@@ -60,41 +60,41 @@ Result<bool> TilingSpecification::DeclareLattice(const LatticeSpecification& Dec
     DeclaredLattice = Declaring;
     LatticeHeld     = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> TilingSpecification::DeclareContent(const CellContent& Declaring)
+Outcome<bool> TilingSpecification::DeclareContent(const CellContent& Declaring)
 {
     if (Declaring.PlacedScale <= 0.0)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a content element of no scale" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a content element of no scale" });
 
     if (Declaring.Source == CellContentSource::DeclaredColour && !Declaring.DeclaredColour.ColourDeclared())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a declared colour carries no space" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a declared colour carries no space" });
 
     // 🔴 A tiling already nested may not nest another — `54` §3's one level, enforced at the element rather than
     //    at the reference, so a tiling that is nested afterwards still refuses.
     if (Declaring.Source == CellContentSource::NestedTiling && Depth >= TilingNestingCeiling)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "nesting is bounded at one level — `54` §3" });
     }
 
     DeclaredContent.push_back(Declaring);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> TilingSpecification::DeclareVariation(const VariationSpecification& Declaring)
+Outcome<bool> TilingSpecification::DeclareVariation(const VariationSpecification& Declaring)
 {
     if (Declaring.Declared == VariationSubject::Permuted && Declaring.DeclaredSpan == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a permutation into an empty set" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a permutation into an empty set" });
 
     if (Declaring.UpperScale < Declaring.LowerScale)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the variation interval is inverted" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the variation interval is inverted" });
 
     DeclaredVariation = Declaring;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void TilingSpecification::DeclareNestingDepth(std::uint32_t ArrivingDepth)
@@ -106,10 +106,10 @@ void TilingSpecification::DeclareNestingDepth(std::uint32_t ArrivingDepth)
 //                                                  THE CLASSIFICATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<ClassifiedCell> TilingSpecification::Classify(double PositionAlong, double PositionAcross) const
+Outcome<ClassifiedCell> TilingSpecification::Classify(double PositionAlong, double PositionAcross) const
 {
     if (!LatticeHeld)
-        return Result<ClassifiedCell>::Refuse({ RefusalReason::ContentUnsupported, "no lattice is declared" });
+        return Outcome<ClassifiedCell>::Refuse({ RefusalReason::ContentUnsupported, "no lattice is declared" });
 
     ClassifiedCell Classified;
 
@@ -161,7 +161,7 @@ Result<ClassifiedCell> TilingSpecification::Classify(double PositionAlong, doubl
                                     + (DeclaredVariation.UpperScale - DeclaredVariation.LowerScale) * Fraction;
     }
 
-    return Result<ClassifiedCell>::Result(Classified);
+    return Outcome<ClassifiedCell>::Result(Classified);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -178,47 +178,47 @@ bool                            TilingSpecification::LatticeDeclared() const { r
 //                                                     THE TILINGS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> TilingIndex::Declare()
+Outcome<std::uint32_t> TilingIndex::Declare()
 {
     if (Declared.size() >= TilingCeiling)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the tiling ceiling was reached" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ExtentExhausted, "the tiling ceiling was reached" });
 
     const std::uint32_t TilingOrdinal = static_cast<std::uint32_t>(Declared.size());
 
     Declared.push_back(TilingSpecification{});
 
-    return Result<std::uint32_t>::Result(TilingOrdinal);
+    return Outcome<std::uint32_t>::Result(TilingOrdinal);
 }
 
-Result<const TilingSpecification*> TilingIndex::Resolve(std::uint32_t TilingOrdinal) const
+Outcome<const TilingSpecification*> TilingIndex::Resolve(std::uint32_t TilingOrdinal) const
 {
     if (TilingOrdinal >= Declared.size())
-        return Result<const TilingSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tiling" });
+        return Outcome<const TilingSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tiling" });
 
-    return Result<const TilingSpecification*>::Result(&Declared[TilingOrdinal]);
+    return Outcome<const TilingSpecification*>::Result(&Declared[TilingOrdinal]);
 }
 
-Result<TilingSpecification*> TilingIndex::Amend(std::uint32_t TilingOrdinal)
+Outcome<TilingSpecification*> TilingIndex::Amend(std::uint32_t TilingOrdinal)
 {
     if (TilingOrdinal >= Declared.size())
-        return Result<TilingSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tiling" });
+        return Outcome<TilingSpecification*>::Refuse({ RefusalReason::ContentUnsupported, "no such tiling" });
 
-    return Result<TilingSpecification*>::Result(&Declared[TilingOrdinal]);
+    return Outcome<TilingSpecification*>::Result(&Declared[TilingOrdinal]);
 }
 
-Result<bool> TilingIndex::Nest(std::uint32_t EnclosingOrdinal, std::uint32_t NestedOrdinal)
+Outcome<bool> TilingIndex::Nest(std::uint32_t EnclosingOrdinal, std::uint32_t NestedOrdinal)
 {
     if (EnclosingOrdinal >= Declared.size() || NestedOrdinal >= Declared.size())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such tiling" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such tiling" });
 
     if (EnclosingOrdinal == NestedOrdinal)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a tiling cannot nest itself" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a tiling cannot nest itself" });
 
     const std::uint32_t Arriving = Declared[EnclosingOrdinal].NestingDepth() + 1u;
 
     if (Arriving > TilingNestingCeiling)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "nesting is bounded at one level — `54` §3" });
     }
 
@@ -228,14 +228,14 @@ Result<bool> TilingIndex::Nest(std::uint32_t EnclosingOrdinal, std::uint32_t Nes
     {
         if (Held.Source == CellContentSource::NestedTiling)
         {
-            return Result<bool>::Refuse(
+            return Outcome<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "the nested tiling already carries a nested element" });
         }
     }
 
     Declared[NestedOrdinal].DeclareNestingDepth(Arriving);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 std::uint32_t TilingIndex::DeclaredCount() const

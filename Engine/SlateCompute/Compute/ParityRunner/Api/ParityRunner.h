@@ -61,7 +61,7 @@ public:
     /// out   Result  [-]  refuses when the entry point is already registered
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Register(const ParityRegistration& Arriving);
+    Outcome<bool> Register(const ParityRegistration& Arriving);
 
     /// 🧩 Compares every registered entry point and reports each one.
     /// out   Reports  [-]  one report per registration, in registration order

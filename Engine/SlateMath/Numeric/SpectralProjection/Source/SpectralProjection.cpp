@@ -67,10 +67,10 @@ TristimulusCoordinate ProjectWavelength(double Wavelength)
 //                                                   THE NORMALISATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<double> LuminanceNormalisation(const QuadratureRule& Rule)
+Outcome<double> LuminanceNormalisation(const QuadratureRule& Rule)
 {
     if (!Rule.Derived())
-        return Result<double>::Refuse({ RefusalReason::ContentUnsupported, "the rule has not been derived" });
+        return Outcome<double>::Refuse({ RefusalReason::ContentUnsupported, "the rule has not been derived" });
 
     const double Integrated = Rule.IntegrateInterval(SpectralLowerWavelength,
                                                      SpectralUpperWavelength,
@@ -79,7 +79,7 @@ Result<double> LuminanceNormalisation(const QuadratureRule& Rule)
                                                          return ProjectWavelength(Wavelength).MagnitudeY;
                                                      });
 
-    return Result<double>::Result(Integrated);
+    return Outcome<double>::Result(Integrated);
 }
 
 }   // namespace Slate

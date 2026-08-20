@@ -111,7 +111,7 @@ std::vector<PlanarPosition> Flatten(PlanarPosition                  Origin,
 ///        so declaring one here would be inventing an authored property the artist cannot see.
 /// cost  🚩
 /// tag   api, nonthrowing
-Result<std::vector<PlanarPosition>> OffsetOutline(const std::vector<PlanarPosition>& Traversed,
+Outcome<std::vector<PlanarPosition>> OffsetOutline(const std::vector<PlanarPosition>& Traversed,
                                                    double                             HalfWidth,
                                                    bool                               ClosedRun);
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded, PrecisionGuarantee::Bounded);

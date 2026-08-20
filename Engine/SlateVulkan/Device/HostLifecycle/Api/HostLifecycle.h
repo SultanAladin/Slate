@@ -190,7 +190,7 @@ public:
     /// post  on delivery, `Interface` carries every handle the interface seam needs
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Construct(const HostDeclaration& Declared);
+    Outcome<bool> Construct(const HostDeclaration& Declared);
 
     /// 🧩 Opens one tick — drains input, recovers the display if it moved, acquires an image, and opens a
     ///    recording inside a rendering scope over it.
@@ -213,7 +213,7 @@ public:
     /// post  no recording is open; the next Await may proceed
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Surrender();
+    Outcome<bool> Surrender();
 
     /// 🧩 Whether the host should keep ticking.
     /// cost  ✔️
@@ -260,7 +260,7 @@ public:
     ///        closed the host on the third press, which reads as the rebuild having crashed it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> RebuildDevice();
+    Outcome<bool> RebuildDevice();
 
     /// 🧩 Retires the device tier and rebuilds it, leaving the window, instance and surface standing.
     /// out   Result  [-]  refuses when the rebuild declines, having left nothing half-constructed
@@ -272,7 +272,7 @@ public:
     ///        again to recover would stand a second window in front of the artist.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> RecoverDevice();
+    Outcome<bool> RecoverDevice();
 
     /// 🧩 Whether the device tier was rebuilt since the host last asked, and clears the record of it.
     /// use   A host calls this to rebuild every device resource it owns, exactly once per recovery.
@@ -312,7 +312,7 @@ public:
 
 private:
 
-    Result<bool> EstablishDisplay(std::uint32_t Width, std::uint32_t Height);
+    Outcome<bool> EstablishDisplay(std::uint32_t Width, std::uint32_t Height);
     bool          RecoverDisplay();
 
     /// 🧩 Retires an acquired image whose `ImageArrived` no submission is going to wait down.

@@ -104,7 +104,7 @@ public:
     /// out   Result     [-]  refuses with ContentUnsupported when no path was declared
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareFromFile(const OutlineSpecification& Arriving, const std::string& OriginPath);
+    Outcome<bool> DeclareFromFile(const OutlineSpecification& Arriving, const std::string& OriginPath);
 
     /// 🧩 Declares a decoded outline arriving as supplied source text.
     /// in    Arriving    [-]  the decoded specification
@@ -112,7 +112,7 @@ public:
     /// out   Result     [-]  refuses with ContentUnsupported when no path was declared
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareFromText(const OutlineSpecification& Arriving, const std::string& SourceText);
+    Outcome<bool> DeclareFromText(const OutlineSpecification& Arriving, const std::string& SourceText);
 
     /// 🧩 Records one refused construct, to be reported through `86`.
     /// cost  🚩
@@ -196,7 +196,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported when a glyph of that identity is already declared
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareGlyph(const GlyphSpecification& Declaring);
+    Outcome<bool> DeclareGlyph(const GlyphSpecification& Declaring);
 
     /// 🧩 Declares one pair adjustment between two adjacent glyphs.
     /// cost  🚩
@@ -207,7 +207,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported when the typeface declares no such glyph
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<const GlyphSpecification*> ResolveGlyph(std::uint32_t GlyphIdentity) const;
+    Outcome<const GlyphSpecification*> ResolveGlyph(std::uint32_t GlyphIdentity) const;
 
     /// 🧩 The pair adjustment between two adjacent glyphs; zero where none is declared.
     /// cost  🚩

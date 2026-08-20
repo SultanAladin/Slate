@@ -56,7 +56,7 @@ public:
     ///        it from a device this component is forbidden to name.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Construct(std::uint32_t SlotCeiling, std::uint32_t BytesPerTexel);
+    Outcome<bool> Construct(std::uint32_t SlotCeiling, std::uint32_t BytesPerTexel);
 
     /// 🧩 Claims one free slot.
     /// out   Result  [-]  refuses with ExtentExhausted when every slot is claimed or quarantined
@@ -65,7 +65,7 @@ public:
     ///        designed. Reporting it would mean the register is never quiet.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Claim();
+    Outcome<std::uint32_t> Claim();
 
     /// 🧩 Releases one claimed slot into quarantine.
     /// in    SlotOrdinal      [-]  the slot
@@ -74,7 +74,7 @@ public:
     /// post  the slot is unusable until `RecordingSlotCount` rotations have passed
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal);
+    Outcome<bool> Release(std::uint32_t SlotOrdinal, std::uint64_t RecordingOrdinal);
 
     /// 🧩 Returns quarantined slots whose release is older than the recording slot count.
     /// in    RecordingOrdinal  [-]  the rotation now being recorded
@@ -92,7 +92,7 @@ public:
     ///        may not name it. `06` adds the base; nothing here knows one exists.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<std::uint64_t> ByteOffsetOf(std::uint32_t SlotOrdinal) const;
+    Outcome<std::uint64_t> ByteOffsetOf(std::uint32_t SlotOrdinal) const;
 
     /// 🧩 What one tile occupies, apron included.
     /// cost  ✔️

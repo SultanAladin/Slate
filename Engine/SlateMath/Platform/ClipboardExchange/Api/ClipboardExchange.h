@@ -55,14 +55,14 @@ public:
     ///        operation and `86` would otherwise report the artist's own empty clipboard as an OS failure.
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Result<std::string> ReadText();
+    static Outcome<std::string> ReadText();
 
     /// 🧩 Hands text to the host clipboard, replacing whatever it carried.
     /// in    Supplied  [-]  UTF-8; an empty supply clears the clipboard rather than refusing
     /// out   Result   [-]  refuses with HostDenied when the host declines
     /// cost  🚩
     /// tag   api, nonthrowing
-    static Result<bool> WriteText(const std::string& Supplied);
+    static Outcome<bool> WriteText(const std::string& Supplied);
 
     /// 🧩 Reads the host clipboard's imagery.
     /// out   Result  [-]  refuses with CapabilityAbsent when the clipboard carries no imagery, with
@@ -73,7 +73,7 @@ public:
     ///        that ignored the sign delivers half of all clipboard imagery vertically mirrored.
     /// cost  🔴
     /// tag   api, nonthrowing
-    static Result<ClipboardImage> ReadImage();
+    static Outcome<ClipboardImage> ReadImage();
 
     /// 🧩 Hands imagery to the host clipboard, replacing whatever it carried.
     /// in    Supplied  [-]  row order, top-down, RGBA, unpremultiplied
@@ -81,7 +81,7 @@ public:
     ///                      with HostDenied when the host declines
     /// cost  🔴
     /// tag   api, nonthrowing
-    static Result<bool> WriteImage(const ClipboardImage& Supplied);
+    static Outcome<bool> WriteImage(const ClipboardImage& Supplied);
 
     /// 🧩 Whether the host clipboard currently carries text this translation can read.
     /// out   TextCarried  [-]  false while the host declines to be asked at all

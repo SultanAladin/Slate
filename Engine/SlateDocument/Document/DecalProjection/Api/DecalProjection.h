@@ -125,7 +125,7 @@ constexpr bool PlacementWritesChannel(const PlacementSpecification& Placed, std:
 ///        a shoulder should not also appear on the far side of the arm — and it is what the default declares.
 /// cost  🔴
 /// tag   api, nonthrowing
-Result<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&         Placed,
+Outcome<DomainExtent> ProjectPlacementExtent(const PlacementSpecification&         Placed,
                                              std::uint32_t                         PlacementOrdinal,
                                              std::uint32_t                         SequenceOrdinal,
                                              const TopologyStructure&              Imported,
@@ -182,7 +182,7 @@ public:
     ///                     ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Declare(const PlacementSpecification& Declaring);
+    Outcome<std::uint32_t> Declare(const PlacementSpecification& Declaring);
 
     /// 🧩 Amends one placement, advancing its revision only where `00` §10.1 ② requires it.
     /// in    PlacementOrdinal  [-]  an ordinal this component issued
@@ -194,13 +194,13 @@ public:
     ///        applied to afterwards.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Amend(std::uint32_t PlacementOrdinal, const PlacementSpecification& Amending);
+    Outcome<bool> Amend(std::uint32_t PlacementOrdinal, const PlacementSpecification& Amending);
 
     /// 🧩 One declared placement.
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const PlacementSpecification*> Resolve(std::uint32_t PlacementOrdinal) const;
+    Outcome<const PlacementSpecification*> Resolve(std::uint32_t PlacementOrdinal) const;
 
     /// 🧩 Withdraws one placement, returning its slot for reuse.
     /// note  🔴 Called from `12` §12's retirement cascade, inside that cascade's single transaction. A placement
@@ -208,7 +208,7 @@ public:
     ///        rather than surviving it as an orphaned reference `56` still names.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Withdraw(std::uint32_t PlacementOrdinal);
+    Outcome<bool> Withdraw(std::uint32_t PlacementOrdinal);
 
     /// 🧩 One placement's revision, for `70` §2's per-tile comparison.
     /// out   Revision  [-]  zero for an unclaimed ordinal, which no resolved tile ever recorded
@@ -266,26 +266,26 @@ public:
     /// post  nothing is recorded; the placement stands unamended until Seal
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Open(std::uint32_t PlacementOrdinal, const PlacementSpecification& Standing, bool CameraFollowed);
+    Outcome<bool> Open(std::uint32_t PlacementOrdinal, const PlacementSpecification& Standing, bool CameraFollowed);
 
     /// 🧩 Amends the open drag's placing transform.
     /// out   Result  [-]  refuses with HostDenied when no drag is open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Amend(const DecomposedTransform& Amending);
+    Outcome<bool> Amend(const DecomposedTransform& Amending);
 
     /// 🧩 Ends the drag with no effect, returning the specification that stood at Open.
     /// out   Result  [-]  refuses with HostDenied when no drag is open
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<PlacementSpecification> Abandon();
+    Outcome<PlacementSpecification> Abandon();
 
     /// 🧩 Ends the drag, returning the specification the caller commits as one transaction.
     /// out   Result  [-]  refuses with HostDenied when no drag is open
     /// post  🔴 the returned specification carries an advanced revision; `70` re-resolves against it
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<PlacementSpecification> Seal();
+    Outcome<PlacementSpecification> Seal();
 
     /// 🧩 The placement as the drag has amended it, for `82`'s speculative resolution.
     /// cost  ✔️

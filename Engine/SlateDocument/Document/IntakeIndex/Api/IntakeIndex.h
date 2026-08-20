@@ -87,7 +87,7 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted when nothing arrived from there
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<IntakeRecord> Resolve(const std::string& OriginPath) const;
+    Outcome<IntakeRecord> Resolve(const std::string& OriginPath) const;
 
     /// 🧩 How many intakes carried an assumption.
     /// cost  ✔️

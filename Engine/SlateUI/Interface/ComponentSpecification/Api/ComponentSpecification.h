@@ -152,7 +152,7 @@ public:
     /// out   Result     [-]  refuses with ContentUnsupported when a construction already stands
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Construct(InteractionIndex&              Ledger,
+    Outcome<bool> Construct(InteractionIndex&              Ledger,
                             RecordingSurface&              Surface,
                             const ThemeProfile& Appearance);
 

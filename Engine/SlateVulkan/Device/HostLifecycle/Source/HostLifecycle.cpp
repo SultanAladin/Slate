@@ -33,7 +33,7 @@ void Report(const char* Naming, const char* Stage)
 //                                                        CONSTRUCTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> HostLifecycle::Construct(const HostDeclaration& Arriving)
+Outcome<bool> HostLifecycle::Construct(const HostDeclaration& Arriving)
 {
     Declared = Arriving;
 
@@ -44,7 +44,7 @@ Result<bool> HostLifecycle::Construct(const HostDeclaration& Arriving)
     if (!Surface.Open({ Declared.InitialWidth, Declared.InitialHeight }, Declared.WindowCaption).Resolved)
     {
         Report(Declared.Naming, "the window system declined");
-        return Result<bool>::Refuse(Refusal{ RefusalReason::HostDenied, "the window system declined" });
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::HostDenied, "the window system declined" });
     }
 
     // ③ The instance — Host lifetime; it outlives every device this process constructs.
@@ -52,17 +52,17 @@ Result<bool> HostLifecycle::Construct(const HostDeclaration& Arriving)
     {
         Report(Declared.Naming, "no Vulkan instance could be constructed");
         Reclaim();
-        return Result<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no Vulkan instance" });
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no Vulkan instance" });
     }
 
     // ④ The presentation surface — Host lifetime; it is a property of the window, not of the device.
-    const Result<VkSurfaceKHR> Converted = Convert(DeviceEdge.Instance(), Surface.NativeHandle());
+    const Outcome<VkSurfaceKHR> Converted = Convert(DeviceEdge.Instance(), Surface.NativeHandle());
 
     if (!Converted.Resolved)
     {
         Report(Declared.Naming, "the presentation surface was refused");
         Reclaim();
-        return Result<bool>::Refuse(Converted.Error);
+        return Outcome<bool>::Refuse(Converted.Error);
     }
 
     PresentationSurface = Converted.Resolve();
@@ -77,13 +77,13 @@ Result<bool> HostLifecycle::Construct(const HostDeclaration& Arriving)
     {
         Report(Declared.Naming, "no Vulkan device could be constructed");
         Reclaim();
-        return Result<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no Vulkan device" });
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no Vulkan device" });
     }
 
     Constructed = ResourceLifetime::Device;
 
     // ⑦ The presentation chain — Display lifetime begins here.
-    const Result<bool> DisplayBuilt = EstablishDisplay(Declared.InitialWidth, Declared.InitialHeight);
+    const Outcome<bool> DisplayBuilt = EstablishDisplay(Declared.InitialWidth, Declared.InitialHeight);
 
     if (!DisplayBuilt.Resolved)
     {
@@ -100,7 +100,7 @@ Result<bool> HostLifecycle::Construct(const HostDeclaration& Arriving)
     {
         Report(Declared.Naming, "the recording rotation was refused");
         Reclaim();
-        return Result<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "the recording rotation" });
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "the recording rotation" });
     }
 
     Constructed  = ResourceLifetime::Recording;
@@ -108,10 +108,10 @@ Result<bool> HostLifecycle::Construct(const HostDeclaration& Arriving)
 
     Report(Declared.Naming, "running");
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> HostLifecycle::EstablishDisplay(std::uint32_t Width, std::uint32_t Height)
+Outcome<bool> HostLifecycle::EstablishDisplay(std::uint32_t Width, std::uint32_t Height)
 {
     return DisplayChain.Construct(DeviceEdge, DiagnosticEdge, PresentationSurface,
                                   Width, Height, Declared.Pacing);
@@ -141,7 +141,7 @@ bool HostLifecycle::RecoverDisplay()
     //    recovery that did not happen has the tick loop carry on against a chain that is gone — every
     //    subsequent acquire refuses and the host presents nothing, with no diagnostic naming the cause.
     //    Found by [[nodiscard]]: this delivery was discarded.
-    const Result<bool> Reestablished = DisplayChain.Reclaim(Extent.Width, Extent.Height);
+    const Outcome<bool> Reestablished = DisplayChain.Reclaim(Extent.Width, Extent.Height);
 
     Surface.AdoptExtent();
 
@@ -200,7 +200,7 @@ bool HostLifecycle::DisplayRecovered()
 //                                                     THE DEVICE RECOVERY
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> HostLifecycle::RecoverDevice()
+Outcome<bool> HostLifecycle::RecoverDevice()
 {
     // 🔴 Bounded. A device that is lost twice is a driver that is not coming back, and rebuilding forever
     //    presents the artist with a window that never draws instead of one that reports and exits.
@@ -208,7 +208,7 @@ Result<bool> HostLifecycle::RecoverDevice()
     {
         Report(Declared.Naming, "the device was lost more times than the ceiling admits");
         LoopStanding = false;
-        return Result<bool>::Refuse(Refusal{ RefusalReason::DeviceLost, "the device is not recoverable" });
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::DeviceLost, "the device is not recoverable" });
     }
 
     ++DeviceRecoveries;
@@ -216,7 +216,7 @@ Result<bool> HostLifecycle::RecoverDevice()
     return RebuildDevice();
 }
 
-Result<bool> HostLifecycle::RebuildDevice()
+Outcome<bool> HostLifecycle::RebuildDevice()
 {
     // 🔴 An open recording is abandoned rather than surrendered. The device it was recorded into is gone,
     //    so there is nothing to submit it to and nothing that would ever signal its completion.
@@ -233,7 +233,7 @@ Result<bool> HostLifecycle::RebuildDevice()
     {
         Report(Declared.Naming, "no Vulkan device could be reconstructed");
         LoopStanding = false;
-        return Result<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no Vulkan device" });
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no Vulkan device" });
     }
 
     Constructed = ResourceLifetime::Device;
@@ -244,7 +244,7 @@ Result<bool> HostLifecycle::RebuildDevice()
     {
         Report(Declared.Naming, "the presentation chain could not be re-established on a rebuilt device");
         LoopStanding = false;
-        return Result<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no presentation chain" });
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "no presentation chain" });
     }
 
     Constructed = ResourceLifetime::Display;
@@ -255,7 +255,7 @@ Result<bool> HostLifecycle::RebuildDevice()
     {
         Report(Declared.Naming, "the recording rotation was refused on a rebuilt device");
         LoopStanding = false;
-        return Result<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "the recording rotation" });
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::CapabilityAbsent, "the recording rotation" });
     }
 
     Constructed = ResourceLifetime::Recording;
@@ -267,7 +267,7 @@ Result<bool> HostLifecycle::RebuildDevice()
 
     Report(Declared.Naming, "the device was rebuilt");
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void HostLifecycle::AskDeviceRebuild()
@@ -397,7 +397,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
         static_cast<void>(StateDiagnostics());
 
     // ④ Await the cycle slot. The fence guards the recording this slot is about to reuse.
-    const Result<bool> SlotAwaited = Cycle.Await();
+    const Outcome<bool> SlotAwaited = Cycle.Await();
 
     if (!SlotAwaited.Resolved)
     {
@@ -423,7 +423,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
 
     SlotOrdinal = Cycle.StandingOrdinal();
 
-    const Result<CycleSlot> Standing = Cycle.Standing();
+    const Outcome<CycleSlot> Standing = Cycle.Standing();
 
     if (!Standing.Resolved)
     {
@@ -440,7 +440,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
 
     // ⑥ Acquire the display image. 🔴 Everything that could decline has now declined: from here to the
     //    surrender there is no path that returns, which is why a host cannot leave a recording open.
-    const Result<ArrivedImage> Arrived = DisplayChain.Await(Standing.Resolve(), Clock);
+    const Outcome<ArrivedImage> Arrived = DisplayChain.Await(Standing.Resolve(), Clock);
 
     if (!Arrived.Resolved)
     {
@@ -485,7 +485,7 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     AcquiredImage = Arrived.Resolve();
 
     // ⑦ Open the recording and the rendering scope.
-    const Result<VkCommandBuffer> Opened = Commands.Open(SlotOrdinal);
+    const Outcome<VkCommandBuffer> Opened = Commands.Open(SlotOrdinal);
 
     if (!Opened.Resolved)
     {
@@ -532,17 +532,17 @@ TickPass HostLifecycle::Await(const float ClearInk[4])
     return Pass;
 }
 
-Result<bool> HostLifecycle::Surrender()
+Outcome<bool> HostLifecycle::Surrender()
 {
     if (!TickRecording)
     {
-        return Result<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::ContentUnsupported,
                                               "no tick stands recording" });
     }
 
     vkCmdEndRendering(OpenRecording);
 
-    const Result<CycleSlot> Standing = Cycle.Standing();
+    const Outcome<CycleSlot> Standing = Cycle.Standing();
 
     if (!Standing.Resolved)
     {
@@ -555,7 +555,7 @@ Result<bool> HostLifecycle::Surrender()
         TickRecording = false;
         OpenRecording = VK_NULL_HANDLE;
         LoopStanding  = false;
-        return Result<bool>::Refuse(Standing.Error);
+        return Outcome<bool>::Refuse(Standing.Error);
     }
 
     // 🔴 The rotation is armed immediately before the surrender. Armed any earlier, a refusal between the
@@ -568,10 +568,10 @@ Result<bool> HostLifecycle::Surrender()
         TickRecording = false;
         OpenRecording = VK_NULL_HANDLE;
         LoopStanding  = false;
-        return Result<bool>::Refuse(Refusal{ RefusalReason::DeviceLost, "the rotation could not be armed" });
+        return Outcome<bool>::Refuse(Refusal{ RefusalReason::DeviceLost, "the rotation could not be armed" });
     }
 
-    const Result<bool> Surrendered = Commands.Surrender(SlotOrdinal, SurrenderOrdering{
+    const Outcome<bool> Surrendered = Commands.Surrender(SlotOrdinal, SurrenderOrdering{
         .Awaited      = Standing.Resolve().ImageArrived,
         .AwaitedStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         .Signalled    = Standing.Resolve().RecordingDone,
@@ -593,7 +593,7 @@ Result<bool> HostLifecycle::Surrender()
             Report(Declared.Naming, "the device was lost surrendering a recording");
 
             if (RecoverDevice().Resolved)
-                return Result<bool>::Result(true);
+                return Outcome<bool>::Result(true);
 
             return Surrendered;
         }
@@ -611,7 +611,7 @@ Result<bool> HostLifecycle::Surrender()
     //    chain the display has outgrown as a delivered `false`, and reading only `Resolved` — which
     //    this did — made this branch unreachable on a resize: the chain was then rebuilt a tick later by
     //    the extent test, or never, when the display outgrew a chain the window extent had not moved.
-    const Result<bool> Presented = DisplayChain.Present(Standing.Resolve(), AcquiredImage.ImageOrdinal);
+    const Outcome<bool> Presented = DisplayChain.Present(Standing.Resolve(), AcquiredImage.ImageOrdinal);
 
     if (!Presented.Resolved || !Presented.Resolve())
     {
@@ -620,7 +620,7 @@ Result<bool> HostLifecycle::Surrender()
 
     Cycle.Advance();
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------

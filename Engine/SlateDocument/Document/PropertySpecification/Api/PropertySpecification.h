@@ -103,7 +103,7 @@ struct PropertyDeclaration
 ///        verbatim, so a refusal reading "invalid" sends the artist to guess.
 /// cost  ✔️
 /// tag   api, nonthrowing
-Result<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue& Offered);
+Outcome<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue& Offered);
 
 /// 🧩 Brings one value inside a declaration's bounds where the measure admits it.
 /// in    Declared  [-]  the declaration
@@ -114,7 +114,7 @@ Result<bool> Validate(const PropertyDeclaration& Declared, const PropertyValue& 
 ///        Whoever is presenting a slider bounds first and then writes.
 /// cost  ✔️
 /// tag   api, nonthrowing
-Result<PropertyValue> Bounded(const PropertyDeclaration& Declared, const PropertyValue& Offered);
+Outcome<PropertyValue> Bounded(const PropertyDeclaration& Declared, const PropertyValue& Offered);
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   THE DECLARATIONS
@@ -136,7 +136,7 @@ public:
     ///        bounds presents an invalid value on every occupant that never wrote it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Declare(const PropertyDeclaration& Declaring);
+    Outcome<bool> Declare(const PropertyDeclaration& Declaring);
 
     /// 🧩 Writes one property's value, validated first.
     /// in    Identity  [-]  the declaration's spelling
@@ -146,19 +146,19 @@ public:
     /// post  a refused write leaves the prior value standing
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Write(const std::string& Identity, const PropertyValue& Offered);
+    Outcome<bool> Write(const std::string& Identity, const PropertyValue& Offered);
 
     /// 🧩 Reads one property's value, or its declared default where nothing has written it.
     /// out   Result  [-]  refuses with ContentUnsupported when nothing declares that identity
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<PropertyValue> Resolve(const std::string& Identity) const;
+    Outcome<PropertyValue> Resolve(const std::string& Identity) const;
 
     /// 🧩 One property's declaration, for whoever is presenting it.
     /// out   Result  [-]  refuses with ContentUnsupported when nothing declares that identity
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<PropertyDeclaration> Declared(const std::string& Identity) const;
+    Outcome<PropertyDeclaration> Declared(const std::string& Identity) const;
 
     /// 🧩 Every declaration, in declaration order.
     /// cost  ✔️
@@ -174,7 +174,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported when nothing declares that identity
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Reclaim(const std::string& Identity);
+    Outcome<bool> Reclaim(const std::string& Identity);
 
     /// 🧩 🔍 Whether every held value satisfies its own declaration.
     /// note  Structurally true, because Write is the only writer and validates first. Checked so that a future

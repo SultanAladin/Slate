@@ -131,17 +131,17 @@ TopologyContentSubject ClassifyContent(const std::string& OriginPath)
 //                                                   THE TRANSLATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath)
+Outcome<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath)
 {
     if (ClassifyContent(OriginPath) == TopologyContentSubject::Unrecognised)
     {
-        return Result<DecodedTopology>::Refuse(
+        return Outcome<DecodedTopology>::Refuse(
             { RefusalReason::ContentUnsupported, "the origin names no accepted polygon layout — `10` §1" });
     }
 
     if (Stream.empty())
     {
-        return Result<DecodedTopology>::Refuse(
+        return Outcome<DecodedTopology>::Refuse(
             { RefusalReason::ContentUnsupported, "a polygon stream of no bytes carries no topology" });
     }
 
@@ -158,7 +158,7 @@ Result<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, const
 
     if (Parsed == nullptr)
     {
-        return Result<DecodedTopology>::Refuse(
+        return Outcome<DecodedTopology>::Refuse(
             { RefusalReason::ContentUnsupported, "the parser declined the polygon stream" });
     }
 
@@ -166,7 +166,7 @@ Result<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, const
     {
         fast_obj_destroy(Parsed);
 
-        return Result<DecodedTopology>::Refuse(
+        return Outcome<DecodedTopology>::Refuse(
             { RefusalReason::ExtentExhausted, "the polygon stream declares no face — `10` §1" });
     }
 
@@ -309,7 +309,7 @@ Result<DecodedTopology> Translate(const std::vector<std::uint8_t>& Stream, const
 
     fast_obj_destroy(Parsed);
 
-    return Result<DecodedTopology>::Result(Produced);
+    return Outcome<DecodedTopology>::Result(Produced);
 }
 
 }   // namespace Slate

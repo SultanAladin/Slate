@@ -14,30 +14,30 @@ namespace Slate
 //                                                     DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> VectorInterchange::DeclareFromFile(const OutlineSpecification& Arriving, const std::string& OriginPath)
+Outcome<bool> VectorInterchange::DeclareFromFile(const OutlineSpecification& Arriving, const std::string& OriginPath)
 {
     if (Arriving.Paths.empty())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the source declared no path" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the source declared no path" });
 
     DeclaredOutline            = Arriving;
     DeclaredOutline.OriginPath = OriginPath;
     DeclaredOutline.SourceText.clear();
     TextSourceDeclared         = false;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> VectorInterchange::DeclareFromText(const OutlineSpecification& Arriving, const std::string& SourceText)
+Outcome<bool> VectorInterchange::DeclareFromText(const OutlineSpecification& Arriving, const std::string& SourceText)
 {
     if (Arriving.Paths.empty())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the source declared no path" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the source declared no path" });
 
     DeclaredOutline            = Arriving;
     DeclaredOutline.SourceText = SourceText;
     DeclaredOutline.OriginPath.clear();
     TextSourceDeclared         = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void VectorInterchange::Refuse(const std::string& Construct, std::uint32_t SourceOrdinal, const Refusal& Declining)
@@ -144,20 +144,20 @@ void TypefaceInterchange::DeclareTypeface(std::uint32_t TypefaceIdentity_, doubl
     DeclaredUnits    = UnitsPerEm_ > 0.0 ? UnitsPerEm_ : 1000.0;
 }
 
-Result<bool> TypefaceInterchange::DeclareGlyph(const GlyphSpecification& Declaring)
+Outcome<bool> TypefaceInterchange::DeclareGlyph(const GlyphSpecification& Declaring)
 {
     for (const GlyphSpecification& Held : DeclaredGlyphs)
     {
         if (Held.GlyphIdentity == Declaring.GlyphIdentity)
         {
-            return Result<bool>::Refuse(
+            return Outcome<bool>::Refuse(
                 { RefusalReason::ContentUnsupported, "the typeface already declares that glyph" });
         }
     }
 
     DeclaredGlyphs.push_back(Declaring);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void TypefaceInterchange::DeclareAdjustment(std::uint32_t EarlierGlyph,
@@ -181,15 +181,15 @@ void TypefaceInterchange::DeclareAdjustment(std::uint32_t EarlierGlyph,
     DeclaredAdjustments.push_back(Declaring);
 }
 
-Result<const GlyphSpecification*> TypefaceInterchange::ResolveGlyph(std::uint32_t GlyphIdentity) const
+Outcome<const GlyphSpecification*> TypefaceInterchange::ResolveGlyph(std::uint32_t GlyphIdentity) const
 {
     for (const GlyphSpecification& Held : DeclaredGlyphs)
     {
         if (Held.GlyphIdentity == GlyphIdentity)
-            return Result<const GlyphSpecification*>::Result(&Held);
+            return Outcome<const GlyphSpecification*>::Result(&Held);
     }
 
-    return Result<const GlyphSpecification*>::Refuse(
+    return Outcome<const GlyphSpecification*>::Refuse(
         { RefusalReason::ContentUnsupported, "the typeface declares no such glyph" });
 }
 

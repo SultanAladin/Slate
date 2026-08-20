@@ -416,7 +416,7 @@ public:
     ///                     ExtentExhausted when the ledger or the integrator declines an enrolment
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Construct(InteractionIndex&              Interaction,
+    Outcome<bool> Construct(InteractionIndex&              Interaction,
                             MotionIntegrator&              Integrator,
                             RecordingSurface&              Surface,
                             const ThemeProfile& Resolved);
@@ -457,7 +457,7 @@ public:
     ///       reference's two ternaries in `app/page.tsx` decide it for each of its two slides.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Record(const PlaneExtent&     Extent,
+    Outcome<bool> Record(const PlaneExtent&     Extent,
                          ShellOrdinates&        Seated,
                          const EntityRow*       Rows,
                          std::uint32_t          RowCount,

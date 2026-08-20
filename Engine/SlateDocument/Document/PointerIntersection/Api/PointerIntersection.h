@@ -57,7 +57,7 @@ struct ProjectedRay
 ///        at where the artist was looking before they moved.
 /// cost  ✔️
 /// tag   api, nonallocating, nonthrowing
-Result<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
+Outcome<ProjectedRay> ProjectPointerRay(const CameraProjection& Camera,
                                         double                  PointerAlong,
                                         double                  PointerAcross,
                                         std::uint32_t           DisplayAlong,
@@ -140,19 +140,19 @@ public:
     ///        correct almost everywhere.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Admit(const AdmittedSurface& Arriving);
+    Outcome<bool> Admit(const AdmittedSurface& Arriving);
 
     /// 🧩 Withdraws one occupant's surface sources.
     /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Withdraw(OccupantIdentity Subject);
+    Outcome<bool> Withdraw(OccupantIdentity Subject);
 
     /// 🧩 One admitted occupant's sources.
     /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const AdmittedSurface*> Standing(OccupantIdentity Subject) const;
+    Outcome<const AdmittedSurface*> Standing(OccupantIdentity Subject) const;
 
     /// 🧩 Resolves one ray to the whole tuple.
     /// in    Projected     [-]  the ray, from `ProjectPointerRay`

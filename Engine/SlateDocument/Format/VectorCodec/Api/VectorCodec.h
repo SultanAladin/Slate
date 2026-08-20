@@ -51,7 +51,7 @@ struct DecodedOutline
 /// note  📝 The file route and the supplied-text route produce the identical specification — `52` §1 — so this
 ///        translation is the file route's half and nothing downstream can tell which route was taken.
 /// tag   api, nonthrowing
-Result<DecodedOutline> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath);
+Outcome<DecodedOutline> Translate(const std::vector<std::uint8_t>& Stream, const std::string& OriginPath);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded,
                          PrecisionGuarantee::Bounded,
@@ -64,7 +64,7 @@ SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded,
 /// note  🔴 The text is retained. A source whose only copy was a clipboard is unrecoverable after a reopen, and
 ///        the artist reads that as the document having lost their work — `52` §1.
 /// tag   api, nonthrowing
-Result<DecodedOutline> TranslateText(const std::string& SourceText);
+Outcome<DecodedOutline> TranslateText(const std::string& SourceText);
 
 SLATE_DECLARES_PRECISION(PrecisionGuarantee::Bounded,
                          PrecisionGuarantee::Bounded,

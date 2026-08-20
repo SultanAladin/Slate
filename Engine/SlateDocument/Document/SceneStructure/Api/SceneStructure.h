@@ -130,7 +130,7 @@ public:
     /// post  the occupant sits last in the root ordering and is its own attachment root
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Admit(OccupantIdentity Arriving);
+    Outcome<bool> Admit(OccupantIdentity Arriving);
 
     /// 🧩 Withdraws one occupant from both relations, re-enclosing what it enclosed.
     /// in    Departing  [-]  the identity being retired
@@ -141,7 +141,7 @@ public:
     ///       inside it. The caller seals the whole cascade as one transaction.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Retire(OccupantIdentity Departing);
+    Outcome<bool> Retire(OccupantIdentity Departing);
 
     /// 🧩 Places one occupant in an enclosure at a declared position in its ordering.
     /// in    Subject               [-]  the occupant being placed
@@ -153,7 +153,7 @@ public:
     ///       on the caller so that `86` can name them without this seam allocating a message.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Enclose(OccupantIdentity Subject,
+    Outcome<bool> Enclose(OccupantIdentity Subject,
                           OccupantIdentity ProposedEnclosure,
                           std::uint32_t    OrderWithinEnclosure);
 
@@ -165,7 +165,7 @@ public:
     ///       relations exist rather than one.
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<bool> Attach(OccupantIdentity Subject, OccupantIdentity ProposedAttachment);
+    Outcome<bool> Attach(OccupantIdentity Subject, OccupantIdentity ProposedAttachment);
 
     /// 🧩 Records the transform the artist authored for one occupant.
     /// in    Subject   [-]  the occupant
@@ -173,7 +173,7 @@ public:
     /// out   Result   [-]  refuses with IdentityStale
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> AuthorTransform(OccupantIdentity Subject, const DecomposedTransform& Authored);
+    Outcome<bool> AuthorTransform(OccupantIdentity Subject, const DecomposedTransform& Authored);
 
     /// 🧩 Compounds every occupant's transform downward from its attachment root — tick step ③.
     /// out   Result  [-]  refuses with ExtentExhausted when a chain exceeds the declared depth ceiling
@@ -182,7 +182,7 @@ public:
     ///       derived from them, which `12` §4 makes an ordering rather than a preference.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> CompoundAttachments();
+    Outcome<bool> CompoundAttachments();
 
     /// 🧩 Repairs interval labels across every span whose gap was exhausted — tick step ④.
     /// out   Result  [-]  refuses with ExtentExhausted when the root span itself cannot hold the ordering
@@ -191,14 +191,14 @@ public:
     ///       refuses. A whole-population relabel is the last resort, never the first.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> RepairLabels();
+    Outcome<bool> RepairLabels();
 
     /// 🧩 One occupant's interval label, for the containment predicate above.
     /// in    Subject  [-]  the occupant
     /// out   Result  [-]  refuses with IdentityStale
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<IntervalLabel> Label(OccupantIdentity Subject) const;
+    Outcome<IntervalLabel> Label(OccupantIdentity Subject) const;
 
     /// 🧩 One occupant's transform with its whole attachment path compounded into it.
     /// in    Subject  [-]  the occupant
@@ -206,7 +206,7 @@ public:
     /// pre   CompoundAttachments delivered within this tick
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<DecomposedTransform> CompoundedTransform(OccupantIdentity Subject) const;
+    Outcome<DecomposedTransform> CompoundedTransform(OccupantIdentity Subject) const;
 
     /// 🧩 Whether enclosing Subject in ProposedEnclosure would close a cycle.
     /// in    Subject            [-]  the occupant being placed
@@ -278,9 +278,9 @@ private:
     void          Link(std::uint32_t SlotOrdinal, std::uint32_t EnclosureSlot, std::uint32_t OrderWithinEnclosure);
     IntervalLabel EnclosureInterval(std::uint32_t EnclosureSlot) const;
     bool          LabelBetween(std::uint32_t SlotOrdinal);
-    Result<bool> AssignLabels(std::uint32_t EnclosureSlot, IntervalLabel Available, std::uint32_t Depth);
+    Outcome<bool> AssignLabels(std::uint32_t EnclosureSlot, IntervalLabel Available, std::uint32_t Depth);
     void          DeclareExhausted(std::uint32_t EnclosureSlot);
-    Result<bool> CompoundFrom(std::uint32_t SlotOrdinal, std::uint32_t Depth);
+    Outcome<bool> CompoundFrom(std::uint32_t SlotOrdinal, std::uint32_t Depth);
 
     std::vector<EnclosureRecord>      Enclosures;                 // [-] - indexed by slot ordinal
     std::vector<AttachmentRecord>     Attachments;                // [-] - indexed by slot ordinal

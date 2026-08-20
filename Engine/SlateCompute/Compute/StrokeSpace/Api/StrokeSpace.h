@@ -69,13 +69,13 @@ public:
     ///        refuses rather than growing so that a defect there is a refusal instead of an allocation storm.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Claim(std::uint32_t CellOrdinal);
+    Outcome<std::uint32_t> Claim(std::uint32_t CellOrdinal);
 
     /// 🧩 The tile backing one cell, if one is claimed.
     /// out   Result  [-]  refuses with ExtentExhausted when the cell is untouched
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Located(std::uint32_t CellOrdinal) const;
+    Outcome<std::uint32_t> Located(std::uint32_t CellOrdinal) const;
 
     /// 🧩 Accumulates one impression's coverage at one texel of one claimed tile.
     /// in    TileOrdinal  [-]  as `Claim` delivered it

@@ -30,15 +30,15 @@ std::size_t SurfaceLayerSequence::Located(LayerIdentity Subject) const
 //                                                     DECLARATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<LayerIdentity> SurfaceLayerSequence::Append(const LayerSpecification& Declaring)
+Outcome<LayerIdentity> SurfaceLayerSequence::Append(const LayerSpecification& Declaring)
 {
     if (Sequenced.size() >= EntryCeiling)
-        return Result<LayerIdentity>::Refuse({ RefusalReason::ExtentExhausted, "the entry ceiling was reached" });
+        return Outcome<LayerIdentity>::Refuse({ RefusalReason::ExtentExhausted, "the entry ceiling was reached" });
 
     if (Declaring.Source == LayerContentSource::NestedSequence
      && Declaring.NestedOrdinal >= NestedSequences.size())
     {
-        return Result<LayerIdentity>::Refuse({ RefusalReason::ContentUnsupported, "no such nested sequence" });
+        return Outcome<LayerIdentity>::Refuse({ RefusalReason::ContentUnsupported, "no such nested sequence" });
     }
 
     // 📝 Painted content is validated against its own declared extent here rather than trusted. A span that does
@@ -51,13 +51,13 @@ Result<LayerIdentity> SurfaceLayerSequence::Append(const LayerSpecification& Dec
 
         if (Declaring.Painted.ExtentTexels == 0u || Declaring.Painted.Texels.size() != Required)
         {
-            return Result<LayerIdentity>::Refuse(
+            return Outcome<LayerIdentity>::Refuse(
                 { RefusalReason::ContentUnsupported, "the painted span does not match its declared extent" });
         }
 
         if (Declaring.Painted.ExtentTexels > MaximumWorkingEdge)
         {
-            return Result<LayerIdentity>::Refuse(
+            return Outcome<LayerIdentity>::Refuse(
                 { RefusalReason::ExtentExhausted, "the working extent exceeds the declared maximum" });
         }
     }
@@ -69,19 +69,19 @@ Result<LayerIdentity> SurfaceLayerSequence::Append(const LayerSpecification& Dec
 
     Sequenced.push_back(Arriving);
 
-    return Result<LayerIdentity>::Result(Arriving.Identity);
+    return Outcome<LayerIdentity>::Result(Arriving.Identity);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     AMENDMENTS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<std::uint32_t> SurfaceLayerSequence::Reorder(LayerIdentity Subject, std::uint32_t Position)
+Outcome<std::uint32_t> SurfaceLayerSequence::Reorder(LayerIdentity Subject, std::uint32_t Position)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Sequenced.size())
-        return Result<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
 
     const std::uint32_t Prior   = static_cast<std::uint32_t>(Located_);
     const LayerSpecification Held = Sequenced[Located_];
@@ -93,37 +93,37 @@ Result<std::uint32_t> SurfaceLayerSequence::Reorder(LayerIdentity Subject, std::
 
     Sequenced.insert(Sequenced.begin() + static_cast<std::ptrdiff_t>(Arriving), Held);
 
-    return Result<std::uint32_t>::Result(Prior);
+    return Outcome<std::uint32_t>::Result(Prior);
 }
 
-Result<bool> SurfaceLayerSequence::DeclarePresence(LayerIdentity Subject, bool PresenceEnabled)
+Outcome<bool> SurfaceLayerSequence::DeclarePresence(LayerIdentity Subject, bool PresenceEnabled)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Sequenced.size())
-        return Result<bool>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
+        return Outcome<bool>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
 
     const bool Prior = Sequenced[Located_].PresenceEnabled;
 
     Sequenced[Located_].PresenceEnabled = PresenceEnabled;
 
-    return Result<bool>::Result(Prior);
+    return Outcome<bool>::Result(Prior);
 }
 
-Result<CombineSpecification> SurfaceLayerSequence::DeclareCombination(LayerIdentity        Subject,
+Outcome<CombineSpecification> SurfaceLayerSequence::DeclareCombination(LayerIdentity        Subject,
                                                                        CombineSpecification Declaring)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Sequenced.size())
     {
-        return Result<CombineSpecification>::Refuse(
+        return Outcome<CombineSpecification>::Refuse(
             { RefusalReason::IdentityStale, "the entry no longer resolves" });
     }
 
     if (Declaring == CombineSpecification::CombineCount)
     {
-        return Result<CombineSpecification>::Refuse(
+        return Outcome<CombineSpecification>::Refuse(
             { RefusalReason::ContentUnsupported, "no such combination" });
     }
 
@@ -131,16 +131,16 @@ Result<CombineSpecification> SurfaceLayerSequence::DeclareCombination(LayerIdent
 
     Sequenced[Located_].Combination = Declaring;
 
-    return Result<CombineSpecification>::Result(Prior);
+    return Outcome<CombineSpecification>::Result(Prior);
 }
 
-Result<LayerSpecification> SurfaceLayerSequence::Withdraw(LayerIdentity Subject)
+Outcome<LayerSpecification> SurfaceLayerSequence::Withdraw(LayerIdentity Subject)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Sequenced.size())
     {
-        return Result<LayerSpecification>::Refuse(
+        return Outcome<LayerSpecification>::Refuse(
             { RefusalReason::IdentityStale, "the entry no longer resolves" });
     }
 
@@ -160,14 +160,14 @@ Result<LayerSpecification> SurfaceLayerSequence::Withdraw(LayerIdentity Subject)
     //    than to whichever entry later occupies the position — `10` §2.1's scheme, unchanged.
     ++IssuedGeneration;
 
-    return Result<LayerSpecification>::Result(Departing);
+    return Outcome<LayerSpecification>::Result(Departing);
 }
 
-Result<std::uint32_t> SurfaceLayerSequence::Nest()
+Outcome<std::uint32_t> SurfaceLayerSequence::Nest()
 {
     if (Depth + 1u > LayerNestingCeiling)
     {
-        return Result<std::uint32_t>::Refuse(
+        return Outcome<std::uint32_t>::Refuse(
             { RefusalReason::ExtentExhausted, "the declared nesting ceiling was reached" });
     }
 
@@ -176,7 +176,7 @@ Result<std::uint32_t> SurfaceLayerSequence::Nest()
     NestedSequences.push_back(SurfaceLayerSequence{});
     NestedSequences.back().Depth = Depth + 1u;
 
-    return Result<std::uint32_t>::Result(NestedOrdinal);
+    return Outcome<std::uint32_t>::Result(NestedOrdinal);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -266,17 +266,17 @@ void ResampleContent(PaintedContent&                                            
 
 }   // namespace
 
-Result<bool> SurfaceLayerSequence::Resample(
+Outcome<bool> SurfaceLayerSequence::Resample(
     std::uint64_t                                                 ArrivingRevision,
     const std::function<bool(double, double, double&, double&)>&  Remapping,
     ReportSequence&                                               Reporting,
     TickPoint                                                     Sampled)
 {
     if (!Remapping)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "no domain remapping was supplied" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "no domain remapping was supplied" });
 
     if (ArrivingRevision == DescribedRevision)
-        return Result<bool>::Result(true);
+        return Outcome<bool>::Result(true);
 
     std::uint32_t ResampledCount = 0u;
 
@@ -299,7 +299,7 @@ Result<bool> SurfaceLayerSequence::Resample(
 
     for (SurfaceLayerSequence& Nesting : NestedSequences)
     {
-        const Result<bool> Nested = Nesting.Resample(ArrivingRevision, Remapping, Reporting, Sampled);
+        const Outcome<bool> Nested = Nesting.Resample(ArrivingRevision, Remapping, Reporting, Sampled);
 
         if (!Nested.Resolved)
             return Nested;
@@ -323,33 +323,33 @@ Result<bool> SurfaceLayerSequence::Resample(
         Reporting.Append(Amended);
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                     WHAT IS READ
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<const LayerSpecification*> SurfaceLayerSequence::Resolve(LayerIdentity Subject) const
+Outcome<const LayerSpecification*> SurfaceLayerSequence::Resolve(LayerIdentity Subject) const
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Sequenced.size())
     {
-        return Result<const LayerSpecification*>::Refuse(
+        return Outcome<const LayerSpecification*>::Refuse(
             { RefusalReason::IdentityStale, "the entry no longer resolves" });
     }
 
-    return Result<const LayerSpecification*>::Result(&Sequenced[Located_]);
+    return Outcome<const LayerSpecification*>::Result(&Sequenced[Located_]);
 }
 
-Result<PaintedContent*> SurfaceLayerSequence::AmendPainted(LayerIdentity Subject)
+Outcome<PaintedContent*> SurfaceLayerSequence::AmendPainted(LayerIdentity Subject)
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Sequenced.size())
     {
-        return Result<PaintedContent*>::Refuse(
+        return Outcome<PaintedContent*>::Refuse(
             { RefusalReason::IdentityStale, "the entry no longer resolves" });
     }
 
@@ -358,11 +358,11 @@ Result<PaintedContent*> SurfaceLayerSequence::AmendPainted(LayerIdentity Subject
     //    and the two would diverge at the first re-resolution.
     if (SourceReconstructible(Sequenced[Located_].Source))
     {
-        return Result<PaintedContent*>::Refuse(
+        return Outcome<PaintedContent*>::Refuse(
             { RefusalReason::ContentUnsupported, "the entry stores a description, not texels" });
     }
 
-    return Result<PaintedContent*>::Result(&Sequenced[Located_].Painted);
+    return Outcome<PaintedContent*>::Result(&Sequenced[Located_].Painted);
 }
 
 const std::vector<LayerSpecification>& SurfaceLayerSequence::Entries() const
@@ -370,36 +370,36 @@ const std::vector<LayerSpecification>& SurfaceLayerSequence::Entries() const
     return Sequenced;
 }
 
-Result<const SurfaceLayerSequence*> SurfaceLayerSequence::Nested(std::uint32_t NestedOrdinal) const
+Outcome<const SurfaceLayerSequence*> SurfaceLayerSequence::Nested(std::uint32_t NestedOrdinal) const
 {
     if (NestedOrdinal >= NestedSequences.size())
     {
-        return Result<const SurfaceLayerSequence*>::Refuse(
+        return Outcome<const SurfaceLayerSequence*>::Refuse(
             { RefusalReason::ContentUnsupported, "no such nested sequence" });
     }
 
-    return Result<const SurfaceLayerSequence*>::Result(&NestedSequences[NestedOrdinal]);
+    return Outcome<const SurfaceLayerSequence*>::Result(&NestedSequences[NestedOrdinal]);
 }
 
-Result<SurfaceLayerSequence*> SurfaceLayerSequence::AmendNested(std::uint32_t NestedOrdinal)
+Outcome<SurfaceLayerSequence*> SurfaceLayerSequence::AmendNested(std::uint32_t NestedOrdinal)
 {
     if (NestedOrdinal >= NestedSequences.size())
     {
-        return Result<SurfaceLayerSequence*>::Refuse(
+        return Outcome<SurfaceLayerSequence*>::Refuse(
             { RefusalReason::ContentUnsupported, "no such nested sequence" });
     }
 
-    return Result<SurfaceLayerSequence*>::Result(&NestedSequences[NestedOrdinal]);
+    return Outcome<SurfaceLayerSequence*>::Result(&NestedSequences[NestedOrdinal]);
 }
 
-Result<std::uint32_t> SurfaceLayerSequence::PositionOf(LayerIdentity Subject) const
+Outcome<std::uint32_t> SurfaceLayerSequence::PositionOf(LayerIdentity Subject) const
 {
     const std::size_t Located_ = Located(Subject);
 
     if (Located_ == Sequenced.size())
-        return Result<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::IdentityStale, "the entry no longer resolves" });
 
-    return Result<std::uint32_t>::Result(static_cast<std::uint32_t>(Located_));
+    return Outcome<std::uint32_t>::Result(static_cast<std::uint32_t>(Located_));
 }
 
 std::uint32_t SurfaceLayerSequence::WrittenChannels() const
@@ -461,27 +461,27 @@ std::uint32_t SurfaceLayerSequence::NestedCount() const
 //                                                     THE ENTRIES
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<const LayerSpecification*> LayerIndex::Locate(const SurfaceLayerSequence& Sequence, LayerIdentity Subject)
+Outcome<const LayerSpecification*> LayerIndex::Locate(const SurfaceLayerSequence& Sequence, LayerIdentity Subject)
 {
-    const Result<const LayerSpecification*> Held = Sequence.Resolve(Subject);
+    const Outcome<const LayerSpecification*> Held = Sequence.Resolve(Subject);
 
     if (Held.Resolved)
         return Held;
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Sequence.NestedCount(); ++Ordinal)
     {
-        const Result<const SurfaceLayerSequence*> Nesting = Sequence.Nested(Ordinal);
+        const Outcome<const SurfaceLayerSequence*> Nesting = Sequence.Nested(Ordinal);
 
         if (!Nesting.Resolved)
             continue;
 
-        const Result<const LayerSpecification*> Deeper = Locate(*Nesting.Resolve(), Subject);
+        const Outcome<const LayerSpecification*> Deeper = Locate(*Nesting.Resolve(), Subject);
 
         if (Deeper.Resolved)
             return Deeper;
     }
 
-    return Result<const LayerSpecification*>::Refuse(
+    return Outcome<const LayerSpecification*>::Refuse(
         { RefusalReason::IdentityStale, "nothing in the nesting holds that entry" });
 }
 
@@ -491,7 +491,7 @@ std::uint32_t LayerIndex::SpannedCount(const SurfaceLayerSequence& Sequence)
 
     for (std::uint32_t Ordinal = 0u; Ordinal < Sequence.NestedCount(); ++Ordinal)
     {
-        const Result<const SurfaceLayerSequence*> Nesting = Sequence.Nested(Ordinal);
+        const Outcome<const SurfaceLayerSequence*> Nesting = Sequence.Nested(Ordinal);
 
         if (Nesting.Resolved)
             Spanned += SpannedCount(*Nesting.Resolve());

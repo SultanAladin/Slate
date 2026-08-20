@@ -14,13 +14,13 @@ namespace Slate
 //                                                    THE DERIVATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> QuadratureRule::Derive(std::uint32_t Requested)
+Outcome<bool> QuadratureRule::Derive(std::uint32_t Requested)
 {
     if (Requested == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a rule of no abscissa integrates nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a rule of no abscissa integrates nothing" });
 
     if (Requested > AbscissaCeiling)
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "the abscissa ceiling was reached" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "the abscissa ceiling was reached" });
 
     DeclaredAbscissae.assign(Requested, 0.0);
     DeclaredWeights.assign(Requested, 0.0);
@@ -80,7 +80,7 @@ Result<bool> QuadratureRule::Derive(std::uint32_t Requested)
 
     RuleDerived = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -97,17 +97,17 @@ double QuadratureRule::Weight(std::uint32_t Ordinal) const
     return Ordinal < DeclaredWeights.size() ? DeclaredWeights[Ordinal] : 0.0;
 }
 
-Result<bool> QuadratureRule::Project(std::uint32_t Ordinal,
+Outcome<bool> QuadratureRule::Project(std::uint32_t Ordinal,
                                       double        Lower,
                                       double        Upper,
                                       double&       Position,
                                       double&       Weighting) const
 {
     if (!RuleDerived)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule has not been derived" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule has not been derived" });
 
     if (Ordinal >= DeclaredAbscissae.size())
-        return Result<bool>::Refuse({ RefusalReason::ExtentExhausted, "no such abscissa" });
+        return Outcome<bool>::Refuse({ RefusalReason::ExtentExhausted, "no such abscissa" });
 
     const double HalfSpan = (Upper - Lower) * 0.5;
     const double Middle   = (Upper + Lower) * 0.5;
@@ -115,7 +115,7 @@ Result<bool> QuadratureRule::Project(std::uint32_t Ordinal,
     Position  = Middle + HalfSpan * DeclaredAbscissae[Ordinal];
     Weighting = HalfSpan * DeclaredWeights[Ordinal];
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 std::uint32_t QuadratureRule::DeclaredCount() const

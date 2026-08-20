@@ -135,10 +135,10 @@ SpatialSpan TripleOf(const ResolvedChannelSet& Resolved, ChannelSubject Channel)
 //                                                THE ALBEDO LOOKUP STORAGE
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> DirectionalAlbedoSurface::Construct(std::uint32_t ExtentAlong_, std::uint32_t ExtentAcross_)
+Outcome<bool> DirectionalAlbedoSurface::Construct(std::uint32_t ExtentAlong_, std::uint32_t ExtentAcross_)
 {
     if (ExtentAlong_ == 0u || ExtentAcross_ == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a lookup of no extent resolves nothing" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a lookup of no extent resolves nothing" });
 
     SpannedAlong  = ExtentAlong_;
     SpannedAcross = ExtentAcross_;
@@ -147,7 +147,7 @@ Result<bool> DirectionalAlbedoSurface::Construct(std::uint32_t ExtentAlong_, std
                     * static_cast<std::size_t>(SpannedAcross)
                     * static_cast<std::size_t>(ComponentCount), 0.0f);
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void DirectionalAlbedoSurface::Declare(std::uint32_t Along,
@@ -427,7 +427,7 @@ ReconstructedSurface ReconstructSurface(const ReconstructionTriangle& Triangle,
 //                                                     THE RECORDING
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ReflectanceIntegrator::Contribute(RenderSchedule& Schedule) const
+Outcome<bool> ReflectanceIntegrator::Contribute(RenderSchedule& Schedule) const
 {
     DeclaredRecording Declared;
     Declared.Identity = ReflectanceRecordingIdentity;
@@ -457,12 +457,12 @@ Result<bool> ReflectanceIntegrator::Contribute(RenderSchedule& Schedule) const
 //                                             THE DIRECTIONAL-ALBEDO DERIVATION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRule& Rule)
+Outcome<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRule& Rule)
 {
     if (!Rule.Derived())
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule has not been derived" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the rule has not been derived" });
 
-    const Result<bool> Constructed = AlbedoLookup.Construct(AlbedoExtentAlong, AlbedoExtentAcross);
+    const Outcome<bool> Constructed = AlbedoLookup.Construct(AlbedoExtentAlong, AlbedoExtentAcross);
 
     if (!Constructed.Resolved)
         return Constructed;
@@ -580,7 +580,7 @@ Result<bool> ReflectanceIntegrator::DeriveDirectionalAlbedo(const QuadratureRule
 
     LookupDerived = true;
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 void ReflectanceIntegrator::SampleDirectionalAlbedo(double  ViewCosine,
@@ -655,7 +655,7 @@ constexpr bool ChannelReadsBasis(ChannelSubject Channel)
 
 }   // namespace
 
-Result<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
+Outcome<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
     const MaterialSpecification&          Declared,
     const AnalyticProjection&             Resolving,
     const SurfaceLayerSequence&           Content,
@@ -665,7 +665,7 @@ Result<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
 {
     if (!Reconstructed.Reconstructed)
     {
-        return Result<ResolvedChannelSet>::Refuse(
+        return Outcome<ResolvedChannelSet>::Refuse(
             { RefusalReason::ContentUnsupported, "nothing was reconstructed at that pixel" });
     }
 
@@ -700,13 +700,13 @@ Result<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
     }
 
     if (!ResolutionOwed)
-        return Result<ResolvedChannelSet>::Result(Resolved);
+        return Outcome<ResolvedChannelSet>::Result(Resolved);
 
     // 🚧 Resolved through `70`'s host path rather than read from `20`'s promoted tile, because the device
     //    residency is unbuilt. `18` §8's rule is unamended by that: the resolution happens **once** per pixel and
     //    not once per channel, so no dispatch walks the layer sequence twenty times — and `82` §5's preview takes
     //    this same routine, which is what `00` §11 gates the two against.
-    const Result<ResolvedSample> Sampled = Resolving.ResolveAt(Content,
+    const Outcome<ResolvedSample> Sampled = Resolving.ResolveAt(Content,
                                                                 Placements,
                                                                 Reconstructed.DomainAlong,
                                                                 Reconstructed.DomainAcross,
@@ -714,12 +714,12 @@ Result<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
                                                                 ResolvedComponentCeiling);
 
     if (!Sampled.Resolved)
-        return Result<ResolvedChannelSet>::Refuse(Sampled.Error);
+        return Outcome<ResolvedChannelSet>::Refuse(Sampled.Error);
 
     const ResolvedSample& Standing = Sampled.Resolve();
 
     if (!Standing.SampleResolved)
-        return Result<ResolvedChannelSet>::Result(Resolved);
+        return Outcome<ResolvedChannelSet>::Result(Resolved);
 
     for (const ChannelPlacement& Placing : Placements)
     {
@@ -751,7 +751,7 @@ Result<ResolvedChannelSet> ReflectanceIntegrator::ResolveChannels(
         Resolved.SampledMask |= 1u << static_cast<std::uint32_t>(Placing.Channel);
     }
 
-    return Result<ResolvedChannelSet>::Result(Resolved);
+    return Outcome<ResolvedChannelSet>::Result(Resolved);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1063,7 +1063,7 @@ DirectContribution ReflectanceIntegrator::IntegrateDirect(ReflectanceSelection  
 //                                                    THE AMBIENT TERM
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
+Outcome<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
     ReflectanceSelection        Selected,
     const ResolvedChannelSet&   Resolved,
     const ReconstructedSurface& Reconstructed,
@@ -1075,7 +1075,7 @@ Result<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
 {
     if (!Reconstructed.Reconstructed)
     {
-        return Result<AmbientContribution>::Refuse(
+        return Outcome<AmbientContribution>::Refuse(
             { RefusalReason::ContentUnsupported, "nothing was reconstructed at that pixel" });
     }
 
@@ -1091,7 +1091,7 @@ Result<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
     Contribution.EmissiveComponent[2] = Emission.OrdinateZ;
 
     if (Selected == ReflectanceSelection::EmissiveOnly)
-        return Result<AmbientContribution>::Result(Contribution);
+        return Outcome<AmbientContribution>::Result(Contribution);
 
     const SpatialSpan Albedo = TripleOf(Resolved, ChannelSubject::AlbedoColour);
 
@@ -1103,7 +1103,7 @@ Result<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
         Contribution.DiffuseComponent[1] = Albedo.OrdinateY;
         Contribution.DiffuseComponent[2] = Albedo.OrdinateZ;
 
-        return Result<AmbientContribution>::Result(Contribution);
+        return Outcome<AmbientContribution>::Result(Contribution);
     }
 
     const SpatialSpan Oriented = Perturbed(Resolved, Reconstructed);
@@ -1111,7 +1111,7 @@ Result<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
 
     if (Agreement(View, View) <= 0.0)
     {
-        return Result<AmbientContribution>::Refuse(
+        return Outcome<AmbientContribution>::Refuse(
             { RefusalReason::ContentUnsupported, "the view direction has no length to reflect about" });
     }
 
@@ -1197,14 +1197,14 @@ Result<AmbientContribution> ReflectanceIntegrator::IntegrateAmbient(
         Contribution.SpecularComponent[Component] *= Contribution.Attenuation;
     }
 
-    return Result<AmbientContribution>::Result(Contribution);
+    return Outcome<AmbientContribution>::Result(Contribution);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                  THE UNOCCUPIED CLASS
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> ReflectanceIntegrator::IntegrateUnoccupied(const AtmosphereIntegrator& Atmosphere,
+Outcome<bool> ReflectanceIntegrator::IntegrateUnoccupied(const AtmosphereIntegrator& Atmosphere,
                                                          double ViewX, double ViewY, double ViewZ,
                                                          double& Red, double& Green, double& Blue) const
 {
@@ -1216,7 +1216,7 @@ Result<bool> ReflectanceIntegrator::IntegrateUnoccupied(const AtmosphereIntegrat
 
     if (Agreement(View, View) <= 0.0)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "the view direction has no length to sample along" });
     }
 
@@ -1229,7 +1229,7 @@ Result<bool> ReflectanceIntegrator::IntegrateUnoccupied(const AtmosphereIntegrat
     //    would carry a hole exactly where the sky belongs, filled with whatever the cycle slot held before.
     Disregard(Atmosphere.SampleSkyView(View.OrdinateX, View.OrdinateY, View.OrdinateZ, Red, Green, Blue));
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 }   // namespace Slate

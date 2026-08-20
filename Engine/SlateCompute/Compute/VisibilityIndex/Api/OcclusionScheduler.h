@@ -173,7 +173,7 @@ public:
     /// post  both programs stand; no chain is derived and no residency is claimable
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Construct(SpanSpace&        Spans,
+    Outcome<bool> Construct(SpanSpace&        Spans,
                             ImageSpace&       Images,
                             const TargetSpace& Claimed,
                             ShaderCodec&      Modules,
@@ -192,7 +192,7 @@ public:
     ///        against arbitrary depth. `ChainReduced` below is what distinguishes them.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
+    Outcome<bool> Derive(std::uint32_t DisplayAlong, std::uint32_t DisplayAcross);
 
     /// 🧩 Claims the culling spans for one resident partitioning.
     /// in    TriangleCeiling  [-]  triangles the residency's fan carries; the surviving run is sized to it
@@ -206,7 +206,7 @@ public:
     ///        would do it to a set the previous rotation's dispatch is still reading.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Resolve(std::uint32_t TriangleCeiling, std::uint32_t PartitionCount);
+    Outcome<std::uint32_t> Resolve(std::uint32_t TriangleCeiling, std::uint32_t PartitionCount);
 
     /// 🧩 Writes one rotation's classification into a residency's span and clears its indirect record.
     /// in    CullingOrdinal  [-]  an ordinal this component issued
@@ -223,7 +223,7 @@ public:
     ///        run at the partition count and lets the entry point's dispatch extent be that same count.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Amend(std::uint32_t                             CullingOrdinal,
+    Outcome<bool> Amend(std::uint32_t                             CullingOrdinal,
                         std::uint32_t                             SlotOrdinal,
                         const std::vector<ClassifiedPartition>&   Classified);
 
@@ -243,7 +243,7 @@ public:
     ///        from the wrong one.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Reduce(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal);
+    Outcome<bool> Reduce(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal);
 
     /// 🧩 Records ① or ③ — one dispatch per residency, testing its partitions and compacting the survivors.
     /// in    Recorded      [-]  the open recording of this cycle slot
@@ -258,7 +258,7 @@ public:
     ///        invocation — which draws a prefix of the survivors and reads as geometry culled at random.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Cull(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, CullingPhase Phase);
+    Outcome<bool> Cull(VkCommandBuffer Recorded, std::uint32_t SlotOrdinal, CullingPhase Phase);
 
     /// 🧩 The record and the surviving run one residency's draw is issued from.
     /// in    CullingOrdinal  [-]  an ordinal this component issued
@@ -268,7 +268,7 @@ public:
     ///                            unclaimed ordinal or an excessive cycle slot
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<VkBuffer> RecordOf(std::uint32_t CullingOrdinal,
+    Outcome<VkBuffer> RecordOf(std::uint32_t CullingOrdinal,
                                std::uint32_t SlotOrdinal,
                                CullingPhase  Phase) const;
 
@@ -276,7 +276,7 @@ public:
     /// out   Result  [-]  refuses with ContentUnsupported for an unclaimed ordinal
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<VkBuffer> SurvivingOf(std::uint32_t CullingOrdinal,
+    Outcome<VkBuffer> SurvivingOf(std::uint32_t CullingOrdinal,
                                   std::uint32_t SlotOrdinal,
                                   CullingPhase  Phase) const;
 
@@ -309,7 +309,7 @@ private:
     /// in    SlotOrdinal  [-]  below `RecordingSlotCount`
     /// in    LevelOrdinal  [-]  the level being written; nought reads the depth target
     /// out   Result       [-]  refuses with whatever the write or the resolution refused
-    Result<bool> ReduceLevel(VkCommandBuffer  Recorded,
+    Outcome<bool> ReduceLevel(VkCommandBuffer  Recorded,
                               std::uint32_t    SlotOrdinal,
                               std::uint32_t    LevelOrdinal);
 

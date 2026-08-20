@@ -125,12 +125,12 @@ ExtentRelation RelationOfTarget(SharedTarget Target)
 //                                                      THE SHAPES
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<ImageShape> TargetSpace::ShapeOf(SharedTarget Target) const
+Outcome<ImageShape> TargetSpace::ShapeOf(SharedTarget Target) const
 {
     const std::size_t TargetOrdinal = static_cast<std::size_t>(Target);
 
     if (TargetOrdinal >= TargetSpan)
-        return Result<ImageShape>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
+        return Outcome<ImageShape>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
 
     ImageShape Declared;
     Declared.Format     = TargetOrdinal == static_cast<std::size_t>(SharedTarget::DisplaySurface)
@@ -168,40 +168,40 @@ Result<ImageShape> TargetSpace::ShapeOf(SharedTarget Target) const
     }
 
     if (Declared.Width == 0u || Declared.Height == 0u)
-        return Result<ImageShape>::Refuse({ RefusalReason::ContentUnsupported, "the target resolves to a zero extent" });
+        return Outcome<ImageShape>::Refuse({ RefusalReason::ContentUnsupported, "the target resolves to a zero extent" });
 
     if (Declared.Width > DisplayExtentCeiling || Declared.Height > DisplayExtentCeiling)
     {
-        return Result<ImageShape>::Refuse(
+        return Outcome<ImageShape>::Refuse(
             { RefusalReason::ContentUnsupported, "the target resolves above the declared display extent ceiling" });
     }
 
     if (Declared.Format == VK_FORMAT_UNDEFINED)
-        return Result<ImageShape>::Refuse({ RefusalReason::ContentUnsupported, "the target resolves to no format" });
+        return Outcome<ImageShape>::Refuse({ RefusalReason::ContentUnsupported, "the target resolves to no format" });
 
-    return Result<ImageShape>::Result(Declared);
+    return Outcome<ImageShape>::Result(Declared);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                      THE CLAIM
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> TargetSpace::Claim(ImageSpace&    Images,
+Outcome<bool> TargetSpace::Claim(ImageSpace&    Images,
                                  std::uint32_t  DisplayWidth,
                                  std::uint32_t  DisplayHeight,
                                  VkFormat       DisplayFormat)
 {
     if (DisplayWidth == 0u || DisplayHeight == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero" });
 
     if (DisplayWidth > DisplayExtentCeiling || DisplayHeight > DisplayExtentCeiling)
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::ContentUnsupported, "a display extent above the declared ceiling" });
     }
 
     if (DisplayFormat == VK_FORMAT_UNDEFINED)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display surface declares no format" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "the display surface declares no format" });
 
     // 📝 A second claim over a standing one surrenders first rather than claiming twice. The alternative
     //    leaks fifteen images per call and reports as memory growth attributable to nothing in particular.
@@ -215,41 +215,41 @@ Result<bool> TargetSpace::Claim(ImageSpace&    Images,
 
     for (std::size_t TargetOrdinal = 0u; TargetOrdinal < TargetSpan; ++TargetOrdinal)
     {
-        const Result<ImageShape> Declared = ShapeOf(static_cast<SharedTarget>(TargetOrdinal));
+        const Outcome<ImageShape> Declared = ShapeOf(static_cast<SharedTarget>(TargetOrdinal));
 
         if (!Declared.Resolved)
         {
             Surrender();
-            return Result<bool>::Refuse(Declared.Error);
+            return Outcome<bool>::Refuse(Declared.Error);
         }
 
-        const Result<ImageClaim> Claimed = Images.Claim(Declared.Resolve());
+        const Outcome<ImageClaim> Claimed = Images.Claim(Declared.Resolve());
 
         // 🔴 Refused in full. Every target claimed so far is surrendered, so the caller is left with nothing
         //    rather than with a set that is complete up to whichever target the device declined.
         if (!Claimed.Resolved)
         {
             Surrender();
-            return Result<bool>::Refuse(Claimed.Error);
+            return Outcome<bool>::Refuse(Claimed.Error);
         }
 
         ClaimedFor[TargetOrdinal]    = Claimed.Resolve().ImageOrdinal;
         TargetClaimed[TargetOrdinal] = true;
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
-Result<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight)
+Outcome<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t DisplayHeight)
 {
     if (ImageEdge == nullptr)
-        return Result<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no target set stands to be reclaimed" });
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "no target set stands to be reclaimed" });
 
     if (DisplayWidth == 0u || DisplayHeight == 0u)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent of zero" });
 
     if (DisplayWidth > DisplayExtentCeiling || DisplayHeight > DisplayExtentCeiling)
-        return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent above the declared ceiling" });
+        return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "a display extent above the declared ceiling" });
 
     StandingWidth  = DisplayWidth;
     StandingHeight = DisplayHeight;
@@ -273,54 +273,54 @@ Result<bool> TargetSpace::Reclaim(std::uint32_t DisplayWidth, std::uint32_t Disp
         if (RelationOf[TargetOrdinal] == ExtentRelation::Absolute)
             continue;
 
-        const Result<ImageShape> Declared = ShapeOf(static_cast<SharedTarget>(TargetOrdinal));
+        const Outcome<ImageShape> Declared = ShapeOf(static_cast<SharedTarget>(TargetOrdinal));
 
         if (!Declared.Resolved)
         {
             Surrender();
-            return Result<bool>::Refuse(Declared.Error);
+            return Outcome<bool>::Refuse(Declared.Error);
         }
 
-        const Result<ImageClaim> Claimed = ImageEdge->Claim(Declared.Resolve());
+        const Outcome<ImageClaim> Claimed = ImageEdge->Claim(Declared.Resolve());
 
         if (!Claimed.Resolved)
         {
             Surrender();
-            return Result<bool>::Refuse(Claimed.Error);
+            return Outcome<bool>::Refuse(Claimed.Error);
         }
 
         ClaimedFor[TargetOrdinal]    = Claimed.Resolve().ImageOrdinal;
         TargetClaimed[TargetOrdinal] = true;
     }
 
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                   WHAT IS CLAIMED
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<ImageClaim> TargetSpace::Resolve(SharedTarget Target) const
+Outcome<ImageClaim> TargetSpace::Resolve(SharedTarget Target) const
 {
-    const Result<std::uint32_t> Ordinal = OrdinalOf(Target);
+    const Outcome<std::uint32_t> Ordinal = OrdinalOf(Target);
 
     if (!Ordinal.Resolved)
-        return Result<ImageClaim>::Refuse(Ordinal.Error);
+        return Outcome<ImageClaim>::Refuse(Ordinal.Error);
 
     return ImageEdge->Standing(Ordinal.Resolve());
 }
 
-Result<std::uint32_t> TargetSpace::OrdinalOf(SharedTarget Target) const
+Outcome<std::uint32_t> TargetSpace::OrdinalOf(SharedTarget Target) const
 {
     const std::size_t TargetOrdinal = static_cast<std::size_t>(Target);
 
     if (TargetOrdinal >= TargetSpan)
-        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
 
     if (ImageEdge == nullptr || !TargetClaimed[TargetOrdinal])
-        return Result<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "the target is not claimed" });
+        return Outcome<std::uint32_t>::Refuse({ RefusalReason::ContentUnsupported, "the target is not claimed" });
 
-    return Result<std::uint32_t>::Result(ClaimedFor[TargetOrdinal]);
+    return Outcome<std::uint32_t>::Result(ClaimedFor[TargetOrdinal]);
 }
 
 void TargetSpace::Surrender()
@@ -353,16 +353,16 @@ void TargetSpace::Surrender()
 //                                                     CONTRIBUTION
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> RenderSchedule::Contribute(const DeclaredRecording& Arriving)
+Outcome<bool> RenderSchedule::Contribute(const DeclaredRecording& Arriving)
 {
     if (OrderingFixed)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the ordering is already fixed" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the ordering is already fixed" });
 
     // 📝 🔴 A capability requirement with no substitution is rejected here rather than discovered at the
     //    recording site. The substitution is a design decision belonging to the contributing document.
     if (Arriving.CapabilityRequired && (Arriving.Substitution == nullptr || Arriving.Substitution[0] == '\0'))
     {
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::CapabilityAbsent, "a capability is required with no declared substitution" });
     }
 
@@ -371,13 +371,13 @@ Result<bool> RenderSchedule::Contribute(const DeclaredRecording& Arriving)
         const std::size_t TargetOrdinal = static_cast<std::size_t>(Produced);
 
         if (TargetOrdinal >= TargetSpan)
-            return Result<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
+            return Outcome<bool>::Refuse({ RefusalReason::ContentUnsupported, "no such shared target" });
 
         // 📝 One producing recording per target. An amender declares itself in Amends and takes its place
         //    in the ordered amendment list instead — `08` §2's Amended by column.
         if (ProducerOf[TargetOrdinal].IdentityDeclared())
         {
-            return Result<bool>::Refuse(
+            return Outcome<bool>::Refuse(
                 { RefusalReason::HostDenied, "the target already declares a producing recording" });
         }
 
@@ -386,17 +386,17 @@ Result<bool> RenderSchedule::Contribute(const DeclaredRecording& Arriving)
     }
 
     ContributedOrder.push_back(Arriving);
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 //                                                       ORDERING
 //------------------------------------------------------------------------------------------------------------------------
 
-Result<bool> RenderSchedule::Fix()
+Outcome<bool> RenderSchedule::Fix()
 {
     if (OrderingFixed)
-        return Result<bool>::Refuse({ RefusalReason::HostDenied, "the ordering is already fixed" });
+        return Outcome<bool>::Refuse({ RefusalReason::HostDenied, "the ordering is already fixed" });
 
     OrderedRecordings.clear();
     OrderedRecordings.reserve(ContributedOrder.size());
@@ -474,12 +474,12 @@ Result<bool> RenderSchedule::Fix()
         // 📝 A recording that never became placeable reads a target whose producer reads it back. The
         //    orderer reports it here rather than emitting an ordering that silently drops the recording.
         OrderedRecordings.clear();
-        return Result<bool>::Refuse(
+        return Outcome<bool>::Refuse(
             { RefusalReason::HostDenied, "a recording reads a target no ordering makes available" });
     }
 
     OrderingFixed = true;
-    return Result<bool>::Result(true);
+    return Outcome<bool>::Result(true);
 }
 
 const std::vector<DeclaredRecording>& RenderSchedule::Ordered() const

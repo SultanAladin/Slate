@@ -114,7 +114,7 @@ struct EmissionSpecification
     ///        it loaded second. Refused here rather than discovered by whoever ships the asset.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Validate(const MaterialIndex& Materials) const;
+    Outcome<bool> Validate(const MaterialIndex& Materials) const;
 };
 
 /// 🧩 Resolves an emission's declared naming pattern.
@@ -167,7 +167,7 @@ public:
     ///        is missed — by which time the artist has already built on it.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> IntakeTopology(const DecodedTopology& Decoded, TopologyStructure& Into, IntakeIndex& Recorded);
+    Outcome<bool> IntakeTopology(const DecodedTopology& Decoded, TopologyStructure& Into, IntakeIndex& Recorded);
 
     /// 🧩 Records one decoded image's declared space, or the assumption made in its absence.
     /// in    Decoded   [-]  the decoded image, its original retained
@@ -179,7 +179,7 @@ public:
     ///        temptation lives, because a file called `_normal` looks like a helpful signal.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> IntakeImage(const DecodedImage& Decoded, IntakeIndex& Recorded);
+    Outcome<bool> IntakeImage(const DecodedImage& Decoded, IntakeIndex& Recorded);
 
     /// 🧩 Whether an emission may be started against the current document.
     /// in    Declaring  [-]  the emission specification
@@ -189,7 +189,7 @@ public:
     ///        wrong arrangement and the doubled channel are caught — before the artist has waited for an export.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareEmission(const EmissionSpecification& Declaring, const MaterialIndex& Materials);
+    Outcome<bool> DeclareEmission(const EmissionSpecification& Declaring, const MaterialIndex& Materials);
 
     /// 🧩 The declared emission, for whoever presents it.
     /// cost  ✔️

@@ -88,7 +88,7 @@ public:
     ///        confidently wrong.
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Construct(const TopologyStructure& Imported, const TopologyConditioning& Conditioned);
+    Outcome<bool> Construct(const TopologyStructure& Imported, const TopologyConditioning& Conditioned);
 
     /// 🧩 Intersects one ray, in the occupant's own object space.
     /// in    Origin            [mm]  the ray's origin, in object space
@@ -190,13 +190,13 @@ public:
     /// post  the subdivision is owed a rebuild before the admission is traversable
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Admit(const AdmittedOccupant& Arriving);
+    Outcome<bool> Admit(const AdmittedOccupant& Arriving);
 
     /// 🧩 Withdraws one occupant.
     /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Withdraw(OccupantIdentity Subject);
+    Outcome<bool> Withdraw(OccupantIdentity Subject);
 
     /// 🧩 Refits one occupant's extent and composed transform, without rebuilding.
     /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
@@ -204,19 +204,19 @@ public:
     ///        untouched; only the extents along the path to the occupant's record widen.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Refit(OccupantIdentity Subject, const DecomposedTransform& Composed, ConditionedExtent Extent);
+    Outcome<bool> Refit(OccupantIdentity Subject, const DecomposedTransform& Composed, ConditionedExtent Extent);
 
     /// 🧩 Surrenders one admitted occupant's standing record.
     /// out   Result  [-]  refuses with IdentityStale when the occupant is not admitted
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<AdmittedOccupant> Standing(OccupantIdentity Subject) const;
+    Outcome<AdmittedOccupant> Standing(OccupantIdentity Subject) const;
 
     /// 🧩 Rebuilds the subdivision's shape over every admitted occupant.
     /// post  the shape is optimal for the current extents; nothing is owed
     /// cost  🔴
     /// tag   api, nonthrowing
-    Result<bool> Construct();
+    Outcome<bool> Construct();
 
     /// 🧩 Resolves the nearest occupant surface along one document-space ray — `74`'s precedence 2.
     /// in    Origin      [mm]  the ray's origin, in document space
@@ -325,13 +325,13 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted when no placement carries that ordinal
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Refit(std::uint32_t PlacementOrdinal, DomainExtent Amending);
+    Outcome<bool> Refit(std::uint32_t PlacementOrdinal, DomainExtent Amending);
 
     /// 🧩 Resolves the topmost placement containing one domain position.
     /// out   Result  [-]  refuses with ExtentExhausted when no placement contains it
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Resolve(double PositionAlong, double PositionAcross) const;
+    Outcome<std::uint32_t> Resolve(double PositionAlong, double PositionAcross) const;
 
     /// 🧩 Every placement whose extent overlaps a domain extent.
     /// cost  🚩

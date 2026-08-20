@@ -106,7 +106,7 @@ public:
     ///        no partial state behind. `12` §10 rejects at commit and resolves nothing silently.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Enrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
+    Outcome<bool> Enrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
 
     /// 🧩 Withdraws one occupant from a subset, dividing the run it sat inside.
     /// in    Subject         [-]  the occupant
@@ -114,7 +114,7 @@ public:
     /// out   Result         [-]  refuses with IdentityStale when the occupant was not enrolled
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> Unenrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
+    Outcome<bool> Unenrol(OccupantIdentity Subject, SubsetSubject EnrolledSubset);
 
     /// 🧩 Withdraws one occupant from every subset — the subset half of invariant 8.
     /// in    Subject  [-]  the occupant being retired

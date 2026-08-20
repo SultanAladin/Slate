@@ -165,7 +165,7 @@ public:
     /// err   a refusal leaves nothing enrolled; the panel records nothing until Construct is delivered
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    Result<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording);
+    Outcome<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording);
 
     /// 🧩 Samples the tick's pointer before anything is recorded against it.
     /// in    Arrived  [-]  this tick's pointer, as the host built it

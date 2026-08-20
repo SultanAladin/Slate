@@ -180,7 +180,7 @@ public:
     ///        its bounds is an invalid value presented on every surface that never overrode it.
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<bool> DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring);
+    Outcome<bool> DeclareChannel(ChannelSubject Channel, const ChannelSpecification& Declaring);
 
     /// 🧩 Declares the coverage threshold a cutout occupant is resolved against.
     /// note  🔴 Per material, never global — `62` §2. A single threshold across a document makes one artist's
@@ -239,19 +239,19 @@ public:
     /// out   Result  [-]  refuses with ExtentExhausted at the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<std::uint32_t> Declare(const std::string& Named);
+    Outcome<std::uint32_t> Declare(const std::string& Named);
 
     /// 🧩 One declared material, for reading.
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<const MaterialSpecification*> Resolve(std::uint32_t MaterialOrdinal) const;
+    Outcome<const MaterialSpecification*> Resolve(std::uint32_t MaterialOrdinal) const;
 
     /// 🧩 One declared material, for amending.
     /// out   Result  [-]  refuses with ContentUnsupported outside the declared count
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<MaterialSpecification*> Amend(std::uint32_t MaterialOrdinal);
+    Outcome<MaterialSpecification*> Amend(std::uint32_t MaterialOrdinal);
 
     const std::string& DeclaredName(std::uint32_t MaterialOrdinal) const;
     std::uint32_t      DeclaredCount() const;
@@ -304,14 +304,14 @@ public:
     ///                       the declared ceiling
     /// cost  🚩
     /// tag   api, nonthrowing
-    Result<PartitionIdentity> Declare(const ResolvedPartition& Resolving);
+    Outcome<PartitionIdentity> Declare(const ResolvedPartition& Resolving);
 
     /// 🧩 Resolves one partition identity.
     /// out   Result  [-]  refuses with IdentityStale when the generation no longer matches — which is what a
     ///                     re-partition since the identity was taken looks like
     /// cost  ✔️
     /// tag   api, nonthrowing
-    Result<ResolvedPartition> Resolve(PartitionIdentity Subject) const;
+    Outcome<ResolvedPartition> Resolve(PartitionIdentity Subject) const;
 
     /// 🧩 The revision the last rebuild advanced to; `70` §2 compares counters against it.
     /// cost  ✔️
