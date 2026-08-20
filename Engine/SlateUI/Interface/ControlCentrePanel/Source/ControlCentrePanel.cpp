@@ -997,18 +997,40 @@ void ControlCentrePanel::FontsPage(const PlaneExtent& Extent, ControlCentreConfi
     {
         const float PreviewText = static_cast<float>(Ordinates.TypographySize[Ordinal]);
         const float RequiredHeight = PreviewText + 28.0f;
-        const float EntryHeight = RequiredHeight > 80.0f ? RequiredHeight : 80.0f;
+        // Three lines: typeface options, size control, and live sample.
+        const float EntryHeight = RequiredHeight > 150.0f ? RequiredHeight : 150.0f;
         const PlaneExtent Entry = Spanning(ContentLeast, Cursor, ContentMost - ContentLeast, EntryHeight);
         Surface->Ground(Entry, Theme.Card, 16.0f, CornerAll);
         Surface->Edge(Entry, Theme.Edge, 1.0f, 16.0f, CornerAll);
         Surface->TextRun(Entry.LeastAlong + 18.0f, Entry.LeastAcross + 12.0f, Theme.Primary,
                          Roles[Ordinal], 16.0f, 0.0f, true);
+        static constexpr FontWeight Faces[4] = { FontWeight::Regular, FontWeight::Medium,
+                                                   FontWeight::Semibold, FontWeight::Bold };
+        static constexpr const char* FaceNames[4] = { "Regular", "Medium", "Semibold", "Bold" };
+        const float FaceTop = Entry.LeastAcross + 38.0f;
+        for (std::uint32_t FaceOrdinal = 0u; FaceOrdinal < 4u; ++FaceOrdinal)
+        {
+            const float FaceAlong = Entry.LeastAlong + 18.0f + static_cast<float>(FaceOrdinal) * 112.0f;
+            const PlaneExtent FaceBox = Spanning(FaceAlong, FaceTop, 104.0f, 34.0f);
+            Surface->Ground(FaceBox, Theme.Panel, 8.0f, CornerAll);
+            Surface->Edge(FaceBox, Theme.Edge, 1.0f, 8.0f, CornerAll);
+            if (FontArchive != nullptr)
+                Surface->ApplyFontPreview(FontArchive->Face(Faces[FaceOrdinal], FontSlant::Upright));
+            Surface->TextRun(FaceBox.LeastAlong + 8.0f, FaceBox.LeastAcross + 6.0f,
+                             Theme.Primary, "Aa", 16.0f, 0.0f, true);
+            Surface->TextRun(FaceBox.LeastAlong + 38.0f, FaceBox.LeastAcross + 10.0f,
+                             Theme.Secondary, FaceNames[FaceOrdinal], 9.0f);
+            if (Pressed(1200u + Ordinal * 4u + FaceOrdinal, FaceBox))
+                Ordinates.TypographyWeight[Ordinal] = static_cast<std::uint32_t>(Faces[FaceOrdinal]);
+        }
+        Surface->ApplyFontPreview(nullptr);
+
         Slider(144u + Ordinal,
-               Spanning(Entry.LeastAlong + 18.0f, Entry.LeastAcross + Entry.SpanAcross() - 46.0f,
-                        420.0f, 40.0f),
+               Spanning(Entry.LeastAlong + 18.0f, Entry.LeastAcross + 76.0f,
+                        420.0f, 34.0f),
                Least[Ordinal], Most[Ordinal], Ordinates.TypographySize[Ordinal], "px", Theme.Edge, Accent);
 
-        const PlaneExtent PreviewClip = {Entry.LeastAlong + 470.0f, Entry.LeastAcross + 10.0f,
+        const PlaneExtent PreviewClip = {Entry.LeastAlong + 18.0f, Entry.LeastAcross + 112.0f,
                                          Entry.MostAlong - 18.0f, Entry.MostAcross - 10.0f};
         const float PreviewAcross = PreviewClip.LeastAcross +
                                     (PreviewClip.SpanAcross() - PreviewText) * 0.5f;
