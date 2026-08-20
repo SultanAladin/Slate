@@ -819,9 +819,18 @@ enum class FontSlant : std::uint32_t
     Italic = 1u
 };
 
+enum class FontFamily : std::uint32_t
+{
+    Inter = 0u,
+    OpenSans = 1u,
+    Archivo = 2u,
+    JetBrainsMono = 3u,
+    FamilyCount = 4u
+};
+
 struct FontProfile
 {
-    std::uint32_t Family = 0u;
+    FontFamily Family = FontFamily::Inter;
     FontWeight Display = FontWeight::Bold;
     FontWeight Title = FontWeight::Semibold;
     FontWeight Heading = FontWeight::Semibold;

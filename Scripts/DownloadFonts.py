@@ -12,8 +12,8 @@ import shutil
 
 ROOT = Path(__file__).resolve().parents[1] / "EngineContent" / "FontArchives"
 FONTS = {
-    "OpenSans": ("https://github.com/googlefonts/opensans/archive/refs/heads/main.zip", "OpenSans-main"),
-    "Archivo": ("https://github.com/Omnibus-Type/Archivo/archive/refs/heads/main.zip", "Archivo-main"),
+    "OpenSans": ("https://github.com/googlefonts/opensans/archive/refs/heads/main.zip", "opensans-main"),
+    "Archivo": ("https://github.com/Omnibus-Type/Archivo/archive/refs/heads/master.zip", "Archivo-master"),
     "Inter": ("https://github.com/rsms/inter/archive/refs/heads/master.zip", "inter-master"),
     "JetBrainsMono": ("https://github.com/JetBrains/JetBrainsMono/archive/refs/heads/master.zip", "JetBrainsMono-master"),
 }
