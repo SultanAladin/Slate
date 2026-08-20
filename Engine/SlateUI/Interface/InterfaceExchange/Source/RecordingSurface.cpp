@@ -180,7 +180,7 @@ void RecordingSurface::Ground(const PlaneExtent& Extent, ThemeToken Colour, floa
 
     Commands(CommandSlot)->AddRectFilled(ImVec2(Extent.LeastAlong,  Extent.LeastAcross),
                                          ImVec2(Extent.MostAlong,   Extent.MostAcross),
-                                         Vendor(Colour), Radius, VendorCorners(Corners));
+                                         Vendor(Colour), Radius * CornerScale, VendorCorners(Corners));
 }
 
 void RecordingSurface::Edge(const PlaneExtent& Extent, ThemeToken Colour, float Weight,
@@ -196,7 +196,7 @@ void RecordingSurface::Edge(const PlaneExtent& Extent, ThemeToken Colour, float 
 
     Commands(CommandSlot)->AddRect(ImVec2(Extent.LeastAlong  + Inset, Extent.LeastAcross + Inset),
                                    ImVec2(Extent.MostAlong   - Inset, Extent.MostAcross  - Inset),
-                                   Vendor(Colour), Radius, VendorCorners(Corners), Weight);
+                                   Vendor(Colour), Radius * CornerScale, VendorCorners(Corners), Weight);
 }
 
 void RecordingSurface::Scrim(const PlaneExtent& Extent, ThemeToken UpperColour, ThemeToken LowerColour,
@@ -406,6 +406,16 @@ void Capitalise(const char* Text, char* Staging)
 
 }   // namespace
 
+void RecordingSurface::ApplyTypographyScale(float Scale)
+{
+    TypographyScale = (Scale < 0.5f) ? 0.5f : ((Scale > 2.0f) ? 2.0f : Scale);
+}
+
+void RecordingSurface::ApplyCornerScale(float Scale)
+{
+    CornerScale = (Scale < 0.5f) ? 0.5f : ((Scale > 1.5f) ? 1.5f : Scale);
+}
+
 void RecordingSurface::TextRun(float Along, float Across, ThemeToken Colour, const char* Text,
                                float PointSize, float Tracking, bool Emphatic)
 {
@@ -415,6 +425,7 @@ void RecordingSurface::TextRun(float Along, float Across, ThemeToken Colour, con
     ImDrawList*   Target   = Commands(CommandSlot);
     ImFont*       Typeface = const_cast<ImFont*>(ImGui::GetFont());
     const ImU32   Vendored = Vendor(Colour);
+    PointSize *= TypographyScale;
     const float   Added    = Tracking * PointSize;
 
     const auto Emit = [&](float StartAlong, float StartAcross)
@@ -527,6 +538,7 @@ float RecordingSurface::MeasureRun(const char* Text, float PointSize, float Trac
         return 0.0f;
 
     ImFont*       Typeface = const_cast<ImFont*>(ImGui::GetFont());
+    PointSize *= TypographyScale;
     const float   Measured = Typeface->CalcTextSizeA(PointSize, FLT_MAX, 0.0f, Text).x;
 
     if (Tracking == 0.0f)

@@ -324,6 +324,10 @@ public:
     /// tag   api, nonallocating, nonthrowing
     float MeasureRun(const char* Text, float PointSize, float Tracking = 0.0f) const;
 
+    /// Sets the shared typography scale for all text measurement and drawing on this surface.
+    void ApplyTypographyScale(float Scale);
+    void ApplyCornerScale(float Scale);
+
     /// 🧩 The baseline-to-baseline extent at one point size.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -384,6 +388,8 @@ private:
     void*             CommandSlot   = nullptr;   // [-] - opaque; the ImGui spelling stays in the source file
     PointerCondition  ArrivedPointer = {};       // [-] - sampled once, at Adopt
     DisplayCondition  ArrivedDisplay = {};       // [-] - sampled once, at Adopt
+    float             TypographyScale = 1.0f;    // [-] - shared text scale
+    float             CornerScale = 1.0f;        // [-] - shared corner scale
     std::uint32_t     ConfineDepth   = 0u;       // [-] - how many Confines stand unmatched
 };
 

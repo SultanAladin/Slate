@@ -517,6 +517,8 @@ ApplyUserScale(Appearance,
                static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
                static_cast<float>(ControlCentreValues.Radius) / 24.0f);
     Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
+    Surface.ApplyTypographyScale(Appearance.TextScale);
+    Surface.ApplyCornerScale(Appearance.CornerScale);
 
     // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
     //    that printed only a headline and left the text in a buffered stdout was invisible: the window is
@@ -787,6 +789,8 @@ ApplyUserScale(Appearance,
                            static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
                            static_cast<float>(ControlCentreValues.Radius) / 24.0f);
             Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
+    Surface.ApplyTypographyScale(Appearance.TextScale);
+    Surface.ApplyCornerScale(Appearance.CornerScale);
             ResolvedAgainst = Display.ExtentAlong;
 
             // 🔴 The shell holds its own scaled extents, so a resolve it is not told about leaves it
@@ -1322,6 +1326,8 @@ ApplyUserScale(Appearance,
                                static_cast<float>(ControlCentreValues.TypographySize[3]) / 14.0f,
                                static_cast<float>(ControlCentreValues.Radius) / 24.0f);
                 Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
+    Surface.ApplyTypographyScale(Appearance.TextScale);
+    Surface.ApplyCornerScale(Appearance.CornerScale);
                 ContentBrowser.Reseat(Appearance);
                 LayerStack.Reseat(Appearance);
             }
