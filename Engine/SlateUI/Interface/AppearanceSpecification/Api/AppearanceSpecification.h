@@ -819,18 +819,10 @@ enum class FontSlant : std::uint32_t
     Italic = 1u
 };
 
-enum class FontFamily : std::uint32_t
-{
-    Inter = 0u,
-    OpenSans = 1u,
-    Archivo = 2u,
-    JetBrainsMono = 3u,
-    FamilyCount = 4u
-};
-
 struct FontProfile
 {
-    FontFamily Family = FontFamily::Inter;
+    // Folder name under EngineContent/FontArchives. Any user-added folder is valid.
+    char Family[64] = "Inter";
     FontWeight Display = FontWeight::Bold;
     FontWeight Title = FontWeight::Semibold;
     FontWeight Heading = FontWeight::Semibold;

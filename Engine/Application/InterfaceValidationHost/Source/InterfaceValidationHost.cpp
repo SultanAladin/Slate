@@ -521,6 +521,7 @@ ApplyUserScale(Appearance,
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
     Surface.ApplyFontLoader(Fonts);
+    Disregard(Fonts.Discover("EngineContent/FontArchives"));
     Disregard(Fonts.Load("EngineContent/FontArchives", Appearance.Fonts, 1.0f));
 
     // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
@@ -794,6 +795,7 @@ ApplyUserScale(Appearance,
             Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
+    Disregard(Fonts.Discover("EngineContent/FontArchives"));
     Disregard(Fonts.Load("EngineContent/FontArchives", Appearance.Fonts, 1.0f));
             ResolvedAgainst = Display.ExtentAlong;
 
@@ -1332,6 +1334,7 @@ ApplyUserScale(Appearance,
                 Disregard(Interface.SeatWorkspaceStyle(Appearance.WorkspaceMeasure, Appearance.Workspace));
     Surface.ApplyTypographyScale(Appearance.TextScale);
     Surface.ApplyCornerScale(Appearance.CornerScale);
+    Disregard(Fonts.Discover("EngineContent/FontArchives"));
     Disregard(Fonts.Load("EngineContent/FontArchives", Appearance.Fonts, 1.0f));
                 ContentBrowser.Reseat(Appearance);
                 LayerStack.Reseat(Appearance);

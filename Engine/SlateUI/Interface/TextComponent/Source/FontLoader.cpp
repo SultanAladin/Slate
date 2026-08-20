@@ -5,6 +5,7 @@
 #include <cctype>
 #include <filesystem>
 #include <string>
+#include <cstring>
 
 namespace Slate
 {
@@ -40,6 +41,26 @@ bool Matches(const std::string& Name, FontWeight Weight, FontSlant Slant)
 }
 }
 
+Outcome<bool> FontLoader::Discover(const char* FontRoot)
+{
+    Families.clear();
+    if (FontRoot == nullptr || !std::filesystem::exists(FontRoot))
+        return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "font archive directory is unavailable" });
+
+    for (const auto& Entry : std::filesystem::directory_iterator(FontRoot))
+    {
+        if (Entry.is_directory())
+            Families.push_back(Entry.path().filename().string());
+    }
+    std::sort(Families.begin(), Families.end());
+    return Outcome<bool>::Result(true);
+}
+
+const char* FontLoader::FamilyName(std::uint32_t Ordinal) const
+{
+    return Ordinal < Families.size() ? Families[Ordinal].c_str() : nullptr;
+}
+
 ImFont* FontLoader::Face(FontWeight Weight, FontSlant Slant) const
 {
     ImFont* Loaded = Faces[Slot(Weight, Slant)];
@@ -53,9 +74,7 @@ Outcome<bool> FontLoader::Load(const char* FontRoot, const FontProfile& Profile,
     if (FontRoot == nullptr || ImGui::GetCurrentContext() == nullptr || ImGui::GetIO().Fonts == nullptr)
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "font context is unavailable" });
 
-    const char* Family = (Profile.Family == FontFamily::OpenSans) ? "OpenSans" :
-                         (Profile.Family == FontFamily::Archivo) ? "Archivo" :
-                         (Profile.Family == FontFamily::JetBrainsMono) ? "JetBrainsMono" : "Inter";
+    const char* Family = (Profile.Family[0] != '\0') ? Profile.Family : "Inter";
     const std::filesystem::path Root = std::filesystem::path(FontRoot) / Family;
     if (!std::filesystem::exists(Root))
         return Outcome<bool>::Refuse({ RefusalReason::CapabilityAbsent, "selected font family is not installed" });
