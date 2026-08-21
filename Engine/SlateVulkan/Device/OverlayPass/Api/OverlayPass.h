@@ -81,7 +81,10 @@ public:
     /// in    Command  [-]  the recording, between `vkCmdBeginRendering` and `vkCmdEndRendering`
     /// in    Width    [px] the display extent the viewport state is set against
     /// in    Height   [px]
-    /// in    ClipX0, ClipY0, ClipX1, ClipY1  [px]  the viewport leaf's box — the scissor is set to
+    /// in    ClipX0 [px]  the viewport leaf's box — the scissor is set to
+    /// in    ClipY0 [px]
+    /// in    ClipX1 [px]
+    /// in    ClipY1 [px]
     ///                     it, so the grid, the axes and the gizmo NEVER paint over the outliner,
     ///                     the properties or any other panel; they are drawn only inside the
     ///                     viewport leaf that produced the geometry

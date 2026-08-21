@@ -138,7 +138,7 @@ public:
     ///        strip choice reaches every panel that reads `Appearance().Fonts` on the tick it was made.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void ApplyTypographyWeights(const std::uint32_t (&Weights)[8]);
+    void ApplyTypographyWeights(const std::uint32_t Weights[8]);
 
     /// 🧩 The shared motion integrator, for panels whose interaction contributes to viewport wakefulness.
     /// cost  ✔️

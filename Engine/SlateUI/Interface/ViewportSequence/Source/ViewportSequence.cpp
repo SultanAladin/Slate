@@ -231,7 +231,7 @@ void ViewportSequence::Retint(const ThemeSelection& Selected)
     RestateTypography(Resolved);
 }
 
-void ViewportSequence::ApplyTypographyWeights(const std::uint32_t (&Weights)[8])
+void ViewportSequence::ApplyTypographyWeights(const std::uint32_t Weights[8])
 {
     for (std::uint32_t Ordinal = 0u; Ordinal < 8u; ++Ordinal)
         RoleWeights[Ordinal] = Weights[Ordinal];

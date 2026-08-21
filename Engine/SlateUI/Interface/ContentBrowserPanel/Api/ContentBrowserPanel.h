@@ -168,7 +168,7 @@ public:
     Outcome<bool> Construct(InteractionIndex& Interaction, RecordingSurface& Recording);
 
     /// 🧩 Samples the tick's pointer before anything is recorded against it.
-    /// in    Sampled  [-]  this tick's pointer, as the host built it
+    /// in    Incoming [-]  this tick's pointer, as the host built it
     /// in    Elapsed  [s]  since the previous tick
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
@@ -189,7 +189,7 @@ public:
     void RecordDeferred(ContentBrowserConfiguration& Applied);
 
     /// 🧩 Accepts a typed octet into the seek run when the seek field holds the keyboard.
-    /// in    Sampled  [-]  the octet, as the interface reported it
+    /// in    Incoming [-]  the octet, as the interface reported it
     /// in    Applied   [-]  amended in place
     /// out   Accepted [-]  false when the field does not hold the keyboard
     /// cost  ✔️

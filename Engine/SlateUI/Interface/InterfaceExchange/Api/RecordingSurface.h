@@ -371,8 +371,10 @@ public:
     /// in    Identity  [-]  an opaque texture identity from `RegisterSampledImage`; the vendor resolves
     ///                      it to a sampled image (a `VkDescriptorSet` in the windowed hosts). Zero
     ///                      records nothing.
-    /// in    U0/V0/U1/V1 [-]  the sampled rectangle in the image's own unit interval; the caller crops
-    ///                      with these so the presented aspect need not match the texture's
+    /// in    U0 [-]  the sampled rectangle in the image's own unit interval; the caller crops
+    /// in    V0 [-]  with these so the presented aspect need not match the texture's
+    /// in    U1 [-]
+    /// in    V1 [-]
     /// note  🔴 The image must already stand in a shader-readable layout; the host owns the transition
     ///        and the upload. This records only the quad.
     /// cost  🚩
@@ -414,7 +416,8 @@ public:
                    const std::uint32_t* Indices, std::uint32_t IndexCount);
 
     /// 🧩 Records one polyline of a declared weight, in the standing confine.
-    /// in    PointsX, PointsY  [-]  `Count` screen positions, display pixels
+    /// in    PointsX [-]  `Count` screen positions, display pixels
+    /// in    PointsY [-]  `Count` screen positions, display pixels
     /// in    Count             [-]  at least two and at most 64; longer runs are clamped
     /// in    Colour            [-]  the line's colour; zero opacity records nothing
     /// in    Weight            [px] the line's thickness
