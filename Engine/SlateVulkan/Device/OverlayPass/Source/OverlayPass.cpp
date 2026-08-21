@@ -443,7 +443,8 @@ void OverlayPass::Upload(const OverlayGeometry& Overlay)
     OverlayTriangleCount = Overlay.TriangleCount;
 }
 
-void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint32_t Height)
+void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint32_t Height,
+                          float ClipX0, float ClipY0, float ClipX1, float ClipY1)
 {
     if (DeviceEdge == nullptr || OverlayPipeline == VK_NULL_HANDLE || Command == VK_NULL_HANDLE ||
         Width == 0u || Height == 0u)
@@ -462,9 +463,23 @@ void OverlayPass::Record(VkCommandBuffer Command, std::uint32_t Width, std::uint
         .maxDepth = 1.0f
     };
 
+    // 🔴 The scissor IS the viewport leaf's box: the grid, the axes and the gizmo must never paint
+    //    over the outliner, the properties or any other panel — they are drawn only inside the leaf
+    //    that produced the geometry. The box is clamped to the display so a leaf at the window edge
+    //    cannot push the scissor past the target.
+    const std::int32_t ScissorX = static_cast<std::int32_t>(ClipX0 < 0.0f ? 0.0f : ClipX0);
+    const std::int32_t ScissorY = static_cast<std::int32_t>(ClipY0 < 0.0f ? 0.0f : ClipY0);
+    const std::int32_t ScissorRight  = static_cast<std::int32_t>(ClipX1 > static_cast<float>(Width)
+                                                                 ? static_cast<float>(Width) : ClipX1);
+    const std::int32_t ScissorBottom = static_cast<std::int32_t>(ClipY1 > static_cast<float>(Height)
+                                                                 ? static_cast<float>(Height) : ClipY1);
+    const std::int32_t ScissorWidth  = ScissorRight  > ScissorX ? ScissorRight  - ScissorX : 0;
+    const std::int32_t ScissorHeight = ScissorBottom > ScissorY ? ScissorBottom - ScissorY : 0;
+
     const VkRect2D Scissor = {
-        .offset = { 0, 0 },
-        .extent = { Width, Height }
+        .offset = { ScissorX, ScissorY },
+        .extent = { static_cast<std::uint32_t>(ScissorWidth),
+                    static_cast<std::uint32_t>(ScissorHeight) }
     };
 
     vkCmdSetViewport(Command, 0u, 1u, &Viewport);

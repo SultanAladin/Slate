@@ -121,6 +121,18 @@ its own pass inside the host's dynamic-rendering scope, AFTER the interface.
   device-recovered, `Overlay.Reclaim()` before `Lifetime.Reclaim()` at
   shutdown. The pass refuses gracefully when the build lowered no shaders (the
   sandbox) and the editor runs without the overlay.
+- **The overlay is clipped to the viewport leaf.** The pass's `Record` sets the
+  scissor to the leaf's box (clamped to the display), and the host keeps ONE
+  overlay record per viewport leaf (static storage) and draws each clipped to
+  its own leaf — the grid, the axes and the gizmo never paint over the
+  outliner, the properties or any other panel, and two viewports each show
+  their own grid. The harness rasterizes with the same clip and asserts zero
+  overlay ink beyond the leaf.
+- **The axis lines span the whole grid**: X (red), Y (green, vertical) and Z
+  (blue) each run the lattice's full extent in both directions (-Half ..
+  +Half), sampled and near-plane-split like the lattice lines, and they draw
+  even when the lattice presentation is None (the two toggles are
+  independent).
 - **Shaders**: `OverlayVertex.slang` + `OverlayFragment.slang` under
   `SlateVulkan/Device/OverlayPass/Shader/` are lowered by `Construct.ps1` to
   `<Binary>/../Shader/SlateVulkan/<Stem>.spv`; `ShaderCodec` reads them at the

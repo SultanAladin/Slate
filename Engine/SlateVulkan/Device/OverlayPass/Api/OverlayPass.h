@@ -76,15 +76,21 @@ public:
     /// tag   api, nonthrowing
     void Upload(const OverlayGeometry& Overlay);
 
-    /// 🧩 Records the overlay primitives inside the open dynamic-rendering scope.
+    /// 🧩 Records the overlay primitives inside the open dynamic-rendering scope, clipped to one
+    ///    viewport leaf's box.
     /// in    Command  [-]  the recording, between `vkCmdBeginRendering` and `vkCmdEndRendering`
     /// in    Width    [px] the display extent the viewport state is set against
     /// in    Height   [px]
+    /// in    ClipX0, ClipY0, ClipX1, ClipY1  [px]  the viewport leaf's box — the scissor is set to
+    ///                     it, so the grid, the axes and the gizmo NEVER paint over the outliner,
+    ///                     the properties or any other panel; they are drawn only inside the
+    ///                     viewport leaf that produced the geometry
     /// note  🔴 The lines draw as `4 × count`, the dots as `4 × count`, the triangles as
     ///        `3 × count` — the vertex stage expands by `SV_VertexID`, so nothing here tessellates.
     /// cost  ✔️
     /// tag   api, nonallocating, nonthrowing
-    void Record(VkCommandBuffer Command, std::uint32_t Width, std::uint32_t Height);
+    void Record(VkCommandBuffer Command, std::uint32_t Width, std::uint32_t Height,
+                float ClipX0, float ClipY0, float ClipX1, float ClipY1);
 
     /// 🧩 Destroys every object and forgets the device handles, ahead of a device rebuild.
     /// cost  🔴

@@ -181,17 +181,19 @@ public:
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
     void RecordGroundGrid(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                          const EditorPanelConfiguration& Configuration);
+                          const EditorPanelConfiguration& Configuration, OverlayGeometry& Overlay);
 
     /// 🧩 Records the world-origin translation gizmo — the three vivid axis arrows and the centre
     ///    handle — into the overlay geometry, projected through the same pinhole as the grid.
     /// in    Extent   [px]  the leaf body the gizmo is projected into
-    /// in    Applied  [-]   the camera's pose and position; the gizmo's overlay record is written here
+    /// in    Applied  [-]   the camera's pose and position
+    /// in    Overlay  [-]   the overlay record the gizmo is written into; the host owns one per
+    ///                      viewport leaf, so the pass can clip each leaf's geometry to its own box
     /// note  🔴 The gizmo colours are FULL-OPACITY straight alpha — the whole reason the overlay has
     ///        its own GPU pass is that the interface's premultiplied blend washed them out.
     /// cost  🚩
     /// tag   api, nonallocating, nonthrowing
-    void RecordGizmo(const PlaneExtent& Extent, SceneDirectoryContext& Applied);
+    void RecordGizmo(const PlaneExtent& Extent, SceneDirectoryContext& Applied, OverlayGeometry& Overlay);
 
     /// 🧩 Records the outliner column and its details pane across one outliner leaf.
     /// in    Rows   [-]  the entity rows, borrowed for the tick

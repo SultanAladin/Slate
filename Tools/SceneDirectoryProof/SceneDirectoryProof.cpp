@@ -326,8 +326,11 @@ struct Rasterizer
 
     // 📐 The CPU twin of the GPU overlay pass: rasterizes the SAME OverlayGeometry record the host
     //    uploads, so the proof pixels are the proof of the pass's input. Straight-alpha source-over,
-    //    exactly as the pass's blend state declares.
-    void RasterizeOverlay(const OverlayGeometry& Overlay)
+    //    exactly as the pass's blend state declares. The clip is the viewport leaf's box — the same
+    //    scissor the GPU pass sets — so the overlay never paints over the panels, exactly as the
+    //    windowed editor behaves.
+    void RasterizeOverlay(const OverlayGeometry& Overlay,
+                          float ClipX0, float ClipY0, float ClipX1, float ClipY1)
     {
         const auto Colour = [](std::uint32_t Packed) -> ImU32
         {
@@ -343,7 +346,9 @@ struct Rasterizer
             const ImDrawVert A = { ImVec2(X0, Y0), ImVec2(0.0f, 0.0f), Col };
             const ImDrawVert B = { ImVec2(X1, Y1), ImVec2(0.0f, 0.0f), Col };
             const ImDrawVert C = { ImVec2(X2, Y2), ImVec2(0.0f, 0.0f), Col };
-            Triangle(A, B, C, false, false, nullptr, 0, 0, 0, 0, Width, Height);
+            Triangle(A, B, C, false, false, nullptr, 0, 0,
+                     static_cast<int>(ClipX0), static_cast<int>(ClipY0),
+                     static_cast<int>(ClipX1), static_cast<int>(ClipY1));
         };
 
         for (std::uint32_t Ordinal = 0u; Ordinal < Overlay.TriangleCount; ++Ordinal)
@@ -607,8 +612,8 @@ struct SceneDriver
             {
                 case PanelSubject::Viewport:
                     SceneDirectory.RecordViewportSky(LeafBody, Applied);
-                    SceneDirectory.RecordGroundGrid(LeafBody, Applied, Configuration);
-                    SceneDirectory.RecordGizmo(LeafBody, Applied);
+                    SceneDirectory.RecordGroundGrid(LeafBody, Applied, Configuration, Applied.Overlay);
+                    SceneDirectory.RecordGizmo(LeafBody, Applied, Applied.Overlay);
                     break;
                 case PanelSubject::Outliner:
                     SceneDirectory.RecordOutliner(LeafBody, Applied, EditorEntities, 7u,
@@ -695,8 +700,21 @@ struct SceneDriver
         }
 
         // 📝 The overlay record the host would upload to the GPU pass — rasterized here as the pass's
-        //    CPU twin, so the proof pixels ARE the pass's input.
-        Out.RasterizeOverlay(Applied.Overlay);
+        //    CPU twin, so the proof pixels ARE the pass's input. The clip is the viewport leaf's box,
+        //    the same scissor the GPU pass sets: the grid and the gizmo never paint over the panels.
+        PlaneExtent ViewportClip = Spanning(0.0f, 0.0f, ViewportWidth, ViewportHeight);
+        for (std::uint32_t Leaf = 0u; Leaf < Editor.LeafCount(); ++Leaf)
+        {
+            if (Editor.LeafSubject(Leaf) == PanelSubject::Viewport)
+            {
+                ViewportClip = Editor.LeafBody(Leaf);
+                break;
+            }
+        }
+
+        Out.RasterizeOverlay(Applied.Overlay,
+                             ViewportClip.MinimumX, ViewportClip.MinimumY,
+                             ViewportClip.MaximumX, ViewportClip.MaximumY);
 
         if (stbi_write_png(Path, Out.Width, Out.Height, 4, Out.Pixels.data(), Out.Width * 4) == 0)
             return false;
@@ -798,6 +816,46 @@ bool RunShot(SceneDriver& Driver, const char* OutputPath, const char* Scenario,
         {
             std::fprintf(stderr, "[FAIL] an axis line did not draw\n");
             return false;
+        }
+
+        // 📐 The CLIP's own proof: the overlay's unique full-opacity colours — axis red (229,72,77)
+        //    and the gizmo's white handle (240,240,240) — must be ZERO beyond the viewport leaf
+        //    (x >= 637). Any pixel there would mean the grid or the gizmo painted over the panels.
+        {
+            int ReadWidth = 0;
+            int ReadHeight = 0;
+            int ReadChannels = 0;
+            unsigned char* ReadPixels = stbi_load(OutputPath, &ReadWidth, &ReadHeight, &ReadChannels, 4);
+
+            if (ReadPixels == nullptr)
+            {
+                std::fprintf(stderr, "[FAIL] the clip capture would not read back\n");
+                return false;
+            }
+
+            std::uint32_t RedOutside = 0u;
+            for (int Y = 70; Y < ReadHeight; ++Y)
+            {
+                for (int X = 637; X < ReadWidth; ++X)
+                {
+                    const std::size_t Offset = (static_cast<std::size_t>(Y) * ReadWidth + X) * 4u;
+                    const int R = ReadPixels[Offset + 0u];
+                    const int G = ReadPixels[Offset + 1u];
+                    const int B = ReadPixels[Offset + 2u];
+
+                    if (R > 200 && G < 120 && B < 120 && (R - G) > 100)
+                        ++RedOutside;
+                }
+            }
+
+            stbi_image_free(ReadPixels);
+
+            std::fprintf(stderr, "[assert] axis-red outside the viewport leaf: %u\n", RedOutside);
+            if (RedOutside != 0u)
+            {
+                std::fprintf(stderr, "[FAIL] the overlay painted over the panels\n");
+                return false;
+            }
         }
 
         // 📐 The gizmo's own proof: its centre handle is a FULL-OPACITY white square at the origin's

@@ -405,7 +405,8 @@ void SceneDirectoryPanel::RecordViewportSky(const PlaneExtent& Extent, const Sce
 //------------------------------------------------------------------------------------------------------------------------
 
 void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
-                                              const EditorPanelConfiguration& Configuration)
+                                              const EditorPanelConfiguration& Configuration,
+                                              OverlayGeometry& Overlay)
 {
     // 📐 The world the camera travels: a lattice on the Y = 0 plane, projected through the same
     //    pinhole as the sky mesh. Without it a fly camera over a pure skybox reads as static — there
@@ -414,9 +415,6 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
     //    popup): the presentation (none / lines / dots / both), the cell size, the extent, and the
     //    axis lines — the same configuration the skeletal lattice in the pre-editor viewport read.
     const PanelLatticePresentation Presentation = Configuration.Lattice;
-
-    if (Presentation == PanelLatticePresentation::None)
-        return;
 
     constexpr double BaseCell = 20.0;                       // [m] - one lattice cell at scale 1
     const double Cell = BaseCell * static_cast<double>(Configuration.LatticeScale);
@@ -508,9 +506,9 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
                     (AY > Extent.MaximumY && BY > Extent.MaximumY))
                     continue;
 
-                Applied.Overlay.AddLine(AX, AY, BX, BY,
-                                        Coarse ? PackedCoarse : PackedFine,
-                                        Coarse ? 1.5f : 1.0f);
+                Overlay.AddLine(AX, AY, BX, BY,
+                                Coarse ? PackedCoarse : PackedFine,
+                                Coarse ? 1.5f : 1.0f);
             }
         };
 
@@ -572,18 +570,19 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
             {
                 const std::uint32_t Packed = Coarse ? PackOverlayColour(0x9A, 0xA6, 0xB8, 0x99u)
                                                  : PackOverlayColour(0x9A, 0xA6, 0xB8, 0x57u);
-                Applied.Overlay.AddDot(ScreenX, ScreenY, Packed, Coarse ? 2.6f : 1.8f);
+                Overlay.AddDot(ScreenX, ScreenY, Packed, Coarse ? 2.6f : 1.8f);
             }
         }
     }
 
-    // 📐 The axis lines — the world's own X (red), Y (green, vertical) and Z (blue), each from the
-    //    origin to a declared reach. Toggled by the grid settings' axis switches; the vertical Y axis
-    //    is what makes the camera's up/down travel legible.
+    // 📐 The axis lines — the world's own X (red), Y (green, vertical) and Z (blue), each spanning
+    //    the WHOLE lattice, exactly as a real editor's axes do: not a stub from the origin, but a
+    //    line that runs the grid's full extent in both directions, so it reads as the world's axes
+    //    no matter where the camera stands. Toggled by the grid settings' axis switches, and drawn
+    //    even when the lattice presentation is None — the two are independent.
     if (Configuration.AxisX || Configuration.AxisY || Configuration.AxisZ)
     {
-        constexpr double AxisReach = 60.0;   // [m] - the axis lines' extent
-        constexpr std::uint32_t AxisSamples = 24u;
+        constexpr std::uint32_t AxisSamples = 48u;
         const float AxisWeight = 2.0f;
 
         const auto RecordAxis = [&](bool AlongX, bool AlongY, bool AlongZ, std::uint32_t Packed)
@@ -592,10 +591,10 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
             float Y[AxisSamples + 1u];
             std::uint32_t Tally = 0u;
 
-            // 📐 The axis is SAMPLED and split at the near plane, exactly as the lattice lines are:
-            //    the origin sits a metre below the camera, so a line that required both endpoints in
-            //    front of the camera vanished the moment the camera left the origin — the reported
-            //    missing axes. Sampling keeps the front run visible from anywhere.
+            // 📐 The axis is SAMPLED across the full span (-Half .. +Half) and split at the near
+            //    plane, exactly as the lattice lines are: a line that required both endpoints in
+            //    front of the camera would vanish the moment the camera crossed the axis — the
+            //    reported missing axes. Sampling keeps the front run visible from anywhere.
             const auto Flush = [&](std::uint32_t Count) -> void
             {
                 const std::uint32_t PackedColour = PackOverlayColour((Packed >> 16u) & 0xFFu,
@@ -613,13 +612,13 @@ void SceneDirectoryPanel::RecordGroundGrid(const PlaneExtent& Extent, SceneDirec
                         (AY > Extent.MaximumY && BY > Extent.MaximumY))
                         continue;
 
-                    Applied.Overlay.AddLine(AX, AY, BX, BY, PackedColour, AxisWeight);
+                    Overlay.AddLine(AX, AY, BX, BY, PackedColour, AxisWeight);
                 }
             };
 
             for (std::uint32_t Sample = 0u; Sample <= AxisSamples; ++Sample)
             {
-                const double T = AxisReach * static_cast<double>(Sample) / static_cast<double>(AxisSamples);
+                const double T = -Half + (2.0 * Half) * static_cast<double>(Sample) / static_cast<double>(AxisSamples);
 
                 float ScreenX = 0.0f;
                 float ScreenY = 0.0f;
@@ -1861,7 +1860,8 @@ void SceneDirectoryPanel::RecordRevisionSpine(const PlaneExtent& Extent, SceneDi
 //                                                       THE GIZMO
 //------------------------------------------------------------------------------------------------------------------------
 
-void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryContext& Applied)
+void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryContext& Applied,
+                                        OverlayGeometry& Overlay)
 {
     // 📐 The world-origin translation gizmo — the reference fly-cam convention: X red, Y green (up),
     //    Z blue, each an arrow with a filled head, and a centre handle. The colours are FULL-OPACITY
@@ -1936,7 +1936,7 @@ void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryC
 
         // 📐 The shaft, then the head: a filled triangle whose base is `Head` back along the axis and
         //    whose wings sit `Wing` either side, in screen space.
-        Applied.Overlay.AddLine(OriginX, OriginY, EndScreenX, EndScreenY, Packed, 2.0f);
+        Overlay.AddLine(OriginX, OriginY, EndScreenX, EndScreenY, Packed, 2.0f);
 
         if (!OriginBehind)
         {
@@ -1956,10 +1956,10 @@ void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryC
                 const float NormalX = -DirectionY;
                 const float NormalY =  DirectionX;
 
-                Applied.Overlay.AddTriangle(EndScreenX, EndScreenY,
-                                            BaseX + NormalX * WingSpan, BaseY + NormalY * WingSpan,
-                                            BaseX - NormalX * WingSpan, BaseY - NormalY * WingSpan,
-                                            Packed);
+                Overlay.AddTriangle(EndScreenX, EndScreenY,
+                                    BaseX + NormalX * WingSpan, BaseY + NormalY * WingSpan,
+                                    BaseX - NormalX * WingSpan, BaseY - NormalY * WingSpan,
+                                    Packed);
             }
         }
     };
@@ -1974,12 +1974,12 @@ void SceneDirectoryPanel::RecordGizmo(const PlaneExtent& Extent, SceneDirectoryC
         const float Handle = 5.0f;
         const std::uint32_t White = PackOverlayColour(0xF0u, 0xF0u, 0xF0u, 0xFFu);
 
-        Applied.Overlay.AddTriangle(OriginX - Handle, OriginY - Handle,
-                                    OriginX + Handle, OriginY - Handle,
-                                    OriginX - Handle, OriginY + Handle, White);
-        Applied.Overlay.AddTriangle(OriginX + Handle, OriginY + Handle,
-                                    OriginX + Handle, OriginY - Handle,
-                                    OriginX - Handle, OriginY + Handle, White);
+        Overlay.AddTriangle(OriginX - Handle, OriginY - Handle,
+                            OriginX + Handle, OriginY - Handle,
+                            OriginX - Handle, OriginY + Handle, White);
+        Overlay.AddTriangle(OriginX + Handle, OriginY + Handle,
+                            OriginX + Handle, OriginY - Handle,
+                            OriginX - Handle, OriginY + Handle, White);
     }
 }
 

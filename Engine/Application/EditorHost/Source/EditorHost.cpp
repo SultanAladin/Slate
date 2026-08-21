@@ -222,7 +222,14 @@ int main(int ArgumentCount, char** ArgumentValues)
     CameraRig               FlyRig;
     ShaderCodec             OverlayCodec;
     OverlayPass             Overlay;
-    std::uint32_t           OverlayGeneration = 0u;   // [-] - the last uploaded overlay generation
+    std::uint32_t           OverlayGeneration[PanelStructure::RecordCeiling] = {};   // [-] - per viewport leaf
+
+    // 📝 One overlay record per viewport leaf, in STATIC storage: each record is ~70 KB and the
+    //    automatic-storage budget (a quarter of a Windows thread stack) cannot hold eleven of them.
+    static OverlayGeometry   ViewportOverlays[PanelStructure::RecordCeiling];
+    std::uint32_t            ViewportLeafOrdinals[PanelStructure::RecordCeiling] = {};
+    PlaneExtent              ViewportLeafRects[PanelStructure::RecordCeiling]    = {};
+    std::uint32_t            ViewportLeafTally = 0u;
     std::vector<std::uint8_t> SkyPixels;
     SkyCamera               SkyCam;
     EnvironmentConfiguration SkyPrevious;
@@ -511,7 +518,8 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                     Lifetime.DiagnosticsExtension(),
                                                     OverlayCodec,
                                                     Lifetime.Offering().ColourTargetFormat));
-                OverlayGeneration = 0u;   // [-] - the next tick re-uploads
+                for (std::uint32_t Ordinal = 0u; Ordinal < PanelStructure::RecordCeiling; ++Ordinal)
+                    OverlayGeneration[Ordinal] = 0u;   // [-] - the next tick re-uploads every leaf
             }
 
             // 📝 The display recovery this rebuild also raised is consumed here. The reconstruction above
@@ -603,10 +611,12 @@ int main(int ArgumentCount, char** ArgumentValues)
                     //    an outliner leaf, and the properties | history fills a properties leaf.
                     //    Panels draw their content only while they exist in the partition; there is
                     //    no fullscreen scene directory in this host (see the header's layout rule).
-                    // 📝 The overlay record is rebuilt for this tick: the panel empties it and the
-                    //    viewport leaf refills it with the grid and the gizmo. The host uploads it
-                    //    when its generation changed and the GPU pass draws it after the interface.
-                    SceneApplied.Overlay.Reset();
+                    // 📝 Each viewport leaf owns its overlay record: the panel empties the leaf's
+                    //    record and refills it with the grid, the axes and the gizmo projected for
+                    //    THAT leaf. The host uploads each record when its generation changed and
+                    //    the GPU pass draws each one clipped to its own leaf's box — so with two
+                    //    viewports, each shows its own grid and neither leaks onto the panels.
+                    ViewportLeafTally = 0u;
 
                     for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
                     {
@@ -615,11 +625,24 @@ int main(int ArgumentCount, char** ArgumentValues)
                         switch (WorkspacePanels.LeafSubject(Leaf))
                         {
                             case PanelSubject::Viewport:
+                            {
+                                OverlayGeometry& LeafOverlay = ViewportOverlays[Leaf];
+                                LeafOverlay.Reset();
+
                                 SceneDirectory.RecordViewportSky(LeafBody, SceneApplied);
                                 SceneDirectory.RecordGroundGrid(LeafBody, SceneApplied,
-                                                                PanelConfiguration[Ordinal]);
-                                SceneDirectory.RecordGizmo(LeafBody, SceneApplied);
+                                                                PanelConfiguration[Ordinal],
+                                                                LeafOverlay);
+                                SceneDirectory.RecordGizmo(LeafBody, SceneApplied, LeafOverlay);
+
+                                if (ViewportLeafTally < PanelStructure::RecordCeiling)
+                                {
+                                    ViewportLeafOrdinals[ViewportLeafTally] = Leaf;
+                                    ViewportLeafRects[ViewportLeafTally]    = LeafBody;
+                                    ++ViewportLeafTally;
+                                }
                                 break;
+                            }
                             case PanelSubject::Outliner:
                                 SceneDirectory.RecordOutliner(LeafBody, SceneApplied,
                                                               EditorEntities, 7u,
@@ -642,15 +665,6 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                     if (WorkspacePanels.PointerCaptured(Ordinal))
                         Viewport.Seam().WithholdPointer();
-                }
-
-                // 📝 The overlay geometry is uploaded at most once per generation change — the grid
-                //    and the gizmo are static between camera or settings changes, so there is no
-                //    per-frame upload.
-                if (SceneApplied.Overlay.Generation != OverlayGeneration)
-                {
-                    Overlay.Upload(SceneApplied.Overlay);
-                    OverlayGeneration = SceneApplied.Overlay.Generation;
                 }
 
                 Viewport.Seam().LeaveWorkspaceWindow();
@@ -873,9 +887,29 @@ int main(int ArgumentCount, char** ArgumentValues)
                 }
 
                 // 📝 The overlay pass records INSIDE the same dynamic-rendering scope, after the
-                //    interface: the grid, the gizmo and the wireframe draw on top of the sky and the
-                //    UI, in their own straight-alpha pass — no ImGui tessellation, vivid colours.
-                Overlay.Record(Pass.Recording, Pass.Width, Pass.Height);
+                //    interface: the grid, the axes and the gizmo draw on top of the sky and the UI,
+                //    in their own straight-alpha pass — no ImGui tessellation, vivid colours.
+                //    Each viewport leaf's geometry is uploaded at most once per generation change
+                //    and drawn with a scissor clipped to that leaf's box, so the overlay never
+                //    paints over the outliner, the properties or any other panel.
+                for (std::uint32_t ViewportOrdinal = 0u; ViewportOrdinal < ViewportLeafTally;
+                     ++ViewportOrdinal)
+                {
+                    const std::uint32_t LeafOrdinal = ViewportLeafOrdinals[ViewportOrdinal];
+                    OverlayGeometry& LeafOverlay = ViewportOverlays[LeafOrdinal];
+
+                    if (LeafOverlay.Generation != OverlayGeneration[LeafOrdinal])
+                    {
+                        Overlay.Upload(LeafOverlay);
+                        OverlayGeneration[LeafOrdinal] = LeafOverlay.Generation;
+                    }
+
+                    const PlaneExtent& LeafRect = ViewportLeafRects[ViewportOrdinal];
+
+                    Overlay.Record(Pass.Recording, Pass.Width, Pass.Height,
+                                   LeafRect.MinimumX, LeafRect.MinimumY,
+                                   LeafRect.MaximumX, LeafRect.MaximumY);
+                }
             }
             else
             {
