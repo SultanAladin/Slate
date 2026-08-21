@@ -98,6 +98,42 @@ prototype of the WHOLE reference sheet                    the real editor layout
   in cells, 2-128), and the red/green/blue axis lines (X/Y/Z toggles). The
   dotted presentation draws a node at every intersection.
 
+## The editor's texture-paint layer stack
+
+The editor's layer stack is a DEDICATED class, `TexturePaintPanel`
+(`SlateUI/Interface/TexturePaintPanel`), a sibling of SceneDirectoryPanel — NOT
+the validation host's `LayerStackPanel` (that one stays the prototype's, with
+its history spine; the editor's has none, exactly as the user asked).
+
+- **The flow**: the leaf is a two-page carousel. The STACK page shows every
+  layer's small details only — badge, name, blend, opacity mini-bar, MASK / n/8
+  CH chips, the attached mask row — plus the SAME filter pair as the scene
+  directory (a search pill + the FacetPanel of layer categories: Paint, Fill,
+  Decal, Pattern, Generator, Adjustment, Filter, Folder). Tab TOGGLES to the
+  PROPERTIES page, landing on the tab the selection names:
+  - a layer row → Channel Properties (per-channel dot / name / blend / opacity,
+    with its own search pill + channel-group facets: Base, Maps, Output)
+  - a mask row → the Mask panel (source dropdown, density, invert, applies-to
+    chips)
+  - a decal / pattern / generator → its settings card
+  - a FOLDER → the COMBINED stack properties (layer count, mask count, channel
+    union, passthrough, opacity — one summary over the whole subtree)
+  The property tabs are switched with the strip; Tab never cycles them.
+- **The editor's contract** is `TexturePaintContract.h` (`TextureLayerRow`,
+  `TextureLayerClassification`, tags, sources, detail runs). Do not merge it
+  with the validation `LayerStackPanel`'s types.
+- **The editor host** owns `TexturePaintPanel` + `TexturePaintContext` on the
+  shared scene ledger, seeds the reference's mock tree, feeds the search pill
+  gated on `SearchTaken`, and routes Tab to the texture-paint panel only when
+  the pointer is over one of its leaves (the scene directory keeps Tab
+  otherwise). `PanelSubject::TexturePaint` is the fifth panel type (appended,
+  so ordinals 0-4 never move); the vacant chooser and the subject menu offer
+  it, and `LeafPanel::LayerStack` is its chrome ground.
+- **The proof** (`editor-layerstack`): stack rows render, "decal" narrows the
+  search to one row, the Fill facet narrows to the fills, a layer + Tab opens
+  Channel Properties, a mask + Tab opens the mask panel, a folder + Tab opens
+  the combined stack page — all asserted on real pixels.
+
 ## The GPU overlay pass (grid, gizmo, wireframe)
 
 The grid, the world-origin gizmo and (later) wireframe are NOT drawn through

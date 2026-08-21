@@ -25,7 +25,8 @@ enum class PanelSubject : std::uint32_t
     Outliner     = 2u,   // [-] - editor scene outline
     Properties   = 3u,   // [-] - selected record's properties
     Vacant       = 4u,   // [-] - panel chooser
-    SubjectCount = 5u    // [-] - closed count, never a subject
+    TexturePaint = 5u,   // [-] - the texture-paint layer stack (appended, so 0-4 never move)
+    SubjectCount = 6u    // [-] - closed count, never a subject
 };
 
 /// 🧩 Which display axis a division partitions.

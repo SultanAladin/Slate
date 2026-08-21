@@ -779,16 +779,18 @@ void EditorPanel::RecordSubjectMenu(std::uint32_t RecordOrdinal,
     const PlaneExtent Menu = Spanning(MenuTop,
                                       Anchor.MaximumY + Measure.MenuLift,
                                       MenuX,
-                                      Measure.MenuPadY * 2.0f + Measure.MenuRowHeight * 4.0f);
+                                      Measure.MenuPadY * 2.0f + Measure.MenuRowHeight * 5.0f);
     Surface->Ground(Menu, Colour.ChromeGround, Measure.MenuRadius, CornerAll);
     Surface->Edge(Menu, Colour.Edge, Measure.EdgeWeight, Measure.MenuRadius, CornerAll);
 
-    const PanelSubject Subjects[4] = { PanelSubject::Viewport, PanelSubject::Uv,
-                                       PanelSubject::Outliner, PanelSubject::Properties };
-    const ControlRole Roles[4] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
-                                   ControlRole::ChooseOutliner, ControlRole::ChooseProperties };
+    const PanelSubject Subjects[5] = { PanelSubject::Viewport, PanelSubject::Uv,
+                                       PanelSubject::Outliner, PanelSubject::Properties,
+                                       PanelSubject::TexturePaint };
+    const ControlRole Roles[5] = { ControlRole::ChooseViewport, ControlRole::ChooseUv,
+                                   ControlRole::ChooseOutliner, ControlRole::ChooseProperties,
+                                   ControlRole::ChooseTexturePaint };
 
-    for (std::uint32_t Ordinal = 0u; Ordinal < 4u; ++Ordinal)
+    for (std::uint32_t Ordinal = 0u; Ordinal < 5u; ++Ordinal)
     {
         const PlaneExtent Row = Spanning(Menu.MinimumX + Measure.MenuPadY,
                                          Menu.MinimumY + Measure.MenuPadY +

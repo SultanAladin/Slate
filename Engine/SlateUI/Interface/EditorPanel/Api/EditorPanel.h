@@ -86,7 +86,7 @@ class EditorPanel
 {
 public:
 
-    static constexpr std::uint32_t ControlsPerRecord = 22u;
+    static constexpr std::uint32_t ControlsPerRecord = 25u;
     static constexpr std::uint32_t ControlCapacity = PanelStructure::RecordCeiling * ControlsPerRecord;
 
     Outcome<bool> Construct(MotionIntegrator& Motion,
@@ -157,6 +157,7 @@ private:
         ChooseUv,
         ChooseOutliner,
         ChooseProperties,
+        ChooseTexturePaint,
         LatticeMenu,
         CameraMenu,
         OverlayMenu,
@@ -221,6 +222,7 @@ private:
     LeafPanel UvPresentation = {};
     LeafPanel OutlinerPresentation = {};
     LeafPanel PropertyPresentation = {};
+    LeafPanel LayerStackPresentation = {};
     ControlIdentity Controls[ControlCapacity] = {};
     PointerCondition Pointer = {};
     PlaneExtent CurrentLeafExtent = {};

@@ -40,6 +40,15 @@ LeafAppearance AppearanceFor(const ThemeProfile& Appearance, LeafSubject Subject
 
         case LeafSubject::Outliner:
         case LeafSubject::Property:
+            return { Appearance.EditorPanel.BodyGround,
+                     "Empty",
+                     Appearance.EditorPanelMeasure.TextBody };
+
+        case LeafSubject::LayerStack:
+            return { Appearance.EditorPanel.BodyGround,
+                     "LAYER STACK",
+                     Appearance.EditorPanelMeasure.TextSmall };
+
         default:
             return { Appearance.EditorPanel.BodyGround,
                      "Empty",

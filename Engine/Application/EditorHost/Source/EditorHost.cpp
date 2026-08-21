@@ -25,6 +25,7 @@
 #include "SlateUI/Interface/ControlCentrePanel/Api/ControlCentrePanel.h"
 #include "SlateUI/Interface/ThemeInterchange/Api/ThemeInterchange.h"
 #include "SlateUI/Interface/EditorPanel/Api/EditorPanel.h"
+#include "SlateUI/Interface/TexturePaintPanel/Api/TexturePaintPanel.h"
 #include "SlateUI/Interface/SceneDirectoryPanel/Api/SceneDirectoryPanel.h"
 #include "SlateUI/Interface/ViewportSequence/Api/ViewportSequence.h"
 #include "SlateUI/Interface/WorkspacePanel/Api/WorkspaceIndex.h"
@@ -70,7 +71,8 @@ constexpr std::uint32_t EasesPerControl = 2u;
 constexpr std::uint32_t CentreControls  = ControlCentrePanel::ControlCapacity;
 constexpr std::uint32_t BrowserControls = ContentBrowserPanel::RegistrationDemand;
 constexpr std::uint32_t EditorControls  = PanelStructure::RecordCeiling * EditorPanel::ControlsPerRecord;
-constexpr std::uint32_t SceneControls   = SceneDirectoryPanel::RegistrationDemand;
+constexpr std::uint32_t SceneControls   = SceneDirectoryPanel::RegistrationDemand
+                                        + TexturePaintPanel::RegistrationDemand;
 constexpr std::uint32_t BareEases       = 9u + 1u + 1u;   // [-] - Control Centre motions, shell carousel
 
 constexpr std::uint32_t DemandedEases =
@@ -105,6 +107,7 @@ static_assert(sizeof(WorkspaceIndex) + sizeof(WorkspacePanel) + sizeof(EditorPan
               + sizeof(ContentBrowserConfiguration) + sizeof(ContentLibrary)
               + sizeof(InteractionIndex)    + sizeof(SceneDirectoryPanel)
               + sizeof(SceneDirectoryContext) + sizeof(ShaderCodec) + sizeof(OverlayPass)
+              + sizeof(TexturePaintPanel) + sizeof(TexturePaintContext)
               <= AutomaticCeiling,
               "this host's automatic UI members no longer fit a quarter of a Windows thread stack — the "
               "prologue's stack probe will fault before main runs a statement and the host will exit with "
@@ -217,6 +220,8 @@ int main(int ArgumentCount, char** ArgumentValues)
     SceneDirectoryPanel     SceneDirectory;
     SceneDirectoryContext   SceneApplied;
     InteractionIndex        SceneLedger;
+    TexturePaintPanel        TexturePaint;
+    TexturePaintContext     TexturePaintApplied;
     ViewportSkySurface      SkySurface;
     AtmosphereIntegrator    SkyIntegrator;
     CameraRig               FlyRig;
@@ -230,6 +235,11 @@ int main(int ArgumentCount, char** ArgumentValues)
     std::uint32_t            ViewportLeafOrdinals[PanelStructure::RecordCeiling] = {};
     PlaneExtent              ViewportLeafRects[PanelStructure::RecordCeiling]    = {};
     std::uint32_t            ViewportLeafTally = 0u;
+
+    // 📝 The texture-paint leaves, for the Tab arbitration: the layer stack consumes Tab only when
+    //    the pointer is over one of its leaves.
+    PlaneExtent              LayerLeafRects[PanelStructure::RecordCeiling] = {};
+    std::uint32_t            LayerLeafTally = 0u;
     std::vector<std::uint8_t> SkyPixels;
     SkyCamera               SkyCam;
     EnvironmentConfiguration SkyPrevious;
@@ -363,6 +373,80 @@ int main(int ArgumentCount, char** ArgumentValues)
     SceneApplied.Environment.AtmosphereScaleHeight = 1.0;
     SceneApplied.EntityTaken = 2u;   // [-] - the sun, taken at bring-up
 
+    // 📝 The texture-paint layer stack — the reference's own tree from LayerstackV1.html, seeded as
+    //    the editor's mock: a folder holding an adjustment, a decal and two fills (one with a
+    //    generator mask), then a fill with a paint mask, a pattern, and a second folder of materials.
+    //    The row detail runs are the small sub-lines the stack page shows; the full settings live on
+    //    the properties page.
+    static const char* const StackChannels[TextureChannelCeiling] =
+    {
+        "Base Color", "Metallic", "Roughness", "Normal",
+        "Height", "Ambient Occlusion", "Emissive", "Opacity"
+    };
+
+    static TextureLayerRow StackRows[TexturePaintContext::TextureLayerCeiling] =
+    {
+        { "Surface Detail",  TextureLayerClassification::Folder,  "Passthrough", 100u, 0x9B8CF0u, 0x9B8CF0u,
+          false, 100u, false, "", "8 layers", { StackChannels[0], StackChannels[1], StackChannels[2] }, 3u,
+          0u, 0xFFFFFFFFu, 3u, true, "folder detail group" },
+        { "Levels",          TextureLayerClassification::Adjustment, "Overlay",   64u, 0x8B8D98u, 0x8B8D98u,
+          false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
+          1u, 0u, 0u, true, "adjust levels" },
+        { "Warning Stencil", TextureLayerClassification::Decal,   "Normal",    100u, 0xE5484Du, 0xE5484Du,
+          true,  100u, false, "Bitmap", "Planar \u00B7 100%", { StackChannels[0] }, 1u,
+          1u, 0u, 0u, true, "decal stencil warning" },
+        { "Scratches",       TextureLayerClassification::Paint,    "Screen",     38u, 0xB0E64Cu, 0xB0E64Cu,
+          true,   88u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
+          1u, 0u, 0u, true, "paint scratches grunge" },
+        { "Edge Wear",       TextureLayerClassification::Fill,     "Multiply",   82u, 0xF76B15u, 0xF76B15u,
+          true,  100u, false, "Generator", "2048px \u00B7 RGBA 8", { StackChannels[1], StackChannels[2] }, 2u,
+          1u, 0u, 0u, true, "fill edge wear rust" },
+        { "Emissive Trim",   TextureLayerClassification::Fill,     "Normal",    100u, 0xFFC53Du, 0xFFC53Du,
+          true,  100u, false, "Paint", "2048px \u00B7 RGBA 8", { StackChannels[6] }, 1u,
+          0u, 0xFFFFFFFFu, 0u, true, "fill emissive trim" },
+        { "Hex Panelling",   TextureLayerClassification::Pattern,  "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
+          true,  100u, false, "Generator", "Hex Grid \u00B7 4\u00D74", { StackChannels[2], StackChannels[4] }, 2u,
+          0u, 0xFFFFFFFFu, 0u, true, "pattern hex panel" },
+        { "Base Materials",  TextureLayerClassification::Folder,   "Passthrough", 100u, 0x12A594u, 0x12A594u,
+          false, 100u, false, "", "4 layers", { StackChannels[0], StackChannels[1] }, 2u,
+          0u, 0xFFFFFFFFu, 2u, true, "folder materials base" },
+        { "Brushed Steel",   TextureLayerClassification::Fill,     "Normal",    100u, 0x8AB4D8u, 0x8AB4D8u,
+          true,  100u, false, "Generator", "4096px \u00B7 RGBA 8", { StackChannels[0], StackChannels[1] }, 2u,
+          1u, 7u, 0u, true, "fill brushed steel metal" },
+        { "Gold Inlay",      TextureLayerClassification::Fill,     "Normal",    100u, 0xE5484Du, 0xE5484Du,
+          true,   50u, true,  "Color Selection", "2048px \u00B7 RGBA 8", { StackChannels[0] }, 1u,
+          1u, 7u, 0u, true, "fill gold inlay" },
+        { "Oak Panel",       TextureLayerClassification::Material, "Normal",    100u, 0xF76B15u, 0xF76B15u,
+          false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[2] }, 2u,
+          1u, 7u, 0u, true, "material oak wood" },
+        { "Canvas Weave",    TextureLayerClassification::Material, "Normal",     90u, 0xE93D82u, 0xE93D82u,
+          false, 100u, false, "", "2048px \u00B7 RGBA 8", { StackChannels[0], StackChannels[3] }, 2u,
+          1u, 7u, 0u, false, "material canvas fabric" }
+    };
+
+    TexturePaintApplied.LayerTaken = 1u;
+
+    for (std::uint32_t Ordinal = 0u; Ordinal < TexturePaintContext::TextureLayerCeiling; ++Ordinal)
+    {
+        TexturePaintApplied.LayerPresent[Ordinal] = true;
+        TexturePaintApplied.LayerExpanded[Ordinal] = true;
+        TexturePaintApplied.ChannelTaken[Ordinal] = 0u;
+
+        for (std::uint32_t Channel = 0u; Channel < TexturePaintContext::TextureChannelCeiling; ++Channel)
+        {
+            TexturePaintApplied.ChannelOn[Ordinal][Channel] = Channel < 6u;
+            TexturePaintApplied.ChannelAmount[Ordinal][Channel] = 100u;
+            TexturePaintApplied.ChannelBlendTaken[Ordinal][Channel] = 0u;
+        }
+
+        TexturePaintApplied.MaskDensity[Ordinal] = 100u;
+        TexturePaintApplied.MaskSourceTaken[Ordinal] = 0u;
+        TexturePaintApplied.SettingAmount[Ordinal][0] = 100u;
+        TexturePaintApplied.SettingAmount[Ordinal][1] = 50u;
+        TexturePaintApplied.SettingAmount[Ordinal][2] = 50u;
+        TexturePaintApplied.SettingAmount[Ordinal][3] = 50u;
+    }
+
     // 📝 The editor camera, registered as the seventh row. Its details' options are the camera's own:
     //    bit 1 is the camera lag, bit 2 the inverted pitch — the lag arrives enabled so the camera
     //    eases out of the gate, and the pitch arrives un-inverted (the standard fly-cam convention).
@@ -390,6 +474,13 @@ int main(int ArgumentCount, char** ArgumentValues)
                                   Viewport.Appearance()).Resolved)
     {
         std::printf("%s \u2014 the scene directory was rejected\n", HostName);
+        return 1;
+    }
+
+    if (!TexturePaint.Construct(SceneLedger, Viewport.MotionSource(), Viewport.Surface(),
+                              Viewport.Appearance()).Resolved)
+    {
+        std::printf("%s \u2014 the texture paint panel was rejected\n", HostName);
         return 1;
     }
 
@@ -617,6 +708,7 @@ int main(int ArgumentCount, char** ArgumentValues)
                     //    the GPU pass draws each one clipped to its own leaf's box — so with two
                     //    viewports, each shows its own grid and neither leaks onto the panels.
                     ViewportLeafTally = 0u;
+                    LayerLeafTally = 0u;
 
                     for (std::uint32_t Leaf = 0u; Leaf < WorkspacePanels.LeafCount(); ++Leaf)
                     {
@@ -653,6 +745,15 @@ int main(int ArgumentCount, char** ArgumentValues)
                                                                 EditorEntities, 7u,
                                                                 EditorRevisions, EditorRevisionCount,
                                                                 SceneApplied.InspectorTab);
+                                break;
+                            case PanelSubject::TexturePaint:
+                                TexturePaint.Record(LeafBody, TexturePaintApplied, StackRows, 12u);
+
+                                if (LayerLeafTally < PanelStructure::RecordCeiling)
+                                {
+                                    LayerLeafRects[LayerLeafTally] = LeafBody;
+                                    ++LayerLeafTally;
+                                }
                                 break;
                             default:
                                 break;
@@ -718,9 +819,35 @@ int main(int ArgumentCount, char** ArgumentValues)
             //      samples it; the panel's own Advance only samples, and a second advance would retire
             //      the release before the leaves read it.
             SceneLedger.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds);
+
+            // 📐 Tab is shared by the scene directory's pages and the layer stack's carousel, so the
+            //    key goes to whichever panel the pointer is over: a TexturePaint leaf feeds the layer
+            //    stack, anything else feeds the scene directory. With no TexturePaint leaf open, the
+            //    scene directory keeps Tab as before.
+            const bool TabPressed = Viewport.Seam().KeyPressed(KeySubject::Summon);
+            const PointerCondition& Hovered = Viewport.Surface().Pointer();
+            bool PointerInLayers = LayerLeafTally > 0u;
+
+            if (PointerInLayers)
+            {
+                PointerInLayers = false;
+
+                for (std::uint32_t Ordinal = 0u; Ordinal < LayerLeafTally; ++Ordinal)
+                {
+                    if (LayerLeafRects[Ordinal].Encloses(Hovered.PositionX, Hovered.PositionY))
+                    {
+                        PointerInLayers = true;
+                        break;
+                    }
+                }
+            }
+
             SceneDirectory.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
                                    SceneApplied,
-                                   Viewport.Seam().KeyPressed(KeySubject::Summon));
+                                   TabPressed && !PointerInLayers);
+            TexturePaint.Advance(Viewport.Surface().Pointer(), Pass.ElapsedMilliseconds,
+                               TexturePaintApplied, StackRows, 12u,
+                               TabPressed && PointerInLayers);
 
             // 📝 The search field: while it holds the contact, the seam's typed run feeds the
             //    directory's retention run, and Backspace / Escape edit it. Gated on the panel's own
@@ -747,6 +874,30 @@ int main(int ArgumentCount, char** ArgumentValues)
 
                 if (Viewport.Seam().KeyPressed(KeySubject::Withdraw))
                     SceneApplied.EntityRetention[0] = '\0';
+            }
+
+            // 📝 The layer stack's own search pill — the same gated feed.
+            if (TexturePaintApplied.SearchTaken)
+            {
+                static_cast<void>(Viewport.Seam().AcceptTyped(TexturePaintApplied.Retention,
+                                                              TexturePaintContext::TextureRetentionCeiling));
+
+                if (Viewport.Seam().KeyPressed(KeySubject::Retract))
+                {
+                    std::uint32_t Occupied = 0u;
+
+                    while (Occupied + 1u < TexturePaintContext::TextureRetentionCeiling &&
+                           TexturePaintApplied.Retention[Occupied] != '\0')
+                    {
+                        ++Occupied;
+                    }
+
+                    if (Occupied > 0u)
+                        TexturePaintApplied.Retention[Occupied - 1u] = '\0';
+                }
+
+                if (Viewport.Seam().KeyPressed(KeySubject::Withdraw))
+                    TexturePaintApplied.Retention[0] = '\0';
             }
 
             // 📝 The fly camera: the seam's held keys and look gesture drive the rig, and the lagged
