@@ -305,16 +305,16 @@ struct ProofDriver
     ControlCentrePanel ControlCentre;
     ControlCentreConfiguration Values;
     ThemeProfile Appearance;
+    const char* ActiveFamily = "Archivo";
 
     ProofDriver()
         : IO(ImGui::GetIO())
     {
         Values.Page = ControlCentrePage::Display;
         Values.DisplayPage = DisplayPreferencePage::Fonts;
-        Values.Font = 0u;   // Archivo — the first family Discover returns in sorted order
     }
 
-    bool Construct(const char* FontRoot)
+    bool Construct(const char* FontRoot, const char* Family)
     {
         if (!Fonts.Discover(FontRoot).Resolved)
         {
@@ -326,15 +326,26 @@ struct ProofDriver
             std::fprintf(stderr, "rejected: preview preparation\n");
             return false;
         }
+        ActiveFamily = Family;
         FontProfile Profile;
-        std::strncpy(Profile.Family, "Archivo", sizeof(Profile.Family) - 1u);
+        std::strncpy(Profile.Family, Family, sizeof(Profile.Family) - 1u);
         if (!Fonts.Load(FontRoot, Profile, 1.0f).Resolved)
         {
-            std::fprintf(stderr, "rejected: active family load (is Archivo installed?)\n");
+            std::fprintf(stderr, "rejected: active family load (is %s installed?)\n", Family);
             return false;
         }
         std::fprintf(stderr, "[Fonts] active family: %s, %u families discovered\n",
                      Profile.Family, static_cast<unsigned>(Fonts.FamilyCount()));
+
+        // 📝 The hosts seat the carousel on the family the appearance names; mirror it here so the
+        //    highlighted tile and the loaded faces agree.
+        for (std::uint32_t Ordinal = 0u; Ordinal < Fonts.FamilyCount(); ++Ordinal)
+            if (Fonts.FamilyName(Ordinal) != nullptr &&
+                std::strcmp(Fonts.FamilyName(Ordinal), Profile.Family) == 0)
+            {
+                Values.Font = Ordinal;
+                break;
+            }
 
         // 🔴 A CPU harness has no backend to claim the atlas texture. Reserve it exactly as a backend
         //    would: the id is what `GetTexID()` resolves every command's ref to, and `NewFrame` pushes
@@ -345,7 +356,7 @@ struct ProofDriver
         ThemeSelection Selected;
         Selected.Current = ThemeSubject::Oled;
         Appearance = ResolveTinted(1.0, 1.0, ViewportWidth, Selected);
-        std::strncpy(Appearance.Fonts.Family, "Archivo", sizeof(Appearance.Fonts.Family) - 1u);
+        std::strncpy(Appearance.Fonts.Family, Family, sizeof(Appearance.Fonts.Family) - 1u);
         ApplyFontWeights(Appearance, Values.TypographyWeight);
         Surface.ApplyFontLoader(Fonts);
         ControlCentre.SetFontFamilies(Fonts);
@@ -493,6 +504,13 @@ bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
     Driver.Values = {};
     Driver.Values.Page = ControlCentrePage::Display;
     Driver.Values.DisplayPage = DisplayPreferencePage::Fonts;
+    for (std::uint32_t Ordinal = 0u; Ordinal < Driver.Fonts.FamilyCount(); ++Ordinal)
+        if (Driver.Fonts.FamilyName(Ordinal) != nullptr &&
+            std::strcmp(Driver.Fonts.FamilyName(Ordinal), Driver.ActiveFamily) == 0)
+        {
+            Driver.Values.Font = Ordinal;
+            break;
+        }
 
     std::fprintf(stderr, "\n== %s ==\n", Scenario);
 
@@ -583,6 +601,11 @@ bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
         ImGui::Render();
         return Driver.Capture(OutputPath, Atlas, AtlasWidth, AtlasHeight);
     }
+    else if (std::strcmp(Scenario, "fonts-inter-default") == 0)
+    {
+        // The default bring-up: the appearance names Inter and the hosts seat the carousel on it.
+        Driver.Settle(20);
+    }
     else if (std::strcmp(Scenario, "fonts-scrolled-lower-rows") == 0)
     {
         Driver.Values.TypographyWeight[0u] = 900u;   // Title    - Black
@@ -615,6 +638,7 @@ bool RunShot(ProofDriver& Driver, const char* OutputPath, const char* Scenario,
 int main(int ArgumentCount, char** Arguments)
 {
     const char* FontRoot = "EngineContent/FontArchives";
+    const char* Family = "Archivo";
     std::string OutputDirectory = "VisualProof/Typography";
     std::string Scenario = "";
 
@@ -625,6 +649,8 @@ int main(int ArgumentCount, char** Arguments)
             FontRoot = Arguments[++Ordinal];
         else if (Arg == "--out" && Ordinal + 1 < ArgumentCount)
             OutputDirectory = Arguments[++Ordinal];
+        else if (Arg == "--family" && Ordinal + 1 < ArgumentCount)
+            Family = Arguments[++Ordinal];
         else if (Arg.rfind("--shot=", 0) == 0)
             Scenario = Arg.substr(7);
         else if (Arg.rfind("--shot ", 0) == 0 && Ordinal + 1 < ArgumentCount)
@@ -645,7 +671,7 @@ int main(int ArgumentCount, char** Arguments)
     IO.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
 
     ProofDriver Driver;
-    if (!Driver.Construct(FontRoot))
+    if (!Driver.Construct(FontRoot, Family))
         return 1;
     if (IO.Fonts->Fonts.empty())
     {
@@ -686,7 +712,8 @@ int main(int ArgumentCount, char** Arguments)
     std::fprintf(stderr, "[atlas] %dx%d RGBA\n", AtlasWidth, AtlasHeight);
 
     const char* Shots[] = {"fonts-archivo-carousels", "fonts-title-bold", "fonts-title-black-scrolled",
-                           "fonts-mixed-weights", "fonts-scrolled-lower-rows", "settings-title-black"};
+                           "fonts-mixed-weights", "fonts-scrolled-lower-rows", "settings-title-black",
+                           "fonts-inter-default"};
 
     int Rendered = 0;
     for (const char* Shot : Shots)

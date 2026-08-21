@@ -231,6 +231,17 @@ int main(int ArgumentCount, char** ArgumentValues)
     Discard(Fonts.PreparePreviews(1.0f));
     Discard(Fonts.Load(FontRoot.c_str(), Viewport.Appearance().Fonts, 1.0f));
     ControlCentre.SetFontFamilies(Fonts);
+    // 📝 Seat the family carousel on the family the appearance names. Without this the carousel opened
+    //    on ordinal zero (the alphabetically first family) while the loaded faces were the appearance's
+    //    own — and the role strips draw the LOADED family's faces, so the two have to agree at bring-up.
+    for (std::uint32_t Ordinal = 0u; Ordinal < Fonts.FamilyCount(); ++Ordinal)
+        if (Fonts.FamilyName(Ordinal) != nullptr &&
+            std::strcmp(Fonts.FamilyName(Ordinal), Viewport.Appearance().Fonts.Family) == 0)
+        {
+            ControlCentreValues.Font = Ordinal;
+            break;
+        }
+
 
     if (!Workspace.Construct(Viewport.Surface(), Viewport.Appearance()).Resolved)
     {

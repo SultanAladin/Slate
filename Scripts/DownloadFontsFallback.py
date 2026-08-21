@@ -30,8 +30,16 @@ FONTS = [
         "fonts/otf/Archivo-Medium.otf",
         "fonts/otf/Archivo-SemiBold.otf",
     ]),
-    ("Inter", "rsms/inter", "master", [
-        "docs/font-files/InterVariable.ttf",
+    ("Inter", "rsms/inter", "v3.19", [
+        "docs/font-files/Inter-Thin.otf",
+        "docs/font-files/Inter-ExtraLight.otf",
+        "docs/font-files/Inter-Light.otf",
+        "docs/font-files/Inter-Regular.otf",
+        "docs/font-files/Inter-Medium.otf",
+        "docs/font-files/Inter-SemiBold.otf",
+        "docs/font-files/Inter-Bold.otf",
+        "docs/font-files/Inter-ExtraBold.otf",
+        "docs/font-files/Inter-Black.otf",
     ]),
     ("JetBrainsMono", "JetBrains/JetBrainsMono", "master", [
         "fonts/archives/otf/JetBrainsMono-Regular.otf",

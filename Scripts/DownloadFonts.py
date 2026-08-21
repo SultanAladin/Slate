@@ -22,8 +22,17 @@ FONTS = {
         ("https://codeload.github.com/Omnibus-Type/Archivo/zip/refs/heads/master", "Archivo-master"),
     ],
     "Inter": [
-        ("https://github.com/rsms/inter/archive/refs/heads/master.zip", "inter-master"),
-        ("https://codeload.github.com/rsms/inter/zip/refs/heads/master", "inter-master"),
+        # 📝 The master archive carries only InterVariable.ttf, and a variable font loads one Regular face
+        #    in Slate's stb-based atlas — so the weight strips would show a single "Regular" tile. v3.19's
+        #    docs/font-files carries the nine static upright faces; those are what the strips enumerate.
+        ("https://github.com/rsms/inter/archive/refs/tags/v3.19.zip", "inter-3.19",
+         ["Inter-Thin.otf", "Inter-ExtraLight.otf", "Inter-Light.otf", "Inter-Regular.otf",
+          "Inter-Medium.otf", "Inter-SemiBold.otf", "Inter-Bold.otf", "Inter-ExtraBold.otf",
+          "Inter-Black.otf"]),
+        ("https://codeload.github.com/rsms/inter/zip/refs/tags/v3.19", "inter-3.19",
+         ["Inter-Thin.otf", "Inter-ExtraLight.otf", "Inter-Light.otf", "Inter-Regular.otf",
+          "Inter-Medium.otf", "Inter-SemiBold.otf", "Inter-Bold.otf", "Inter-ExtraBold.otf",
+          "Inter-Black.otf"]),
     ],
     "JetBrainsMono": [
         ("https://github.com/JetBrains/JetBrainsMono/archive/refs/heads/master.zip", "JetBrainsMono-master"),
@@ -84,7 +93,9 @@ def download(name, candidates):
         print(f"[skip] {name}: font files already exist")
         return True
 
-    for url, archive_root in candidates:
+    for candidate in candidates:
+        url, archive_root = candidate[0], candidate[1]
+        keep = candidate[2] if len(candidate) > 2 else None
         print(f"[try] {name}: {url}")
         try:
             archive = ZipFile(BytesIO(fetch(url)))
@@ -95,7 +106,9 @@ def download(name, candidates):
             copied = 0
             for entry in entries:
                 path = Path(entry)
-                if "fonts" not in path.parts and "static" not in path.parts:
+                if "fonts" not in path.parts and "static" not in path.parts and "font-files" not in path.parts:
+                    continue
+                if keep is not None and path.name not in keep:
                     continue
                 target = destination / path.name
                 with archive.open(entry) as source, target.open("wb") as output:

@@ -548,6 +548,17 @@ ApplyFontWeights(Appearance, ControlCentreValues.TypographyWeight);
     //    the preview tiles would draw from stale texture data.
     Discard(Fonts.PreparePreviews(1.0f));
     ControlCentre.SetFontFamilies(Fonts);
+    // 📝 Seat the family carousel on the family the appearance names. Without this the carousel opened
+    //    on ordinal zero (the alphabetically first family) while the loaded faces were the appearance's
+    //    own — and the role strips draw the LOADED family's faces, so the two have to agree at bring-up.
+    for (std::uint32_t Ordinal = 0u; Ordinal < Fonts.FamilyCount(); ++Ordinal)
+        if (Fonts.FamilyName(Ordinal) != nullptr &&
+            std::strcmp(Fonts.FamilyName(Ordinal), Appearance.Fonts.Family) == 0)
+        {
+            ControlCentreValues.Font = Ordinal;
+            break;
+        }
+
     Discard(Fonts.Load(FontArchivesPath, Appearance.Fonts, 1.0f));
 
     // Every construct refusal below is reported WITH its detail and flushed before the return. A refusal
